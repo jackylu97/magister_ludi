@@ -837,12 +837,10 @@ let victory: VictoryModal | null = null;
    it (the End Turn blocker steers here), and it reaches the controls. */
 let statecraft: StatecraftScreen | null = null;
 /**
- * What this boot's screens must unbind before the next game builds new ones
- * over the same DOM (Entry LVII — the frozen star chart): every per-game
- * screen that hangs a listener on `window` pushes its dispose here. The sweep
- * runs on the way to the landing AND at the top of `boot`, so a load that
- * never visits the landing is covered too; the array is cleared by the sweep,
- * which is what makes running it twice safe.
+ * What must unbind before another boot replaces these screen instances.
+ * Restart and load go through `adoptGame`, which reuses them: those journeys
+ * close screens without disposing their listeners. Disposing on the way to
+ * the landing left the reused Statecraft screen without either close handler.
  */
 let gameDisposers: Array<() => void> = [];
 function disposeGameScreens(): void {
@@ -1102,6 +1100,8 @@ function closePopovers(): boolean {
  * already exists, which is why one holder carries both.
  */
 let takeOverGame: ((next: Game | null) => Promise<void>) | null = null;
+/** Clear the current visit's delayed work without dismantling the reusable UI. */
+let suspendGame: (() => void) | null = null;
 
 /**
  * **The title screen's two readings of the shelf**: what Continue says, and what
@@ -1190,17 +1190,9 @@ function showLanding(): void {
   // And the victory sheet, for the same reason.
   victory?.clear();
   setRestartConfirm(false);
-  // Every per-game screen this boot built (Entry LVII): the window listeners
-  // each one hung, the arrangement the Statecraft sheet was holding, and the
-  // Abacus's own WebGL context — five thousand triangles and the one context
-  // the page hands out, given back so the next game builds a fresh stage on the
-  // first press of `A`. `closePopovers` above has already shut them; this is
-  // what makes them stop existing.
-  //
-  // One register rather than a list of names here, because `boot` sweeps the
-  // same register and a save loaded without visiting the landing has to be
-  // covered by the same sweep.
-  disposeGameScreens();
+  // The next Begin reuses this boot through `takeOverGame`. Keep the screen
+  // listeners, but cancel pending turns and clear offers from the old game.
+  suspendGame?.();
   // The Compendium is deliberately **not** disposed here. It is a property of
   // the page rather than of a game — built at module scope beside the help
   // sheet, reachable from the controls card before anything has been started,
@@ -2095,9 +2087,8 @@ async function createRenderer(
  * chosen.
  */
 async function boot(initial: Game | null): Promise<void> {
-  // A second game over the same DOM: whatever the previous boot hung on
-  // `window` goes first (Entry LVII), here rather than only in `showLanding`,
-  // because a load can re-boot without ever showing the landing.
+  // Only a replacement boot removes listeners. Ordinary restart/load uses
+  // `adoptGame` and must keep these instances' close handlers connected.
   disposeGameScreens();
   let game: Game = initial ?? createGame(currentConfig());
   const { view: renderer, report } = await createRenderer(artMode(), game);
@@ -4055,11 +4046,8 @@ async function boot(initial: Game | null): Promise<void> {
     },
   });
 
-  // The three parchment sheets built here bind a capturing `keydown` on the
-  // window like every other one (`modalShell.ts`), so they join the register
-  // the same way. `showLanding` used to dispose them by name and `boot` did
-  // not, which left exactly one door — a save loaded without going back to the
-  // landing — where Entry LVII could happen again.
+  // The parchment sheets share the boot's lifetime. Their capturing keyboard
+  // listeners come off only when that boot is replaced, not on Restart.
   gameDisposers.push(() => statecraft?.dispose());
 
   /**
@@ -5201,6 +5189,10 @@ async function boot(initial: Game | null): Promise<void> {
     // landing remains busy until the replacement board is ready to adopt.
     const replacement = next ?? createGame(currentConfig());
     if (renderer instanceof Renderer3D) await renderer.preparePaintedMap(replacement.state.map, terrainBuildProgress);
+    // A direct load need not visit the landing. Finish any staged arrangement
+    // against the old game and clear its delayed work before swapping state.
+    closePopovers();
+    suspendGame?.();
     // An announcement about the game that just ended has nothing to say about
     // the one starting, so it goes with it.
     splash.clear();
@@ -5446,13 +5438,19 @@ async function boot(initial: Game | null): Promise<void> {
   // Entry LVII's register, for a pair of pending hops rather than a listener: a
   // game torn down between the press and the drive would otherwise resolve a
   // turn on a board that is no longer on screen.
-  gameDisposers.push(() => {
+  function cancelPendingEndTurn(): void {
     if (endTurnRaf !== 0) window.cancelAnimationFrame(endTurnRaf);
     if (endTurnTimer !== 0) window.clearTimeout(endTurnTimer);
     endTurnRaf = 0;
     endTurnTimer = 0;
     endTurnWorking = false;
-  });
+  }
+  gameDisposers.push(cancelPendingEndTurn);
+  suspendGame = () => {
+    cancelPendingEndTurn();
+    splash.clear();
+    offerCard.clear();
+  };
 
   window.addEventListener('resize', () => renderer.resize());
 

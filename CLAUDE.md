@@ -433,9 +433,11 @@ be renamed — it would change every seeded outcome. No further rename passes.
   `gameDisposers`; it wears `.statecraft-overlay` for the one cap rule. The star
   chart and the Abacus are the two stated exceptions (a measured stage). Eight
   sheets build on it; a ninth does too.
-- Per-game screens push their window listeners into `gameDisposers` (`main.ts`),
-  swept in `showLanding` + boot (`test/ui/screenLifecycle.test.ts`) — nothing
-  disposes by name. The sticky info card's capture handlers claim nothing while
+- Per-boot screens push their window listeners into `gameDisposers` (`main.ts`),
+  swept before `boot` replaces them (`test/ui/screenLifecycle.test.ts`). Restart
+  and load reuse these screens: close them and clear delayed work through
+  `suspendGame`, never dispose their handlers. Nothing disposes by name.
+  The sticky info card's capture handlers claim nothing while
   hidden/disconnected.
 - **A named thing in a describer is a keyword ref**: describers emit
   `[[kind:id|Name]]` via `ref()`; every printed clause goes through

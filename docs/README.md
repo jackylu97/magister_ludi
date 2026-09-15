@@ -375,7 +375,11 @@ Eight root pages, all named in `vite.config.ts` inputs:
   FROZEN 2D — it must keep compiling and gains no features.
 - `src/ui/` is the DOM UI; `controls.ts` drives renderers only through the
   `MapView` interface. A full-screen sheet builds on `modalShell.ts`. Per-game
-  screens push their window listeners into `gameDisposers`.
+  screens push their window listeners into `gameDisposers`. Restart and loading
+  another game reuse the booted UI: close its screens and clear pending dialogs
+  and turn timers, but keep their listeners. Dispose only before replacing the
+  screen instances. Statecraft's × and Escape must still work on the first visit
+  after Restart, including when leaving commits an Order.
 - **The landing is three screens and one element** (batch L7, `docs/flags.md`
   (yyyy); the mockup is `mockups/new-game-flow.html`): `data-step` on `#landing`
   is the whole of the screen state — **title** (the poster, shown here and

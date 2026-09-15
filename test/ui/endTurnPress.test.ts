@@ -142,9 +142,11 @@ describe('the End Turn press yields a frame before the bots think', () => {
     const main = source('main.ts');
     expect(main).toContain('window.cancelAnimationFrame(endTurnRaf)');
     expect(main).toContain('window.clearTimeout(endTurnTimer)');
-    // Entry LVII's register, for a pending hop rather than a listener.
-    const at = main.indexOf('gameDisposers.push(() => {');
-    expect(at).toBeGreaterThan(-1);
+    // The same canceller serves final teardown and the reusable UI's trip
+    // back to the landing. Restart must cancel work without unbinding screens.
+    expect(main).toContain('gameDisposers.push(cancelPendingEndTurn);');
+    const suspend = main.slice(main.indexOf('suspendGame = () => {')).split('\n  };')[0]!;
+    expect(suspend).toContain('cancelPendingEndTurn();');
   });
 });
 
