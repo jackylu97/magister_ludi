@@ -132,9 +132,27 @@ Reference: **`docs/units.md`** (the roster; generated) and
   a road step costs a third by default, a fifth under Machinery. Zone of control
   is a toll, never a lock. Shore crossing is a pair-of-hexes rule; ships are
   exempt.
+- **Three rules about who is in the way** (`docs/flags.md` (ooooo), 2026-09-15),
+  all of them inside `stepCost`'s discipline:
+  1. **A piece at peace is not a wall.** A hex holding a piece of a seat this
+     empire is not at war with — its own included — may be *passed through* with
+     the movement to reach a hex beyond it; `canTransit` admits it, `canStopOn`
+     refuses it, and the pass costs the ground and nothing more. A hostile piece
+     blocks as it always did, and the wild is at war with everybody.
+  2. **Zone of control is a war toll.** `zocField` counts only the pieces, towns
+     and (under the Great Wall) borders of seats this empire is at war with. A
+     neighbour at peace exerts none.
+  3. **The swap.** A military piece ordered onto a hex holding one of its own
+     seat's military pieces trades places with it: the mover walks its route, the
+     sitter walks the reverse, and the order is accepted only if **both** walks
+     fit this turn (`planSwap` — never a civilian, never another seat's, both
+     landings priced through `stepCost`). It is a `moveUnit` with the friend's
+     hex as its target, so the highlight and the reducer agree hex for hex, and
+     both pieces spend their movement, break their trench and wake.
 - **`arriveOnTile`** (`arrival.ts`) is the one "came to rest here" seam — ruins
   claimed, camps burnt, civilians captured, a march refilled under The King's
-  Road. Any new way to move a unit calls it.
+  Road. Any new way to move a unit calls it — the swap walks both its pieces
+  through `advanceAlongPath`, so both arrivals land there.
 - **Combat is flat points on one ledger** (`planCombat`). Terrain, fortification,
   the general's aura and a wall are labelled strength lines, never multipliers;
   only two attacker-side percentages survive (a river crossing, and a card's own).

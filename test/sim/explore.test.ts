@@ -569,10 +569,28 @@ describe('determinism', () => {
    * `"schemaVersion":116` put back to 115 digests to the previous literals
    * exactly, both seeds, same byte length — so the whole of the difference is
    * that one field. Nothing ranged differently.
+   *
+   * **Re-taken a fifth time, 2026-09-15**, and by the rule above: a ruling in
+   * `docs/flags.md` first — item **(ooooo)**, the passing, the swap and the war
+   * toll. Two of its three rules reach this sweep directly. A scout of one seat
+   * that met a piece of the other used to stop at it and route around it; it
+   * files through now, because nobody has declared anything. And a scout that
+   * walked alongside a stranger's soldier used to pay `zocExtraCost` for the
+   * privilege; it pays the ground now, so the same allowance carries it further
+   * in the same turn. **The measurement**: both seeds' snapshots were taken side
+   * by side against the head before this batch and walked key by key, and every
+   * difference is downstream of where the two seats' explorers *stood* —
+   * `units` positions and `movesLeft`, the `visibility` and `explored` grids
+   * they lit from there, the ruins those grids claimed, and the generator state
+   * the claims drew from. No rule of the ground changed, no schema field moved,
+   * and the map generator is untouched: both boards are hex-for-hex the boards
+   * they were, walked further into. The prints are a little shorter at both
+   * seeds, which is what a fog grid with more of one seat's hexes already lit
+   * looks like.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '54525401:187628',
-    2026: 'abe09ac4:187513',
+    11: 'cfd7c40b:187615',
+    2026: '28c07ab6:187229',
   };
 
   for (const seed of [11, 2026]) {
