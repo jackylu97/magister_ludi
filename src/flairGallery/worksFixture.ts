@@ -5,6 +5,7 @@ import { createUnit, newGame } from '../sim/state';
 import { resetVisibility, VISIBLE } from '../sim/visibility';
 
 export const WORKS_VIEWS = {
+  terraces: { col: 7, row: 6, label: 'Pachacuti · Terraces', note: 'The approved cultivated hillside in the game renderer. Five planting shelves, stone retaining walls and a tiny summit farmhouse.' },
   plantation: { col: 4, row: 6, label: 'Plantation · wine', note: 'Cultivated shrubs, painted beds and a small farmhouse.' },
   plantationHills: { col: 5, row: 8, label: 'Plantation · tea hills', note: 'Rows follow the hill faces; the farmhouse has a fitted foundation.' },
   reeds: { col: 4, row: 10, label: 'Plantation · reeds', note: 'Cultivated reed beds retain the resource’s own silhouette.' },
@@ -25,7 +26,7 @@ export type WorksView = keyof typeof WORKS_VIEWS;
 /** A gallery fixture, never a saved game or a mutation of the running game. */
 export function createWorksFixture() {
   const state = newGame({ seed: 19, sizeName: 'duel', players: [
-    { name: 'The review town', color: '#984d36', isHuman: true },
+    { name: 'The review town', leader: 'pachacuti', color: '#984d36', isHuman: true },
   ] });
   state.map = createMap({ width: 20, height: 21, terrain: 'grassland' });
   state.units = []; state.cities = []; state.camps = []; state.nextEntityId = 1;
@@ -42,6 +43,8 @@ export function createWorksFixture() {
       if (t.col >= 3 && t.col <= 5 && t.row === 2) t.terrain = 'mountain';
     }
   }
+  Object.assign(tile(7, 6), { hills: true, feature: 'none', improvement: 'terraces' });
+  tile(7, 5).hills = true; tile(6, 6).hills = true;
   tile(4, 6).resource = 'wine';
   Object.assign(tile(5, 8), { resource: 'tea', hills: true });
   Object.assign(tile(4, 10), { resource: 'reeds', terrain: 'plains', feature: 'none' });

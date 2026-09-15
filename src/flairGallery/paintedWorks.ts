@@ -59,11 +59,19 @@ export async function drawPaintedWorks(into: HTMLElement): Promise<() => void> {
   checkbox(knobs, 'Units', false, value => {
     if (value) {
       if (visitors) state.units.push(...visitors);
-      else visitors = ['academy', 'landmark', 'manufactory', 'customsHouse', 'citadel', 'holySite', 'academyHills', 'holySiteHills']
+      else visitors = ['terraces', 'academy', 'landmark', 'manufactory', 'customsHouse', 'citadel', 'holySite', 'academyHills', 'holySiteHills']
         .map(id => { const view = WORKS_VIEWS[id as WorksView]; return createUnit(state, 0, 'warrior', view.col, view.row); });
     } else if (visitors) {
       const ids = new Set(visitors.map(unit => unit.id)); state.units = state.units.filter(unit => !ids.has(unit.id));
     }
+    renderer.setGameState(state);
+  });
+  if (requestedWork === 'terraces') checkbox(knobs, 'Road through terraces', false, value => {
+    for (const col of [6, 7, 8]) state.map.tiles[6 * state.map.width + col]!.road = value ? 0 : undefined;
+    renderer.setGameState(state);
+  });
+  if (requestedWork === 'terraces') checkbox(knobs, 'Terrace farm', true, value => {
+    state.map.tiles[6 * state.map.width + 7]!.improvement = value ? 'terraces' : undefined;
     renderer.setGameState(state);
   });
   button(knobs, 'Reset view', frame);

@@ -12,6 +12,7 @@ import { indexGeometry } from '../terrainStudy/indexGeometry.js';
 import { centre, isWater, neighbour, onTileTop, surfaceHeight, prepareTerrainMap } from '../terrainStudy/surface.js';
 import { createPaintedFog, paintedFogMaterial, paintedFogDepth, paintedChartMaterial } from './paintedFog.js';
 import { PAINTED_CHART, paintedChartGeometry } from './paintedFogLook';
+import { PaintedRelief } from './paintedRelief';
 import { VIEW3D } from './lookData';
 
 const axis = new T.Vector3(0, 1, 0);
@@ -32,6 +33,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     const copy = new T.Group(); copy.position.x = offset; group.add(copy); return copy;
   });
   const fog = createPaintedFog(map.width, map.height);
+  const relief = new PaintedRelief();
   const CellArray = map.tiles.length <= 65536 ? Uint16Array : Float32Array;
   const ownedGeometry = new Set(), ownedMaterials = new Map(), depthMaterials = new Map();
   const pickMeshes = [], nearProps = [], farProps = [], visibilityBatches = [];
@@ -200,6 +202,9 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     // million zeroes, and the pigment's `uv` is `position.xz * .6` — a function
     // of a coordinate the vertex shader already has. Both are supplied where
     // they are read instead of stored per vertex.
+    const hillFaces = new Uint8Array(count);
+    if (geometry.userData.plateVertexCount !== undefined) hillFaces.fill(1, geometry.userData.plateVertexCount);
+    geometry.setAttribute('paintedRelief', new T.BufferAttribute(hillFaces, 1));
     geometry.setAttribute('turfWeight', new T.Float32BufferAttribute(new Float32Array(count).fill(turfStrength), 1));
     return geometry;
   }
@@ -209,7 +214,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     if (!geometry) throw new Error('Painted terrain batch has incompatible attributes');
     // Each batch has one material. Its unused inputs need not occupy vertex
     // memory; retained coordinates, normals and pigments remain bit-identical.
-    if (source !== materials.mergedLand) geometry.deleteAttribute('turfWeight');
+    if (source !== materials.mergedLand) { geometry.deleteAttribute('turfWeight'); geometry.deleteAttribute('paintedRelief'); }
     if (source !== materials.mergedWater) geometry.deleteAttribute('paintedOther');
     indexGeometry(geometry); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); ownedGeometry.add(geometry);
     const mesh = new T.Mesh(geometry, materialFor(source));
@@ -403,6 +408,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   });
   return {
     group, renderMap, pickMeshes, fogTexture: fog.texture, fogUniforms: fog.uniforms,
+    replaceHillRelief(cells) { return relief.replace(ownedGeometry, cells); },
     /**
      * The table's paper: one merged hexagon fan at the ground datum that draws
      * only where the board discards, wears the world-space grain and a ruled

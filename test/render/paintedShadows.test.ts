@@ -209,6 +209,22 @@ describe('the ground the frustum reaches', () => {
 });
 
 describe('the moving counters’ depth map', () => {
+  it('reuses shadow coverage through a city zoom while covering every intermediate view', () => {
+    const view = new DioramaCamera(); view.resize(1280, 800);
+    const cached = counters(), previous = counters();
+    view.frameCells({ minX: -1, maxX: 1, minZ: -1, maxZ: 1 }, true, 0);
+    let cachedDraws = 0, previousDraws = 0;
+    for (let frame = 0; frame <= 20; frame++) {
+      view.stepPan(VIEW3D.camera.panMs * frame / 20);
+      expect(view.shadowRadius).toBeGreaterThanOrEqual(view.radius);
+      cachedDraws += Number(cached.frame(view.target.x, view.target.z, view.shadowRadius));
+      previousDraws += Number(previous.frame(view.target.x, view.target.z, view.radius));
+    }
+    expect(cachedDraws).toBeLessThanOrEqual(3);
+    expect(previousDraws).toBe(21);
+    expect(view.shadowRadius).toBe(view.radius);
+  });
+
   it('fits and renders once, then leaves an idle pan alone', () => {
     const f = counters();
     expect(f.frame()).toBe(true);

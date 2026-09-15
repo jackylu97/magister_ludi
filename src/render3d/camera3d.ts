@@ -6,12 +6,10 @@
  * edge of the board shrinks and the scene stops looking like an object you could
  * pick up and starts looking like a landscape you are standing in.
  *
- * The angle is fixed for the same reason Civ fixes it — at 57° the hex tops stay
- * readable while the prism sides still show enough face to carry the lighting,
- * and an orbit control would let the player find the two or three angles where a
- * low-poly board falls apart. It is also what makes closed-form picking possible
- * and what lets the HP-bar quads be pre-oriented once instead of billboarded
- * every frame.
+ * The world uses a lower viewing angle to show the sculpted terrain and
+ * architecture. City screens retain their steeper overview. Switching modes
+ * preserves the pan target and zoom; projection and drag maths use the same
+ * live angle, and the renderer refreshes its billboards when that angle changes.
  *
  * Pan maths
  * ---------
@@ -95,9 +93,9 @@ interface PanTween {
   durationMs: number;
 }
 
-/** Slow in, slow out. Steeper in the middle than the walk-cycle ease. */
-function easeInOutCubic(t: number): number {
-  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+/** Respond on the first frame, then settle gently rather than winding up. */
+function easeOutCubic(t: number): number {
+  return 1 - (1 - t) ** 3;
 }
 
 export class DioramaCamera {
@@ -110,13 +108,16 @@ export class DioramaCamera {
   private viewportWidth = 1;
   private viewportHeight = 1;
 
-  /** Unit vector from target toward the eye. Constant — the angle never changes. */
+  /** Unit vector from target toward the eye, shared by drawing and picking. */
   readonly eyeDirection: Vector3;
   /** Ground-plane direction the camera looks along; the vertical drag axis. */
   private readonly groundForward: Vector3;
   /** Camera right, which is horizontal; the horizontal drag axis. */
   private readonly right: Vector3;
-  private readonly sinElevation: number;
+  private sinElevation: number;
+  private cityView = false;
+  private elevation = CAMERA.elevation;
+  private elevationTween: { from: number; to: number; startedAt: number } | null = null;
 
   private bounds: Bounds | null = null;
   /** Horizontal wrap period in world units; 0 means "do not wrap". */
@@ -143,9 +144,45 @@ export class DioramaCamera {
     this.apply();
   }
 
+  /** Pitch shares the pan clock, including reduced-motion and reversal. */
+  setCityView(active: boolean, animate = false, now = 0): boolean {
+    if (this.cityView === active) return false;
+    this.stepElevation(now);
+    this.cityView = active;
+    const to = active ? CAMERA.cityElevation : CAMERA.elevation;
+    if (animate && CAMERA.panMs > 0) this.elevationTween = { from: this.elevation, to, startedAt: now };
+    else { this.elevationTween = null; this.applyElevation(to); }
+    return true;
+  }
+
+  get isChangingAngle(): boolean { return this.elevationTween !== null; }
+
+  private applyElevation(degrees: number): void {
+    this.elevation = degrees;
+    const el = degrees * DEG, az = CAMERA.azimuth * DEG;
+    this.sinElevation = Math.sin(el);
+    this.eyeDirection.set(Math.cos(el) * Math.cos(az), this.sinElevation, Math.cos(el) * Math.sin(az)).normalize();
+    this.apply();
+  }
+
+  private stepElevation(now: number): boolean {
+    const tween = this.elevationTween;
+    if (!tween) return false;
+    const t = Math.max(0, Math.min(1, (now - tween.startedAt) / CAMERA.panMs));
+    this.applyElevation(tween.from + (tween.to - tween.from) * easeOutCubic(t));
+    if (t >= 1) this.elevationTween = null;
+    return true;
+  }
+
   /** Frustum half-height, exposed so the shadow camera can match the zoom. */
   get radius(): number {
     return this.frustum;
+  }
+
+  /** Cover both zoom endpoints so a city transition does not resize shadows every frame. */
+  get shadowRadius(): number {
+    return Math.max(this.frustum, this.panTween?.fromFrustum ?? this.frustum,
+      this.panTween?.toFrustum ?? this.frustum);
   }
 
   /**
@@ -155,7 +192,7 @@ export class DioramaCamera {
    *
    * The screen's horizontal axis is horizontal in the world too, because the
    * azimuth never changes, so it reaches `aspect` half-heights across. The
-   * vertical axis is foreshortened by the fixed 57° elevation and so reaches
+   * vertical axis is foreshortened by the current elevation and so reaches
    * `1 / sin` of one along the ground. A shadow rig asks this to know how much
    * of its own box is spare — see `createCounterShadows`, which may only let
    * the view drift by what the box has to give.
@@ -252,12 +289,21 @@ export class DioramaCamera {
    * and `apply()` called — before this is asked; both callers do that first.
    */
   private neededFrustumFor(bounds: Bounds, insetPx = 0): number {
+    // Fit against the destination pitch while the live eye is still easing.
+    // Otherwise the last frames can crop the work radius behind the city rails.
+    let fitCamera = this.camera;
+    if (this.elevationTween) {
+      fitCamera = this.camera.clone();
+      const el = this.elevationTween.to * DEG, az = CAMERA.azimuth * DEG;
+      fitCamera.position.copy(this.target).addScaledVector(new Vector3(Math.cos(el)*Math.cos(az), Math.sin(el), Math.cos(el)*Math.sin(az)), CAMERA.eyeDistance);
+      fitCamera.lookAt(this.target); fitCamera.updateMatrixWorld(true);
+    }
     const corner = new Vector3();
     let halfWidth = 0;
     let halfHeight = 0;
     for (const x of [bounds.minX, bounds.maxX]) {
       for (const z of [bounds.minZ, bounds.maxZ]) {
-        corner.set(x, 0, z).applyMatrix4(this.camera.matrixWorldInverse);
+        corner.set(x, 0, z).applyMatrix4(fitCamera.matrixWorldInverse);
         halfWidth = Math.max(halfWidth, Math.abs(corner.x));
         halfHeight = Math.max(halfHeight, Math.abs(corner.y));
       }
@@ -401,7 +447,7 @@ export class DioramaCamera {
 
   /** True while a pan is animating, so the renderer can keep its loop awake. */
   get isPanning(): boolean {
-    return this.panTween !== null;
+    return this.panTween !== null || this.isChangingAngle;
   }
 
   /**
@@ -410,8 +456,9 @@ export class DioramaCamera {
    * destination rather than wherever the last sample fell.
    */
   stepPan(now: number): boolean {
+    const angled = this.stepElevation(now);
     const tween = this.panTween;
-    if (!tween) return false;
+    if (!tween) return angled;
 
     const elapsed = now - tween.startedAt;
     const t = tween.durationMs <= 0 ? 1 : elapsed / tween.durationMs;
@@ -420,7 +467,7 @@ export class DioramaCamera {
       this.target.set(tween.toX, 0, tween.toZ);
       if (tween.toFrustum !== undefined) this.frustum = tween.toFrustum;
     } else {
-      const k = easeInOutCubic(Math.max(0, t));
+      const k = easeOutCubic(Math.max(0, t));
       this.target.set(
         tween.fromX + (tween.toX - tween.fromX) * k,
         0,
@@ -519,7 +566,7 @@ export class DioramaCamera {
 /**
  * Where a ray crosses the horizontal plane `y = planeY`.
  *
- * The camera never looks along the horizon (its elevation is a fixed 57°), so
+ * The camera never looks along the horizon (both viewing angles stay well above the ground), so
  * the denominator is never near zero and this needs no degenerate case.
  */
 export function rayPlaneHit(ray: Ray, planeY: number): Vector3 {

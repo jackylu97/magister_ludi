@@ -5,6 +5,7 @@ import type { GameState } from '../sim/state';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
 import { playerColor, playerSecondaryColor, signTerritory } from './cities3d';
 import { type FogLevels, levelAt } from './fog3d';
+import { terraceFarmSurface } from './terraceFarmSurface';
 import { VIEW3D } from './lookData';
 import { signRoadCells } from './roads3d';
 // @ts-expect-error Approved terrain modules remain JavaScript.
@@ -185,7 +186,7 @@ function foldMarks(marks: readonly Mark[]): number {
  * Forty such cells on a developed map is the whole of what a fog move cost after
  * the recipes were cached. A null recipe is the cache saying *nothing here*.
  */
-type GroundRecipe = { key: number; geometry: BufferGeometry | null };
+type GroundRecipe = { terraced: boolean; key: number; geometry: BufferGeometry | null };
 
 /**
  * Where the ground ink stands in the queue of things painted on the ground.
@@ -282,9 +283,10 @@ export class PaintedGroundLayer {
       if (level === HIDDEN) continue;
       let recipe = this.recipes.get(cell);
       const key = recipe && !planned ? recipe.key : foldMarks(marks);
-      if (!recipe || recipe.key !== key) {
+      const terraced = state.map.tiles[cell]?.improvement === 'terraces';
+      if (!recipe || recipe.key !== key || recipe.terraced !== terraced) {
         recipe?.geometry?.dispose(); this.recipes.delete(cell);
-        const terrain = terrainMesh(tile) as BufferGeometry[];
+        const terrain = (terraced ? terraceFarmSurface(tile) : terrainMesh(tile)) as BufferGeometry[];
         let pieces: BufferGeometry[] = [];
         try {
           pieces = projectMarkings(terrain[0], marks.filter(mark => mark.deck === undefined)) as BufferGeometry[];
@@ -302,10 +304,10 @@ export class PaintedGroundLayer {
           }
         }
         finally { terrain.forEach(g => g.dispose()); }
-        if (!pieces.length) { this.recipes.set(cell, { key, geometry: null }); continue; }
+        if (!pieces.length) { this.recipes.set(cell, { key, terraced, geometry: null }); continue; }
         const geometry = mergeGeometries(pieces)!; pieces.forEach(g => g.dispose());
         geometry.setAttribute('groundExplored', new Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count), 1));
-        recipe = { key, geometry }; this.recipes.set(cell, recipe);
+        recipe = { key, terraced, geometry }; this.recipes.set(cell, recipe);
       }
       if (!recipe.geometry) continue;
       this.cells.add(cell);

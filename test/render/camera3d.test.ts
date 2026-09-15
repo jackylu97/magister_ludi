@@ -10,6 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { Vector3 } from 'three';
 
 import { type Bounds, DioramaCamera } from '../../src/render3d/camera3d';
 import { boardBounds, wrapWidth } from '../../src/render3d/layout';
@@ -270,4 +271,69 @@ describe('DioramaCamera.openAt', () => {
     expect(camera.isPanning).toBe(false);
     expect(camera.stepPan(CAMERA.panMs)).toBe(false);
   });
+});
+
+
+describe('world and city viewing angles', () => {
+  it('uses the steeper city pitch and restores the lower world view without moving target or zoom', () => {
+    const view = seated(); view.openAt(12, 10);
+    const target = view.target.clone(), radius = view.radius;
+    const worldDirection = view.eyeDirection.clone();
+    expect(Math.asin(worldDirection.y) * 180 / Math.PI).toBeCloseTo(50);
+    expect(view.setCityView(true)).toBe(true);
+    expect(Math.asin(view.eyeDirection.y) * 180 / Math.PI).toBeCloseTo(60);
+    expect(view.target).toEqual(target); expect(view.radius).toBe(radius);
+    expect(view.setCityView(true)).toBe(false);
+    expect(view.setCityView(false)).toBe(true);
+    expect(view.eyeDirection).toEqual(worldDirection);
+    expect(view.target).toEqual(target); expect(view.radius).toBe(radius);
+  });
+
+  it('keeps ground picking and drag distance aligned with the projection in both modes', () => {
+    const view = new DioramaCamera(); view.resize(1200, 800); view.openAt(12, 10);
+    for (const city of [false, true, false]) {
+      view.setCityView(city);
+      const ground = new Vector3(view.target.x + 1.3, 0, view.target.z + 2.1);
+      const screen = ground.clone().project(view.camera);
+      const x = (screen.x + 1) * 600, y = (1 - screen.y) * 400;
+      expect(view.groundAt(x, y).distanceTo(ground)).toBeLessThan(1e-9);
+      view.pan(35, -24);
+      const moved = ground.clone().project(view.camera);
+      expect((moved.x + 1) * 600 - x).toBeCloseTo(35, 7);
+      expect((1 - moved.y) * 400 - y).toBeCloseTo(-24, 7);
+    }
+  });
+});
+
+
+it('eases the city pitch, reverses from the current angle and settles without a lingering animation', () => {
+  const view = new DioramaCamera(); view.resize(1200,800);
+  const elevation = () => Math.asin(view.eyeDirection.y) * 180 / Math.PI;
+  view.setCityView(true, true, 100);
+  expect(elevation()).toBeCloseTo(50);
+  expect(view.isPanning).toBe(true);
+  view.stepPan(100 + CAMERA.panMs / 10);
+  expect(elevation()).toBeGreaterThan(52); // visible response immediately, no slow wind-up
+  view.stepPan(100 + CAMERA.panMs / 2);
+  expect(elevation()).toBeCloseTo(58.75);
+  expect(view.setCityView(true,true,100 + CAMERA.panMs / 2)).toBe(false);
+  view.setCityView(false,true,100 + CAMERA.panMs / 2);
+  expect(elevation()).toBeCloseTo(58.75);
+  view.stepPan(100 + CAMERA.panMs);
+  expect(elevation()).toBeCloseTo(51.09375);
+  view.stepPan(100 + CAMERA.panMs * 1.5);
+  expect(elevation()).toBeCloseTo(50);
+  expect(view.isPanning).toBe(false);
+  expect(view.stepPan(100 + CAMERA.panMs * 2)).toBe(false);
+});
+
+it('fits the city radius at the destination angle during the simultaneous pitch and zoom', () => {
+  const instant = seated(), animated = seated();
+  instant.setCityView(true,false); animated.setCityView(true,true,100);
+  const region = {minX:10,maxX:18,minZ:8,maxZ:14};
+  instant.frameCells(region,false,100); animated.frameCells(region,true,100);
+  animated.stepPan(100 + CAMERA.panMs);
+  expect(animated.radius).toBeCloseTo(instant.radius,9);
+  expect(animated.target.distanceTo(instant.target)).toBeLessThan(1e-9);
+  expect(animated.eyeDirection.distanceTo(instant.eyeDirection)).toBeLessThan(1e-9);
 });

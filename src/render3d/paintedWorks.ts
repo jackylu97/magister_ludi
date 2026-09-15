@@ -14,6 +14,8 @@ import { type FogLevels, levelAt } from './fog3d';
 import { type SuppressScope, SUPPRESS } from './instances';
 import { samplePaintedSurface } from './paintedSurface';
 import { createTileSurfaceSampler } from './paintedTileSurface';
+import { terraceFarmGeometry } from './terraceFarmGeometry';
+import { terraceFarmSurface, TERRACE_LIFT } from './terraceFarmSurface';
 import { VIEW3D } from './lookData';
 // @ts-expect-error The reusable approved art builder remains JavaScript.
 import { createSettlementArt } from '../terrainStudy/settlementArt.js';
@@ -28,7 +30,7 @@ export const PAINTED_WORK_ASSET_NAMES = [
 ] as const;
 /** The rows this layer has a recipe drawn for. One name, one composition. */
 const DRAWN_WORK_IMPROVEMENTS = [
-  'farm', 'mine', 'pasture', 'camp', 'quarry', 'plantation', 'lumbermill', 'fishingBoats',
+  'farm', 'terraces', 'mine', 'pasture', 'camp', 'quarry', 'plantation', 'lumbermill', 'fishingBoats',
   'academy', 'landmark', 'manufactory', 'customsHouse', 'citadel', 'holySite',
 ] as const;
 type CoreImprovement = typeof DRAWN_WORK_IMPROVEMENTS[number];
@@ -74,18 +76,10 @@ type PropBatch = { geometry: BufferGeometry; material: MeshStandardMaterial; pro
 type PatchBatch = { material: MeshStandardMaterial; geometries: BufferGeometry[]; cells: number[] };
 const up = new Vector3(0, 1, 0);
 const core = new Set<string>(DRAWN_WORK_IMPROVEMENTS);
-/**
- * Which recipe a hex's works are drawn from — **the row it stands in for**.
- *
- * The one lookup a variant row needs anywhere in this layer (batch L8, the
- * user: *"no need for a separate graphical change for now"*): a terrace comes
- * back as a farm here, so the recipe, the fingerprint and the renderer's own
- * footprint reservation all read the sculpt that is actually on the hex without
- * any of them learning a second name.
- */
+/** Visual variants are independent of the simulation's counts-as rules. */
 const improvementAt = (tile: Tile): CoreImprovement | undefined => {
   if (!tile.improvement) return undefined;
-  const drawn = improvementBaseRow(tile.improvement);
+  const drawn = tile.improvement === 'terraces' ? 'terraces' : improvementBaseRow(tile.improvement);
   return core.has(drawn) ? drawn as CoreImprovement : undefined;
 };
 const resourceAt = (state: GameState, seat: number | null, tile: Tile): ResourceId | null =>
@@ -124,7 +118,7 @@ export function signPaintedWorks(state: GameState, seat: number | null = null): 
       if (visible) resource = resourceOrdinal.get(id) ?? 0;
     }
     add(resource);
-    add(tile.improvement ? improvementOrdinal.get(improvementBaseRow(tile.improvement)) ?? 0 : 0);
+    add(tile.improvement ? improvementOrdinal.get(improvementAt(tile)!) ?? 0 : 0);
     add(featureOrdinal.get(tile.feature) ?? 0);
   }
   for (const city of state.cities) { add(city.col); add(city.row); }
@@ -144,7 +138,15 @@ export class PaintedWorksLayer {
   private preparedMap: GameMap | undefined;
   private disposed = false;
 
-  constructor(assets: PaintedWorksAssets, registerMaterial: RegisterMaterial, private readonly source?: PaintedPropSource) {
+  private readonly terrace = terraceFarmGeometry();
+  private readonly terraceMaterial = new MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: .95, flatShading: true });
+
+  get surfaceMeshes(): Mesh[] {
+    return this.group.children.filter((mesh): mesh is InstancedMesh => mesh instanceof InstancedMesh && mesh.geometry === this.terrace);
+  }
+
+  constructor(private readonly assets: PaintedWorksAssets, registerMaterial: RegisterMaterial, private readonly source?: PaintedPropSource) {
+    registerMaterial(this.terraceMaterial, { terrain: true });
     this.group.name = source?.name ?? 'painted-works';
     this.art = source ? source.createArt(assets, registerMaterial) : createSettlementArt(assets, { register: registerMaterial });
   }
@@ -256,11 +258,12 @@ export class PaintedWorksLayer {
     const recipe: Recipe = { tile, original, resource: entry.resource, improvement: entry.improvement, site: entry.site, props: [], patches: [], placements: [] };
     // Resource-only cells never need field clipping. Avoid tessellating a
     // second world just to place their few instanced silhouettes.
-    const top = entry.improvement || entry.site ? (terrainMesh(tile) as [BufferGeometry, BufferGeometry]) : null;
+    const terraced = entry.improvement === 'terraces';
+    const top = entry.improvement || entry.site ? ((terraced ? terraceFarmSurface(tile) : terrainMesh(tile)) as [BufferGeometry, BufferGeometry]) : null;
     const localSurface = top ? createTileSurfaceSampler(top[0], Math.sqrt(3) * (tile.col + tile.row % 2 * .5), tile.row * 1.5) : null;
     const height = (x: number, z: number): number => (localSurface ? localSurface(x, z) : samplePaintedSurface(original, x, z)) ?? surfaceHeight(tile, x, z) as number;
     try {
-      this.art.tile(tile, entry, top?.[0], {
+      this.art.tile(tile, terraced ? { ...entry, improvement: undefined } : entry, top?.[0], {
         sampleSurface: height, preciseFit: true,
         prop: (geometry: BufferGeometry, material: MeshStandardMaterial, x: number, y: number, z: number,
           sx: number, sy: number, sz: number, yaw = 0, tint: number | Color = 0xffffff): void => {
@@ -275,6 +278,18 @@ export class PaintedWorksLayer {
     } catch (error) {
       for (const patch of recipe.patches) patch.geometry.dispose(); throw error;
     } finally { top?.forEach(geometry => geometry.dispose()); }
+    if (terraced) {
+      const x = Math.sqrt(3) * (tile.col + tile.row % 2 * .5), z = tile.row * 1.5;
+      recipe.props.push({ geometry: this.terrace, material: this.terraceMaterial,
+        matrix: new Matrix4().makeTranslation(x, TERRACE_LIFT, z), color: new Color(0xffffff) });
+      const house = this.assets.house;
+      if (!house.boundingBox) house.computeBoundingBox();
+      const bounds = house.boundingBox!, size = bounds.getSize(new Vector3()), center = bounds.getCenter(new Vector3());
+      const scale = .23 / Math.max(size.x, size.z);
+      recipe.props.push({ geometry: house, material: this.assets.material,
+        matrix: new Matrix4().compose(new Vector3(x + .07 - center.x * scale,
+          TERRACE_LIFT + .39 - bounds.min.y * scale, z - .32 - center.z * scale), new Quaternion(), new Vector3(scale, scale, scale)), color: new Color(0xffffff) });
+    }
     return recipe;
   }
 
@@ -311,6 +326,7 @@ export class PaintedWorksLayer {
   dispose(): void {
     if (this.disposed) return; this.disposed = true;
     this.clearMeshes(); this.clearRecipes(); this.art.dispose();
+    this.terrace.dispose(); this.terraceMaterial.dispose();
     for (const material of this.explored.values()) material.dispose(); this.explored.clear();
     this.entries.length = 0; this.placements.length = 0;
   }

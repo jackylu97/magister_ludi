@@ -42,6 +42,7 @@ export interface PaintedBoardBatch {
   cells?: number[];
 }
 export interface PaintedBoard extends BuiltBoard {
+  replaceHillRelief(cells: ReadonlySet<number>): boolean;
   exportBatches(): PaintedBoardBatch[];
   renderMap: GameMap;
   pickMeshes: Mesh[];

@@ -4555,7 +4555,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // the panel has no mirror call: the player is where they are, and a
       // camera that snapped back on every close would be busier than Civ's.
       const city = openCity();
-      if (city) renderer.frameCells?.(workRadiusCells(city), !prefersReducedMotion());
+      if (city) {
+        // Fit the work radius using the city angle, not the world angle from
+        // the previous screen. The later overlay refresh is idempotent.
+        refreshCityFocus();
+        renderer.frameCells?.(workRadiusCells(city), !prefersReducedMotion());
+      }
     }
     // Buy mode belongs to the city that was open, whichever way the panel is
     // leaving — closed, or swapped for another town. Carrying it across would
