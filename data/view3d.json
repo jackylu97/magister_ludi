@@ -1050,5 +1050,32 @@
       "stemColor": "vellumDeep",
       "markSize": 0.44
     }
+  },
+  "painted": {
+    "shadows": {
+      "staticMapSize": 8192,
+      "counterMapSize": 2048,
+      "counterCoverage": 0.1
+    },
+    "lod": {
+      "nearPixels": 25,
+      "farPixels": 29
+    },
+    "contact": {
+      "resolution": 512,
+      "radius": 0.1,
+      "thickness": 0.25,
+      "distanceExponent": 2,
+      "samples": 12,
+      "denoiseRadius": 4,
+      "denoiseDepthPhi": 2,
+      "denoiseNormalPhi": 6,
+      "renderScale": 0.5,
+      "scaledDenoiseRadius": 2,
+      "blendIntensity": 0.32,
+      "paintedBlendIntensity": 0.12,
+      "fadeStartPixels": 1.5,
+      "fadeRangePixels": 1.5
+    }
   }
 }

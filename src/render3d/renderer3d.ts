@@ -906,11 +906,13 @@ export class Renderer3D implements MapView {
    * Rebuilds the terrain instance buffers for a map, leaving the camera and
    * every scrap of interaction state alone.
    *
-   * Called for a new map, and again whenever shadows are toggled — `castShadow`
-   * is baked into an `InstancedMesh` when it is built, so that flag is a
-   * rebuild. That is now the *whole* list: founding a city and finishing a farm
-   * used to be on it too, and are a per-tile patch instead (`clearGround`). The
-   * board is built once per game.
+   * Called for a new map — and, on the frozen toon board alone, when shadows
+   * are toggled, because there `castShadow` is folded into an `InstancedMesh`
+   * as it is built. The painted board writes that flag over the batches it
+   * already has (`PaintedBoard.setShadows`), so in painted mode this really is
+   * the whole list: founding a city and finishing a farm used to be on it too,
+   * and are a per-tile patch instead (`clearGround`). The board is built once
+   * per game.
    */
   private rebuildBoard(map: GameMap): void {
     if (this.map) uninstallPaintedSurface(this.map);
@@ -988,6 +990,10 @@ export class Renderer3D implements MapView {
     for (const unitId of this.animations.activeUnits()) this.units.hide(unitId);
     this.units.setHoveredUnitId(this.hoveredUnitId ?? null);
     if (this.paintedLook) this.units.group.traverse(object => object.layers.set(2));
+    // The resting pieces are the bulk of layer 2, and this one call is every way
+    // their depth map can go stale: a unit placed, taken, moved, killed,
+    // embarked, hidden behind the fog or handed to another seat all arrive here.
+    this.paintedLook?.invalidateDynamicShadows();
     this.unitsSignature = signUnits(this.state);
   }
 
@@ -1964,7 +1970,7 @@ export class Renderer3D implements MapView {
         group.add(copy);
       }
       this.scene.add(group);
-      this.walkers.set(unitId, group);
+      this.addWalker(unitId, group);
       return;
     }
 
@@ -2023,7 +2029,23 @@ export class Renderer3D implements MapView {
     // The whole group is moved each frame; the per-copy offset lives on the
     // children, so one position write drives all three.
     this.scene.add(group);
+    this.addWalker(unitId, group);
+  }
+
+  /**
+   * Registers a walking piece — and, in painted mode, puts it on layer 2 once.
+   *
+   * The layer is a fact about the group, not about the frame: the counter light
+   * bakes layer 2 and the static sun bakes layer 0, so a walker belongs to the
+   * moving map from the moment it is built. The render loop used to spread both
+   * maps into an array and traverse every walker's subtree on every drawn frame
+   * to say the same thing again.
+   */
+  private addWalker(unitId: number, group: Group): void {
+    if (this.paintedLook) group.traverse(object => object.layers.set(2));
     this.walkers.set(unitId, group);
+    // A counter appeared on the moving map.
+    this.paintedLook?.invalidateDynamicShadows();
   }
 
   /**
@@ -2090,7 +2112,11 @@ export class Renderer3D implements MapView {
     }
 
     this.scene.add(group);
+    // Layer 2 once, for `addWalker`'s reason: a toppling piece is a counter, not
+    // scenery, and must stay out of the world's cached bake.
+    if (this.paintedLook) group.traverse(object => object.layers.set(2));
     this.fallers.set(fallen.id, group);
+    this.paintedLook?.invalidateDynamicShadows();
   }
 
   /**
@@ -2136,6 +2162,7 @@ export class Renderer3D implements MapView {
       }
     }
     this.fallers.delete(unitId);
+    this.paintedLook?.invalidateDynamicShadows();
   }
 
   private clearFallers(): void {
@@ -2178,6 +2205,8 @@ export class Renderer3D implements MapView {
     if (!group) return;
     this.scene.remove(group);
     this.walkers.delete(unitId);
+    // A counter left the moving map: its shadow has to go with it.
+    this.paintedLook?.invalidateDynamicShadows();
   }
 
   private clearWalkers(): void {
@@ -2238,11 +2267,19 @@ export class Renderer3D implements MapView {
   /**
    * Turns shadows on or off.
    *
-   * `castShadow`/`receiveShadow` are baked into the instanced meshes when they
-   * are built, so this rebuilds the board and the pieces — which is why it is a
-   * control the player flips when the frame rate hurts, not something the
-   * renderer touches by itself. The camera, the selection and the overlays are
-   * all left exactly as they were.
+   * On the painted board this is a **flag written over the board that is already
+   * standing**: `castShadow` is a property of a mesh, not something baked into
+   * its buffers, so the switch walks the batches and tells their materials to
+   * recompile. It used to call `rebuildBoard`, which on an ordinary settings
+   * toggle has no prepared board waiting and therefore regenerated the whole
+   * world synchronously — seven seconds of terrain, pigment and contact work for
+   * a checkbox. Nothing about the map changes here, so the fog texture, the
+   * suppression grades, the footprint reservations, the picking meshes, the
+   * camera and every piece's placement all survive untouched.
+   *
+   * The frozen toon board keeps the rebuild: there `castShadow` really is folded
+   * into the instanced buckets when they are built (`instances.ts`), and that
+   * path is closed to new work.
    */
   setShadows(enabled: boolean): void {
     if (this.shadows === enabled) return;
@@ -2251,7 +2288,14 @@ export class Renderer3D implements MapView {
     // Toggling the shadow map invalidates every compiled program that sampled
     // it; three needs telling explicitly.
     this.materials.invalidatePrograms();
-    if (this.map) this.rebuildBoard(this.map);
+    if (this.paintedBoard) {
+      this.paintedBoard.setShadows(enabled);
+      // The works layer keys its batches on the flag, so the next sync rebuilds
+      // them — exactly what resetting this signature in `rebuildBoard` did.
+      this.paintedWorksSignature = null;
+      // A map that was never baked with shadows on has nothing in it.
+      if (enabled) this.paintedLook?.invalidateShadows();
+    } else if (this.map) this.rebuildBoard(this.map);
     this.rebuildUnits();
     this.rebuildCities();
     this.invalidate();
@@ -2478,8 +2522,13 @@ export class Renderer3D implements MapView {
       this.paintedBoard?.updateDetail(pixels, this.paintedLook.sun.shadow.needsUpdate);
       this.paintedLook.setContactDetail(pixels);
       this.paintedLook.updateTime(now / 1000);
-      for (const group of [...this.walkers.values(), ...this.fallers.values()]) group.traverse(object => object.layers.set(2));
-      this.paintedLook.updateDynamicShadows(this.view.target, this.view.radius);
+      // A walk is the one thing that moves a caster on layer 2 *during* a frame
+      // rather than at a seam, so it asks for the counter map itself. A pan
+      // does not: nothing on that layer moved because the camera did, and
+      // `updateDynamicShadows` re-fits on its own when the view finally walks
+      // off the box it fitted last.
+      if (hadWalkers) this.paintedLook.invalidateDynamicShadows();
+      this.paintedLook.updateDynamicShadows(this.view.target, this.view.radius, this.view.groundReach);
       this.renderer.info.autoReset = false;
       this.renderer.info.reset();
       this.paintedLook.render();

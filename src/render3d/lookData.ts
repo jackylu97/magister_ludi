@@ -1829,6 +1829,87 @@ export interface SiteLookSpec {
 }
 
 /**
+ * The painted look's two shadow maps.
+ *
+ * The world bakes once into `staticMapSize` and is re-baked only when the board
+ * itself changes; the moving counters have their own small `counterMapSize` map
+ * fitted around whatever the camera is looking at (see `separatePaintedShadows`
+ * for why the two are submitted apart). `counterCoverage` is the **ceiling** on
+ * the slack in that small map: the pan target may drift this fraction of the
+ * map's half-extent before the counter camera is re-fitted and its depth
+ * re-rendered. Nothing on layer 2 moved while the camera merely panned, so the
+ * previous depth map is still true — until the view walks far enough that the
+ * box no longer covers what is on screen.
+ *
+ * It is a ceiling and not the figure itself, because how much a box has spare
+ * depends on the window. The box is cut at 1.8× the frustum's half-height,
+ * while the ground the frustum covers reaches `DioramaCamera.groundReach` —
+ * 1.6× on the reference 16:10 viewport, 1.78× at 16:9, more on anything wider.
+ * The gate allows the *lesser* of this fraction and that real difference, so a
+ * counter standing at the very edge of the screen is never outside a box fitted
+ * a moment ago, at any aspect ratio. A tenth is therefore the whole of the
+ * slack at 16:10 and almost none of it at 16:9, where the rig re-fits on nearly
+ * every frame the view moves — as it did before the gate — and still leaves the
+ * map alone on every frame it does not. **Zero** asks for that everywhere.
+ */
+export interface PaintedShadowSpec {
+  staticMapSize: number;
+  counterMapSize: number;
+  counterCoverage: number;
+}
+
+/**
+ * The zoom band at which the painted board swaps its near geometry for the far
+ * batches, in device pixels across one hex. Two numbers rather than one so the
+ * swap has hysteresis: a camera parked exactly on the threshold would otherwise
+ * rebuild the visibility of every batch on alternate frames.
+ */
+export interface PaintedLodSpec {
+  nearPixels: number;
+  farPixels: number;
+}
+
+/**
+ * The GTAO contact pass (`terrainStudy/lighting.js`).
+ *
+ * `renderScale` is the half-resolution trick that is the study's largest
+ * measured GPU win, and `scaledDenoiseRadius` is the denoise radius that goes
+ * with it. `fadeStartPixels`/`fadeRangePixels` are where the pass fades out: at
+ * map zoom a contact radius of a tenth of a world unit is subpixel, so it is
+ * smoothly taken to nothing rather than switched off with a visible step.
+ */
+export interface PaintedContactSpec {
+  resolution: number;
+  radius: number;
+  thickness: number;
+  distanceExponent: number;
+  samples: number;
+  denoiseRadius: number;
+  denoiseDepthPhi: number;
+  denoiseNormalPhi: number;
+  renderScale: number;
+  scaledDenoiseRadius: number;
+  blendIntensity: number;
+  paintedBlendIntensity: number;
+  fadeStartPixels: number;
+  fadeRangePixels: number;
+}
+
+/**
+ * The painted renderer's performance knobs, in the sheet rather than in the
+ * code they steer — CLAUDE.md's "code holds algorithms, never tuned constants",
+ * and the one thing that lets a weak device be dialled down without an edit to
+ * `paintedLook.js`. Every field here is read by name; the register test
+ * `test/render/paintedKnobs.test.ts` fails on a knob that is in the sheet and
+ * not in the source, or the other way about.
+ */
+export interface PaintedSpec {
+  shadows: PaintedShadowSpec;
+  lod: PaintedLodSpec;
+  contact: PaintedContactSpec;
+}
+
+/**
  * The survey note's standing mark: the pencilled remark an empire holding
  * Geomancy sees over a hill with something sleeping under it.
  *
@@ -2022,6 +2103,7 @@ export interface View3DData {
   sites: SiteLookSpec;
   abacus: AbacusSpec;
   units: UnitStyleSpec;
+  painted: PaintedSpec;
 }
 
 // --- parsing ---------------------------------------------------------------
@@ -2634,6 +2716,10 @@ export const VIEW3D: View3DData = {
       },
     },
   },
+  // Passed through whole: every one of these is a plain number read by name in
+  // `paintedLook.js`, `paintedBoard.js` and `terrainStudy/lighting.js`, and a
+  // clamp here would quietly disagree with the sheet a device profile edits.
+  painted: viewJson.painted,
 };
 
 // --- colour maths ----------------------------------------------------------
