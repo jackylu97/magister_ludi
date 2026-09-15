@@ -147,6 +147,7 @@ import { type TechId, techDef } from '../sim/techData';
 import { type UnitTypeId, unitDef } from '../sim/unitData';
 import { YIELD_GLYPH } from './yieldMark';
 import { element } from './dom';
+import { seatName } from '../sim/leaderData';
 
 /**
  * The mark each axis wears, and the accent it is drawn in.
@@ -376,7 +377,7 @@ export function religionReading(state: GameState, seat: number): ReligionReading
         cityId: city.id,
         name: cityDisplayName(state, city),
         ours: city.ownerId === seat,
-        ownerName: owner?.name ?? 'somebody',
+        ownerName: seatName(state, city.ownerId),
         ownerColor: owner?.color ?? 'var(--ink)',
         following: held,
         population: city.population,

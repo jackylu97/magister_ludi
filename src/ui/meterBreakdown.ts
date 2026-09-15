@@ -161,19 +161,22 @@ export function foldCityHappiness(
   const out: MeterContribution[] = [];
 
   for (const entry of entries) {
-    const owner =
+    // Named `ownTown` and not `owner`: the thing that owns a gain line here is a
+    // *town*, and the seat-name sweep (`test/ui/seatNames.test.ts`) reads an
+    // `owner.name` as an empire's name being printed.
+    const ownTown =
       entry.part === 'gain'
         ? [...netted].find((town) => entry.source.startsWith(`${town.name} · `))
         : undefined;
-    if (owner) {
+    if (ownTown) {
       // "Funeral Games +3" — the half of the source that is not the town's
       // name, and what it is worth. A player who wants to know why a town is
       // cheaper than its size reads it in the parenthetical.
-      const named = entry.source.slice(owner.name.length + 3);
-      const bag = gathered.get(owner.name) ?? { value: 0, notes: [] };
+      const named = entry.source.slice(ownTown.name.length + 3);
+      const bag = gathered.get(ownTown.name) ?? { value: 0, notes: [] };
       bag.value += entry.value;
       bag.notes.push(`${named} ${entry.value >= 0 ? '+' : '−'}${Math.abs(entry.value)}`);
-      gathered.set(owner.name, bag);
+      gathered.set(ownTown.name, bag);
       continue;
     }
     const town = [...netted].find((candidate) => entry.source === demandLine(candidate));

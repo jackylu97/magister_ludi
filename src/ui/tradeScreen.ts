@@ -110,6 +110,7 @@ import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import { resourceMarkNode } from './resourceMark';
 import { createModalShell } from './modalShell';
 import { element } from './dom';
+import { seatName } from '../sim/leaderData';
 
 // --- the index's four tabs --------------------------------------------------
 
@@ -357,7 +358,7 @@ export function tradeContext(state: GameState, seat: number): TradeContext {
   return {
     state,
     seat,
-    seatName: playerById(state, seat)?.name ?? 'this empire',
+    seatName: seatName(state, seat),
     reading,
     rows,
     gold: playerById(state, seat)?.gold ?? 0,
@@ -663,7 +664,7 @@ export function routeCard(ctx: TradeContext, row: RouteReadingRow, mode: RouteMo
   const pays = row.pays.find((entry) => entry.mode === mode) ?? null;
   const lines = pays?.lines ?? [];
   const rival =
-    row.to.ownerId === ctx.seat ? null : (playerById(ctx.state, row.to.ownerId)?.name ?? null);
+    row.to.ownerId === ctx.seat ? null : seatName(ctx.state, row.to.ownerId);
   return {
     fromCityId: row.from.id,
     toCityId: row.to.id,

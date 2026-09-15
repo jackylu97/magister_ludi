@@ -59,6 +59,7 @@ import { YIELD_GLYPH, YIELD_NAME, type YieldKey, signedMeterFigure } from './fig
 import { roundYield } from '../sim/yieldFormat';
 import { yieldFigureNodes } from './yieldMark';
 import { resourceMarkNode } from './resourceMark';
+import { seatName } from '../sim/leaderData';
 
 /**
  * Terrain and feature by name, plus whether the hex is hilly.
@@ -413,7 +414,7 @@ export function describeOccupant(
 ): string | null {
   const city = cityAt(state, tile.col, tile.row);
   if (city && (omniscient || knowsCity(state, playerId, city.id, tile))) {
-    const owner = state.players[city.ownerId]?.name ?? '—';
+    const owner = seatName(state, city.ownerId);
     const seen = omniscient || isVisibleTo(state, playerId, tile.col, tile.row);
     // The star and the name come from `cityDisplayName`, the one formatter a
     // city's name reaches a player through — capital-ness is a live fact, so a

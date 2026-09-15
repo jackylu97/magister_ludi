@@ -70,6 +70,7 @@
 
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
+import { seatName, seatPeople } from '../sim/leaderData';
 import {
   answerDealError,
   bargainSeatError,
@@ -114,7 +115,14 @@ export type RelationKind = 'peace' | 'war' | 'truce';
  */
 export interface DiplomacyRow {
   playerId: number;
+  /** Who sits there: the figure, or the ink's name for a seat under nobody. */
   name: string;
+  /**
+   * What their country is called — the word the sentences below put after
+   * "the". Two fields rather than one because a card names a person and a
+   * sentence names a nation (`seatName` / `seatPeople`, `docs/flags.md` (ppppp)).
+   */
+  people: string;
   /** The seat's ink, for the swatch. Never interpreted — see `heraldryFor`. */
   color: string;
   relation: RelationKind;
@@ -166,7 +174,8 @@ export function diplomacyRows(state: GameState, seat: number): DiplomacyRow[] {
     const relation: RelationKind = war ? 'war' : truceLeft > 0 ? 'truce' : 'peace';
     rows.push({
       playerId: id,
-      name: player.name,
+      name: seatName(state, id),
+      people: seatPeople(state, id),
       color: player.color,
       relation,
       status: relationSentence(relation, war?.declaredTurn ?? null, truceLeft),
@@ -406,8 +415,8 @@ export function dealPanel(state: GameState, seat: number, targetId: number): Dea
     const mine = row.by === seat && row.to === targetId;
     const theirsToUs = row.by === targetId && row.to === seat;
     if (!mine && !theirsToUs) continue;
-    const byName = playerById(state, row.by)?.name ?? 'an empire';
-    const toName = playerById(state, row.to)?.name ?? 'an empire';
+    const byName = seatPeople(state, row.by);
+    const toName = seatPeople(state, row.to);
     proposals.push({
       id: row.id,
       mine,
@@ -423,14 +432,14 @@ export function dealPanel(state: GameState, seat: number, targetId: number): Dea
     const other = otherSeatOf(deal, seat);
     active.push({
       id: deal.id,
-      name: playerById(state, other ?? targetId)?.name ?? 'an empire',
+      name: seatName(state, other ?? targetId),
       give: termLines(state, sideGivenBy(deal, seat)),
       take: termLines(state, sideTakenBy(deal, seat)),
       turnsLeft: dealTurnsLeft(state, deal),
     });
   }
   const standing = peaceTermsOn(state, seat, targetId);
-  const them = playerById(state, targetId)?.name ?? 'an empire';
+  const them = seatPeople(state, targetId);
   return {
     peace: war,
     yours,
@@ -516,7 +525,7 @@ function dealSide(
   }
   return {
     playerId: giverId,
-    name: giver?.name ?? 'an empire',
+    name: seatName(state, giverId),
     gold: giver?.gold ?? 0,
     luxuries,
     openBorders: {
@@ -947,9 +956,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       declare.disabled = true;
       declare.title = row.declareError;
     } else {
-      declare.title = `Open a war with the ${row.name}`;
+      declare.title = `Open a war with the ${row.people}`;
       declare.addEventListener('click', () => {
-        options.askConfirm(declareConfirm(row.name), () => {
+        options.askConfirm(declareConfirm(row.people), () => {
           options.declareWar(row.playerId);
           draw();
         });
@@ -1015,7 +1024,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const board = element('div', 'diplo-board');
     board.append(drawSide(model, model.yours, draft, 'give', 'You offer'));
     board.append(drawMiddle(state, model, draft, row));
-    board.append(drawSide(model, model.theirs, draft, 'take', `The ${row.name} offer`));
+    board.append(drawSide(model, model.theirs, draft, 'take', `The ${row.people} offer`));
     pane.append(board);
 
     pane.append(drawPapers(model, row));
@@ -1138,7 +1147,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
 
     const paper = element('article', 'diplo-paper is-draft');
     paper.append(drawHalf('You give', termLines(state, draft.give)));
-    paper.append(drawHalf(`The ${row.name} give`, termLines(state, draft.take)));
+    paper.append(drawHalf(`The ${row.people} give`, termLines(state, draft.take)));
     middle.append(paper);
 
     const empty = termsAreEmpty(draft.give) && termsAreEmpty(draft.take);
@@ -1189,7 +1198,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         element(
           'p',
           'diplo-paper-head',
-          envoy.answer.accepted ? `The ${row.name} agree` : `The ${row.name} send it back`,
+          envoy.answer.accepted ? `The ${row.people} agree` : `The ${row.people} send it back`,
         ),
       );
       for (const line of envoyLines(envoy.answer)) card.append(element('p', 'hint', line));
@@ -1203,8 +1212,8 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
           'p',
           'diplo-paper-head',
           counter.answer.terms === null
-            ? `The ${row.name} answer`
-            : `The ${row.name} would sign this`,
+            ? `The ${row.people} answer`
+            : `The ${row.people} would sign this`,
         ),
       );
       for (const line of counterLines(counter.answer, counter.question)) {
@@ -1255,7 +1264,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       work.disabled = true;
       work.title = 'Put something on the table first';
     } else {
-      work.title = `Ask the ${row.name} what would make this paper work`;
+      work.title = `Ask the ${row.people} what would make this paper work`;
       work.addEventListener('click', () => {
         askCounterFor(row.playerId, draft, 'work');
         draw();
@@ -1273,7 +1282,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       gift.disabled = true;
       gift.title = 'Offer something first';
     } else {
-      gift.title = `Ask the ${row.name} what they would give for what you offer`;
+      gift.title = `Ask the ${row.people} what they would give for what you offer`;
       gift.addEventListener('click', () => {
         askCounterFor(row.playerId, draft, 'give');
         draw();
@@ -1383,7 +1392,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
           send.disabled = true;
           send.title = model.peacePaper.declineError;
         } else {
-          send.title = `Refuse the ${row.name}' terms and take them off the table`;
+          send.title = `Refuse the ${row.people}' terms and take them off the table`;
           send.addEventListener('click', () => {
             options.declinePeace(row.playerId);
             envoy = null;
@@ -1401,7 +1410,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
 
     if (model.peacePaper === null && model.proposals.length === 0 && model.active.length === 0) {
       block.append(
-        element('p', 'hint diplo-none', `Nothing stands between you and the ${row.name}.`),
+        element('p', 'hint diplo-none', `Nothing stands between you and the ${row.people}.`),
       );
     }
     return block;
