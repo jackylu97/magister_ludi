@@ -19,43 +19,56 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(bbbbb) Pachacuti's Terraces are a farm, not a hall — RULED, L8** (the user,
-2026-09-14, playtesting Pachacuti: *"originally, i was imagining that terraces
-would be a unique farm, not a building in the city. It would have +1 food
-compared to a regular farm, and could be built adjacent to mountains (not
-just flat tiles and freshwater). Could we change that? no need for a separate
-graphical change for now"*). **Today** `terraces` is a leader-unique
-*building* (L3c: a `townTerraces` hills waiver on the farm plus +1 food on
-the town's hill farms). **L8 builds**: `terraces` becomes a leader-unique
-**improvement** — a farm of its own row in `data/improvements.json`: the
-farm's fields and worker charge, **food 2** (one more than a farm), placeable
-wherever a farm is *and* on hills *and* on any hex **adjacent to a mountain**
-(the mountain foot waives the flat-ground and freshwater rules; the terrain
-still has to be one a farm can stand on — grassland, plains, or the farm's
-freshwater terrains); it **counts as a farm** wherever the rules read farms
-(Pachacuti's own gold-per-mountain line, Irrigation's upgrade, Akhenaten's
-fresh-water faith, the Tetzcotzinco, the Dikes — one marker on the row,
-e.g. `countsAs: 'farm'`, read by the `improvement` test and the upgrade
-walk, never a name compared); it opens **for Pachacuti's seat alone**
-(`unlockedByLeader` on the improvement row and a `leaderOpensImprovement`
-gate beside the unit's and the building's, asked where the worker's menu and
-the reducer ask `requiresTech`); the seat's worker offers it beside the farm.
-**The shape**: `LeaderDef` gains `improvement?` and `building` becomes
-optional — Pachacuti's fourth line is the Terraces improvement and he has no
-unique building for now (the Qollqa stays benched; ▢ the user may give him
-one later); the landing face and the Your Civ sheet print "unique
-improvement" for that line; `docs/leaders.md`'s "The thirteen" table follows
-(the sync test reads the column by kind). **Retire** the `terraces` building
-row and the `townTerraces` waiver (L3c) — nothing else used them. **No new
-graphic**: the terrace draws as a farm in both renderers (the painted works
-recipe and the native improvement layer map `terraces` to the farm's look;
-the Compendium's silhouette too). Pins: a Pachacuti worker may build a
-terrace on a bare hill and on a dry mountain-foot hex where a farm is
-refused, and a rival's worker may not; a terrace pays two food and takes
-Irrigation's upgrade like a farm; the gold-per-mountain line pays on it; the
-building row is gone from every pool; doc ↔ data; a replay pin (schema
-stays 115 — nothing has landed since the stack; this is a rules change and
-the changelog says so).
+**(ccccc) Two Terraces rulings from the Pachacuti playtest** (the user,
+2026-09-14: *"farms are colliding with the city border, we should have them
+sit under. Also, let's have terrace farms only be able to be built on
+hills."*). **Terraces on hills only — BUILT** (schema unchanged: the row
+gains `requiresHills: true` with no waiver; the `mountainFoot` seam stays and
+forgives only the *water*, so a dry hillside at a peak's foot takes one and
+the flat valley floor beneath the same peak takes a farm's rules; pinned in
+`test/sim/leaderGround.test.ts`, `docs/leaders.md` follows). **Farms sit
+under the border ink — BUILDING, R1**: under the painted look a field's
+furrows and patch draw *over* the territory ribbon where a farmed hex meets
+the empire's edge; the ink is the map's top layer on the ground and the
+fields belong beneath it, so the works layer's field patches render under
+the ground layer's territory ink (draw order / depth offset, whichever the
+two layers already use — the user sees no farm stroke crossing a border).
+Fidelity gate as the P-series: before/after shots at play and overview
+differ **only** along farmed border edges, every region explained; a
+farmed-border close-up pair for the user's eye.
+
+**(eeeee) A loading sheet for Continue — BUILDING, with P7** (the user,
+2026-09-14: *"we need a 'loading game...' modal that shows progress for
+continuing a previous save, right now this only exists for starting a new
+game."*). Today a new game shows the terrain worker's progress (the
+`terrainBuildProgress` sheet from `beginGame`) and a loaded save shows only
+the pressed button's label while the log replays. **P7 moved the replay
+into a worker** (audit #22) — so the load journey has two staged workers in
+a row and both can report. Rule: one loading sheet for both journeys,
+shown from the press until the board is on screen, with the stages named in
+a first-time player's words and a progress bar that moves — for a save:
+*Opening the save · Replaying the game (turn N of M) · Painting the world ·
+Placing the pieces*; for a new world the first two are absent. The replay
+worker posts progress as it walks the log (per turn, not per command);
+the terrain worker's existing progress feeds the third stage; the fourth is
+`setGameState` and the first frame. The sheet is a `modalShell` sheet by
+the H5 rule, wears `.statecraft-overlay`, and stays up until
+`first-board-frame` (P1's mark) so "playable" is never a blank board. No
+Cancel yet (P7's sacrifice #3 stands; ▢ the user). Fidelity: the settled
+frame is untouched — a pixel-identical play/overview pair.
+
+**(ddddd) The shadowed fog lands — QUEUED** (the user, 2026-09-14: *"please
+also queue up the shadowed fog implementation, i'll let you sequence before
+or after the fog performance pass"*). Sequenced **after P5** (the shadows
+batch in flight), because the study's second pass on branch `fog-study` is
+built on a snapshot from before P2 and P5 and touches the same sun and
+shadow-map code — reconciling once, against the tree with both landed, is
+one merge instead of two. The ruling is (zzzz) below: reconcile the
+uncommitted second pass with main, delete the drawn and bleed treatments,
+`treatment` stops being a knob, fix the paper's sun tint, take audit #2
+(a fog texel change rebuilds five layers) with it, and `docs/plans/
+painted-fog-study.md` becomes the record. A visual-review checkpoint for
+the user before it lands — it is the look of half the map.
 
 
 **(aaaaa) The painted renderer's performance pass — RULED, P-series** (the
@@ -104,10 +117,69 @@ needs its build script re-run — a forgotten one fails core
 live in `scripts/terrain-study/grain-source/`, not `public/`; the
 terrain-study page still uploads the grains four-channel (renders the same,
 keeps none of the VRAM saving) — a three-line follow-up in
-`src/terrainStudy/main.js`. **Follow-up rows from P2's report**: roads,
-borders and site props keep their build-time shadow flags across a shadow
-toggle (pre-existing; visible only when a game starts with shadows off and
-turns them on).
+`src/terrainStudy/main.js`. **Landed — P2** (2026-09-14): the shadow toggle writes the flag over the
+painted board (6.7 s → 0.1 s warm; the first toggle of a session still
+pays shader compilation), the counter shadow map renders only on a seam
+(a walker in flight, a piece appearing or moving, a faller, the sun
+turning, the view drifting past the lesser of `counterCoverage` and the
+window's real spare margin — lossless at every aspect ratio), walkers take
+their layer once, and every painted literal reads `data/view3d.json`'s
+`painted` block. Pixels identical at play, overview and every toggle stop.
+**Sacrifices kept**: hovering a unit does not re-render the counter map
+(the hover shell casts nothing); a future caster on layer 2 that bypasses
+`rebuildUnits` must call `invalidateDynamicShadows` (a source register
+test says which seams do); the stats line's board-build figure no longer
+includes the toggle. **Follow-up row**: roads, borders and site props
+keep their build-time shadow flags across a shadow toggle (pre-existing;
+visible only when a game starts with shadows off and turns them on).
+**Landed — P3** (2026-09-14): the city layer keeps each town's cut
+(keyed on every `CityLook` fact but the two banner-only ones) and the
+ground layer keeps each region's merged buffer; per fog move on a 41-town
+standard fixture, 80 ms → under 1 ms; every instance matrix and vertex
+identical, pixels identical. **Sacrifices kept**: resident memory for the
+kept cuts (small beside the board); a town's heights read its own hex's
+triangles, so a thing overhanging a city hex no longer lifts its floor
+(judged correct — the works and sites already read this way); the
+remembered wash is a vertex attribute on the one ground material, so each
+region is one draw; a caller that mutated a plan object in place would
+render stale ink (nothing does; the docblock says so).
+**Landed — P1** (2026-09-14): the evidence harness — a GPU timer probe,
+per-frame attribution (preparation vs submission), five reducer-driven
+workloads, eight startup marks in `main.ts`, three bot-played fixtures
+(`docs/plans/benchmarks/fixtures/`), `scripts/terrain-study/check-painted.mjs`.
+The record is `docs/plans/painted-performance-evidence.md`. **What it
+found**, for the waves in flight and after: replay of a developed save
+blocks the main thread ~20 s before the renderer is asked for anything
+(P7's #22); "playable" precedes the first drawn frame by ~22 s in one
+long task on the software rasteriser — shader compilation, upload and the
+first static bake — on a new world too (~14 s), and **nobody's task yet**;
+the static sun's 8192² target is 512 MiB, 2.4× the board's geometry (P5's
+#3); a unit step on a 41-town map cost 53–184 ms of `setGameState` layer
+rebuilds before P3 landed (P3 measured its five layers at 80 → 1 ms on the
+same fixture; the remainder is the units and fog layers, unmeasured since);
+and a real scout march charted twenty cells with zero static rebakes while
+an end-turn refresh baked once — the opposite of #19's source reading, so
+P5 measures before it acts. Nothing visual changed (evidence only).
+**Wave 3 — QUEUED** (the user, 2026-09-14: *"add p8 to the queue along
+with the others"*), after wave 2 lands, in this order: **P8 the first
+frame** — the ~14 s (new world) to ~22 s (developed save) between
+"playable" and the first drawn frame, one unbroken main-thread task of
+shader compilation, first geometry upload and the first static bake;
+compile the painted programs ahead with the parallel-compile extension
+while the terrain worker runs, upload batches as they arrive, bake before
+the landing comes down (or once coarse, then refined); "playable" means
+the board is on screen; real-hardware numbers from the user's machine first
+(the benchmark button writes the marks). **P9 the small rows** — #12
+picking's occluder root (the unit groups, not the scene), #15 water and
+decor no longer `receiveShadow`, #20's second half (the settlement kit
+through P4's bundle contract), P2's follow-up (roads, borders and site
+props take the toggle's flag), the terrain-study page's one-channel grains.
+**P10 the developed-map remainder** — #10 per-tile constants out of the
+per-vertex attributes (213 MiB of arrays), #7's residual (a fog change
+touches only the affected regions of the works layer), and P1's open
+reading (what the units and fog layers cost per step now that P3 took the
+other five to under a millisecond — measure first). Same fidelity gate,
+same sacrifices paragraph, core tests only.
 
 
 **(zzzz) Fog of war under the painted look — RULED: shadowed** (the user,

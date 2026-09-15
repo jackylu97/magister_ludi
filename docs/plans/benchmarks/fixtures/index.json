@@ -1,0 +1,127 @@
+{
+  "generatedBy": "scripts/terrain-study/check-fixtures.mjs",
+  "schemaVersion": 115,
+  "checks": "same seed and turn count → identical payload hash; every payload replays through loadSave; populations read off the replayed state",
+  "fixtures": [
+    {
+      "id": "smoke-t8-s1",
+      "note": "the determinism pin: cheap enough to build twice",
+      "seed": 1,
+      "size": "standard",
+      "seats": 4,
+      "turns": 8,
+      "buildMs": 5524,
+      "commands": 84,
+      "bytes": 4996,
+      "payloadSha256": "80f75356f7784203903e3dbf6f0a31a552ef9190cef6d5863247811cebf9682f",
+      "deterministic": true,
+      "replays": true,
+      "population": {
+        "turn": 9,
+        "seats": 5,
+        "cities": 4,
+        "buildings": 0,
+        "walledCities": 0,
+        "units": 14,
+        "improvedTiles": 0,
+        "improvements": {},
+        "roadedTiles": 0,
+        "camps": 6,
+        "discoveries": 74,
+        "map": {
+          "width": 80,
+          "height": 52,
+          "tiles": 4160
+        }
+      }
+    },
+    {
+      "id": "standard-t120-s1",
+      "note": "the developed standard map — six empires, 120 turns",
+      "seed": 1,
+      "size": "standard",
+      "seats": 6,
+      "turns": 120,
+      "buildMs": 215010,
+      "commands": 4407,
+      "bytes": 298647,
+      "payloadSha256": "6c58ecc799b77f8e88f17b9efbc0f47d0b71e4906989b6d8bdcb6a8d73d44600",
+      "deterministic": null,
+      "replays": true,
+      "population": {
+        "turn": 121,
+        "seats": 7,
+        "cities": 41,
+        "buildings": 254,
+        "walledCities": 37,
+        "units": 273,
+        "improvedTiles": 232,
+        "improvements": {
+          "lumbermill": 33,
+          "mine": 27,
+          "pasture": 20,
+          "plantation": 52,
+          "camp": 10,
+          "quarry": 11,
+          "farm": 50,
+          "holySite": 4,
+          "fishingBoats": 17,
+          "floatingGardens": 7,
+          "citadel": 1
+        },
+        "roadedTiles": 62,
+        "camps": 24,
+        "discoveries": 34,
+        "map": {
+          "width": 80,
+          "height": 52,
+          "tiles": 4160
+        }
+      }
+    },
+    {
+      "id": "large-t120-s1",
+      "note": "the larger stress map the review-7 gate names",
+      "seed": 1,
+      "size": "large",
+      "seats": 8,
+      "turns": 120,
+      "buildMs": 563543,
+      "commands": 6971,
+      "bytes": 490508,
+      "payloadSha256": "f75440ad75c6427ed05eeef277f940f6b446c54a3c7e30f07fdc69c0c800a396",
+      "deterministic": null,
+      "replays": true,
+      "population": {
+        "turn": 121,
+        "seats": 9,
+        "cities": 59,
+        "buildings": 444,
+        "walledCities": 54,
+        "units": 342,
+        "improvedTiles": 337,
+        "improvements": {
+          "fishingBoats": 35,
+          "pasture": 40,
+          "plantation": 60,
+          "farm": 59,
+          "quarry": 17,
+          "mine": 57,
+          "lumbermill": 35,
+          "holySite": 9,
+          "camp": 15,
+          "manufactory": 1,
+          "floatingGardens": 9
+        },
+        "roadedTiles": 127,
+        "camps": 24,
+        "discoveries": 49,
+        "map": {
+          "width": 104,
+          "height": 64,
+          "tiles": 6656
+        }
+      }
+    }
+  ]
+}

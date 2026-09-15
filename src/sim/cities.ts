@@ -89,6 +89,7 @@ import {
 } from './map';
 import {
   type ImprovementId,
+  improvementCountsAs,
   improvementDef,
   improvementForResource,
   isGreatPersonWork,
@@ -391,7 +392,14 @@ function openedResource(
 
   const needed = improvementForResource(id);
   if (needed === null) return null;
-  if (on === needed) return { id, via: 'improvement', improvement: needed };
+  // Asked through `improvementCountsAs` (batch L8), so a **variant** of the row
+  // the seam wants opens the seam: a terrace standing on wheat is a farm
+  // standing on wheat, and the empire may name its bread. The reading is
+  // reported as the row the table names, because that is the answer to "what
+  // opened this" every surface prints.
+  if (on !== undefined && improvementCountsAs(on, needed)) {
+    return { id, via: 'improvement', improvement: needed };
+  }
 
   if (cityAt(state, tile.col, tile.row) === undefined) return null;
   const tech = improvementDef(needed).requiresTech;

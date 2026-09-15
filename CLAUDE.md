@@ -392,7 +392,9 @@ be renamed — it would change every seeded outcome. No further rename passes.
   equivalent: exactly two readers (build + `signCities`); a town's era is its
   owner's era. A new visual-affecting city property joins `CityLook` and
   nothing else.
-- **The board builds once per game** (only new map / shadow toggle rebuild). An
+- **The board builds once per game** (only a new map rebuilds it; a shadow
+  toggle writes the flag over the painted board it already has,
+  `PaintedBoard.setShadows` — the frozen toon board still rebuilds). An
   instance is off for three independent reasons, all bits on the handle
   (`instances.ts`): fog-hidden (`FogView`), suppressed (what's built on the
   hex), veiled (`RevealView`). Drawn iff none set; `restore` returns to what

@@ -315,12 +315,19 @@ describe('the worker offers every improvement the table names', () => {
     expect(body).toContain(
       'if (improvementGroundError(state, unit.ownerId, tile, id) !== null) continue;',
     );
-    // The other exclusion, and it is a marker rather than a name: a great
+    // The second exclusion, and it is a marker rather than a name: a great
     // person's work is not a spade's row at all.
     expect(body).toContain('if (def.greatPerson !== undefined) continue;');
-    // Exactly two `continue`s — the works, and the ground. A third is a rule
-    // the sheet invented for itself.
-    expect((body.match(/continue;/g) ?? []).length).toBe(2);
+    // The third (batch L8): a row only one realm may ever build. It is hidden
+    // rather than greyed because a greyed row is an *argument* — go and learn
+    // Mining — and "that belongs to another leader" is not one. Asked of the
+    // sim's own gate, so the menu cannot disagree with the reducer.
+    expect(body).toContain(
+      'if (improvementLeaderError(state, unit.ownerId, id) !== null) continue;',
+    );
+    // Exactly three `continue`s — the works, the figure, and the ground. A
+    // fourth is a rule the sheet invented for itself.
+    expect((body.match(/continue;/g) ?? []).length).toBe(3);
   });
 
   it('names a technology only when the tree is what refused', () => {

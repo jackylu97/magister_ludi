@@ -1,0 +1,958 @@
+{
+  "label": "integrated-large-t120",
+  "measuredAt": "2026-09-15T00:53:06.080Z",
+  "commit": "63544da675deaf5c0a531e90480e9cb0cfcf713a",
+  "workingTreeDirty": true,
+  "fixture": {
+    "kind": "save",
+    "id": "large-t120-s1",
+    "note": "the larger stress map the review-7 gate names",
+    "seed": 1,
+    "size": "large",
+    "seats": 8,
+    "turns": 120,
+    "buildMs": 563543,
+    "commands": 6971,
+    "bytes": 490508,
+    "payloadSha256": "f75440ad75c6427ed05eeef277f940f6b446c54a3c7e30f07fdc69c0c800a396",
+    "deterministic": null,
+    "replays": true,
+    "population": {
+      "turn": 121,
+      "seats": 9,
+      "cities": 59,
+      "buildings": 444,
+      "walledCities": 54,
+      "units": 342,
+      "improvedTiles": 337,
+      "improvements": {
+        "fishingBoats": 35,
+        "pasture": 40,
+        "plantation": 60,
+        "farm": 59,
+        "quarry": 17,
+        "mine": 57,
+        "lumbermill": 35,
+        "holySite": 9,
+        "camp": 15,
+        "manufactory": 1,
+        "floatingGardens": 9
+      },
+      "roadedTiles": 127,
+      "camps": 24,
+      "discoveries": 49,
+      "map": {
+        "width": 104,
+        "height": 64,
+        "tiles": 6656
+      }
+    }
+  },
+  "harness": {
+    "script": "scripts/terrain-study/check-painted.mjs",
+    "port": 5321,
+    "viewport": {
+      "width": 1100,
+      "height": 700
+    },
+    "frames": 12,
+    "warmUp": 3,
+    "browser": "headless Chromium (Playwright) on ANGLE/SwiftShader",
+    "caveat": "software rasterisation: frame and GPU figures describe a CPU rasteriser, not the reference GPU. Draw calls, triangles, bake counts, memory, populations and startup stages are hardware-independent; frame times are not."
+  },
+  "startup": {
+    "marksInOrder": [
+      "load-start",
+      "replay-done",
+      "begin",
+      "assets-loaded",
+      "terrain-ready",
+      "state-layers-built",
+      "playable",
+      "first-board-frame"
+    ],
+    "marksAreOrdered": true,
+    "missingMarks": [],
+    "marks": {
+      "load-start": 22094.9,
+      "replay-done": 60808.6,
+      "begin": 60809.4,
+      "assets-loaded": 90763,
+      "terrain-ready": 105409.9,
+      "state-layers-built": 110588.3,
+      "playable": 110993.7,
+      "first-board-frame": 184043.3
+    },
+    "spans": [
+      {
+        "from": "load-start",
+        "to": "replay-done",
+        "ms": 38713.7
+      },
+      {
+        "from": "replay-done",
+        "to": "begin",
+        "ms": 0.8
+      },
+      {
+        "from": "begin",
+        "to": "assets-loaded",
+        "ms": 29953.6
+      },
+      {
+        "from": "assets-loaded",
+        "to": "terrain-ready",
+        "ms": 14646.9
+      },
+      {
+        "from": "terrain-ready",
+        "to": "state-layers-built",
+        "ms": 5178.4
+      },
+      {
+        "from": "state-layers-built",
+        "to": "playable",
+        "ms": 405.4
+      },
+      {
+        "from": "playable",
+        "to": "first-board-frame",
+        "ms": 73049.6
+      }
+    ],
+    "totalMs": 161948.4,
+    "clickToPlayableMs": 88898.8,
+    "clickToFirstBoardFrameMs": 161948.4,
+    "navigationToPlayableMs": 110993.7,
+    "navigationToFirstBoardFrameMs": 184043.3,
+    "longTasks": {
+      "supported": true,
+      "count": 13,
+      "longestMs": 73090,
+      "longestAtMs": 110995.4,
+      "over50msTotalMs": 158114,
+      "note": "the long-task API reports a 50 ms floor and attributes a whole task, so a multi-second board build lands as one entry"
+    },
+    "domContentLoadedMs": 12832
+  },
+  "benchmark": {
+    "map": {
+      "width": 104,
+      "height": 64,
+      "tiles": 6656
+    },
+    "environment": {
+      "label": "integrated-large-t120",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+      "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+      "gpuVendor": "Google Inc. (Google)",
+      "webglRenderer": "WebKit WebGL",
+      "gpuTimerAvailable": true,
+      "dpr": 1,
+      "devicePixelRatio": 1,
+      "viewport": {
+        "width": 1100,
+        "height": 658
+      },
+      "drawingBuffer": {
+        "width": 1100,
+        "height": 658
+      },
+      "hardwareConcurrency": 10,
+      "heapLimitMiB": 3586,
+      "shadowsEnabled": true,
+      "search": "?art=painted&light=golden&profile=1&benchWorkloads=1&benchFrames=12&benchWarmUp=3&benchLabel=integrated-large-t120",
+      "warmUpFrames": 3,
+      "measuredFrames": 9,
+      "commit": null
+    },
+    "fixture": {
+      "turn": 121,
+      "seats": 9,
+      "cities": 59,
+      "walledCities": 54,
+      "buildings": 444,
+      "wonders": 11,
+      "units": 342,
+      "unitsOfSeat": 46,
+      "improvements": {
+        "fishingBoats": 35,
+        "pasture": 40,
+        "plantation": 60,
+        "farm": 59,
+        "quarry": 17,
+        "mine": 57,
+        "lumbermill": 35,
+        "holySite": 9,
+        "camp": 15,
+        "manufactory": 1,
+        "floatingGardens": 9
+      },
+      "improvedTiles": 337,
+      "roadedTiles": 127,
+      "featuredTiles": 6656,
+      "camps": 24,
+      "discoveries": 49,
+      "chartedFractionOfSeat": 0.212
+    },
+    "boardBuildMs": 14658.200000047684,
+    "memory": {
+      "heapMiB": 905.04,
+      "heapTotalMiB": 953.67,
+      "boardGeometryMiB": 336.25,
+      "boardInstanceMiB": 3.31,
+      "geometries": 1490,
+      "textures": 25,
+      "programs": 36,
+      "renderTargets": [
+        {
+          "name": "static sun shadow map",
+          "width": 8192,
+          "height": 8192,
+          "bytesPerTexel": 8,
+          "allocated": true,
+          "miB": 512
+        },
+        {
+          "name": "counter shadow map",
+          "width": 2048,
+          "height": 2048,
+          "bytesPerTexel": 8,
+          "allocated": true,
+          "miB": 32
+        },
+        {
+          "name": "composer colour targets (×2, RGBA8 + depth)",
+          "width": 1100,
+          "height": 658,
+          "bytesPerTexel": 16,
+          "allocated": true,
+          "miB": 11.04
+        },
+        {
+          "name": "contact pass targets (half resolution, ×3)",
+          "width": 550,
+          "height": 329,
+          "bytesPerTexel": 12,
+          "allocated": true,
+          "miB": 2.07
+        }
+      ],
+      "renderTargetMiB": 557.12,
+      "note": "render-target figures are arithmetic from allocated sizes, not resident GPU memory"
+    },
+    "geometryMiB": 336.247034072876,
+    "instanceMiB": 3.3072280883789062,
+    "viewport": {
+      "width": 1100,
+      "height": 658,
+      "dpr": 1
+    },
+    "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.8010.12 Safari/537.36",
+    "visibility": "charted views use original seat; other views omniscient; original seat restored",
+    "attribution": "frameMs is the animation-frame interval; mainThreadMs the frame callbacks; cpuRenderMs submission alone (lastRenderMs); preparationMs the difference; gpuMs an asynchronous timer query bracketing one drawn frame",
+    "results": [
+      {
+        "view": "charted play",
+        "note": "panning",
+        "frames": 9,
+        "idleFrames": 0,
+        "frameMs": {
+          "p50": 2199.9,
+          "p95": 3033.3,
+          "max": 3033.3,
+          "samples": 9
+        },
+        "mainThreadMs": {
+          "p50": 20.3,
+          "p95": 57.4,
+          "max": 57.4,
+          "samples": 9
+        },
+        "cpuRenderMs": {
+          "p50": 5.5,
+          "p95": 23.1,
+          "max": 23.1,
+          "samples": 9
+        },
+        "preparationMs": {
+          "p50": 15.7,
+          "p95": 34.3,
+          "max": 34.3,
+          "samples": 9
+        },
+        "gpuMs": {
+          "p50": 1188.2,
+          "p95": 2215.84,
+          "max": 2215.84,
+          "samples": 8
+        },
+        "drawCalls": {
+          "p50": 306,
+          "p95": 309,
+          "max": 309,
+          "samples": 9
+        },
+        "triangles": {
+          "p50": 2606596,
+          "p95": 2610010,
+          "max": 2610010,
+          "samples": 9
+        },
+        "rendererRenderCalls": {
+          "p50": 5,
+          "p95": 5,
+          "max": 5,
+          "samples": 9
+        },
+        "dropped": {
+          "frameBudgetMs": 16.7,
+          "fraction": 0.889
+        },
+        "terrainShadowRebakes": 0,
+        "shadowMapRenders": 45,
+        "gpuDisjointDiscards": 0
+      },
+      {
+        "view": "charted overview",
+        "note": "panning",
+        "frames": 9,
+        "idleFrames": 0,
+        "frameMs": {
+          "p50": 1449.9,
+          "p95": 3033.2,
+          "max": 3033.2,
+          "samples": 9
+        },
+        "mainThreadMs": {
+          "p50": 18.9,
+          "p95": 47.3,
+          "max": 47.3,
+          "samples": 9
+        },
+        "cpuRenderMs": {
+          "p50": 5.6,
+          "p95": 27,
+          "max": 27,
+          "samples": 9
+        },
+        "preparationMs": {
+          "p50": 14.8,
+          "p95": 20.9,
+          "max": 20.9,
+          "samples": 9
+        },
+        "gpuMs": {
+          "p50": 2097.3,
+          "p95": 3021.74,
+          "max": 3021.74,
+          "samples": 8
+        },
+        "drawCalls": {
+          "p50": 592,
+          "p95": 592,
+          "max": 592,
+          "samples": 9
+        },
+        "triangles": {
+          "p50": 3975961,
+          "p95": 3975961,
+          "max": 3975961,
+          "samples": 9
+        },
+        "rendererRenderCalls": {
+          "p50": 2,
+          "p95": 2,
+          "max": 2,
+          "samples": 9
+        },
+        "dropped": {
+          "frameBudgetMs": 1016.6,
+          "fraction": 0.222
+        },
+        "terrainShadowRebakes": 0,
+        "shadowMapRenders": 18,
+        "gpuDisjointDiscards": 0
+      },
+      {
+        "view": "play",
+        "note": "panning",
+        "frames": 9,
+        "idleFrames": 0,
+        "frameMs": {
+          "p50": 1783.2,
+          "p95": 6016.5,
+          "max": 6016.5,
+          "samples": 9
+        },
+        "mainThreadMs": {
+          "p50": 23.2,
+          "p95": 47.5,
+          "max": 47.5,
+          "samples": 9
+        },
+        "cpuRenderMs": {
+          "p50": 6.9,
+          "p95": 31.7,
+          "max": 31.7,
+          "samples": 9
+        },
+        "preparationMs": {
+          "p50": 12.6,
+          "p95": 18.7,
+          "max": 18.7,
+          "samples": 9
+        },
+        "gpuMs": {
+          "p50": 1892.17,
+          "p95": 6034.05,
+          "max": 6034.05,
+          "samples": 8
+        },
+        "drawCalls": {
+          "p50": 630,
+          "p95": 631,
+          "max": 631,
+          "samples": 9
+        },
+        "triangles": {
+          "p50": 8914641,
+          "p95": 8919165,
+          "max": 8919165,
+          "samples": 9
+        },
+        "rendererRenderCalls": {
+          "p50": 5,
+          "p95": 5,
+          "max": 5,
+          "samples": 9
+        },
+        "dropped": {
+          "frameBudgetMs": 16.7,
+          "fraction": 0.889
+        },
+        "terrainShadowRebakes": 0,
+        "shadowMapRenders": 45,
+        "gpuDisjointDiscards": 0
+      },
+      {
+        "view": "overview",
+        "note": "panning",
+        "frames": 9,
+        "idleFrames": 0,
+        "frameMs": {
+          "p50": 5566.5,
+          "p95": 26782.3,
+          "max": 26782.3,
+          "samples": 9
+        },
+        "mainThreadMs": {
+          "p50": 31.7,
+          "p95": 124.4,
+          "max": 124.4,
+          "samples": 9
+        },
+        "cpuRenderMs": {
+          "p50": 23.1,
+          "p95": 96.3,
+          "max": 96.3,
+          "samples": 9
+        },
+        "preparationMs": {
+          "p50": 8.6,
+          "p95": 31.9,
+          "max": 31.9,
+          "samples": 9
+        },
+        "gpuMs": {
+          "p50": 12821.99,
+          "p95": 26756.39,
+          "max": 26756.39,
+          "samples": 8
+        },
+        "drawCalls": {
+          "p50": 1726,
+          "p95": 1726,
+          "max": 1726,
+          "samples": 9
+        },
+        "triangles": {
+          "p50": 12800659,
+          "p95": 12800659,
+          "max": 12800659,
+          "samples": 9
+        },
+        "rendererRenderCalls": {
+          "p50": 2,
+          "p95": 2,
+          "max": 2,
+          "samples": 9
+        },
+        "dropped": {
+          "frameBudgetMs": 16.7,
+          "fraction": 0.889
+        },
+        "terrainShadowRebakes": 0,
+        "shadowMapRenders": 18,
+        "gpuDisjointDiscards": 0
+      },
+      {
+        "view": "wrap seam",
+        "note": "panning",
+        "frames": 13,
+        "idleFrames": 0,
+        "frameMs": {
+          "p50": 2500,
+          "p95": 13982.8,
+          "max": 13982.8,
+          "samples": 13
+        },
+        "mainThreadMs": {
+          "p50": 23,
+          "p95": 127.6,
+          "max": 127.6,
+          "samples": 13
+        },
+        "cpuRenderMs": {
+          "p50": 8.7,
+          "p95": 101.6,
+          "max": 101.6,
+          "samples": 13
+        },
+        "preparationMs": {
+          "p50": 13.5,
+          "p95": 26.2,
+          "max": 26.2,
+          "samples": 13
+        },
+        "gpuMs": {
+          "p50": 2180.77,
+          "p95": 3393.06,
+          "max": 3393.06,
+          "samples": 12
+        },
+        "drawCalls": {
+          "p50": 482,
+          "p95": 482,
+          "max": 482,
+          "samples": 13
+        },
+        "triangles": {
+          "p50": 7321611,
+          "p95": 7321611,
+          "max": 7321611,
+          "samples": 13
+        },
+        "rendererRenderCalls": {
+          "p50": 5,
+          "p95": 5,
+          "max": 5,
+          "samples": 13
+        },
+        "dropped": {
+          "frameBudgetMs": 1600,
+          "fraction": 0.538
+        },
+        "terrainShadowRebakes": 0,
+        "shadowMapRenders": 65,
+        "gpuDisjointDiscards": 0
+      },
+      {
+        "view": "still (play zoom)",
+        "note": "camera parked; a redraw forced every frame",
+        "frames": 11,
+        "idleFrames": 0,
+        "frameMs": {
+          "p50": 1916.7,
+          "p95": 2966.5,
+          "max": 2966.5,
+          "samples": 11
+        },
+        "mainThreadMs": {
+          "p50": 24.1,
+          "p95": 129.8,
+          "max": 129.8,
+          "samples": 11
+        },
+        "cpuRenderMs": {
+          "p50": 8.4,
+          "p95": 122,
+          "max": 122,
+          "samples": 11
+        },
+        "preparationMs": {
+          "p50": 12.4,
+          "p95": 19.1,
+          "max": 19.1,
+          "samples": 11
+        },
+        "gpuMs": {
+          "p50": 1996.22,
+          "p95": 9455.72,
+          "max": 9455.72,
+          "samples": 10
+        },
+        "drawCalls": {
+          "p50": 470,
+          "p95": 4919,
+          "max": 4919,
+          "samples": 11
+        },
+        "triangles": {
+          "p50": 7314422,
+          "p95": 24477533,
+          "max": 24477533,
+          "samples": 11
+        },
+        "rendererRenderCalls": {
+          "p50": 5,
+          "p95": 5,
+          "max": 5,
+          "samples": 11
+        },
+        "dropped": {
+          "frameBudgetMs": 1666.6,
+          "fraction": 0.182
+        },
+        "terrainShadowRebakes": 1,
+        "shadowMapRenders": 55,
+        "gpuDisjointDiscards": 0
+      },
+      {
+        "view": "scout march into unexplored ground",
+        "note": "one reducer-issued step per sample; visibility recomputed by the sim",
+        "frames": 11,
+        "idleFrames": 8,
+        "frameMs": {
+          "p50": 2116.5,
+          "p95": 9216.3,
+          "max": 9216.3,
+          "samples": 11
+        },
+        "mainThreadMs": {
+          "p50": 38.5,
+          "p95": 97.9,
+          "max": 97.9,
+          "samples": 11
+        },
+        "cpuRenderMs": {
+          "p50": 25.9,
+          "p95": 80.6,
+          "max": 80.6,
+          "samples": 11
+        },
+        "preparationMs": {
+          "p50": 13.6,
+          "p95": 45.2,
+          "max": 45.2,
+          "samples": 11
+        },
+        "gpuMs": {
+          "p50": 5142.58,
+          "p95": 9176.67,
+          "max": 9176.67,
+          "samples": 10
+        },
+        "drawCalls": {
+          "p50": 470,
+          "p95": 4919,
+          "max": 4919,
+          "samples": 11
+        },
+        "triangles": {
+          "p50": 7314422,
+          "p95": 24477533,
+          "max": 24477533,
+          "samples": 11
+        },
+        "rendererRenderCalls": {
+          "p50": 5,
+          "p95": 5,
+          "max": 5,
+          "samples": 11
+        },
+        "dropped": {
+          "frameBudgetMs": 16.7,
+          "fraction": 0.818
+        },
+        "terrainShadowRebakes": 1,
+        "shadowMapRenders": 43,
+        "gpuDisjointDiscards": 0
+      },
+      {
+        "view": "overview reveal (charted → omniscient)",
+        "note": "the seat is dropped at overview zoom; every hidden batch enters the pass",
+        "frames": 14,
+        "idleFrames": 0,
+        "frameMs": {
+          "p50": 4683.2,
+          "p95": 7083,
+          "max": 7083,
+          "samples": 14
+        },
+        "mainThreadMs": {
+          "p50": 32.2,
+          "p95": 224.1,
+          "max": 224.1,
+          "samples": 14
+        },
+        "cpuRenderMs": {
+          "p50": 15.6,
+          "p95": 70.5,
+          "max": 70.5,
+          "samples": 14
+        },
+        "preparationMs": {
+          "p50": 18.7,
+          "p95": 181.6,
+          "max": 181.6,
+          "samples": 14
+        },
+        "gpuMs": {
+          "p50": 3378.52,
+          "p95": 5282.18,
+          "max": 5282.18,
+          "samples": 13
+        },
+        "drawCalls": {
+          "p50": 1728,
+          "p95": 2290,
+          "max": 2290,
+          "samples": 14
+        },
+        "triangles": {
+          "p50": 12801221,
+          "p95": 12801221,
+          "max": 12801221,
+          "samples": 14
+        },
+        "rendererRenderCalls": {
+          "p50": 2,
+          "p95": 2,
+          "max": 2,
+          "samples": 14
+        },
+        "dropped": {
+          "frameBudgetMs": 2933.2,
+          "fraction": 0.643
+        },
+        "terrainShadowRebakes": 1,
+        "shadowMapRenders": 28,
+        "gpuDisjointDiscards": 0
+      },
+      {
+        "view": "LOD zoom crossing (overview → play)",
+        "note": "one zoom step per frame across the near/far detail band",
+        "frames": 11,
+        "idleFrames": 0,
+        "frameMs": {
+          "p50": 1999.9,
+          "p95": 2566.7,
+          "max": 2566.7,
+          "samples": 11
+        },
+        "mainThreadMs": {
+          "p50": 15.8,
+          "p95": 28.4,
+          "max": 28.4,
+          "samples": 11
+        },
+        "cpuRenderMs": {
+          "p50": 4.9,
+          "p95": 6.8,
+          "max": 6.8,
+          "samples": 11
+        },
+        "preparationMs": {
+          "p50": 9,
+          "p95": 22.2,
+          "max": 22.2,
+          "samples": 11
+        },
+        "gpuMs": {
+          "p50": 1445.11,
+          "p95": 2229.76,
+          "max": 2229.76,
+          "samples": 10
+        },
+        "drawCalls": {
+          "p50": 282,
+          "p95": 592,
+          "max": 592,
+          "samples": 11
+        },
+        "triangles": {
+          "p50": 2451443,
+          "p95": 3975961,
+          "max": 3975961,
+          "samples": 11
+        },
+        "rendererRenderCalls": {
+          "p50": 5,
+          "p95": 5,
+          "max": 5,
+          "samples": 11
+        },
+        "dropped": {
+          "frameBudgetMs": 1233.3,
+          "fraction": 0.727
+        },
+        "terrainShadowRebakes": 0,
+        "shadowMapRenders": 46,
+        "gpuDisjointDiscards": 0
+      },
+      {
+        "view": "city screen open",
+        "note": "the vignette fade only; the DOM panel is the interface's half, not the renderer's",
+        "frames": 4,
+        "idleFrames": 7,
+        "frameMs": {
+          "p50": 16.7,
+          "p95": 1799.8,
+          "max": 1799.8,
+          "samples": 4
+        },
+        "mainThreadMs": {
+          "p50": 12.9,
+          "p95": 3644.4,
+          "max": 3644.4,
+          "samples": 4
+        },
+        "cpuRenderMs": {
+          "p50": 7.9,
+          "p95": 3632.5,
+          "max": 3632.5,
+          "samples": 4
+        },
+        "preparationMs": {
+          "p50": 5.3,
+          "p95": 11.9,
+          "max": 11.9,
+          "samples": 4
+        },
+        "gpuMs": {
+          "p50": 1500.19,
+          "p95": 1534.36,
+          "max": 1534.36,
+          "samples": 3
+        },
+        "drawCalls": {
+          "p50": 200,
+          "p95": 201,
+          "max": 201,
+          "samples": 4
+        },
+        "triangles": {
+          "p50": 2099745,
+          "p95": 2099747,
+          "max": 2099747,
+          "samples": 4
+        },
+        "rendererRenderCalls": {
+          "p50": 5,
+          "p95": 5,
+          "max": 5,
+          "samples": 4
+        },
+        "dropped": null,
+        "terrainShadowRebakes": 0,
+        "shadowMapRenders": 20,
+        "gpuDisjointDiscards": 0
+      },
+      {
+        "view": "end-turn refresh",
+        "note": "every seat ends; the resolved state is handed to the layers",
+        "frames": 8,
+        "idleFrames": 0,
+        "frameMs": {
+          "p50": 1349.9,
+          "p95": 3016.5,
+          "max": 3016.5,
+          "samples": 8
+        },
+        "mainThreadMs": {
+          "p50": 20.3,
+          "p95": 61.9,
+          "max": 61.9,
+          "samples": 8
+        },
+        "cpuRenderMs": {
+          "p50": 3.5,
+          "p95": 25.8,
+          "max": 25.8,
+          "samples": 8
+        },
+        "preparationMs": {
+          "p50": 15.7,
+          "p95": 36.1,
+          "max": 36.1,
+          "samples": 8
+        },
+        "gpuMs": {
+          "p50": 1198.85,
+          "p95": 1343.33,
+          "max": 1343.33,
+          "samples": 7
+        },
+        "drawCalls": {
+          "p50": 202,
+          "p95": 1773,
+          "max": 1773,
+          "samples": 8
+        },
+        "triangles": {
+          "p50": 2105779,
+          "p95": 7877542,
+          "max": 7877542,
+          "samples": 8
+        },
+        "rendererRenderCalls": {
+          "p50": 5,
+          "p95": 5,
+          "max": 5,
+          "samples": 8
+        },
+        "dropped": {
+          "frameBudgetMs": 33.3,
+          "fraction": 0.875
+        },
+        "terrainShadowRebakes": 1,
+        "shadowMapRenders": 40,
+        "gpuDisjointDiscards": 0
+      }
+    ],
+    "workloads": {
+      "march": {
+        "measured": true,
+        "stepsOrdered": 10,
+        "stepsAccepted": 4,
+        "cellsCharted": 1,
+        "setGameStateMs": [
+          129.1,
+          148.5,
+          226.3,
+          132.3
+        ],
+        "terrainShadowRebakes": 0
+      },
+      "overviewReveal": {
+        "terrainShadowRebakes": 0
+      },
+      "cityScreen": {
+        "measured": true,
+        "city": {
+          "col": 29,
+          "row": 15
+        }
+      },
+      "endTurn": {
+        "measured": true,
+        "turnBefore": 121,
+        "turnAfter": 122,
+        "setGameStateMs": 276.9,
+        "terrainShadowRebakes": 1
+      }
+    }
+  },
+  "pageErrors": []
+}

@@ -2752,7 +2752,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "unlockedByLeader": true,
-      "terraces": true,
+      "retired": true,
       "tileYields": [
         {
           "on": {

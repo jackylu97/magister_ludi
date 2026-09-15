@@ -19,7 +19,11 @@ export interface PaintedLook {
  setDaylight(key:string):void;
  fitShadows(bounds:Bounds,period:number):void;
  invalidateShadows():void;
- updateDynamicShadows(target:Vector3,radius:number):void;
+ /** Re-fits the counter map when the view moved past what its box has spare (`DioramaCamera.groundReach`, capped by `painted.shadows.counterCoverage`), and re-renders it iff something asked. True when this frame re-rendered it. */
+ updateDynamicShadows(target:Vector3,radius:number,reach:number):boolean;
+ /** Something on layer 2 changed: the counter depth map is stale until the next frame draws. */
+ invalidateDynamicShadows():void;
+ /** Who raises the board's near geometry for the static depth pass, and drops it again. */
  setBakeDetail(fn:((active:boolean)=>void)|null):void;
  updateTime(seconds:number):void;
  dispose():void;

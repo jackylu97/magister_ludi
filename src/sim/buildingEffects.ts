@@ -205,27 +205,6 @@ export function buildingsIrrigate(buildings: readonly BuildingId[]): boolean {
 }
 
 /**
- * **Does a building standing in this town terrace the high ground it works** —
- * the Terraces', and nothing else today (batch L3c, `docs/flags.md` (iiii)).
- *
- * `buildingsIrrigate`'s twin one marker over, and the third of the three
- * questions a town answers about its own hinterland: that one vouches for the
- * *water* a farm out in the fields has no river for, and this vouches for the
- * *ground* a farm has no flat to stand on. See `BuildingDef.terraces`.
- *
- * Asked of a **list** for `buildingsIrrigate`'s reason exactly — the what-if a
- * build list prices a row with — and a boolean because it is a gate: the reason
- * is printed by the refusal it removes ("A farm needs flat ground", gone the
- * turn the steps are cut).
- */
-export function buildingsTerrace(buildings: readonly BuildingId[]): boolean {
-  for (const id of buildings) {
-    if (buildingDef(id).terraces === true) return true;
-  }
-  return false;
-}
-
-/**
  * **Which ground this town's herds are kept on** — the Horde Camp's pastures,
  * and nothing else today (batch L3c, `docs/flags.md` (iiii)).
  *

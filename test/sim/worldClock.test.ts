@@ -340,6 +340,6 @@ describe("the clock as a register", () => {
   });
 
   it("pins the schema this batch moved", () => {
-    expect(SCHEMA_VERSION).toBe(115);
+    expect(SCHEMA_VERSION).toBe(116);
   });
 });

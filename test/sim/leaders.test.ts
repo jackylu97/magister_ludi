@@ -29,7 +29,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { nextBotCommand } from '../../src/ai/bot';
-import { buildingDef } from '../../src/sim/buildingData';
+import { type BuildingId, buildingDef } from '../../src/sim/buildingData';
+import {
+  IMPROVEMENT_IDS,
+  type ImprovementId,
+  improvementDef,
+} from '../../src/sim/improvementData';
+import { improvementOpenTo } from '../../src/sim/improvements';
 import { foundCityAt } from '../../src/sim/cities';
 import { getTileAt } from '../../src/sim/map';
 import { type Command } from '../../src/sim/commands';
@@ -174,8 +180,44 @@ describe('a figure’s two abilities', () => {
 function claimedUnits(): string[] {
   return LEADER_IDS.map((id) => leaderDef(id).unit);
 }
-function claimedBuildings(): string[] {
-  return LEADER_IDS.map((id) => leaderDef(id).building);
+
+/**
+ * A figure's **second** unique, with its kind — a hall for twelve of the
+ * thirteen, a work of the ground for the one (batch L8).
+ *
+ * Read off the sheet and never assumed, which is the whole of what L8 changed
+ * here: the claims below are about "the row nobody else may raise", and which
+ * *table* that row lives in is the figure's business. The load validator has
+ * already refused a figure carrying neither.
+ */
+type SecondUnique =
+  | { kind: 'building'; id: BuildingId }
+  | { kind: 'improvement'; id: ImprovementId };
+
+function secondUnique(leader: LeaderId): SecondUnique {
+  const def = leaderDef(leader);
+  return def.improvement !== undefined
+    ? { kind: 'improvement', id: def.improvement }
+    : { kind: 'building', id: def.building! };
+}
+
+function claimedSeconds(): SecondUnique[] {
+  return LEADER_IDS.map((id) => secondUnique(id));
+}
+
+function secondName(row: SecondUnique): string {
+  return row.kind === 'building' ? buildingDef(row.id).name : improvementDef(row.id).name;
+}
+
+/**
+ * Whether this seat may raise that second row now — `isUnlocked` for a hall,
+ * and the two questions `isUnlocked` cannot be asked for a work of the ground
+ * (`improvementOpenTo`: the figure's gate, then the row's own technology).
+ */
+function secondOpen(state: GameState, playerId: number, row: SecondUnique): boolean {
+  return row.kind === 'building'
+    ? isUnlocked(state, playerId, 'building', row.id)
+    : improvementOpenTo(state, playerId, row.id);
 }
 
 describe('a unique row', () => {
@@ -190,25 +232,23 @@ describe('a unique row', () => {
       const def = leaderDef(id);
       const g = game(id);
       learnEverything(g.state, 0);
+      const second = secondUnique(id);
       expect(isUnlocked(g.state, 0, 'unit', def.unit), `${id} · ${def.unit}`).toBe(true);
-      expect(isUnlocked(g.state, 0, 'building', def.building), `${id} · ${def.building}`).toBe(
-        true,
-      );
+      expect(secondOpen(g.state, 0, second), `${id} · ${second.id}`).toBe(true);
     }
   });
 
   it('opens for no other seat, at any technology at all', () => {
     for (const id of LEADER_IDS) {
       const def = leaderDef(id);
+      const second = secondUnique(id);
       // A seat under somebody else's figure, and a seat under nobody.
       const other = LEADER_IDS.find((candidate) => candidate !== id)!;
       const g = game(other);
       learnEverything(g.state, 0);
       learnEverything(g.state, 1);
       expect(isUnlocked(g.state, 0, 'unit', def.unit), `${other} holds ${def.unit}`).toBe(false);
-      expect(isUnlocked(g.state, 1, 'building', def.building), `nobody holds ${def.building}`).toBe(
-        false,
-      );
+      expect(secondOpen(g.state, 1, second), `nobody holds ${second.id}`).toBe(false);
     }
   });
 
@@ -219,12 +259,18 @@ describe('a unique row', () => {
    */
   it('that nobody names opens for nobody, however much they have researched', () => {
     const claimedU = new Set(claimedUnits());
-    const claimedB = new Set(claimedBuildings());
+    const claimed = new Set(claimedSeconds().map((row) => row.id as string));
     const benchUnits = UNIT_TYPE_IDS.filter(
       (id) => unitDef(id).unlockedByLeader === true && !claimedU.has(id),
     );
     const benchBuildings = BUILDING_IDS.filter(
-      (id) => buildingDef(id).unlockedByLeader === true && !claimedB.has(id),
+      (id) => buildingDef(id).unlockedByLeader === true && !claimed.has(id),
+    );
+    // The **improvements' bench**, which the Terraces opened (batch L8): a work
+    // of the ground carrying the marker that no figure's sheet names is refused
+    // to every seat, the roster's rule read one table over.
+    const benchGround = IMPROVEMENT_IDS.filter(
+      (id) => improvementDef(id).unlockedByLeader === true && !claimed.has(id),
     );
     expect(benchUnits.length + benchBuildings.length, 'the bench is not empty').toBeGreaterThan(0);
     for (const leader of LEADER_IDS) {
@@ -235,6 +281,9 @@ describe('a unique row', () => {
       }
       for (const id of benchBuildings) {
         expect(isUnlocked(g.state, 0, 'building', id), `${leader} · ${id}`).toBe(false);
+      }
+      for (const id of benchGround) {
+        expect(improvementOpenTo(g.state, 0, id), `${leader} · ${id}`).toBe(false);
       }
     }
   });
@@ -249,11 +298,36 @@ describe('a unique row', () => {
 
   it('is one figure’s and one figure’s only — no row is claimed twice', () => {
     expect(new Set(claimedUnits()).size).toBe(LEADER_IDS.length);
-    expect(new Set(claimedBuildings()).size).toBe(LEADER_IDS.length);
+    // **Across all three kinds** (batch L8): thirteen second rows, no id twice,
+    // and every one of them carrying the marker of its own table.
+    const seconds = claimedSeconds();
+    expect(new Set(seconds.map((row) => row.id as string)).size).toBe(LEADER_IDS.length);
     for (const id of claimedUnits()) expect(unitDef(id as never).unlockedByLeader, id).toBe(true);
-    for (const id of claimedBuildings()) {
-      expect(buildingDef(id as never).unlockedByLeader, id).toBe(true);
+    for (const row of seconds) {
+      const marked =
+        row.kind === 'building'
+          ? buildingDef(row.id).unlockedByLeader
+          : improvementDef(row.id).unlockedByLeader;
+      expect(marked, row.id).toBe(true);
     }
+  });
+
+  /**
+   * **A figure carries a soldier and one of the other two, never neither.** The
+   * fourth line of a face is a thing nobody else may build; which table it lives
+   * in is the figure's business, and a figure with an empty fourth line would be
+   * a face the landing screen could not draw.
+   */
+  it('is a soldier and exactly one of a hall or a work of the ground', () => {
+    for (const id of LEADER_IDS) {
+      const def = leaderDef(id);
+      const kinds = [def.building, def.improvement].filter((row) => row !== undefined);
+      expect(kinds.length, `${id} carries ${kinds.length} second uniques`).toBe(1);
+    }
+    // And the one who trades the hall for a field is the one the ruling names.
+    const ground = LEADER_IDS.filter((id) => leaderDef(id).improvement !== undefined);
+    expect(ground).toEqual(['pachacuti']);
+    expect(leaderDef('pachacuti').building).toBeUndefined();
   });
 
   /**
@@ -576,14 +650,25 @@ describe('the doc’s tables and the data', () => {
         ).toBe(def.abilities[half]!.name.toLowerCase());
       }
       // The unique cells name the rows in prose; the row's own name is in them.
+      // The **last cell is read by kind** (batch L8): a hall for twelve of the
+      // thirteen and a work of the ground for the one, so the column holds a
+      // name off whichever table the figure's sheet points at.
       expect(
         cells[5]!.toLowerCase(),
         `${def.name} unit`,
       ).toContain(unitDef(def.unit).name.replace(/^The /, '').toLowerCase());
+      const second = secondUnique(LEADER_IDS[at]!);
       expect(
         cells[6]!.toLowerCase(),
-        `${def.name} building`,
-      ).toContain(buildingDef(def.building).name.replace(/^The /, '').toLowerCase());
+        `${def.name} ${second.kind}`,
+      ).toContain(secondName(second).replace(/^The /, '').toLowerCase());
+      // And a work of the ground says in the cell that it is one, so a reader of
+      // the table is never told a field is a hall.
+      if (second.kind === 'improvement') {
+        expect(cells[6]!.toLowerCase(), `${def.name} says its kind`).toContain(
+          'unique improvement',
+        );
+      }
     });
   });
 
@@ -679,7 +764,7 @@ describe('the Compendium', () => {
       const words = entry!.clauses.map((clause) => clause.text).join(' ');
       for (const ability of def.abilities) expect(words, `${id} · ${ability.id}`).toContain(ability.name);
       expect(words, `${id} unit`).toContain(unitDef(def.unit).name);
-      expect(words, `${id} building`).toContain(buildingDef(def.building).name);
+      expect(words, `${id} second`).toContain(secondName(secondUnique(id)));
       expect(words, `${id} towns`).toContain(def.cities[0]!);
       expect(words, `${id} colours`).toContain(def.colors.names[0]);
     }
@@ -704,14 +789,25 @@ describe('a unique’s technology', () => {
     for (const id of LEADER_IDS) {
       const def = leaderDef(id);
       const unitGate = UNIT_UNLOCK_TECH.get(def.unit);
-      const buildingGate = BUILDING_UNLOCK_TECH.get(def.building);
       if (unitGate !== undefined) expect(techDef(unitGate), def.unit).toBeDefined();
-      if (buildingGate !== undefined) expect(techDef(buildingGate), def.building).toBeDefined();
       // Every unnamed row carries a column, or the price fold would charge it
       // Æra I hammers.
       if (unitGate === undefined) expect(unitDef(def.unit).column, def.unit).toBeDefined();
-      if (buildingGate === undefined) {
-        expect(buildingDef(def.building).column, def.building).toBeDefined();
+      const second = secondUnique(id);
+      if (second.kind === 'building') {
+        const buildingGate = BUILDING_UNLOCK_TECH.get(second.id);
+        if (buildingGate !== undefined) expect(techDef(buildingGate), second.id).toBeDefined();
+        if (buildingGate === undefined) {
+          expect(buildingDef(second.id).column, second.id).toBeDefined();
+        }
+      } else {
+        // **A work of the ground is dated by its own row and nothing else**
+        // (batch L8): an improvement is not a queue item, so there is no column
+        // to price it and no node that names it — the gate the worker's sheet
+        // greys with is the gate that opens it, and it has to be a real one.
+        const gate = improvementDef(second.id).requiresTech;
+        expect(gate, `${second.id} names no technology`).toBeDefined();
+        expect(techDef(gate!), second.id).toBeDefined();
       }
     }
   });

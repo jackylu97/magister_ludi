@@ -145,6 +145,7 @@ import {
   LEADER_IDS,
   type LeaderId,
   leaderDef,
+  leaderThatOpensImprovement,
 } from '../sim/leaderData';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
 import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield } from '../sim/terrainData';
@@ -424,15 +425,16 @@ function eitherWords(parts: readonly string[]): string {
  * Why a row's `requiresHills` may be waived, in a first-time player's words —
  * one phrase per reason, and the whole union.
  *
- * A table rather than the ternary this used to be, because the third reason
- * (batch L3c, the Terraces) is about the *town* holding the hex and not about
- * the hex at all, and an `else` arm would have printed the resource's sentence
- * for it. Each phrase completes "Hills are allowed where the hex …".
+ * A table rather than the ternary this used to be: a third reason lived here
+ * between L3c and L8 — a town that had cut steps into its hillsides — and an
+ * `else` arm would have printed the resource's sentence for it. It went out
+ * with the hall (`docs/flags.md` (bbbbb)) and the table stays, because the
+ * lesson outlives the row. Each phrase completes "Hills are allowed where the
+ * hex …".
  */
 const HILLS_WAIVER_WORDS: Record<HillsWaiver, string> = {
   freshwater: 'is beside fresh water',
   ownResource: 'carries a resource this improvement gives access to',
-  townTerraces: 'belongs to a town that has cut steps into its hillsides',
 };
 
 /**
@@ -1078,6 +1080,21 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
       text: `Can also be built on ${eitherWords(near.terrain.map((terrain) => terrain))} when a hex next to it already has ${withArticle(improvementDef(near.improvement).name)}.`,
     });
   }
+  if (def.mountainFoot === true) {
+    clauses.push({
+      text: 'Can also be built on dry ground when a mountain stands beside the hex.',
+    });
+  }
+  // **What a row stands in for**, said in the reader's terms and not in the
+  // marker's (batch L8): every rule anybody ever wrote about the row it counts
+  // as is true of this one, and a reader who has met the farm has met this.
+  if (def.countsAs !== undefined) {
+    clauses.push({
+      text:
+        `Counts everywhere as ${withArticle(improvementDef(def.countsAs).name)}: ` +
+        'anything that pays on one pays on this.',
+    });
+  }
   if (def.clearsClutter) {
     clauses.push({ text: 'Clears the loose plants and stones drawn on the hex.' });
   }
@@ -1098,6 +1115,21 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
       note: true,
     });
   }
+  // **Whose ground this is** (batch L8). Read off the roster rather than off
+  // this row, for the unit shelf's reason exactly: the row says *that* a figure
+  // opens it, and which figure is the sheet's to say — so a row that changes
+  // hands changes this sentence with it, and a row on the bench is honest about
+  // waiting for somebody.
+  const whoseRow = def.unlockedByLeader === true ? leaderThatOpensImprovement(id) : null;
+  if (def.unlockedByLeader === true) {
+    clauses.push({
+      text:
+        whoseRow === null
+          ? 'No leader builds this yet, so no realm can.'
+          : `Only ${whoseRow}'s realm may build this. No other leader ever can.`,
+      note: true,
+    });
+  }
   // The halves this row's design has and the game does not, struck through, the
   // way a card's are (`CardDefBase.deferred`). Last, because a reader wants what
   // the thing *does* before what it does not do yet.
@@ -1107,7 +1139,11 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
     section: 'improvement',
     name: def.name,
     eyebrow:
-      def.greatPerson === undefined ? 'improvement' : 'improvement built by a great person',
+      def.greatPerson !== undefined
+        ? 'improvement built by a great person'
+        : whoseRow !== null
+          ? `improvement, ${whoseRow}'s alone`
+          : 'improvement',
     mark: { kind: 'glyph', glyph: def.emoji },
     rows,
     clauses,
@@ -1779,10 +1815,16 @@ function leaderEntry(id: LeaderId): CompendiumEntry {
   // technology — which is the one thing a reader has to be told about it, and is
   // said here rather than restated from the row's own page.
   clauses.push({ text: 'And two things nobody else may build:', note: true });
+  // The second row is a hall for twelve of the thirteen and a **work of the
+  // ground** for the one (batch L8) — read off the sheet, so the sentence names
+  // whichever it is and the shelf never has to know which.
+  const second =
+    def.improvement !== undefined
+      ? ref('improvement', def.improvement, improvementDef(def.improvement).name)
+      : ref('building', def.building!, buildingDef(def.building!).name);
   clauses.push({
     text:
-      `${ref('unit', def.unit, unitDef(def.unit).name)} and ` +
-      `${ref('building', def.building, buildingDef(def.building).name)}, ` +
+      `${ref('unit', def.unit, unitDef(def.unit).name)} and ${second}, ` +
       'each the moment the technology that opens it arrives.',
   });
   // **The towns** (batch L5, `docs/flags.md` (pppp)). Last, because it is the

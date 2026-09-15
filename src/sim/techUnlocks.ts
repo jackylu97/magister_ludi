@@ -207,6 +207,14 @@ export function techGifts(id: TechId): TechGift[] {
   }
   for (const improvement of IMPROVEMENT_IDS) {
     if (improvementDef(improvement).requiresTech !== id) continue;
+    // **A row one figure alone may lay is not a node's gift** (batch L8). The
+    // unique soldiers and halls are absent from these lists by construction —
+    // no node's `unlocks` names them — and an improvement carries its own gate
+    // instead, so this filter is what says the same thing one table over. A
+    // card promising twelve seats the Terraces would be the Stele of Laws' lie
+    // in a new place: a node read to decide what to research next must not
+    // promise what the reader can never build.
+    if (improvementDef(improvement).unlockedByLeader === true) continue;
     gifts.push({
       kind: 'improvement',
       id: improvement,
@@ -252,6 +260,9 @@ export function techGifts(id: TechId): TechGift[] {
     });
   }
   for (const improvement of IMPROVEMENT_IDS) {
+    // The same filter one gift over: a renewal of a row this reader may never
+    // lay is a promise about somebody else's fields.
+    if (improvementDef(improvement).unlockedByLeader === true) continue;
     for (const upgrade of improvementDef(improvement).upgrades ?? []) {
       if (upgrade.tech !== id) continue;
       gifts.push({
