@@ -82,7 +82,7 @@ growth terms move: culture `costLinear` 6 → 5 and `costExponent` 2.8 → 2.65
 `exponent` 2.8 → 2.65 (the third person −18 %, the sixth −19 %). The README
 and `docs/great-people.md` follow; the one literal pin re-taken.
 
-**(ppppp) A seat is named by its figure — RULED, N1** (the user, 2026-09-15:
+**(ppppp) A seat is named by its figure — BUILT, N1** (2026-09-15: `seatName`/`seatPeople` in `leaderData.ts`, `LeaderDef.people` on every row and in the doc's table ("people", not "civ"), every print site through the one reading and a source sweep pinning it; the setup swatches and a leaderless save's shelf label keep the ink's name by design. **Two follow-up rows**: the sim's own refusals about your own empire — `purchase.ts`, `religion.ts`, `tech.ts`, `greatPeople.ts`, `discoveries.ts`, `statecraft/draft.ts` — still say "Crimson has 40 gold", matched literally by two mirrors in `wants.ts`; and the diplomacy feed's possessives read "the Inca' paper" — a people word wants a different sentence shape.) Originally: (the user, 2026-09-15:
 *"players should be identified by their leader choice - let's retire the
 color naming scheme unless the user has selected no leader"*). Today a seat
 is "Crimson" or "Teal" — its ink's name, from `src/ui/gameSetup.ts`'s
