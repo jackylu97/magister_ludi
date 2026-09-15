@@ -222,7 +222,7 @@ wrap seam), and the strip's samples at a corner equal the join's. Fidelity:
 the pixel pair at play/overview unchanged with nothing selected;
 before/after 2× crops of three corners for the user.
 
-**(uuuuu) The victory screen for the Magnum Opus, and the score — RULED, V1**
+**(uuuuu) The victory screen for the Magnum Opus, and the score — BUILT, V1, LANDED 2026-09-15** (`src/sim/score.ts` `explainScore`/`foldScore`, weights in `rules.score`; `src/ui/victoryScreen.ts` on `modalShell`; standings in the dock; the six statecraft lines read the current turn until S2's tally lands)
 (the user, 2026-09-15: *"we need to draft a victory screen for completing the
 magnum opus, and give the player a score based on their empire results and
 the yields from their deck."*). Today `closeTheGreatWork` sets `winnerId`
@@ -250,7 +250,7 @@ the reading's lines, both journeys from the sheet, the modal replaced.
 **A visual-review checkpoint for the user** — screenshot before landing.
 
 **(vvvvv) The Ledger's colours, its name for the deck, and two more charts
-— RULED, L1** (the user, 2026-09-15: *"let's add more colors to the ledger,
+— BUILT, L1, LANDED 2026-09-15** (palette `--ldg-*` in `src/style.css`, `src/ui/ledgerInk.ts`; wonders wear cobalt; the third band waits on S2) (the user, 2026-09-15: *"let's add more colors to the ledger,
 'your deck' should read as statecraft, and the other colors should be
 glanceable. Let's also add great people and religion to the ledger charts
 at the bottom."*). `LEDGER_CLASS_NAME.deck` reads **statecraft** (the user
