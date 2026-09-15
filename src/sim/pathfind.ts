@@ -79,6 +79,12 @@
  * (see the last clause of `canTransit`, and `takesByWalking` for the composed
  * reading the fight and the interface ask).
  *
+ * Both questions are **hoisted**, since the M-series: `transitField` sweeps the
+ * board once per search and `canTransit` reads one byte per hex instead of
+ * walking `state.cities` and `state.units` per edge. The rule is unchanged in
+ * every clause — the field is the same two readings, taken once — and a caller
+ * that hoists nothing still gets the walks. See `TransitField`.
+ *
  * Determinism
  * -----------
  * The open set is a binary heap ordered by `(f, tileIndex)` — a total order on
@@ -834,10 +840,35 @@ export function canTransit(
   unit: Unit,
   tile: Tile,
   mover: MoveProfile = moveProfile(state, unit),
+  ground?: TransitField,
 ): boolean {
   if (tileMoveCost(tile, mover) === null) return false;
-  const city = cityAt(state, tile.col, tile.row);
-  if (city !== undefined && city.ownerId !== unit.ownerId) return false;
+  /**
+   * **The two linear walks, asked of a field when a search brought one** (the
+   * M-series hoist; `docs/flags.md` (fffff)'s follow-up row).
+   *
+   * Everything below this line used to open `state.cities` and `state.units` and
+   * walk them, per *edge* — forty towns and three hundred pieces on a developed
+   * board, tens of thousands of edges in one sweep. That is `zocField`'s bargain
+   * word for word, and it is taken here the same way: one pass over the board
+   * per search, one byte per tile, and an edge nowhere near anybody costs a
+   * single array read. See `transitField`.
+   *
+   * The seat is compared rather than assumed. A field is a reading *against one
+   * owner*, and a caller that handed one built for somebody else would be
+   * handed a quietly wrong board; the compare costs nothing and makes that
+   * impossible, so a mismatch falls back to the walks rather than lying.
+   * `undefined` — nobody hoisted anything — takes the same road.
+   */
+  const standing =
+    ground !== undefined && ground.ownerId === unit.ownerId
+      ? ground.blocked[tileIndex(state.map, tile.col, tile.row)]!
+      : undefined;
+  const townHere =
+    standing === undefined
+      ? foreignCityOn(state, tile, unit.ownerId)
+      : (standing & FOREIGN_CITY) !== 0;
+  if (townHere) return false;
   /**
    * **A closed border is a wall, not a toll** (the war ruling, section 3).
    *
@@ -857,7 +888,14 @@ export function canTransit(
    * barred by. See `closedBordersFor`.
    */
   if (mover.closed?.bars(tile) === true) return false;
-  if (!hasForeignUnit(state, tile.col, tile.row, unit.ownerId)) return true;
+  // Asked here rather than beside the town above, so the closed border keeps its
+  // place in the order: a hex a wall bars is refused without anybody counting
+  // who is standing on it.
+  const somebodyHere =
+    standing === undefined
+      ? hasForeignUnit(state, tile.col, tile.row, unit.ownerId)
+      : (standing & FOREIGN_UNIT) !== 0;
+  if (!somebodyHere) return true;
   /**
    * **A hex holding nothing but somebody else's civilians is not a wall** — it
    * is ground a soldier takes by walking onto it (`docs/flags.md`, the archer
@@ -909,8 +947,9 @@ export function canStopOn(
   unit: Unit,
   tile: Tile,
   mover: MoveProfile = moveProfile(state, unit),
+  ground?: TransitField,
 ): boolean {
-  if (!canTransit(state, unit, tile, mover)) return false;
+  if (!canTransit(state, unit, tile, mover, ground)) return false;
   const { category } = unitDef(unit.type);
   return hasStackingRoom(state, tile.col, tile.row, category, unit.id);
 }
@@ -944,6 +983,86 @@ export function canStopOn(
 export function takesByWalking(state: GameState, unit: Unit, tile: Tile): boolean {
   if (undefendedCiviliansOn(state, tile.col, tile.row, unit.ownerId) === null) return false;
   return canStopOn(state, unit, tile);
+}
+
+// --- what is standing on the board ------------------------------------------
+
+/** A hex with somebody else's piece on it. One bit of `TransitField.blocked`. */
+const FOREIGN_UNIT = 1;
+/** A hex with somebody else's town on it. The other bit. */
+const FOREIGN_CITY = 2;
+
+/**
+ * What stands in one mover's way, against one seat, resolved once per search.
+ *
+ * `zocField`'s twin and built for the same measurement: the two questions
+ * `canTransit` asks of a hex — *is somebody else's town here* (`cityAt`, a walk
+ * of `state.cities`) and *is somebody else's piece here* (`hasForeignUnit`, a
+ * walk of `state.units`) — were linear scans **per edge**. On the developed
+ * standard fixture that is forty-one towns and two hundred and seventy-three
+ * pieces, sixty thousand times in one bot's turn; measured, the unit walk alone
+ * was the single dearest self-time row in an End Turn.
+ *
+ * One byte per tile and both bits in it, because the pair is always asked
+ * together and one array read is cheaper than two. `ownerId` rides along so the
+ * reading can never be spent against the wrong seat — see `canTransit`, which
+ * compares it and falls back to the walks rather than trusting a stranger's
+ * field.
+ *
+ * **Lifetime is one search**, exactly as the zone of control's is, and for the
+ * identical reason: a piece that moves changes the answer, and a field held
+ * across a mutation would be a promise the board breaks. Nothing stores one on
+ * the state.
+ *
+ * The board is swept by **array order** and marked by tile index — nothing here
+ * iterates a `Map` or a `Set`, and the marks are idempotent, so the field is a
+ * pure function of the state whatever order the pieces happen to be in.
+ */
+export interface TransitField {
+  /** The seat this reading is *against*. A field is worthless to anybody else. */
+  readonly ownerId: number;
+  /** Per tile index: `FOREIGN_UNIT` and `FOREIGN_CITY`, or nothing. */
+  readonly blocked: Uint8Array;
+}
+
+/**
+ * The field, swept once.
+ *
+ * A piece or a town whose coordinates are not a hex of this board is skipped
+ * rather than wrapped, and that is the exact reading the two walks give: both
+ * compare `col` and `row` for equality against a tile the caller already holds,
+ * so a position that is not a canonical in-range pair matches no tile at all.
+ * Wrapping it in here would invent a blocker on the far side of the seam.
+ */
+export function transitField(state: GameState, ownerId: number): TransitField {
+  const { map } = state;
+  const blocked = new Uint8Array(map.tiles.length);
+  const onBoard = (col: number, row: number): boolean =>
+    col >= 0 && col < map.width && row >= 0 && row < map.height;
+  for (const unit of state.units) {
+    if (unit.ownerId === ownerId) continue;
+    if (!onBoard(unit.col, unit.row)) continue;
+    blocked[tileIndex(map, unit.col, unit.row)]! |= FOREIGN_UNIT;
+  }
+  for (const city of state.cities) {
+    if (city.ownerId === ownerId) continue;
+    if (!onBoard(city.col, city.row)) continue;
+    blocked[tileIndex(map, city.col, city.row)]! |= FOREIGN_CITY;
+  }
+  return { ownerId, blocked };
+}
+
+/**
+ * Somebody else's town on this hex, off `state.cities` — the walk the field
+ * replaces, kept for every caller that hoisted nothing.
+ *
+ * `cityAt` returns the *first* city standing on a hex and this asks whose it is,
+ * which is the reading `canTransit` has always taken; two towns cannot share a
+ * hex, so the field's bit and this sentence are the same answer.
+ */
+function foreignCityOn(state: GameState, tile: Tile, ownerId: number): boolean {
+  const city = cityAt(state, tile.col, tile.row);
+  return city !== undefined && city.ownerId !== ownerId;
 }
 
 // --- zone of control --------------------------------------------------------
@@ -1499,6 +1618,10 @@ function searchPath(
   unit: Unit,
   goal: Tile,
   mover: MoveProfile = moveProfile(state, unit),
+  // The third fact about the whole search, and the newest: what is standing on
+  // the board. Taken from the caller where one search follows another on a board
+  // nothing has moved on (`findPathToFirst`), swept here otherwise.
+  hoisted?: TransitField,
 ): PathSearch {
   const { map } = state;
   const start = getTileAt(map, unit.col, unit.row);
@@ -1508,8 +1631,12 @@ function searchPath(
   const goalIndex = tileIndex(map, goal.col, goal.row);
   if (startIndex === goalIndex) return { path: null, exhausted: null };
 
+  // Swept **after** the two refusals above rather than in a default argument:
+  // those two cost a subtraction each, and a search that never runs the loop
+  // should not pay for a walk of the board.
+  const ground = hoisted ?? transitField(state, unit.ownerId);
   const goalHex = tileHex(goal);
-  if (!canStopOn(state, unit, goal, mover)) return { path: null, exhausted: null };
+  if (!canStopOn(state, unit, goal, mover, ground)) return { path: null, exhausted: null };
   // The other fact about the whole search, hoisted for `mover`'s reason: who
   // holds ground against it. See `stepCost`.
   const field = zocField(state, unit.ownerId);
@@ -1541,7 +1668,7 @@ function searchPath(
       // Transit is all an intermediate tile needs, so a path may thread between
       // friendly units. The goal was already checked with the stricter
       // `canStopOn`, which implies this.
-      if (!canTransit(state, unit, neighbor, mover)) continue;
+      if (!canTransit(state, unit, neighbor, mover, ground)) continue;
       const price = stepCost(map, tile, neighbor, mover, field);
       if (price === null) continue;
 
@@ -1600,9 +1727,13 @@ export function findPathToFirst(
   mover: MoveProfile = moveProfile(state, unit),
 ): Cell[] | null {
   let exhausted: Uint8Array | null = null;
+  // Swept once for the whole list, on the same argument the proof below rests
+  // on: nothing moves between these searches, so what is standing on the board
+  // is one fact about all six doorsteps rather than six readings of it.
+  const ground = transitField(state, unit.ownerId);
   for (const goal of goals) {
     if (exhausted !== null && exhausted[tileIndex(state.map, goal.col, goal.row)] !== 1) continue;
-    const found = searchPath(state, unit, goal, mover);
+    const found = searchPath(state, unit, goal, mover, ground);
     if (found.path !== null) return found.path;
     if (found.exhausted !== null) exhausted = found.exhausted;
   }
@@ -1638,6 +1769,10 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
   // profile the executor will spend the points with.
   const mover = moveProfile(state, unit);
   const field = zocField(state, unit.ownerId);
+  // And the third of the three, for `searchPath`'s reason: the highlight asks
+  // every hex it settles what is standing on it, and the answer moves only when
+  // somebody does.
+  const ground = transitField(state, unit.ownerId);
   const count = map.tiles.length;
   const best = new Float64Array(count).fill(Infinity);
   const settled = new Uint8Array(count);
@@ -1655,7 +1790,7 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
     const cost = best[current]!;
     if (current !== startIndex) {
       const tile = map.tiles[current]!;
-      if (canStopOn(state, unit, tile, mover)) results.push({ tile, cost });
+      if (canStopOn(state, unit, tile, mover, ground)) results.push({ tile, cost });
     }
     // Arriving with nothing left ends the move: no step can follow.
     if (cost >= budget) continue;
@@ -1664,7 +1799,7 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
     for (const neighbor of neighborsOf(map, tile)) {
       const index = tileIndex(map, neighbor.col, neighbor.row);
       if (settled[index] === 1) continue;
-      if (!canTransit(state, unit, neighbor, mover)) continue;
+      if (!canTransit(state, unit, neighbor, mover, ground)) continue;
       const price = stepCost(map, tile, neighbor, mover, field);
       if (price === null) continue;
 

@@ -511,6 +511,31 @@ export function resourceCopies(
   playerId: number,
   resourceId: ResourceId,
 ): number {
+  // **Remembered on the economy clock**, and for `controlledHoldings`' reason
+  // word for word: this is a walk of the whole map, and it is asked once per
+  // candidate row the bot weighs — `buildError` and `buildingError` both gate on
+  // `requiresResource`, so a seat pricing forty towns against a roster asks it
+  // hundreds of times on a board nothing has moved on. Measured (the M-series
+  // profile of one End Turn on `standard-t120-s1`), it and the boolean over it
+  // were **20 %** of the press, the dearest pair in the whole reading.
+  //
+  // The clock is the coarse one because the inputs are exactly the ones
+  // `holdingsOf` walks beside it — the owner field, the tiles, what has been dug
+  // on them, and what a bargain lent away — and not one of them is a piece's
+  // position. See "The two clocks" in `slate.ts`, and note that the two readings
+  // are now provably the same arithmetic on the same clock rather than one
+  // remembered and one re-swept.
+  return slateMemo(state, 'economy', `copies:${resourceId}`, String(playerId), () =>
+    countResourceCopies(state, playerId, resourceId),
+  );
+}
+
+/** The sweep itself — `resourceCopies` with the slate taken off. */
+function countResourceCopies(
+  state: GameState,
+  playerId: number,
+  resourceId: ResourceId,
+): number {
   const owner = tileOwnerField(state);
   const tiles = state.map.tiles;
   let mine = 0;
