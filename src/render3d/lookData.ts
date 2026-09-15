@@ -1915,10 +1915,53 @@ export interface PaintedContactSpec {
  * `test/render/paintedKnobs.test.ts` fails on a knob that is in the sheet and
  * not in the source, or the other way about.
  */
+/**
+ * The painted look's fog of war — the *shadowed* treatment, and the chart table
+ * under it. See `paintedFogLook.ts` for the picture these numbers make.
+ *
+ * `paper` and `ink` are palette names, not inks written out here, for the
+ * reason every other table in this file names its colours: the chart may not
+ * open a second colour vocabulary beside the palette. The ink is the blue the
+ * cast shadows are already in, so the ruling on the table and the shadow across
+ * it are one colour.
+ *
+ * `shadowedSun` is how much of the sun a remembered hex keeps — Civ's
+ * convention, full pigment and full geometry with the light turned down — and
+ * `shadowedCool`/`shadowedShade` are the slight shift toward the ink and the
+ * knock-back that stop "turned down" reading as "at dusk". `sunFalloff` is the
+ * width of that light edge **in hexes**: light is continuous, so it fades,
+ * while the ink edge at the frontier of the charted world is hard.
+ *
+ * The chart half: `chartLift` is the paper's height above the world's zero, a
+ * hair over the water plane; `chartRule`/`ruleWidth` are the ruled hex drawn on
+ * it; `chartSea`/`chartSeaMix` are the wash a hex takes when its whole
+ * `chartSeaRegion` neighbourhood is sea (`marginaliaWater`'s rule, and for its
+ * reason — a wash that followed every hidden coast would chart the coastline
+ * for free); `chartSoak` is the grain the dissolve eats the paper away on.
+ */
+export interface PaintedFogSpec {
+  paper: string;
+  ink: string;
+  sunFalloff: number;
+  /** How long a hex takes to change register. Zero arrives whole. */
+  revealMs: number;
+  shadowedSun: number;
+  shadowedCool: number;
+  shadowedShade: number;
+  chartRule: number;
+  ruleWidth: number;
+  chartLift: number;
+  chartSea: string;
+  chartSeaMix: number;
+  chartSeaRegion: number;
+  chartSoak: number;
+}
+
 export interface PaintedSpec {
   shadows: PaintedShadowSpec;
   lod: PaintedLodSpec;
   contact: PaintedContactSpec;
+  fog: PaintedFogSpec;
 }
 
 /**

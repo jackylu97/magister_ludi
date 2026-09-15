@@ -200,7 +200,11 @@ describe('production painted board', () => {
     expect(color.uniforms).toHaveProperty('approvedPaint');
     expect(color.uniforms).toHaveProperty('paintedFog');
     expect(color.fragmentShader).toContain('vPaintedFog.x < .1');
-    expect(color.fragmentShader).toContain('outgoingLight = mix(outgoingLight');
+    // The remembered register, both halves: the sun turned down inside the
+    // painterly composition, and the cool shift mixed back out by the lit
+    // weight afterwards. See `paintedFogLook.ts`.
+    expect(color.fragmentShader).toContain('float paintedSun = mix(paintedFogShadowedSun, 1.0, paintedLit);');
+    expect(color.fragmentShader).toContain('outgoingLight = mix(paintedCool, outgoingLight, paintedLit);');
     expect(color.vertexShader).not.toContain('paintedOtherUv');
     const depth = compile(mesh.customDepthMaterial!, ShaderLib.depth);
     expect(depth.vertexShader).toContain('texture2D(paintedFog, paintedUv)');

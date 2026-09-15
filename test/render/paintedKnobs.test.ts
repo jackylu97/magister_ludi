@@ -80,9 +80,12 @@ describe('the painted performance knobs', () => {
   });
 
   it('ships exactly the figures the literals held', () => {
-    // This batch moved the numbers out of the code; it changed none of them.
+    // That batch moved the numbers out of the code; it changed none of them.
     // `lod.distantCells` arrived later and held no literal: it is the grid the
     // overview's stand-in sculpts are clustered on, one entry per prop family.
+    // `fog` arrived with the shadowed treatment and carries the figures the
+    // user dialled in on the four-way review — `docs/plans/painted-fog-study.md`
+    // — including two that are palette *names* rather than inks.
     expect(SHEET).toEqual({
       shadows: { staticMapSize: 8192, counterMapSize: 2048, counterCoverage: 0.1 },
       lod: { nearPixels: 25, farPixels: 29, distantCells: { groves: { x: 2, y: 3, z: 2 } } },
@@ -92,6 +95,13 @@ describe('the painted performance knobs', () => {
         renderScale: 0.5, scaledDenoiseRadius: 2,
         blendIntensity: 0.32, paintedBlendIntensity: 0.12,
         fadeStartPixels: 1.5, fadeRangePixels: 1.5,
+      },
+      fog: {
+        paper: 'cream', ink: 'inkBlue',
+        sunFalloff: 0.5, revealMs: 300,
+        shadowedSun: 0.35, shadowedCool: 0.22, shadowedShade: 0.88,
+        chartRule: 0.22, ruleWidth: 0.055,
+        chartLift: 0.055, chartSea: 'teal', chartSeaMix: 0.35, chartSeaRegion: 2, chartSoak: 7,
       },
     });
   });
