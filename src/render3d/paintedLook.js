@@ -32,16 +32,40 @@ const ground=Object.fromEntries(Object.entries(colors).map(([k,c])=>[k,own(new T
 const waterMaterials={bank:mat('#819675'),river:mat('#8198d0'),shallows:mat('#477baa'),foam:mat('#95b1c0')};
 for(const m of Object.values(waterMaterials))m.side=T.DoubleSide;
 const clockUniform={value:0};
-const mineralTexture = own(await new T.TextureLoader().loadAsync('/terrain-study/mineral-grain.png'));
-mineralTexture.wrapS = mineralTexture.wrapT = T.RepeatWrapping;
-mineralTexture.anisotropy = Math.min(8,renderer.capabilities.getMaxAnisotropy());
+// The three grains are scalar fields — every shader samples `.r`, and the bump
+// maps `.x`. They are shipped as one-channel PNGs and uploaded as RedFormat, and
+// the three requests run together: nothing here waits on another's bytes.
+const grainRequests=['mineral-grain','flocking-grain','gouache-grain'].map(name=>{
+ const request=new T.TextureLoader().loadAsync(`/terrain-study/${name}.png`).then(grain=>{
+  grain.format=T.RedFormat;grain.wrapS=grain.wrapT=T.RepeatWrapping;
+  grain.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());
+  return grain;
+ });
+ request.catch(()=>{});return request;
+});
+// Both asset batches want only the mineral/flocking grain for a bump map, and
+// want it after their own download, so all five requests are in flight at once.
+const assetRequests=[
+ loadVegetation({value:0},grainRequests[1],grainRequests[0],{indexed:true}),
+ loadSettlementAssets({register(){}},grainRequests[0],{names:['city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]}),
+];
+for(const request of assetRequests)request.catch(()=>{});
+const grains=await Promise.allSettled(grainRequests);
+for(const result of grains)if(result.status==='fulfilled')own(result.value);
+const [mineralTexture,flockTexture,paintTexture]=grains.map(result=>result.value);
+// Ownership transfers only as one set: a batch that lands after another has
+// failed is still taken over here, then released with everything else.
+const [vegetationResult,cityResult]=await Promise.allSettled(assetRequests);
+if(vegetationResult.status==='fulfilled'){
+ for(const material of vegetationResult.value.materials)own(material);
+ for(const asset of [...vegetationResult.value.broadleaves,...vegetationResult.value.cypresses,...vegetationResult.value.escarpments,vegetationResult.value.limestone]){own(asset.geometry);if(asset.shoulderGeometry)own(asset.shoulderGeometry)}
+}
+if(cityResult.status==='fulfilled')for(const resource of Object.values(cityResult.value))own(resource);
+const assetFailure=[...grains,vegetationResult,cityResult].find(result=>result.status==='rejected');
+if(assetFailure)throw assetFailure.reason;
+const assets=vegetationResult.value,cityAssets=cityResult.value;
 const mineralUniform={value:mineralTexture};
-const flockTexture=own(await new T.TextureLoader().loadAsync('/terrain-study/flocking-grain.png'));
-flockTexture.wrapS=flockTexture.wrapT=T.RepeatWrapping;
-flockTexture.anisotropy=mineralTexture.anisotropy;
 const flockUniform={value:flockTexture};
-const paintTexture=own(await new T.TextureLoader().loadAsync('/terrain-study/gouache-grain.png'));
-paintTexture.wrapS=paintTexture.wrapT=T.RepeatWrapping;paintTexture.anisotropy=mineralTexture.anisotropy;
 
 // World-space pigment variation preserves a continuous scale across hexes.
 for(const [kind,m]of Object.entries(ground)){const water=['coast','ocean','lake'].includes(kind);m.onBeforeCompile=shader=>{shader.uniforms.studyTime=clockUniform;shader.uniforms.studyMineral=mineralUniform;shader.uniforms.studyFlock=flockUniform;shader.vertexShader='varying vec3 studyPosition;\n'+(water?'':'attribute float turfWeight; varying float vTurfWeight;\n')+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nstudyPosition=position;'+(water?'':'vTurfWeight=turfWeight;'));shader.fragmentShader='varying vec3 studyPosition; uniform float studyTime; uniform sampler2D studyMineral; uniform sampler2D studyFlock;\n'+(water?'':'varying float vTurfWeight;\n')+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <color_fragment>',`#include <color_fragment>
@@ -61,12 +85,7 @@ mergedDetails.vertexColors=true;mergedDetails.side=T.DoubleSide;
 const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#8eaa63'),bank:mat('#c5b381'),pool:mat('#4968a8'),shallow:mat('#6aafa5'),reeds:mat('#6b8752')};
 
 
- // Finish asynchronous asset loading before changing the live renderer's lighting.
- const assets=await loadVegetation({value:0},flockTexture,mineralTexture,{indexed:true});
- for(const material of assets.materials)own(material);
- for(const asset of [...assets.broadleaves,...assets.cypresses,...assets.escarpments,assets.limestone]){own(asset.geometry);if(asset.shoulderGeometry)own(asset.shoulderGeometry)}
- const cityAssets=await loadSettlementAssets({register(){}},mineralTexture,{names:['city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]});
- for(const resource of Object.values(cityAssets))own(resource);
+ // All asset loading finished above, before the live renderer's lighting changes.
  lighting=createLighting(renderer,scene,camera,{unitStencil:true});
  const style=createPainterlyStyle(renderer,lighting,paintTexture);
  style.register(cityAssets.material);

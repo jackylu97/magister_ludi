@@ -29,6 +29,12 @@ function resources() {
   return { geometries, materials, expectReleased, geometryDisposals, materialDisposals };
 }
 
+/** Wait for a loader to have reached a point, without counting its microtasks. */
+async function until(ready: () => boolean, turns = 200): Promise<void> {
+  for (let i = 0; i < turns && !ready(); i++) await new Promise(resolve => setTimeout(resolve, 0));
+  if (!ready()) throw new Error('loader never reached the expected point');
+}
+
 function asset(malformed = false): GLTF {
   const scene = new Group(), material = new MeshStandardMaterial();
   material.name = 'leaf0';
@@ -49,7 +55,9 @@ describe('painted asset lifecycle', () => {
     });
     let rejected = false;
     const loading = loadVegetation({ value: 0 }, null, null).catch((error: unknown) => { rejected = true; return error; });
-    await Promise.resolve(); await Promise.resolve();
+    // The bundle is tried first, so the GLB fallback's requests are several
+    // turns of the loop away rather than two microtasks.
+    await until(() => typeof finishLate === 'function');
     expect(rejected).toBe(false);
     finishLate(asset());
     expect(await loading).toBe(failure);
@@ -135,7 +143,9 @@ describe('painted asset lifecycle', () => {
       shadowMap: { type: 2, autoUpdate: true, needsUpdate: false },
     } as unknown as WebGLRenderer;
     await expect(createPaintedLook(renderer, scene, camera)).rejects.toBe(failure);
-    expect(textures).toHaveLength(stage === 'flocking texture' ? 1 : 3);
+    // All three grains are requested together, so a failed one no longer stops
+    // the other two from arriving — and being owned, then released.
+    expect(textures).toHaveLength(stage === 'flocking texture' ? 2 : 3);
     expect(disposedTextures).toEqual(textures);
     owned.expectReleased();
     expect(scene.environment).toBe(environment);
