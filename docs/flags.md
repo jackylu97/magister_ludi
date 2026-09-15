@@ -148,7 +148,7 @@ to reach the swapped destination tile."*). Three rules, one batch, all in
    reducer agreeing hex for hex (`reachableTiles` = the set of accepted
    moves).
 
-**(nnnnn) The bots' wars — RULED, W1, after A1** (the user, 2026-09-15:
+**(nnnnn) The bots' wars — BUILT** (the user, 2026-09-15:
 *"the ai is probably too agressive in going to war, how is it valuing the
 decision to war right now?"* and, in a game where every bot but one had
 declared on them: *"they are just sending massive hordes of army lmao.
@@ -202,6 +202,23 @@ against it or its advantage is gone; it declines peace while it is winning
 the exchange. Printed terms on the spectator feed; the persona bars keep
 their say (a warmonger asks later). Pinned: a war with a bad exchange
 proposes peace; a war with a good one declines it.
+
+**Built**, and the whole of it —
+measurement, clauses, knobs and what was sacrificed — is
+`docs/war-diplomacy.md` §14. The one thing the measurement changed about the
+ruling: **the persona bars are untouched**, because on the measured shape no
+peaceful persona ever cleared its bar in three games and every declaration in
+the three came from the warmonger, four of them in a single turn — so what
+was declaring too much was one seat opening four wars at once, which is
+`war.secondWarMultiple`'s, not a bar's. **The addendum's peace** is built with
+it: the per-war exchange is `src/ai/warLedger.ts` — the simulation's own
+`unitsKilled`/`unitsLost` windowed from the declaration by a `WeakMap` on the
+live state, the refusal memory's own bargain, so no schema moves — read by
+`explainStanding` and spent in three printed clauses (sue on
+`war.peaceExchange` **and** a lost advantage, take an offered peace when either
+is true, send the envoy home while the exchange runs its way). If the exchange
+is ever wanted as a fact of the world, the field to propose is a pair of
+counters on `WarState`, which is `src/sim/`'s to add.
 
 **(mmmmm) Soldiers cost half again; hills are worth two — BUILT** (the
 user, 2026-09-15: *"military units need to be ~50% more expensive"* and

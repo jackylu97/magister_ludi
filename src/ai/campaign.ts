@@ -623,15 +623,31 @@ export function marchIsStalled(state: GameState, unit: Unit): boolean {
 }
 
 /**
- * **The force at the muster**: this seat's field soldiers standing within
- * `radius` of it, *or already past it*, in log order.
+ * **The column at the muster**: this seat's field soldiers standing within
+ * `radius` of it, *or already past it*, and **not holding a town**, in log
+ * order.
  *
- * The second clause is what keeps a push from flickering. Read as proximity
+ * The "past it" clause is what keeps a push from flickering. Read as proximity
  * alone, a stack that had stepped off the muster toward the walls stopped
  * counting as mustered — so the force would push on one ask, fall under the
  * strike force on the next, and be told to walk back and gather. "Past it" is
  * measured the only way that needs nothing remembered: nearer the target than
  * the muster is.
+ *
+ * **The garrisons are not in the column** (ruled 2026-09-15, `docs/flags.md`
+ * (nnnnn): *"a column masses to the strike force before it walks in rather than
+ * arriving one piece a turn"*), and that is the whole of the rally clause. A
+ * seat's own border town frequently stands nearer the target than the muster
+ * does, so every spearman holding it counted as *gathered* — the plan read
+ * itself as mustered while one piece stood at the front, the push opened, and
+ * the army arrived at the walls one soldier a turn, which is precisely the wave
+ * the user was defending against. A piece standing on one of this empire's own
+ * town hexes is holding it (`garrisonAt`'s own sentence) and is not part of the
+ * force; everything else that has gathered or gone forward is.
+ *
+ * No knob of its own: the force the column waits for is `war.strikeForce`, which
+ * is already the figure the declaration cleared and the levy builds for, and the
+ * three must not be tunable into disagreeing (`aiConfig.ts` says why).
  */
 export function musteredNear(
   state: GameState,
@@ -650,6 +666,7 @@ export function musteredNear(
   for (const unit of fieldSoldiersOf(state, playerId)) {
     const tile = getTileAt(state.map, unit.col, unit.row);
     if (!tile) continue;
+    if (holdsOwnTown(state, playerId, unit)) continue;
     const hex = tileHex(tile);
     if (wrappedDistance(state.map, here, hex) <= Math.max(0, radius)) {
       gathered.push(unit);
@@ -660,4 +677,13 @@ export function musteredNear(
     }
   }
   return gathered;
+}
+
+/** Is this piece standing on one of its own empire's town hexes? */
+function holdsOwnTown(state: GameState, playerId: number, unit: Unit): boolean {
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    if (city.col === unit.col && city.row === unit.row) return true;
+  }
+  return false;
 }

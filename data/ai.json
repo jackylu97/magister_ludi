@@ -79,6 +79,9 @@
     "mixBonus": 45,
     "healBelowHealth": 0.5,
     "rangedDeferral": 25,
+    "strikeFloor": 1,
+    "hardTargetMargin": 1.2,
+    "withdrawBelowHealth": 0.35,
     "screenRadius": 3,
     "screenBonus": 30,
     "screenExposure": 6
@@ -87,6 +90,10 @@
     "declareThreshold": 1.4,
     "declareThresholdPeaceful": 4.5,
     "reachRadius": 12,
+    "secondWarMultiple": 2,
+    "dogpileSeats": 2,
+    "expeditionOdds": 1,
+    "roadDragPerStep": 0.05,
     "strikeForce": 4,
     "musterDistance": 3,
     "musterRadius": 2,
@@ -95,6 +102,7 @@
     "sueFloor": -12,
     "acceptCeiling": 10,
     "tributeFloor": -30,
+    "peaceExchange": 1.3,
     "goldPerScorePoint": 4,
     "unitLossWeight": 3,
     "cityWeight": 25,
@@ -305,7 +313,8 @@
       "war": {
         "sueFloor": -30,
         "acceptCeiling": 25,
-        "tributeFloor": -55
+        "tributeFloor": -55,
+        "peaceExchange": 2.2
       },
       "weights": {
         "military": 3.6,

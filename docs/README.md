@@ -382,6 +382,17 @@ chain, price and term lands in the candidates' folds, and the fold IS the
 computation. **The bot is not a balance instrument** — playtest is the judge; the
 arena is for regressions and floors.
 
+**War is its own policy** (`diplomacy.ts` + `campaign.ts`, spec
+`docs/war-diplomacy.md` §13–14): a declaration weighs the **fielded** army ratio
+— what is spare of the garrisons — against a persona bar, a town in reach, a
+strike force, a road, and what the expedition would cost at the walls; a second
+war costs a higher bar and a target everybody is already fighting is read at the
+army it raised. A war is then fought by a column that masses at a muster before
+it pushes, blows that must be favourable (a melee piece never walks into a wall
+at a loss — the bows go first), and hurt pieces that walk home. It ends on the
+warscore or on **this war's own exchange** — what it has cost against what it has
+taken, windowed by `warLedger.ts` off the simulation's own kill counters.
+
 ## The surfaces
 
 Eight root pages, all named in `vite.config.ts` inputs:

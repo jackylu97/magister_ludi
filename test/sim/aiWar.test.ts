@@ -46,13 +46,15 @@ import {
   puppetProduction,
   valueContext,
 } from '../../src/ai/bot';
-import { aiConfigFor, aiConfigForPuppet } from '../../src/ai/aiConfig';
+import { aiConfigFor, aiConfigForPuppet, withAiTuning } from '../../src/ai/aiConfig';
 import {
+  answerPeaceOffer,
   armyStrength,
   diplomacyDecision,
   explainDeclaration,
   explainWarScore,
 } from '../../src/ai/diplomacy';
+import { musteredNear } from '../../src/ai/campaign';
 import { type BotCandidate, type BotDecision, type ValueTerm, foldTerms } from '../../src/ai/decision';
 import { explainBuildingRow } from '../../src/ai/value';
 import { hasResource, foundCityAt, refreshCityDerived, resourceCopies } from '../../src/sim/cities';
@@ -73,7 +75,7 @@ import { buildingDef } from '../../src/sim/buildingData';
 import { isVisibleTo, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { unitDef } from '../../src/sim/unitData';
 import { cityBaseStrength, cityMaxHp, previewCombat } from '../../src/sim/combat';
-import { buildingCityHp, foldBuildingCityStat } from '../../src/sim/buildingEffects';
+import { buildingCityHp, buildingCityStat, foldBuildingCityStat } from '../../src/sim/buildingEffects';
 import { wrappedDistance, tileHex } from '../../src/sim/map';
 import { slotLayout } from '../../src/sim/statecraftData';
 import { closeWar, openWar, setPeaceOffer } from '../../src/sim/wars';
@@ -90,12 +92,12 @@ function bench(
   seats = 2,
   { width = 20, height = 12, terrain = 'grassland' }: { width?: number; height?: number; terrain?: TerrainId } = {},
 ): GameState {
-  const colors = ['#a00', '#00a', '#0a0'];
+  const colors = ['#a00', '#00a', '#0a0', '#aa0'];
   const state = newGame({
     seed: 11,
     sizeName: 'duel',
     players: Array.from({ length: seats }, (_unused, index) => ({
-      name: ['Ada', 'Bors', 'Cyra'][index]!,
+      name: ['Ada', 'Bors', 'Cyra', 'Dima'][index]!,
       color: colors[index]!,
     })),
   });
@@ -364,6 +366,122 @@ describe('declaring a war', () => {
     const decision = abroad(state, 0);
     expect(decision === null || decision.command.type !== 'declareWar').toBe(true);
   });
+
+  // --- the four clauses of 2026-09-15, `docs/flags.md` (nnnnn) ---------------
+
+  /**
+   * **The ratio counts what could march.** Ten warriors in five towns is an
+   * empire of ten warriors and an expedition of five, and the roster's reading
+   * could not say the difference — the user's own diagnosis, one system on from
+   * the strike force's.
+   */
+  it('refuses on the fielded ratio a war the whole roster would have declared', () => {
+    const state = bench();
+    for (const col of [2, 4, 6, 8, 10]) foundCityAt(state, 0, at(state.map, col, 2));
+    foundCityAt(state, 1, at(state.map, 14, 5));
+    raise(state, 0, 10, 4, 5);
+    createUnit(state, 0, 'archer', 4, 6);
+    seat(state, 0).unitsBuilt.archer = 1;
+    raise(state, 1, 2, 13, 5);
+    // The roster says five to one, which is over the balanced bar of 4.5.
+    expect(armyStrength(state, 0) / armyStrength(state, 1)).toBeGreaterThan(4.5);
+    const decision = abroad(state, 0);
+    expect(decision === null || decision.command.type !== 'declareWar').toBe(true);
+    // And the table says what it counted: the garrisons are off the top.
+    expect(declareTable(state, 0)).toMatch(/marching strength against their/);
+  });
+
+  it('declares on the same board once the garrisons are not owed', () => {
+    // The other half, and the only difference is the towns: one town owes one
+    // garrison, so nine of the ten march and the fielded ratio clears the bar.
+    const state = bench();
+    foundCityAt(state, 0, at(state.map, 2, 2));
+    foundCityAt(state, 1, at(state.map, 14, 5));
+    raise(state, 0, 10, 4, 5);
+    createUnit(state, 0, 'archer', 4, 6);
+    seat(state, 0).unitsBuilt.archer = 1;
+    raise(state, 1, 2, 13, 5);
+    const decision = abroad(state, 0);
+    expect(decision?.command).toMatchObject({ type: 'declareWar', playerId: 0, targetId: 1 });
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  /**
+   * **No second war while one runs**, unless the advantage clears the higher
+   * bar. The board is the warmonger's own declaring board; the only thing added
+   * is a war it is already in.
+   */
+  it('asks a higher bar for a second war, and prints the raised bar', () => {
+    const state = bench(3);
+    foundCityAt(state, 0, at(state.map, 4, 5));
+    foundCityAt(state, 1, at(state.map, 12, 5));
+    foundCityAt(state, 2, at(state.map, 4, 9));
+    raise(state, 0, 5, 5, 5);
+    createUnit(state, 0, 'archer', 5, 6);
+    seat(state, 0).unitsBuilt.archer = 1;
+    // Their armies are big enough that the score lands between the two bars.
+    raise(state, 1, 4, 11, 5);
+    raise(state, 2, 4, 5, 9);
+    seat(state, 0).persona = 'warmonger';
+    const open = abroad(state, 0);
+    expect(open?.command.type).toBe('declareWar');
+    openWar(state, 0, 2);
+    const second = abroad(state, 0);
+    expect(second === null || second.command.type !== 'declareWar').toBe(true);
+    expect(declareTable(state, 0)).toMatch(/raised for the war already on/);
+  });
+
+  /**
+   * **The dogpile**: a target two empires are already fighting reads as the
+   * army it raised, not as the one it has left — so its other wars buy this
+   * seat nothing.
+   */
+  it('does not read a target’s other wars as weakness', () => {
+    const state = bench(4);
+    foundCityAt(state, 0, at(state.map, 4, 5));
+    foundCityAt(state, 1, at(state.map, 12, 5));
+    raise(state, 0, 5, 5, 5);
+    createUnit(state, 0, 'archer', 5, 6);
+    seat(state, 0).unitsBuilt.archer = 1;
+    raise(state, 1, 1, 11, 5);
+    seat(state, 0).persona = 'warmonger';
+    // One warrior standing, twelve raised: the two wars already on took the rest.
+    seat(state, 1).unitsBuilt.warrior = 12;
+    openWar(state, 1, 2);
+    openWar(state, 1, 3);
+    const decision = abroad(state, 0);
+    expect(decision === null || decision.command.type !== 'declareWar').toBe(true);
+    expect(declareTable(state, 0)).toMatch(/the army they raised, since two empires are already at them/);
+  });
+
+  /**
+   * **The cost of the war**: a town nobody could open refuses the declaration
+   * however good the ratio is, and the row says the odds it read.
+   */
+  it('refuses a war on a town the force could not open, and prints the odds', () => {
+    const state = withForce('warmonger');
+    const theirs = state.cities.find((city) => city.ownerId === 1)!;
+    // Walls the expedition cannot pay for: the same buildings `planCombat`
+    // reads, so the bot is weighing the town the rules would make it fight.
+    for (const id of ['palisade', 'stoneWalls', 'castle', 'bastion'] as const) {
+      if (!theirs.buildings.includes(id)) theirs.buildings.push(id);
+    }
+    refreshCityDerived(state, theirs);
+    expect(foldBuildingCityStat(buildingCityStat(theirs, 'defense'))).toBeGreaterThan(0);
+    // The walls are in the sentence, and the odds are the fold of the three
+    // readings the clause is made of.
+    expect(declareTable(state, 0)).toMatch(/of walls and ground, over \d+ steps of road: odds of/);
+    // And the bar is a bar: asked for odds this force cannot have, the same
+    // board declares nothing. `withAiTuning` is the arena's own seam, which is
+    // what makes this a claim about the clause rather than about one map.
+    withAiTuning({ war: { expeditionOdds: 99 } }, () => {
+      const decision = abroad(state, 0);
+      expect(decision === null || decision.command.type !== 'declareWar').toBe(true);
+      expect(declareTable(state, 0)).toMatch(/against the 99 an expedition wants/);
+    });
+    // Untuned, the force is worth these walls and the war is declared.
+    expect(abroad(state, 0)?.command).toMatchObject({ type: 'declareWar', targetId: 1 });
+  });
 });
 
 // --- 3. the peace -----------------------------------------------------------
@@ -423,6 +541,85 @@ describe('suing for peace, and signing one', () => {
     expect(signed.ok).toBe(true);
     expect(signed.ok && signed.peaces).toHaveLength(1);
     expect(state.wars.find((row) => row.a === 0 && row.b === 1)).toBeUndefined();
+  });
+
+  // --- the exchange (2026-09-15, the addendum) ------------------------------
+
+  /**
+   * A war going evenly by the warscore, with the ledger's window open.
+   *
+   * The window is opened by the seat *looking* at its war, which is what
+   * happens on the first turn of one in a played game (`warLedger.ts` says why
+   * the memory is the harness's); after that the pieces start falling, and the
+   * exchange is what the seat reads when it decides whether to go on.
+   */
+  function evenWar(persona?: string): GameState {
+    const state = bench();
+    foundCityAt(state, 0, at(state.map, 4, 5));
+    foundCityAt(state, 1, at(state.map, 12, 5));
+    openWar(state, 0, 1);
+    raise(state, 0, 4, 5, 5);
+    raise(state, 1, 4, 11, 5);
+    if (persona !== undefined) seat(state, 0).persona = persona;
+    // The seat looks at the war once: the exchange's zero.
+    abroad(state, 0);
+    return state;
+  }
+
+  it('sues once the war has cost it more than it has taken and the army is gone', () => {
+    const state = evenWar();
+    // Nine pieces lost to their one: the warscore is nowhere near the floor —
+    // `soldiersLost` reads `unitsBuilt` and nothing here was built — so the
+    // exchange is the only thing that could be speaking.
+    seat(state, 0).unitsLost += 9;
+    seat(state, 0).unitsKilled += 1;
+    expect(explainWarScore(state, seat(state, 0), seat(state, 1), aiConfigFor(undefined)).total).
+      toBeGreaterThan(aiConfigFor(undefined).war.sueFloor);
+    const decision = abroad(state, 0);
+    expect(decision?.command).toMatchObject({ type: 'proposePeace', playerId: 0, targetId: 1 });
+    expect(decision!.summary).toMatch(/9 of ours have fallen and 1 of theirs since turn/);
+    expect(decision!.summary).toMatch(/no longer clears the bar this seat declares at/);
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('fights on when the same losses are matched by kills', () => {
+    // The other side of the ratio, and the only difference is what it killed.
+    const state = evenWar();
+    seat(state, 0).unitsLost += 9;
+    seat(state, 0).unitsKilled += 9;
+    const decision = abroad(state, 0);
+    expect(decision === null || decision.command.type !== 'proposePeace').toBe(true);
+  });
+
+  it('sends the envoy home while the exchange is running its way', () => {
+    // A warmonger that has killed nine for two and still out-arms them: the
+    // paper on the table is fair and it is refused anyway, which is the
+    // ruling's *"declines peace while it is winning the exchange"*.
+    const state = evenWar('warmonger');
+    raise(state, 0, 8, 5, 6);
+    seat(state, 0).unitsKilled += 9;
+    seat(state, 0).unitsLost += 2;
+    setPeaceOffer(state, 1, 0, true);
+    bumpRevision(state);
+    const answer = answerPeaceOffer(state, seat(state, 0), seat(state, 1), valueContext(state, seat(state, 0)));
+    expect(answer?.command).toMatchObject({ type: 'declinePeace', playerId: 0, targetId: 1 });
+    expect(answer!.summary).toMatch(/this war is going its way/);
+    expect(applyCommand(state, answer!.command).ok).toBe(true);
+  });
+
+  it('signs the same paper once the exchange has turned', () => {
+    // The mirror: the same seat, the same offer, the losses the other way about.
+    const state = evenWar('warmonger');
+    seat(state, 0).unitsKilled += 1;
+    seat(state, 0).unitsLost += 9;
+    setPeaceOffer(state, 1, 0, true);
+    bumpRevision(state);
+    const answer = answerPeaceOffer(state, seat(state, 0), seat(state, 1), valueContext(state, seat(state, 0)));
+    expect(answer?.command).toMatchObject({ type: 'proposePeace', playerId: 0, targetId: 1 });
+    for (const row of answer!.candidates) {
+      expect({ row: row.label, fold: foldTerms(row.terms) }).toEqual({ row: row.label, fold: row.score });
+    }
+    expect(applyCommand(state, answer!.command).ok).toBe(true);
   });
 
   it('presses on rather than signing while it is winning', () => {
@@ -832,6 +1029,15 @@ describe('the three tactics', () => {
     return decision.candidates.map((row) => `${row.label}: ${walk(row.terms)}`).join(' || ');
   }
 
+  /** Hexes between a hex and a town. */
+  function hexesHome(state: GameState, at: { col: number; row: number }, city: City): number {
+    return wrappedDistance(
+      state.map,
+      tileHex(getTileAt(state.map, at.col, at.row)!),
+      tileHex(getTileAt(state.map, city.col, city.row)!),
+    );
+  }
+
   // --- (a) heal when weak ---------------------------------------------------
 
   /**
@@ -874,6 +1080,54 @@ describe('the three tactics', () => {
     const decision = orderFor(state, 0, piece.id);
     expect(decision?.command).toMatchObject({ type: 'attack', target: { col: 6, row: 5 } });
     expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  /**
+   * **And the other half of it** (ruled 2026-09-15, `docs/flags.md` (nnnnn)): the
+   * piece that is too hurt to be swinging and is standing in somebody else's
+   * fields walks home rather than pressing. The arm above deliberately left this
+   * case alone ("a piece hurt deep in a rival's fields does not retreat"), and it
+   * is the half the user watched being fed into a line one soldier at a time.
+   */
+  it('walks a hurt piece home out of enemy fields rather than pressing', () => {
+    const { state, city } = front();
+    // Their ground, not ours: the only difference from the board above.
+    state.tileOwner[tileIndex(state.map, 8, 5)] = state.cities[0]!.id;
+    const theirs = foundCityAt(state, 1, at(state.map, 9, 5));
+    state.tileOwner[tileIndex(state.map, 8, 5)] = theirs.id;
+    const piece = createUnit(state, 0, 'spearman', 8, 5);
+    piece.hp = 20;
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const decision = orderFor(state, 0, piece.id);
+    expect(decision?.command).toMatchObject({ type: 'moveUnit', unitId: piece.id });
+    // Home is the town or a hex beside it — the garrison is standing in the
+    // middle of it, and the stacking cap is the rules' answer, not this arm's.
+    const target = (decision!.command as { target: { col: number; row: number } }).target;
+    expect(hexesHome(state, target, city)).toBeLessThanOrEqual(1);
+    expect(decision!.summary).toMatch(/Too hurt to be out here/);
+    expect(labels(decision!)).toMatch(/hit points, and this seat pulls a piece out below/);
+    for (const row of decision!.candidates) {
+      if (row.rejected !== undefined) continue;
+      expect(foldTerms(row.terms)).toBe(row.score);
+    }
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('keeps the same hurt piece in the field when the blow would finish something', () => {
+    // The ruling's own exception, made once for both halves: `decisiveBlowAt` is
+    // the reading the rest arm and the fall-back share.
+    const { state } = front();
+    const theirs = foundCityAt(state, 1, at(state.map, 9, 5));
+    state.tileOwner[tileIndex(state.map, 8, 5)] = theirs.id;
+    const piece = createUnit(state, 0, 'spearman', 8, 5);
+    piece.hp = 20;
+    const prey = createUnit(state, 1, 'warrior', 8, 4);
+    prey.hp = 1;
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const decision = orderFor(state, 0, piece.id);
+    expect(decision?.command).toMatchObject({ type: 'attack', target: { col: 8, row: 4 } });
   });
 
   it('is a fraction of the piece’s own maximum, not a flat figure', () => {
@@ -1151,20 +1405,76 @@ describe('the campaign', () => {
     return built;
   }
 
-  it('takes a blow on the walls at the siege exchange its own appetite would refuse', () => {
+  /**
+   * **The walls are the ranged pieces' business** (ruled 2026-09-15,
+   * `docs/flags.md` (nnnnn)). This board used to pin the opposite claim — a
+   * swordsman taking the losing blow because the push read `war.siegeExchange` —
+   * and the user watched five seats spend their armies that way. The siege
+   * appetite is unchanged and still buys the *screen* (the test below it); what
+   * it no longer buys is melee walking into a wall at a loss.
+   */
+  it('holds a melee blow on the walls that would come off worse, and says the ranged pieces go first', () => {
     const { state, theirs, column } = atTheWalls();
     const piece = column[0]!;
     const blow = previewCombat(state, piece.id, { col: theirs.col, row: theirs.row });
-    // The exchange is exactly the one a balanced seat refuses: it deals less
+    // The exchange is exactly the one the old siege appetite took: it deals less
     // than it takes, and it does not kill.
     if (!blow.ok) throw new Error(blow.error);
     expect(blow.damageToDefender).toBeLessThanOrEqual(blow.damageToAttacker);
-    expect(blow.damageToDefender).toBeGreaterThan(blow.damageToAttacker * 0.3);
     expect(blow.defenderHp).toBeGreaterThan(blow.damageToDefender);
     const decision = orderFor(state, 0, piece.id);
+    expect(decision).not.toBeNull();
+    expect(decision!.command.type).not.toBe('attack');
+    // A held blow is a printed decision, never a silent skip.
+    expect(labels(decision!)).toMatch(/is behind walls and this blow deals \d+ for \d+ — the ranged pieces go first/);
+    for (const row of decision!.candidates) {
+      if (row.rejected !== undefined) continue;
+      expect(foldTerms(row.terms)).toBe(row.score);
+    }
+  });
+
+  it('shoots the same walls with the bow, which pays nothing for the blow', () => {
+    // The other half of *"ranged and siege first, or wait"*: the archer standing
+    // in its own range takes the shot the swordsman held.
+    const built = atTheWalls();
+    const { state, theirs } = built;
+    const bow = createUnit(state, 0, 'archer', 9, 7);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const shot = previewCombat(state, bow.id, { col: theirs.col, row: theirs.row });
+    expect(shot.ok && shot.damageToAttacker).toBe(0);
+    const decision = orderFor(state, 0, bow.id, 20);
     expect(decision?.command).toMatchObject({
       type: 'attack',
+      unitId: bow.id,
       target: { col: theirs.col, row: theirs.row },
+    });
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('still trades down at the siege exchange against the pieces screening the town', () => {
+    // `war.siegeExchange` is what an army pays to break the line *beside* the
+    // walls, and it survives the ruling above: this defender is dug in on flat
+    // ground, which is a piece an army goes through rather than waits out.
+    const built = atTheWalls();
+    const { state, theirs, column } = built;
+    const screen = createUnit(state, 1, 'warrior', theirs.col, theirs.row - 1);
+    screen.fortifiedTurns = 3;
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    // The piece standing beside it already, rather than a fresh one: the whole
+    // column is at the walls, which is what makes this a push.
+    const ours = column[1]!;
+    const blow = previewCombat(state, ours.id, { col: screen.col, row: screen.row });
+    if (!blow.ok) throw new Error(blow.error);
+    // The exchange a balanced seat's own floor refuses, and the push takes.
+    expect(blow.damageToDefender).toBeLessThan(blow.damageToAttacker);
+    expect(blow.damageToDefender).toBeGreaterThan(blow.damageToAttacker * 0.3);
+    const decision = orderFor(state, 0, ours.id, 20);
+    expect(decision?.command).toMatchObject({
+      type: 'attack',
+      unitId: ours.id,
+      target: { col: screen.col, row: screen.row },
     });
     expect(decision!.summary).toMatch(/The force is at the walls/);
     expect(applyCommand(state, decision!.command).ok).toBe(true);
@@ -1183,6 +1493,35 @@ describe('the campaign', () => {
     const decision = orderFor(state, 0, lone.id);
     expect(decision).not.toBeNull();
     expect(decision!.command.type).not.toBe('attack');
+  });
+
+  /**
+   * **The rally** (ruled 2026-09-15, `docs/flags.md` (nnnnn): *"a column masses
+   * to the strike force before it walks in rather than arriving one piece a
+   * turn"*).
+   *
+   * The fault was in the counting: a border town of this empire's frequently
+   * stands nearer the target than the muster does, so every spearman holding it
+   * counted as *gathered*, the plan read itself as mustered with one piece at
+   * the front, and the army arrived at the walls one soldier a turn.
+   */
+  it('does not count the pieces holding a town as part of the column', () => {
+    const { state, theirs } = frontier({ soldiers: 0, bow: false });
+    // A border town of ours, nearer the target than the muster is, with three
+    // soldiers holding it.
+    const border = foundCityAt(state, 0, at(state.map, 8, 5));
+    const held = [
+      createUnit(state, 0, 'warrior', border.col, border.row),
+      createUnit(state, 0, 'warrior', border.col, border.row + 1),
+      createUnit(state, 0, 'warrior', border.col, border.row - 1),
+    ];
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const muster = { col: 7, row: 5 };
+    const column = musteredNear(state, 0, muster, aiConfigFor(undefined).war.musterRadius, theirs);
+    // The two beside the town are the column; the one standing *in* it is not.
+    expect(column.map((unit) => unit.id)).not.toContain(held[0]!.id);
+    expect(column.map((unit) => unit.id)).toEqual(expect.arrayContaining([held[1]!.id, held[2]!.id]));
   });
 
   // --- (c) civilians at war flee --------------------------------------------
