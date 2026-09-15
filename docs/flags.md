@@ -19,6 +19,14 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(hhhhh) The save format stays {config, log} — PARKED** (the user,
+2026-09-15, on the replay cost of loading: *"Lets keep the current save
+format for now."*). The hybrid — config, log and a snapshot of the final
+state, snapshot-first load with the replay verified off the critical path
+and the shelf in IndexedDB — is written up in the session of 2026-09-15
+and costs a day when wanted; replay is roughly half of a developed load's
+wait after P7 moved it off the main thread.
+
 **(ggggg) Only an original capital is unrazeable — BUILT** (the user,
 2026-09-15: *"the game should allow razing cities that aren't original
 capitals, not allowing capitals in general basically prevents razing if
@@ -35,7 +43,7 @@ command; a v116 log replays byte for byte (a raze the old rule refused was
 never in a log). Pinned in `test/sim/war.test.ts`: two rival towns fall in
 order, the first cannot burn and the second can.
 
-**(fffff) The trade route screen is slow again — RULED, T1** (the user,
+**(fffff) The trade route screen is slow again — BUILT, T1** (2026-09-15: open 553 → 182 ms, repaint 1,399 → 497 ms on the 41-town fixture; 74 rows identical, pixels identical. The memo already hit and the DOM was 1.5 ms of it — 90 % was `findPath`, asked three times a pair; now one gate a pair (`explainRouteGates`) and a foreign no-path answers its remaining doorsteps by lookup (`findPathToFirst`). **Follow-up row, M-series**: `hasForeignUnit` and `cityAt` are linear walks inside `canTransit` in every A* in the game — hoisting them per search is `zocField`'s bargain and would speed every bot turn and move highlight.) Originally: (the user,
 2026-09-15, turn 99 as Modu Chanyu: *"Could you do a performance pass on
 the trade route screen? it seems to be slow again"*). Measure first on a
 developed fixture (`docs/plans/benchmarks/fixtures/standard-t120-s1`, 41
@@ -352,7 +360,7 @@ rasterisation backlog is paid by the next task** (a developed save
 freezes ~19 s *after* the board appears where it froze ~13 s inside the
 first frame before; a fraction of that on real hardware; the board is on
 screen throughout). P11 is the row that shrinks that backlog.
-**Landed — P11, shipped OFF** (2026-09-15): the one-period shadow fit
+**Landed — P11, ON since 2026-09-15** (the user, on the shadow-edge crops: *"i actually like the crisper shadows, lets proceed with that."*): the one-period shadow fit
 (`src/render3d/paintedShadowWrap.js`) — the static sun bakes one world
 period plus a `periodMargin` instead of three wrap copies, and every
 receiving material's shadow lookup subtracts the period's displacement in

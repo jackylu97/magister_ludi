@@ -1058,7 +1058,7 @@
       "staticMapSize": 8192,
       "counterMapSize": 2048,
       "counterCoverage": 0.1,
-      "periodFit": false,
+      "periodFit": true,
       "periodMargin": 3
     },
     "lod": {

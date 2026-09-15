@@ -90,7 +90,7 @@ describe('the painted performance knobs', () => {
     // the canonical-period bake, and `periodMargin` is the world-unit slack the
     // wrapped lookup needs where one band meets the next.
     expect(SHEET).toEqual({
-      shadows: { staticMapSize: 8192, counterMapSize: 2048, counterCoverage: 0.1, periodFit: false, periodMargin: 3 },
+      shadows: { staticMapSize: 8192, counterMapSize: 2048, counterCoverage: 0.1, periodFit: true, periodMargin: 3 },
       lod: { nearPixels: 25, farPixels: 29, distantCells: { groves: { x: 2, y: 3, z: 2 } } },
       contact: {
         resolution: 512, radius: 0.1, thickness: 0.25, distanceExponent: 2, samples: 12,
