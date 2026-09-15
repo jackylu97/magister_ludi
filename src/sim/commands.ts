@@ -109,8 +109,8 @@ import {
   settleGreatPersonChoice,
 } from './greatPeople';
 import { getTileAt, tileIndex } from './map';
-import { advanceAlongPath } from './movement';
-import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
+import { advanceAlongPath, swapPlaces } from './movement';
+import { type Cell, canStopOn, findPath, isPassable, planSwap } from './pathfind';
 import {
   type HolySitePlanting,
   type ProclamationReport,
@@ -251,7 +251,7 @@ import { type DealEndReport, type DealTerms, proposalById } from './deals';
 import type { CampBounty } from './camps';
 import { type GuildReport, dismissSpecialistAt, dismissSpecialistError } from './guilds';
 import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
-import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
+import { type UnitTypeId, isCivilian, isCombatant, isUnitTypeId, unitDef } from './unitData';
 import { caravanTypeFor } from './routes';
 import { hasStackingRoom, sleepError } from './units';
 import { recomputeVisibility } from './visibility';
@@ -2227,6 +2227,55 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
     return fail(`Unit ${unit.id} is already on (${tile.col}, ${tile.row})`);
   }
   if (!canStopOn(state, unit, tile)) {
+    /**
+     * **Two of this seat's soldiers trade places** (`docs/flags.md` (ooooo),
+     * rule 3), and it is this command rather than one of its own: the gesture a
+     * player makes is "go there", the hex is the whole of the order, and a
+     * second verb would be a second way for the board's highlight and the
+     * reducer to disagree about one click. It also keeps the log shape
+     * untouched — a `moveUnit` onto a friend's hex was refused by every version
+     * of these rules there has ever been, so no saved log can contain one and
+     * nothing about replaying an older game changes.
+     *
+     * Asked **first** among the refusals, because the hex holds one of this
+     * empire's own pieces and every sentence below is about somebody else's
+     * ground. `planSwap` validates the whole exchange — both routes, both
+     * purses, both landings — before `swapPlaces` moves anything, so a swap
+     * that will not fit leaves the state byte-identical like any other refusal.
+     */
+    const plan = planSwap(state, unit, tile);
+    if (plan !== null) {
+      const arrivals = swapPlaces(state, unit, plan);
+      // **Both pieces were given an order, and only one of them is named.**
+      // `applyCommand`'s one waking seam reads `orderedUnitId`, which is the
+      // mover; the sitter walked, so it is awake too, and saying so here is the
+      // narrowest honest place — the alternative is a command shape that names
+      // two pieces for the sake of one flag.
+      wakeUnit(plan.sitter);
+      delete plan.sitter.autoExplore;
+      recomputeVisibility(state, actor.id);
+      return ok(arrivals.length > 0 ? arrivals : undefined);
+    }
+    /**
+     * **A trade that will not fit gets its own sentence**, for the foreign
+     * city's reason one clause down: "cannot stop on (12, 7)" reads like a
+     * pathing failure, and the rule a player is meant to learn here is that both
+     * pieces pay for the walk. Asked of the hex rather than of the plan, since
+     * the plan is exactly what came back empty.
+     */
+    const sitter = state.units.find(
+      (piece) =>
+        piece.id !== unit.id &&
+        piece.ownerId === unit.ownerId &&
+        piece.col === tile.col &&
+        piece.row === tile.row &&
+        isCombatant(unitDef(piece.type)),
+    );
+    if (sitter !== undefined && isCombatant(unitDef(unit.type))) {
+      return fail(
+        `Your ${unitDef(sitter.type).name} there has not the movement to trade places`,
+      );
+    }
     // A foreign city gets its own sentence rather than the coordinate-shaped
     // default: `canTransit`'s refusal here is a design choice (2026-08-28 —
     // capture, not a march, is how a town changes hands) and a player who

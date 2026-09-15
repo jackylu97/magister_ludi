@@ -323,3 +323,49 @@ describe('actual controls pointer gestures', () => {
     f.click(); expect(f.controls.selectedUnit()?.id).toBe(f.second.id);
   });
 });
+
+/**
+ * **The swap, at the pointer** (`docs/flags.md` (ooooo), rule 3). The rule is
+ * pinned in `test/sim/pathfind.test.ts`; what is pinned here is the gesture: the
+ * hex is offered by the highlight, the card says whose place is being taken, and
+ * the right button sends the one order that takes it.
+ */
+describe('trading places with your own soldier', () => {
+  it('offers the hex, names the sitter, and swaps on a right-click', () => {
+    const f = controlsFixture();
+    const sitter = createUnit(f.state, 0, 'spearman', 4, 3);
+    f.controls.selectPiece(f.first.id);
+    f.point(4, 3);
+
+    // The board offers it: the last reachable set the renderer was handed
+    // carries the sitter's hex, so the tint and the reducer agree.
+    const calls = f.renderer.setReachable.mock.calls;
+    const offered = calls[calls.length - 1]![0] as readonly { col: number; row: number }[];
+    expect(offered.some((cell) => cell.col === 4 && cell.row === 3)).toBe(true);
+    // And the card says what the click would do, in plain words.
+    expect(f.controls.swapHint()).toBe('Swap with Spearman');
+
+    f.viewport.emit('pointerdown', { button: 2 });
+    f.viewport.emit('pointerup', { button: 2, clientX: 41, clientY: 42 });
+    expect(f.first).toMatchObject({ col: 4, row: 3 });
+    expect(sitter).toMatchObject({ col: 3, row: 3 });
+    // One order, and both pieces slid along their own route rather than
+    // appearing where they landed.
+    expect(f.game.log.filter((command) => command.type === 'moveUnit')).toHaveLength(1);
+    expect(f.renderer.animateMove).toHaveBeenCalledTimes(2);
+  });
+
+  it('says nothing over a hex that is not a trade', () => {
+    const f = controlsFixture();
+    createUnit(f.state, 0, 'spearman', 4, 3);
+    f.controls.selectPiece(f.first.id);
+    // Empty ground, a piece of another seat, and one of its own workers: none
+    // of the three is a trade, and the card stays quiet over all of them.
+    f.point(5, 3);
+    expect(f.controls.swapHint()).toBeNull();
+    f.point(3, 4);
+    expect(f.controls.swapHint()).toBeNull();
+    f.point(3, 3);
+    expect(f.controls.swapHint()).toBeNull();
+  });
+});

@@ -909,6 +909,29 @@ import {
  * fell) is the bead's alone. A v116 log replays byte for byte: the field is
  * derived at founding on replay, and a raze the old rule refused never reached
  * a log. The snapshot print gains the key on every empire's first town.
+ *
+ * **Still 116, and no new field at all** (2026-09-15, `docs/flags.md` (ooooo);
+ * the user: *"units should be able to 'move past' units that are blocking
+ * them… Units should not exert ZOC if you're not at war with them. Moving a
+ * military unit onto another should 'swap' the two unit's positions"*): three
+ * movement rules, all of them about who is in the way. A piece of a seat this
+ * empire is not at war with is **passed through** rather than walked around
+ * (`canTransit` admits it, `canStopOn` still refuses it); the zone of control
+ * counts **only seats at war** (`zocField`); and a soldier ordered onto one of
+ * its own seat's soldiers **trades places** with it when both walks fit the turn
+ * (`planSwap`, carried by `moveUnit` — no command was added, which is why the
+ * version did not move).
+ *
+ * **A v116 log replays, and the games it describes may end differently.** No
+ * refusal became an acceptance for any command a v116 log can hold — a
+ * `moveUnit` onto a friend's hex was refused by every version of these rules
+ * there has ever been, so no log contains one — but a march *stored* under the
+ * old rules is walked under the new ones: a column that halted behind a
+ * neighbour's spearman now files past it, and one that paid a picket's toll at
+ * peace now does not. Every seat re-decides from the board it is handed, so the
+ * bots take different roads from the same seeds and the 120-turn digests moved
+ * with them (re-taken in `test/sim/explore.test.ts`, with the measurement in
+ * their docblock). Nothing about the *shape* of a save changed.
  */
 export const SCHEMA_VERSION = 116;
 

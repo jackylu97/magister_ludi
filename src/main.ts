@@ -2387,7 +2387,18 @@ async function boot(initial: Game | null): Promise<void> {
           ? foundingCostRow(game.state, seat, hover.tile)
           : null,
       );
-      setInfoRow(infoUnit, describeUnitsOn(game.state, seat, hover.tile));
+      // What is standing here, and — when the piece in hand would **trade
+      // places** with one of them (`docs/flags.md` (ooooo), rule 3) — what the
+      // right button would do about it. One row rather than a row of its own,
+      // because it is a sentence about the pieces this row is already naming,
+      // and it is `controls`' to say: the rules decide whether the swap is on
+      // (`swapHint` → `planSwap`), never this readout.
+      const standing = describeUnitsOn(game.state, seat, hover.tile);
+      const swap = controls.swapHint();
+      setInfoRow(
+        infoUnit,
+        swap === null ? standing : standing === null ? swap : `${standing} · ${swap}`,
+      );
       showTileYields(game.state, seat, hover.tile);
       showTileResource(game.state, seat, hover.tile);
       setInfoRow(infoImprovement, describeImprovement(hover.tile));

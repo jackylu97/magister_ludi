@@ -246,7 +246,7 @@ import {
 import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
 import { authorityOf, happinessOf } from '../sim/meters';
-import { findPath, pathTurnMarks, reachableTiles, takesByWalking } from '../sim/pathfind';
+import { findPath, pathTurnMarks, planSwap, reachableTiles, takesByWalking } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import {
   type CensusRecord,
@@ -2203,6 +2203,19 @@ export interface GameControls {
    * the player reads is the arithmetic the reducer will perform.
    */
   combatForecast(): CombatPreview | null;
+
+  /**
+   * "Swap with Warrior" when the right button on the hovered hex would have the
+   * selected piece and one of this seat's own soldiers **trade places**
+   * (`docs/flags.md` (ooooo), rule 3), or `null` when it would not.
+   *
+   * `combatForecast`'s sibling one gesture over, and asked the same way: the
+   * simulation's own `planSwap` decides, so the words appear over exactly the
+   * hexes the reducer will accept the exchange on — and stay silent over the
+   * ones where the trade will not fit, which is the case a player would
+   * otherwise learn by clicking.
+   */
+  swapHint(): string | null;
 
   /** The unit currently selected, re-read from the state, or `null`. */
   selectedUnit(): Unit | null;
@@ -4717,6 +4730,26 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * The swap under the pointer, in words. See `GameControls.swapHint`.
+   *
+   * It names the **sitter** and not the gesture, because the piece in hand is
+   * already on the sheet: what the player cannot see from the board is which of
+   * their own columns is about to walk back the way this one came. Plain words
+   * and a piece's own row name, like every other sentence the board says out
+   * loud.
+   */
+  function swapHint(): string | null {
+    const unit = selectedUnit();
+    const hover = renderer.getHover();
+    if (!unit || !hover || !canOrder()) return null;
+    const { state } = getGame();
+    const tile = getTileAt(state.map, hover.tile.col, hover.tile.row);
+    if (!tile) return null;
+    const plan = planSwap(state, unit, tile);
+    return plan === null ? null : `Swap with ${unitDef(plan.sitter.type).name}`;
+  }
+
+  /**
    * The forecast for the hovered tile. See `GameControls.combatForecast`.
    *
    * It answers `null` — rather than a refusal — when there is simply nothing
@@ -6458,7 +6491,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // A new order supersedes whatever was still sliding.
     renderer.skipAnimations();
     const from = { col: unit.col, row: unit.row };
-    const route = findPath(getGame().state, unit, hover.tile) ?? [];
+    // **The swap's other half, read before the order is sent** (`docs/flags.md`
+    // (ooooo), rule 3): once the exchange has happened there is nothing on the
+    // board that says which piece walked back, and a column that teleported
+    // while the other one slid would be the board telling a lie about a move it
+    // just made. The same `planSwap` the reducer will accept the order with, so
+    // the two pieces are animated along the two routes that were actually
+    // walked.
+    const swap = planSwap(getGame().state, unit, hover.tile);
+    const route = (swap === null ? findPath(getGame().state, unit, hover.tile) : swap.path) ?? [];
 
     const command: Command = {
       type: 'moveUnit',
@@ -6480,6 +6521,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // destination here; the walked prefix is the route up to that tile.
     const walked = walkedPrefix(route, { col: unit.col, row: unit.row });
     if (walked.length > 0) renderer.animateMove(unit.id, from, walked);
+    // And the piece that came the other way, along the route it was priced on.
+    // Only when the order was actually the swap the plan described: a refusal
+    // returned above, and a plan that went stale between the read and the
+    // commit would have been refused there too.
+    if (swap !== null) {
+      renderer.animateMove(swap.sitter.id, { col: hover.tile.col, row: hover.tile.row }, swap.back);
+    }
 
     reportArrivals(result, { col: unit.col, row: unit.row });
     renderer.invalidate();
@@ -7767,6 +7815,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     prophetAct,
     renameReligion,
     combatForecast,
+    swapHint,
     openCity,
     setOpenCity,
     setMoveMode,
