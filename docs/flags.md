@@ -19,6 +19,28 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(ppppp) A seat is named by its figure — RULED, N1** (the user, 2026-09-15:
+*"players should be identified by their leader choice - let's retire the
+color naming scheme unless the user has selected no leader"*). Today a seat
+is "Crimson" or "Teal" — its ink's name, from `src/ui/gameSetup.ts`'s
+`SEATS` — on the top bar, the banners, the diplomacy sheet, the capture
+and war sentences, the turn card, the spectator feed and the Abacus, and
+the figure is a second line beside it. Rule: **a seat that has a figure is
+called by the figure** — "Pachacuti", "Modu Chanyu", "Joan of Arc" — and
+its empire by the figure's people where a sentence wants a nation ("the
+Inca", `LeaderDef`'s civilisation word; the doc's "The thirteen" table
+carries it); a seat with **no figure keeps the ink's name** as today, so
+the scheme is retired, not deleted. One reading (`seatName(state, id)` /
+`seatPeople` beside it, in the sim's `leaderData.ts` or a leaf the UI and
+the AI's feed both import), every surface through it — nothing prints
+`player.name` for a figured seat, pinned by a source sweep like
+`test/ui/seatRoster.test.ts`'s. `Player.name` stays what the config wrote
+(a save's own words; the ink's name is still what the setup screen shows
+in the colour swatch). Bot seats draw their figure at setup as they do
+today, so every bot is named. Two figures on one board are refused at setup
+already (one figure a seat), so names are unique. Docs: the README's UI
+paragraph; the changelog says no state moved.
+
 **(ooooo) Passing, swapping, and no toll from a friend — RULED, M1** (the
 user, 2026-09-15: *"units should be able to 'move past' units that are
 blocking them if they have enough movement (i.e. the unit has enough
