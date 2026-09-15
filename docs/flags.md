@@ -24,6 +24,32 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
+**(zzzzz) The bot's skill and an evolutionary tuner — RULED, E0 first**
+(the user, 2026-09-15: *"I also want to make the game a lot harder, so the
+skill required to beat the game can feel more pressing. Maybe we can start
+by optimizing the ai, could you start a script to begin an evolutionary
+improvement algorithm to improve the bot performance? And before we kick
+it off, should we think more about what tunable parameters we should add
+to the bot to give it more skill expression"*). **E0 is a plan document,
+not code**: `docs/plans/bot-evolution.md`. (1) An audit of the bot's
+decision surface — every knob in `data/ai.json` (the arena walks it), what
+decision each moves, and which decisions have *no* knob at all; (2) the
+strategy-level knobs that are missing and the behaviour each needs before
+it can be a number — which victory shape a seat plays for and when it
+commits, when expansion stops and development starts, how a technology is
+valued by age, when a seat pivots to faith or to wonders, how a neighbour's
+threat is read, how a war is opened and ended — each as a proposed row
+with its reader; (3) the harness: a population of `data/ai.json` variants
+played headless through the arena's own engine (`src/arenaPage/`, its
+workers), each candidate against the current champions across several
+seeds and both map sizes, fitness = V1's `foldScore` at a fixed turn plus
+the Opus turn (objective, never the bot's own appraisal), selection and
+mutation on the numeric rows with the persona structure kept, a
+generation's cost estimated from A1's timings, results as a ledger the
+user can read, and the winner written back to the sheet only by hand; (4)
+the difficulty lever kept separate from the bot's skill (a handicap
+sheet, later). The user marks the document up; E1 builds the harness.
+
 **(yyyyy) Two rows V1 and L1 turned up — RULED, follow-ups.** (1) **A
 lifetime tally for the deck.** Nothing in the sim records what a card has
 paid since it was drafted: the Ledger's third band says so, and the score's
