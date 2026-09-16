@@ -2424,7 +2424,7 @@ describe('improvements in the log', () => {
     // a field and no longer a hall — a new row on this very table, so a v115 log
     // that queued the building or that stood on a hillside it could not work
     // lands somewhere this build does not.
-    expect(SCHEMA_VERSION).toBe(117);
+    expect(SCHEMA_VERSION).toBe(118);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

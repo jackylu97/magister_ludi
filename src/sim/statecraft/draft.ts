@@ -358,18 +358,25 @@ export interface PlayerStatecraft {
    */
   orderSkips: number;
   /**
-   * **Order drafts this empire has rerolled for faith**, ever (schema 71).
+   * **Order drafts this empire has rerolled for faith under its present
+   * government** (schema 71; zeroed on adoption since schema 118).
    *
    * `orderSkips`' twin and its opposite: a pass gives a hand up and banks pity,
-   * a reroll pays for another one and banks a *price*. So this is never zeroed —
-   * the whole design of the reroll is that it grows dearer every time it is
-   * used, and a count that reset would be a discount for taking a card.
+   * a reroll pays for another one and banks a *price*. It grows dearer with
+   * every use, which is the whole design of the reroll — and it was a lifetime
+   * count until B1 (`docs/flags.md` (aaaaaa): *"how expensive re-rolls are"*),
+   * when the compounding for life turned out to be the thing that made a
+   * specific card a lottery ticket. So it is **zeroed by adopting a
+   * government** — an event write in `adoptGovernmentAt`, the one writer of
+   * adoption, and never a countdown — and a fresh charter arrives with a cheap
+   * reroll. Taking a card still does not reset it: a count that reset on a pick
+   * would be a discount for the thing the draft already rewards.
    *
    * An **absolute count**, read once by `explainRerollCost` when the button
-   * prints the next price, raised in one place (`settleReroll`, `religion.ts`)
-   * and ticked by nothing. Distinct from `SlottedOrder.rerollsSeen`, which is
-   * the same act counted per chair for the cards that pay to watch it: this one
-   * is the empire's bill.
+   * prints the next price, raised in one place (`settleReroll`, `religion.ts`),
+   * zeroed in one (`adoptGovernmentAt`) and ticked by nothing. Distinct from
+   * `SlottedOrder.rerollsSeen`, which is the same act counted per chair for the
+   * cards that pay to watch it: this one is the empire's bill.
    *
    * Always present, never optional — `orderSkips`' rule.
    */
@@ -1822,6 +1829,11 @@ export function adoptGovernmentAt(
   // reading, and a benched card would go on paying (found 2026-09-10, the
   // growing-orders pin).
   sc.slots = new Array<SlottedOrder | null>(chairCount(state, player.id, id)).fill(null);
+  // **The reroll's ladder starts again** (B1 rule 3, `docs/flags.md` (aaaaaa)):
+  // a fresh charter arrives with a cheap reroll. An event write here, in the
+  // one place a government changes hands, and never a countdown — see the
+  // field's own docblock for why a *pick* still does not reset it.
+  sc.rerollsTaken = 0;
   // **The amnesty is for Orders and never for a malice** (§4): the debt is owed
   // to the next wager rather than to the government that owed it, so every one
   // this realm carries takes a chair in the new spread. See `reseatMalices`.

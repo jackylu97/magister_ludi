@@ -209,8 +209,9 @@ export interface BeliefOffer {
    * asked again once for nothing, and every asking after that costs faith,
    * rising with each one *on this hand*. The count lives on the offer because
    * it is the hand's own fact: it starts at nothing with every fresh deal and
-   * has nothing to do with the Order draft's lifetime count
-   * (`PlayerStatecraft.rerollsTaken`), which never resets. Absent reads as none.
+   * has nothing to do with the Order draft's count under its government
+   * (`PlayerStatecraft.rerollsTaken`), which only adoption resets. Absent reads
+   * as none.
    */
   rerolls?: number;
   // `givenBack` — the god this offer was dealt in place of — was removed on

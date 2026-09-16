@@ -2,7 +2,7 @@
   "meter": {
     "costBase": 12,
     "costLinear": 5,
-    "costExponent": 2.65,
+    "costExponent": 2.2,
     "sealTurns": 5
   },
   "rarityWeights": {
