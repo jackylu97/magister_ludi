@@ -110,6 +110,10 @@ describe('a chained building wants its parent standing in the same town', () => 
       sainteChapelle: 'temple',
       sankoreMadrasa: 'library',
       longjiangDockyard: 'harbour',
+      // M2 (`docs/flags.md` (eeeeee), 2026-09-15): the two middle-age military
+      // halls stand on the drill yard, as the Shipyard stands on the Harbour.
+      warHall: 'barracks',
+      armoury: 'barracks',
     });
   });
 
@@ -193,7 +197,9 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
   it('is the ten rows the cut withdrew, and the hall a figure traded for a field', () => {
     expect([...RETIRED].sort()).toEqual(
       [
-        'armoury',
+        // **The Armoury came back** in M2 (`docs/flags.md` (eeeeee), 2026-09-15):
+        // the withdrawn row re-opened as the engine-and-bow drill hall at
+        // Mathematics, one id rather than a second Armoury beside a withdrawn one.
         'baths',
         'clocktower',
         'examinationHall',
@@ -250,7 +256,10 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
     });
     // Movable Type left the list in batch E4b: the Printing House it opens is
     // live again, so the node hands over something buildable once more.
-    expect([...orphaned].sort()).toEqual(['machinery', 'theExaminationHall'].sort());
+    // Machinery left it in M2 (2026-09-15): the Armoury it named came back live
+    // at Mathematics, and a buildable reachable from two nodes is the data bug
+    // `techUnlocks.test.ts` refuses — so the row left Machinery with the cut.
+    expect([...orphaned].sort()).toEqual(['theExaminationHall']);
   });
 });
 

@@ -213,7 +213,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Bronze Panoply | 100 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | Smithy | reveals **Iron** |
+| Bronze Panoply | 100 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | Smithy, War Hall | reveals **Iron** |
 | Chronology | 100 | Writing | — | Chart the Stars ‡ | The Long Count · renewals: Plantation +1🎭 |
 | Currency | 100 | The Wheel | Trader *(never built — comes with a route bought in gold)* | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
 | Epic Poetry † | 100 | Writing | — | Amphitheater, **The Theatre of Dionysus**, Heroic Epic ‡ | Ancestor Rites |
@@ -240,11 +240,11 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Iron Working | 360 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | — |
+| Iron Working | 360 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army**, **The Statue of Zeus**, Courthouse | — |
 | Rhetoric | 360 | The High Temple | — | Forum ‡, **The Great Library** | — |
 | State Workforce | 360 | Currency | — | Public Bath | — |
 | The Silk Road | 360 | Wayfinding | — | Caravanserai ‡ | — |
-| Mathematics | 650 | Iron Working | Catapult, Composite Bowman | **Petra** | — |
+| Mathematics | 650 | Iron Working | Catapult, Composite Bowman | **Petra**, Armoury | — |
 | Satrapies | 650 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
 | Shipwrights | 650 | The Silk Road | Galley, Tower Ship, Fire Ship | Shipyard | — |
 | The Civil Service | 650 | Code of Laws | — | — | — |
@@ -289,7 +289,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Divine Right | 1960 | Guildhalls | — | Courthouse | — |
+| Divine Right | 1960 | Guildhalls | — | — | — |
 | Geomancy | 1960 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
 | Machinery | 1960 | Horology, Engineering | Crossbowman | — | — |
 | Paper Money | 1960 | Shipwrights, Guildhalls | — | Bazaar, Bourse ‡ | — |

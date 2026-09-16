@@ -361,7 +361,12 @@ export type BuildingId =
   // that lands Æra IV deletes the marker and adds them to a node's `unlocks`.
   | 'cathedral'
   | 'mint'
+  // The Armoury was one of those three until M2 (`docs/flags.md` (eeeeee),
+  // 2026-09-15) re-opened the withdrawn row as the engine-and-bow drill hall at
+  // Mathematics; the War Hall is M2's other row, the age-two hall whose
+  // soldiers muster in bronze.
   | 'armoury'
+  | 'warHall'
   // **Opened by a card, not by a node** — the one row in the table with no
   // technology behind it (`unlockedByCard`, `purchaseOnly`). The Gilded Court
   // hands it over and the treasury is the only way to raise it.
