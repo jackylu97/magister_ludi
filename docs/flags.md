@@ -24,7 +24,7 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
-**(hhhhhh) A mountain's hitbox swallows its neighbours — RULED, R5** (the
+**(hhhhhh) A mountain's hitbox swallows its neighbours — BUILT, R5, 2026-09-16** (measured: the centre of every neighbour already picked right; the *faces* did not — a mountain took a tenth of a neighbour's face on average and a third at worst on a generated map, and in the browser three hundred and fifty-eight of seven hundred and eighty-five probe points along a neighbour's face named the mountain. The cause was not only the peak: the range's props — summits, saddles, shoulders and talus — are labelled with the mountain's cell and a shoulder stands most of the way to a hill neighbour's centre, and the tile pick raycast every registered mesh including them. Now the pick refuses every prop flagged pick-only at registration, so it reads the near ground alone; every face is its own at both zooms, zero of seven hundred and eighty-five probes and two hundred and ninety-four real clicks name the wrong hex, a unit behind a peak stays pickable where its body shows, and no pixel changed; pins in `test/render/tilePickGround.test.ts`; the rule in `docs/README.md`) (the
 user, 2026-09-16: *"i think the mountains hitbox is too big so clicking
 adjacent tiles often incorrectly selects the mountain instead"*). **Measure
 first**: in the painted renderer at play zoom and at overview, for a mountain
