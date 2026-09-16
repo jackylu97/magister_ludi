@@ -408,23 +408,31 @@
     },
     "armoury": {
       "name": "Armoury",
+      "article": "an",
       "category": "military",
-      "size": "large",
+      "size": "medium",
       "food": 0,
-      "production": 1,
+      "production": 4,
       "gold": 0,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
       "productionBonus": {
         "category": "unit",
-        "percent": 15
+        "percent": 25,
+        "class": {
+          "modelClasses": [
+            "ranged",
+            "siege"
+          ]
+        }
       },
       "renown": {
         "family": "general",
         "perTurn": 1
       },
-      "retired": true
+      "requiresBuilding": "barracks",
+      "note": "The engine yard and the bowyers' hall. It works hard for the town that keeps it, and bows and siege engines are raised here faster than anywhere else; foot, horse and hull are trained at the ordinary pace."
     },
     "theOracle": {
       "name": "The Oracle",
@@ -2418,6 +2426,33 @@
         }
       ],
       "note": "The first hearth hot enough to matter. It works for the town that keeps it, and every seam the city has opened — a mine or a quarry standing on a named resource — gives up a further hammer."
+    },
+    "warHall": {
+      "name": "War Hall",
+      "category": "military",
+      "size": "medium",
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "hp": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "warHall"
+          }
+        }
+      ],
+      "renown": {
+        "family": "general",
+        "perTurn": 1
+      },
+      "requiresBuilding": "barracks",
+      "note": "Where the armour is fitted. It works for the town that keeps it, and every soldier raised here marches out in bronze — hardier from the day it musters, and hardier wherever it goes."
     },
     "coinworks": {
       "name": "Coinworks",

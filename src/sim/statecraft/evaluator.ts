@@ -1174,7 +1174,9 @@ const ONE_OF_A_KIND = BUILDING_IDS.some((id) => buildingDef(id).oncePerEmpire ==
  * stands in every town that built one, and a granary's effect landing on the
  * empire would be the same effect counted once per granary. The scope *is* the
  * building — `BuildingDef.cityStat`'s exact bargain one field over — so no row
- * here needs one and none of them carries one.
+ * here needs one. The War Hall's stamp carries one anyway (M2: the
+ * Terracotta Army's shape, the ruling's own words), and it is harmless — the
+ * scope names the town the walk is already standing in.
  *
  * Wonders are skipped rather than repeated: they arrive through `liveEffects`
  * already, and a wonder read from both ends would pay twice in its own city.
@@ -4829,7 +4831,18 @@ export function cardUnitStamp(
   let hp = 0;
   let strength = 0;
   const born = at ? cityAt(state, at.col, at.row) : undefined;
-  for (const { effect } of effectsOfKind(state, playerId, 'unitStamp')) {
+  // **The birth town's own walk, where there is one** (M2, the War Hall):
+  // an ordinary building's effects are the town's and not the empire's
+  // (`cityBuildingEffects`), so a stamp on a row a town builds is invisible to
+  // `effectsOfKind` and was, until the Hall, silently never written. The idiom
+  // is `cardRulePercent`'s — a city in hand reads `liveCityEffects`, none reads
+  // `liveEffects` — and it puts a wonder's stamp and a hall's on one path with
+  // no special case: the two walks divide the rows between them (`oneOfAKind`),
+  // so a wonder is still read exactly once, from the empire's side.
+  const live = born
+    ? cityEffectsOfKind(state, born, 'unitStamp')
+    : effectsOfKind(state, playerId, 'unitStamp');
+  for (const { effect } of live) {
     // A scoped stamp asks about the town the piece was raised in, and is silent
     // where there is no town at all — see `CardUnitStampEffect.scope`.
     if (effect.scope !== undefined) {

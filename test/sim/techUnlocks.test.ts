@@ -81,10 +81,12 @@ describe('techGifts', () => {
     // tree pass of 2026-09-10 moved the hub again, onto The Silk Road — the node
     // written around the caravan (`docs/flags.md` (uuu) mark 6). So Mathematics
     // is three gifts, Petra behind the two pieces, and the ordering claim is the
-    // same claim.
+    // same claim. Four since M2 (2026-09-15): the Armoury — the engine's and
+    // the composite bow's drill hall — stands at the node that opens both.
     expect(techGifts('mathematics').map((gift) => gift.kind)).toEqual([
       'unit',
       'unit',
+      'building',
       'building',
     ]);
     // Engineering took Construction's works: four buildings, the Circus Maximus
@@ -151,7 +153,14 @@ describe('techGifts', () => {
     // the tile; **Iron Working** buys the *label* (see `isResourceVisible`) since
     // the re-cut of 2026-09-02 moved the reveal off Bronzeworking. The gift is
     // real and the `unlocks` block does not know about it.
-    expect(techDef('ironWorking').unlocks.buildings).toEqual(['terracottaArmy', 'statueOfZeus']);
+    // The Courthouse joined the list in M2 (2026-09-15): the user moved it
+    // down from Divine Right to the legionary's own node, so the town a sword
+    // takes can be held in the age the sword is forged.
+    expect(techDef('ironWorking').unlocks.buildings).toEqual([
+      'terracottaArmy',
+      'statueOfZeus',
+      'courthouse',
+    ]);
     // Iron's reveal moved to Bronze Panoply on 2026-09-04 (the user's ruling:
     // the swordsman needs a real window before its legionary).
     const reveals = techGifts('bronzePanoply').filter((gift) => gift.kind === 'reveal');
