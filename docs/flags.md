@@ -24,6 +24,39 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
+**(eeeeee) Two military buildings for the middle ages — RULED, M2** (the user,
+2026-09-15: *"Let's have the age 2 building be: +2 production, units trained in
+this city gain +10 health. Age 3: +25% production towards ranged and siege, +4
+production."*). The ordinary military row today is Barracks and Stable in age
+one, walls, then Shipyard in three and Castle in four — nothing for a Dominion
+card to condition on before age three but a Barracks or a garrison. **Age
+two: the Smithy takes the panoply.** `data/buildings.json` already has a
+`smithy` at `bronzePanoply` (age 2) paying +2 production and a hammer on
+resourced mines and quarries — the user's figure exactly, and Bronze Panoply
+is the armour technology — so the building is not duplicated: the Smithy row
+gains a `unitStamp` with `hp: 10` scoped `hasBuilding: smithy` (the Terracotta
+Army's shape, `unitDef(...).maxHp + stamp.hp` is already the reading), its
+`note` says soldiers raised here march in bronze, its category stays
+`production` (a Dominion card conditions on the building, not the category).
+**Age three: the Armoury**, a new row at `mathematics` (the catapult's and
+the composite bowman's tech): `size` medium-or-large per the cost standard
+(the agent proposes from `docs/production-costs.md`'s table, never a figure),
++4 production, `productionBonus` +25% toward units whose model class is
+ranged or siege (the Barracks' shape with `modelClasses: ['ranged','siege']`
+— confirm `siege` is a model class; if siege is a category, the selector
+takes both forms), category `military`, renown to the general as the Barracks
+does, requires a Barracks if buildings carry prerequisites (else not). The
+Courthouse (`theQadisCourt`, age 4, captured towns only) is NOT moved in M2 —
+the user: *"we could potentially move it earlier … but i dont see a need to
+add its effect to a different building"*; moving it to age three (Iron
+Working, the legionary's tech) is the orchestrator's recommendation, ▢ the
+user's call. Pins: a unit produced in a Smithy town has ten more max hp than
+the roster's and keeps it marching; a unit built elsewhere does not; the
+Armoury's percent lands only on ranged and siege rows; both rows in the
+buildings reference doc with the sync test green; the Compendium prints both
+from the rows; a v117 log replays (no schema change — a new row and a new
+stamp on an old row are data).
+
 **(dddddd) Separate decks per leader attribute — OPEN, the user's proposal, drafted for the user's check** (the user, 2026-09-15: *"i'm considering reworking the card pool such that we have separate 'decks' for different leader attributes, so each leader has two attributes and has access to two decks throughout the game … I think this gives more flexibility around designing cards and keeping them organized, and somewhat solves the problem of not rolling cards that are useful to you"*; pool expansion as play goes on deliberately deferred until this is tried). The assessment of record: the orders' `line` tag is the attribute in embryo (forge 36 · caravan 29 · procession 20 · green 17 · star 17 · court 17 · hunt 5 · charter 5 · wayfarers 3 · ploughshare 3 · tide 2 · highlands 1 · none 21, live rows), advisory today, read by no draw. **Three design points to settle before an agent flies** (the orchestrator's recommendation first, each): (1) **a common deck exists** — the `none` rows and the plain generalities belong to every seat; a seat's pool = common + its two attribute decks; ▢ or attributes only. (2) **One attribute fixed by the leader, the second chosen by the player at the first draft**, after the start is seen (a tide leader inland must not carry a dead deck for a game; the choice is turn one's decision; a third attribute at an age entry is the deferred expansion's natural shape); ▢ or both fixed on the leader row. (3) **The M/E/W spread is guaranteed**: an empty (attribute, tier, slot) cell falls back to the common deck, and a sync test pins that no attribute has an empty slot across the five tiers. Migration: consolidate the tail lines into ~eight attributes; `none` → common; a leader row carries its attribute(s); `poolOfGovernment` reads the seat's decks; held cards keep their ids (schema bump; offers already drawn are kept). Bot: its persona lean derives from its attributes; the pool reading E1a skipped (`score.poolSynergy`) returns as "cards left in my decks". Compendium: a per-deck view is a grouping of rows it already generates. **Nothing built until the user marks this up.**
 
 **(aaaaaa) The draft pass — RULED, B1; part (1) DROPPED 2026-09-15** (the user: *"ok lets drop it, just implement the things that would be relevant for a possible post-deck rework future"* — follow a line is redundant under (dddddd); B1 builds (2) hold on pass, (3) the reroll reset and (4) the measured meter only; no `followedLine`, no `followLine`, no `lineFollowWeight`) (the user, 2026-09-15: *"the
