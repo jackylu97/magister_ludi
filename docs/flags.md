@@ -24,7 +24,7 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
-**(eeeeee) Two military buildings for the middle ages — RULED, M2** (the user,
+**(eeeeee) Two military buildings for the middle ages — BUILT, M2, LANDED 2026-09-15** (`warHall` at Bronze Panoply, medium, +2 production, units mustered there +10 max hp; `armoury` at Mathematics — the retired Machinery-era row re-opened under the M2 spec — medium, +4 production, +25% toward ranged and siege; both chain on the Barracks; the Courthouse at Iron Working, its price 520 → 231 hammers; **one seam fixed**: a buildable row's `unitStamp` was declared and never applied, since the stamp reader walked only the empire's one-of-a-kind effects — it now reads the birth town's effects first; no city prop draws per ordinary building, so no pixel changed; the six-seat digest moved because the bots value the richer techs differently, re-cut with the reason) (the user,
 2026-09-15: *"Let's have the age 2 building be: +2 production, units trained in
 this city gain +10 health. Age 3: +25% production towards ranged and siege, +4
 production."*). The ordinary military row today is Barracks and Stable in age
