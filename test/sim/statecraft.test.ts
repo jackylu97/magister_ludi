@@ -1737,7 +1737,7 @@ describe("determinism", () => {
     // log's recruitments deal a different hand from the first one on.
     // 105 since batch G3 (2026-09-09): a malice takes a chair, which is a
     // card class of its own and a draw at every age's judgement.
-    expect(SCHEMA_VERSION).toBe(116);
+    expect(SCHEMA_VERSION).toBe(118);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -9087,34 +9087,40 @@ describe("the order pass of 2026-09-06", () => {
  * somebody edits the sheet.
  */
 describe("the cadence and the chairs, as ruled on the third pass", () => {
-  it("eases the draft ladder to 12 + 5n + n^2.65", () => {
+  it("eases the draft ladder to 12 + 5n + n^2.2", () => {
     // 2.25 → 2.8 (`docs/history/fewer-things.md` §1's lever table, RULED third pass):
     // "20 drafts by t92 → 14; opening drafts land on the same turns (4, 7, 11);
     // late gaps open to 8–10". Then **a fifth slower** (the user, 2026-09-15,
     // `docs/flags.md` (qqqqq): "they get expensive too quickly") — the base
-    // stays, the linear term 6 → 5 and the exponent 2.8 → 2.65, the fifth draft
-    // eighteen percent cheaper and the tenth twenty-eight. The seal is RULED
-    // untouched — a card slotted in and out is skill expression (2026-09-05,
-    // re-ruled here).
+    // stays, the linear term 6 → 5 and the exponent 2.8 → 2.65. Then **flatter
+    // again, measured** (batch B1, `docs/flags.md` (aaaaaa): "our long spans of
+    // time between drafts") — the exponent 2.65 → 2.2, the pair that gave one
+    // and a half times the drafts by turn 160 in a six-seat bot game with the
+    // opening cadence kept (the table is `docs/orders-and-doctrines.md`, "The
+    // draft pass"). The seal is RULED untouched — a card slotted in and out is
+    // skill expression (2026-09-05, re-ruled here).
     expect(STATECRAFT.meter).toEqual({
       costBase: 12,
       costLinear: 5,
-      costExponent: 2.65,
+      costExponent: 2.2,
       sealTurns: 5,
     });
     // The shape of the ruling, stated as arithmetic rather than as a story.
     // **The opening is as good as untouched**: the first rung is the base on
-    // every curve, and the linear term's one culture less shows from the second
-    // rung on — under a turn's income, which is why §1 can promise "the opening
-    // drafts land on the same turns".
+    // every curve, the second is the same eighteen, and the third is two
+    // culture under the 2.65 ladder's — under a turn's income, which is why the
+    // first three drafts landed on the same turns in the measurement.
     const OLD = (n: number): number => Math.floor(12 + 6 * n + n ** 2.25);
-    expect([0, 1, 2].map(draftCost)).toEqual([12, 18, 28]);
+    const FIFTH_SLOWER = (n: number): number => Math.floor(12 + 5 * n + n ** 2.65);
+    expect([0, 1, 2].map(draftCost)).toEqual([12, 18, 26]);
+    expect([0, 1, 2].map(FIFTH_SLOWER)).toEqual([12, 18, 28]);
     expect([0, 1, 2].map(OLD)).toEqual([12, 19, 28]);
-    // **The late rungs are where the cost lands** — the whole of "20 drafts by
-    // t92 becomes 14". The fewer-things ladder asked 879 for the twentieth
-    // draft and the third pass 3932; a fifth slower asks 2554 — still three
-    // times the old ladder.
-    expect(draftCost(19)).toBe(2554);
+    // **The late rungs are where the ease lands.** The fewer-things ladder
+    // asked 879 for the twentieth draft, the third pass 3932, a fifth slower
+    // 2554; B1 asks 757 — under the fewer-things ladder again, which is what
+    // one and a half times the drafts costs.
+    expect(draftCost(19)).toBe(757);
+    expect(FIFTH_SLOWER(19)).toBe(2554);
     expect(OLD(19)).toBe(879);
   });
 

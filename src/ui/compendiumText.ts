@@ -168,8 +168,8 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     '♠',
     [
       'Statecraft is the game\'s policy system. Your culture yield earns you cards called Orders, which give your empire bonuses — more production toward units, cheaper land, extra happiness, and so on. You choose which Orders to use by placing them in your government\'s slots.',
-      'Every so often, when enough culture has accumulated, you draft: the game offers a few Orders and you pick one. Open the Statecraft screen to place Orders in slots; there are military, economic and wildcard slots, and an Order only works while it is placed. As you draft more, you can adopt a new form of government, which changes your slots and grants a Doctrine — a permanent bonus that needs no slot.',
-      'Details: a newly placed Order is locked for a few turns before it can be removed. A removed Order keeps its level. Adopting a government clears every lock. Governments are offered in fixed sets of three at set draft counts. The Orders and Doctrines shelves in this Compendium show every card\'s exact effect.',
+      'Every so often, when enough culture has accumulated, you draft: the game offers a few Orders and you pick one, or pass on the whole hand. Passing makes rarer cards more likely in your next draft. Faith can also ask for a fresh hand, at a price that rises each time you ask. Open the Statecraft screen to place Orders in slots; there are military, economic and wildcard slots, and an Order only works while it is placed. As you draft more, you can adopt a new form of government, which changes your slots and grants a Doctrine — a permanent bonus that needs no slot.',
+      'Details: a newly placed Order is locked for a few turns before it can be removed. Adopting a government clears every lock and makes asking for a fresh hand cheap again — the price starts over under every new government. Governments are offered in fixed sets of three at set draft counts. The Orders and Doctrines shelves in this Compendium show every card\'s exact effect.',
     ],
   ),
   written(

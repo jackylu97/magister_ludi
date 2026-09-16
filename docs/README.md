@@ -213,7 +213,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
 
 - Culture fills **one** pool (`Player.culturePool` IS the draft basket); border
   culture (`City.culture`) is a separate channel. The draft meter is
-  `12 + 5n + n^2.65`. Offers are drawn once and spent by a command; a pick names
+  `12 + 5n + n^2.2` (B1, measured — `docs/orders-and-doctrines.md` "The draft pass").
+  The faith reroll's count (`rerollsTaken`) is zeroed by adopting a government.
+  Offers are drawn once and spent by a command; a pick names
   an index. Adoption rebuilds the slots (total amnesty). Seals are absolute turns.
 - **No levels**: an Order is what its row prints, held once. A draft is take one
   or **pass** — a skip spends the hand and raises `orderSkips`, and each banked

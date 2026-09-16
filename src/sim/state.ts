@@ -943,8 +943,36 @@ import {
  * carries exactly that word. No command changed, no refusal changed its shape,
  * and a v116 log replays byte for byte — the sentences the interface prints over
  * it simply say "the Inca" where they said "the Crimson".
+ *
+ * v118 (batch B1, `docs/flags.md` (aaaaaa); the user, 2026-09-15: *"the
+ * specificity of our cards, and how it's difficult to find the card you're
+ * looking for with our long spans of time between drafts, and how expensive
+ * re-rolls are"*): **two changes to the draw, none to a card**. Four were
+ * ruled; two — a line to follow, and a card held back from a passed hand — were
+ * dropped by the user before landing, for the separate-decks rework of the
+ * pool, and nothing of either shipped. (1) `rerollsTaken` is **zeroed by
+ * adoption** (`adoptGovernmentAt`, the one writer of adoption) — the reroll's
+ * ladder starts again under every new government; the field was a lifetime
+ * count from v71 to here. (2) **A flatter meter**: `meter.costExponent` 2.65 →
+ * **2.2**, `costLinear` and `costBase` untouched, so the ladder is
+ * `12 + 5n + n^2.2`. Measured in a headless six-seat bot game (seed 20260915,
+ * standard map, barbarians on, driven to turn 160), drafts taken per seat,
+ * mean of six — today's 12 + 5n + n^2.65: **11.0 by t100, 17.5 by t160**, the
+ * first three drafts landing on turns 8 / 15 / 26; candidates 4 + n^2.15:
+ * 14.5 / 26.3 (8 / 15 / 24); **5 + n^2.2: 14.2 / 26.5 (8 / 15 / 25)**;
+ * 5 + n^2.1: 15.0 / 28.8; 5 + n^2.0: 16.8 / 31.5. The pair landed is the one
+ * nearest one and a half times the drafts by t160 with the opening cadence
+ * kept — its first three rungs are 12 / 18 / 26 against today's 12 / 18 / 28,
+ * and the twentieth draft costs 757 culture where it cost 2554. The number is
+ * the user's to re-rule after playtesting the feel; the table is repeated in
+ * `docs/orders-and-doctrines.md` under "The draft pass".
+ *
+ * No field joined or left the player. **A v117 log does not replay**: every
+ * draft from the third is priced off a different curve, so the meter fills on
+ * different turns and every hand after it is a different deal. 117 is S2's,
+ * the lifetime tally, taken in the same batch.
  */
-export const SCHEMA_VERSION = 116;
+export const SCHEMA_VERSION = 118;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

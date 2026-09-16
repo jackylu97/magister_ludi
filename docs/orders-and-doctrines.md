@@ -16,6 +16,28 @@ hand still holds one of each. Passing a draft raises the weights by `skipPity` u
 card is taken. Orders are never upgraded: a card is what it prints, held once, and a
 draft is take one or pass.
 
+**The draft pass** (batch B1, 2026-09-15/16 — two changes to the draw, none to a card;
+a line to follow and a hold on a passed hand were ruled and dropped before landing, for
+the separate-decks rework of the pool):
+
+- **The reroll resets.** `rerollsTaken` is zeroed when a government is adopted
+  (`adoptGovernmentAt`, the one writer of adoption) — a fresh charter arrives with a cheap
+  reroll. `religion.reroll`'s numbers are unchanged; a pick still does not reset it.
+- **A flatter meter, measured.** `meter.costExponent` 2.65 → **2.2**, base and linear
+  untouched: the ladder is `12 + 5n + n^2.2`. Measured in a headless six-seat bot game
+  (seed 20260915, standard map, barbarians on, to turn 160); drafts taken is the mean
+  over the six seats, the cadence the mean turn of each seat's first three drafts. The
+  pair landed is the nearest to one and a half times the drafts by t160 with the opening
+  cadence kept; the number is the user's to re-rule after playtesting the feel.
+
+| Ladder | Rungs n = 0…5 | Drafts by t100 | Drafts by t160 | First three drafts (turn) |
+|---|---|---|---|---|
+| 12 + 5n + n^2.65 (before) | 12 · 18 · 28 · 45 · 71 · 108 | 11.0 | 17.5 | 8 / 15 / 26 |
+| 12 + 4n + n^2.15 | 12 · 17 · 24 · 34 · 47 · 63 | 14.5 | 26.3 | 8 / 15 / 24 |
+| **12 + 5n + n^2.2 (landed)** | 12 · 18 · 26 · 38 · 53 · 71 | 14.2 | 26.5 | 8 / 15 / 25 |
+| 12 + 5n + n^2.1 | 12 · 18 · 26 · 37 · 50 · 66 | 15.0 | 28.8 | 8 / 15 / 25 |
+| 12 + 5n + n^2.0 | 12 · 18 · 26 · 36 · 48 · 62 | 16.8 | 31.5 | 8 / 15 / 25 |
+
 **Role** — **E** an *engine*, a row whose subject is the deck or the board’s *kind* (a
 count of the chairs, an amplifier over what your other Orders pay, a share on a class of
 buildings, a "hexes that already supply this" test, a shortener of the calendar). **P** a
