@@ -40,10 +40,17 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * from the first of those choices on — duel `ecfb7314:251149` →
  * `3e710249:248825`, standard `586ca4e0:892118` → `592eb05b:904802`. No rule
  * of play changed; a data row the bot can build is a reason the digest moves.
+ *
+ * Re-cut for B1 (schema 118, the draft pass): the culture meter's exponent
+ * fell from 2.65 to 2.2, so every seat's third draft and after arrives
+ * earlier and the deck it holds at turn 120 is a different deck — duel
+ * `3e710249:248825` → `a31b1dc0:249598`, standard `592eb05b:904802` →
+ * `2f8db9d8:905343`. The prints grew by the cards drafted. The reroll reset
+ * moves nothing on its own: no bot rerolls.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '3e710249:248825',
-  standard: '592eb05b:904802',
+  duel: 'a31b1dc0:249598',
+  standard: '2f8db9d8:905343',
 };
 
 /**
