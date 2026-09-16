@@ -28,7 +28,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BUILDING_IDS, buildingDef, isWonder } from '../../src/sim/buildingData';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
-import { IMPROVEMENT_IDS } from '../../src/sim/improvementData';
+import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
 import {
   ALL_BELIEF_IDS,
   BELIEF_IDS,
@@ -36,16 +36,19 @@ import {
   ENHANCER_BELIEF_IDS,
   FOLLOWER_BELIEF_IDS,
   RITE_IDS,
+  riteDef,
 } from '../../src/sim/religionData';
 import { unitRosterCost } from '../../src/sim/cities';
 import { RESOURCE_IDS } from '../../src/sim/resourceData';
-import { describeBuildingRow, stripRefs } from '../../src/sim/statecraft';
+import { anyCardDef, describeBuildingRow, stripRefs } from '../../src/sim/statecraft';
 import { DOCTRINE_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
 import { newGame } from '../../src/sim/state';
-import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
+import { gatingTech } from '../../src/sim/tech';
+import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../../src/sim/techData';
+import { techGifts } from '../../src/sim/techUnlocks';
 import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
 import { MALICE_IDS, maliceDef } from '../../src/sim/maliceData';
-import { LEADER_IDS } from '../../src/sim/leaderData';
+import { LEADER_IDS, leaderDef } from '../../src/sim/leaderData';
 import { WAGER_IDS, wagerDef } from '../../src/sim/wagerData';
 import {
   BEAD_ENDEAVOUR_IDS,
@@ -58,6 +61,8 @@ import {
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import {
   DEFAULT_ENTRY,
+  OPENING_WORDS,
+  type CompendiumEntry,
   type CompendiumSection,
   type CompendiumSectionId,
   compendiumId,
@@ -1200,6 +1205,309 @@ describe('a building carries its own later gifts', () => {
         entry!.clauses.slice(0, row.length).map((clause) => stripRefs(clause.text)),
         id,
       ).toEqual(row.map((clause) => stripRefs(clause.text)));
+    }
+  });
+});
+
+/**
+ * **Every entry names what opens it, as a link** (the user, 2026-09-16,
+ * `docs/flags.md` (gggggg), C1): *"please revise the compendium to include which
+ * technology unlocks a given building/unit/wonder etc"*.
+ *
+ * The claims worth pinning are the ones whose failure is a *lie on the page*:
+ * a row that says nothing about how one comes by it (the old "Unlocked by" row
+ * was dropped outright for a row no node named), a row that names a node other
+ * than the one the queue actually waits on, a tech entry that promises a
+ * granary its own page does not credit to that node, a charter building that
+ * says "a card" where the card has a name, a unique that forgets its figure.
+ * Every sweep here iterates the tables — never a sample — and the reverse
+ * reading the page uses is the same one the gate uses (`gatingTech`, plus the
+ * world's door for the Opus), so the pin is that the book agrees with the
+ * simulation about which door each row waits behind.
+ */
+describe('what opens a thing', () => {
+  const ROW_SHELVES: readonly CompendiumSectionId[] = [
+    'unit',
+    'building',
+    'wonder',
+    'improvement',
+    'rite',
+  ];
+  const TECH_MARK = /\[\[tech:([A-Za-z0-9_]+)\|/g;
+
+  function isOpening(text: string): boolean {
+    return OPENING_WORDS.some((word) => text.startsWith(word));
+  }
+
+  /** The one opening line of an entry — asserted to be exactly one. */
+  function openingOf(entry: CompendiumEntry): string {
+    const lines = entry.clauses.filter((clause) => isOpening(clause.text));
+    expect(lines, `${entry.id} carries exactly one opening line`).toHaveLength(1);
+    return lines[0]!.text;
+  }
+
+  function entryOf(id: string): CompendiumEntry {
+    const found = everyEntry().find((entry) => entry.id === id);
+    expect(found, id).toBeDefined();
+    return found!;
+  }
+
+  /** The technologies an opening line links, by id. */
+  function techsNamed(text: string): string[] {
+    return [...text.matchAll(new RegExp(TECH_MARK.source, 'g'))].map((found) => found[1]!);
+  }
+
+  /** The shelf a building row is filed on. */
+  function buildingEntryId(id: string): string {
+    return compendiumId(isWonder(id as never) ? 'wonder' : 'building', id);
+  }
+
+  it('carries exactly one opening line on every unit, building, wonder, improvement and rite', () => {
+    let counted = 0;
+    for (const shelfId of ROW_SHELVES) {
+      for (const entry of shelf(shelfId).entries) {
+        if (entry.written === true) continue;
+        const line = openingOf(entry);
+        // A rule, not a footnote: the line is neither struck nor italic, so it
+        // reads with the same weight as the row's own description.
+        const clause = entry.clauses.find((one) => one.text === line)!;
+        expect(clause.note, entry.id).not.toBe(true);
+        expect(clause.deferred, entry.id).not.toBe(true);
+        counted += 1;
+      }
+    }
+    expect(counted).toBeGreaterThan(100);
+    // And the "Unlocked by" row is gone from the figures — the fact moved, it
+    // was not duplicated.
+    for (const shelfId of ROW_SHELVES) {
+      for (const entry of shelf(shelfId).entries) {
+        expect(entry.rows.map((row) => row.label), entry.id).not.toContain('Unlocked by');
+      }
+    }
+  });
+
+  it('names the gate’s own node and no other, for every row — the mirror, read back', () => {
+    // The reverse reading the page uses is the gate's (`gatingTech`, the tree's
+    // `unlocks` inverted), with the world's door counted as the Opus's node the
+    // way the cost fold counts it (`buildingCostColumn`, `cities.ts`). A row
+    // the tree names links exactly that node; a row it does not name links
+    // none — a figure's row aside, which links its own improvement gate.
+    for (const id of UNIT_TYPE_IDS) {
+      const line = openingOf(entryOf(compendiumId('unit', id)));
+      if (unitDef(id).retired === true) {
+        expect(line, id).toMatch(/^Withdrawn: /);
+        continue;
+      }
+      const gate = gatingTech('unit', id);
+      expect(techsNamed(line), id).toEqual(gate === null ? [] : [gate]);
+    }
+    for (const id of BUILDING_IDS) {
+      const def = buildingDef(id);
+      if (def.retired === true) continue;
+      const line = openingOf(entryOf(buildingEntryId(id)));
+      const gate = gatingTech('building', id) ?? def.worldUnlockTech ?? null;
+      expect(techsNamed(line), id).toEqual(gate === null ? [] : [gate]);
+    }
+    for (const id of IMPROVEMENT_IDS) {
+      const line = openingOf(entryOf(compendiumId('improvement', id)));
+      const gate = improvementDef(id).requiresTech;
+      expect(techsNamed(line), id).toEqual(gate === undefined ? [] : [gate]);
+    }
+    for (const id of RITE_IDS) {
+      const line = openingOf(entryOf(compendiumId('rite', id)));
+      if (riteDef(id).retired === true) {
+        expect(line, id).toMatch(/^Withdrawn: /);
+        continue;
+      }
+      const gate = (isAbilityId(id) ? ABILITY_TECH.get(id) : undefined) ?? riteDef(id).tech;
+      expect(techsNamed(line), id).toEqual([gate]);
+    }
+  });
+
+  it('agrees with every technology’s own list of what it hands over — the mirror, read forward', () => {
+    // The tech entry's clauses are `techGifts`, and every gift that has a page
+    // of its own must credit the node back. Walked over the whole tree, so a
+    // node that quietly stopped opening a row — or a row that stopped crediting
+    // it — fails here rather than in play.
+    let credited = 0;
+    for (const tech of TECH_IDS) {
+      for (const gift of techGifts(tech)) {
+        let target: string | null = null;
+        if (gift.kind === 'unit') target = compendiumId('unit', gift.id);
+        else if (gift.kind === 'building') target = buildingEntryId(gift.id);
+        else if (gift.kind === 'improvement') target = compendiumId('improvement', gift.id);
+        else if (gift.kind === 'ability' && (RITE_IDS as readonly string[]).includes(gift.id)) {
+          target = compendiumId('rite', gift.id);
+        }
+        if (target === null) continue;
+        expect(openingOf(entryOf(target)), `${tech} → ${target}`).toContain(`[[tech:${tech}|`);
+        credited += 1;
+      }
+    }
+    expect(credited).toBeGreaterThan(80);
+  });
+
+  it('names the card that opens a row no node names', () => {
+    // The data's own walk, made here independently of the page's: every card
+    // class that may carry `unlocksBuilding`/`unlocksUnit`, and the ref kind
+    // its page is anchored under.
+    const classes: readonly [readonly string[], string][] = [
+      [ORDER_IDS, 'order'],
+      [DOCTRINE_IDS, 'doctrine'],
+      [ALL_BELIEF_IDS, 'belief'],
+    ];
+    let named = 0;
+    for (const [ids, kind] of classes) {
+      for (const card of ids) {
+        const def = anyCardDef(card as never);
+        if ((def as { retired?: boolean }).retired === true) continue;
+        for (const effect of def.effects) {
+          const target =
+            effect.kind === 'unlocksBuilding'
+              ? buildingEntryId(effect.building)
+              : effect.kind === 'unlocksUnit'
+                ? compendiumId('unit', effect.unit)
+                : null;
+          if (target === null) continue;
+          const line = openingOf(entryOf(target));
+          expect(line, `${card} → ${target}`).toContain(`[[${kind}:${card}|${def.name}]]`);
+          expect(line, target).toContain('not by any technology');
+          named += 1;
+        }
+      }
+    }
+    expect(named).toBeGreaterThan(10);
+    // And a row that declares a card opens it always says so — by name where
+    // the walk finds one, and as "a card" where it does not — never "from the
+    // start", which is the trap `isUnlocked` closes for exactly these rows.
+    const cardOpening = /^Unlocked by (the (Order|Doctrine|belief|consecration|leader) \[\[|a card)/;
+    for (const id of BUILDING_IDS) {
+      if (buildingDef(id).retired === true || buildingDef(id).unlockedByCard !== true) continue;
+      expect(openingOf(entryOf(buildingEntryId(id))), id).toMatch(cardOpening);
+    }
+    for (const id of UNIT_TYPE_IDS) {
+      if (unitDef(id).retired === true || unitDef(id).unlockedByCard !== true) continue;
+      expect(openingOf(entryOf(compendiumId('unit', id))), id).toMatch(cardOpening);
+    }
+  });
+
+  it('names the figure on every unique, and calls a bench a bench', () => {
+    // Every leader's own two rows credit the leader by keyword, in the sentence
+    // `test/sim/leaders.test.ts` reads ("Only one leader may ever raise this");
+    // a row nobody's sheet names says it is waiting rather than crediting a
+    // figure it has not got.
+    const claimed = new Set<string>();
+    for (const leader of LEADER_IDS) {
+      const def = leaderDef(leader);
+      const rows: [string, string][] = [[compendiumId('unit', def.unit), 'unit']];
+      if (def.building !== undefined) rows.push([buildingEntryId(def.building), 'building']);
+      if (def.improvement !== undefined) {
+        rows.push([compendiumId('improvement', def.improvement), 'improvement']);
+      }
+      for (const [target, kind] of rows) {
+        claimed.add(target);
+        const line = openingOf(entryOf(target));
+        expect(line, `${leader} → ${target}`).toContain(`[[leader:${leader}|${def.name}]]`);
+        expect(line, target).toMatch(/^Unlocked for /);
+        expect(line, target).toContain(
+          kind === 'improvement'
+            ? 'Only one leader may ever lay this'
+            : 'Only one leader may ever raise this',
+        );
+      }
+    }
+    expect(claimed.size).toBe(LEADER_IDS.length * 2);
+    for (const id of BUILDING_IDS) {
+      if (buildingDef(id).retired === true || buildingDef(id).unlockedByLeader !== true) continue;
+      if (claimed.has(buildingEntryId(id))) continue;
+      expect(openingOf(entryOf(buildingEntryId(id))), id).toContain('no leader’s realm yet');
+    }
+    for (const id of UNIT_TYPE_IDS) {
+      if (unitDef(id).retired === true || unitDef(id).unlockedByLeader !== true) continue;
+      if (claimed.has(compendiumId('unit', id))) continue;
+      expect(openingOf(entryOf(compendiumId('unit', id))), id).toContain('no leader’s realm yet');
+    }
+  });
+
+  it('keeps the world’s door beside the node on a row the world opens', () => {
+    // The Opus: the opening line credits Alchemy, and the note that says whose
+    // research counts (`worldUnlockTech`, Entry LVIII) stays under it as it was.
+    let doors = 0;
+    for (const id of BUILDING_IDS) {
+      const world = buildingDef(id).worldUnlockTech;
+      if (world === undefined || buildingDef(id).retired === true) continue;
+      const entry = entryOf(buildingEntryId(id));
+      const line = openingOf(entry);
+      expect(line, id).toContain(`[[tech:${world}|`);
+      expect(line, id).toContain('whichever empire in the world');
+      const gate = entry.clauses.find(
+        (clause) =>
+          clause.note === true &&
+          clause.text.startsWith('Nobody can begin one until') &&
+          clause.text.includes(techDef(world).name),
+      );
+      expect(gate, `${id} keeps its world-gate note`).toBeDefined();
+      doors += 1;
+    }
+    expect(doors).toBeGreaterThan(0);
+  });
+
+  it('says “from the start” exactly where the tree, the cards and the figures are all silent', () => {
+    // The tree's silence means "buildable from turn one" (`isUnlocked`), and the
+    // book says so — but only once every other door has been asked, in the
+    // gate's own order, so a charter building or a relic never reads as free.
+    let free = 0;
+    for (const id of BUILDING_IDS) {
+      const def = buildingDef(id);
+      if (def.retired === true) continue;
+      const silent =
+        gatingTech('building', id) === null &&
+        def.worldUnlockTech === undefined &&
+        def.unlockedByCard !== true &&
+        def.unlockedByLeader !== true &&
+        def.placed !== true &&
+        def.grantedOnly !== true;
+      const line = openingOf(entryOf(buildingEntryId(id)));
+      expect(line.includes('from the start'), `${id}: ${line}`).toBe(silent);
+      if (silent) free += 1;
+    }
+    for (const id of UNIT_TYPE_IDS) {
+      const def = unitDef(id);
+      if (def.retired === true) continue;
+      const silent =
+        gatingTech('unit', id) === null &&
+        def.unlockedByCard !== true &&
+        def.unlockedByLeader !== true &&
+        def.greatWork !== true &&
+        def.awaitsTech !== true;
+      const line = openingOf(entryOf(compendiumId('unit', id)));
+      expect(line.includes('from the start'), `${id}: ${line}`).toBe(silent);
+      if (silent) free += 1;
+    }
+    expect(free).toBeGreaterThan(0);
+  });
+
+  it('points every keyword in the book at a page it has, and prints no raw mark once stripped', () => {
+    // The sweep the keyword module promises (`keywords.test.ts`), held over the
+    // whole book now that it names leaders and cards from the rows' own pages:
+    // a `[[leader:…]]` mark is only a link if the Leaders shelf anchors that id.
+    const mark = /\[\[([a-zA-Z]+):([A-Za-z0-9_]+)\|([^[\]|]*)\]\]/g;
+    const ids = new Set(everyEntry().map((entry) => entry.id));
+    const kinds = new Set<string>();
+    for (const entry of everyEntry()) {
+      for (const clause of entry.clauses) {
+        expect(stripRefs(clause.text), entry.id).not.toContain('[[');
+        expect(stripRefs(clause.text), entry.id).not.toContain(']]');
+        for (const found of clause.text.matchAll(new RegExp(mark.source, 'g'))) {
+          const target = `${found[1]}:${found[2]}`;
+          expect(ids.has(target), `${entry.id} → ${target}`).toBe(true);
+          expect(found[3]!.length, `${entry.id} → ${target}`).toBeGreaterThan(0);
+          kinds.add(found[1]!);
+        }
+      }
+    }
+    for (const kind of ['tech', 'leader', 'order', 'doctrine', 'belief']) {
+      expect(kinds, `the book links a ${kind}`).toContain(kind);
     }
   });
 });

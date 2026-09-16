@@ -114,7 +114,9 @@ import {
 import { describeResourceSignature } from '../sim/resourceEffects';
 import { RULES } from '../sim/rulesData';
 import {
+  type RefKind,
   SLOT_WORDS,
+  anyCardDef,
   describeBuildingRow,
   describeCard,
   describeFamilyVerb,
@@ -140,13 +142,16 @@ import {
   orderDef,
 } from '../sim/statecraftData';
 import { gatingTech } from '../sim/tech';
-import { TECH_IDS, type TechId, techDef } from '../sim/techData';
+import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../sim/techData';
 import {
+  LEADER_ABILITY_IDS,
   LEADER_IDS,
   type LeaderId,
+  leaderAbilityHome,
   leaderDef,
   leaderThatOpensImprovement,
 } from '../sim/leaderData';
+import { type LeaderRowKind, leaderOpeningWords } from './leaderSelect';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
 import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield } from '../sim/terrainData';
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from '../sim/triumphData';
@@ -455,6 +460,251 @@ function badgeClassOf(def: UnitDef): string {
   return def.modelClass;
 }
 
+// --- what opens a thing -----------------------------------------------------
+
+/**
+ * **Every entry for a thing the tree opens names its technology, as a link**
+ * (the user, 2026-09-16, `docs/flags.md` (gggggg), C1): *"please revise the
+ * compendium to include which technology unlocks a given building/unit/wonder
+ * etc"*. The shelves used to print an "Unlocked by" *row* — a bare name in the
+ * figures column, dropped outright for a row no node names, so a charter
+ * building or a figure's soldier said nothing at all about how one comes by it.
+ * The row is a clause now, and the clause has three properties the row could
+ * not: the technology is a keyword ref, so a reader is one press from the node;
+ * a row nothing in the tree opens says who *does* open it; and every kind of
+ * thing says it in the same place and the same first word, so a reader who has
+ * met one entry knows where to look on the next.
+ *
+ * **One reverse reading, never a second table.** Which node opens a row is the
+ * tree's own `unlocks` inverted (`UNIT_UNLOCK_TECH` / `BUILDING_UNLOCK_TECH`,
+ * `techData.ts`), asked through `gatingTech` — the same lookup `isUnlocked`
+ * gates the queue with and the cost fold prices a column from
+ * (`buildingCostColumn`, `cities.ts`), down to the same fallback: a
+ * `worldUnlockTech` counts as the row's node, because the Opus belongs to
+ * Alchemy's column whichever empire reaches it. An improvement carries its gate
+ * on its own row (`requiresTech`), a rite is an ability the node hands over
+ * (`ABILITY_TECH`), and both are read where the sim reads them.
+ *
+ * **Who else opens a thing.** The clauses are `isUnlocked`'s arms said out loud,
+ * in that function's order: a card (`unlockedByCard`, and the card is found by
+ * walking every class that may carry `unlocksBuilding`/`unlocksUnit` — a walk
+ * of the cards, exactly as `laterGifts` walks the tree), a figure
+ * (`unlockedByLeader`, the leader found on its own sheet), a placed or granted
+ * row, a great person's renown, a hull the tree has not reached yet, and — last,
+ * because it is what the tree's silence means — "from the start".
+ *
+ * `OPENING_WORDS` is the first word of every such clause: the test that pins
+ * "exactly one opening line per entry" finds the line by it, and a describer
+ * clause or a data note that happened to begin the same way would fail there
+ * rather than pass as a second opening.
+ */
+export const OPENING_WORDS: readonly string[] = ['Unlocked ', 'Withdrawn: '];
+
+/** `[[tech:mathematics|Mathematics]]`. */
+function techRef(id: TechId): string {
+  return ref('tech', id, techDef(id).name);
+}
+
+/**
+ * `[[leader:pachacuti|Pachacuti]]`. The Leaders shelf anchors its pages
+ * `leader:<id>` (`compendiumId`), so the mark is already an address the book
+ * honours; `RefKind` has simply never needed the kind, because no describer
+ * names a figure — the cast is the one place a leader is named as a keyword,
+ * and widening the union is `describers.ts`'s decision (outside this pass).
+ */
+function leaderRef(id: LeaderId): string {
+  return ref('leader' as RefKind, id, leaderDef(id).name);
+}
+
+/** The figure whose sheet claims a row, or `null` for a row on the bench. */
+function leaderThatOpens(kind: LeaderRowKind, id: string): LeaderId | null {
+  for (const leader of LEADER_IDS) {
+    const def = leaderDef(leader);
+    const named =
+      kind === 'unit' ? def.unit : kind === 'building' ? def.building : def.improvement;
+    if (named === id) return leader;
+  }
+  return null;
+}
+
+/**
+ * One class of card that may hand a row over, with the words its ref is said
+ * in. Walked in this order, which is `anyCardDef`'s own: the law first, then
+ * the faith, then a figure's line.
+ */
+const OPENING_CARD_CLASSES: readonly {
+  ids: readonly string[];
+  kind: RefKind;
+  noun: string;
+  /** The page a card of this class is anchored on — a leader's line is on its leader's. */
+  anchor?: (id: string) => string;
+}[] = [
+  { ids: ORDER_IDS, kind: 'order', noun: 'the Order' },
+  { ids: DOCTRINE_IDS, kind: 'doctrine', noun: 'the Doctrine' },
+  { ids: ALL_BELIEF_IDS, kind: 'belief', noun: 'the belief' },
+  { ids: CONSECRATION_IDS, kind: 'belief', noun: 'the consecration' },
+  {
+    ids: LEADER_ABILITY_IDS,
+    kind: 'leader' as RefKind,
+    noun: 'the leader',
+    anchor: (id) => leaderAbilityHome(id as Parameters<typeof leaderAbilityHome>[0]),
+  },
+];
+
+/** The card that opens a row — its ref and the noun it is said with — or `null`. */
+function cardThatOpens(
+  kind: 'unit' | 'building',
+  id: string,
+): { ref: string; noun: string; kind: RefKind } | null {
+  for (const cardClass of OPENING_CARD_CLASSES) {
+    for (const card of cardClass.ids) {
+      const def = anyCardDef(card as Parameters<typeof anyCardDef>[0]);
+      // A withdrawn card opens nothing any more — `retired` rows leave every
+      // pool — and a row it alone named is a row the fallback below answers for.
+      if ((def as { retired?: boolean }).retired === true) continue;
+      const opens = def.effects.some(
+        (effect) =>
+          (kind === 'building' && effect.kind === 'unlocksBuilding' && effect.building === id) ||
+          (kind === 'unit' && effect.kind === 'unlocksUnit' && effect.unit === id),
+      );
+      if (!opens) continue;
+      const anchor = cardClass.anchor === undefined ? card : cardClass.anchor(card);
+      const name =
+        cardClass.anchor === undefined ? def.name : leaderDef(anchor as LeaderId).name;
+      return { ref: ref(cardClass.kind, anchor, name), noun: cardClass.noun, kind: cardClass.kind };
+    }
+  }
+  return null;
+}
+
+/** "Unlocked by researching [[tech:…]]." — the line for a row the tree names. */
+function openedByTech(tech: TechId): CompendiumClause {
+  return { text: `Unlocked by researching ${techRef(tech)}.` };
+}
+
+/**
+ * The opening line of a figure's row. `leaderOpeningWords` is the leader face's
+ * own phrase for the same fact ("with Steel" · "with Æra IV"), reused so the
+ * face and the shelf cannot date one soldier two ways; the sentence after it is
+ * the refusal's ("belongs to another realm's leader", `buildError`) in the
+ * book's voice — and it is the sentence `test/sim/leaders.test.ts` reads.
+ */
+function openedByLeader(kind: LeaderRowKind, id: string): CompendiumClause {
+  const leader = leaderThatOpens(kind, id);
+  if (leader === null) {
+    return {
+      text: 'Unlocked for no leader’s realm yet: it waits for a figure to claim it, and until then nobody can build it.',
+    };
+  }
+  // "Raise" for a soldier or a hall, "lay" for a work of the ground — the
+  // worker's verb, as the improvements' shelf says it everywhere else.
+  const verb = kind === 'improvement' ? 'lay' : 'raise';
+  return {
+    text:
+      `Unlocked for ${leaderRef(leader)}’s realm alone, ${leaderOpeningWords(kind, id)}. ` +
+      `Only one leader may ever ${verb} this; no other realm can build it at all.`,
+  };
+}
+
+/**
+ * The opening line of a row a card hands over. The second arm is `isUnlocked`'s
+ * dormant one — a row named by a node *and* a card — kept so it would read
+ * truthfully the day a row has both ways in.
+ */
+function openedByCard(kind: 'unit' | 'building', id: string, gate: TechId | null): CompendiumClause {
+  const card = cardThatOpens(kind, id);
+  const by = card === null ? 'a card' : `${card.noun} ${card.ref}`;
+  return {
+    text:
+      gate === null
+        ? `Unlocked by ${by}, not by any technology.`
+        : `Unlocked by ${by}, or by researching ${techRef(gate)}.`,
+  };
+}
+
+/** "Unlocked from the start" — what the tree's silence means for an ordinary row. */
+const OPENED_FROM_THE_START: CompendiumClause = {
+  text: 'Unlocked from the start: no technology is needed.',
+};
+
+/**
+ * What opens a queue row — a unit, a building or a wonder — as one clause.
+ *
+ * The arms are `isUnlocked`'s (`tech.ts`), asked in its order, so the book and
+ * the gate cannot disagree about which door a row waits behind. A withdrawn row
+ * is said first, because "never again" outranks every other thing there is to
+ * say about it (`buildError`'s own order).
+ */
+function queueOpening(kind: 'unit' | 'building', id: UnitTypeId | BuildingId): CompendiumClause {
+  const unit = kind === 'unit' ? unitDef(id as UnitTypeId) : null;
+  const building = kind === 'building' ? buildingDef(id as BuildingId) : null;
+  const gate = gatingTech(kind, id) ?? building?.worldUnlockTech ?? null;
+  if ((unit ?? building)?.retired === true) {
+    return { text: 'Withdrawn: nothing opens this any more, and it cannot be built or bought.' };
+  }
+  if ((unit ?? building)?.unlockedByCard === true) return openedByCard(kind, id, gate);
+  if ((unit ?? building)?.unlockedByLeader === true) return openedByLeader(kind, id);
+  // A row that arrives by an act rather than a queue still credits the node
+  // that names it — the Town Charter is Colonial Charters' gift, and the tree's
+  // own list says so — with how it arrives said in the same breath.
+  const arrives = (how: string): CompendiumClause =>
+    gate === null
+      ? { text: `Unlocked by no technology: this is ${how}.` }
+      : { text: `Unlocked by researching ${techRef(gate)}, and then ${how}.` };
+  if (building?.placed === true) return arrives('never built or bought, only placed');
+  if (building?.grantedOnly === true) return arrives('granted, never built or bought');
+  if (unit?.greatWork === true) {
+    return {
+      text: 'Unlocked by renown, not by any technology: a great person is recruited, never built.',
+    };
+  }
+  if (unit?.awaitsTech === true) {
+    return {
+      text: 'Unlocked by nothing yet: no technology reaches this, and it cannot be built or bought.',
+    };
+  }
+  if (gate !== null) {
+    // The world's door rather than the empire's (`worldUnlockTech`, Entry
+    // LVIII): the same node, and the clause under it says whose research counts.
+    return building?.worldUnlockTech !== undefined && gatingTech(kind, id) === null
+      ? { text: `Unlocked by ${techRef(gate)}, whichever empire in the world researches it.` }
+      : openedByTech(gate);
+  }
+  return OPENED_FROM_THE_START;
+}
+
+/** What opens an improvement: its own row's gate, a figure, or the hand that lays it. */
+function improvementOpening(id: ImprovementId): CompendiumClause {
+  const def = improvementDef(id);
+  if (def.unlockedByLeader === true) return openedByLeader('improvement', id);
+  if (def.greatPerson !== undefined) {
+    // **`greatPerson` names the family, and the family is not always a great
+    // person's** — the hand is read off the row, as `plantingHandOf` reads it.
+    return {
+      text:
+        def.greatPerson === 'prophet'
+          ? 'Unlocked by no technology: it comes with the prophet who plants it.'
+          : 'Unlocked by no technology: it comes with the great person who builds it.',
+    };
+  }
+  if (def.requiresTech !== undefined) return openedByTech(def.requiresTech);
+  return OPENED_FROM_THE_START;
+}
+
+/**
+ * What opens a rite: the node that hands the verb over. A rite's id is an
+ * ability id (`unlocks.abilities`), so the tree's own inverted table answers
+ * first and the row's `tech` is the same fact one table over.
+ */
+function riteOpening(id: RiteId): CompendiumClause {
+  const def = riteDef(id);
+  if (def.retired === true) {
+    return { text: 'Withdrawn: nothing opens this any more, and no city performs it.' };
+  }
+  const gate = (isAbilityId(id) ? ABILITY_TECH.get(id) : undefined) ?? def.tech;
+  return openedByTech(gate);
+}
+
 // --- units ------------------------------------------------------------------
 
 /**
@@ -592,11 +842,11 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
       text: 'Built to batter walls. It is worth more attacking a city than anything else, and it can knock the walls down from a distance without being struck back.',
     });
   }
-  if (def.awaitsTech === true) {
-    out.push({
-      text: 'Nothing you can research reaches this yet. It cannot be built or bought.',
-    });
-  }
+  // A hull the tree has not reached (`awaitsTech`), a row a card hands over
+  // (`unlockedByCard`) and a figure's own soldier (`unlockedByLeader`) each
+  // used to say so here. All three are the *opening* line's business now
+  // (`queueOpening`), where the card and the figure are named as keyword refs
+  // rather than as "something your empire has adopted".
   if (def.requiresResource !== undefined) {
     out.push({
       text: `Your empire must control improved ${resourceDef(def.requiresResource).name} to build one.`,
@@ -637,19 +887,6 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
           : `Can be bought in a city with ${def.purchase.currency}.`,
     });
   }
-  if (def.unlockedByCard === true) {
-    out.push({
-      text: 'No research reaches this. Something your empire has adopted opens it, and nothing else does.',
-    });
-  }
-  // The same sentence one table over (batch L2a): a figure's unique stands on no
-  // node at all, and a player told to go looking in the tree for it would be
-  // looking for something only a leader's own deck holds.
-  if (def.unlockedByLeader === true) {
-    out.push({
-      text: 'Only one leader may ever raise this, and only once the technology that opens it has arrived. No other realm can build it at all.',
-    });
-  }
   if (def.mirrors !== undefined) {
     // **The whole of what the row is**, and a shelf that printed a strength and
     // a price without it would be printing the floor: what one is worth and what
@@ -665,7 +902,6 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
 
 function unitEntry(type: UnitTypeId): CompendiumEntry {
   const def = unitDef(type);
-  const gate = gatingTech('unit', type);
   // Two rows have no production price to print, and for the same reason in both
   // cases: `buildError` refuses the queue. A great person is recruited with
   // renown, and a unit whose roster row names its own bank exclusively (the
@@ -710,9 +946,11 @@ function unitEntry(type: UnitTypeId): CompendiumEntry {
     // the book forgot, and "a scout costs nothing to keep" is one of the more
     // useful sentences on the shelf.
     ...row('Upkeep each turn', upkeepRow(unitUpkeep(type))),
-    ...row('Unlocked by', techName(gate)),
   ];
   const clauses = unitMarkers(def);
+  // **What opens it**, after what it is and before the notes — the "Unlocked
+  // by" row this table used to end on, as a clause with the node linked (C1).
+  clauses.push(queueOpening('unit', type));
   // **The row's own words, and the halves of them that are not built yet**
   // (batch L6a, `UnitDef.note` / `UnitDef.deferred`). The buildings' shelf has
   // printed both for as long as it has existed; the roster's could not, because
@@ -864,7 +1102,6 @@ function laterGifts(id: BuildingId): CompendiumClause[] {
 function buildingEntry(id: BuildingId): CompendiumEntry {
   const def = buildingDef(id);
   const wonder = isWonder(id);
-  const gate = gatingTech('building', id);
   const rows: CompendiumRow[] = [
     ...row(
       'Production cost',
@@ -908,7 +1145,6 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
       'Needs standing here',
       def.requiresBuilding === undefined ? '' : buildingDef(def.requiresBuilding).name,
     ),
-    ...row('Unlocked by', techName(gate)),
   ];
   // **What this row is worth, in the simulation's own words** — and since the
   // charters' playthrough note (2026-09-05) that is `describeBuildingRow` rather
@@ -924,6 +1160,13 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
     text: entry.text,
     deferred: entry.deferred,
   }));
+  // **What opens it** (C1), directly under the row's own reading and ahead of
+  // everything this page adds — the place the "Unlocked by" row used to end
+  // the figures on, as a clause with the node linked. After the describer
+  // rather than before it, because the shelf *leads* with the simulation's
+  // reading of the row (pinned), and a wonder's world-gate note below is a
+  // second sentence about the same door, kept beside this one on purpose.
+  clauses.push(queueOpening('building', id));
   // **What technologies later do for this building**, which is the half of a
   // building the tech card stopped telling (the playtest notes, 2026-09-03: the
   // star chart's "Buildings pay new ground" heading was a fact about a harbour
@@ -980,23 +1223,35 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   // is `isUnlocked`'s dormant one: no row is named by a node and a card both
   // today, and the sentence is here so that one would read truthfully.
   if (def.unlockedByCard === true) {
-    clauses.push({
-      text:
-        gate === null
-          ? 'You can build this only while the Order that opens it is in one of your slots. Anything you have already built stays.'
-          : `You can build this while the Order that opens it is in one of your slots, or once you have researched ${techDef(gate).name}. Anything you have already built stays.`,
-      note: true,
-    });
+    // **Which kind of card, and so which sentence** (C1): the opening line
+    // above names the card; this one says what its coming and going means for
+    // the stones. An Order lives in a slot and leaves it; a Doctrine is the
+    // government's and stays while the government does; a belief's rule is
+    // the town's, and the row's own describer already says it
+    // (`followingOnly`, "only in a city that keeps the faith that opened it"),
+    // so a second sentence here would be the drift this module exists to
+    // avoid. The unnamed arm is for a card class this table has not met.
+    const card = cardThatOpens('building', id);
+    const lasting = ' Anything you have already built stays.';
+    if (card?.kind === 'order') {
+      clauses.push({
+        text: `You can build this only while that Order is in one of your slots.${lasting}`,
+        note: true,
+      });
+    } else if (card?.kind === 'doctrine') {
+      clauses.push({
+        text: `You can build this only while your government keeps that Doctrine.${lasting}`,
+        note: true,
+      });
+    } else if (card === null) {
+      clauses.push({
+        text: `You can build this only while the card that opens it is yours.${lasting}`,
+        note: true,
+      });
+    }
   }
-  // A row a *figure* opens (batch L2a), and it differs from the clause above in
-  // the one way that matters to a reader: a card taken from a leader's deck is
-  // never given back, so there is no "while it is slotted" to warn about.
-  if (def.unlockedByLeader === true) {
-    clauses.push({
-      text: 'Only one leader may ever raise this, and only once the technology that opens it has arrived. No other realm can build it at all.',
-      note: true,
-    });
-  }
+  // A row a *figure* opens (batch L2a) used to carry its own note here; the
+  // opening line above says it now, with the figure named.
   if (def.acceptsContributions === true) {
     clauses.push({
       text: 'While this is at the front of a city’s build list, you may pour gold or faith into it to hurry it along.',
@@ -1035,7 +1290,6 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
   const rows: CompendiumRow[] = [
     ...row('Adds to the hex', tileYieldFigures(def.yields)),
     ...row('Work charges used', figure(def.chargeCost)),
-    ...row('Unlocked by', techName(def.requiresTech)),
     ...row('Terrain', eitherWords((def.validTerrain ?? []).map((terrain) => terrain))),
     ...row(
       'Terrain, beside fresh water',
@@ -1101,6 +1355,9 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
   if (def.claimsNeighbours === true) {
     clauses.push({ text: 'Claims the hex it stands on and every hex next to it for your empire.' });
   }
+  // **What opens it** (C1): the row's own gate as a linked node, or the hand
+  // that lays it — where the "Unlocked by" row used to stand among the figures.
+  clauses.push(improvementOpening(id));
   if (def.greatPerson !== undefined) {
     // **`greatPerson` names the family, and the family is not always a great
     // person's.** Since the prophet joined that field (`WorkFamily`), the flat
@@ -1118,18 +1375,9 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
   // **Whose ground this is** (batch L8). Read off the roster rather than off
   // this row, for the unit shelf's reason exactly: the row says *that* a figure
   // opens it, and which figure is the sheet's to say — so a row that changes
-  // hands changes this sentence with it, and a row on the bench is honest about
-  // waiting for somebody.
+  // hands changes the eyebrow with it. The clause that used to say it here is
+  // the opening line's now (`improvementOpening`), with the figure linked.
   const whoseRow = def.unlockedByLeader === true ? leaderThatOpensImprovement(id) : null;
-  if (def.unlockedByLeader === true) {
-    clauses.push({
-      text:
-        whoseRow === null
-          ? 'No leader builds this yet, so no realm can.'
-          : `Only ${whoseRow}'s realm may build this. No other leader ever can.`,
-      note: true,
-    });
-  }
   // The halves this row's design has and the game does not, struck through, the
   // way a card's are (`CardDefBase.deferred`). Last, because a reader wants what
   // the thing *does* before what it does not do yet.
@@ -1484,6 +1732,9 @@ function riteEntry(id: RiteId): CompendiumEntry {
   const grant = riteGrantWords(id);
   if (grant.length > 0) clauses.push({ text: grant });
   clauses.push(...cardClauses(id, def.note));
+  // **What opens it** (C1): the node that hands the verb over, linked — the
+  // "Unlocked by" row this table used to end on.
+  clauses.push(riteOpening(id));
   return {
     id: compendiumId('rite', id),
     section: 'rite',
@@ -1496,7 +1747,6 @@ function riteEntry(id: RiteId): CompendiumEntry {
       // the one thing that changed about every rite in the table at once.
       ...row('Performed by', def.retired === true ? 'nobody — withdrawn' : 'a city with a chapel'),
       ...row('Duration', def.duration === undefined ? '' : `${figure(def.duration)} turns`),
-      ...row('Unlocked by', techName(def.tech)),
     ],
     clauses,
     flavor: def.flavor.length === 0 ? null : def.flavor,
