@@ -488,6 +488,17 @@ export function appraiseWagers(
         op: 'sub',
       },
     ];
+    // **The family lean** (E1a, `wager.familyLean`): a persona's victory shape
+    // as a multiplier on the card's stake score. Printed only off one, so a
+    // sheet at all ones stakes exactly as before.
+    const lean = familyLeanOf(ctx, id);
+    if (lean !== 1) {
+      terms.push({
+        label: `× ${round(lean)} — this seat's lean toward the ${wagerDef(id).family} family`,
+        value: lean,
+        op: 'mul',
+      });
+    }
     options.push({
       ...reading,
       index,
@@ -504,7 +515,38 @@ export function appraiseWagers(
     // index order, which is the tie-break every sweep in this game uses.
     if (best === null || option.score > best.score) best = option;
   }
+  // **A hand it cannot win** (E1a, `wager.commitMargin`): when even the best
+  // card — best after the lean — projects under this share of its bar, the
+  // stake is not a bet on anything and the honest pick is the card with the
+  // least expected malice, which is the highest raw margin with the lean set
+  // aside. Nought is the old rule: the best bar, always.
+  if (best !== null && ctx.ai.wager.commitMargin > 0 && best.margin < ctx.ai.wager.commitMargin) {
+    let safest: WagerOption | null = null;
+    for (const option of options) {
+      if (option.rejected !== null) continue;
+      if (safest === null || option.margin > safest.margin) safest = option;
+    }
+    if (safest !== null && safest !== best) {
+      safest.terms.push({
+        label:
+          `taken to dodge the malice: the best bar projects only ${round(best.margin * 100)}% of the way, ` +
+          `under the ${round(ctx.ai.wager.commitMargin * 100)}% this seat commits at`,
+        value: 0,
+      });
+      best = safest;
+    }
+  }
   return { deal, age, turnsLeft, malice, options, best };
+}
+
+/**
+ * The multiplier `wager.familyLean` gives a card's family — the one reader, for
+ * the stake and for the lean it leaves behind (`wagerLeanOf`). A family the
+ * sheet does not name reads one; a negative reads nought.
+ */
+function familyLeanOf(ctx: ValueContext, id: WagerId): number {
+  const lean = ctx.ai.wager.familyLean[wagerDef(id).family];
+  return lean === undefined ? 1 : Math.max(0, lean);
 }
 
 // --- the lean ----------------------------------------------------------------
@@ -546,7 +588,9 @@ export function wagerLeanOf(
   // **Discounted once, here**, so both levers spend the same number: the bead is
   // minted the turn the bar is met and the malice is dodged at the close, and
   // neither is a thing this turn.
-  const worth = (premium + malicePrice(ctx)) * delayDiscount(turnsLeft, ctx);
+  // …and by the family lean (E1a): a seat that staked *for* its shape leans
+  // on the bar it staked that much harder. One is the old worth exactly.
+  const worth = (premium + malicePrice(ctx)) * delayDiscount(turnsLeft, ctx) * familyLeanOf(ctx, id);
   const aim = aimOf(id);
   return {
     id,

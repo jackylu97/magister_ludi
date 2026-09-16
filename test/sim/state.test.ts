@@ -843,6 +843,14 @@ describe("the research queue field", () => {
     // prophet that had spoken once could found a faith or draw a belief before
     // this and is refused now, so the draws after it move with the generator.
     // (111 is batch S2's.)
+    // 117 is the deck's lifetime tally (2026-09-15, item (bbbbbb)):
+    // `PlayerStatecraft.yieldTallies`, one row per card per voice, written once
+    // a turn at the head of the yield phase. A v116 log replays — the replay
+    // writes the tally — and a restored v116 print opens it empty.
+    // 118 is the draft pass (2026-09-16, item (aaaaaa)): the reroll's count
+    // zeroed by adoption, the meter's exponent 2.65 → 2.2. No field moved, but
+    // every draft from the third is priced differently, so a v117 log does not
+    // replay.
     expect(SCHEMA_VERSION).toBe(118);
   });
 });

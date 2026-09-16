@@ -9,7 +9,9 @@
  * The world uses a lower viewing angle to show the sculpted terrain and
  * architecture. City screens retain their steeper overview. Switching modes
  * preserves the pan target and zoom; projection and drag maths use the same
- * live angle, and the renderer refreshes its billboards when that angle changes.
+ * live angle, while the billboarded layers are built against `facing` — the
+ * angle the camera is *settling on* — so a turn costs one rebuild rather than
+ * one on the way out and another on arrival.
  *
  * Pan maths
  * ---------
@@ -53,7 +55,7 @@
  * in-flight pan. The player's hand always wins.
  */
 
-import { OrthographicCamera, Vector3 } from 'three';
+import { Matrix4, OrthographicCamera, Quaternion, Vector3 } from 'three';
 
 import { VIEW3D } from './lookData';
 
@@ -118,6 +120,8 @@ export class DioramaCamera {
   private cityView = false;
   private elevation = CAMERA.elevation;
   private elevationTween: { from: number; to: number; startedAt: number } | null = null;
+  /** See `facing`. Kept as a field so a reader never composes a matrix. */
+  private readonly facingQuaternion = new Quaternion();
 
   private bounds: Bounds | null = null;
   /** Horizontal wrap period in world units; 0 means "do not wrap". */
@@ -150,12 +154,62 @@ export class DioramaCamera {
     this.stepElevation(now);
     this.cityView = active;
     const to = active ? CAMERA.cityElevation : CAMERA.elevation;
-    if (animate && CAMERA.panMs > 0) this.elevationTween = { from: this.elevation, to, startedAt: now };
-    else { this.elevationTween = null; this.applyElevation(to); }
+    if (animate && CAMERA.panMs > 0) {
+      this.elevationTween = { from: this.elevation, to, startedAt: now };
+      // Before any frame of the ease is drawn, so a layer rebuilt on the very
+      // gesture that started it is already built for where the camera lands.
+      this.updateFacing();
+    } else { this.elevationTween = null; this.applyElevation(to); }
     return true;
   }
 
   get isChangingAngle(): boolean { return this.elevationTween !== null; }
+
+  /** The live pitch in degrees — read by tests and by the founding probe. */
+  get elevationDegrees(): number { return this.elevation; }
+
+  /**
+   * The orientation the camera-*facing* layers are built against: the pitch the
+   * camera is **going** to while it is easing, and the live one otherwise.
+   *
+   * The same trick `neededFrustumFor` plays with the frustum, for a harder
+   * reason. A billboard is baked into an instance matrix, so "face the camera"
+   * costs a rebuild of the whole layer it sits in — every piece, every town mark,
+   * every site marker, every roundel — and the frame after that rebuild has to
+   * hand all of those buffers back to the driver. Building them for the live
+   * pitch would mean doing that on every frame of the ease; building them for the
+   * pitch the camera *left* means doing it twice, once at the gesture and again
+   * when the ease lands. Building them once, for where the camera is going, is
+   * the only arrangement that costs one sweep — and the town a player just
+   * founded is exactly the gesture that was paying for two (`docs/flags.md`
+   * (xxxxx)).
+   *
+   * What it trades is that the marks hold the destination tilt through the
+   * 320 ms the eye takes to get there. Over a ten-degree turn that is a fraction
+   * of a degree of billboard lean, against a second full rebuild of the board's
+   * furniture; the snap moved from the end of the ease to its start.
+   */
+  get facing(): Quaternion { return this.facingQuaternion; }
+
+  /**
+   * Recomputes `facing` from whichever pitch the layers should answer to.
+   *
+   * Standing still it is a **copy** of the camera's own rotation rather than an
+   * arithmetic twin of it: the two would agree to a dozen digits and disagree in
+   * the last, and a billboard leaning by a float's worth is a pixel that moved
+   * for no reason anybody asked for. Only while the pitch is easing is a second
+   * orientation composed, and it is composed exactly as `apply` composes the
+   * live one — the eye set one `eyeDistance` off the target along the
+   * destination pitch, and the same `lookAt` — so that the frame the ease lands
+   * on inherits the rotation the layers were already built with.
+   */
+  private updateFacing(): void {
+    if (!this.elevationTween) { this.facingQuaternion.copy(this.camera.quaternion); return; }
+    const el = this.elevationTween.to * DEG, az = CAMERA.azimuth * DEG;
+    const direction = new Vector3(Math.cos(el) * Math.cos(az), Math.sin(el), Math.cos(el) * Math.sin(az)).normalize();
+    const eye = this.target.clone().addScaledVector(direction, CAMERA.eyeDistance);
+    this.facingQuaternion.setFromRotationMatrix(new Matrix4().lookAt(eye, this.target, this.camera.up));
+  }
 
   private applyElevation(degrees: number): void {
     this.elevation = degrees;
@@ -560,6 +614,9 @@ export class DioramaCamera {
     this.camera.lookAt(this.target);
     this.camera.updateProjectionMatrix();
     this.camera.updateMatrixWorld(true);
+    // The billboards' orientation is settled from here, so that standing still
+    // it is the camera's own to the bit. See `updateFacing`.
+    this.updateFacing();
   }
 }
 

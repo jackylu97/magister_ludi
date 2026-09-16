@@ -1737,6 +1737,12 @@ describe("determinism", () => {
     // log's recruitments deal a different hand from the first one on.
     // 105 since batch G3 (2026-09-09): a malice takes a chair, which is a
     // card class of its own and a draw at every age's judgement.
+    // 117 since batch S2 (2026-09-15): the deck keeps a lifetime tally
+    // (`PlayerStatecraft.yieldTallies`), a field on every seat's Statecraft
+    // that a v116 log replays into from its first resolution.
+    // 118 since batch B1 (2026-09-16): the reroll's count is zeroed by
+    // adoption and the meter's exponent eases to 2.2, so every draft from the
+    // third is priced off a different curve and a v117 log does not replay.
     expect(SCHEMA_VERSION).toBe(118);
     const g = game(19);
     const player = g.state.players[0]!;

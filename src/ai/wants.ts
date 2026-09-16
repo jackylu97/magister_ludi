@@ -1258,7 +1258,10 @@ function faithRowTerms(
       nest('what this piece is worth as a soldier', explainSoldier(row.id, ctx)),
       ...mirrorTerm(state, player, ctx, row.id),
     ]);
-    return [nest('what this soldier is worth', soldier), levyTerm(soldier.total, row.levy)];
+    return [
+      nest('what this soldier is worth', soldier),
+      levyTerm(soldier.total, row.levy, ctx.ai.military.levySurplusSlope),
+    ];
   }
   if (def.foundsCity === true) return [expansionTerm(ctx)];
   return [
@@ -1343,13 +1346,15 @@ function mirrorTerm(
  * recomputed, for `soldierWorth`'s stated reason exactly. A levy this file
  * counted for itself would be a levy the town and the bank could disagree about.
  */
-function levyTerm(worth: number, levy: LevyReading): ValueTerm {
+function levyTerm(worth: number, levy: LevyReading, slope: number): ValueTerm {
   const surplus = levy.wanted <= 0 ? 1 : levy.held / levy.wanted;
   return {
     label:
       `this empire wants ${round(levy.wanted)} soldier${levy.wanted === 1 ? '' : 's'} and holds ` +
       `${levy.held} — ${round(surplus * 100)}% of a levy already standing (${levy.note})`,
-    value: -worth * surplus,
+    // `military.levySurplusSlope` (E1a) — the queue's slope, read here too so
+    // the purse and the town charge a full levy alike. One is the old slope.
+    value: -worth * surplus * slope,
   };
 }
 

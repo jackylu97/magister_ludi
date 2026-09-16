@@ -810,3 +810,53 @@ population will push it.
    `score.nominalTiles` in the first batch (the `weights.die` precedent).
    ▢ Give `huntRadius` its reader instead (the hunt reads `campHuntRadius`
    for both halves today, and the docblock disagrees with the code).
+
+## How to run (E1b, built 2026-09-15)
+
+- `npm run evolve -- --quick --generations 1 --workers 4` is the smoke (2
+  acceptance seeds, the duel board only, 8 games a child); `npm run evolve --
+  --generations 20` is the overnight run at the honest evaluation (4 seeds ×
+  {duel, standard} × 2 mirrors = 16 games a child). Flags: `--workers N`
+  (default `os.cpus().length − 1`), `--out DIR` (default
+  `.claude/scratch/evolve/<timestamp>/`, gitignored), `--rng-seed N`,
+  `--mu N`, `--lambda N`. The script is `scripts/evolve.ts` (the loop, the pool,
+  the ledger) over `scripts/evolveGenome.ts` (the genome, the merge, the
+  operators — pure, pinned by `test/sim/aiBounds.test.ts`).
+- **The run directory**: `ledger.csv` (one row per candidate per generation —
+  id, parents, fitness, ahead/games, per-board and per-seed advantage, Opus
+  turns, warnings, stalls, digests, verdict), `gen-NNN.md` (the generation as a
+  table, the sentinel digest, the champion's knob deltas against the file),
+  `champion.json` (the full sheet in the file's shape), `champion-diff.md`
+  (the sparse base override the arena's loader takes, persona lines beside
+  it), `games.json` (every game played, keyed), `README.md`, and `HALT.md` if
+  the sentinel disagreed with itself.
+- **The winner is written back by hand only.** The script never opens
+  `data/ai.json` for writing. Paste `champion.json` (or the sparse diff) and
+  let the suite be the gate: `aiPersona.test.ts`, `arenaPage.test.ts`,
+  `aiBounds.test.ts`, and `aiDigest.slow.test.ts`'s two literals re-cut with a
+  sentence saying why.
+- **Bounds**: `data/ai.bounds.json`, one row per tunable leaf keyed by path,
+  `{min, max, integer?}`; an age row carries one row for the whole row. A leaf
+  without a row is **frozen** — `driver.*`, `search.*`, `solvency.*`,
+  `puppetProfile`, the two meter floors (`-999` is "no floor") and
+  `wager.malicePenalty` (0 means "read the deck", a mode, not a magnitude)
+  have none. A persona override outside its leaf's bounds is a sentinel
+  (999, 60): never mutated, never carried. The two army mixes
+  (`military.mixDefend`, `mixCampaign`) each keep their own sum under
+  mutation; the per-age rows (`cityValueFalloffByAge`, `smallCityPop`,
+  `techByAge`, the six voices) move as a curve.
+  `aiBounds.test.ts` is the sync test: real leaves only, defaults inside,
+  frozen blocks unrowed, the integer-by-use leaves marked, the operators
+  within the sheet.
+- **The sentinel**: every generation replays the champion against itself on
+  the first acceptance seed (duel, 120 turns) in two workers; a digest
+  mismatch — or a digest that moved between generations with the champion
+  unchanged — halts the run with the reason in `HALT.md`. The digest is
+  `test/sim/aiDigestHelpers.ts`'s (`snapshotState` hashed, FNV-1a), the very
+  reading `aiDigest.slow.test.ts` pins at two literals.
+- **Seating**: a seat plays a genome as persona P through the per-seat tuning
+  door with the whole merged sheet, no persona key written. Measured on the
+  build day: the door reproduces the persona path byte for byte (duel-120
+  six-seat, `Player.persona` stripped, `e9ea292c:248813` both ways).
+  `runArenaGame` hands back a reading and not the state, so the play loop is
+  restated in the helper — the one thing the door was missing.

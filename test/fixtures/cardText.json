@@ -3336,6 +3336,12 @@
    }
   ],
   "smithy": [],
+  "warHall": [
+   {
+    "raw": "newly created units in every city with a [[building:warHall|War Hall]] gain +10 maximum health",
+    "text": "newly created units in every city with a War Hall gain +10 maximum health"
+   }
+  ],
   "coinworks": [
    {
     "raw": "10% of the gold in every city with a [[building:coinworks|Coinworks]] is gained again as culture",

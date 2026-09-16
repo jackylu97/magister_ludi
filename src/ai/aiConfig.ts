@@ -36,6 +36,7 @@
 
 import aiJson from '../../data/ai.json';
 
+import type { BeadFamily } from '../sim/beadData';
 import type { TallyOccasion } from '../sim/statecraftData';
 
 /**
@@ -222,15 +223,24 @@ export interface AiConfig {
      */
     siteSearchRadius: number;
     /**
-     * **The honest tall lever.** Each town already held multiplies what the next
-     * one is worth: a settler is `weights.city × falloff^towns`, so a wide
-     * empire at 1 never tires of expanding, a balanced one at 0.9 slows, and a
-     * tall one at 0.6 stops wanting a fourth town long before the cap would stop
-     * it. Before this the settler was a flat 88 for every empire on every board,
-     * and "tall" could only be spelled as a cap — which is a *feasibility*
-     * sentence, not a preference (see `buildCandidates`).
+     * **The honest tall lever, per age.** Each town already held multiplies what
+     * the next one is worth: a settler is `weights.city × falloff^towns`, so a
+     * wide empire at 1 never tires of expanding, a balanced one at 0.9 slows,
+     * and a tall one at 0.6 stops wanting a fourth town long before the cap
+     * would stop it. Before this the settler was a flat 88 for every empire on
+     * every board, and "tall" could only be spelled as a cap — which is a
+     * *feasibility* sentence, not a preference (see `buildCandidates`).
+     *
+     * **A row indexed by `TechAge`, since E1a** (`docs/plans/bot-evolution.md`
+     * §2.2; the scalar `cityValueFalloff` it replaces was one figure for the
+     * whole game). "When expansion stops and development starts" is a curve
+     * over the game, and a tuner cannot learn a curve the sheet has no row for:
+     * an Æra I empire that should still be planting and an Æra III one that
+     * should be building were reading the same number. The band is read the way
+     * every weight row is (`yieldWeight`'s idiom — a shorter row reuses its last
+     * entry), and the file's four equal entries reproduce the scalar exactly.
      */
-    cityValueFalloff: number;
+    cityValueFalloffByAge: number[];
     /**
      * How many of a town's frontier hexes are put to the purchase rule each
      * sitting — `siteSearchRadius`' sentence about compute, said about ground
@@ -344,8 +354,15 @@ export interface AiConfig {
    * is a knob of its own, so the other reading is one edit away.
    */
   growth: {
-    /** Towns below this population pay the premium. */
-    smallCityPop: number;
+    /**
+     * Towns below this population pay the premium — **per age** since E1a
+     * (`docs/plans/bot-evolution.md` §2.2), a row indexed by `TechAge` read with
+     * `yieldWeight`'s band idiom. What "small" means moves with the game: a
+     * six-citizen town is a grown one in the first age and a hamlet in the
+     * third, and one threshold for both is the development side of the
+     * expansion curve with no curve in it. Four equal entries are the old scalar.
+     */
+    smallCityPop: number[];
     /** What that premium is worth, in the one currency. */
     smallCityPremium: number;
   };
@@ -357,14 +374,47 @@ export interface AiConfig {
      * **The warmonger's one capability.** Zero is the peaceful bot this file
      * shipped with: it hunts the wild, garrisons its towns and never once
      * targets another nation. Above zero a soldier will hunt a rival's pieces
-     * and push at their cities inside `huntRadius`, and the exchange it will
-     * accept loosens with the number — at 1 any blow that deals more than
-     * nothing, at 0.5 only a blow that deals half again what it takes. See
-     * `soldierCommand`.
+     * and push at their cities with the campaign (`campaignPlan`), and the
+     * exchange it will accept loosens with the number — at 1 any blow that
+     * deals more than nothing, at 0.5 only a blow that deals half again what it
+     * takes. See `soldierCommand`.
      */
     aggression: number;
-    /** Hexes an aggressive seat will look for a rival's piece or town in. */
-    huntRadius: number;
+    // `huntRadius` stood here until E1a and is **retired** (the `weights.die`
+    // precedent, `docs/plans/bot-evolution.md` §1.2): the hunt it named was
+    // replaced by the campaign plan in §13.3 and by `campHuntRadius` for the
+    // wild, and the knob was read by nothing at all while shipping as a live
+    // box on the arena panel — a dial that moved nothing.
+    /**
+     * **The appetite for the wild** — the exchange loosening a blow on a
+     * barbarian piece or camp reads (E1a, `docs/plans/bot-evolution.md` §2.7;
+     * the literal `favourableBlow(holdsWild, 0)` the audit found at
+     * `bot.ts:6557`). Nought is the old rule exactly: a blow on the wild must
+     * deal more than it takes, whatever the seat's temperament toward nations.
+     * The same scale as `aggression`, so a sheet can say *bold against the wild,
+     * careful against a neighbour* — or the reverse — in two numbers.
+     */
+    wildAggression: number;
+    /**
+     * **The levy's hard ceiling**, as a multiple of what the levy wants (E1a,
+     * §2.7; the literal `held >= 2 × wanted → null` at `bot.ts:5101`). The
+     * craving below the cap is a term and this is the one refusal left over it:
+     * a board that talked an empire into forty spears would be a regression
+     * nobody could see coming, so twice the levy stands where the old gate
+     * stood. Two reproduces today's play.
+     */
+    levyCapMultiple: number;
+    /**
+     * **How hard a standing levy charges the next soldier** — the slope of
+     * `−worth × (held ÷ wanted)` in the queue, the purse and the faith book
+     * (E1a, §2.7; the three slope-1 literals at `bot.ts:851`, `:5136` and
+     * `wants.ts:1347`). One reproduces today's play: at the levy a soldier is
+     * charged its whole worth back. Under one an empire keeps raising past its
+     * levy; over one it stops short of it. One knob for the three readers so
+     * the town, the bank and the purse cannot disagree about what a full levy
+     * costs the next piece.
+     */
+    levySurplusSlope: number;
     /**
      * **The opening's scouts, and the glut that followed them** (the user's
      * notes, `docs/flags.md`: *"ai needs to prioritize early scouts"*; the
@@ -401,10 +451,20 @@ export interface AiConfig {
     /** How fast an explorer's whole value fades with `state.turn`. */
     scoutDecayPerTurn: number;
     /**
-     * **The army this empire wants to be made of** — the shares of the four
-     * soldiers' trades, read by the build arm's mix term (ruled 2026-09-04:
-     * *"it should also prioritize a mix of units (unless it has clear bonuses
-     * for a certain type)"*).
+     * **The army this empire wants to be made of, by posture** — the shares of
+     * the four soldiers' trades, read by the build arm's mix term (ruled
+     * 2026-09-04: *"it should also prioritize a mix of units (unless it has
+     * clear bonuses for a certain type)"*).
+     *
+     * **Two mixes since E1a** (the user, 2026-09-15, `docs/flags.md` (zzzzz)
+     * (iv): *"archers are better on defense, catapults only useful on the
+     * offense"*). `mixDefend` is the army a seat keeps while no campaign is
+     * planned; `mixCampaign` the one it raises while a war is planned or open
+     * on the offensive — the posture is read off the board by `campaignPosture`
+     * (the same enemy sweep `campaignPlan` walks, remembered nowhere), never
+     * stored. Siege belongs to the campaign mix only and the bow is weighted to
+     * the defend mix, which is the ruling said as two rows: a seat at peace
+     * that raised a catapult was raising a piece with nothing to do.
      *
      * Proportions rather than counts, so the same sheet describes a two-piece
      * levy and a twenty-piece army; they are not required to sum to one and
@@ -418,7 +478,8 @@ export interface AiConfig {
      * own strength all fold beside it, so an empire whose one good row is a
      * bowman still builds bowmen. See `explainMixCraving`.
      */
-    mix: Record<MixRole, number>;
+    mixDefend: Record<MixRole, number>;
+    mixCampaign: Record<MixRole, number>;
     /**
      * What a full share of the mix is worth, in the one currency — the term is
      * `mixBonus × (target − share)`, so a trade the army has none of is paid
@@ -487,6 +548,15 @@ export interface AiConfig {
      * ruling, which is what makes it an arena A/B rather than a rule.
      */
     hardTargetMargin: number;
+    /**
+     * **The strike floor while the force is at the walls** — `strikeFloor`'s
+     * sibling for the push (E1a, `docs/plans/bot-evolution.md` §2.7; the literal
+     * `floor = besieging ? 0 : strikeFloor` at `bot.ts:6818`). Nought is the old
+     * rule: under siege the appetite `war.siegeExchange` names is the whole
+     * bar, and a stack may trade down as far as that appetite says. Above
+     * nought a seat keeps some floor under its blows even at the walls.
+     */
+    siegeStrikeFloor: number;
     /**
      * **A hurt piece in the field walks home rather than pressing** — the share
      * of its own hit points below which it withdraws (the same ruling).
@@ -609,6 +679,57 @@ export interface AiConfig {
      * levy builds for one* cannot be tuned into disagreeing with each other.
      */
     strikeForce: number;
+    /**
+     * **How many pieces that shoot or lay siege the strike force needs** (E1a,
+     * `docs/plans/bot-evolution.md` §2.6; the literal `force.siege !== null` at
+     * `diplomacy.ts:1399`). One reproduces today's play — a single bow or engine
+     * among the spare pieces satisfied the declaration. A seat that wants a
+     * proper train before it marches says so here, and a seat at nought
+     * declares with spears alone.
+     */
+    siegePiecesWanted: number;
+    /**
+     * **Hexes from the target town inside which the siege appetite applies**
+     * (E1a, §2.7; the literal `within: 1` at `bot.ts:6591`). A blow on the town
+     * or on a defender within this many hexes of it clears `siegeExchange`
+     * rather than the seat's own temperament. One is the old rule.
+     */
+    siegeWithin: number;
+    /**
+     * **What a target is worth, folded into the declaration** (E1a, §2.6): a
+     * candidate's score × `(1 + this × the target town's site worth ÷
+     * weights.city)`, the site worth being the settler's own reading of the
+     * ground (`explainSite`, `src/sim/sites.ts`) — so a rich neighbour is a
+     * dearer target than a poor one at the same army ratio. Nought is today's
+     * ratio-only order: whom we can beat and reach, never what the war would
+     * gain.
+     */
+    targetValueWeight: number;
+    /**
+     * **Towns taken this war at which a winning seat sues for a white peace**
+     * (E1a, §2.6). A war with no goal is fought until the exchange turns, which
+     * is what the audit found: a winning seat has no reason to stop. At this
+     * many towns taken since the war began (`warLedger.ts`' count) and the
+     * exchange still ahead, the seat puts a white peace on the table rather than
+     * pressing on. Nought is today: no goal, no stopping.
+     */
+    goalTowns: number;
+    /**
+     * **The margin by which "ahead" is ahead** (E1a, §2.6; the literal
+     * `ahead: theirs > ours` at `diplomacy.ts:425`): `theirs > ours × this`. A
+     * seat that has cost its enemy only a hair more than it has paid declines
+     * peace at one; above one it wants a clearer lead before it calls the
+     * exchange its own. One reproduces today's play.
+     */
+    aheadMargin: number;
+    /**
+     * **The share of the treasury a sue may offer as tribute** (E1a, §2.6; the
+     * literal `min(gold, …)` at `diplomacy.ts:775`). One is today: a suing seat
+     * will empty its purse if the score says it owes that much. Under one it
+     * keeps the rest back, which is the same sentence `solvency` says about a
+     * purchase.
+     */
+    tributeShare: number;
     /**
      * How many steps **short of the target town** the muster stands.
      *
@@ -773,8 +894,16 @@ export interface AiConfig {
     // `die` stood here until batch H2 and is **retired**: the great-person dice
     // are gone from the game and the knob was read by nothing at all, while
     // shipping as a live box on the arena panel — a dial that moved nothing.
-    /** Holding one more technology, over and above what it unlocks. */
-    tech: number;
+    /**
+     * Holding one more technology, over and above what it unlocks — **per age**
+     * since E1a (`docs/plans/bot-evolution.md` §2.3; the scalar `tech` it
+     * replaces was one figure for the whole tree). The chain has no other age
+     * term at all — a node is its gifts discounted by its road — so this row is
+     * where a sheet says whether breadth is worth more early than late. Indexed
+     * by `TechAge` with `yieldWeight`'s band idiom; four equal entries are the
+     * old scalar. Also the worth of a free-technology grant (`explainBuildingRow`).
+     */
+    techByAge: number[];
     /**
      * One more town, **before** `expansion.cityValueFalloff` is applied for the
      * towns this empire already holds.
@@ -893,8 +1022,11 @@ export interface AiConfig {
     caravanScale: number;
     /** How many things a `pays` count — or an unread rate — is assumed to count. */
     nominalCount: number;
-    /** How many hexes a hex `pays` is assumed to land on. */
-    nominalTiles: number;
+    // `nominalTiles` stood here until E1a and is **retired** (the `weights.die`
+    // precedent): batch X2 replaced the flat three hexes it named with a sweep
+    // of the hexes the empire actually works (`workedHexesAdmitting`,
+    // `value.ts`), and the knob was read by nothing after that while shipping
+    // as a live box on the arena panel.
     /** Per already-held card sharing an option's `line`. See `scoreCard`. */
     synergyBonus: number;
     /** Soldiers a completion grant of one unit is worth. */
@@ -1005,6 +1137,34 @@ export interface AiConfig {
      * which makes it an arena A/B rather than a rule.
      */
     strandWeight: number;
+    /**
+     * **What crossing into the next age is worth, read off the seat's own
+     * luxuries** (the user, 2026-09-15, `docs/flags.md` (zzzzz) (i): *"valuing
+     * entering age 3 with the value of all the luxury resources they have"*).
+     *
+     * Not a flat figure. Every luxury row carries a second tier that switches on
+     * at an age (`ResourceEffect.fromAge`, `docs/luxuries.md` — silver and
+     * gold's `perCopy` Æra III among them), and an empire holding six such seams
+     * is handed six signatures the turn its first Æra III node lands, where an
+     * empire holding none is handed nothing. So the first node of a road that
+     * lifts this seat's `highestAge` carries the priced worth of every held
+     * luxury effect gated on the age it enters (`ageEntryTerm`, `chain.ts`),
+     * **scaled by this row** — nought is today's play, one is the tiers at
+     * their face value — and a seat with no such luxury wants the crossing
+     * only for the flat per-node worth every technology carries (`techByAge`).
+     */
+    ageEntryValue: number;
+    /**
+     * **The Opus door's own worth while the race is shut** (E1a,
+     * `docs/plans/bot-evolution.md` §2.3). The node that opens the great work for
+     * the world earns nothing in the chain for being the door — it is worth
+     * its unlocks and its bead like any other — so a seat with a full rod and
+     * no door has no term pulling it toward the one node that matters. This is
+     * that term, printed on the door node (`gatingTech` of the Opus row) while
+     * nobody in the world holds it (`opusOpen`); once the race is open the bead
+     * chain's own clock takes over. Nought is today's play.
+     */
+    doorValue: number;
     /**
      * **`projectValue` is retired** (batch X12). A flat ten a conversion stood
      * in for a reading the bot already had: `explainProjectRow` is what the
@@ -1136,6 +1296,50 @@ export interface AiConfig {
      * one a bot that expects the pace to pick up as its engines come in.
      */
     driftWeight: number;
+    /**
+     * **Which victory shape this seat plays for** — a multiplier per wager
+     * family (`BeadFamily`: domination · culture · science · economic) on a
+     * card's stake score and on the worth of the lean it takes after staking
+     * (E1a, `docs/plans/bot-evolution.md` §2.1). Before this the stake was the
+     * best projected margin with no family preference, so no persona played
+     * *for* anything; now a persona says what it is as four numbers — tall
+     * toward science and culture, wide toward economic, the warmonger toward
+     * domination — and never as a code path. All ones is today's play.
+     */
+    familyLean: Record<BeadFamily, number>;
+    /**
+     * **The projected margin under which a stake is a malice-avoidance pick**
+     * (E1a, §2.1). A seat whose best card — best after the family lean — would
+     * reach under this share of its bar by the close is not really staking on
+     * anything; it takes the card with the least expected malice instead (the
+     * highest raw margin, lean ignored), which is the honest reading of a hand
+     * it cannot win. Nought is today's play: the best bar, always.
+     */
+    commitMargin: number;
+  };
+  /**
+   * **The floors the bot will not push its meters under** (the user,
+   * 2026-09-15, `docs/flags.md` (zzzzz) (iii): *"making sure it respects the
+   * boundaries for happiness and authority"*).
+   *
+   * Today both meters are prices only — `weights.happiness` and
+   * `weights.authority`, ridden up the band as the meter runs short — and a
+   * price is an argument a large enough payoff always wins. These are not
+   * prices: a next town whose founding cost would leave the meter under the
+   * floor is **refused** in the expansion chain (`nextTownChain`), and a blow
+   * that would take a town whose writ would sink the meter under the floor is
+   * refused in the field (`favourableBlow`). Read in points of the meter, as
+   * the meter panel prints them.
+   *
+   * **`-999` is "no floor"**, the `war.declareThresholdPeaceful` sentinel one
+   * block over: a floor has to sit somewhere on the meter's own scale, and no
+   * meter in this game reads that low, so the shipped sheet refuses nothing and
+   * plays exactly as it did — which is what makes each an arena A/B rather than
+   * a rule. Nought is a real floor (never go under), not a switch.
+   */
+  meters: {
+    happinessFloor: number;
+    authorityFloor: number;
   };
   /**
    * **What a town nobody controls decides for itself** (batch PP1,

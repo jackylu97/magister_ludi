@@ -10,3 +10,8 @@ gridsearch-results.json
 
 # Claude Code agent worktrees (per-session scratch checkouts)
 .claude/worktrees/
+
+# The evolutionary tuner's run directories (`scripts/evolve.ts`): ledgers and
+# champions are measurements, never sources — the winner is pasted into
+# data/ai.json by hand and lands as a balance change.
+.claude/scratch/

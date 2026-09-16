@@ -156,8 +156,9 @@ reading for a once-per-empire row.
 | `bazaar` | Bazaar | medium | 9 | 346 |
 | `harbour` | Harbour | medium | 5 | 117 |
 | `forum` | Forum | large | 6 | 231 |
-| `courthouse` | Courthouse | large | 9 | 520 |
+| `courthouse` | Courthouse | large | 6 | 231 |
 | `shipyard` | Shipyard | medium | 7 | 202 |
+| `armoury` | Armoury | medium | 7 | 202 |
 | `castle` | Castle | large | 10 | 681 |
 | `forge` | Foundry | large | 10 | 681 |
 | `caravanserai` | Caravanserai | large | 6 | 231 |
@@ -183,6 +184,7 @@ reading for a once-per-empire row.
 | `assemblyHall` | Assembly Hall | large | 4 | 134 |
 | `viziersHall` | The Vizier's Hall | large | 4 | 134 |
 | `smithy` | Smithy | medium | 4 | 89 |
+| `warHall` | War Hall | medium | 4 | 89 |
 | `coinworks` | Coinworks | large | 6 | 231 |
 | `almshouse` | Almshouse | large | 6 | 231 |
 | `orrery` | Orrery | large | 6 | 231 |

@@ -1234,6 +1234,11 @@ describe('the bot module', () => {
       'driver',
       'expansion',
       'growth',
+      // The meter floors (E1a; the user's (iii), `docs/flags.md` (zzzzz)): two
+      // refusals rather than prices, read by the expansion chain. Their own
+      // block because they are not weights — a weight says what a point is
+      // worth, and a floor says where the bot stops arguing.
+      'meters',
       'military',
       // The persona sheet: sparse deep-overrides of every block above it, which
       // is why it is a key of the same file rather than a file of its own — a

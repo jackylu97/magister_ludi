@@ -346,6 +346,17 @@ export class Renderer3D implements MapView {
    * town's look.
    */
   private religionSignature = 0;
+  /**
+   * The camera has turned since the billboarded layers were last built.
+   *
+   * A flag rather than a signature because the answer is boolean and the camera
+   * is the only thing that can set it — `setCityFocus`, the one gesture that
+   * changes the pitch. `syncStateLayers` reads it as one more reason the pieces,
+   * the towns, the sites and the marks are stale, so a turn and a state change
+   * arriving together (which is exactly what founding a town is) cost one sweep
+   * between them rather than one each.
+   */
+  private facingTurned = false;
   /** The works whose cleared ground has already been applied. See `clearGround`. */
   private clearedImprovementsSignature = 0;
   /** The towns whose cleared ground has already been applied. See `clearGround`. */
@@ -674,7 +685,7 @@ export class Renderer3D implements MapView {
    * committed JSON was measured with; the script that runs the fixtures says so
    * in its own output when it lowers them.
    */
-  private benchmarkOptions(): {frames: number; warmUp: number; workloads: boolean; views: boolean; label: string | null} {
+  private benchmarkOptions(): {frames: number; warmUp: number; workloads: boolean; only: string | null; views: boolean; label: string | null} {
     const params = new URLSearchParams(location.search);
     const number = (key: string, fallback: number, min: number) => {
       const value = Math.floor(Number(params.get(key)));
@@ -684,6 +695,10 @@ export class Renderer3D implements MapView {
       frames: number('benchFrames', 156, 8),
       warmUp: number('benchWarmUp', 36, 0),
       workloads: params.has('benchWorkloads'),
+      // `benchWorkloads=1` (or bare) runs the suite; a comma list of names runs
+      // only those. A ruling about one gesture should not have to pay for the
+      // five it is not asking about — under software GL the suite is minutes.
+      only: (() => { const value = params.get('benchWorkloads'); return !value || value === '1' ? null : value; })(),
       views: params.get('benchViews') !== 'off',
       label: params.get('benchLabel'),
     };
@@ -724,6 +739,11 @@ export class Renderer3D implements MapView {
     let open: {query: WebGLQuery; bucket: number[]} | null = null;
     let disjointDiscards = 0, previous = 0, lastCalls = renderCalls(), counting = false;
     let lastShadowRenders = 0, lastBakes = bakesNow();
+    // The frame the probe just took, kept beside the phase's running lists.
+    // A workload whose whole question is *which* frame is dear — the founding,
+    // where two hitches sit a third of a second apart — cannot ask a p50.
+    let lastFrame: {drew: boolean; mainMs: number; submitMs: number; draws: number; passes: number} =
+      {drew: false, mainMs: 0, submitMs: 0, draws: 0, passes: 0};
     type Phase = {
       name: string; note: string | null;
       intervals: number[]; main: number[]; submit: number[]; prep: number[];
@@ -784,12 +804,17 @@ export class Renderer3D implements MapView {
       },
       /** From here on the samples count. Bakes and shadow passes count too. */
       count: (on: boolean): void => { counting = on; },
+      /** The frame `sample` last took, whether or not the phase counted it. */
+      get lastFrame() { return lastFrame; },
       /** One animation frame, sampled after the loop's own callback has run. */
       sample: async (): Promise<number> => {
         const time = await frame();
         const at = performance.now();
         const calls = renderCalls();
         const drew = calls > lastCalls;
+        lastFrame = {drew, mainMs: Math.round((at - time) * 100) / 100,
+          submitMs: Math.round(this.lastRenderMs * 100) / 100,
+          draws: this.lastDrawCalls, passes: calls - lastCalls};
         closeQuery(drew);
         poll();
         if (current && counting && drew) {
@@ -1018,13 +1043,19 @@ export class Renderer3D implements MapView {
       }
     };
     const report: Record<string, unknown> = {};
+    // Which of the suite this run is paying for; see `benchmarkOptions.only`.
+    const wanted = (name: string) => options.only === null || options.only.split(',').includes(name);
     try {
       zoomTo(playRadius);
       await settle(4);
-      phase('still (play zoom)', 'camera parked; a redraw forced every frame');
-      for (let i = 0; i < frames; i++) { this.invalidate(); await probe.sample(); }
+      if (wanted('still')) {
+        phase('still (play zoom)', 'camera parked; a redraw forced every frame');
+        for (let i = 0; i < frames; i++) { this.invalidate(); await probe.sample(); }
+      }
 
       // --- a real march into unexplored ground -----------------------------
+      if (!wanted('march')) report.march = {measured: false, reason: 'not asked for by this run'};
+      else {
       const march = structuredClone(original) as GameState;
       march.map = original.map;
       const levels = seat === null ? null : march.visibility[seat] ?? null;
@@ -1101,8 +1132,10 @@ export class Renderer3D implements MapView {
       }
       this.setGameState(original);
       await settle(3);
+      }
 
       // --- the whole board revealed at overview ----------------------------
+      if (wanted('overviewReveal')) {
       this.view.frameBoard(board.bounds);
       await settle(4);
       phase('overview reveal (charted → omniscient)', 'the seat is dropped at overview zoom; every hidden batch enters the pass');
@@ -1112,8 +1145,10 @@ export class Renderer3D implements MapView {
       report.overviewReveal = {terrainShadowRebakes: look.shadowBakes - revealBakes};
       this.setFogSeat(seat);
       await settle(3);
+      }
 
       // --- a zoom that crosses the detail band ------------------------------
+      if (wanted('lodZoom')) {
       this.view.frameBoard(board.bounds);
       await settle(3);
       phase('LOD zoom crossing (overview → play)', 'one zoom step per frame across the near/far detail band');
@@ -1121,8 +1156,10 @@ export class Renderer3D implements MapView {
       for (let i = 0; i < frames; i++) { this.view.zoomByFactor(factor, cx, cy); this.invalidate(); await probe.sample(); }
       zoomTo(playRadius);
       await settle(3);
+      }
 
       // --- the city screen's wash -------------------------------------------
+      if (wanted('cityScreen')) {
       const town = original.cities.find(city => seat === null || city.ownerId === seat) ?? original.cities[0];
       if (!town) report.cityScreen = {measured: false, reason: 'no city in this fixture'};
       else {
@@ -1133,9 +1170,10 @@ export class Renderer3D implements MapView {
         this.setCityFocus(null, false);
         await settle(3);
       }
+      }
 
       // --- the refresh after a turn resolves --------------------------------
-      try {
+      if (wanted('endTurn')) try {
         const future = structuredClone(original) as GameState;
         future.map = original.map;
         for (const player of realPlayers(future)) applyCommand(future, {type: 'endTurn', playerId: player.id});
@@ -1154,6 +1192,121 @@ export class Renderer3D implements MapView {
         };
       } catch (error) {
         report.endTurn = {measured: false, reason: error instanceof Error ? error.message : String(error)};
+      }
+
+      // --- founding a town --------------------------------------------------
+      // The gesture `docs/flags.md` (xxxxx) is about, and the one workload whose
+      // question is *which* frame is dear rather than what the median frame
+      // costs: a founding spends a settler, clears the ground the town stands
+      // on, widens the seat's sight, and then the city screen's pitch eases in
+      // behind it over `camera.panMs`. Those are two hitches a third of a second
+      // apart, so each frame is reported on its own line, with the shadow ledger
+      // differenced across it — the only way to say whether a bake or a counter
+      // map landed on the frame that stuttered.
+      //
+      // The settler is minted on the copy rather than looked for, because a
+      // developed fixture has none standing; the founding itself still goes
+      // through the reducer, so the layers see a real delta.
+      if (wanted('foundTown')) try {
+        this.setGameState(original);
+        await settle(3);
+        const founding = structuredClone(original) as GameState;
+        founding.map = original.map;
+        const {createUnit} = await import('../sim/state');
+        const {foundingErrorAt} = await import('../sim/cities');
+        const {UNIT_TYPE_IDS, unitDef} = await import('../sim/unitData');
+        const settlerType = UNIT_TYPE_IDS.find(id => unitDef(id).foundsCity);
+        const seatLevels = seat === null ? null : founding.visibility[seat] ?? null;
+        // Charted ground, so every seat-filtered layer actually moves; without
+        // that the founding would land in the dark and measure nothing.
+        const site = seat === null || !settlerType ? undefined : map.tiles.find(tile =>
+          (seatLevels?.[tileIndex(map, tile.col, tile.row)] ?? 0) > 0
+          && foundingErrorAt(founding, seat, tile) === null);
+        if (!site || !settlerType || seat === null) {
+          report.foundTown = {measured: false, reason: 'no charted, legal founding site for this seat'};
+        } else {
+          const settler = createUnit(founding, seat, settlerType, site.col, site.row);
+          const centre = cellCenter(site.col, site.row);
+          this.view.panTo(centre.x, centre.z, false, performance.now());
+          zoomTo(playRadius);
+          await settle(4);
+          const outcome = applyCommand(founding, {type: 'foundCity', playerId: seat, settlerUnitId: settler.id});
+          if (!outcome.ok) {
+            report.foundTown = {measured: false, reason: `the reducer refused the founding: ${outcome.error}`};
+          } else {
+            let ledger = look.shadowStats;
+            const lines: unknown[] = [];
+            const line = (what: string) => {
+              const now_ = look.shadowStats, frame = probe.lastFrame;
+              const row = {
+                what,
+                drew: frame.drew,
+                mainMs: frame.mainMs,
+                submitMs: frame.submitMs,
+                drawCalls: frame.draws,
+                passes: frame.passes,
+                bakes: now_.bakes - ledger.bakes,
+                staticMs: Math.round((now_.staticMs - ledger.staticMs) * 100) / 100,
+                staticDraws: now_.staticDraws - ledger.staticDraws,
+                counterMs: Math.round((now_.counterMs - ledger.counterMs) * 100) / 100,
+                counterDraws: now_.counterDraws - ledger.counterDraws,
+                elevation: Math.round(this.view.elevationDegrees * 100) / 100,
+                easing: this.view.isPanning,
+              };
+              ledger = now_;
+              lines.push(row);
+              return row;
+            };
+            phase('found a town', 'the reducer founds; the layers refresh and the city pitch eases in');
+            const startTarget = this.view.target.clone();
+            // The interface's own half of the gesture, and it comes **first**,
+            // because that is the order the game makes it in: `controls.ts`
+            // accepts the command, opens the new town's screen — which is what
+            // asks the camera for the city pitch — and only then does a frame
+            // run the layer sweep. Handing the state over first would put the
+            // camera's reason on the following frame and measure a seam the
+            // player never crosses.
+            this.setCityFocus({col: site.col, row: site.row}, true);
+            const started = performance.now();
+            this.setGameState(founding);
+            const stateMs = Math.round((performance.now() - started) * 100) / 100;
+            ledger = look.shadowStats;
+            let eased = 0, settled = 0;
+            for (let i = 0; i < frames && settled < 6; i++) {
+              await probe.sample();
+              const row = line(this.view.isPanning ? `eased frame ${++eased}` : `settled frame ${++settled}`);
+              if (!row.drew) settled = 0;
+            }
+            // The camera's own share, priced on its own — and in two halves,
+            // because the sweep is only the first of them. Turning the pitch
+            // rebuilds the billboarded layers, and the frame that follows has to
+            // hand every buffer it just replaced to the driver; on a developed
+            // board that upload is the larger half by an order of magnitude.
+            // Taken with the animation off, where it is a straight line rather
+            // than a cost buried in a frame that was drawing anyway.
+            this.setCityFocus(null, false);
+            await settle(3);
+            const refaceStarted = performance.now();
+            this.setCityFocus({col: site.col, row: site.row}, false);
+            const refaceMs = Math.round((performance.now() - refaceStarted) * 100) / 100;
+            ledger = look.shadowStats;
+            for (let i = 0; i < 3; i++) { await probe.sample(); line(`camera re-face frame ${i + 1}`); }
+            report.foundTown = {
+              measured: true,
+              site: {col: site.col, row: site.row},
+              citiesBefore: original.cities.length,
+              citiesAfter: founding.cities.length,
+              setGameStateMs: stateMs,
+              cameraRefaceMs: refaceMs,
+              easedFrames: eased,
+              cameraMovedTarget: startTarget.distanceTo(this.view.target) > 1e-6,
+              elevationAfter: Math.round(this.view.elevationDegrees * 100) / 100,
+              frames: lines,
+            };
+          }
+        }
+      } catch (error) {
+        report.foundTown = {measured: false, reason: error instanceof Error ? error.message : String(error)};
       }
       return report;
     } finally {
@@ -1713,9 +1866,10 @@ export class Renderer3D implements MapView {
       this.state,
       this.geometry,
       this.materials,
-      // The camera angle never changes, so "face the camera" is one constant
-      // rotation, resolved here and baked into the HP bar instance matrices.
-      this.view.camera.quaternion.clone(),
+      // "Face the camera" is baked into the HP bar instance matrices, so it is
+      // resolved once here — against the pitch the camera is *settling on*, not
+      // the one it is passing through. See `DioramaCamera.facing`.
+      this.view.facing.clone(),
       this.shadows,
       this.sprites,
       this.unitBadgesVisible !== false ? this.badges : null,
@@ -1757,7 +1911,7 @@ export class Renderer3D implements MapView {
       this.state,
       this.geometry,
       this.materials,
-      this.view.camera.quaternion.clone(),
+      this.view.facing.clone(),
       this.shadows,
       this.fogLevels(),
       this.icons,
@@ -1902,7 +2056,7 @@ export class Renderer3D implements MapView {
       // same reasons. See `sites3d.ts` for why both belong to this layer rather
       // than to the lens.
       this.icons,
-      this.view.camera.quaternion.clone(),
+      this.view.facing.clone(),
       // The second wave's gate: a seat with no word for buried antiquities is
       // shown none of them. Passed rather than derived — see `seatSeesKind` —
       // and hashed into the fingerprint below, so finishing the node rebuilds
@@ -1981,8 +2135,9 @@ export class Renderer3D implements MapView {
       this.geometry,
       this.materials,
       this.icons,
-      // Resource markers share the live world/city camera orientation with badges.
-      this.view.camera.quaternion.clone(),
+      // Resource markers share the badges' orientation — the world's or the
+      // city's, whichever the camera is settling on (`DioramaCamera.facing`).
+      this.view.facing.clone(),
       this.fogLevels(),
     );
     this.invalidate();
@@ -2111,20 +2266,19 @@ export class Renderer3D implements MapView {
     const before = this.vignette.focus();
     if (this.view.setCityView(cell !== null, animate, performance.now())) {
       this.setHoveredUnitId(null);
-      if (!this.view.isChangingAngle) this.refreshCameraFacingLayers();
+      // The pitch turned, so every billboard on the board is now built against
+      // the wrong one. Marked rather than rebuilt: the camera is a reason the
+      // layers are stale exactly as a moved unit is, and `syncStateLayers` is
+      // where a stale layer is rebuilt — once, on the next frame, together with
+      // whatever else changed in the same gesture. A founding is that gesture
+      // (`docs/flags.md` (xxxxx)): it turns the pitch and moves the fog in one
+      // breath, and used to pay for the units, the towns, the sites and the
+      // marks twice, a third of a second apart.
+      this.facingTurned = true;
       this.invalidate();
     }
     this.vignette.setFocus(cell, animate, performance.now());
     if (this.vignette.focus() !== before) this.invalidate();
-  }
-
-  /** Re-face static labels once when the pitch settles, never rebuild the world per frame. */
-  private refreshCameraFacingLayers(): void {
-    this.rebuildUnits();
-    this.rebuildCities(false);
-    this.rebuildSites(false);
-    this.rebuildLens();
-    this.rebuildOverlays();
   }
 
   /**
@@ -2695,7 +2849,7 @@ export class Renderer3D implements MapView {
     if (!unit) return;
 
     this.removeWalker(unitId);
-    const faceCamera = this.view.camera.quaternion.clone();
+    const faceCamera = this.view.facing.clone();
     const color = unitColor(this.state, unit);
     const period = wrapWidth(this.map);
     const group = new Group();
@@ -3161,6 +3315,13 @@ export class Renderer3D implements MapView {
     // or a mark, so the layers that filter by the seat's eyes are rebuilt with
     // the same one call the ordinary fingerprints would have made.
     const fogMoved = (fogged?.tiles ?? 0) > 0;
+    // The camera's own reason, spent here and nowhere else: every layer that
+    // bakes "face the camera" into an instance matrix is stale until it is
+    // rebuilt against the new pitch. Read once and cleared once, so a turn that
+    // arrives on the same frame as a founding is answered by the founding's own
+    // sweep. See `facingTurned` and `DioramaCamera.facing`.
+    const facingTurned = this.facingTurned;
+    this.facingTurned = false;
     const visibility = this.state ? layerVisibility(this.state, this.fogLevels(), this.fogSeat) : null;
     const shadowVisibility = this.state ? layerVisibility(this.state, this.fogLevels(), this.fogSeat, true) : null;
     const shadowChanged = (layer: keyof LayerVisibility): boolean => force || shadowVisibility?.[layer] !== this.shadowVisibilitySignatures?.[layer];
@@ -3169,7 +3330,7 @@ export class Renderer3D implements MapView {
     const terrainRevision = this.paintedTerrainRevision;
     const worksChanged = this.rebuildPaintedWorks();
     const terrainChanged = terrainRevision !== this.paintedTerrainRevision;
-    if (this.state && (terrainChanged || fogChanged('units') || signUnits(this.state) !== this.unitsSignature)) {
+    if (this.state && (facingTurned || terrainChanged || fogChanged('units') || signUnits(this.state) !== this.unitsSignature)) {
       this.setHoveredUnitId(null);
       this.rebuildUnits();
       this.rebuildOverlays();
@@ -3208,7 +3369,10 @@ export class Renderer3D implements MapView {
       // founding.
       if (this.lensView.yields) this.rebuildLens();
     }
-    if (this.state && (fogChanged('cities') || signCities(this.state) !== this.citiesSignature)) {
+    // A turned pitch reaches the flags and the town marks, which are billboards,
+    // and stops there: the painted stones are geometry and do not face anybody,
+    // so the boolean stays false and their batches are left where they stand.
+    if (this.state && (facingTurned || fogChanged('cities') || signCities(this.state) !== this.citiesSignature)) {
       this.rebuildCities(shadowChanged('cities') || signCities(this.state) !== this.citiesSignature);
     }
     // Improvements are terrain-ish, so they follow the fog on explored ground
@@ -3238,7 +3402,7 @@ export class Renderer3D implements MapView {
     // both of its tenants. The survey notes ride the same trigger: the seat's
     // own answer is inside the fingerprint, so the turn Geomancy lands the marks
     // appear on the very next frame. See `sites3d.ts`.
-    if (this.state && (fogChanged('sites') || signSites(this.state, this.fogSeat) !== this.sitesSignature)) {
+    if (this.state && (facingTurned || fogChanged('sites') || signSites(this.state, this.fogSeat) !== this.sitesSignature)) {
       this.rebuildSites(shadowChanged('sites') || signSites(this.state, this.fogSeat) !== this.sitesSignature);
       // The explorer lens is a picture of exactly what that fingerprint counts —
       // the unclaimed sites and the camps — so a ruin claimed or a camp burnt
@@ -3272,11 +3436,13 @@ export class Renderer3D implements MapView {
       // though nothing on the ground itself moved.
       if (this.lensView.yields) this.rebuildLens();
     }
-    // The lens draws nothing on Terra Incognita, so the ground it covers moved.
-    if (fogMoved && this.lensView.mode === 'none' && !this.lensView.yields) {
+    // The lens draws nothing on Terra Incognita, so the ground it covers moved —
+    // and its roundels and settle pennants are billboards, so a turned pitch is
+    // the same question asked about the camera instead of the fog.
+    if ((fogMoved || facingTurned) && this.lensView.mode === 'none' && !this.lensView.yields) {
       // Nothing is up but the roundels; they are scoped by fog too.
       if (this.lensView.resources) this.rebuildLens();
-    } else if (fogMoved) {
+    } else if (fogMoved || facingTurned) {
       this.rebuildLens();
     }
     this.visibilitySignatures = visibility;
@@ -3300,10 +3466,11 @@ export class Renderer3D implements MapView {
     const hadFallers = this.fallers.size > 0;
     if (hadFallers) this.stepDeaths(now);
     // An animating camera forces frames the same way a walking piece does: it
-    // moved the target, so the frame it moved it on has to be drawn.
-    const changingAngle = this.view.isChangingAngle;
+    // moved the target, so the frame it moved it on has to be drawn. Nothing is
+    // rebuilt when it arrives: the billboards were built for the destination the
+    // moment the ease began (`DioramaCamera.facing`), so the last frame of a
+    // pitch change draws exactly what the ones before it drew.
     const panned = this.view.stepPan(now);
-    if (changingAngle && !this.view.isChangingAngle) this.refreshCameraFacingLayers();
     // The city screen's wash fades on its own clock and forces frames the same
     // way a walker or a moving camera does — one number, sampled here, so the
     // render-on-demand loop goes back to idle the instant the fade lands.

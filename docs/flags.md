@@ -24,7 +24,81 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
-**(aaaaaa) The draft pass — RULED, B1** (the user, 2026-09-15: *"the
+**(gggggg) The Compendium names the technology that opens a thing — RULED, C1**
+(the user, 2026-09-16: *"please revise the compendium to include which
+technology unlocks a given building/unit/wonder etc"*). Every Compendium
+entry for a thing the tree opens — a building, a wonder, a unit, an
+improvement, a great person's work if a tech gates it, a rite or ability if
+`techsGrant` names it — carries a line naming its unlocking technology as a
+keyword ref (`[[tech:id|Name]]`, so it links), read from the tree's own
+`unlocks` (the one reverse reading `cities.ts` already makes for the cost
+column — reuse it, never a second table); a thing no tech opens says who
+does open it (a card's `unlocksBuilding`, `unlockedByCard`, a leader's
+unique row, "available from the start"), and a wonder's world-gate line
+(`worldUnlockTech`) stays as it is beside the new one. The tech entry's own
+list of what it unlocks is the mirror and already exists — the two must
+agree, pinned. Plain words (rule 7), the entry's existing voice.
+
+**(ffffff) A ship is a garrison — RULED, holds by construction; pinned with D1**
+(the user, 2026-09-15: *"ships should count as a garrison regardless. Coastal
+cities have the benefit of double dipping the garrison bonuses, without any
+special modifiers."*). The sim already says so: `'naval'` is its own stacking
+category, so a hull and a land piece share a coastal city hex under the
+ordinary caps (`unitData.ts`'s category docblock: "on a coastal city hex a
+ship garrisons"); `garrisonOf` (`statecraft/evaluator.ts`) takes every
+combatant of the owner standing on the hex, and a hull is a combatant because
+its row carries a strength; the `garrisoned` predicate is boolean (admits
+once), the `garrison` count kind counts pieces — so a soldier and a ship are
+**two**. Consequences, not code: (1) **garrison bonuses in the deck rework use
+the count basis** (per garrison piece), never the boolean, so a coastal town
+pays twice and an inland town once, with no naval clause on any card — the
+stacking cap is the only ceiling, and it is two; (2) no card grants "a ship
+counts as a garrison" (the orchestrator's Fleet Anchorage is struck from the
+worksheet); (3) the city's garrison beat already defends with the best piece
+present. D1 carries the pin: a hull alone on a coastal city is a garrison, a
+hull and a soldier count two, and an inland town with a soldier counts one.
+
+**(eeeeee) Two military buildings for the middle ages — BUILT, M2, LANDED 2026-09-15** (`warHall` at Bronze Panoply, medium, +2 production, units mustered there +10 max hp; `armoury` at Mathematics — the retired Machinery-era row re-opened under the M2 spec — medium, +4 production, +25% toward ranged and siege; both chain on the Barracks; the Courthouse at Iron Working, its price 520 → 231 hammers; **one seam fixed**: a buildable row's `unitStamp` was declared and never applied, since the stamp reader walked only the empire's one-of-a-kind effects — it now reads the birth town's effects first; no city prop draws per ordinary building, so no pixel changed; the six-seat digest moved because the bots value the richer techs differently, re-cut with the reason) (the user,
+2026-09-15: *"Let's have the age 2 building be: +2 production, units trained in
+this city gain +10 health. Age 3: +25% production towards ranged and siege, +4
+production."*). The ordinary military row today is Barracks and Stable in age
+one, walls, then Shipyard in three and Castle in four — nothing for a Dominion
+card to condition on before age three but a Barracks or a garrison. **Age
+two: the War Hall**, a NEW row (the user, 2026-09-15: *"lets create a
+separate building, the smithy already serves as the production building for
+age 2"* … *"lets just call it a war hall"* — the Smithy is untouched):
+`warHall` at `bronzePanoply` (age 2, the armour technology, beside the smithy
+in its unlocks), category `military`, +2 production, a `unitStamp` with
+`hp: 10` scoped `hasBuilding: warHall` (the Terracotta Army's shape;
+`unitDef(...).maxHp + stamp.hp` is already the reading), renown to the
+general as the Barracks pays, size medium per the cost standard, a plain
+`note` (soldiers raised here march in bronze).
+**Age three: the Armoury**, a new row at `mathematics` (the catapult's and
+the composite bowman's tech): `size` medium-or-large per the cost standard
+(the agent proposes from `docs/production-costs.md`'s table, never a figure),
++4 production, `productionBonus` +25% toward units whose model class is
+ranged or siege (the Barracks' shape with `modelClasses: ['ranged','siege']`
+— confirm `siege` is a model class; if siege is a category, the selector
+takes both forms), category `military`, renown to the general as the Barracks
+does, requires a Barracks if buildings carry prerequisites (else not). **The
+Courthouse moves to age three** (the user, 2026-09-15: *"lets move courthouse
+to age three"*): out of `theQadisCourt`'s unlocks (age 4) and into
+`ironWorking`'s (the legionary's tech) — an unlocks edit, not a lane change;
+its column and so its price follow the tech (printed before/after in M2's
+report); its effect joins no other building (the user: *"i dont see a need
+to add its effect to a different building"*). Pins: a unit produced in a War
+Hall town has ten more max hp than
+the roster's and keeps it marching; a unit built elsewhere does not; the
+Courthouse is buildable in a captured town once Iron Working is held and
+refused before; the
+Armoury's percent lands only on ranged and siege rows; both rows in the
+buildings reference doc with the sync test green; the Compendium prints both
+from the rows; a v117 log replays (no schema change — a new row and a new
+stamp on an old row are data).
+
+**(dddddd) Separate decks per leader attribute — OPEN, the user's proposal, drafted for the user's check** (the user, 2026-09-15: *"i'm considering reworking the card pool such that we have separate 'decks' for different leader attributes, so each leader has two attributes and has access to two decks throughout the game … I think this gives more flexibility around designing cards and keeping them organized, and somewhat solves the problem of not rolling cards that are useful to you"*; pool expansion as play goes on deliberately deferred until this is tried). The assessment of record: the orders' `line` tag is the attribute in embryo (forge 36 · caravan 29 · procession 20 · green 17 · star 17 · court 17 · hunt 5 · charter 5 · wayfarers 3 · ploughshare 3 · tide 2 · highlands 1 · none 21, live rows), advisory today, read by no draw. **Three design points to settle before an agent flies** (the orchestrator's recommendation first, each): (1) **a common deck exists** — the `none` rows and the plain generalities belong to every seat; a seat's pool = common + its two attribute decks; ▢ or attributes only. (2) **One attribute fixed by the leader, the second chosen by the player at the first draft**, after the start is seen (a tide leader inland must not carry a dead deck for a game; the choice is turn one's decision; a third attribute at an age entry is the deferred expansion's natural shape); ▢ or both fixed on the leader row. (3) **The M/E/W spread is guaranteed**: an empty (attribute, tier, slot) cell falls back to the common deck, and a sync test pins that no attribute has an empty slot across the five tiers. Migration: consolidate the tail lines into ~eight attributes; `none` → common; a leader row carries its attribute(s); `poolOfGovernment` reads the seat's decks; held cards keep their ids (schema bump; offers already drawn are kept). Bot: its persona lean derives from its attributes; the pool reading E1a skipped (`score.poolSynergy`) returns as "cards left in my decks". Compendium: a per-deck view is a grouping of rows it already generates. **Nothing built until the user marks this up.**
+
+**(aaaaaa) The draft pass — RULED, B1; parts (1) and (2) DROPPED** (2026-09-15, the user: *"ok lets drop it, just implement the things that would be relevant for a possible post-deck rework future"* — follow a line is redundant under (dddddd); 2026-09-16, the user: *"remove hold on pass, that doesn't seem like a useful mechanic. the reroll mechanic sounds good. flatter draft meter is great, we dont need to verify with a measurement, we can just use that calculated number, and i can play test to see how it feels"* — B1 builds (3) the reroll reset on adoption and (4) the meter at **costLinear 5, costExponent 2.65 → 2.2**, the pair three of four measured runs chose (26.5 drafts by turn 160 against today's 17.5, the first three drafts at turns 8 / 15 / 25 against 8 / 15 / 26), landed without the fourth run; no `followedLine`, no `heldOrder`, no draft-sheet control; the schema bump 118 stays for the reroll counter's changed rule) (the user, 2026-09-15: *"the
 specificity of our cards, and how it's difficult to find the card you're
 looking for with our long spans of time between drafts, and how expensive
 re-rolls are"*; the diagnosis of record: 101 of the deck's ~250 effects are
@@ -65,7 +139,7 @@ Pins: the weighted draw with a line followed (seeded, counted over many
 draws), the hold replacing its own slot, the pity zeroed on a change, the
 reroll zeroed on adoption, a replayed log byte-identical.
 
-**(bbbbbb) S2 — the lifetime tally — RULED, in flight** ((yyyyy)(1) as
+**(bbbbbb) S2 — the lifetime tally — BUILT, 2026-09-15** (`PlayerStatecraft.yieldTallies`, one row per card per voice, written by `recordDeckTally` at the head of the yield phase from the Ledger's own per-card split, schema 117; the Ledger's third band prints per card with the fold under a rule; the score's six statecraft lines read the lifetime sum at `perDeckYield` ÷ 50 — measured over two turn-160 bot games so the lines keep V1's fifth of the score; a benched card keeps what it paid; the reading is what the Ledger printed for the turn, not what the banks credited after the phase's citizen re-seat — the one stated gap) ((yyyyy)(1) as
 written: `PlayerStatecraft.tallies` per voice, one add a turn in
 `collectYields` from `ledgerFold`'s statecraft class, schema 117, the
 Ledger's third band prints per card, V1's six statecraft score lines read
@@ -76,7 +150,7 @@ working on each of these things"*.
 on each of these things"* (2026-09-15) taken as the verdict on both sheets;
 wonders keep the cobalt L1 chose (gilt if the user says so later).
 
-**(zzzzz) The bot's skill and an evolutionary tuner — RULED; E0 WRITTEN, its eight rulings TAKEN AS RECOMMENDED (the user, 2026-09-15: *"ok, lets get working on each of these things"*); E1a and E1b in flight**
+**(zzzzz) The bot's skill and an evolutionary tuner — RULED; E0 WRITTEN, its eight rulings TAKEN AS RECOMMENDED (the user, 2026-09-15: *"ok, lets get working on each of these things"*); E1a BUILT 2026-09-15 (twenty-odd rows at today's defaults, `data/ai.json`; the two dead dials retired; three six-seat digests byte-identical — the one move found and fixed was a floor on the tribute share against a fractional treasury; the meter floors demonstrated: a floor of fifty cuts a duel's eighteen towns at turn sixty to six; the ruled two-mix *shapes* and the persona family leans are deliberately NOT on the sheet, since they move the digest — they are the tuner's first edits when it runs; `docs/bot-priorities.md` carries the rows), E1b BUILT 2026-09-15 (`npm run evolve` → `scripts/evolve.ts` + `evolveGenome.ts`; `data/ai.bounds.json` 133 rows over 151 numeric leaves, 18 frozen by omission, sync-tested in `test/sim/aiBounds.test.ts`; `test/sim/aiDigest.slow.test.ts` pins the six-seat digest at two literals off `aiDigestHelpers.ts`, which the script's sentinel reads too; a quick generation ran end to end with the sentinel held across workers; a full generation is ~7 CPU-hours, ~50 minutes on eight workers; "How to run" in the plan; the winner is written back by hand only, and `test/sim/aiRows.test.ts`'s equal-mixes pin is re-cut with the first champion); the tuner's first RUN HELD until (dddddd) settles** (the user, 2026-09-15: *"let's hold off on tuning the bot until we settle the rework"* — E1a's rows land at today's defaults with the digests unmoved, E1b's harness lands unrun; E1a's row (ii) `score.poolSynergy` is skipped, to return after the decks)
 (`docs/plans/bot-evolution.md` is the plan of record; its "What the user
 must rule on" list is ruled **1–8 as recommended**, no ▢ taken.) **E1a —
 the first batch of rows** (§2.8 items 1–3, every row marked NUMBER, at
@@ -168,7 +242,7 @@ future build may open it). Pins in `test/ui/loadingSheet.test.ts` and
 `gameLoader.test.ts` (worker and fallback paths agree character for
 character).
 
-**(xxxxx) Founding a town lags — RULED, R3** (the user, 2026-09-15: *"the
+**(xxxxx) Founding a town lags — BUILT, R3, 2026-09-15** (measured: the founding is one drawn frame and one required static shadow bake, and the camera never moved the target or zoom; the *second* hitch was the camera's pitch ease re-facing every billboarded layer a third of a second after the click — now a turned pitch is one more staleness reason the founding's own sweep answers, `DioramaCamera.facing` = the pitch being settled on; the settle re-faces nothing; board pixels 0.000% before/after; the bake's depth draws stay the parked audit task #19; `benchWorkloads=foundTown` is the workload on the bench; pins in `test/render/paintedFounding.test.ts`; billboards now snap at the *start* of a pitch turn rather than its end — the one thing a player could notice) (the user, 2026-09-15: *"the
 game tends to lag a bit when founding a new city - i think it has to do
 with the new camera angle, could you take a look"*). **Measure first**: the
 frame after a `foundCity` command on a developed board (the 41-town fixture
@@ -220,7 +294,7 @@ wrap seam), and the strip's samples at a corner equal the join's. Fidelity:
 the pixel pair at play/overview unchanged with nothing selected;
 before/after 2× crops of three corners for the user.
 
-**(uuuuu) The victory screen for the Magnum Opus, and the score — RULED, V1**
+**(uuuuu) The victory screen for the Magnum Opus, and the score — BUILT, V1, LANDED 2026-09-15** (`src/sim/score.ts` `explainScore`/`foldScore`, weights in `rules.score`; `src/ui/victoryScreen.ts` on `modalShell`; standings in the dock; the six statecraft lines read the current turn until S2's tally lands)
 (the user, 2026-09-15: *"we need to draft a victory screen for completing the
 magnum opus, and give the player a score based on their empire results and
 the yields from their deck."*). Today `closeTheGreatWork` sets `winnerId`
@@ -248,7 +322,7 @@ the reading's lines, both journeys from the sheet, the modal replaced.
 **A visual-review checkpoint for the user** — screenshot before landing.
 
 **(vvvvv) The Ledger's colours, its name for the deck, and two more charts
-— RULED, L1** (the user, 2026-09-15: *"let's add more colors to the ledger,
+— BUILT, L1, LANDED 2026-09-15** (palette `--ldg-*` in `src/style.css`, `src/ui/ledgerInk.ts`; wonders wear cobalt; the third band waits on S2) (the user, 2026-09-15: *"let's add more colors to the ledger,
 'your deck' should read as statecraft, and the other colors should be
 glanceable. Let's also add great people and religion to the ledger charts
 at the bottom."*). `LEDGER_CLASS_NAME.deck` reads **statecraft** (the user

@@ -107,6 +107,42 @@
   --y-cul-lit: #cf9fee;
   --y-faith-lit: #e08fc0;
 
+  /* --- the Ledger's eight classes --------------------------------------- */
+  /* One ink per Ledger class (`LedgerClass`, `src/sim/ledgerClass.ts`), and the
+     whole of the palette: the sheet's bars, its curves and its legend all paint
+     from here, through `src/ui/ledgerInk.ts`, so a class cannot be one colour on
+     a bar and another on a chart. The user's ruling of 2026-09-15
+     (`docs/flags.md` (vvvvv)): *"let's add more colors to the ledger … the other
+     colors should be glanceable."* Until it, seven of the eight were plain ink
+     at seven weights and a bar of eight read as one grey wash with a purple
+     slice in it.
+
+     Six are the interface's own inks used for what they already mean — the
+     Order's grape, the faith voice's rose, renown's gilt, the Wayfarers' teal,
+     the Forge line's slate for masonry — and two are chosen here because no
+     named ink meant the thing: the land's soil sepia, and the grey that means
+     "nobody in particular earned this".
+
+     Two tie-breaks, both worth stating because both are a judgement:
+
+     · **Gilt is claimed twice.** It is renown's gold on the yield strip and it
+       is the gilt this interface reserves for the singular on a wonder's row.
+       Renown keeps it here — renown *is* the great people, and it is the chip a
+       player reads every turn — so the wonder takes the deepest saturated blue
+       in the palette instead. Flip the two values and nothing else changes.
+     · **Grey, twice over.** The rule's own grey is the hairline ink (0.14) and
+       a slice of it beside seven saturated inks is a slice nobody can see, so
+       "other" wears the same grey at the faint weight, which is the lightest
+       one a 16px bar still shows. */
+  --ldg-tiles: #7a5a33;
+  --ldg-buildings: var(--line-forge);
+  --ldg-deck: var(--grape);
+  --ldg-religion: var(--y-faith);
+  --ldg-people: var(--gilt);
+  --ldg-trade: var(--teal);
+  --ldg-wonders: var(--cobalt);
+  --ldg-other: var(--ink-faint);
+
   /* --- faces ------------------------------------------------------------ */
   --face-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
   --face-name: Fraunces, Georgia, 'Iowan Old Style', serif;
@@ -14404,13 +14440,15 @@ body.compendium-page {
    says almost nothing else about the paper: unlike the Reliquary it does *not*
    narrow, because three bands of six rows are exactly what 1240px is for.
 
-   Ink only. There is one colour on this sheet and it is the deck's slice —
-   grape, the register culture and Statecraft already wear everywhere else in
-   the interface — because the whole question the sheet answers is "is my deck
-   doing anything", and the eye has to be able to find that slice in a bar of
-   eight without reading a key. The other seven classes are ink at seven
-   weights, which is the specimen's own way of saying "these are the same kind
-   of thing". */
+   **Eight inks, one per class** (the user's ruling of 2026-09-15,
+   `docs/flags.md` (vvvvv)). It was ink at seven weights with the deck's grape
+   among them, on the argument that the seven were the same kind of thing — and
+   the argument was wrong about what the sheet is for. A player opening it is
+   asking *which* of eight is carrying a voice, and seven greys answer that
+   question only with a key held up against a bar. The palette is at the head of
+   this file (`--ldg-*`), the mapping is `src/ui/ledgerInk.ts`, and every rule
+   below paints from `--ldg-ink` rather than naming a class — so the colours are
+   one block to retune and a ninth class is one line in two files. */
 #ledger-overlay .ledger-body {
   gap: 20px;
   padding-bottom: 6px;
@@ -14445,12 +14483,14 @@ body.compendium-page {
   margin: -2px 0 0;
 }
 
+/* The label in statecraft's own ink — the head of the sheet says which class the
+   figure beside it belongs to before a word of it is read. */
 .ldg-deck-label {
   font-family: var(--face-num);
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: var(--ldg-ink, var(--ink-soft));
 }
 
 .ldg-deck-none {
@@ -14553,46 +14593,18 @@ body.compendium-page {
   );
 }
 
-/* The seven inks and the one colour. Ordered dark to light down the bar's own
-   order, so a bar reads left to right as ground, stones, deck, and the rest. */
-.ldg-slice.is-tiles,
-.is-tiles .ldg-swatch {
-  background: var(--ink);
-}
+/* **Eight inks, one rule.** A slice and a swatch are painted from `--ldg-ink`,
+   which `src/ui/ledgerInk.ts` writes onto the element out of the palette at the
+   head of this file — so the eight colour rules that used to live here (plain
+   ink at seven weights, and the deck's grape) are one rule now, and a ninth
+   class would need no edit on this page at all.
 
-.ldg-slice.is-buildings,
-.is-buildings .ldg-swatch {
-  background: var(--ink-soft);
-}
-
-.ldg-slice.is-deck,
-.is-deck .ldg-swatch {
-  background: var(--grape);
-}
-
-.ldg-slice.is-religion,
-.is-religion .ldg-swatch {
-  background: rgba(29, 26, 32, 0.62);
-}
-
-.ldg-slice.is-people,
-.is-people .ldg-swatch {
-  background: rgba(29, 26, 32, 0.5);
-}
-
-.ldg-slice.is-trade,
-.is-trade .ldg-swatch {
-  background: rgba(29, 26, 32, 0.38);
-}
-
-.ldg-slice.is-wonders,
-.is-wonders .ldg-swatch {
-  background: rgba(29, 26, 32, 0.26);
-}
-
-.ldg-slice.is-other,
-.is-other .ldg-swatch {
-  background: rgba(29, 26, 32, 0.16);
+   The fallback is the rule's own grey rather than nothing: a surface that
+   somehow arrived unpainted should draw as a slice of *something*, not as a
+   transparent gap in a bar that is meant to be a whole. */
+.ldg-slice,
+.ldg-swatch {
+  background: var(--ldg-ink, var(--rule));
 }
 
 .ldg-caption {
@@ -14610,6 +14622,17 @@ body.compendium-page {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
   color: var(--vermilion);
+}
+
+/* The legend, once, at the foot of the sheet: the eight inks, then the sentence
+   that says which three of them the curves shade. Ruled off above like the
+   bands, because it is about all three of them and belongs to none. */
+.ldg-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: var(--border-thin) solid var(--ink-faint);
 }
 
 .ldg-key {
@@ -14655,12 +14678,18 @@ body.compendium-page {
   vector-effect: non-scaling-stroke;
 }
 
-/* The deck's share, shaded under the total — the one filled shape on the sheet
-   and the same grape the slice wears, so the two bands say "deck" the same way. */
-.ldg-spark-deck {
-  fill: var(--grape);
-  fill-opacity: 0.22;
-  stroke: var(--grape);
+/* The three shaded classes under the total — statecraft, the great people and
+   religion, stacked from the axis, each in the ink its slice wears one band up
+   (the ruling of 2026-09-15). One rule again: the band is handed its own ink,
+   so a fourth series would be a line in `LEDGER_CURVE_SERIES` and nothing here.
+
+   Shaded rather than solid, and the edge drawn in the same ink at full strength:
+   a stack of solids at this size is a block of colour you cannot see the total's
+   own line through, and the line is what the chart is *for*. */
+.ldg-spark-band {
+  fill: var(--ldg-ink, var(--rule));
+  fill-opacity: 0.26;
+  stroke: var(--ldg-ink, var(--rule));
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
 }

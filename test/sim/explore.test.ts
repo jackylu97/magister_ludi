@@ -587,10 +587,15 @@ describe('determinism', () => {
    * they were, walked further into. The prints are a little shorter at both
    * seeds, which is what a fog grid with more of one seat's hexes already lit
    * looks like.
+   *
+   * Re-taken for schema 117 (S2, the deck's lifetime tally): the print carries
+   * `schemaVersion` and a `"yieldTallies":[]` on each of the three seats, which
+   * is exactly fifty-four more bytes at both seeds and nothing else — no seat
+   * holds a card by this turn, so no tally row is written and no outcome moves.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'cfd7c40b:187615',
-    2026: '28c07ab6:187229',
+    11: 'dd0fe19f:187669',
+    2026: 'd74ae0c8:187283',
   };
 
   for (const seed of [11, 2026]) {

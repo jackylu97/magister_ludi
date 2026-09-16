@@ -497,7 +497,8 @@
           "swordsman"
         ],
         "buildings": [
-          "smithy"
+          "smithy",
+          "warHall"
         ]
       },
       "flavor": "A shield is only a wall if it stands beside another."
@@ -607,7 +608,8 @@
           "compositeBowman"
         ],
         "buildings": [
-          "petra"
+          "petra",
+          "armoury"
         ]
       },
       "flavor": "The siege begins as a diagram."
@@ -726,11 +728,7 @@
       "prereqs": [
         "artisanry"
       ],
-      "unlocks": {
-        "buildings": [
-          "courthouse"
-        ]
-      },
+      "unlocks": {},
       "effects": [
         {
           "kind": "meterRule",
@@ -784,7 +782,8 @@
         ],
         "buildings": [
           "terracottaArmy",
-          "statueOfZeus"
+          "statueOfZeus",
+          "courthouse"
         ]
       },
       "flavor": "Every age is named for what it kills with.",
@@ -987,9 +986,6 @@
       "unlocks": {
         "units": [
           "crossbowman"
-        ],
-        "buildings": [
-          "armoury"
         ]
       },
       "effects": [

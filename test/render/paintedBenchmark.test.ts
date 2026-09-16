@@ -123,6 +123,22 @@ describe('the workload suite leaves the player\'s game exactly as it found it', 
     expect(source).toContain("await import('../sim/commands')");
     expect(source).toContain("applyCommand(march, {type: 'moveUnit'");
     expect(source).toContain("applyCommand(future, {type: 'endTurn'");
+    // The founding is the same discipline: a settler minted on the copy, spent
+    // through the reducer, on a map that is still the live one — `docs/flags.md`
+    // (xxxxx), whose whole question is what the frame after it costs.
+    expect(source).toContain('founding.map = original.map;');
+    expect(source).toContain("applyCommand(founding, {type: 'foundCity'");
+  });
+
+  it('reports the founding frame by frame rather than as a median', () => {
+    const source = benchmarkSource();
+    const block = source.slice(source.indexOf("// --- founding a town"));
+    // The two hitches the ruling is about sit a third of a second apart, so the
+    // shadow ledger is differenced across each frame and the camera's own share
+    // is priced on its own line.
+    for (const line of ['look.shadowStats', 'cameraRefaceMs', 'this.setCityFocus({col: site.col, row: site.row}, true)']) {
+      expect(block).toContain(line);
+    }
   });
 
   it('measures the first frame of a reveal instead of warming it away', () => {

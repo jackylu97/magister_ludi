@@ -9,7 +9,7 @@
  *
  * The fold is
  *
- *     beads × weights.bead + techs × weights.tech + Σ voice rates × weights[voice][age]
+ *     beads × weights.bead + techs × weights.techByAge[age] + Σ voice rates × weights[voice][age]
  *
  * read at the final turn, off the same books the arena's meters read
  * (`foldEmpireRates` for the four banked voices; the towns' own `foldCity`
@@ -25,7 +25,7 @@
  */
 
 import { AI } from '../src/ai/aiConfig';
-import { VOICES, type Voice, yieldWeight } from '../src/ai/value';
+import { VOICES, type Voice, ageBand, yieldWeight } from '../src/ai/value';
 import {
   foldCity,
 } from '../src/sim/yields/town';
@@ -87,7 +87,11 @@ export function standingOf(state: GameState, playerId: number): Standing {
  */
 export function foldStanding(standing: Standing): { total: number; voices: Record<Voice, number> } {
   const voices = {} as Record<Voice, number>;
-  let total = standing.beads * AI.weights.bead + standing.techs * AI.weights.tech;
+  // `weights.techByAge` at the seat's own age since E1a — the same band rule
+  // the six voices below are read with.
+  let total =
+    standing.beads * AI.weights.bead +
+    standing.techs * ageBand(AI.weights.techByAge, standing.age as 1 | 2 | 3 | 4);
   for (const voice of VOICES) {
     const line = standing.rates[voice] * yieldWeight(AI, voice, standing.age as 1 | 2 | 3 | 4);
     voices[voice] = line;
