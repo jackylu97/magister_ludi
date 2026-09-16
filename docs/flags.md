@@ -24,6 +24,21 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
+**(gggggg) The Compendium names the technology that opens a thing — RULED, C1**
+(the user, 2026-09-16: *"please revise the compendium to include which
+technology unlocks a given building/unit/wonder etc"*). Every Compendium
+entry for a thing the tree opens — a building, a wonder, a unit, an
+improvement, a great person's work if a tech gates it, a rite or ability if
+`techsGrant` names it — carries a line naming its unlocking technology as a
+keyword ref (`[[tech:id|Name]]`, so it links), read from the tree's own
+`unlocks` (the one reverse reading `cities.ts` already makes for the cost
+column — reuse it, never a second table); a thing no tech opens says who
+does open it (a card's `unlocksBuilding`, `unlockedByCard`, a leader's
+unique row, "available from the start"), and a wonder's world-gate line
+(`worldUnlockTech`) stays as it is beside the new one. The tech entry's own
+list of what it unlocks is the mirror and already exists — the two must
+agree, pinned. Plain words (rule 7), the entry's existing voice.
+
 **(ffffff) A ship is a garrison — RULED, holds by construction; pinned with D1**
 (the user, 2026-09-15: *"ships should count as a garrison regardless. Coastal
 cities have the benefit of double dipping the garrison bonuses, without any
