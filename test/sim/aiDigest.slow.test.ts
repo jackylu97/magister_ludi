@@ -31,10 +31,19 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * `eaf58d1f:887156` — the state's own bytes changed); E1a's rows at today's
  * defaults (`60543d2`) then moved neither — a default that reproduces today's
  * play moves no digest, measured on both boards.
+ *
+ * Re-cut for M2 (`dd69463`, the War Hall and the Armoury, the Courthouse to
+ * Iron Working): two buildable rows joined the tree and one moved, so the
+ * bot's node valuer (`readNodeGifts`, which prices a technology by what it
+ * unlocks) found Bronze Panoply, Mathematics and Iron Working richer and
+ * Machinery and Divine Right poorer, and every seat's research order moved
+ * from the first of those choices on — duel `ecfb7314:251149` →
+ * `3e710249:248825`, standard `586ca4e0:892118` → `592eb05b:904802`. No rule
+ * of play changed; a data row the bot can build is a reason the digest moves.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'ecfb7314:251149',
-  standard: '586ca4e0:892118',
+  duel: '3e710249:248825',
+  standard: '592eb05b:904802',
 };
 
 /**
