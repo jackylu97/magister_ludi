@@ -246,7 +246,10 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       addCopies(mesh, target, false, distant ? 'far' : 'near');
       if (mountainPick) for (const placed of target.slice(first)) {
         // Attach after cloning: Object3D serializes userData and would drop
-        // this predicate, letting hidden peaks intercept visible ground.
+        // this predicate, and a fogged peak would then occlude a piece behind
+        // it in the unit pick (`unitModelPicking.ts` reads it). The tile pick
+        // reads no prop at all — `installPaintedSurface` refuses every
+        // `paintedPickOnly` mesh handed to it (R5).
         placed.userData.paintedCellVisible = (cell, grade = 0) => fog.visible(cell, grade);
         pickMeshes.push(placed);
       }

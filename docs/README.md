@@ -431,6 +431,16 @@ Eight root pages, all named in `vite.config.ts` inputs:
   the filter blends hexes that are actually neighbours). A register change is
   therefore a **light-texture write** — no geometry, no rebake — and the reveal
   eases over `painted.fog.revealMs` off an absolute stamp, never a countdown.
+- **The tile pick reads the ground** (`docs/flags.md` (hhhhhh), R5): the hex
+  under the cursor is the hex whose *ground* the cursor points at.
+  `installPaintedSurface` (`src/render3d/paintedSurface.ts`) registers the
+  board's ground meshes alone and refuses every `paintedPickOnly` prop — a
+  summit, a saddle, a foothill's shoulder or talus — so nothing standing on a
+  plate can answer for the hex behind it or for the hill it stands on. Units
+  keep their own pick (`unitModelPicking.ts`), where a peak still occludes a
+  piece hidden behind it and a piece whose head shows is a target. Pinned in
+  `test/render/tilePickGround.test.ts` on the shipped sculpts: the
+  six-neighbour table at both zooms, the face coverage, the source.
 - `src/ui/` is the DOM UI; `controls.ts` drives renderers only through the
   `MapView` interface. A full-screen sheet builds on `modalShell.ts`. Per-game
   screens push their window listeners into `gameDisposers`. Restart and loading
