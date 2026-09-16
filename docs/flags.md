@@ -24,6 +24,25 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
+**(ffffff) A ship is a garrison — RULED, holds by construction; pinned with D1**
+(the user, 2026-09-15: *"ships should count as a garrison regardless. Coastal
+cities have the benefit of double dipping the garrison bonuses, without any
+special modifiers."*). The sim already says so: `'naval'` is its own stacking
+category, so a hull and a land piece share a coastal city hex under the
+ordinary caps (`unitData.ts`'s category docblock: "on a coastal city hex a
+ship garrisons"); `garrisonOf` (`statecraft/evaluator.ts`) takes every
+combatant of the owner standing on the hex, and a hull is a combatant because
+its row carries a strength; the `garrisoned` predicate is boolean (admits
+once), the `garrison` count kind counts pieces — so a soldier and a ship are
+**two**. Consequences, not code: (1) **garrison bonuses in the deck rework use
+the count basis** (per garrison piece), never the boolean, so a coastal town
+pays twice and an inland town once, with no naval clause on any card — the
+stacking cap is the only ceiling, and it is two; (2) no card grants "a ship
+counts as a garrison" (the orchestrator's Fleet Anchorage is struck from the
+worksheet); (3) the city's garrison beat already defends with the best piece
+present. D1 carries the pin: a hull alone on a coastal city is a garrison, a
+hull and a soldier count two, and an inland town with a soldier counts one.
+
 **(eeeeee) Two military buildings for the middle ages — BUILT, M2, LANDED 2026-09-15** (`warHall` at Bronze Panoply, medium, +2 production, units mustered there +10 max hp; `armoury` at Mathematics — the retired Machinery-era row re-opened under the M2 spec — medium, +4 production, +25% toward ranged and siege; both chain on the Barracks; the Courthouse at Iron Working, its price 520 → 231 hammers; **one seam fixed**: a buildable row's `unitStamp` was declared and never applied, since the stamp reader walked only the empire's one-of-a-kind effects — it now reads the birth town's effects first; no city prop draws per ordinary building, so no pixel changed; the six-seat digest moved because the bots value the richer techs differently, re-cut with the reason) (the user,
 2026-09-15: *"Let's have the age 2 building be: +2 production, units trained in
 this city gain +10 health. Age 3: +25% production towards ranged and siege, +4
