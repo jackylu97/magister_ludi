@@ -30,15 +30,15 @@ this city gain +10 health. Age 3: +25% production towards ranged and siege, +4
 production."*). The ordinary military row today is Barracks and Stable in age
 one, walls, then Shipyard in three and Castle in four — nothing for a Dominion
 card to condition on before age three but a Barracks or a garrison. **Age
-two: the Panoply Hall**, a NEW row (the user, 2026-09-15: *"lets create a
+two: the War Hall**, a NEW row (the user, 2026-09-15: *"lets create a
 separate building, the smithy already serves as the production building for
-age 2"* — the Smithy is untouched): `panoplyHall` at `bronzePanoply` (age 2,
-the armour technology, beside the smithy in its unlocks), category
-`military`, +2 production, a `unitStamp` with `hp: 10` scoped `hasBuilding:
-panoplyHall` (the Terracotta Army's shape; `unitDef(...).maxHp + stamp.hp` is
-already the reading), renown to the general as the Barracks pays, size
-medium per the cost standard, a plain `note` (soldiers raised here march in
-bronze). The name is provisional — the user may rename it.
+age 2"* … *"lets just call it a war hall"* — the Smithy is untouched):
+`warHall` at `bronzePanoply` (age 2, the armour technology, beside the smithy
+in its unlocks), category `military`, +2 production, a `unitStamp` with
+`hp: 10` scoped `hasBuilding: warHall` (the Terracotta Army's shape;
+`unitDef(...).maxHp + stamp.hp` is already the reading), renown to the
+general as the Barracks pays, size medium per the cost standard, a plain
+`note` (soldiers raised here march in bronze).
 **Age three: the Armoury**, a new row at `mathematics` (the catapult's and
 the composite bowman's tech): `size` medium-or-large per the cost standard
 (the agent proposes from `docs/production-costs.md`'s table, never a figure),
@@ -46,13 +46,17 @@ the composite bowman's tech): `size` medium-or-large per the cost standard
 ranged or siege (the Barracks' shape with `modelClasses: ['ranged','siege']`
 — confirm `siege` is a model class; if siege is a category, the selector
 takes both forms), category `military`, renown to the general as the Barracks
-does, requires a Barracks if buildings carry prerequisites (else not). The
-Courthouse (`theQadisCourt`, age 4, captured towns only) is NOT moved in M2 —
-the user: *"we could potentially move it earlier … but i dont see a need to
-add its effect to a different building"*; moving it to age three (Iron
-Working, the legionary's tech) is the orchestrator's recommendation, ▢ the
-user's call. Pins: a unit produced in a Smithy town has ten more max hp than
+does, requires a Barracks if buildings carry prerequisites (else not). **The
+Courthouse moves to age three** (the user, 2026-09-15: *"lets move courthouse
+to age three"*): out of `theQadisCourt`'s unlocks (age 4) and into
+`ironWorking`'s (the legionary's tech) — an unlocks edit, not a lane change;
+its column and so its price follow the tech (printed before/after in M2's
+report); its effect joins no other building (the user: *"i dont see a need
+to add its effect to a different building"*). Pins: a unit produced in a War
+Hall town has ten more max hp than
 the roster's and keeps it marching; a unit built elsewhere does not; the
+Courthouse is buildable in a captured town once Iron Working is held and
+refused before; the
 Armoury's percent lands only on ranged and siege rows; both rows in the
 buildings reference doc with the sync test green; the Compendium prints both
 from the rows; a v117 log replays (no schema change — a new row and a new
