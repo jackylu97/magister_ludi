@@ -592,10 +592,15 @@ describe('determinism', () => {
    * `schemaVersion` and a `"yieldTallies":[]` on each of the three seats, which
    * is exactly fifty-four more bytes at both seeds and nothing else — no seat
    * holds a card by this turn, so no tally row is written and no outcome moves.
+   *
+   * Re-taken for schema 118 (B1, the draft pass): the print's `schemaVersion`
+   * digits changed and nothing else — the same byte length at both seeds, and
+   * the meter's first two rungs are today's exactly, so no seat's second
+   * draft moved inside twenty turns.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'dd0fe19f:187669',
-    2026: 'd74ae0c8:187283',
+    11: 'c8c2841c:187669',
+    2026: '20397393:187283',
   };
 
   for (const seed of [11, 2026]) {

@@ -24,6 +24,27 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
+**(hhhhhh) A mountain's hitbox swallows its neighbours — RULED, R5** (the
+user, 2026-09-16: *"i think the mountains hitbox is too big so clicking
+adjacent tiles often incorrectly selects the mountain instead"*). **Measure
+first**: in the painted renderer at play zoom and at overview, for a mountain
+hex and each of its six neighbours, put the cursor at the neighbour's screen
+centre and record which hex the pick returns; do the same for a hill and a
+flat hex as controls; print the table. The expected cause: the pick resolves
+against the first mesh a ray hits, and a mountain's peak stands tall enough
+that a ray aimed at the ground of the hex *behind* it (in screen space, the
+far side under the ortho tilt) strikes the peak first. **The rule**: the hex
+under the cursor is the hex whose *ground* the cursor points at — the pick
+resolves on the ground plane (or the hex grid's own inverse at the tile's
+base height), never on dressing geometry; a peak, a tree, a city model or a
+unit piece may be what the eye sees, but the ground decides the hex. Units
+and cities keep their own pick (a piece is a target) — the fix is to the
+*tile* pick only, and a unit standing behind a peak must still be pickable.
+Pins: the six-neighbour table returns the neighbour every time at both zooms
+(a headless test against the pick function with the fixture board); the
+before/after screenshot pair is pixel-identical (no drawing changes).
+`docs/painted-renderer.md` or the renderer's reference notes the rule.
+
 **(gggggg) The Compendium names the technology that opens a thing — RULED, C1**
 (the user, 2026-09-16: *"please revise the compendium to include which
 technology unlocks a given building/unit/wonder etc"*). Every Compendium
