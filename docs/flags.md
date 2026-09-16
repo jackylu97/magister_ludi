@@ -30,14 +30,15 @@ this city gain +10 health. Age 3: +25% production towards ranged and siege, +4
 production."*). The ordinary military row today is Barracks and Stable in age
 one, walls, then Shipyard in three and Castle in four — nothing for a Dominion
 card to condition on before age three but a Barracks or a garrison. **Age
-two: the Smithy takes the panoply.** `data/buildings.json` already has a
-`smithy` at `bronzePanoply` (age 2) paying +2 production and a hammer on
-resourced mines and quarries — the user's figure exactly, and Bronze Panoply
-is the armour technology — so the building is not duplicated: the Smithy row
-gains a `unitStamp` with `hp: 10` scoped `hasBuilding: smithy` (the Terracotta
-Army's shape, `unitDef(...).maxHp + stamp.hp` is already the reading), its
-`note` says soldiers raised here march in bronze, its category stays
-`production` (a Dominion card conditions on the building, not the category).
+two: the Panoply Hall**, a NEW row (the user, 2026-09-15: *"lets create a
+separate building, the smithy already serves as the production building for
+age 2"* — the Smithy is untouched): `panoplyHall` at `bronzePanoply` (age 2,
+the armour technology, beside the smithy in its unlocks), category
+`military`, +2 production, a `unitStamp` with `hp: 10` scoped `hasBuilding:
+panoplyHall` (the Terracotta Army's shape; `unitDef(...).maxHp + stamp.hp` is
+already the reading), renown to the general as the Barracks pays, size
+medium per the cost standard, a plain `note` (soldiers raised here march in
+bronze). The name is provisional — the user may rename it.
 **Age three: the Armoury**, a new row at `mathematics` (the catapult's and
 the composite bowman's tech): `size` medium-or-large per the cost standard
 (the agent proposes from `docs/production-costs.md`'s table, never a figure),
