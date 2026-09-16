@@ -47,8 +47,21 @@ function center(tile: Tile): { x: number; z: number } {
 /**
  * Install after the board has positioned all wrap copies. Near terrain meshes
  * stay queryable even when an LOD switch hides them. A paintedCell attribute
- * names each triangle's (or instance's) original tile. paintedPickOnly meshes
- * contribute silhouettes to pointer picking while leaving ground heights alone.
+ * names each triangle's (or instance's) original tile.
+ *
+ * Ground only (R5, `docs/flags.md` (hhhhhh)). A mesh flagged `paintedPickOnly`
+ * — the range props: a summit, a saddle, a foothill's shoulder or talus — is
+ * refused here and never consulted, for heights or for the pointer. The hex
+ * under the cursor is the hex whose *ground* the cursor points at. A peak may
+ * be what the eye sees, but it stands on a flat plate labelled with the
+ * mountain's cell, and its shoulders stand on the hill next door labelled the
+ * same; while they answered the pointer, a mountain took a tenth of every
+ * neighbour's face on average and a third at worst (measured on a generated
+ * duel map), and most of a hill neighbour's own centre. Units keep their own
+ * pick, where a peak still occludes a piece hidden behind it —
+ * `unitModelPicking.ts` reads the flag's `paintedCellVisible` predicate for
+ * that, which is why the board still attaches it.
+ *
  * The prepared map supplies only the shape check, never simulation tile identity.
  */
 export function installPaintedSurface(
@@ -66,6 +79,7 @@ export function installPaintedSurface(
     top: 1, centerHeights: new WeakMap(),
   };
   for (const mesh of pickMeshes) {
+    if (mesh.userData.paintedPickOnly) continue;
     mesh.updateWorldMatrix(true, false);
     // A prop batch's instances are scattered over its chunk. The shared rock
     // geometry's local box only encloses one unplaced sculpt at the origin.
@@ -77,7 +91,6 @@ export function installPaintedSurface(
     if (!bounds || bounds.isEmpty()) continue;
     const entry = { mesh, bounds };
     registration.meshes.push(entry);
-    if (mesh.userData.paintedPickOnly) continue;
     registration.top = Math.max(registration.top, bounds.max.y + 1);
     // Vertical samples examine only nearby terrain. This index is independent
     // of chunk dimensions and includes the transformed east/west copies.
@@ -105,36 +118,22 @@ export function uninstallPaintedSurface(map: GameMap): void {
   maps.delete(map);
 }
 
+/** The nearest hit on the registered ground; every registered mesh is ground. */
 function intersect(
   registration: SurfaceRegistration,
   entries: readonly SurfaceMesh[],
-  accepts?: (hit: Intersection) => boolean,
 ): Intersection | undefined {
   const { raycaster } = registration;
   const candidates = entries
     .filter(({ bounds }) => raycaster.ray.intersectsBox(bounds))
     .map(({ mesh }) => mesh);
-  const hits = raycaster.intersectObjects(candidates, false);
-  return accepts ? hits.find(accepts) : hits[0];
+  return raycaster.intersectObjects(candidates, false)[0];
 }
 
 function paintedCell(hit: Intersection): number {
   const attribute = (hit.object as Mesh).geometry.getAttribute('paintedCell');
   const index = hit.instanceId ?? hit.face?.a;
   return attribute && index !== undefined ? Math.round(attribute.getX(index)) : -1;
-}
-
-function acceptsPointerHit(hit: Intersection): boolean {
-  const metadata = hit.object.userData;
-  if (!metadata.paintedPickOnly) return true;
-  const visible = metadata.paintedCellVisible;
-  // Ground remains available for exploration orders, but an invisible prop
-  // cannot intercept a click aimed at visible ground behind its silhouette.
-  if (typeof visible !== 'function') return true;
-  const index = hit.instanceId ?? hit.face?.a;
-  const attribute = (hit.object as Mesh).geometry.getAttribute('paintedSuppress');
-  const grade = attribute && index !== undefined ? attribute.getX(index) : 0;
-  return visible(paintedCell(hit), grade);
 }
 
 /** Height on the actual rendered triangles, or undefined for an ordinary tile. */
@@ -187,12 +186,15 @@ export function samplePaintedWorld(map: GameMap, worldX: number, z: number): num
   return highest === -Infinity ? undefined : highest;
 }
 
-/** Undefined means legacy board; null means a painted board with no surface hit. */
+/**
+ * Undefined means legacy board; null means a painted board with no surface hit.
+ * The ray meets ground and nothing else — see `installPaintedSurface`.
+ */
 export function pickPaintedSurface(map: GameMap, ray: Ray): PaintedPickResult | null | undefined {
   const registration = maps.get(map);
   if (!registration) return undefined;
   registration.raycaster.set(ray.origin, ray.direction);
-  const hit = intersect(registration, registration.meshes, acceptsPointerHit);
+  const hit = intersect(registration, registration.meshes);
   if (!hit) return null;
   const cell = paintedCell(hit);
   let tile = cell >= 0 ? map.tiles[cell] : undefined;

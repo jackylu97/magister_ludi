@@ -2,8 +2,11 @@
  * Which tile is under the cursor, without GPU readback.
  *
  * A painted board first queries its registered near terrain meshes, rejecting
- * chunk bounds before exact triangle intersections. The closed-form model
- * below remains the default for an ordinary prism board.
+ * chunk bounds before exact triangle intersections — and those meshes are
+ * ground alone: the range props are never registered (`installPaintedSurface`,
+ * R5), so on that board too the hex under the cursor is the hex whose ground
+ * the cursor points at. The closed-form model below remains the default for an
+ * ordinary prism board.
  *
  * The board is not an arbitrary mesh. Every tile top is a horizontal hexagon at
  * one of five known heights, and the ground layout inverts exactly (see
@@ -34,7 +37,9 @@
  *   Mountain peaks. The cone on a mountain tile stands well above its own tile
  *   top and is not part of the height model at all. Clicking the upper part of a
  *   peak's silhouette picks the tile *behind* the peak, which is what the ground
- *   under that pixel really is.
+ *   under that pixel really is. This is the rule, not a trade (R5): the painted
+ *   board's sculpted summits and shoulders are kept out of its pick for the
+ *   same reason, and a click on one names the ground beneath the pixel.
  *
  *   Height jitter. Tiles are scaled by up to ±3.5%, so a real top face sits a few
  *   hundredths of a unit off its nominal plane. At a 57° camera that displaces

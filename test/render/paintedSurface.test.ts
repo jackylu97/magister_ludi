@@ -181,13 +181,20 @@ describe('painted gameplay surface', () => {
     }
   });
 
-  it('picks a visible instanced peak without lifting units or letting hidden peaks intercept clicks', () => {
+  /**
+   * R5 (`docs/flags.md` (hhhhhh)): a peak is dressing. The ray that strikes a
+   * summit first names the ground beneath the pixel — the hex *behind* the
+   * summit — whether the summit is drawn, fogged or suppressed; and the summit
+   * lifts no unit. Before the ruling a drawn summit answered for itself and
+   * swallowed the hex behind it; this test used to pin that.
+   */
+  it('never lets a peak decide the tile: the ground behind a summit is picked, drawn or hidden, and the summit lifts nothing', () => {
     const map = createMap({ width: 6, height: 6, terrain: 'grassland' });
     const mountain = map.tiles[14]!; mountain.terrain = 'mountain';
     const fixture = buildFixture(map), c = cellCenter(mountain.col, mountain.row);
     const ground = tileTopY(mountain);
     const geometry = new ConeGeometry(.80, 2, 6);
-    // The clicked peak is instance1. Face vertex indices cannot index this
+    // The struck peak is instance1. Face vertex indices cannot index this
     // attribute: it belongs to instances rather than to the cone's vertices.
     geometry.setAttribute('paintedCell', new InstancedBufferAttribute(new Float32Array([0, 14]), 1));
     geometry.setAttribute('paintedSuppress', new InstancedBufferAttribute(new Float32Array([0, 2]), 1));
@@ -199,6 +206,9 @@ describe('painted gameplay surface', () => {
       peak.setMatrixAt(0, new Matrix4().makeTranslation(0, 1.12, 0));
       peak.setMatrixAt(1, new Matrix4().makeTranslation(c.x, 1.12, c.z));
       peak.position.x = copy * wrapWidth(map);
+      // Registration no longer touches a prop, so the board's own placement
+      // step stands in for it here.
+      peak.updateMatrixWorld(true);
       peak.userData.paintedPickOnly = true;
       peak.userData.paintedCellVisible = (cell: number, grade: number) =>
         cell === 14 && visible && (grade === 0 || suppressed < grade);
@@ -210,19 +220,23 @@ describe('painted gameplay surface', () => {
     for (const copy of [-1, 0, 1]) {
       const origin = new Vector3(c.x + copy * wrapWidth(map), 4, c.z - 2.5);
       const direction = new Vector3(0, -1, 1).normalize();
+      // The summit is the first thing on this ray; the ground under it is not the mountain's.
+      const first = new Raycaster(origin, direction).intersectObjects([...fixture.meshes, ...peaks], false)[0]!;
+      expect(peaks).toContain(first.object);
       const behind = new Raycaster(origin, direction).intersectObjects(fixture.meshes, false)[0]!;
       const groundCell = (behind.object as Mesh).geometry.getAttribute('paintedCell').getX(behind.face!.a);
       expect(groundCell).not.toBe(14);
-      const hit = pickTile(map, { origin, direction });
-      expect(hit?.tile).toBe(mountain);
-      expect(hit?.worldCol).toBe(mountain.col + copy * map.width);
-      visible = false;
-      expect(pickTile(map, { origin, direction })?.tile).toBe(map.tiles[groundCell]);
+      for (const [drawn, grade] of [[true, 0], [false, 0], [true, 2]] as const) {
+        visible = drawn; suppressed = grade;
+        const hit = pickTile(map, { origin, direction });
+        expect(hit?.tile).toBe(map.tiles[groundCell]);
+        expect(hit?.worldCol).toBe(map.tiles[groundCell]!.col + copy * map.width);
+      }
+      visible = true; suppressed = 0;
       expect(samplePaintedWorld(map, c.x + copy * wrapWidth(map), c.z)).toBeCloseTo(ground, 8);
-      visible = true;
-      suppressed = 2;
-      expect(pickTile(map, { origin, direction })?.tile).toBe(map.tiles[groundCell]);
-      suppressed = 0;
+      // Straight down onto the summit's own hex still names it: the plate under the cone is ground.
+      const down = pickTile(map, { origin: new Vector3(c.x + copy * wrapWidth(map), 10, c.z), direction: new Vector3(0, -1, 0) });
+      expect(down?.tile).toBe(mountain);
     }
   });
 });
