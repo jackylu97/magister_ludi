@@ -145,6 +145,31 @@ only when the local player is the one hurt. So three silences, one cause:
 2. **A rival razes a city** a route ran to → `cancelRoutesAt` → same silence.
 3. **A piece walks onto the caravan** → the arrival plunder, below.
 
+**THE RULE, ruled 2026-09-17 and overriding every mechanism below** (the user,
+after eight routes died in one turn: *"trade routes should never die unless
+they're pillaged, this is incredibly frustrating"*). **A route ends in exactly
+three ways and no others: it is pillaged; war ends it; or an endpoint stops
+being a city (razed, captured, lost).** Everything else that ends a route
+today is a bug and comes out:
+
+- **The jam-drop comes out entirely.** `marchOneTrader`'s "a route that has
+  already lapsed ends here rather than at home" is deleted. A caravan that
+  cannot path **waits**, however long it takes. The docblock's fear — a cart
+  waiting for ever on a partner it can never reach, holding a slot — is
+  already answered by `routeTarget` returning `null` when an endpoint stops
+  being one of this empire's cities, which is the legitimate ending above. A
+  jam is not a wall and must never be fatal.
+- **Auto-renew means the route never expires.** Renewal is rewritten to fire
+  wherever the caravan is, not only on reaching home, so an auto-renewing
+  route can never be in the lapsed state at all. (Equivalently: an
+  auto-renewing route has no expiry. Implement whichever reads cleaner and
+  keeps `usedRouteSlots` honest.)
+- **Without auto-renew**, a route still ends when its term runs out and the
+  caravan is home — that is the player's own choice and stays.
+- Every one of the three legitimate endings **announces to the owner**, per
+  the reporting fixes above, and the words say what happened: pillaged, ended
+  by war, or its town lost. No ending is ever printed as a homecoming.
+
 **Three more, found by the user's third question** (*"i have 15 trade routes
 active, all set to renew, would having a large number of routes cause any
 issues?"*) — and these are probably the ones they are actually hitting:
