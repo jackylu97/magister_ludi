@@ -74,6 +74,20 @@ export const REWARD_NOTHING = 'No reward hand is banked. One is dealt at the fou
 /** What the sheet says when an open found no rare left to deal. */
 export const REWARD_EXHAUSTED = 'The reward came to nothing: every rare your decks can deal, you already hold. It cost you nothing.';
 
+/**
+ * **The mark over the hand**: this is the rare-only one.
+ *
+ * Said in full words rather than as "rares only" at the end of a mono line,
+ * because a player meeting their first reward hand has no way to tell it from
+ * the draft that opened ten turns ago — the cards are the same cards, dealt on
+ * a sheet with the same bones. The distinction is worth a line of its own.
+ */
+export const REWARD_ONLY_RARES = 'the rare-only hand';
+
+/** The sentence under it: what makes this hand unlike the ordinary draft. */
+export const REWARD_HAND_NOTE =
+  'Every card here is one your decks hold back. It was not bought with culture and it spends none: take one, or pass, and the ordinary draft is untouched either way.';
+
 export function createRewardSheet(options: RewardSheetOptions): RewardSheet {
   // The frame, built once: the statecraft sheet's own classes, so the cap rule
   // and the styling read this as the ninth sheet on the shell and not as a
@@ -112,17 +126,23 @@ export function createRewardSheet(options: RewardSheetOptions): RewardSheet {
 
   function drawBanked(sc: PlayerStatecraft, seat: number): HTMLElement {
     const block = element('section', 'sc-banner reward-banked');
+    // **The count is a figure beside the sentence, never inside it** — the
+    // statecraft screen's own banner says it this way, and the standing rule is
+    // that a number never appears in written prose. One hand is the ordinary
+    // case and wants no figure at all.
     block.append(
       element(
         'p',
         'sc-banner-title',
-        `${sc.rewardHands.length} reward hand${sc.rewardHands.length === 1 ? '' : 's'} banked.`,
+        sc.rewardHands.length === 1
+          ? 'A reward hand is banked.'
+          : `Reward hands are banked (${sc.rewardHands.length}).`,
       ),
     );
     block.append(
       element(
         'p',
-        'sc-banner-body',
+        'sc-banner-body reward-lede',
         'Each deals three rares your decks can still deal — one from each of your decks, then one more. Opening one costs nothing; so does passing it.',
       ),
     );
@@ -153,8 +173,15 @@ export function createRewardSheet(options: RewardSheetOptions): RewardSheet {
   function drawHand(sc: PlayerStatecraft, seat: number): HTMLElement {
     const offer = sc.pendingReward!;
     const block = element('section', 'sc-collection reward-hand');
-    block.append(element('p', 'eyebrow sc-eyebrow', `the hand from draft ${offer.drafts} · rares only`));
-    const grid = element('div', 'sc-card-grid');
+    // **What kind of hand this is, said before the cards** (D1c). A reward hand
+    // and an ordinary draft deal the same faces out of the same decks, and the
+    // one difference between them — this one is rare-only, costs nothing and
+    // blocks nothing — is invisible on a card. So it is a banner rather than an
+    // eyebrow: the sentence a player needs in order to know that passing here
+    // forfeits nothing they were owed.
+    block.append(element('p', 'eyebrow sc-eyebrow reward-mark', REWARD_ONLY_RARES));
+    block.append(element('p', 'sc-banner-body reward-lede', REWARD_HAND_NOTE));
+    const grid = element('div', 'sc-card-grid reward-grid');
     offer.options.forEach((id, index) => {
       const def = orderDef(id);
       const button = document.createElement('button');
@@ -165,9 +192,19 @@ export function createRewardSheet(options: RewardSheetOptions): RewardSheet {
       headRow.append(element('span', 'sc-card-type', orderPayoff(id)));
       button.append(headRow);
       button.append(element('h4', 'sc-card-name', def.name));
-      const chips = element('p', 'offer-badges');
-      for (const badge of orderBadges(id)) chips.append(element('span', 'offer-badge', badge));
-      button.append(chips);
+      // The deck badges and the charter mark, inked by their tone — the same
+      // chips the draft sheet deals, out of the same table, so a rare read on
+      // this sheet and the same rare read on the ordinary one are one face.
+      const badges = orderBadges(id);
+      if (badges.length > 0) {
+        const chips = element('p', 'offer-badges');
+        for (const badge of badges) {
+          const chip = element('span', 'offer-badge', badge.label);
+          if (badge.tone !== undefined) chip.dataset.tone = badge.tone;
+          chips.append(chip);
+        }
+        button.append(chips);
+      }
       const list = element('ul', 'sc-card-clauses');
       for (const clause of describeCard(id)) {
         const item = element('li', clause.deferred ? 'sc-clause is-deferred' : 'sc-clause');
@@ -175,6 +212,15 @@ export function createRewardSheet(options: RewardSheetOptions): RewardSheet {
         list.append(item);
       }
       button.append(list);
+      // **Labelled, not merely italic** — the standing rule wherever a flavour
+      // field is printed. Without it the line at the foot of a card reads as
+      // one more rule, which is the one thing a card's foot may never do.
+      if (def.flavor.length > 0) {
+        const flavor = element('p', 'sc-card-flavor');
+        flavor.append(element('span', 'flavor-label', 'Flavour'));
+        flavor.append(document.createTextNode(def.flavor));
+        button.append(flavor);
+      }
       // A rare the seat took in a normal draft while this hand lay open: the
       // reducer refuses it, and the face says so before the press.
       if (sc.orders.includes(id)) {
