@@ -117,7 +117,35 @@ buildings reference doc with the sync test green; the Compendium prints both
 from the rows; a v117 log replays (no schema change — a new row and a new
 stamp on an old row are data).
 
-**(llllll) A game can be won and never announced — RULED, V2** (the user,
+**(mmmmmm) Screens that dispatch around the register — OPEN, a hole V2 named**
+(2026-09-17). A handful of surfaces in `src/main.ts` call `dispatch(game, …)`
+directly and then `controls.refresh()`, reaching **neither** `commit` nor
+`reportCommand`: the religion screen's faith purchase, the offer reroll, the
+wager stake, the census dismissal and others. A command issued there produces
+no shared news at all — if one of them ever won the game, razed a town or
+plundered a cart, the player would be told nothing. They were silent before
+V2 as well, so this is a standing hole rather than a regression, but V2's
+once-guard now makes such a silence **permanent** rather than deferred to the
+next reported command. The fix is to route those sites through
+`controls.reportCommand`, a `main.ts` pass. Related and worth doing in the
+same breath: those same mid-game `controls.refresh()` calls abuse a contract
+that says "call after replacing the game object", and silently reset the seat
+to zero — a separate latent bug V2 found and did not touch.
+
+**(llllll) A game can be won and never announced — BUILT, V2, 2026-09-17**
+(the check moved into `reportSharedNews`, both bolted-on checks deleted,
+`wonBefore` gone from the file; the once-guard is a client fact re-baselined
+on `refresh`, so a loaded already-won save announces nothing; the hand-over
+still raises the sheet last, behind the turn card, via a third holder beside
+Triumphs and beads, and the register and the beat can never both fire.
+**Eleven roads into `realiseItem` could finish the Opus and ten were silent** —
+a contribution, a purchase, a rite's riders, a chop, a claimed ruin, an
+engineer, a trade route, a bead's boon, battle spoils, a ceded town — and the
+user's own most likely road, the city panel's Contribute button, is among
+them. The Opus is deliberately not marked a wonder, so the "never for sale"
+refusal never covered it and a purchase is a real road in.)
+
+**(llllll, original ruling) A game can be won and never announced — RULED, V2** (the user,
 2026-09-17, playtesting: *"i didn't get a victory screen after completing the
 magnum opus. I had >7 beads, maybe that was the reason"*).
 
