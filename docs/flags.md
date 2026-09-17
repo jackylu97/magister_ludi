@@ -145,6 +145,33 @@ only when the local player is the one hurt. So three silences, one cause:
 2. **A rival razes a city** a route ran to → `cancelRoutesAt` → same silence.
 3. **A piece walks onto the caravan** → the arrival plunder, below.
 
+**Three more, found by the user's third question** (*"i have 15 trade routes
+active, all set to renew, would having a large number of routes cause any
+issues?"*) — and these are probably the ones they are actually hitting:
+
+4. **The ending does not read as an ending.** `routeEndSentence`
+   (`src/ui/tradeLines.ts`) prints *"The caravan from Uruk has come home"* for
+   `renewed: false` — the sentence for a route that has **ended**. It reads as
+   good news about an arrival. A player has no way to connect it to a route
+   disappearing. Reword so a route ending says it ended.
+5. **A lapsed route dies of traffic, and auto-renew does not save it.**
+   `marchOneTrader` (`src/sim/turn.ts`) rewrites `expiresTurn` **only when the
+   caravan reaches home**. A term that runs out while the cart is on the road
+   leaves the route live but lapsed; then the jam clause — "a route that has
+   already lapsed ends here rather than at home" — drops it on any turn it
+   cannot path, **whatever `autoResend` says**. Caravans are stacking-free, and
+   the docblock names the commonest jam as another civilian in the gateway, so
+   **a player's own caravans are the traffic**: the more routes, the likelier
+   one is stuck on the turn its term lapses. And it reports `noteEnd(false)` →
+   *"has come home"*, which is a **lie**: the cart died stranded in the field.
+   Fix: either let a lapsed auto-renew route renew where it stands, or say
+   truthfully that the caravan was lost on the road — the user's call, and the
+   sentence must stop claiming a homecoming either way.
+6. **Renewal noise drowns the news.** Every renewal announces *"sets out
+   again"*; fifteen routes on twenty-turn terms is about a notice a turn, and
+   the log caps at a hundred. Real losses are pushed out by one's own caravans
+   reporting in. Consider not announcing an uneventful renewal at all.
+
 **The arrival plunder**, the originally-filed half: there are two ways to lose
 a caravan and only one reports to the victim. A *blow*
 that plunders rides `CombatOutcome.plundered`, and `reportRaids`
