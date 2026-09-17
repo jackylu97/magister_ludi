@@ -1,3 +1,2060 @@
 {
-  "orders": {}
+  "orders": {
+    "dominionBloodedSpears": {
+      "name": "Blooded Spears",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "First blood is the cheapest lesson the wild ever sells.",
+      "text": "+4 strength against barbarians. Clearing a camp grants 25 production and 25 food to your nearest city.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "vsBarbarians"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": {
+            "yield": "production",
+            "amount": 25
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": {
+            "yield": "food",
+            "amount": 25
+          }
+        }
+      ]
+    },
+    "martialLaw": {
+      "name": "Martial Law",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The garrison eats first, and the town sleeps sound for it.",
+      "text": "Each garrisoned unit grants its city +1 happiness and +2 food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "garrison"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "food",
+          "amount": 2,
+          "count": "garrison"
+        }
+      ]
+    },
+    "paymasters": {
+      "name": "Paymasters",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Two clerks, one strongbox, and an army that turns up on time.",
+      "text": "Barracks give +3 gold. Each garrisoned unit costs 1 less upkeep, minimum zero.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        },
+        {
+          "kind": "upkeepRebate",
+          "amount": 1,
+          "where": "garrison"
+        }
+      ]
+    },
+    "musterRites": {
+      "name": "Muster Rites",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A sword blessed, a bowl filled, a name on the roll.",
+      "text": "Training a unit grants 5 faith and 5 food.",
+      "note": "A unit bought outright counts as trained, and pays this once.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "unitCompletion",
+          "grant": {
+            "yield": "faith",
+            "amount": 5
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "unitCompletion",
+          "grant": {
+            "yield": "food",
+            "amount": 5
+          }
+        }
+      ]
+    },
+    "theWarChronicle": {
+      "name": "The War Chronicle",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Every victory is written down, and the writing is worth something.",
+      "text": "While slotted, pays +3 science and +3 culture, and gains +3 of each for every enemy unit you kill.",
+      "deferred": [
+        "while this sits in a chair it pays a little science and culture, and pays more of each for every enemy unit you have killed while it sat there"
+      ],
+      "effects": []
+    },
+    "dominionConscription": {
+      "name": "Conscription",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The levy takes the sons and leaves the ledger short.",
+      "text": "+20% production toward units. Cities producing a unit lose 2 gold.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 20
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": -2,
+          "scope": {
+            "test": "queueHolds",
+            "category": "unit"
+          }
+        }
+      ]
+    },
+    "pathfinders": {
+      "name": "Pathfinders",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "They know the country before the country knows them.",
+      "text": "Scouts gain +1 movement and +8 strength.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "scout"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 8,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "modelClass": "scout"
+          }
+        }
+      ]
+    },
+    "drillManuals": {
+      "name": "Drill Manuals",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Written by men who were tired of explaining it twice.",
+      "text": "Barracks and Stables give +2 science. +20% production toward Barracks and Stables.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "stable"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "barracks",
+          "percent": 20
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "stable",
+          "percent": 20
+        }
+      ]
+    },
+    "dominionTheStandingArmy": {
+      "name": "The Standing Army",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Not raised for a war. Simply raised.",
+      "text": "Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units.",
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "free": true,
+          "where": "garrison"
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 30,
+          "class": {
+            "category": "military"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        }
+      ]
+    },
+    "bloodBrothers": {
+      "name": "Blood Brothers",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Beaten once, fed twice, and loyal ever after.",
+      "text": "A barbarian unit you kill joins your side.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "barbarianKillsConvert"
+        }
+      ]
+    },
+    "theKingsLevy": {
+      "name": "The King's Levy",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The king remembers the villages, and the villages remember the king.",
+      "text": "Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep.",
+      "note": "The levy is raised, not bought: it goes on no payroll, and everything that rewards a unit finished rewards this one.",
+      "effects": [
+        {
+          "kind": "periodicMuster",
+          "every": 15,
+          "unit": "bestMelee",
+          "where": "capital"
+        }
+      ]
+    },
+    "dominionMarchDiscipline": {
+      "name": "March Discipline",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Home ground is quicker ground.",
+      "text": "Military units gain +1 movement when starting their turn in your territory.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "category": "military"
+          },
+          "where": "ownTerritory"
+        }
+      ]
+    },
+    "dominionFieldSurgeons": {
+      "name": "Field Surgeons",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Dug in and stitched up, in that order.",
+      "text": "Military units heal an extra 10 health while fortified.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "heal",
+          "amount": 10,
+          "class": {
+            "category": "military"
+          },
+          "where": "fortified"
+        }
+      ]
+    },
+    "dominionTheQuartermasters": {
+      "name": "The Quartermasters",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The iron and the horses are counted before the men are.",
+      "text": "Worked strategic resources gain +2 food and +2 production.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 2,
+          "production": 2,
+          "on": {
+            "test": "resourceKind",
+            "kind": "strategic"
+          }
+        }
+      ]
+    },
+    "victorySteles": {
+      "name": "Victory Steles",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Stone remembers what the treasury forgets.",
+      "text": "Gain +1 authority capacity for every two Monuments you hold. Monuments give +2 production.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
+          "count": "buildingsOfKind",
+          "building": "monument",
+          "per": 2
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "production": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "monument"
+          }
+        }
+      ]
+    },
+    "huntersOfferings": {
+      "name": "Hunters' Offerings",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The first of the catch goes to the fire.",
+      "text": "Worked fishing boats, camps and pastures gain +1 production and +1 faith.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "faith": 1,
+          "on": {
+            "test": "anyImprovement",
+            "improvements": [
+              "fishingBoats",
+              "camp",
+              "pasture"
+            ]
+          }
+        }
+      ]
+    },
+    "quarryLevies": {
+      "name": "Quarry Levies",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The hill pays in stone and the stone pays in coin.",
+      "text": "Worked mines and quarries gain +1 production and +1 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "gold": 1,
+          "on": {
+            "test": "anyImprovement",
+            "improvements": [
+              "mine",
+              "quarry"
+            ]
+          }
+        }
+      ]
+    },
+    "ritesOfArms": {
+      "name": "Rites of Arms",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Bless the spear, then make another.",
+      "text": "Cities keeping a rite gain +2 production and +20% production toward units.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "production": 2,
+          "scope": {
+            "test": "keepingRite"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 20,
+          "scope": {
+            "test": "keepingRite"
+          }
+        }
+      ]
+    },
+    "theSoldiersPurse": {
+      "name": "The Soldiers' Purse",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A soldier who feeds himself costs the crown less.",
+      "text": "Military units cost 1 less upkeep.",
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "amount": 1,
+          "class": {
+            "category": "military"
+          }
+        }
+      ]
+    },
+    "veteransRest": {
+      "name": "Veterans' Rest",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The old sergeants keep the peace by standing in it.",
+      "text": "Cities with a Barracks or a War Hall gain +1 happiness, and +1 more per garrisoned unit.",
+      "deferred": [
+        "a town with a barracks or a war hall is gladder, and gladder still for each unit standing in it"
+      ],
+      "effects": []
+    },
+    "theWarHallSchools": {
+      "name": "The War Hall Schools",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Between campaigns, the hall teaches.",
+      "text": "War Halls give +3 science and +3 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 3,
+          "culture": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "warHall"
+          }
+        }
+      ]
+    },
+    "shorePatrols": {
+      "name": "Shore Patrols",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The nets are safer when somebody is watching the water.",
+      "text": "Worked fishing boats gain +1 production. Coastal cities with a Harbour gain +1 happiness.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "coastal"
+              },
+              {
+                "test": "hasBuilding",
+                "building": "harbour"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "dominionTheMarshals": {
+      "name": "The Marshals",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Nobody in the line is alone, and the enemy can count.",
+      "text": "+2 strength per adjacent friendly combat unit, at most +6.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "adjacentFriendlies",
+            "per": 1,
+            "max": 6
+          }
+        }
+      ]
+    },
+    "foragersRight": {
+      "name": "Foragers' Right",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The garrison eats from the country it guards.",
+      "text": "Per garrisoned unit, the city's worked resource tiles gain +1 food and +1 production.",
+      "deferred": [
+        "every unit standing in a town makes that town’s worked resource tiles pay more grain and more hammers"
+      ],
+      "effects": []
+    },
+    "theWarlordsCall": {
+      "name": "The Warlord's Call",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "One name is enough to raise a war.",
+      "text": "On first activation only, grants a great general. Citadels gain +3 food and +3 production while this card is active.",
+      "deferred": [
+        "the first time this is seated a great general answers the call, once and never again",
+        "citadels pay more grain and more hammers while it sits in a chair"
+      ],
+      "effects": []
+    },
+    "armyContracts": {
+      "name": "Army Contracts",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The barracks orders, the road delivers.",
+      "text": "Routes from a city with a Barracks or a Stable gain +2 gold and +1 production; +4 gold and +2 production with both.",
+      "note": "Two lines, one for each hall: a town that keeps both sends its caravans out under both.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "gold": 2,
+          "production": 1,
+          "origin": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "gold": 2,
+          "production": 1,
+          "origin": {
+            "test": "hasBuilding",
+            "building": "stable"
+          }
+        }
+      ]
+    },
+    "dominionTheMusterRolls": {
+      "name": "The Muster Rolls",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Each name written is a coin of knowledge.",
+      "text": "While slotted, gains +1 science and +1 culture each time you train a unit. Purchases do not count.",
+      "deferred": [
+        "while this sits in a chair it pays a little more science and culture for every unit you have trained since it was seated, and a unit bought outright does not count"
+      ],
+      "effects": []
+    },
+    "thePacifiedMarches": {
+      "name": "The Pacified Marches",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A burnt camp is a quiet border.",
+      "text": "While slotted, gains +1 authority capacity and +3 culture for every barbarian camp cleared.",
+      "deferred": [
+        "while this sits in a chair it pays more authority and more culture for every camp you have burnt out since it was seated"
+      ],
+      "effects": []
+    },
+    "theArtOfWar": {
+      "name": "The Art of War",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Every sword teaches the smith something.",
+      "text": "Training a unit grants science equal to half its strength.",
+      "deferred": [
+        "training a unit pays science in proportion to how strong that unit is"
+      ],
+      "effects": []
+    },
+    "soldierSettlers": {
+      "name": "Soldier-Settlers",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Spear in one hand, spade in the other.",
+      "text": "Newly founded cities receive a free melee unit. Newly trained melee units carry one builder charge, for improvements or a chop.",
+      "deferred": [
+        "a town you found comes with a melee unit already standing in it",
+        "a melee unit you train can do a worker’s job once, building an improvement or felling a wood"
+      ],
+      "effects": []
+    },
+    "theIronHand": {
+      "name": "The Iron Hand",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Obedience is cheaper than persuasion.",
+      "text": "+6 authority capacity.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 6
+        }
+      ]
+    },
+    "theSeaLevy": {
+      "name": "The Sea Levy",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The fleet is a village that floats.",
+      "text": "Ships cost 1 less upkeep. Training a naval unit grants culture equal to its strength.",
+      "deferred": [
+        "ships are cheaper to keep",
+        "training a ship pays culture in proportion to how strong that ship is"
+      ],
+      "effects": []
+    },
+    "warFoundries": {
+      "name": "War Foundries",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The forges run whether the war does or not.",
+      "text": "Cities with a Barracks gain gold equal to 20% of their base production and +25% production toward military units.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "to": "gold",
+          "percent": 20,
+          "from": "production",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 25,
+          "class": {
+            "category": "military"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        }
+      ]
+    },
+    "songsOfTheFallen": {
+      "name": "Songs of the Fallen",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "We lose them twice: once in the field, once in the song.",
+      "text": "Killing or losing a unit grants science and culture equal to that unit's strength.",
+      "deferred": [
+        "killing a unit, or losing one, pays science and culture in proportion to how strong that unit was"
+      ],
+      "effects": []
+    },
+    "universalConscription": {
+      "name": "Universal Conscription",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Every man, every year, and no more hired swords.",
+      "text": "+50% production toward units. Once slotted, you may never purchase a unit again this game.",
+      "deferred": [
+        "your cities put much more production behind units",
+        "once this has been seated you may never buy a unit again for the rest of the game, even after it leaves the chair"
+      ],
+      "effects": []
+    },
+    "dominionHorseLords": {
+      "name": "Horse Lords",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "They were born in the saddle and see no reason to leave it.",
+      "text": "Mounted units gain +3 strength and +1 movement.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "modelClass": "mounted"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "mounted"
+          }
+        }
+      ]
+    },
+    "siegeWorks": {
+      "name": "Siege Works",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Walls are patient. The engines are not.",
+      "text": "+25% production toward siege units. Siege units gain +4 strength against cities.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 25,
+          "modelClass": "siege"
+        },
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "attack",
+          "when": {
+            "test": "vsCity"
+          },
+          "class": {
+            "modelClass": "siege"
+          }
+        }
+      ]
+    },
+    "dominionTheWarChest": {
+      "name": "The War Chest",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Kept locked, kept counted, kept full.",
+      "text": "Military units cost 1 less upkeep, minimum zero. Barracks give +3 gold.",
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "amount": 1,
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        }
+      ]
+    },
+    "armouryGuilds": {
+      "name": "Armoury Guilds",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The smiths keep books as carefully as they keep fires.",
+      "text": "Armouries give +3 science and +3 culture. Cities with one gain +10% production toward buildings.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 3,
+          "culture": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "armoury"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "armoury"
+          }
+        }
+      ]
+    },
+    "veteransBoroughs": {
+      "name": "Veterans' Boroughs",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A quarter of the city where everyone has served.",
+      "text": "Cities of at least ten population with an Armoury gain +3 happiness and +20% science.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 3,
+          "per": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "populationAtLeast",
+                "value": 10
+              },
+              {
+                "test": "hasBuilding",
+                "building": "armoury"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 20,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "populationAtLeast",
+                "value": 10
+              },
+              {
+                "test": "hasBuilding",
+                "building": "armoury"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "conqueredArchives": {
+      "name": "Conquered Archives",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Their records are ours now, and they were good records.",
+      "text": "Captured cities gain +10 science and +10 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 10,
+          "culture": 10,
+          "scope": {
+            "test": "captured"
+          }
+        }
+      ]
+    },
+    "stockpiles": {
+      "name": "Stockpiles",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Walls are no use to a hungry town.",
+      "text": "Cities gain +5 food per defensive building.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "food",
+          "amount": 5,
+          "count": "defensiveBuildings"
+        }
+      ]
+    },
+    "thePostRoads": {
+      "name": "The Post Roads",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "News travels, and so does bread.",
+      "text": "Cities connected by road gain +1 happiness and +2 production.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "connected"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "production": 2,
+          "scope": {
+            "test": "connected"
+          }
+        }
+      ]
+    },
+    "provincialGarrisons": {
+      "name": "Provincial Garrisons",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The soldiers build when they are not fighting.",
+      "text": "Per garrisoned unit, the city gains +10% production toward buildings.",
+      "deferred": [
+        "every unit standing in a town puts more of that town’s production behind its buildings"
+      ],
+      "effects": []
+    },
+    "dominionTriumphs": {
+      "name": "Triumphs",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "They will speak of the day the gates opened.",
+      "text": "Capturing a city grants culture equal to ten times its population.",
+      "deferred": [
+        "taking a city pays culture in proportion to how many people lived in it"
+      ],
+      "effects": []
+    },
+    "dominionCampFollowers": {
+      "name": "Camp Followers",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Where the armoury is, the wagons gather.",
+      "text": "Cities with an Armoury gain +3 food and +3 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 3,
+          "gold": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "armoury"
+          }
+        }
+      ]
+    },
+    "navalYards": {
+      "name": "Naval Yards",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Timber, tar, and a town that smells of both.",
+      "text": "Cities with a Shipyard gain +10% production and +2 culture. Ships trained there gain +10 health.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shipyard"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "culture": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shipyard"
+          }
+        },
+        {
+          "kind": "unitStamp",
+          "hp": 10,
+          "class": {
+            "category": "naval"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "shipyard"
+          }
+        }
+      ]
+    },
+    "dominionScorchedEarth": {
+      "name": "Scorched Earth",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The smoke is an offering, and somebody is counting it.",
+      "text": "Pillaging heals the acting unit by 20 and pays the hex's gold yield again in faith.",
+      "deferred": [
+        "the unit that burns a tile mends",
+        "the coin that tile would have paid is paid to you again as faith"
+      ],
+      "effects": []
+    },
+    "marineDrill": {
+      "name": "Marine Drill",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The men who come off the boats come off them running.",
+      "text": "Naval melee units gain +4 strength. Land units attacking on the turn they disembark gain +3 strength.",
+      "note": "The blessing is hung on the piece the moment it wades ashore, and lasts the turn it landed.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "modelClasses": [
+              "navalLight",
+              "navalHeavy"
+            ]
+          }
+        },
+        {
+          "kind": "landfall",
+          "turns": 1,
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 3,
+              "side": "attack",
+              "when": {
+                "test": "always"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "dominionRidersOfTheSteppe": {
+      "name": "Riders of the Steppe",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "They burn the farm without slowing to a walk.",
+      "text": "Mounted units ignore enemy zone of control. Pillaging costs them one less movement point, minimum zero.",
+      "note": "A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "ignored",
+          "class": {
+            "modelClass": "mounted"
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "freePillage",
+          "class": {
+            "modelClass": "mounted"
+          }
+        }
+      ]
+    },
+    "fortifications": {
+      "name": "Fortifications",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A ditch, a bank, a night's work, a year's safety.",
+      "text": "Workers may build forts on open ground without forest or jungle. A fort gives +2 food and +2 production, and friendly units fortified on it gain +5 strength.",
+      "deferred": [
+        "your workers may throw up a fort on open ground",
+        "a fort pays grain and hammers, and a unit dug in on one fights harder"
+      ],
+      "effects": []
+    },
+    "beachheads": {
+      "name": "Beachheads",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The water is a road if you are quick about it.",
+      "text": "Embarking and disembarking cost no movement.",
+      "deferred": [
+        "taking to the water costs your units no movement, and so does coming ashore"
+      ],
+      "effects": []
+    },
+    "theLongMarch": {
+      "name": "The Long March",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The infantry arrive first and complain longest.",
+      "text": "Melee units gain +1 strength and +1 movement.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "modelClass": "melee"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "melee"
+          }
+        }
+      ]
+    },
+    "theIronLevy": {
+      "name": "The Iron Levy",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Iron makes soldiers cheap and everything else dear.",
+      "text": "+1 production toward units per strategic resource you hold, at most +6. Units cost 1 less upkeep while you hold iron.",
+      "deferred": [
+        "each strategic resource you hold puts a little more production behind every unit, up to a limit",
+        "while you hold iron, units are cheaper to keep"
+      ],
+      "effects": []
+    },
+    "undermining": {
+      "name": "Undermining",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Walls stand on ground, and ground can be moved.",
+      "text": "Your units gain +8 strength against cities with walls. Siege units ignore zone of control.",
+      "deferred": [
+        "your units fight harder against a city that has walls",
+        "siege engines walk past an enemy picket for nothing"
+      ],
+      "effects": []
+    },
+    "mercenaryCompanies": {
+      "name": "Mercenary Companies",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Loyalty by the season, paid in advance.",
+      "text": "Military units cost 25% less gold to purchase in cities with a Barracks. A purchased unit arrives with +10 health.",
+      "deferred": [
+        "military units are cheaper to buy, but only in a city with a barracks",
+        "a unit you buy arrives in better health"
+      ],
+      "effects": []
+    },
+    "leviesOfTheProvinces": {
+      "name": "Levies of the Provinces",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The new subjects are drilled before they are trusted.",
+      "text": "Captured cities produce units 30% faster and gain +2 food.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 30,
+          "scope": {
+            "test": "captured"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "scope": {
+            "test": "captured"
+          }
+        }
+      ]
+    },
+    "spoilsOfWar": {
+      "name": "Spoils of War",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The wagons come home heavier than they went.",
+      "text": "Pillaging grants 10 production to every city. The first pillage each turn also grants 20 culture.",
+      "deferred": [
+        "burning a tile pays production to every city you hold, not only the nearest",
+        "the first tile you burn each turn pays culture as well"
+      ],
+      "effects": []
+    },
+    "warlords": {
+      "name": "Warlords",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Each of them thinks the army is his.",
+      "text": "Each great general you hold gives +10% production toward units. Citadels gain +2 production and +2 culture.",
+      "deferred": [
+        "every great general you have earned puts more production behind your units",
+        "citadels pay hammers and culture"
+      ],
+      "effects": []
+    },
+    "prizeCourts": {
+      "name": "Prize Courts",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The lawyers follow the fleet and take their share.",
+      "text": "Capturing a coastal city grants gold equal to twenty times its population. Ships adjacent to a city you capture heal fully.",
+      "deferred": [
+        "taking a coastal city pays gold in proportion to how many people lived in it",
+        "your ships beside a city you take are mended completely"
+      ],
+      "effects": []
+    },
+    "theAdmiralty": {
+      "name": "The Admiralty",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Charts, contracts and a room full of arguments.",
+      "text": "+1 trade-route capacity per two Shipyards, at most +2. Naval units gain +1 sight.",
+      "deferred": [
+        "every second shipyard you raise lets you run another trade route, up to a limit",
+        "your ships see further"
+      ],
+      "effects": []
+    },
+    "blockade": {
+      "name": "Blockade",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Nothing goes in. That is the whole of the plan.",
+      "text": "A hostile coastal city with one of your ships adjacent counts as besieged. Routes into it are plundered at your ship.",
+      "deferred": [
+        "one of your ships beside an enemy coastal city puts that city under siege",
+        "a caravan bound for it is plundered where your ship sits"
+      ],
+      "effects": []
+    },
+    "dominionHegemony": {
+      "name": "Hegemony",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "They keep their walls. We keep the keys.",
+      "text": "Captured cities you hold cost one less authority. Capturing a city grants +20% production in every city for ten turns.",
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "capturedCityCost",
+          "delta": -1
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                {
+                  "kind": "percentYields",
+                  "yield": "production",
+                  "percent": 20
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "triumphalReturn": {
+      "name": "Triumphal Return",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The marvel is ours now, and the men feel it.",
+      "text": "Capturing a city that holds a wonder heals all your units.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "capturedWonder": true,
+          "grant": {
+            "healAll": true
+          }
+        }
+      ]
+    },
+    "theBloodLedger": {
+      "name": "The Blood Ledger",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Every name in it is worth twice what it was.",
+      "text": "The yields from killing or losing a unit are doubled.",
+      "deferred": [
+        "everything you are paid for killing a unit, or for losing one, is paid twice over — the one-off rewards and the standing ones alike"
+      ],
+      "effects": []
+    },
+    "masterBowyers": {
+      "name": "Master Bowyers",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "A longer arm wins more arguments.",
+      "text": "Ranged and siege units gain +1 range.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "range",
+          "amount": 1,
+          "class": {
+            "modelClasses": [
+              "ranged",
+              "mountedRanged",
+              "navalRanged",
+              "siege"
+            ]
+          }
+        }
+      ]
+    },
+    "dominionPaxImperia": {
+      "name": "Pax Imperia",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The peace is ours, and it is profitable.",
+      "text": "While at peace, every city gains +20% production and +2 happiness. Declaring war silences this card for twenty turns.",
+      "deferred": [
+        "while you are at peace every city makes more and is gladder",
+        "declaring war silences this card for a long stretch of turns"
+      ],
+      "effects": []
+    },
+    "theSeaTreasury": {
+      "name": "The Sea Treasury",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The harbour guard is paid out of the harbour.",
+      "text": "Per garrisoned unit, a coastal city gains production equal to 25% of its gold yield.",
+      "deferred": [
+        "every unit standing in a coastal town turns part of that town’s coin into hammers"
+      ],
+      "effects": []
+    },
+    "standingGarrisons": {
+      "name": "Standing Garrisons",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The soldiers have been here so long they are townsfolk.",
+      "text": "Per garrisoned unit, the city gains +8% production and +8% culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "percent": 8,
+          "stage": "city",
+          "count": "garrison"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "percent": 8,
+          "stage": "city",
+          "count": "garrison"
+        }
+      ]
+    },
+    "spoilsOfEmpire": {
+      "name": "Spoils of Empire",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Provinces are an investment, eventually.",
+      "text": "Captured cities gain +25% gold and +25% science. Cities with a Courthouse gain +4 happiness.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25,
+          "scope": {
+            "test": "captured"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 25,
+          "scope": {
+            "test": "captured"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 4,
+          "per": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "courthouse"
+          }
+        }
+      ]
+    },
+    "theMilitaryRoads": {
+      "name": "The Military Roads",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Built for grain, kept for armies.",
+      "text": "Your military units pay nothing for a road step inside your territory. Cities connected to your capital gain +10% production.",
+      "deferred": [
+        "your military units walk your own roads for nothing inside your borders",
+        "a town joined to your capital makes more"
+      ],
+      "effects": []
+    },
+    "arsenals": {
+      "name": "Arsenals",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "One yard, every weapon, all year.",
+      "text": "Cities with an Armoury gain +20% production and produce ships 50% faster.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 20,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "armoury"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 50,
+          "class": {
+            "category": "naval"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "armoury"
+          }
+        }
+      ]
+    },
+    "dominionTheSiegeTrain": {
+      "name": "The Siege Train",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The engines go ahead, and the infantry follow the ruts.",
+      "text": "Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "siege"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 6,
+          "side": "attack",
+          "class": {
+            "modelClass": "melee"
+          },
+          "when": {
+            "test": "all",
+            "of": [
+              {
+                "test": "vsCity"
+              },
+              {
+                "test": "beside",
+                "class": {
+                  "modelClass": "siege"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "reserveOfficers": {
+      "name": "Reserve Officers",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "In peace they build. In war they do not.",
+      "text": "While at war, cities with a Barracks produce military units 40% faster; while at peace, those cities gain +20% production toward buildings.",
+      "deferred": [
+        "while you are at war a town with a barracks raises soldiers faster",
+        "while you are at peace that same town puts more production behind its buildings"
+      ],
+      "effects": []
+    },
+    "blockadeAdmirals": {
+      "name": "Blockade Admirals",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "They know which harbours to sit outside of.",
+      "text": "Naval combat units gain +1 movement and +3 strength within two hexes of a hostile coastal city.",
+      "deferred": [
+        "your warships move further and fight harder when they are close to an enemy coastal city"
+      ],
+      "effects": []
+    },
+    "defensiveLines": {
+      "name": "Defensive Lines",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The country itself is fortified now.",
+      "text": "Land combat units gain +3 strength beside a friendly city. Cities with walls gain +3 defence per garrisoned unit.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "class": {
+            "category": "military"
+          },
+          "when": {
+            "test": "withinOfCity",
+            "hexes": 1
+          }
+        },
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 3,
+          "count": "garrison",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "stoneWalls"
+          }
+        }
+      ]
+    },
+    "warColleges": {
+      "name": "War Colleges",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "They graduate knowing the ground and the drill.",
+      "text": "Units trained in a city with an Armoury gain +1 movement and +20 health.",
+      "deferred": [
+        "a unit raised in a town with an armoury is born quicker and hardier, and stays so for life"
+      ],
+      "effects": []
+    },
+    "theGrandLevy": {
+      "name": "The Grand Levy",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Every hand in the town has a use.",
+      "text": "Cities with a Barracks produce units 50% faster and gain +1 production per two citizens.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 50,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
+          "count": "population",
+          "within": "city",
+          "per": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        }
+      ]
+    },
+    "navalSupremacy": {
+      "name": "Naval Supremacy",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The sea is a province, and we hold it.",
+      "text": "Naval units gain +1 sight and +1 range. Coastal cities gain +20% gold; coastal captured cities +40%.",
+      "note": "The second share is paid only where both are true, so a coastal town taken in war keeps both lines.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "sight",
+          "amount": 1,
+          "class": {
+            "category": "naval"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "range",
+          "amount": 1,
+          "class": {
+            "category": "naval"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 20,
+          "scope": {
+            "test": "coastal"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 20,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "coastal"
+              },
+              {
+                "test": "captured"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "theLongPeace": {
+      "name": "The Long Peace",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The army waits, and costs nothing while it waits.",
+      "text": "While at peace, garrisoned units cost no upkeep and cities with a Barracks gain +25% culture.",
+      "deferred": [
+        "while you are at peace the units standing in your towns cost nothing to keep, and a town with a barracks makes more culture"
+      ],
+      "effects": []
+    },
+    "theVeteransGrant": {
+      "name": "The Veterans' Grant",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The old soldiers came home and went to work.",
+      "text": "Each military unit you have ever trained gives your capital +2 production and +2 science, at most +60 each.",
+      "deferred": [
+        "every military unit you have ever trained pays your capital hammers and beakers, up to a limit"
+      ],
+      "effects": []
+    },
+    "dominionBlitz": {
+      "name": "Blitz",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Do not stop. Stopping is how you lose a war.",
+      "text": "Once per unit per turn, a combat kill restores 2 movement points. Your military units cannot fortify. This does not grant another attack.",
+      "deferred": [
+        "a unit that kills gets a couple of movement points back, once a turn, and still may not strike again",
+        "your military units may not dig in"
+      ],
+      "effects": []
+    },
+    "dominionImperium": {
+      "name": "Imperium",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The provinces pay for the great work.",
+      "text": "Each captured city you hold gives +5% production toward the Magnum Opus, at most +40%.",
+      "deferred": [
+        "every captured city you still hold puts more production behind the great work, up to a limit"
+      ],
+      "effects": []
+    },
+    "casusBelli": {
+      "name": "Casus Belli",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Their capital had a name. Now it has ours.",
+      "text": "Capturing an original capital grants a bead.",
+      "deferred": [
+        "taking an empire’s first city hands you a bead of the great work"
+      ],
+      "effects": []
+    },
+    "totalWar": {
+      "name": "Total War",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Everything is for the war. Everything.",
+      "text": "All your military units gain +8 strength and +1 movement. Every city demands +3 more happiness.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 8,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": -3,
+          "per": "city"
+        }
+      ]
+    }
+  }
 }
