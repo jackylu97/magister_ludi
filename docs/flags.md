@@ -117,10 +117,36 @@ buildings reference doc with the sync test green; the Compendium prints both
 from the rows; a v117 log replays (no schema change — a new row and a new
 stamp on an old row are data).
 
-**(jjjjjj) A caravan ridden down tells nobody — RULED, T2** (the user,
-2026-09-17, playtesting: *"i'm not getting notifications that my routes are
-being pillaged, yet they keep disappearing"*). **Diagnosed**: there are two
-ways to lose a caravan and only one of them reports to the victim. A *blow*
+**(jjjjjj) A route that ends by somebody else's hand tells nobody — RULED, T2**
+(the user, 2026-09-17, playtesting: *"i'm not getting notifications that my
+routes are being pillaged, yet they keep disappearing"*, then: *"i dont know
+if i see barbarians where i'm sending my routes though, could you check the
+logic for traders when they complete a route? or if there's something else
+ending the routes"* — the second question found the bigger half).
+
+**The whole of it: a route ends in the command of whoever ended it, and the
+owner only ever hears about their own commands.** `reportRoutes`
+(`src/ui/controls.ts`) is seat-filtered and correct, and it has **exactly one
+call site** — inside `commit`, which runs for the local player's own orders.
+A rival's orders go to `reportCommand` instead, which deliberately does not
+run `commit`'s funnel (its docblock: firing a seat's after-effects for a
+rival's order "would narrate another empire's turn"). That reasoning holds
+for a sighting poll; it does not hold for `routesEnded` and `reportRaids`,
+which are **already filtered to the local player's own losses** and speak
+only when the local player is the one hurt. So three silences, one cause:
+
+1. **A rival declares war** → `cancelRoutesBetween` (`diplomacy.ts`) kills
+   every route between the two empires → `routesEnded` rides the *rival's*
+   command → the owner is never told. The war popup itself does fire
+   (`warDeclared` is handled in `onCommand`), so the player sees the war and
+   not the three routes that died with it. **This is the likely case the user
+   is hitting** — they report no barbarians, and bots dogpiling them with war
+   is a standing complaint.
+2. **A rival razes a city** a route ran to → `cancelRoutesAt` → same silence.
+3. **A piece walks onto the caravan** → the arrival plunder, below.
+
+**The arrival plunder**, the originally-filed half: there are two ways to lose
+a caravan and only one reports to the victim. A *blow*
 that plunders rides `CombatOutcome.plundered`, and `reportRaids`
 (`src/ui/controls.ts`) filters it by `defenderOwnerId === localPlayerId` and
 announces `plunderLossSentence` — that path is right. A piece that simply
@@ -137,10 +163,21 @@ what the owner's client needs to name the loss (the destination cannot be
 re-derived — the cart is off the board — so it is carried at settle time, as
 the combat path solves it with a pre-dispatch snapshot); the arrival block
 gains a victim-side announcement beside the raider-side one, seat-filtered;
-`plunderLossSentence` is the one sentence for both paths. **Pins**: a piece
-walking onto a foreign caravan announces to the owner and to the raider, each
-their own sentence, and neither hears the other's; a barbarian doing it says
-so too; the combat path is unchanged; a replayed log is byte-identical.
+`plunderLossSentence` is the one sentence for both paths. **The second fix, and the larger one**: a rival's command must run the
+reporters that are already seat-filtered to the local player's own losses —
+`reportRoutes` and `reportRaids` at least. `reportCommand` is the seam;
+widening `commit`'s funnel wholesale is the wrong answer and would narrate a
+rival's turn, which is what its docblock is guarding. Name the register of
+which reporters are "about me" and which are "about my seat's doings", and
+say it in a docblock so the next reporter added lands on the right side.
+
+**Pins**: a rival declaring war on you announces the routes it killed, once
+each, to their owner and to nobody else; a rival razing a city likewise; a
+piece walking onto a foreign caravan announces to the owner and to the
+raider, each their own sentence, and neither hears the other's; a barbarian
+doing it says so too; a rival's command still narrates none of that empire's
+own doings to the player; the combat path is unchanged; a replayed log is
+byte-identical.
 
 **(iiiiii) The decks rework builds on branch `decks` — D1a and D1b BUILT 2026-09-17; D2 ordered by the shape audit**
 (the branch is playable: **399 order rows, 143 live**, every deferred card in the
