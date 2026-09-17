@@ -8,20 +8,24 @@
 
 **D2b — counts and reach** (2026-09-17): `count`/`per`/`max` on the effects that lacked them, a scope on renown, the empire-building selector in three readings, a per-town authority discount, distinct-kind counts, a scope and building-category on the purchase rider, and a hex paid per neighbour. 27 rows un-deferred; 175 → **202**.
 
-| Deck | Live after D2b |
-|---|---|
-| Magisterial | 59 |
-| Dominion | 54 |
-| Common | 35 |
-| Devotion | 17 |
-| Scientific | 13 |
-| Commerce | 12 |
-| Expansionist | 12 |
-| **Total** | **202** |
+**D2c — occasions** (2026-09-17): three tally members (a kill, a unit trained, a camp cleared), a windfall grant that reads the occasion's own facts, an append-only ledger of firsts with five readings, and a rider held to once a turn. 15 rows un-deferred; 202 → **217**. Schema 120.
 
-Three fields are live in code and named by no live row — `distinctBuildingCategories`, `perNeighbour` and `productionBonus.empireBuilding`. Each is one clause from paying, each is pinned on a row built for the pin, and the member register **asserts they are absent** so the day a row writes one the test fails and the note is deleted.
+| Deck | after D2b | after D2c |
+|---|---|---|
+| Magisterial | 59 | **62** |
+| Dominion | 54 | **60** |
+| Common | 35 | **36** |
+| Devotion | 17 | **18** |
+| Scientific | 13 | **15** |
+| Commerce | 12 | **13** |
+| Expansionist | 12 | **13** |
+| **Total** | **202** | **217** |
 
-D2b re-read every deferred note rather than the table below, and corrected each to name the blocker that actually remains. The table below is therefore the measurement at the end of D1b, kept as the record of what the batch was planned against.
+Two fields remain live in code and named by no live row — `distinctBuildingCategories` and `perNeighbour`. Each is one clause from paying, each is pinned on a row built for the pin, and the member register **asserts they are absent** so the day a row writes one the test fails and the note is deleted. (`productionBonus.empireBuilding` was the third; D2c's Learned Commissions wrote it and the assertion flipped on its own — which is the register doing exactly what it was built to do.)
+
+Every batch since D2b re-reads the deferred notes on the rows rather than the table below, and corrects each to name the blocker that actually remains. The table below is therefore the measurement at the end of D1b, kept as the record of what the waves were planned against.
+
+**What D2c did not build, and why it matters to D2d.** The audit promised six tally members and three were built. `buildingCompleted` wanted a filtered count rather than a bare member and is served better by the firsts ledger; `wonderBuilt` and `cityGrew` each have exactly one row and each of those rows carries a second blocker, so adding them would fail the register the day they landed. The second blocker in three of those four cases is the same fact: **a town's high-water population**. One field and one comparison in `settleGrowth`, and it is the *only* thing standing between The Growing Annals and Hearth Blessings and a live row, and half of what The Civic Annals and Festival Commissions want. It sits below the three-card filter by a hair and whoever holds D2d should weigh it.
 
 ## What is live
 
