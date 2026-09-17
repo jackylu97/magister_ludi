@@ -117,6 +117,49 @@ buildings reference doc with the sync test green; the Compendium prints both
 from the rows; a v117 log replays (no schema change — a new row and a new
 stamp on an old row are data).
 
+**(kkkkkk) A trader is a marker on the ground, not a piece in the way — RULED, T3**
+(the user, 2026-09-17: *"there can be as many traders on a single tile as
+needed, they don't count towards tile unit limits. If a unit is standing on
+top of a trader, hide the trader from view. Units can step on other player's
+traders regardless of war status (players at peace can just have overlap).
+Think of the trader unit as just a placeholder position for pillaging, but
+otherwise does not interact with units."*)
+
+**Half of clause one is already true and that is the useful finding.**
+`stacksFreely('trader')` (`src/sim/units.ts`) already answers before the sweep
+— "a caravan always fits, anywhere it could stand at all, whoever else is
+standing there" — and `hasEscortRoom` skips traders as well. So a player's own
+caravans have never blocked each other for stacking. **The jam was somewhere
+else**: `canStopOn` (`src/sim/pathfind.ts`) refuses any hex flagged
+`PEACEFUL_UNIT`, which is set for *every* foreign piece whose owner you are not
+at war with — a rival's caravan included. An international route's goal is the
+partner's doorstep, so one peaceful foreign piece parked there is enough to
+deny the path, and before this ruling a lapsed route then died of it.
+
+**What changes:**
+1. **A trader never blocks anybody.** A foreign trader must not raise
+   `PEACEFUL_UNIT` (or must not make `canStopOn` refuse), at war or at peace,
+   for a mover of any kind. Traders keep stacking freely; nothing about the
+   caps changes, because they were already exempt.
+2. **A trader exerts and suffers nothing else**: no zone of control, no escort
+   slot, no blocking, no stacking count. It is a marker saying *a route passes
+   here and may be pillaged here*, and that is its whole interaction.
+3. **A unit standing on a trader hides it** (`src/render3d/`), so a hex shows
+   the piece that matters. The trader returns when the hex is its own again.
+4. **The war check in `arrival.ts` becomes load-bearing and must be added.**
+   Today that file's plunder and capture branches ask only "somebody else's,
+   civilian, laden" — the war requirement is held *entirely* by `canStopOn`
+   refusing a peaceful hex. Clause 1 removes that guard for traders, so
+   **without a war check a peaceful neighbour's scout walking over your caravan
+   would plunder it**. The check goes where the taking happens, and its
+   docblock says why it may not live in the caller any more.
+
+**Pins**: a soldier may stop on a foreign trader's hex at peace and the
+caravan is untouched; the same at war plunders it; six caravans and a soldier
+share a hex; a trader may stop on a hex holding foreign pieces; a trader
+exerts no zone of control; a rival's caravan never denies a path; the renderer
+hides a trader under a piece and shows it again when the piece leaves.
+
 **(jjjjjj) A route that ends by somebody else's hand tells nobody — RULED, T2**
 (the user, 2026-09-17, playtesting: *"i'm not getting notifications that my
 routes are being pillaged, yet they keep disappearing"*, then: *"i dont know
