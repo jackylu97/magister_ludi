@@ -2463,8 +2463,11 @@ describe('the engine shapes, priced', () => {
   });
 
   it('prices the position engine as the chair it points at', () => {
+    // **Re-cut for the decks rework** (D1a): every chair is universal, so the
+    // engine points at the second chair of the council rather than the first
+    // economic one; the fixture seats the payer in chair 1 exactly as before.
     const engine: CardEffect[] = [
-      { kind: 'slotPosition', slot: 'economic', position: 1, factor: 2 },
+      { kind: 'slotPosition', position: 2, factor: 2 },
     ];
     const empty = priced(engine);
     let undo = (): void => undefined;

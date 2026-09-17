@@ -168,7 +168,10 @@ describe('the visibility grid', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(118);
+    // 119 is the decks rework (D1a, branch `decks`): four seat fields, the
+    // reward hands, universal chairs and a draw that deals every hand
+    // differently — a v118 save is refused (`state.ts`'s changelog).
+    expect(SCHEMA_VERSION).toBe(119);
   });
 
   it('survives a JSON round trip as plain data', () => {

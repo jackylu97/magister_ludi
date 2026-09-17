@@ -953,7 +953,10 @@ describe('a captured city, end to end', () => {
     // 103 since batch B7 (2026-09-09): crowding is removed — a town's demand is
     // linear in its citizens, so a v102 log's every empire pays a different
     // happiness from the turn its first town passes the old threshold.
-    expect(SCHEMA_VERSION).toBe(118);
+    // 119 is the decks rework (D1a, branch `decks`): four seat fields, the
+    // reward hands, universal chairs and a draw that deals every hand
+    // differently — a v118 save is refused (`state.ts`'s changelog).
+    expect(SCHEMA_VERSION).toBe(119);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

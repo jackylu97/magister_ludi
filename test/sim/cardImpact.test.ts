@@ -659,23 +659,25 @@ describe('a belief', () => {
  * shape it has never heard of stamps correctly the day it is added, and a
  * fixture is how that claim is checked before the rows exist.
  */
-describe('the engine shapes stamp', () => {
-  function withCards(
-    rows: readonly (readonly [OrderId, CardEffect[]])[],
-    body: () => void,
-  ): void {
-    const held = rows.map(([id]) => [id, orderDef(id).effects] as const);
-    try {
-      for (const [id, effects] of rows) {
-        (orderDef(id) as { effects: CardEffect[] }).effects = effects;
-      }
-      body();
-    } finally {
-      for (const [id, effects] of held) {
-        (orderDef(id) as { effects: CardEffect[] }).effects = effects as CardEffect[];
-      }
+/** Runs `body` with rows' effects replaced, and puts every row back — shared by two describes since D1a. */
+function withCards(
+  rows: readonly (readonly [OrderId, CardEffect[]])[],
+  body: () => void,
+): void {
+  const held = rows.map(([id]) => [id, orderDef(id).effects] as const);
+  try {
+    for (const [id, effects] of rows) {
+      (orderDef(id) as { effects: CardEffect[] }).effects = effects;
+    }
+    body();
+  } finally {
+    for (const [id, effects] of held) {
+      (orderDef(id) as { effects: CardEffect[] }).effects = effects as CardEffect[];
     }
   }
+}
+
+describe('the engine shapes stamp', () => {
 
   /** Seats a card in the government's own chair, as a Confirm would. */
   function seat(state: GameState, index: number, id: OrderId): void {
@@ -745,10 +747,13 @@ describe('the engine shapes stamp', () => {
   });
 
   it('reads the position engine as the chair it points at', () => {
+    // **Re-cut for the decks rework** (D1a): every chair is universal, so a
+    // position names a chair of the whole council — the second — and a
+    // flavour names no chair at all. The engine is unchanged.
     withCards(
       [
         ['waysideShrines', [{ kind: 'pays', where: 'city', gold: 4 }]],
-        ['theChoir', [{ kind: 'slotPosition', slot: 'economic', position: 1, factor: 2 }]],
+        ['theChoir', [{ kind: 'slotPosition', position: 2, factor: 2 }]],
       ],
       () => {
         const { state } = bench();
@@ -855,12 +860,18 @@ describe('the order pass stamps', () => {
   });
 
   it('reads The First Chair as the Order sitting in the chair it points at', () => {
-    const { state } = bench();
-    seat(state, 1, 'weightsAndMeasures');
-    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theFirstChair' });
-    // The empire's one town pays a coin under Weights & Measures, so paying the
-    // first economic chair twice is worth exactly that coin again.
-    expect(foldCardImpact(lines).gold).toBe(1);
+    // **Re-cut for the decks rework** (D1a): the retired row still points at
+    // "the first economic chair", and no chair has a flavour any more — so the
+    // row's own effect is read over as the second chair of the council, which
+    // is the engine's whole question. The fold is the same coin.
+    withCards([['theFirstChair', [{ kind: 'slotPosition', position: 2, factor: 2 }]]], () => {
+      const { state } = bench();
+      seat(state, 1, 'weightsAndMeasures');
+      const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theFirstChair' });
+      // The empire's one town pays a coin under Weights & Measures, so paying
+      // the second chair twice is worth exactly that coin again.
+      expect(foldCardImpact(lines).gold).toBe(1);
+    });
   });
 
   it('reads The Harvest Home as what the deck\'s other food lines would pay more', () => {

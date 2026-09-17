@@ -71,7 +71,14 @@ import { previewCombat } from '../../src/sim/combat';
 import { explainPurchaseCost } from '../../src/sim/purchase';
 import { projectDef } from '../../src/sim/projectData';
 import { unitDef } from '../../src/sim/unitData';
-import { GOVERNMENT_IDS, governmentDef, poolDoctrines } from '../../src/sim/statecraftData';
+import {
+  DOCTRINE_IDS,
+  GOVERNMENT_IDS,
+  doctrineDef,
+  governmentDef,
+  poolDoctrines,
+} from '../../src/sim/statecraftData';
+import { stockDoctrines } from './statecraftHelpers';
 import { findPath, moveProfile, reachableTiles, stepCost, zocField } from '../../src/sim/pathfind';
 import { advanceAlongPath } from '../../src/sim/movement';
 import { fullMovement } from '../../src/sim/units';
@@ -1261,6 +1268,20 @@ describe('a completion grant', () => {
   });
 
   it('opens a Doctrine draft, and never a second on top of one already owed', () => {
+    // **Re-cut for the decks rework** (D1a): every Doctrine row is retired — a
+    // Doctrine is the reward hand now — so the shape under test (a completion
+    // grant that deals a draft, and never a second over one owed) is exercised
+    // on a tier the bench un-retires for the test's lifetime. The shape is the
+    // sim's; the empty catalogue is D1a's honest state.
+    const restore = stockDoctrines(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === 4));
+    try {
+      openTheDraft();
+    } finally {
+      restore();
+    }
+  });
+
+  function openTheDraft(): void {
     const g = game();
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
@@ -1294,7 +1315,7 @@ describe('a completion grant', () => {
     const second = finish(g.state, other, 'houseOfWisdom');
     void second;
     expect(player.statecraft.pendingDoctrine).toBe(dealt);
-  });
+  }
 
   it('rides out through the report and the command result', () => {
     const g = game();

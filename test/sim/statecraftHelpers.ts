@@ -19,10 +19,12 @@ import {
   type Band,
   type CharterSpec,
   type DeckId,
+  type DoctrineId,
   type OrderId,
   type OrderRarity,
   DECK_IDS,
   ORDER_IDS,
+  doctrineDef,
   orderDef,
 } from '../../src/sim/statecraftData';
 import { ABILITY_TECH } from '../../src/sim/techData';
@@ -280,6 +282,29 @@ export function stockStandardDecks(): () => void {
   const GENERIC: readonly OrderRarity[] = ['common', 'common', 'common', 'common', 'uncommon', 'rare'];
   for (const rarity of GENERIC) rows[take(rarity)] = { decks: [], band: 0 };
   return stockDecks(rows);
+}
+
+/**
+ * **Un-retires Doctrine rows for a file's lifetime** — `stockDecks`' twin for
+ * the other retired class. Every Doctrine row is `retired: true` since D1a (a
+ * Doctrine is the reward hand now), and a test about a *shape* that deals a
+ * Doctrine draft — a wonder's completion grant — needs a tier with rows on it.
+ * The rows keep everything else; restore is mandatory for `stockDecks`' reason.
+ */
+export function stockDoctrines(ids: readonly DoctrineId[]): () => void {
+  const undo: (() => void)[] = [];
+  for (const id of ids) {
+    const def = doctrineDef(id);
+    const before = def.retired;
+    delete def.retired;
+    undo.push(() => {
+      if (before === undefined) delete def.retired;
+      else def.retired = before;
+    });
+  }
+  return () => {
+    for (const step of undo.reverse()) step();
+  };
 }
 
 /** The ids the standard stocking uses, grouped as it stamps them. Read-only. */

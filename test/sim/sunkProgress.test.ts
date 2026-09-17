@@ -85,7 +85,10 @@ describe('the schema says so', () => {
   it('bumps to the version the changelog writes the rule down at', () => {
     // 111 is this batch's; 112 landed on top of it the same evening (F2, the
     // prophet's charges), so the constant reads the later number.
-    expect(SCHEMA_VERSION).toBe(118);
+    // 119 is the decks rework (D1a, branch `decks`): four seat fields, the
+    // reward hands, universal chairs and a draw that deals every hand
+    // differently — a v118 save is refused (`state.ts`'s changelog).
+    expect(SCHEMA_VERSION).toBe(119);
   });
 
   it('says in the changelog what a v110 log does now', () => {

@@ -61,6 +61,8 @@ import {
 import {
   type DeckId,
   BANDS,
+  DECK_FILES,
+  DECK_FILE_ORDERS,
   DECK_IDS,
   DECK_WORDS,
   DOCTRINE_IDS,
@@ -747,6 +749,68 @@ describe('with the shelf stocked', () => {
     expect(bags[0]).toEqual(positionBag(eligible, { kind: 'deck', deck: 'expansionist' }, ada.decks));
     expect(bags[1]).toEqual(positionBag(eligible, { kind: 'deck', deck: 'commerce' }, ada.decks));
     expect(bags[2]).toEqual(positionBag(eligible, { kind: 'generic' }, ada.decks));
+  });
+});
+
+describe('the eight files', () => {
+  /**
+   * **The decks' own files** (the orchestrator's structural addition to D1a):
+   * a live Order lives in `data/decks/<deck>.json`, the generic and cross-type
+   * rows in `data/decks/common.json`, the retired shelf in `statecraft.json`.
+   * Read here **off the raw files**, not the fold, so a collision the loader
+   * would throw on has a name in the register first.
+   */
+  const rawDecks = import.meta.glob('../../data/decks/*.json', { eager: true, import: 'default' }) as Record<
+    string,
+    { orders: Record<string, { decks?: unknown }> }
+  >;
+  const rawShelf = import.meta.glob('../../data/statecraft.json', { eager: true, import: 'default' }) as Record<
+    string,
+    { orders: Record<string, unknown> }
+  >;
+
+  it('are the retired shelf and the seven deck files, each starting as an orders map', () => {
+    const names = Object.keys(rawDecks).map((path) => path.split('/').pop()!.replace('.json', '')).sort();
+    expect(names).toEqual([...DECK_FILES].sort());
+    for (const [path, file] of Object.entries(rawDecks)) {
+      expect(typeof file.orders, path).toBe('object');
+    }
+    expect(Object.keys(rawShelf)).toHaveLength(1);
+  });
+
+  it('never write one id twice across the eight, and the fold carries every row once', () => {
+    const seen = new Map<string, string>();
+    const files: [string, Record<string, unknown>][] = [
+      ['statecraft.json', Object.values(rawShelf)[0]!.orders],
+      ...Object.entries(rawDecks).map(([path, file]) => [path.split('/').pop()!, file.orders] as [string, Record<string, unknown>]),
+    ];
+    let total = 0;
+    for (const [name, orders] of files) {
+      for (const id of Object.keys(orders)) {
+        expect(seen.has(id), `"${id}" is written in ${seen.get(id)} and in ${name}`).toBe(false);
+        seen.set(id, name);
+        total += 1;
+      }
+    }
+    expect(ORDER_IDS).toHaveLength(total);
+    for (const id of seen.keys()) expect(ORDER_IDS, id).toContain(id);
+  });
+
+  it('keep every row of a deck file in that deck, and a common row in none or two', () => {
+    for (const file of DECK_FILES) {
+      for (const id of DECK_FILE_ORDERS[file]) {
+        const home = orderDef(id).decks;
+        if (file === 'common') {
+          expect([0, 2], `${id} in common.json names ${home.length} deck(s)`).toContain(home.length);
+        } else {
+          expect(home, `${id} in ${file}.json`).toContain(file);
+        }
+      }
+    }
+    // The retired shelf's rows are in no deck file.
+    for (const id of Object.keys(Object.values(rawShelf)[0]!.orders)) {
+      for (const file of DECK_FILES) expect(DECK_FILE_ORDERS[file], `${id} in ${file}.json`).not.toContain(id);
+    }
   });
 });
 

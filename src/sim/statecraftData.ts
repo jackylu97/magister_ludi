@@ -43,6 +43,20 @@
  */
 
 import statecraftJson from '../../data/statecraft.json';
+// **The decks' own files** (the decks rework, D1a, the orchestrator's structural
+// addition): a live Order lives in `data/decks/<deck>.json`, one file a deck,
+// with the generic and cross-type rows in `common.json` — so six agents may
+// enter six decks in parallel without six-way conflicts in one file. The
+// retired rows stay in `statecraft.json`; nothing moves. The eight `orders`
+// maps fold into one registry (`STATECRAFT.orders`) with an id-collision check,
+// and every reader of the table reads the fold.
+import commerceDeck from '../../data/decks/commerce.json';
+import commonDeck from '../../data/decks/common.json';
+import devotionDeck from '../../data/decks/devotion.json';
+import dominionDeck from '../../data/decks/dominion.json';
+import expansionistDeck from '../../data/decks/expansionist.json';
+import magisterialDeck from '../../data/decks/magisterial.json';
+import scientificDeck from '../../data/decks/scientific.json';
 
 // Type-only in both directions with `beadData.ts`, exactly as `religionData.ts`
 // is: a bead's boon carries ordinary `CardEffect`s and a bead id is a `CardId`,
@@ -77,7 +91,20 @@ import type { ModelClass, UnitCategory, UnitStamp, UnitTypeId } from './unitData
 
 export type GovernmentId = keyof typeof statecraftJson.governments & string;
 export type DoctrineId = keyof typeof statecraftJson.doctrines & string;
-export type OrderId = keyof typeof statecraftJson.orders & string;
+/**
+ * An Order's id — a key of **any** of the eight files' `orders` maps (the
+ * retired shelf in `statecraft.json`, the six decks, the commons), so a row
+ * D1b lands in `data/decks/dominion.json` is an `OrderId` with no edit here.
+ */
+export type OrderId = keyof (typeof statecraftJson.orders &
+  typeof dominionDeck.orders &
+  typeof expansionistDeck.orders &
+  typeof commerceDeck.orders &
+  typeof devotionDeck.orders &
+  typeof scientificDeck.orders &
+  typeof magisterialDeck.orders &
+  typeof commonDeck.orders) &
+  string;
 
 /**
  * A card of any class, named the way the state stores it.
@@ -5299,7 +5326,67 @@ export interface StatecraftConfig {
   orders: Record<OrderId, OrderDef>;
 }
 
-export const STATECRAFT = statecraftJson as unknown as StatecraftConfig;
+/**
+ * **The eight files an Order may come from** — the retired shelf and the seven
+ * deck files, in the order the registry folds them: the shelf first (it is the
+ * table's history), then the six decks in `DECK_IDS` order, then the commons.
+ */
+export type DeckFile = DeckId | 'common';
+
+/** The deck files in fold order. `common` last. See `DeckFile`. */
+export const DECK_FILES: readonly DeckFile[] = [...DECK_IDS, 'common'];
+
+const DECK_FILE_JSON: Record<DeckFile, { orders: Record<string, unknown> }> = {
+  dominion: dominionDeck,
+  expansionist: expansionistDeck,
+  commerce: commerceDeck,
+  devotion: devotionDeck,
+  scientific: scientificDeck,
+  magisterial: magisterialDeck,
+  common: commonDeck,
+};
+
+/**
+ * **One registry from eight files**, and the one place a collision is caught:
+ * an id written twice — in two decks, or in a deck and on the retired shelf —
+ * throws at load, because two rows under one id would be a card that pays one
+ * thing on one screen and another in the draw. `test/sim/decks.test.ts` pins
+ * the uniqueness against the raw files as well, so the failure has a name in
+ * the register before it has a stack trace at boot.
+ */
+function foldOrders(): Record<string, unknown> {
+  const folded: Record<string, unknown> = {};
+  const from: Record<string, string> = {};
+  const add = (file: string, rows: Record<string, unknown>): void => {
+    for (const [id, row] of Object.entries(rows)) {
+      if (Object.prototype.hasOwnProperty.call(folded, id)) {
+        throw new Error(
+          `Order "${id}" is written twice: in ${from[id]} and in ${file}. An id is one row.`,
+        );
+      }
+      folded[id] = row;
+      from[id] = file;
+    }
+  };
+  add('data/statecraft.json', statecraftJson.orders);
+  for (const file of DECK_FILES) add(`data/decks/${file}.json`, DECK_FILE_JSON[file].orders);
+  return folded;
+}
+
+export const STATECRAFT = {
+  ...statecraftJson,
+  orders: foldOrders(),
+} as unknown as StatecraftConfig;
+
+/**
+ * **The ids each deck file carries**, in that file's order — what the doc-sync
+ * test reads a deck's table against, and what the register pins (every row in
+ * `<deck>.json` names that deck in `decks`; a `common.json` row names none or
+ * two).
+ */
+export const DECK_FILE_ORDERS: Readonly<Record<DeckFile, readonly OrderId[]>> = Object.fromEntries(
+  DECK_FILES.map((file) => [file, Object.keys(DECK_FILE_JSON[file].orders) as OrderId[]]),
+) as unknown as Record<DeckFile, readonly OrderId[]>;
 
 // --- ordered id lists -------------------------------------------------------
 

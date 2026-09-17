@@ -2424,7 +2424,10 @@ describe('improvements in the log', () => {
     // a field and no longer a hall — a new row on this very table, so a v115 log
     // that queued the building or that stood on a hillside it could not work
     // lands somewhere this build does not.
-    expect(SCHEMA_VERSION).toBe(118);
+    // 119 is the decks rework (D1a, branch `decks`): four seat fields, the
+    // reward hands, universal chairs and a draw that deals every hand
+    // differently — a v118 save is refused (`state.ts`'s changelog).
+    expect(SCHEMA_VERSION).toBe(119);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

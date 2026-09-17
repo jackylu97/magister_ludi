@@ -90,7 +90,12 @@ describe('the office and the charter that opens it', () => {
     // ruled name over it.
     const charter = orderDef('toolmakersCharter' as OrderId);
     expect(charter.name).toBe('The Vizierate');
-    expect(charter.retired).not.toBe(true);
+    // **Re-pinned for the decks rework** (D1a): retired with every pre-rework
+    // row and by nothing before it (no `note` — every earlier withdrawal wrote
+    // one), kept for saves and the Compendium; D1b re-cuts this against the
+    // Commerce deck's building charter.
+    expect(charter.retired).toBe(true);
+    expect(charter.note).toBeUndefined();
     expect(
       charter.effects.some(
         (effect) => effect.kind === 'unlocksBuilding' && effect.building === HALL,

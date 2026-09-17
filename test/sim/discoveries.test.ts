@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { draftCost } from '../../src/sim/statecraft';
 
 import { createMap, getTileAt, type Tile } from '../../src/sim/map';
@@ -51,6 +51,20 @@ import { wrappedDistance, tileHex } from '../../src/sim/map';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 import { firstBlocker } from '../../src/ui/turnBlockers';
+import { stockStandardDecks } from './statecraftHelpers';
+
+/**
+ * **The shelf, stocked for the file** (the decks rework, D1a): every
+ * pre-rework Order row is retired and D1b's rows do not exist yet, so the forgotten hymns would fill a meter no draft can spend.
+ * `stockStandardDecks` un-retires rows of the table into the six decks for
+ * the file's lifetime (`statecraftHelpers.ts` says how), restored after the
+ * last test because the module graph outlives the file.
+ */
+let restoreShelf: () => void = () => {};
+beforeAll(() => {
+  restoreShelf = stockStandardDecks();
+});
+afterAll(() => restoreShelf());
 
 /**
  * Ancient ruins and tribal villages (playable.md item 3, ledger Entry XX).

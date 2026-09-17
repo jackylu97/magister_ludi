@@ -291,10 +291,16 @@ describe('the civ step', () => {
 
   it('opens the whole of a figure beside the roster, in the game own words', () => {
     for (const face of leaderFaces()) {
-      // The identity line is the two inks and nothing invented: there is no
-      // family field on a leader row (`docs/flags.md` (dddd)).
-      expect(leaderIdentity(face)).toBe(face.colorWords.join(' · '));
-      for (const word of face.colorWords) expect(leaderIdentity(face)).toContain(word);
+      // **Re-pinned for the decks rework** (D1a): the identity line is the two
+      // decks the figure holds — the "family" the row finally carries
+      // (`LeaderDef.decks`, `docs/six-decks-first-cut.md` "Leader pools") — or
+      // "Rainbow · every deck" for the one who holds all six. The inks moved
+      // to the chips under the detail card and are still printed there.
+      expect(leaderIdentity(face)).toBe(
+        face.rainbow ? 'Rainbow · every deck' : face.decks.join(' · '),
+      );
+      if (!face.rainbow) expect(face.decks).toHaveLength(2);
+      expect(face.colorWords).toHaveLength(2);
       // The first towns, in the figure's own order.
       const cities = leaderFirstCities(face.id);
       expect(cities.length).toBeGreaterThan(0);

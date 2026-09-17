@@ -113,8 +113,11 @@ every chair now shares.
 
 One table a deck, then the cross-types and the generic pool. **Empty in D1a**: every
 pre-rework row is retired and the six decks' rows are D1b's, one agent a deck, entered
-from the design doc's deck tables. A row lands here in the same edit that lands it in
-`data/statecraft.json`, or the sync test fails.
+from the design doc's deck tables. **A live Order lives in its deck's own file** —
+`data/decks/<deck>.json`, with the cross-type and generic rows in `data/decks/common.json`
+— and the retired shelf stays in `data/statecraft.json`; the eight fold into one registry
+with an id-collision check, and a deck's table here mirrors that deck's file. A row lands
+here in the same edit that lands it in its file, or the sync test fails.
 
 ### Dominion
 

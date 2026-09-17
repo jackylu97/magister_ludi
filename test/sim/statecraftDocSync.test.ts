@@ -5,6 +5,7 @@ import {
   type CardEffect,
   type DeckId,
   type OrderRarity,
+  DECK_FILE_ORDERS,
   DECK_IDS,
   DECK_WORDS,
   GOVERNMENT_IDS,
@@ -66,9 +67,17 @@ describe('the orders and doctrines doc mirrors the data', () => {
     return home[0]!;
   }
 
-  /** Every live row on one shelf, in file order. */
+  /**
+   * Every live row on one shelf, in file order — **read against the deck's
+   * own file** (`data/decks/<deck>.json`, the orchestrator's structural
+   * addition): a deck's table mirrors that deck's file, and the cross-type and
+   * generic tables mirror `common.json`'s two kinds of row. A row a deck file
+   * carries that names another deck fails `decks.test.ts`' register before it
+   * reaches here.
+   */
   function liveOn(shelf: DeckId | 'cross' | 'generic'): (typeof ORDER_IDS)[number][] {
-    return ORDER_IDS.filter((id) => orderIsDealt(id) && shelfOf(id) === shelf);
+    const file = shelf === 'cross' || shelf === 'generic' ? 'common' : shelf;
+    return DECK_FILE_ORDERS[file].filter((id) => orderIsDealt(id) && shelfOf(id) === shelf);
   }
 
   /** The table rows under one heading, as cell lists, header and rule skipped. */

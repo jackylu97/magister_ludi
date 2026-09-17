@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { newPlayerStatecraft } from "../../src/sim/statecraft";
+import { DECK_IDS } from "../../src/sim/statecraftData";
 import { newPlayerPantheon } from "../../src/sim/religionData";
 import { type Command, applyCommand } from "../../src/sim/commands";
 import { unitProductionCost, unitRosterCost } from "../../src/sim/cities";
@@ -111,8 +112,16 @@ describe("newGame", () => {
       // wild is appended separately and only when the config asks for it (see
       // the barbarian suite).
       barbarian: false,
+      // The decks rework (D1a, schema 119): a seat under nobody holds all six
+      // decks (`leaderDecks`), and nothing is chartered on turn one — three
+      // lists that grow on a charter's pick and nowhere else.
+      decks: [...DECK_IDS],
+      charteredTechs: [],
+      charteredBuildings: [],
+      charteredRites: [],
       // Always present, like `techsResearched`: every seat has a government and
-      // a slot spread from turn one. See `Player.statecraft`.
+      // a slot spread from turn one — and, since D1a, an empty bank of reward
+      // hands. See `Player.statecraft`.
       statecraft: newPlayerStatecraft(),
       // The same claim one system over (ledger Entry XXVIII): every seat has a
       // pantheon from turn one, empty though it is, and a lifetime counter for
@@ -851,7 +860,10 @@ describe("the research queue field", () => {
     // zeroed by adoption, the meter's exponent 2.65 → 2.2. No field moved, but
     // every draft from the third is priced differently, so a v117 log does not
     // replay.
-    expect(SCHEMA_VERSION).toBe(118);
+    // 119 is the decks rework (D1a, branch `decks`): four seat fields, the
+    // reward hands, universal chairs and a draw that deals every hand
+    // differently — a v118 save is refused (`state.ts`'s changelog).
+    expect(SCHEMA_VERSION).toBe(119);
   });
 });
 

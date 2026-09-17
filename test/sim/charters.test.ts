@@ -145,7 +145,14 @@ const CHARTERS: { order: OrderId; building: BuildingId }[] = ORDER_IDS.filter(
   // Compendium's record. Filtered here rather than named in an exception list,
   // exactly as `statecraftDocSync` filters the doc: the family is the *live*
   // rows, and a twelfth charter written tomorrow joins it with no edit.
-  (id) => orderDef(id).retired !== true,
+  //
+  // **Re-pinned for the decks rework** (D1a): every pre-rework Order row is
+  // `retired: true`, dealt by nobody, and this file tests the *shape* — a
+  // building opened by a slotted card — not the catalogue. The family is the
+  // retired shelf's eleven: a row retired by D1a alone carries no `note`
+  // (every earlier withdrawal wrote one). D1b re-cuts this against the new
+  // charter rows (`OrderDef.charter`, granted on the pick, never seated).
+  (id) => orderDef(id).note === undefined,
 ).flatMap((id) =>
   orderDef(id)
     .effects.filter((effect) => effect.kind === 'unlocksBuilding')
@@ -223,7 +230,9 @@ describe('the charters as a family', () => {
       // ◆ on the worksheet. `statecraftDocSync` pins the two sides against each
       // other; this pins the user's own mark, so a silent retune shows here too.
       expect(def.rarity, id).toBe('uncommon');
-      expect(def.retired, id).not.toBe(true);
+      // Retired by D1a with the whole shelf, kept for saves and the Compendium
+      // (see `CHARTERS`); D1b re-cuts this against the new charter rows.
+      expect(def.retired, id).toBe(true);
     }
   });
 

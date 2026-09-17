@@ -450,6 +450,9 @@ describe("the blocker", () => {
 
 describe("the schema", () => {
   it("is bumped for the register the census added", () => {
-    expect(SCHEMA_VERSION).toBe(118);
+    // 119 is the decks rework (D1a, branch `decks`): four seat fields, the
+    // reward hands, universal chairs and a draw that deals every hand
+    // differently — a v118 save is refused (`state.ts`'s changelog).
+    expect(SCHEMA_VERSION).toBe(119);
   });
 });

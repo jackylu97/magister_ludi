@@ -1530,7 +1530,10 @@ describe('research in the log', () => {
     // ladder is re-run from the first paid column's 10, so every column above
     // the second charges fewer beakers and a v90 log pays a price this build
     // does not ask for from its second technology on.
-    expect(SCHEMA_VERSION).toBe(118);
+    // 119 is the decks rework (D1a, branch `decks`): four seat fields, the
+    // reward hands, universal chairs and a draw that deals every hand
+    // differently — a v118 save is refused (`state.ts`'s changelog).
+    expect(SCHEMA_VERSION).toBe(119);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
