@@ -1186,7 +1186,15 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   // rather than written into each note, so a fifth capstone says the same thing
   // without anybody remembering to type it again.
   if (def.oncePerEmpire === true) {
-    clauses.push({ text: 'You may have only one of these, in one of your cities.', note: true });
+    // The class has a name now (the user, 2026-09-17): a row nobody may raise
+    // twice is an **empire building**. The name is said first and the rule
+    // second, because a player meeting one of these needs the noun before the
+    // clause — every card that asks for "an empire building" is asking for this
+    // shelf, and nothing else on the page would tell them which rows those are.
+    clauses.push({
+      text: 'An empire building: you may have only one of these, in one of your cities.',
+      note: true,
+    });
   }
   // **A row nothing builds and nothing sells** — the Town Charter, which a city
   // founded under the right law is founded holding. Read off the marker for the

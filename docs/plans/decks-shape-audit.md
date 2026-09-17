@@ -32,7 +32,7 @@ These are extensions of readings the evaluator already performs. Together they a
 | 1 | **A threshold on a building count in a `CityScope`** — "cities with at least two culture buildings" | ~17 | Magisterial's whole civic line |
 | 2 | **A worked-improvement `CityScope`** — "cities working a great-person improvement / a quarry / a Holy Site". Today the sim can ask whether an improvement lies inside a town's borders, never whether a citizen works it | ~15 | Magisterial 7, Scientific 3, Devotion 3, Expansionist |
 | 3 | **`count` / `per` / `max` on effects that lack them** — `productionBonus`, `routeRider`, `basis:'share'`, hex `pays`, counted `happiness` (which ignores `scope`) | ~12 | every deck |
-| 4 | **A once-per-empire selector** — no `CountKind` and no `CityScope` can say "a national institution", though the marker exists on the buildings | 7 | Scientific's Institutions line entire |
+| 4 | **A once-per-empire selector** — no `CountKind` and no `CityScope` can say "an empire building", though the marker exists on the buildings | 7 | Scientific's Institutions line entire |
 | 5 | **A `scope` on `CardRenownEffect`** — renown is empire-wide and cannot be asked of a town | ~8 | Magisterial 5, crosses 3 |
 | 6 | **A per-city authority discount or surcharge** — `authority` is capacity only; "costs one less authority" cannot be said | ~10 | Commerce 4, Magisterial 2, Scientific 2, Devotion 2 |
 | 7 | **A wonder-holding `CityScope`** — "a wonder stands in this town" is a count, never a predicate | 8 | Magisterial |
