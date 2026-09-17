@@ -38,6 +38,7 @@
 import { nearestOwnedCity, settleGrowthWindfall } from './cities';
 import {
   payWindfallGrants,
+  recordScalingOccasion,
   settleCultureWindfall,
   windfallPayout,
   type WindfallPayout,
@@ -143,6 +144,12 @@ export function settleCampBounty(
   // which is the camp's own figure; the grants are voices no camp pays on its
   // own and are banked below with the provisions.
   const payout = windfallPayout(state, playerId, 'camp', BARB.campClearGold);
+  // **The march's own chronicle** — The Pacified Marches, written where the
+  // camp is burnt out and beside `Player.campsCleared`, which is the lifetime
+  // record the same deed feeds (`CountKind`'s `clearedCamps`). Two counters of
+  // one act, because a card in a chair and a record on the player answer
+  // different questions — `goldSpent`'s pair, one occasion over.
+  recordScalingOccasion(state, playerId, 'campCleared');
   bounty.gold = payout.amount;
   bounty.lines = payout.lines;
   player.gold += bounty.gold;

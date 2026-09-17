@@ -8,10 +8,21 @@
       "line": "none",
       "flavor": "A guild is a memory of how the last wall was raised.",
       "text": "Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there.",
-      "deferred": [
-        "Finishing a culture building for the first time in a town grants that town production. The world announces that a building was finished, but not what kind of building it was, nor whether the town had ever raised one of that kind before."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "monument",
+          "percent": 25
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "buildingCategory": "culture",
+          "first": "buildingInCity",
+          "grant": { "yield": "production", "amount": 20 }
+        }
+      ]
     },
     "civicGranaries": {
       "name": "Civic Granaries",
@@ -119,10 +130,9 @@
       "line": "none",
       "flavor": "Every new mouth is an excuse for a procession.",
       "text": "Natural growth in a city with a Monument grants 10 culture and 10 food there.",
-      "deferred": [
-        "A town that keeps a Monument is paid in culture and food each time it grows. What the world announces is that a town grew, and how many citizens it has now — not which buildings stand in it, nor whether it has ever been this large before."
-      ],
-      "effects": []
+      "deferred": ["a town that holds a monument is paid in song and bread each time it grows"],
+      "effects": [],
+      "note": "Not built: a windfall is paid to an empire and cannot be told what stands in the town that grew; and the design pays only for growth past a town's own historical high, which nothing remembers."
     },
     "theTempleOfTheMuses": {
       "name": "The Temple of the Muses",
@@ -252,10 +262,28 @@
       "line": "none",
       "flavor": "A list of what was built is the shortest history there is.",
       "text": "While active, gains +1 science and +1 gold per turn for each culture building you complete for the first time in a city, at most +30 of each.",
-      "deferred": [
-        "A running count of the culture buildings raised for the first time in each town, paid out in science and gold every turn. The moments a card may keep count of are a barbarian killed, a wonder finished anywhere, a great person spent, one of your own soldiers lost and coin paid out at a purchase — a building finished is not among them."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "firstBuildingsInCity",
+          "category": "culture",
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "firstBuildingsInCity",
+          "category": "culture",
+          "max": 30
+        }
+      ]
     },
     "theCivicAnnals": {
       "name": "The Civic Annals",
@@ -266,9 +294,10 @@
       "flavor": "Year by year, the clerk records that nothing much happened.",
       "text": "While active, gains +1 production and +1 culture per turn in your capital each time one of your cities with a Monument grows, at most +24 of each.",
       "deferred": [
-        "A running count of every time a town that keeps a Monument grows, paid out in production and culture in your capital. A card can keep no count of growth, and a growth cannot be told apart by what stands in the town."
+        "the card keeps count of every time one of your towns that holds a monument grows, and pays a little more each turn for it"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Not built: a counter is a number on a card and carries no subject, so it cannot be told which towns to watch; and the design pays only for growth past a town's own historical high, which nothing remembers."
     },
     "theCivicNursery": {
       "name": "The Civic Nursery",
@@ -297,9 +326,10 @@
       "flavor": "The donor's name is carved larger than the building's purpose.",
       "text": "Purchasing a building with gold in a city with a Monument grants culture equal to 10% of the gold actually paid, at most 30 per purchase. Only its first acquisition in that city qualifies.",
       "deferred": [
-        "Buying a building pays culture in proportion to the coin that actually left the treasury, the first time that town acquires one of that kind. A purchase is announced as a moment, and the payout a moment carries is a figure printed on the card — never a share of what was spent."
+        "buying a building in a town that holds a monument pays song in proportion to the coin that actually left the treasury, the first time that town acquires one of that kind"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Half built and therefore not built: a purchase now says what it cost and whether it was that town's first, but a windfall is paid to an empire and cannot be told what stands in the town where the money changed hands."
     },
     "theCourtStewards": {
       "name": "The Court Stewards",
@@ -825,10 +855,22 @@
       "line": "none",
       "flavor": "The workshop is finished last and used first.",
       "text": "Completing a culture building for the first time in a city grants 25 production there and 20 gold.",
-      "deferred": [
-        "Finishing a culture building for the first time in a town pays that town production and your treasury gold. The world announces that a building was finished, but not what kind of building it was, nor whether the town had ever raised one of that kind before."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "buildingCategory": "culture",
+          "first": "buildingInCity",
+          "grant": { "yield": "production", "amount": 25 }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "buildingCategory": "culture",
+          "first": "buildingInCity",
+          "grant": { "yield": "gold", "amount": 20 }
+        }
+      ]
     },
     "theCommemorativeFeast": {
       "name": "The Commemorative Feast",
@@ -852,9 +894,10 @@
       "flavor": "The chronicler is behind, and always will be.",
       "text": "While active, gains +2 production and +2 culture per turn in your capital for each wonder you complete or great person you spend, at most +30 of each.",
       "deferred": [
-        "A running count of the wonders you finish and the great people you spend, paid out in production and culture in your capital. A card may keep count of a wonder finished anywhere in the world and of a great person spent — but not of a wonder finished by you alone, and two such counts cannot be added into one."
+        "the card keeps count of the marvels you finish and the great ones you spend, and pays a little more each turn for both"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Not built: a card may count a marvel finished anywhere in the world and a great one spent, but not a marvel finished by you alone; and two counters cannot share one ceiling, so a card whose limit is on the pair of them cannot be written as a pair of lines."
     },
     "theCompleteCourt": {
       "name": "The Complete Court",

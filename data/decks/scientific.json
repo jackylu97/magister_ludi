@@ -99,7 +99,8 @@
       "deferred": [
         "towns with a library raise workers faster, and the first works of each kind you build on ground of your own pay the town that holds them"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Not built: the world announces a wood felled, a hill surveyed and a hex bought, and never a work finished on the ground — so the first of each kind has no moment to be paid at, however well the ledger would remember it."
     },
     "theLongStudy": {
       "name": "The Long Study",
@@ -123,7 +124,8 @@
       "deferred": [
         "while this sits in council, your capital works and sings for every technology you have completed, up to a limit"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Not built: nothing counts the studies an empire has finished — the tree is a list no card can yet ask the length of."
     },
     "practicalAstronomy": {
       "name": "Practical Astronomy",
@@ -222,11 +224,30 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Commission the hall before you commission the statue.",
-      "deferred": [
-        "completing each kind of empire building for the first time pays culture and faith"
-      ],
-      "note": "Held whole. The world announces that a building was finished, but not whether the realm had ever finished one of that kind before — so the commission has no first time to pay for.",
-      "effects": []
+      "text": "Library cities gain +25% production toward empire buildings. Completing each institution type for the first time grants 40 culture and 20 faith.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "empireBuilding": true,
+          "percent": 25,
+          "scope": { "test": "hasBuilding", "building": "library" }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "empireBuilding": true,
+          "first": "buildingKind",
+          "grant": { "yield": "culture", "amount": 40 }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "empireBuilding": true,
+          "first": "buildingKind",
+          "grant": { "yield": "faith", "amount": 20 }
+        }
+      ]
     },
     "scientificTheAssay": {
       "name": "The Assay",
@@ -426,7 +447,8 @@
       "deferred": [
         "spending a great person on an act, a work or a legacy pays part of the research you are studying, at most once in a turn"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Half built and therefore not built: a gift may now be held to once a turn, but the moment announced is the boon alone and not the lasting work or the legacy, and nothing pays a share of what the study you are on would cost."
     },
     "husbandryStudies": {
       "name": "Husbandry Studies",
@@ -459,10 +481,21 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "First is a fact, and facts are worth recording.",
-      "deferred": [
-        "completing a technology before any other empire pays culture and renown"
-      ],
-      "effects": []
+      "text": "Completing a technology before any other empire grants 20 culture and 10 renown.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "first": "techWorld",
+          "grant": { "yield": "culture", "amount": 20 }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "first": "techWorld",
+          "grant": { "renown": 10 }
+        }
+      ]
     },
     "commissionsOfService": {
       "name": "Commissions of Service",

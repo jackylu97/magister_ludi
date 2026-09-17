@@ -1744,7 +1744,11 @@ describe("determinism", () => {
     // 119 since D1a (the decks rework, branch `decks`): four seat fields, the
     // reward hands, universal chairs and a draw that deals every hand
     // differently — a v118 save is refused (`state.ts`'s changelog).
-    expect(SCHEMA_VERSION).toBe(119);
+    // 120 since D2c (the decks rework, branch `decks`): the world writes down
+    // what was done first (`GameState.firsts`) and the deck stamps its
+    // once-a-turn riders, so a v119 log pays different windfalls from the first
+    // kill — a bump *within* the branch, which migrates nothing either way.
+    expect(SCHEMA_VERSION).toBe(120);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -10857,6 +10861,13 @@ describe("D2b — counts and reach", () => {
     // every reader of `ProductionCategory`, so the narrowing sits beside the two
     // narrowings already on the bonus rather than becoming a fifth category.
     slot(g.state, 0, "learnedCommissions" as never);
+    // **Held and put back**, the pattern the Orchard Tithe pin two tests down
+    // keeps. D2b borrowed this row while it was still deferred and blanked it
+    // afterwards, which was harmless then and is not now: D2c un-deferred it,
+    // and a stub left in place would have left the live card hollow for every
+    // later test in this file — including the member register at the foot of it,
+    // which reads the table to find out what is named.
+    const commissions = orderDef("learnedCommissions" as never).effects;
     (orderDef("learnedCommissions" as never) as { effects: CardEffect[] }).effects = [
       { kind: "productionBonus", category: "building", empireBuilding: true, percent: 25 },
     ];
@@ -10869,7 +10880,8 @@ describe("D2b — counts and reach", () => {
     expect(speed("forum")).toBe(25);
     expect(speed("monument")).toBe(0);
     expect(speed("pyramids")).toBe(0);
-    (orderDef("learnedCommissions" as never) as { effects: CardEffect[] }).effects = [];
+    (orderDef("learnedCommissions" as never) as { effects: CardEffect[] }).effects =
+      commissions as CardEffect[];
   });
 
   it("reprices one town's writ, and the floor holds at both ends", () => {
@@ -11157,26 +11169,28 @@ describe("D2b — counts and reach", () => {
     ]) {
       expect(counts.has(count), count).toBe(true);
     }
-    // **Three of this batch's fields are named by no live row, and that is
-    // stated rather than forgotten** — each is pinned behaviourally above, on a
-    // row built for the pin, and each waits on a clause a *later* batch owes:
+    // **`productionBonus.empireBuilding` is live since D2c**, and the way it
+    // came live is the register doing its job: Learned Commissions' second half
+    // was *"completing each institution type for the first time"*, which waited
+    // on the world's first-of-a-kind ledger — so the day that ledger landed, the
+    // card went in whole and the assertion below flipped from `false` to `true`
+    // without anybody going looking for it. "A card is never half built" was the
+    // note's own reason for the wait, and it is why the field waited rather than
+    // being written onto half a row.
+    expect(empireBuilding, "Learned Commissions' library hammers").toBe(true);
+    // **Two of D2b's fields are still named by no live row, and that is stated
+    // rather than forgotten** — each is pinned behaviourally above, on a row
+    // built for the pin, and each waits on a clause a *later* batch owes:
     //
     //   · `distinctBuildingCategories` — The Complete Court is paid for every
     //     shelf *except* its own, and a count cannot be asked with one of its
     //     kinds left out;
     //   · `perNeighbour` — the four rows the audit counted for the ring each
     //     name ground no condition can (an improvement that is not a master's
-    //     work, a wood old enough to fell);
-    //   · `productionBonus.empireBuilding` — the three rows that want hammers
-    //     behind one of the realm's great houses each carry a second half about
-    //     a first completion or a food surplus, and a card is never half built.
+    //     work, a wood old enough to fell).
     //
-    // The class itself is live: `hasEmpireBuilding` and `empireBuildings` are
-    // both in the lists above, so the selector is read — it is only the
-    // production narrowing that waits. All three stand for the batch that frees
-    // their rows, exactly as `rerollsWhileSlotted` stands for the verb that will
-    // write it.
+    // Both stand for the batch that frees their rows, exactly as
+    // `rerollsWhileSlotted` stands for the verb that will write it.
     expect(counts.has("distinctBuildingCategories")).toBe(false);
-    expect(empireBuilding, "no live row narrows hammers to an empire building yet").toBe(false);
   });
 });

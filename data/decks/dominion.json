@@ -133,10 +133,27 @@
       "rarity": "common",
       "flavor": "Every victory is written down, and the writing is worth something.",
       "text": "While slotted, pays +3 science and +3 culture, and gains +3 of each for every enemy unit you kill.",
-      "deferred": [
-        "while this sits in a chair it pays a little science and culture, and pays more of each for every enemy unit you have killed while it sat there"
-      ],
-      "effects": []
+      "effects": [
+        { "kind": "pays", "where": "empire", "science": 3, "culture": 3 },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 3,
+          "count": "tally",
+          "tally": "unitKilled"
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
+          "count": "tally",
+          "tally": "unitKilled"
+        }
+      ]
     },
     "dominionConscription": {
       "name": "Conscription",
@@ -686,10 +703,26 @@
       "rarity": "uncommon",
       "flavor": "Each name written is a coin of knowledge.",
       "text": "While slotted, gains +1 science and +1 culture each time you train a unit. Purchases do not count.",
-      "deferred": [
-        "while this sits in a chair it pays a little more science and culture for every unit you have trained since it was seated, and a unit bought outright does not count"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "tally",
+          "tally": "unitTrained"
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "tally",
+          "tally": "unitTrained"
+        }
+      ]
     },
     "thePacifiedMarches": {
       "name": "The Pacified Marches",
@@ -701,10 +734,26 @@
       "rarity": "uncommon",
       "flavor": "A burnt camp is a quiet border.",
       "text": "While slotted, gains +1 authority capacity and +3 culture for every barbarian camp cleared.",
-      "deferred": [
-        "while this sits in a chair it pays more authority and more culture for every camp you have burnt out since it was seated"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
+          "count": "tally",
+          "tally": "campCleared"
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
+          "count": "tally",
+          "tally": "campCleared"
+        }
+      ]
     },
     "theArtOfWar": {
       "name": "The Art of War",
@@ -716,10 +765,13 @@
       "rarity": "uncommon",
       "flavor": "Every sword teaches the smith something.",
       "text": "Training a unit grants science equal to half its strength.",
-      "deferred": [
-        "training a unit pays science in proportion to how strong that unit is"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "unitCompletion",
+          "grant": { "yield": "science", "amount": 0.5, "fromOccasion": "strength" }
+        }
+      ]
     },
     "soldierSettlers": {
       "name": "Soldier-Settlers",
@@ -768,7 +820,8 @@
         "ships are cheaper to keep",
         "training a ship pays culture in proportion to how strong that ship is"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Half built and therefore not built: training a hull may now pay for how strong it is, but a payroll is discounted as a share of the whole army and cannot be forgiven a coin at a time for one kind of piece."
     },
     "warFoundries": {
       "name": "War Foundries",
@@ -817,10 +870,28 @@
       "rarity": "rare",
       "flavor": "We lose them twice: once in the field, once in the song.",
       "text": "Killing or losing a unit grants science and culture equal to that unit's strength.",
-      "deferred": [
-        "killing a unit, or losing one, pays science and culture in proportion to how strong that unit was"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": { "yield": "science", "amount": 1, "fromOccasion": "strength" }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": { "yield": "culture", "amount": 1, "fromOccasion": "strength" }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": { "yield": "science", "amount": 1, "fromOccasion": "strength" }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": { "yield": "culture", "amount": 1, "fromOccasion": "strength" }
+        }
+      ]
     },
     "universalConscription": {
       "name": "Universal Conscription",
@@ -1107,10 +1178,13 @@
       "rarity": "common",
       "flavor": "They will speak of the day the gates opened.",
       "text": "Capturing a city grants culture equal to ten times its population.",
-      "deferred": [
-        "taking a city pays culture in proportion to how many people lived in it"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": { "yield": "culture", "amount": 10, "fromOccasion": "population" }
+        }
+      ]
     },
     "dominionCampFollowers": {
       "name": "Camp Followers",
@@ -1466,7 +1540,8 @@
         "taking a coastal city pays gold in proportion to how many people lived in it",
         "your ships beside a city you take are mended completely"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Half built and therefore not built: a capture may now pay for the people who lived in the town, but nothing tells a coastal town from an inland one at that moment, and a payout mends the whole army or none of it — never the hulls standing beside the gate."
     },
     "theAdmiralty": {
       "name": "The Admiralty",
@@ -1581,7 +1656,8 @@
       "deferred": [
         "everything you are paid for killing a unit, or for losing one, is paid twice over — the one-off rewards and the standing ones alike"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Not built: a card may scale what an occasion pays out of itself, and a kill pays nothing out of itself — everything it hands over is another card's grant. Doubling one card's gifts from a second card is a reading nothing in the vocabulary makes, and the standing counters the text also names are not payouts at all."
     },
     "masterBowyers": {
       "name": "Master Bowyers",
@@ -2050,7 +2126,8 @@
         "a unit that kills gets a couple of movement points back, once a turn, and still may not strike again",
         "your military units may not dig in"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Not built, all three halves: the once-a-turn stamp is kept per card and this one is per piece; an occasion hands over coin, renown, a soldier or a blessing and never movement; and nothing forbids an army to dig in."
     },
     "dominionImperium": {
       "name": "Imperium",

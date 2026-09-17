@@ -541,6 +541,28 @@ export interface PlayerStatecraft {
    */
   yieldTallies: CardYieldTally[];
   /**
+   * **The turn each once-a-turn rider last rode** — Field Academies' first kill
+   * of the day (batch D2c, `CardWindfallRiderEffect.oncePerTurn`).
+   *
+   * An **absolute stamp and never a counter that resets**, the discipline this
+   * codebase keeps everywhere it keeps time (`TimedEffect.expiresTurn`,
+   * `SlottedOrder.sealedUntil`, `City.purchasedUnitTurns`): the entry says
+   * *when*, the rider compares it against `state.turn`, and a turn arriving is
+   * the whole of the reset. Nothing ticks it, nothing sweeps it, and a phase
+   * that zeroed it would be a phase that can be run twice.
+   *
+   * A list of `{card, turn}` rather than a map, for `tallies`' reason exactly —
+   * a Map's order is the one thing the determinism rule forbids an outcome to
+   * depend on — and keyed by the **card**, because "once a turn" is a promise a
+   * card makes and not a property of the occasion: two cards riding one kill
+   * each spend their own day.
+   *
+   * Written in exactly one place (`payWindfallGrants`, where a payout stops
+   * being a preview) and read in exactly one (`windfallPayout`). Optional, so a
+   * seat that has never held such a card serialises as one that never will.
+   */
+  riderTurns?: { card: CardId; turn: number }[];
+  /**
    * **The reward hands this empire has banked and not yet opened**, as the
    * regular draft counts they were banked at (the decks rework, D1a; the
    * design doc's "Doctrine reward hands": *"the player may bank or pass the

@@ -2470,10 +2470,17 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       attacker.ownerId,
       'kill',
       tile,
-      { vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true, actor: attacker.type },
+      {
+        vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true,
+        actor: attacker.type,
+        strength: fallenStrength(caravan),
+      },
       attacker,
     );
-    payBattleRiders(state, fromOwnerId, 'death', tile, { actor: caravan.type });
+    payBattleRiders(state, fromOwnerId, 'death', tile, {
+      actor: caravan.type,
+      strength: fallenStrength(caravan),
+    });
   } else if (!forecast.capturesUnit) {
     /**
      * Everything below is the *fight*, and a capture is not one.
@@ -2515,12 +2522,22 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         // occasion* (`WindfallOccasionFacts.capturedWonder`) and not something
         // the rider could ask for itself.
         const heldWonder = target.city.buildings.some((id) => isWonder(id));
+        // The same "read before the stones change hands" rule, one fact over:
+        // `captureCity` charges the sack against the town's people, so the
+        // figure Triumphs is paid for is the town as the defender kept it.
+        const sackedPopulation = target.city.population;
         captureCity(state, target.city, attacker.ownerId);
         outcome.capturedCityId = target.city.id;
         defenderDied = true;
         payBattleRiders(state, attacker.ownerId, 'capture', tile, {
           capturedWonder: heldWonder,
           actor: attacker.type,
+          // **The town as it stood a moment before it changed hands** —
+          // Triumphs' culture for the people who lived in it. Read beside the
+          // wonder for that fact's reason exactly: `captureCity` has already
+          // halved the population by the time the riders are composed, so the
+          // caller is the only thing that still knows.
+          population: sackedPopulation,
         });
       }
     } else {
@@ -2579,10 +2596,13 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
             // now the fight is over and nothing on the board still says who
             // struck. Passed beside the other side's fact, which is the same
             // moment asked from the opposite end.
-            { vsBarbarians: fromWild, actor: attacker.type },
+            { vsBarbarians: fromWild, actor: attacker.type, strength: fallenStrength(defender) },
             attacker,
           );
-          payBattleRiders(state, fallenOwner, 'death', tile, { actor: defender.type });
+          payBattleRiders(state, fallenOwner, 'death', tile, {
+            actor: defender.type,
+            strength: fallenStrength(defender),
+          });
         }
       }
     }
@@ -2608,7 +2628,10 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // the kill, and a city that broke a charge is nobody's seat, so a hex with
     // no defending empire records the loss alone.
     tallyFall(state, defenderOwner ?? null, fallenOwner);
-    payBattleRiders(state, fallenOwner, 'death', tile, { actor: attacker.type });
+    payBattleRiders(state, fallenOwner, 'death', tile, {
+      actor: attacker.type,
+      strength: fallenStrength(attacker),
+    });
     // The counter-attack killed somebody, so the defending empire got a kill —
     // which is the only reading under which The Iron Price is a card about
     // *combat* rather than a card about attacking.
@@ -2623,6 +2646,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         tile,
         {
           vsBarbarians: playerById(state, fallenOwner)?.barbarian === true,
+          strength: fallenStrength(attacker),
           // The **counter-attacker**, where one is a piece at all: a city that
           // broke a charge is not a soldier and has no row a filter could name.
           ...(target.unit ? { actor: target.unit.type } : {}),
@@ -2712,12 +2736,15 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         // Read before the stones change hands, exactly as the walls beat reads
         // it: a moment later nothing can tell a captured wonder from a built one.
         const heldWonder = town.buildings.some((id) => isWonder(id));
+        const sacked = town.population;
         townOwnerBefore = town.ownerId;
         captureCity(state, town, attacker.ownerId);
         outcome.capturedCityId = town.id;
         payBattleRiders(state, attacker.ownerId, 'capture', tile, {
           capturedWonder: heldWonder,
           actor: attacker.type,
+          // Read before the stones change hands, exactly as the wonder is.
+          population: sacked,
         });
       }
     }
@@ -2851,6 +2878,24 @@ function snapshotFallen(unit: Unit): CombatOutcome['killed'][number] {
  * which is exactly what a rider paying into a pool the phase would otherwise
  * have spent an hour later owes.
  */
+/**
+ * How strong the piece that fell was — the fact a battle rider scales by
+ * (`OccasionMeasure`'s `strength`, Songs of the Fallen's verse).
+ *
+ * The roster's **close-quarters** figure plus whatever the piece's own stamp was
+ * worth (`unitStampStrength`), which is the reading `planCombat` opens its
+ * ledger with and therefore the one a player has already seen: a veteran is
+ * worth more than a levy and the card should say so. A bow's reach is a separate
+ * row on the roster and is deliberately not in this figure — a card that meant
+ * the volley would be a different card, and there is none.
+ *
+ * Read at the seam and never later, because a moment after the blow the piece is
+ * off the board — `WindfallOccasionFacts`' whole reason for existing.
+ */
+function fallenStrength(unit: Unit): number {
+  return Math.max(0, unitDef(unit.type).combatStrength + unitStampStrength(unit));
+}
+
 function payBattleRiders(
   state: GameState,
   playerId: number,
@@ -2885,6 +2930,12 @@ function payBattleRiders(
   if (occasion === 'kill' && facts.vsBarbarians === true) {
     recordScalingOccasion(state, playerId, 'barbarianKill');
   }
+  // **Every kill, not only the wild's** — The War Chronicle beside The
+  // Ballad-Weavers. Both counters are written at this one seam and a kill
+  // against a camp raises both: two cards watching two different questions
+  // about one moment, which is exactly what the pair of members is for
+  // (`TallyOccasion`'s `unitKilled`).
+  if (occasion === 'kill') recordScalingOccasion(state, playerId, 'unitKilled');
   if (occasion === 'death') recordScalingOccasion(state, playerId, 'unitLost');
   const payout = windfallPayout(state, playerId, occasion, 0, 0, facts);
   if (payout.heal > 0 && healed) {

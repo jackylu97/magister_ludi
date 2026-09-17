@@ -249,11 +249,14 @@
       "rarity": "uncommon",
       "flavor": "The town remembers who paid for the roof.",
       "text": "Purchasing an ordinary building for the first time in a city grants culture equal to 10% of the gold paid, at most 30 culture per purchase.",
-      "effects": [],
-      "deferred": [
-        "the first time a city buys a building, the town sings for a share of what you paid"
-      ],
-      "note": "Held whole. A purchase announces itself, but it does not say how much was paid, and no town keeps a list of what it has bought before."
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "purchase",
+          "first": "purchaseInCity",
+          "grant": { "yield": "culture", "amount": 0.1, "fromOccasion": "gold", "max": 30 }
+        }
+      ]
     },
     "provisioningContracts": {
       "name": "Provisioning Contracts",

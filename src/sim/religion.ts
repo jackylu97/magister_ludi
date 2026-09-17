@@ -72,8 +72,10 @@ import {
   type Unit,
   cityReligion,
   convertCitizen,
+  firstKey,
   followerCount,
   foundedReligion,
+  markFirst,
   playerById,
   realPlayers,
   removeUnit,
@@ -3415,6 +3417,42 @@ export function convertCitizens(
 }
 
 /**
+ * Writes down a **foreign town this faith has just turned for the first time** —
+ * The Living Hymnal's verses (batch D2c, `FirstKind`'s `conversion`).
+ *
+ * Said by `bankPressure`'s two callers rather than by `bankPressure` itself, and
+ * that is the same split the announcement beside it takes: the converter is
+ * deliberately free of the state, because the tide's towns are pure `City`. One
+ * implementation, two call sites — `assignCitizens`' own arrangement.
+ *
+ * Three clauses, and each is a decision:
+ *
+ *   · **a town turns once**, when the majority first lands on this faith. The
+ *     comparison is against the banner the town flew a line ago, so a town that
+ *     was already following writes nothing however many more citizens turn;
+ *   · **foreign means not the founder's**, asked at the moment it happened and
+ *     never re-derived. A town converted while it was somebody else's and taken
+ *     a decade later is still a verse this faith wrote first, which is the only
+ *     reading under which the count cannot fall;
+ *   · **pay follows the stones.** The record is the *founder's* —
+ *     `religionFounder`, the holder of the holy site — so a conqueror who takes
+ *     the first seat takes the hymnal with it, exactly as he takes every other
+ *     founder-side payment.
+ */
+function noteFirstConversion(
+  state: GameState,
+  city: City,
+  religion: Religion,
+  before: ReligionId | null,
+): void {
+  if (before === religion.id) return;
+  if (cityReligion(city) !== religion.id) return;
+  const founder = religionFounder(state, religion);
+  if (city.ownerId === founder) return;
+  markFirst(state, founder, 'conversion', firstKey(city.id));
+}
+
+/**
  * Banks one figure of pressure on one town for one religion and turns whoever it
  * pays for. Answers how many citizens turned.
  *
@@ -3648,7 +3686,9 @@ export function pressLump(
   const perConvert = Math.max(1, Math.floor(RULES.religion.pressurePerConvert));
   const cities: ProclamationConversion[] = [];
   for (const { city, pressed } of lumpTargets(state, religion, at, range, lump)) {
+    const before = cityReligion(city);
     const converted = bankPressure(city, religion.id, order, pressed, perConvert);
+    noteFirstConversion(state, city, religion, before);
     // **A convert can change what a town believes** (batch M3, `slate.ts`), and
     // a follower belief reaches `cityLocalEffects` in every town that follows,
     // which `cardBuildingHappiness` folds. Announced where the citizens turn —
@@ -3704,10 +3744,15 @@ export function spreadReligion(state: GameState): void {
   for (const [index, city] of state.cities.entries()) {
     const totals = measured[index]!;
     for (const religion of state.religions) {
-      // `pressLump`'s announcement, made by the tide (batch M3, `slate.ts`).
+      // `pressLump`'s announcement, made by the tide (batch M3, `slate.ts`) —
+      // and the hymnal's verse beside it, for that announcement's reason
+      // exactly: `bankPressure` is free of the state, so the two callers say
+      // both.
+      const before = cityReligion(city);
       if (bankPressure(city, religion.id, order, totals[religion.id] ?? 0, perConvert) > 0) {
         bumpEconomy(state);
       }
+      noteFirstConversion(state, city, religion, before);
     }
   }
 }

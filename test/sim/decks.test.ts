@@ -217,8 +217,14 @@ describe('the schema, as landed', () => {
     // five effects that had none, a scope on the renown trickle and on the
     // purchase rider, the empire-building selector, a per-town writ price and
     // four distinct-kind counts — twenty-seven more rows, across all seven.
-    expect(live).toBe(202);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(202);
+    //
+    // **And D2c a third time** ("occasions"): three moments a growing card may
+    // count (a kill, a unit trained, a camp burnt out), a windfall grant that is
+    // a share of what the occasion itself measured, the world's ledger of what
+    // was done first, and a once-a-turn stamp on a rider — fifteen more rows,
+    // across six of the seven.
+    expect(live).toBe(217);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(217);
   });
 
   /**
@@ -333,7 +339,10 @@ describe('the schema, as landed', () => {
   });
 
   it('bumps the schema: a pre-rework save is refused, and the seat carries the four new fields', () => {
-    expect(SCHEMA_VERSION).toBe(119);
+    // 120 since D2c: the world keeps `GameState.firsts` and the deck stamps its
+    // once-a-turn riders, so a v119 log pays a different first kill. A bump
+    // within the branch, which migrates nothing either way.
+    expect(SCHEMA_VERSION).toBe(120);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -481,7 +490,7 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
         expect(pool, `${id} is deferred`).not.toContain(id);
       }
       // And the deferred half is the bulk of the catalogue, not a rounding.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(197);
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(182);
     }
   });
 

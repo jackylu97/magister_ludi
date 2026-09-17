@@ -107,7 +107,7 @@ import { type ProjectId, isProjectId, projectDef, projectFinishes } from './proj
 // it imports the data tables and stops — so the largest module in the
 // simulation may read a row without a shape of cycle.
 import { leaderDef } from './leaderData';
-import { governmentDef } from './statecraftData';
+import { type FirstKind, governmentDef } from './statecraftData';
 import { isBeadEndeavourId } from './beadData';
 import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
 import { nextInt } from './rng';
@@ -132,8 +132,10 @@ import {
   forgetTheLaw,
   foldCardRulePercent,
   payWindfallGrants,
+  recordScalingOccasion,
   recordWorldScalingOccasion,
   settleCultureWindfall,
+  type WindfallOccasionFacts,
   windfallPayout,
 } from './statecraft';
 import {
@@ -147,8 +149,10 @@ import {
   claimWonder,
   createCity,
   createUnit,
+  firstKey,
   forgetItemProgress,
   frontKey,
+  markFirst,
   hasEndedTurn,
   playerById,
   queueItemKey,
@@ -197,6 +201,7 @@ import {
   isNaval,
   isUnitTypeId,
   unitDef,
+  unitStampStrength,
 } from './unitData';
 import { hasStackingRoom } from './units';
 /**
@@ -3642,7 +3647,38 @@ export function realiseItem(
     // here compares a building id against `"cathedral"`.
     const consecration = consecrateBuilding(state, city, item.id);
     const grants = payCompletionGrants(state, city, item.id);
-    payCompletionRiders(state, city, 'building', wonder !== undefined);
+    // **What this town, and this realm, had never raised before** — Master
+    // Masons' guild and Learned Commissions' hall. Written here, in the one
+    // routine that means "the city now has the thing", and written *before* the
+    // riders, because a rider asks the world what was first and never decides it
+    // for itself (`markFirst` is the one writer, and
+    // `CardWindfallRiderEffect.first` the one reader).
+    //
+    // **Recorded however it arrived, reported only when it was built**, and the
+    // split is the design doc's own ruling, verbatim: *"All first-construction
+    // rewards require production completion while active; purchases, gifts,
+    // replacement/rebuilding and capture do not count. Record previous
+    // acquisition even while inactive"* (`docs/six-decks-first-cut.md`). So a
+    // bought granary closes the ledger's door and pays nobody — which is what
+    // stops an empire buying a roof, taking the card, and building the same roof
+    // again in another town for a second first.
+    //
+    // A wonder is a building by both ledgers' reading, exactly as it is by
+    // `buildingsInCity`': the count is of what a town has raised, and a marvel
+    // is raised. The rider that means *only* a marvel says `wonder`.
+    const built = options.bought === undefined;
+    const firsts: FirstKind[] = [];
+    if (markFirst(state, city.ownerId, 'buildingInCity', firstKey(city.id, item.id)) && built) {
+      firsts.push('buildingInCity');
+    }
+    if (markFirst(state, city.ownerId, 'buildingKind', item.id) && built) {
+      firsts.push('buildingKind');
+    }
+    payCompletionRiders(state, city, 'building', {
+      wonder: wonder !== undefined,
+      building: item.id,
+      firsts,
+    });
     // **The finish line**, last and after the grants (design ledger Entry
     // LVIII). The order is the rule: the row's golden bead is one of those
     // grants, so a close that ran first would settle the race on a tally one
@@ -3735,7 +3771,21 @@ export function realiseItem(
   if (unitDef(item.id).category === 'naval') {
     awardOccasion(state, city.ownerId, 'navalUnitBuilt');
   }
-  payCompletionRiders(state, city, 'unit');
+  // **The muster roll** — The Muster Rolls' count, and the ratified text's
+  // *"purchases do not count"* said with the two facts this routine is the only
+  // thing holding. A piece bought at the till and a piece handed over free were
+  // not *trained*, which is the same clause the escalation ladder reads ten
+  // lines up; a moment later a bought spearman and a hammered one are one
+  // spearman. See `TallyOccasion`'s `unitTrained`.
+  if (options.bought === undefined && options.free !== true) {
+    recordScalingOccasion(state, city.ownerId, 'unitTrained');
+  }
+  payCompletionRiders(state, city, 'unit', {
+    // The roster's own figure plus whatever the stamp was worth, which is the
+    // reading `planCombat` opens its ledger with — The Art of War is paid for
+    // the sword the town actually turned out.
+    strength: Math.max(0, unitDef(item.id).combatStrength + unitStampStrength(unit)),
+  });
   return { unitId: unit.id };
 }
 
@@ -4238,13 +4288,21 @@ function payCompletionRiders(
   state: GameState,
   city: City,
   kind: 'unit' | 'building',
-  wonder = false,
+  /**
+   * What was finished, as facts about the occasion (batch D2c).
+   *
+   * `wonder` was a bare flag until the shelves and the strengths wanted saying
+   * too; it is a bag now for `WindfallOccasionFacts`' own reason — this routine
+   * is the one thing still holding the row it has realised, and every new
+   * question about *what* was finished is answered here or nowhere.
+   */
+  facts: WindfallOccasionFacts = {},
 ): void {
   const player = playerById(state, city.ownerId);
   if (!player) return;
   const at = { col: city.col, row: city.row };
   for (const occasion of ['completion', kind === 'unit' ? 'unitCompletion' : 'buildingCompletion'] as const) {
-    const payout = windfallPayout(state, player.id, occasion, 0, 0, { wonder });
+    const payout = windfallPayout(state, player.id, occasion, 0, 0, facts);
     // **Anything at all on the payout is paid**, not the yields alone: a rider
     // may hang a timed blessing on the realm (Dinocrates), bank renown, gift a
     // piece or heal the army, and a guard that read only `grants` dropped every

@@ -2322,9 +2322,16 @@
   ],
   "theWarChronicle": [
    {
-    "raw": "while this sits in a chair it pays a little science and culture, and pays more of each for every enemy unit you have killed while it sat there — not built yet",
-    "text": "while this sits in a chair it pays a little science and culture, and pays more of each for every enemy unit you have killed while it sat there — not built yet",
-    "deferred": true
+    "raw": "+3 science, +3 culture to the empire",
+    "text": "+3 science, +3 culture to the empire"
+   },
+   {
+    "raw": "+3 science per enemy unit you have killed, counted while this Order stands in a slot",
+    "text": "+3 science per enemy unit you have killed, counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+3 culture per enemy unit you have killed, counted while this Order stands in a slot",
+    "text": "+3 culture per enemy unit you have killed, counted while this Order stands in a slot"
    }
   ],
   "dominionConscription": [
@@ -2503,23 +2510,28 @@
   ],
   "dominionTheMusterRolls": [
    {
-    "raw": "while this sits in a chair it pays a little more science and culture for every unit you have trained since it was seated, and a unit bought outright does not count — not built yet",
-    "text": "while this sits in a chair it pays a little more science and culture for every unit you have trained since it was seated, and a unit bought outright does not count — not built yet",
-    "deferred": true
+    "raw": "+1 science per unit you have trained, counted while this Order stands in a slot",
+    "text": "+1 science per unit you have trained, counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+1 culture per unit you have trained, counted while this Order stands in a slot",
+    "text": "+1 culture per unit you have trained, counted while this Order stands in a slot"
    }
   ],
   "thePacifiedMarches": [
    {
-    "raw": "while this sits in a chair it pays more authority and more culture for every camp you have burnt out since it was seated — not built yet",
-    "text": "while this sits in a chair it pays more authority and more culture for every camp you have burnt out since it was seated — not built yet",
-    "deferred": true
+    "raw": "+1 authority capacity per barbarian camp you have cleared, counted while this Order stands in a slot",
+    "text": "+1 authority capacity per barbarian camp you have cleared, counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+3 culture per barbarian camp you have cleared, counted while this Order stands in a slot",
+    "text": "+3 culture per barbarian camp you have cleared, counted while this Order stands in a slot"
    }
   ],
   "theArtOfWar": [
    {
-    "raw": "training a unit pays science in proportion to how strong that unit is — not built yet",
-    "text": "training a unit pays science in proportion to how strong that unit is — not built yet",
-    "deferred": true
+    "raw": "completing a unit grants science equal to 50% of its strength",
+    "text": "completing a unit grants science equal to 50% of its strength"
    }
   ],
   "soldierSettlers": [
@@ -2564,9 +2576,20 @@
   ],
   "songsOfTheFallen": [
    {
-    "raw": "killing a unit, or losing one, pays science and culture in proportion to how strong that unit was — not built yet",
-    "text": "killing a unit, or losing one, pays science and culture in proportion to how strong that unit was — not built yet",
-    "deferred": true
+    "raw": "killing a unit grants science equal to its strength",
+    "text": "killing a unit grants science equal to its strength"
+   },
+   {
+    "raw": "killing a unit grants culture equal to its strength",
+    "text": "killing a unit grants culture equal to its strength"
+   },
+   {
+    "raw": "losing a unit grants science equal to its strength",
+    "text": "losing a unit grants science equal to its strength"
+   },
+   {
+    "raw": "losing a unit grants culture equal to its strength",
+    "text": "losing a unit grants culture equal to its strength"
    }
   ],
   "universalConscription": [
@@ -2662,9 +2685,8 @@
   ],
   "dominionTriumphs": [
    {
-    "raw": "taking a city pays culture in proportion to how many people lived in it — not built yet",
-    "text": "taking a city pays culture in proportion to how many people lived in it — not built yet",
-    "deferred": true
+    "raw": "capturing a city grants culture equal to 10 times its population",
+    "text": "capturing a city grants culture equal to 10 times its population"
    }
   ],
   "dominionCampFollowers": [
@@ -3195,9 +3217,12 @@
   ],
   "charcoalBurners": [
    {
-    "raw": "felling a wood pays devotion and song in proportion to the timber it gave — not built yet",
-    "text": "felling a wood pays devotion and song in proportion to the timber it gave — not built yet",
-    "deferred": true
+    "raw": "clearing a forest or jungle grants faith equal to 20% of what it already paid",
+    "text": "clearing a forest or jungle grants faith equal to 20% of what it already paid"
+   },
+   {
+    "raw": "clearing a forest or jungle grants culture equal to 20% of what it already paid",
+    "text": "clearing a forest or jungle grants culture equal to 20% of what it already paid"
    }
   ],
   "theWoodlandEdge": [
@@ -3648,9 +3673,8 @@
   ],
   "civicReceipts": [
    {
-    "raw": "the first time a city buys a building, the town sings for a share of what you paid — not built yet",
-    "text": "the first time a city buys a building, the town sings for a share of what you paid — not built yet",
-    "deferred": true
+    "raw": "buying anything (the first building that city ever buys) grants culture equal to 10% of the gold paid, at most 30",
+    "text": "buying anything (the first building that city ever buys) grants culture equal to 10% of the gold paid, at most 30"
    }
   ],
   "provisioningContracts": [
@@ -4111,9 +4135,12 @@
   ],
   "theLivingHymnal": [
    {
-    "raw": "your capital learns and sings a little more for every foreign town you were the first to bring to your faith, up to a limit — not built yet",
-    "text": "your capital learns and sings a little more for every foreign town you were the first to bring to your faith, up to a limit — not built yet",
-    "deferred": true
+    "raw": "+2 science in your capital per foreign city you were the first to convert (at most +24 science)",
+    "text": "+2 science in your capital per foreign city you were the first to convert (at most +24 science)"
+   },
+   {
+    "raw": "+2 culture in your capital per foreign city you were the first to convert (at most +24 culture)",
+    "text": "+2 culture in your capital per foreign city you were the first to convert (at most +24 culture)"
    }
   ],
   "missionaryHospitality": [
@@ -4476,9 +4503,16 @@
   ],
   "learnedCommissions": [
    {
-    "raw": "completing each kind of empire building for the first time pays culture and faith — not built yet",
-    "text": "completing each kind of empire building for the first time pays culture and faith — not built yet",
-    "deferred": true
+    "raw": "+25% production toward empire buildings, in every city with a [[building:library|Library]]",
+    "text": "+25% production toward empire buildings, in every city with a Library"
+   },
+   {
+    "raw": "completing a building (an empire building, the first of that kind your realm has finished) grants +40 culture",
+    "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +40 culture"
+   },
+   {
+    "raw": "completing a building (an empire building, the first of that kind your realm has finished) grants +20 faith",
+    "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +20 faith"
    }
   ],
   "scientificTheAssay": [
@@ -4592,9 +4626,12 @@
   ],
   "thePatentRolls": [
    {
-    "raw": "completing a technology before any other empire pays culture and renown — not built yet",
-    "text": "completing a technology before any other empire pays culture and renown — not built yet",
-    "deferred": true
+    "raw": "completing a technology (before any other empire) grants +20 culture",
+    "text": "completing a technology (before any other empire) grants +20 culture"
+   },
+   {
+    "raw": "completing a technology (before any other empire) grants +10 renown",
+    "text": "completing a technology (before any other empire) grants +10 renown"
    }
   ],
   "commissionsOfService": [
@@ -4678,9 +4715,12 @@
   ],
   "magisterialMasterMasons": [
    {
-    "raw": "Finishing a culture building for the first time in a town grants that town production. The world announces that a building was finished, but not what kind of building it was, nor whether the town had ever raised one of that kind before. — not built yet",
-    "text": "Finishing a culture building for the first time in a town grants that town production. The world announces that a building was finished, but not what kind of building it was, nor whether the town had ever raised one of that kind before. — not built yet",
-    "deferred": true
+    "raw": "+25% production toward [[building:monument|Monuments]]",
+    "text": "+25% production toward Monuments"
+   },
+   {
+    "raw": "completing a building (a culture building, the first of that kind in that city) grants +20 production",
+    "text": "completing a building (a culture building, the first of that kind in that city) grants +20 production"
    }
   ],
   "civicGranaries": [
@@ -4727,8 +4767,8 @@
   ],
   "festivalCommissions": [
    {
-    "raw": "A town that keeps a Monument is paid in culture and food each time it grows. What the world announces is that a town grew, and how many citizens it has now — not which buildings stand in it, nor whether it has ever been this large before. — not built yet",
-    "text": "A town that keeps a Monument is paid in culture and food each time it grows. What the world announces is that a town grew, and how many citizens it has now — not which buildings stand in it, nor whether it has ever been this large before. — not built yet",
+    "raw": "a town that holds a monument is paid in song and bread each time it grows — not built yet",
+    "text": "a town that holds a monument is paid in song and bread each time it grows — not built yet",
     "deferred": true
    }
   ],
@@ -4776,15 +4816,18 @@
   ],
   "theChronicleOfWorks": [
    {
-    "raw": "A running count of the culture buildings raised for the first time in each town, paid out in science and gold every turn. The moments a card may keep count of are a barbarian killed, a wonder finished anywhere, a great person spent, one of your own soldiers lost and coin paid out at a purchase — a building finished is not among them. — not built yet",
-    "text": "A running count of the culture buildings raised for the first time in each town, paid out in science and gold every turn. The moments a card may keep count of are a barbarian killed, a wonder finished anywhere, a great person spent, one of your own soldiers lost and coin paid out at a purchase — a building finished is not among them. — not built yet",
-    "deferred": true
+    "raw": "+1 science per building you were the first of its kind to raise in a city (at most +30 science)",
+    "text": "+1 science per building you were the first of its kind to raise in a city (at most +30 science)"
+   },
+   {
+    "raw": "+1 gold per building you were the first of its kind to raise in a city (at most +30 gold)",
+    "text": "+1 gold per building you were the first of its kind to raise in a city (at most +30 gold)"
    }
   ],
   "theCivicAnnals": [
    {
-    "raw": "A running count of every time a town that keeps a Monument grows, paid out in production and culture in your capital. A card can keep no count of growth, and a growth cannot be told apart by what stands in the town. — not built yet",
-    "text": "A running count of every time a town that keeps a Monument grows, paid out in production and culture in your capital. A card can keep no count of growth, and a growth cannot be told apart by what stands in the town. — not built yet",
+    "raw": "the card keeps count of every time one of your towns that holds a monument grows, and pays a little more each turn for it — not built yet",
+    "text": "the card keeps count of every time one of your towns that holds a monument grows, and pays a little more each turn for it — not built yet",
     "deferred": true
    }
   ],
@@ -4796,8 +4839,8 @@
   ],
   "publicBenefactors": [
    {
-    "raw": "Buying a building pays culture in proportion to the coin that actually left the treasury, the first time that town acquires one of that kind. A purchase is announced as a moment, and the payout a moment carries is a figure printed on the card — never a share of what was spent. — not built yet",
-    "text": "Buying a building pays culture in proportion to the coin that actually left the treasury, the first time that town acquires one of that kind. A purchase is announced as a moment, and the payout a moment carries is a figure printed on the card — never a share of what was spent. — not built yet",
+    "raw": "buying a building in a town that holds a monument pays song in proportion to the coin that actually left the treasury, the first time that town acquires one of that kind — not built yet",
+    "text": "buying a building in a town that holds a monument pays song in proportion to the coin that actually left the treasury, the first time that town acquires one of that kind — not built yet",
     "deferred": true
    }
   ],
@@ -4969,9 +5012,12 @@
   ],
   "theMasterWorkshops": [
    {
-    "raw": "Finishing a culture building for the first time in a town pays that town production and your treasury gold. The world announces that a building was finished, but not what kind of building it was, nor whether the town had ever raised one of that kind before. — not built yet",
-    "text": "Finishing a culture building for the first time in a town pays that town production and your treasury gold. The world announces that a building was finished, but not what kind of building it was, nor whether the town had ever raised one of that kind before. — not built yet",
-    "deferred": true
+    "raw": "completing a building (a culture building, the first of that kind in that city) grants +25 production",
+    "text": "completing a building (a culture building, the first of that kind in that city) grants +25 production"
+   },
+   {
+    "raw": "completing a building (a culture building, the first of that kind in that city) grants +20 gold",
+    "text": "completing a building (a culture building, the first of that kind in that city) grants +20 gold"
    }
   ],
   "theCommemorativeFeast": [
@@ -4983,8 +5029,8 @@
   ],
   "theLivingChronicle": [
    {
-    "raw": "A running count of the wonders you finish and the great people you spend, paid out in production and culture in your capital. A card may keep count of a wonder finished anywhere in the world and of a great person spent — but not of a wonder finished by you alone, and two such counts cannot be added into one. — not built yet",
-    "text": "A running count of the wonders you finish and the great people you spend, paid out in production and culture in your capital. A card may keep count of a wonder finished anywhere in the world and of a great person spent — but not of a wonder finished by you alone, and two such counts cannot be added into one. — not built yet",
+    "raw": "the card keeps count of the marvels you finish and the great ones you spend, and pays a little more each turn for both — not built yet",
+    "text": "the card keeps count of the marvels you finish and the great ones you spend, and pays a little more each turn for both — not built yet",
     "deferred": true
    }
   ],
@@ -5448,9 +5494,12 @@
   ],
   "fieldAcademies": [
    {
-    "raw": "the first kill of each turn, and no other, teaches you something — not built yet",
-    "text": "the first kill of each turn, and no other, teaches you something — not built yet",
-    "deferred": true
+    "raw": "killing a unit (at most once a turn) grants +15 science",
+    "text": "killing a unit (at most once a turn) grants +15 science"
+   },
+   {
+    "raw": "+25% production toward siege units, in every city with a [[building:library|Library]]",
+    "text": "+25% production toward siege units, in every city with a Library"
    }
   ],
   "theEngineerCorps": [

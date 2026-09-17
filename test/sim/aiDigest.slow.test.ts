@@ -129,9 +129,36 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * required (`scoreMeterRule`'s `cityCost`, which prices the new rule exactly as
  * the three beside it price theirs). Measured twice, same bytes both runs.
  */
+/**
+ * **Re-cut for D2c (occasions, branch `decks`)**, the batch that stopped growing
+ * the vocabulary and started keeping facts. Four shapes: three more moments a
+ * growing card may count (a kill, a unit trained, a camp burnt out), a windfall
+ * grant that is a share of what the occasion itself measured, the world's ledger
+ * of what was done first (`GameState.firsts`, schema 120), and a once-a-turn
+ * stamp on a rider. They un-deferred **fifteen rows**, taking the live catalogue
+ * from two hundred and two to two hundred and seventeen — six of them Dominion's
+ * and three Magisterial's. Duel `beeae6b2:240493` → `40881a25:261580`, standard
+ * `ad176577:886331` → `3d71414c:919322`.
+ *
+ * **Both prints rose**, where D2b's both fell, and the rise is larger than the
+ * fifteen rows alone would explain. Three things compound: the shelf is wider
+ * again, so the same drafts buy a different collection; six of the freed rows
+ * are **Dominion's**, which is the deck whose cards pay on kills, musters and
+ * captures — the moments a bot at war reaches constantly, so a seat that takes
+ * one diverges on the very next fight rather than on the next draft; and the
+ * world now carries a register that grows all game (`firsts`, one row per shelf
+ * per town, per building the realm finishes, per technology anybody finishes
+ * first), which is most of the byte count by itself.
+ *
+ * Nothing about the **engine** changed. The bot appraises every new row through
+ * the walk it already had; the only edit outside the sim was four numbers on
+ * `data/ai.json`'s `tallyForecast`, which the existing arm reads for the three
+ * new occasions and which the arena panel picks up with no page edit. Measured
+ * twice, same bytes both runs.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: 'beeae6b2:240493',
-  standard: 'ad176577:886331',
+  duel: '40881a25:261580',
+  standard: '3d71414c:919322',
 };
 
 /**

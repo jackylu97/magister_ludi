@@ -2268,7 +2268,109 @@ export type CountKind =
    * count of the same people and stays its own member — that one counts how many
    * were ever picked and this counts how many kinds still pay.
    */
-  | 'legacyFamilies';
+  | 'legacyFamilies'
+  /**
+   * **Shelves this empire's towns have opened** — The Chronicle of Works', one
+   * line for every time a town raised its first building of a kind.
+   *
+   * The first count in the union answered off `GameState.firsts` rather than off
+   * the board or off a card's own books, and that is the whole of what the
+   * ledger is for: "a culture building you complete **for the first time** in a
+   * city" is a fact about what has already happened, and nothing standing
+   * anywhere can be asked it — a town that raised a Monument and lost it to a
+   * conqueror still opened the shelf.
+   *
+   * Narrowed by `CardPaysEffect.category` to one shelf, exactly as
+   * `buildingsOfCategory` is and for its reason: "per culture building" and "per
+   * faith building" are one entry in the words. A row naming no category counts
+   * every shelf every town has opened, which is the honest reading of an unnamed
+   * argument rather than a guard.
+   *
+   * It is **never** narrowed by `within: 'city'`: the record is the realm's, the
+   * card is paid in the capital, and a line paid per town would count the same
+   * chronicle once in every town that has one.
+   */
+  | 'firstBuildingsInCity'
+  /**
+   * **Foreign towns this empire's faith reached first** — The Living Hymnal's.
+   *
+   * `firstBuildingShelves`' sibling, off the same ledger and a member of its own
+   * for that count's reason: the two read differently on a card and a member
+   * each is what lets the words say so. A *foreign* town, decided where the
+   * record is written (`bankPressure`) and never re-derived here — a town
+   * converted while it was somebody else's and taken a decade later is still a
+   * verse the hymnal wrote first.
+   */
+  | 'firstConversions';
+
+/**
+ * **The ledgers of what an empire did first.** Each is one `GameState.firsts`
+ * record kind, written once and never again (`markFirst`, `state.ts`).
+ *
+ * A first is a **contention**, which is why the ledger is a list on the state
+ * and not a derived reading: two empires may finish the same technology on the
+ * same turn, and one of them was first. The rule is the codebase's standing one
+ * — log order within a turn, sweep order within a phase — and it is stated on
+ * `markFirst` itself, which is the only writer.
+ *
+ * A record is a **fact with a turn on it, never a countdown** (`TimedEffect`'s
+ * discipline, and `SlottedOrder.sealedUntil`'s): nothing prunes this list and
+ * nothing ticks it down. It is read two ways — a windfall rider asks whether
+ * *this* occasion was a first (`CardWindfallRiderEffect.first`), and a count
+ * asks how many of a kind an empire has written.
+ */
+export type FirstKind =
+  /**
+   * A town's **first building of a shelf** — Master Masons' guild, paid for the
+   * wall that had no wall before it. Keyed on the town and the
+   * `BuildingCategory`, so a second Monument in a second town is a second
+   * record and a Monument and an Amphitheatre in one town are one.
+   *
+   * The town, and not the realm, because that is the sentence the cards make:
+   * *"completing a culture building for the first time in a city"*. Its sibling
+   * below is the same question asked of the whole empire.
+   */
+  | 'buildingInCity'
+  /**
+   * The realm's **first building of a row** — Learned Commissions', paid once
+   * for each kind of great house the empire ever finishes. Keyed on the
+   * `BuildingId` alone, so the first Forum anywhere is the record and the second
+   * is not.
+   */
+  | 'buildingKind'
+  /**
+   * A town's **first purchase of a building** — Civic Receipts', paid for the
+   * roof the town paid for rather than built. Keyed on the town alone: the card
+   * is about a town learning to buy, not about which building it bought.
+   */
+  | 'purchaseInCity'
+  /**
+   * A **foreign town this empire's faith reached first** — The Living Hymnal's
+   * verses. Keyed on the town, and written for the founder of the faith that
+   * took the majority (`religionFounder`, so pay follows the stones).
+   */
+  | 'conversion'
+  /**
+   * **The world's first** completion of a technology — The Patent Rolls'.
+   *
+   * The one ledger in this union whose key is not an empire's own: it is written
+   * against the world, so the second empire to finish Bronze Working writes
+   * nothing and the card pays nobody twice. `markFirst`'s `world` reading, and
+   * the contention rule above is what settles a tie.
+   */
+  | 'techWorld';
+
+/** Every first-of-a-kind ledger, for the register that pins the seams. */
+export const FIRST_KINDS: readonly FirstKind[] = [
+  'buildingInCity',
+  'buildingKind',
+  'purchaseInCity',
+  'conversion',
+  'techWorld',
+];
+
+/** The ledgers whose key is the **world's**, not one empire's. See `markFirst`. */
+export const WORLD_FIRST_KINDS: readonly FirstKind[] = ['techWorld'];
 
 /**
  * The moments a growing card can be counting. See `CountKind`'s `tally`.
@@ -2316,7 +2418,56 @@ export type TallyOccasion =
    * Buying a hex, recruiting a great person and paying a payroll all spend gold
    * and none of them is a purchase in the sense the card's face uses the word.
    */
-  | 'goldSpent';
+  | 'goldSpent'
+  /**
+   * A unit of **somebody else's** killed in battle — The War Chronicle.
+   *
+   * `barbarianKill`'s unnarrowed twin and a member of its own rather than an
+   * argument on it, for `improvedStrategicResources`' reason one union over: the
+   * two read differently on a card ("per barbarian you have killed", "per unit
+   * you have killed") and a member each is what lets `TALLY_WORDS` say so. Both
+   * are written at one seam (`payBattleRiders`, the `kill` occasion) and a kill
+   * against the wild therefore raises **both** counters — two cards watching two
+   * different questions about one moment, which is exactly what the pair is for.
+   */
+  | 'unitKilled'
+  /**
+   * A unit **trained** — The Muster Rolls, and the ratified text's *"purchases
+   * do not count"*.
+   *
+   * Written in `realiseItem`'s unit path, the one routine that means "the city
+   * now has the thing", and narrowed there by the two facts that routine is the
+   * only thing holding: a piece bought at the till (`RealiseOptions.bought`) and
+   * a piece handed over free (`options.free`, Camp Followers' stray) were not
+   * trained. That is the same clause the escalation ladder already reads two
+   * lines away, said once more rather than derived from the board — a moment
+   * later a bought spearman and a hammered one are one spearman.
+   *
+   * It is deliberately **not** `WindfallOccasion`'s `unitCompletion`, which
+   * fires for a bought unit on purpose (Rites of Passage is one row and pays
+   * once). Two vocabularies, two readings, each closed.
+   */
+  | 'unitTrained'
+  /**
+   * A barbarian camp **burnt out** — The Pacified Marches.
+   *
+   * `CountKind`'s `clearedCamps` written into a chair: that count is the
+   * lifetime record on `Player.campsCleared` and this is the same moment counted
+   * by whichever slotted Order was watching, so a card that pays for a border
+   * pacified *since it was seated* can say so. The pair is `goldSpent`'s
+   * exactly — one deed, two counters, because a card in a chair and a record on
+   * the player answer different questions.
+   */
+  | 'campCleared';
+// **There is deliberately no `cityGrew`**, and the audit asked for one: every
+// growth card in the six decks is bound by the design doc's standing clause
+// that natural-growth rewards *count only growth beyond the town's historical
+// population maximum* (`docs/six-decks-first-cut.md`, the Expansionist and
+// Magisterial convention blocks). Nothing in the game remembers the largest a
+// town has ever been, so a bare "a town grew" counter would have paid The
+// Growing Annals twice for one citizen a levy took and the fields gave back.
+// The member is one line the day a town keeps its high-water mark; the counter
+// without it is the card bent to fit.
 
 /** Every tally occasion, for the register test that pins the hooks. */
 export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
@@ -2325,6 +2476,9 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'greatPersonSpent',
   'unitLost',
   'goldSpent',
+  'unitKilled',
+  'unitTrained',
+  'campCleared',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -3052,11 +3206,103 @@ export type WindfallOccasion =
    */
   | 'greatPersonAct';
 
+/**
+ * **What a grant is a share of, where it is a share of the occasion itself.**
+ *
+ * `RateSource`'s opposite number one shape over: that one reads the empire's own
+ * books and this reads the *moment* — how strong the piece was, how many people
+ * lived in the town, what the coin actually came to. Four questions, and each is
+ * a fact the seam that fired the occasion is the only thing still holding
+ * (`WindfallOccasionFacts`, whose members these read).
+ *
+ * **It is still an Entry XVIII.5 printed number.** A grant scaled by the
+ * occasion is a *base* figure entering `windfallPayout`'s one composition, not a
+ * second multiplication after it and not a second fold beside it: the measure is
+ * read once, `amount` multiplies it, the era and the council multiply that
+ * exactly as they multiply a flat grant, and the whole thing is banked once. A
+ * rider asking for a measure the occasion cannot supply simply does not ride —
+ * `atPopulation`'s silence, said about a figure instead of about a filter.
+ */
+export type OccasionMeasure =
+  /**
+   * The **combat strength** of the piece the occasion is about — The Art of
+   * War's sword, Songs of the Fallen's dead. Read off
+   * `WindfallOccasionFacts.strength`, which the roster's own figure fills at a
+   * completion and the fallen piece's fills at a kill or a death.
+   */
+  | 'strength'
+  /**
+   * The **citizens** the occasion is about — Triumphs' sacked town, and the same
+   * `WindfallOccasionFacts.population` a growth already carries. A capture reads
+   * the town as it stood the moment before it changed hands, because a moment
+   * later the conqueror's own hand is on it.
+   */
+  | 'population'
+  /**
+   * The **coin that actually left the treasury** — Civic Receipts' share of what
+   * the town paid for its roof. Read off `WindfallOccasionFacts.gold`, filled by
+   * the purchase verb, which is the one place the figure is in hand.
+   */
+  | 'gold'
+  /**
+   * **What the occasion itself paid** — Charcoal Burners' share of the timber a
+   * felling gave.
+   *
+   * The occasion's own figure **after the percentage riders have summed and
+   * before any one rider's era or council multiplies it**, and that is the
+   * design's own ruling rather than a choice made here:
+   * `docs/six-decks-first-cut.md` says, of The Woodwrights, *"chop percentages
+   * add together before Charcoal Burners reads the payout"*. So a doubled chop
+   * pays a doubled tithe, which is the sentence a player reads on the two cards
+   * side by side.
+   *
+   * The cut lands where it does because the two halves are different kinds of
+   * fact: the percentages are what *this occasion* came to, and `perAge` /
+   * `perSlottedOrder` are facts about the **rider that asked** — a grant scaled
+   * by another card's era multiplier would be one card reading another's
+   * bargain. Entry XVII's "sum within a stage, apply once" at this scale, and
+   * still one printed figure composed before anything is banked.
+   */
+  | 'payout';
+
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
   /** A voice and an amount — culture on a kill, food on a camp. */
   yield?: CityYieldKey;
   amount?: number;
+  /**
+   * The figure is **a share of something the occasion itself measures** rather
+   * than a number printed on the row — Triumphs' *"culture equal to ten times
+   * its population"*.
+   *
+   * `fromRate`'s sibling, and the pair is the whole of what a scaled grant may
+   * read: that one reads the empire's books and this reads the moment. `amount`
+   * stops being coins and becomes the **multiplier** — ten times a town's people
+   * is `amount: 10` with `fromOccasion: 'population'`, a tenth of the coin paid
+   * is `amount: 0.1` with `'gold'` — exactly as `fromRate` turns it into turns.
+   *
+   * A row carrying both is a row asking two questions of one figure; the
+   * occasion's measure is read **first** and the rate is not asked, because a
+   * moment is the nearer fact and a row that meant the books would not have
+   * named the moment. The two are disjoint in the data by construction.
+   */
+  fromOccasion?: OccasionMeasure;
+  /**
+   * **The ceiling on this grant**, in whole units of the voice — Civic
+   * Receipts' *"at most 30 culture per purchase"*.
+   *
+   * Applied to the scaled figure and **before** the era and the council multiply
+   * it, which is the only reading that keeps the card's sentence true: "at most
+   * 30 culture per purchase" is a cap on what the purchase is worth, and a cap
+   * applied after ×era would have printed thirty in Æra I and ninety in Æra III
+   * off one clause. It caps a *magnitude*, so a negative grant is capped at
+   * −`max` and a card cannot use the ceiling to change a bill into a blessing.
+   *
+   * Meaningless on a flat grant that never grows, which is a fact about the row
+   * rather than a rule here — a row that prints its own figure has already said
+   * what the most is.
+   */
+  max?: number;
   /**
    * The figure is **that many turns of a rate**, read at the moment the occasion
    * fires, rather than a number printed on the row — The Lyceum's *"completing a
@@ -4154,6 +4400,69 @@ export interface CardWindfallRiderEffect {
    * than universal.
    */
   family?: Family;
+  /**
+   * The rider fires only when the building finished or bought was of this
+   * **shelf** — Master Masons' culture buildings.
+   *
+   * The sixth sibling of `vsBarbarians`, and a filter on the *occasion* for
+   * their reason exactly: a building completed and a culture building completed
+   * are one moment asked two ways. Read off `WindfallOccasionFacts.building`,
+   * the row the seam is the only thing still holding — a moment later a Monument
+   * is one more entry in a town's `buildings` list — so the shelf is asked of
+   * that row rather than carried as a second fact. Never satisfied by an
+   * occasion that names no building, which is what keeps a row written onto a
+   * kill silent rather than universal.
+   */
+  buildingCategory?: BuildingCategory;
+  /**
+   * The rider fires only when the building finished was one of the realm's
+   * **single great houses** — Learned Commissions'.
+   *
+   * `buildingCategory`'s sibling one class over, reading the marker the rows
+   * already carry (`BuildingDef.oncePerEmpire`) off the same
+   * `WindfallOccasionFacts.building` — the reading `CityScope`'s
+   * `hasEmpireBuilding` and `CountKind`'s `empireBuildings` already take, said
+   * about the row that was just finished instead of about a town's shelf. A
+   * wonder is **not** one of these: the two classes are separate by the marker's
+   * own reading, and `wonder` is the filter that names the other.
+   */
+  empireBuilding?: boolean;
+  /**
+   * The rider fires only when this occasion was a **first of its kind** — Master
+   * Masons' guild, Civic Receipts' roof, The Patent Rolls' patent.
+   *
+   * `vsBarbarians`' discipline read against a ledger instead of against a fact:
+   * the seam marks the first (`markFirst`, `state.ts` — the one writer) and
+   * hands the ledgers this occasion opened down as
+   * `WindfallOccasionFacts.firsts`, so the *world* decides what was first and a
+   * card only asks. That split is load-bearing — a record written by whoever
+   * happened to hold a card would be a record two empires could each own, and
+   * "first" is a contention question (see `FirstKind`).
+   *
+   * An occasion that opened no ledger never satisfies it, which is the silence
+   * every filter on this shape keeps.
+   */
+  first?: FirstKind;
+  /**
+   * The rider fires **at most once in a turn** — Field Academies' *"your first
+   * combat kill each turn"*.
+   *
+   * An **absolute stamp and never a counter that resets**, which is this
+   * codebase's one discipline about time (`TimedEffect`, `SlottedOrder.
+   * sealedUntil`, `City.purchasedUnitTurns`): `PlayerStatecraft.riderTurns`
+   * holds the turn this card last rode, the rider is dropped while that turn is
+   * the current one, and nothing anywhere ticks it down or sweeps it clean. A
+   * turn arriving is the whole of the reset.
+   *
+   * The stamp is written where the payout is **delivered** (`payWindfallGrants`)
+   * rather than where it is composed, because composing is not spending: a seam
+   * that builds a payout and finds it empty has cost the card nothing, and a
+   * limiter that charged for the asking would silently eat the day.
+   *
+   * It is per **card**, not per piece: "once per unit per turn" is a different
+   * sentence, and Blitz — which says it — is still deferred.
+   */
+  oncePerTurn?: boolean;
 }
 
 /** What a newly founded city is founded *with*. */

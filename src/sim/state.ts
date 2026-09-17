@@ -100,7 +100,14 @@ import {
 } from "./statecraft";
 // A value import as well as the types: `statecraftData.ts` is a runtime leaf
 // (the JSON and its vocabulary) and imports this module not at all.
-import { type CardEffect, type CardId, type DeckId, isDeckId } from "./statecraftData";
+import {
+  type CardEffect,
+  type CardId,
+  type DeckId,
+  type FirstKind,
+  WORLD_FIRST_KINDS,
+  isDeckId,
+} from "./statecraftData";
 import { chooseStartPositionsFor, planStartingUnits } from "./startPositions";
 import type { TechId } from "./techData";
 import {
@@ -1015,8 +1022,25 @@ import {
  * v118 command log would pick indexes into hands this build never dealt. Nothing
  * migrates; the branch starts its saves afresh, which is what a playtest branch
  * is for.
+ *
+ * v120 (the decks rework, batch D2c on branch `decks` — occasions): **the world
+ * writes down what was done first.** One field joins the world —
+ * `GameState.firsts`, the append-only ledger of first-of-a-kind records
+ * (`FirstKind`, written only by `markFirst`) — and one joins the deck,
+ * `PlayerStatecraft.riderTurns`, the absolute turn each once-a-turn windfall
+ * rider last rode. Four moments join `TallyOccasion` (a kill, a unit trained, a
+ * camp burnt out, a town grown) and two counts join `CountKind` off the new
+ * ledger; a windfall grant may be a share of the occasion's own facts
+ * (`OccasionMeasure`), capped by `WindfallGrantSpec.max`.
+ *
+ * **A v119 save is refused and does not replay**, and this is a bump *within*
+ * the branch rather than one over `main`: a v119 log replayed against these
+ * rules would pay different windfalls from the first kill and count different
+ * tallies from the first muster, so the state it reached would not be the state
+ * it recorded. D1a's paragraph above says why the branch migrates nothing, and
+ * the same answer holds — the playtest starts its saves afresh.
  */
-export const SCHEMA_VERSION = 119;
+export const SCHEMA_VERSION = 120;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3306,6 +3330,130 @@ export interface ContestedTriumph {
 }
 
 /**
+ * One thing done **for the first time**. See `GameState.firsts` and `markFirst`.
+ *
+ * `ContestedTriumph`'s shape one register over and for its reason exactly: what
+ * was first, who was first, and when. This is history, and history does not
+ * change — nothing edits a row here and nothing ever deletes one.
+ */
+export interface FirstRecord {
+  /** Which ledger. See `FirstKind`. */
+  kind: FirstKind;
+  /**
+   * What was first, in that ledger's own key — a town's id, a building's id, a
+   * town's id and a shelf. A **string**, because the ledgers key on different
+   * things and a union of five key shapes would be five readers of one list.
+   * `firstKey` is the one place a key is spelt, so nothing anywhere else builds
+   * one by hand.
+   */
+  key: string;
+  /**
+   * The empire that got there first. On a **world** ledger (`techWorld`) this is
+   * the only empire the record will ever name; on the rest it is the owner of
+   * the record, and a second empire writes a row of its own.
+   */
+  playerId: number;
+  /** `state.turn` when it was written. A stamp, never a countdown. */
+  turn: number;
+}
+
+/**
+ * The key one first-of-a-kind record is filed under. **The one place a key is
+ * spelt**, so the seam that writes a record and the count that reads one cannot
+ * disagree about what "the same thing" means.
+ *
+ * The separator is a character no id carries, which is what keeps a two-part key
+ * unambiguous: a town's id and a shelf are `"3|culture"`, and nothing can spell
+ * that pair two ways.
+ */
+export function firstKey(...parts: (string | number)[]): string {
+  return parts.join('|');
+}
+
+/**
+ * The **last part** of a first-of-a-kind key — the building a `buildingInCity`
+ * record is about, and nothing else today.
+ *
+ * `firstKey`'s inverse and here beside it for that function's reason exactly:
+ * the separator is spelt once, so a reader that needs the row back out of a key
+ * does not spell it a second time. A one-part key answers itself.
+ */
+export function firstKeyTail(key: string): string {
+  const cut = key.lastIndexOf('|');
+  return cut < 0 ? key : key.slice(cut + 1);
+}
+
+/**
+ * **Writes down that this happened first, and answers whether it did.** The one
+ * writer of `GameState.firsts`.
+ *
+ * Every first is a **contention**, and this is where the contention is settled:
+ * the row is appended iff no row already matches, so "first" is a property of
+ * *the order the seams ran in* rather than of a check somebody could forget —
+ * `GameState.contested`' own argument, one register over. That order is the
+ * codebase's standing one and it is worth naming: commands resolve in **log
+ * order** within a turn, and the end-of-turn phases sweep **`realPlayers` order,
+ * then each player's own arrays**, so two empires finishing one technology on
+ * one turn are separated by the seat order the research phase already walks.
+ * Nothing here breaks a tie by chance and nothing reads a Map.
+ *
+ * A **world** ledger (`WORLD_FIRST_KINDS`) matches on the kind and the key
+ * alone, so the second empire to finish Bronze Working writes nothing and is
+ * told so. Every other ledger matches on the empire too: a town's first
+ * Monument is that empire's record, and a conqueror who takes the town has not
+ * raised anything.
+ *
+ * Answers **true only for the empire that wrote the row**, which is exactly what
+ * a rider asks (`CardWindfallRiderEffect.first`). A repeat answers false and
+ * leaves the ledger byte-identical, which is what makes calling it from a seam
+ * safe however many times that seam runs.
+ */
+export function markFirst(
+  state: GameState,
+  playerId: number,
+  kind: FirstKind,
+  key: string,
+): boolean {
+  const world = WORLD_FIRST_KINDS.includes(kind);
+  for (const record of state.firsts) {
+    if (record.kind !== kind || record.key !== key) continue;
+    if (world || record.playerId === playerId) return false;
+  }
+  state.firsts.push({ kind, key, playerId, turn: state.turn });
+  return true;
+}
+
+/**
+ * How many rows of one ledger this empire has written, optionally narrowed by a
+ * predicate on the key.
+ *
+ * The reading `CountKind`'s `firstBuildingsInCity` and `firstConversions` take.
+ * The narrowing is a **predicate the caller supplies** rather than a shape of
+ * key spelt here, because what a key means is a question about the ledger and
+ * only its own readers know the answer: the buildings ledger keys on a town and
+ * a row, and "how many of them are culture buildings" is a question for whoever
+ * can ask `buildingDef`, which this module deliberately cannot.
+ *
+ * An array walk in the list's own order, which is the order the records were
+ * written — a count is order-blind, but the shape of the loop is what the next
+ * reader copies (CLAUDE.md's iteration rule).
+ */
+export function countFirsts(
+  state: GameState,
+  playerId: number,
+  kind: FirstKind,
+  keyMatches?: (key: string) => boolean,
+): number {
+  let total = 0;
+  for (const record of state.firsts) {
+    if (record.kind !== kind || record.playerId !== playerId) continue;
+    if (keyMatches !== undefined && !keyMatches(record.key)) continue;
+    total += 1;
+  }
+  return total;
+}
+
+/**
  * A feed record with every family at nothing — the shape `Player.renownByFamily`
  * is created with, in **one place**, so that every seat's record serialises with
  * the same five keys in the same order.
@@ -3527,6 +3675,24 @@ export interface GameState {
    * a fact a chronicle wants anyway — `GameState.wonders`' argument exactly.
    */
   contested: ContestedTriumph[];
+  /**
+   * **What was done first** — one append-only row per ledger and key, in the
+   * order the world wrote them (batch D2c, `FirstKind`).
+   *
+   * `contested`' twin one system over: that register settles which empire
+   * reached an era first and this settles which reached a shelf, a roof, a
+   * congregation or a technology first. It is on the **world** rather than on
+   * the player for the one reading that has to be the world's — `techWorld`,
+   * where being first means being before *everybody* — and keeping the empires'
+   * own ledgers beside it is what stops there being two lists with one rule.
+   *
+   * Written in exactly one place (`markFirst`) and never edited, never pruned,
+   * never ticked: a record is a fact with a turn on it, which is the discipline
+   * every stamp in this game keeps. An array in write order for `camps`' stated
+   * reason — every outcome that depends on an order depends on one the state
+   * itself carries.
+   */
+  firsts: FirstRecord[];
   /**
    * Every religion that has been founded, **in founding order** — which is also
    * what a `ReligionId` is.
@@ -3969,6 +4135,8 @@ export function newGame(config: GameConfig): GameState {
     // empty registers mean.
     recruited: [],
     contested: [],
+    // Nothing has been done yet, so nothing has been done first.
+    firsts: [],
     // Nobody has founded anything, which is what an empty register means.
     religions: [],
     // Nobody is at war and nobody owes anybody peace. Two empty registers, and

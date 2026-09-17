@@ -100,6 +100,8 @@ import {
   type Unit,
   cityReligion,
   citiesOf,
+  countFirsts,
+  firstKeyTail,
   followerCount,
   playerById,
   realPlayers,
@@ -128,8 +130,11 @@ import {
   type CityScope,
   type CombatCondition,
   type CombatScale,
+  type CardWindfallRiderEffect,
   type CountKind,
   type EmpireCondition,
+  type FirstKind,
+  type OccasionMeasure,
   type MeterRuleId,
   type OfferRuleId,
   type OrderBeadOccasion,
@@ -2656,6 +2661,31 @@ export function countOf(
       }
       return families.length;
     }
+    case 'firstBuildingsInCity':
+      // **Off the world's ledger, never off the board** — The Chronicle of
+      // Works. The whole reason the record exists: "a culture building you
+      // complete *for the first time* in a city" is a fact about what has
+      // already happened, and a town that raised a Monument and lost it to a
+      // conqueror still built it. Narrowed to one shelf by the row's own
+      // `category`, exactly as `buildingsOfCategory` is; a row naming none
+      // counts every first roof every town of this empire has raised.
+      //
+      // The **row** is read out of the key and the shelf off the row, rather
+      // than the shelf being stored: the ledger is per building type per town
+      // (the design doc's *"counts each culture building type once per city"*),
+      // and a second key holding what `buildingDef` already says would be a
+      // second answer to drift from.
+      return countFirsts(state, playerId, 'buildingInCity', (key) => {
+        if (effect.category === undefined) return true;
+        const row = firstKeyTail(key);
+        return isBuildingId(row) && buildingDef(row).category === effect.category;
+      });
+    case 'firstConversions':
+      // Its sibling off the same ledger. *Foreign* is decided where the record
+      // is written and never re-derived here, so a town converted while it was
+      // somebody else's and taken a decade later is still a verse the hymnal
+      // wrote first.
+      return countFirsts(state, playerId, 'conversion');
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -5365,6 +5395,19 @@ export interface WindfallPayout {
   pressure: { card: CardId; source: string; amount: number; range: number }[];
   /** Every rider that touched this payout, for the announcement. */
   lines: { card: CardId; source: string; note: string }[];
+  /**
+   * The cards whose **once-a-turn** rider rode this payout, to be stamped when
+   * it is delivered — Field Academies' first kill of the day.
+   *
+   * A list on the payout rather than a write inside the composition, and the
+   * split is the whole of what makes the limiter honest: composing is not
+   * spending. A seam that builds a payout and finds it empty has cost the card
+   * nothing, and a limiter that charged for the asking would eat the day every
+   * time a preview or a guard looked at the moment. So the composer names what
+   * would be spent and `payWindfallGrants` — where a payout stops being a
+   * preview — writes the stamp.
+   */
+  claims: CardId[];
 }
 
 /**
@@ -5433,6 +5476,55 @@ export interface WindfallOccasionFacts {
    * nothing.
    */
   family?: Family;
+  /**
+   * The **combat strength** of the piece the occasion is about — The Art of
+   * War's sword, Songs of the Fallen's dead.
+   *
+   * Passed for `population`'s reason rather than for `capturedWonder`'s: the
+   * payout is asked of an empire and an occasion, and a soldier is neither. A
+   * completion reads the roster's own figure and a battle reads the fallen
+   * piece's, so the two say the same word about two different moments; an
+   * occasion with no soldier in it carries nothing and a grant scaled by this
+   * pays nought there, which is the silence every fact on this shape keeps.
+   */
+  strength?: number;
+  /**
+   * The **coin that actually left the treasury** — Civic Receipts' share of what
+   * the town paid for its roof.
+   *
+   * The purchase verb is the only place the figure is in hand: a price is
+   * composed out of the row's cost, the empire's discounts and the bank it was
+   * paid from, and a moment later the treasury simply holds less. Carried by the
+   * `purchase` occasion alone.
+   */
+  gold?: number;
+  /**
+   * The **building** finished or bought, where the occasion is about one.
+   *
+   * `wonder`'s generalisation and the fact two filters read
+   * (`buildingCategory`, `empireBuilding`): the seam is the one thing still
+   * holding the row it has realised, and a moment later a Monument is one more
+   * entry in a town's `buildings` list. It is the row rather than the shelf
+   * because the shelf is a reading of the row and the marker is another —
+   * carrying the id lets a filter added later ask a third question without a
+   * third fact.
+   */
+  building?: BuildingId;
+  /**
+   * The **first-of-a-kind ledgers this occasion opened**, as `markFirst`
+   * answered them at the seam.
+   *
+   * The one fact on this shape the caller *computes* rather than reports, and it
+   * has to be: whether a thing was first is a contention the world settles
+   * (`markFirst`, the one writer of `GameState.firsts`), and a card asking the
+   * question for itself would be a second register beside the ledger. So the
+   * seam marks, and hands down what it wrote; a rider naming a ledger this list
+   * does not carry simply does not ride.
+   *
+   * An array in the order the seam marked them, never a set — the determinism
+   * rule, and the shape of the loop is what the next reader copies.
+   */
+  firsts?: FirstKind[];
 }
 
 
@@ -5494,6 +5586,7 @@ export function windfallPayout(
     renown: [],
     pressure: [],
     lines: [],
+    claims: [],
   };
   let percent = 0;
   // The era multiplier (Entry XXVIII). **One** factor however many riders ask
@@ -5511,34 +5604,91 @@ export function windfallPayout(
   const slotted = filledOrderSlots(state, playerId);
   let ageMultiplied = false;
   let slotMultiplied = false;
-  for (const { source, card, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
-    if (effect.occasion !== occasion) continue;
+  /**
+   * **Does this rider ride this occasion?** — the whole of the narrowing, in one
+   * predicate because it is asked twice.
+   *
+   * It is a closure rather than a block inside the walk because the occasion's
+   * own figure has to be known *before* the grants are composed: Charcoal
+   * Burners reads what a felling paid, and what a felling paid is the base with
+   * every percentage rider already summed into it
+   * (`docs/six-decks-first-cut.md`'s ruling on The Woodwrights). So the
+   * percentages are folded in a pass of their own and the grants are composed in
+   * the next, over the same set of riders — which only stays one set if there is
+   * one place the set is decided.
+   *
+   * Pure, and it must be: the second pass asks the same question of the same
+   * rider and has to get the same answer, so nothing here writes a stamp or a
+   * line. `oncePerTurn` is read here and **claimed** in the walk below.
+   */
+  const rides = (effect: CardWindfallRiderEffect, card: CardId): boolean => {
+    if (effect.occasion !== occasion) return false;
     // The occasion narrowed by who was on the other side of it. A rider that
     // asks for the wild and did not get it is simply not on this payout — the
     // same reading `combatLine`'s conditions take, one system over.
-    if (effect.vsBarbarians === true && facts.vsBarbarians !== true) continue;
+    if (effect.vsBarbarians === true && facts.vsBarbarians !== true) return false;
     // The same narrowing from the other side: the Pontic peltast mends on the
     // kills **it** made. An occasion with no actor at all never satisfies it,
     // which is what keeps a row written onto a growth silent rather than
     // universal — `atPopulation`'s bargain, one fact over.
     if (effect.class !== undefined) {
-      if (facts.actor === undefined) continue;
-      if (!unitMatches(facts.actor, effect.class)) continue;
+      if (facts.actor === undefined) return false;
+      if (!unitMatches(facts.actor, effect.class)) return false;
     }
     // The same narrowing, one fact over: The Empire pays for a town with a
     // wonder in it and not for a town.
-    if (effect.capturedWonder === true && facts.capturedWonder !== true) continue;
+    if (effect.capturedWonder === true && facts.capturedWonder !== true) return false;
     // And the third: First Fruits pays for the citizen that makes a town two
     // people, not for a citizen. An occasion that carries no population at all
-    // (every occasion but a growth) never satisfies it, which is what keeps a
-    // row written onto the wrong occasion silent rather than universal.
-    if (effect.atPopulation !== undefined && facts.population !== effect.atPopulation) continue;
+    // never satisfies it, which is what keeps a row written onto the wrong
+    // occasion silent rather than universal.
+    if (effect.atPopulation !== undefined && facts.population !== effect.atPopulation) return false;
     // And the fourth: Dinocrates pays for a wonder raised, not for a granary.
     // An occasion that carries no such fact never satisfies it.
-    if (effect.wonder === true && facts.wonder !== true) continue;
+    if (effect.wonder === true && facts.wonder !== true) return false;
     // And the fifth: The Great Poets pay for an artist's afternoon, not for a
     // general's. An occasion that carries no family never satisfies it.
-    if (effect.family !== undefined && facts.family !== effect.family) continue;
+    if (effect.family !== undefined && facts.family !== effect.family) return false;
+    // And the sixth and seventh, both asked of the **row that was finished or
+    // bought**: Master Masons pay for a wall and Learned Commissions for one of
+    // the realm's great houses. Read off the row rather than off two more facts,
+    // for `WindfallOccasionFacts.building`'s stated reason — the shelf and the
+    // marker are two readings of one thing the seam already handed over.
+    if (effect.buildingCategory !== undefined) {
+      if (facts.building === undefined) return false;
+      if (buildingDef(facts.building).category !== effect.buildingCategory) return false;
+    }
+    if (effect.empireBuilding !== undefined) {
+      if (facts.building === undefined) return false;
+      if ((buildingDef(facts.building).oncePerEmpire === true) !== effect.empireBuilding) {
+        return false;
+      }
+    }
+    // And the eighth, asked of the **world's ledger** rather than of a fact: the
+    // seam has already written down what was first (`markFirst`) and handed the
+    // answer down, so this is the card asking and never the card deciding.
+    if (effect.first !== undefined && !(facts.firsts ?? []).includes(effect.first)) return false;
+    // **The day already spent.** Field Academies' first kill of the turn, read
+    // off an absolute stamp — the rider is dropped while the card's last ride is
+    // this turn, and a turn arriving is the whole of the reset. Nothing here
+    // writes: composing is not spending, and the stamp is `payWindfallGrants`'
+    // to make (see `CardWindfallRiderEffect.oncePerTurn`).
+    if (effect.oncePerTurn === true && riderRodeThisTurn(state, playerId, card)) return false;
+    return true;
+  };
+  // **The occasion's own figure, folded first.** The percentages sum and apply
+  // once (Entry XVII at this scale) and the result is what a grant scaled by
+  // `'payout'` reads — so The Woodwrights' doubled chop pays Charcoal Burners a
+  // doubled tithe, which is the design doc's own ruling on the pair. Nothing is
+  // banked here; this is still the one composition Entry XVIII.5 asks for.
+  let percentTotal = 0;
+  for (const { card, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
+    if (rides(effect, card)) percentTotal += effect.percent ?? 0;
+  }
+  const paid = percentTotal !== 0 && base !== 0 ? (base * (100 + percentTotal)) / 100 : base;
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
+    if (!rides(effect, card)) continue;
+    if (effect.oncePerTurn === true && !payout.claims.includes(card)) payout.claims.push(card);
     if (effect.perAge === true) {
       ageMultiplied = true;
       if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${eraNumeral(era)})` });
@@ -5640,6 +5790,39 @@ export function windfallPayout(
         }
         continue;
       }
+      // **A figure quoted as a share of the moment itself** — Triumphs' ten
+      // times a sacked town's people, Charcoal Burners' fifth of the timber.
+      //
+      // `fromRate`'s sibling and read here for that clause's reason exactly:
+      // Entry XVIII.5's whole rule is that the number is composed once, before
+      // anything is banked, so the measure is taken at the instant the occasion
+      // fired and never again. A rider asking for a measure this occasion does
+      // not carry pays nought and is dropped — `atPopulation`'s silence, said
+      // about a figure instead of about a filter — which is what keeps a row
+      // written onto the wrong occasion quiet rather than universal.
+      //
+      // The **ceiling lands before the era and the council**, which is the only
+      // reading that keeps "at most 30 culture per purchase" true: a cap applied
+      // after ×era would have meant three different things in three ages off one
+      // clause. See `WindfallGrantSpec.max`.
+      if (grant.fromOccasion !== undefined) {
+        const measure = occasionMeasure(grant.fromOccasion, paid, facts);
+        if (measure === undefined) continue;
+        let figure = grant.amount * measure;
+        if (grant.max !== undefined) {
+          const ceiling = Math.abs(grant.max);
+          figure = Math.max(-ceiling, Math.min(ceiling, figure));
+        }
+        const amount =
+          figure *
+          (effect.perAge === true ? era : 1) *
+          (effect.perSlottedOrder === true ? slotted : 1);
+        if (amount !== 0) {
+          payout.grants.push({ card, source, yield: grant.yield, amount });
+          payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
+        }
+        continue;
+      }
       // A rider's own grant is multiplied by the era when *that rider* says so —
       // Rites of Blood pays fifteen faith a kill in Æra I and forty-five in Æra
       // III — which is a fact about the card and not about the occasion. The
@@ -5663,10 +5846,96 @@ export function windfallPayout(
   // The era multiplies **last**, on the figure the percentages already reached,
   // so "×your era" is a fact about the money rather than a competitor to the
   // percentages.
-  if (percent !== 0 && base !== 0) payout.amount = (base * (100 + percent)) / 100;
+  // The figure the first pass already folded — the percentages summed and
+  // applied once. Read back here rather than recomputed, so the number a grant
+  // took a share of and the number the occasion banks are one number.
+  payout.amount = paid;
   if (ageMultiplied) payout.amount *= era;
   if (slotMultiplied) payout.amount *= slotted;
   return payout;
+}
+
+/**
+ * What the occasion itself measures, or `undefined` where it measures nothing.
+ *
+ * `rateOf`'s opposite number, one shape over: that one reads the empire's books
+ * and this reads the moment. Four questions and one arm apiece, so a fifth
+ * measure is a member on `OccasionMeasure` and a line here rather than a
+ * second reading of the facts somewhere else.
+ *
+ * **`undefined` and not nought**, which is the distinction that keeps a row
+ * written onto the wrong occasion silent: a kill carries no population, and a
+ * grant of "ten times nothing" would have pushed a zero line the fold then has
+ * to drop. The caller drops the rider instead.
+ */
+function occasionMeasure(
+  measure: OccasionMeasure,
+  paid: number,
+  facts: WindfallOccasionFacts,
+): number | undefined {
+  switch (measure) {
+    case 'strength':
+      return facts.strength;
+    case 'population':
+      return facts.population;
+    case 'gold':
+      return facts.gold;
+    case 'payout':
+      // **What the occasion came to**, percentages folded in — the design doc's
+      // own ruling on The Woodwrights and Charcoal Burners. Every occasion has a
+      // figure, so this arm never answers `undefined`; a figure of nought is a
+      // real nought and the grant it scales is dropped for being zero, one line
+      // down.
+      return paid;
+    default: {
+      const unhandled: never = measure;
+      void unhandled;
+      return undefined;
+    }
+  }
+}
+
+/**
+ * Has this card's once-a-turn rider already ridden this turn?
+ *
+ * A **comparison against an absolute stamp**, which is the whole subsystem —
+ * `TimedEffect`'s discipline read for a limiter. There is no counter to reset
+ * and no broom to run: the stamp says which turn, and every turn but that one
+ * answers no.
+ */
+function riderRodeThisTurn(state: GameState, playerId: number, card: CardId): boolean {
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return false;
+  for (const stamp of sc.riderTurns ?? []) {
+    if (stamp.card === card) return stamp.turn === state.turn;
+  }
+  return false;
+}
+
+/**
+ * Writes the stamp for every card whose once-a-turn rider rode this payout.
+ * **The** one writer of `PlayerStatecraft.riderTurns`.
+ *
+ * Called from `payWindfallGrants` and nowhere else, because that is where a
+ * payout stops being a preview — see `WindfallPayout.claims` for why the naming
+ * and the spending are two steps. A card already stamped for this turn is
+ * rewritten rather than duplicated, so a row carrying two once-a-turn riders
+ * keeps one entry.
+ */
+export function stampRiderClaims(
+  state: GameState,
+  playerId: number,
+  claims: readonly CardId[],
+): void {
+  if (claims.length === 0) return;
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return;
+  const stamps = (sc.riderTurns ??= []);
+  for (const card of claims) {
+    const held = stamps.find((row) => row.card === card);
+    if (held) held.turn = state.turn;
+    else stamps.push({ card, turn: state.turn });
+  }
 }
 
 /**
@@ -6046,6 +6315,12 @@ export function payWindfallGrants(
   press?: (amount: number, range: number, at: { col: number; row: number }) => void,
 ): City[] {
   const touched: City[] = [];
+  // **The day is spent here**, first and unconditionally, because this is the
+  // moment the payout stops being a preview: every once-a-turn rider that rode
+  // it is stamped now, before a coin moves, so a delivery that goes on to find
+  // no town to feed has still cost the card its turn. See `WindfallPayout.
+  // claims`, and `stampRiderClaims`, the one writer of the stamps.
+  stampRiderClaims(state, player.id, payout.claims);
   // **The pieces first**, because a gifted soldier is a thing that arrives
   // somewhere and the yields are book-keeping. Delivered through `realiseItem`
   // — the one routine that means "the city now has the thing" — so the spawn

@@ -139,11 +139,21 @@ describe('the growing-card vocabulary', () => {
     for (const id of ORDER_IDS) {
       for (const effect of orderDef(id).effects) {
         if (effect.kind !== 'pays' || effect.count !== 'tally') continue;
-        // A voice, not a meter and not a percentage — `CardPaysEffect`'s two
-        // discriminants read the way the shape declares them.
+        // A voice **or the writ**, never a percentage and never the mood —
+        // `CardPaysEffect`'s two discriminants read the way the shape declares
+        // them.
+        //
+        // **The writ joined the register in D2c** and the claim is narrower for
+        // it: The Pacified Marches pays *"+1 authority capacity and +3 culture
+        // for every barbarian camp cleared"*, which is one counter feeding two
+        // folds, and `explainAuthority` answers a counted line off `countOf`
+        // exactly as the yields fold does — so a tally reaches the meter by the
+        // machinery every other count already uses, with nothing widened to let
+        // it. What stays shut is the **mood** (a card that made contentment a
+        // function of how long it had sat would be a card nobody could read) and
+        // the **percentage** (Entry XVII's stages are not a counter's business).
         expect(effect.stage, id).toBeUndefined();
         expect(effect.to, id).not.toBe('happiness');
-        expect(effect.to, id).not.toBe('authority');
         expect(['empire', 'city'], id).toContain(effect.where);
         // A town-scoped count says *which* towns, or it would pay every one of
         // them a count that is a fact about the empire.

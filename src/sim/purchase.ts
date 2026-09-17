@@ -66,11 +66,14 @@ import {
   type Unit,
   type UnitPurchaseBucket,
   cityById,
+  firstKey,
   frontKey,
+  markFirst,
   playerById,
   reaimProduction,
   spendGold,
 } from './state';
+import type { FirstKind } from './statecraftData';
 import {
   type ProductionCompletion,
   type RealisedItem,
@@ -1183,7 +1186,13 @@ export function purchaseItemAt(
 
   const born =
     item.kind === 'building'
-      ? realiseItem(state, city, { kind: 'building', id: item.id })
+      ? // **Which bank paid, on the building path too** (batch D2c). It was the
+        // unit path's alone while the only reader was `Unit.stamp`; the
+        // first-of-a-kind ledger reads it now, because the design doc rules that
+        // a first-construction reward wants a *production completion* and a
+        // bought roof is not one. `realiseItem` closes the ledger's door either
+        // way and reports the first only when nothing bought it.
+        realiseItem(state, city, { kind: 'building', id: item.id }, { bought: price.currency })
       : realiseItem(
           state,
           city,
@@ -1227,7 +1236,31 @@ export function purchaseItemAt(
   // Last, after the thing is realised and the queue is spliced, because a rider
   // may hang a timed effect on the empire and the purchase it is a bill for
   // should be complete before the bill arrives.
-  const bill = windfallPayout(state, player.id, 'purchase');
+  //
+  // **What the town had never bought before**, marked before the payout is
+  // composed: a rider asks the world what was first and never decides it for
+  // itself (`markFirst`, the one writer). Keyed on the town alone, because Civic
+  // Receipts is about a town learning to buy and not about which roof it bought;
+  // a unit bought at the same till opens nothing, which is what keeps the
+  // ledger's name honest.
+  const firsts: FirstKind[] = [];
+  if (
+    item.kind === 'building' &&
+    markFirst(state, player.id, 'purchaseInCity', firstKey(city.id))
+  ) {
+    firsts.push('purchaseInCity');
+  }
+  const bill = windfallPayout(state, player.id, 'purchase', 0, 0, {
+    // **The coin that actually left the treasury** — the figure Civic Receipts
+    // takes a tenth of, and the one place it is in hand: a price is composed
+    // out of the row's cost, the empire's discounts and the bank it was paid
+    // from, and a moment later the treasury simply holds less. It is the total
+    // whichever bank paid, because "what you paid" is what the card's face says
+    // and a faith purchase paid something.
+    gold: price.total,
+    ...(item.kind === 'building' ? { building: item.id } : {}),
+    firsts,
+  });
   if (bill.grants.length > 0 || bill.units.length > 0 || bill.timed.length > 0 || bill.healAll) {
     for (const touched of payWindfallGrants(state, player, bill, { col: city.col, row: city.row })) {
       settleProductionWindfall(state, touched);

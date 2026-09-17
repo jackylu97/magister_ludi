@@ -123,11 +123,13 @@ describe('the Commerce deck is one deck', () => {
 });
 
 describe('a live Commerce row is a card', () => {
-  it('pays through twelve rows, and every one of them is dealt', () => {
+  it('pays through thirteen rows, and every one of them is dealt', () => {
     // The World's Exchange joined them with D2b: hammers behind a thing may be
     // counted off a thing the realm holds now, and the courts its roads reach
-    // are one such thing.
-    expect(live().length).toBe(12);
+    // are one such thing. **Civic Receipts joined with D2c**: a purchase now
+    // says what it cost and whether it was that town's first, which is the
+    // whole of what the receipt reads.
+    expect(live().length).toBe(13);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -191,8 +193,9 @@ describe('a live Commerce row is a card', () => {
         check(id, effect);
       }
     }
-    // Six shapes carry the whole live half; a seventh here would be a shape
-    // this pass added without saying so.
+    // Seven shapes carry the whole live half — the windfall rider joined with
+    // D2c's Civic Receipts — and an eighth here would be a shape a later pass
+    // added without saying so.
     expect([...kinds].sort()).toEqual([
       'pays',
       'productionBonus',
@@ -201,6 +204,7 @@ describe('a live Commerce row is a card', () => {
       'unitStamp',
       'unitStat',
       'upkeepRebate',
+      'windfallRider',
     ]);
   });
 
@@ -224,7 +228,7 @@ describe('a live Commerce row is a card', () => {
 
 describe('a deferred Commerce row is a promise, not a card', () => {
   it('pays nothing, says what it would have said, and sits in no pool', () => {
-    expect(deferred().length).toBe(37);
+    expect(deferred().length).toBe(36);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);

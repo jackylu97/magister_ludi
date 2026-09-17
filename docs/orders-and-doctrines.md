@@ -140,6 +140,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Standing Army | 0 | ○ | S | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
 | Blood Brothers | 0 | ○ | S | A barbarian unit you kill joins your side. |
 | The King's Levy | 0 | ○ | S | Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep. |
+| The War Chronicle | 0 | ● | P | While slotted, pays +3 science and +3 culture, and gains +3 of each for every enemy unit you kill. |
 | March Discipline | 1 | ● | S | Military units gain +1 movement when starting their turn in your territory. |
 | Field Surgeons | 1 | ● | S | Military units heal an extra 10 health while fortified. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +2 food and +2 production. |
@@ -155,6 +156,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Iron Hand | 1 | ◆ | S | +6 authority capacity. |
 | War Foundries | 1 | ○ | P | Cities with a Barracks gain gold equal to 20% of their base production and +25% production toward military units. |
 | Horse Lords | 1 | ○ | S | Mounted units gain +3 strength and +1 movement. |
+| The Muster Rolls | 1 | ◆ | P | While slotted, gains +1 science and +1 culture each time you train a unit. Purchases do not count. |
+| The Pacified Marches | 1 | ◆ | P | While slotted, gains +1 authority capacity and +3 culture for every barbarian camp cleared. |
+| The Art of War | 1 | ◆ | S | Training a unit grants science equal to half its strength. |
+| Songs of the Fallen | 1 | ○ | S | Killing or losing a unit grants science and culture equal to that unit's strength. |
 | Siege Works | 2 | ● | S | +25% production toward siege units. Siege units gain +4 strength against cities. |
 | The War Chest | 2 | ● | P | Military units cost 1 less upkeep, minimum zero. Barracks give +3 gold. |
 | Armoury Guilds | 2 | ● | P | Armouries give +3 science and +3 culture. Cities with one gain +10% production toward buildings. |
@@ -173,6 +178,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Hegemony | 2 | ○ | S | Captured cities you hold cost one less authority. Capturing a city grants +20% production in every city for ten turns. |
 | Triumphal Return | 2 | ○ | S | Capturing a city that holds a wonder heals all your units. |
 | Master Bowyers | 2 | ○ | S | Ranged and siege units gain +1 range. |
+| Triumphs | 2 | ● | S | Capturing a city grants culture equal to ten times its population. |
 | Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +8% production and +8% culture. |
 | Spoils of Empire | 3 | ● | P | Captured cities gain +25% gold and +25% science. Cities with a Courthouse gain +4 happiness. |
 | Arsenals | 3 | ● | P | Cities with an Armoury gain +20% production and produce ships 50% faster. |
@@ -196,6 +202,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Patient Harvest | 0 | ○ | S | Cities retain 30% of the food spent on growth, but produce military units 15% more slowly. |
 | Tinkers' Guild | 1 | ● | S | Workers you produce or purchase gain +1 charge. |
 | The Old Songs | 1 | ● | S | Worked unimproved land gains +1 culture. |
+| Charcoal Burners | 1 | ● | S | Chopping forest or jungle also grants faith and culture each equal to 20% of its chop production. |
 | The Highlands | 2 | ● | S | mines and quarries on hills gain +2 science and +1 production. |
 | The Steppe | 2 | ● | S | pastures gain +2 production. Horse-dependent military units cost 25% less production. |
 | The Coast | 2 | ● | S | Worked fishing boats gain +2 food and +2 culture. |
@@ -214,6 +221,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Assayer's Rule | 0 | ◆ | S | +2 gold on resource tiles that supply gold |
 | Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +3 food and +2 production. |
 | Bought Swords | 1 | ◆ | S | Military units cost 20% less gold to purchase, but 10% more production to train. Purchases still do not count as training. |
+| Civic Receipts | 1 | ◆ | S | Purchasing an ordinary building for the first time in a city grants culture equal to 10% of the gold paid, at most 30 culture per purchase. |
 | The Chartered Arsenal | 2 | ◆ | S | Military units purchased with gold gain +4 strength permanently on creation. |
 | The Paid Army | 3 | ◆ | S | Military-unit upkeep falls by 1 gold, minimum zero. Military units cost 25% less gold to purchase. |
 | Merchant Princes | 3 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
@@ -231,6 +239,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Rites of Labor | 0 | ◆ | P | Cities keeping a rite gain +20% production toward buildings and +2 gold. |
 | The Rites Commonwealth | 0 | ○ | P | Cities keeping a rite gain +3 production and demand 15% less population happiness. Your cities without a rite gain −1 happiness. |
 | Monastic Copyists | 1 | ● | P | Cities with a Temple and Library gain +3 science and +3 culture. |
+| The Living Hymnal | 1 | ◆ | P | While active, gains +2 science and +2 culture per turn in your capital for each foreign city first converted to your religion, at most +24 of each. |
 | The Saints' Fields | 2 | ● | S | Worked Holy Sites give +3 food and +3 production. A city working one gains +2 happiness, once per city. |
 | The Cathedral Works | 2 | ● | P | Gain +30% production toward Cathedrals. Cities with one gain +5 production and +5 science. |
 | The Spiritual Host | 2 | ◆ | S | Your military units gain +4 strength in territory following your religion. Temple cities gain +2 happiness while you are at war. |
@@ -252,10 +261,12 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Working Estates | 1 | ● | S | Worked great-person improvements gain +3 food and +2 gold. |
 | The Assay | 1 | ● | P | Gain +2 science and +2 gold for each distinct strategic resource type you can access. |
 | The Endowed Provinces | 1 | ◆ | P | Each city working at least one great-person improvement gains +4 food and +3 production, once per city. |
+| Learned Commissions | 1 | ● | S | Library cities gain +25% production toward empire buildings. Completing each institution type for the first time grants 40 culture and 20 faith. |
 | The Royal Society | 2 | ● | S | Each empire building grants +2 renown. Its city gains +2 happiness, once per city. |
 | The Learned Chancery | 2 | ● | S | Cities with an empire building cost one less authority, minimum one, and gain +50% border growth. |
 | The Academy Quarter | 2 | ◆ | P | A city with an empire building gains +3 production and +3 gold per different great-person work type it works, at most +15 of each. Multiple institutions do not multiply this benefit. |
 | The Quiet Faculties | 2 | ○ | P | Cities working a great-person improvement gain +25% food and +20% production, but produce military units 25% more slowly. |
+| The Patent Rolls | 2 | ◆ | S | Completing a technology before any other empire grants 20 culture and 10 renown. |
 | Master Artificers | 3 | ◆ | S | Worked Academies and Manufactories gain +6 production and +6 gold. |
 | The Society of Artificers | 3 | ○ | P | A city with an empire building working an Academy or Manufactory gains food and culture each equal to 20% of its base production, excluding conversion outputs. |
 
@@ -275,6 +286,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Court Stewards | 0 | ◆ | P | Your capital gains +1 food and +1 gold per three citizens while it has a Monument. |
 | The Founding Pageant | 0 | ○ | S | Founding a city grants a free Monument and 25 culture. Your capital produces settlers 25% faster. |
 | The Capital of Letters | 0 | ○ | P | Your capital gains +20% food and +20% gold while it has a Monument and Granary, but trains military units 15% more slowly. |
+| Master Masons | 0 | ● | S | Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there. |
+| The Chronicle of Works | 0 | ◆ | P | While active, gains +1 science and +1 gold per turn for each culture building you complete for the first time in a city, at most +30 of each. |
 | The Chancery | 1 | ● | P | Gain +1 authority capacity per two Monuments, at most +3. Cities with at least two culture buildings gain +2 gold. |
 | The Civic Stage | 1 | ● | P | Cities with at least two culture buildings gain +2 happiness and +3 food. |
 | The Public Copyists | 1 | ● | P | Cities with a Monument and Library gain +3 science and +2 culture. |
@@ -294,6 +307,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Artisan Court | 1 | ○ | S | Cities working a great-person improvement gain +2 renown and purchase culture buildings for 25% less gold. |
 | The Working Court | 1 | ○ | P | Cities with a Monument gain production equal to 20% of their base culture, excluding conversion outputs. |
 | The Festival Season | 1 | ○ | P | Cities with a Garden and Amphitheater gain +20% food and +20% gold. Each qualifying city costs +2 gold upkeep. |
+| The Master Workshops | 1 | ◆ | S | Completing a culture building for the first time in a city grants 25 production there and 20 gold. |
 | The Court Archives | 2 | ● | P | Culture buildings give +2 science each. Cities with at least two gain +5 gold. |
 | The Public Gallery | 2 | ● | P | Cities with at least three culture buildings gain +6 food and +3 happiness. |
 | The Monumental Provinces | 2 | ● | P | Connected noncapital cities with a Monument gain +5 production and +3 culture. |
@@ -330,6 +344,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Frontier Garrisons | Dominion · Expansionist | 0 | ● | P | Garrisoned cities of at most five population gain +2 food. |
 | Military Colonies | Dominion · Expansionist | 1 | ◆ | S | Cities with a Barracks gain +30% production toward settlers and workers. |
 | The Escorted Roads | Dominion · Commerce | 1 | ◆ | S | Routes whose origin has a garrison gain +3 gold. Naval units gain +2 strength while adjacent to one of your traders. |
+| Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first combat kill each turn grants 15 science. Cities with a Library produce siege units 25% faster. |
 | The Engineer Corps | Dominion · Scientific | 3 | ◆ | S | Siege units gain +1 movement. Cities with a Workshop gain +20% production toward siege units and +2 science while at war. |
 | The Imperial Examinations | Dominion · Magisterial | 1 | ◆ | P | Garrisoned cities with a Monument gain +2 culture and +1 scholar renown. |
 | Examinations of State | Dominion · Magisterial | 2 | ○ | P | Cities with a Monument and a garrison gain +1 science and +1 culture per three citizens. Ungarrisoned cities receive no bonus. |
@@ -371,21 +386,15 @@ across the seven files. Ids are internal; the names in these tables are the card
 ### Notes and deferred halves (from the data rows)
 
 - **Muster Rites** — A unit bought outright counts as trained, and pays this once.
-- **The War Chronicle** — † while this sits in a chair it pays a little science and culture, and pays more of each for every enemy unit you have killed while it sat there
 - **The King's Levy** — The levy is raised, not bought: it goes on no payroll, and everything that rewards a unit finished rewards this one.
 - **Veterans' Rest** — † a town with a barracks or a war hall is gladder, and gladder still for each unit standing in it
 - **Foragers' Right** — † every unit standing in a town makes that town’s worked resource tiles pay more grain and more hammers
 - **The Warlord's Call** — † the first time this is seated a great general answers the call, once and never again; citadels pay more grain and more hammers while it sits in a chair
 - **Army Contracts** — Two lines, one for each hall: a town that keeps both sends its caravans out under both.
-- **The Muster Rolls** — † while this sits in a chair it pays a little more science and culture for every unit you have trained since it was seated, and a unit bought outright does not count
-- **The Pacified Marches** — † while this sits in a chair it pays more authority and more culture for every camp you have burnt out since it was seated
-- **The Art of War** — † training a unit pays science in proportion to how strong that unit is
 - **Soldier-Settlers** — † a town you found comes with a melee unit already standing in it; a melee unit you train can do a worker’s job once, building an improvement or felling a wood
-- **The Sea Levy** — † ships are cheaper to keep; training a ship pays culture in proportion to how strong that ship is
-- **Songs of the Fallen** — † killing a unit, or losing one, pays science and culture in proportion to how strong that unit was
+- **The Sea Levy** — Half built and therefore not built: training a hull may now pay for how strong it is, but a payroll is discounted as a share of the whole army and cannot be forgiven a coin at a time for one kind of piece. † ships are cheaper to keep; training a ship pays culture in proportion to how strong that ship is
 - **Universal Conscription** — † your cities put much more production behind units; once this has been seated you may never buy a unit again for the rest of the game, even after it leaves the chair
 - **Provincial Garrisons** — † every unit standing in a town puts more of that town’s production behind its buildings
-- **Triumphs** — † taking a city pays culture in proportion to how many people lived in it
 - **Scorched Earth** — † the unit that burns a tile mends; the coin that tile would have paid is paid to you again as faith
 - **Marine Drill** — The blessing is hung on the piece the moment it wades ashore, and lasts the turn it landed.
 - **Riders of the Steppe** — A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.
@@ -395,9 +404,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Undermining** — † your units fight harder against a city that has walls; siege engines walk past an enemy picket for nothing
 - **Spoils of War** — † burning a tile pays production to every city you hold, not only the nearest; the first tile you burn each turn pays culture as well
 - **Warlords** — Held whole. Hammers behind a thing can be counted off what the realm holds now, but the great people it holds are not among the things it can count. † every great general you have earned puts more production behind your units; citadels pay hammers and culture
-- **Prize Courts** — † taking a coastal city pays gold in proportion to how many people lived in it; your ships beside a city you take are mended completely
+- **Prize Courts** — Half built and therefore not built: a capture may now pay for the people who lived in the town, but nothing tells a coastal town from an inland one at that moment, and a payout mends the whole army or none of it — never the hulls standing beside the gate. † taking a coastal city pays gold in proportion to how many people lived in it; your ships beside a city you take are mended completely
 - **Blockade** — † one of your ships beside an enemy coastal city puts that city under siege; a caravan bound for it is plundered where your ship sits
-- **The Blood Ledger** — † everything you are paid for killing a unit, or for losing one, is paid twice over — the one-off rewards and the standing ones alike
+- **The Blood Ledger** — Not built: a card may scale what an occasion pays out of itself, and a kill pays nothing out of itself — everything it hands over is another card's grant. Doubling one card's gifts from a second card is a reading nothing in the vocabulary makes, and the standing counters the text also names are not payouts at all. † everything you are paid for killing a unit, or for losing one, is paid twice over — the one-off rewards and the standing ones alike
 - **Pax Imperia** — † while you are at peace every city makes more and is gladder; declaring war silences this card for a long stretch of turns
 - **The Sea Treasury** — † every unit standing in a coastal town turns part of that town’s coin into hammers
 - **The Military Roads** — † your military units walk your own roads for nothing inside your borders; a town joined to your capital makes more
@@ -405,17 +414,16 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **War Colleges** — † a unit raised in a town with an armoury is born quicker and hardier, and stays so for life
 - **Naval Supremacy** — The second share is paid only where both are true, so a coastal town taken in war keeps both lines.
 - **The Veterans' Grant** — † every military unit you have ever trained pays your capital hammers and beakers, up to a limit
-- **Blitz** — † a unit that kills gets a couple of movement points back, once a turn, and still may not strike again; your military units may not dig in
+- **Blitz** — Not built, all three halves: the once-a-turn stamp is kept per card and this one is per piece; an occasion hands over coin, renown, a soldier or a blessing and never movement; and nothing forbids an army to dig in. † a unit that kills gets a couple of movement points back, once a turn, and still may not strike again; your military units may not dig in
 - **Casus Belli** — † taking an empire’s first city hands you a bead of the great work
 - **Claim by the Spade** — A worker cannot yet build outside your borders, and nothing takes ground in for the town that reaches it. † works raised on open ground beside your border take that ground for the nearest town; the first claim of each place pays that town in grain and coin
-- **The Growing Annals** — A card may keep a running count of battles, of wonders and of coin spent, but not yet of citizens born. † the card keeps count of every citizen born and pays a little more each turn for it
+- **The Growing Annals** — Not built: the design pays only for growth past the largest a town has ever been, and a town remembers how many people live in it and not how many ever did — so a counter of plain growth would write the annals twice for one citizen a levy took and the fields gave back. † the card keeps count of every citizen born and pays a little more each turn for it
 - **The Pioneers' Portion** — A provisional name for a line the worksheet has not finished. Nothing yet prices a town by what its ground carries. † a town founded beside a resource asks less of your writ than any other; the name, the rarity and the wording are the designer's to settle
 - **The Field Altars** — A provisional name for a line the worksheet has not finished. The rule itself is ready; the card is not. † the name, the rarity and the wording are the designer's to settle
 - **Levy of the Land** — A city cannot yet spend a citizen on anything. The verb, its waiting period and its payment are all still to be built. † a city spends one of its people and is paid in labour for it; a city may do this only now and then
 - **Planted Forests** — Nothing may plant a wood, and no wood in the game is young or old — the ground remembers neither. † a worker plants a wood on open ground of your own; a planted wood is young for a long while, and cannot be felled for timber until it is grown
 - **The Prize Rolls** — A provisional name for a line the worksheet has not finished. The rule itself is ready; the card is not. † the name, the rarity and the wording are the designer's to settle
 - **Old Growth** — No wood in the game is young or old, so neither half can tell which trees it means. † a grown wood your people work feeds and builds better than a young one; felling a grown wood yields more timber than felling a young one
-- **Charcoal Burners** — A card may make a felling pay more timber, or add a fixed gift beside it, but not yet pay one voice a share of another. † felling a wood pays devotion and song in proportion to the timber it gave
 - **The Woodland Edge** — Held whole. A hex can be paid a helping for every wood in its ring now, but the works this card pays are the ordinary ones — and an improvement that is not a great person's work is a thing no ground condition can name. † works pay more for every wild wood standing next to them; a wild wood beside a field feeds better for it
 - **The High Pastures** — No law can yet put a citizen on a mountain: what a town may work is a fact about the ground alone. † your people may work the mountains inside your borders; a worked mountain gives stone and devotion
 - **The Watercourses** — A field either stands on fresh water or it does not; no field can yet pass water to the next one. † a field on the river waters the fields beside it; a watered field builds better; the water goes no further than one field over
@@ -449,7 +457,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Travellers' Letters** — Half built, and so held whole. Nothing in this game counts the empires you have met, so the letters have nobody to be addressed to. † your capital learns and sings a little more for every foreign empire you have met
 - **Letters of Introduction** — Held whole. The world does not announce a first meeting, and no law of yours can put coin in another realm's treasury. † meeting an empire for the first time pays you, and pays them; claiming a discovery pays gold
 - **Private Patronage** — Held whole. A discount here would reach the great national houses as well, and the card says it must not. † buying an ordinary building costs less, and raising one the slow way costs more
-- **Civic Receipts** — Held whole. A purchase announces itself, but it does not say how much was paid, and no town keeps a list of what it has bought before. † the first time a city buys a building, the town sings for a share of what you paid
 - **The Common Road** — Half built, and so held whole. A law of yours pays your own books; it has no way to put coin in a foreign market. † a road that ends abroad pays you, and pays the town it ends in
 - **The Return Leg** — Held whole. A caravan's earnings are banked where it arrives, and there is no way to send a share of them home. † a road pays the town it left as well as the town it reaches, and the second helping never travels again
 - **Venture Routes** — Held whole. Nothing can lengthen a caravan's term, and a road's pay cannot be made to turn on how far it reaches. † your roads run longer before they lapse; a road between distant towns pays far more gold
@@ -493,8 +500,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Feast Days** — Not built: nothing counts the years a particular town has spent keeping its rites while this law stood. † a town that has kept its rites long enough holds a feast, takes faith for every citizen at it, and is glad of it for a while
 - **The Quiet Hours** — Not built: a law may make the realm's rites run longer by a share of their length and cannot yet add a flat count of turns to them. † a rite granted while this stands runs five turns longer than it would
 - **The Rites Charter** — Not built, both halves together: the chapel is ready to be opened and the rite charted beside it has not been written into the book of rites. † the chapel may be raised in your towns under its ordinary rules; a town may keep the Rite of Passage, and the soldiers raised there are hardier for the rest of their lives
-- **The Living Hymnal** — Not built: nothing keeps a record of which foreign towns your faith reached first, and a record that could be made twice would pay twice. † your capital learns and sings a little more for every foreign town you were the first to bring to your faith, up to a limit
-- **Missionary Hospitality** — Not built, both halves together: nothing marks the first time a foreign town turns to your faith, and the roster has no word that gathers the prophet, the apostle and the inquisitor into one line. † clergy cost less faith to call; the first time each foreign town turns to your faith your capital is fed and the realm sings
+- **Missionary Hospitality** — Half built and therefore not built: the world now writes down the first time each foreign town turns to your faith, but the roster has no word that gathers every kind of clergy into one line, so nothing can make them cheaper to call. † clergy cost less faith to call; the first time each foreign town turns to your faith your capital is fed and the realm sings
 - **The Alms Roads** — Not built: a caravan carries no faith, and a law of yours cannot put coin in another empire's purse. † roads from your temple towns feed and enrich the towns they reach; roads from them into another realm pay you in faith and coin, and pay your host a little too
 - **Consecrated Labor** — Not built: the faith bank sells clergy and houses of learning, and nothing opens it to the spade. † workers may be bought with faith in temple towns at the price coin would have paid; and those workers come with an extra charge in them
 - **The Votive Companies** — Not built, both halves together: the faith bank does not sell soldiers, and the price the other half charges is no card on its own. † temple towns keeping a rite may buy soldiers with faith at the price coin would have paid; and every soldier you keep costs a coin more while this stands
@@ -513,24 +519,22 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Cloistered Realm** — Not built, both halves together: a proclamation's weight can be shifted by a flat figure and not by a share of itself. † cathedral towns keeping a rite learn and build far faster; and your proclamations press more gently for it
 - **The Celestial Rites** — † your capital gathers faith from the sky, and being the first to set eyes on each new kind of country or ground pays faith besides
 - **Natural Philosophy** — † being the first to set eyes on each new kind of country or ground pays science, and feeds your capital
-- **Apprentice Engineers** — † towns with a library raise workers faster, and the first works of each kind you build on ground of your own pay the town that holds them
+- **Apprentice Engineers** — Not built: the world announces a wood felled, a hill surveyed and a hex bought, and never a work finished on the ground — so the first of each kind has no moment to be paid at, however well the ledger would remember it. † towns with a library raise workers faster, and the first works of each kind you build on ground of your own pay the town that holds them
 - **The Long Study** — † a library that has stood a long while pays culture and renown, and pays more again once it is very old
-- **The Research Annals** — † while this sits in council, your capital works and sings for every technology you have completed, up to a limit
+- **The Research Annals** — Not built: nothing counts the studies an empire has finished — the tree is a list no card can yet ask the length of. † while this sits in council, your capital works and sings for every technology you have completed, up to a limit
 - **Patient Research** — † science buildings cost more to raise, and each one that has stood a long while feeds and works the town it stands in
 - **The Glassmakers' Charter** — † drafting this opens the study of lenses for research
 - **The Open Collegium** — † you gain more renown while no great person of yours is waiting to be spent
 - **The Old Academy** — † an academy that has stood a long while feeds and works the town it serves, and more again once it is very old
-- **Learned Commissions** — Held whole. The world announces that a building was finished, but not whether the realm had ever finished one of that kind before — so the commission has no first time to pay for. † completing each kind of empire building for the first time pays culture and faith
 - **The Strategic Reserves** — † every improved strategic deposit past the first of its kind works and pays the town that holds it, and a great person's works count as improvements here
 - **The Practical Arts** — † technologies that match what your empire already does cost less to research, while ordinary soldiers cost more to raise
 - **Research through Construction** — † your towns' science becomes production instead, and finishing an ordinary building pays research worth part of its price
 - **The Metallurgists' Charter** — † drafting this opens the study of alloys for research
 - **The Naturalists' Charter** — † drafting this opens the study of living things for research
 - **The Inherited School** — Held whole. The realm can now count the families whose legacies it keeps, but what a hex pays cannot be multiplied by a thing the realm holds — only by what stands beside the hex itself. † worked academies and manufactories feed and work the better for each different family of great person whose legacy you still keep, up to a limit
-- **Discoveries through Great People** — † spending a great person on an act, a work or a legacy pays part of the research you are studying, at most once in a turn
+- **Discoveries through Great People** — Half built and therefore not built: a gift may now be held to once a turn, but the moment announced is the boon alone and not the lasting work or the legacy, and nothing pays a share of what the study you are on would cost. † spending a great person on an act, a work or a legacy pays part of the research you are studying, at most once in a turn
 - **Husbandry Studies** — † soldiers of yours that depend on horses are quicker on their feet from the day they are raised, and stay so
 - **Enduring Institutions** — † a town whose empire building has stood a long while is gladder and builds faster, once per town
-- **The Patent Rolls** — † completing a technology before any other empire pays culture and renown
 - **Commissions of Service** — † spending a great person on an act or a legacy pays food and gold to your nearest town, though placing a work does not
 - **The Mechanists' Charter** — † drafting this opens the study of mechanics for research
 - **The Alchemists' Charter** — † drafting this opens the study of chemistry for research
@@ -538,15 +542,12 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Long Inheritance** — † towns working a great person's work that has stood a long while build empire buildings, wonders and the great work faster, and faster again where the empire building there is itself old
 - **The Distant Colleges** — † a town holding an empire building may work your great people's works one hex beyond its usual reach, and gains no ground and no citizens by it
 - **The Learned Realm** — Held whole. Nothing in the game remembers when a building was raised, so no law can tell an old library from a new one. † towns with a library that has stood a long while are gladder
-- **Master Masons** — † Finishing a culture building for the first time in a town grants that town production. The world announces that a building was finished, but not what kind of building it was, nor whether the town had ever raised one of that kind before.
 - **The Civic Guard** — † Towns that keep a Monument are harder to storm.; Soldiers defending beside such a town fight harder. A strength line can be told where the fight is happening — your ground, the hills, a town — but not which buildings stand in the town behind it.
-- **Festival Commissions** — † A town that keeps a Monument is paid in culture and food each time it grows. What the world announces is that a town grew, and how many citizens it has now — not which buildings stand in it, nor whether it has ever been this large before.
-- **The Chronicle of Works** — † A running count of the culture buildings raised for the first time in each town, paid out in science and gold every turn. The moments a card may keep count of are a barbarian killed, a wonder finished anywhere, a great person spent, one of your own soldiers lost and coin paid out at a purchase — a building finished is not among them.
-- **The Civic Annals** — † A running count of every time a town that keeps a Monument grows, paid out in production and culture in your capital. A card can keep no count of growth, and a growth cannot be told apart by what stands in the town.
-- **Public Benefactors** — † Buying a building pays culture in proportion to the coin that actually left the treasury, the first time that town acquires one of that kind. A purchase is announced as a moment, and the payout a moment carries is a figure printed on the card — never a share of what was spent.
-- **The Master Workshops** — † Finishing a culture building for the first time in a town pays that town production and your treasury gold. The world announces that a building was finished, but not what kind of building it was, nor whether the town had ever raised one of that kind before.
+- **Festival Commissions** — Not built: a windfall is paid to an empire and cannot be told what stands in the town that grew; and the design pays only for growth past a town's own historical high, which nothing remembers. † a town that holds a monument is paid in song and bread each time it grows
+- **The Civic Annals** — Not built: a counter is a number on a card and carries no subject, so it cannot be told which towns to watch; and the design pays only for growth past a town's own historical high, which nothing remembers. † the card keeps count of every time one of your towns that holds a monument grows, and pays a little more each turn for it
+- **Public Benefactors** — Half built and therefore not built: a purchase now says what it cost and whether it was that town's first, but a windfall is paid to an empire and cannot be told what stands in the town where the money changed hands. † buying a building in a town that holds a monument pays song in proportion to the coin that actually left the treasury, the first time that town acquires one of that kind
 - **The Commemorative Feast** — † Spending a great person feeds and supplies the nearest town. The world announces the moment a great person is spent on a deed, and not the moment one is spent laying down a lasting work — so a card written on the spending would pay for half of the ways a person may be spent.
-- **The Living Chronicle** — † A running count of the wonders you finish and the great people you spend, paid out in production and culture in your capital. A card may keep count of a wonder finished anywhere in the world and of a great person spent — but not of a wonder finished by you alone, and two such counts cannot be added into one.
+- **The Living Chronicle** — Not built: a card may count a marvel finished anywhere in the world and a great one spent, but not a marvel finished by you alone; and two counters cannot share one ceiling, so a card whose limit is on the pair of them cannot be written as a pair of lines. † the card keeps count of the marvels you finish and the great ones you spend, and pays a little more each turn for both
 - **The Complete Court** — † Your capital is paid for the breadth of what it has raised. The kinds of building a town holds can be counted now, but not with one of those kinds left out — and this card is paid for everything except its own.
 - **The Palace Guard** — † Towns that keep several culture buildings raise soldiers faster and are defended harder. A strength line cannot be told which buildings stand in the town behind it.
 - **The Cultural Embassies** — † Your capital is paid for each foreign realm you have met and are not fighting. Nothing counts the realms you have met, nor the ones you are at peace with — only the ones your caravans trade with.
@@ -559,14 +560,13 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Letters of Marque** — † cities with a harbour buy warships more cheaply, and build them more slowly
 - **Rites of Passage** — † completing a soldier — and no other kind of unit — pays faith
 - **The Sacred Host** — † soldiers may be bought with faith, in the cities that keep a temple
-- **Field Academies** — † the first kill of each turn, and no other, teaches you something
 - **Harvest Offerings** — † a town of your faith that grows is given a day's labour with it
 - **The Hydraulic Commonwealth** — † a share of the grain a town has left over is gained again as learning
 - **Garden Cities** — † the farms a town actually works are counted, and paid in song
 - **Pilgrim Markets** — † a road pays when either of its two ends keeps a holy site
 - **The Exchange of Discoveries** — † a town counts the distinct realms its own caravans reach
 - **The Cosmopolitan Court** — † a town's own foreign roads are counted toward the names it raises
-- **Sacred Patronage** — † spending a great person pays faith, but never more than once in a turn
+- **Sacred Patronage** — Half built and therefore not built: a gift may now be held to once a turn, but the moment the world announces is a great one spending themselves on their boon — so a card written on the spending would pay for one of the ways a person may be spent and stay silent for the others. † spending a great person pays faith, but never more than once in a turn
 - **Triumphal Arches** — † taking a town raises the name of a general in particular. A town that holds a wonder can be told from one that does not now, but the renown an occasion pays favours nobody in particular — a deed is not a shelf of buildings, and the draw's bias is a fact about what an empire keeps.
 - **The Crusader Orders** — † taking a town preaches your faith into it, and the unbelieving ground is the harder fought
 - **The Grain Exchange** — † the town at the far end of one of these particular roads is the gladder for it

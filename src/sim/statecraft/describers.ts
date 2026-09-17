@@ -56,6 +56,8 @@ import {
   type CombatScaleCount,
   type CountKind,
   type EmpireCondition,
+  type FirstKind,
+  type OccasionMeasure,
   type MeterRuleId,
   type OfferRiderScope,
   type OfferRuleId,
@@ -1406,6 +1408,29 @@ function describeEffect(
       // with the occasion — one seam, and a grant shape added later inherits
       // the narrowing without this arm being touched.
       const only = effect.class === undefined ? '' : `for ${filterWords(effect.class)} alone, `;
+      // **The four narrowings D2c added, in a parenthesis after the occasion.**
+      //
+      // A parenthesis and not a trailing clause, which is the whole of what
+      // makes them readable: English narrows "killing a barbarian unit" from the
+      // inside and none of these can go there, so glued on with a comma they ran
+      // straight into the verb — *"completing a building, where it is a culture
+      // building, and only the first of its kind grants +20 production"* is a
+      // sentence with two main clauses and no join. The parenthesis is the same
+      // aside the ceiling already uses ("at most +30 science") and it closes
+      // before the verb arrives.
+      //
+      // They ride the **occasion** rather than each grant, for the leading
+      // clause's stated reason: a row may carry several grants (The Master
+      // Workshops carries two) and a suffix on each would say the narrowing
+      // twice.
+      const narrowings: string[] = [];
+      if (effect.buildingCategory !== undefined) {
+        narrowings.push(`a ${effect.buildingCategory} building`);
+      }
+      if (effect.empireBuilding === true) narrowings.push('an empire building');
+      if (effect.empireBuilding === false) narrowings.push('not an empire building');
+      if (effect.first !== undefined) narrowings.push(FIRST_WORDS[effect.first]);
+      if (effect.oncePerTurn === true) narrowings.push('at most once a turn');
       const occasion =
         only +
         occasionWords(
@@ -1414,7 +1439,8 @@ function describeEffect(
           effect.capturedWonder === true,
           effect.wonder === true,
           effect.family,
-        );
+        ) +
+        (narrowings.length > 0 ? ` (${narrowings.join(', ')})` : '');
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
       // second half of a sentence whose first half had not been printed yet.
@@ -1444,6 +1470,28 @@ function describeEffect(
               ? `${turns === 1 ? 'an extra turn' : `${turns} extra turns`} of ${grant.yield}`
               : `${Math.round(turns * 100)}% of a turn's ${grant.yield}`;
           out.push({ text: `${occasion} grants ${figure}${per}` });
+        } else if (grant.fromOccasion !== undefined) {
+          // **A share of the moment reads as a share of the moment**, for the
+          // reason the turn above it reads as turns: "culture equal to ten times
+          // its population" is the promise the card makes, and printing whatever
+          // it happened to come to on one occasion would be a card that says
+          // something different every time it is read. A multiplier of one is
+          // the bare measure ("culture equal to its strength"); a fraction reads
+          // as a percentage, because "0.1 times the gold paid" is not a sentence
+          // anybody has said out loud.
+          const measure = MEASURE_WORDS[grant.fromOccasion];
+          const share = grant.amount;
+          const figure =
+            share === 1
+              ? `${grant.yield} equal to ${measure}`
+              : Number.isInteger(share)
+                ? `${grant.yield} equal to ${share} times ${measure}`
+                : `${grant.yield} equal to ${Math.round(share * 100)}% of ${measure}`;
+          // The ceiling trails, because a player reads *what is paid* first and
+          // *how much at most* second — the duration clause's own order, one
+          // grant shape over.
+          const cap = grant.max === undefined ? '' : `, at most ${Math.abs(grant.max)}`;
+          out.push({ text: `${occasion} grants ${figure}${cap}${per}` });
         } else {
           out.push({
             text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${per}`,
@@ -3451,6 +3499,24 @@ const WONDER_BUILT_WORDS: Partial<Record<WindfallOccasion, string>> = {
 };
 
 /**
+ * The first-of-a-kind ledgers, as the aside a card's own face makes of them.
+ *
+ * A **phrase that completes "completing a building (…)"** rather than a bare
+ * noun, because what a ledger narrows is a moment and not a thing: the sentence
+ * is *"completing a building (a culture building, the first of that kind in that
+ * city) grants +20 production"*, and a noun table would have left the reader to
+ * supply the grammar. Five entries, and a sixth ledger writes a sixth here or
+ * the register says so.
+ */
+const FIRST_WORDS: Record<FirstKind, string> = {
+  buildingInCity: 'the first of that kind in that city',
+  buildingKind: 'the first of that kind your realm has finished',
+  purchaseInCity: 'the first building that city ever buys',
+  conversion: 'the first time that city turns to your faith',
+  techWorld: 'before any other empire',
+};
+
+/**
  * The occasion, in the words a card's own clause uses.
  *
  * Exported for `cardImpact.ts`, which reports a rider in its per-occasion form
@@ -3590,6 +3656,17 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'draft you have rerolled while this stood',
     many: 'drafts you have rerolled while this stood',
   },
+  // The shelf is not in these words: `countNoun` prints it, so "per culture
+  // building you were first to raise in a city" and "per faith building" are one
+  // entry — `buildingsOfCategory`' bargain, read off the world's own ledger.
+  firstBuildingsInCity: {
+    one: 'building you were the first of its kind to raise in a city',
+    many: 'buildings you were the first of their kind to raise in a city',
+  },
+  firstConversions: {
+    one: 'foreign city you were the first to convert',
+    many: 'foreign cities you were the first to convert',
+  },
   defensiveBuildings: {
     one: 'fortification in this city',
     many: 'fortifications in this city',
@@ -3716,6 +3793,34 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   },
   unitLost: { one: 'unit you have lost in battle', many: 'units you have lost in battle' },
   goldSpent: { one: 'gold you have spent buying', many: 'gold you have spent buying' },
+  // "Enemy", because the card's own face says so and because the word is what
+  // tells this apart from the barbarian entry above it on a screen where both
+  // may be read at once — one moment, two questions.
+  unitKilled: { one: 'enemy unit you have killed', many: 'enemy units you have killed' },
+  // "Trained", the ratified text's own verb, and it is the verb that carries the
+  // rule: a bought unit was not trained, and a player who reads the word knows
+  // why the counter did not move when the treasury paid.
+  unitTrained: { one: 'unit you have trained', many: 'units you have trained' },
+  campCleared: {
+    one: 'barbarian camp you have cleared',
+    many: 'barbarian camps you have cleared',
+  },
+};
+
+/**
+ * What the occasion itself measures, in the words a card's face uses.
+ *
+ * `RATE_WORDS`' opposite number and a table beside it for that table's reason:
+ * the words are a property of the *set*, and a share of a moment and a share of
+ * the books are two readings a player meets on one screen. Phrased as the
+ * possessive the clause needs ("its strength", "the gold paid"), so the sentence
+ * reads whole without this arm knowing which grant is quoting it.
+ */
+const MEASURE_WORDS: Record<OccasionMeasure, string> = {
+  strength: 'its strength',
+  population: 'its population',
+  gold: 'the gold paid',
+  payout: 'what it already paid',
 };
 
 const RATE_WORDS: Record<RateSource, PluralWords> = {

@@ -108,9 +108,9 @@
       "rarity": "uncommon",
       "flavor": "Every birth is entered, and the ink is never dry.",
       "text": "While active, gains +1 science and +1 culture per turn whenever one of your cities grows in population, no cap.",
-      "note": "A card may keep a running count of battles, of wonders and of coin spent, but not yet of citizens born.",
       "deferred": ["the card keeps count of every citizen born and pays a little more each turn for it"],
-      "effects": []
+      "effects": [],
+      "note": "Not built: the design pays only for growth past the largest a town has ever been, and a town remembers how many people live in it and not how many ever did — so a counter of plain growth would write the annals twice for one citizen a levy took and the fields gave back."
     },
     "thePatientHarvest": {
       "name": "The Patient Harvest",
@@ -234,9 +234,18 @@
       "rarity": "common",
       "flavor": "Smoke goes up, and somebody calls it prayer.",
       "text": "Chopping forest or jungle also grants faith and culture each equal to 20% of its chop production.",
-      "note": "A card may make a felling pay more timber, or add a fixed gift beside it, but not yet pay one voice a share of another.",
-      "deferred": ["felling a wood pays devotion and song in proportion to the timber it gave"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "chop",
+          "grant": { "yield": "faith", "amount": 0.2, "fromOccasion": "payout" }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "chop",
+          "grant": { "yield": "culture", "amount": 0.2, "fromOccasion": "payout" }
+        }
+      ]
     },
     "theWoodlandEdge": {
       "name": "The Woodland Edge",

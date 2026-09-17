@@ -431,7 +431,7 @@ function columnReached(state: GameState, playerId: number, column: number): bool
   return false;
 }
 import { RULES } from './rulesData';
-import type { CityScope } from './statecraftData';
+import type { CityScope, FirstKind } from './statecraftData';
 // Value imports from two runtime leaves (the JSON tables and their readers):
 // the charter gate asks the card rows which technologies a charter opens, and
 // the ability fold asks the rite table which ability a chartered rite is.
@@ -460,6 +460,7 @@ import {
   bankedTowardTech,
   cityById,
   clearTechProgress,
+  markFirst,
   playerById,
   realPlayers,
   wonderClaim,
@@ -1688,7 +1689,18 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   // `purchase.ts`' own widened guard — the one Crassus' timed bill earned at its
   // own seam — said here for its reason exactly: a rider is a *payout*, and
   // asking whether one of its five lists is full is asking the wrong question.
-  const rider = windfallPayout(state, player.id, 'tech');
+  // **The patent roll** — The Patent Rolls, and the one ledger in this game
+  // whose key is the *world's*: being first here means being before everybody,
+  // so the second empire to finish a node writes nothing and is told so
+  // (`markFirst`, `WORLD_FIRST_KINDS`). Marked before the payout is composed,
+  // because a rider asks the world what was first and never decides it.
+  //
+  // The contention is settled by the order this phase already walks —
+  // `realPlayers` order within the research sweep, log order within a turn — and
+  // that is stated on `markFirst` rather than re-argued here.
+  const firsts: FirstKind[] = [];
+  if (markFirst(state, player.id, 'techWorld', plan.techId)) firsts.push('techWorld');
+  const rider = windfallPayout(state, player.id, 'tech', 0, 0, { firsts });
   if (
     rider.grants.length > 0 ||
     rider.units.length > 0 ||

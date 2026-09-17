@@ -367,11 +367,28 @@
       "rarity": "uncommon",
       "flavor": "Every verse was somebody's first morning in the faith.",
       "text": "While active, gains +2 science and +2 culture per turn in your capital for each foreign city first converted to your religion, at most +24 of each.",
-      "note": "Not built: nothing keeps a record of which foreign towns your faith reached first, and a record that could be made twice would pay twice.",
-      "deferred": [
-        "your capital learns and sings a little more for every foreign town you were the first to bring to your faith, up to a limit"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 2,
+          "count": "firstConversions",
+          "max": 12,
+          "scope": { "test": "capital" }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 2,
+          "count": "firstConversions",
+          "max": 12,
+          "scope": { "test": "capital" }
+        }
+      ]
     },
     "missionaryHospitality": {
       "name": "Missionary Hospitality",
@@ -383,12 +400,12 @@
       "rarity": "uncommon",
       "flavor": "Send them out fed. They will be a long time coming back.",
       "text": "Religious units cost 15% less faith. Your first conversion of each foreign city grants 20 food in your capital and 20 culture.",
-      "note": "Not built, both halves together: nothing marks the first time a foreign town turns to your faith, and the roster has no word that gathers the prophet, the apostle and the inquisitor into one line.",
       "deferred": [
         "clergy cost less faith to call",
         "the first time each foreign town turns to your faith your capital is fed and the realm sings"
       ],
-      "effects": []
+      "effects": [],
+      "note": "Half built and therefore not built: the world now writes down the first time each foreign town turns to your faith, but the roster has no word that gathers every kind of clergy into one line, so nothing can make them cheaper to call."
     },
     "theAlmsRoads": {
       "name": "The Alms Roads",

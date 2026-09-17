@@ -355,7 +355,15 @@ describe('the audit holds in the source', () => {
     { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const share = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;' },
     { path: 'src/sim/statecraft/evaluator.ts', snippet: 'line[voice] += paid[voice] * extra;' },
     { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const amount = turns * rate;' },
-    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'payout.amount = (base * (100 + percent)) / 100;' },
+    // D2c moved this line into a **first pass**: the occasion's own figure has
+    // to be folded before the grants are composed, because a grant may be a
+    // share of what the occasion paid (`OccasionMeasure`'s `payout`, the design
+    // doc's ruling on The Woodwrights and Charcoal Burners). The arithmetic is
+    // the same arithmetic and is still exact; what changed is when it is done.
+    {
+      path: 'src/sim/statecraft/evaluator.ts',
+      snippet: 'const paid = percentTotal !== 0 && base !== 0 ? (base * (100 + percentTotal)) / 100 : base;',
+    },
     { path: 'src/sim/routeYields.ts', snippet: 'gold: (total.gold * percent) / 100,' },
     { path: 'src/sim/empireGold.ts', snippet: 'connectionGold = (connectionGold * (100 + share)) / 100;' },
     { path: 'src/sim/renown.ts', snippet: 'const amount = (base * share.percent) / 100;' },

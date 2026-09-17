@@ -618,10 +618,18 @@ describe('determinism', () => {
    * settled. The pool being stocked changes what *would* be dealt and nothing
    * about what is. A future re-cut that founds a town here will move both
    * literals, and it will say so in this docblock.
+   *
+   * **Re-taken for schema 120 (D2c — occasions).** The world keeps one more
+   * register, `GameState.firsts`, and every seat's Statecraft may carry
+   * `riderTurns`; the print's `schemaVersion` digits moved with them. Twelve
+   * bytes at both seeds, which is `"firsts":[]` and its comma — the ledger is
+   * empty, because the reason above still holds: **nobody founds a town here**,
+   * so nothing is raised, bought, converted or researched first. No outcome
+   * moved, and the byte count is what says so.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'df212a6f:188093',
-    2026: 'bacc0db8:187707',
+    11: 'da79e500:188105',
+    2026: 'efa67eeb:187719',
   };
 
   for (const seed of [11, 2026]) {
