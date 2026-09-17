@@ -1,3 +1,941 @@
 {
-  "orders": {}
+  "orders": {
+    "theSaltTithes": {
+      "name": "Salt Tithes",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Salt is weighed twice: once for the pot, once for the ledger.",
+      "text": "Gain +3 gold per distinct accessible improved luxury you produce. Worked luxury tiles gain +1 food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 3,
+          "count": "uniqueLuxuries"
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "resourceKind",
+            "kind": "luxury"
+          },
+          "food": 1
+        }
+      ]
+    },
+    "theGuildHalls": {
+      "name": "The Guild Halls",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A craft is a secret kept in public.",
+      "text": "A city gains +1 production per distinct luxury type it works. Worked camps and plantations gain +1 food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
+          "count": "uniqueLuxuries",
+          "within": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "anyImprovement",
+            "improvements": [
+              "camp",
+              "plantation"
+            ]
+          },
+          "food": 1
+        }
+      ]
+    },
+    "theMerchantShrines": {
+      "name": "The Merchant Shrines",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Every scale has a god leaning on it.",
+      "text": "Your capital gains +2 faith. Cities working an improved luxury gain +2 faith, once per city.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "capital"
+          },
+          "faith": 2
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "holdingCategory",
+            "category": "luxury"
+          },
+          "faith": 2
+        }
+      ]
+    },
+    "travellersLetters": {
+      "name": "Travellers' Letters",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "News travels with the cargo, and is worth more.",
+      "text": "Your capital gains +2 science and +2 culture, plus +1 of each per foreign empire met, at most +4 additional science and culture.",
+      "effects": [],
+      "deferred": [
+        "your capital learns and sings a little more for every foreign empire you have met"
+      ],
+      "note": "Half built, and so held whole. Nothing in this game counts the empires you have met, so the letters have nobody to be addressed to."
+    },
+    "lettersOfIntroduction": {
+      "name": "Letters of Introduction",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A stranger with a letter is not a stranger.",
+      "text": "First contact with each foreign empire grants you 100 gold and that empire 15 gold. Contact recorded before activation cannot pay retrospectively. Discoveries yield 15 gold.",
+      "effects": [],
+      "deferred": [
+        "meeting an empire for the first time pays you, and pays them",
+        "claiming a discovery pays gold"
+      ],
+      "note": "Held whole. The world does not announce a first meeting, and no law of yours can put coin in another realm's treasury."
+    },
+    "thePathfindersCompany": {
+      "name": "The Pathfinders' Company",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Pay the man who knows where the water is.",
+      "text": "Scouts gain +1 sight and +1 movement.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "sight",
+          "amount": 1,
+          "class": {
+            "explores": true
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "explores": true
+          }
+        }
+      ]
+    },
+    "theLighthouseKeepers": {
+      "name": "The Lighthouse Keepers",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A fire on a headland is the cheapest harbour there is.",
+      "text": "Ships gain +1 sight. Lighthouses cost 25% less production; worked fishing boats gain +1 food.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "sight",
+          "amount": 1,
+          "class": {
+            "category": "naval"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "lighthouse",
+          "percent": 25
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          },
+          "food": 1
+        }
+      ]
+    },
+    "assayersRule": {
+      "name": "The Assayer's Rule",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Every seam weighed, and weighed again.",
+      "text": "+2 gold on resource tiles that supply gold",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 2,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "hasResource"
+              },
+              {
+                "test": "yields",
+                "yield": "gold"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "privatePatronage": {
+      "name": "Private Patronage",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The purse builds faster than the quarry, and asks for its name on the door.",
+      "text": "Gold purchases of ordinary buildings cost 20% less. Producing those buildings normally takes 20% more production. National institutions and wonders are unaffected.",
+      "effects": [],
+      "deferred": [
+        "buying an ordinary building costs less, and raising one the slow way costs more"
+      ],
+      "note": "Held whole. A discount here would reach the great national houses as well, and the card says it must not."
+    },
+    "civicReceipts": {
+      "name": "Civic Receipts",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The town remembers who paid for the roof.",
+      "text": "Purchasing an ordinary building for the first time in a city grants culture equal to 10% of the gold paid, at most 30 culture per purchase.",
+      "effects": [],
+      "deferred": [
+        "the first time a city buys a building, the town sings for a share of what you paid"
+      ],
+      "note": "Held whole. A purchase announces itself, but it does not say how much was paid, and no town keeps a list of what it has bought before."
+    },
+    "provisioningContracts": {
+      "name": "Provisioning Contracts",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Grain moves on paper long before it moves on a cart.",
+      "text": "Domestic routes grant their destination +3 food and +2 production.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "domestic",
+          "food": 3,
+          "production": 2
+        }
+      ]
+    },
+    "theCommonRoad": {
+      "name": "The Common Road",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A road belongs to whoever is standing on it.",
+      "text": "Your foreign routes grant you +2 gold, +2 science and +2 culture. Each also grants its host city +2 gold.",
+      "effects": [],
+      "deferred": [
+        "a road that ends abroad pays you, and pays the town it ends in"
+      ],
+      "note": "Half built, and so held whole. A law of yours pays your own books; it has no way to put coin in a foreign market."
+    },
+    "theReturnLeg": {
+      "name": "The Return Leg",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The cart comes back. Something should be in it.",
+      "text": "Your domestic routes also pay their origin one third of the non-conversion food, production and gold they pay the destination. The destination loses nothing. Returned yields cannot circulate again.",
+      "effects": [],
+      "deferred": [
+        "a road pays the town it left as well as the town it reaches, and the second helping never travels again"
+      ],
+      "note": "Held whole. A caravan's earnings are banked where it arrives, and there is no way to send a share of them home."
+    },
+    "ventureRoutes": {
+      "name": "Venture Routes",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The far market pays for the risk of reaching it.",
+      "text": "Your routes gain two turns of range. Routes whose endpoints are more than fourteen hexes apart gain +100% gold, using the shortest wrapped map distance.",
+      "effects": [],
+      "deferred": [
+        "your roads run longer before they lapse",
+        "a road between distant towns pays far more gold"
+      ],
+      "note": "Held whole. Nothing can lengthen a caravan's term, and a road's pay cannot be made to turn on how far it reaches."
+    },
+    "theMerchantLedger": {
+      "name": "The Merchant Ledger",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A name written down is a name you can go back to.",
+      "text": "Hiring a new caravan costs 15% less. While active, gains +1 science and +1 culture per turn for each distinct destination city first reached by your routes, at most +24 of each.",
+      "effects": [],
+      "deferred": [
+        "hiring a caravan costs less",
+        "every new market your roads reach for the first time teaches and sings, for as long as you keep the ledger"
+      ],
+      "note": "Held whole. No book in this game records which markets your caravans have already found."
+    },
+    "theFactorsHouses": {
+      "name": "The Factors' Houses",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The factor never leaves. That is the whole of his value.",
+      "text": "Your cities holding your established commercial post gain +2 gold and +4 culture. Hiring a caravan from such a city costs 15% less.",
+      "effects": [],
+      "deferred": [
+        "the towns where your house is established pay gold and culture, and send caravans more cheaply"
+      ],
+      "note": "Held whole. A standing commercial house is a new fact about a town, and nothing on the board keeps one yet."
+    },
+    "thePlantersCharter": {
+      "name": "The Planters' Charter",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Break the ground first. The argument can follow.",
+      "text": "Once drafted, unlock the Plantation House for construction. No chair required. The building is purchased with gold; its payload is specified below.",
+      "charter": {
+        "unlocks": {
+          "building": "plantationHouse"
+        }
+      },
+      "effects": [],
+      "deferred": [
+        "drafting this opens the planters' house for building"
+      ],
+      "note": "Held whole. The house it would open has not been drawn up yet, so the charter has nothing to grant.",
+      "retired": true
+    },
+    "boughtSwords": {
+      "name": "Bought Swords",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A hired sword is dearer to raise and cheaper to buy.",
+      "text": "Military units cost 20% less gold to purchase, but 10% more production to train. Purchases still do not count as training.",
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {
+            "category": "military"
+          },
+          "on": "unit",
+          "percent": -20
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "class": {
+            "category": "military"
+          },
+          "percent": -10
+        }
+      ]
+    },
+    "theConvoy": {
+      "name": "The Convoy",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Guard the cart and you are guarding the year.",
+      "text": "Your combat units within one hex of your trader gain +4 strength. Your traders gain +1 movement. Traders remain plunderable.",
+      "effects": [],
+      "deferred": [
+        "soldiers standing beside one of your carts fight harder",
+        "your carts travel further"
+      ],
+      "note": "Half built, and so held whole. A soldier can only be told that another soldier stands beside him; a cart is nobody's formation."
+    },
+    "theTreatyPorts": {
+      "name": "The Treaty Ports",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Two seals on one page, and the harbour opens.",
+      "text": "Each foreign empire with which you have an active resource agreement grants your capital +2 gold and +3 culture. That partner's capital gains +1 gold. Each partner counts once.",
+      "effects": [],
+      "deferred": [
+        "every partner you have a standing agreement with pays your capital, and theirs"
+      ],
+      "note": "Held whole. Nothing counts your standing agreements, and no law of yours can pay a foreign capital."
+    },
+    "thePostRiders": {
+      "name": "The Post Riders",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The road is only as good as the man who rides it at night.",
+      "text": "Your civilians and traders beginning a turn on a road you own gain +1 movement for that turn. Hiring and starting a route do not trigger another grant.",
+      "effects": [],
+      "deferred": [
+        "a cart or a workman that wakes on your own road travels further that turn"
+      ],
+      "note": "Held whole. A piece can be paid for the ground it stands on, but the road under it is not among the grounds it can be asked about."
+    },
+    "establishedRoutes": {
+      "name": "Established Routes",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The second season is worth more than the first.",
+      "text": "Renewed routes pay 50% more. Does not stack repeatedly.",
+      "effects": [],
+      "deferred": [
+        "a road kept up across renewals pays far more"
+      ],
+      "note": "Held whole. A caravan is hired and lapses; nothing remembers that the same road was run before."
+    },
+    "theMarketWrit": {
+      "name": "The Market Writ",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Where the stalls stand, the writ runs.",
+      "text": "+1 authority for every two Markets in your empire. Buying tiles costs 30% less.",
+      "effects": [],
+      "deferred": [
+        "your markets widen your writ, and land is cheaper to buy"
+      ],
+      "note": "A line the design is still writing, entered under a working name so that it is not lost. Both halves would be ordinary law once the card is named and its words are settled."
+    },
+    "theHomeMarket": {
+      "name": "The Home Market",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Every road that ends here was built for here.",
+      "text": "Cities receiving at least two of your domestic routes gain +20% food, +20% production and +2 happiness, once per city.",
+      "effects": [],
+      "deferred": [
+        "a town that more than one of your own roads ends in grows, works and rests better"
+      ],
+      "note": "Held whole. A town can be asked whether a road ends in it, never how many do."
+    },
+    "theCaravanseraiNetwork": {
+      "name": "The Caravanserai Network",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Spread the halts and the desert shrinks.",
+      "text": "Each different owned city receiving one of your domestic routes grants +1 empire happiness, +1 production and +1 gold on domestic trade routes.",
+      "effects": [],
+      "deferred": [
+        "each of your towns that one of your own roads ends in gladdens the realm and enriches the roads themselves"
+      ],
+      "note": "Held whole. What a road pays cannot be made to rise with the number of towns your other roads reach."
+    },
+    "theForeignFactor": {
+      "name": "The Foreign Factor",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Our man in their market, and their man in ours.",
+      "text": "Each foreign city holding your established commercial post grants you +3 gold and its host city +1 gold per turn while you are at peace and the host is not blockaded.",
+      "effects": [],
+      "deferred": [
+        "every foreign town where your house is established pays you, and pays its host, while the peace holds"
+      ],
+      "note": "Held whole. A standing commercial house abroad is a new fact about a town, and no law of yours can pay a foreign town."
+    },
+    "theConsulate": {
+      "name": "The Consulate",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A roof, a seal, and somebody who answers letters.",
+      "text": "Cities holding your established commercial post purchase ordinary buildings and civilian units for 15% less gold, benefiting that city's owner. Each qualifying foreign host also grants you +2 culture while at peace and unblocked. Multiple foreign Consulates do not stack the discount.",
+      "effects": [],
+      "deferred": [
+        "towns where your house is established buy more cheaply, whoever owns them, and each foreign host sings for you"
+      ],
+      "note": "Held whole. A standing commercial house abroad has no place on the board, and a discount of yours cannot be handed to another empire."
+    },
+    "theWarehouses": {
+      "name": "The Warehouses",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A full shed is an argument nobody wins.",
+      "text": "Each luxury type with at least four accessible improved deposits you produce grants +6 gold, +4 culture and +3 happiness. Exported copies still count for this card; imported and manufactured copies do not.",
+      "effects": [],
+      "deferred": [
+        "a luxury you dig in real quantity pays gold, culture and contentment"
+      ],
+      "note": "Held whole. The realm can be asked which luxuries it holds more than one seam of, never which it holds a shed's worth of."
+    },
+    "thePurpleWorks": {
+      "name": "The Purple Works",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The dye is worth more than the cloth, and the secret more than either.",
+      "text": "Once drafted, unlock the Purple Works for construction. No chair required. This national building supplies one manufactured luxury copy; its payload is specified below.",
+      "charter": {
+        "unlocks": {
+          "building": "purpleWorks"
+        }
+      },
+      "effects": [],
+      "deferred": [
+        "drafting this opens the purple works for building"
+      ],
+      "note": "Held whole. The works it would open has not been drawn up yet, and neither has the good it would make.",
+      "retired": true
+    },
+    "theMoneyLenders": {
+      "name": "The Money Lenders",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Money left alone is the only servant that never sleeps.",
+      "text": "Earn interest equal to 2% of your treasury each turn, capped at 200 gpt. Gold purchases, caravan hires and gold-priced great-person offers cost 20% more while this card is active.",
+      "effects": [],
+      "deferred": [
+        "your treasury pays you interest each turn, up to a ceiling",
+        "everything you buy, hire or call for costs more while the lenders are seated"
+      ],
+      "note": "Half built, and so held whole. A surcharge reaches the things a city buys, and never the hire of a cart or the calling of a great name."
+    },
+    "theCharteredArsenal": {
+      "name": "The Chartered Arsenal",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Pay on delivery, and inspect before you pay.",
+      "text": "Military units purchased with gold gain +4 strength permanently on creation.",
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "strength": 4,
+          "class": {
+            "category": "military"
+          },
+          "bought": "gold"
+        }
+      ]
+    },
+    "theHarbourChain": {
+      "name": "The Harbour Chain",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Count the harbours and you have counted the fleet.",
+      "text": "Gain +1 route capacity per two Harbours you own, at most +4. Sea routes with your established post at both endpoints gain two turns of range.",
+      "effects": [],
+      "deferred": [
+        "your harbours together open more roads than you could otherwise run",
+        "a sea road between two of your established houses runs longer"
+      ],
+      "note": "Held whole. Extra roads are granted to the realm or once per town, never counted off a tally of harbours."
+    },
+    "theLeagueOfCities": {
+      "name": "The League of Cities",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The league is a promise between markets, not between kings.",
+      "text": "Cities with one of your paying outgoing routes gain +15% production and cost one less authority, minimum one. Cities without one lose 10% gold.",
+      "effects": [],
+      "deferred": [
+        "a town that sends out one of your roads works harder and is easier to hold",
+        "a town that sends none loses gold"
+      ],
+      "note": "Held whole. A town can be asked whether a road ends in it, never whether one sets out from it, and no law makes a single town cheaper to hold."
+    },
+    "theCharterFleet": {
+      "name": "The Charter Fleet",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A hull bought is a hull at sea this season.",
+      "text": "Naval combat units cost 20% less gold to purchase. Naval combat units you purchase with gold gain +1 sight permanently. Normal coastal, technology and purchase requirements remain.",
+      "effects": [],
+      "deferred": [
+        "hulls bought with gold cost less and are built with keener lookouts for the rest of their lives"
+      ],
+      "note": "Half built, and so held whole. A piece can be born stronger or hardier, but nothing can be written on it about how far it sees."
+    },
+    "exportGuilds": {
+      "name": "Export Guilds",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The province that sells abroad builds at home.",
+      "text": "A city working a luxury type you currently export through an active agreement gains +20% production toward ordinary buildings and +2 happiness, once per city.",
+      "effects": [],
+      "deferred": [
+        "a town working a good you are currently selling abroad builds faster and rests easier"
+      ],
+      "note": "Held whole. Nothing asks whether a particular good is being sold abroad this turn."
+    },
+    "theExchange": {
+      "name": "The Exchange",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Two ledgers open on one table is the oldest university there is.",
+      "text": "Each different foreign empire your routes currently serve grants you +5% science and culture empire wide. Each served empire's capital gains +2 science and +2 culture.",
+      "effects": [],
+      "deferred": [
+        "every foreign realm your roads reach teaches your whole empire, and learns from it"
+      ],
+      "note": "Half built, and so held whole. A law of yours pays your own books; it cannot teach a foreign capital."
+    },
+    "theBrokersRedraw": {
+      "name": "The Brokers' Redraw",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Anything can be bought, including another look at the table.",
+      "text": "You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive.",
+      "effects": [],
+      "deferred": [
+        "a hand may be redrawn for coin instead of for prayer, and everything else you buy costs more"
+      ],
+      "note": "A line the design is still writing, entered under a working name so that it is not lost. A redraw is paid for out of the faith bank and nothing else, and the bank a redraw draws on is not a thing a law may change."
+    },
+    "theScholarsRoads": {
+      "name": "The Scholars' Roads",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Fewer carts, better cargo.",
+      "text": "Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture.",
+      "effects": [],
+      "deferred": [
+        "you may run fewer roads, and every one of them teaches and sings far more"
+      ],
+      "note": "A line the design is still writing, entered under a working name so that it is not lost. Each of its three halves would be ordinary law once the card is named and its words are settled."
+    },
+    "theCustomsHouses": {
+      "name": "The Customs Houses",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The gate that counts you is the gate that knows you.",
+      "text": "Customs houses gain +3 gold and +1 renown. Cities with a customs house gain +15% gold toward purchasing.",
+      "effects": [],
+      "deferred": [
+        "a customs house pays gold and renown, and its town buys more with what it earns"
+      ],
+      "note": "A line the design is still writing, entered under a working name so that it is not lost. Renown is paid for a town's buildings and never for one hex's works, and no town's gold can be made to go further at the counter."
+    },
+    "theDyeVats": {
+      "name": "The Dye Vats",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The colour costs the town its coin and pays it back in song.",
+      "text": "Once drafted, unlock the Dye Vats for construction. No chair required. This purchased building turns its city's worked luxuries toward culture and faith; its payload is specified below.",
+      "charter": {
+        "unlocks": {
+          "building": "dyeVats"
+        }
+      },
+      "effects": [],
+      "deferred": [
+        "drafting this opens the dye vats for building"
+      ],
+      "note": "Held whole. The vats they would open have not been drawn up yet, so the charter has nothing to grant.",
+      "retired": true
+    },
+    "theEndowment": {
+      "name": "The Endowment",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Buy the roof, and endow the men under it.",
+      "text": "Ordinary buildings you purchase gain a permanent bonus to each positive native yield equal to 25% of that yield, with a minimum bonus of +2 per positive yield type. Replacing a building cannot stack the stamp.",
+      "effects": [],
+      "deferred": [
+        "a building you buy is better for the rest of its life than one you raised"
+      ],
+      "note": "Held whole. A soldier can be marked at his birth by the bank that paid for him; a building cannot."
+    },
+    "thePaidArmy": {
+      "name": "The Paid Army",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "An army that is paid on time is a cheap army.",
+      "text": "Military-unit upkeep falls by 1 gold, minimum zero. Military units cost 25% less gold to purchase.",
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "amount": 1,
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {
+            "category": "military"
+          },
+          "on": "unit",
+          "percent": -25
+        }
+      ]
+    },
+    "merchantPrinces": {
+      "name": "Merchant Princes",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Genius is expensive, and the price is quoted.",
+      "text": "Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "buyGreatPersonWithGold"
+        }
+      ]
+    },
+    "theWorldsExchange": {
+      "name": "The World's Exchange",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The last work of the age is paid for by every market in it.",
+      "text": "Each different foreign empire currently served by your routes grants +10% production toward the Opus, at most +40%. Existing construction and victory requirements remain.",
+      "effects": [],
+      "deferred": [
+        "every foreign realm your roads reach speeds the great work, up to a ceiling"
+      ],
+      "note": "Held whole. Hammers behind a thing are raised by a flat share, never by a share counted off how far your roads reach."
+    },
+    "theCharteredMetropolis": {
+      "name": "The Chartered Metropolis",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "One city, and every road in the world leading to it.",
+      "text": "Cities with at least three of your paying outgoing routes gain +25% food, production and culture, but each costs +4 authority while qualified.",
+      "effects": [],
+      "deferred": [
+        "a town that sends out several of your roads grows and works and sings far better, and is far harder to hold"
+      ],
+      "note": "Held whole. A town can be asked whether a road ends in it, never how many set out from it, and no law raises what one town costs to hold."
+    },
+    "theAdmiraltyOfTrade": {
+      "name": "The Admiralty of Trade",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The sea has no middle, only two ends.",
+      "text": "Your sea routes may connect two cities holding your established commercial posts regardless of range. A legal sea path, access, peace and route capacity are still required.",
+      "effects": [],
+      "deferred": [
+        "a sea road between two of your established houses may be run at any distance"
+      ],
+      "note": "Held whole. A standing commercial house has no place on the board, and nothing may waive how far a road is allowed to reach."
+    },
+    "theMerchantCommonwealth": {
+      "name": "The Merchant Commonwealth",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Govern by ledger and the provinces govern themselves.",
+      "text": "Each owned city with your established commercial post receiving a domestic route gains +2 happiness and costs one less authority, minimum one.",
+      "effects": [],
+      "deferred": [
+        "your own towns where your house is established and one of your roads ends rest easier and are easier to hold"
+      ],
+      "note": "Held whole. A standing commercial house has no place on the board, and no law makes a single town cheaper to hold."
+    },
+    "theMerchantWorks": {
+      "name": "The Merchant Works",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Coin becomes stone, and stone outlasts the coin.",
+      "text": "Cities building a national institution, world wonder or the Opus gain production equal to 25% of their base city gold, but lose 20% of their gold income while doing so. Foreign-route empire gold and conversion outputs are excluded from the production basis.",
+      "effects": [],
+      "deferred": [
+        "a town raising one of the realm's great houses turns a share of its coin into stone, and loses a share of its coin while it does"
+      ],
+      "note": "Half built, and so held whole. A town can be asked whether it is raising a wonder, but the realm's single great houses and the last work of all are not a class anything can name."
+    },
+    "theGildedScaffold": {
+      "name": "The Gilded Scaffold",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Every marvel has a price. Most of them are simply not quoted.",
+      "text": "You may purchase world wonders. All your cities lose 15% production.",
+      "effects": [],
+      "deferred": [
+        "a wonder may be bought outright, and every town of yours works more slowly for it"
+      ],
+      "note": "A line the design is still writing, entered under a working name so that it is not lost. A wonder is refused at the counter before a price is ever asked for, and nothing may open that door."
+    }
+  }
 }
