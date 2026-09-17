@@ -66,12 +66,24 @@
       "rarity": "uncommon",
       "flavor": "They counted everything and ate none of it.",
       "text": "Each city gains +1 science for each distinct feature type it works. Your capital gains +1 science.",
-      "note": "Nothing in the game yet counts how many different kinds of wild ground a city works, so neither half of this is built.",
-      "deferred": [
-        "each city learns from every different kind of wild ground it works",
-        "the capital learns a little more besides"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "distinctWorkedFeatures",
+          "to": "science",
+          "amount": 1
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "capital"
+          },
+          "science": 1
+        }
+      ]
     },
     "claimByTheSpade": {
       "name": "Claim by the Spade",
@@ -234,7 +246,7 @@
       "rarity": "uncommon",
       "flavor": "The best field is the one the wood still watches.",
       "text": "Worked ordinary improvements beside unimproved forest gain +1 production per adjacent forest, at most +2. Worked unimproved forests beside a farm gain +2 food, once per forest.",
-      "note": "A hex is paid for what stands beside it now, but only once — never a helping for every wood in the ring.",
+      "note": "Held whole. A hex can be paid a helping for every wood in its ring now, but the works this card pays are the ordinary ones — and an improvement that is not a great person's work is a thing no ground condition can name.",
       "deferred": [
         "works pay more for every wild wood standing next to them",
         "a wild wood beside a field feeds better for it"
@@ -350,7 +362,7 @@
       "rarity": "common",
       "flavor": "One field teaches the next.",
       "text": "Farms gain +1 production for every two adjacent farm tiles.",
-      "note": "A provisional name for a line the worksheet has not finished, and marked uncertain there. A hex is paid for what stands beside it now, but not once for every second one of them.",
+      "note": "A provisional name for a line the worksheet has not finished, and marked uncertain there. A hex is paid a helping for every field beside it now, but not for every second one of them.",
       "deferred": [
         "a field builds better for every second field beside it",
         "the name, the rarity and the wording are the designer's to settle"
@@ -365,7 +377,7 @@
       "rarity": "rare",
       "flavor": "The seam is opened, and then explained.",
       "text": "+1 science and +1 culture on improved resource tiles in cities with a national building.",
-      "note": "A provisional name for a line the worksheet has not finished. The game keeps no shelf of national buildings to ask about.",
+      "note": "A provisional name for a line the worksheet has not finished. The rule itself is ready — the realm's single great houses can be named now — and the card is not.",
       "deferred": [
         "worked seams teach and sing in a town that has raised an empire building",
         "the name, the rarity and the wording are the designer's to settle"
@@ -380,7 +392,7 @@
       "rarity": "common",
       "flavor": "Somebody must know what the city keeps.",
       "text": "+1 renown for each great work worked by a city.",
-      "note": "A provisional name for a line the worksheet has not finished. Nothing counts the great ones' works your people actually work.",
+      "note": "A provisional name for a line the worksheet has not finished. The kinds of great one's work a town puts to use can be counted now, but a standing trickle counts the realm's towns and not the ground inside one.",
       "deferred": [
         "your standing grows with every great one's work your towns put to use",
         "the name, the rarity and the wording are the designer's to settle"

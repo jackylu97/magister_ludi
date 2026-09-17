@@ -621,18 +621,25 @@ function applyRiders(
   currency: PurchaseCurrency,
   lines: UnitCostLine[],
 ): void {
+  // **The town the price is asked in**, handed over for the scoped riders (D2b)
+  // — Mercenary Companies is a discount in the barracks town and nowhere else.
+  // Looked up before the bank clause below, because a scope is a fact about
+  // where the counter stands and not about which purse is open.
+  const at = cityById(state, cityId);
   const riders = cardPurchaseRiders(
     state,
     playerId,
     item.kind,
     item.kind === 'unit' ? item.id : undefined,
+    at,
+    item.kind === 'building' ? item.id : undefined,
   );
   // **The treasury's bank only**, which is the row's own ratified words ("the
   // town's *gold* purchases") and the one place this parts company with a card's
   // rider. A rider is a law about a kind of thing and would be a strange rule
   // that stopped at one bank's door; assayers weigh coin, and an augur called
   // out of the faith pool never passes them.
-  const city = currency === 'gold' ? cityById(state, cityId) : undefined;
+  const city = currency === 'gold' ? at : undefined;
   const built = city ? buildingPurchaseDiscount(city) : [];
   if (riders.length === 0 && built.length === 0) return;
   let percent = 0;

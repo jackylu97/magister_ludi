@@ -1181,7 +1181,12 @@ function describeEffect(
       // The plural is composed off the **plain** name and then marked, exactly
       // as `countNoun` does it: pluralising a marked string would put the `s`
       // after the closing brackets.
-      const what = effect.building
+      const what = effect.empireBuilding
+        ? // The class, ahead of the category and behind the named row: a rider
+          // that says "empire buildings" is narrower than one that says
+          // "culture buildings" and wider than one that names the Forum.
+          'empire buildings'
+        : effect.building
         ? ref(
             isWonder(effect.building) ? 'wonder' : 'building',
             effect.building,
@@ -1210,8 +1215,24 @@ function describeEffect(
       // does: "+20% production toward wonders, in your capital" says *where* the
       // hammers are quicker without turning the category into a possessive.
       const whose = effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope)}`;
+      // **What one helping buys**, where the share is counted (The Great
+      // Consecration). Through the count's own noun — the very table a `pays`
+      // count, a counted wall and a counted trickle print through — so four
+      // surfaces name one count one way. The ceiling is said in the figure a
+      // player reads off the card, not in helpings: "at most +40%" is the
+      // sentence, and "at most 8 helpings" is the plumbing.
+      const counted =
+        effect.count === undefined
+          ? ''
+          : ` per ${countWords(
+              effect.per,
+              countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count }, ''),
+            )}` +
+            (effect.max === undefined
+              ? ''
+              : ` (at most ${signed(effect.percent * effect.max)}%)`);
       out.push({
-        text: `${signed(effect.percent)}% production toward ${what}${whose}`,
+        text: `${signed(effect.percent)}% production toward ${what}${counted}${whose}`,
       });
       return;
     }
@@ -1263,7 +1284,13 @@ function describeEffect(
           // twice. Built off `cityScopeWords` — the one sentence-builder — with
           // its leading promise taken off, so an adjective still sits before the
           // noun ("per puppet city") and a qualifier after it.
-          (effect.per === 'city' ? ` per ${eachWords(effect.scope)}` : ''),
+          (effect.per === 'city' ? ` per ${eachWords(effect.scope)}` : '') +
+          // **The ceiling in capacity**, which is the figure the card prints:
+          // The Great Chancery pays two a town to a ceiling of twelve, and "at
+          // most 6 cities" would be the arithmetic asking the player to do it.
+          (effect.per === 'city' && effect.max !== undefined
+            ? ` (at most ${signed(effect.max)})`
+            : ''),
       });
       return;
     case 'happinessTierBoost':
@@ -1571,7 +1598,30 @@ function describeEffect(
       // city with a Harbour" the same way.
       const where =
         effect.scope === undefined ? '' : ` in ${scopeWordsFor(subject, effect.scope)}`;
-      out.push({ text: `+${extra} trade ${extra === 1 ? 'route' : 'routes'}${where}` });
+      // **What buys one road**, where the rider is counted rather than scoped
+      // (The Harbour Chain). The scope is read first in the evaluator, so it is
+      // read first here too — a row asking both questions is asking one, and the
+      // words say the one that pays. Through the count's own noun, and the
+      // ceiling in roads because that is the figure the card prints.
+      const counted =
+        effect.scope !== undefined || effect.count === undefined
+          ? ''
+          : ` per ${countWords(
+              effect.per,
+              countNoun(
+                {
+                  kind: 'pays',
+                  where: 'empire',
+                  basis: 'count',
+                  count: effect.count,
+                  building: effect.building,
+                },
+                '',
+              ),
+            )}` + (effect.max === undefined ? '' : ` (at most ${signed(extra * effect.max)})`);
+      out.push({
+        text: `+${extra} trade ${extra === 1 ? 'route' : 'routes'}${counted}${where}`,
+      });
       return;
     }
     case 'effectAmplifier': {
@@ -1607,7 +1657,16 @@ function describeEffect(
       // has no boolean — is already a whole sentence in `METER_RULE_WORDS`, and
       // "borders keep growing … is 1" was that sentence with its plumbing left
       // showing. A **number** is a figure a player has to be told.
-      const words = METER_RULE_WORDS[effect.rule];
+      // **A city price says which cities**, off the one sentence-builder, or the
+      // row prints a promise it keeps in four towns out of twenty. The noun is
+      // the scope's with its leading "every" taken off — "the authority a city
+      // holding an empire building costs" — which is where English puts an
+      // adjective and where `eachWords` already puts one for the writ's own
+      // gains.
+      const words =
+        effect.rule === 'cityCost' && effect.scope !== undefined
+          ? `the authority ${indefinite(eachWords(effect.scope))} ${eachWords(effect.scope)} costs`
+          : METER_RULE_WORDS[effect.rule];
       if (METER_RULE_SWITCHES.includes(effect.rule)) {
         out.push({ text: words });
         return;
@@ -1774,16 +1833,29 @@ function describeEffect(
       // kind of unit and cannot name a building at all, so `on` supplies the
       // noun and `class` narrows it only where narrowing means anything.
       const on = effect.on ?? 'unit';
+      // **Which shelf**, where the building half names one (The Tithe's
+      // religious houses). `CardProductionBonusEffect.buildingCategory`'s own
+      // phrase, so a card that discounts culture houses at the counter and a
+      // card that speeds them in the queue read as one sentence.
+      const houses =
+        effect.buildingCategory === undefined
+          ? 'buildings'
+          : `${effect.buildingCategory} buildings`;
       const what =
         on === 'building'
-          ? 'buildings'
+          ? houses
           : on === 'all'
-            ? `${filterWords(effect.class)} and buildings`
+            ? `${filterWords(effect.class)} and ${houses}`
             : filterWords(effect.class);
+      // **Where the price is asked**, when it is not asked everywhere — a rider
+      // that read as a realm-wide discount and paid only in the barracks towns
+      // is a card that lies by omission. The one sentence-builder, trailing as
+      // its own clause exactly as a scoped `productionBonus`' does.
+      const where = effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope)}`;
       // "cost −25%", not "−25% cost": the sign belongs to the price, and a
       // discount read as a bonus is the one thing this line must not do.
       out.push({
-        text: `${what} cost ${percent < 0 ? '−' : '+'}${Math.abs(percent)}% to buy`,
+        text: `${what} cost ${percent < 0 ? '−' : '+'}${Math.abs(percent)}% to buy${where}`,
       });
       return;
     }
@@ -1799,7 +1871,12 @@ function describeEffect(
       // — a player reads *what they gain* first and *whom it favours* second.
       const where =
         effect.per === 'city'
-          ? ' in every city'
+          ? // **Which towns**, where the trickle names a class of them — seven
+            // Magisterial rows whose whole subject is the provinces that earned
+            // it. The one sentence-builder, so a renown line and a yield line
+            // say "every city outside your capital with two culture buildings"
+            // the same way. A row naming no scope keeps the old words exactly.
+            ` in ${scopeWordsFor(subject, effect.scope)}`
           : effect.per === 'wonder'
             ? ' per wonder you hold'
             : effect.per === 'buildingOfCategory'
@@ -2331,6 +2408,24 @@ const TOWN_COUNT_WORDS: Partial<Record<CountKind, (at: string) => PluralWords>> 
   // already carries one. An unnarrowed `wonders` row never reaches this table,
   // because a line that is not city-scoped has no place to hand in.
   wonders: (at) => ({ one: `wonder standing ${at}`, many: `wonders standing ${at}` }),
+  // The three distinct-kind counts asked of a town (D2b). Each says **kind**
+  // out loud and puts the place after the thing counted rather than after the
+  // whole clause, which is the reason this table takes formatters at all: "per
+  // kind of wild ground worked there" is the sentence, where `COUNT_WORDS`' own
+  // words ("this city works") with a place glued on the end is the plumbing
+  // showing through.
+  distinctWorkedFeatures: (at) => ({
+    one: `kind of wild ground worked ${at}`,
+    many: `kinds of wild ground worked ${at}`,
+  }),
+  distinctWorkedGreatWorks: (at) => ({
+    one: `kind of great person's work worked ${at}`,
+    many: `kinds of great person's work worked ${at}`,
+  }),
+  distinctBuildingCategories: (at) => ({
+    one: `kind of building standing ${at}`,
+    many: `kinds of building standing ${at}`,
+  }),
 };
 
 /**
@@ -2576,6 +2671,13 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     case 'notHasWonder':
       into.qualifiers.push('containing no wonder');
+      return;
+    case 'hasEmpireBuilding':
+      // The user's own name for the class (2026-09-17), and "holding" rather
+      // than "containing" for the reason `hasWonder` says "containing": a
+      // marvel stands where it was raised, and an empire building is a thing a
+      // realm chose to put in one of its towns.
+      into.qualifiers.push('holding an empire building');
       return;
     case 'follows':
       // "your religion" was the old ruling's wording and it is now wrong twice
@@ -3561,6 +3663,33 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // are one entry — `buildingsOfKind`'s bargain a sixth time. This is the
   // reading of a row that names no occasion at all, which counts nothing.
   tally: { one: 'time it has counted', many: 'times it has counted' },
+  capturedCities: { one: 'captured city you hold', many: 'captured cities you hold' },
+  empireBuildings: { one: 'empire building you hold', many: 'empire buildings you hold' },
+  uniqueStrategicResources: {
+    one: 'kind of strategic resource you can reach',
+    many: 'kinds of strategic resource you can reach',
+  },
+  // The four distinct-kind counts say **kind** out loud, because that is the
+  // whole of what makes them different from the counts beside them: "per feature
+  // worked" and "per kind of feature worked" are two cards, and a player reading
+  // the first when the row means the second is a player who planted the wrong
+  // second forest.
+  distinctWorkedFeatures: {
+    one: 'kind of wild ground this city works',
+    many: 'kinds of wild ground this city works',
+  },
+  distinctWorkedGreatWorks: {
+    one: "kind of great person's work this city works",
+    many: "kinds of great person's work this city works",
+  },
+  distinctBuildingCategories: {
+    one: 'kind of building this city holds',
+    many: 'kinds of building this city holds',
+  },
+  legacyFamilies: {
+    one: 'kind of great person whose legacy you hold',
+    many: 'kinds of great person whose legacy you hold',
+  },
 };
 
 /**
@@ -3696,6 +3825,12 @@ const METER_RULE_WORDS: Record<MeterRuleId, string> = {
   freeCitizens: 'the citizens in every city who demand no happiness',
   borderFreezeExempt: 'your borders keep growing',
   authorityUnitProductionExempt: 'negative authority no longer slows production toward units',
+  // The noun is the **scope's**, so this entry is only the half the table can
+  // write — the `meterRule` arm builds the rest off `eachWords`, exactly as the
+  // `authority` arm builds "per city holding an empire building". A row with no
+  // scope falls back to this sentence whole, which is the honest reading of a
+  // rewrite that names no towns.
+  cityCost: 'the authority a city costs',
 };
 
 /**

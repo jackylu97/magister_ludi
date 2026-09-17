@@ -348,7 +348,11 @@ describe('the audit holds in the source', () => {
     { path: 'src/sim/cities.ts', snippet: 'return surplus * factor;' },
     { path: 'src/sim/cities.ts', snippet: 'const perTurn = base * factor;' },
     { path: 'src/sim/cities.ts', snippet: 'return (threshold * percent) / 100;' },
-    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const paid = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;' },
+    // D2b renamed this line when the share grew a ceiling (`CardPaysEffect.max`
+    // at `basis: 'share'`): the **product** is still exact and is still what this
+    // audit is about, and the cap that follows it is a ceiling rather than a
+    // rounding — `Math.min` of two exact figures is exact.
+    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const share = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;' },
     { path: 'src/sim/statecraft/evaluator.ts', snippet: 'line[voice] += paid[voice] * extra;' },
     { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const amount = turns * rate;' },
     { path: 'src/sim/statecraft/evaluator.ts', snippet: 'payout.amount = (base * (100 + percent)) / 100;' },

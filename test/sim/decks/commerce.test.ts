@@ -123,8 +123,11 @@ describe('the Commerce deck is one deck', () => {
 });
 
 describe('a live Commerce row is a card', () => {
-  it('pays through eleven rows, and every one of them is dealt', () => {
-    expect(live().length).toBe(11);
+  it('pays through twelve rows, and every one of them is dealt', () => {
+    // The World's Exchange joined them with D2b: hammers behind a thing may be
+    // counted off a thing the realm holds now, and the courts its roads reach
+    // are one such thing.
+    expect(live().length).toBe(12);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -221,7 +224,7 @@ describe('a live Commerce row is a card', () => {
 
 describe('a deferred Commerce row is a promise, not a card', () => {
   it('pays nothing, says what it would have said, and sits in no pool', () => {
-    expect(deferred().length).toBe(38);
+    expect(deferred().length).toBe(37);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);

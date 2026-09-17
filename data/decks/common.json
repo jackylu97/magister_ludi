@@ -156,8 +156,43 @@
       "rarity": "uncommon",
       "flavor": "The sword guards the hall; the hall decides who holds the sword.",
       "text": "Garrisoned cities with a Monument gain +2 culture and +1 scholar renown.",
-      "deferred": ["the garrisoned towns with a monument each raise a scholar's name"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "garrisoned"
+              },
+              {
+                "test": "hasBuilding",
+                "building": "monument"
+              }
+            ]
+          },
+          "culture": 2
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "garrisoned"
+              },
+              {
+                "test": "hasBuilding",
+                "building": "monument"
+              }
+            ]
+          },
+          "family": "scholar"
+        }
+      ]
     },
     "examinationsOfState": {
       "name": "Examinations of State",
@@ -395,8 +430,31 @@
       "rarity": "rare",
       "flavor": "A tenth of everything, counted twice.",
       "text": "Cities with a Temple gain gold equal to 25% of their base faith. Gold purchases of religious buildings there cost 30% less.",
-      "deferred": ["religious buildings are cheaper to buy in the towns that keep a temple"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "from": "faith",
+          "to": "gold",
+          "percent": 25,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "building",
+          "buildingCategory": "faith",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          },
+          "percent": -30
+        }
+      ]
     },
     "merchantScholars": {
       "name": "Merchant Scholars",
@@ -590,8 +648,39 @@
       "rarity": "uncommon",
       "flavor": "Translate everything, and argue afterwards.",
       "text": "Worked Academies gain +2 culture. Cities working an Academy gain +1 renown and +20% production toward wonders. Each city receives the city bonus once.",
-      "deferred": ["the towns that work an academy each raise a name of their own"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "academy"
+          },
+          "culture": 2
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "workingImprovement",
+            "improvements": [
+              "academy"
+            ]
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 20,
+          "scope": {
+            "test": "workingImprovement",
+            "improvements": [
+              "academy"
+            ]
+          }
+        }
+      ]
     },
     "commonMarcherLords": {
       "name": "Marcher Lords",
@@ -601,8 +690,35 @@
       "rarity": "uncommon",
       "flavor": "The border is a place, and somebody has to live there.",
       "text": "Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one.",
-      "deferred": ["a town planted near a rival's border is cheaper to hold"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 3,
+          "scope": {
+            "test": "frontier",
+            "radius": 4
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "frontier",
+            "radius": 4
+          },
+          "production": 2
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": -1,
+          "scope": {
+            "test": "frontier",
+            "radius": 4
+          }
+        }
+      ]
     },
     "triumphalArches": {
       "name": "Triumphal Arches",
@@ -613,7 +729,7 @@
       "flavor": "Stone remembers the parade long after the army forgets it.",
       "text": "Capturing a city grants 40 culture and +1 general renown. Cities containing a wonder gain +5 defence.",
       "deferred": [
-        "taking a town raises the name of a general in particular, and a town that holds a wonder is the harder to storm"
+        "taking a town raises the name of a general in particular. A town that holds a wonder can be told from one that does not now, but the renown an occasion pays favours nobody in particular — a deed is not a shelf of buildings, and the draw's bias is a fact about what an empire keeps."
       ],
       "effects": []
     },

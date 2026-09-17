@@ -161,8 +161,11 @@ describe('the live rows’ effects', () => {
 
   it('pays only through pairs the yields sequence already carries', () => {
     // `docs/yields.md`'s register: the hex at step 2, the town's flats and
-    // counts at 3. Those are the two the deck uses, and a row reaching for a
-    // pair nobody folds is a shape decision rather than a JSON row.
+    // counts at 3, its share of its own fold at 10, and the realm's counts at
+    // 16. A row reaching for a pair nobody folds is a shape decision rather
+    // than a JSON row. The last two joined with D2b — The Assay counts the
+    // seams the realm can reach, and the Society of Artificers takes a share of
+    // what its town builds.
     const pairs = new Set<string>();
     for (const id of LIVE) {
       for (const effect of orderDef(id).effects) {
@@ -171,7 +174,13 @@ describe('the live rows’ effects', () => {
         if (effect.where === 'hex') expect(effect.on, `${id} pays a hex with no condition`).toBeDefined();
       }
     }
-    expect([...pairs].sort()).toEqual(['city:count', 'city:flat', 'hex:flat']);
+    expect([...pairs].sort()).toEqual([
+      'city:count',
+      'city:flat',
+      'city:share',
+      'empire:count',
+      'hex:flat',
+    ]);
   });
 });
 

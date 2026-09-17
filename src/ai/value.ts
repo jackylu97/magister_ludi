@@ -3884,6 +3884,18 @@ function scoreMeterRule(
         meterWeight(ctx, 'authority')
       );
     }
+    case 'cityCost':
+      // **What the towns a scope admits cost, rewritten** (D2b). The three arms
+      // above price one *kind of ground* apiece off a frozen scope; this one
+      // carries its own, so the very same arithmetic reads it straight off the
+      // row — a delta of writ handed back (or spent) per admitting town, at the
+      // meter's weight. A row naming no scope reaches every town, which is what
+      // `townsAdmitting` answers for an absent scope and what the rule means.
+      //
+      // The two-sided floor the meter applies is deliberately **not** modelled:
+      // an appraisal is a rate and the floor bites only in the towns that were
+      // already free, which are the capital and a relieved puppet.
+      return -(effect.delta ?? 0) * townsAdmitting(ctx, effect.scope) * meterWeight(ctx, 'authority');
     case 'borderFreezeExempt':
       // Borders that keep growing through a writ deficit. What that is worth is
       // ground, and ground is the settle table's currency — `borderCulture`'s

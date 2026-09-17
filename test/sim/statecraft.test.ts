@@ -100,6 +100,8 @@ import {
   cardUnitStat,
   cardUnitStamp as stampOf,
   cardRenownLines,
+  cardAuthority,
+  cardCityCostDelta,
   countOf,
   describeBuildingRow,
   describeCard,
@@ -10666,5 +10668,515 @@ describe("D2a — the predicates", () => {
     }
     expect(conditions.has("atPeace")).toBe(true);
     for (const test of ["beside", "road"]) expect(tiles.has(test), test).toBe(true);
+  });
+});
+
+// --- D2b: the counts and the reach -------------------------------------------
+
+/**
+ * **The seven shapes of D2b** (`docs/plans/decks-shape-audit.md`, "The build
+ * order"): counts and ceilings on the five effects that carried none, a scope
+ * on the renown trickle and on the purchase rider, the empire-building
+ * selector, a per-town writ price, and four distinct-kind counts.
+ *
+ * D2a's discipline, one grade over: every one of these is a **field** on a shape
+ * that already stands, so the kind-level register cannot see any of them — a
+ * field declared, worded and read by nothing would sail straight through it. So
+ * one behavioural pin apiece (a true case, a false case, the ceiling where there
+ * is one, and the describer's sentence), and a member register at the foot of
+ * the block that reads the live table itself.
+ */
+describe("D2b — counts and reach", () => {
+  it("counts hammers behind a thing, and stops at the card's own ceiling", () => {
+    const g = game(7401);
+    const city = found(g.state, 0);
+    slot(g.state, 0, "dominionImperium" as never);
+    const share = (): number =>
+      cardProduction(g.state, city, "building", undefined, "theMagnumOpus" as never).reduce(
+        (sum, line) => sum + line.percent,
+        0,
+      );
+    // Nothing taken, nothing paid: a count of nought buys no helping at all, and
+    // the line is absent from the list rather than sitting in it at zero.
+    expect(share()).toBe(0);
+    // Three seized towns, three helpings of five.
+    for (let seized = 0; seized < 3; seized++) found(g.state, 0).captured = true;
+    bumpRevision(g.state);
+    expect(share()).toBe(15);
+    // And the ceiling is in helpings, printed as the figure the card prints: ten
+    // captured towns are eight helpings, which is the forty percent it says.
+    for (let seized = 0; seized < 7; seized++) found(g.state, 0).captured = true;
+    bumpRevision(g.state);
+    expect(share()).toBe(40);
+    // The bonus names the Opus and nothing else — a counted share is still a
+    // narrowing on the row being built.
+    expect(cardProduction(g.state, city, "building", undefined, "monument" as never)).toEqual([]);
+    expect(stripRefs(describeCard("dominionImperium" as never)[0]!.text)).toBe(
+      "+5% production toward The Magnum Opus per captured city you hold (at most +40%)",
+    );
+  });
+
+  it("opens a road per helping of a count, and caps it", () => {
+    const g = game(7403);
+    const city = found(g.state, 0);
+    slot(g.state, 0, "theAdmiralty" as never);
+    const fromCards = (): number =>
+      explainRouteSlots(g.state, 0)
+        .filter((line) => line.source.includes("Admiralty"))
+        .reduce((sum, line) => sum + line.slots, 0);
+    expect(fromCards()).toBe(0);
+    // One shipyard is half a road and buys nothing: the divisor floors, exactly
+    // as every other count's does.
+    city.buildings.push("shipyard" as never);
+    bumpRevision(g.state);
+    expect(fromCards()).toBe(0);
+    found(g.state, 0).buildings.push("shipyard" as never);
+    bumpRevision(g.state);
+    expect(fromCards()).toBe(1);
+    // Six shipyards are three helpings, and the card's ceiling is two.
+    for (let more = 0; more < 4; more++) found(g.state, 0).buildings.push("shipyard" as never);
+    bumpRevision(g.state);
+    expect(fromCards()).toBe(2);
+    expect(stripRefs(describeCard("theAdmiralty" as never)[0]!.text)).toBe(
+      "+1 trade route per 2 Shipyards (at most +2)",
+    );
+  });
+
+  it("caps a share of a town's own fold at the figure the card prints", () => {
+    const g = game(7405);
+    const city = found(g.state, 0);
+    slot(g.state, 0, "theLearnedPatron" as never);
+    city.buildings.push("monument" as never, "amphitheater" as never);
+    bumpRevision(g.state);
+    const beakers = (culture: number): number =>
+      cardYieldConversions(g.state, city, {
+        food: 0,
+        production: 0,
+        gold: 0,
+        science: 0,
+        culture,
+        faith: 0,
+      })
+        .filter((line) => line.card === "theLearnedPatron")
+        .reduce((sum, line) => sum + line.science, 0);
+    expect(beakers(50)).toBe(5);
+    // **The ceiling is on the figure, not on the fold**: a town worth a hundred
+    // and twenty culture earns twelve, and a town worth four hundred earns
+    // twelve — never the share of a capped culture, which is a different number.
+    expect(beakers(120)).toBe(12);
+    expect(beakers(400)).toBe(12);
+    // And the scope is still what admits the town at all.
+    city.buildings.length = 0;
+    bumpRevision(g.state);
+    expect(beakers(400)).toBe(0);
+  });
+
+  it("caps a per-town writ at the capacity the card prints, not at the towns", () => {
+    const g = game(7409);
+    slot(g.state, 0, "theGreatChancery" as never);
+    const writ = (): number =>
+      cardAuthority(g.state, 0)
+        .filter((line) => line.source.includes("Great Chancery"))
+        .reduce((sum, line) => sum + line.amount, 0);
+    expect(writ()).toBe(0);
+    const raise = (): void => {
+      const town = found(g.state, 0);
+      town.buildings.push("monument" as never, "amphitheater" as never, "garden" as never);
+    };
+    raise();
+    bumpRevision(g.state);
+    expect(writ()).toBe(2);
+    for (let more = 0; more < 5; more++) raise();
+    bumpRevision(g.state);
+    // Six towns at two apiece is twelve — the ceiling, reached exactly.
+    expect(writ()).toBe(12);
+    raise();
+    bumpRevision(g.state);
+    expect(writ()).toBe(12);
+    expect(stripRefs(describeCard("theGreatChancery" as never)[0]!.text)).toBe(
+      "+2 authority capacity per city with 3 or more culture buildings (at most +12)",
+    );
+  });
+
+  it("narrows a standing trickle of renown to the towns that earned it", () => {
+    const g = game(7411);
+    const capital = found(g.state, 0);
+    slot(g.state, 0, "theProvincialStages" as never);
+    const trickle = (): number =>
+      cardRenownLines(g.state, 0)
+        .filter((line) => line.source.includes("Provincial Stages"))
+        .reduce((sum, line) => sum + line.amount, 0);
+    // The capital is refused by the row's own scope, and a bare town by its
+    // shelf: the trickle is nought where a *flat* per-city line would have paid.
+    expect(trickle()).toBe(0);
+    const province = found(g.state, 0);
+    province.buildings.push("monument" as never, "amphitheater" as never);
+    bumpRevision(g.state);
+    expect(trickle()).toBe(2);
+    // The capital keeps its shelves and still pays nothing — which is the whole
+    // sentence a scope-less trickle could not say.
+    capital.buildings.push("monument" as never, "amphitheater" as never);
+    bumpRevision(g.state);
+    expect(trickle()).toBe(2);
+    expect(stripRefs(describeCard("theProvincialStages" as never)[0]!.text)).toBe(
+      "+2 renown per turn in every city but your capital with 2 or more culture buildings",
+    );
+  });
+
+  it("names the class of building an empire allows one of, three ways", () => {
+    const g = game(7413);
+    const city = found(g.state, 0);
+    const scope: CityScope = { test: "hasEmpireBuilding" };
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+    // A **marvel is not one of these** — the two classes are separate by the
+    // marker's own reading, and a card that meant both would say both.
+    city.buildings.push("pyramids" as never);
+    bumpRevision(g.state);
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+    city.buildings.push("forum" as never);
+    bumpRevision(g.state);
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(true);
+    // The count pays per house, where the predicate admits the town once.
+    const houses = (): number =>
+      countOf(g.state, 0, "" as never, {
+        kind: "pays",
+        where: "empire",
+        basis: "count",
+        count: "empireBuildings",
+        to: "authority",
+        amount: 0,
+      });
+    expect(houses()).toBe(1);
+    const second = found(g.state, 0);
+    second.buildings.push("bourse" as never);
+    bumpRevision(g.state);
+    expect(houses()).toBe(2);
+    expect(cityScopeAdmits(g.state, second, scope)).toBe(true);
+    // And the third reading: hammers behind one of them, and behind nothing
+    // else. A judgement of this batch's — an empire building is a *building* to
+    // every reader of `ProductionCategory`, so the narrowing sits beside the two
+    // narrowings already on the bonus rather than becoming a fifth category.
+    slot(g.state, 0, "learnedCommissions" as never);
+    (orderDef("learnedCommissions" as never) as { effects: CardEffect[] }).effects = [
+      { kind: "productionBonus", category: "building", empireBuilding: true, percent: 25 },
+    ];
+    bumpRevision(g.state);
+    const speed = (building: string): number =>
+      cardProduction(g.state, city, "building", undefined, building as never).reduce(
+        (sum, line) => sum + line.percent,
+        0,
+      );
+    expect(speed("forum")).toBe(25);
+    expect(speed("monument")).toBe(0);
+    expect(speed("pyramids")).toBe(0);
+    (orderDef("learnedCommissions" as never) as { effects: CardEffect[] }).effects = [];
+  });
+
+  it("reprices one town's writ, and the floor holds at both ends", () => {
+    const g = game(7415);
+    const capital = found(g.state, 0);
+    const town = found(g.state, 0);
+    town.buildings.push("forum" as never);
+    bumpRevision(g.state);
+    // Negated back to a magnitude, and `+ 0` so a free town reads as nought
+    // rather than as negative nought — a ledger figure is compared byte for byte.
+    const priceOf = (city: City): number =>
+      -explainAuthority(g.state, 0)
+        .filter((line) => line.part === "cost" && line.source.startsWith(city.name))
+        .reduce((sum, line) => sum + line.value, 0) + 0;
+    const before = priceOf(town);
+    expect(before).toBeGreaterThan(1);
+    expect(cardCityCostDelta(g.state, town)).toBe(0);
+    slot(g.state, 0, "theLearnedChancery" as never);
+    expect(cardCityCostDelta(g.state, town)).toBe(-1);
+    expect(priceOf(town)).toBe(before - 1);
+    // **A town the scope refuses is untouched**, which is the whole point of the
+    // rule carrying a scope rather than being a constant of the realm.
+    expect(cardCityCostDelta(g.state, capital)).toBe(0);
+    // **And the floor is two-sided.** The capital costs nothing; a discount on
+    // it must not become a charge, which a naïve floor at one would have made it.
+    expect(priceOf(capital)).toBe(0);
+    capital.buildings.push("bourse" as never);
+    bumpRevision(g.state);
+    expect(cardCityCostDelta(g.state, capital)).toBe(-1);
+    expect(priceOf(capital)).toBe(0);
+    // A town already at one stays at one rather than going free: two deltas sum,
+    // exactly as two deltas on any other constant here do.
+    slot(g.state, 0, "theCivicCommonwealth" as never);
+    town.buildings.push("monument" as never, "amphitheater" as never, "garden" as never);
+    bumpRevision(g.state);
+    expect(cardCityCostDelta(g.state, town)).toBe(-2);
+    expect(priceOf(town)).toBe(Math.max(1, before - 2));
+    expect(stripRefs(describeCard("theLearnedChancery" as never)[0]!.text)).toBe(
+      "the authority a city holding an empire building costs falls by 1",
+    );
+  });
+
+  it("counts kinds rather than things, on four different shelves", () => {
+    const g = game(7417);
+    const city = found(g.state, 0);
+    const ask = (count: string): number =>
+      countOf(
+        g.state,
+        0,
+        "" as never,
+        {
+          kind: "pays",
+          where: "empire",
+          basis: "count",
+          count: count as never,
+          to: "authority",
+          amount: 0,
+        },
+        city,
+      );
+    // The shelves a town holds: two culture houses are one kind, and a library
+    // is a second.
+    city.buildings.length = 0;
+    bumpRevision(g.state);
+    expect(ask("distinctBuildingCategories")).toBe(0);
+    city.buildings.push("monument" as never, "amphitheater" as never);
+    bumpRevision(g.state);
+    expect(ask("distinctBuildingCategories")).toBe(1);
+    city.buildings.push("library" as never);
+    bumpRevision(g.state);
+    expect(ask("distinctBuildingCategories")).toBe(2);
+
+    // The kinds of wild ground and of master's work a town's citizens stand on.
+    const worked = ownedTiles(g.state, city).filter(
+      (tile) => !(tile.col === city.col && tile.row === city.row),
+    );
+    city.workedTiles = worked.slice(0, 4).map((tile) => ({ col: tile.col, row: tile.row }));
+    for (const tile of worked.slice(0, 4)) {
+      tile.feature = "none";
+      delete tile.improvement;
+    }
+    bumpRevision(g.state);
+    expect(ask("distinctWorkedFeatures")).toBe(0);
+    expect(ask("distinctWorkedGreatWorks")).toBe(0);
+    worked[0]!.feature = "forest" as never;
+    worked[1]!.feature = "forest" as never;
+    bumpRevision(g.state);
+    // Two woods are one kind of wild ground — the whole difference between this
+    // count and `workedTilesInCity`.
+    expect(ask("distinctWorkedFeatures")).toBe(1);
+    worked[2]!.feature = "jungle" as never;
+    bumpRevision(g.state);
+    expect(ask("distinctWorkedFeatures")).toBe(2);
+    worked[0]!.improvement = "academy" as never;
+    worked[1]!.improvement = "academy" as never;
+    bumpRevision(g.state);
+    expect(ask("distinctWorkedGreatWorks")).toBe(1);
+    worked[2]!.improvement = "manufactory" as never;
+    worked[3]!.improvement = "farm" as never;
+    bumpRevision(g.state);
+    // A farm is not a master's ground, however many citizens stand on it.
+    expect(ask("distinctWorkedGreatWorks")).toBe(2);
+
+    // And the families whose legacies the realm still keeps — **held**, not
+    // earned: a revoked mark leaves the count the turn it is written.
+    const player = playerById(g.state, 0)!;
+    expect(ask("legacyFamilies")).toBe(0);
+    const first = GREAT_PERSON_IDS[0]!;
+    const other = GREAT_PERSON_IDS.find(
+      (id) => greatPersonDef(id).family !== greatPersonDef(first).family,
+    )!;
+    player.legacies.push({ id: first, age: 1 });
+    bumpRevision(g.state);
+    expect(ask("legacyFamilies")).toBe(1);
+    player.legacies.push({ id: other, age: 1 });
+    bumpRevision(g.state);
+    expect(ask("legacyFamilies")).toBe(2);
+    for (const held of player.legacies) held.revoked = true;
+    bumpRevision(g.state);
+    expect(ask("legacyFamilies")).toBe(0);
+  });
+
+  it("asks a price where the counter stands, and of which shelf", () => {
+    const g = game(7419);
+    const bare = found(g.state, 0);
+    const barracks = found(g.state, 0);
+    barracks.buildings.push("barracks" as never);
+    slot(g.state, 0, "mercenaryCompanies" as never);
+    bumpRevision(g.state);
+    const priced = (city: City): number =>
+      explainPurchaseCost(g.state, 0, city.id, { kind: "unit", id: "warrior" as never }, "gold")!
+        .total;
+    // The discount is the barracks town's and nobody else's.
+    expect(priced(barracks)).toBeLessThan(priced(bare));
+    // And the shelf: The Tithe's thirty percent is off a religious house and off
+    // nothing else, in the town that keeps the temple.
+    const temple = found(g.state, 0);
+    temple.buildings.push("temple" as never);
+    slot(g.state, 0, "commonTheTithe" as never);
+    bumpRevision(g.state);
+    const building = (city: City, id: string): number =>
+      explainPurchaseCost(g.state, 0, city.id, { kind: "building", id: id as never }, "gold")!
+        .total;
+    expect(building(temple, "shrine")).toBeLessThan(building(bare, "shrine"));
+    expect(building(temple, "library")).toBe(building(bare, "library"));
+  });
+
+  it("pays a hex a helping for every neighbour that answers, up to the cap", () => {
+    const g = game(7421);
+    const city = found(g.state, 0);
+    slot(g.state, 0, "theOrchardTithe" as never);
+    // A row built for the pin, because the four cards the audit counted for the
+    // ring are each held by a second clause the vocabulary still cannot say —
+    // see the notes on those rows.
+    const held = orderDef("theOrchardTithe" as never).effects;
+    (orderDef("theOrchardTithe" as never) as { effects: CardEffect[] }).effects = [
+      {
+        kind: "pays",
+        where: "hex",
+        on: { test: "improvement", improvement: "farm" },
+        perNeighbour: { test: "road" },
+        max: 2,
+        gold: 1,
+      },
+    ];
+    const centre = getTileAt(g.state.map, city.col, city.row)!;
+    const field = neighborTiles(g.state.map, tileHex(centre)).find((tile) => isPassable(tile))!;
+    field.improvement = "farm" as never;
+    const ring = neighborTiles(g.state.map, tileHex(field));
+    for (const near of ring) delete near.road;
+    bumpRevision(g.state);
+    const coin = (): number =>
+      explainTileYield(field, yieldContextFor(g.state, 0))
+        .filter((line) => line.card === "theOrchardTithe")
+        .reduce((sum, line) => sum + line.gold, 0);
+    // No road beside it, no helping — and the line is absent rather than zero.
+    expect(coin()).toBe(0);
+    ring[0]!.road = 0;
+    bumpRevision(g.state);
+    expect(coin()).toBe(1);
+    ring[1]!.road = 0;
+    bumpRevision(g.state);
+    expect(coin()).toBe(2);
+    // Three roads, and the ceiling holds — the helping is capped, not the bag.
+    ring[2]!.road = 0;
+    bumpRevision(g.state);
+    expect(coin()).toBe(2);
+    // **One labelled entry, whatever the ring says**: rule 5 holds, so the
+    // breakdown is still a list a player can add up.
+    expect(
+      explainTileYield(field, yieldContextFor(g.state, 0)).filter(
+        (line) => line.card === "theOrchardTithe",
+      ),
+    ).toHaveLength(1);
+    // And a caller with no ring pays nothing — `beside`'s own bargain.
+    expect(
+      explainTileYield(field)
+        .filter((line) => line.card === "theOrchardTithe")
+        .reduce((sum, line) => sum + line.gold, 0),
+    ).toBe(0);
+    (orderDef("theOrchardTithe" as never) as { effects: CardEffect[] }).effects = held;
+  });
+
+  /**
+   * **The member register**, D2a's discipline one grade over: a field declared,
+   * worded and read but named by no live row is a field nobody has tested. Read
+   * off the live table itself, so a shape built and un-deferred with nothing
+   * fails here rather than three files away.
+   */
+  it("reads every field this batch declared from at least one live row", () => {
+    const scopes = new Set<string>();
+    const counts = new Set<string>();
+    let productionCount = false;
+    let routeCount = false;
+    let shareCap = false;
+    let authorityCap = false;
+    let renownScope = false;
+    let purchaseScope = false;
+    let purchaseShelf = false;
+    let empireBuilding = false;
+    let cityCost = false;
+    const noteScope = (scope: unknown): void => {
+      if (!scope || typeof scope !== "object") return;
+      const test = (scope as { test?: string }).test;
+      if (test !== undefined) scopes.add(test);
+      for (const inner of (scope as { of?: unknown[] }).of ?? []) noteScope(inner);
+    };
+    const walk = (effects: readonly CardEffect[]): void => {
+      for (const effect of effects) {
+        noteScope((effect as { scope?: unknown }).scope);
+        switch (effect.kind) {
+          case "pays":
+            if (effect.count !== undefined) counts.add(effect.count);
+            if (effect.basis === "share" && effect.max !== undefined) shareCap = true;
+            break;
+          case "productionBonus":
+            if (effect.count !== undefined) counts.add(effect.count);
+            if (effect.count !== undefined && effect.max !== undefined) productionCount = true;
+            if (effect.empireBuilding === true) empireBuilding = true;
+            break;
+          case "routeRider":
+            if (effect.count !== undefined) counts.add(effect.count);
+            if (effect.count !== undefined && effect.max !== undefined) routeCount = true;
+            break;
+          case "authority":
+            if (effect.max !== undefined) authorityCap = true;
+            break;
+          case "renown":
+            if (effect.scope !== undefined) renownScope = true;
+            if (effect.count !== undefined) counts.add(effect.count);
+            break;
+          case "purchaseRider":
+            if (effect.scope !== undefined) purchaseScope = true;
+            if (effect.buildingCategory !== undefined) purchaseShelf = true;
+            break;
+          case "meterRule":
+            if (effect.rule === "cityCost") cityCost = true;
+            break;
+          case "conditionRule":
+            walk(effect.then);
+            break;
+          default:
+            break;
+        }
+      }
+    };
+    for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS])
+      walk(cardDef(id).effects);
+    expect(productionCount, "productionBonus count/max").toBe(true);
+    expect(routeCount, "routeRider count/max").toBe(true);
+    expect(shareCap, "a share's ceiling").toBe(true);
+    expect(authorityCap, "a per-town writ's ceiling").toBe(true);
+    expect(renownScope, "renown scope").toBe(true);
+    expect(purchaseScope, "purchaseRider scope").toBe(true);
+    expect(purchaseShelf, "purchaseRider buildingCategory").toBe(true);
+    expect(cityCost, "meterRule cityCost").toBe(true);
+    expect(scopes.has("hasEmpireBuilding"), "hasEmpireBuilding").toBe(true);
+    for (const count of [
+      "capturedCities",
+      "empireBuildings",
+      "uniqueStrategicResources",
+      "distinctWorkedFeatures",
+      "distinctWorkedGreatWorks",
+      "legacyFamilies",
+    ]) {
+      expect(counts.has(count), count).toBe(true);
+    }
+    // **Three of this batch's fields are named by no live row, and that is
+    // stated rather than forgotten** — each is pinned behaviourally above, on a
+    // row built for the pin, and each waits on a clause a *later* batch owes:
+    //
+    //   · `distinctBuildingCategories` — The Complete Court is paid for every
+    //     shelf *except* its own, and a count cannot be asked with one of its
+    //     kinds left out;
+    //   · `perNeighbour` — the four rows the audit counted for the ring each
+    //     name ground no condition can (an improvement that is not a master's
+    //     work, a wood old enough to fell);
+    //   · `productionBonus.empireBuilding` — the three rows that want hammers
+    //     behind one of the realm's great houses each carry a second half about
+    //     a first completion or a food surplus, and a card is never half built.
+    //
+    // The class itself is live: `hasEmpireBuilding` and `empireBuildings` are
+    // both in the lists above, so the selector is read — it is only the
+    // production narrowing that waits. All three stand for the batch that frees
+    // their rows, exactly as `rerollsWhileSlotted` stands for the verb that will
+    // write it.
+    expect(counts.has("distinctBuildingCategories")).toBe(false);
+    expect(empireBuilding, "no live row narrows hammers to an empire building yet").toBe(false);
   });
 });

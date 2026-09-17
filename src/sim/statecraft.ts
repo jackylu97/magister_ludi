@@ -112,6 +112,7 @@ export {
   cardProduction,
   cardProjectPays,
   cardPurchaseRiders,
+  cardCityCostDelta,
   cardRenownLines,
   cardRouteShareLines,
   cardRouteYieldLines,

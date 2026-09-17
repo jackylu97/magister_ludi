@@ -511,7 +511,26 @@ export function explainTileYield(
     // the condition that let the line through and the helping it is paid cannot
     // disagree. Nought peaks is nought food and the line says nothing at all —
     // though `adjacentMountain` will normally have refused it one line above.
-    const helpings = line.perAdjacentMountain === true ? (tile.mountainsBeside ?? 0) : 1;
+    let helpings = line.perAdjacentMountain === true ? (tile.mountainsBeside ?? 0) : 1;
+    // **And once for every neighbour that answers** — The Woodland Edge's works
+    // beside a wood (`TileLine.perNeighbour`). The peaks' multiplier one field
+    // over, and the ring is the very thunk `beside` is answered through, so a
+    // card that *admits* a hex for standing next to a wood and a card that
+    // *pays* it per wood are walking one list of six. Memoised per hex, and
+    // never supplied to the neighbour's own reading — the reach is one step,
+    // exactly as `beside` states. A caller with no ring pays nothing, which is
+    // that condition's own bargain: nothing may promise a helping the board
+    // cannot confirm.
+    const ringRule = line.perNeighbour;
+    if (ringRule !== undefined) {
+      if (besideThunk === undefined) return;
+      let beside = 0;
+      for (const neighbour of besideThunk()) {
+        if (tileConditionHolds(neighbour, ringRule)) beside += 1;
+      }
+      const cap = line.perNeighbourMax;
+      helpings *= cap === undefined ? beside : Math.min(beside, cap);
+    }
     if (helpings === 0) return;
     const clamped = {
       food: clampTakeBack('food', line.food * helpings),
