@@ -897,11 +897,16 @@
       "rarity": "rare",
       "flavor": "The whole world, kneeling in the same direction.",
       "text": "Each foreign city following your religion grants +5% production toward the Magnum Opus, at most +40%.",
-      "note": "Not built: the hammers behind a thing are raised by a flat share and cannot yet be counted out of a congregation.",
-      "deferred": [
-        "every foreign town that keeps your faith puts a little more behind the Magnum Opus, up to a limit"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 5,
+          "count": "followingForeign",
+          "max": 8
+        }
+      ]
     },
     "theCloisteredRealm": {
       "name": "The Cloistered Realm",

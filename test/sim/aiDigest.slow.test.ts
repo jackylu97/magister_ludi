@@ -102,9 +102,36 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * rows through exactly the walk it already had. Measured twice, same bytes both
  * runs.
  */
+/**
+ * **Re-cut for D2b (counts and reach, branch `decks`)**, the second and last of
+ * the two vocabulary batches. Seven shapes, every one a field on an effect that
+ * already stood: `count`/`per`/`max` on the production bonus and the route
+ * rider, a ceiling on a share of a town's own fold and on a per-town writ, a
+ * scope on the renown trickle and on the purchase rider, the empire-building
+ * selector (a scope, a count and a narrowing on the bonus), a per-town writ
+ * price (`meterRule` `cityCost`), four distinct-kind counts and a per-neighbour
+ * multiplier on a hex line. They un-deferred **twenty-seven rows**, taking the
+ * live catalogue from a hundred and seventy-five to two hundred and two — twelve
+ * of them Magisterial's and five Scientific's, which were the two thinnest decks
+ * left after D2a. Duel `af754d10:245540` → `beeae6b2:240493`, standard
+ * `1b9b9b99:900701` → `ad176577:886331`.
+ *
+ * **Both prints fell**, where D2a's moved in opposite directions, and the reason
+ * is the same fact read once more: the same number of drafts spent on a wider
+ * shelf is not the same collection, and a seat that takes a different card at
+ * turn 30 takes different everything afterwards. Two of the shapes also reach
+ * the *board* rather than only the hand — a town the writ prices one point
+ * cheaper is a town a bot may found, and hammers counted off a congregation
+ * move a queue — so the drift starts earlier here than it did in D2a.
+ *
+ * Nothing about the **engine** changed: the bot appraises every new field
+ * through the walk it already had, save the one arm `meterRule`'s register
+ * required (`scoreMeterRule`'s `cityCost`, which prices the new rule exactly as
+ * the three beside it price theirs). Measured twice, same bytes both runs.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: 'af754d10:245540',
-  standard: '1b9b9b99:900701',
+  duel: 'beeae6b2:240493',
+  standard: 'ad176577:886331',
 };
 
 /**

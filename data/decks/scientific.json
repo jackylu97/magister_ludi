@@ -223,8 +223,9 @@
       "rarity": "common",
       "flavor": "Commission the hall before you commission the statue.",
       "deferred": [
-        "towns with a library work faster on empire buildings, and completing each kind of them for the first time pays culture and faith"
+        "completing each kind of empire building for the first time pays culture and faith"
       ],
+      "note": "Held whole. The world announces that a building was finished, but not whether the realm had ever finished one of that kind before — so the commission has no first time to pay for.",
       "effects": []
     },
     "scientificTheAssay": {
@@ -234,10 +235,25 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Weigh it, burn it, then believe it.",
-      "deferred": [
-        "you gain science and gold for each different kind of strategic deposit you can draw on"
-      ],
-      "effects": []
+      "text": "Gain +2 science and +2 gold for each distinct strategic resource type you can access.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "uniqueStrategicResources",
+          "to": "science",
+          "amount": 2
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "uniqueStrategicResources",
+          "to": "gold",
+          "amount": 2
+        }
+      ]
     },
     "theStrategicReserves": {
       "name": "The Strategic Reserves",
@@ -322,10 +338,16 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Letters after a name, and lamps in every window.",
-      "deferred": [
-        "each empire building pays renown, and gladdens the town that holds it, once per town"
-      ],
-      "effects": []
+      "text": "Each empire building grants +2 renown. Its city gains +2 happiness, once per city.",
+      "effects": [
+        { "kind": "renown", "amount": 2, "count": "empireBuildings" },
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": { "test": "hasEmpireBuilding" }
+        }
+      ]
     },
     "theLearnedChancery": {
       "name": "The Learned Chancery",
@@ -334,10 +356,21 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The clerk with a book governs further than the clerk with a seal.",
-      "deferred": [
-        "a town holding an empire building costs less authority to keep and pushes its borders out faster"
-      ],
-      "effects": []
+      "text": "Cities with an empire building cost one less authority, minimum one, and gain +50% border growth.",
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": -1,
+          "scope": { "test": "hasEmpireBuilding" }
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "borderCulture",
+          "percent": 50,
+          "scope": { "test": "hasEmpireBuilding" }
+        }
+      ]
     },
     "theAcademyQuarter": {
       "name": "The Academy Quarter",
@@ -346,10 +379,29 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Put the schools on one street and listen.",
-      "deferred": [
-        "a town holding an empire building works and earns for each different kind of great person's work it works, up to a limit, and a second empire building adds nothing"
-      ],
-      "effects": []
+      "text": "A city with an empire building gains +3 production and +3 gold per different great-person work type it works, at most +15 of each. Multiple institutions do not multiply this benefit.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "distinctWorkedGreatWorks",
+          "to": "production",
+          "amount": 3,
+          "max": 5,
+          "scope": { "test": "hasEmpireBuilding" }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "distinctWorkedGreatWorks",
+          "to": "gold",
+          "amount": 3,
+          "max": 5,
+          "scope": { "test": "hasEmpireBuilding" }
+        }
+      ]
     },
     "theInheritedSchool": {
       "name": "The Inherited School",
@@ -361,6 +413,7 @@
       "deferred": [
         "worked academies and manufactories feed and work the better for each different family of great person whose legacy you still keep, up to a limit"
       ],
+      "note": "Held whole. The realm can now count the families whose legacies it keeps, but what a hex pays cannot be multiplied by a thing the realm holds — only by what stands beside the hex itself.",
       "effects": []
     },
     "discoveriesThroughGreatPeople": {
@@ -536,10 +589,39 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Bread and song out of a workshop.",
-      "deferred": [
-        "a town holding an empire building that works an academy or a manufactory is fed and sung to in proportion to what it builds"
-      ],
-      "effects": []
+      "text": "A city with an empire building working an Academy or Manufactory gains food and culture each equal to 20% of its base production, excluding conversion outputs.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "from": "production",
+          "to": "food",
+          "percent": 20,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "hasEmpireBuilding" },
+              { "test": "workingImprovement", "improvements": ["academy", "manufactory"] }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "from": "production",
+          "to": "culture",
+          "percent": 20,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "hasEmpireBuilding" },
+              { "test": "workingImprovement", "improvements": ["academy", "manufactory"] }
+            ]
+          }
+        }
+      ]
     },
     "theLearnedRealm": {
       "name": "The Learned Realm",
@@ -549,8 +631,9 @@
       "rarity": "uncommon",
       "flavor": "A realm that reads is a realm that holds together.",
       "deferred": [
-        "each town working a great person's work widens your authority, up to a limit, and towns with a library that has stood a long while are gladder"
+        "towns with a library that has stood a long while are gladder"
       ],
+      "note": "Held whole. Nothing in the game remembers when a building was raised, so no law can tell an old library from a new one.",
       "effects": []
     }
   }

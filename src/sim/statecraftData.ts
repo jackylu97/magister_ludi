@@ -890,6 +890,33 @@ export type CityScope =
    * `notHasWonder`'s stated reason.
    */
   | { test: 'notKeepingRite' }
+  /**
+   * **One of the realm's single great houses stands in this town** — The Royal
+   * Society's, The Learned Chancery's, and the whole of Scientific's
+   * Institutions line.
+   *
+   * An **empire building** is the user's name for the class (2026-09-17): a row
+   * an empire may raise exactly once, wherever it chooses to raise it — the
+   * Forum, the Caravanserai, the High Temple. The marker has always been on the
+   * rows (`BuildingDef.oncePerEmpire`) and the evaluator has always divided its
+   * two walks on it (`oneOfAKind`, which is that marker **or** a wonder); what
+   * was missing was any way for a card to name the class.
+   *
+   * A member of its own rather than `hasBuildingYielding`'s `wonder` flag one
+   * table over, and the difference is the whole point: a wonder is one per
+   * *world* and an empire building is one per *realm*, so "the town that holds
+   * my Forum" is a sentence about a choice this empire made and "the town that
+   * holds the Pyramids" is a sentence about a race it won. `hasWonder` is the
+   * other class and stays its own member; a card wanting either says `any`.
+   *
+   * Read off the marker alone and **never** off the wonder flag, which is why it
+   * is not `oneOfAKind`: the Opus is an empire building by the data's own
+   * declaration and a wonder is not, and a card that said "an empire building"
+   * and quietly meant "or any marvel" would be paying for a class the player
+   * did not choose. A town holding two counts once — it is a predicate, and
+   * `CountKind`'s `empireBuildings` is what pays per house.
+   */
+  | { test: 'hasEmpireBuilding' }
   | { test: 'all'; of: CityScope[] }
   /**
    * **Any one of these** holds — the Stable's pasture *or* camp.
@@ -2124,7 +2151,124 @@ export type CountKind =
    * the figure the Trade screen can print before a caravan exists, and is the
    * same for a route running and a route being considered.
    */
-  | 'routeLength';
+  | 'routeLength'
+  /**
+   * **Towns this empire took rather than founded** — Imperium's, whose whole
+   * subject is the realm built by conquest.
+   *
+   * `cities` narrowed by `City.captured`, the sticky flag that says *whether
+   * ever* (a town founded and lost and retaken is captured; a town raised from
+   * nothing never is), and a member of its own rather than a scope on that count
+   * for `improvedStrategicResources`' reason exactly: "per city" and "per
+   * captured city" read differently on a card, and a member each is what lets
+   * `COUNT_WORDS` write the words.
+   *
+   * It counts what this empire **holds now**, not what it has ever taken: a town
+   * lost back is somebody else's count the turn it changes hands, which is what
+   * "each captured city you hold" says and the only reading a card about an
+   * empire's extent could honestly have.
+   */
+  | 'capturedCities'
+  /**
+   * **The realm's single great houses** — The Royal Society's, and the count
+   * `CityScope`'s `hasEmpireBuilding` pays per house rather than per town.
+   *
+   * `wonders` one class over: that count reads the class the *world* allows one
+   * of and this reads the class a *realm* allows one of
+   * (`BuildingDef.oncePerEmpire`, the marker `oneOfAKind` has always divided the
+   * two building walks on). Two counts because the two read differently on a
+   * card, and because the same town may hold one of each.
+   *
+   * A count of **buildings**, and by construction also a count of the rows this
+   * empire has finished: one per kind is all there can ever be. Narrowed to one
+   * town by `within: 'city'`, `wonders`' own narrowing and for its reason — the
+   * same sweep, asked of different ground. Read off the towns' own `buildings`
+   * lists, so pay follows the stones exactly as a wonder's does and a captured
+   * Forum is its captor's from the turn the town changes hands.
+   */
+  | 'empireBuildings'
+  /**
+   * **Different kinds of strategic seam this empire can draw on** — The Assay's,
+   * and the first of the five *distinct-kind* counts (D2b).
+   *
+   * `improvedStrategicResources` counts *seams* and this counts **kinds**, which
+   * is the pair `uniqueLuxuries` and `luxuryCopies` already are one resource
+   * class over — and a member each for that pair's reason: "per improved
+   * strategic resource" and "per different kind of strategic deposit" read
+   * differently on a card, and the second is the sentence a card about breadth
+   * means. Answered by `controlledResources(…, 'strategic')`, the same reading
+   * `uniqueLuxuries` takes, so the two resource classes cannot disagree about
+   * what "controlled" means.
+   *
+   * **Access, not ownership**: a seam a card cannot name pays nothing anywhere
+   * (`resourceIsVisibleTo`), and that reading is inside the sweep rather than
+   * beside it.
+   */
+  | 'uniqueStrategicResources'
+  /**
+   * **Different kinds of wild ground this town's citizens work** (city-scoped) —
+   * The Naturalists', who are paid for the variety and not for the acreage.
+   *
+   * `workedTilesInCity`'s shape with the *kinds* counted instead of the hexes:
+   * `City.workedTiles`, the city centre excluded as the assigner counts them,
+   * keeping each distinct `Tile.feature` once. Bare ground counts nothing at all
+   * — `'none'` is the table's empty value rather than a kind of wild, and open
+   * plain is the absence of a feature rather than one more of them.
+   *
+   * A member of its own rather than a flag on `workedTilesInCity`, for
+   * `workedUnimprovedTiles`' reason exactly: the two read differently on a card
+   * and a member each is what lets the words be written.
+   */
+  | 'distinctWorkedFeatures'
+  /**
+   * **Different kinds of great-person work this town's citizens stand on**
+   * (city-scoped) — The Great Exhibition's, and The Academy Quarter's.
+   *
+   * `distinctWorkedFeatures`' twin one layer of the ground up: the same walk of
+   * `City.workedTiles`, keeping each distinct `Tile.improvement` once and only
+   * where the improvement table marks it a great person's
+   * (`ImprovementDef.greatPerson`, presence is the marker — the very declaration
+   * `TileCondition`'s `greatWork` reads). So the sixth work added the day a great
+   * admiral lands joins every card written on this for free.
+   *
+   * `CityScope`'s `workingGreatWork` is the predicate over the same ground and
+   * stays its own member: that one admits a town for working any, and this pays
+   * per *kind*, which is the whole difference The Great Exhibition's two clauses
+   * are made of.
+   */
+  | 'distinctWorkedGreatWorks'
+  /**
+   * **Different shelves of building this town has raised** (city-scoped) — The
+   * Complete Court's, paid for the breadth of what a capital keeps.
+   *
+   * `buildingsInCity` counts the roofs and this counts the **kinds of roof**:
+   * the town's own `buildings` list, keeping each distinct `BuildingDef.category`
+   * once. Wonders and empire buildings are in it, exactly as they are in
+   * `buildingsInCity`, because a marvel is a building and the court is paid for
+   * what the town has raised.
+   *
+   * The shelf is the data's own word, so a category added to the table widens
+   * every card written on this without an edit here — `buildingsOfCategory`'s
+   * bargain, counted the other way round.
+   */
+  | 'distinctBuildingCategories'
+  /**
+   * **Different great-person families whose legacy this empire still holds** —
+   * The Living Canon's, and The Inherited School's.
+   *
+   * The distinct-kind reading of `Player.legacies`, which is the register a
+   * spent great person leaves behind (`LegacyRecord`, revoked by **marking**).
+   * A revoked legacy is not held, which is the whole meaning of the mark, so the
+   * count falls the turn one is revoked and a card written on it cannot be
+   * farmed by a legacy the realm no longer keeps.
+   *
+   * **Families, not legacies**: three scholars leave three legacies and one
+   * family, and "the variety of legacies you hold" is a sentence about the five
+   * families rather than about the roster. `greatPeopleCalled` is the other
+   * count of the same people and stays its own member — that one counts how many
+   * were ever picked and this counts how many kinds still pay.
+   */
+  | 'legacyFamilies';
 
 /**
  * The moments a growing card can be counting. See `CountKind`'s `tally`.
@@ -2323,7 +2467,49 @@ export type MeterRuleId =
   /** Borders keep growing while the writ is in deficit. */
   | 'borderFreezeExempt'
   /** A negative writ stops slowing production toward units. */
-  | 'authorityUnitProductionExempt';
+  | 'authorityUnitProductionExempt'
+  /**
+   * **What one town costs this empire's writ**, for the towns a scope admits —
+   * Marcher Lords' border forts, The Learned Chancery's institutes, The
+   * Chartered Metropolis' surcharge.
+   *
+   * The three rules above it price a **kind of ground** (a seizure, a harbour, a
+   * hill) and are chosen by an exclusive ladder in `cityAuthorityCost`: a
+   * captured coastal hill town is priced once, as a seizure. That ladder is the
+   * whole reason a card could not say *"this city costs one less authority"* of
+   * anything else — a fourth arm would have had to decide where in the
+   * precedence it sat, and ten rows across five decks each wanted a different
+   * class of town.
+   *
+   * So this one is **not an arm of the ladder**: it is a `delta` applied to
+   * whatever the ladder priced, once per town, off `CardMeterRuleEffect.scope`.
+   * A row with no scope reaches every town and is the honest reading of "cities
+   * cost one less"; a row with one reaches the towns it admits. Two cards stack,
+   * because two deltas on one constant have always summed here.
+   *
+   * **The floor is stated and is two-sided** (`cardCityCostDelta`'s caller): a
+   * discount never takes a town below one and never charges a town that was
+   * already free — `max(min(cost, 1), cost + delta)`. The first half is every
+   * card's own printed words ("minimum one"); the second is what keeps a
+   * discount a discount, since a capital and a relieved puppet can both cost
+   * nothing and a naïve floor at one would have made a *gift* raise their price.
+   *
+   * It is a **cost**, never capacity, which is the meter's standing rule read
+   * the way it was written: a card that wants the realm's writ wider says
+   * `authority` and gets a line in the gains; a card that wants one town cheaper
+   * to hold says this and the town's own line moves. The two halves of the meter
+   * go on meaning what they meant.
+   *
+   * **The settler's preview does not carry it**, and that is a stated cut: a
+   * town nobody has founded is no `City`, so there is nothing to ask a scope of
+   * — Marcher Lords' border fort is scoped on ground the site has and The
+   * Learned Chancery's on a building it has not raised, and a preview that
+   * guessed one would be promising a figure for the other. So
+   * `prospectAuthorityCost` prices the ladder alone and the town's real line
+   * moves the turn it is founded, which is the honest direction to be wrong in:
+   * the writ a settler is quoted is never cheaper than the writ it costs.
+   */
+  | 'cityCost';
 
 /** A verb whose behaviour a card changes outright. */
 export type ActionRuleId =
@@ -3147,6 +3333,39 @@ export interface CardPaysEffect extends CardYieldBag {
    * the mountains would be paying interest on the land twice.
    */
   perAdjacentMountain?: true;
+  /**
+   * **Paid once for every neighbouring hex that satisfies this** — The Woodland
+   * Edge's *"+1 production per adjacent forest, at most +2"*. `where: 'hex'`
+   * only, and capped by `max` in helpings.
+   *
+   * `perAdjacentMountain` generalised, and the older field stays exactly as it
+   * is rather than being migrated: that one is answered off the ground's **baked
+   * mark** (`Tile.mountainsBeside`, written once at generation, because peaks
+   * never move) and this one has to walk the ring, because woods are felled,
+   * farms are raised and roads are paved. Two readings of one sentence, each
+   * paying for what it can afford — a row carrying both is a row asking for both
+   * multipliers, which sum before the bag is multiplied once.
+   *
+   * The ring is the caller's, exactly as `TileCondition`'s `beside` takes it and
+   * for that member's stated reason: a hex is a tile and no map, so the yield
+   * chain hands the neighbours down (`TileYieldContext.neighbours`) and **a
+   * caller with no ring pays nothing**. The neighbour is asked the ordinary
+   * `TileCondition`, so "beside a forest" and "beside an unimproved forest" are
+   * the same field with a different condition and nothing new is written the day
+   * a card wants quarries.
+   *
+   * **A `beside` inside this answers no**, the same one-hex reach that member
+   * states: the ring is not re-supplied to the neighbour's own evaluation, so
+   * the walk is six hexes and cannot become a flood fill.
+   *
+   * The bag is multiplied where the line is pushed and lands as **one** labelled
+   * entry, `perAdjacentMountain`'s own arithmetic, so the breakdown still folds
+   * to the total; a hex with nothing beside it carries the row at nought and the
+   * line simply says nothing. The two hex percentages are untouched by it, for
+   * that field's reason — a share of what the land already pays, multiplied by
+   * the ring, would be paying interest on the ground twice.
+   */
+  perNeighbour?: TileCondition;
   /** Which of Entry XVII's stages a counted percentage joins. Its discriminant. */
   stage?: ModifierStage;
 
@@ -3166,7 +3385,21 @@ export interface CardPaysEffect extends CardYieldBag {
    * two readings.
    */
   per?: number;
-  /** The most helpings that ever pay. `basis: 'count'`. */
+  /**
+   * **The ceiling.** Two readings, disjoint by `basis` — the shape's own idiom:
+   *
+   *   · at `basis: 'count'` (and at `where: 'hex'` with `perNeighbour`), the
+   *     most **helpings** that ever pay;
+   *   · at `basis: 'share'`, the most the line ever pays at all, in whole units
+   *     of `to`, **per city** — The Learned Patron's *"at most +12 science per
+   *     city"*.
+   *
+   * A share has no helpings to cap, which is what makes the second reading a
+   * reading of this field rather than a field of its own: the two can never be
+   * asked of one row, and a ceiling is a ceiling. Applied after the floor, so a
+   * town whose culture is worth eleven and a half beakers is capped at what it
+   * actually earns rather than at what it rounded from.
+   */
   max?: number;
 
   // --- the counts' arguments ------------------------------------------------
@@ -3402,6 +3635,53 @@ export interface CardProductionBonusEffect {
    * buildings among them*.
    */
   buildingCategory?: BuildingCategory;
+  /**
+   * Narrows the bonus to the realm's **single great houses** — The Land's Great
+   * Work, The Merchant Works, and Scientific's Institutions line.
+   *
+   * `buildingCategory`'s sibling one class over, and a **marker rather than a
+   * fifth `ProductionCategory`**, which is the one judgement this field is. A
+   * production category is what kind of *queue row* is being built (unit,
+   * building, wonder, project) and every reader of that union — the queue, the
+   * purchase gate, the bot's appraisal, the Compendium — switches on it
+   * exhaustively; an empire building is a **building** by every one of those
+   * readings, and a fifth member would have made `category: 'building'`
+   * ambiguous in each of them (does it still include the Forum?) for one
+   * narrowing on one shape. So it sits here beside the two narrowings that are
+   * already about *which building among the buildings*, and reads the marker the
+   * rows already carry (`BuildingDef.oncePerEmpire`, `CityScope`'s
+   * `hasEmpireBuilding` one question over).
+   *
+   * Asked only of the row being built, exactly as `building` is, so a bonus
+   * carrying it says nothing about a unit or a project. A wonder is **not** one
+   * of these — the two classes are separate by the marker's own reading — and a
+   * card that means both says so with two rows.
+   */
+  empireBuilding?: true;
+  /**
+   * **A share per helping of something counted** — The Great Consecration's
+   * *"+5% toward the Magnum Opus for every foreign city that follows you, at
+   * most +40%"*, and The World's Exchange's roads.
+   *
+   * `percent` is the figure **one helping** adds where this is present, and the
+   * flat reading where it is not — the discriminant `CardPaysEffect`'s counted
+   * percentage already uses (`stage`, present iff the helping pays a share).
+   * Every helping sums before Entry XVII's one multiplication, which is what
+   * `cardProduction` returning a **list** has always guaranteed: a counted bonus
+   * is one labelled line whose figure is `percent × helpings`, never a second
+   * multiplication after the first.
+   *
+   * Answered by `countOf` — the simulation's own counting question, the very
+   * reading the yields and the renown trickle ask — so a card counting a
+   * congregation for hammers and a card counting it for coin cannot disagree
+   * about how big it is. A row naming no count keeps the flat reading, which is
+   * what every row written before this field meant.
+   */
+  count?: CountKind;
+  /** How many of `count` buy one helping of `percent`. Default 1. */
+  per?: number;
+  /** The most helpings that ever pay — The Great Consecration's eight. */
+  max?: number;
 }
 
 /** A percentage on a named rule. See `CardRule`. */
@@ -3477,6 +3757,22 @@ export interface CardAuthorityEffect {
    * which is what every row written before it meant.
    */
   scope?: CityScope;
+  /**
+   * **The ceiling, in capacity** — The Provincial Chancery's *"at most +8"*, The
+   * Great Chancery's twelve.
+   *
+   * A cap on the **writ the line supplies**, not on the towns counted, and the
+   * difference matters the moment `amount` is more than one: The Great Chancery
+   * pays two a town to a ceiling of twelve, which is six towns and not twelve.
+   * So it is applied to the product exactly as a player reads the card, and the
+   * label still says how many towns were counted — a hover that capped silently
+   * is the one thing `explainAuthority` exists to prevent.
+   *
+   * Meaningless without `per: 'city'` and ignored there, for `scope`'s reason: a
+   * flat capacity is already the figure the card prints and a ceiling on it
+   * would be a second way to write the same number.
+   */
+  max?: number;
 }
 
 /** Percentage points on the positive happiness rungs. Amber's shape. */
@@ -3951,6 +4247,33 @@ export interface CardRouteRiderEffect {
    * is what stopped saying so.
    */
   scope?: CityScope;
+  /**
+   * **A road per helping of something counted** — The Harbour Chain's *"+1 route
+   * capacity per two Harbours you own, at most +4"*, and The Admiralty's
+   * shipyards.
+   *
+   * `scope` opens a slot **per admitting town** and this opens one per *helping
+   * of a count*, and the two are different sentences rather than two spellings
+   * of one: Harbourmasters gives every coastal harbour its own road, and The
+   * Harbour Chain gives the realm one road for every second harbour anywhere in
+   * it. A row carrying both would be asking two questions, so the scope is read
+   * first and this is ignored there — `CardRenownEffect`'s precedence, and for
+   * its reason.
+   *
+   * `extra` is what **one helping** opens, which is what makes "+1 per two
+   * harbours" the ordinary row and "+2 per two harbours" a row that says so.
+   * Answered by `countOf` with the counts' own divisor and ceiling (`helpings`),
+   * so a road counted off the harbours and a coin counted off them round the
+   * same way. One line, labelled with the helpings, because `explainRouteSlots`
+   * is the ledger a player checks when a road they expected is not there.
+   */
+  count?: CountKind;
+  /** How many of `count` buy one helping of `extra`. Default 1. */
+  per?: number;
+  /** The most helpings that ever open a road — The Harbour Chain's four. */
+  max?: number;
+  /** Which building `count: 'buildingsOfKind'` counts. The Harbour Chain's harbour. */
+  building?: BuildingId;
 }
 
 /**
@@ -4034,6 +4357,21 @@ export interface CardMeterRuleEffect {
   rule: MeterRuleId;
   value?: number;
   delta?: number;
+  /**
+   * **Which towns the rewrite reaches** — `rule: 'cityCost'` only, and required
+   * there in spirit if not in the type: a row naming none reprices every town,
+   * which is a real sentence and the honest reading of an unnamed argument.
+   *
+   * The ordinary `CityScope`, read by the ordinary evaluator
+   * (`cardCityCostDelta`), so "a town holding an empire building" costs what it
+   * costs by the same reading that pays it. Meaningless on the other six rules
+   * and **ignored** there rather than refused: those are constants of the realm
+   * — what a harbour town costs, how many citizens are free, whether borders
+   * freeze — and a scope on a realm's constant is a question with no town to ask
+   * it of. `cardMeterRule` therefore never looks at this field, which is what
+   * keeps the empire-wide fold exactly as fast and exactly as simple as it was.
+   */
+  scope?: CityScope;
 }
 
 /** A whole clause gated on a fact about the empire. */
@@ -4334,6 +4672,43 @@ export interface CardPurchaseRiderEffect {
   on?: 'unit' | 'building' | 'all';
   /** Signed whole percent off the price. `-25` is the Ziggurat's quarter. */
   percent: number;
+  /**
+   * **Which towns buy at this price** — Mercenary Companies' barracks towns, The
+   * Great Patrons' towns that hold a marvel.
+   *
+   * A price was an **empire** fact until now and nothing else on this shape is
+   * about a place, which is exactly what four rows in three decks could not say:
+   * "cheaper here" is a reason to build the barracks, and "cheaper everywhere"
+   * is a discount with no decision in it. The ordinary `CityScope`, read where
+   * the price is folded (`applyRiders`, `purchase.ts`) — which always had the
+   * town in hand, since a purchase is made in one — so the counter's line and a
+   * yield line mean the same thing by "a town with a Temple".
+   *
+   * Absent reaches every town, which is what every row written before it meant,
+   * so the Great Ziggurat's augurs are byte-identical without being touched. A
+   * **bank-less** reading has no town at all (nothing in this game prices a
+   * purchase without one), so no caller has to decide what a scoped rider means
+   * with nowhere to spend.
+   */
+  scope?: CityScope;
+  /**
+   * Narrows a **building** rider to one shelf — The Tithe's religious houses,
+   * The Great Patrons' culture houses.
+   *
+   * `class` says which units and could never say a granary — the very gap `on`
+   * was added for — so the building half of this shape had exactly one setting:
+   * all of them. This is `CardProductionBonusEffect.buildingCategory`'s field
+   * one ledger over and named after it, reading the same one word every row
+   * declares (`BuildingDef.category`), so a second culture house is a JSON row
+   * rather than an edit here.
+   *
+   * Asked only of a building being priced: a row carrying it is silent on every
+   * unit, whatever `class` says, because "religious spearmen" is not the
+   * sentence and a rider that narrowed one half would be narrowing the other by
+   * accident. Absent reaches every building, the reading `on: 'building'` has
+   * always had.
+   */
+  buildingCategory?: BuildingCategory;
 }
 
 /**
@@ -4473,6 +4848,28 @@ export interface CardRenownEffect {
   max?: number;
   /** Which family this feeds. Absent feeds the pool and no family. */
   family?: Family;
+  /**
+   * **Which towns are counted**, on a `per: 'city'` trickle — The Provincial
+   * Stages' towns outside the capital that keep several culture houses, The
+   * Laureate's towns whose citizens work a master's ground.
+   *
+   * `CardAuthorityEffect.scope`'s field one ledger over and read the same way:
+   * the ordinary `CityScope`, asked by the ordinary evaluator, so "a town
+   * holding a marvel" means here exactly what it means on a yield line. Renown
+   * is still an **empire** fact and this changes nothing about that — the
+   * trickle accrues on the player and joins `explainRenown`'s one list, as it
+   * always has. What the scope narrows is the *count*: it is the difference
+   * between "one renown in every town" and "one renown for each of the towns
+   * that earned it", which is the sentence seven Magisterial rows are written in
+   * and none of them could say.
+   *
+   * Meaningless on the other three multipliers (`'wonder'`,
+   * `'buildingOfCategory'`, and a bare `count`) and ignored there: those count
+   * *things*, and a scope is a predicate over a town. Absent counts every town,
+   * which is what every row written before it meant, so the Council of Elders is
+   * byte-identical without being touched.
+   */
+  scope?: CityScope;
 }
 
 /**

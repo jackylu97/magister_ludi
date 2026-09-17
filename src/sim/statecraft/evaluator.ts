@@ -1765,6 +1765,14 @@ export function cityScopeAdmits(
       return city.buildings.some((id) => isWonder(id));
     case 'notHasWonder':
       return !city.buildings.some((id) => isWonder(id));
+    case 'hasEmpireBuilding':
+      // The marker and **not** `oneOfAKind`, which is that marker *or* a wonder:
+      // the Opus declares itself an empire building and a marvel does not, and a
+      // card that said "an empire building" and quietly admitted every town with
+      // a Pyramid in it would be paying for a class nobody chose. `hasWonder` is
+      // the other class and asks the other declaration. A boolean, so a town
+      // holding a Forum and a Bourse is admitted once.
+      return city.buildings.some((id) => buildingDef(id).oncePerEmpire === true);
     case 'hasBuildingYielding':
       // Asked of what a row *does*, off its own six voices, so a retuned library
       // moves the scope with it. `wonder: true` is Hero of Alexandria's half.
@@ -1963,6 +1971,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'holds a wonder';
     case 'notHasWonder':
       return 'holds no wonder';
+    case 'hasEmpireBuilding':
+      return 'holds an empire building';
     case 'hasBuildingYielding':
       return scope.wonder === true ? `${scope.yields} wonder` : `${scope.yields} building`;
     case 'onTerrain':
@@ -2543,6 +2553,109 @@ export function countOf(
       // has founded nothing counts nothing, which is the honest answer and not
       // a guard.
       return followingCount(state, playerId, count, effect);
+    case 'capturedCities': {
+      // What the realm **holds now**, seized rather than founded. `City.captured`
+      // is sticky and says *whether ever*, so a town raised from nothing never
+      // joins and a town retaken always has; what makes the count fall is losing
+      // one, which is the only reading "each captured city you hold" has.
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId === playerId && town.captured) total += 1;
+      }
+      return total;
+    }
+    case 'empireBuildings': {
+      // The realm's single great houses, off the towns' own `buildings` lists —
+      // so pay follows the stones exactly as a wonder's does. The **marker** and
+      // not `oneOfAKind`: a marvel is the other class, and `wonders` counts it.
+      // Narrowed to one town by `within: 'city'`, that count's own narrowing.
+      const walk = (town: City): number => {
+        let here = 0;
+        for (const id of town.buildings) {
+          if (buildingDef(id).oncePerEmpire === true) here += 1;
+        }
+        return here;
+      };
+      if (effect.within === 'city') return city ? walk(city) : 0;
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId === playerId) total += walk(town);
+      }
+      return total;
+    }
+    case 'uniqueStrategicResources':
+      // `uniqueLuxuries`' sweep with the other `ResourceKind`, which is
+      // `improvedStrategicResources`' bargain read the other way round: that one
+      // counts seams and this counts kinds. `controlledResources` is the one
+      // reading of "can this realm draw on it", so the reveal gate is inside the
+      // sweep rather than beside it.
+      return controlledResources(state, playerId, 'strategic').length;
+    case 'distinctWorkedFeatures': {
+      // `workedUnimprovedTiles`' loop with the *kinds* kept instead of the hexes
+      // counted. A hex with no feature counts nothing at all — wild ground is
+      // the feature, and open plain is its absence rather than a kind of it.
+      //
+      // **An array, searched, never a `Set`**: this is an outcome, and nothing
+      // in this game iterates a keyed collection for one.
+      if (!city) return 0;
+      const kinds: string[] = [];
+      for (const cell of city.workedTiles) {
+        const tile = getTileAt(state.map, cell.col, cell.row);
+        const feature = tile?.feature;
+        // **`'none'` is bare ground, not a kind of it** — the table's own empty
+        // value (`FeatureId`), which is why this reads the word rather than the
+        // field's presence: open plain is the absence of wild ground, and a card
+        // paid for "every different kind" would otherwise be paid once for
+        // having nothing.
+        if (feature === undefined || feature === 'none') continue;
+        if (!kinds.includes(feature)) kinds.push(feature);
+      }
+      return kinds.length;
+    }
+    case 'distinctWorkedGreatWorks': {
+      // The twin one layer of the ground up, and the marker is the improvement
+      // table's own (`greatPerson`, presence is the marker) asked through
+      // `tileConditionHolds` — the same reading `workingGreatWork` admits a town
+      // on — so a card that pays per kind and a card that admits a town for
+      // working any cannot disagree about what a master's ground is.
+      if (!city) return 0;
+      const kinds: ImprovementId[] = [];
+      for (const cell of city.workedTiles) {
+        const tile = getTileAt(state.map, cell.col, cell.row);
+        if (!tile || !tileConditionHolds(tile, { test: 'greatWork' })) continue;
+        const improvement = tile.improvement;
+        if (improvement === undefined || kinds.includes(improvement)) continue;
+        kinds.push(improvement);
+      }
+      return kinds.length;
+    }
+    case 'distinctBuildingCategories': {
+      // `buildingsInCity` counting shelves instead of roofs — wonders and empire
+      // buildings included, for that count's stated reason: a marvel is a
+      // building, and the court is paid for what the town has raised.
+      if (!city) return 0;
+      const shelves: BuildingCategory[] = [];
+      for (const id of city.buildings) {
+        const shelf = buildingDef(id).category;
+        if (!shelves.includes(shelf)) shelves.push(shelf);
+      }
+      return shelves.length;
+    }
+    case 'legacyFamilies': {
+      // **Held, not earned** — the one place this count parts company with
+      // `greatPeopleEarned`, which counts a revoked record because "earned this
+      // game" is what its line says. The Living Canon is paid for the legacies
+      // that still pay it, so a revoked mark leaves the count that turn.
+      const player = playerById(state, playerId);
+      if (!player) return 0;
+      const families: Family[] = [];
+      for (const held of player.legacies) {
+        if (held.revoked === true) continue;
+        const family = greatPersonDef(held.id).family;
+        if (!families.includes(family)) families.push(family);
+      }
+      return families.length;
+    }
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -2777,6 +2890,13 @@ export const CITY_SCOPED_COUNTS: readonly CountKind[] = [
   'workedTilesInCity',
   'workedUnimprovedTiles',
   'defensiveBuildings',
+  // The three distinct-kind counts asked of a town's own ground and its own
+  // roofs (D2b). Each is `workedTilesInCity`'s or `buildingsInCity`' walk with
+  // the kinds kept, so each can only ever be answered by a caller holding a
+  // town — the register's whole subject.
+  'distinctWorkedFeatures',
+  'distinctWorkedGreatWorks',
+  'distinctBuildingCategories',
 ];
 
 /**
@@ -2822,8 +2942,15 @@ function paysAVoice(effect: CardPaysEffect): boolean {
   return to !== undefined && to !== 'happiness' && to !== 'authority';
 }
 
-/** How many helpings a count (or a rate) buys, capped where the design caps it. */
-function helpings(total: number, per: number | undefined, max: number | undefined): number {
+/**
+ * How many helpings a count (or a rate) buys, capped where the design caps it.
+ *
+ * Exported since D2b for the one reader outside this file — `cardRouteSlots`
+ * (`draft.ts`), whose counted rider opens a road per helping — rather than
+ * copied there: a second floor-and-cap is exactly the drift two surfaces naming
+ * one count are supposed to be safe from.
+ */
+export function helpings(total: number, per: number | undefined, max: number | undefined): number {
   const step = per === undefined || per <= 0 ? 1 : per;
   let count = Math.floor(total / step);
   if (max !== undefined) count = Math.min(count, max);
@@ -3124,7 +3251,14 @@ export function cardYieldConversions(
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
     if (effect.basis !== 'share' || effect.from === undefined || !paysAVoice(effect)) continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    const paid = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;
+    const share = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;
+    // **The ceiling, per city** — The Learned Patron's *"at most +12 science per
+    // city"*. `max`'s second reading (see the shape): a share has no helpings to
+    // cap, so the field caps the figure itself, and it is applied **after** the
+    // share is taken rather than to the fold it was taken of — a town whose
+    // culture is worth fourteen beakers is paid twelve, which is what the card
+    // says, and capping the culture first would have paid a different number.
+    const paid = effect.max === undefined ? share : Math.min(share, effect.max);
     if (paid === 0) continue;
     const line = emptyLine(card, label(source, `${effect.from} → ${effect.to}`));
     line[effect.to as CityYieldKey] = paid;
@@ -3353,6 +3487,21 @@ export interface TileLine {
    * card, and on all but one of those.
    */
   perAdjacentMountain?: true;
+  /**
+   * **Paid once for every neighbouring hex that satisfies this** — The Woodland
+   * Edge's works beside a wood (`CardPaysEffect.perNeighbour`). Carried through
+   * rather than resolved, exactly as `perAdjacentMountain` is and for its
+   * reason: this module holds a tile only where a line is being pushed, and the
+   * ring lives with the caller that has the board.
+   *
+   * Where the older field reads a baked mark, this one walks the six — and can,
+   * because woods are felled and roads are paved while peaks never move. A
+   * multiplier on this line's own bag, so the breakdown still reads as one
+   * labelled entry and still folds to the total.
+   */
+  perNeighbour?: TileCondition;
+  /** The most neighbours that ever pay — The Woodland Edge's two. */
+  perNeighbourMax?: number;
   food: number;
   production: number;
   gold: number;
@@ -3726,6 +3875,13 @@ function tileLinesFrom(
     // when the row says so, so every line the game has ever held serialises and
     // compares exactly as it did before Pachacuti sat down.
     if (effect.perAdjacentMountain === true) line.perAdjacentMountain = true;
+    // The ring's own multiplier, carried the same way and written only when the
+    // row says so, so every line the game has ever held still serialises and
+    // compares exactly as it did.
+    if (effect.perNeighbour !== undefined) {
+      line.perNeighbour = effect.perNeighbour;
+      if (effect.max !== undefined) line.perNeighbourMax = effect.max;
+    }
     if (
       VOICES.some((key) => line[key] !== 0) ||
       line.percent !== undefined ||
@@ -3837,6 +3993,14 @@ export function cardProduction(
       if (building === undefined) continue;
       if (buildingDef(building).category !== effect.buildingCategory) continue;
     }
+    // And the class the realm allows one of — the marker on the row, never
+    // `oneOfAKind`, so a marvel is left to `category: 'wonder'` and a card that
+    // says "empire buildings" does not quietly speed the Pyramids. See
+    // `CardProductionBonusEffect.empireBuilding`.
+    if (effect.empireBuilding === true) {
+      if (building === undefined) continue;
+      if (buildingDef(building).oncePerEmpire !== true) continue;
+    }
     // *Where* the hammers land, where `modelClass` is *what* they land on. The
     // town is already in hand — a production modifier is asked of one city's
     // queue — so the scope is the ordinary one and needs no second reading.
@@ -3854,6 +4018,29 @@ export function cardProduction(
     }
     const percent = effect.percent;
     if (percent === 0) continue;
+    // **A share per helping**, where the row counts (The Great Consecration's
+    // congregation). One labelled line whose figure is the product, never a
+    // second multiplication after Entry XVII's — which is what this function
+    // returning a *list* has always guaranteed. `countOf` is the one counting
+    // question, and `helpings` the one divisor and ceiling, so a counted bonus
+    // and a counted coin round the same way.
+    if (effect.count !== undefined) {
+      const times = helpings(
+        countOf(state, city.ownerId, card, {
+          kind: 'pays',
+          where: 'empire',
+          basis: 'count',
+          to: 'authority',
+          amount: 0,
+          count: effect.count,
+        }),
+        effect.per,
+        effect.max,
+      );
+      if (times === 0) continue;
+      list.push({ card, source: label(source, `×${times}`), percent: percent * times });
+      continue;
+    }
     list.push({ card, source, percent });
   }
   return list;
@@ -4117,6 +4304,13 @@ export function cardHappiness(state: GameState, playerId: number): CardMeterLine
     if (isCityScopedCount(effect)) {
       for (const city of state.cities) {
         if (city.ownerId !== playerId) continue;
+        // **And the scope is asked** (D2b): a town-by-town count carries a
+        // `scope` like every other line in the vocabulary, and this walk read
+        // past it — so a row that said "per kind of wild ground worked, in
+        // cities with a Monument" was quietly paid by every town in the realm.
+        // The scope names *which towns are counted*, exactly as it does on the
+        // `per: 'city'` arm above and on the writ's own.
+        if (!cityScopeAdmits(state, city, effect.scope)) continue;
         times += helpings(countOf(state, playerId, card, effect, city), effect.per, effect.max);
       }
     } else {
@@ -4270,13 +4464,28 @@ export function cardAuthority(state: GameState, playerId: number): CardMeterLine
     // card that wants a town cheaper to hold says so with a `meterRule`.
     const towns = effect.per === 'city' ? scopedCityCount(state, playerId, effect.scope) : 1;
     if (towns === 0) continue;
+    // **The ceiling is on the writ, not on the towns** — The Great Chancery pays
+    // two a town to a ceiling of twelve, which is six towns and not twelve. So
+    // it is applied to the product, exactly as a player reads it off the card,
+    // and the label still says how many towns were counted: a hover that capped
+    // silently is the one thing this ledger exists to prevent. Signed
+    // arithmetic, so a negative capacity is floored by its own ceiling rather
+    // than clipped to nothing.
+    const raw = each * towns;
+    const amount =
+      effect.per === 'city' && effect.max !== undefined
+        ? raw < 0
+          ? Math.max(raw, -effect.max)
+          : Math.min(raw, effect.max)
+        : raw;
+    if (amount === 0) continue;
     list.push({
       card,
       source:
         effect.per === 'city'
           ? label(source, `${towns} ${scopeNote(effect.scope) ?? 'cities'}`)
           : source,
-      amount: each * towns,
+      amount,
     });
   }
 
@@ -4337,6 +4546,39 @@ export function cardMeterRule(
     value += effect.delta;
   }
   return value;
+}
+
+/**
+ * What this empire's law adds to or takes off **one town's** writ price —
+ * Marcher Lords' border forts, The Chartered Metropolis' surcharge.
+ *
+ * `cardMeterRule`'s companion and deliberately not an arm of it: that one folds
+ * a constant of the *realm* (what a harbour costs, how many citizens are free)
+ * and has no town to ask a scope of, and this one is asked once per town by the
+ * meter's own sweep. Splitting them is what keeps the empire-wide fold exactly
+ * as fast as it was — a scope read per rule per city, on six rules that can
+ * never carry one, is a walk nobody needed.
+ *
+ * **Deltas only, and they sum.** A `value` would be a card *setting* what a town
+ * costs, which is a sentence no row in the design writes and one that two cards
+ * could not both mean; `capturedCityCost`'s replace-then-shift ladder exists
+ * because that rule really does have a constant behind it, and a scoped price
+ * does not. Two cards that both reach one town stack, which has always been what
+ * two deltas on one figure do here.
+ *
+ * The floor is the **caller's** (`cityAuthorityCost`'s reading in `meters.ts`),
+ * for the reason the captured price's floor sits there: this fold is generic and
+ * the arithmetic that keeps a discount from becoming a gift is a fact about the
+ * meter it lands on.
+ */
+export function cardCityCostDelta(state: GameState, city: City): number {
+  let delta = 0;
+  for (const { effect } of effectsOfKind(state, city.ownerId, 'meterRule')) {
+    if (effect.rule !== 'cityCost' || effect.delta === undefined) continue;
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
+    delta += effect.delta;
+  }
+  return delta;
 }
 
 /** Is a meter rule declared at all? The reading for a flag-shaped rule. */
@@ -6021,12 +6263,35 @@ export function cardPurchaseRiders(
   playerId: number,
   kind: 'unit' | 'building',
   type?: UnitTypeId,
+  /**
+   * The town the price is being asked in — `applyRiders` (`purchase.ts`) always
+   * has one, since a purchase is made in a city. Only a **scoped** rider reads
+   * it, and a caller with none drops every scoped row rather than applying it:
+   * the safe reading for a clause whose whole point is that it reaches some
+   * towns, and `CardCombatLineEffect.family`'s bargain one ledger over.
+   */
+  city?: City,
+  /** Which building is being priced, for a rider that names a shelf. */
+  building?: BuildingId,
 ): CardPurchaseLine[] {
   const list: CardPurchaseLine[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'purchaseRider')) {
     const on = effect.on ?? 'unit';
     if (on !== 'all' && on !== kind) continue;
     if (kind === 'unit' && (type === undefined || !unitMatches(type, effect.class))) continue;
+    // **Which shelf**, and only ever of a building: "religious spearmen" is not
+    // a sentence, so a row naming a category is silent on every unit whatever
+    // its filter says. See `CardPurchaseRiderEffect.buildingCategory`.
+    if (effect.buildingCategory !== undefined) {
+      if (kind !== 'building' || building === undefined) continue;
+      if (buildingDef(building).category !== effect.buildingCategory) continue;
+    }
+    // **Where the price is asked.** A rider naming a class of town is paid in
+    // that class and nowhere else, which is the difference between a reason to
+    // build the barracks and a discount with no decision in it.
+    if (effect.scope !== undefined) {
+      if (!city || !cityScopeAdmits(state, city, effect.scope)) continue;
+    }
     const percent = effect.percent;
     if (percent === 0) continue;
     list.push({ card, source, percent });
@@ -6366,7 +6631,12 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
     const per = effect.per;
     const times =
       per === 'city'
-        ? cityCount(state, playerId)
+        ? // **The towns the row admits**, which is every one of them where it
+          // names none — `cardAuthority`'s reading one ledger over, through the
+          // same `scopedCityCount`, so "the provinces that keep two culture
+          // houses" is one sweep however a card asks for it. The trickle stays
+          // an empire fact; the scope narrows the *count*.
+          scopedCityCount(state, playerId, effect.scope)
         : per === 'wonder'
           ? countOf(state, playerId, card, {
               kind: 'pays',
@@ -6417,9 +6687,15 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
     const word =
       per === 'buildingOfCategory'
         ? `${effect.category ?? ''} building`
-        : per === undefined
-          ? 'helping'
-          : per;
+        : per === 'city'
+          ? // The scope's own note, so a narrowed trickle says which towns were
+            // counted — "3 per city holding a wonder × 2" — rather than a bare
+            // "per city" that would print the same words as an unnarrowed row
+            // paying twice as much.
+            (scopeNote(effect.scope) === null ? 'city' : `city ${scopeNote(effect.scope)}`)
+          : per === undefined
+            ? 'helping'
+            : per;
     list.push({
       card,
       source:

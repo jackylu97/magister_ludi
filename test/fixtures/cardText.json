@@ -2774,14 +2774,12 @@
   ],
   "mercenaryCompanies": [
    {
-    "raw": "military units are cheaper to buy, but only in a city with a barracks — not built yet",
-    "text": "military units are cheaper to buy, but only in a city with a barracks — not built yet",
-    "deferred": true
+    "raw": "military units cost −25% to buy, in every city with a [[building:barracks|Barracks]]",
+    "text": "military units cost −25% to buy, in every city with a Barracks"
    },
    {
-    "raw": "a unit you buy arrives in better health — not built yet",
-    "text": "a unit you buy arrives in better health — not built yet",
-    "deferred": true
+    "raw": "newly created military units bought with gold gain +10 maximum health",
+    "text": "newly created military units bought with gold gain +10 maximum health"
    }
   ],
   "leviesOfTheProvinces": [
@@ -2832,14 +2830,12 @@
   ],
   "theAdmiralty": [
    {
-    "raw": "every second shipyard you raise lets you run another trade route, up to a limit — not built yet",
-    "text": "every second shipyard you raise lets you run another trade route, up to a limit — not built yet",
-    "deferred": true
+    "raw": "+1 trade route per 2 [[building:shipyard|Shipyards]] (at most +2)",
+    "text": "+1 trade route per 2 Shipyards (at most +2)"
    },
    {
-    "raw": "your ships see further — not built yet",
-    "text": "your ships see further — not built yet",
-    "deferred": true
+    "raw": "ships: +1 sight",
+    "text": "ships: +1 sight"
    }
   ],
   "blockade": [
@@ -3047,9 +3043,8 @@
   ],
   "dominionImperium": [
    {
-    "raw": "every captured city you still hold puts more production behind the great work, up to a limit — not built yet",
-    "text": "every captured city you still hold puts more production behind the great work, up to a limit — not built yet",
-    "deferred": true
+    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per captured city you hold (at most +40%)",
+    "text": "+5% production toward The Magnum Opus per captured city you hold (at most +40%)"
    }
   ],
   "casusBelli": [
@@ -3093,14 +3088,12 @@
   ],
   "theNaturalists": [
    {
-    "raw": "each city learns from every different kind of wild ground it works — not built yet",
-    "text": "each city learns from every different kind of wild ground it works — not built yet",
-    "deferred": true
+    "raw": "+1 science in every city per kind of wild ground worked there",
+    "text": "+1 science in every city per kind of wild ground worked there"
    },
    {
-    "raw": "the capital learns a little more besides — not built yet",
-    "text": "the capital learns a little more besides — not built yet",
-    "deferred": true
+    "raw": "+1 science in your capital",
+    "text": "+1 science in your capital"
    }
   ],
   "claimByTheSpade": [
@@ -3926,9 +3919,8 @@
   ],
   "theWorldsExchange": [
    {
-    "raw": "every foreign realm your roads reach speeds the great work, up to a ceiling — not built yet",
-    "text": "every foreign realm your roads reach speeds the great work, up to a ceiling — not built yet",
-    "deferred": true
+    "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per other empire you trade with (at most +40%)",
+    "text": "+10% production toward The Magnum Opus per other empire you trade with (at most +40%)"
    }
   ],
   "theCharteredMetropolis": [
@@ -4349,9 +4341,8 @@
   ],
   "theGreatConsecration": [
    {
-    "raw": "every foreign town that keeps your faith puts a little more behind the Magnum Opus, up to a limit — not built yet",
-    "text": "every foreign town that keeps your faith puts a little more behind the Magnum Opus, up to a limit — not built yet",
-    "deferred": true
+    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per foreign city that follows you (at most +40%)",
+    "text": "+5% production toward The Magnum Opus per foreign city that follows you (at most +40%)"
    }
   ],
   "theCloisteredRealm": [
@@ -4485,16 +4476,19 @@
   ],
   "learnedCommissions": [
    {
-    "raw": "towns with a library work faster on empire buildings, and completing each kind of them for the first time pays culture and faith — not built yet",
-    "text": "towns with a library work faster on empire buildings, and completing each kind of them for the first time pays culture and faith — not built yet",
+    "raw": "completing each kind of empire building for the first time pays culture and faith — not built yet",
+    "text": "completing each kind of empire building for the first time pays culture and faith — not built yet",
     "deferred": true
    }
   ],
   "scientificTheAssay": [
    {
-    "raw": "you gain science and gold for each different kind of strategic deposit you can draw on — not built yet",
-    "text": "you gain science and gold for each different kind of strategic deposit you can draw on — not built yet",
-    "deferred": true
+    "raw": "+2 science per kind of strategic resource you can reach",
+    "text": "+2 science per kind of strategic resource you can reach"
+   },
+   {
+    "raw": "+2 gold per kind of strategic resource you can reach",
+    "text": "+2 gold per kind of strategic resource you can reach"
    }
   ],
   "theStrategicReserves": [
@@ -4540,23 +4534,32 @@
   ],
   "theRoyalSociety": [
    {
-    "raw": "each empire building pays renown, and gladdens the town that holds it, once per town — not built yet",
-    "text": "each empire building pays renown, and gladdens the town that holds it, once per town — not built yet",
-    "deferred": true
+    "raw": "+2 renown per turn per empire building you hold",
+    "text": "+2 renown per turn per empire building you hold"
+   },
+   {
+    "raw": "+2 happiness in every city holding an empire building",
+    "text": "+2 happiness in every city holding an empire building"
    }
   ],
   "theLearnedChancery": [
    {
-    "raw": "a town holding an empire building costs less authority to keep and pushes its borders out faster — not built yet",
-    "text": "a town holding an empire building costs less authority to keep and pushes its borders out faster — not built yet",
-    "deferred": true
+    "raw": "the authority a city holding an empire building costs falls by 1",
+    "text": "the authority a city holding an empire building costs falls by 1"
+   },
+   {
+    "raw": "+50% border expansion, in every city holding an empire building",
+    "text": "+50% border expansion, in every city holding an empire building"
    }
   ],
   "theAcademyQuarter": [
    {
-    "raw": "a town holding an empire building works and earns for each different kind of great person's work it works, up to a limit, and a second empire building adds nothing — not built yet",
-    "text": "a town holding an empire building works and earns for each different kind of great person's work it works, up to a limit, and a second empire building adds nothing — not built yet",
-    "deferred": true
+    "raw": "+3 production in every city holding an empire building per kind of great person's work worked there (at most +15 production)",
+    "text": "+3 production in every city holding an empire building per kind of great person's work worked there (at most +15 production)"
+   },
+   {
+    "raw": "+3 gold in every city holding an empire building per kind of great person's work worked there (at most +15 gold)",
+    "text": "+3 gold in every city holding an empire building per kind of great person's work worked there (at most +15 gold)"
    }
   ],
   "theInheritedSchool": [
@@ -4658,15 +4661,18 @@
   ],
   "theSocietyOfArtificers": [
    {
-    "raw": "a town holding an empire building that works an academy or a manufactory is fed and sung to in proportion to what it builds — not built yet",
-    "text": "a town holding an empire building that works an academy or a manufactory is fed and sung to in proportion to what it builds — not built yet",
-    "deferred": true
+    "raw": "20% of the production in every city holding an empire building working an [[improvement:academy|Academy]] or [[improvement:manufactory|Manufactory]] is gained again as food",
+    "text": "20% of the production in every city holding an empire building working an Academy or Manufactory is gained again as food"
+   },
+   {
+    "raw": "20% of the production in every city holding an empire building working an [[improvement:academy|Academy]] or [[improvement:manufactory|Manufactory]] is gained again as culture",
+    "text": "20% of the production in every city holding an empire building working an Academy or Manufactory is gained again as culture"
    }
   ],
   "theLearnedRealm": [
    {
-    "raw": "each town working a great person's work widens your authority, up to a limit, and towns with a library that has stood a long while are gladder — not built yet",
-    "text": "each town working a great person's work widens your authority, up to a limit, and towns with a library that has stood a long while are gladder — not built yet",
+    "raw": "towns with a library that has stood a long while are gladder — not built yet",
+    "text": "towns with a library that has stood a long while are gladder — not built yet",
     "deferred": true
    }
   ],
@@ -4871,9 +4877,12 @@
   ],
   "provincialPatrons": [
    {
-    "raw": "Provincial towns that keep several culture buildings pay renown and culture. A standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
-    "text": "Provincial towns that keep several culture buildings pay renown and culture. A standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
-    "deferred": true
+    "raw": "+1 renown per turn in every city but your capital with 2 or more culture buildings",
+    "text": "+1 renown per turn in every city but your capital with 2 or more culture buildings"
+   },
+   {
+    "raw": "+2 culture in every city but your capital with 2 or more culture buildings",
+    "text": "+2 culture in every city but your capital with 2 or more culture buildings"
    }
   ],
   "theCitizensWatch": [
@@ -4920,9 +4929,12 @@
   ],
   "magisterialTheLaureate": [
    {
-    "raw": "A town whose citizens work a great person's lasting work is paid culture, knowledge and renown. A standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
-    "text": "A town whose citizens work a great person's lasting work is paid culture, knowledge and renown. A standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
-    "deferred": true
+    "raw": "+2 science, +3 culture in every city working a great person's work",
+    "text": "+2 science, +3 culture in every city working a great person's work"
+   },
+   {
+    "raw": "+1 renown per turn in every city working a great person's work",
+    "text": "+1 renown per turn in every city working a great person's work"
    }
   ],
   "magisterialTheGuildOfMasons": [
@@ -4978,21 +4990,19 @@
   ],
   "theCompleteCourt": [
    {
-    "raw": "Your capital is paid for the breadth of what it has raised. Nothing counts how many different kinds of building a town holds — only how many buildings of one named kind. — not built yet",
-    "text": "Your capital is paid for the breadth of what it has raised. Nothing counts how many different kinds of building a town holds — only how many buildings of one named kind. — not built yet",
+    "raw": "Your capital is paid for the breadth of what it has raised. The kinds of building a town holds can be counted now, but not with one of those kinds left out — and this card is paid for everything except its own. — not built yet",
+    "text": "Your capital is paid for the breadth of what it has raised. The kinds of building a town holds can be counted now, but not with one of those kinds left out — and this card is paid for everything except its own. — not built yet",
     "deferred": true
    }
   ],
   "theGreatPatrons": [
    {
-    "raw": "Your wonders pay renown. — not built yet",
-    "text": "Your wonders pay renown. — not built yet",
-    "deferred": true
+    "raw": "+2 renown per turn per wonder you hold",
+    "text": "+2 renown per turn per wonder you hold"
    },
    {
-    "raw": "Towns holding a wonder buy culture buildings cheaper. A discount on a purchase can be narrowed to a kind of soldier, or to buildings as a whole, but not to buildings of one sort, and not to one class of town. — not built yet",
-    "text": "Towns holding a wonder buy culture buildings cheaper. A discount on a purchase can be narrowed to a kind of soldier, or to buildings as a whole, but not to buildings of one sort, and not to one class of town. — not built yet",
-    "deferred": true
+    "raw": "culture buildings cost −20% to buy, in every city containing a wonder",
+    "text": "culture buildings cost −20% to buy, in every city containing a wonder"
    }
   ],
   "theMusesCall": [
@@ -5007,9 +5017,12 @@
   ],
   "theArtisanCourt": [
    {
-    "raw": "A town whose citizens work a great person's lasting work pays renown and buys culture buildings cheaper. A standing trickle of renown cannot be narrowed to a class of town, and a purchase discount cannot be narrowed to buildings of one sort. — not built yet",
-    "text": "A town whose citizens work a great person's lasting work pays renown and buys culture buildings cheaper. A standing trickle of renown cannot be narrowed to a class of town, and a purchase discount cannot be narrowed to buildings of one sort. — not built yet",
-    "deferred": true
+    "raw": "+2 renown per turn in every city working a great person's work",
+    "text": "+2 renown per turn in every city working a great person's work"
+   },
+   {
+    "raw": "culture buildings cost −25% to buy, in every city working a great person's work",
+    "text": "culture buildings cost −25% to buy, in every city working a great person's work"
    }
   ],
   "theWorkingCourt": [
@@ -5070,9 +5083,12 @@
   ],
   "theProvincialChancery": [
    {
-    "raw": "Provincial towns that keep several culture buildings widen the writ and teach. A writ that widens town by town cannot be held to a ceiling. — not built yet",
-    "text": "Provincial towns that keep several culture buildings widen the writ and teach. A writ that widens town by town cannot be held to a ceiling. — not built yet",
-    "deferred": true
+    "raw": "+1 authority capacity per city but your capital with 2 or more culture buildings (at most +8)",
+    "text": "+1 authority capacity per city but your capital with 2 or more culture buildings (at most +8)"
+   },
+   {
+    "raw": "+3 science in every city but your capital with 2 or more culture buildings",
+    "text": "+3 science in every city but your capital with 2 or more culture buildings"
    }
   ],
   "thePalaceGuard": [
@@ -5098,9 +5114,12 @@
   ],
   "theProvincialStages": [
    {
-    "raw": "Provincial towns that keep several culture buildings pay renown and food. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
-    "text": "Provincial towns that keep several culture buildings pay renown and food. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
-    "deferred": true
+    "raw": "+2 renown per turn in every city but your capital with 2 or more culture buildings",
+    "text": "+2 renown per turn in every city but your capital with 2 or more culture buildings"
+   },
+   {
+    "raw": "+3 food in every city but your capital with 2 or more culture buildings",
+    "text": "+3 food in every city but your capital with 2 or more culture buildings"
    }
   ],
   "magisterialTheMastersPresence": [
@@ -5125,9 +5144,8 @@
   ],
   "theLearnedPatron": [
    {
-    "raw": "Towns that keep several culture buildings turn part of their culture into knowledge, up to a limit. A share of one yield paid as another carries no ceiling. — not built yet",
-    "text": "Towns that keep several culture buildings turn part of their culture into knowledge, up to a limit. A share of one yield paid as another carries no ceiling. — not built yet",
-    "deferred": true
+    "raw": "10% of the culture in every city with 2 or more culture buildings is gained again as science",
+    "text": "10% of the culture in every city with 2 or more culture buildings is gained again as science"
    }
   ],
   "thePerformersTreasury": [
@@ -5166,14 +5184,12 @@
   ],
   "theSculptorsSchools": [
    {
-    "raw": "Worked great-person works pay knowledge and coin. — not built yet",
-    "text": "Worked great-person works pay knowledge and coin. — not built yet",
-    "deferred": true
+    "raw": "+3 gold, +3 science on every hex carrying a great person's work",
+    "text": "+3 gold, +3 science on every hex carrying a great person's work"
    },
    {
-    "raw": "The towns that work them pay renown. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
-    "text": "The towns that work them pay renown. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
-    "deferred": true
+    "raw": "+1 renown per turn in every city working a great person's work",
+    "text": "+1 renown per turn in every city working a great person's work"
    }
   ],
   "thePatronsFleet": [
@@ -5195,16 +5211,26 @@
   ],
   "theMonumentalCourt": [
    {
-    "raw": "Towns holding a wonder pay renown and build culture buildings and further marvels faster. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
-    "text": "Towns holding a wonder pay renown and build culture buildings and further marvels faster. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
-    "deferred": true
+    "raw": "+3 renown per turn in every city containing a wonder",
+    "text": "+3 renown per turn in every city containing a wonder"
+   },
+   {
+    "raw": "+25% production toward culture buildings, in every city containing a wonder",
+    "text": "+25% production toward culture buildings, in every city containing a wonder"
+   },
+   {
+    "raw": "+25% production toward wonders, in every city containing a wonder",
+    "text": "+25% production toward wonders, in every city containing a wonder"
    }
   ],
   "theCivicCommonwealth": [
    {
-    "raw": "Towns that keep several culture buildings ask less of the realm's mood and less of its writ. What a town costs to hold can be rewritten only for a captured town, a coastal one or one founded on hills. — not built yet",
-    "text": "Towns that keep several culture buildings ask less of the realm's mood and less of its writ. What a town costs to hold can be rewritten only for a captured town, a coastal one or one founded on hills. — not built yet",
-    "deferred": true
+    "raw": "-20% happiness demanded per citizen, in every city with 3 or more culture buildings",
+    "text": "-20% happiness demanded per citizen, in every city with 3 or more culture buildings"
+   },
+   {
+    "raw": "the authority a city with 3 or more culture buildings costs falls by 1",
+    "text": "the authority a city with 3 or more culture buildings costs falls by 1"
    }
   ],
   "theGreatExhibition": [
@@ -5214,8 +5240,8 @@
     "deferred": true
    },
    {
-    "raw": "Towns working several different kinds of such work earn more. Nothing counts how many different kinds of work a town's citizens are standing in. — not built yet",
-    "text": "Towns working several different kinds of such work earn more. Nothing counts how many different kinds of work a town's citizens are standing in. — not built yet",
+    "raw": "Towns working several different kinds of such work earn more. The kinds a town works can be counted and paid for one at a time, but a town cannot yet be admitted for working several of them. — not built yet",
+    "text": "Towns working several different kinds of such work earn more. The kinds a town works can be counted and paid for one at a time, but a town cannot yet be admitted for working several of them. — not built yet",
     "deferred": true
    }
   ],
@@ -5276,8 +5302,8 @@
   ],
   "magisterialTheSalon": [
    {
-    "raw": "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
-    "text": "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
+    "raw": "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A trickle counted off a shelf of buildings is counted across the whole realm, and cannot be held to a class of town or to a ceiling in each one. — not built yet",
+    "text": "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A trickle counted off a shelf of buildings is counted across the whole realm, and cannot be held to a class of town or to a ceiling in each one. — not built yet",
     "deferred": true
    }
   ],
@@ -5300,9 +5326,12 @@
   ],
   "theGreatChancery": [
    {
-    "raw": "Towns that keep several culture buildings widen the writ and sing louder. A writ that widens town by town cannot be held to a ceiling. — not built yet",
-    "text": "Towns that keep several culture buildings widen the writ and sing louder. A writ that widens town by town cannot be held to a ceiling. — not built yet",
-    "deferred": true
+    "raw": "+2 authority capacity per city with 3 or more culture buildings (at most +12)",
+    "text": "+2 authority capacity per city with 3 or more culture buildings (at most +12)"
+   },
+   {
+    "raw": "+20% culture in every city with 3 or more culture buildings",
+    "text": "+20% culture in every city with 3 or more culture buildings"
    }
   ],
   "theImperialPageant": [
@@ -5335,9 +5364,12 @@
   ],
   "theLivingCanon": [
    {
-    "raw": "Towns that keep several culture buildings are fed and supplied in proportion to the variety of legacies you still hold. Nothing counts how many kinds of great person have left you a legacy. — not built yet",
-    "text": "Towns that keep several culture buildings are fed and supplied in proportion to the variety of legacies you still hold. Nothing counts how many kinds of great person have left you a legacy. — not built yet",
-    "deferred": true
+    "raw": "+5% food in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +25% food)",
+    "text": "+5% food in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +25% food)"
+   },
+   {
+    "raw": "+5% production in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +25% production)",
+    "text": "+5% production in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +25% production)"
    }
   ],
   "theUniversalCourt": [
@@ -5437,9 +5469,12 @@
   ],
   "theImperialExaminations": [
    {
-    "raw": "the garrisoned towns with a monument each raise a scholar's name — not built yet",
-    "text": "the garrisoned towns with a monument each raise a scholar's name — not built yet",
-    "deferred": true
+    "raw": "+2 culture in every city with a unit standing in it with a [[building:monument|Monument]]",
+    "text": "+2 culture in every city with a unit standing in it with a Monument"
+   },
+   {
+    "raw": "+1 renown per turn in every city with a unit standing in it with a [[building:monument|Monument]], favouring scholars",
+    "text": "+1 renown per turn in every city with a unit standing in it with a Monument, favouring scholars"
    }
   ],
   "examinationsOfState": [
@@ -5524,9 +5559,12 @@
   ],
   "commonTheTithe": [
    {
-    "raw": "religious buildings are cheaper to buy in the towns that keep a temple — not built yet",
-    "text": "religious buildings are cheaper to buy in the towns that keep a temple — not built yet",
-    "deferred": true
+    "raw": "25% of the faith in every city with a [[building:temple|Temple]] is gained again as gold",
+    "text": "25% of the faith in every city with a Temple is gained again as gold"
+   },
+   {
+    "raw": "faith buildings cost −30% to buy, in every city with a [[building:temple|Temple]]",
+    "text": "faith buildings cost −30% to buy, in every city with a Temple"
    }
   ],
   "merchantScholars": [
@@ -5600,22 +5638,36 @@
   ],
   "commonTheHouseOfWisdom": [
    {
-    "raw": "the towns that work an academy each raise a name of their own — not built yet",
-    "text": "the towns that work an academy each raise a name of their own — not built yet",
-    "deferred": true
+    "raw": "+2 culture on every hex with an [[improvement:academy|Academy]]",
+    "text": "+2 culture on every hex with an Academy"
+   },
+   {
+    "raw": "+1 renown per turn in every city working an [[improvement:academy|Academy]]",
+    "text": "+1 renown per turn in every city working an Academy"
+   },
+   {
+    "raw": "+20% production toward wonders, in every city working an [[improvement:academy|Academy]]",
+    "text": "+20% production toward wonders, in every city working an Academy"
    }
   ],
   "commonMarcherLords": [
    {
-    "raw": "a town planted near a rival's border is cheaper to hold — not built yet",
-    "text": "a town planted near a rival's border is cheaper to hold — not built yet",
-    "deferred": true
+    "raw": "every city near another empire's territory: +3 city defence",
+    "text": "every city near another empire's territory: +3 city defence"
+   },
+   {
+    "raw": "+2 production in every city near another empire's territory",
+    "text": "+2 production in every city near another empire's territory"
+   },
+   {
+    "raw": "the authority a city near another empire's territory costs falls by 1",
+    "text": "the authority a city near another empire's territory costs falls by 1"
    }
   ],
   "triumphalArches": [
    {
-    "raw": "taking a town raises the name of a general in particular, and a town that holds a wonder is the harder to storm — not built yet",
-    "text": "taking a town raises the name of a general in particular, and a town that holds a wonder is the harder to storm — not built yet",
+    "raw": "taking a town raises the name of a general in particular. A town that holds a wonder can be told from one that does not now, but the renown an occasion pays favours nobody in particular — a deed is not a shelf of buildings, and the draw's bias is a fact about what an empire keeps. — not built yet",
+    "text": "taking a town raises the name of a general in particular. A town that holds a wonder can be told from one that does not now, but the renown an occasion pays favours nobody in particular — a deed is not a shelf of buildings, and the draw's bias is a fact about what an empire keeps. — not built yet",
     "deferred": true
    }
   ],

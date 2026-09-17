@@ -232,6 +232,7 @@
       "rarity": "rare",
       "flavor": "The purse builds faster than the quarry, and asks for its name on the door.",
       "text": "Gold purchases of ordinary buildings cost 20% less. Producing those buildings normally takes 20% more production. Empire buildings and wonders are unaffected.",
+      "note": "Held whole. The realm's single great houses can be named now, and a marvel always could — but neither can be named by its absence, and this card is a discount on every building that is neither.",
       "effects": [],
       "deferred": [
         "buying an ordinary building costs less, and raising one the slow way costs more"
@@ -636,6 +637,7 @@
       "rarity": "uncommon",
       "flavor": "Count the harbours and you have counted the fleet.",
       "text": "Gain +1 route capacity per two Harbours you own, at most +4. Sea routes with your established post at both endpoints gain two turns of range.",
+      "note": "Half built, and so held whole. The harbours can be counted for extra roads now, but nothing on the board keeps a standing commercial house, so the sea road between two of them has no pair of houses to run between.",
       "effects": [],
       "deferred": [
         "your harbours together open more roads than you could otherwise run",
@@ -848,9 +850,15 @@
       "rarity": "rare",
       "flavor": "The last work of the age is paid for by every market in it.",
       "text": "Each different foreign empire currently served by your routes grants +10% production toward the Opus, at most +40%. Existing construction and victory requirements remain.",
-      "effects": [],
-      "deferred": [
-        "every foreign realm your roads reach speeds the great work, up to a ceiling"
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 10,
+          "count": "tradePartnerEmpires",
+          "max": 4
+        }
       ],
       "note": "Held whole. Hammers behind a thing are raised by a flat share, never by a share counted off how far your roads reach."
     },

@@ -529,10 +529,44 @@
       "line": "none",
       "flavor": "The province keeps its own poets, and reads them.",
       "text": "Noncapital cities with at least two culture buildings gain +1 renown and +2 culture.",
-      "deferred": [
-        "Provincial towns that keep several culture buildings pay renown and culture. A standing trickle of renown cannot be narrowed to a class of town at all."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "notCapital"
+              },
+              {
+                "test": "buildingsOfCategory",
+                "category": "culture",
+                "atLeast": 2
+              }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "notCapital"
+              },
+              {
+                "test": "buildingsOfCategory",
+                "category": "culture",
+                "atLeast": 2
+              }
+            ]
+          },
+          "culture": 2
+        }
+      ]
     },
     "theCitizensWatch": {
       "name": "The Citizens' Watch",
@@ -678,10 +712,25 @@
       "line": "none",
       "flavor": "A wreath is cheap, and nobody has found anything better.",
       "text": "Cities working a great-person improvement gain +3 culture, +2 science and +1 renown, once per city.",
-      "deferred": [
-        "A town whose citizens work a great person's lasting work is paid culture, knowledge and renown. A standing trickle of renown cannot be narrowed to a class of town at all."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "workingGreatWork"
+          },
+          "culture": 3,
+          "science": 2
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "workingGreatWork"
+          }
+        }
+      ]
     },
     "magisterialTheGuildOfMasons": {
       "name": "The Guild of Masons",
@@ -816,7 +865,7 @@
       "flavor": "A court wants one of everything, and then another.",
       "text": "Your capital gains +3% food and +3% production per distinct non-culture building category it holds, at most +18% each.",
       "deferred": [
-        "Your capital is paid for the breadth of what it has raised. Nothing counts how many different kinds of building a town holds — only how many buildings of one named kind."
+        "Your capital is paid for the breadth of what it has raised. The kinds of building a town holds can be counted now, but not with one of those kinds left out — and this card is paid for everything except its own."
       ],
       "effects": []
     },
@@ -828,11 +877,23 @@
       "line": "none",
       "flavor": "The marvel bears his name; the masons bear the stone.",
       "text": "Each wonder you hold gives +2 family-neutral renown. Cities containing a wonder purchase culture buildings for 20% less gold.",
-      "deferred": [
-        "Your wonders pay renown.",
-        "Towns holding a wonder buy culture buildings cheaper. A discount on a purchase can be narrowed to a kind of soldier, or to buildings as a whole, but not to buildings of one sort, and not to one class of town."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 2,
+          "per": "wonder"
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "building",
+          "buildingCategory": "culture",
+          "scope": {
+            "test": "hasWonder"
+          },
+          "percent": -20
+        }
+      ]
     },
     "theMusesCall": {
       "name": "The Muses' Call",
@@ -861,10 +922,26 @@
       "line": "none",
       "flavor": "The workshop moved into the palace and changed the palace.",
       "text": "Cities working a great-person improvement gain +2 renown and purchase culture buildings for 25% less gold.",
-      "deferred": [
-        "A town whose citizens work a great person's lasting work pays renown and buys culture buildings cheaper. A standing trickle of renown cannot be narrowed to a class of town, and a purchase discount cannot be narrowed to buildings of one sort."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 2,
+          "per": "city",
+          "scope": {
+            "test": "workingGreatWork"
+          }
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "building",
+          "buildingCategory": "culture",
+          "scope": {
+            "test": "workingGreatWork"
+          },
+          "percent": -25
+        }
+      ]
     },
     "theWorkingCourt": {
       "name": "The Working Court",
@@ -1039,10 +1116,45 @@
       "line": "none",
       "flavor": "Two clerks in a border town outrank a duke.",
       "text": "Gain +1 authority capacity per noncapital city with at least two culture buildings, at most +8. Such cities gain +3 science.",
-      "deferred": [
-        "Provincial towns that keep several culture buildings widen the writ and teach. A writ that widens town by town cannot be held to a ceiling."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 1,
+          "per": "city",
+          "max": 8,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "notCapital"
+              },
+              {
+                "test": "buildingsOfCategory",
+                "category": "culture",
+                "atLeast": 2
+              }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "notCapital"
+              },
+              {
+                "test": "buildingsOfCategory",
+                "category": "culture",
+                "atLeast": 2
+              }
+            ]
+          },
+          "science": 3
+        }
+      ]
     },
     "thePalaceGuard": {
       "name": "The Palace Guard",
@@ -1102,10 +1214,44 @@
       "line": "none",
       "flavor": "The company tours because the capital is cruel.",
       "text": "Noncapital cities with at least two culture buildings gain +2 renown and +3 food.",
-      "deferred": [
-        "Provincial towns that keep several culture buildings pay renown and food. A standing trickle of renown cannot be narrowed to a class of town."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 2,
+          "per": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "notCapital"
+              },
+              {
+                "test": "buildingsOfCategory",
+                "category": "culture",
+                "atLeast": 2
+              }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "notCapital"
+              },
+              {
+                "test": "buildingsOfCategory",
+                "category": "culture",
+                "atLeast": 2
+              }
+            ]
+          },
+          "food": 3
+        }
+      ]
     },
     "magisterialTheMastersPresence": {
       "name": "The Master's Presence",
@@ -1157,10 +1303,22 @@
       "line": "none",
       "flavor": "He funds the study and reads only the dedication.",
       "text": "Cities with at least two culture buildings gain science equal to 10% of their base culture, at most +12 science per city. Conversion outputs are excluded.",
-      "deferred": [
-        "Towns that keep several culture buildings turn part of their culture into knowledge, up to a limit. A share of one yield paid as another carries no ceiling."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "from": "culture",
+          "to": "science",
+          "percent": 10,
+          "max": 12,
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "culture",
+            "atLeast": 2
+          }
+        }
+      ]
     },
     "thePerformersTreasury": {
       "name": "The Performers' Treasury",
@@ -1261,11 +1419,25 @@
       "line": "none",
       "flavor": "The pupil copies the master until the copy is wanted instead.",
       "text": "Worked great-person improvements give +3 science and +3 gold. Their cities gain +1 renown, once per city.",
-      "deferred": [
-        "Worked great-person works pay knowledge and coin.",
-        "The towns that work them pay renown. A standing trickle of renown cannot be narrowed to a class of town."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "greatWork"
+          },
+          "science": 3,
+          "gold": 3
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "workingGreatWork"
+          }
+        }
+      ]
     },
     "thePatronsFleet": {
       "name": "The Patrons' Fleet",
@@ -1313,10 +1485,33 @@
       "line": "none",
       "flavor": "One marvel makes a town; two make a capital of something.",
       "text": "Cities containing a wonder gain +3 renown and +25% production toward culture buildings and wonders, once per city.",
-      "deferred": [
-        "Towns holding a wonder pay renown and build culture buildings and further marvels faster. A standing trickle of renown cannot be narrowed to a class of town."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 3,
+          "per": "city",
+          "scope": {
+            "test": "hasWonder"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "buildingCategory": "culture",
+          "percent": 25,
+          "scope": {
+            "test": "hasWonder"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 25,
+          "scope": {
+            "test": "hasWonder"
+          }
+        }
+      ]
     },
     "theCivicCommonwealth": {
       "name": "The Civic Commonwealth",
@@ -1326,10 +1521,28 @@
       "line": "none",
       "flavor": "A town that governs itself is cheaper to govern.",
       "text": "Cities with at least three culture buildings demand 20% less population happiness and cost one less authority, minimum one.",
-      "deferred": [
-        "Towns that keep several culture buildings ask less of the realm's mood and less of its writ. What a town costs to hold can be rewritten only for a captured town, a coastal one or one founded on hills."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "happinessDemand",
+          "percent": -20,
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "culture",
+            "atLeast": 3
+          }
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": -1,
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "culture",
+            "atLeast": 3
+          }
+        }
+      ]
     },
     "theGreatExhibition": {
       "name": "The Great Exhibition",
@@ -1341,7 +1554,7 @@
       "text": "Worked great-person improvements gain +25% of their native yield. Cities working at least two different types gain +20% gold.",
       "deferred": [
         "Great-person works pay half again as much as they were built to pay.",
-        "Towns working several different kinds of such work earn more. Nothing counts how many different kinds of work a town's citizens are standing in."
+        "Towns working several different kinds of such work earn more. The kinds a town works can be counted and paid for one at a time, but a town cannot yet be admitted for working several of them."
       ],
       "effects": []
     },
@@ -1511,7 +1724,7 @@
       "flavor": "Six chairs, one argument, and a century of consequences.",
       "text": "Culture buildings give +2 renown each in cities working a great-person improvement, at most +6 per city.",
       "deferred": [
-        "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A standing trickle of renown cannot be narrowed to a class of town."
+        "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A trickle counted off a shelf of buildings is counted across the whole realm, and cannot be held to a class of town or to a ceiling in each one."
       ],
       "effects": []
     },
@@ -1560,10 +1773,29 @@
       "line": "none",
       "flavor": "An empire is whatever its clerks can keep track of.",
       "text": "Gain +2 authority capacity per city with at least three culture buildings, at most +12. Such cities gain +20% culture.",
-      "deferred": [
-        "Towns that keep several culture buildings widen the writ and sing louder. A writ that widens town by town cannot be held to a ceiling."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 2,
+          "per": "city",
+          "max": 12,
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "culture",
+            "atLeast": 3
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 20,
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "culture",
+            "atLeast": 3
+          }
+        }
+      ]
     },
     "theImperialPageant": {
       "name": "The Imperial Pageant",
@@ -1657,10 +1889,38 @@
       "line": "none",
       "flavor": "The list of masters is revised by people who are not on it.",
       "text": "Cities with at least three culture buildings gain +5% food and +5% production per distinct great-person family whose legacy you currently hold, at most +25% each.",
-      "deferred": [
-        "Towns that keep several culture buildings are fed and supplied in proportion to the variety of legacies you still hold. Nothing counts how many kinds of great person have left you a legacy."
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "legacyFamilies",
+          "to": "food",
+          "percent": 5,
+          "max": 5,
+          "stage": "city",
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "culture",
+            "atLeast": 3
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "legacyFamilies",
+          "to": "production",
+          "percent": 5,
+          "max": 5,
+          "stage": "city",
+          "scope": {
+            "test": "buildingsOfCategory",
+            "category": "culture",
+            "atLeast": 3
+          }
+        }
+      ]
     },
     "theUniversalCourt": {
       "name": "The Universal Court",

@@ -90,6 +90,7 @@ import {
   cardAmplifierFlat,
   cardAuthority,
   cardBuildingHappiness,
+  cardCityCostDelta,
   cardHappiness,
   cardMeterRule,
   cardRuleIsScoped,
@@ -618,17 +619,34 @@ export function explainAuthority(
   const costs = cityCosts(state, playerId);
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    list.push(
-      cityAuthorityCost(
-        city.name,
-        city.captured,
-        isCoastalCity(state, city),
-        city.id === capital?.id,
-        city.puppet === true,
-        costs,
-        cityTile(state.map, city).hills,
-      ),
+    const line = cityAuthorityCost(
+      city.name,
+      city.captured,
+      isCoastalCity(state, city),
+      city.id === capital?.id,
+      city.puppet === true,
+      costs,
+      cityTile(state.map, city).hills,
     );
+    // **And what this empire's law says about *this* town** (`meterRule`
+    // `cityCost`, D2b). The ladder above prices a kind of *ground* and its arms
+    // are exclusive; a card that reprices the towns keeping two culture houses
+    // could not have been a fourth arm without deciding where in that precedence
+    // it sat, so it lands here, on whatever the ladder priced.
+    //
+    // **The floor is two-sided**, and both halves are load-bearing. A discount
+    // never takes a town below one, which is every such card's own printed words
+    // ("minimum one"); and it never *charges* a town that was already free,
+    // which is what keeps it a discount — a capital costs nothing and a relieved
+    // puppet may too, and a naïve floor at one would have made a gift raise
+    // their price. Written as `max(min(cost, 1), cost + delta)`, which is those
+    // two sentences and nothing else.
+    const delta = cardCityCostDelta(state, city);
+    if (delta !== 0) {
+      const cost = -line.value;
+      line.value = -Math.max(Math.min(cost, 1), cost + delta);
+    }
+    list.push(line);
   }
 
   if (prospect) list.push(prospectAuthorityCost(state, playerId, prospect.site));

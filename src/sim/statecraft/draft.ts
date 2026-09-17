@@ -62,7 +62,14 @@ import { awardOrderBeads } from '../beads';
 import { awardOccasion } from '../triumphs';
 import { type TechAge, highestAge } from '../techData';
 import { sealTurnsFor } from './evaluator';
-import { cardExtraChairs, cityScopeAdmits, effectsOfKind, forgetTheLaw } from './evaluator';
+import {
+  cardExtraChairs,
+  cityScopeAdmits,
+  countOf,
+  effectsOfKind,
+  forgetTheLaw,
+  helpings,
+} from './evaluator';
 import { bumpEconomy } from '../slate';
 
 const METER = STATECRAFT.meter;
@@ -1092,13 +1099,38 @@ export function explainOfferSize(
  */
 export function cardRouteSlots(state: GameState, playerId: number): OfferSizeLine[] {
   const lines: OfferSizeLine[] = [];
-  for (const { source, effect } of effectsOfKind(state, playerId, 'routeRider')) {
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'routeRider')) {
     // A rider with no figure grants the ordinary one route, so a data row may
     // say only that it widens the fold.
     const extra = (effect.extra ?? 1);
     if (extra === 0) continue;
     const scope = effect.scope;
     if (scope === undefined) {
+      // **A road per helping of something counted** — The Harbour Chain's, and
+      // the other way a rider may open more than one. Read after the scope and
+      // never beside it: a row carrying both is asking two questions, and the
+      // scope is the older field so no row written before this changes its
+      // figure. `countOf` and `helpings` are the counts' own reading and their
+      // own divisor, so a road counted off the harbours and a coin counted off
+      // them round the same way.
+      if (effect.count !== undefined) {
+        const times = helpings(
+          countOf(state, playerId, card, {
+            kind: 'pays',
+            where: 'empire',
+            basis: 'count',
+            to: 'authority',
+            amount: 0,
+            count: effect.count,
+            building: effect.building,
+          }),
+          effect.per,
+          effect.max,
+        );
+        if (times === 0) continue;
+        lines.push({ source: `${source} · ×${times}`, delta: extra * times });
+        continue;
+      }
       lines.push({ source, delta: extra });
       continue;
     }

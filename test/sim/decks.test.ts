@@ -212,8 +212,13 @@ describe('the schema, as landed', () => {
     // shelf of buildings, a worked improvement, a worked great person's work, a
     // marvel standing in the town, the negations those wanted, and the ring of
     // six on a hex condition — un-deferred thirty-two rows across five files.
-    expect(live).toBe(175);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(175);
+    //
+    // **And D2b moved it again** ("counts and reach"): counts and ceilings on the
+    // five effects that had none, a scope on the renown trickle and on the
+    // purchase rider, the empire-building selector, a per-town writ price and
+    // four distinct-kind counts — twenty-seven more rows, across all seven.
+    expect(live).toBe(202);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(202);
   });
 
   /**
@@ -476,7 +481,7 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
         expect(pool, `${id} is deferred`).not.toContain(id);
       }
       // And the deferred half is the bulk of the catalogue, not a rounding.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(224);
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(197);
     }
   });
 
