@@ -47,8 +47,7 @@ import { firstBlocker } from '../../src/ui/turnBlockers';
 import { UNIT_TYPE_IDS, type UnitTypeId, isCombatant, unitDef } from '../../src/sim/unitData';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { buildError, researchExpansion } from '../../src/sim/tech';
-import { anyCardDef } from '../../src/sim/statecraft';
-import { type OrderId, ORDER_IDS } from '../../src/sim/statecraftData';
+import { type OrderId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
 import { BELIEF_IDS } from '../../src/sim/religionData';
 import { foundReligion, religionBeliefPool } from '../../src/sim/religion';
 import { workForFamily } from '../../src/sim/improvementData';
@@ -462,14 +461,17 @@ describe('the bot defends itself', () => {
     // under the column — only shows on turns when the town is between errands:
     // on a turn it has just taken a second site it wants a settler badly enough
     // that a column next door does not move it. **Re-sited a third time,
-    // 2026-09-15**, for the soldiers' new price (`docs/flags.md` (mmmmm)): the
-    // played board changed with it, and swept 8–26 again, sixteen reads as the
-    // addendum says — a worker in the quiet world, a warrior under the column
-    // (so do 17, 18 and 21–26; 8–15 raise a ranger either way, 19 and 20 a
-    // worker either way). It is asserted below rather than assumed: the quiet
-    // pick must be something other than a soldier, or the test proves nothing
-    // by finding one under siege.
-    const game = grownGame(16);
+    // 2026-09-15**, for the soldiers' new price (`docs/flags.md` (mmmmm)).
+    // **Re-sited a fourth time for D1b**: the decks carry live rows now, so the
+    // bots draft from turn one and the played board is a differently-developed
+    // town by turn sixteen — where the quiet pick had become a scout, which is
+    // a combatant, and the comparison said nothing. Swept 8–30 again:
+    // twenty-one reads as the addendum says — a worker in the quiet world, a
+    // warrior under the column (so do 18–25; 8–15 and 29–30 raise a scout
+    // either way, 26–27 a worker either way). It is asserted below rather than
+    // assumed: the quiet pick must be something other than a soldier, or the
+    // test proves nothing by finding one under siege.
+    const game = grownGame(21);
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
     // A quiet world is ESTABLISHED, not assumed (2026-09-05): on the retuned
@@ -598,22 +600,26 @@ describe('the beeline', () => {
 });
 
 describe('the drafting hand', () => {
-  it('prefers a card on a thread this empire is already committed to', () => {
-    // **Design addendum 4.** Two cards that score the same on their effects are
-    // separated by the `line` they share with what is already held. Built from
-    // the table rather than hypothesised: any two Orders whose base scores are
-    // equal and whose lines differ will do.
+  it('prefers a card from a deck this empire is already committed to', () => {
+    // **Design addendum 4, re-aimed onto the deck** (D1b). The addendum's rule
+    // is unchanged — two cards that score the same on their effects are
+    // separated by what the empire already holds beside them — but the thread
+    // it read is dead for the live catalogue: `line` is a closed union of
+    // fifteen the six decks' labels are not members of, and every one of D1b's
+    // rows carries none. The deck is the thread now, so the pair below is two
+    // rows with equal base scores and **disjoint** deck lists.
     const game = grownGame(4);
     const player = seat(game.state, 0);
     const ctx = valueContext(game.state, player);
 
-    // A pair of rows with equal base value and different threads.
-    const rows = ORDER_IDS.filter((id) => anyCardDef(id).line !== undefined);
+    // A pair of rows with equal base value and no deck in common.
+    const rows = ORDER_IDS.filter((id) => orderDef(id).decks.length > 0);
     let pair: [OrderId, OrderId] | null = null;
     for (const a of rows) {
       for (const b of rows) {
         if (a === b) continue;
-        if (anyCardDef(a).line === anyCardDef(b).line) continue;
+        const shared = orderDef(a).decks.some((deck) => orderDef(b).decks.includes(deck));
+        if (shared) continue;
         if (scoreCard(player, a, ctx) !== scoreCard(player, b, ctx)) continue;
         pair = [a, b];
         break;
@@ -622,11 +628,32 @@ describe('the drafting hand', () => {
     }
     expect(pair).not.toBeNull();
     const [a, b] = pair!;
-    // Commit to `a`'s thread by holding it, and `a` must now outscore `b`.
+    // Commit to `a`'s deck by holding it, and `a` must now outscore `b`.
     player.statecraft.orders.push(a as OrderId);
     expect(scoreCard(player, a as OrderId, ctx)).toBeGreaterThan(
       scoreCard(player, b as OrderId, ctx),
     );
+  });
+
+  it('counts a cross-type card toward either of the decks it bridges', () => {
+    // The intersection half of the reading: a row naming two decks is at home
+    // in both, so holding a single-type card of *either* pulls the bot toward
+    // it. `ordersForDecks` deals a pool by the same rule.
+    const game = grownGame(4);
+    const player = seat(game.state, 0);
+    const ctx = valueContext(game.state, player);
+    const cross = ORDER_IDS.find((id) => orderDef(id).decks.length === 2 && orderDef(id).retired !== true);
+    expect(cross, 'a live cross-type row').toBeDefined();
+    const before = scoreCard(player, cross!, ctx);
+    for (const deck of orderDef(cross!).decks) {
+      const mate = ORDER_IDS.find(
+        (id) => id !== cross && orderDef(id).decks.length === 1 && orderDef(id).decks[0] === deck,
+      );
+      expect(mate, `a row of the ${deck} deck`).toBeDefined();
+      player.statecraft.orders.length = 0;
+      player.statecraft.orders.push(mate!);
+      expect(scoreCard(player, cross!, ctx), deck).toBeGreaterThan(before);
+    }
   });
 
   it('scores an unreadable card above a blank one, never at zero', () => {

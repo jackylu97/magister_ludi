@@ -41,7 +41,7 @@ import {
 import { unitRosterCost } from '../../src/sim/cities';
 import { RESOURCE_IDS } from '../../src/sim/resourceData';
 import { anyCardDef, describeBuildingRow, stripRefs } from '../../src/sim/statecraft';
-import { DOCTRINE_IDS, ORDER_IDS, orderIsDealt } from '../../src/sim/statecraftData';
+import { DOCTRINE_IDS, ORDER_IDS, doctrineDef, orderIsDealt } from '../../src/sim/statecraftData';
 import { newGame } from '../../src/sim/state';
 import { gatingTech } from '../../src/sim/tech';
 import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../../src/sim/techData';
@@ -1509,11 +1509,16 @@ describe('what opens a thing', () => {
         }
       }
     }
-    // **Re-cut for the decks rework** (D1a): a card is linked from a page it
-    // opens, and every Order and Doctrine row is retired until D1b lands the
-    // charters — so the two card kinds are required only while a live row can
-    // be linked at all.
-    const cardKinds = ORDER_IDS.some((id) => orderIsDealt(id)) ? ['order', 'doctrine'] : [];
+    // **Re-cut for the decks rework** (D1a, re-cut again at D1b): a card is
+    // linked from a page it opens, and every Order and Doctrine row was retired
+    // until D1b landed the deck files — so each card kind is required only
+    // while a live row of *that* kind can be linked at all. D1b filled the six
+    // decks with Orders and wrote no Doctrine (a Doctrine is the reward hand
+    // now), so the two halves part company here and are asked separately.
+    const cardKinds = [
+      ...(ORDER_IDS.some((id) => orderIsDealt(id)) ? ['order'] : []),
+      ...(DOCTRINE_IDS.some((id) => doctrineDef(id).retired !== true) ? ['doctrine'] : []),
+    ];
     for (const kind of ['tech', 'leader', 'belief', ...cardKinds]) {
       expect(kinds, `the book links a ${kind}`).toContain(kind);
     }

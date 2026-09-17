@@ -7161,10 +7161,12 @@ describe("a charter carries the description of the building it opens", () => {
     ),
   ];
 
-  it("finds the twelve rows that open one", () => {
-    // Eleven charters and the Gilded Court's doctrine. A twelfth charter joins
-    // this list by being a JSON row, and inherits every claim below.
-    expect(OPENERS.length).toBe(12);
+  it("finds the thirteen rows that open one", () => {
+    // Eleven charters, the Gilded Court's doctrine, and — since D1b — the
+    // Magisterial deck's Senate Charter, which opens the Assembly Hall. A
+    // fourteenth joins this list by being a JSON row, and inherits every claim
+    // below.
+    expect(OPENERS.length).toBe(13);
   });
 
   it("says every live clause the building’s own describer says", () => {
@@ -8446,6 +8448,28 @@ describe("the engine shapes", () => {
     "theEncyclopaedists · periodic",
     "theEncyclopaedists · empireYield",
     "theCollegesRule · buildingYieldPercent",
+    // **D1b — the six decks' own rows** (`docs/plans/decks-rework.md` "D1b"),
+    // in the fold's order: the retired shelf above, then `data/decks/*.json` in
+    // `DECK_FILES` order — dominion, expansionist, commerce, devotion,
+    // scientific, magisterial, then the commons. Seven agents wrote three
+    // hundred and ninety-nine rows against the vocabulary as it stands and
+    // between them picked up **one** batch-A shape: the caravan's flat, `pays`
+    // at `where: 'route'`. Nothing in the new catalogue reaches for an
+    // amplifier, a chair-counter or a shortener of the calendar — those are
+    // engines over a *deck* of cards, and a deck that has just been written has
+    // nothing yet to amplify. Army Contracts pays a caravan at both ends of the
+    // road, which is two rows of one shape and not one row read twice (the
+    // Tambo's case, below).
+    "armyContracts · routeYield",
+    "armyContracts · routeYield",
+    "provisioningContracts · routeYield",
+    "thePatronsRoad · routeYield",
+    // The four crosses, `common.json`'s own: roads out of a garrison, out of a
+    // library, out of a monument, and the navigators' sea lanes.
+    "commonTheEscortedRoads · routeYield",
+    "merchantScholars · routeYield",
+    "travellingPlayers · routeYield",
+    "theMerchantNavigators · routeYield",
   ];
 
   it("registers exactly which live rows use each shape batch A declared", () => {

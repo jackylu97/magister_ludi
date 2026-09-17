@@ -53,6 +53,7 @@ import {
   ORDER_IDS,
   orderDef,
   orderIsDealt,
+  ordersForDecks,
 } from '../../../src/sim/statecraftData';
 import { BUILDING_IDS } from '../../../src/sim/buildingData';
 import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
@@ -257,10 +258,14 @@ describe('the three building Charters', () => {
       expect(buildings.has(building), `${id} → ${building}`).toBe(false);
       expect(def.effects, id).toEqual([]);
       expect(def.deferred, id).toBeDefined();
-      // `orderIsDealt` deals a charter with no effects — its grant is the whole
-      // of the card — so a charter that cannot grant anything is withdrawn
-      // until it can. D2 drops both flags in the pass that draws the building.
-      expect(def.retired, id).toBe(true);
+      // **Deferred, not withdrawn.** `orderIsDealt` used to deal a charter with
+      // no effects — its grant is the whole of the card — so this file marked
+      // the three `retired` to keep them off the shelf, which said the design
+      // had withdrawn them when it is waiting on them. The clause the D1b audit
+      // asked for reads the deferral instead, so the flag is gone and the row
+      // is off the shelf for the true reason. D2 drops the `deferred` sentence
+      // in the pass that draws the building, and the charter deals itself.
+      expect(def.retired, id).toBeUndefined();
       expect(orderIsDealt(id as OrderId), id).toBe(false);
     }
     // And no other row in the deck claims to grant anything.
@@ -330,11 +335,17 @@ describe('a seeded draft for a Commerce figure', () => {
         expect(def.effects.length > 0 || def.charter !== undefined, id).toBe(true);
       }
     }
-    // Every live row of the deck is reachable, and nothing outside it was dealt.
+    // Every live row of the deck is reachable, and nothing outside the seat's
+    // pool was dealt. **Re-cut for the finished D1b**: this asked that every
+    // dealt row be a *Commerce* row, which was true only while Devotion's file
+    // and the commons were empty of live rows. Musa holds both decks, so what
+    // is claimed is the pool — and this deck's own share of it is still reached.
     const eligible = new Set(eligibleFor(g.state, musa));
     for (const id of live()) expect(eligible.has(id), id).toBe(true);
     for (const id of deferred()) expect(eligible.has(id), id).toBe(false);
-    for (const id of dealt) expect(live(), id).toContain(id);
+    const pool = new Set(ordersForDecks(musa.decks));
+    for (const id of dealt) expect(pool.has(id), id).toBe(true);
+    expect([...dealt].some((id) => live().includes(id))).toBe(true);
     expect(dealt.size).toBeGreaterThan(1);
   });
 

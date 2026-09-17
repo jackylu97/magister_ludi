@@ -5655,12 +5655,23 @@ export function isCharter(id: OrderId): boolean {
  *     in no pool. A row with effects *and* a deferred half is dealt — the half
  *     that is built is a card.
  *
- * A charter with no effects is dealt: its grant is the whole of the card.
+ * A charter with no effects is dealt: its grant is the whole of the card — but
+ * only while the grant names something that exists. **A deferred charter is not
+ * dealt** (the D1b audit, `docs/plans/decks-shape-audit.md` "A deferred charter
+ * is still dealt"): a charter whose building, technology or rites have not been
+ * drawn up yet carries a `deferred` sentence and no effects, and dealing it
+ * would seat nothing and write a dead id onto the player's `charteredBuildings`.
+ * Two D1b agents worked around it by marking those rows `retired`, which lied
+ * about *why* they are off the shelf — a retired row is one the design withdrew,
+ * a deferred row is one the design is waiting for. The clause is the honest fix,
+ * and it is stated here rather than at the draw so that the Compendium, the
+ * doc-sync and the pool all read one answer.
  */
 export function orderIsDealt(id: OrderId): boolean {
   const def = orderDef(id);
   if (def.retired === true) return false;
   if (def.effects.length === 0 && def.charter === undefined) return false;
+  if (def.effects.length === 0 && def.deferred !== undefined) return false;
   return true;
 }
 

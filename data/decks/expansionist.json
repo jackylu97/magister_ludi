@@ -21,7 +21,7 @@
         }
       ]
     },
-    "theGranaryLevies": {
+    "expansionistGranaryLevies": {
       "name": "Granary Levies",
       "decks": ["expansionist"],
       "band": 0,
@@ -175,7 +175,7 @@
       ],
       "effects": []
     },
-    "theTinkersGuild": {
+    "expansionistTinkersGuild": {
       "name": "Tinkers' Guild",
       "decks": ["expansionist"],
       "band": 1,
@@ -367,7 +367,7 @@
       "text": "+1 science and +1 culture on improved resource tiles in cities with a national building.",
       "note": "A provisional name for a line the worksheet has not finished. The game keeps no shelf of national buildings to ask about.",
       "deferred": [
-        "worked seams teach and sing in a town that has raised a great institution",
+        "worked seams teach and sing in a town that has raised an empire building",
         "the name, the rarity and the wording are the designer's to settle"
       ],
       "effects": []
@@ -463,7 +463,7 @@
       ],
       "effects": []
     },
-    "oldWays": {
+    "expansionistTheOldWays": {
       "name": "The Old Ways",
       "decks": ["expansionist"],
       "band": 2,
@@ -565,7 +565,7 @@
       "deferred": ["only the towns whose people work a real stretch of country are counted"],
       "effects": []
     },
-    "grainDole": {
+    "expansionistTheGrainDole": {
       "name": "The Grain Dole",
       "decks": ["expansionist"],
       "band": 2,
@@ -739,8 +739,8 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "The harvest raises the monument, and the monument eats the harvest.",
-      "text": "A city constructing a national institution, world wonder or the Opus gains production equal to 50% of its base food surplus. Military production in all your cities is reduced by 20%.",
-      "note": "A share of a town's grain is read off everything it grows, not off what is left after its people have eaten, and the game keeps no shelf of national institutions to ask about.",
+      "text": "A city constructing an empire building, world wonder or the Opus gains production equal to 50% of its base food surplus. Military production in all your cities is reduced by 20%.",
+      "note": "A share of a town's grain is read off everything it grows, not off what is left after its people have eaten, and the game keeps no shelf of empire buildings to ask about.",
       "deferred": [
         "a town raising a great building turns a share of the grain its people do not eat into labour"
       ],

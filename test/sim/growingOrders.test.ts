@@ -123,11 +123,19 @@ describe('the growing-card vocabulary', () => {
     }
   });
 
-  it('pays every growing card out of the empire fold and nowhere else', () => {
+  it('pays every growing card out of an ordinary fold, and pays a voice', () => {
     // The whole reason the counter is a `CountKind` rather than a shape of its
-    // own: a growing card's line is an ordinary empire `pays` count, so
-    // the ledger, the `×N` label and the stamp are the ones every counting card
-    // already had.
+    // own: a growing card's line is an ordinary `pays` count, so the ledger, the
+    // `×N` label and the stamp are the ones every counting card already had.
+    //
+    // **`empire` was the whole register until D1b.** The Magisterial deck's The
+    // Honoured Dead pays the count into the *capital* — `where: 'city'` with a
+    // capital scope — which is the same counter read at the other fold, and is
+    // exactly what "an ordinary count" buys: `countOf` answers `tally` off the
+    // card's own books whether a town is in hand or not. So the register is the
+    // two folds a count may land at, and the claims that were ever about the
+    // counter — a voice, never a meter, never a percentage — are unchanged.
+    const folds = new Set<string>();
     for (const id of ORDER_IDS) {
       for (const effect of orderDef(id).effects) {
         if (effect.kind !== 'pays' || effect.count !== 'tally') continue;
@@ -136,9 +144,15 @@ describe('the growing-card vocabulary', () => {
         expect(effect.stage, id).toBeUndefined();
         expect(effect.to, id).not.toBe('happiness');
         expect(effect.to, id).not.toBe('authority');
-        expect(effect.where, id).toBe('empire');
+        expect(['empire', 'city'], id).toContain(effect.where);
+        // A town-scoped count says *which* towns, or it would pay every one of
+        // them a count that is a fact about the empire.
+        if (effect.where === 'city') expect(effect.scope, id).toBeDefined();
+        folds.add(effect.where);
       }
     }
+    // Both folds are live — a register, not a widened door.
+    expect([...folds].sort()).toEqual(['city', 'empire']);
   });
 
   it('says in words that the counting stops at the bench', () => {

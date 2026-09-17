@@ -1,6 +1,6 @@
 {
   "orders": {
-    "theSaltTithes": {
+    "commerceSaltTithes": {
       "name": "Salt Tithes",
       "decks": [
         "commerce"
@@ -192,7 +192,7 @@
         }
       ]
     },
-    "assayersRule": {
+    "commerceTheAssayersRule": {
       "name": "The Assayer's Rule",
       "decks": [
         "commerce"
@@ -231,7 +231,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "The purse builds faster than the quarry, and asks for its name on the door.",
-      "text": "Gold purchases of ordinary buildings cost 20% less. Producing those buildings normally takes 20% more production. National institutions and wonders are unaffected.",
+      "text": "Gold purchases of ordinary buildings cost 20% less. Producing those buildings normally takes 20% more production. Empire buildings and wonders are unaffected.",
       "effects": [],
       "deferred": [
         "buying an ordinary building costs less, and raising one the slow way costs more"
@@ -375,8 +375,7 @@
       "deferred": [
         "drafting this opens the planters' house for building"
       ],
-      "note": "Held whole. The house it would open has not been drawn up yet, so the charter has nothing to grant.",
-      "retired": true
+      "note": "Held whole. The house it would open has not been drawn up yet, so the charter has nothing to grant."
     },
     "boughtSwords": {
       "name": "Bought Swords",
@@ -587,8 +586,7 @@
       "deferred": [
         "drafting this opens the purple works for building"
       ],
-      "note": "Held whole. The works it would open has not been drawn up yet, and neither has the good it would make.",
-      "retired": true
+      "note": "Held whole. The works it would open has not been drawn up yet, and neither has the good it would make."
     },
     "theMoneyLenders": {
       "name": "The Money Lenders",
@@ -777,8 +775,7 @@
       "deferred": [
         "drafting this opens the dye vats for building"
       ],
-      "note": "Held whole. The vats they would open have not been drawn up yet, so the charter has nothing to grant.",
-      "retired": true
+      "note": "Held whole. The vats they would open have not been drawn up yet, so the charter has nothing to grant."
     },
     "theEndowment": {
       "name": "The Endowment",
@@ -914,7 +911,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Coin becomes stone, and stone outlasts the coin.",
-      "text": "Cities building a national institution, world wonder or the Opus gain production equal to 25% of their base city gold, but lose 20% of their gold income while doing so. Foreign-route empire gold and conversion outputs are excluded from the production basis.",
+      "text": "Cities building an empire building, world wonder or the Opus gain production equal to 25% of their base city gold, but lose 20% of their gold income while doing so. Foreign-route empire gold and conversion outputs are excluded from the production basis.",
       "effects": [],
       "deferred": [
         "a town raising one of the realm's great houses turns a share of its coin into stone, and loses a share of its coin while it does"

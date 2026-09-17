@@ -303,11 +303,16 @@ import {
 } from '../sim/statecraft';
 import {
   type CardId,
-  type CardLine,
+  type DeckId,
   type DoctrineId,
   type GovernmentId,
   type OrderId,
   type SlotType,
+  DECK_WORDS,
+  doctrineDef,
+  isDoctrineId,
+  isOrderId,
+  orderDef,
   orderFitsSlot,
   slotLayout,
 } from '../sim/statecraftData';
@@ -3040,14 +3045,20 @@ function pickCard(
  * many effects wore a `kind` it liked.
  *
  * The **synergy** term is the half that makes a bot play a deck rather than
- * graze one. `CardDefBase.line` is the designer's thread — hunt, caravan, forge,
- * cloister — and nothing in the simulation switches on it (it is the screen's
- * grouping, exactly as `tier` is), which is precisely why it is safe and right
- * for a *reader* to: a bot that took the hunt card because it already had two
- * hunt cards is a bot with an identity, and `score.synergyBonus` is how strong
- * that pull is. Deferred: the successor is a real valuation of what the card
- * would pay *this* empire on *this* board, which needs the evaluators in
- * `statecraft.ts` to answer hypothetically.
+ * graze one, and since D1b it reads the **deck** rather than the line. The
+ * thread (`CardDefBase.line` — hunt, caravan, forge, cloister) was the
+ * designer's grouping and nothing in the simulation switched on it, which was
+ * precisely what made it safe for a *reader* to; but the fifteen threads are a
+ * closed union with a mark and a stylesheet cut apiece, and the six decks'
+ * labels are not members of it, so **every one of D1b's three hundred and
+ * ninety-nine rows carries no line** and the reading was dead for the whole
+ * live catalogue. The deck is the thread now: it is the card's home, it is what
+ * the draw itself deals from, and a bot that took the dominion card because it
+ * already holds four dominion cards is the same bot with an identity the old
+ * term was reaching for. Same knob, same weight (`score.synergyBonus`), one
+ * cheaper reading. Deferred, as before: the successor is a real valuation of
+ * what the card would pay *this* empire on *this* board, which needs the
+ * evaluators in `statecraft.ts` to answer hypothetically.
  */
 export function scoreCard(player: Player, id: CardId, ctx: ValueContext): number {
   return explainCard(player, id, ctx).total;
@@ -3067,11 +3078,12 @@ export function explainCard(player: Player, id: CardId, ctx: ValueContext) {
   const terms: ValueTerm[] = [
     nest('what its effects are worth', explainCardEffects(id, def.effects ?? [], ctx)),
   ];
-  const line = def.line;
-  if (line !== undefined) {
-    const held = heldOnLine(player, line);
+  const decks = decksOf(id);
+  if (decks.length > 0) {
+    const held = heldInDecks(player, decks);
+    const words = decks.map((deck) => DECK_WORDS[deck]).join(' or ');
     terms.push({
-      label: `${held} card${held === 1 ? '' : 's'} already held on the ${line} thread × ${ctx.ai.score.synergyBonus}`,
+      label: `${held} card${held === 1 ? '' : 's'} already held in the ${words} deck × ${ctx.ai.score.synergyBonus}`,
       value: ctx.ai.score.synergyBonus * held,
     });
   }
@@ -3084,29 +3096,48 @@ function cardName(id: CardId): string {
 }
 
 /**
- * How many cards this empire already holds on one thread — Orders held (slotted
- * or not), Doctrines taken, and gods consecrated.
+ * **The decks a card calls home**, or none.
+ *
+ * `decks` is a field on `OrderDef` and `DoctrineDef` rather than on
+ * `CardDefBase`, because the other card classes — beliefs, rites, legacies,
+ * malices, a leader's abilities — are not dealt from a deck at all and would
+ * have to carry an empty list to pretend otherwise. So the reading asks the two
+ * classes that have one and answers nothing for the rest, which is exactly the
+ * old term's behaviour for a card with no line: **no deck, no synergy**. A
+ * generic Order (no membership, in every seat's pool) belongs to no deck by
+ * construction and earns nothing here either — it is the card that goes with
+ * everything, so it pulls the bot toward nothing.
+ */
+function decksOf(id: CardId): readonly DeckId[] {
+  if (isOrderId(id)) return orderDef(id).decks;
+  if (isDoctrineId(id)) return doctrineDef(id).decks;
+  return [];
+}
+
+/**
+ * How many cards this empire already holds that share a deck with this one —
+ * Orders held (slotted or not), Doctrines taken, and gods consecrated.
+ *
+ * **Sharing, not matching** (D1b): a cross-type row names two decks and is at
+ * home in either, so the count is an intersection rather than an equality, and
+ * a cross-type card is pulled toward by both of the seats it bridges. That is
+ * the draw's own rule for a pool (`ordersForDecks`), read here for a weight.
  *
  * Held rather than *slotted*, deliberately: an Order sitting outside a slot is
  * still a commitment this empire made and still says what kind of empire it is
  * trying to be. A slotted card counts twice for the same reason it is slotted —
  * it is the commitment that is actually paying.
  */
-function heldOnLine(player: Player, line: CardLine): number {
+function heldInDecks(player: Player, decks: readonly DeckId[]): number {
   const sc = player.statecraft;
+  const shares = (id: CardId): number => (decksOf(id).some((deck) => decks.includes(deck)) ? 1 : 0);
   let count = 0;
-  for (const id of sc.orders) {
-    if (anyCardDef(id).line === line) count += 1;
-  }
+  for (const id of sc.orders) count += shares(id);
   for (const slot of sc.slots) {
-    if (slot !== null && anyCardDef(slot.card).line === line) count += 1;
+    if (slot !== null) count += shares(slot.card);
   }
-  for (const id of sc.doctrines) {
-    if (anyCardDef(id).line === line) count += 1;
-  }
-  for (const id of player.pantheon.beliefs) {
-    if (anyCardDef(id).line === line) count += 1;
-  }
+  for (const id of sc.doctrines) count += shares(id);
+  for (const id of player.pantheon.beliefs) count += shares(id);
   return count;
 }
 
