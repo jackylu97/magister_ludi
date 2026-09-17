@@ -5,19 +5,20 @@
     "costExponent": 2.2,
     "sealTurns": 5
   },
-  "rarityWeights": {
-    "common": 4,
-    "uncommon": 2,
-    "rare": 1
+  "rarityOdds": {
+    "common": 60,
+    "uncommon": 30,
+    "rare": 10
   },
   "skipPity": {
-    "uncommon": 1,
-    "rare": 1
+    "uncommon": 10,
+    "rare": 5
   },
   "governments": {
     "chiefdom": {
       "name": "Chiefdom",
       "tier": 0,
+      "chairs": 3,
       "flavor": "Whoever speaks last at the fire, speaks for all.",
       "slots": {
         "military": 1,
@@ -31,6 +32,7 @@
     "councilOfElders": {
       "name": "Council of Elders",
       "tier": 4,
+      "chairs": 4,
       "flavor": "Slow counsel, and no one hanged for it.",
       "slots": {
         "military": 0,
@@ -53,6 +55,7 @@
     "warChief": {
       "name": "War Chief",
       "tier": 4,
+      "chairs": 4,
       "flavor": "The spear chooses; the rest agree.",
       "slots": {
         "military": 3,
@@ -96,6 +99,7 @@
     "priestKing": {
       "name": "Priest-King",
       "tier": 4,
+      "chairs": 4,
       "flavor": "The gods speak. He translates.",
       "slots": {
         "military": 1,
@@ -114,6 +118,7 @@
     "republic": {
       "name": "Republic",
       "tier": 10,
+      "chairs": 4,
       "flavor": "A crowd that learned to sign its name.",
       "slots": {
         "military": 1,
@@ -142,6 +147,7 @@
     "tyranny": {
       "name": "Tyranny",
       "tier": 10,
+      "chairs": 4,
       "flavor": "One will, and the roads run straight.",
       "slots": {
         "military": 3,
@@ -181,6 +187,7 @@
     "theocracy": {
       "name": "Theocracy",
       "tier": 10,
+      "chairs": 4,
       "flavor": "Law is what the altar remembers.",
       "slots": {
         "military": 1,
@@ -217,6 +224,7 @@
     "merchantLeague": {
       "name": "Merchant League",
       "tier": 18,
+      "chairs": 6,
       "flavor": "Every treaty has a ledger underneath.",
       "slots": {
         "military": 1,
@@ -248,6 +256,7 @@
     "imperium": {
       "name": "Imperium",
       "tier": 18,
+      "chairs": 6,
       "flavor": "The map is a claim; the legion is the proof.",
       "slots": {
         "military": 4,
@@ -284,6 +293,7 @@
     "divineMandate": {
       "name": "Divine Mandate",
       "tier": 18,
+      "chairs": 6,
       "flavor": "Heaven approves. It was asked.",
       "slots": {
         "military": 2,
@@ -325,6 +335,7 @@
     "theEstates": {
       "name": "The Estates",
       "tier": 29,
+      "chairs": 9,
       "flavor": "Three orders, one hall, and the hall keeps the minutes.",
       "slots": {
         "military": 2,
@@ -352,6 +363,7 @@
     "theSultanate": {
       "name": "The Sultanate",
       "tier": 29,
+      "chairs": 9,
       "flavor": "The road is short for those the Sultan sends.",
       "slots": {
         "military": 5,
@@ -391,6 +403,7 @@
     "theCuria": {
       "name": "The Curia",
       "tier": 29,
+      "chairs": 9,
       "flavor": "What is written in the register is what heaven remembers.",
       "slots": {
         "military": 3,
@@ -421,6 +434,7 @@
     "theCommonwealth": {
       "name": "The Commonwealth",
       "tier": 45,
+      "chairs": 9,
       "flavor": "The estate is common; the ledger is not.",
       "slots": {
         "military": 2,
@@ -446,6 +460,7 @@
     "theEmpire": {
       "name": "The Empire",
       "tier": 45,
+      "chairs": 9,
       "flavor": "One frontier, and it is wherever the last courier stopped.",
       "slots": {
         "military": 5,
@@ -484,6 +499,7 @@
     "theMagisterium": {
       "name": "The Magisterium",
       "tier": 45,
+      "chairs": 9,
       "flavor": "The Magister does not rule. He sets the rules.",
       "slots": {
         "military": 3,
@@ -513,6 +529,8 @@
     "hermitCrown": {
       "name": "The Hermit Crown",
       "tier": 4,
+      "decks": [],
+      "band": 1,
       "line": "green",
       "flavor": "A small kingdom, held entirely in one hand.",
       "text": "While you hold at most 4 cities: +30% to every yield in your capital.",
@@ -534,11 +552,14 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "riverKings": {
       "name": "River Kings",
       "tier": 4,
+      "decks": [],
+      "band": 1,
       "line": "green",
       "flavor": "The river gives; the dry land is told to be grateful.",
       "text": "+30% food in every city on fresh water; −10% food and −10% production in every city without it.",
@@ -567,11 +588,14 @@
             "test": "notFreshwater"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "woodwrights": {
       "name": "The Woodwrights",
       "tier": 4,
+      "decks": [],
+      "band": 1,
       "line": "forge",
       "flavor": "A forest is a city that has not been felled yet.",
       "text": "Clearing a forest or jungle pays +100% and grants +10 culture.",
@@ -589,11 +613,14 @@
             "amount": 10
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "greatLitany": {
       "name": "The Great Litany",
       "tier": 4,
+      "decks": [],
+      "band": 1,
       "line": "procession",
       "flavor": "Say it every day and it becomes true.",
       "text": "+1 culture for each 3 faith you gain per turn.",
@@ -607,11 +634,14 @@
           "fromRate": "faithPerTurn",
           "per": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "greatWarringTribes": {
       "name": "The Great Warring Tribes",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "flavor": "No writ runs faster than a horse.",
       "text": "+10% production toward units. Captured cities pay +5 science and +5 culture per turn.",
@@ -631,11 +661,14 @@
             "test": "captured"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "wolfMothersPact": {
       "name": "Wolf-Mother's Pact",
       "tier": 4,
+      "decks": [],
+      "band": 1,
       "line": "hunt",
       "flavor": "We are not their prey. We are their kin, and they take their share.",
       "text": "Barbarians you kill join you at full health.",
@@ -644,11 +677,14 @@
           "kind": "rule",
           "rule": "barbarianKillsConvert"
         }
-      ]
+      ],
+      "retired": true
     },
     "athenaeumOfTheRoad": {
       "name": "Athenaeum of the Road",
       "tier": 4,
+      "decks": [],
+      "band": 1,
       "line": "wayfarers",
       "flavor": "Everything found is kept. Everything kept is known.",
       "text": "A ruin you claim pays every option instead of one.",
@@ -664,6 +700,8 @@
     "foundersRoad": {
       "name": "The Founders' Road",
       "tier": 4,
+      "decks": [],
+      "band": 1,
       "line": "none",
       "flavor": "The first stone of every town is a monument to the road that brought it.",
       "text": "Newly founded cities are joined to your nearest city by road · +1 culture in every city.",
@@ -677,11 +715,14 @@
           "where": "city",
           "culture": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "foundersCharter": {
       "name": "The Founders' Charter",
       "tier": 4,
+      "decks": [],
+      "band": 1,
       "line": "charter",
       "flavor": "The charter is read aloud before the first stone is laid.",
       "text": "+2 authority capacity · newly founded cities are founded with a Monument.",
@@ -694,11 +735,14 @@
           "kind": "foundingRider",
           "building": "monument"
         }
-      ]
+      ],
+      "retired": true
     },
     "musesCall": {
       "name": "The Muses' Call",
       "tier": 4,
+      "decks": [],
+      "band": 1,
       "line": "court",
       "flavor": "The nine came before the schools did, and were not asked for papers.",
       "text": "Great people may be called before the technology that opens them. Adopting this calls one great person. Great-person improvements pay +1 production.",
@@ -721,11 +765,14 @@
         {
           "grant": "greatPerson"
         }
-      ]
+      ],
+      "retired": true
     },
     "thalassocracy": {
       "name": "Thalassocracy",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "flavor": "Our borders are wherever the tide reaches.",
       "text": "Coastal cities gain 10% of their food yield as production.",
@@ -741,11 +788,14 @@
             "test": "coastal"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "mountainHold": {
       "name": "Mountain Hold",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "flavor": "The peaks are a wall nobody had to build.",
       "text": "+15% production in every city with a mountain tile · +10 city defence there.",
@@ -769,11 +819,14 @@
           }
         }
       ],
-      "note": "The mountain has to stand inside the city’s own borders. A peak the bounds have not reached yet shelters nobody."
+      "note": "The mountain has to stand inside the city’s own borders. A peak the bounds have not reached yet shelters nobody.",
+      "retired": true
     },
     "theSacredPath": {
       "name": "The Sacred Path",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "flavor": "The old road runs under the trees, and it was not we who laid it.",
       "text": "+1 faith on every forest hex · +1 culture on every jungle hex.",
@@ -796,11 +849,14 @@
             "feature": "jungle"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "burningWay": {
       "name": "The Burning Way",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "flavor": "Ash is faster than a plough.",
       "text": "Clearing a forest or jungle costs no worker charge.",
@@ -810,11 +866,14 @@
           "rule": "freeChop"
         }
       ],
-      "note": "The axes are free, but the ground keeps no memory of the woods: land you have cleared pays what bare land pays."
+      "note": "The axes are free, but the ground keeps no memory of the woods: land you have cleared pays what bare land pays.",
+      "retired": true
     },
     "breadAndCircuses": {
       "name": "Bread and Circuses",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "green",
       "flavor": "Feed them, amuse them, and they will sing for you.",
       "text": "While your authority is positive: +2 happiness in every city of 6 or more population. −2 gold in every city, always.",
@@ -841,11 +900,14 @@
           "where": "city",
           "gold": -2
         }
-      ]
+      ],
+      "retired": true
     },
     "theTithe": {
       "name": "The Tithe",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "procession",
       "flavor": "A tenth of the harvest, and the gods keep the books.",
       "text": "+1 gold for each faith you gain per turn.",
@@ -859,11 +921,14 @@
           "fromRate": "faithPerTurn",
           "per": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "divineInspiration": {
       "name": "Divine Inspiration",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "procession",
       "flavor": "Prayer, given long enough, thinks.",
       "text": "+1% science and +1% culture for each 200 banked faith.",
@@ -895,6 +960,8 @@
     "ironPrice": {
       "name": "The Iron Price",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "flavor": "Every death a verse; every verse a debt paid.",
       "text": "Killing a unit grants +20 culture · pillaging pays double.",
@@ -912,11 +979,14 @@
           "occasion": "pillage",
           "percent": 100
         }
-      ]
+      ],
+      "retired": true
     },
     "manifestOfTheSteppe": {
       "name": "Manifest of the Steppe",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "flavor": "The grass ends where the horses stop, and the horses do not stop.",
       "text": "Mounted units gain +1 movement. Pillaging pays double.",
@@ -934,11 +1004,14 @@
           "occasion": "pillage",
           "percent": 100
         }
-      ]
+      ],
+      "retired": true
     },
     "gildedCourt": {
       "name": "The Gilded Court",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "flavor": "Gold on the walls, gold in the words, gold under the throne.",
       "text": "Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold. +2 authority capacity.",
@@ -961,11 +1034,14 @@
           "kind": "authority",
           "amount": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "grandBazaar": {
       "name": "The Grand Bazaar",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "flavor": "The second silk is not nothing. The tenth is a fortune.",
       "text": "Happiness from unique luxuries +50%. A second or later copy of a luxury pays 30% of its bonus instead of nothing. +2 gold for each unique luxury.",
@@ -988,11 +1064,14 @@
           "amount": 2,
           "count": "uniqueLuxuries"
         }
-      ]
+      ],
+      "retired": true
     },
     "masterOfMaps": {
       "name": "Master of Maps",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "wayfarers",
       "flavor": "We see everything. We fear it a little.",
       "text": "All units +1 sight and +1 movement, all units −4 combat strength.",
@@ -1015,11 +1094,14 @@
             "test": "always"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "hegemony": {
       "name": "Hegemony",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "flavor": "Every city carries its own weight, and the crown carries none.",
       "text": "A captured city costs 1 authority · capturing a city grants +5% production in every city for 10 turns.",
@@ -1046,11 +1128,14 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "paxImperia": {
       "name": "Pax Imperia",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "green",
       "flavor": "In great cities the noise itself is a kind of peace.",
       "text": "+3 happiness and +10% culture in every city of 8 or more population.",
@@ -1073,11 +1158,14 @@
             "value": 8
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "religiousMandate": {
       "name": "Religious Mandate",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "procession",
       "flavor": "There is one truth, and we are its army.",
       "text": "Permanent war with empires of a different majority religion · your cities cannot be converted.",
@@ -1093,6 +1181,8 @@
     "theAcademyOfDeeds": {
       "name": "The Academy",
       "tier": 29,
+      "decks": [],
+      "band": 3,
       "flavor": "A deed unrecorded is a deed undone.",
       "text": "−10% culture and +20% science. Great scholar drafts can be bought with faith.",
       "effects": [
@@ -1112,11 +1202,14 @@
           "kind": "rule",
           "rule": "buyScholarDraftWithFaith"
         }
-      ]
+      ],
+      "retired": true
     },
     "theStandingArmy": {
       "name": "The Standing Army",
       "tier": 29,
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "flavor": "The army does not go home. That is the whole of the doctrine.",
       "text": "+1 authority capacity for each 5 units you have in the field. −1 happiness in every city. Units cost no upkeep.",
@@ -1140,11 +1233,14 @@
           "rule": "unitUpkeep",
           "percent": -100
         }
-      ]
+      ],
+      "retired": true
     },
     "theSeaCharter": {
       "name": "The Merchant Scholars",
       "tier": 29,
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "flavor": "The ledger travels with the caravan and comes home the fuller of the two.",
       "text": "+2% science and +2% culture in every city for each trade route you run.",
@@ -1167,11 +1263,14 @@
           "stage": "empire",
           "count": "tradeRoutes"
         }
-      ]
+      ],
+      "retired": true
     },
     "theRenaissanceCourt": {
       "name": "The Renaissance Court",
       "tier": 29,
+      "decks": [],
+      "band": 3,
       "flavor": "Patronage is the cheapest thing a prince ever bought.",
       "text": "Great-person offers show one more card.",
       "note": "The clause about stronger legacies is struck: nothing makes a legacy stronger.",
@@ -1181,11 +1280,14 @@
           "offer": "greatPerson",
           "extra": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "cuiusRegio": {
       "name": "Cuius Regio",
       "tier": 29,
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "flavor": "Whose realm, his religion; whose religion, his realm.",
       "text": "In cities that follow your religion, 15% of the faith they gain is gained again as science.",
@@ -1199,11 +1301,14 @@
           "fromRate": "followingFaithPerTurn",
           "per": 20
         }
-      ]
+      ],
+      "retired": true
     },
     "theYeomanry": {
       "name": "The Yeomanry",
       "tier": 29,
+      "decks": [],
+      "band": 3,
       "line": "green",
       "flavor": "A man with forty acres argues with the tax collector.",
       "text": "+1 production on every hex with a Farm. Cities of 10 or more population −1 happiness.",
@@ -1226,11 +1331,14 @@
             "value": 10
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "absolutism": {
       "name": "Absolutism",
       "tier": 29,
+      "decks": [],
+      "band": 3,
       "flavor": "The council still meets. It meets to agree.",
       "text": "+6 authority capacity. A newly placed Order is locked for 10 turns instead of 5.",
       "effects": [
@@ -1243,11 +1351,14 @@
           "rule": "sealTurns",
           "value": 10
         }
-      ]
+      ],
+      "retired": true
     },
     "blitz": {
       "name": "Blitz",
       "tier": 45,
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "flavor": "Stop only when there is nothing left in front of you.",
       "text": "Units that kill may move again that turn. Units cannot fortify.",
@@ -1260,11 +1371,14 @@
           "kind": "rule",
           "rule": "noFortify"
         }
-      ]
+      ],
+      "retired": true
     },
     "thePhilosophersStone": {
       "name": "The Philosopher's Stone",
       "tier": 45,
+      "decks": [],
+      "band": 3,
       "flavor": "Lead is only gold that has not been asked properly.",
       "text": "The Magnum Opus is built 25% faster.",
       "note": "The clause about distilleries is struck: there is no distillery in the game.",
@@ -1275,11 +1389,14 @@
           "building": "theMagnumOpus",
           "percent": 25
         }
-      ]
+      ],
+      "retired": true
     },
     "theGrandTourII": {
       "name": "The Grand Tour",
       "tier": 45,
+      "decks": [],
+      "band": 3,
       "flavor": "One goes to see them, and comes back having been seen.",
       "text": "+3 renown per turn for each wonder you hold. +1 culture for each wonder in the world, seen or not.",
       "effects": [
@@ -1296,11 +1413,14 @@
           "amount": 1,
           "count": "worldWonders"
         }
-      ]
+      ],
+      "retired": true
     },
     "mareNostrum": {
       "name": "Mare Nostrum",
       "tier": 45,
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "flavor": "They call it a sea. We call it the middle of the country.",
       "text": "+1 food and +2 gold on every water hex you own. +15% science in coastal cities.",
@@ -1322,11 +1442,14 @@
             "test": "coastal"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLeveeEnMasse": {
       "name": "The Levée en Masse",
       "tier": 45,
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "flavor": "Every hearth owes a son, and the ledger remembers which.",
       "text": "Every 10 turns, a free melee unit musters in your capital. It moves one further for the rest of the game.",
@@ -1341,11 +1464,14 @@
             "movement": 1
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "paxMagistri": {
       "name": "Pax Magistri",
       "tier": 45,
+      "decks": [],
+      "band": 3,
       "line": "green",
       "flavor": "The long quiet, and the accounts that grew in it.",
       "text": "+3 happiness in every city. +5 science and +5 culture in every city of 12 or more population.",
@@ -1365,11 +1491,14 @@
             "value": 12
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theEncyclopaedia": {
       "name": "The Encyclopaedia",
       "tier": 45,
+      "decks": [],
+      "band": 3,
       "line": "star",
       "flavor": "Everything, in order, by somebody who never left the room.",
       "text": "+1 science for each building in a city. Science buildings cost −50% production.",
@@ -1388,11 +1517,14 @@
           "percent": 50,
           "buildingCategory": "science"
         }
-      ]
+      ],
+      "retired": true
     },
     "theGentleYoke": {
       "name": "The Gentle Yoke",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "green",
       "flavor": "Ask little of them and they will not notice the asking.",
       "text": "−15% happiness demanded per citizen · every city costs 2 more authority.",
@@ -1411,11 +1543,14 @@
           "count": "cities"
         }
       ],
-      "note": "The extra authority is asked of every city you hold, however long you have held it."
+      "note": "The extra authority is asked of every city you hold, however long you have held it.",
+      "retired": true
     },
     "theScatteredHearths": {
       "name": "The Scattered Hearths",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "green",
       "flavor": "A hamlet of three keeps itself. A capital of thirty does not.",
       "text": "The first 2 citizens in every city demand no happiness · −4 happiness in your capital.",
@@ -1433,11 +1568,14 @@
             "test": "capital"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theWanderingCourt": {
       "name": "The Wandering Court",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "green",
       "flavor": "The court sleeps where it stops, and the country is the better for it.",
       "text": "−15% to every yield in your capital · +3 food, production, science, culture and faith, and +3 happiness, in every city but your capital.",
@@ -1470,11 +1608,14 @@
             "test": "notCapital"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "thePilgrimWays": {
       "name": "The Pilgrim Ways",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "flavor": "Every road that ends at an altar is a road somebody paid for.",
       "text": "+3 faith for each city in the world that follows your religion · +1 culture for each foreign city that follows you · +1 culture for each 5 faith you gain per turn.",
@@ -1505,11 +1646,14 @@
           "fromRate": "faithPerTurn",
           "per": 5
         }
-      ]
+      ],
+      "retired": true
     },
     "theNaturalPhilosophers": {
       "name": "The Natural Philosophers",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "star",
       "flavor": "They measured the tower's shadow, and then they measured the tower.",
       "text": "+1 science in your capital for each building standing in it · completing a technology grants 50% of a turn’s culture.",
@@ -1531,11 +1675,14 @@
             "fromRate": "culturePerTurn"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theDeepDelving": {
       "name": "The Deep Delving",
       "tier": 18,
+      "decks": [],
+      "band": 3,
       "line": "highlands",
       "flavor": "The hill kept its secret for an age. It kept it badly.",
       "text": "+1 production on every mine and every quarry · surfacing a vein pays +40 gold, and a mine standing on rich ore pays +2 production more.",
@@ -1586,11 +1733,14 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theClosedRealm": {
       "name": "The Closed Realm",
       "tier": 0,
+      "decks": [],
+      "band": 0,
       "line": "none",
       "flavor": "The gate is shut. What is inside it is enough.",
       "text": "Your happiness is fixed at +5, always · your units cannot attack outside your territory.",
@@ -1599,11 +1749,14 @@
         "your happiness is held at +5 whatever your cities ask for",
         "your units cannot attack outside your own territory"
       ],
-      "note": "Not built, both halves. Nothing in this game can hold a meter at a number instead of adding to it, and nothing can refuse an attack for where it is being made."
+      "note": "Not built, both halves. Nothing in this game can hold a meter at a number instead of adding to it, and nothing can refuse an attack for where it is being made.",
+      "retired": true
     },
     "theTriumphalWay": {
       "name": "The Triumphal Way",
       "tier": 45,
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "flavor": "The road into the city was widened once, for one afternoon, four hundred years ago.",
       "text": "Capturing a city grants +5 happiness in every city for 10 turns.",
@@ -1624,11 +1777,14 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theHorseTribes": {
       "name": "The Horse-Tribes",
       "tier": 10,
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "flavor": "They were never conquered. They were hired.",
       "text": "Mounted units gain +1 movement and +2 combat strength.",
@@ -1652,7 +1808,8 @@
             "modelClass": "mounted"
           }
         }
-      ]
+      ],
+      "retired": true
     }
   },
   "orders": {
@@ -1660,6 +1817,8 @@
       "name": "Blooded Spears",
       "pool": "chiefdom",
       "slot": "military",
+      "decks": [],
+      "band": 0,
       "line": "hunt",
       "rarity": "common",
       "flavor": "The wild taught us. We took notes.",
@@ -1681,12 +1840,15 @@
             "test": "vsBarbarians"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "campFollowers": {
       "name": "Camp Followers",
       "pool": "chiefdom",
       "slot": "military",
+      "decks": [],
+      "band": 0,
       "line": "hunt",
       "rarity": "uncommon",
       "flavor": "Behind the war, a market.",
@@ -1707,12 +1869,15 @@
             "unit": "randomMilitary"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "farRunners": {
       "name": "Far Runners",
       "pool": "chiefdom",
       "slot": "military",
+      "decks": [],
+      "band": 0,
       "line": "wayfarers",
       "rarity": "common",
       "flavor": "Run until the land is new, then run once more.",
@@ -1731,12 +1896,15 @@
             "amount": 10
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLongWatch": {
       "name": "Martial Law",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "flavor": "The garrison is the government, and the town sleeps for it.",
@@ -1761,12 +1929,15 @@
           "amount": 1,
           "count": "defensiveBuildings"
         }
-      ]
+      ],
+      "retired": true
     },
     "theWidowsLevy": {
       "name": "The Widow's Levy",
       "pool": "chiefdom",
       "slot": "military",
+      "decks": [],
+      "band": 0,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Grief works. It always has.",
@@ -1788,12 +1959,15 @@
             "amount": 40
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "militiaLevies": {
       "name": "Militia Levies",
       "pool": "chiefdom",
       "slot": "military",
+      "decks": [],
+      "band": 0,
       "line": "none",
       "rarity": "common",
       "neutral": true,
@@ -1818,6 +1992,8 @@
       "name": "Common Granary",
       "pool": "chiefdom",
       "slot": "economic",
+      "decks": [],
+      "band": 0,
       "line": "green",
       "rarity": "common",
       "flavor": "One store, one hunger, one answer.",
@@ -1832,12 +2008,15 @@
             "category": "luxury"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "saltTithes": {
       "name": "Salt Tithes",
       "pool": "chiefdom",
       "slot": "economic",
+      "decks": [],
+      "band": 0,
       "line": "caravan",
       "rarity": "common",
       "flavor": "Salt is small. Its tax is not.",
@@ -1851,12 +2030,15 @@
           "amount": 3,
           "count": "uniqueLuxuries"
         }
-      ]
+      ],
+      "retired": true
     },
     "boundaryStones": {
       "name": "Boundary Stones",
       "pool": "chiefdom",
       "slot": "economic",
+      "decks": [],
+      "band": 0,
       "line": "none",
       "rarity": "common",
       "flavor": "A stone that says *ours* says it forever.",
@@ -1872,12 +2054,15 @@
           }
         }
       ],
-      "note": "Border expansion is how fast a city claims its next hex, fed by that city’s own culture — separate from the culture your empire saves toward its next draft. This hurries the borders only."
+      "note": "Border expansion is how fast a city claims its next hex, fed by that city’s own culture — separate from the culture your empire saves toward its next draft. This hurries the borders only.",
+      "retired": true
     },
     "firstRites": {
       "name": "First Rites",
       "pool": "chiefdom",
       "slot": "wildcard",
+      "decks": [],
+      "band": 0,
       "line": "procession",
       "rarity": "common",
       "flavor": "Before the temple, the gesture.",
@@ -1900,12 +2085,15 @@
           "count": "slottedOrdersOfSlot",
           "slot": "wildcard"
         }
-      ]
+      ],
+      "retired": true
     },
     "borderBallads": {
       "name": "Border Ballads",
       "pool": "chiefdom",
       "slot": "wildcard",
+      "decks": [],
+      "band": 0,
       "line": "hunt",
       "rarity": "common",
       "flavor": "Fear, set to a tune, becomes a people.",
@@ -1936,6 +2124,8 @@
       "name": "Border Wardens",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "flavor": "Home ground fights beside you — and fights harder the more of us there are.",
@@ -1963,12 +2153,15 @@
             "max": 6
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "vanguard": {
       "name": "Vanguard",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "forge",
       "rarity": "common",
       "flavor": "Strangers' ground fights harder — so must we.",
@@ -1990,6 +2183,8 @@
       "name": "Conscription",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Everyone serves. Nobody smiles.",
@@ -2005,12 +2200,15 @@
           "amount": -2
         }
       ],
-      "note": "The unhappiness is a flat charge on the realm, not a charge per city: nothing can count only the cities past a fourth one."
+      "note": "The unhappiness is a flat charge on the realm, not a charge per city: nothing can count only the cities past a fourth one.",
+      "retired": true
     },
     "spoilsOfTheWild": {
       "name": "Spoils of the Wild",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "hunt",
       "rarity": "uncommon",
       "flavor": "Their plunder was ours all along.",
@@ -2022,12 +2220,15 @@
           "percent": 100
         }
       ],
-      "note": "It adds to Camp Followers rather than replacing it: a camp cleared under both pays both."
+      "note": "It adds to Camp Followers rather than replacing it: a camp cleared under both pays both.",
+      "retired": true
     },
     "horseLords": {
       "name": "Horse Lords",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "forge",
       "rarity": "common",
       "flavor": "The saddle is a country of its own.",
@@ -2049,6 +2250,8 @@
       "name": "Weights & Measures",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "caravan",
       "rarity": "common",
       "flavor": "An honest scale is the first tax.",
@@ -2059,12 +2262,15 @@
           "where": "city",
           "gold": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "silkRoads": {
       "name": "Silk Roads",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "Rare things travel; travel makes them rarer.",
@@ -2076,12 +2282,15 @@
           "where": "route",
           "gold": 5
         }
-      ]
+      ],
+      "retired": true
     },
     "theSaltRoad": {
       "name": "The Salt Road",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "caravan",
       "rarity": "common",
       "flavor": "Every field pays a toll on its way to market.",
@@ -2104,6 +2313,8 @@
       "name": "The Tax Farm",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "caravan",
       "rarity": "common",
       "flavor": "Count the people, and the coin counts itself.",
@@ -2118,12 +2329,15 @@
           "count": "population",
           "per": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "harbourDues": {
       "name": "Harbour Dues",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "caravan",
       "rarity": "common",
       "flavor": "The sea pays for the privilege of arriving.",
@@ -2140,12 +2354,15 @@
             "test": "coastal"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "landGrants": {
       "name": "Land Grants",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Land, given freely, is land that was owed.",
@@ -2169,6 +2386,8 @@
       "name": "Homestead Charters",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The wagon holds one more family than the law allows.",
@@ -2178,12 +2397,15 @@
           "kind": "foundingRider",
           "population": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "granaryLevies": {
       "name": "Granary Levies",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "green",
       "rarity": "uncommon",
       "flavor": "A new mouth is a new pair of hands.",
@@ -2197,12 +2419,15 @@
             "amount": 10
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "censusRolls": {
       "name": "The King's Table",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "green",
       "rarity": "common",
       "flavor": "A place is laid for every mouth in the city, and every mouth knows it.",
@@ -2217,12 +2442,15 @@
           "count": "capitalPopulation",
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "tinkersGuild": {
       "name": "Tinkers' Guild",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "neutral": true,
@@ -2237,12 +2465,15 @@
             "type": "worker"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "publicGranaries": {
       "name": "Public Granaries",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "none",
       "rarity": "uncommon",
       "neutral": true,
@@ -2262,6 +2493,8 @@
       "name": "Festival Days",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "green",
       "rarity": "common",
       "flavor": "Idleness, made sacred, keeps the peace.",
@@ -2280,12 +2513,15 @@
           "where": "city",
           "culture": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "curiousElders": {
       "name": "Curious Elders",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "star",
       "rarity": "common",
       "flavor": "The old ask questions the young forgot to.",
@@ -2307,6 +2543,8 @@
       "name": "Rites of Passage",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "A sword blessed is a soul enlisted.",
@@ -2321,12 +2559,15 @@
           }
         }
       ],
-      "note": "A unit bought with gold counts as completed, so it pays this too — but only once."
+      "note": "A unit bought with gold counts as completed, so it pays this too — but only once.",
+      "retired": true
     },
     "theLooseRein": {
       "name": "The Loose Rein",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "none",
       "rarity": "common",
       "neutral": true,
@@ -2346,6 +2587,8 @@
       "name": "Field Surgeons",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "common",
       "flavor": "Stitched on the road, marching by morning.",
@@ -2356,12 +2599,15 @@
           "stat": "heal",
           "amount": 10
         }
-      ]
+      ],
+      "retired": true
     },
     "marchDiscipline": {
       "name": "March Discipline",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Legs are the first weapon.",
@@ -2375,12 +2621,15 @@
             "category": "military"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theShieldWall": {
       "name": "The Shield Wall",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "common",
       "flavor": "High ground and a locked line — the old arithmetic.",
@@ -2402,6 +2651,8 @@
       "name": "Siege Doctrine",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "common",
       "flavor": "Walls are patient. We are less so.",
@@ -2415,12 +2666,15 @@
             "test": "vsCity"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "scorchedEarth": {
       "name": "Scorched Earth",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "What we cannot keep, we salt.",
@@ -2441,12 +2695,15 @@
             "amount": 10
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "sumptuaryLaws": {
       "name": "Sumptuary Laws",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "common",
       "flavor": "Only the crown wears the purple; all the rest are glad to see it.",
@@ -2460,12 +2717,15 @@
           "amount": 1,
           "count": "uniqueLuxuries"
         }
-      ]
+      ],
+      "retired": true
     },
     "publicani": {
       "name": "Publicani",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "The writ has a price, and we collect it.",
@@ -2488,6 +2748,8 @@
       "name": "Chartered Companies",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "Every deed of land comes with a survey attached.",
@@ -2506,12 +2768,15 @@
           "rule": "tilePurchase",
           "percent": -15
         }
-      ]
+      ],
+      "retired": true
     },
     "foreignQuarters": {
       "name": "Foreign Quarters",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "common",
       "flavor": "The neighbour's coin spends as well as ours.",
@@ -2534,6 +2799,8 @@
       "name": "Ore Tithes",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "common",
       "flavor": "Where the ore is, the hammers gather.",
@@ -2557,12 +2824,15 @@
           "count": "slottedOrdersOfSlot",
           "slot": "military"
         }
-      ]
+      ],
+      "retired": true
     },
     "terracedHillsides": {
       "name": "Terraced Hillsides",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "green",
       "rarity": "common",
       "flavor": "The hill was made to feed us; it only needed steps.",
@@ -2585,12 +2855,15 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "masterMasons": {
       "name": "Master Masons",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Every finished wall is a song about itself.",
@@ -2604,12 +2877,15 @@
             "amount": 25
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "royalSurveyors": {
       "name": "Royal Surveyors",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "none",
       "rarity": "common",
       "flavor": "The chain and the plumb line, quietly annexing.",
@@ -2625,12 +2901,15 @@
           "rule": "tilePurchase",
           "percent": -25
         }
-      ]
+      ],
+      "retired": true
     },
     "provincialGovernors": {
       "name": "Provincial Governors",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "none",
       "rarity": "common",
       "flavor": "Distance obeys, if someone is paid to make it.",
@@ -2646,12 +2925,15 @@
           "max": 4,
           "slot": "economic"
         }
-      ]
+      ],
+      "retired": true
     },
     "emergencyPowers": {
       "name": "Emergency Powers",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "none",
       "rarity": "rare",
       "neutral": true,
@@ -2679,12 +2961,15 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theCommonPurse": {
       "name": "The Common Purse",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "none",
       "rarity": "rare",
       "neutral": true,
@@ -2703,6 +2988,8 @@
       "name": "Pilgrim Roads",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "Where the faithful walk, the faithful settle.",
@@ -2726,12 +3013,15 @@
           "per": 50,
           "max": 5
         }
-      ]
+      ],
+      "retired": true
     },
     "lamplighters": {
       "name": "Lamplighters",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "A small flame kept is a small song sung.",
@@ -2746,12 +3036,15 @@
           "fromRate": "faithPerTurn",
           "per": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "scholarsStipend": {
       "name": "Scholars' Stipend",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "star",
       "rarity": "common",
       "flavor": "A crowd is a library that has not been catalogued.",
@@ -2793,12 +3086,15 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMarshals": {
       "name": "The Marshals",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Shoulder to shoulder, the line is one animal.",
@@ -2817,12 +3113,15 @@
             "max": 8
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "garrisonState": {
       "name": "Garrison State",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "common",
       "flavor": "The soldiers do not idle. Nobody does.",
@@ -2845,6 +3144,8 @@
       "name": "Skirmishers' Creed",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "Strike from where they cannot answer.",
@@ -2858,12 +3159,15 @@
             "ranged": true
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theFinishersArt": {
       "name": "The Finisher's Art",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "none",
       "rarity": "common",
       "flavor": "Mercy is for the unwounded.",
@@ -2885,6 +3189,8 @@
       "name": "Frontier Forts",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "none",
       "rarity": "common",
       "flavor": "The border is where we keep our walls.",
@@ -2906,6 +3212,8 @@
       "name": "Triumphs",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "common",
       "flavor": "A city taken is a story told forever.",
@@ -2934,6 +3242,8 @@
       "name": "The Standing Levy",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "none",
       "rarity": "rare",
       "neutral": true,
@@ -2946,12 +3256,15 @@
           "unit": "bestMelee",
           "where": "capital"
         }
-      ]
+      ],
+      "retired": true
     },
     "clientKings": {
       "name": "Client Kings",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "none",
       "rarity": "common",
       "flavor": "Better a king who bows than a province that rebels.",
@@ -2966,12 +3279,15 @@
           "rule": "capturedCityCost",
           "delta": -1
         }
-      ]
+      ],
+      "retired": true
     },
     "provincialMints": {
       "name": "Provincial Mints",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "common",
       "flavor": "Every seam of silk, its own small coin.",
@@ -2986,12 +3302,15 @@
             "category": "luxury"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "quarrymensGuild": {
       "name": "Quarrymen's Guild",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "common",
       "flavor": "Stone remembers; marble boasts.",
@@ -3015,12 +3334,15 @@
             "improvement": "quarry"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGrainDole": {
       "name": "The Grain Dole",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "green",
       "rarity": "common",
       "flavor": "A full city is a quiet one.",
@@ -3035,12 +3357,15 @@
             "value": 6
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "mandateOfHeaven": {
       "name": "Mandate of Heaven",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "The pious are easy to govern, and they know it.",
@@ -3059,12 +3384,15 @@
           "count": "bankedFaith",
           "per": 150
         }
-      ]
+      ],
+      "retired": true
     },
     "theLyceum": {
       "name": "The Lyceum",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "uncommon",
       "flavor": "Every new thing learned is a song about the old.",
@@ -3079,12 +3407,15 @@
             "fromRate": "culturePerTurn"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "censusOfSouls": {
       "name": "Census of Souls",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "A great city prays in a great voice.",
@@ -3098,12 +3429,15 @@
           "amount": 1,
           "count": "capitalPopulation"
         }
-      ]
+      ],
+      "retired": true
     },
     "tolerationEdicts": {
       "name": "Toleration Edicts",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "none",
       "rarity": "common",
       "flavor": "Let them keep their gods; they will pay their taxes.",
@@ -3114,12 +3448,15 @@
           "rule": "happinessDemand",
           "percent": -15
         }
-      ]
+      ],
+      "retired": true
     },
     "theLaureate": {
       "name": "The Laureate",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "court",
       "rarity": "rare",
       "flavor": "The court keeps one chair empty, and it is never empty for long.",
@@ -3175,12 +3512,15 @@
             "improvement": "citadel"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLegion": {
       "name": "The Legion",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Ten thousand men who march as one, and dig the ditch as one.",
@@ -3211,12 +3551,15 @@
           "percent": 15,
           "modelClass": "melee"
         }
-      ]
+      ],
+      "retired": true
     },
     "fireKeepers": {
       "name": "Fire-Keepers",
       "pool": "chiefdom",
       "slot": "wildcard",
+      "decks": [],
+      "band": 0,
       "line": "procession",
       "rarity": "common",
       "flavor": "Someone has sat up with it every night since the first night.",
@@ -3232,12 +3575,15 @@
           "count": "capitalPopulation",
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "wolfRunners": {
       "name": "Wolf-Runners",
       "pool": "chiefdom",
       "slot": "military",
+      "decks": [],
+      "band": 0,
       "line": "hunt",
       "rarity": "common",
       "flavor": "They come back with the country in their heads.",
@@ -3267,6 +3613,8 @@
       "name": "Hearth Songs",
       "pool": "chiefdom",
       "slot": "wildcard",
+      "decks": [],
+      "band": 0,
       "line": "green",
       "rarity": "common",
       "flavor": "Small places keep the tunes the big ones forget.",
@@ -3289,6 +3637,8 @@
       "name": "First Fruits",
       "pool": "chiefdom",
       "slot": "wildcard",
+      "decks": [],
+      "band": 0,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "The first child of the season is carried to the stone, and given back.",
@@ -3311,6 +3661,8 @@
       "name": "Statute Labour",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "forge",
       "rarity": "common",
       "flavor": "Every third back is owed to the road.",
@@ -3334,6 +3686,8 @@
       "name": "River Wardens",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "ploughshare",
       "rarity": "common",
       "flavor": "The water is watched, so the water is shared.",
@@ -3364,6 +3718,8 @@
       "name": "The Almanac",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "star",
       "rarity": "common",
       "flavor": "A year written down is a year that can be argued with.",
@@ -3386,12 +3742,15 @@
             "building": "library"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "villageFairs": {
       "name": "Village Fairs",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "green",
       "rarity": "uncommon",
       "flavor": "What the second cart carries is bought for pleasure.",
@@ -3405,12 +3764,15 @@
           "amount": 1,
           "count": "duplicateLuxuries"
         }
-      ]
+      ],
+      "retired": true
     },
     "theMusterRoll": {
       "name": "The Muster Roll",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "forge",
       "rarity": "common",
       "flavor": "The name is written before the man is asked.",
@@ -3428,6 +3790,8 @@
       "name": "Hill Forts",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "highlands",
       "rarity": "uncommon",
       "flavor": "Uphill, every stone is a soldier.",
@@ -3446,12 +3810,15 @@
           "rule": "hillCityCost",
           "delta": -1
         }
-      ]
+      ],
+      "retired": true
     },
     "thePilgrimsPurse": {
       "name": "The Pilgrim's Purse",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "Nobody walks that far without stopping to eat.",
@@ -3474,6 +3841,8 @@
       "name": "Charter Towns",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "charter",
       "rarity": "uncommon",
       "flavor": "The grain store is written into the charter, above the wall.",
@@ -3491,6 +3860,8 @@
       "name": "The Choir",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "procession",
       "rarity": "common",
       "flavor": "Forty voices, and not one of them heard on its own.",
@@ -3514,12 +3885,15 @@
             "building": "temple"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "starGazers": {
       "name": "Star-Gazers",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "star",
       "rarity": "common",
       "flavor": "Above the smoke, the sky keeps better records.",
@@ -3534,12 +3908,15 @@
             "terrain": "mountain"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "cisternWorks": {
       "name": "Cistern Works",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "ploughshare",
       "rarity": "uncommon",
       "flavor": "The rain of one winter, kept under the square.",
@@ -3550,12 +3927,15 @@
           "kind": "rule",
           "rule": "freshwater"
         }
-      ]
+      ],
+      "retired": true
     },
     "ledgerKeepers": {
       "name": "Ledger-Keepers",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "common",
       "flavor": "The column of figures is longer than the road.",
@@ -3576,12 +3956,15 @@
           "kind": "routeRider",
           "extra": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "drumsOfWar": {
       "name": "Drums of War",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "They learn the step before they learn the spear.",
@@ -3591,12 +3974,15 @@
           "kind": "unitStamp",
           "strength": 4
         }
-      ]
+      ],
+      "retired": true
     },
     "theCartographers": {
       "name": "The Cartographers",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "wayfarers",
       "rarity": "uncommon",
       "flavor": "The blank part of the sheet is the part worth paying for.",
@@ -3611,12 +3997,15 @@
           "count": "revealedTiles",
           "per": 40
         }
-      ]
+      ],
+      "retired": true
     },
     "theMasonsLodge": {
       "name": "The Masons' Lodge",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "A trade that will not teach a stranger keeps its walls straight.",
@@ -3639,6 +4028,8 @@
       "name": "The Oath-Bound",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "rare",
       "flavor": "They swore it over a fire, and the fire is still lit.",
@@ -3651,12 +4042,15 @@
             "heal": 15
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "sanctuary": {
       "name": "Sanctuary",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "procession",
       "rarity": "common",
       "flavor": "They may take the gate, the granary and the gold. Not the stones.",
@@ -3669,6 +4063,8 @@
       "name": "Wayside Shrines",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "procession",
       "rarity": "common",
       "flavor": "A stone, a bowl, a name. No priest required.",
@@ -3683,12 +4079,15 @@
           "amount": 1,
           "count": "cities"
         }
-      ]
+      ],
+      "retired": true
     },
     "theOrchardTithe": {
       "name": "The Orchard Tithe",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "green",
       "rarity": "common",
       "flavor": "The tenth basket goes to the crown, and the crown plants it.",
@@ -3703,12 +4102,15 @@
             "kind": "luxury"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theUnbrokenLand": {
       "name": "The Unbroken Land",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "green",
       "rarity": "uncommon",
       "flavor": "Nothing was asked of this ground. It gave anyway.",
@@ -3735,12 +4137,15 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGreenwoodLaw": {
       "name": "The Greenwood Law",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "green",
       "rarity": "common",
       "flavor": "The law of the greenwood is short enough to remember: leave it be.",
@@ -3763,6 +4168,8 @@
       "name": "The Quiet Fields",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "green",
       "rarity": "common",
       "flavor": "No plough, no boundary, no quarrel.",
@@ -3784,6 +4191,8 @@
       "name": "The Old Ways",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "green",
       "rarity": "uncommon",
       "flavor": "They farmed here once. It has been better since they stopped.",
@@ -3797,12 +4206,15 @@
             "test": "unimproved"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "firstFruits": {
       "name": "First Fruits",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "green",
       "rarity": "common",
       "flavor": "The first of everything is set aside. The rest feeds us.",
@@ -3817,12 +4229,15 @@
             "test": "hasResource"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theQuartermasters": {
       "name": "The Quartermasters",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "common",
       "flavor": "An army marches on ledgers. The ledgers march on nothing at all.",
@@ -3843,6 +4258,8 @@
       "name": "The War Chest",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "common",
       "flavor": "Kept locked, kept counted, kept full. Kept, above all.",
@@ -3855,12 +4272,15 @@
             "category": "military"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "forcedMarches": {
       "name": "Forced Marches",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "common",
       "flavor": "Sleep is a thing that happens to other armies.",
@@ -3883,12 +4303,15 @@
           },
           "where": "ownTerritory"
         }
-      ]
+      ],
+      "retired": true
     },
     "theEscortedRoads": {
       "name": "The Escorted Roads",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "common",
       "flavor": "The merchants pay for the spears, and the spears pay them back in miles.",
@@ -3900,12 +4323,15 @@
           "percent": 30
         }
       ],
-      "note": "The escort is paid for in coin and not in safety: a route this law enriches can still be plundered."
+      "note": "The escort is paid for in coin and not in safety: a route this law enriches can still be plundered.",
+      "retired": true
     },
     "theLastHunt": {
       "name": "The Last Hunt",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "hunt",
       "rarity": "rare",
       "flavor": "They sing the old raids now. Nobody living remembers being afraid.",
@@ -3927,12 +4353,15 @@
           "amount": 4,
           "count": "clearedCamps"
         }
-      ]
+      ],
+      "retired": true
     },
     "theSaintsFields": {
       "name": "The Saints' Fields",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "common",
       "flavor": "Where a great one stopped to think, the ground has been holy ever since.",
@@ -3947,12 +4376,15 @@
             "test": "greatWork"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theWayhouses": {
       "name": "The Wayhouses",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "common",
       "flavor": "A bed, a fire, and somebody who will listen to where you have been.",
@@ -3974,12 +4406,15 @@
           "amount": 3,
           "count": "tradeRoutes"
         }
-      ]
+      ],
+      "retired": true
     },
     "theProvisioners": {
       "name": "The Provisioners",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "common",
       "flavor": "Nobody notices the grain until the week it does not come.",
@@ -3993,12 +4428,15 @@
           "amount": 1,
           "count": "internalTradeRoutes"
         }
-      ]
+      ],
+      "retired": true
     },
     "thePrizeGrounds": {
       "name": "The Prize Grounds",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "charter",
       "rarity": "common",
       "flavor": "They founded it on the vein and argued about the name for a century.",
@@ -4021,6 +4459,8 @@
       "name": "The Census Eternal",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "common",
       "flavor": "Every soul written down, every year, for ever. The writing is the point.",
@@ -4035,12 +4475,15 @@
           "count": "population",
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theGroundskeepers": {
       "name": "The Groundskeepers",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "common",
       "flavor": "Someone has to weed around the monument.",
@@ -4056,12 +4499,15 @@
             "test": "greatWork"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMastersPresence": {
       "name": "The Master's Presence",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "common",
       "flavor": "He is not often at home. The town works harder anyway, in case.",
@@ -4076,12 +4522,15 @@
             "test": "adjacentGreatWork"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theWonderFeasts": {
       "name": "The Wonder-Feasts",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "common",
       "flavor": "The scaffolding goes up and the ovens do not go out again for a year.",
@@ -4101,12 +4550,15 @@
           "category": "wonder",
           "percent": 20
         }
-      ]
+      ],
+      "retired": true
     },
     "theMasterBuilders": {
       "name": "The Master Builders",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "common",
       "flavor": "They have built one of everything. The second is always cheaper.",
@@ -4124,12 +4576,15 @@
           "building": "cathedral",
           "percent": 25
         }
-      ]
+      ],
+      "retired": true
     },
     "theShipwrightShores": {
       "name": "The Shipwright Shores",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "common",
       "flavor": "A town that smells of pitch is a town with somewhere to be.",
@@ -4154,12 +4609,15 @@
             "test": "coastal"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theDryDocks": {
       "name": "The Dry Docks",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "common",
       "flavor": "Pull the sea out from under her and you can see what she has been hiding.",
@@ -4185,6 +4643,8 @@
       "name": "The Wintering Grounds",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "none",
       "rarity": "common",
       "flavor": "Home is wherever the horses have stopped.",
@@ -4203,6 +4663,8 @@
       "name": "The Archives",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "none",
       "rarity": "common",
       "flavor": "Every law ever passed, in order, in a room nobody is allowed to leave.",
@@ -4216,12 +4678,15 @@
           "amount": 2,
           "count": "slottedOrders"
         }
-      ]
+      ],
+      "retired": true
     },
     "theAnnalsOfLaw": {
       "name": "The Annals of Law",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "none",
       "rarity": "common",
       "flavor": "The laws you chose not to pass are also history.",
@@ -4235,12 +4700,15 @@
           "amount": 3,
           "count": "unslottedOrders"
         }
-      ]
+      ],
+      "retired": true
     },
     "theAuspiciousSeal": {
       "name": "The Auspicious Seal",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "none",
       "rarity": "common",
       "flavor": "The clerk who chose the day was promoted, and never told anyone why.",
@@ -4253,6 +4721,8 @@
       "name": "The War Council",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "none",
       "rarity": "common",
       "flavor": "Three old soldiers, one map, and a great deal of shouting.",
@@ -4271,12 +4741,15 @@
             "per": 1
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGuildCharter": {
       "name": "The Guild Charter",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "none",
       "rarity": "common",
       "flavor": "They asked for a seat at the table. They were given a page of it, and took the room.",
@@ -4300,12 +4773,15 @@
           "count": "slottedOrdersOfSlot",
           "slot": "economic"
         }
-      ]
+      ],
+      "retired": true
     },
     "theSynod": {
       "name": "The Synod",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "none",
       "rarity": "common",
       "flavor": "Everyone speaks, nobody presides, and a decision is written down regardless.",
@@ -4318,12 +4794,15 @@
           "percent": 50,
           "appliedLast": true
         }
-      ]
+      ],
+      "retired": true
     },
     "theHarvestSongs": {
       "name": "The Harvest Songs",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "green",
       "rarity": "common",
       "flavor": "The reaping song is older than the field, and older than the kingdom.",
@@ -4338,12 +4817,15 @@
           "percent": 15,
           "from": "food"
         }
-      ]
+      ],
+      "retired": true
     },
     "theSaltingHouses": {
       "name": "The Salting Houses",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "common",
       "flavor": "Salt keeps the fish, the fish keeps the town, and the town keeps the salt.",
@@ -4368,6 +4850,8 @@
       "name": "The Drafting Halls",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "common",
       "flavor": "Every beam is drawn twice: once for the builder, once for the book.",
@@ -4385,12 +4869,15 @@
             "building": "library"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theGoldenScales": {
       "name": "The Golden Scales",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "common",
       "flavor": "What the counting-house learns about weight, the college learns about everything else.",
@@ -4404,12 +4891,15 @@
           "percent": 20,
           "from": "gold"
         }
-      ]
+      ],
+      "retired": true
     },
     "theArsenalLaw": {
       "name": "The Arsenal Law",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "In peace the yard is quiet. Nobody in it wants peace.",
@@ -4435,12 +4925,15 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theCharterOfTheMarches": {
       "name": "The Charter of the Marches",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "charter",
       "rarity": "rare",
       "flavor": "The furthest town is written the widest liberties, and keeps them until it is no longer the furthest.",
@@ -4475,6 +4968,8 @@
       "name": "The Ballad-Weavers",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "hunt",
       "rarity": "uncommon",
       "flavor": "Every raider who falls in the passes is worth a verse, and the verses outlast the passes.",
@@ -4489,12 +4984,15 @@
           "count": "tally",
           "tally": "barbarianKill"
         }
-      ]
+      ],
+      "retired": true
     },
     "theBellFounders": {
       "name": "The Bell-Founders",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "court",
       "rarity": "uncommon",
       "flavor": "A rival raises a dome; the foundry answers with a bell, and the town agrees it is the finer sound.",
@@ -4517,6 +5015,8 @@
       "name": "The Reliquary Rolls",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "court",
       "rarity": "uncommon",
       "flavor": "They served, and then they were shelved: a knuckle, a brush, a name written large.",
@@ -4540,12 +5040,15 @@
           "count": "tally",
           "tally": "greatPersonSpent"
         }
-      ]
+      ],
+      "retired": true
     },
     "theChroniclersOfTheFallen": {
       "name": "The Chroniclers of the Fallen",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The roll of the dead is read aloud on market day, and the market is fuller for it.",
@@ -4560,12 +5063,15 @@
           "count": "tally",
           "tally": "unitLost"
         }
-      ]
+      ],
+      "retired": true
     },
     "theAlmonersBook": {
       "name": "The Almoners' Book",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "uncommon",
       "flavor": "What the treasury spends, the almoners write down; what the almoners write down, the schools read.",
@@ -4589,6 +5095,8 @@
       "name": "The Casus Belli",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "The grievance is old, the parchment is new, and the smiths were told a week ago.",
@@ -4618,12 +5126,15 @@
             }
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "ritesCharter": {
       "name": "The Rites Charter",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "A room set aside, a lamp kept lit, and somewhere to put the singing.",
@@ -4633,12 +5144,15 @@
           "kind": "unlocksBuilding",
           "building": "chapel"
         }
-      ]
+      ],
+      "retired": true
     },
     "vigilCharter": {
       "name": "The Vigil Charter",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Somebody is awake. That is the whole of it.",
@@ -4648,12 +5162,15 @@
           "kind": "unlocksBuilding",
           "building": "keep"
         }
-      ]
+      ],
+      "retired": true
     },
     "scrivenersCharter": {
       "name": "The Scriveners' Charter",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "star",
       "rarity": "uncommon",
       "flavor": "Nothing is known until it has been written out twice.",
@@ -4663,12 +5180,15 @@
           "kind": "unlocksBuilding",
           "building": "scriptorium"
         }
-      ]
+      ],
+      "retired": true
     },
     "coinCharter": {
       "name": "The Coin Charter",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "Weigh it, bite it, write it down, and only then agree.",
@@ -4678,12 +5198,15 @@
           "kind": "unlocksBuilding",
           "building": "assayHouse"
         }
-      ]
+      ],
+      "retired": true
     },
     "waterwrightsCharter": {
       "name": "The Waterwrights' Charter",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "ploughshare",
       "rarity": "uncommon",
       "flavor": "A winter under the square is worth two rivers a day's walk away.",
@@ -4693,12 +5216,15 @@
           "kind": "unlocksBuilding",
           "building": "cistern"
         }
-      ]
+      ],
+      "retired": true
     },
     "theSenatus": {
       "name": "The Senatus",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "charter",
       "rarity": "uncommon",
       "flavor": "Everyone with something to lose, in one room, on the record.",
@@ -4708,12 +5234,15 @@
           "kind": "unlocksBuilding",
           "building": "assemblyHall"
         }
-      ]
+      ],
+      "retired": true
     },
     "toolmakersCharter": {
       "name": "The Vizierate",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "He kept the lists, and the lists kept the kingdom.",
@@ -4723,12 +5252,15 @@
           "kind": "unlocksBuilding",
           "building": "viziersHall"
         }
-      ]
+      ],
+      "retired": true
     },
     "mintCharter": {
       "name": "The Mint Charter",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "A face on the coin, and a song about the face.",
@@ -4738,12 +5270,15 @@
           "kind": "unlocksBuilding",
           "building": "coinworks"
         }
-      ]
+      ],
+      "retired": true
     },
     "almshouseCharter": {
       "name": "The Almshouse Charter",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "Bread first. The sermon keeps.",
@@ -4753,12 +5288,15 @@
           "kind": "unlocksBuilding",
           "building": "almshouse"
         }
-      ]
+      ],
+      "retired": true
     },
     "stargazersCharter": {
       "name": "The Stargazers' Charter",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "uncommon",
       "flavor": "The sky is the one archive nobody has been able to edit.",
@@ -4768,12 +5306,15 @@
           "kind": "unlocksBuilding",
           "building": "orrery"
         }
-      ]
+      ],
+      "retired": true
     },
     "justicesCharter": {
       "name": "The Justices' Charter",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The circuit rides out twice a year, and the year is quieter for it.",
@@ -4783,12 +5324,15 @@
           "kind": "unlocksBuilding",
           "building": "assizeCourt"
         }
-      ]
+      ],
+      "retired": true
     },
     "theBannerCall": {
       "name": "The Banner-Call",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Peace is the season in which the banners are mended.",
@@ -4815,12 +5359,15 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theWolfStandard": {
       "name": "The Wolf-Standard",
       "pool": "governmentII",
       "slot": "military",
+      "decks": [],
+      "band": 2,
       "line": "hunt",
       "rarity": "rare",
       "flavor": "The pole goes up where the camp came down.",
@@ -4833,6 +5380,8 @@
       "name": "The Far Charts",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "wayfarers",
       "rarity": "rare",
       "flavor": "The edge of the sheet is only where the paper ran out.",
@@ -4848,12 +5397,15 @@
           "per": 20
         }
       ],
-      "note": "How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. This law does not reach that rule."
+      "note": "How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. This law does not reach that rule.",
+      "retired": true
     },
     "theFoundingOath": {
       "name": "The Founding Oath",
       "pool": "chiefdom",
       "slot": "wildcard",
+      "decks": [],
+      "band": 0,
       "line": "charter",
       "rarity": "rare",
       "flavor": "The first stones were laid where the first oath was sworn.",
@@ -4914,12 +5466,15 @@
           "count": "buildingsInCity",
           "max": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "theLongRoads": {
       "name": "The Long Roads",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "rare",
       "flavor": "The road is the realm. Everything else is where it stops.",
@@ -4941,6 +5496,8 @@
       "name": "The Reckless Levy",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Every man who can hold a spear, and some who cannot.",
@@ -4956,12 +5513,15 @@
           "kind": "upkeepSurcharge",
           "amount": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "theTitheOfIron": {
       "name": "The Tithe of Iron",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "The hill gives up its iron and the valley gives up its bread.",
@@ -4985,12 +5545,15 @@
             "improvement": "mine"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "breadAlone": {
       "name": "Bread Alone",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "green",
       "rarity": "uncommon",
       "flavor": "Fed, and nothing else.",
@@ -5010,6 +5573,8 @@
       "name": "The Congregation",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "rare",
       "flavor": "Count the roofs that face your altar, not the ones that pay you.",
@@ -5039,6 +5604,8 @@
       "name": "The Granary Laws",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "green",
       "rarity": "uncommon",
       "flavor": "A full granary is an argument nobody wins.",
@@ -5056,12 +5623,15 @@
             "value": 8
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theKingsRoad": {
       "name": "The King's Road",
       "pool": "governmentIV",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "The king's peace ends where the king's road does.",
@@ -5072,12 +5642,15 @@
           "kind": "rule",
           "rule": "cityRestoresMovement"
         }
-      ]
+      ],
+      "retired": true
     },
     "fieldHospitals": {
       "name": "Field Hospitals",
       "pool": "governmentIV",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "The wounded go back to the line. That is the whole of the art.",
@@ -5090,12 +5663,15 @@
           "amount": 100,
           "where": "ownTerritory"
         }
-      ]
+      ],
+      "retired": true
     },
     "decisiveBlows": {
       "name": "Decisive Blows",
       "pool": "governmentIV",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "Wait for the stumble. Then do not wait.",
@@ -5110,12 +5686,15 @@
             "test": "targetBelowHalf"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMarshalsPurse": {
       "name": "The Marshals' Purse",
       "pool": "governmentIV",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "The treasury musters faster than the countryside.",
@@ -5129,12 +5708,15 @@
           "on": "unit",
           "percent": -25
         }
-      ]
+      ],
+      "retired": true
     },
     "knightlyOrders": {
       "name": "Knightly Orders",
       "pool": "governmentIV",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "They swore to the order first and to you second.",
@@ -5157,12 +5739,15 @@
           "percent": -25,
           "modelClass": "mounted"
         }
-      ]
+      ],
+      "retired": true
     },
     "theSiegeTrain": {
       "name": "The Siege Train",
       "pool": "governmentIV",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "The engines set out a week before the army does.",
@@ -5195,12 +5780,15 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "patrons": {
       "name": "Patrons",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "uncommon",
       "flavor": "The painter eats, and the city is remembered.",
@@ -5220,12 +5808,15 @@
           "per": "buildingOfCategory",
           "category": "culture"
         }
-      ]
+      ],
+      "retired": true
     },
     "theGuildOfMasons": {
       "name": "The Guild of Masons",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "common",
       "flavor": "One guild raises the cathedral. The armoury waits its turn.",
@@ -5241,12 +5832,15 @@
           "category": "unit",
           "percent": -15
         }
-      ]
+      ],
+      "retired": true
     },
     "harbourmasters": {
       "name": "Harbourmasters",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "The harbour keeps its own hours and the city keeps to them.",
@@ -5278,12 +5872,15 @@
             "improvement": "fishingBoats"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theFactorHouses": {
       "name": "The Factor Houses",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "rare",
       "flavor": "A house in every port, and a ledger in every house.",
@@ -5305,6 +5902,8 @@
       "name": "Assize Courts",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The judge rides a circuit, and the writ rides with him.",
@@ -5319,12 +5918,15 @@
           "rule": "capturedCityCost",
           "value": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "theGrainFleet": {
       "name": "The Grain Fleet",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "green",
       "rarity": "rare",
       "flavor": "The corn comes in by water, and the water never tires.",
@@ -5351,12 +5953,15 @@
             "test": "coastal"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "cathedralChapters": {
       "name": "Cathedral Chapters",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "The chapter meets, and the town is quieter for a week.",
@@ -5372,12 +5977,15 @@
             "building": "cathedral"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "courtAstronomers": {
       "name": "Court Astronomers",
       "pool": "governmentIV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "uncommon",
       "flavor": "They read the sky the way a clerk reads a ledger.",
@@ -5399,6 +6007,8 @@
       "name": "The Consistory",
       "pool": "governmentIV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "rare",
       "flavor": "They meet under one roof and speak for every roof.",
@@ -5411,12 +6021,15 @@
           "percent": 100,
           "appliedLast": true
         }
-      ]
+      ],
+      "retired": true
     },
     "scholastics": {
       "name": "Scholastics",
       "pool": "governmentIV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "uncommon",
       "flavor": "Every question has an answer already. The trick is finding whose.",
@@ -5439,12 +6052,15 @@
             "amount": 40
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "forcedMarch": {
       "name": "Forced March",
       "pool": "governmentV",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "Sleep is a thing that happens in your own country.",
@@ -5460,12 +6076,15 @@
           },
           "where": "foreignTerritory"
         }
-      ]
+      ],
+      "retired": true
     },
     "admiralty": {
       "name": "Admiralty",
       "pool": "governmentV",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "rare",
       "flavor": "The fleet is the frontier.",
@@ -5490,12 +6109,15 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theSalon": {
       "name": "The Salon",
       "pool": "governmentV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "common",
       "flavor": "Everyone who matters is in one room, and they all want something.",
@@ -5510,12 +6132,15 @@
             "test": "greatWork"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theSilkExchange": {
       "name": "The Silk Exchange",
       "pool": "governmentV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "The bale is sold three times before it is unloaded.",
@@ -5541,12 +6166,15 @@
             }
           ]
         }
-      ]
+      ],
+      "retired": true
     },
     "printingHouses": {
       "name": "Printing Houses",
       "pool": "governmentV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "uncommon",
       "flavor": "The second copy costs nothing, which changes everything.",
@@ -5566,12 +6194,15 @@
           "yield": "science",
           "percent": 10
         }
-      ]
+      ],
+      "retired": true
     },
     "titheBarns": {
       "name": "Tithe Barns",
       "pool": "governmentV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "green",
       "rarity": "rare",
       "flavor": "The barn belongs to the parish, and the parish belongs to the church.",
@@ -5595,6 +6226,8 @@
       "name": "The Guild Compact",
       "pool": "governmentV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "The guilds sign, and the price of everything is settled for a generation.",
@@ -5620,6 +6253,8 @@
       "name": "Manufactories",
       "pool": "governmentV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "One roof, a hundred hands, one thing made over and over.",
@@ -5635,12 +6270,15 @@
             "improvement": "manufactory"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theInquisition": {
       "name": "The Inquisition",
       "pool": "governmentV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "rare",
       "flavor": "The questions are the same everywhere. So are the answers.",
@@ -5656,12 +6294,15 @@
             "building": "temple"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "universalSuffrage": {
       "name": "Universal Suffrage",
       "pool": "governmentV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "green",
       "rarity": "uncommon",
       "flavor": "Everyone votes, and the ledger is read aloud.",
@@ -5680,12 +6321,15 @@
           "kind": "happinessTierBoost",
           "points": 10
         }
-      ]
+      ],
+      "retired": true
     },
     "theMagistersCourt": {
       "name": "The Magister's Court",
       "pool": "governmentV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "rare",
       "flavor": "The Magister keeps a court, and the court keeps the Work.",
@@ -5701,12 +6345,15 @@
           "building": "theMagnumOpus",
           "percent": 30
         }
-      ]
+      ],
+      "retired": true
     },
     "theMusterRolls": {
       "name": "The Muster Rolls",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "The first name on the list is read out twice.",
@@ -5718,12 +6365,15 @@
           "position": 1,
           "factor": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theHarvestHome": {
       "name": "The Harvest Home",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "green",
       "rarity": "common",
       "flavor": "One sheaf more than anybody counted. Always.",
@@ -5734,12 +6384,15 @@
           "yield": "food",
           "amount": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "theReevesBell": {
       "name": "The Reeve’s Bell",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "ploughshare",
       "rarity": "common",
       "flavor": "It rings, and the granary doors stand open.",
@@ -5751,12 +6404,15 @@
           "pays": "food",
           "count": "population"
         }
-      ]
+      ],
+      "retired": true
     },
     "theFirstChair": {
       "name": "The First Chair",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "court",
       "rarity": "uncommon",
       "flavor": "Nearest the fire, and twice as warm.",
@@ -5768,12 +6424,15 @@
           "position": 1,
           "factor": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theScriveners": {
       "name": "The Scriveners",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "star",
       "rarity": "uncommon",
       "flavor": "They copy everything, the margins included.",
@@ -5784,12 +6443,15 @@
           "pays": "science",
           "percent": 50
         }
-      ]
+      ],
+      "retired": true
     },
     "theSacredGround": {
       "name": "The Sacred Ground",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "procession",
       "rarity": "common",
       "flavor": "Some hills were holy before anybody said so.",
@@ -5804,12 +6466,15 @@
             "yield": "faith"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theAssayersRule": {
       "name": "The Assayer’s Rule",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "common",
       "flavor": "Every seam weighed, and weighed again.",
@@ -5824,12 +6489,15 @@
             "yield": "gold"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theCountingHouses": {
       "name": "The Counting Houses",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "The abacus has learned to lean upward.",
@@ -5840,12 +6508,15 @@
           "pays": "gold",
           "percent": 50
         }
-      ]
+      ],
+      "retired": true
     },
     "theAlmanacOfHours": {
       "name": "The Almanac of Hours",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "court",
       "rarity": "uncommon",
       "flavor": "The feast comes sooner if you move the feast.",
@@ -5855,12 +6526,15 @@
           "kind": "periodShorten",
           "turns": 3
         }
-      ]
+      ],
+      "retired": true
     },
     "theFoundryDays": {
       "name": "The Foundry Days",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "forge",
       "rarity": "common",
       "flavor": "Ten days of smoke, and one of iron.",
@@ -5874,12 +6548,15 @@
           "voice": "production",
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theNetsBlessing": {
       "name": "The Nets’ Blessing",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "rare",
       "flavor": "Bless the water and it fills the net twice.",
@@ -5894,12 +6571,15 @@
             "improvement": "fishingBoats"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theHighChancery": {
       "name": "The High Chancery",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "court",
       "rarity": "rare",
       "flavor": "Everything is worth more once it has reached the palace.",
@@ -5913,12 +6593,15 @@
             "test": "capital"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theVotiveTally": {
       "name": "The Votive Tally",
       "pool": "governmentII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 2,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "Ask the gods twice and they remember your face.",
@@ -5933,12 +6616,15 @@
           "amount": 1,
           "count": "rerollsWhileSlotted"
         }
-      ]
+      ],
+      "retired": true
     },
     "theWorkshopsRule": {
       "name": "The Workshops’ Rule",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "A hammer is worth what it strikes beside.",
@@ -5949,12 +6635,15 @@
           "pays": "production",
           "percent": 50
         }
-      ]
+      ],
+      "retired": true
     },
     "theWildChair": {
       "name": "The Wild Chair",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "uncommon",
       "flavor": "Nobody knows whose seat it is. Everybody sits in it.",
@@ -5966,12 +6655,15 @@
           "position": 1,
           "factor": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theCantorsRule": {
       "name": "The Cantors’ Rule",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "rare",
       "flavor": "Sing the line again, and louder.",
@@ -5982,12 +6674,15 @@
           "yield": "faith",
           "percent": 50
         }
-      ]
+      ],
+      "retired": true
     },
     "theGoldenCenser": {
       "name": "The Golden Censer",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "rare",
       "flavor": "Learning burns very well.",
@@ -6001,12 +6696,15 @@
           "voice": "science",
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theDeepSeams": {
       "name": "The Deep Seams",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "Dig where the rock argues back.",
@@ -6021,12 +6719,15 @@
             "improvement": "mine"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theExchangeCharter": {
       "name": "The Exchange Charter",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "rare",
       "flavor": "Signed by everyone who could afford a pen.",
@@ -6038,12 +6739,15 @@
           "percent": 50,
           "appliedLast": true
         }
-      ]
+      ],
+      "retired": true
     },
     "theTriumph": {
       "name": "The Triumph",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "common",
       "flavor": "A parade is a city’s whole year spent in an afternoon.",
@@ -6056,12 +6760,15 @@
           "count": "empireYield",
           "voice": "production"
         }
-      ]
+      ],
+      "retired": true
     },
     "theScholarsRule": {
       "name": "The Scholars’ Rule",
       "pool": "governmentIV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "uncommon",
       "flavor": "Every reading earns a second reading.",
@@ -6072,12 +6779,15 @@
           "yield": "science",
           "amount": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "theExchequer": {
       "name": "The Exchequer",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "common",
       "flavor": "The road pays twice: once out, and once home.",
@@ -6088,12 +6798,15 @@
           "target": "routeYields",
           "percent": 100
         }
-      ]
+      ],
+      "retired": true
     },
     "theAssay": {
       "name": "The Assay",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "rare",
       "flavor": "Melt the treasury down and see what it knew.",
@@ -6106,12 +6819,15 @@
           "count": "empireYield",
           "voice": "gold"
         }
-      ]
+      ],
+      "retired": true
     },
     "theBroadAcres": {
       "name": "The Broad Acres",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "green",
       "rarity": "rare",
       "flavor": "Fields to the horizon, and behind the horizon, fields.",
@@ -6126,12 +6842,15 @@
             "improvement": "farm"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theJubilee": {
       "name": "The Jubilee",
       "pool": "governmentIV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "Debts forgiven, doors open, everybody singing.",
@@ -6151,6 +6870,8 @@
       "name": "The Compact of Chairs",
       "pool": "governmentV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "rare",
       "flavor": "Every seat at the head of its own table.",
@@ -6174,12 +6895,15 @@
           "position": 1,
           "factor": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theLaureatesRule": {
       "name": "The Laureates’ Rule",
       "pool": "governmentV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "uncommon",
       "flavor": "One more verse. There is always one more verse.",
@@ -6190,12 +6914,15 @@
           "yield": "culture",
           "amount": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "theGreatClock": {
       "name": "The Great Clock",
       "pool": "governmentV",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "rare",
       "flavor": "It runs fast, and it runs generous.",
@@ -6210,12 +6937,15 @@
           "occasion": "periodic",
           "percent": 50
         }
-      ]
+      ],
+      "retired": true
     },
     "theEncyclopaedists": {
       "name": "The Encyclopaedists",
       "pool": "governmentV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "rare",
       "flavor": "They wrote everything down and it turned into song.",
@@ -6228,12 +6958,15 @@
           "count": "empireYield",
           "voice": "science"
         }
-      ]
+      ],
+      "retired": true
     },
     "theCollegesRule": {
       "name": "The Colleges’ Rule",
       "pool": "governmentV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "rare",
       "flavor": "Two lectures, one hall, twice the noise.",
@@ -6245,13 +6978,16 @@
           "percent": 100,
           "appliedLast": true
         }
-      ]
+      ],
+      "retired": true
     },
     "theGreatEnquiry": {
       "name": "The Great Enquiry",
       "pool": "governmentV",
       "fromAge": 4,
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "star",
       "rarity": "rare",
       "flavor": "Ask the last questions first.",
@@ -6272,6 +7008,8 @@
       "pool": "governmentV",
       "fromAge": 4,
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "rare",
       "flavor": "Refuse the wreath and they carve you two.",
@@ -6291,6 +7029,8 @@
       "pool": "governmentV",
       "fromAge": 4,
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "Nothing grows there now. That was the point.",
@@ -6310,6 +7050,8 @@
       "pool": "governmentV",
       "fromAge": 4,
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "rare",
       "flavor": "Read once, in every square, at the same hour.",
@@ -6328,6 +7070,8 @@
       "name": "The Elders' Writ",
       "pool": "chiefdom",
       "slot": "economic",
+      "decks": [],
+      "band": 0,
       "line": "charter",
       "rarity": "common",
       "flavor": "The old men remember where every boundary stone was set.",
@@ -6337,12 +7081,15 @@
           "kind": "authority",
           "amount": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theTallySticks": {
       "name": "The Tally Sticks",
       "pool": "chiefdom",
       "slot": "economic",
+      "decks": [],
+      "band": 0,
       "line": "star",
       "rarity": "common",
       "flavor": "A notch for each debt, and a shelf of notches is a school.",
@@ -6357,12 +7104,15 @@
             "building": "monument"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "boatwrights": {
       "name": "Boatwrights",
       "pool": "chiefdom",
       "slot": "economic",
+      "decks": [],
+      "band": 0,
       "line": "tide",
       "rarity": "common",
       "flavor": "Every village on the water keeps one man who knows what a keel is for.",
@@ -6377,12 +7127,15 @@
             "test": "coastal"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMarches": {
       "name": "The Marches",
       "pool": "governmentI",
       "slot": "military",
+      "decks": [],
+      "band": 1,
       "line": "charter",
       "rarity": "uncommon",
       "flavor": "The border is held by men who were promised the land beyond it.",
@@ -6397,12 +7150,15 @@
           "amount": -1,
           "per": "city"
         }
-      ]
+      ],
+      "retired": true
     },
     "theCensus": {
       "name": "The Census",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "charter",
       "rarity": "uncommon",
       "flavor": "Every hearth counted, and every hearth answerable.",
@@ -6417,12 +7173,15 @@
           "count": "cities",
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theScribesHall": {
       "name": "The Scribes' Hall",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "star",
       "rarity": "uncommon",
       "flavor": "A town grows large enough, and somebody starts writing things down.",
@@ -6438,12 +7197,15 @@
           "per": 3,
           "within": "city"
         }
-      ]
+      ],
+      "retired": true
     },
     "theLampKeptLit": {
       "name": "The Lamp Kept Lit",
       "pool": "governmentI",
       "slot": "wildcard",
+      "decks": [],
+      "band": 1,
       "line": "star",
       "rarity": "rare",
       "flavor": "One window in the palace burns all night, and has for a hundred years.",
@@ -6457,12 +7219,15 @@
             "test": "capital"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "fishWeirs": {
       "name": "Fish Weirs",
       "pool": "governmentI",
       "slot": "economic",
+      "decks": [],
+      "band": 1,
       "line": "tide",
       "rarity": "common",
       "flavor": "The tide brings them in twice a day and asks nothing back.",
@@ -6478,12 +7243,15 @@
             "improvement": "fishingBoats"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "tribute": {
       "name": "Tribute",
       "pool": "governmentIII",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "They keep their king. We keep the ledger.",
@@ -6499,12 +7267,15 @@
           "count": "puppetPopulation",
           "per": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "ridersOfTheSteppe": {
       "name": "Riders of the Steppe",
       "pool": "governmentIII",
       "slot": "military",
+      "decks": [],
+      "band": 3,
       "line": "forge",
       "rarity": "rare",
       "flavor": "A wall is a thing to ride around.",
@@ -6525,12 +7296,15 @@
             "modelClass": "mounted"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "tolls": {
       "name": "Tolls",
       "pool": "governmentII",
       "slot": "economic",
+      "decks": [],
+      "band": 2,
       "line": "caravan",
       "rarity": "common",
       "flavor": "Every gate is a small customs house, and the realm has many gates.",
@@ -6546,12 +7320,15 @@
           "count": "roadHexes",
           "per": 4
         }
-      ]
+      ],
+      "retired": true
     },
     "mercenaries": {
       "name": "Mercenaries",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "rare",
       "flavor": "Loyalty by the season, and the season is paid in advance.",
@@ -6572,12 +7349,15 @@
           "on": "unit",
           "percent": -20
         }
-      ]
+      ],
+      "retired": true
     },
     "theEntrepot": {
       "name": "The Entrepôt",
       "pool": "governmentIV",
       "slot": "economic",
+      "decks": [],
+      "band": 3,
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "The goods change hands twice on the quay, and pay duty each time.",
@@ -6598,12 +7378,15 @@
             "crossing": "international"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "patronage": {
       "name": "Patronage",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "court",
       "rarity": "uncommon",
       "flavor": "The city keeps the poets, and the poets keep the city.",
@@ -6615,12 +7398,15 @@
           "count": "capitalPopulation",
           "countPer": 4
         }
-      ]
+      ],
+      "retired": true
     },
     "pilgrims": {
       "name": "Pilgrims",
       "pool": "governmentIII",
       "slot": "wildcard",
+      "decks": [],
+      "band": 3,
       "line": "procession",
       "rarity": "uncommon",
       "flavor": "They walk because the road is the prayer.",
@@ -6640,14 +7426,26 @@
           "amount": 1,
           "count": "followingForeignPop"
         }
-      ]
+      ],
+      "retired": true
     }
   },
   "tierLadder": [
-    4,
-    10,
-    18,
-    29,
-    45
+    {
+      "drafts": 0,
+      "chairs": 3
+    },
+    {
+      "drafts": 4,
+      "chairs": 4
+    },
+    {
+      "drafts": 18,
+      "chairs": 6
+    },
+    {
+      "drafts": 29,
+      "chairs": 9
+    }
   ]
 }

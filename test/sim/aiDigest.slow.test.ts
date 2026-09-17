@@ -47,10 +47,22 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * `3e710249:248825` → `a31b1dc0:249598`, standard `592eb05b:904802` →
  * `2f8db9d8:905343`. The prints grew by the cards drafted. The reroll reset
  * moves nothing on its own: no bot rerolls.
+ *
+ * Re-cut for D1a (the decks rework, schema 119, branch `decks` —
+ * `docs/plans/decks-rework.md`): every seat draws from a different pool now —
+ * its own decks' — and in D1a that pool is **empty** for every seat: every
+ * pre-rework Order and Doctrine row is `retired: true` and D1b's rows do not
+ * exist yet, so every draft is an exhausted hand that charges nothing, counts
+ * nothing and deals nothing. No seat drafts, so no seat reaches a government
+ * rung, adopts, or seats a card; the six seats' collections are empty at turn
+ * 120 and the prints **shrank** by the cards they used to hold — duel
+ * `a31b1dc0:249598` → `e444d304:236660`, standard `2f8db9d8:905343` →
+ * `42315015:855946` — while the state's own bytes changed (the schema digits,
+ * four seat fields and `rewardHands`). D1b fills the decks and re-cuts these.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'a31b1dc0:249598',
-  standard: '2f8db9d8:905343',
+  duel: 'e444d304:236660',
+  standard: '42315015:855946',
 };
 
 /**

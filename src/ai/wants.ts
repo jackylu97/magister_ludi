@@ -179,12 +179,11 @@ import type { City, GameState, Player, Unit } from '../sim/state';
 import { isExploredBy } from '../sim/visibility';
 import {
   anyCardDef,
-  livePool,
+  expectedHandBags,
   nextDraftCost,
-  offerSize,
-  orderDrawWeight,
+  rarityFirstOdds,
 } from '../sim/statecraft';
-import { SLOT_TYPES, type OrderId, orderDef } from '../sim/statecraftData';
+import { type OrderId } from '../sim/statecraftData';
 import { hasAbility } from '../sim/tech';
 import { techDef } from '../sim/techData';
 import {
@@ -1922,19 +1921,24 @@ export function draftPlan(
   inputs: WantInputs,
 ): Want[] {
   const sc = player.statecraft;
-  const pool = livePool(sc);
-  if (pool.length === 0) return [];
+  // **The seat's own bags** (the decks rework, D1a): the deal's positions read
+  // as a plan, empty when the pool is exhausted — and an exhausted pool is a
+  // draft that charges nothing and deals nothing, so culture is worth its floor.
+  const bags = expectedHandBags(state, player);
+  if (bags.length === 0) return [];
   const cost = nextDraftCost(player);
-  const size = offerSize(state, player.id, 'order');
+  const size = bags.length;
+  const shelf = new Set<OrderId>();
+  for (const bag of bags) for (const id of bag) shelf.add(id);
   const score = (id: OrderId): number => inputs.cardWorth(id).total;
-  const hand = expectedBestOrder(pool, size, sc.orderSkips, score);
+  const hand = expectedBestOrder(bags, sc.orderSkips, score);
   const delay = Math.max(0, cost - player.culturePool) / Math.max(1, inputs.cultureRate);
 
   const terms: ValueTerm[] = [
     {
       label:
         `the best of the ${size}-card hand a draft would deal, ` +
-        `over ${pool.length} card${pool.length === 1 ? '' : 's'} still in this government's pool` +
+        `over ${shelf.size} card${shelf.size === 1 ? '' : 's'} its decks can still deal` +
         (sc.orderSkips > 0 ? ` (${sc.orderSkips} pass${sc.orderSkips === 1 ? '' : 'es'} of pity)` : ''),
       value: hand,
     },
@@ -1991,28 +1995,29 @@ function replacementCost(
  * **The expected best card of a dealt hand**, over the draw the simulation
  * actually performs — deterministic arithmetic, no roll and no sample.
  *
- * `drawOrderOffer`'s shape, read as a distribution (`drawOrderOptions`):
+ * `drawOrderOffer`'s shape, read as a distribution (the decks rework, D1a):
  *
- *   · a hand of three or more is dealt **one card from each of the three
- *     sub-bags** — military, economic, wildcard — each drawn *by weight*
- *     (`orderDrawWeight`: the rarity table plus `skipPity` per banked pass);
- *   · the remaining faces are filled from whatever is left, by the same weights;
- *   · a hand narrower than three is dealt plain weighted, with no guarantee.
+ *   · a hand is dealt **one card per position** — the seat's first deck, its
+ *     second, the third by the cadence, then a rider's extras from the union —
+ *     and `expectedHandBags` (`statecraft/draft.ts`) hands over exactly those
+ *     bags, fallback included, so the plan and the deal read one shape;
+ *   · within a bag each card's chance is **rarity-first** (`rarityFirstOdds`:
+ *     the rung's points renormalised over the rungs present, then even over
+ *     the rung's cards, with `skipPity` moved per banked pass).
  *
  * The expectation of the maximum is taken through the **CDF**, which is what
  * makes it exact rather than a mean of means: for a threshold `t`,
  * `P(best ≤ t) = Π over the draws of P(that draw ≤ t)`, and
- * `E[best] = Σ over the distinct scores of v × (F(v) − F(v⁻))`. The three
- * guaranteed sub-draws are **exact** — the sub-bags partition the pool, so the
- * three are independent and each has a known finite distribution.
+ * `E[best] = Σ over the distinct scores of v × (F(v) − F(v⁻))`.
  *
- * **The one stated approximation is the fill.** The filling draws are taken
- * without replacement from what the guarantee left behind, and this treats them
- * as independent draws from the whole pool. That over-counts the chance of
- * seeing the same excellent card twice and therefore reads a wide hand as very
- * slightly better than it is; the alternative is an inclusion-exclusion over
- * every subset of the pool, which is a sum with two to the thirty-fourth terms
- * to answer a question about one want. An honest approximation, written down.
+ * **The one stated approximation is independence.** The deal excludes the
+ * hand from every later position, and this treats the positions as independent
+ * draws from their own bags. That over-counts the chance of seeing the same
+ * excellent card twice where two bags overlap (the fallback and the extras)
+ * and therefore reads such a hand as very slightly better than it is; the
+ * alternative is an inclusion-exclusion over every subset of the shelf. An
+ * honest approximation, written down — and exact whenever the bags are
+ * disjoint, which the three base positions of a two-deck seat are.
  *
  * `skips` is the pity the *next* hand would be dealt under, which is what makes
  * this the same function the skip candidate asks with `skips + 1`
@@ -2023,30 +2028,17 @@ function replacementCost(
  * statistically.
  */
 export function expectedBestOrder(
-  pool: readonly OrderId[],
-  size: number,
+  bags: readonly (readonly OrderId[])[],
   skips: number,
   score: (id: OrderId) => number,
 ): number {
-  if (pool.length === 0 || size <= 0) return 0;
+  const draws = bags.filter((bag) => bag.length > 0);
+  if (draws.length === 0) return 0;
   const scores = new Map<OrderId, number>();
-  for (const id of pool) scores.set(id, score(id));
+  for (const bag of draws) for (const id of bag) if (!scores.has(id)) scores.set(id, score(id));
 
-  // One factor per draw the deal makes: the guaranteed sub-bag draws, then the
-  // fill. A bag with no card in it makes no draw, which is the sim's own
-  // behaviour — `drawWeighted` of an empty bag deals nothing.
-  const bags: (readonly OrderId[])[] = [];
-  if (size >= 3) {
-    for (const type of SLOT_TYPES) {
-      const bag = pool.filter((id) => orderDef(id).slot === type);
-      if (bag.length > 0) bags.push(bag);
-    }
-  }
-  const fills = Math.max(0, size - bags.length);
-  for (let i = 0; i < fills; i++) bags.push(pool);
-  if (bags.length === 0) return 0;
-
-  const weight = (id: OrderId): number => Math.max(0, orderDrawWeight(id, skips));
+  // Each bag's own distribution, the draw's arithmetic and not a copy of it.
+  const odds = draws.map((bag) => rarityFirstOdds(bag, skips));
   // The distinct scores, ascending — the points the step function of the maximum
   // can jump at, and nowhere else.
   const values = [...new Set([...scores.values()])].sort((a, b) => a - b);
@@ -2055,18 +2047,12 @@ export function expectedBestOrder(
   let below = 0;
   for (const value of values) {
     let cdf = 1;
-    for (const bag of bags) {
-      let total = 0;
+    for (const bag of odds) {
       let under = 0;
-      for (const id of bag) {
-        const w = weight(id);
-        total += w;
-        if (scores.get(id)! <= value) under += w;
+      for (const { id, chance } of bag) {
+        if (scores.get(id)! <= value) under += chance;
       }
-      // A bag whose every row weighs nothing is a bag the draw falls back on
-      // whole; treat it as certain to be at or under the threshold only when it
-      // actually is, which `under / total` cannot answer at zero.
-      cdf *= total <= 0 ? (under >= 0 && bag.every((id) => scores.get(id)! <= value) ? 1 : 0) : under / total;
+      cdf *= under;
     }
     expectation += value * (cdf - below);
     below = cdf;

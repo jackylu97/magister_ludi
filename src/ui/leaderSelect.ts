@@ -40,9 +40,11 @@ import {
   type LeaderId,
   LEADER_IDS,
   isLeaderId,
+  leaderDecks,
   leaderDef,
 } from '../sim/leaderData';
 import { type CardClause, describeCard, ref } from '../sim/statecraft';
+import { deckWord } from './deckBadges';
 import type { PlayerSpec } from '../sim/state';
 import { type BuildingId, buildingDef } from '../sim/buildingData';
 import { type ImprovementId, improvementDef } from '../sim/improvementData';
@@ -180,6 +182,16 @@ export interface LeaderFace {
   colors: SeatInks;
   /** The pair said in words, for a roster that prints them (the book's shelf). */
   colorWords: [string, string];
+  /**
+   * **The decks this figure's seat draws from**, worded — the row's two, or
+   * all six for the rainbow (`leaderDecks`; the decks rework, D1a). The face's
+   * identity line since the rework: what a figure *is* in the card game is
+   * the pair of decks it holds, which is the "family and spectrum" the mockup
+   * asked for and the sheet finally carries.
+   */
+  decks: string[];
+  /** True for the figure who holds all six. */
+  rainbow: boolean;
   /** Both lines held from the first turn, in the sheet's order. */
   abilities: [LeaderAbilityFace, LeaderAbilityFace];
   /**
@@ -229,6 +241,11 @@ export function leaderFaces(): LeaderFace[] {
       // read a figure's pair through the same one door (batch H7).
       colors: seatInks({ color: def.colors.primary, secondary: def.colors.secondary }),
       colorWords: [...def.colors.names] as [string, string],
+      // Through `leaderDecks`, the one door the seat's own list is written
+      // through at `newGame`, so the face promises exactly the pool the seat
+      // gets.
+      decks: leaderDecks(id).map(deckWord),
+      rainbow: def.rainbow === true,
       abilities: def.abilities.map((ability) => ({
         id: ability.id,
         name: ability.name,
@@ -290,7 +307,10 @@ export function leaderFaceLines(face: LeaderFace): LeaderFaceLine[] {
  * flies, in the row's own words.
  */
 export function leaderIdentity(face: LeaderFace): string {
-  return face.colorWords.join(' · ');
+  // **The two decks** (the decks rework, D1a) — the one thing a figure carries
+  // that says what kind of game it plays; the rainbow says so in a word rather
+  // than listing six. The inks moved to the chips under the detail card.
+  return face.rainbow ? 'Rainbow · every deck' : face.decks.join(' · ');
 }
 
 /** The towns a figure founds first, as the detail card lists them. */

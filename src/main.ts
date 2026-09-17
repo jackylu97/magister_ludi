@@ -197,7 +197,6 @@ import { type CaptureSheet, createCaptureSheet } from './ui/captureSheet';
 import { CARD_LINE_NAME, cardLineMarkUrl, lineOf, slotMarkUrl } from './ui/cardLine';
 import {
   type OfferKind,
-  SLOT_WORDS,
   describeCard,
   explainOfferSize,
   rarityDrawWeight,
@@ -208,7 +207,11 @@ import {
   doctrineDef,
   governmentDef,
   orderDef,
+  slotCount,
+  slotSpread,
 } from './sim/statecraftData';
+import { orderBadges, orderPayoff } from './ui/deckBadges';
+import { type RewardSheet, createRewardSheet } from './ui/rewardSheet';
 import { createTurnSplash } from './ui/turnSplash';
 import { type Compendium, createCompendium } from './ui/compendium';
 import { setKeywordOpener } from './ui/keywords';
@@ -875,6 +878,8 @@ let victory: VictoryScreen | null = null;
 /* Declared before `controls` for `techTree`'s reason exactly: the controls reach
    it (the End Turn blocker steers here), and it reaches the controls. */
 let statecraft: StatecraftScreen | null = null;
+/** The reward sheet (D1a) — the statecraft screen's second sheet, reached from its banner. */
+let rewardSheet: RewardSheet | null = null;
 /**
  * What must unbind before another boot replaces these screen instances.
  * Restart and load go through `adoptGame`, which reuses them: those journeys
@@ -3040,7 +3045,12 @@ async function boot(initial: Game | null): Promise<void> {
       const offer = sc.pendingOrder;
       const options: OfferOption[] = offer.options.map((id) => ({
         title: orderDef(id).name,
-        payoff: `${SLOT_WORDS[orderDef(id).slot]} order`,
+        // The deck badge and the charter mark (the decks rework, D1a): the
+        // eyebrow says which deck the card belongs to — or that it is generic,
+        // or a cross-type of two — and a charter says so in the same line,
+        // because a charter is drafted for its grant and never sits in a chair.
+        payoff: orderPayoff(id),
+        badges: orderBadges(id),
         note: describeCard(id).map((clause) => clause.text).join(' · '),
         flavor: orderDef(id).flavor,
         ...cardFace(orderDef(id)),
@@ -3522,19 +3532,21 @@ async function boot(initial: Game | null): Promise<void> {
    * today, and if one is added it decides it the same way twice.
    */
   function governmentEmblem(id: GovernmentId): Partial<OfferOption> {
-    const spread = governmentDef(id).slots;
+    // **Every chair is universal since the decks rework** (D1a): `slotSpread`
+    // answers wildcards alone, so the emblem is the wildcard's mark for every
+    // government and the tie-break decides nothing — kept in `SLOT_TYPES`
+    // order so that it decides it the same way twice.
+    const spread = slotSpread(id);
     const dominant = SLOT_TYPES.reduce((best, type) =>
       spread[type] > spread[best] ? type : best,
     );
     return { ...cardFace(governmentDef(id)), emblem: slotMarkUrl(dominant) };
   }
 
-  /** A government's spread in words: "2 military · 1 economic · 1 wildcard". */
+  /** A government's chairs in words: "4 chairs" (D1a — the M/E/W spread is retired). */
   function slotWords(id: GovernmentId): string {
-    const spread = governmentDef(id).slots;
-    return SLOT_TYPES.filter((type) => spread[type] > 0)
-      .map((type) => `${spread[type]} ${SLOT_WORDS[type]}`)
-      .join(' · ');
+    const chairs = slotCount(id);
+    return `${chairs} chair${chairs === 1 ? '' : 's'}`;
   }
 
   /**
@@ -4274,6 +4286,29 @@ async function boot(initial: Game | null): Promise<void> {
    */
   gameDisposers.push(() => techTree?.dispose());
 
+  // **The reward sheet** (the decks rework, D1a): the second sheet on the
+  // shell, reached from the statecraft screen's banner. Every press on it is
+  // a command through the one dispatcher, checked, and refused in the
+  // reducer's own words on the manicule line.
+  rewardSheet = createRewardSheet({
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    send: (command) => {
+      const result = dispatch(game, command);
+      controls.refresh();
+      statecraft?.refresh();
+      return result.ok ? null : result.error;
+    },
+    onRefuse: (message) => controls.guide(message),
+    onOpen: () => {
+      statecraft?.close();
+      menu.close();
+      help.close();
+      lens.close();
+    },
+  });
+  gameDisposers.push(() => rewardSheet?.dispose());
+
   statecraft = createStatecraftScreen({
     overlay: statecraftOverlayEl,
     body: statecraftBodyEl,
@@ -4281,6 +4316,7 @@ async function boot(initial: Game | null): Promise<void> {
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     send: (commands) => controls.sendStatecraft(commands),
+    rewards: () => rewardSheet?.open(),
     adopt: () => {
       // The charter is a *card*, not a panel: the same offer surface the draft
       // and the Doctrine use, so an irreversible choice always arrives the same

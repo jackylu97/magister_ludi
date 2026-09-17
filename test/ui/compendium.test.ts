@@ -41,7 +41,7 @@ import {
 import { unitRosterCost } from '../../src/sim/cities';
 import { RESOURCE_IDS } from '../../src/sim/resourceData';
 import { anyCardDef, describeBuildingRow, stripRefs } from '../../src/sim/statecraft';
-import { DOCTRINE_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
+import { DOCTRINE_IDS, ORDER_IDS, orderIsDealt } from '../../src/sim/statecraftData';
 import { newGame } from '../../src/sim/state';
 import { gatingTech } from '../../src/sim/tech';
 import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../../src/sim/techData';
@@ -1376,7 +1376,10 @@ describe('what opens a thing', () => {
         }
       }
     }
-    expect(named).toBeGreaterThan(10);
+    // **Re-cut for the decks rework** (D1a): every Order and Doctrine row is
+    // retired, so the walk finds the beliefs' openings alone until D1b lands
+    // the charters — the bar was ten while the old charters were live.
+    expect(named).toBeGreaterThan(0);
     // And a row that declares a card opens it always says so — by name where
     // the walk finds one, and as "a card" where it does not — never "from the
     // start", which is the trap `isUnlocked` closes for exactly these rows.
@@ -1506,7 +1509,12 @@ describe('what opens a thing', () => {
         }
       }
     }
-    for (const kind of ['tech', 'leader', 'order', 'doctrine', 'belief']) {
+    // **Re-cut for the decks rework** (D1a): a card is linked from a page it
+    // opens, and every Order and Doctrine row is retired until D1b lands the
+    // charters — so the two card kinds are required only while a live row can
+    // be linked at all.
+    const cardKinds = ORDER_IDS.some((id) => orderIsDealt(id)) ? ['order', 'doctrine'] : [];
+    for (const kind of ['tech', 'leader', 'belief', ...cardKinds]) {
       expect(kinds, `the book links a ${kind}`).toContain(kind);
     }
   });

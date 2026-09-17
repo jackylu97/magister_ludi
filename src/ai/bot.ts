@@ -293,8 +293,7 @@ import {
   anyCardDef,
   draftCost,
   heldReligions,
-  livePool,
-  offerSize,
+  expectedHandBags,
   slotOrderError,
   isSlotted,
   sealRemaining,
@@ -1365,6 +1364,42 @@ function housekeeping(
   sitting?: BotSitting,
 ): BotDecision | null {
   const sc = player.statecraft;
+  // **A reward hand** (the decks rework, D1a) blocks nothing, like a banked
+  // charter, so it is answered here: a hand on the table is read through the
+  // same appraisal a draft is (`pickCard`) and taken, or passed when nothing
+  // on it scores at all — a pass costs nothing and buys nothing, so the bar is
+  // only that the card is worth having. A banked count is opened first.
+  if (sc.pendingReward !== undefined) {
+    const ids: (OrderId | undefined)[] = [...sc.pendingReward.options];
+    const picked = pickCard(player, ids, seatContext(state, player, sitting));
+    const best = picked.candidates.find((candidate) => candidate.chosen) ?? null;
+    const taken = ids[picked.index];
+    if (best === null || best.score <= 0 || taken === undefined || sc.orders.includes(taken)) {
+      return {
+        kind: 'draft',
+        command: { type: 'passReward', playerId: player.id },
+        subject: seatName(state, player.id),
+        summary: 'Passes the reward hand: nothing on it is worth a chair.',
+        candidates: picked.candidates,
+      };
+    }
+    return {
+      kind: 'draft',
+      command: { type: 'chooseReward', playerId: player.id, optionIndex: picked.index },
+      subject: seatName(state, player.id),
+      summary: `Takes ${cardName(taken)} from the reward hand — the best of ${picked.candidates.length} rares.`,
+      candidates: picked.candidates,
+    };
+  }
+  if (sc.rewardHands.length > 0) {
+    return {
+      kind: 'draft',
+      command: { type: 'openRewardHand', playerId: player.id },
+      subject: seatName(state, player.id),
+      summary: `Opens the reward hand banked at draft ${sc.rewardHands[0]}.`,
+      candidates: [],
+    };
+  }
   if (sc.pendingGovernment !== undefined) {
     const faces = adoptionTable(state, player, sc.pendingGovernment.options, sitting);
     return {
@@ -2767,11 +2802,12 @@ function orderDecision(state: GameState, player: Player, sitting?: BotSitting): 
  */
 function skipCandidate(state: GameState, player: Player, ctx: ValueContext): BotCandidate {
   const sc = player.statecraft;
-  const pool = livePool(sc);
-  const size = offerSize(state, player.id, 'order');
+  // The seat's own bags (the decks rework, D1a) — the standing hand's positions,
+  // since one is on the table, and the pity read twice over the same shape.
+  const bags = expectedHandBags(state, player);
   const score = (id: OrderId): number => scoreCard(player, id, ctx);
-  const pitied = expectedBestOrder(pool, size, sc.orderSkips + 1, score);
-  const asIs = expectedBestOrder(pool, size, sc.orderSkips, score);
+  const pitied = expectedBestOrder(bags, sc.orderSkips + 1, score);
+  const asIs = expectedBestOrder(bags, sc.orderSkips, score);
   // The next draft's own wait: the whole of the next threshold over what the
   // meter fills at, because a pass spends the culture already banked for this one.
   const rate = foldEmpireRates(state, player.id).culturePerTurn ?? 0;

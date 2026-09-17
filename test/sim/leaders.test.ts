@@ -461,14 +461,17 @@ describe('A Guest at Every Court', () => {
    * same table keeps the chiefdom's three, and the chiefdom's own chairs keep
    * their flavours — the extra one is appended, a wildcard by construction.
    */
-  it('seats Ibn Battuta’s council with one more wildcard chair from the first turn', async () => {
+  it('seats Ibn Battuta’s council with one more chair from the first turn', async () => {
+    // **Re-cut for the decks rework** (D1a): every chair is universal, so the
+    // chiefdom's three are three wildcards and the Guest's fourth is a fourth —
+    // additive on top of the tier's count, as the plan states.
     const { slotTypesOf } = await import('../../src/sim/statecraft');
     const g = raw('ibnBattutaOfTangier', 'pachacuti');
     const mine = playerById(g.state, 0)!.statecraft;
     const theirs = playerById(g.state, 1)!.statecraft;
-    expect(slotTypesOf(mine)).toEqual(['military', 'economic', 'wildcard', 'wildcard']);
+    expect(slotTypesOf(mine)).toEqual(['wildcard', 'wildcard', 'wildcard', 'wildcard']);
     expect(mine.slots).toEqual([null, null, null, null]);
-    expect(slotTypesOf(theirs)).toEqual(['military', 'economic', 'wildcard']);
+    expect(slotTypesOf(theirs)).toEqual(['wildcard', 'wildcard', 'wildcard']);
   });
 });
 

@@ -15,6 +15,16 @@ import type { Command } from '../../src/sim/commands';
 import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { isPassable } from '../../src/sim/pathfind';
 import { type GameConfig, type GameState, bumpRevision } from '../../src/sim/state';
+import {
+  type Band,
+  type CharterSpec,
+  type DeckId,
+  type OrderId,
+  type OrderRarity,
+  DECK_IDS,
+  ORDER_IDS,
+  orderDef,
+} from '../../src/sim/statecraftData';
 import { ABILITY_TECH } from '../../src/sim/techData';
 
 /**
@@ -148,4 +158,137 @@ export function marchOut(state: GameState, city: { col: number; row: number }): 
     piece.row = out.row;
   }
   bumpRevision(state);
+}
+
+// --- the stocked decks --------------------------------------------------------
+
+/**
+ * **A shelf to draw from, in a build whose every row is retired** (the decks
+ * rework, D1a: *"with every old row retired and no new rows yet, the pool is
+ * EMPTY in D1a"*). D1b fills the decks with rows of their own; until then a
+ * test about the *draw* — its positions, its cadence, its odds, its bands —
+ * has nothing to deal unless the bench stocks the shelf itself.
+ *
+ * It does so by **un-retiring rows the table already has** and stamping the
+ * deck, band and rarity the test wants onto them, which is deliberately not a
+ * second card table: the rows keep their names, their effects and their
+ * describers, so a stocked card slots, pays and prints exactly as a dealt card
+ * will. The retired flag is read live by `orderIsDealt`, and the three fields
+ * are read live by the draw, so nothing here needs a rebuild of `ORDER_IDS`.
+ *
+ * **Restore is mandatory.** `poolOptions.forks.isolate` is off (see `game`'s
+ * docblock), so the module graph — and the mutated rows — outlive the file.
+ * Every stocking answers with the function that puts the rows back exactly as
+ * they were, and a suite calls it in `afterAll`.
+ */
+export interface StockedRow {
+  decks: DeckId[];
+  band: Band;
+  rarity?: OrderRarity;
+  charter?: CharterSpec;
+}
+
+export function stockDecks(rows: Readonly<Record<string, StockedRow>>): () => void {
+  const undo: (() => void)[] = [];
+  for (const [id, row] of Object.entries(rows)) {
+    if (!ORDER_IDS.includes(id as OrderId)) throw new Error(`stockDecks: "${id}" is no Order`);
+    const def = orderDef(id as OrderId);
+    const before = {
+      retired: def.retired,
+      decks: def.decks,
+      band: def.band,
+      rarity: def.rarity,
+      charter: def.charter,
+    };
+    delete def.retired;
+    def.decks = [...row.decks];
+    def.band = row.band;
+    if (row.rarity !== undefined) def.rarity = row.rarity;
+    if (row.charter !== undefined) def.charter = row.charter;
+    undo.push(() => {
+      if (before.retired === undefined) delete def.retired;
+      else def.retired = before.retired;
+      def.decks = before.decks;
+      def.band = before.band;
+      def.rarity = before.rarity;
+      if (before.charter === undefined) delete def.charter;
+      else def.charter = before.charter;
+    });
+  }
+  return () => {
+    for (const step of undo.reverse()) step();
+  };
+}
+
+/**
+ * **The standard stocking**: eight rows a deck across the four bands and three
+ * rungs, six cross-type rows (each deck paired with the next), six generic
+ * rows — sixty rows off the table in file order, skipping rows that carry a
+ * slot grant or an age gate of their own. Deterministic, so a hand dealt from
+ * it at a seed is the same hand in every file that asks.
+ *
+ * Per deck, the eight are, in order: common · common · uncommon · rare at band
+ * 0; common · uncommon at band 1; common at band 2; rare at band 3 — so every
+ * deck has a rare on the opening shelf (the reward hand's pin) and something
+ * behind every band gate (the band pin).
+ */
+export function stockStandardDecks(): () => void {
+  // **Only rows D1a retired**, never a row the design withdrew before it: every
+  // pre-rework withdrawal wrote a `note` saying so ("Retired …"), and D1a's
+  // blanket retirement wrote none — so a note is the mark of a row that must
+  // stay off the shelf, and the tests that pin those withdrawals keep reading
+  // what they read. A hundred and thirty-seven rows qualify; sixty are used.
+  const candidates = ORDER_IDS.filter((id) => {
+    const def = orderDef(id);
+    return (
+      def.effects.length > 0 &&
+      def.onSlot === undefined &&
+      def.fromAge === undefined &&
+      def.note === undefined
+    );
+  });
+  const rows: Record<string, StockedRow> = {};
+  // **A row keeps its own rarity.** The shape below asks for a rung, and the
+  // next unused candidate *of that rung* is taken, in file order — so no row's
+  // `rarity` is ever re-stamped, and a test that pins a row's mark against the
+  // worksheet reads the data whether or not the bench stocked the row. The
+  // table holds fifty-four commons, fifty-nine uncommons and twenty-four rares
+  // among the candidates; the shape wants thirty-four, thirteen and thirteen.
+  const used = new Set<OrderId>();
+  const take = (rarity: OrderRarity): OrderId => {
+    const id = candidates.find((row) => !used.has(row) && orderDef(row).rarity === rarity);
+    if (id === undefined) throw new Error(`stockStandardDecks: the table ran out of ${rarity} rows`);
+    used.add(id);
+    return id;
+  };
+  const SHAPE: readonly { band: Band; rarity: OrderRarity }[] = [
+    { band: 0, rarity: 'common' },
+    { band: 0, rarity: 'common' },
+    { band: 0, rarity: 'uncommon' },
+    { band: 0, rarity: 'rare' },
+    { band: 1, rarity: 'common' },
+    { band: 1, rarity: 'uncommon' },
+    { band: 2, rarity: 'common' },
+    { band: 3, rarity: 'rare' },
+  ];
+  for (const deck of DECK_IDS) {
+    for (const shape of SHAPE) rows[take(shape.rarity)] = { decks: [deck], band: shape.band };
+  }
+  DECK_IDS.forEach((deck, index) => {
+    rows[take('common')] = { decks: [deck, DECK_IDS[(index + 1) % DECK_IDS.length]!], band: 0 };
+  });
+  const GENERIC: readonly OrderRarity[] = ['common', 'common', 'common', 'common', 'uncommon', 'rare'];
+  for (const rarity of GENERIC) rows[take(rarity)] = { decks: [], band: 0 };
+  return stockDecks(rows);
+}
+
+/** The ids the standard stocking uses, grouped as it stamps them. Read-only. */
+export function stockedShelf(): { deck: DeckId | 'cross' | 'generic'; id: OrderId }[] {
+  const out: { deck: DeckId | 'cross' | 'generic'; id: OrderId }[] = [];
+  for (const id of ORDER_IDS) {
+    const def = orderDef(id);
+    if (def.retired === true) continue;
+    out.push({ deck: def.decks.length === 0 ? 'generic' : def.decks.length === 2 ? 'cross' : def.decks[0]!, id });
+  }
+  return out;
 }

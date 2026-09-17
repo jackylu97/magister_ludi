@@ -944,11 +944,12 @@ describe('slotting is scored rather than first-fit', () => {
     }
     expect(decision?.command.type).toBe('slotOrder');
     const command = decision!.command as { cardId: string; slotIndex: number };
-    // `bloodedSpears` is military and fits two offices (military, wildcard);
-    // `firstRites` is a wildcard card and fits only the wildcard. The military
-    // office is the one nothing else can use, so it is filled first.
-    expect(command.cardId).toBe('bloodedSpears');
-    expect(slotLayout(seat(state, 0).statecraft.government)[command.slotIndex]).toBe('military');
+    // **Re-cut for the decks rework** (D1a): every chair is universal, so
+    // `bloodedSpears` and `firstRites` both fit every office and the contention
+    // is even — the scarcity term still prints, the office chosen is a wildcard
+    // (there is no other kind), and the card taken is the seat's own best.
+    expect(['bloodedSpears', 'firstRites']).toContain(command.cardId);
+    expect(slotLayout(seat(state, 0).statecraft.government)[command.slotIndex]).toBe('wildcard');
     const chosen = decision!.candidates.find((row) => row.chosen)!;
     expect(chosen.terms.some((term) => term.label.includes('would also fit'))).toBe(true);
     expect(foldTerms(chosen.terms)).toBe(chosen.score);

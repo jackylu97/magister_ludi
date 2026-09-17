@@ -139,6 +139,7 @@ import {
   SLOT_WORDS,
   describeCard,
   draftCost,
+  draftExhausted,
   liveEffects,
   maliceAt,
   maliceChairRefusal,
@@ -178,6 +179,7 @@ import {
   explainCardImpact,
 } from '../sim/cardImpact';
 import { CARD_LINE_NAME, cardLineMarkNode, lineOf, slotMarkNode } from './cardLine';
+import { GENERIC_WORD, deckWord, orderPayoff } from './deckBadges';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import { createModalShell } from './modalShell';
 import {
@@ -313,6 +315,12 @@ export interface StatecraftScreenOptions {
   send: (commands: readonly SlotCommand[]) => string | null;
   /** Opens the banked government offer's card. */
   adopt?: () => void;
+  /**
+   * Opens the reward sheet (`rewardSheet.ts`) — the second sheet the decks
+   * rework adds (D1a), reached from this screen's banner because a reward
+   * blocks nothing and a banner is how a banked thing is found.
+   */
+  rewards?: () => void;
   /** Said in the manicule line — a refusal, in the reducer's own words. */
   onRefuse?: (message: string) => void;
   /** Called when this screen opens, so the others can close. */
@@ -709,6 +717,65 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   }
 
   /**
+   * **A reward hand, banked or on the table**, said out loud until it is
+   * answered (D1a). The button opens the reward sheet — a second sheet on the
+   * shell — because a hand of three rares wants faces, and a banner is a door.
+   */
+  function drawRewardBanner(sc: PlayerStatecraft): HTMLElement | null {
+    const banked = sc.rewardHands.length;
+    const open = sc.pendingReward !== undefined;
+    if (banked === 0 && !open) return null;
+    const banner = element('section', 'sc-banner sc-banner-reward');
+    banner.append(
+      element(
+        'p',
+        'sc-banner-title',
+        open ? 'A reward hand is on the table.' : `A reward hand is banked${banked > 1 ? ` (${banked})` : ''}.`,
+      ),
+    );
+    banner.append(
+      element(
+        'p',
+        'sc-banner-body',
+        open
+          ? 'Three rares your decks can deal — take one into your collection, or pass for nothing.'
+          : 'Three rares your decks can deal, opened when you choose. It blocks nothing and costs nothing.',
+      ),
+    );
+    if (options.rewards) {
+      const button = element('button', 'btn btn-primary sc-banner-button', open ? 'See the hand' : 'Open the reward hand');
+      (button as HTMLButtonElement).type = 'button';
+      button.addEventListener('click', () => options.rewards?.());
+      banner.append(button);
+    }
+    return banner;
+  }
+
+  /**
+   * **The exhausted pool** (D1a; the design doc's rule 7): the meter is full
+   * and the seat's decks have no card left to deal, so no draft is charged and
+   * the culture stays banked. Said here because the draft sheet never opens
+   * for a hand that cannot be dealt — this is the honest face of an empty
+   * shelf, and in D1a, with every pre-rework row retired and no new rows yet,
+   * it is every seat's face.
+   */
+  function drawExhausted(state: GameState, seat: number): HTMLElement | null {
+    const player = playerById(state, seat);
+    if (!player || !draftExhausted(state, player)) return null;
+    const banner = element('section', 'sc-banner sc-banner-exhausted');
+    banner.append(element('p', 'sc-banner-title', 'Your decks are exhausted.'));
+    banner.append(
+      element(
+        'p',
+        'sc-banner-body',
+        'The culture meter is full, but your decks hold no card you do not already have — or none your ' +
+          'government and age have yet opened. No draft is charged; the culture stays banked until there is something to deal.',
+      ),
+    );
+    return banner;
+  }
+
+  /**
    * The offices: one line per slot, typed, with what is in it and its seal.
    *
    * A line rather than a card-shaped hole — see the module docblock. An empty
@@ -761,7 +828,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       const moved = (sc.slots[index]?.card ?? null) !== (filled?.card ?? null);
       if (moved) button.classList.add('sc-slot-staged');
       const text = element('span', 'sc-slot-text');
-      text.append(element('span', 'sc-slot-type', SLOT_WORDS[type]));
+      // **Every chair is universal since the decks rework** (D1a): the layout
+      // answers wildcards alone, so the word is "chair" and not the flavour —
+      // a flavour every office shares says nothing a player can act on.
+      void type;
+      text.append(element('span', 'sc-slot-type', 'chair'));
       // The eyebrow, and only where it means something. Every number in this
       // interface is tabular mono, an ordinal included.
       if (positions) {
@@ -1064,15 +1135,26 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       (entry.staged ? pending : inForce).add(entry.card);
     }
     const slotted = new Set([...inForce, ...pending]);
-    for (const type of SLOT_TYPES) {
-      const owned = sc.orders.filter((id) => orderDef(id).slot === type);
-      if (owned.length === 0) continue;
-      const group = element('div', `sc-group sc-group-${type}`);
+    // **Grouped by deck since the decks rework** (D1a): the seat's own decks in
+    // its order, then the cross-types and the generic rows — each card filed
+    // once, under the first of its decks the seat holds (a cross-type of two
+    // held decks files under the first). The M/E/W grouping went with the
+    // spread; a group is a deck now, which is the badge the card was dealt
+    // with. The finished grouping is D1c's.
+    const decks = playerById(state, seat)?.decks ?? [];
+    const groups: { key: string; name: string; owned: OrderId[] }[] = [];
+    const filed = new Set<OrderId>();
+    for (const deck of decks) {
+      const owned = sc.orders.filter((id) => !filed.has(id) && orderDef(id).decks.includes(deck));
+      for (const id of owned) filed.add(id);
+      if (owned.length > 0) groups.push({ key: deck, name: deckWord(deck), owned });
+    }
+    const rest = sc.orders.filter((id) => !filed.has(id));
+    if (rest.length > 0) groups.push({ key: 'generic', name: GENERIC_WORD, owned: rest });
+    for (const { key, name, owned } of groups) {
+      const group = element('div', `sc-group sc-group-${key}`);
       const heading = element('p', 'sc-group-head');
-      const mark = slotMarkNode(type);
-      mark.classList.add('sc-group-mark');
-      heading.append(mark);
-      heading.append(element('span', 'sc-group-name', SLOT_WORDS[type]));
+      heading.append(element('span', 'sc-group-name', name));
       heading.append(element('span', 'sc-group-count', String(owned.length)));
       group.append(heading);
       const grid = element('div', 'sc-card-grid');
@@ -1080,13 +1162,14 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         const def = orderDef(id);
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = `sc-card sc-card-order sc-card-${def.slot}`;
+        button.className = `sc-card sc-card-order sc-card-${key}`;
         if (slotted.has(id)) button.classList.add('sc-card-slotted');
         if (held === id) button.classList.add('sc-card-held');
         // The card's own face, from the one describer — the collection and the
         // offer that dealt it read identically because there is one reading of
-        // a row and no second one to drift from it.
-        drawCardFace(button, def, SLOT_WORDS[def.slot], describeCard(id));
+        // a row and no second one to drift from it. The eyebrow is the deck
+        // badge the card was dealt with, and the charter mark where it is one.
+        drawCardFace(button, def, orderPayoff(id), describeCard(id));
         // The stamp's seat, always built and mostly wearing the flourish — see
         // `stampFor`. The element is the same one whichever face it shows, so a
         // card slotted and unslotted does not change height.
@@ -1161,6 +1244,13 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
     const banner = drawPendingGovernment(sc);
     if (banner) body.append(banner);
+    // The decks rework's two banners (D1a): a reward hand banked or on the
+    // table, and the exhausted pool — both facts a player has to be told,
+    // because neither blocks the turn and neither opens a card by itself.
+    const reward = drawRewardBanner(sc);
+    if (reward) body.append(reward);
+    const dry = drawExhausted(state, seat);
+    if (dry) body.append(dry);
 
     // The split: the offices on the left and never moving, the hand on the right
     // and scrolling in its own pane. See the module docblock.
