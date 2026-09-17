@@ -90,6 +90,30 @@
      either: the sea is not knowledge and it is not distance. */
   --line-tide: #2e6b8f;
 
+  /* --- the six decks ---------------------------------------------------- */
+  /* One ink a deck (`DeckId`), since the decks rework (D1c). The deck is the
+     thread now — the fifteen archetype lines above are dead for every row
+     written after the rework, and a leader's two decks are the whole of what
+     they will ever be dealt — so the badge under a card's name has to be a
+     *colour* a player learns, not a grey word repeating the eyebrow.
+
+     Taken from the lines above wherever one already means the right thing,
+     because a deck and a thread that stand for the same idea must not be two
+     colours: blood for Dominion, the furrow for Expansionist, the caravan's
+     gold for Commerce, the procession for Devotion, the star chart's lapis for
+     Scientific. Magisterial takes the Marble Court's porphyry, which was
+     already patronage. The charter's mark is the Charter thread's sepia — the
+     ink a grant is written in — and it is deliberately not one of the six: a
+     charter is a card of some deck *and* a charter, and the two chips say two
+     different things. */
+  --deck-dominion: #c2452a;
+  --deck-expansionist: #4e7c3f;
+  --deck-commerce: #b07f12;
+  --deck-devotion: #7b3fa8;
+  --deck-scientific: #3f639f;
+  --deck-magisterial: #a04a63;
+  --deck-charter: #7a6338;
+
   /* --- yield voices ----------------------------------------------------- */
   --y-food: #3f9636;
   --y-prod: #c26a1d;
@@ -8718,6 +8742,99 @@ body:has(.city-mode:not([hidden])) #hud-context {
   flex: 0 0 auto;
 }
 
+/* --- the reward sheet (D1a's second sheet, finished in D1c) ---------------
+   The rare-only hand banked at a few points along the ladder of reforms. D1a
+   built it on the statecraft sheet's own classes and left the styling here, so
+   what follows is only what that sheet has no rule for: the hand's own width,
+   the mark that says which kind of hand this is, and the pass beneath it.
+
+   A hand of three, laid in the middle of the sheet rather than flush to the
+   left in a grid meant for a collection of thirty. Three cards is a *hand*, and
+   a hand is dealt in front of you. */
+.reward-body {
+  overflow-y: auto;
+}
+
+.reward-hand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The one thing a card cannot say about itself: that this hand is not the
+   ordinary draft. Set as a rule across the sheet in the accent, because the
+   whole point of it is to be read before the cards are. */
+.reward-mark {
+  align-self: stretch;
+  margin: 0;
+  padding-bottom: 5px;
+  border-bottom: var(--border-thin) solid var(--vermilion);
+  color: var(--vermilion);
+}
+
+/* `.sc-banner-body` is `flex: 1 1 320px`, which is right in the banner it was
+   written for — a *row* whose sentence takes the room the button leaves — and
+   grows to three hundred empty pixels the moment it is reused in a column. It
+   is borrowed here for its voice and told to take the height it needs. */
+.reward-lede {
+  flex: 0 0 auto;
+  align-self: stretch;
+  max-width: 62ch;
+  margin: 0;
+}
+
+/* Named twice on purpose: `.sc-card-grid` is written further down the sheet and
+   would otherwise win on source order with the collection's `1fr` columns,
+   which fill the width and leave `justify-content` nothing to centre. A hand of
+   three is dealt in front of you, not filed down the left margin. */
+.reward-hand .reward-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 240px));
+  justify-content: center;
+  width: 100%;
+}
+
+/* A rare in a rare-only hand: the frame carries the deck's accent like every
+   other card, and the sheet adds the lift a dealt card has and a collection's
+   card does not. */
+.reward-card {
+  min-height: 260px;
+}
+
+/* The flavour at the foot of a dealt rare — pinned down so three cards of
+   unequal rules still rule their epigrams on one baseline. */
+.sc-card-flavor {
+  margin: 8px 0 0;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--face-name);
+  font-size: 11px;
+  font-style: italic;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.sc-card .sc-card-flavor {
+  margin-top: auto;
+  align-self: stretch;
+}
+
+.reward-pass {
+  margin-top: 4px;
+}
+
+.reward-banked {
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: start;
+  gap: 8px;
+}
+
+.reward-exhausted,
+.reward-nothing {
+  max-width: 62ch;
+}
+
 /* --- the slots ----------------------------------------------------------- */
 
 .sc-slot-row {
@@ -9263,6 +9380,27 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .sc-group-wildcard {
   --line-ink: var(--grape);
 }
+
+/* The six decks (D1c), on both the heading and the cards under it. The
+   collection groups by deck since the rework — `sc-group-<deck>` on the block
+   and `sc-card-<deck>` on each face — and the three offices above are the
+   retired M/E/W spread, kept because a saved seat's chairs still name them. */
+.sc-group-dominion,
+.sc-card-dominion { --line-ink: var(--deck-dominion); }
+.sc-group-expansionist,
+.sc-card-expansionist { --line-ink: var(--deck-expansionist); }
+.sc-group-commerce,
+.sc-card-commerce { --line-ink: var(--deck-commerce); }
+.sc-group-devotion,
+.sc-card-devotion { --line-ink: var(--deck-devotion); }
+.sc-group-scientific,
+.sc-card-scientific { --line-ink: var(--deck-scientific); }
+.sc-group-magisterial,
+.sc-card-magisterial { --line-ink: var(--deck-magisterial); }
+/* A card of no deck keeps plain ink, and that is the point of it: a collection
+   where every card shouts has no accent. */
+.sc-group-generic,
+.sc-card-generic { --line-ink: var(--line-none); }
 
 .sc-group-head .sc-group-mark {
   color: var(--line-ink, var(--ink-soft));
@@ -10785,6 +10923,57 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-soft);
 }
 
+/* --- the deck badges -----------------------------------------------------
+   The chips under a dealt card's name (the decks rework, D1a; inked in D1c).
+   D1a set them as bare body text, which put the deck's word twice on the same
+   card in the same grey — once in the mono eyebrow above and once in running
+   text below — and said nothing the eyebrow had not. A chip is a chip now: the
+   mono small-caps this interface marks every small fact in, on a hairline of
+   its deck's own ink, so a hand of three reads as three decks before a word of
+   it is read.
+
+   Ink on the rule and on the letters, never a fill. A filled chip is a tag, and
+   a tag on a card in a hand is a thing to press; these answer nothing, and the
+   whole face is already a button. */
+.offer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin: 0;
+}
+
+.offer-badge {
+  padding: 1px 6px;
+  border: 1px solid var(--badge-ink, var(--ink-faint));
+  border-radius: 999px;
+  background: none;
+  color: var(--badge-ink, var(--ink-soft));
+  font-family: var(--face-num);
+  font-size: calc(0.58rem * var(--offer-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.offer-badge[data-tone='dominion'] { --badge-ink: var(--deck-dominion); }
+.offer-badge[data-tone='expansionist'] { --badge-ink: var(--deck-expansionist); }
+.offer-badge[data-tone='commerce'] { --badge-ink: var(--deck-commerce); }
+.offer-badge[data-tone='devotion'] { --badge-ink: var(--deck-devotion); }
+.offer-badge[data-tone='scientific'] { --badge-ink: var(--deck-scientific); }
+.offer-badge[data-tone='magisterial'] { --badge-ink: var(--deck-magisterial); }
+
+/* The charter's chip carries a sentence rather than a word, because the word on
+   its own means nothing to a first-time player — so it is allowed to wrap and
+   sets in the same sepia the grant is written in. */
+.offer-badge[data-tone='charter'] {
+  --badge-ink: var(--deck-charter);
+  letter-spacing: 0.06em;
+  white-space: normal;
+}
+
 /* --- an offer card's clause list and its footnote ------------------------
    A card whose rule is several sentences, one of which the game has not built.
    `.offer-note` joins clauses with a middle dot, which cannot strike one of them
@@ -11220,6 +11409,60 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-weight: 400;
 }
 
+/* --- a shelf's sub-shelves (D1c) -----------------------------------------
+   The Orders shelf is six decks, the cards two decks share, the cards anybody
+   may draw, and the withdrawn rows behind them. A heading rather than a section
+   because an Order's address is `order:<row>` and every keyword mark in the
+   book points at it — so the grouping is inside the shelf and the anchor never
+   moves. Set as a rule across the column in the display face, which is how this
+   interface has always said "a new part starts here". */
+.cmp-group-head {
+  margin: 10px 0 0;
+  padding-bottom: 4px;
+  border-bottom: var(--border-thin) solid var(--ink);
+  font-family: var(--face-display);
+  font-size: 17px;
+  font-weight: 400;
+  color: var(--ink);
+}
+
+.cmp-group-head:first-of-type {
+  margin-top: 0;
+}
+
+/* The same headings in the index, under the open shelf's own row: a reader who
+   plays Devotion should not have to scroll six hundred cards to reach their
+   deck. Indented under the shelf and set smaller, so the index still reads as
+   one list of shelves with one of them unfolded. */
+.cmp-groups {
+  margin: 2px 0 4px;
+  padding: 0 0 0 12px;
+  list-style: none;
+}
+
+.cmp-group-jump {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 2px 6px;
+  border: 0;
+  border-left: var(--border-thin) solid var(--rule);
+  background: none;
+  color: var(--ink-soft);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cmp-group-jump:hover {
+  border-left-color: var(--vermilion);
+  background: rgba(29, 26, 32, 0.06);
+  color: var(--ink);
+}
+
 .cmp-entry {
   padding: 10px 12px;
   border: var(--border-thin) solid var(--ink-faint);
@@ -11340,6 +11583,27 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .cmp-clause-note::before {
   content: '☞';
+}
+
+/* The third weight, and it is not a greying (D1c): a card that is withdrawn or
+   that the game has not built yet is not *quieter* than its rules, it is the
+   thing to read before them. A banded line at the head of the list, ruled in
+   the accent and set in the mono every standing fact on this page is set in, so
+   a reader skimming a shelf sees it without reading it. The bullet is dropped:
+   this is not one of the card's clauses, it is what is true of the card. */
+.cmp-clause-standing {
+  margin: 0 0 6px -16px;
+  padding: 4px 8px;
+  border-left: 3px solid var(--vermilion);
+  background: rgba(212, 80, 46, 0.07);
+  font-family: var(--face-num);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.cmp-clause-standing::before {
+  content: none;
 }
 
 /* The two written shelves: prose, so a paragraph per clause and no bullet —

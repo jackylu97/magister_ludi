@@ -133,6 +133,7 @@ import {
 } from './techRuleWords';
 import {
   type CityScope,
+  DECK_IDS,
   DOCTRINE_IDS,
   type DoctrineId,
   ORDER_IDS,
@@ -140,7 +141,9 @@ import {
   type OrderRarity,
   doctrineDef,
   orderDef,
+  orderIsDealt,
 } from '../sim/statecraftData';
+import { deckWord } from './deckBadges';
 import { gatingTech } from '../sim/tech';
 import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../sim/techData';
 import {
@@ -270,6 +273,17 @@ export interface CompendiumClause {
   deferred?: boolean;
   /** A standing caveat on what it *does* do. Italic, never struck. */
   note?: boolean;
+  /**
+   * **Whether this card is dealt at all**, and why not — the sentence that has
+   * to be read before the rules under it, not after.
+   *
+   * A third weight rather than a `note`, because it is a different kind of
+   * fact: a note qualifies a rule the card *has*, and this says the card is not
+   * in play. Set on the opening clause of a withdrawn row and of a row the game
+   * has not built yet (`orderStanding`), and drawn as a banded line at the head
+   * of the card rather than as one more bullet in the list.
+   */
+  standing?: boolean;
 }
 
 /** One card of the reference. */
@@ -278,6 +292,24 @@ export interface CompendiumEntry {
   id: string;
   section: CompendiumSectionId;
   name: string;
+  /**
+   * **The sub-shelf this entry is filed under**, or absent for a shelf that
+   * has none (which is every shelf but Orders today).
+   *
+   * A shelf, not a section: the Orders shelf is six decks, the cards two decks
+   * share, the cards any leader may draw and the withdrawn rows behind them —
+   * and those are four hundred-odd cards a reader cannot scroll through
+   * hoping. They are **not** sections, because a section is the head of an
+   * entry's id (`sectionOfId`) and an Order's address is `order:<row>` for
+   * good: every keyword mark in the book, every hash a player has bookmarked
+   * and every deep link the interface makes points at it. So the grouping is
+   * *inside* a shelf — a heading in the body and a jump in the index — and the
+   * anchor never moves.
+   *
+   * The entries of one group must be contiguous: `compendiumSections` pushes
+   * them that way, and the body prints a heading when the name changes.
+   */
+  group?: string;
   /** What kind of thing this is, in the card's eyebrow. Never empty. */
   eyebrow: string;
   mark: CompendiumMark | null;
@@ -1634,20 +1666,171 @@ const RARITY_WORDS: Record<OrderRarity, string> = {
   rare: 'seldom',
 };
 
+/**
+ * **The four bands in the design's own names** (`Band`, `statecraftData.ts`;
+ * the design doc's "Four content bands").
+ *
+ * `RARITY_WORDS`' argument, one field over. A band is a rung of the draft
+ * ladder crossed with an age, and the row printed the rung's *number* — which
+ * is an index into a table the player has never seen, and a digit on a card
+ * that claims nothing. The four names are plain English and the Orders shelf's
+ * lead page defines them once; nothing here restates the rule, because the two
+ * halves of it (how many drafts, which age) are live data and a sentence that
+ * named either would go stale on the next pass.
+ */
+const BAND_WORDS: readonly string[] = ['early', 'middle', 'late', 'final'];
+
+/**
+ * **What a charter hands over, in one sentence with the thing named.**
+ *
+ * The whole of what a charter *is* — drafted for its grant, never seated — and
+ * D1a shipped only the opening half of it: the eyebrow said "charter" and
+ * nothing said what that meant. The clause is the rest, and it is composed
+ * from `CharterSpec` rather than written per row, so the eight charter rows and
+ * the ninth somebody adds read alike.
+ *
+ * The thing it opens is a **keyword ref**, because the standing rule is that a
+ * named thing in a clause is one; a reader who has just been told that a
+ * charter opens a study is one press from the node that study is on. What it
+ * does *not* say is that the technology is free: it is not, and the sentence
+ * says so, because that is exactly the misreading the design doc warns about
+ * (*"it grants neither a free technology nor a free building"*).
+ *
+ * **And it names only what the book has a page for.** Every one of the eight
+ * charter rows today points at something that has not been drawn up — the five
+ * off-lane studies and the three workshops are D2f's, and until then their ids
+ * are in the card and in no table. A mark pointing at a page the book does not
+ * have is a dead link, which is the one thing the keyword sweep exists to stop;
+ * so an unbuilt target is simply not named here, and the row's own deferred
+ * sentence — which is player prose and says what it opens in words — carries
+ * that half.
+ */
+function charterClause(def: ReturnType<typeof orderDef>): CompendiumClause[] {
+  const spec = def.charter;
+  if (spec === undefined) return [];
+  const opened: string[] = [];
+  const tech = spec.unlocks.tech;
+  if (tech !== undefined && TECH_IDS.includes(tech)) opened.push(techRef(tech));
+  const building = spec.unlocks.building;
+  if (building !== undefined && BUILDING_IDS.includes(building)) {
+    opened.push(ref('building', building, buildingDef(building).name));
+  }
+  for (const rite of spec.unlocks.rites ?? []) {
+    if (RITE_IDS.includes(rite)) opened.push(ref('rite', rite, riteDef(rite).name));
+  }
+  const named =
+    opened.length === 0 ? '' : ` It opens ${opened.join(', ')}, which still costs what it costs.`;
+  return [
+    {
+      text: `A charter: taking it is the whole of it. It never sits in a chair, and it can never be turned out of one.${named}`,
+      note: true,
+    },
+  ];
+}
+
+/**
+ * **Why a card a reader can read is a card they cannot draw**, or nothing.
+ *
+ * Two different silences, and a shelf that ran them together would be telling
+ * the same lie about both. A **withdrawn** row is one the design took out: it
+ * was dealt once, an empire that holds one holds it still, and nothing is
+ * coming. A **deferred** row is one the design is waiting for: its sentence is
+ * ratified, the shape it needs does not exist yet, and it joins the draft the
+ * day it does. `orderIsDealt` is the simulation's own answer to "is this on a
+ * shelf at all" and this reads it rather than re-deciding, so the pool, the
+ * doc-sync and the book cannot drift apart.
+ *
+ * Generated off the row, never listed by hand: there are a great many deferred
+ * rows today and there will be fewer every batch, and a list of names here
+ * would be wrong within the week.
+ */
+function orderStanding(def: ReturnType<typeof orderDef>): CompendiumClause[] {
+  if (def.retired === true) {
+    return [
+      {
+        text: 'Withdrawn: this card is no longer dealt in any draft. An empire that took one before it was withdrawn keeps it, and it still pays what it says.',
+        standing: true,
+      },
+    ];
+  }
+  if (def.effects.length === 0 && def.charter === undefined) {
+    return [
+      {
+        text: 'Not dealt yet: everything this card asks for has been agreed, and the game cannot do all of it yet. It is printed here so you can read it; it is in no deck until the rule underneath it is built.',
+        standing: true,
+      },
+    ];
+  }
+  if (def.effects.length === 0 && def.deferred !== undefined) {
+    return [
+      {
+        text: 'Not dealt yet: this charter opens something the game has not drawn up. It is printed here so you can read it; it joins the decks when the thing it opens exists.',
+        standing: true,
+      },
+    ];
+  }
+  return [];
+}
+
+/**
+ * **The shelf a card is filed under** — the Orders shelf's four kinds of
+ * heading, in the order the body prints them.
+ *
+ * A card's home is its `decks` field and nothing else. One deck files it under
+ * that deck; **two decks file it once**, under the shelf that is about being of
+ * two decks, because the design doc's own catalogue does exactly that (its
+ * "Cross-type cards" is a table of its own, not two entries in two tables) and
+ * because a card printed twice would be a card with two anchors, which is the
+ * one thing an address may never have. No deck at all is the generic pool, a
+ * card of nobody's that everybody may draw. And a withdrawn row is none of
+ * these: it goes behind them all, whatever its decks say, because a live
+ * catalogue that had a retired row mixed into it would be a catalogue that
+ * lies.
+ */
+const CROSS_GROUP = 'Cards two decks share';
+const GENERIC_GROUP = 'Cards any leader may draw';
+const WITHDRAWN_GROUP = 'Withdrawn cards';
+
+function orderGroup(def: ReturnType<typeof orderDef>): string {
+  if (def.retired === true) return WITHDRAWN_GROUP;
+  if (def.decks.length === 0) return GENERIC_GROUP;
+  if (def.decks.length > 1) return CROSS_GROUP;
+  return deckWord(def.decks[0]!);
+}
+
+/** The Orders shelf's headings, in the order the body prints them. */
+const ORDER_GROUPS: readonly string[] = [
+  ...DECK_IDS.map(deckWord),
+  CROSS_GROUP,
+  GENERIC_GROUP,
+  WITHDRAWN_GROUP,
+];
+
 function orderEntry(id: OrderId): CompendiumEntry {
   const def = orderDef(id);
+  const decks = def.decks.map(deckWord).join(' · ');
   return {
     id: compendiumId('order', id),
     section: 'order',
     name: def.name,
+    group: orderGroup(def),
     // The deck is the card's home since the decks rework (D1a); the old office
-    // and pool print only where a retired row still carries them. The
-    // grouping by deck is D1c's.
-    eyebrow: `${def.decks.length === 0 ? 'generic' : def.decks.join(' · ')} ${def.charter === undefined ? 'order' : 'charter'}`,
+    // and pool print only where a retired row still carries them. A row that is
+    // on no shelf says so here as well as in its first clause, because the
+    // eyebrow is the line a reader skimming a shelf actually reads.
+    // The standing is joined with a dash rather than the middle dot, because the
+    // dot is already the separator *inside* the name — "dominion · expansionist
+    // order" is one phrase, and a third dot after it would read as a third deck.
+    eyebrow: [
+      `${def.decks.length === 0 ? 'generic' : decks.toLowerCase()} ${def.charter === undefined ? 'order' : 'charter'}`,
+      ...(def.retired === true ? ['withdrawn'] : orderIsDealt(id) ? [] : ['not dealt yet']),
+    ].join(' — '),
     mark: { kind: 'glyph', glyph: '❧' },
     rows: [
-      ...row('Decks', def.decks.length === 0 ? 'every seat' : def.decks.join(' · ')),
-      ...row('Band', String(def.band)),
+      // The deck is the eyebrow's and the shelf's; what the row adds is the two
+      // facts about the draw that are nowhere else — when the card can first
+      // turn up, and how often it does when it can.
+      ...row('Band', BAND_WORDS[def.band] ?? ''),
       ...(def.slot === undefined ? [] : row('Slot it fitted', def.slot)),
       ...(def.pool === undefined ? [] : row('Draft pool, retired', def.pool)),
       // **How often it turns up** (the levelling ruling of 2026-09-04). A draft
@@ -1658,7 +1841,10 @@ function orderEntry(id: OrderId): CompendiumEntry {
       ...row('How often it is dealt', RARITY_WORDS[def.rarity]),
       ...lineRow(def),
     ],
-    clauses: cardClauses(id, def.note),
+    // Why it is not dealt first, then what it does, then what a charter is: the
+    // standing of the card before its rules, because a reader who does not know
+    // the card is out of the deck reads every clause under it as a promise.
+    clauses: [...orderStanding(def), ...cardClauses(id, def.note), ...charterClause(def)],
     flavor: def.flavor.length === 0 ? null : def.flavor,
   };
 }
@@ -1669,10 +1855,26 @@ function doctrineEntry(id: DoctrineId): CompendiumEntry {
     id: compendiumId('doctrine', id),
     section: 'doctrine',
     name: def.name,
-    eyebrow: 'doctrine',
+    // **Every Doctrine is withdrawn** (the decks rework, D1a): the class was a
+    // permanent card chosen at an adoption, and the reward hand replaced it —
+    // so the shelf is a shelf of history, and each page says so rather than
+    // leaving a reader to wonder why no government ever offers one. Read off
+    // the row like every other standing, so the day a Doctrine comes back the
+    // word goes with it.
+    eyebrow: def.retired === true ? 'doctrine — withdrawn' : 'doctrine',
     mark: { kind: 'glyph', glyph: '✦' },
     rows: [...row('Government tier', figure(def.tier)), ...lineRow(def)],
-    clauses: cardClauses(id, def.note),
+    clauses: [
+      ...(def.retired === true
+        ? [
+            {
+              text: 'Withdrawn: Doctrines are no longer offered at an adoption. An empire that took one before they were withdrawn keeps it, and it still pays what it says.',
+              standing: true,
+            },
+          ]
+        : []),
+      ...cardClauses(id, def.note),
+    ],
     flavor: def.flavor.length === 0 ? null : def.flavor,
   };
 }
@@ -2402,7 +2604,27 @@ export function compendiumSections(): CompendiumSection[] {
   // The named rules, in the tree's own order — the pages the star chart's node
   // cards point at when a node's rules will not fit on one. See `ruleEntry`.
   for (const id of techsWithNamedRules(TECH_IDS)) push(ruleEntry(id));
-  for (const id of ORDER_IDS) push(orderEntry(id));
+  // **Grouped by deck, banded inside it, withdrawn at the back** (D1c). Four
+  // hundred live rows and two hundred-odd withdrawn ones are not a list; they
+  // are a catalogue, and a catalogue needs shelves. So the deck a card belongs
+  // to decides the heading (`orderGroup`), the band decides the order under it
+  // — which is the order a player meets the cards in, since a band is when a
+  // card can first be dealt — and the row's own file order breaks the tie, so
+  // the book's order is still the data's own wherever the data has one.
+  //
+  // Sorted rather than bucketed by hand, over a **copy**: `ORDER_IDS` is the
+  // simulation's list and a shelf that sorted it in place would quietly
+  // reorder every pool in the game.
+  const orderRank = (id: OrderId): number => ORDER_GROUPS.indexOf(orderGroup(orderDef(id)));
+  const orderIds = [...ORDER_IDS]
+    .map((id, index) => ({ id, index }))
+    .sort(
+      (a, b) =>
+        orderRank(a.id) - orderRank(b.id) ||
+        orderDef(a.id).band - orderDef(b.id).band ||
+        a.index - b.index,
+    );
+  for (const { id } of orderIds) push(orderEntry(id));
   for (const id of DOCTRINE_IDS) push(doctrineEntry(id));
   // **All three pools**, in `ALL_BELIEF_IDS`' own order — the pantheon's gods,
   // then the follower beliefs, then the enhancers. One shelf rather than three,
@@ -2469,6 +2691,36 @@ export function filterSections(
     ...section,
     entries: section.entries.filter((entry) => entryMatches(entry, needle)),
   }));
+}
+
+/**
+ * The sub-shelves of one section, in the order its entries stand in, with the
+ * count under each.
+ *
+ * Derived from the entries rather than declared beside them, for the reason
+ * every list in this file is derived: a heading that could disagree with what
+ * is under it is a heading that eventually will. A section whose entries carry
+ * no `group` — every shelf but Orders — comes back empty, and the index and the
+ * body both draw nothing.
+ *
+ * Pure and exported for the same reason `compendiumView` is: this suite has no
+ * jsdom, and "did the search leave a heading with nothing under it" has to be a
+ * question somebody can ask without a browser.
+ */
+export interface CompendiumGroup {
+  name: string;
+  count: number;
+}
+
+export function compendiumGroups(section: CompendiumSection): CompendiumGroup[] {
+  const out: CompendiumGroup[] = [];
+  for (const entry of section.entries) {
+    if (entry.group === undefined) continue;
+    const last = out[out.length - 1];
+    if (last !== undefined && last.name === entry.group) last.count += 1;
+    else out.push({ name: entry.group, count: 1 });
+  }
+  return out;
 }
 
 /** `unit:swordsman` → its section, or `null` for anything that is not an id. */
@@ -2627,11 +2879,13 @@ function entryNode(entry: CompendiumEntry): HTMLElement {
     for (const line of entry.clauses) {
       const item = element(
         'li',
-        line.deferred === true
-          ? 'cmp-clause cmp-clause-deferred'
-          : line.note === true
-            ? 'cmp-clause cmp-clause-note'
-            : 'cmp-clause',
+        line.standing === true
+          ? 'cmp-clause cmp-clause-standing'
+          : line.deferred === true
+            ? 'cmp-clause cmp-clause-deferred'
+            : line.note === true
+              ? 'cmp-clause cmp-clause-note'
+              : 'cmp-clause',
       );
       setDescriptorText(item, line.text);
       list.append(item);
@@ -2701,6 +2955,11 @@ export function renderCompendium(
   let openSection: CompendiumSectionId = SECTION_NAMES[0]![0];
   let marked: string | null = null;
 
+  /** The id a group's heading carries, so the index's jump is one lookup. */
+  function groupAnchor(section: CompendiumSectionId, name: string): string {
+    return `cmp-group-${section}-${name.toLowerCase().replace(/[^a-z]+/g, '-')}`;
+  }
+
   function drawIndex(list: readonly CompendiumSection[]): void {
     sectionList.replaceChildren();
     for (const section of list) {
@@ -2718,6 +2977,33 @@ export function renderCompendium(
         draw();
       });
       item.append(button);
+      // **The open shelf's sub-shelves**, under its own row and nowhere else.
+      // A shelf of six hundred cards is not a thing anybody scrolls; the six
+      // decks are how a reader gets to the one they play, and they are listed
+      // where the reader is already looking rather than as a second control
+      // over the body. Only the open shelf's, because an index that unfolded
+      // every shelf's groupings at once would be a longer list than the book.
+      if (section.id === openSection) {
+        const groups = compendiumGroups(section);
+        if (groups.length > 0) {
+          const nest = element('ul', 'cmp-groups');
+          for (const group of groups) {
+            const jump = element('button', 'cmp-group-jump') as HTMLButtonElement;
+            jump.type = 'button';
+            jump.append(element('span', 'cmp-group-jump-name', group.name));
+            jump.append(element('span', 'cmp-section-count', figure(group.count)));
+            jump.addEventListener('click', () => {
+              document
+                .getElementById(groupAnchor(section.id, group.name))
+                ?.scrollIntoView({ block: 'start' });
+            });
+            const nested = element('li');
+            nested.append(jump);
+            nest.append(nested);
+          }
+          item.append(nest);
+        }
+      }
       sectionList.append(item);
     }
   }
@@ -2731,7 +3017,17 @@ export function renderCompendium(
       body.append(element('p', 'hint', 'Nothing on this shelf matches that search.'));
       return;
     }
+    // A heading whenever the group changes, which is what makes the shelf a
+    // catalogue rather than a list. `compendiumSections` pushes a group's
+    // entries contiguously, so "changed" is the whole of the rule.
+    let group: string | undefined;
     for (const entry of section.entries) {
+      if (entry.group !== undefined && entry.group !== group) {
+        group = entry.group;
+        const heading = element('h4', 'cmp-group-head', entry.group);
+        heading.id = groupAnchor(section.id, entry.group);
+        body.append(heading);
+      }
       const card = entryNode(entry);
       card.classList.toggle('is-current', entry.id === marked);
       body.append(card);

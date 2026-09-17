@@ -160,15 +160,18 @@ export interface OfferOption {
   payoff: string;
   /**
    * **Small chips under the name** — the deck badge and the charter mark of
-   * the decks rework (D1a): "Dominion", "Commerce · Devotion", "Charter". One
-   * chip each, in the caller's order; absent or empty draws none, which is the
-   * honest face for a card of nobody's deck.
+   * the decks rework (D1a, finished in D1c): "Dominion", "Commerce" beside
+   * "Devotion", "Charter — takes no chair". One chip each, in the caller's
+   * order; absent or empty draws none, which is the honest face for a card of
+   * nobody's deck.
    *
-   * Strings, like everything else that crosses this boundary: the caller has
-   * already looked the deck's word up (`deckBadges.ts`) and this component
-   * knows nothing about decks.
+   * A **label and an opaque tone**, exactly as `line` is and for exactly that
+   * reason: a chip wants its deck's ink, and which ink a deck wears is a thing
+   * `style.css` decides. The caller has already looked the word and the key up
+   * (`deckBadges.ts`); this component still knows nothing about decks and must
+   * not start guessing.
    */
-  badges?: readonly string[];
+  badges?: readonly { label: string; tone?: string }[];
   /** One line of flavour, set in the name face. */
   flavor: string;
   /**
@@ -1023,10 +1026,16 @@ export function createOfferCard(
       button.append(element('span', 'offer-option-title', option.title));
       if (!tarot) button.append(element('span', 'offer-payoff', option.payoff));
       // The deck badge and the charter mark (D1a), one chip each, under the
-      // name. Drawn only when the caller handed some over.
+      // name. Drawn only when the caller handed some over; the tone is set as a
+      // data attribute and inked by one block of `style.css`, the way the
+      // accent on the frame already is.
       if (option.badges !== undefined && option.badges.length > 0) {
         const chips = element('span', 'offer-badges');
-        for (const badge of option.badges) chips.append(element('span', 'offer-badge', badge));
+        for (const badge of option.badges) {
+          const chip = element('span', 'offer-badge', badge.label);
+          if (badge.tone !== undefined) chip.dataset.tone = badge.tone;
+          chips.append(chip);
+        }
         button.append(chips);
       }
       if (option.note !== undefined) {
