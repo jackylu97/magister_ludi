@@ -2,6 +2,27 @@
 
 **Measured 2026-09-17, branch `decks`, at the end of D1b.** Seven agents entered every card of `docs/six-decks-first-cut.md` as a data row: **live** where the card's text fits the effect vocabulary as it stands, **deferred** (in the data, in the Compendium, in no pool) where it does not. This document is the fold of their seven deferral lists. It is the input to D2, and its ranking is the order D2 should build in.
 
+## What has landed since
+
+**D2a — predicates** (2026-09-17): a threshold on a building count, a worked-improvement scope, a wonder-holding scope, the word *not* in scopes and empire conditions, and what a hex sits beside. 32 rows un-deferred; 144 → 175.
+
+**D2b — counts and reach** (2026-09-17): `count`/`per`/`max` on the effects that lacked them, a scope on renown, the empire-building selector in three readings, a per-town authority discount, distinct-kind counts, a scope and building-category on the purchase rider, and a hex paid per neighbour. 27 rows un-deferred; 175 → **202**.
+
+| Deck | Live after D2b |
+|---|---|
+| Magisterial | 59 |
+| Dominion | 54 |
+| Common | 35 |
+| Devotion | 17 |
+| Scientific | 13 |
+| Commerce | 12 |
+| Expansionist | 12 |
+| **Total** | **202** |
+
+Three fields are live in code and named by no live row — `distinctBuildingCategories`, `perNeighbour` and `productionBonus.empireBuilding`. Each is one clause from paying, each is pinned on a row built for the pin, and the member register **asserts they are absent** so the day a row writes one the test fails and the note is deleted.
+
+D2b re-read every deferred note rather than the table below, and corrected each to name the blocker that actually remains. The table below is therefore the measurement at the end of D1b, kept as the record of what the batch was planned against.
+
 ## What is live
 
 | Deck | Rows | Live | Share |
