@@ -117,6 +117,31 @@ buildings reference doc with the sync test green; the Compendium prints both
 from the rows; a v117 log replays (no schema change — a new row and a new
 stamp on an old row are data).
 
+**(jjjjjj) A caravan ridden down tells nobody — RULED, T2** (the user,
+2026-09-17, playtesting: *"i'm not getting notifications that my routes are
+being pillaged, yet they keep disappearing"*). **Diagnosed**: there are two
+ways to lose a caravan and only one of them reports to the victim. A *blow*
+that plunders rides `CombatOutcome.plundered`, and `reportRaids`
+(`src/ui/controls.ts`) filters it by `defenderOwnerId === localPlayerId` and
+announces `plunderLossSentence` — that path is right. A piece that simply
+**walks onto** the cart takes it through `arrival.ts` instead: the caravan is
+`removeUnit`'d, `ArrivalReport.plundered` records the *raider's* spoils, and
+the only surface reading it (`controls.ts`, the arrival block) prints
+`plunderSpoilsSentence` — the **plunderer's** sentence. Nothing tells the
+owner, and the vanished route is never pushed to `routesEnded`, so
+`reportRoutes` cannot catch it either. A caravan is a stacking-free piece
+with no defence, so walking onto it is the *ordinary* way to take one: this
+is the common case, not the corner. **The fix**: the victim is told on the
+arrival path exactly as the combat path tells them. `TraderPlunder` carries
+what the owner's client needs to name the loss (the destination cannot be
+re-derived — the cart is off the board — so it is carried at settle time, as
+the combat path solves it with a pre-dispatch snapshot); the arrival block
+gains a victim-side announcement beside the raider-side one, seat-filtered;
+`plunderLossSentence` is the one sentence for both paths. **Pins**: a piece
+walking onto a foreign caravan announces to the owner and to the raider, each
+their own sentence, and neither hears the other's; a barbarian doing it says
+so too; the combat path is unchanged; a replayed log is byte-identical.
+
 **(iiiiii) The decks rework builds on branch `decks` — D1a and D1b BUILT 2026-09-17; D2 ordered by the shape audit**
 (the branch is playable: **399 order rows, 143 live**, every deferred card in the
 data and the Compendium saying in plain words what it would do; both core tiers
