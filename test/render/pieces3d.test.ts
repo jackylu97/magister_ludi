@@ -51,7 +51,9 @@ import { wrapWidth } from '../../src/render3d/layout';
 import { VIEW3D, contrastRatio, playerPieceColor } from '../../src/render3d/lookData';
 import {
   UnitLayer,
+  badgeAnchors,
   buildSpriteUnit,
+  coveredTraders,
   hpBarFillWidth,
   pieceColors,
   pieceMaterials,
@@ -59,6 +61,7 @@ import {
   signUnits,
   unitColor,
   unitStackIndices,
+  unitVisualHeight,
   washedInk,
 } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -3158,5 +3161,137 @@ describe("the caravan's own body", () => {
     expect((stall.match(/slider\(/g) ?? []).length).toBeGreaterThan(0);
     // And no colour of its own anywhere in it.
     expect(stall.match(/#[0-9a-fA-F]{6}\b/)).toBeNull();
+  });
+});
+
+/**
+ * **A trader under a piece is not drawn** (`docs/flags.md` (kkkkkk), the user:
+ * *"if a unit is standing on top of a trader, hide the trader from view"*).
+ *
+ * A caravan is a marker on the ground now — any number of them share a hex, and
+ * a rival's column files over one — so the hex has to show the piece that
+ * matters, or the thing the player is looking at is the smallest mark on the
+ * tile. Three claims are pinned: the cart goes whole, it comes back the moment
+ * the hex is its own again, and the rebuild that brings it back happens at all
+ * — the fingerprint carries this with no member of its own, which is the part
+ * most likely to rot.
+ */
+describe('the caravan under somebody’s boots', () => {
+  const CARAVAN = caravanTypeId()!;
+
+  function board(units: { type: UnitTypeId; col: number; ownerId?: number }[]): GameState {
+    const game = newGame({
+      seed: 11,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: '#d4502e', isHuman: true },
+        { name: 'B', color: '#2e6fd4', isHuman: true },
+      ],
+    });
+    game.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    resetVisibility(game);
+    game.tileOwner = new Array<number | null>(12 * 8).fill(null);
+    game.cities = [];
+    game.units = units.map((row, i) => ({
+      id: i + 1,
+      type: row.type,
+      ownerId: row.ownerId ?? 0,
+      col: row.col,
+      row: 2,
+      hp: unitDef(row.type).maxHp,
+      movesLeft: 2,
+    })) as never;
+    return game;
+  }
+
+  /**
+   * What one build put on the board, counted by bucket.
+   *
+   * The board geometry is built, read and torn down inside one call because a
+   * bucket is recognised by geometry *identity* — two `BoardGeometry` instances
+   * carry two different caravans, and a count taken against the wrong one is
+   * always zero.
+   */
+  function bucketsOf(game: GameState, sculpt: SculptId): number {
+    const geo = geometry();
+    const layer = new UnitLayer();
+    const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    layer.build(game, geo, materialsLib, new Quaternion(), false, null);
+    const wanted = geo.pieces[sculpt].geometry;
+    const count = layer.group.children.filter(
+      (child): child is InstancedMesh =>
+        child instanceof InstancedMesh && child.geometry === wanted,
+    ).length;
+    layer.dispose();
+    geo.dispose();
+    materialsLib.dispose();
+    return count;
+  }
+
+  const caravanBuckets = (game: GameState): number => bucketsOf(game, sculptFor(CARAVAN));
+
+  it('hides a caravan a piece is standing on, and only that caravan', () => {
+    const alone = board([{ type: CARAVAN, col: 1 }]);
+    expect(coveredTraders(alone).size).toBe(0);
+    expect(caravanBuckets(alone)).toBeGreaterThan(0);
+
+    const covered = board([
+      { type: CARAVAN, col: 1 },
+      { type: 'warrior', col: 1 },
+    ]);
+    expect([...coveredTraders(covered)]).toEqual([1]);
+    expect(caravanBuckets(covered)).toBe(0);
+    // …and the soldier that covers it is still there, standing on the centre of
+    // the tile rather than fanned away from a piece nobody can see.
+    expect(bucketsOf(covered, modelClassFor('warrior'))).toBeGreaterThan(0);
+    expect(unitStackIndices(covered).get(2)).toBe(0);
+  });
+
+  it('covers a cart with a rival’s piece too, and never with another cart', () => {
+    // Whoever owns the boots: the rule is about what the hex reads as.
+    const foreign = board([
+      { type: CARAVAN, col: 1 },
+      { type: 'warrior', col: 1, ownerId: 1 },
+    ]);
+    expect([...coveredTraders(foreign)]).toEqual([1]);
+
+    // Six caravans and nothing else: all six stand.
+    const carts = board([1, 1, 1, 1, 1, 1].map((col) => ({ type: CARAVAN, col })));
+    expect(coveredTraders(carts).size).toBe(0);
+    expect(caravanBuckets(carts)).toBeGreaterThan(0);
+  });
+
+  it('shows the cart again when the boots leave, and moves the fingerprint both ways', () => {
+    const game = board([
+      { type: CARAVAN, col: 1 },
+      { type: 'warrior', col: 3 },
+    ]);
+    const apart = signUnits(game);
+    expect(coveredTraders(game).size).toBe(0);
+
+    game.units[1]!.col = 1;
+    const together = signUnits(game);
+    expect([...coveredTraders(game)]).toEqual([1]);
+    expect(caravanBuckets(game)).toBe(0);
+    // The hash moved when the boots arrived — which is the whole reason this
+    // needed no member of its own in `signUnits`: the cover is a fold of `col`,
+    // `row` and `type`, all three already hashed for every piece on the board.
+    expect(together).not.toBe(apart);
+
+    game.units[1]!.col = 3;
+    expect(signUnits(game)).toBe(apart);
+    expect(coveredTraders(game).size).toBe(0);
+    expect(caravanBuckets(game)).toBeGreaterThan(0);
+  });
+
+  it('aims no badge at a caravan nobody can see', () => {
+    const game = board([
+      { type: CARAVAN, col: 1 },
+      { type: 'warrior', col: 1 },
+    ]);
+    const anchors = badgeAnchors(game, 0, (type) => unitVisualHeight(type, null));
+    const aimed = anchors.map((anchor) => anchor.unitId);
+    expect(aimed).not.toContain(1);
+    expect(aimed).toContain(2);
   });
 });

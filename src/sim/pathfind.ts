@@ -133,7 +133,7 @@ import {
 } from './terrainData';
 import { isCoastal } from './water';
 import { type UnitDef, isCivilian, isCombatant, isExplorer, isNaval, unitDef } from './unitData';
-import { fullMovement, hasStackingRoom, undefendedCiviliansOn } from './units';
+import { fullMovement, hasStackingRoom, stacksFreely, undefendedCiviliansOn } from './units';
 
 /** An offset cell. The wire/serialisation form of a position. */
 export interface Cell {
@@ -1005,6 +1005,16 @@ function transitPast(unit: Unit, tile: Tile, mover: MoveProfile, standing: numbe
  * civilians is ground this piece is taking, which is exactly the one case where
  * somebody else's piece is standing where the march ends.
  *
+ * **A caravan is neither a stranger nor stopped by one** (`docs/flags.md`
+ * (kkkkkk)). Going out, it sets no bit at all one function down (`pieceBits`),
+ * so a hex holding nothing but somebody else's carts reads as empty ground to
+ * every gate in this file. Coming in, the stranger clause below excuses a
+ * caravan *mover*, so a cart may come to rest among a neighbour's pieces — the
+ * overlap the ruling asks for in as many words. The cap half was always true
+ * (`hasStackingRoom` answers a caravan before it counts anything), so all three
+ * halves of "a trader is a marker, not a piece" are readings of `stacksFreely`
+ * and of nothing else.
+ *
  * `trading` is the piece this one is **changing places with** (rule 3, the
  * swap): it is stepping the other way in the same command, so it is excused
  * from the count rather than blocking a hex it is about to leave. Nothing else
@@ -1024,8 +1034,15 @@ export function canStopOn(
   // One reading of the hex for both questions — see `standingOn`.
   const standing = standingOn(state, tile, unit.ownerId, ground);
   if (!transitPast(unit, tile, mover, standing)) return false;
-  if ((standing & PEACEFUL_UNIT) !== 0) return false;
   const { category } = unitDef(unit.type);
+  // **…and a caravan is stopped by nobody either** — the other half of the
+  // marker (`docs/flags.md` (kkkkkk), the user: *"players at peace can just have
+  // overlap"*). A cart takes no slot and bars no hex, so the hex it comes to
+  // rest on is nobody's to refuse it; the two clauses together are "it does not
+  // interact with units", said once from each side. Only the *peaceful* bit is
+  // excused: at war a hostile soldier is still a wall to a caravan exactly as it
+  // is to everybody else, and that refusal has already run in `transitPast`.
+  if ((standing & PEACEFUL_UNIT) !== 0 && !stacksFreely(category)) return false;
   return hasStackingRoom(state, tile.col, tile.row, category, trading?.id ?? unit.id);
 }
 
@@ -1048,6 +1065,14 @@ export function canStopOn(
  * the stacking cap. So the clause in front of it is only the one thing
  * `canStopOn` cannot tell an empty meadow from — that there is somebody standing
  * here to take.
+ *
+ * **One hex escapes that list and is still answered `true`**: somebody else's
+ * caravan at peace (`docs/flags.md` (kkkkkk)). A cart blocks nobody now, so the
+ * march is legal and this says so — and the three readers all want that answer,
+ * because every one of them is asking "is the right button a march or a blow"
+ * and a blow at peace is refused anyway. What is *taken* there is nothing at
+ * all: the war moved to `arriveOnTile`, which is the one place the taking
+ * happens and the one place that can refuse it.
  *
  * It answers **false** for a hex the piece could never stand on, and that is the
  * rule and not a gap: an embarked worker on the coast is ridden down by a
@@ -1272,8 +1297,12 @@ export interface TransitField {
   /**
    * Per tile index: `FOREIGN_CITY`, `HOSTILE_SOLDIER`, `HOSTILE_CIVILIAN` and
    * `PEACEFUL_UNIT`, or nothing. The three piece bits are OR'd across everybody
-   * standing there, so a hex carrying an enemy's cart and a neighbour's scout
+   * standing there, so a hex carrying an enemy's worker and a neighbour's scout
    * reads as both and each clause finds its own answer.
+   *
+   * That OR is also why the caravan's exemption is written where the bits are
+   * *made* rather than where they are read: once they are folded together, no
+   * reader can tell which piece put which bit in. See `pieceBits`.
    */
   readonly blocked: Uint8Array;
 }
@@ -1295,6 +1324,37 @@ export interface TransitField {
  */
 function pieceBits(state: GameState, piece: Unit, ownerId: number): number {
   if (piece.ownerId === ownerId) return 0;
+  /**
+   * **A caravan is a marker on the ground, not a piece in the way**
+   * (`docs/flags.md` (kkkkkk), the user: *"think of the trader unit as just a
+   * placeholder position for pillaging, but otherwise does not interact with
+   * units"*). It sets **no bit at all**, so it is neither a wall nor a hex
+   * somebody may not rest on, at war or at peace, for a mover of any kind —
+   * another caravan included.
+   *
+   * It is written *here* and could not honestly be written anywhere downstream,
+   * which is the whole argument for the line: the bits are OR'd across
+   * everybody standing on the hex (`TransitField.blocked`), so by the time
+   * `canStopOn` reads them a hex holding a neighbour's cart and a hex holding a
+   * neighbour's spearman are the same byte. The only moment a caravan can be
+   * excused is the moment its own bits are counted, and this is that moment —
+   * shared by the sweep (`transitField`) and the one-hex walk (`standingBits`),
+   * so the field and its fallback cannot mean different things.
+   *
+   * The bug it fixes is the one the ruling was written for: an international
+   * route's goal is the partner's doorstep, and one peaceful foreign piece
+   * parked there denied the path — a rival's *caravan* most of all, since a
+   * caravan is exactly what stands on a trade partner's gate.
+   *
+   * Asked of `stacksFreely` rather than of `trades`, and the two are not the
+   * same question. `trades` is a marker about **commerce** — a cargo hull, if
+   * one is ever built, would carry it and would still be a ship that holds its
+   * hex — while this is a question about **the ground**: does this piece occupy
+   * the hex at all. `stacksFreely` is already the reading of "takes nobody's
+   * slot" (`units.ts`), and after this line it is the reading of "stands in
+   * nobody's way" too, which is the ruling's own sentence said once.
+   */
+  if (stacksFreely(unitDef(piece.type).category)) return 0;
   if (!atWar(state, ownerId, piece.ownerId)) return PEACEFUL_UNIT;
   return isCombatant(unitDef(piece.type)) ? HOSTILE_SOLDIER : HOSTILE_CIVILIAN;
 }

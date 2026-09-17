@@ -133,6 +133,15 @@ export function undefendedCiviliansOn(
  * anywhere compares a category against the string `'trader'` to answer a
  * stacking question — `isExplorer`'s discipline, one rule over. A second
  * uncapped category would be one more arm here and no change anywhere else.
+ *
+ * **It answers a second question now** (`docs/flags.md` (kkkkkk)): does this
+ * piece stand in anybody's *way*. `pieceBits` (`pathfind.ts`) asks it of a
+ * foreign piece and gives a caravan no blocking bit at all, so a hex holding
+ * nothing but somebody else's carts is ground anybody may walk over and rest
+ * on, at war or at peace. The two readings are one predicate on purpose — "a
+ * caravan takes no slot" and "a caravan bars no hex" are one sentence about
+ * what a marker on the ground is — and a category that ever wants one without
+ * the other is a new predicate, not a second arm of this one.
  */
 export function stacksFreely(category: UnitCategory): boolean {
   return category === 'trader';

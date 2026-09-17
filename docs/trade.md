@@ -9,6 +9,17 @@ History and the original proposal: `docs/history/design-history.md`.
 ## The trader
 
 - Own stacking-free `UnitCategory`; the row is opened at Currency; civilian.
+- **A marker on the ground, not a piece in the way** (ruled 2026-09-17,
+  `docs/flags.md` (kkkkkk)). A caravan takes no stacking slot
+  (`hasStackingRoom`), blocks nobody (`pieceBits` gives it no bit — so a hex
+  holding only carts is open ground at war and at peace, to a mover of any
+  kind), is stopped by nobody at peace (`canStopOn` excuses a trader *mover*
+  from the stranger clause — overlap is allowed), and exerts no zone of
+  control (it never did: `zocField` sweeps armed pieces). All three readings
+  ask `stacksFreely` and nothing compares a category against a name. An enemy
+  soldier is still a wall to a caravan — war is `canTransit`'s business. The
+  renderer hides a cart a piece is standing on (`coveredTraders`,
+  `render3d/pieces.ts`) and draws it again when the hex is its own.
 - **Neither built nor bought** (ruled 2026-09-09, schema 100). The row
   carries `UnitDef.routeOnly` and both doors refuse it in one voice —
   `buildError` and `purchaseError`, "…are not built — a caravan is hired on
@@ -23,6 +34,11 @@ History and the original proposal: `docs/history/design-history.md`.
   PLUNDERS** (bounty to the attacker's nearest city) — never captures. Coming
   to rest on its hex plunders it the same way (`arriveOnTile`): one rule, two
   sentences. An **unladen** trader is an ordinary civilian and is captured.
+  **Both want a war**, and since 2026-09-17 `arriveOnTile` asks for it itself:
+  one guard at the head of the loop, covering the plunder and the capture
+  together, because the board no longer refuses a peaceful neighbour the hex.
+  A neighbour at peace walking over a cart takes neither the cargo nor the
+  merchant.
 - **One law suspends it** (`tradersUnplunderable`, batch GP2): a laden cart of
   an empire holding it is not a target at all — `attackTargetAt` skips it, so
   the tint, the forecast and the reducer refuse the blow as one, sword and shot

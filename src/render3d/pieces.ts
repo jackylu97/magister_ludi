@@ -154,7 +154,11 @@ import { chargesLeft, isBuilder } from '../sim/improvements';
 import { type GameMap, tileIndex } from '../sim/map';
 import { type GameState, type Unit, isBarbarian } from '../sim/state';
 import type { TerrainId } from '../sim/terrainData';
-import { UNIT_TYPE_IDS, type UnitTypeId, unitMaxHp } from '../sim/unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, unitDef, unitMaxHp } from '../sim/unitData';
+// The simulation's own reading of "this piece occupies no slot", asked here for
+// the half of the same sentence that is about the picture — see
+// `coveredTraders`. Never a category compared against a name in the renderer.
+import { stacksFreely } from '../sim/units';
 
 import {
   type BadgeClass,
@@ -579,6 +583,50 @@ export function placePiece(map: GameMap, unit: Unit, stackIndex: number, painted
 }
 
 /**
+ * The caravans this board does not draw: every trader with a piece that is
+ * **not** a trader standing on its hex (`docs/flags.md` (kkkkkk), the user: *"if
+ * a unit is standing on top of a trader, hide the trader from view"*).
+ *
+ * A hex shows the piece that matters. Now that any number of carts may share a
+ * hex with anybody — and a foreign column may file over one — the fan would
+ * otherwise put a soldier and six caravans in a ring around a tile centre and
+ * make the thing the player is actually looking at the smallest mark on it.
+ * The cart is not gone: nothing here touches the simulation, and the moment the
+ * hex is its own again the next rebuild draws it back.
+ *
+ * **One reading, three readers**, which is why it is a function of the state and
+ * not a clause inside the layer: the fan tally counts with it
+ * (`unitStackIndices`), the layer draws with it (`UnitLayer.build`), and the
+ * badge hit test aims with it (`badgeAnchors`). A hidden piece that still held a
+ * slot in the fan would push the soldier that covers it off the tile centre, and
+ * a badge anchor over a piece nobody can see is a click target on empty air.
+ *
+ * **Any piece covers, whoever owns it**, because the rule is about what the hex
+ * reads as rather than about whose turn it is. Asked of `stacksFreely` — the
+ * simulation's own reading of "this piece occupies no slot" (`units.ts`) — so
+ * the renderer never compares a category against `'trader'`, and a caravan
+ * standing with nothing but other caravans is covered by none of them.
+ *
+ * It costs two passes over `state.units` and is hoisted per build, `zocField`'s
+ * bargain: the alternative is a walk of the board per piece. A `Set` is only
+ * ever asked `.has`, so nothing about the picture can depend on its order.
+ */
+export function coveredTraders(state: GameState): ReadonlySet<number> {
+  const covering = new Set<number>();
+  for (const unit of state.units) {
+    if (stacksFreely(unitDef(unit.type).category)) continue;
+    covering.add(unit.row * state.map.width + unit.col);
+  }
+  const hidden = new Set<number>();
+  if (covering.size === 0) return hidden;
+  for (const unit of state.units) {
+    if (!stacksFreely(unitDef(unit.type).category)) continue;
+    if (covering.has(unit.row * state.map.width + unit.col)) hidden.add(unit.id);
+  }
+  return hidden;
+}
+
+/**
  * Which slot in its tile's stack each unit stands in, by unit id.
  *
  * The counting is trivial; sharing it is the point. `placePiece` fans a stack
@@ -590,11 +638,22 @@ export function placePiece(map: GameMap, unit: Unit, stackIndex: number, painted
  *
  * `state.units` order is the state's own, so the answer is deterministic and a
  * rebuild puts every piece back where it was.
+ *
+ * **A covered caravan takes no slot in the fan** (`coveredTraders`), and it is
+ * counted out here rather than skipped in the layer for the reason the sharing
+ * exists at all: a hidden piece holding a place in the ring would stand the
+ * soldier that covers it off the tile centre with nothing beside it, which is
+ * the picture of a bug. It is the one difference from the fog rule next door,
+ * where a piece the seat cannot see still holds its slot — that one is a fact
+ * about the *viewer* and the piece is really standing there in everybody else's
+ * fan, while this one is a fact about the *hex* and is the same for every seat.
  */
 export function unitStackIndices(state: GameState): Map<number, number> {
   const counts = new Map<string, number>();
   const indices = new Map<number, number>();
+  const hidden = coveredTraders(state);
   for (const unit of state.units) {
+    if (hidden.has(unit.id)) continue;
     const key = `${unit.col},${unit.row}`;
     const index = counts.get(key) ?? 0;
     counts.set(key, index + 1);
@@ -638,8 +697,14 @@ export function badgeAnchors(
   // The click on the hex answers instead, and the roundel over the plate is the
   // new tag (`ui/cityBanners.ts`, "The garrison row").
   const bannered = banneredTownCells(state, playerId);
+  // A caravan tucked under a piece is not drawn, so it has no badge to aim at
+  // either — a click target on empty air is worse than none. See
+  // `coveredTraders`; the hex answers instead, exactly as it does for a piece
+  // whose roundel the town's banner is carrying.
+  const hidden = coveredTraders(state);
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
+    if (hidden.has(unit.id)) continue;
     if (bannered.has(tileIndex(state.map, unit.col, unit.row))) continue;
     const placement = placePiece(state.map, unit, stackIndex.get(unit.id) ?? 0, paintedKit?.resolve(unit, terrainUnder(state.map, unit)));
     const y = placement.position.y + badgeCenterY(visualHeight(unit.type, unit));
@@ -1032,12 +1097,26 @@ export class UnitLayer {
     // seats are — see `banneredTownCells` and the docblock's "The one piece that
     // wears no badge".
     const bannered = banneredTownCells(state, seat);
+    // The caravans under somebody's boots, resolved once for the build — the
+    // same reading the fan tally above counted with and the badge hit test aims
+    // with. See `coveredTraders`.
+    const covered = coveredTraders(state);
 
     for (const unit of state.units) {
       // Out of sight. The stack tally above still counted it, and that is right:
       // where a piece stands in its tile's fan is a fact about the tile, so a
       // unit that steps out of the fog does not shuffle the ones beside it.
       if (!seesCell(levels, map, unit.col, unit.row)) continue;
+      // **A trader under a piece is not drawn** (`docs/flags.md` (kkkkkk)): the
+      // hex shows the piece that matters. Skipped whole — sculpt, badge, charge
+      // boss and hit bar — rather than hidden through `hide`, because `hide` is
+      // the walk animation's channel and a piece that is out of the picture for
+      // as long as somebody is standing on it is not mid-walk. It needs no new
+      // member in the piece fingerprint either: the cover is a function of
+      // every unit's `col`, `row` and `type`, all three of which `signUnits`
+      // already hashes, so the rebuild that draws the cart again is the same
+      // one that moved the boots off it.
+      if (covered.has(unit.id)) continue;
       const painted = paintedKit?.resolve(unit, terrainUnder(map, unit));
       const placement = placePiece(map, unit, stackIndex.get(unit.id) ?? 0, painted);
       const slots: InstanceHandle[] = [];
@@ -1562,6 +1641,15 @@ export class UnitLayer {
  * *per piece*. If a later pass gives one a per-piece fact that shows — a
  * damaged rig, a flagship pennant — that field joins this list, and it will be a
  * decision because the source test will stop compiling until it is.
+ *
+ * **The hidden caravan added no member either** (`docs/flags.md` (kkkkkk)), and
+ * it is the `terrainUnder` case rather than the `trade` case: whether a cart is
+ * drawn depends on whether some piece that is not a cart shares its hex, which
+ * is a fold of every unit's `col`, `row` and `type` — three members this hash
+ * already carries, for every piece on the board. So the boots that cover a cart
+ * moved the fingerprint on the frame they arrived, and the boots that leave move
+ * it again. Adding a member for it would have hashed the same facts twice. That
+ * is a decision too, and the pin below is what makes the next one one.
  */
 export function signUnits(state: GameState): number {
   let h = Math.imul(2166136261 ^ state.units.length, 16777619) ^ signWars(state);
