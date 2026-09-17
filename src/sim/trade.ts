@@ -379,6 +379,7 @@ export function cancelRoutesBetween(
       from: route.from,
       to: route.to,
       renewed: false,
+      ended: 'war',
     });
     endRoute(state, unit);
   }
@@ -406,6 +407,7 @@ export function cancelRoutesAt(state: GameState, cityId: number): RouteEndReport
       from: route.from,
       to: route.to,
       renewed: false,
+      ended: 'razed',
     });
     endRoute(state, unit);
   }
@@ -437,6 +439,31 @@ export interface RouteEndReport {
   to: number;
   /** True when the caravan set out on a fresh leg instead of idling. */
   renewed: boolean;
+  /**
+   * **What ended it, when something other than the errand did.** Absent on the
+   * one ending that is an ending — the term ran out with the cart at home, on a
+   * route its owner chose not to renew — and on a renewal; presence is the
+   * state, and a route that did what it was sent to do needs no word for why it
+   * stopped.
+   *
+   * Carried because all three are decided somewhere the owner's client cannot
+   * see and cannot re-derive: two happen inside *somebody else's* command (a
+   * declaration, a razing), the third inside a resolution, and afterwards the
+   * key is simply gone from the piece — no diff of two boards can say whether a
+   * caravan came home or lost its partner a continent away. Without it the
+   * interface printed "your caravan has come home" over every one of them,
+   * which is the lie the ruling of 2026-09-17 was filed against
+   * (`docs/flags.md` (jjjjjj)).
+   *
+   *   · **war** — a declaration swept every route between the two empires;
+   *   · **razed** — a town at one end was pulled down;
+   *   · **partnerLost** — a town at one end stopped being this empire's.
+   *
+   * There is deliberately no marker for a caravan that could not find a path:
+   * a jam never ends a route (`marchOneTrader`), and a plundered caravan ends
+   * its route by dying, which is `TraderPlunder`'s news and not this list's.
+   */
+  ended?: 'war' | 'razed' | 'partnerLost';
 }
 
 // --- how many routes an empire may run --------------------------------------
@@ -1167,6 +1194,33 @@ export function startRouteAt(
 export interface TraderPlunder {
   /** The empire that lost the caravan. */
   fromOwnerId: number;
+  /**
+   * Where the dead route was bound (`TradeRoute.to`), or `null` for a cart
+   * carrying nothing a destination could be read off.
+   *
+   * **The owner's half of this report, and it is carried rather than looked up
+   * because there is nothing left to look it up on.** A plundered caravan is a
+   * plundered route (this module's own rule): the piece is off the board and
+   * the route was the piece, so by the time anybody says "your caravan to
+   * Nippur was plundered" the only record of Nippur is this line. The
+   * interface's first answer was a snapshot of every caravan taken *before* the
+   * command was dispatched, which worked exactly as long as the raider and the
+   * reader were the same client — and a rival's order never passes through the
+   * victim's funnel at all (`docs/flags.md` (jjjjjj)).
+   *
+   * A city **id**, not a name: naming a town is the interface's business, the
+   * same split `RouteEndReport` makes with both of its ends.
+   */
+  toCityId: number | null;
+  /**
+   * The hex the cart was taken on. `at`'s copy rather than the caller's object,
+   * so a report cannot alias a tile.
+   *
+   * Carried for `toCityId`'s reason one field over: the owner is told about a
+   * corner of the map they were not watching, and a notice they cannot pan to
+   * is a notice they cannot act on.
+   */
+  at: Cell;
   gold: number;
   /** Food actually banked. Zero when there was nowhere to bank it. */
   food: number;
@@ -1196,15 +1250,24 @@ export interface TraderPlunder {
  * answers `null` and the goods are forfeited with the warning said out loud — the
  * camp bounty's rule exactly, and the caravan dies either way. Inventing a
  * destination would be worse than saying so.
+ *
+ * It takes the **caravan** rather than the seat that owned it, and that is the
+ * owner's half of the report arriving: who lost it and where it was bound are
+ * two readings of one piece, and asking a caller to carry them separately is
+ * asking two callers to agree. The piece has already been taken off the board
+ * by the time this runs — it is the record of what was taken, not a unit on the
+ * map — which is why every field is read out of it here and now.
  */
 export function settleTraderPlunder(
   state: GameState,
   playerId: number,
-  fromOwnerId: number,
+  caravan: Unit,
   at: Cell,
 ): TraderPlunder {
   const plunder: TraderPlunder = {
-    fromOwnerId,
+    fromOwnerId: caravan.ownerId,
+    toCityId: caravan.trade?.to ?? null,
+    at: { col: at.col, row: at.row },
     gold: 0,
     food: 0,
     production: 0,

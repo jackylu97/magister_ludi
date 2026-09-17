@@ -278,10 +278,12 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
        * either.
        */
       if (cardBehaviorRule(state, other.ownerId, 'tradersUnplunderable')) continue;
-      const fromOwnerId = other.ownerId;
       removeUnit(state, other.id);
+      // The cart itself, off the board and still the only record of who lost it
+      // and where it was bound — see `TraderPlunder.toCityId`, which is what the
+      // owner's own client reads to name the loss.
       report.plundered.push(
-        settleTraderPlunder(state, unit.ownerId, fromOwnerId, {
+        settleTraderPlunder(state, unit.ownerId, other, {
           col: tile.col,
           row: tile.row,
         }),

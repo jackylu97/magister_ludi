@@ -331,40 +331,80 @@ export function plunderSpoils(plunder: TraderPlunder): string {
 }
 
 /**
- * "The caravan from Uruk has come home" — a route that ran out, in one line.
+ * "Your route to Nippur has ended" — a route that stopped, in one line, or
+ * `null` for one that did not stop at all.
  *
  * A route ends on the resolution that walks the caravan past its `expiresTurn`
  * (`marchTraders`), and until this the only sign was a slot quietly coming free:
  * a player who had set three routes running twenty turns ago had no way to learn
  * that one of them had stopped paying except by opening a sheet and counting.
  *
- * Two sentences, and the difference between them is the *only* thing a player
- * has to act on: a caravan that came home is a piece standing idle and a slot to
- * spend, and one that set out again is neither. The origin names the route
- * because that is the town the caravan is walking home *to* — `RouteEndReport.from`
- * is `TradeRoute.from`, and both ends are ids rather than names for the reason
- * every sim report is (naming a city is the interface's business).
+ * Every sentence below **names the destination and says the route ended**, and
+ * that is the ruling of 2026-09-17 (`docs/flags.md` (jjjjjj)). This used to
+ * print "The caravan from Uruk has come home" for every ending there is, which
+ * fails twice over: it reads as good news about an *arrival*, so a player never
+ * connected it to the route disappearing — the user had been notified all
+ * along and could not tell — and for the endings that were not homecomings it
+ * was simply untrue, since the cart was standing abroad. A route is named by
+ * where it was **bound**, like the plunder sentence beside it, because that is
+ * the thing the player chose and the thing they have lost. **Only a caravan
+ * that actually came home** — on a route its owner chose not to renew — is
+ * told it came home.
+ *
+ * `null` for an **uneventful renewal**, and that is the other half of the same
+ * ruling. An auto-resending route that simply carries on is not news; an empire
+ * running fifteen of them on twenty-turn terms produced about a notice a turn,
+ * and a chronicle that holds a hundred entries was pushing real losses out of
+ * the log with the player's own caravans reporting in. `RouteEndReport.renewed`
+ * is kept — the resolution still says what it did, and the Trade sheet may yet
+ * want it — but nothing announces it. Deciding that here rather than in the
+ * announcer is deliberate: a second surface reading this list should inherit
+ * the silence rather than have to remember it.
  */
-export function routeEndSentence(state: GameState, report: RouteEndReport): string {
-  const home = state.cities.find((city) => city.id === report.from);
-  const named = home ? cityDisplayName(state, home) : 'a lost city';
-  return report.renewed
-    ? `✶ The caravan from ${named} sets out again`
-    : `✶ The caravan from ${named} has come home`;
+export function routeEndSentence(state: GameState, report: RouteEndReport): string | null {
+  if (report.renewed) return null;
+  const named = (id: number): string => {
+    const city = state.cities.find((row) => row.id === id);
+    return city ? cityDisplayName(state, city) : 'a lost city';
+  };
+  const to = named(report.to);
+  switch (report.ended) {
+    case 'war':
+      return `✶ Your route to ${to} has ended — the war has closed the road`;
+    case 'razed':
+      return `✶ Your route to ${to} has ended — the town is pulled down`;
+    case 'partnerLost':
+      return `✶ Your route to ${to} has ended — its towns are no longer both yours`;
+    default:
+      return `✶ Your route to ${to} has ended — the caravan is home and free to be sent again`;
+  }
 }
 
 /**
  * "Your caravan to Nippur was plundered" — the other half, and the one that
  * costs something.
  *
- * The destination is the caller's because it cannot be re-derived: the caravan
- * is off the board by the time anybody reports this, and the route died with it
- * (`trade.ts` — a plundered caravan is a plundered route). `null` for a route
- * whose far end could not be named, which is the honest sentence rather than a
- * guess.
+ * **The one sentence both paths print.** A cart is lost either by a blow
+ * (`CombatOutcome.plundered`) or by a piece simply walking onto it
+ * (`ArrivalReport.plundered`), and until the ruling of 2026-09-17 only the
+ * first told the owner anything at all (`docs/flags.md` (jjjjjj)).
+ *
+ * It reads the destination off the report rather than taking a name, and that
+ * is the fix rather than a tidying. The caravan is off the board by the time
+ * anybody reports this and the route died with it (`trade.ts` — a plundered
+ * caravan is a plundered route), so the far end cannot be re-derived; the
+ * interface's first answer was a snapshot of its own caravans taken before the
+ * command was dispatched, which can only work when the raider's client and the
+ * owner's are the same one. `TraderPlunder.toCityId` is carried at settle time
+ * instead, so a rival's order names the loss as well as one's own does. A far
+ * end that cannot be named still gets an honest sentence rather than a guess.
  */
-export function plunderLossSentence(destination: string | null): string {
-  return destination === null
+export function plunderLossSentence(state: GameState, plunder: TraderPlunder): string {
+  const city =
+    plunder.toCityId === null
+      ? undefined
+      : state.cities.find((row) => row.id === plunder.toCityId);
+  return city === undefined
     ? '✶ Your caravan was plundered'
-    : `✶ Your caravan to ${destination} was plundered`;
+    : `✶ Your caravan to ${cityDisplayName(state, city)} was plundered`;
 }

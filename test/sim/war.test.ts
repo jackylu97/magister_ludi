@@ -657,8 +657,18 @@ describe('a declaration drops the trade between the two', () => {
     };
     const result = applyCommand(state, { type: 'declareWar', playerId: 0, targetId: 1 });
     expect(result.ok).toBe(true);
+    // `ended: 'war'` is what lets the owner's client say what happened rather
+    // than print "your caravan has come home" over a cart in enemy country
+    // (`docs/flags.md` (jjjjjj)).
     expect(result.ok && result.routesEnded).toEqual([
-      { unitId: caravan.id, ownerId: 0, from: mine.id, to: theirs.id, renewed: false },
+      {
+        unitId: caravan.id,
+        ownerId: 0,
+        from: mine.id,
+        to: theirs.id,
+        renewed: false,
+        ended: 'war',
+      },
     ]);
     expect(caravan.trade).toBeUndefined();
   });

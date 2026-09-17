@@ -463,6 +463,8 @@ describe('plunder, as two pieces of news', () => {
     const line = plunderSpoilsSentence(
       {
         fromOwnerId: 1,
+        toCityId: null,
+        at: { col: 6, row: 4 },
         gold: 30,
         food: 10,
         production: 10,
@@ -479,6 +481,8 @@ describe('plunder, as two pieces of news', () => {
     const line = plunderSpoilsSentence(
       {
         fromOwnerId: 1,
+        toCityId: null,
+        at: { col: 6, row: 4 },
         gold: 30,
         food: 10,
         production: 0,
@@ -498,10 +502,28 @@ describe('plunder, as two pieces of news', () => {
    * is that the interface *prints the sim's warning* — not that it can compose
    * a sentence about one.
    */
+  /**
+   * A laden caravan of seat 0's, standing on the road — the piece both plunder
+   * paths take off the board, and the only thing that still knows where its
+   * route was bound once it is gone.
+   */
+  function ladenCaravan(): { state: GameState; trader: Unit; partner: City } {
+    const world = tradeWorld();
+    const result = applyCommand(world.state, {
+      type: 'startRoute',
+      playerId: 0,
+      unitId: world.trader.id,
+      fromCityId: world.home.id,
+      toCityId: world.partner.id,
+    });
+    expect(result.ok).toBe(true);
+    return { state: world.state, trader: world.trader, partner: world.partner };
+  }
+
   it('says the forfeit out loud when the wild takes a caravan', () => {
-    const { state } = tradeWorld();
+    const { state, trader } = ladenCaravan();
     const wild = state.players[state.players.length - 1]!;
-    const plunder = settleTraderPlunder(state, wild.id, 0, { col: 6, row: 4 });
+    const plunder = settleTraderPlunder(state, wild.id, trader, { col: 6, row: 4 });
     expect(plunder.cityName).toBeNull();
     expect(plunder.warning).not.toBeNull();
     const line = plunderSpoilsSentence(plunder, 'Uruk');
@@ -510,21 +532,55 @@ describe('plunder, as two pieces of news', () => {
     expect(line).toContain('no city to receive the goods');
   });
 
-  it('tells the victim which route it lost, and copes with not knowing', () => {
-    expect(plunderLossSentence('Nippur')).toBe('✶ Your caravan to Nippur was plundered');
-    expect(plunderLossSentence(null)).toBe('✶ Your caravan was plundered');
+  /**
+   * The owner's half, and the claim is that it survives the wild taking the
+   * cart: a barbarian collects nothing, so the report is all warning and no
+   * destination for the *raider* — and the **loss** still names the route,
+   * because who lost it and where it was bound are written down before any of
+   * the banking is attempted.
+   */
+  it('tells the victim which route it lost, even when the wild took it', () => {
+    const { state, trader, partner } = ladenCaravan();
+    const wild = state.players[state.players.length - 1]!;
+    const plunder = settleTraderPlunder(state, wild.id, trader, { col: 6, row: 4 });
+    expect(plunder.fromOwnerId).toBe(0);
+    expect(plunder.toCityId).toBe(partner.id);
+    expect(plunder.at).toEqual({ col: 6, row: 4 });
+    expect(plunderLossSentence(state, plunder)).toBe(
+      `✶ Your caravan to ${cityDisplayName(state, partner)} was plundered`,
+    );
+  });
+
+  it('copes with a far end it cannot name rather than guessing', () => {
+    const { state } = tradeWorld();
+    const plunder = {
+      fromOwnerId: 0,
+      toCityId: null,
+      at: { col: 6, row: 4 },
+      gold: 0,
+      food: 0,
+      production: 0,
+      cityName: null,
+      grownTo: null,
+      warning: null,
+    };
+    expect(plunderLossSentence(state, plunder)).toBe('✶ Your caravan was plundered');
+    expect(plunderLossSentence(state, { ...plunder, toCityId: 9999 })).toBe(
+      '✶ Your caravan was plundered',
+    );
   });
 
   const controls = source('controls.ts');
 
-  it('names the destination from before the blow, because the route died with the piece', () => {
-    // `commit` snapshots the seat's caravans ahead of the dispatch, the way
-    // `unitSnapshot` does for hit points — after it, there is nothing to ask.
-    expect(controls).toMatch(/const caravans = caravanDestinations\(\);/);
-    expect(controls.indexOf('const caravans = caravanDestinations();')).toBeLessThan(
-      controls.indexOf('const result = dispatch(getGame(), command);'),
-    );
-    expect(controls).toMatch(/reportRaids\(result, caravans\);/);
+  /**
+   * The destination is **carried**, not snapshotted. The interface used to take
+   * a map of its own caravans before every dispatch, which could only ever
+   * answer for a raid this client watched itself order or receive; a rival's
+   * order never passes through that funnel at all (the ruling of 2026-09-17).
+   */
+  it('names the destination off the report rather than a pre-dispatch snapshot', () => {
+    expect(controls).not.toContain('caravanDestinations');
+    expect(controls).toContain('plunderLossSentence(state, combat.plundered)');
   });
 
   it('reports the victim before the ordinary casualty split', () => {
@@ -532,13 +588,32 @@ describe('plunder, as two pieces of news', () => {
     const body = raids.slice(0, raids.indexOf('const fell ='));
     // "Your trader was slain" would bury what was actually lost: the route.
     expect(body).toMatch(/if \(combat\.plundered\) \{/);
-    expect(body).toContain('plunderLossSentence(caravans.get(combat.defenderUnitId)');
+    expect(body).toContain('plunderLossSentence(state, combat.plundered)');
   });
 
   it('reports the pillager off the arrival, which is the only thing that knows', () => {
     const arrivals = controls.slice(controls.indexOf('function reportArrivals'));
     expect(arrivals).toMatch(/for \(const plunder of arrival\.plundered\)/);
     expect(arrivals).toContain('plunderSpoilsSentence(plunder, victim)');
+    // And it is the raider's sentence alone: the owner never reads a boast
+    // about their own caravan.
+    expect(arrivals).toContain('if (plunder.fromOwnerId === localPlayerId) continue;');
+  });
+
+  /**
+   * The owner's half of the *arrival* path, which had no reader at all. It is
+   * filtered the other way round from the raider's, so one event cannot print
+   * both sentences to one seat.
+   */
+  it('tells the owner about a cart somebody walked onto, seat-filtered the other way', () => {
+    const losses = controls.slice(controls.indexOf('function reportTraderLosses'));
+    const body = losses.slice(0, losses.indexOf('\n  }\n'));
+    expect(body).toContain('for (const plunder of arrival.plundered)');
+    expect(body).toContain('if (plunder.fromOwnerId !== localPlayerId) continue;');
+    expect(body).toContain('plunderLossSentence(state, plunder)');
+    // Panned to the hex the report carries — the piece that did it is somebody
+    // else's and may have marched on.
+    expect(body).toContain('col: plunder.at.col, row: plunder.at.row');
   });
 });
 
@@ -582,6 +657,8 @@ describe('an ordered raid quotes the figures', () => {
   it('composes them through the one composer both sentences use', () => {
     const plunder = {
       fromOwnerId: 1,
+      toCityId: null,
+      at: { col: 6, row: 4 },
       gold: 30,
       food: 10,
       production: 10,
@@ -613,19 +690,69 @@ describe('an ordered raid quotes the figures', () => {
   });
 });
 
-describe('a route that ran out is news', () => {
+/**
+ * **A route that ended says it ended** (the ruling of 2026-09-17).
+ *
+ * It used to say "The caravan from Uruk has come home" for every ending there
+ * is: good news about an arrival, printed over a route killed by a war, a
+ * capture or a jam. A player watching routes vanish was being notified all
+ * along and had no way to tell.
+ */
+describe('a route that ended is news, and says so', () => {
   const controls = source('controls.ts');
 
-  it('tells the two apart, because only one of them leaves a slot to spend', () => {
+  function report(state: GameState): {
+    unitId: number;
+    ownerId: number;
+    from: number;
+    to: number;
+  } {
+    return { unitId: 1, ownerId: 0, from: state.cities[0]!.id, to: state.cities[1]!.id };
+  }
+
+  it('names the destination and says the route is over, whichever way it ended', () => {
     const { state } = tradeWorld();
-    const home = state.cities[0]!;
-    const report = { unitId: 1, ownerId: 0, from: home.id, to: state.cities[1]!.id };
-    expect(routeEndSentence(state, { ...report, renewed: false })).toBe(
-      `✶ The caravan from ${cityDisplayName(state, home)} has come home`,
+    const to = cityDisplayName(state, state.cities[1]!);
+    const base = report(state);
+    for (const line of [
+      routeEndSentence(state, { ...base, renewed: false }),
+      routeEndSentence(state, { ...base, renewed: false, ended: 'war' }),
+      routeEndSentence(state, { ...base, renewed: false, ended: 'razed' }),
+      routeEndSentence(state, { ...base, renewed: false, ended: 'partnerLost' }),
+    ]) {
+      expect(line).toContain(`Your route to ${to} has ended`);
+    }
+  });
+
+  /**
+   * Only the ending that *is* a homecoming says so. A route the player left
+   * unrenewed ends with the cart in its own gates; the other two end with it
+   * standing wherever the news found it.
+   */
+  it('says which hand ended it, and claims a homecoming for none of the others', () => {
+    const { state } = tradeWorld();
+    const base = { ...report(state), renewed: false };
+    expect(routeEndSentence(state, base)).toContain('the caravan is home');
+    for (const ended of ['war', 'razed', 'partnerLost'] as const) {
+      const line = routeEndSentence(state, { ...base, ended })!;
+      expect(line).not.toContain('home');
+    }
+    expect(routeEndSentence(state, { ...base, ended: 'war' })).toContain('the war has closed');
+    expect(routeEndSentence(state, { ...base, ended: 'razed' })).toContain('pulled down');
+    expect(routeEndSentence(state, { ...base, ended: 'partnerLost' })).toContain(
+      'no longer both yours',
     );
-    expect(routeEndSentence(state, { ...report, renewed: true })).toBe(
-      `✶ The caravan from ${cityDisplayName(state, home)} sets out again`,
-    );
+  });
+
+  /**
+   * Fifteen routes on twenty-turn terms is about a notice a turn, and a log
+   * that holds a hundred entries was losing real losses to them. A route that
+   * simply carries on is not news — and the silence is decided in the sentence
+   * rather than in the announcer, so a second surface inherits it.
+   */
+  it('says nothing at all about an uneventful renewal', () => {
+    const { state } = tradeWorld();
+    expect(routeEndSentence(state, { ...report(state), renewed: true })).toBeNull();
   });
 
   it('copes with an end it cannot name rather than throwing', () => {
@@ -640,13 +767,11 @@ describe('a route that ran out is news', () => {
     expect(line).toContain('a lost city');
   });
 
-  it('is reported for this seat alone, through the one funnel', () => {
+  it('is reported for this seat alone, and skips the sentence that is not news', () => {
     const routes = controls.slice(controls.indexOf('function reportRoutes'));
     const body = routes.slice(0, routes.indexOf('\n  }\n'));
     expect(body).toContain('if (report.ownerId !== localPlayerId) continue;');
     expect(body).toContain('routeEndSentence(getGame().state, report)');
-    // In `commit`, beside the wonders and the Triumphs, so there is one call
-    // site rather than one per verb.
-    expect(controls).toContain('reportRoutes(result);');
+    expect(body).toContain('if (line !== null) announce(line);');
   });
 });

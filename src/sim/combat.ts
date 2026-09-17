@@ -2461,7 +2461,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     outcome.killed.push(snapshotFallen(caravan));
     removeUnit(state, caravan.id);
     defenderDied = true;
-    outcome.plundered = settleTraderPlunder(state, attacker.ownerId, fromOwnerId, {
+    outcome.plundered = settleTraderPlunder(state, attacker.ownerId, caravan, {
       col: tile.col,
       row: tile.row,
     });

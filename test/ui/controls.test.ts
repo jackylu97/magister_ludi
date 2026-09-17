@@ -25,7 +25,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { between } from './sourceHelpers';
+import { between, braceBody, uiSource } from './sourceHelpers';
 
 import { foundCityAt } from '../../src/sim/cities';
 import { type PillageReport, chopBaseFor } from '../../src/sim/improvements';
@@ -882,5 +882,69 @@ describe('a trader on its route is not in hand', () => {
 
   it('keeps the by-id cancel for the trade screen', () => {
     expect(SOURCE).toContain('function cancelRouteOf(');
+  });
+});
+
+/**
+ * **The register of what a rival's order may say to this seat** (the ruling of
+ * 2026-09-17, `docs/flags.md` (jjjjjj)).
+ *
+ * `commit` runs only for this client's own orders. A rival's — a bot's, and
+ * under netcode a peer's — reach `reportCommand` and nothing else, which is why
+ * a neighbour declaring war swept away three of the player's routes and the
+ * player was told about the war and not about the routes. The reporters that
+ * are *already* filtered to this seat's own losses belong on the shared side of
+ * that seam; the ones that would narrate another empire's turn do not.
+ *
+ * Pinned by inspection, as the rest of this file's wirings are: the claim is
+ * about which list a name is in, and there is no DOM in this suite.
+ */
+describe('the shared news register', () => {
+  const source = uiSource('controls.ts');
+  const shared = braceBody(source, 'function reportSharedNews(');
+  const funnel = braceBody(source, 'function commit(');
+
+  it('is reached by every accepted order, not only this seat’s own', () => {
+    // `reportCommand` is the seam the bots' driver and the two self-dispatching
+    // screens already call; `commit` reaches it at the foot of its own funnel.
+    expect(braceBody(source, 'function reportCommand(')).toContain('reportSharedNews(result);');
+    expect(funnel).toContain('reportCommand(command, result);');
+  });
+
+  it('carries the losses that are this seat’s whoever caused them', () => {
+    for (const reporter of [
+      'reportRaids(result);',
+      'reportTraderLosses(result);',
+      'reportRoutes(result);',
+      'reportPillages(result);',
+    ]) {
+      expect(shared).toContain(reporter);
+      // And exactly once: a reporter left in `commit` as well would say
+      // everything twice for this seat's own orders.
+      expect(funnel).not.toContain(reporter);
+    }
+  });
+
+  /**
+   * The guard `reportCommand`'s docblock keeps, and it is right: a poll of the
+   * board, and anything that raises a card, stays with the seat's own orders.
+   * Every one of these arrives on the resolving `endTurn` or on a verb this
+   * seat issued, so no rival's order could carry it anyway.
+   */
+  it('leaves the seat’s own doings, and the polls, in the funnel', () => {
+    for (const reporter of [
+      'pollSightings();',
+      'reportReligion();',
+      'reportSieges(result);',
+      'reportCampNews(result);',
+      'reportStarvation(result);',
+      'reportGuilds(result);',
+      'reportTriumphs(result);',
+      'reportBeads(result);',
+      'checkGreatPersonOffer();',
+    ]) {
+      expect(funnel).toContain(reporter);
+      expect(shared).not.toContain(reporter);
+    }
   });
 });

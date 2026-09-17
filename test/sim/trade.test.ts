@@ -14,6 +14,7 @@ import {
 } from '../../src/sim/yields/empire';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { applyCombat } from '../../src/sim/combat';
+import { arriveOnTile } from '../../src/sim/arrival';
 import {
   type Game,
   createGame,
@@ -1262,6 +1263,126 @@ describe('route news', () => {
     const report = runEndOfTurn(state);
     expect(report.routesEnded).toEqual([]);
   });
+
+  /**
+   * An ending the owner's client cannot re-derive says which one it was
+   * (`RouteEndReport.ended`, the ruling of 2026-09-17). The marker is absent
+   * only for the homecoming, which is the one ending that really is one.
+   */
+  it('marks the ending when a hand other than the clock ended it', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    readyToLapseAtHome(state, home, trader);
+    expect(runEndOfTurn(state).routesEnded[0]!.ended).toBeUndefined();
+
+    const second = tradeWorld();
+    expect(
+      applyCommand(second.state, send(0, second.trader.id, second.home.id, second.partner.id)).ok,
+    ).toBe(true);
+    second.partner.ownerId = 1;
+    expect(runEndOfTurn(second.state).routesEnded).toEqual([
+      {
+        unitId: second.trader.id,
+        ownerId: 0,
+        from: second.home.id,
+        to: second.partner.id,
+        renewed: false,
+        ended: 'partnerLost',
+      },
+    ]);
+    expect(partner.id).toBe(second.partner.id);
+  });
+});
+
+// --- a route never dies of traffic ------------------------------------------
+
+/**
+ * **A route ends in three ways and no others** — pillaged, closed by a war, or
+ * an end that stopped being a city (the user's ruling of 2026-09-17, after
+ * losing eight routes in one turn: *"trade routes should never die unless
+ * they're pillaged, this is incredibly frustrating"*).
+ *
+ * The ending this file used to pin and no longer may: a caravan that could not
+ * find a path on the turn its term ran out was dropped where it stood. A cart
+ * cannot be jammed by another cart — traders stack freely, and needing no slot
+ * is the whole of that category — but a neighbour's column across the road, a
+ * settler in the gateway or ground that changed hands will all do it, and the
+ * term running out is a window rather than a moment.
+ */
+describe('a jam never ends a route', () => {
+  /**
+   * A caravan carrying a live route to a town of its own empire that it cannot
+   * path to: two channels of open water cut the cylinder, and a land route does
+   * not embark (the mode ruling of 2026-09-03). The partner is still one of
+   * this empire's cities, so the route is still a route — it is the *road* that
+   * is not there, which is exactly the shape of a jam that outlasts a turn.
+   *
+   * The route is written on the piece rather than sent through `startRoute`,
+   * because the gate would rightly refuse a partner nothing can reach. What is
+   * under test is the shuttle's behaviour on a board that changed under a route
+   * already running.
+   */
+  function jammed(autoResend: boolean): ReturnType<typeof tradeWorld> {
+    const state = bareState(16, 9);
+    const home = foundCityAt(state, 0, at(state, 3, 4));
+    const partner = foundCityAt(state, 0, at(state, 10, 4));
+    home.buildings.push('market');
+    for (let row = 0; row < 9; row++) {
+      at(state, 7, row).terrain = 'ocean';
+      at(state, 14, row).terrain = 'ocean';
+    }
+    bumpRevision(state);
+    const trader = createUnit(state, 0, 'trader', 5, 4);
+    trader.trade = {
+      from: home.id,
+      to: partner.id,
+      expiresTurn: state.turn + TRADE.routeTurns,
+      outbound: true,
+      autoResend,
+    };
+    return { state, home, partner, trader };
+  }
+
+  it('leaves a jammed caravan carrying its route, twenty turns on', () => {
+    const { state, trader } = jammed(false);
+    // The term runs out while it is stuck in the field — which used to be the
+    // exact moment the jam turned fatal.
+    trader.trade!.expiresTurn = state.turn;
+    for (let turn = 0; turn < 20; turn++) resolve(state);
+    expect(trader.trade).toBeDefined();
+    expect(usedRouteSlots(state, 0)).toBe(1);
+    expect(runEndOfTurn(state).routesEnded).toEqual([]);
+  });
+
+  it('renews an auto-resending route where it stands, so it can never lapse', () => {
+    const { state, trader } = jammed(true);
+    const lapse = state.turn;
+    trader.trade!.expiresTurn = lapse;
+    resolve(state);
+    // Renewed on the road, nowhere near home — the whole of "auto-renew means
+    // auto-renew".
+    expect(trader.trade!.expiresTurn).toBeGreaterThan(lapse);
+    expect([trader.col, trader.row]).toEqual([5, 4]);
+    for (let turn = 0; turn < 20; turn++) resolve(state);
+    expect(trader.trade).toBeDefined();
+    expect(usedRouteSlots(state, 0)).toBe(1);
+  });
+
+  /**
+   * The fear the deleted clause was written against — a cart waiting for ever
+   * on a partner it can never reach — is answered by the ending above it: the
+   * route dies the moment the partner stops being one of this empire's towns,
+   * whether the caravan is jammed or not.
+   */
+  it('still ends a jammed route the moment its partner stops being yours', () => {
+    const { state, partner, trader } = jammed(true);
+    resolve(state);
+    expect(trader.trade).toBeDefined();
+    partner.ownerId = 1;
+    resolve(state);
+    expect(trader.trade).toBeUndefined();
+    expect(usedRouteSlots(state, 0)).toBe(0);
+  });
 });
 
 // --- roads ------------------------------------------------------------------
@@ -1766,6 +1887,77 @@ describe('plundering a caravan', () => {
     expect(plunder.food).toBe(0);
     expect(plunder.production).toBe(0);
     expect(plunder.warning).toBe('no city to receive the goods');
+  });
+
+  /**
+   * **The ordinary way a cart is taken**: a caravan is stacking-free and has no
+   * defence, so a piece that walks onto its hex plunders it with no blow struck
+   * — `arriveOnTile`, not `applyCombat`. Nothing on that path told the owner
+   * anything at all until the ruling of 2026-09-17, because the report carried
+   * only the raider's spoils.
+   */
+  it('names the owner and the dead route when a piece walks onto the cart', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    trader.col = 6;
+
+    const theirs = foundCityAt(state, 1, at(state, 6, 7));
+    const raider = createUnit(state, 1, 'warrior', 6, 4);
+    const goldBefore = state.players[1]!.gold;
+
+    const report = arriveOnTile(state, raider, at(state, 6, 4));
+    expect(report.captured).toEqual([]);
+    expect(report.plundered).toHaveLength(1);
+    const plunder = report.plundered[0]!;
+    // Who lost it, and what they lost — the two facts the owner's client cannot
+    // look up afterwards, because the cart is off the board and the route was
+    // the cart.
+    expect(plunder.fromOwnerId).toBe(0);
+    expect(plunder.toCityId).toBe(partner.id);
+    expect(plunder.at).toEqual({ col: 6, row: 4 });
+    // And the goods bank exactly as a blow's do.
+    expect(plunder.cityName).toBe(theirs.name);
+    expect(state.players[1]!.gold - goldBefore).toBe(TRADE.pillageBounty.gold);
+    expect(unitById(state, trader.id)).toBeUndefined();
+    expect(usedRouteSlots(state, 0)).toBe(0);
+  });
+
+  it('names the loss the same way when the wild walks onto it', () => {
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    trader.col = 6;
+    state.players[1]!.barbarian = true;
+    const raider = createUnit(state, 1, 'warrior', 6, 4);
+
+    const plunder = arriveOnTile(state, raider, at(state, 6, 4)).plundered[0]!;
+    // The wild has nowhere to carry the goods and says so — and the *loss* is
+    // named all the same, which is the half that is the owner's.
+    expect(plunder.cityName).toBeNull();
+    expect(plunder.warning).toBe('no city to receive the goods');
+    expect(plunder.fromOwnerId).toBe(0);
+    expect(plunder.toCityId).toBe(partner.id);
+  });
+
+  /**
+   * **A report is not a fact about the world.** What the owner needs in order
+   * to name their loss is carried out on `TraderPlunder` and written nowhere
+   * else, so the two boards a replay produces cannot differ because of it —
+   * determinism is sacred, and a field added to say something to a player must
+   * not be able to change what the seeds decide.
+   */
+  it('replays identically, and leaves nothing of the report on the board', () => {
+    const plundered = (): GameState => {
+      const { state, home, partner, trader } = tradeWorld();
+      expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+      trader.col = 6;
+      foundCityAt(state, 1, at(state, 6, 7));
+      const raider = createUnit(state, 1, 'warrior', 6, 4);
+      arriveOnTile(state, raider, at(state, 6, 4));
+      return state;
+    };
+    const once = JSON.stringify(plundered());
+    expect(once).toBe(JSON.stringify(plundered()));
+    expect(once).not.toContain('toCityId');
   });
 
   it('never reaches captureUnit, and the exception lives on the occasion', () => {
