@@ -144,6 +144,7 @@ import {
   type Player,
   type QueueItem,
   type Unit,
+  addBuilding,
   bankedTowardItem,
   cityById,
   claimWonder,
@@ -959,9 +960,9 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // two citizens to place, and a refresh run first would seat one.
   const rider = cardFoundingRider(state, ownerId);
   if (rider.population > 0) city.population += rider.population;
-  for (const building of rider.buildings) {
-    if (!city.buildings.includes(building)) city.buildings.push(building);
-  }
+  // Through the one seam, so the free Monument is stamped with the turn the town
+  // was founded — which is the turn it went up (`addBuilding`, `state.ts`).
+  for (const building of rider.buildings) addBuilding(state, city, building);
   // **A town is the biggest write there is** (batch M3, `slate.ts`): the centre
   // hex, the ring around it, the citizens, the founding rider's stones. Every
   // one of them is folded by a meter or by the holdings walk, and the settler's
@@ -3615,7 +3616,10 @@ export function realiseItem(
   options: RealiseOptions = {},
 ): RealisedItem {
   if (item.kind === 'building') {
-    city.buildings.push(item.id);
+    // The shelf and the date in one write (`addBuilding`, `state.ts`): the stones
+    // topped out this turn, and a card that asks how long they have stood reads
+    // the stamp this call left.
+    addBuilding(state, city, item.id);
     // **The law changed under this very call** (batch E3a). A wonder is the
     // fifth source of `liveEffects`, the stones go up before the grants below
     // are asked for, and the remembered law is keyed on `GameState.revision` —

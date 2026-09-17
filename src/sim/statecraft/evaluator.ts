@@ -61,7 +61,14 @@ import {
   workForFamily,
 } from '../improvementData';
 import { type ProjectId, type ProjectPayout } from '../projectData';
-import { type Tile, getTileAt, neighborTiles, tileHex, wrappedDistance } from '../map';
+import {
+  type Tile,
+  getTileAt,
+  improvementAge,
+  neighborTiles,
+  tileHex,
+  wrappedDistance,
+} from '../map';
 import { authorityOf, happinessOf } from '../meters';
 import type { ModifierStage } from '../yields/stages';
 import {
@@ -98,6 +105,7 @@ import {
   type Religion,
   type TimedEffect,
   type Unit,
+  buildingAge,
   cityReligion,
   citiesOf,
   countFirsts,
@@ -1630,9 +1638,33 @@ function worksHolding(state: GameState, city: City, on: TileCondition): number {
   let total = 0;
   for (const cell of city.workedTiles) {
     const tile = getTileAt(state.map, cell.col, cell.row);
-    if (tile && tileConditionHolds(tile, on)) total += 1;
+    // The clock is handed in because this caller has one — `standingSince` is
+    // the one condition that needs it, and a walk that had no state would answer
+    // no there rather than lie.
+    if (tile && tileConditionHolds(tile, on, undefined, undefined, state.turn)) total += 1;
   }
   return total;
+}
+
+/**
+ * **How old is the oldest of this town's single great houses**, or `undefined`
+ * where it holds none or none of them carries a stamp.
+ *
+ * `hasEmpireBuilding`'s age reading, and the *oldest* rather than the newest
+ * because that is what the printed clause says: "a city with an empire building
+ * at least twenty turns old" is admitted by the Forum raised forty turns ago
+ * whatever went up beside it since. `buildingAge`'s one subtraction, asked of
+ * each house on the shelf.
+ */
+function oldestEmpireBuildingAge(state: GameState, city: City): number | undefined {
+  let oldest: number | undefined;
+  for (const id of city.buildings) {
+    if (buildingDef(id).oncePerEmpire !== true) continue;
+    const age = buildingAge(state, city, id);
+    if (age === undefined) continue;
+    if (oldest === undefined || age > oldest) oldest = age;
+  }
+  return oldest;
 }
 
 /**
@@ -1732,8 +1764,15 @@ export function cityScopeAdmits(
       const held = cityResources(state, city, scope.category as ResourceKind);
       return held.length > 0;
     }
-    case 'hasBuilding':
-      return city.buildings.includes(scope.building);
+    case 'hasBuilding': {
+      if (!city.buildings.includes(scope.building)) return false;
+      if (scope.standingTurns === undefined) return true;
+      // **The stamp, through the one reading** (`buildingAge`, `state.ts`): an
+      // absolute turn subtracted from this one, so nothing ticks. A row on the
+      // shelf with no stamp cannot be shown to be old enough and admits nothing.
+      const age = buildingAge(state, city, scope.building);
+      return age !== undefined && age >= scope.standingTurns;
+    }
     case 'keepingRite':
       // Through `cityRite`, the one reading of what a town is keeping — itself
       // a comparison against `City.timed`'s absolute stamps, so the lamp goes
@@ -1758,10 +1797,23 @@ export function cityScopeAdmits(
           improvements: scope.improvements,
         }) >= (scope.atLeast ?? 1)
       );
-    case 'workingGreatWork':
+    case 'workingGreatWork': {
       // The family rather than the rows, off the improvement table's own marker
       // — so the sixth work joins for free. See the scope.
-      return worksHolding(state, city, { test: 'greatWork' }) >= (scope.atLeast ?? 1);
+      //
+      // **And its age, where the row names one**, said as the composite the hex
+      // vocabulary already has rather than as a second walk: a work old enough
+      // is `all` of "is a master's work" and "has stood this long", which is how
+      // every other narrowing on a hex composes.
+      const on: TileCondition =
+        scope.standingTurns === undefined
+          ? { test: 'greatWork' }
+          : {
+              test: 'all',
+              of: [{ test: 'greatWork' }, { test: 'standingSince', turns: scope.standingTurns }],
+            };
+      return worksHolding(state, city, on) >= (scope.atLeast ?? 1);
+    }
     case 'hasWonder':
       // The class the data declares (`isWonder`), the same declaration
       // `CountKind`'s `wonders` counts — so a card that counts a town's marvels
@@ -1770,7 +1822,14 @@ export function cityScopeAdmits(
       return city.buildings.some((id) => isWonder(id));
     case 'notHasWonder':
       return !city.buildings.some((id) => isWonder(id));
-    case 'hasEmpireBuilding':
+    case 'hasEmpireBuilding': {
+      // **The oldest house on the shelf**, where the row names a term: a town is
+      // admitted by the Forum that has stood forty turns whatever went up beside
+      // it last turn. See `oldestEmpireBuildingAge`.
+      if (scope.standingTurns !== undefined) {
+        const age = oldestEmpireBuildingAge(state, city);
+        return age !== undefined && age >= scope.standingTurns;
+      }
       // The marker and **not** `oneOfAKind`, which is that marker *or* a wonder:
       // the Opus declares itself an empire building and a marvel does not, and a
       // card that said "an empire building" and quietly admitted every town with
@@ -1778,6 +1837,7 @@ export function cityScopeAdmits(
       // the other class and asks the other declaration. A boolean, so a town
       // holding a Forum and a Bourse is admitted once.
       return city.buildings.some((id) => buildingDef(id).oncePerEmpire === true);
+    }
     case 'hasBuildingYielding':
       // Asked of what a row *does*, off its own six voices, so a retuned library
       // moves the scope with it. `wonder: true` is Hero of Alexandria's half.
@@ -1953,7 +2013,12 @@ function scopeNote(scope?: CityScope): string | null {
     case 'holdingCategory':
       return `${scope.category} seam`;
     case 'hasBuilding':
-      return buildingDef(scope.building).name.toLowerCase();
+      // The term joins the label where the row names one, so a hover on The Long
+      // Study's culture says which library it was paid for — a label that read
+      // "library" for a clause only the old ones satisfy is the hover lying.
+      return scope.standingTurns === undefined
+        ? buildingDef(scope.building).name.toLowerCase()
+        : `${buildingDef(scope.building).name.toLowerCase()}, ${scope.standingTurns}+ turns`;
     case 'keepingRite':
       return 'keeping a rite';
     case 'notKeepingRite':
@@ -1968,16 +2033,23 @@ function scopeNote(scope?: CityScope): string | null {
         ? `working ${scope.atLeast} ${named}`
         : `working a ${named}`;
     }
-    case 'workingGreatWork':
-      return scope.atLeast !== undefined && scope.atLeast > 1
-        ? `working ${scope.atLeast} great works`
-        : "working a great person's work";
+    case 'workingGreatWork': {
+      const works =
+        scope.atLeast !== undefined && scope.atLeast > 1
+          ? `working ${scope.atLeast} great works`
+          : "working a great person's work";
+      return scope.standingTurns === undefined
+        ? works
+        : `${works}, ${scope.standingTurns}+ turns`;
+    }
     case 'hasWonder':
       return 'holds a wonder';
     case 'notHasWonder':
       return 'holds no wonder';
     case 'hasEmpireBuilding':
-      return 'holds an empire building';
+      return scope.standingTurns === undefined
+        ? 'holds an empire building'
+        : `holds an empire building, ${scope.standingTurns}+ turns`;
     case 'hasBuildingYielding':
       return scope.wonder === true ? `${scope.yields} wonder` : `${scope.yields} building`;
     case 'onTerrain':
@@ -3572,6 +3644,7 @@ export function tileConditionHolds(
   on: TileCondition,
   paid?: () => Partial<Record<CityYieldKey, number>>,
   beside?: () => readonly Tile[],
+  turn?: number,
 ): boolean {
   const test = on.test;
   switch (test) {
@@ -3651,14 +3724,29 @@ export function tileConditionHolds(
       // of its builder: this predicate holds a tile and no empire. See the
       // condition.
       return tile.road !== undefined;
+    case 'standingSince': {
+      // **The clock the caller handed in**, or no clock and therefore no — the
+      // bargain `yields` and `beside` strike, read on a date. The age itself is
+      // `improvementAge`'s one subtraction off an absolute stamp, so nothing
+      // ticks and bare ground answers no rather than nought.
+      if (turn === undefined) return false;
+      const age = improvementAge(tile, turn);
+      return age !== undefined && age >= on.turns;
+    }
     case 'beside':
       // **The ring the caller handed in**, or no ring and therefore no. Neither
       // the ring nor the breakdown travels into the inner question, which is
-      // what keeps the reach one hex and a neighbour's worth its own.
-      return beside !== undefined && beside().some((next) => tileConditionHolds(next, on.of));
+      // what keeps the reach one hex and a neighbour's worth its own. The
+      // **clock does** travel, unlike the other two: a date is a fact about the
+      // world rather than about this hex, so a neighbour asked how old its
+      // stones are is asked against the same turn.
+      return (
+        beside !== undefined &&
+        beside().some((next) => tileConditionHolds(next, on.of, undefined, undefined, turn))
+      );
     case 'all': {
       for (const inner of on.of) {
-        if (!tileConditionHolds(tile, inner, paid, beside)) return false;
+        if (!tileConditionHolds(tile, inner, paid, beside, turn)) return false;
       }
       return true;
     }
@@ -7097,10 +7185,11 @@ export function cardRouteYieldLines(
   state: GameState,
   from: City,
   to?: City,
+  age?: number,
 ): CardRouteLine[] {
   const list: CardRouteLine[] = [];
   for (const { source, card, effect } of routeRows(state, from, to)) {
-    if (!routeScopesAdmit(state, effect, from, to)) continue;
+    if (!routeScopesAdmit(state, effect, from, to, age)) continue;
     const line: CardRouteLine = {
       card,
       source: label(source, routeScopeNote(effect)),
@@ -7142,11 +7231,12 @@ export function cardRouteShareLines(
   state: GameState,
   from: City,
   to?: City,
+  age?: number,
 ): CardRouteShareLine[] {
   const list: CardRouteShareLine[] = [];
   for (const { source, card, effect } of routeRows(state, from, to)) {
     if (effect.share === undefined) continue;
-    if (!routeScopesAdmit(state, effect, from, to)) continue;
+    if (!routeScopesAdmit(state, effect, from, to, age)) continue;
     for (const share of effect.share) {
       if (share.percent === 0) continue;
       list.push({
@@ -7209,9 +7299,15 @@ function routeRows(
  */
 function routeScopesAdmit(
   state: GameState,
-  effect: { origin?: CityScope; destination?: CityScope; crossing?: 'domestic' | 'international' },
+  effect: {
+    origin?: CityScope;
+    destination?: CityScope;
+    crossing?: 'domestic' | 'international';
+    standingTurns?: number;
+  },
   from: City,
   to?: City,
+  age?: number,
 ): boolean {
   if (effect.origin !== undefined && !cityScopeAdmits(state, from, effect.origin)) return false;
   if (effect.destination !== undefined) {
@@ -7223,6 +7319,14 @@ function routeScopesAdmit(
     const abroad = routeIsInternational(from, to);
     if (abroad !== (effect.crossing === 'international')) return false;
   }
+  // **How long the road has run**, the crossing's bargain read on a date: a
+  // caller with no caravan in hand (a preview of a road nobody has drawn) is
+  // promised nothing, exactly as it is promised nothing about the far end. The
+  // figure is `routeAge`'s one subtraction off an absolute stamp, so nothing
+  // ticks here either.
+  if (effect.standingTurns !== undefined) {
+    if (age === undefined || age < effect.standingTurns) return false;
+  }
   return true;
 }
 
@@ -7231,10 +7335,14 @@ function routeScopeNote(effect: {
   origin?: CityScope;
   destination?: CityScope;
   crossing?: 'domestic' | 'international';
+  standingTurns?: number;
 }): string | null {
   const notes = [
     scopeNote(effect.origin),
     scopeNote(effect.destination),
+    // The term reads as a word of its own beside the crossing, and for its
+    // reason: it is a narrowing a player cannot check by looking at either town.
+    effect.standingTurns === undefined ? null : `kept ${effect.standingTurns}+ turns`,
     // The crossing reads as a word of its own on the ledger line, because it is
     // the one narrowing a player cannot check by looking at either town.
     effect.crossing === undefined ? null : effect.crossing === 'international' ? 'abroad' : 'at home',

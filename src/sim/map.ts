@@ -154,6 +154,41 @@ export interface Tile {
    */
   improvement?: ImprovementId;
   /**
+   * **The turn the work standing here was raised**, or the key is **absent** —
+   * which it is on every bare hex and on every map the generator ever produced.
+   *
+   * **The seventh field on a tile that changes during a game** (batch D2d, the
+   * age stamp; `roadFree` was the sixth to be added and `surveyed` the sixth to
+   * be numbered — the register in `CLAUDE.md` is the list of record and this
+   * entry joins it). It is the stamp `City.buildingTurns` is one scale up: a
+   * card may ask how long an academy has stood, and a hex that has forgotten
+   * when its stones went down cannot be asked.
+   *
+   * **An absolute turn, written once and compared against `state.turn`** —
+   * `TimedEffect.expiresTurn`'s discipline and `City.purchasedUnitTurns`',
+   * applied to the longest-lived fact in the game. Nothing decrements it, no
+   * phase sweeps it, and the reading is `state.turn - improvedOn >= turns`.
+   *
+   * It is **bound to `improvement` and travels with it**: every seam that writes
+   * that field writes this one beside it (`buildImprovementAt`, a great person's
+   * work, a prophet's holy site) and every seam that deletes that field deletes
+   * this one with it (a pillage, a work replaced). So a farm torn up and rebuilt
+   * is a new farm, which is the honest reading of "how long has this stood" and
+   * the one a player can act on by tearing it up.
+   *
+   * It is a fact about the **ground and not about a seat**, exactly as
+   * `surveyed` is: a hex that changes hands keeps the age of what stands on it,
+   * because the stones did not move. Pay follows the stones — the wonders
+   * framework's rule, read on a hex.
+   *
+   * There is deliberately **no companion for `feature`**. A wood nobody planted
+   * has stood since the world was made, so a stamp on it would be a field with
+   * no writer; when the Woodland line's planting lands (the audit's wave 3) the
+   * planter earns its own mark, and the maturity those cards print is that
+   * system's word rather than this one's.
+   */
+  improvedOn?: number;
+  /**
    * The ancient ruin or tribal village standing on this tile, or the key is
    * **absent** — which it is on all but a handful of hexes. Absence rather than a
    * `'none'` sentinel, for the reason `resource` gives above.
@@ -354,6 +389,62 @@ export function getTile(map: GameMap, h: Hex): Tile | undefined {
 /** The axial coordinates of a tile. */
 export function tileHex(tile: Tile): Hex {
   return offsetToAxial(tile.col, tile.row);
+}
+
+/**
+ * **A work goes up on this hex, and the hex remembers when** — the one writer of
+ * `Tile.improvedOn`, batch D2d.
+ *
+ * A pair of fields that must never be written apart: an improvement with no
+ * stamp is a work of unknown age and a stamp with no improvement is an age
+ * nothing is standing on, and both are states a card would read wrong. So the
+ * three seams that raise something on a hex — a worker's spade
+ * (`buildImprovementAt`), a great person's lasting work (`greatPersonWorkAt`)
+ * and a prophet's stones (`plantHolySiteAt`) — say it here rather than each
+ * writing two lines, which is the same bargain `layRoad` strikes one field over.
+ *
+ * It lives in this module because this module owns `Tile` and imports nothing:
+ * `improvements.ts`, `greatPeople.ts` and `religion.ts` can all see a leaf, and
+ * a helper any two of them needed anywhere else would be the runtime cycle
+ * `moduleCycles.test.ts` exists to catch.
+ *
+ * The turn is handed in rather than read, for the reason every other absolute
+ * stamp in the simulation takes one: this file has no `GameState` and never
+ * will.
+ */
+export function raiseImprovement(tile: Tile, improvement: ImprovementId, turn: number): void {
+  tile.improvement = improvement;
+  tile.improvedOn = turn;
+}
+
+/**
+ * **The work on this hex comes down, and the hex forgets when it went up** —
+ * `raiseImprovement`'s mirror, and the one place `Tile.improvedOn` is deleted.
+ *
+ * A stamp left behind on bare ground would be an age waiting for the next farm
+ * to inherit — exactly the bug `pillageAt` already guards one field over, where
+ * `roadFree` goes with the road it is a fact *about*. So a farm torn up and
+ * rebuilt is a new farm, which is the reading a player can act on.
+ */
+export function razeImprovement(tile: Tile): void {
+  delete tile.improvement;
+  delete tile.improvedOn;
+}
+
+/**
+ * **How many turns the work on this hex has stood**, or `undefined` where
+ * nothing stands or nothing remembers when it went up.
+ *
+ * The one reading of `Tile.improvedOn`, and it is a subtraction rather than a
+ * count: the stamp is absolute and `state.turn` is the clock, so nothing ticks
+ * (`TimedEffect`'s discipline). A hex whose stones predate the field — a save
+ * from before schema 121 cannot exist on this branch, but a fixture may — has no
+ * stamp and answers `undefined`, which every caller reads as "cannot be shown to
+ * be old enough" rather than as zero.
+ */
+export function improvementAge(tile: Tile, turn: number): number | undefined {
+  if (tile.improvement === undefined || tile.improvedOn === undefined) return undefined;
+  return turn - tile.improvedOn;
 }
 
 // --- map-aware neighbourhood ------------------------------------------------

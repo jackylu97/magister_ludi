@@ -626,10 +626,20 @@ describe('determinism', () => {
    * empty, because the reason above still holds: **nobody founds a town here**,
    * so nothing is raised, bought, converted or researched first. No outcome
    * moved, and the byte count is what says so.
+   *
+   * **Re-taken for schema 121 (D2d — the age stamp).** A town remembers when
+   * each of its buildings went up, a hex when its work was raised and a route
+   * when it opened — and the byte count is **unchanged at both seeds** (188105
+   * and 187719, to the byte), because every one of the three is written only
+   * where the thing is placed and nobody here places one: no town is founded, so
+   * no stones are raised; no worker is ordered to dig, so no hex is stamped; no
+   * caravan is hired, so no road opens. The only thing that moved is the print's
+   * `schemaVersion` digits — three characters becoming three characters, which
+   * is why the length holds and the hash does not.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'da79e500:188105',
-    2026: 'efa67eeb:187719',
+    11: '0d6e1b4d:188105',
+    2026: 'a536d3f2:187719',
   };
 
   for (const seed of [11, 2026]) {

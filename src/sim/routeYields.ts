@@ -43,6 +43,7 @@ import { endpointLuxuryCount, resourceRouteYields } from './resourceEffects';
 import { RULES } from './rulesData';
 import {
   type RouteMode,
+  routeAge,
   routeCities,
   routeHexes,
   routeIsInternational,
@@ -81,6 +82,7 @@ const PRODUCTION_CATEGORIES: readonly BuildingCategory[] = ['production', 'milit
 export {
   type RouteMode,
   ROUTE_MODES,
+  routeAge,
   routeCities,
   routeHexes,
   routeIsInternational,
@@ -183,7 +185,13 @@ export function explainRouteYield(state: GameState, unit: Unit): RouteYieldLine[
   // **The mode is read off the piece's own route** (batch R1), never guessed:
   // a caravan carrying `sea` is paid the sea premium and one carrying nothing
   // is not, which is `routeMode`'s whole job one file down.
-  return explainRouteYieldBetween(state, pair.from, pair.to, routeMode(unit.trade!));
+  return explainRouteYieldBetween(
+    state,
+    pair.from,
+    pair.to,
+    routeMode(unit.trade!),
+    routeAge(state, unit.trade!),
+  );
 }
 
 /**
@@ -228,6 +236,7 @@ export function explainRouteYieldBetween(
   from: City,
   to: City,
   mode: RouteMode = 'land',
+  age?: number,
 ): RouteYieldLine[] {
   const lines: RouteYieldLine[] = [];
   // Printed on the *destination's* sheet ("Caravan from Uruk · 3 buildings"),
@@ -304,8 +313,8 @@ export function explainRouteYieldBetween(
   // grammar the user's marks revealed: put yields on a thing, then multiply the
   // thing. A line added after the share would be a line "double your trade route
   // yields" could not see.
-  cardLines(state, from, to, lines, label);
-  shares(state, from, to, lines, label);
+  cardLines(state, from, to, lines, label, age);
+  shares(state, from, to, lines, label, age);
   bySea(mode, lines, label);
   amplify(state, from, lines, label);
   return blockaded(state, from, to, lines);
@@ -380,6 +389,7 @@ function cardLines(
   to: City,
   lines: RouteYieldLine[],
   label: (note: string) => string,
+  age?: number,
 ): void {
   // **The one count this fold takes, and the one thing only this module can
   // answer**: how many distinct luxuries the two ends hold between them (The
@@ -391,7 +401,7 @@ function cardLines(
   // it for why it is the distance and not the walked path), and a game whose
   // cards say nothing about the miles measures none.
   let hexes = -1;
-  for (const paid of cardRouteYieldLines(state, from, to)) {
+  for (const paid of cardRouteYieldLines(state, from, to, age)) {
     let helpings = 1;
     let note = paid.source;
     if (paid.perEndpointLuxury) {
@@ -451,8 +461,9 @@ function shares(
   to: City,
   lines: RouteYieldLine[],
   label: (note: string) => string,
+  age?: number,
 ): void {
-  const rows = cardRouteShareLines(state, from, to);
+  const rows = cardRouteShareLines(state, from, to, age);
   if (rows.length === 0) return;
   // The fold **as it stands before any share spoke**, so two of them read the
   // same road and their order cannot change what either pays —
@@ -600,6 +611,7 @@ export function explainRouteSenderYieldBetween(
   from: City,
   to: City,
   mode: RouteMode = 'land',
+  age?: number,
 ): RouteYieldLine[] {
   if (!routeIsInternational(from, to)) return [];
   const lines: RouteYieldLine[] = [];
@@ -624,8 +636,8 @@ export function explainRouteSenderYieldBetween(
   // The sender's own cards on its own caravan — see `cardLines`. It rides the
   // foreign fold exactly as the amplifier does, because the line belongs to the
   // seat that sent the goods and this is that seat's book.
-  cardLines(state, from, to, lines, label);
-  shares(state, from, to, lines, label);
+  cardLines(state, from, to, lines, label, age);
+  shares(state, from, to, lines, label, age);
   // **The crossing pays here too**, and here is where it matters most: an
   // international route's whole worth to the seat that sent it is this fold,
   // and the ruling is about what a sea route pays, not about whose town it
@@ -640,7 +652,13 @@ export function explainRouteSenderYield(state: GameState, unit: Unit): RouteYiel
   if (!routeIsLive(state, unit)) return [];
   const pair = routeCities(state, unit);
   if (!pair) return [];
-  return explainRouteSenderYieldBetween(state, pair.from, pair.to, routeMode(unit.trade!));
+  return explainRouteSenderYieldBetween(
+    state,
+    pair.from,
+    pair.to,
+    routeMode(unit.trade!),
+    routeAge(state, unit.trade!),
+  );
 }
 
 /**

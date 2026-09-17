@@ -109,10 +109,33 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A roof, a lamp, and a long patience.",
-      "deferred": [
-        "a library that has stood a long while pays culture and renown, and pays more again once it is very old"
-      ],
-      "effects": []
+      "text": "A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "culture": 2,
+          "scope": { "test": "hasBuilding", "building": "library", "standingTurns": 20 }
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "per": "city",
+          "scope": { "test": "hasBuilding", "building": "library", "standingTurns": 20 }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "culture": 2,
+          "scope": { "test": "hasBuilding", "building": "library", "standingTurns": 40 }
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "per": "city",
+          "scope": { "test": "hasBuilding", "building": "library", "standingTurns": 40 }
+        }
+      ]
     },
     "theResearchAnnals": {
       "name": "The Research Annals",
@@ -159,6 +182,7 @@
       "deferred": [
         "science buildings cost more to raise, and each one that has stood a long while feeds and works the town it stands in"
       ],
+      "note": "Half built, and so held whole. A shelf of one kind can be raised more slowly, and a town can be admitted for holding a house that has stood a long while — but this card pays a town once for every such house it keeps, and the count that walks a shelf cannot be held to the old ones.",
       "effects": []
     },
     "theGlassmakersCharter": {
@@ -212,10 +236,35 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Ivy is the proof of teaching.",
-      "deferred": [
-        "an academy that has stood a long while feeds and works the town it serves, and more again once it is very old"
-      ],
-      "effects": []
+      "text": "An Academy at least twenty turns old gains +2 food and +2 production. At forty turns these bonuses become +4 of each.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 2,
+          "production": 2,
+          "on": {
+            "test": "all",
+            "of": [
+              { "test": "improvement", "improvement": "academy" },
+              { "test": "standingSince", "turns": 20 }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 2,
+          "production": 2,
+          "on": {
+            "test": "all",
+            "of": [
+              { "test": "improvement", "improvement": "academy" },
+              { "test": "standingSince", "turns": 40 }
+            ]
+          }
+        }
+      ]
     },
     "learnedCommissions": {
       "name": "Learned Commissions",
@@ -469,10 +518,21 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "What is old enough to be trusted is old enough to be useful.",
-      "deferred": [
-        "a town whose empire building has stood a long while is gladder and builds faster, once per town"
-      ],
-      "effects": []
+      "text": "A city with an empire building at least twenty turns old gains +2 happiness and +15% production, once per city.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": { "test": "hasEmpireBuilding", "standingTurns": 20 }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 15,
+          "scope": { "test": "hasEmpireBuilding", "standingTurns": 20 }
+        }
+      ]
     },
     "thePatentRolls": {
       "name": "The Patent Rolls",
@@ -580,10 +640,47 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Old works build the new ones.",
-      "deferred": [
-        "towns working a great person's work that has stood a long while build empire buildings, wonders and the great work faster, and faster again where the empire building there is itself old"
-      ],
-      "effects": []
+      "text": "Cities working a great-person improvement at least twenty turns old gain +30% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +15%.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "empireBuilding": true,
+          "percent": 30,
+          "scope": { "test": "workingGreatWork", "standingTurns": 20 }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 30,
+          "scope": { "test": "workingGreatWork", "standingTurns": 20 }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "empireBuilding": true,
+          "percent": 15,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "workingGreatWork", "standingTurns": 20 },
+              { "test": "hasEmpireBuilding", "standingTurns": 20 }
+            ]
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 15,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "workingGreatWork", "standingTurns": 20 },
+              { "test": "hasEmpireBuilding", "standingTurns": 20 }
+            ]
+          }
+        }
+      ]
     },
     "masterArtificers": {
       "name": "Master Artificers",
@@ -663,11 +760,22 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A realm that reads is a realm that holds together.",
-      "deferred": [
-        "towns with a library that has stood a long while are gladder"
-      ],
-      "note": "Held whole. Nothing in the game remembers when a building was raised, so no law can tell an old library from a new one.",
-      "effects": []
+      "text": "Each city working a great-person improvement grants +1 authority capacity, at most +8. Cities with a Library at least twenty turns old gain +2 happiness.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 1,
+          "per": "city",
+          "scope": { "test": "workingGreatWork" },
+          "max": 8
+        },
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": { "test": "hasBuilding", "building": "library", "standingTurns": 20 }
+        }
+      ]
     }
   }
 }

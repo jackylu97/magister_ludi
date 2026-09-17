@@ -31,12 +31,20 @@
 import { describe, expect, it } from 'vitest';
 
 import { type Game, createGame } from '../../../src/sim/game';
-import { getTileAt } from '../../../src/sim/map';
+import { getTileAt, raiseImprovement, razeImprovement } from '../../../src/sim/map';
 import { refreshCityDerived } from '../../../src/sim/cities';
 import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
 import { explainCity, foldCity } from '../../../src/sim/yields/town';
-import { type GameState, bumpRevision, playerById } from '../../../src/sim/state';
 import {
+  type GameState,
+  addBuilding,
+  bumpRevision,
+  playerById,
+} from '../../../src/sim/state';
+import {
+  cardAuthority,
+  cardHappiness,
+  cardProduction,
   deckPoolOf,
   describeCard,
   describeEffects,
@@ -44,6 +52,7 @@ import {
   eligibleFor,
   stripRefs,
 } from '../../../src/sim/statecraft';
+import { explainRenown } from '../../../src/sim/renown';
 import {
   type CardEffect,
   type OrderId,
@@ -408,6 +417,177 @@ describe('what the live rows do on a board', () => {
     expect(explainTileYield(tile, ctx()).length).toBeLessThan(paid.length);
     delete tile.improvement;
     expect(explainTileYield(tile, ctx())).toHaveLength(bare);
+  });
+
+  // --- D2d, the age stamp ----------------------------------------------------
+  //
+  // Five of this deck's Continuity rows came live with `City.buildingTurns`,
+  // `Tile.improvedOn` and the three scopes that read them. Every claim below is
+  // the same claim twice — **not yet, and then yes** — because a card written on
+  // an age is a card whose whole subject is a threshold, and a test that only
+  // checked the paying half would pass just as well if the scope admitted
+  // everything.
+
+  it('The Long Study — a young Library pays nothing, an old one sings, and a very old one twice over', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    g.state.turn = 10;
+    addBuilding(g.state, city, 'library');
+    refreshCityDerived(g.state, city);
+    slot(g.state, 0, 'theLongStudy');
+    const sung = () =>
+      explainCity(g.state, city).lines.filter((line) =>
+        line.source.startsWith('Order · The Long Study'),
+      );
+    const renown = () =>
+      explainRenown(g.state, 0).filter((line: { source: string }) =>
+        line.source.includes('The Long Study'),
+      );
+    expect(sung(), 'a Library raised this turn is not an old Library').toEqual([]);
+    expect(renown()).toEqual([]);
+
+    g.state.turn = 30;
+    bumpRevision(g.state);
+    refreshCityDerived(g.state, city);
+    const twenty = sung();
+    expect(twenty).toHaveLength(1);
+    expect(twenty[0]!.culture).toBe(2);
+    expect(renown()).toHaveLength(1);
+
+    // At forty the second clause joins the first, so the card's printed "+4
+    // culture" is two labelled lines and not a figure computed beside them.
+    g.state.turn = 50;
+    bumpRevision(g.state);
+    refreshCityDerived(g.state, city);
+    const forty = sung();
+    expect(forty).toHaveLength(2);
+    expect(forty.reduce((sum, line) => sum + line.culture, 0)).toBe(4);
+    expect(renown()).toHaveLength(2);
+  });
+
+  it('The Old Academy — the ivy is on the hex, and it is on no young academy', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    const ctx = () => yieldContextFor(g.state, 0);
+    g.state.turn = 6;
+    raiseImprovement(tile, 'academy', g.state.turn);
+    slot(g.state, 0, 'theOldAcademy');
+    const paid = () =>
+      explainTileYield(tile, ctx()).filter((line) =>
+        line.source.startsWith('Order · The Old Academy'),
+      );
+    expect(paid()).toEqual([]);
+
+    g.state.turn = 26;
+    expect(paid()).toHaveLength(1);
+    expect(paid()[0]!.food).toBe(2);
+    expect(paid()[0]!.production).toBe(2);
+
+    // At forty the second clause joins the first. The two are one *labelled*
+    // line, because `explainTileYield` folds rows of one source together — so
+    // the card's printed "+4 of each" reads as one entry on the hover and is
+    // still the sum of the two clauses rather than a figure computed beside
+    // them (rule 5).
+    g.state.turn = 46;
+    const old = paid();
+    expect(old.reduce((sum, line) => sum + line.food, 0)).toBe(4);
+    expect(old.reduce((sum, line) => sum + line.production, 0)).toBe(4);
+
+    // An academy raised again on the same ground is a new academy: the stamp
+    // goes with the work it is a fact about.
+    razeImprovement(tile);
+    raiseImprovement(tile, 'academy', g.state.turn);
+    expect(paid()).toEqual([]);
+  });
+
+  it('Enduring Institutions — the oldest great house is the one that admits the town', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    g.state.turn = 4;
+    addBuilding(g.state, city, 'forum');
+    slot(g.state, 0, 'enduringInstitutions');
+    const glad = () =>
+      cardHappiness(g.state, 0).filter((line) => line.card === 'enduringInstitutions');
+    expect(glad()).toEqual([]);
+
+    g.state.turn = 24;
+    bumpRevision(g.state);
+    expect(glad()).toHaveLength(1);
+    expect(glad()[0]!.amount).toBe(2);
+
+    // A second house raised this turn does not make the realm's institutions
+    // young again — the reading is the *oldest* on the shelf.
+    addBuilding(g.state, city, 'caravanserai');
+    bumpRevision(g.state);
+    expect(glad()).toHaveLength(1);
+  });
+
+  it('The Long Inheritance — the hammers wait on the work the citizens stand on', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
+    tile.terrain = 'grassland';
+    tile.hills = false;
+    tile.feature = 'none';
+    g.state.turn = 2;
+    raiseImprovement(tile, 'academy', g.state.turn);
+    city.workedTiles = [{ col: tile.col, row: tile.row }];
+    slot(g.state, 0, 'theLongInheritance');
+    const behind = () =>
+      cardProduction(g.state, city, 'building', undefined, 'forum').filter(
+        (line) => line.card === 'theLongInheritance',
+      );
+    expect(behind(), 'an academy laid this turn is not an old academy').toEqual([]);
+
+    g.state.turn = 22;
+    bumpRevision(g.state);
+    expect(behind()).toHaveLength(1);
+    expect(behind()[0]!.percent).toBe(30);
+
+    // And an old empire building standing in the same town adds the second
+    // helping — the card's "another +15%" as a second labelled line.
+    addBuilding(g.state, city, 'forum');
+    g.state.turn = 42;
+    bumpRevision(g.state);
+    const both = behind();
+    expect(both).toHaveLength(2);
+    expect(both.reduce((sum, line) => sum + line.percent, 0)).toBe(45);
+    // An ordinary building is not one of the realm's great houses and takes
+    // nothing from either clause.
+    expect(
+      cardProduction(g.state, city, 'building', undefined, 'granary').filter(
+        (line) => line.card === 'theLongInheritance',
+      ),
+    ).toEqual([]);
+  });
+
+  it('The Learned Realm — the writ counts every such town, the contentment only the old libraries', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
+    tile.terrain = 'grassland';
+    tile.hills = false;
+    tile.feature = 'none';
+    g.state.turn = 3;
+    raiseImprovement(tile, 'manufactory', g.state.turn);
+    city.workedTiles = [{ col: tile.col, row: tile.row }];
+    addBuilding(g.state, city, 'library');
+    slot(g.state, 0, 'theLearnedRealm');
+    const writ = () =>
+      cardAuthority(g.state, 0).filter((line) => line.card === 'theLearnedRealm');
+    const glad = () =>
+      cardHappiness(g.state, 0).filter((line) => line.card === 'theLearnedRealm');
+    // The writ asks nothing about age — a town working a master's work widens
+    // it the turn the citizen is placed.
+    expect(writ()).toHaveLength(1);
+    expect(writ()[0]!.amount).toBe(1);
+    expect(glad(), 'a Library raised this turn is not an old Library').toEqual([]);
+
+    g.state.turn = 23;
+    bumpRevision(g.state);
+    expect(glad()).toHaveLength(1);
+    expect(glad()[0]!.amount).toBe(2);
   });
 });
 

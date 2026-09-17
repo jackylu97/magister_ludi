@@ -349,6 +349,27 @@ const EXCUSED = new Map<string, string>([
     'pathfind.ts#pathTurnMarks',
     'writes a path *cell*, not a piece — the order a unit is under, which no tenant folds',
   ],
+  // --- D2d's three mechanism helpers -----------------------------------------
+  //
+  // Each is a *pair of fields written together* lifted out of the seams that
+  // used to write them one line apart (`Tile.improvement` with its age,
+  // `City.buildings` with its), so the write moved and the announcement did not.
+  // Every caller of all three announces on the line it used to — which is the
+  // same excuse `writeAssignment` and `convertCitizen` carry, and the reason
+  // these are rows here rather than a `bumpEconomy` inside a leaf that has no
+  // `GameState` to bump.
+  [
+    'map.ts#raiseImprovement',
+    'writes `Tile.improvement` and its age stamp together — this module holds no `GameState` to announce with, and its three callers do it on the very line they always did: `buildImprovementAt`, `greatPersonWorkAt` and `plantHolySiteAt`',
+  ],
+  [
+    'map.ts#razeImprovement',
+    '`raiseImprovement` the other way round, and the same excuse: `removeImprovementAt` and `pillageAt` announce where they always did',
+  ],
+  [
+    'state.ts#addBuilding',
+    'writes `City.buildings` and its turn stamp together — the one seam stones join a town by, and all three of its callers announce on the line they always did: `realiseItem`, `foundCityAt` and `placeRelicAt`',
+  ],
   [
     'state.ts#convertCitizen',
     'deliberately free of the state (it is shared with the tide, whose towns are plain `City`); its callers announce — `pressLump` and `spreadReligion` (`religion.ts`), on the converts',

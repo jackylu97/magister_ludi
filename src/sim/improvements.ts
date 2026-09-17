@@ -92,7 +92,7 @@ import {
 // chart, which this module does not import back — the same bargain `tech.ts`
 // strikes for the soldier and the hall.
 import { leaderOpensImprovement, leaderThatOpensImprovement } from './leaderData';
-import { type Tile, getTileAt, tileNeighbors } from './map';
+import { type Tile, getTileAt, raiseImprovement, razeImprovement, tileNeighbors } from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
 import { type FeatureId } from './terrainData';
@@ -708,7 +708,10 @@ export function buildImprovementAt(
   tile: Tile,
   improvementId: ImprovementId,
 ): boolean {
-  tile.improvement = improvementId;
+  // **The spade and the calendar together** (batch D2d): `raiseImprovement` is
+  // the one writer of the hex's age stamp, so a farm always knows the turn it
+  // was cut.
+  raiseImprovement(tile, improvementId, state.turn);
   // **The seam the spade opened** (batch M3, `slate.ts`): an improvement is one
   // of `openedResource`'s clauses, so what the empire holds — and the happiness
   // a unique luxury pays — is not what it was on the line above. Announced at
@@ -845,7 +848,9 @@ export function removeImprovementError(state: GameState, unitId: number): string
  * own (register entry 22, see `refreshCityDerived`).
  */
 export function removeImprovementAt(state: GameState, unit: Unit, tile: Tile): void {
-  delete tile.improvement;
+  // The age goes with the work — see `razeImprovement`. Ground cleared back to
+  // bare is ground with no history to inherit.
+  razeImprovement(tile);
   // `buildImprovementAt`'s announcement, the other way round: bare ground holds
   // no seam (batch M3, `slate.ts`).
   bumpEconomy(state);
@@ -1548,7 +1553,10 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     heal: 0,
     warning: null,
   };
-  delete tile.improvement;
+  // The work and its age together (`razeImprovement`), for the very reason the
+  // free-road mark below goes with its road: a stamp left on burnt ground is an
+  // age the next farm would inherit.
+  razeImprovement(tile);
   delete tile.road;
   // The free-road mark goes with the road it is a fact *about*. Left behind it
   // would be a maintenance exemption sitting on bare ground, waiting for the

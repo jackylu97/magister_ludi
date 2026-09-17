@@ -317,6 +317,10 @@ describe('startRoute', () => {
     expect(trader.trade).toEqual({
       from: home.id,
       to: partner.id,
+      // **Two absolute turns and nothing that ticks** (batch D2d): one says when
+      // the road stops paying and one says when it opened, so a caravan carries
+      // its whole term without any phase counting anything down.
+      startedTurn: state.turn,
       expiresTurn: state.turn + TRADE.routeTurns,
       outbound: true,
       autoResend: false,
@@ -679,6 +683,9 @@ describe('buyRoute', () => {
     expect(caravan.trade).toEqual({
       from: home.id,
       to: partner.id,
+      // The bought caravan's route is `startRouteAt`'s like any other — the
+      // start date included (batch D2d).
+      startedTurn: state.turn,
       expiresTurn: state.turn + TRADE.routeTurns,
       outbound: true,
       autoResend: false,
@@ -2231,11 +2238,12 @@ describe('trade in the log', () => {
     // 119 is the decks rework (D1a, branch `decks`): four seat fields, the
     // reward hands, universal chairs and a draw that deals every hand
     // differently — a v118 save is refused (`state.ts`'s changelog).
-    // 120 since D2c (the decks rework, branch `decks`): the world keeps the
-    // ledger of what was done first (`GameState.firsts`) and the deck stamps
-    // its once-a-turn riders — a bump within the branch, which migrates
-    // nothing either way.
-    expect(SCHEMA_VERSION).toBe(120);
+    // 121 since D2d (the decks rework, branch `decks`): a town remembers when
+    // each of its buildings went up, a hex when its work was raised and a route
+    // when it opened, so a v120 log answers "not old enough" to every card
+    // written on an age — a bump within the branch, which migrates nothing
+    // either way.
+    expect(SCHEMA_VERSION).toBe(121);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

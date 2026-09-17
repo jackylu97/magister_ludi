@@ -222,6 +222,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +3 food and +2 production. |
 | Bought Swords | 1 | ◆ | S | Military units cost 20% less gold to purchase, but 10% more production to train. Purchases still do not count as training. |
 | Civic Receipts | 1 | ◆ | S | Purchasing an ordinary building for the first time in a city grants culture equal to 10% of the gold paid, at most 30 culture per purchase. |
+| Established Routes | 1 | ◆ | P | A trade route you have kept up for at least thirty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. |
 | The Chartered Arsenal | 2 | ◆ | S | Military units purchased with gold gain +4 strength permanently on creation. |
 | The Paid Army | 3 | ◆ | S | Military-unit upkeep falls by 1 gold, minimum zero. Military units cost 25% less gold to purchase. |
 | Merchant Princes | 3 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
@@ -258,17 +259,22 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Scribes' Hall | 0 | ● | P | Cities with a Library gain +1 science per four citizens and +1 culture per three citizens. |
 | Field Notebooks | 0 | ● | S | Claiming a ruin grants 15 science, 20 culture and 20 gold. |
 | Practical Astronomy | 0 | ◆ | P | Scouts and ships gain +1 sight. Coastal cities with a Library gain +3 food. |
+| The Long Study | 0 | ◆ | P | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. |
 | Working Estates | 1 | ● | S | Worked great-person improvements gain +3 food and +2 gold. |
 | The Assay | 1 | ● | P | Gain +2 science and +2 gold for each distinct strategic resource type you can access. |
 | The Endowed Provinces | 1 | ◆ | P | Each city working at least one great-person improvement gains +4 food and +3 production, once per city. |
 | Learned Commissions | 1 | ● | S | Library cities gain +25% production toward empire buildings. Completing each institution type for the first time grants 40 culture and 20 faith. |
+| The Old Academy | 1 | ◆ | S | An Academy at least twenty turns old gains +2 food and +2 production. At forty turns these bonuses become +4 of each. |
 | The Royal Society | 2 | ● | S | Each empire building grants +2 renown. Its city gains +2 happiness, once per city. |
 | The Learned Chancery | 2 | ● | S | Cities with an empire building cost one less authority, minimum one, and gain +50% border growth. |
 | The Academy Quarter | 2 | ◆ | P | A city with an empire building gains +3 production and +3 gold per different great-person work type it works, at most +15 of each. Multiple institutions do not multiply this benefit. |
 | The Quiet Faculties | 2 | ○ | P | Cities working a great-person improvement gain +25% food and +20% production, but produce military units 25% more slowly. |
 | The Patent Rolls | 2 | ◆ | S | Completing a technology before any other empire grants 20 culture and 10 renown. |
+| Enduring Institutions | 2 | ◆ | P | A city with an empire building at least twenty turns old gains +2 happiness and +15% production, once per city. |
 | Master Artificers | 3 | ◆ | S | Worked Academies and Manufactories gain +6 production and +6 gold. |
 | The Society of Artificers | 3 | ○ | P | A city with an empire building working an Academy or Manufactory gains food and culture each equal to 20% of its base production, excluding conversion outputs. |
+| The Long Inheritance | 3 | ○ | S | Cities working a great-person improvement at least twenty turns old gain +30% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +15%. |
+| The Learned Realm | 3 | ◆ | S | Each city working a great-person improvement grants +1 authority capacity, at most +8. Cities with a Library at least twenty turns old gain +2 happiness. |
 
 ### Magisterial
 

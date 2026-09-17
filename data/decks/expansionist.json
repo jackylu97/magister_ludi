@@ -110,7 +110,7 @@
       "text": "While active, gains +1 science and +1 culture per turn whenever one of your cities grows in population, no cap.",
       "deferred": ["the card keeps count of every citizen born and pays a little more each turn for it"],
       "effects": [],
-      "note": "Not built: the design pays only for growth past the largest a town has ever been, and a town remembers how many people live in it and not how many ever did — so a counter of plain growth would write the annals twice for one citizen a levy took and the fields gave back."
+      "note": "Not built, and the one thing missing is small. A town remembers how many people live in it and not how many ever did, and the design pays only for growth past a town's own greatest — so a counter of plain growth would write the annals twice for one citizen a levy took and the fields gave back. A town's high-water mark is one number on the town and one comparison where it grows; the counter of growths waits on it and on nothing else."
     },
     "thePatientHarvest": {
       "name": "The Patient Harvest",
@@ -180,7 +180,7 @@
       "rarity": "common",
       "flavor": "We put the wood back, row by row.",
       "text": "Workers may plant forest on eligible open land for one charge. It matures after fifteen turns. [Planting and maturity.]",
-      "note": "Nothing may plant a wood, and no wood in the game is young or old — the ground remembers neither.",
+      "note": "Held whole, and waiting on planting. Nothing may plant a wood, and a wood nobody planted has stood since the world was made — so there is no turn to write on it and nothing to measure a young one against. The planter is what makes a wood young; until one exists, neither half of this can be said.",
       "deferred": [
         "a worker plants a wood on open ground of your own",
         "a planted wood is young for a long while, and cannot be felled for timber until it is grown"
@@ -219,7 +219,7 @@
       "rarity": "common",
       "flavor": "These trunks were old when the road was new.",
       "text": "Worked mature forests gain +1 food and +1 production. Chopping mature forest grants 50% more production.",
-      "note": "No wood in the game is young or old, so neither half can tell which trees it means.",
+      "note": "Held whole, and waiting on planting. A hex now remembers when its works were raised, but a wood is not a work: one nobody planted has stood since the world was made, so nothing can tell a grown wood from a young one until something plants one.",
       "deferred": [
         "a grown wood your people work feeds and builds better than a young one",
         "felling a grown wood yields more timber than felling a young one"
@@ -462,7 +462,7 @@
       "rarity": "rare",
       "flavor": "Take the crown, leave the stool.",
       "text": "Chopping mature forest you planted leaves young forest standing. It matures again after fifteen turns and cannot be harvested while young.",
-      "note": "Nothing may plant a wood, and no wood in the game is young or old.",
+      "note": "Held whole, and waiting on planting. A wood cannot be planted, and nothing regrows where one is felled — this card is the second half of a cycle whose first half does not exist.",
       "deferred": [
         "felling a wood you planted leaves a young wood standing where it was",
         "the young wood grows back in time, and gives no timber until it has"
@@ -731,7 +731,7 @@
       "rarity": "common",
       "flavor": "The tenth sheaf, and the wild hedge that grew it.",
       "text": "Worked farms beside unimproved land gain +3 gold, once per farm. Farms beside a mature unimproved forest also gain +2 production.",
-      "note": "No wood in the game is young or old, so the second half cannot tell which trees it means.",
+      "note": "Half built, and so held whole. A field beside wild ground can be paid for it, but a wood nobody planted has stood since the world was made — so the second half waits on planting, which is what makes a wood young enough to tell a grown one from.",
       "deferred": [
         "a field beside wild ground is worth coin for it",
         "a field beside a grown wild wood builds better besides"
@@ -746,7 +746,7 @@
       "rarity": "uncommon",
       "flavor": "No axe past this stone.",
       "text": "Worked mature unimproved forests gain +2 culture and +2 faith. Cities working at least three demand 20% less population happiness.",
-      "note": "No wood in the game is young or old, and nothing counts how many a town's people work.",
+      "note": "Held whole, on two counts. A wood nobody planted has stood since the world was made, so nothing can tell a grown one from a young one until planting exists — and nothing admits a town for the number of wild woods its people work.",
       "deferred": [
         "a grown wild wood your people work sings and prays for you",
         "a town working several of them asks less of your peace"

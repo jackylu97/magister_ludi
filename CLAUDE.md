@@ -118,8 +118,11 @@ be renamed — it would change every seeded outcome. No further rename passes.
    strings must be `\'`-escaped.)
 
 ## Traps — sim
-- **Mutable tile fields are exactly**: `improvement`, `feature`, `discovery`,
-  `road`, `vein`, `surveyed`. `discovery` only ever *removed* (`claimDiscoveryAt`).
+- **Mutable tile fields are exactly**: `improvement`, `improvedOn`, `feature`,
+  `discovery`, `road`, `vein`, `surveyed`. `discovery` only ever *removed*
+  (`claimDiscoveryAt`); `improvedOn` (D2d, the age stamp) is the turn the work on
+  the hex went up, written and cleared **only** beside `improvement` through
+  `raiseImprovement`/`razeImprovement` (`map.ts`, the one pair of writers).
   Camps live in `GameState.camps`, not on the map. Features/resources are placed
   only by `generateMap` + `placeResources`, once, in `newGame` — **nothing may
   regenerate a tile mid-game** (`chopErrorAt` guards the canopy-resource case).
@@ -193,7 +196,9 @@ be renamed — it would change every seeded outcome. No further rename passes.
   `pruneTimedEffects` is a broom, not a clock. City-scoped readers in
   `statecraft/evaluator.ts` go through `liveCityEffects` (= `liveEffects` + live rites) or
   they silently ignore rites. Same discipline: `SlottedOrder.sealedUntil`,
-  `City.purchasedUnitTurns`, seals, stamps — absolute turns, nothing ticks.
+  `City.purchasedUnitTurns`, the D2d age stamps (`City.buildingTurns` written
+  only by `addBuilding`, `Tile.improvedOn`, `TradeRoute.startedTurn` — never
+  rewritten by a renewal), seals, stamps — absolute turns, nothing ticks.
 - **Purchases**: `purchase.ts` — `purchaseItem {cityId, item, currency}`;
   `explainPurchaseCost` (ordered lines in a bank) + `purchaseError` gate every
   surface. A row naming its own bank (`UnitDef.purchase`) sells only there;
