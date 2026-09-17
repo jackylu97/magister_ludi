@@ -45,7 +45,11 @@ describe('the statecraft offer chain checks its results', () => {
       const site = MAIN.indexOf(`type: ${kind}`);
       expect(site, kind).toBeGreaterThan(-1);
       const around = MAIN.slice(site - 400, site + 400);
-      expect(around, kind).toContain('const result = dispatch(');
+      // `send` rather than a bare `dispatch` since `docs/flags.md` (mmmmmm):
+      // the page has one door and it reports every command that leaves through
+      // it. The claim here is unchanged — the result is *checked*, and the
+      // refusal is the reducer's own sentence on the manicule line.
+      expect(around, kind).toContain('const result = send(');
       expect(around, kind).toContain('if (!result.ok) controls.guide(');
     }
   });

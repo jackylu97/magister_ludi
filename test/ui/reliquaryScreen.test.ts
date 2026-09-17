@@ -577,7 +577,9 @@ describe('the calls at the foot', () => {
     const site = main.indexOf("type: 'purchaseGreatPersonOffer'");
     expect(site).toBeGreaterThan(-1);
     const around = main.slice(site - 400, site + 400);
-    expect(around).toContain('const result = dispatch(');
+    // Through the page's one door since `docs/flags.md` (mmmmmm) — a call
+    // bought at the ladder is a command like any other, and it is reported.
+    expect(around).toContain('const result = send(');
     expect(around).toContain('if (!result.ok) controls.guide(');
   });
 

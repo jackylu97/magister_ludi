@@ -1850,6 +1850,26 @@ export interface GameControls {
   refresh(seatId?: number): void;
 
   /**
+   * **The board moved under this seat** — re-read it and repaint, leaving who is
+   * sitting at it alone.
+   *
+   * `refresh`'s mid-game twin, and the distinction is the whole of it. That one
+   * is "the game object was replaced": it seats the client back at the first
+   * chair, drops the selection, empties the skip set and re-baselines every
+   * once-guard in the file. Called mid-game it hands the chair to somebody else
+   * on a hot-seat table and, since the victory sheet became a once-guard,
+   * permanently silences a game that has just been won (`docs/flags.md`
+   * (mmmmmm)). This is what a screen that dispatched for itself actually wants:
+   * the yields lens told a hex may pay differently, the board invalidated, the
+   * overlays recomputed against the selection that is still standing, and one
+   * pass over the HUD.
+   *
+   * It is the repaint `sendStatecraft` has always ended on, exposed, so the
+   * page's sheets end on that one rather than on a third of their own.
+   */
+  repaint(): void;
+
+  /**
    * Says that something happened: a toast, and a line in this seat's chronicle.
    *
    * Exposed for the page's own news, which is news about the *session* rather
@@ -3697,10 +3717,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * reducer's seat guard (a seat that has ended its turn has finished rewriting
    * its law), which is why this reports rather than throws.
    *
-   * The repaint at the end is `refreshOverlays` and one `onUpdate`, deliberately
-   * **not** the public `refresh()`: that one is "the game object was replaced"
-   * and it seats the client back at player 0, which on a hot-seat table would
-   * hand the chair to somebody else for slotting a card.
+   * The repaint at the end is `repaint`, deliberately **not** the public
+   * `refresh()`: that one is "the game object was replaced" and it seats the
+   * client back at player 0, which on a hot-seat table would hand the chair to
+   * somebody else for slotting a card. This function is where that distinction
+   * was first written down; `repaint` is it, factored out and handed to every
+   * other sheet that dispatches for itself (`docs/flags.md` (mmmmmm)).
    */
   function sendStatecraft(commands: readonly StatecraftSlotCommand[]): string | null {
     let sent = 0;
@@ -3714,11 +3736,26 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       }
       sent++;
     }
-    if (sent > 0) {
-      refreshOverlays();
-      onUpdate(selectedUnit(), renderer.getHover());
-    }
+    if (sent > 0) repaint();
     return refusal;
+  }
+
+  /**
+   * **The state changed under a still-seated client** — repaint everything that
+   * reads it, and touch nothing that says who is reading.
+   *
+   * See `GameControls.repaint` for the contract and for why this is not
+   * `refresh()`. The order is the one `commit`'s own after-effects keep: the
+   * lens is told first (a card or a belief can change what a hex pays with no
+   * fingerprint on the board to move), the board is invalidated, the overlays
+   * are recomputed against the live selection, and the HUD is read last, once,
+   * so every strip on it sees the same state.
+   */
+  function repaint(): void {
+    renderer.noteStateChanged?.();
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
   }
 
   /**
@@ -8167,6 +8204,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     cancelRouteOf,
     routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),
     reportCommand,
+    repaint,
     selectedUnit,
     /**
      * Select one named piece — handed out so a surface that floats *above* the

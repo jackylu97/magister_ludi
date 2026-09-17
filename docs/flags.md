@@ -117,7 +117,27 @@ buildings reference doc with the sync test green; the Compendium prints both
 from the rows; a v117 log replays (no schema change — a new row and a new
 stamp on an old row are data).
 
-**(mmmmmm) Screens that dispatch around the register — OPEN, a hole V2 named**
+**(mmmmmm) Screens that dispatch around the register — BUILT, M1, 2026-09-17**
+(the sweep found **thirteen** sites where the ruling named four — the reroll,
+the ruin/village pick, the Order pick and its pass, the charter, the Doctrine,
+the belief, the tarot, the Reliquary's call at the ladder, the reward sheet's
+whole command class, the religion sheet's faith purchase, the wager stake and
+the census dismissal. All thirteen now leave through **one** `send` in
+`main.ts`: `dispatch` → `controls.reportCommand` → `reportSharedNews`, and
+`controls.repaint()` on acceptance. `reportCommand` rather than `commit`, for
+that docblock's own reason — the funnel's list would re-run the sighting poll
+and a dozen other readings for one command, and two of the things on it raise a
+modal, from inside the callback of a modal already raising the next one.
+**`refresh`'s contract is obeyed, not widened**: it still means "the game object
+was replaced" and it still seats the client; what moved is the calling. Its
+mid-game twin is `GameControls.repaint()` — the lens, the board, the overlays,
+one pass over the HUD, and no opinion about the chair — which is the repaint
+`sendStatecraft` had always ended on, factored out. The seven diplomacy-rail
+verbs were the same abuse one step milder (they reported correctly through
+`controls`, but repainted with `refresh(localPlayerId())`, emptying the skip set
+and dropping the selection on a press of Declare War); they repaint now.
+`main.ts` holds exactly one `dispatch` and two `refresh` calls, both at a game
+replacement. The register is `test/ui/dispatchRegister.test.ts`)
 (2026-09-17). A handful of surfaces in `src/main.ts` call `dispatch(game, …)`
 directly and then `controls.refresh()`, reaching **neither** `commit` nor
 `reportCommand`: the religion screen's faith purchase, the offer reroll, the

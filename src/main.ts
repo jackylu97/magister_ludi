@@ -42,6 +42,7 @@ import './style.css';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, getMapSize } from './sim/mapgen';
 import { hashSeed } from './sim/rng';
 import { type Game, dispatch } from './sim/game';
+import type { Command, CommandResult } from './sim/commands';
 import { answerAudience, driveBots } from './ai/driver';
 import { valueContext } from './ai/bot';
 import { counterRefusal, counterTerms } from './ai/diplomacy';
@@ -2863,6 +2864,43 @@ async function boot(initial: Game | null): Promise<void> {
     return next === now ? 'No rarer cards next draft' : 'See rarer cards next draft';
   }
 
+  /**
+   * **This page's one dispatcher**, and the register test's whole subject.
+   *
+   * The board has a funnel of its own (`commit` in `controls.ts`) and two
+   * screens dispatch for themselves through `controls.reportCommand` — but the
+   * page itself sends a dozen commands that belong to no board and no screen:
+   * the hands an offer card answers, the sheets raised by the End Turn blocker,
+   * the rails at the foot of a pile. Every one of those used to go straight to
+   * `dispatch` and then to the seat-replacing `refresh`, which reached **neither**
+   * reporter, and the cost of that was exact: a command issued there produced no
+   * shared news at all, so a wonder finished by a rite's hammers, a caravan
+   * plundered inside somebody else's resolution, or a game *won* by a faith
+   * purchase went by without a word (`docs/flags.md` (mmmmmm)). The silence used
+   * to be deferred — the next reported command said it late — and the victory
+   * sheet's once-guard turned it permanent.
+   *
+   * So: one funnel, and it is deliberately the **reporting** seam rather than
+   * the board's. `reportCommand` is what a screen that dispatches for itself
+   * calls (its own docblock says why: routing these through `commit` would fire
+   * the sighting poll and a dozen other readings a second time, and two of the
+   * things in that list raise a modal — from inside the callback of a modal that
+   * is raising the next one itself).
+   *
+   * The repaint is `controls.repaint()`, which is `refresh`'s mid-game twin and
+   * leaves the chair alone. `refresh()` here was a standing bug of its own: it
+   * means "the game object was replaced", and it seated the client back at the
+   * first chair every time a player picked a card.
+   */
+  function send(command: Command): CommandResult {
+    const result = dispatch(game, command);
+    // Only on acceptance, inside both halves: a refused command changes nothing
+    // (hard rule 1), so there is nothing to tell and nothing to redraw.
+    controls.reportCommand(command, result);
+    if (result.ok) controls.repaint();
+    return result;
+  }
+
   /** What the offer card wants for one of its two answers. */
   type AnswerControl = { label: string; figure: string; note: string; disabled?: boolean };
 
@@ -2951,9 +2989,8 @@ async function boot(initial: Game | null): Promise<void> {
 
   /** Dispatches a reroll and puts the hand it dealt back on the sheet. */
   function rerollOffer(seat: number, again: () => void): void {
-    const result = dispatch(game, { type: 'rerollOffer', playerId: seat });
+    const result = send({ type: 'rerollOffer', playerId: seat });
     if (!result.ok) controls.guide(`☞ ${result.error}`);
-    controls.refresh();
     statecraft?.refresh();
     if (!hasEndedTurn(game.state, seat)) again();
   }
@@ -3011,9 +3048,8 @@ async function boot(initial: Game | null): Promise<void> {
       },
       (index) => {
         // Checked, like every pick (the offer-loop bug of 2026-08-30).
-        const result = dispatch(game, { type: 'chooseDiscovery', playerId: seat, optionIndex: index });
+        const result = send({ type: 'chooseDiscovery', playerId: seat, optionIndex: index });
         if (!result.ok) controls.guide(`☞ ${result.error}`);
-        controls.refresh();
       },
     );
   }
@@ -3086,9 +3122,8 @@ async function boot(initial: Game | null): Promise<void> {
           // pick used to re-deal the same card forever with no word said — the
           // one reachable case being a seat that Shift-ended its turn with the
           // draft still up, which the reducer refuses until the next turn.
-          const result = dispatch(game, { type: 'chooseOrder', playerId: seat, optionIndex: index });
+          const result = send({ type: 'chooseOrder', playerId: seat, optionIndex: index });
           if (!result.ok) controls.guide(`☞ ${result.error}`);
-          controls.refresh();
           statecraft?.refresh();
           // A pick can uncover the next thing owed — a banked charter dealt on
           // the same tier — so the chain is offered rather than left waiting
@@ -3100,9 +3135,8 @@ async function boot(initial: Game | null): Promise<void> {
         () => {
           // Checked like every answer, and refused for the same one reachable
           // reason: a seat that Shift-ended its turn with the draft still up.
-          const result = dispatch(game, { type: 'skipOrderOffer', playerId: seat });
+          const result = send({ type: 'skipOrderOffer', playerId: seat });
           if (!result.ok) controls.guide(`☞ ${result.error}`);
-          controls.refresh();
           statecraft?.refresh();
           if (!hasEndedTurn(game.state, seat)) showStatecraftOffer();
         },
@@ -3145,9 +3179,8 @@ async function boot(initial: Game | null): Promise<void> {
           // pick used to re-deal the same card forever with no word said — the
           // one reachable case being a seat that Shift-ended its turn with the
           // draft still up, which the reducer refuses until the next turn.
-          const result = dispatch(game, { type: 'adoptGovernment', playerId: seat, choiceIndex: index });
+          const result = send({ type: 'adoptGovernment', playerId: seat, choiceIndex: index });
           if (!result.ok) controls.guide(`☞ ${result.error}`);
-          controls.refresh();
           statecraft?.refresh();
           if (!hasEndedTurn(game.state, seat)) showStatecraftOffer();
         },
@@ -3186,9 +3219,8 @@ async function boot(initial: Game | null): Promise<void> {
           // pick used to re-deal the same card forever with no word said — the
           // one reachable case being a seat that Shift-ended its turn with the
           // draft still up, which the reducer refuses until the next turn.
-          const result = dispatch(game, { type: 'chooseDoctrine', playerId: seat, optionIndex: index });
+          const result = send({ type: 'chooseDoctrine', playerId: seat, optionIndex: index });
           if (!result.ok) controls.guide(`☞ ${result.error}`);
-          controls.refresh();
           statecraft?.refresh();
         },
         undefined,
@@ -3295,7 +3327,7 @@ async function boot(initial: Game | null): Promise<void> {
       },
       (index) => {
         // Checked, like every pick (the offer-loop bug of 2026-08-30).
-        const result = dispatch(game, { type: 'chooseBelief', playerId: seat, optionIndex: index });
+        const result = send({ type: 'chooseBelief', playerId: seat, optionIndex: index });
         if (!result.ok) controls.guide(`☞ ${result.error}`);
         // Which shelf the pick lands on is the *offer's* answer, never this
         // card's (`settleBeliefChoice`): an offer that names a pool belongs to
@@ -3327,7 +3359,6 @@ async function boot(initial: Game | null): Promise<void> {
           });
           notifications?.refresh();
         }
-        controls.refresh();
         religion?.refresh();
         // **The founding's second draft.** A prophet spent on founding opens two
         // belief drafts, and the second is *drawn* the moment the first is
@@ -3437,10 +3468,9 @@ async function boot(initial: Game | null): Promise<void> {
         // Checked (the offer-loop bug of 2026-08-30) — and the recruit is
         // announced only when the reducer actually seated them: this arm can
         // legitimately refuse-and-redraw when another seat took the name.
-        const result = dispatch(game, { type: 'chooseGreatPerson', playerId: seat, optionIndex: index });
+        const result = send({ type: 'chooseGreatPerson', playerId: seat, optionIndex: index });
         if (!result.ok) controls.guide(`☞ ${result.error}`);
         if (result.ok && taken !== undefined) announceRecruit(seat, taken);
-        controls.refresh();
         statecraft?.refresh();
       },
       undefined,
@@ -4294,8 +4324,7 @@ async function boot(initial: Game | null): Promise<void> {
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     send: (command) => {
-      const result = dispatch(game, command);
-      controls.refresh();
+      const result = send(command);
       statecraft?.refresh();
       return result.ok ? null : result.error;
     },
@@ -4360,19 +4389,20 @@ async function boot(initial: Game | null): Promise<void> {
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     buy: (cityId, item, currency) => {
-      dispatch(game, {
+      send({
         type: 'purchaseItem',
         playerId: controls.localPlayerId(),
         cityId,
         item,
         currency,
       });
-      controls.refresh();
       religion?.refresh();
     },
     rename: (name) => {
+      // The rename goes through `controls` and so through the board's own
+      // funnel; only the repaint is this page's to ask for.
       controls.renameReligion(name);
-      controls.refresh();
+      controls.repaint();
       religion?.refresh();
     },
     onRefuse: (message) => controls.guide(`☞ ${message}`),
@@ -4469,9 +4499,8 @@ async function boot(initial: Game | null): Promise<void> {
     getPlayerId: () => controls.localPlayerId(),
     stake: (index) => {
       const seat = controls.localPlayerId();
-      const result = dispatch(game, { type: 'chooseWager', playerId: seat, index });
+      const result = send({ type: 'chooseWager', playerId: seat, index });
       if (!result.ok) controls.guide(`☞ ${result.error}`);
-      controls.refresh();
       abacus?.refresh();
       return result.ok;
     },
@@ -4515,8 +4544,7 @@ async function boot(initial: Game | null): Promise<void> {
     getPlayerId: () => controls.localPlayerId(),
     dismiss: () => {
       const seat = controls.localPlayerId();
-      const result = dispatch(game, { type: 'dismissCensus', playerId: seat });
-      controls.refresh();
+      const result = send({ type: 'dismissCensus', playerId: seat });
       abacus?.refresh();
       return result.ok;
     },
@@ -4677,13 +4705,12 @@ async function boot(initial: Game | null): Promise<void> {
      */
     onCall: (purchase) => {
       const seat = controls.localPlayerId();
-      const result = dispatch(game, {
+      const result = send({
         type: 'purchaseGreatPersonOffer',
         playerId: seat,
         buys: purchase,
       });
       if (!result.ok) controls.guide(`☞ ${result.error}`);
-      controls.refresh();
       if (!result.ok) {
         reliquary?.refresh();
         return;
@@ -4907,32 +4934,38 @@ async function boot(initial: Game | null): Promise<void> {
     trigger: hudDock.diplomacyButton,
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
+    // Every verb below sends through `controls`, so the board's own funnel has
+    // already told the player everything there is to tell; all this block asks
+    // for is the repaint. `controls.repaint()` rather than `refresh()`: the
+    // latter means "the game object was replaced", and calling it on a press of
+    // Declare War emptied the skip set, dropped the selection and re-baselined
+    // the news guards mid-game (`docs/flags.md` (mmmmmm)).
     declareWar: (targetId) => {
       controls.declareWarOn(targetId);
-      controls.refresh(controls.localPlayerId());
+      controls.repaint();
     },
     offerPeace: (targetId, standing, offered) => {
       controls.offerPeaceTo(targetId, standing, offered);
-      controls.refresh(controls.localPlayerId());
+      controls.repaint();
     },
     // The three bargain verbs, wired exactly as the two above are: the screen
     // acts on a row or a paper, `controls` owns the funnel, and every one of
     // them is an ordinary logged command.
     proposeDeal: (targetId, give, take) => {
       controls.proposeDealWith(targetId, give, take);
-      controls.refresh(controls.localPlayerId());
+      controls.repaint();
     },
     answerDeal: (dealId, accept) => {
       controls.answerDealOf(dealId, accept);
-      controls.refresh(controls.localPlayerId());
+      controls.repaint();
     },
     declinePeace: (targetId) => {
       controls.declinePeaceFrom(targetId);
-      controls.refresh(controls.localPlayerId());
+      controls.repaint();
     },
     withdrawDeal: (dealId) => {
       controls.withdrawDealOf(dealId);
-      controls.refresh(controls.localPlayerId());
+      controls.repaint();
     },
     /**
      * **The audience** (`docs/war-diplomacy.md` §12): the paper just sent is put
@@ -4954,7 +4987,7 @@ async function boot(initial: Game | null): Promise<void> {
         report: (command, result) => controls.reportCommand(command, result),
       });
       if (decision === null) return null;
-      controls.refresh(controls.localPlayerId());
+      controls.repaint();
       return {
         accepted: decision.command.type === 'acceptDeal' || decision.command.type === 'proposePeace',
         sentence: decision.summary,
