@@ -1166,6 +1166,12 @@ export function startRouteAt(
   unit.trade = {
     from: from.id,
     to: to.id,
+    // **The turn this road opened** — written here and nowhere else, and never
+    // rewritten. An auto-resend rewrites `expiresTurn` on this very object
+    // (`marchTraders`), so a road kept up across renewals keeps the date it
+    // started and `state.turn - startedTurn` is how long it has run unbroken.
+    // See the field.
+    startedTurn: state.turn,
     expiresTurn: state.turn + Math.max(1, Math.floor(TRADE.routeTurns)),
     outbound: true,
     autoResend: false,

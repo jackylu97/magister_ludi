@@ -3773,9 +3773,8 @@
   ],
   "establishedRoutes": [
    {
-    "raw": "a road kept up across renewals pays far more — not built yet",
-    "text": "a road kept up across renewals pays far more — not built yet",
-    "deferred": true
+    "raw": "+50% everything on every trade route you have kept up for at least 30 turns",
+    "text": "+50% everything on every trade route you have kept up for at least 30 turns"
    }
   ],
   "theMarketWrit": [
@@ -4441,9 +4440,20 @@
   ],
   "theLongStudy": [
    {
-    "raw": "a library that has stood a long while pays culture and renown, and pays more again once it is very old — not built yet",
-    "text": "a library that has stood a long while pays culture and renown, and pays more again once it is very old — not built yet",
-    "deferred": true
+    "raw": "+2 culture in every city with a [[building:library|Library]] that has stood at least 20 turns",
+    "text": "+2 culture in every city with a Library that has stood at least 20 turns"
+   },
+   {
+    "raw": "+1 renown per turn in every city with a [[building:library|Library]] that has stood at least 20 turns",
+    "text": "+1 renown per turn in every city with a Library that has stood at least 20 turns"
+   },
+   {
+    "raw": "+2 culture in every city with a [[building:library|Library]] that has stood at least 40 turns",
+    "text": "+2 culture in every city with a Library that has stood at least 40 turns"
+   },
+   {
+    "raw": "+1 renown per turn in every city with a [[building:library|Library]] that has stood at least 40 turns",
+    "text": "+1 renown per turn in every city with a Library that has stood at least 40 turns"
    }
   ],
   "theResearchAnnals": [
@@ -4496,9 +4506,12 @@
   ],
   "theOldAcademy": [
    {
-    "raw": "an academy that has stood a long while feeds and works the town it serves, and more again once it is very old — not built yet",
-    "text": "an academy that has stood a long while feeds and works the town it serves, and more again once it is very old — not built yet",
-    "deferred": true
+    "raw": "+2 food, +2 production on every hex with an [[improvement:academy|Academy]] that has stood at least 20 turns",
+    "text": "+2 food, +2 production on every hex with an Academy that has stood at least 20 turns"
+   },
+   {
+    "raw": "+2 food, +2 production on every hex with an [[improvement:academy|Academy]] that has stood at least 40 turns",
+    "text": "+2 food, +2 production on every hex with an Academy that has stood at least 40 turns"
    }
   ],
   "learnedCommissions": [
@@ -4619,9 +4632,12 @@
   ],
   "enduringInstitutions": [
    {
-    "raw": "a town whose empire building has stood a long while is gladder and builds faster, once per town — not built yet",
-    "text": "a town whose empire building has stood a long while is gladder and builds faster, once per town — not built yet",
-    "deferred": true
+    "raw": "+2 happiness in every city holding an empire building that has stood at least 20 turns",
+    "text": "+2 happiness in every city holding an empire building that has stood at least 20 turns"
+   },
+   {
+    "raw": "+15% production in every city holding an empire building that has stood at least 20 turns",
+    "text": "+15% production in every city holding an empire building that has stood at least 20 turns"
    }
   ],
   "thePatentRolls": [
@@ -4678,9 +4694,20 @@
   ],
   "theLongInheritance": [
    {
-    "raw": "towns working a great person's work that has stood a long while build empire buildings, wonders and the great work faster, and faster again where the empire building there is itself old — not built yet",
-    "text": "towns working a great person's work that has stood a long while build empire buildings, wonders and the great work faster, and faster again where the empire building there is itself old — not built yet",
-    "deferred": true
+    "raw": "+30% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns",
+    "text": "+30% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns"
+   },
+   {
+    "raw": "+30% production toward wonders, in every city working a great person's work that has stood at least 20 turns",
+    "text": "+30% production toward wonders, in every city working a great person's work that has stood at least 20 turns"
+   },
+   {
+    "raw": "+15% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns",
+    "text": "+15% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns"
+   },
+   {
+    "raw": "+15% production toward wonders, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns",
+    "text": "+15% production toward wonders, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns"
    }
   ],
   "masterArtificers": [
@@ -4708,9 +4735,12 @@
   ],
   "theLearnedRealm": [
    {
-    "raw": "towns with a library that has stood a long while are gladder — not built yet",
-    "text": "towns with a library that has stood a long while are gladder — not built yet",
-    "deferred": true
+    "raw": "+1 authority capacity per city working a great person's work (at most +8)",
+    "text": "+1 authority capacity per city working a great person's work (at most +8)"
+   },
+   {
+    "raw": "+2 happiness in every city with a [[building:library|Library]] that has stood at least 20 turns",
+    "text": "+2 happiness in every city with a Library that has stood at least 20 turns"
    }
   ],
   "magisterialMasterMasons": [

@@ -78,7 +78,14 @@ import {
   workForFamily,
 } from './improvementData';
 import { improvementErrorAt } from './improvements';
-import { type Tile, getTileAt, tileHex, tileIndex, wrappedDistance } from './map';
+import {
+  type Tile,
+  getTileAt,
+  raiseImprovement,
+  tileHex,
+  tileIndex,
+  wrappedDistance,
+} from './map';
 import { nextFloat } from './rng';
 import { RULES } from './rulesData';
 import {
@@ -1251,7 +1258,10 @@ export function greatPersonWorkAt(
   const def = greatPersonDef(id);
   const work = workOf(unit)!;
 
-  tile.improvement = work;
+  // **A lasting work is stamped like any other** (batch D2d): an academy that
+  // has stood a long while is Scientific's whole Continuity line, and the hex
+  // learns its age at the one seam that puts the stones down.
+  raiseImprovement(tile, work, state.turn);
   // **A work opens the seam it covers** ("Iron · academy"), which is
   // `openedResource`'s clause and so `controlledHoldings`' answer — announced at
   // the write (batch M3, `slate.ts`).

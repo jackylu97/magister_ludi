@@ -186,3 +186,22 @@ export function routeIsLive(state: GameState, unit: Unit): boolean {
   if (state.turn >= route.expiresTurn) return false;
   return routeCities(state, unit) !== null;
 }
+
+/**
+ * **How many turns this road has been running**, or `undefined` for a route with
+ * no start date (batch D2d, the age stamp).
+ *
+ * `routeIsLive`'s reading of the other absolute stamp on the same shape:
+ * `TradeRoute.startedTurn` is written once when the route opens and never
+ * rewritten by a renewal, so this is one subtraction and **nothing ticks**.
+ * `undefined` rather than zero for a route with no stamp — a hand-built fixture,
+ * a scenario — so a card that names a term reads "cannot be shown to have run
+ * long enough" rather than "new".
+ *
+ * Here rather than beside the field because this is the leaf both the yield fold
+ * and anything else that ever asks can see, exactly as the pair resolution is.
+ */
+export function routeAge(state: GameState, route: TradeRoute): number | undefined {
+  if (route.startedTurn === undefined) return undefined;
+  return state.turn - route.startedTurn;
+}

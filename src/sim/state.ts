@@ -1028,8 +1028,9 @@ import {
  * `GameState.firsts`, the append-only ledger of first-of-a-kind records
  * (`FirstKind`, written only by `markFirst`) — and one joins the deck,
  * `PlayerStatecraft.riderTurns`, the absolute turn each once-a-turn windfall
- * rider last rode. Four moments join `TallyOccasion` (a kill, a unit trained, a
- * camp burnt out, a town grown) and two counts join `CountKind` off the new
+ * rider last rode. Three moments join `TallyOccasion` (a kill, a unit trained, a
+ * camp burnt out — a town grown was written up and deliberately not built, see
+ * `TallyOccasion`'s own note) and two counts join `CountKind` off the new
  * ledger; a windfall grant may be a share of the occasion's own facts
  * (`OccasionMeasure`), capped by `WindfallGrantSpec.max`.
  *
@@ -1039,8 +1040,26 @@ import {
  * tallies from the first muster, so the state it reached would not be the state
  * it recorded. D1a's paragraph above says why the branch migrates nothing, and
  * the same answer holds — the playtest starts its saves afresh.
+ *
+ * v121 (the decks rework, batch D2d on branch `decks` — the age stamp): **three
+ * things now remember when they were placed.** `City.buildingTurns` is the turn
+ * each of a town's buildings joined it, written only by `addBuilding`;
+ * `Tile.improvedOn` is the turn the work standing on a hex went up, written only
+ * by `raiseImprovement` and cleared only by `razeImprovement` (`map.ts`); and
+ * `TradeRoute.startedTurn` is the turn a road opened, written only by
+ * `startRouteAt` and never rewritten by a renewal. Every one of them is an
+ * **absolute turn compared against `state.turn`** — `TimedEffect.expiresTurn`'s
+ * discipline — so nothing anywhere ticks. The vocabulary that reads them is
+ * `standingTurns` on three `CityScope`s and on the route `pays`, and
+ * `TileCondition`'s `standingSince`.
+ *
+ * **A v120 save is refused and does not replay**, and this is again a bump
+ * *within* the branch rather than one over `main`: a v120 log carries no stamps
+ * at all, so every card written on an age would answer "not old enough" forever
+ * and the state it reached would not be the state it recorded. The branch
+ * migrates nothing, for D1a's stated reason.
  */
-export const SCHEMA_VERSION = 120;
+export const SCHEMA_VERSION = 121;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2596,6 +2615,41 @@ export interface TradeRoute {
    */
   expiresTurn: number;
   /**
+   * **The turn this route opened**, and the whole of "how long has this road
+   * been running" (batch D2d, the age stamp).
+   *
+   * `expiresTurn`'s companion and the same kind of number — an **absolute** turn,
+   * read as `state.turn - startedTurn`, never decremented and never swept. That
+   * one says when the road stops paying and this says when it started, so
+   * between them a caravan carries its whole term without anything ticking.
+   *
+   * **A renewal is not a new route.** Auto-resend rewrites `expiresTurn` on this
+   * very object (`marchTraders`, the one place it happens), so a road a player
+   * keeps up across ten renewals has one start date. Everything that really ends
+   * a route — a cancellation, a plunder, a partner lost to war or to a border, a
+   * term allowed to run out at home — destroys `Unit.trade` itself, and the next
+   * caravan sent down the same road is a new route with a new date. So the four
+   * continuity resets the design doc names (`docs/six-decks-first-cut.md`,
+   * "Maturity is a relationship") fall out of the shape rather than being
+   * enforced anywhere.
+   *
+   * **Two things the doc asks for that this does not do**, stated rather than
+   * hidden: a manual re-hire within two turns does not inherit the old road's
+   * progress (the doc's grace window), and a blockade does not pause the count
+   * (there is no blockade rule in the game yet). Both are refinements on a
+   * relationship tracker; the number here is the caravan's own unbroken term,
+   * which is what a card that pays "a road kept up" prints.
+   *
+   * **Optional**, and that is `sea`'s convention on this very shape rather than
+   * `autoResend`'s: there is exactly one place a route comes into existence
+   * (`startRouteAt`) and it always writes this, so every route on a board has a
+   * date — what the key being optional buys is that a route *assembled by hand*
+   * (a test fixture, a scenario) is still a legal route. Absent is read as
+   * "cannot be shown to have run long enough", never as zero, which is the
+   * silence every other absent stamp in the vocabulary keeps.
+   */
+  startedTurn?: number;
+  /**
    * True while the caravan is walking *toward* `to`, false while it is walking
    * home. Flipped by `marchTraders` the turn it arrives, which is what makes the
    * piece shuttle rather than teleport — and what makes a road get walked in
@@ -2736,6 +2790,39 @@ export interface City {
   tilesClaimed: number;
   /** Completed buildings, in the order they finished. At most one of each. */
   buildings: BuildingId[];
+  /**
+   * **The turn each of those buildings joined this town**, or the key is
+   * **absent** on a town that has raised nothing (batch D2d, the age stamp).
+   *
+   * `Tile.improvedOn` one scale up and the same discipline: an **absolute** turn
+   * compared against `state.turn`, never a countdown — `TimedEffect.expiresTurn`'s
+   * rule, `SlottedOrder.sealedUntil`'s and `purchasedUnitTurns`' below. Nothing
+   * decrements it and no phase sweeps it; the whole reading is
+   * `state.turn - buildingTurns[id] >= turns`, which is what lets a card say "a
+   * Library that has stood twenty turns" without anything anywhere ticking.
+   *
+   * Keyed by `BuildingId` beside `buildings` rather than folded into it, because
+   * that list is *order* and this is *date*: a list of pairs would have broken
+   * every reader of a town's shelf, and a parallel array would have been a second
+   * thing to keep in step. Nothing iterates this object for an outcome — every
+   * sweep walks `buildings` (completion order) and looks a turn up by id, which
+   * is the determinism rule read for an object, exactly as `followers` reads it.
+   *
+   * **"Placed" is the turn the stones topped out in *this* town**, whichever way
+   * they got there: a building completed, a building bought at the till and a
+   * relic laid by an apostle are all "the town now has the thing", and
+   * `addBuilding` is the one seam all three go through. A **captured** town keeps
+   * its stamps untouched, exactly as it keeps the buildings themselves — pay
+   * follows the stones, and a conqueror who takes a town with a century-old
+   * library has taken a century-old library. A town founded with a card's free
+   * Monument is stamped with its founding turn, which is the turn that Monument
+   * went up.
+   *
+   * There is no entry for a building that is not in `buildings`, and nothing ever
+   * removes one: a building is never demolished in this game, and a town that is
+   * razed takes its whole record with it.
+   */
+  buildingTurns?: Partial<Record<BuildingId, number>>;
   /**
    * True once this city has been taken by force, ever.
    *
@@ -4689,6 +4776,54 @@ export function newCitySpecialists(): Record<SpecialistFamily, number> {
   const counts = {} as Record<SpecialistFamily, number>;
   for (const family of SPECIALIST_FAMILIES) counts[family] = 0;
   return counts;
+}
+
+/**
+ * **The town now has this building, and remembers the turn it did** — the one
+ * writer of `City.buildings` and of `City.buildingTurns` beside it (batch D2d).
+ *
+ * `raiseImprovement`'s bargain one scale up (`map.ts`): a shelf and a date that
+ * must never be written apart, said once here rather than as two lines at each
+ * of the three seams that put stones in a town — a completed or bought row
+ * (`realiseItem`), a founding law's free Monument (`foundCityAt`) and an
+ * apostle's relic (`placeRelicAt`). Any fourth way a building ever joins a town
+ * comes through here, and that is the whole rule.
+ *
+ * **Idempotent by the shelf**: a town that already holds the row is left exactly
+ * as it was, stamp included, which is the reading the founding rider already
+ * took and the only honest one — a Monument that has stood fifty turns does not
+ * become new because a second law would have granted it.
+ *
+ * Answers whether anything was written, for a caller that wants to know.
+ */
+export function addBuilding(state: GameState, city: City, building: BuildingId): boolean {
+  if (city.buildings.includes(building)) return false;
+  city.buildings.push(building);
+  // Presence is the state and the record is built on demand, `itemProgress`'
+  // convention: a town that has raised nothing serialises exactly as one from
+  // before the field existed.
+  (city.buildingTurns ??= {})[building] = state.turn;
+  return true;
+}
+
+/**
+ * **How many turns this building has stood in this town**, or `undefined` where
+ * the town does not hold it or holds it with no stamp.
+ *
+ * `improvementAge`'s twin (`map.ts`) and the one reading of `City.buildingTurns`:
+ * a subtraction against `state.turn`, so nothing ticks. `undefined` rather than
+ * zero for a stamp-less row, so every caller reads "cannot be shown to be old
+ * enough" rather than "new".
+ */
+export function buildingAge(
+  state: GameState,
+  city: City,
+  building: BuildingId,
+): number | undefined {
+  if (!city.buildings.includes(building)) return undefined;
+  const raised = city.buildingTurns?.[building];
+  if (raised === undefined) return undefined;
+  return state.turn - raised;
 }
 
 /**

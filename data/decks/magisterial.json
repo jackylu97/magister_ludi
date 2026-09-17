@@ -132,7 +132,7 @@
       "text": "Natural growth in a city with a Monument grants 10 culture and 10 food there.",
       "deferred": ["a town that holds a monument is paid in song and bread each time it grows"],
       "effects": [],
-      "note": "Not built: a windfall is paid to an empire and cannot be told what stands in the town that grew; and the design pays only for growth past a town's own historical high, which nothing remembers."
+      "note": "Not built, on two counts, and both are small. What an occasion hands over is paid to the realm and cannot be told what stands in the town that grew — that is one narrowing on the rider, beside the several it already carries. And the design pays only for growth past a town's own greatest, which is one number on the town. Neither alone frees this row; together they free it and two others."
     },
     "theTempleOfTheMuses": {
       "name": "The Temple of the Muses",
@@ -297,7 +297,7 @@
         "the card keeps count of every time one of your towns that holds a monument grows, and pays a little more each turn for it"
       ],
       "effects": [],
-      "note": "Not built: a counter is a number on a card and carries no subject, so it cannot be told which towns to watch; and the design pays only for growth past a town's own historical high, which nothing remembers."
+      "note": "Not built, on two counts, and the second is the harder. The design pays only for growth past a town's own greatest, which is one number on the town — but a counter is a number on a card and carries no subject at all, so it cannot be told to watch only the towns that hold a monument. Narrowing what a counter counts is a shape nothing else asks for yet."
     },
     "theCivicNursery": {
       "name": "The Civic Nursery",

@@ -529,7 +529,31 @@ export type CityScope =
    * faith" an ordinary town `pays` line rather than a new effect kind: a
    * building's yield *is* a city yield in the towns that have the building.
    */
-  | { test: 'hasBuilding'; building: BuildingId }
+  | {
+      test: 'hasBuilding';
+      building: BuildingId;
+      /**
+       * **And it has stood at least this many turns** — The Long Study's library,
+       * The Learned Realm's (batch D2d, the age stamp).
+       *
+       * A field rather than a member of its own, and for `queueDepth`'s stated
+       * reason exactly: "this town has a Library" and "this town has a Library
+       * that has stood twenty turns" are one question with a threshold on it, and
+       * the figure is the card's. Absent is the reading every row written before
+       * it had — any Library at all — so nothing moves.
+       *
+       * Read through `buildingAge` (`state.ts`), which is a subtraction against
+       * `state.turn` off `City.buildingTurns`' absolute stamp: **nothing ticks**,
+       * and the scope starts admitting on the turn the arithmetic passes. A town
+       * holding the row with no stamp on it admits nothing, which is the silence
+       * every absent fact in this vocabulary keeps — "cannot be shown to be old
+       * enough" rather than "new".
+       *
+       * Inclusive, exactly as `populationAtLeast` is: a library raised on turn 10
+       * is twenty turns old on turn 30 and admits there.
+       */
+      standingTurns?: number;
+    }
   /**
    * A **rite is running** in this town — The Vigil, whose lamp is lit only while
    * somebody is keeping the watch.
@@ -847,7 +871,23 @@ export type CityScope =
    * centre* — a fact about where the settler stopped — and this asks whether
    * anybody is working it, which is a decision the player makes every turn.
    */
-  | { test: 'workingGreatWork'; atLeast?: number }
+  | {
+      test: 'workingGreatWork';
+      atLeast?: number;
+      /**
+       * **And the work has stood at least this many turns** — The Long
+       * Inheritance's *"cities working a great-person improvement at least twenty
+       * turns old"* (batch D2d).
+       *
+       * `hasBuilding.standingTurns`' field on a hex instead of on a shelf, and it
+       * is passed straight down to `TileCondition`'s `standingSince`, which is
+       * where a work's age is actually read: a worked hex is counted here only if
+       * that condition holds of it, so "working an academy" and "working an
+       * academy that has stood a while" are one walk with one extra clause. A
+       * town counted with `atLeast` counts only the works old enough.
+       */
+      standingTurns?: number;
+    }
   /**
    * **A marvel stands in this town** — The Grand Tour's, The Civic Pantheon's,
    * and every Magisterial row whose subject is the town a wonder was built in.
@@ -916,7 +956,21 @@ export type CityScope =
    * did not choose. A town holding two counts once — it is a predicate, and
    * `CountKind`'s `empireBuildings` is what pays per house.
    */
-  | { test: 'hasEmpireBuilding' }
+  | {
+      test: 'hasEmpireBuilding';
+      /**
+       * **And that house has stood at least this many turns** — Enduring
+       * Institutions', and The Long Inheritance's second helping.
+       *
+       * `hasBuilding.standingTurns`' field one class over and the same reading,
+       * asked of whichever of the town's empire buildings is **oldest**: a town
+       * that raised its Forum forty turns ago and its Bourse last turn is a town
+       * with an institution that has stood forty turns, which is what "a city
+       * with an empire building at least twenty turns old" says. A boolean still,
+       * so a town holding two admits once.
+       */
+      standingTurns?: number;
+    }
   | { test: 'all'; of: CityScope[] }
   /**
    * **Any one of these** holds — the Stable's pasture *or* camp.
@@ -1513,6 +1567,27 @@ export type TileCondition =
    * would otherwise have to spell out.
    */
   | { test: 'greatWork' }
+  /**
+   * **The work standing on this hex has stood at least this long** — The Old
+   * Academy's ivy (batch D2d, the age stamp).
+   *
+   * The first condition in this union whose answer is a fact about *when* rather
+   * than about *what*, and the one that needs the clock: a tile carries no
+   * calendar, so `tileConditionHolds` takes a `turn` the way it takes the ring
+   * and the fold — from whoever has it — and a caller with no clock answers
+   * **no**, which is `yields`' and `beside`'s bargain exactly.
+   *
+   * Read off `Tile.improvedOn` through `improvementAge` (`map.ts`), an absolute
+   * stamp subtracted from the turn, so **nothing ticks**. Bare ground and ground
+   * whose stones carry no stamp both answer no — "cannot be shown to be old
+   * enough" rather than "new" — and a work torn up and rebuilt starts again,
+   * because the stamp goes with the improvement it is a fact about.
+   *
+   * It says nothing about *which* work stands there: a card that means an academy
+   * says `all` of this and `improvement`, which is how every other narrowing in
+   * this union composes. Inclusive, `populationAtLeast`'s reading.
+   */
+  | { test: 'standingSince'; turns: number }
   /**
    * **A road runs through this hex** — Market Gardens' farms, which are worth a
    * coin because the cart can reach them.
@@ -3792,6 +3867,25 @@ export interface CardPaysEffect extends CardYieldBag {
    * never paid.
    */
   crossing?: 'domestic' | 'international';
+  /**
+   * **The road has been running at least this many turns** — Established Routes'
+   * *"renewed routes pay 50% more"* (batch D2d, the age stamp). `where: 'route'`.
+   *
+   * `crossing`'s sibling and a filter on the *caravan* for its reason exactly: a
+   * road and a road kept up for a season are one question asked two ways. Read
+   * off `TradeRoute.startedTurn` — an absolute stamp written once when the route
+   * opens and never rewritten by a renewal — so the figure is
+   * `state.turn - startedTurn` and **nothing ticks**. Everything that really ends
+   * a route destroys `Unit.trade` itself, so a road that lapsed, was plundered or
+   * lost its partner starts its term over, which is what "kept up" means.
+   *
+   * Absent reaches every road this empire sends, which is what every row written
+   * before it meant. A row that names a term and is asked about an origin with
+   * **no caravan in hand** — a preview of a road nobody has drawn — admits
+   * nothing, exactly as a `crossing` clause does there and for its reason: a line
+   * the preview promised and the caravan never paid is a lie about a price.
+   */
+  standingTurns?: number;
 }
 
 /**

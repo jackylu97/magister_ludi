@@ -1748,7 +1748,11 @@ describe("determinism", () => {
     // what was done first (`GameState.firsts`) and the deck stamps its
     // once-a-turn riders, so a v119 log pays different windfalls from the first
     // kill — a bump *within* the branch, which migrates nothing either way.
-    expect(SCHEMA_VERSION).toBe(120);
+    // 121 since D2d (the decks rework, branch `decks`): a town remembers when
+    // each of its buildings went up, a hex when its work was raised and a route
+    // when it opened, so a v120 log answers "not old enough" to every card
+    // written on an age — a bump *within* the branch, which migrates nothing.
+    expect(SCHEMA_VERSION).toBe(121);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -8472,6 +8476,9 @@ describe("the engine shapes", () => {
     "armyContracts · routeYield",
     "armyContracts · routeYield",
     "provisioningContracts · routeYield",
+    // D2d: Established Routes' half again on a road kept up, un-deferred with
+    // the term the route `pays` learned (`TradeRoute.startedTurn`).
+    "establishedRoutes · routeYield",
     "thePatronsRoad · routeYield",
     // D2a: The Muses' Call's *"+20% renown"*, un-deferred with the worked-work
     // scope its other half wanted.
@@ -11103,11 +11110,33 @@ describe("D2b — counts and reach", () => {
     let purchaseShelf = false;
     let empireBuilding = false;
     let cityCost = false;
+    // **D2d's stamps.** Three scopes learned a term, one hex condition arrived
+    // and the route `pays` learned one too — each is a field nobody has tested
+    // until a live row names it.
+    let buildingTerm = false;
+    let empireHouseTerm = false;
+    let workedWorkTerm = false;
+    let hexTerm = false;
+    let routeTerm = false;
     const noteScope = (scope: unknown): void => {
       if (!scope || typeof scope !== "object") return;
       const test = (scope as { test?: string }).test;
       if (test !== undefined) scopes.add(test);
+      const term = (scope as { standingTurns?: number }).standingTurns;
+      if (term !== undefined) {
+        if (test === "hasBuilding") buildingTerm = true;
+        if (test === "hasEmpireBuilding") empireHouseTerm = true;
+        if (test === "workingGreatWork") workedWorkTerm = true;
+      }
       for (const inner of (scope as { of?: unknown[] }).of ?? []) noteScope(inner);
+    };
+    /** The hex vocabulary's own walk — `standingSince` lives there, not in a scope. */
+    const noteOn = (on: unknown): void => {
+      if (!on || typeof on !== "object") return;
+      if ((on as { test?: string }).test === "standingSince") hexTerm = true;
+      const of = (on as { of?: unknown }).of;
+      if (Array.isArray(of)) for (const inner of of) noteOn(inner);
+      else noteOn(of);
     };
     const walk = (effects: readonly CardEffect[]): void => {
       for (const effect of effects) {
@@ -11116,6 +11145,10 @@ describe("D2b — counts and reach", () => {
           case "pays":
             if (effect.count !== undefined) counts.add(effect.count);
             if (effect.basis === "share" && effect.max !== undefined) shareCap = true;
+            noteOn(effect.on);
+            noteScope(effect.origin);
+            noteScope(effect.destination);
+            if (effect.standingTurns !== undefined) routeTerm = true;
             break;
           case "productionBonus":
             if (effect.count !== undefined) counts.add(effect.count);
@@ -11192,5 +11225,14 @@ describe("D2b — counts and reach", () => {
     // Both stand for the batch that frees their rows, exactly as
     // `rerollsWhileSlotted` stands for the verb that will write it.
     expect(counts.has("distinctBuildingCategories")).toBe(false);
+    // **And D2d's five, every one of them named by a live row** (the age stamp).
+    // Each is a term on a question the vocabulary already asked, so the pin is
+    // that a row actually writes one — a threshold nobody names is a threshold
+    // nobody has tested, and the shape would sit here answering "no" forever.
+    expect(buildingTerm, "The Long Study's twenty-turn Library").toBe(true);
+    expect(empireHouseTerm, "Enduring Institutions' old great house").toBe(true);
+    expect(workedWorkTerm, "The Long Inheritance's old academy").toBe(true);
+    expect(hexTerm, "The Old Academy's ivy").toBe(true);
+    expect(routeTerm, "Established Routes' kept road").toBe(true);
   });
 });

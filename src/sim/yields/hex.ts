@@ -227,6 +227,25 @@ export interface TileYieldContext {
    * Called lazily and once per hex, by the one arm that wants it.
    */
   neighbours?: (tile: Tile) => readonly Tile[];
+  /**
+   * **The turn it is** — the clock `TileCondition`'s `standingSince` measures a
+   * work's age against (batch D2d, the age stamp; The Old Academy's ivy).
+   *
+   * `neighbours`' companion and here for its reason exactly: `explainTileYield`
+   * knows about a tile and a context and nothing else, and a hex carries an
+   * absolute stamp (`Tile.improvedOn`) with nothing to subtract it from. So the
+   * one place with a `GameState` in hand (`yieldContextFor`) puts the turn in the
+   * context, and every context downstream carries it by the spread that copies
+   * the rest.
+   *
+   * A **number rather than a closure**, unlike the ring: reading `state.turn` is
+   * free and the laziness the ring buys would be laziness about nothing.
+   *
+   * Absent for a context-less (omniscient) evaluation, and a condition that asks
+   * the date with no clock answers **no** — `yields`' and `neighbours`' bargain,
+   * taken for their reason.
+   */
+  turn?: number;
 }
 
 /**
@@ -286,6 +305,10 @@ export function yieldContextFor(
   // same question two ways. It costs one function reference and is never called
   // unless a condition asks the neighbours. See `TileYieldContext.neighbours`.
   ctx.neighbours = (tile) => neighborTiles(state.map, tileHex(tile));
+  // **The clock, for the one condition that asks a date** — written whatever the
+  // law says, for the ring's reason exactly: a fact about the world does not
+  // wait for a card to have already spoken.
+  ctx.turn = state.turn;
   return ctx;
 }
 
@@ -495,7 +518,7 @@ export function explainTileYield(
 
   const sourceIndex = new Map<string, number>();
   const pushLine = (line: TileLine): void => {
-    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk)) return;
+    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn)) return;
     // A line that is **only** a percentage carries no bag at all (The
     // Commonwealth's works). It is paid by the pass at the foot of this
     // function, and a zero-in-every-voice entry pushed here would be a row in
@@ -526,7 +549,7 @@ export function explainTileYield(
       if (besideThunk === undefined) return;
       let beside = 0;
       for (const neighbour of besideThunk()) {
-        if (tileConditionHolds(neighbour, ringRule)) beside += 1;
+        if (tileConditionHolds(neighbour, ringRule, undefined, undefined, ctx?.turn)) beside += 1;
       }
       const cap = line.perNeighbourMax;
       helpings *= cap === undefined ? beside : Math.min(beside, cap);
@@ -621,7 +644,7 @@ export function explainTileYield(
     const works = line.percent ?? 0;
     const ground = line.basePercent ?? 0;
     if (works === 0 && ground === 0) continue;
-    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk)) continue;
+    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn)) continue;
     if (works !== 0) {
       worksPercent += works;
       if (!worksSources.includes(line.source)) worksSources.push(line.source);

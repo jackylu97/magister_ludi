@@ -70,6 +70,7 @@ import {
   type ReligionId,
   type TimedEffect,
   type Unit,
+  addBuilding,
   cityReligion,
   convertCitizen,
   firstKey,
@@ -95,7 +96,15 @@ import {
   tileOwnerField,
 } from './cities';
 import { drawDiscoveryOffer } from './discoveries';
-import { type Tile, getTileAt, neighborTiles, tileHex, tileIndex, wrappedDistance } from './map';
+import {
+  type Tile,
+  getTileAt,
+  neighborTiles,
+  raiseImprovement,
+  tileHex,
+  tileIndex,
+  wrappedDistance,
+} from './map';
 import {
   type BeliefAxis,
   type BeliefId,
@@ -2453,7 +2462,7 @@ export function plantHolySiteAt(
   const founded = verb === 'foundReligion';
   const religion = founded ? foundReligion(state, player) : foundedReligion(state, player.id)!;
 
-  tile.improvement = HOLY_SITE;
+  raiseImprovement(tile, HOLY_SITE, state.turn);
   // The stones are an improvement like any other to `openedResource`, and they
   // are also what `religionFounder` follows — announced at the write (batch M3,
   // `slate.ts`).
@@ -2879,7 +2888,9 @@ export interface RelicPlacement {
 export function placeRelicAt(state: GameState, _player: Player, unit: Unit): RelicPlacement {
   const city = cityAt(state, unit.col, unit.row)!;
   const building = RELIC!;
-  city.buildings.push(building);
+  // Through the one seam (`addBuilding`, `state.ts`): a relic is a thing the
+  // town now holds, and it is stamped with the turn the apostle laid it down.
+  addBuilding(state, city, building);
   // A roof on a town is a line of `buildingHappiness` — `realiseItem`'s
   // announcement, made by an apostle instead of a basket (batch M3, `slate.ts`).
   bumpEconomy(state);

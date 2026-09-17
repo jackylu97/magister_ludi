@@ -232,12 +232,11 @@
       "rarity": "rare",
       "flavor": "The purse builds faster than the quarry, and asks for its name on the door.",
       "text": "Gold purchases of ordinary buildings cost 20% less. Producing those buildings normally takes 20% more production. Empire buildings and wonders are unaffected.",
-      "note": "Held whole. The realm's single great houses can be named now, and a marvel always could — but neither can be named by its absence, and this card is a discount on every building that is neither.",
       "effects": [],
       "deferred": [
         "buying an ordinary building costs less, and raising one the slow way costs more"
       ],
-      "note": "Held whole. A discount here would reach the great national houses as well, and the card says it must not."
+      "note": "Held whole. The realm's single great houses can be named now, and a marvel always could — but neither can be named by its absence, and this card is a discount on every building that is neither, so a discount written here would reach the great houses the card says it must not."
     },
     "civicReceipts": {
       "name": "Civic Receipts",
@@ -468,12 +467,15 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The second season is worth more than the first.",
-      "text": "Renewed routes pay 50% more. Does not stack repeatedly.",
-      "effects": [],
-      "deferred": [
-        "a road kept up across renewals pays far more"
-      ],
-      "note": "Held whole. A caravan is hired and lapses; nothing remembers that the same road was run before."
+      "text": "A trade route you have kept up for at least thirty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "standingTurns": 30,
+          "share": [{ "yield": "all", "percent": 50 }]
+        }
+      ]
     },
     "theMarketWrit": {
       "name": "The Market Writ",
@@ -796,7 +798,7 @@
       "deferred": [
         "a building you buy is better for the rest of its life than one you raised"
       ],
-      "note": "Held whole. A soldier can be marked at his birth by the bank that paid for him; a building cannot."
+      "note": "Held whole. A building now remembers the turn it was raised, but not the bank that paid for it — a soldier can be marked at his birth by the till, and a building cannot, so nothing can tell a bought roof from a hammered one afterwards."
     },
     "thePaidArmy": {
       "name": "The Paid Army",

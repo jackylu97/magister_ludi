@@ -223,8 +223,16 @@ describe('the schema, as landed', () => {
     // a share of what the occasion itself measured, the world's ledger of what
     // was done first, and a once-a-turn stamp on a rider — fifteen more rows,
     // across six of the seven.
-    expect(live).toBe(217);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(217);
+    //
+    // **And D2d a fourth time** ("the age stamp"): a building, a great person's
+    // work and a trade route each remember the turn they were placed, read as
+    // "at least this many turns old" by three city scopes, one hex condition and
+    // the route `pays` — six more rows, in two of the seven. The Woodland line's
+    // maturity is deliberately not among them: a wood nobody planted has stood
+    // since the world was made, so that word belongs to the planting system and
+    // not to a stamp.
+    expect(live).toBe(223);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(223);
   });
 
   /**
@@ -339,10 +347,11 @@ describe('the schema, as landed', () => {
   });
 
   it('bumps the schema: a pre-rework save is refused, and the seat carries the four new fields', () => {
-    // 120 since D2c: the world keeps `GameState.firsts` and the deck stamps its
-    // once-a-turn riders, so a v119 log pays a different first kill. A bump
-    // within the branch, which migrates nothing either way.
-    expect(SCHEMA_VERSION).toBe(120);
+    // 121 since D2d: a town remembers when each of its buildings went up, a hex
+    // when its work was raised and a route when it opened, so a v120 log would
+    // answer "not old enough" to every card written on an age. A bump within the
+    // branch, which migrates nothing either way.
+    expect(SCHEMA_VERSION).toBe(121);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -490,7 +499,7 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
         expect(pool, `${id} is deferred`).not.toContain(id);
       }
       // And the deferred half is the bulk of the catalogue, not a rounding.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(182);
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(176);
     }
   });
 

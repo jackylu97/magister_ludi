@@ -283,9 +283,19 @@ function routeWhose(effect: {
   origin?: CityScope;
   destination?: CityScope;
   crossing?: 'domestic' | 'international';
+  standingTurns?: number;
 }): string {
   const parts: string[] = [];
   if (effect.origin !== undefined) parts.push(`sent from ${cityScopeWords(effect.origin)}`);
+  // **How long the road has been kept up**, in the plainest words there are: a
+  // player is told the caravan has been running the same road, never that a
+  // route has "matured". First among the narrowings, because it is a fact about
+  // the road itself rather than about either of its ends.
+  if (effect.standingTurns !== undefined) {
+    parts.push(
+      `you have kept up for at least ${effect.standingTurns} turn${effect.standingTurns === 1 ? '' : 's'}`,
+    );
+  }
   // **The crossing, in the plainest words there are** (hard rule 7): a player is
   // told the caravan ends in another empire's city or runs between two of their
   // own, never that a route is "international". Between the two ends, because
@@ -2628,7 +2638,16 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push(`holding an improved ${scope.category} resource`);
       return;
     case 'hasBuilding':
-      into.qualifiers.push(`with ${buildingWords(scope.building)}`);
+      // **And how long it has stood, where the row names a term** — "with a
+      // Library that has stood at least 20 turns". The age rides in the same
+      // qualifier rather than in a second one, because it is a fact about *that
+      // building* and a clause of its own would have floated free of the thing
+      // it describes.
+      into.qualifiers.push(
+        scope.standingTurns === undefined
+          ? `with ${buildingWords(scope.building)}`
+          : `with ${buildingWords(scope.building)} ${standingWords(scope.standingTurns)}`,
+      );
       return;
     case 'hasBuildingYielding':
       into.qualifiers.push(
@@ -2704,13 +2723,18 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       );
       return;
     }
-    case 'workingGreatWork':
-      into.qualifiers.push(
+    case 'workingGreatWork': {
+      const works =
         scope.atLeast !== undefined && scope.atLeast > 1
           ? `working ${scope.atLeast} or more great people's works`
-          : "working a great person's work",
+          : "working a great person's work";
+      into.qualifiers.push(
+        scope.standingTurns === undefined
+          ? works
+          : `${works} ${standingWords(scope.standingTurns)}`,
       );
       return;
+    }
     case 'hasWonder':
       // "Containing a wonder" is the design doc's own phrase for it, and it is
       // the one that does not read as "having built" — a captured marvel is in
@@ -2725,7 +2749,11 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // than "containing" for the reason `hasWonder` says "containing": a
       // marvel stands where it was raised, and an empire building is a thing a
       // realm chose to put in one of its towns.
-      into.qualifiers.push('holding an empire building');
+      into.qualifiers.push(
+        scope.standingTurns === undefined
+          ? 'holding an empire building'
+          : `holding an empire building ${standingWords(scope.standingTurns)}`,
+      );
       return;
     case 'follows':
       // "your religion" was the old ruling's wording and it is now wrong twice
@@ -2816,6 +2844,20 @@ function anyPhrase(scopes: readonly CityScope[]): string {
  */
 export function indefinite(name: string): string {
   return /^[aeiou]/i.test(name) ? 'an' : 'a';
+}
+
+/**
+ * **How long a thing has stood**, in the one form every clause that names a term
+ * uses (batch D2d, the age stamp).
+ *
+ * One phrase rather than three, because it is one sentence wherever it appears —
+ * a building's, a great person's work's, a road's — and three spellings of "at
+ * least twenty turns old" is exactly the drift the word tables exist to prevent.
+ * The figure is spelled out rather than abbreviated for `buildingsOfCategory`'s
+ * stated reason: a bare number inside a sentence is a figure with no noun on it.
+ */
+function standingWords(turns: number): string {
+  return `that has stood at least ${turns} turn${turns === 1 ? '' : 's'}`;
 }
 
 /**
@@ -3136,6 +3178,15 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
     }
     case 'greatWork':
       into.qualifiers.push("carrying a great person's work");
+      return;
+    case 'standingSince':
+      // A qualifier about the *works*, not an adjective about the ground: "old
+      // hex" is not a kind of country. It reads after whatever names what stands
+      // there ("every academy hex that has stood at least 20 turns"), which is
+      // the order `all` pushes its parts in.
+      into.qualifiers.push(
+        `that has stood at least ${on.turns} turn${on.turns === 1 ? '' : 's'}`,
+      );
       return;
     case 'terrain':
       into.adjectives.push(on.terrain);

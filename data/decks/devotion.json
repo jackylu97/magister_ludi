@@ -154,7 +154,7 @@
       "rarity": "uncommon",
       "flavor": "A house that has never been this full does not know how to be quiet.",
       "text": "Natural growth to a city's new population high grants 8 faith. A Shrine there also grants 8 food.",
-      "note": "Not built: a town remembers how many people live in it and not how many ever did, so nothing can tell a new high from an ordinary birth.",
+      "note": "Not built, on two counts. A town remembers how many people live in it and not how many ever did, so nothing can tell a new greatest from an ordinary birth — that is one number on the town. And the second clause pays only where a shrine stands: what an occasion hands over is paid to the realm and cannot be told what stands in the town the thing happened in.",
       "deferred": [
         "a town growing past the largest it has ever been gives thanks in faith",
         "a shrine there sets bread on the table besides"

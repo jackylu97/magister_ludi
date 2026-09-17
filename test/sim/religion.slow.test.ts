@@ -363,11 +363,12 @@ describe('determinism', () => {
     // 119 is the decks rework (D1a, branch `decks`): four seat fields, the
     // reward hands, universal chairs and a draw that deals every hand
     // differently — a v118 save is refused (`state.ts`'s changelog).
-    // 120 since D2c (the decks rework, branch `decks`): the world keeps the
-    // ledger of what was done first (`GameState.firsts`) and the deck stamps
-    // its once-a-turn riders — a bump within the branch, which migrates
-    // nothing either way.
-    expect(SCHEMA_VERSION).toBe(120);
+    // 121 since D2d (the decks rework, branch `decks`): a town remembers when
+    // each of its buildings went up, a hex when its work was raised and a route
+    // when it opened, so a v120 log answers "not old enough" to every card
+    // written on an age — a bump within the branch, which migrates nothing
+    // either way.
+    expect(SCHEMA_VERSION).toBe(121);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

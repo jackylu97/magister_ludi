@@ -36,7 +36,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { createGame } from '../../../src/sim/game';
-import { playerById } from '../../../src/sim/state';
+import { addBuilding, bumpRevision, playerById } from '../../../src/sim/state';
+import { foundCityAt } from '../../../src/sim/cities';
+import { getTileAt } from '../../../src/sim/map';
+import { explainRouteYieldBetween, foldRouteYield } from '../../../src/sim/routeYields';
 import {
   describeCard,
   describeEffects,
@@ -129,7 +132,7 @@ describe('a live Commerce row is a card', () => {
     // are one such thing. **Civic Receipts joined with D2c**: a purchase now
     // says what it cost and whether it was that town's first, which is the
     // whole of what the receipt reads.
-    expect(live().length).toBe(13);
+    expect(live().length).toBe(14);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -228,7 +231,7 @@ describe('a live Commerce row is a card', () => {
 
 describe('a deferred Commerce row is a promise, not a card', () => {
   it('pays nothing, says what it would have said, and sits in no pool', () => {
-    expect(deferred().length).toBe(36);
+    expect(deferred().length).toBe(35);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -369,5 +372,76 @@ describe('a seeded draft for a Commerce figure', () => {
     const opening = eligibleFor(g.state, musa);
     expect(opening.length).toBeGreaterThan(0);
     for (const id of opening) expect(orderDef(id).band, id).toBe(0);
+  });
+});
+
+// --- D2d, the age stamp -------------------------------------------------------
+
+/**
+ * **Established Routes** came live with `TradeRoute.startedTurn` (batch D2d).
+ *
+ * What the card buys is a share of what the road already carries, gated on the
+ * one narrowing a player cannot check by looking at either town: how long they
+ * have kept the road. The stamp is written once when the route opens and never
+ * rewritten by a renewal, so this is a subtraction and **nothing ticks**.
+ *
+ * Two of the design doc's continuity rules are deliberately not implemented and
+ * are stated on the field rather than hidden — a manual re-hire inherits no
+ * progress, and a blockade does not pause the count (there is no blockade rule
+ * in the game). Everything that really ends a route destroys `Unit.trade`, so
+ * the four resets the doc does name fall out of the shape.
+ */
+describe('Established Routes — a road kept up', () => {
+  const bench = () => {
+    const g = createGame({
+      seed: 31,
+      sizeName: 'duel',
+      players: [
+        { name: 'Musa', color: '#d4502e', isHuman: true, leader: 'mansaMusa' },
+        { name: 'Bors', color: '#3a7fe8', leader: 'pachacuti' },
+      ],
+    });
+    return g;
+  };
+
+  it('pays nothing on a young road and half again on an old one', () => {
+    const g = bench();
+    const musa = playerById(g.state, 0)!;
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    const from = foundCityAt(g.state, 0, getTileAt(g.state.map, unit.col, unit.row)!)!;
+    const to = foundCityAt(g.state, 0, getTileAt(g.state.map, unit.col + 4, unit.row)!)!;
+    // A road worth something to take a share of: the origin's shelves set the
+    // flats and the two populations set the coin.
+    from.population = 60;
+    to.population = 60;
+    for (const id of ['granary', 'library', 'market', 'monument'] as const) {
+      addBuilding(g.state, from, id);
+    }
+    bumpRevision(g.state);
+
+    const sc = musa.statecraft;
+    sc.orders.push('establishedRoutes');
+    sc.slots.push({ card: 'establishedRoutes', sealedUntil: g.state.turn });
+    bumpRevision(g.state);
+
+    const named = (age?: number) =>
+      explainRouteYieldBetween(g.state, from, to, 'land', age).filter((line) =>
+        line.source.includes('Established Routes'),
+      );
+    // A preview holds no caravan and is promised nothing — the crossing's own
+    // bargain, read on a date.
+    expect(named()).toEqual([]);
+    expect(named(29), 'twenty-nine turns is not thirty').toEqual([]);
+    const kept = named(30);
+    expect(kept.length).toBeGreaterThan(0);
+    // A share of what the road already carries, so the figure is half again of
+    // the flats above it rather than a number of its own.
+    const base = foldRouteYield(
+      explainRouteYieldBetween(g.state, from, to, 'land').filter(
+        (line) => !line.source.includes('Established Routes'),
+      ),
+    );
+    const extra = foldRouteYield(kept);
+    expect(extra.gold).toBe(Math.floor((base.gold * 50) / 100));
   });
 });

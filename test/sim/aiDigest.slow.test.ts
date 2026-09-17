@@ -156,9 +156,44 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * new occasions and which the arena panel picks up with no page edit. Measured
  * twice, same bytes both runs.
  */
+/**
+ * **Re-cut for D2d (the age stamp, branch `decks`)**, the cheapest system per
+ * card in the audit. Three things in the world now remember the turn they were
+ * placed — a building joining a town (`City.buildingTurns`), a work raised on a
+ * hex (`Tile.improvedOn`), a road opened (`TradeRoute.startedTurn`), schema 121
+ * — and five readings ask them: a term on three `CityScope`s, one hex condition
+ * and one on the route `pays`. They un-deferred **six rows**, taking the live
+ * catalogue from two hundred and seventeen to two hundred and twenty-three —
+ * five of them Scientific's, which was the thinnest deck left, and one
+ * Commerce's. Duel `40881a25:261580` → `10d89ce1:260423`, standard
+ * `3d71414c:919322` → `624b2217:922586`.
+ *
+ * **The prints moved in opposite directions**, which is D2a's shape rather than
+ * D2b's or D2c's, and the split is the honest one for a batch this small. The
+ * shelf is six rows wider, so the same drafts buy a different collection and a
+ * seat that takes a different card at turn 30 takes different everything after
+ * — that is the drift both boards share. What the duel shows is that six rows
+ * across two decks is small enough for the drift to land either way: a seat that
+ * spends a draft on a Continuity card instead of a Dominion one fights less and
+ * founds less, and a shorter game is fewer bytes.
+ *
+ * The **stamps themselves** are a small and one-sided part of the count: a town
+ * carries one number per building it has raised and a hex one per work standing
+ * on it, so the standard board's rise is partly the register and partly the
+ * different game. No stamp is written where nothing is placed — the explore
+ * sweep's byte count is unchanged to the byte at both seeds, which is the
+ * measurement that says so.
+ *
+ * Nothing about the **engine** changed, and no file in `src/ai` was touched: the
+ * bot appraises every new term through the walk it already had. One known gap is
+ * written down rather than fixed here — `value.ts`' hex appraisal calls
+ * `tileConditionHolds` with no clock, so a `standingSince` line reads as paying
+ * nothing to the bot (The Old Academy's, today). It undervalues one row and lies
+ * about none. Measured twice, same bytes both runs.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: '40881a25:261580',
-  standard: '3d71414c:919322',
+  duel: '10d89ce1:260423',
+  standard: '624b2217:922586',
 };
 
 /**
