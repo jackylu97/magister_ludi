@@ -8,11 +8,11 @@
 
 | Band | Cards | Built | Deferred |
 |---|---|---|---|
-| Early | 10 | 4 | 6 |
-| Middle | 10 | 4 | 6 |
-| Late | 12 | 5 | 7 |
-| Final | 8 | 2 | 6 |
-| **All** | **40** | **15** | **25** |
+| Early | 10 | 5 | 5 |
+| Middle | 10 | 5 | 5 |
+| Late | 12 | 6 | 6 |
+| Final | 8 | 4 | 4 |
+| **All** | **40** | **20** | **20** |
 
 ### How the shelf is weighted
 
@@ -33,10 +33,10 @@
 | **Field Notebooks** | common | built | Claiming a ruin grants 15 science, 20 culture and 20 gold. | claiming a ruin grants +15 science · claiming a ruin grants +20 culture · claiming a ruin grants +20 gold |
 | **Natural Philosophy** | uncommon | deferred | being the first to set eyes on each new kind of country or ground pays science, and feeds your capital | *no blocker recorded on the row* |
 | **Apprentice Engineers** | common | deferred | towns with a library raise workers faster, and the first works of each kind you build on ground of your own pay the town that holds them | Not built: the world announces a wood felled, a hill surveyed and a hex bought, and never a work finished on the ground — so the first of each kind has no moment to be paid at, however well the ledger would remember it. |
-| **The Long Study** | uncommon | deferred | a library that has stood a long while pays culture and renown, and pays more again once it is very old | *no blocker recorded on the row* |
+| **The Long Study** | uncommon | built | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. | +2 culture in every city with a Library that has stood at least 20 turns · +1 renown per turn in every city with a Library that has stood at least 20 turns · +2 culture in every city with a Library that has stood at least 40 turns · +1 renown per turn in every city with a Library that has stood at least 40 turns |
 | **The Research Annals** | uncommon | deferred | while this sits in council, your capital works and sings for every technology you have completed, up to a limit | Not built: nothing counts the studies an empire has finished — the tree is a list no card can yet ask the length of. |
 | **Practical Astronomy** | uncommon | built | Scouts and ships gain +1 sight. Coastal cities with a Library gain +3 food. | scouts: +1 sight · ships: +1 sight · +3 food in every coastal city with a Library |
-| **Patient Research** | rare | deferred | science buildings cost more to raise, and each one that has stood a long while feeds and works the town it stands in | *no blocker recorded on the row* |
+| **Patient Research** | rare | deferred | science buildings cost more to raise, and each one that has stood a long while feeds and works the town it stands in | Half built, and so held whole. A shelf of one kind can be raised more slowly, and a town can be admitted for holding a house that has stood a long while — but this card pays a town once for every such house it keeps, and the count that walks a shelf cannot be held to the old ones. |
 
 ## Middle
 
@@ -45,7 +45,7 @@
 | **The Glassmakers' Charter *(charter)*** | uncommon | deferred | drafting this opens the study of lenses for research | *no blocker recorded on the row* |
 | **The Open Collegium** | common | deferred | you gain more renown while no great person of yours is waiting to be spent | *no blocker recorded on the row* |
 | **Working Estates** | common | built | Worked great-person improvements gain +3 food and +2 gold. | +3 food, +2 gold on every hex with an Academy or Landmark or Manufactory or Customs House or Citadel |
-| **The Old Academy** | uncommon | deferred | an academy that has stood a long while feeds and works the town it serves, and more again once it is very old | *no blocker recorded on the row* |
+| **The Old Academy** | uncommon | built | An Academy at least twenty turns old gains +2 food and +2 production. At forty turns these bonuses become +4 of each. | +2 food, +2 production on every hex with an Academy that has stood at least 20 turns · +2 food, +2 production on every hex with an Academy that has stood at least 40 turns |
 | **Learned Commissions** | common | built | Library cities gain +25% production toward empire buildings. Completing each institution type for the first time grants 40 culture and 20 faith. | +25% production toward empire buildings, in every city with a Library · completing a building (an empire building, the first of that kind your realm has finished) grants +40 culture · completing a building (an empire building, the first of that kind your realm has finished) grants +20 faith |
 | **The Assay** | common | built | Gain +2 science and +2 gold for each distinct strategic resource type you can access. | +2 science per kind of strategic resource you can reach · +2 gold per kind of strategic resource you can reach |
 | **The Strategic Reserves** | common | deferred | every improved strategic deposit past the first of its kind works and pays the town that holds it, and a great person's works count as improvements here | *no blocker recorded on the row* |
@@ -65,7 +65,7 @@
 | **The Inherited School** | uncommon | deferred | worked academies and manufactories feed and work the better for each different family of great person whose legacy you still keep, up to a limit | Held whole. The realm can now count the families whose legacies it keeps, but what a hex pays cannot be multiplied by a thing the realm holds — only by what stands beside the hex itself. |
 | **Discoveries through Great People** | rare | deferred | spending a great person on an act, a work or a legacy pays part of the research you are studying, at most once in a turn | Half built and therefore not built: a gift may now be held to once a turn, but the moment announced is the boon alone and not the lasting work or the legacy, and nothing pays a share of what the study you are on would cost. |
 | **Husbandry Studies** | uncommon | deferred | soldiers of yours that depend on horses are quicker on their feet from the day they are raised, and stay so | *no blocker recorded on the row* |
-| **Enduring Institutions** | uncommon | deferred | a town whose empire building has stood a long while is gladder and builds faster, once per town | *no blocker recorded on the row* |
+| **Enduring Institutions** | uncommon | built | A city with an empire building at least twenty turns old gains +2 happiness and +15% production, once per city. | +2 happiness in every city holding an empire building that has stood at least 20 turns · +15% production in every city holding an empire building that has stood at least 20 turns |
 | **The Patent Rolls** | uncommon | built | Completing a technology before any other empire grants 20 culture and 10 renown. | completing a technology (before any other empire) grants +20 culture · completing a technology (before any other empire) grants +10 renown |
 | **Commissions of Service** | common | deferred | spending a great person on an act or a legacy pays food and gold to your nearest town, though placing a work does not | *no blocker recorded on the row* |
 | **The Quiet Faculties** | rare | built | Cities working a great-person improvement gain +25% food and +20% production, but produce military units 25% more slowly. | +25% food in every city working a great person's work · +20% production in every city working a great person's work · -25% production toward military units, in every city working a great person's work |
@@ -77,11 +77,11 @@
 | **The Mechanists' Charter *(charter)*** | rare | deferred | drafting this opens the study of mechanics for research | *no blocker recorded on the row* |
 | **The Alchemists' Charter *(charter)*** | uncommon | deferred | drafting this opens the study of chemistry for research | *no blocker recorded on the row* |
 | **The Second Seat** | rare | deferred | you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time | *no blocker recorded on the row* |
-| **The Long Inheritance** | rare | deferred | towns working a great person's work that has stood a long while build empire buildings, wonders and the great work faster, and faster again where the empire building there is itself old | *no blocker recorded on the row* |
+| **The Long Inheritance** | rare | built | Cities working a great-person improvement at least twenty turns old gain +30% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +15%. | +30% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns · +30% production toward wonders, in every city working a great person's work that has stood at least 20 turns · +15% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns · +15% production toward wonders, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns |
 | **Master Artificers** | uncommon | built | Worked Academies and Manufactories gain +6 production and +6 gold. | +6 production, +6 gold on every hex with an Academy or Manufactory |
 | **The Distant Colleges** | uncommon | deferred | a town holding an empire building may work your great people's works one hex beyond its usual reach, and gains no ground and no citizens by it | *no blocker recorded on the row* |
 | **The Society of Artificers** | rare | built | A city with an empire building working an Academy or Manufactory gains food and culture each equal to 20% of its base production, excluding conversion outputs. | 20% of the production in every city holding an empire building working an Academy or Manufactory is gained again as food · 20% of the production in every city holding an empire building working an Academy or Manufactory is gained again as culture |
-| **The Learned Realm** | uncommon | deferred | towns with a library that has stood a long while are gladder | Held whole. Nothing in the game remembers when a building was raised, so no law can tell an old library from a new one. |
+| **The Learned Realm** | uncommon | built | Each city working a great-person improvement grants +1 authority capacity, at most +8. Cities with a Library at least twenty turns old gain +2 happiness. | +1 authority capacity per city working a great person's work (at most +8) · +2 happiness in every city with a Library that has stood at least 20 turns |
 
 ## Cards Scientific shares with another deck
 

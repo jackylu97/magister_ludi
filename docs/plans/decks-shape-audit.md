@@ -25,6 +25,12 @@ Two fields remain live in code and named by no live row — `distinctBuildingCat
 
 Every batch since D2b re-reads the deferred notes on the rows rather than the table below, and corrects each to name the blocker that actually remains. The table below is therefore the measurement at the end of D1b, kept as the record of what the waves were planned against.
 
+**D2d — the age stamp** (2026-09-17): a building, a great person's work and a trade route each remember the turn they were placed — three absolute turns written once and compared, nothing ticking. 6 rows un-deferred; 217 → **223**. Schema 121. Scientific was the thinnest deck and is now half live (15 → 20).
+
+A **forest gets no stamp**: a wood nobody planted has stood since the world was made, so the field would have had zero writers, and the maturity the Woodland line asks for is the planting system's word (wave 3). The five forest rows name planting as their blocker now rather than reading like an oversight.
+
+**The high-water population was measured and refused**, and the measurement is the useful part. It frees **one** row alone, not the two the wave-2 table claims: The Growing Annals (with D2c's `cityGrew` invitation). Hearth Blessings and Festival Commissions are each blocked on a *second* shape — a `CityScope` on `CardWindfallRiderEffect`, since a windfall grant deliberately has no town — and The Civic Annals wants a tally that can be told which towns to watch, which is harder again. **The three together** — the high-water mark, the windfall scope and the `cityGrew` member — free three rows and half-free a fourth; each alone frees at most one. That is D2e's to weigh, and all four notes carry both blockers.
+
 **What D2c did not build, and why it matters to D2d.** The audit promised six tally members and three were built. `buildingCompleted` wanted a filtered count rather than a bare member and is served better by the firsts ledger; `wonderBuilt` and `cityGrew` each have exactly one row and each of those rows carries a second blocker, so adding them would fail the register the day they landed. The second blocker in three of those four cases is the same fact: **a town's high-water population**. One field and one comparison in `settleGrowth`, and it is the *only* thing standing between The Growing Annals and Hearth Blessings and a live row, and half of what The Civic Annals and Festival Commissions want. It sits below the three-card filter by a hair and whoever holds D2d should weigh it.
 
 ## What is live

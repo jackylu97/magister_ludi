@@ -9,10 +9,10 @@
 | Band | Cards | Built | Deferred |
 |---|---|---|---|
 | Early | 9 | 6 | 3 |
-| Middle | 14 | 3 | 11 |
+| Middle | 14 | 4 | 10 |
 | Late | 16 | 1 | 15 |
 | Final | 10 | 3 | 7 |
-| **All** | **49** | **13** | **36** |
+| **All** | **49** | **14** | **35** |
 
 ### How the shelf is weighted
 
@@ -35,7 +35,7 @@
 | **The Pathfinders' Company** | uncommon | built | Scouts gain +1 sight and +1 movement. | scouts: +1 sight · scouts: +1 movement |
 | **The Lighthouse Keepers** | common | built | Ships gain +1 sight. Lighthouses cost 25% less production; worked fishing boats gain +1 food. | ships: +1 sight · +25% production toward Lighthouses · +1 food on every hex with a Fishing Boat |
 | **The Assayer's Rule** | uncommon | built | +2 gold on resource tiles that supply gold | +2 gold on every hex carrying a resource that yields gold |
-| **Private Patronage** | rare | deferred | Gold purchases of ordinary buildings cost 20% less. Producing those buildings normally takes 20% more production. Empire buildings and wonders are unaffected. | Held whole. A discount here would reach the great national houses as well, and the card says it must not. |
+| **Private Patronage** | rare | deferred | Gold purchases of ordinary buildings cost 20% less. Producing those buildings normally takes 20% more production. Empire buildings and wonders are unaffected. | Held whole. The realm's single great houses can be named now, and a marvel always could — but neither can be named by its absence, and this card is a discount on every building that is neither, so a discount written here would reach the great houses the card says it must not. |
 
 ## Middle
 
@@ -53,7 +53,7 @@
 | **The Convoy** | common | deferred | Your combat units within one hex of your trader gain +4 strength. Your traders gain +1 movement. Traders remain plunderable. | Half built, and so held whole. A soldier can only be told that another soldier stands beside him; a cart is nobody's formation. |
 | **The Treaty Ports** | uncommon | deferred | Each foreign empire with which you have an active resource agreement grants your capital +2 gold and +3 culture. That partner's capital gains +1 gold. Each partner counts once. | Held whole. Nothing counts your standing agreements, and no law of yours can pay a foreign capital. |
 | **The Post Riders** | common | deferred | Your civilians and traders beginning a turn on a road you own gain +1 movement for that turn. Hiring and starting a route do not trigger another grant. | Held whole. A piece can be paid for the ground it stands on, but the road under it is not among the grounds it can be asked about. |
-| **Established Routes** | uncommon | deferred | Renewed routes pay 50% more. Does not stack repeatedly. | Held whole. A caravan is hired and lapses; nothing remembers that the same road was run before. |
+| **Established Routes** | uncommon | built | A trade route you have kept up for at least thirty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. | +50% everything on every trade route you have kept up for at least 30 turns |
 | **The Market Writ** | uncommon | deferred | +1 authority for every two Markets in your empire. Buying tiles costs 30% less. | A line the design is still writing, entered under a working name so that it is not lost. Both halves would be ordinary law once the card is named and its words are settled. |
 
 ## Late
@@ -82,7 +82,7 @@
 | Card | Rarity | Status | The card | What the game does, or why not |
 |---|---|---|---|---|
 | **The Dye Vats *(charter)*** | uncommon | deferred | Once drafted, unlock the Dye Vats for construction. No chair required. This purchased building turns its city's worked luxuries toward culture and faith; its payload is specified below. | Held whole. The vats they would open have not been drawn up yet, so the charter has nothing to grant. |
-| **The Endowment** | uncommon | deferred | Ordinary buildings you purchase gain a permanent bonus to each positive native yield equal to 25% of that yield, with a minimum bonus of +2 per positive yield type. Replacing a building cannot stack the stamp. | Held whole. A soldier can be marked at his birth by the bank that paid for him; a building cannot. |
+| **The Endowment** | uncommon | deferred | Ordinary buildings you purchase gain a permanent bonus to each positive native yield equal to 25% of that yield, with a minimum bonus of +2 per positive yield type. Replacing a building cannot stack the stamp. | Held whole. A building now remembers the turn it was raised, but not the bank that paid for it — a soldier can be marked at his birth by the till, and a building cannot, so nothing can tell a bought roof from a hammered one afterwards. |
 | **The Paid Army** | uncommon | built | Military-unit upkeep falls by 1 gold, minimum zero. Military units cost 25% less gold to purchase. | military units cost 1 less gold in maintenance · military units cost −25% to buy |
 | **Merchant Princes** | rare | built | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. | a great person waiting to be called may be bought with gold |
 | **The World's Exchange** | rare | built | Each different foreign empire currently served by your routes grants +10% production toward the Opus, at most +40%. Existing construction and victory requirements remain. | +10% production toward The Magnum Opus per other empire you trade with (at most +40%) |
