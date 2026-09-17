@@ -117,7 +117,24 @@ buildings reference doc with the sync test green; the Compendium prints both
 from the rows; a v117 log replays (no schema change — a new row and a new
 stamp on an old row are data).
 
-**(iiiiii) The decks rework builds on branch `decks` — RULED, D1** (the user,
+**(iiiiii) The decks rework builds on branch `decks` — D1a and D1b BUILT 2026-09-17; D2 ordered by the shape audit**
+(the branch is playable: **399 order rows, 143 live**, every deferred card in the
+data and the Compendium saying in plain words what it would do; both core tiers
+green, typecheck and build clean. `docs/plans/decks-shape-audit.md` is the fold
+of the seven deferral lists and carries the build order, ruled by the user
+2026-09-17: *"lets try and get broad coverage, but leave any new mechanics that
+are only needed for 1-2 cards"* — three cards or it is not built, so the
+founding-trait record is cut and stays deferred. Order: **D2a** predicates ·
+**D2b** counts and reach · **D2c** occasions · **D2d** the age stamp · **D2e**
+the bilateral grant · **D2f** the systems. Also ruled: a once-per-empire
+building is an **empire building** (the class had no player-facing name;
+`oncePerEmpire` the identifier is untouched). **One finding to chase**: with the
+live pool, bots stop making peace — `test/sim/aiWar.slow.test.ts` reaches a
+declaration, one offer and no truce, where the same seed with an empty pool
+truces and closes. Proved to be the cards, not the bot's synergy re-aim. A
+balance question for the playtest, not a broken test.)
+
+**(iiiiii, original ruling) The decks rework builds on branch `decks` — RULED, D1** (the user,
 2026-09-17: *"i think at this point, we just need to playtest these. Let's
 keep the old cards (dont delete them yet), but lets create a new branch for
 these systems"*). The plan of record is `docs/plans/decks-rework.md`; the
