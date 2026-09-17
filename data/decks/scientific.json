@@ -1,3 +1,533 @@
 {
-  "orders": {}
+  "orders": {
+    "almanac": {
+      "name": "The Almanac",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A year is a book; we learned to read ahead.",
+      "text": "Libraries cost 25% less production and give +1 production.",
+      "effects": [
+        { "kind": "productionBonus", "category": "building", "building": "library", "percent": -25 },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": { "test": "hasBuilding", "building": "library" },
+          "production": 1
+        }
+      ]
+    },
+    "scribesHall": {
+      "name": "The Scribes' Hall",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Every hand that can write is a hand that can teach.",
+      "text": "Cities with a Library gain +1 science per four citizens and +1 culture per three citizens.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "population",
+          "within": "city",
+          "per": 4,
+          "scope": { "test": "hasBuilding", "building": "library" }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "population",
+          "within": "city",
+          "per": 3,
+          "scope": { "test": "hasBuilding", "building": "library" }
+        }
+      ]
+    },
+    "theCelestialRites": {
+      "name": "The Celestial Rites",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The sky keeps its own calendar, and we copied it.",
+      "deferred": [
+        "your capital gathers faith from the sky, and being the first to set eyes on each new kind of country or ground pays faith besides"
+      ],
+      "effects": []
+    },
+    "fieldNotebooks": {
+      "name": "Field Notebooks",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Nothing is found twice unless it is written down.",
+      "text": "Claiming a ruin grants 15 science, 20 culture and 20 gold.",
+      "effects": [
+        { "kind": "windfallRider", "occasion": "discovery", "grant": { "yield": "science", "amount": 15 } },
+        { "kind": "windfallRider", "occasion": "discovery", "grant": { "yield": "culture", "amount": 20 } },
+        { "kind": "windfallRider", "occasion": "discovery", "grant": { "yield": "gold", "amount": 20 } }
+      ]
+    },
+    "naturalPhilosophy": {
+      "name": "Natural Philosophy",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Name the world and it begins to answer.",
+      "deferred": [
+        "being the first to set eyes on each new kind of country or ground pays science, and feeds your capital"
+      ],
+      "effects": []
+    },
+    "apprenticeEngineers": {
+      "name": "Apprentice Engineers",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "First the book, then the shovel, then the road.",
+      "deferred": [
+        "towns with a library raise workers faster, and the first works of each kind you build on ground of your own pay the town that holds them"
+      ],
+      "effects": []
+    },
+    "theLongStudy": {
+      "name": "The Long Study",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A roof, a lamp, and a long patience.",
+      "deferred": [
+        "a library that has stood a long while pays culture and renown, and pays more again once it is very old"
+      ],
+      "effects": []
+    },
+    "theResearchAnnals": {
+      "name": "The Research Annals",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Knowledge kept is knowledge that keeps.",
+      "deferred": [
+        "while this sits in council, your capital works and sings for every technology you have completed, up to a limit"
+      ],
+      "effects": []
+    },
+    "practicalAstronomy": {
+      "name": "Practical Astronomy",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The same stars that steer a ship will feed a town.",
+      "text": "Scouts and ships gain +1 sight. Coastal cities with a Library gain +3 food.",
+      "effects": [
+        { "kind": "unitStat", "stat": "sight", "amount": 1, "class": { "explores": true } },
+        { "kind": "unitStat", "stat": "sight", "amount": 1, "class": { "category": "naval" } },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "all",
+            "of": [{ "test": "coastal" }, { "test": "hasBuilding", "building": "library" }]
+          },
+          "food": 3
+        }
+      ]
+    },
+    "patientResearch": {
+      "name": "Patient Research",
+      "decks": ["scientific"],
+      "band": 0,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Slow stone outlasts quick brick.",
+      "deferred": [
+        "science buildings cost more to raise, and each one that has stood a long while feeds and works the town it stands in"
+      ],
+      "effects": []
+    },
+    "theGlassmakersCharter": {
+      "name": "The Glassmakers' Charter",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Sand, fire, and a second look at everything.",
+      "charter": { "unlocks": { "tech": "optics" } },
+      "deferred": ["drafting this opens the study of lenses for research"],
+      "effects": []
+    },
+    "theOpenCollegium": {
+      "name": "The Open Collegium",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The chair stays empty until the right mind sits in it.",
+      "deferred": [
+        "you gain more renown while no great person of yours is waiting to be spent"
+      ],
+      "effects": []
+    },
+    "workingEstates": {
+      "name": "Working Estates",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A great mind leaves a field behind it.",
+      "text": "Worked great-person improvements gain +3 food and +2 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "anyImprovement",
+            "improvements": ["academy", "landmark", "manufactory", "customsHouse", "citadel"]
+          },
+          "food": 3,
+          "gold": 2
+        }
+      ]
+    },
+    "theOldAcademy": {
+      "name": "The Old Academy",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Ivy is the proof of teaching.",
+      "deferred": [
+        "an academy that has stood a long while feeds and works the town it serves, and more again once it is very old"
+      ],
+      "effects": []
+    },
+    "learnedCommissions": {
+      "name": "Learned Commissions",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Commission the hall before you commission the statue.",
+      "deferred": [
+        "towns with a library work faster on the realm's single great institutions, and completing each kind of them for the first time pays culture and faith"
+      ],
+      "effects": []
+    },
+    "assay": {
+      "name": "The Assay",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Weigh it, burn it, then believe it.",
+      "deferred": [
+        "you gain science and gold for each different kind of strategic deposit you can draw on"
+      ],
+      "effects": []
+    },
+    "theStrategicReserves": {
+      "name": "The Strategic Reserves",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The second seam is the one that makes a trade.",
+      "deferred": [
+        "every improved strategic deposit past the first of its kind works and pays the town that holds it, and a great person's works count as improvements here"
+      ],
+      "effects": []
+    },
+    "thePracticalArts": {
+      "name": "The Practical Arts",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Study what you are already doing, and do it better.",
+      "deferred": [
+        "technologies that match what your empire already does cost less to research, while ordinary soldiers cost more to raise"
+      ],
+      "effects": []
+    },
+    "researchThroughConstruction": {
+      "name": "Research through Construction",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "We learned the arch by raising it.",
+      "deferred": [
+        "your towns' science becomes production instead, and finishing an ordinary building pays research worth part of its price"
+      ],
+      "effects": []
+    },
+    "theEndowedProvinces": {
+      "name": "The Endowed Provinces",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A gift of learning keeps giving grain.",
+      "deferred": [
+        "each town working a great person's work is fed and worked the better for it, once per town"
+      ],
+      "effects": []
+    },
+    "theMetallurgistsCharter": {
+      "name": "The Metallurgists' Charter",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Two metals, one temper.",
+      "charter": { "unlocks": { "tech": "alloys" } },
+      "deferred": ["drafting this opens the study of alloys for research"],
+      "effects": []
+    },
+    "theNaturalistsCharter": {
+      "name": "The Naturalists' Charter",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Give the beast a name and the field a page.",
+      "charter": { "unlocks": { "tech": "taxonomy" } },
+      "deferred": ["drafting this opens the study of living things for research"],
+      "effects": []
+    },
+    "theRoyalSociety": {
+      "name": "The Royal Society",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Letters after a name, and lamps in every window.",
+      "deferred": [
+        "each of the realm's single great institutions pays renown, and gladdens the town that holds it, once per town"
+      ],
+      "effects": []
+    },
+    "theLearnedChancery": {
+      "name": "The Learned Chancery",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The clerk with a book governs further than the clerk with a seal.",
+      "deferred": [
+        "a town holding one of the realm's single great institutions costs less authority to keep and pushes its borders out faster"
+      ],
+      "effects": []
+    },
+    "theAcademyQuarter": {
+      "name": "The Academy Quarter",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Put the schools on one street and listen.",
+      "deferred": [
+        "a town holding one of the realm's single great institutions works and earns for each different kind of great person's work it works, up to a limit, and a second institution adds nothing"
+      ],
+      "effects": []
+    },
+    "theInheritedSchool": {
+      "name": "The Inherited School",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The teacher dies; the lesson keeps its chair.",
+      "deferred": [
+        "worked academies and manufactories feed and work the better for each different family of great person whose legacy you still keep, up to a limit"
+      ],
+      "effects": []
+    },
+    "discoveriesThroughGreatPeople": {
+      "name": "Discoveries through Great People",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "A life spent well is a chapter finished early.",
+      "deferred": [
+        "spending a great person on an act, a work or a legacy pays part of the research you are studying, at most once in a turn"
+      ],
+      "effects": []
+    },
+    "husbandryStudies": {
+      "name": "Husbandry Studies",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Study the horse and the horse goes further.",
+      "deferred": [
+        "soldiers of yours that depend on horses are quicker on their feet from the day they are raised, and stay so"
+      ],
+      "effects": []
+    },
+    "enduringInstitutions": {
+      "name": "Enduring Institutions",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "What is old enough to be trusted is old enough to be useful.",
+      "deferred": [
+        "a town whose single great institution has stood a long while is gladder and builds faster, once per town"
+      ],
+      "effects": []
+    },
+    "thePatentRolls": {
+      "name": "The Patent Rolls",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "First is a fact, and facts are worth recording.",
+      "deferred": [
+        "completing a technology before any other empire pays culture and renown"
+      ],
+      "effects": []
+    },
+    "commissionsOfService": {
+      "name": "Commissions of Service",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Send the great where the need is, not where the marble is.",
+      "deferred": [
+        "spending a great person on an act or a legacy pays food and gold to your nearest town, though placing a work does not"
+      ],
+      "effects": []
+    },
+    "theQuietFaculties": {
+      "name": "The Quiet Faculties",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Quiet halls, full barns, and very few drums.",
+      "deferred": [
+        "towns working a great person's work grow and build faster, but raise soldiers more slowly"
+      ],
+      "effects": []
+    },
+    "theMechanistsCharter": {
+      "name": "The Mechanists' Charter",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Every lever is an argument.",
+      "charter": { "unlocks": { "tech": "mechanics" } },
+      "deferred": ["drafting this opens the study of mechanics for research"],
+      "effects": []
+    },
+    "theAlchemistsCharter": {
+      "name": "The Alchemists' Charter",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Turn one thing into another and call it a trade.",
+      "charter": { "unlocks": { "tech": "chemistry" } },
+      "deferred": ["drafting this opens the study of chemistry for research"],
+      "effects": []
+    },
+    "theSecondSeat": {
+      "name": "The Second Seat",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "One of a kind is a habit, not a law.",
+      "deferred": [
+        "you may raise one further copy of one of the realm's single great institutions, in a town that holds a university, and only one such copy may be building or standing at a time"
+      ],
+      "effects": []
+    },
+    "theLongInheritance": {
+      "name": "The Long Inheritance",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Old works build the new ones.",
+      "deferred": [
+        "towns working a great person's work that has stood a long while build the realm's institutions, its wonders and the great work faster, and faster again where the institution there is itself old"
+      ],
+      "effects": []
+    },
+    "masterArtificers": {
+      "name": "Master Artificers",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The hands that made the tools now make everything else.",
+      "text": "Worked Academies and Manufactories gain +6 production and +6 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": { "test": "anyImprovement", "improvements": ["academy", "manufactory"] },
+          "production": 6,
+          "gold": 6
+        }
+      ]
+    },
+    "theDistantColleges": {
+      "name": "The Distant Colleges",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Learning travels further than a cart.",
+      "deferred": [
+        "a town holding one of the realm's single great institutions may work your great people's works one hex beyond its usual reach, and gains no ground and no citizens by it"
+      ],
+      "effects": []
+    },
+    "theSocietyOfArtificers": {
+      "name": "The Society of Artificers",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Bread and song out of a workshop.",
+      "deferred": [
+        "a town holding one of the realm's single great institutions that works an academy or a manufactory is fed and sung to in proportion to what it builds"
+      ],
+      "effects": []
+    },
+    "theLearnedRealm": {
+      "name": "The Learned Realm",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A realm that reads is a realm that holds together.",
+      "deferred": [
+        "each town working a great person's work widens your authority, up to a limit, and towns with a library that has stood a long while are gladder"
+      ],
+      "effects": []
+    }
+  }
 }
