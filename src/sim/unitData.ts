@@ -135,6 +135,17 @@ export type UnitTypeId =
  * commerce has to walk around. The uncapped half is `stacksFreely`
  * (`units.ts`), which is the one place that reading lives.
  *
+ * **And since `docs/flags.md` (kkkkkk) it is uncapped in the other direction
+ * too**: a caravan takes nobody's slot *and* stands in nobody's way. The user:
+ * *"think of the trader unit as just a placeholder position for pillaging, but
+ * otherwise does not interact with units"* — so a foreign cart is not a hex
+ * anybody is refused, at war or at peace, and a column files over it exactly as
+ * it files over open ground. Both halves are read through `stacksFreely` and
+ * nothing else: `hasStackingRoom` for the slot (`units.ts`), `pieceBits` for
+ * the way (`pathfind.ts`). What is left is the marker — a route passes here and
+ * may be pillaged here — and the taking itself is `arriveOnTile`'s, which is
+ * where the war it needs is now asked.
+ *
  * `'trader'` is a **stacking** category and nothing else. It is emphatically not
  * a second answer to "can this thing fight" — that is `isCivilian`, which is
  * `!isCombatant` and is therefore still true of a caravan, so combat capture,

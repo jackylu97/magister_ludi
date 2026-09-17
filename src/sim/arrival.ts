@@ -67,6 +67,10 @@ import { type TraderPlunder, settleTraderPlunder } from './trade';
 import { awardOccasion } from './triumphs';
 import { isCivilian, isCombatant, trades, unitDef } from './unitData';
 import { fullMovement, unitsOnTile } from './units';
+// A leaf over `state.ts` and the rule book — the register, never the verbs that
+// change it (`diplomacy.ts` sits above this file and imports it). So this edge
+// cannot make a cycle, which is the whole reason `wars.ts` is a leaf.
+import { atWar } from './wars';
 
 /** A civilian that changed hands because somebody took the ground it stood on. */
 export interface CapturedCivilian {
@@ -216,9 +220,10 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
    * attacked it — either killing whatever was guarding it, or finding nothing
    * there that could swing back (`canAdvanceOnto` in `combat.ts` — an ordinary
    * march is refused by `canTransit` and always was), so this fires on the
-   * advance and nowhere else. Written as "any foreign civilian here" rather than
-   * as a combat outcome so it cannot be true of one arrival and false of
-   * another.
+   * advance and nowhere else. Written as "any **enemy** civilian here" rather
+   * than as a combat outcome so it cannot be true of one arrival and false of
+   * another — *enemy* since the trader ruling, and said by the one guard at the
+   * head of this loop rather than by a clause of its own.
    *
    * **This is now the whole of "a warrior captures a settler"** (user,
    * 2026-08-28). `applyCombat` used to hand a lone civilian over in place and
@@ -246,6 +251,35 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
    */
   for (const other of unitsOnTile(state, tile.col, tile.row)) {
     if (other.ownerId === unit.ownerId) continue;
+    /**
+     * **At war, or nothing is taken here at all** (`docs/flags.md` (kkkkkk)).
+     *
+     * The war requirement used to be held entirely by the caller: nobody could
+     * come to rest on a hex a seat at peace had a piece on, because `canStopOn`
+     * refused a `PEACEFUL_UNIT` hex, so both branches below could ask "somebody
+     * else's, civilian, laden" and get the war for free. That guard is gone for
+     * caravans — a trader is a marker on the ground now and stops nobody — so
+     * a neighbour's scout may walk over your cart at peace, and the rule that
+     * it must not take the cargo with it has nowhere to live but here.
+     *
+     * It is **one guard on the loop** rather than a clause in each branch, and
+     * that shape is load-bearing rather than tidy. The plunder branch below
+     * `continue`s before the capture branch, and it already carries a refusal
+     * of its own written the same way (`tradersUnplunderable`) for the same
+     * reason: a cart that may not be plundered must fall through to *neither*
+     * branch, because handing the merchant over instead of its cargo is worse
+     * than either. A war check written per branch would have to repeat that
+     * shape twice and would be wrong the first time somebody forgot — asked of
+     * the piece once, before either branch can see it, the neighbour at peace
+     * neither plunders the cargo nor captures the cart.
+     *
+     * It changes nothing for anybody else, and that is deliberate: every other
+     * arrival that reaches a foreign piece reached it through `canStopOn` or
+     * through a melee advance, and both of those already required the war. This
+     * says out loud what the board used to say for us. The wild is at war with
+     * everybody (`atWar`), so the raiders take exactly what they always took.
+     */
+    if (!atWar(state, unit.ownerId, other.ownerId)) continue;
     const otherDef = unitDef(other.type);
     if (!isCivilian(otherDef)) continue;
     /**

@@ -1429,9 +1429,14 @@ describe('the piece standing in a town wears no roundel', () => {
   });
 
   /**
-   * A stack still fans on the tile, which is what keeps three sculpts in one
-   * town readable as three — the row above the plate counts them, and the ground
+   * A stack still fans on the tile, which is what keeps the sculpts in one town
+   * readable as several — the row above the plate counts them, and the ground
    * shows them standing apart.
+   *
+   * **The caravans are counted out of the fan** since `docs/flags.md` (kkkkkk):
+   * a trader under a piece is not drawn at all, so a slot held for it would
+   * stand the soldier that covers it off the tile centre with nothing beside it.
+   * The pieces that *are* drawn fan exactly as they always did.
    */
   it('still fans a stack’s sculpts round the tile centre', () => {
     const game = board();
@@ -1439,9 +1444,32 @@ describe('the piece standing in a town wears no roundel', () => {
     for (const type of ['warrior', 'worker', 'trader'] as const) {
       createUnit(game, 0, type, town.col, town.row);
     }
+    const stack = unitStackIndices(game);
+    const drawn = game.units.filter((unit) => stack.has(unit.id));
+    // The cart is under the boots and out of the tally; the other two stand.
+    expect(drawn.map((unit) => unit.type)).toEqual(['warrior', 'worker']);
+    const places = new Set(
+      drawn.map((unit) => {
+        const at = placePiece(game.map, unit, stack.get(unit.id) ?? 0);
+        return `${at.position.x.toFixed(4)},${at.position.z.toFixed(4)}`;
+      }),
+    );
+    expect(places.size).toBe(2);
+  });
+
+  /**
+   * …and a hex of nothing but carts fans them all, because no caravan covers
+   * another: the rule is "a piece that matters is standing here", and six
+   * caravans are six markers on one road rather than a piece in the way.
+   */
+  it('fans a hex of caravans, none of them covering another', () => {
+    const game = board();
+    for (let i = 0; i < 3; i += 1) createUnit(game, 0, 'trader', 4, 4);
+    const stack = unitStackIndices(game);
+    expect(game.units.every((unit) => stack.has(unit.id))).toBe(true);
     const places = new Set(
       game.units.map((unit) => {
-        const at = placePiece(game.map, unit, unitStackIndices(game).get(unit.id) ?? 0);
+        const at = placePiece(game.map, unit, stack.get(unit.id) ?? 0);
         return `${at.position.x.toFixed(4)},${at.position.z.toFixed(4)}`;
       }),
     );
