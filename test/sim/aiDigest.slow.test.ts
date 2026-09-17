@@ -59,10 +59,31 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * `a31b1dc0:249598` → `e444d304:236660`, standard `2f8db9d8:905343` →
  * `42315015:855946` — while the state's own bytes changed (the schema digits,
  * four seat fields and `rewardHands`). D1b fills the decks and re-cuts these.
+ *
+ * **Re-cut for D1b (the cards, branch `decks`)**, and this is the re-cut D1a
+ * promised in the paragraph above. Seven agents wrote three hundred and
+ * ninety-nine rows into `data/decks/*.json`, a hundred and forty-three of them
+ * live, so **the pool is no longer empty**: every seat draws from its leader's
+ * two decks plus the commons and the either-type crosses, drafts again, reaches
+ * the ladder's rungs, adopts, banks reward hands and seats cards for a hundred
+ * and twenty turns. Every decision downstream of a held card moves with it —
+ * which is the whole of what a digest is for. Duel `e444d304:236660` →
+ * `1ccd794d:245595`, standard `42315015:855946` → `4180e4e6:893888`; the prints
+ * **grew back** by the cards the six seats hold at turn 120, to a little under
+ * where they stood before D1a emptied the shelf (`a31b1dc0:249598` /
+ * `2f8db9d8:905343`), which is what a differently-stocked pool dealing a
+ * differently-sized collection looks like.
+ *
+ * The bot's synergy reading moved in the same pass and is part of this print:
+ * `scoreCard`'s bonus counted cards sharing a `line` and counts cards sharing a
+ * **deck** now (`bot.ts`, the reason in its docblock) — the old reading was
+ * dead for the whole live catalogue, since no D1b row carries a line, so the
+ * two changes cannot be separated at this seed and are not claimed separately.
+ * Measured twice, same bytes both runs.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'e444d304:236660',
-  standard: '42315015:855946',
+  duel: '1ccd794d:245595',
+  standard: '4180e4e6:893888',
 };
 
 /**

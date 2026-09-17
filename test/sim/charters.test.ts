@@ -74,6 +74,7 @@ import {
   ORDER_IDS,
   doctrineDef,
   orderDef,
+  orderIsDealt,
 } from '../../src/sim/statecraftData';
 import { FOLLOWER_BELIEF_IDS, beliefDef } from '../../src/sim/religionData';
 import { type City, type GameState, newGame, playerById, bumpRevision } from '../../src/sim/state';
@@ -159,17 +160,40 @@ const CHARTERS: { order: OrderId; building: BuildingId }[] = ORDER_IDS.filter(
     .map((effect) => ({ order: id, building: effect.building })),
 );
 
+/**
+ * **The shelf's eleven, and D1b's own** — the family splits in two now.
+ *
+ * The eleven are the pre-rework rows, retired with the whole shelf by D1a and
+ * kept for saves and the Compendium; every ledger claim below is raised off
+ * them, because they are the rows that wrote the mechanism. D1b's deck files
+ * reach for the same mechanism — The Senate Charter opens the Assembly Hall
+ * that The Senatus used to — and a row that does is in this family too: it is
+ * the *shape* this file tests, not the catalogue.
+ *
+ * Split rather than merged, because "one building, one charter" is a claim
+ * about what a player can be *dealt*: a retired row and its live successor
+ * naming one building is a succession, not a collision, and it is only two
+ * dealt rows naming one that would be a bug.
+ */
+const SHELF_CHARTERS = CHARTERS.filter(({ order }) => orderDef(order).retired === true);
+const LIVE_CHARTERS = CHARTERS.filter(({ order }) => orderIsDealt(order));
+
 /** The two rows the batch first opened early, and the tree keeps to itself. */
 const THE_TREE_KEEPS: readonly BuildingId[] = ['mint', 'observatory'];
 
 // --- the register -----------------------------------------------------------
 
 describe('the charters as a family', () => {
-  it('ships eleven of them, each opening one real building row', () => {
+  it('ships eleven on the shelf and one in the decks, each opening one real building row', () => {
     // Eleven, then ten while the tree pass held the Toolmakers' Charter's door
     // shut, and eleven again since batch S2 re-opened that row as **The
-    // Vizierate** over a different building — The Vizier's Hall.
-    expect(CHARTERS.length).toBe(11);
+    // Vizierate** over a different building — The Vizier's Hall. **D1b adds the
+    // first live one**: the Magisterial deck's Senate Charter, which re-opens
+    // the Assembly Hall its retired ancestor named. A thirteenth is a JSON row
+    // and inherits every claim in this file.
+    expect(SHELF_CHARTERS.length).toBe(11);
+    expect(LIVE_CHARTERS.map((entry) => entry.order)).toEqual(['theSenateCharter']);
+    expect(CHARTERS.length).toBe(SHELF_CHARTERS.length + LIVE_CHARTERS.length);
     for (const { order, building } of CHARTERS) {
       expect(isBuildingId(building), `${order} → ${building}`).toBe(true);
       // A row a card opens must say so on its own row, or `isUnlocked` never
@@ -180,9 +204,17 @@ describe('the charters as a family', () => {
     }
   });
 
-  it('opens each charter building from exactly one charter', () => {
-    const opened = CHARTERS.map((entry) => entry.building);
-    expect(new Set(opened).size).toBe(opened.length);
+  it('opens each charter building from exactly one charter on each shelf', () => {
+    // **One dealt card a building.** Read per shelf since D1b: the eleven
+    // retired rows are unique among themselves, the dealt rows are unique among
+    // themselves, and a building named by one of each — the Assembly Hall — is
+    // a succession rather than a collision, since a retired row is in no pool
+    // and no player can ever hold both.
+    for (const family of [SHELF_CHARTERS, LIVE_CHARTERS]) {
+      const names = family.map((entry) => entry.building);
+      expect(new Set(names).size).toBe(names.length);
+    }
+    const opened = [...new Set(CHARTERS.map((entry) => entry.building))];
     // And every row carrying the marker is opened by exactly one card of
     // *some* class: a building marked `unlockedByCard` that no card names is a
     // row nobody can ever build. The charters are the Orders' half; the Gilded
@@ -223,7 +255,9 @@ describe('the charters as a family', () => {
       stargazersCharter: 'governmentIII',
       justicesCharter: 'governmentIII',
     };
-    expect(Object.keys(pools).length).toBe(CHARTERS.length);
+    // The shelf's eleven — the pools are a fact about the retired rows, which
+    // are the only ones that ever carried a `pool` (D1b's rows carry none).
+    expect(Object.keys(pools).length).toBe(SHELF_CHARTERS.length);
     for (const [id, pool] of Object.entries(pools)) {
       const def = orderDef(id as OrderId);
       expect(def.pool, id).toBe(pool);

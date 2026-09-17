@@ -26,6 +26,7 @@ import {
   ORDER_IDS,
   doctrineDef,
   orderDef,
+  orderIsDealt,
 } from '../../src/sim/statecraftData';
 import { ABILITY_TECH } from '../../src/sim/techData';
 
@@ -307,12 +308,24 @@ export function stockDoctrines(ids: readonly DoctrineId[]): () => void {
   };
 }
 
-/** The ids the standard stocking uses, grouped as it stamps them. Read-only. */
+/**
+ * **Every row any seat could be dealt**, grouped by the shelf it sits on — the
+ * bench's stocking *and* D1b's live rows, which is the honest whole once the
+ * decks carry cards of their own.
+ *
+ * Filtered by **`orderIsDealt`**, not by `retired` alone (D1b). D1b added
+ * three hundred and ninety-nine rows of which two hundred and fifty-five are
+ * `deferred` — in the data, in the Compendium, in no pool — and none of them
+ * carries `retired`, so the older reading swept every one of them onto a shelf
+ * no draw would ever deal from. `orderIsDealt` is the sim's own answer to "is
+ * this row on any shelf at all", and asking it here keeps the bench and the
+ * draw reading one rule.
+ */
 export function stockedShelf(): { deck: DeckId | 'cross' | 'generic'; id: OrderId }[] {
   const out: { deck: DeckId | 'cross' | 'generic'; id: OrderId }[] = [];
   for (const id of ORDER_IDS) {
+    if (!orderIsDealt(id)) continue;
     const def = orderDef(id);
-    if (def.retired === true) continue;
     out.push({ deck: def.decks.length === 0 ? 'generic' : def.decks.length === 2 ? 'cross' : def.decks[0]!, id });
   }
   return out;

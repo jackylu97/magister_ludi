@@ -14,11 +14,18 @@
  * leader pools).
  *
  * **The shelf is stocked by the bench** (`stockStandardDecks`): every
- * pre-rework row is `retired: true` and D1b's rows do not exist yet, so a test
- * about the draw un-retires rows of the table into decks for the file's
- * lifetime and puts them back after. The one describe that runs *unstocked*
- * is the honest state of D1a itself — every seat's pool empty, every draft an
- * exhausted hand that charges nothing.
+ * pre-rework row is `retired: true`, and the claims about the *draw* — its
+ * positions, its cadence, its odds, its bands — want a shelf whose shape the
+ * test chose, so the bench un-retires rows of the table into decks for the
+ * file's lifetime and puts them back after. **D1b's rows stand behind that
+ * stocking** now rather than instead of it: the deck files carry a hundred and
+ * forty-three live rows, so the bench's sixty are a known part of a larger
+ * shelf and every count here is folded off the shelf rather than typed.
+ *
+ * The one describe that runs *unstocked* was "the honest state of D1a — every
+ * shelf empty", and D1b replaced the claim it was making: the pool is no longer
+ * empty, so what is pinned there now is **the rows in no pool** — the retired
+ * shelf and the deferred halves — and the exhausted arm reached the honest way.
  */
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -142,8 +149,17 @@ function techOfAge(age: 1 | 2 | 3 | 4): TechId {
   return id!;
 }
 
+/**
+ * **The retired shelf** — every Order the design withdrew, kept for saves and
+ * the Compendium — and **the deck rows** D1b wrote beside it. The split is the
+ * file a row lives in, which is exactly what `DECK_FILE_ORDERS` names, so the
+ * two halves below never have to be listed by hand.
+ */
+const DECK_ROWS = new Set(DECK_FILES.flatMap((file) => [...DECK_FILE_ORDERS[file]]));
+const SHELF_ROWS = ORDER_IDS.filter((id) => !DECK_ROWS.has(id));
+
 describe('the schema, as landed', () => {
-  it('gives every Order and Doctrine row a deck list and a band, and retires every one of them', () => {
+  it('gives every Order and Doctrine row a deck list and a band', () => {
     for (const id of ORDER_IDS) {
       const def = orderDef(id);
       expect(Array.isArray(def.decks), id).toBe(true);
@@ -151,23 +167,98 @@ describe('the schema, as landed', () => {
       expect(new Set(def.decks).size, id).toBe(def.decks.length);
       for (const deck of def.decks) expect(isDeckId(deck), `${id}: ${deck}`).toBe(true);
       expect(BANDS, id).toContain(def.band);
-      // D1a: the old shelf is kept and dealt by nobody. D1b's rows are the
-      // first live ones.
-      expect(def.retired, id).toBe(true);
-      expect(orderIsDealt(id), id).toBe(false);
     }
     for (const id of DOCTRINE_IDS) {
       const def = doctrineDef(id);
       expect(Array.isArray(def.decks), id).toBe(true);
       expect(BANDS, id).toContain(def.band);
+      // A Doctrine is the reward hand now; D1b wrote no Doctrine rows, so the
+      // whole class is still the withdrawn one.
       expect(def.retired, id).toBe(true);
     }
   });
 
-  it('leaves the old pool and office fields in place on every retired row, read by nothing that deals', () => {
-    for (const id of ORDER_IDS) {
+  /**
+   * **D1b replaced D1a's "every row retired" claim.** D1a retired the whole
+   * table because there was nothing else to deal; D1b wrote three hundred and
+   * ninety-nine rows into the seven deck files, of which a hundred and
+   * forty-four are live. So the claim splits in two along the file a row lives
+   * in, and neither half is the old blanket one: the **shelf** is retired and
+   * dealt by nobody, the **decks** carry no `retired` at all and are dealt
+   * exactly when `orderIsDealt` says — live (effects) or deferred (a sentence
+   * and nothing to slot).
+   */
+  it('retires the whole shelf and none of the decks, and deals each by its own rule', () => {
+    expect(SHELF_ROWS.length).toBeGreaterThan(200);
+    for (const id of SHELF_ROWS) {
+      const def = orderDef(id);
+      expect(def.retired, id).toBe(true);
+      expect(orderIsDealt(id), id).toBe(false);
+    }
+    let live = 0;
+    for (const id of DECK_ROWS) {
+      const def = orderDef(id);
+      expect(def.retired, id).toBeUndefined();
+      // Live or deferred, never both ways round: a row with effects is dealt, a
+      // row with a `deferred` sentence and nothing to slot is not.
+      const dealt = def.effects.length > 0;
+      expect(orderIsDealt(id), id).toBe(dealt);
+      if (dealt) expect(def.deferred, `${id} is dealt`).toBeUndefined();
+      else expect(def.deferred, `${id} is in no pool`).toBeDefined();
+      if (dealt) live += 1;
+    }
+    expect(live).toBe(143);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(143);
+  });
+
+  /**
+   * **A deferred charter is in no pool** (the D1b audit, "A deferred charter is
+   * still dealt"). A charter's grant is the whole of the card, so a charter with
+   * no effects is dealt — but a charter whose building, technology or rites have
+   * not been drawn up yet carries a `deferred` sentence instead of a grant that
+   * names anything, and dealing it would seat nothing and write a dead id onto
+   * the seat. Two D1b agents worked around it by marking those rows `retired`,
+   * which said the design had withdrawn them when it is waiting on them; the
+   * clause in `orderIsDealt` is the fix, and this is its register.
+   */
+  it('deals no charter whose grant names a thing that does not exist yet', () => {
+    const charters = [...DECK_ROWS].filter((id) => orderDef(id).charter !== undefined);
+    expect(charters.length).toBeGreaterThan(0);
+    for (const id of charters) {
+      const def = orderDef(id);
+      // Every one of them is a deferred half today, and none is retired: the
+      // row says "waiting", not "withdrawn".
+      expect(def.retired, id).toBeUndefined();
+      expect(def.deferred, id).toBeDefined();
+      expect(def.effects, id).toEqual([]);
+      expect(orderIsDealt(id), `${id} is a deferred charter and still dealt`).toBe(false);
+      expect(ordersForDecks(DECK_IDS), id).not.toContain(id);
+    }
+    // And the clause is about the deferral, not about charters: un-defer one and
+    // the shelf takes it back the same turn.
+    const [first] = charters;
+    const def = orderDef(first!);
+    const held = def.deferred;
+    delete def.deferred;
+    try {
+      expect(orderIsDealt(first!), first).toBe(true);
+    } finally {
+      def.deferred = held;
+    }
+  });
+
+  it('leaves the old pool and office fields on the retired shelf, and asks them of no deck row', () => {
+    // D1b replaced D1a's "every row carries pool and slot": the fields are the
+    // *shelf's* history — the government pool a card was drawn from and the
+    // M/E/W office it sat in — and a deck row, written after both were retired,
+    // has neither to carry.
+    for (const id of SHELF_ROWS) {
       expect(orderDef(id).pool, id).toBeDefined();
       expect(orderDef(id).slot, id).toBeDefined();
+    }
+    for (const id of DECK_ROWS) {
+      expect(orderDef(id).pool, id).toBeUndefined();
+      expect(orderDef(id).slot, id).toBeUndefined();
     }
     // The register: nothing under `src/sim/statecraft/` reads `.pool` or `.slot`
     // to deal a card. The one reading of the office is `orderSlot`, for the
@@ -348,12 +439,50 @@ describe('the design doc’s numbers', () => {
   });
 });
 
-describe('the honest state of D1a — every shelf empty', () => {
-  it('deals nobody anything: the pool is empty, the draft is exhausted, and nothing is charged', () => {
+/**
+ * **D1b replaced D1a's "every shelf empty".** D1a's honest state was that no
+ * seat could be dealt anything at all, because the whole table was retired and
+ * the decks were empty files; the describe that stated it ran unstocked so the
+ * claim could not be faked by the bench. D1b filled the decks, so the emptiness
+ * is gone and the claim that replaces it is the one that survived it: **the
+ * rows in no pool are still in no pool**, and a seat whose pool *is* exhausted
+ * is still charged nothing.
+ *
+ * Unstocked, for D1a's reason exactly — the subject is the live catalogue, and
+ * a bench that un-retired rows into it would be answering its own question.
+ */
+describe('the rows in no pool — the retired shelf and the deferred halves', () => {
+  it('keeps every retired and every deferred row out of both seats’ pools, and deals the rest', () => {
     const g = seated();
     for (const seat of [0, 1]) {
       const player = playerById(g.state, seat)!;
-      expect(deckPoolOf(g.state, player)).toEqual([]);
+      const pool = deckPoolOf(g.state, player);
+      // D1b: no longer empty. The pool is exactly the dealt rows this seat's
+      // decks name, and nothing the shelf or a deferral holds.
+      expect(pool.length).toBeGreaterThan(0);
+      expect(pool).toEqual(ordersForDecks(player.decks));
+      for (const id of pool) {
+        expect(orderIsDealt(id), id).toBe(true);
+        expect(SHELF_ROWS, `${id} is a retired shelf row`).not.toContain(id);
+      }
+      for (const id of SHELF_ROWS) expect(pool, id).not.toContain(id);
+      for (const id of DECK_ROWS) {
+        if (orderIsDealt(id)) continue;
+        expect(pool, `${id} is deferred`).not.toContain(id);
+      }
+      // And the deferred half is the bulk of the catalogue, not a rounding.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(256);
+    }
+  });
+
+  it('charges a seat nothing when its own pool runs out: no draft, no count, no blocker', () => {
+    // The half of D1a's claim that outlived the empty shelf. Reached the only
+    // honest way now — the seat holds every card it is eligible for — so the
+    // exhausted arm is still walked, and still byte-identical.
+    const g = seated();
+    for (const seat of [0, 1]) {
+      const player = playerById(g.state, seat)!;
+      player.statecraft.orders.push(...eligibleFor(g.state, player));
       expect(eligibleFor(g.state, player)).toEqual([]);
       player.culturePool = 500;
       const before = snapshotState(g.state);
@@ -393,9 +522,23 @@ describe('with the shelf stocked', () => {
     }
     // Exactly: nothing in the pool is off the shelf.
     for (const id of pool) expect(shelf.some((row) => row.id === id), id).toBe(true);
-    // Two decks of eight, the three crosses that name either (each deck is
-    // paired with its neighbour on the stocked shelf), six generic.
-    expect(pool.size).toBe(8 + 8 + 3 + 6);
+    // **D1b replaced D1a's count.** D1a's shelf was the bench's sixty rows and
+    // nothing else, so the seat's share of it could be written out — two decks
+    // of eight, the three crosses naming either, six generic. The live decks
+    // now stand behind the bench's stocking, so the number is folded off the
+    // shelf rather than typed: what is claimed is still the *share*, which is
+    // the rule the old literal was standing in for.
+    const mine = shelf.filter(
+      ({ deck }) =>
+        deck === 'generic' ||
+        (deck === 'cross' ? true : ada.decks.includes(deck as DeckId)),
+    ).filter(({ deck, id }) =>
+      deck !== 'cross' || orderDef(id).decks.some((d) => ada.decks.includes(d)),
+    );
+    expect(pool.size).toBe(mine.length);
+    // And the bench's own sixty are all still in it: eight a deck for the two
+    // the seat holds, the three crosses that name either, six generic.
+    expect(mine.length).toBeGreaterThanOrEqual(8 + 8 + 3 + 6);
   });
 
   it('the rainbow seat’s pool is everything dealt', () => {
@@ -841,6 +984,11 @@ describe('a charter', () => {
     expect(isUnlocked(g.state, 0, 'building', CHARTERED_BUILDING)).toBe(false);
     expect(hasAbility(g.state, 0, riteAbility(CHARTERED_RITE))).toBe(false);
 
+    // **D1b replaced D1a's one-card shelf.** D1a stocked this charter alone and
+    // the hand could be nothing else; the live decks now stand behind it, so
+    // the seat is brought to the same place the honest way — holding every
+    // other card it is eligible for, the hand is the charter and nothing else.
+    ada.statecraft.orders.push(...eligibleFor(g.state, ada).filter((id) => id !== CHARTER_ROW));
     const dealt = dealTo(g.state, ada)!;
     expect(dealt.offer.options).toEqual([CHARTER_ROW]);
     const result = applyCommand(g.state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 });

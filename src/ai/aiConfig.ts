@@ -1027,7 +1027,11 @@ export interface AiConfig {
     // of the hexes the empire actually works (`workedHexesAdmitting`,
     // `value.ts`), and the knob was read by nothing after that while shipping
     // as a live box on the arena panel.
-    /** Per already-held card sharing an option's `line`. See `scoreCard`. */
+    /**
+     * Per already-held card sharing an option's **deck**. See `scoreCard`. It
+     * read the designer's `line` until D1b, when the six decks became the
+     * card's home and every new row stopped carrying one.
+     */
     synergyBonus: number;
     /** Soldiers a completion grant of one unit is worth. */
     combatScale: number;

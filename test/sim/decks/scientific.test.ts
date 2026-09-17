@@ -20,9 +20,12 @@
  * **The five research Charters are deferred and still carry `charter`.** Optics,
  * Alloys, Taxonomy, Mechanics and Chemistry are not tech rows yet (D2 places
  * them off-lane), so the grant names a node the tree cannot answer for. The row
- * records the charter so D2 has one place to wire it, and `orderIsDealt` deals a
- * charter row whatever else it says — the honest state is pinned below rather
- * than wished away.
+ * records the charter so D2 has one place to wire it, and `orderIsDealt` keeps
+ * them off every shelf until it can be answered: a charter's grant is the whole
+ * of the card, so a charter with no grant and a `deferred` sentence is dealt by
+ * nobody (the clause the D1b audit asked for, `docs/plans/decks-shape-audit.md`
+ * "A deferred charter is still dealt"). This file read the old answer when it
+ * was written, and the two claims below are re-cut to the new one.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -196,16 +199,22 @@ describe('the five research Charters', () => {
   });
 
   /**
-   * The honest state, stated rather than wished away: `orderIsDealt` deals a
-   * charter row whatever else it says (*"a charter with no effects is dealt: its
-   * grant is the whole of the card"*), so the five are in the pool although
-   * their grant names nothing. D2 either places the nodes or `orderIsDealt`
-   * grows the clause that keeps a deferred row off every shelf.
+   * **Dealt by nobody, like every other deferred row.** This file pinned the
+   * opposite when it was written — `orderIsDealt` dealt a charter whatever else
+   * the row said, so the five sat in the pool although their grant named
+   * nothing, and the pin said so rather than wishing it away. `orderIsDealt`
+   * grew the clause the note asked for, so the charters are now exactly where
+   * the rest of the deferred catalogue is: in the data, in the Compendium, in
+   * no pool. D2 places the nodes and drops the `deferred` sentence, and the row
+   * deals itself the same turn.
    */
-  it('is dealt today, and every other deferred row is not', () => {
-    for (const id of CHARTERS) expect(orderIsDealt(id), id).toBe(true);
+  it('is dealt by nobody until its node exists, and neither is any other deferred row', () => {
+    for (const id of CHARTERS) {
+      expect(orderDef(id).deferred, id).toBeDefined();
+      expect(orderDef(id).effects, id).toEqual([]);
+      expect(orderIsDealt(id), `${id} is a deferred charter and still dealt`).toBe(false);
+    }
     for (const id of DEFERRED) {
-      if (isCharter(id)) continue;
       expect(orderIsDealt(id), `${id} is deferred and still dealt`).toBe(false);
     }
     for (const id of LIVE) expect(orderIsDealt(id), id).toBe(true);
@@ -241,7 +250,7 @@ function openEveryBand(state: GameState, playerId: number): void {
 }
 
 describe('a Scientific seat’s draw', () => {
-  it('holds this deck and nothing deferred, since the other seven files are empty of live rows', () => {
+  it('holds this deck’s live rows, its partner’s, the commons — and nothing deferred', () => {
     const g = seated();
     const hypatia = playerById(g.state, 0)!;
     expect(hypatia.decks).toEqual(['scientific', 'magisterial']);
@@ -257,20 +266,25 @@ describe('a Scientific seat’s draw', () => {
         expect(orderDef(id).effects.length > 0 || isCharter(id), id).toBe(true);
       }
     }
-    // Every live row of this deck is in it, and every non-charter deferred row is not.
+    // Every live row of this deck is in it, and every deferred row — the five
+    // Charters among them, since the clause landed — is not.
     for (const id of LIVE) expect(pool, id).toContain(id);
-    for (const id of DEFERRED) {
-      if (isCharter(id)) continue;
-      expect(pool, id).not.toContain(id);
-    }
+    for (const id of DEFERRED) expect(pool, id).not.toContain(id);
   });
 
-  it('deals an opening seat only this deck’s live band-nought rows, over twenty seeded hands', () => {
+  it('deals an opening seat only band-nought rows of its own pool, over twenty seeded hands', () => {
+    // **Re-cut for the finished D1b.** Written while the other six files were
+    // empty, this pinned the opening shelf as *this deck's* band-nought live
+    // rows and nothing else. Hypatia also holds Magisterial, and the commons
+    // deal to everybody, so the shelf is the seat's whole pool at band nought —
+    // and this deck's own share of it is still claimed, below.
     const g = seated(21);
     const hypatia = playerById(g.state, 0)!;
     const sc = hypatia.statecraft;
-    const opening = LIVE.filter((id) => orderDef(id).band === 0);
-    expect(opening.length).toBeGreaterThan(0);
+    const mine = LIVE.filter((id) => orderDef(id).band === 0);
+    expect(mine.length).toBeGreaterThan(0);
+    const opening = deckPoolOf(g.state, hypatia).filter((id) => orderDef(id).band === 0);
+    for (const id of mine) expect(opening, id).toContain(id);
     expect(eligibleFor(g.state, hypatia).slice().sort()).toEqual(opening.slice().sort());
     const seen = new Set<OrderId>();
     for (let n = 1; n <= 20; n++) {
@@ -283,9 +297,9 @@ describe('a Scientific seat’s draw', () => {
         seen.add(id);
       }
     }
-    // Over twenty hands the whole opening shelf turns up — the draw is not
-    // quietly stuck on one row.
-    expect(seen.size).toBe(opening.length);
+    // Over twenty hands the draw is not quietly stuck on one row: it reaches
+    // well past a single hand's worth of the shelf.
+    expect(seen.size).toBeGreaterThan(3);
   });
 
   it('deals a fully opened seat nothing this deck defers, over forty seeded hands', () => {
@@ -334,7 +348,7 @@ describe('what the live rows do on a board', () => {
     const named = () =>
       explainCity(g.state, city).lines.filter((line) => line.source.startsWith('Order · The Almanac'));
     expect(named()).toEqual([]);
-    slot(g.state, 0, 'almanac');
+    slot(g.state, 0, 'scientificTheAlmanac');
     const line = named();
     expect(line).toHaveLength(1);
     expect(line[0]!.production).toBe(1);
@@ -351,7 +365,7 @@ describe('what the live rows do on a board', () => {
     city.population = 12;
     refreshCityDerived(g.state, city);
     const before = foldCity(g.state, city);
-    slot(g.state, 0, 'scribesHall');
+    slot(g.state, 0, 'scientificTheScribesHall');
     const after = foldCity(g.state, city);
     expect(after.science).toBe(before.science + 3);
     expect(after.culture).toBe(before.culture + 4);

@@ -606,6 +606,18 @@ describe('determinism', () => {
    * moved: every pre-rework Order row is retired and D1b's rows do not exist
    * yet, so the pool is empty and the one draft a seat could have reached in
    * twenty turns is an exhausted hand that charges nothing and deals nothing.
+   *
+   * **Not re-taken at D1b, and the reason is the measurement.** D1b filled the
+   * six decks with a hundred and forty-three live rows, so the seat pool is no
+   * longer empty and a seat that reached a draft would now be dealt a hand —
+   * which is exactly why this sweep was expected to move. It did not, at either
+   * seed, and the literals above are the same bytes they were: **nobody founds
+   * a town here**. The sweep gives every combatant and explorer the ranging
+   * order and ends twenty turns; no settler is ever asked to stop, so no city
+   * is founded, no culture is gathered, no meter fills and no draft is ever
+   * settled. The pool being stocked changes what *would* be dealt and nothing
+   * about what is. A future re-cut that founds a town here will move both
+   * literals, and it will say so in this docblock.
    */
   const RANGED_BOARDS: Record<number, string> = {
     11: 'df212a6f:188093',

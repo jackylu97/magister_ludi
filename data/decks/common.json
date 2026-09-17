@@ -42,7 +42,7 @@
         }
       ]
     },
-    "theEscortedRoadsCross": {
+    "commonTheEscortedRoads": {
       "name": "The Escorted Roads",
       "decks": ["dominion", "commerce"],
       "band": 1,
@@ -79,7 +79,7 @@
       ],
       "effects": []
     },
-    "ritesOfPassageCross": {
+    "commonRitesOfPassage": {
       "name": "Rites of Passage",
       "decks": ["dominion", "devotion"],
       "band": 0,
@@ -361,7 +361,7 @@
       "deferred": ["a road pays when either of its two ends keeps a holy site"],
       "effects": []
     },
-    "theTitheCross": {
+    "commonTheTithe": {
       "name": "The Tithe",
       "decks": ["commerce", "devotion"],
       "band": 2,
@@ -556,7 +556,7 @@
         }
       ]
     },
-    "theHouseOfWisdomCross": {
+    "commonTheHouseOfWisdom": {
       "name": "The House of Wisdom",
       "decks": ["scientific", "magisterial"],
       "band": 3,
@@ -567,7 +567,7 @@
       "deferred": ["the towns that work an academy each raise a name of their own"],
       "effects": []
     },
-    "marcherLords": {
+    "commonMarcherLords": {
       "name": "Marcher Lords",
       "decks": ["dominion", "expansionist"],
       "band": 2,
@@ -621,20 +621,11 @@
       "rarity": "common",
       "flavor": "Copy it twice: once for God, once for the shelf.",
       "text": "Monasteries give +3 science. Libraries give +2 faith.",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "science": 3,
-          "scope": { "test": "hasBuilding", "building": "monastery" }
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "faith": 2,
-          "scope": { "test": "hasBuilding", "building": "library" }
-        }
-      ]
+      "effects": [],
+      "deferred": [
+        "a house of quiet study teaches as well as prays, and a library prays as well as teaches"
+      ],
+      "note": "Held whole. One half of this asks for a house the realm no longer raises, so that half can never pay — and a card is never bent to fit the half that can."
     },
     "theMerchantNavigators": {
       "name": "The Merchant Navigators",
@@ -778,7 +769,7 @@
       "text": "Your capital gains +1 faith.",
       "effects": [{ "kind": "pays", "where": "city", "faith": 1, "scope": { "test": "capital" } }]
     },
-    "boundaryStonesCommon": {
+    "commonBoundaryStones": {
       "name": "Boundary Stones",
       "decks": [],
       "band": 0,

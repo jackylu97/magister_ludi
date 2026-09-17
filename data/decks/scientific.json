@@ -1,6 +1,6 @@
 {
   "orders": {
-    "almanac": {
+    "scientificTheAlmanac": {
       "name": "The Almanac",
       "decks": ["scientific"],
       "band": 0,
@@ -18,7 +18,7 @@
         }
       ]
     },
-    "scribesHall": {
+    "scientificTheScribesHall": {
       "name": "The Scribes' Hall",
       "decks": ["scientific"],
       "band": 0,
@@ -223,11 +223,11 @@
       "rarity": "common",
       "flavor": "Commission the hall before you commission the statue.",
       "deferred": [
-        "towns with a library work faster on the realm's single great institutions, and completing each kind of them for the first time pays culture and faith"
+        "towns with a library work faster on empire buildings, and completing each kind of them for the first time pays culture and faith"
       ],
       "effects": []
     },
-    "assay": {
+    "scientificTheAssay": {
       "name": "The Assay",
       "decks": ["scientific"],
       "band": 1,
@@ -317,7 +317,7 @@
       "rarity": "common",
       "flavor": "Letters after a name, and lamps in every window.",
       "deferred": [
-        "each of the realm's single great institutions pays renown, and gladdens the town that holds it, once per town"
+        "each empire building pays renown, and gladdens the town that holds it, once per town"
       ],
       "effects": []
     },
@@ -329,7 +329,7 @@
       "rarity": "common",
       "flavor": "The clerk with a book governs further than the clerk with a seal.",
       "deferred": [
-        "a town holding one of the realm's single great institutions costs less authority to keep and pushes its borders out faster"
+        "a town holding an empire building costs less authority to keep and pushes its borders out faster"
       ],
       "effects": []
     },
@@ -341,7 +341,7 @@
       "rarity": "uncommon",
       "flavor": "Put the schools on one street and listen.",
       "deferred": [
-        "a town holding one of the realm's single great institutions works and earns for each different kind of great person's work it works, up to a limit, and a second institution adds nothing"
+        "a town holding an empire building works and earns for each different kind of great person's work it works, up to a limit, and a second empire building adds nothing"
       ],
       "effects": []
     },
@@ -389,7 +389,7 @@
       "rarity": "uncommon",
       "flavor": "What is old enough to be trusted is old enough to be useful.",
       "deferred": [
-        "a town whose single great institution has stood a long while is gladder and builds faster, once per town"
+        "a town whose empire building has stood a long while is gladder and builds faster, once per town"
       ],
       "effects": []
     },
@@ -459,7 +459,7 @@
       "rarity": "rare",
       "flavor": "One of a kind is a habit, not a law.",
       "deferred": [
-        "you may raise one further copy of one of the realm's single great institutions, in a town that holds a university, and only one such copy may be building or standing at a time"
+        "you may raise one further copy of an empire building, in a town that holds a university, and only one such copy may be building or standing at a time"
       ],
       "effects": []
     },
@@ -471,7 +471,7 @@
       "rarity": "rare",
       "flavor": "Old works build the new ones.",
       "deferred": [
-        "towns working a great person's work that has stood a long while build the realm's institutions, its wonders and the great work faster, and faster again where the institution there is itself old"
+        "towns working a great person's work that has stood a long while build empire buildings, wonders and the great work faster, and faster again where the empire building there is itself old"
       ],
       "effects": []
     },
@@ -501,7 +501,7 @@
       "rarity": "uncommon",
       "flavor": "Learning travels further than a cart.",
       "deferred": [
-        "a town holding one of the realm's single great institutions may work your great people's works one hex beyond its usual reach, and gains no ground and no citizens by it"
+        "a town holding an empire building may work your great people's works one hex beyond its usual reach, and gains no ground and no citizens by it"
       ],
       "effects": []
     },
@@ -513,7 +513,7 @@
       "rarity": "rare",
       "flavor": "Bread and song out of a workshop.",
       "deferred": [
-        "a town holding one of the realm's single great institutions that works an academy or a manufactory is fed and sung to in proportion to what it builds"
+        "a town holding an empire building that works an academy or a manufactory is fed and sung to in proportion to what it builds"
       ],
       "effects": []
     },
