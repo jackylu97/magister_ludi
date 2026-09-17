@@ -1,3 +1,920 @@
 {
-  "orders": {}
+  "orders": {
+    "frontierGarrisons": {
+      "name": "Frontier Garrisons",
+      "decks": ["dominion", "expansionist"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A spear at the gate, and the young town sleeps.",
+      "text": "Garrisoned cities of at most five population gain +2 food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "scope": {
+            "test": "all",
+            "of": [{ "test": "garrisoned" }, { "test": "populationAtMost", "value": 5 }]
+          }
+        }
+      ]
+    },
+    "militaryColonies": {
+      "name": "Military Colonies",
+      "decks": ["dominion", "expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The drill yard empties into the furrow.",
+      "text": "Cities with a Barracks gain +30% production toward settlers and workers.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 30,
+          "class": {
+            "modelClasses": ["settler", "worker"],
+            "category": "civilian",
+            "consecrates": false
+          },
+          "scope": { "test": "hasBuilding", "building": "barracks" }
+        }
+      ]
+    },
+    "theEscortedRoadsCross": {
+      "name": "The Escorted Roads",
+      "decks": ["dominion", "commerce"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Where the guard walks, the merchant does not hurry.",
+      "text": "Routes whose origin has a garrison gain +3 gold. Naval units gain +2 strength while adjacent to one of your traders.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "gold": 3,
+          "origin": { "test": "garrisoned" }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "side": "both",
+          "when": { "test": "beside", "class": { "category": "trader" } },
+          "class": { "category": "naval" }
+        }
+      ]
+    },
+    "lettersOfMarque": {
+      "name": "Letters of Marque",
+      "decks": ["dominion", "commerce"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "A signature turns a pirate into a patriot.",
+      "text": "Naval combat kills grant 40 gold. Cities with a Harbour purchase naval combat units for 25% less gold, but produce those units 20% more slowly.",
+      "deferred": [
+        "cities with a harbour buy warships more cheaply, and build them more slowly"
+      ],
+      "effects": []
+    },
+    "ritesOfPassageCross": {
+      "name": "Rites of Passage",
+      "decks": ["dominion", "devotion"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The boy kneels, the soldier stands.",
+      "text": "Completing a military unit grants 12 faith.",
+      "deferred": ["completing a soldier — and no other kind of unit — pays faith"],
+      "effects": []
+    },
+    "theSacredHost": {
+      "name": "The Sacred Host",
+      "decks": ["dominion", "devotion"],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "An army that prays is an army twice fed.",
+      "text": "Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 10 faith. Each military unit costs +1 gold upkeep while this card is active.",
+      "deferred": ["soldiers may be bought with faith, in the cities that keep a temple"],
+      "effects": []
+    },
+    "fieldAcademies": {
+      "name": "Field Academies",
+      "decks": ["dominion", "scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Every campaign is a lecture somebody survived.",
+      "text": "Your first combat kill each turn grants 15 science. Cities with a Library produce siege units 25% faster.",
+      "deferred": ["the first kill of each turn, and no other, teaches you something"],
+      "effects": []
+    },
+    "theEngineerCorps": {
+      "name": "The Engineer Corps",
+      "decks": ["dominion", "scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The wall falls to arithmetic before it falls to stone.",
+      "text": "Siege units gain +1 movement. Cities with a Workshop gain +20% production toward siege units and +2 science while at war.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": { "modelClass": "siege" }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 20,
+          "class": { "modelClass": "siege" },
+          "scope": { "test": "hasBuilding", "building": "workshop" }
+        },
+        {
+          "kind": "conditionRule",
+          "when": { "test": "atWar" },
+          "then": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "science": 2,
+              "scope": { "test": "hasBuilding", "building": "workshop" }
+            }
+          ]
+        }
+      ]
+    },
+    "theImperialExaminations": {
+      "name": "The Imperial Examinations",
+      "decks": ["dominion", "magisterial"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The sword guards the hall; the hall decides who holds the sword.",
+      "text": "Garrisoned cities with a Monument gain +2 culture and +1 scholar renown.",
+      "deferred": ["the garrisoned towns with a monument each raise a scholar's name"],
+      "effects": []
+    },
+    "examinationsOfState": {
+      "name": "Examinations of State",
+      "decks": ["dominion", "magisterial"],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The realm asks its questions in writing, and keeps the answers.",
+      "text": "Cities with a Monument and a garrison gain +1 science and +1 culture per three citizens. Ungarrisoned cities receive no bonus.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "population",
+          "within": "city",
+          "per": 3,
+          "to": "science",
+          "amount": 1,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "hasBuilding", "building": "monument" },
+              { "test": "garrisoned" }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "population",
+          "within": "city",
+          "per": 3,
+          "to": "culture",
+          "amount": 1,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "hasBuilding", "building": "monument" },
+              { "test": "garrisoned" }
+            ]
+          }
+        }
+      ]
+    },
+    "marketGardens": {
+      "name": "Market Gardens",
+      "decks": ["expansionist", "commerce"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The cabbage that reaches the road is worth two in the field.",
+      "text": "Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination.",
+      "deferred": ["a farm standing beside a road is worth a coin"],
+      "effects": []
+    },
+    "theProvincialFair": {
+      "name": "The Provincial Fair",
+      "decks": ["expansionist", "commerce"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Once a year the province remembers it is one.",
+      "text": "Connected noncapital cities with a Market gain +2 food. Their worked plantations, camps and pastures gain +1 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "connected" },
+              { "test": "notCapital" },
+              { "test": "hasBuilding", "building": "market" }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
+          "on": {
+            "test": "anyImprovement",
+            "improvements": ["plantation", "camp", "pasture"]
+          },
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "connected" },
+              { "test": "notCapital" },
+              { "test": "hasBuilding", "building": "market" }
+            ]
+          }
+        }
+      ]
+    },
+    "sacredGroves": {
+      "name": "Sacred Groves",
+      "decks": ["expansionist", "devotion"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Some trees were here before the altar, and knew it.",
+      "text": "Worked, unimproved forests gain +1 food and +1 faith.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "faith": 1,
+          "on": {
+            "test": "all",
+            "of": [{ "test": "feature", "feature": "forest" }, { "test": "unimproved" }]
+          }
+        }
+      ]
+    },
+    "harvestOfferings": {
+      "name": "Harvest Offerings",
+      "decks": ["expansionist", "devotion"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The first sheaf is never eaten.",
+      "text": "Farms gain +1 faith in cities following your religion. When those cities grow, they gain 10 production.",
+      "deferred": ["a town of your faith that grows is given a day's labour with it"],
+      "effects": []
+    },
+    "hydraulicSchools": {
+      "name": "Hydraulic Schools",
+      "decks": ["expansionist", "scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Water taught us the level, and the level taught us everything.",
+      "text": "Cities with an Aqueduct gain +1 science per three citizens and +20% production toward science buildings.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "population",
+          "within": "city",
+          "per": 3,
+          "to": "science",
+          "amount": 1,
+          "scope": { "test": "hasBuilding", "building": "aqueduct" }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "buildingCategory": "science",
+          "percent": 20,
+          "scope": { "test": "hasBuilding", "building": "aqueduct" }
+        }
+      ]
+    },
+    "theHydraulicCommonwealth": {
+      "name": "The Hydraulic Commonwealth",
+      "decks": ["expansionist", "scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "A realm is what its water agrees to.",
+      "text": "Aqueducts cost 30% less production. Cities with an Aqueduct gain science equal to 20% of their base food surplus, minimum zero, and +1 production per three citizens.",
+      "deferred": ["a share of the grain a town has left over is gained again as learning"],
+      "effects": []
+    },
+    "gardenCities": {
+      "name": "Garden Cities",
+      "decks": ["expansionist", "magisterial"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Plant the square, and the square will plant the town.",
+      "text": "Cities with a Monument gain +1 culture per three worked farms, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness.",
+      "deferred": ["the farms a town actually works are counted, and paid in song"],
+      "effects": []
+    },
+    "theSculptedLandscape": {
+      "name": "The Sculpted Landscape",
+      "decks": ["expansionist", "magisterial"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The master left, and the valley kept the habit.",
+      "text": "Farms beside a great-person improvement gain +1 food and +1 culture. Each farm receives this once regardless of the number of adjacent works.",
+      "deferred": ["a field that lies beside a master's work is the better for it"],
+      "effects": []
+    },
+    "pilgrimMarkets": {
+      "name": "Pilgrim Markets",
+      "decks": ["commerce", "devotion"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Every shrine grows a street of stalls.",
+      "text": "Routes gain +2 gold and +2 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify.",
+      "deferred": ["a road pays when either of its two ends keeps a holy site"],
+      "effects": []
+    },
+    "theTitheCross": {
+      "name": "The Tithe",
+      "decks": ["commerce", "devotion"],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "A tenth of everything, counted twice.",
+      "text": "Cities with a Temple gain gold equal to 25% of their base faith. Gold purchases of religious buildings there cost 30% less.",
+      "deferred": ["religious buildings are cheaper to buy in the towns that keep a temple"],
+      "effects": []
+    },
+    "merchantScholars": {
+      "name": "Merchant Scholars",
+      "decks": ["commerce", "scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "He went for pepper and came back with a grammar.",
+      "text": "Foreign routes from a city with a Library gain +3 science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "science": 3,
+          "origin": { "test": "hasBuilding", "building": "library" },
+          "crossing": "international"
+        }
+      ]
+    },
+    "theExchangeOfDiscoveries": {
+      "name": "The Exchange of Discoveries",
+      "decks": ["commerce", "scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Two ports, two answers, and neither one wrong.",
+      "text": "Cities with a University gain +2 science for each distinct foreign empire served by their outgoing routes, at most +8. Those routes gain +2 gold.",
+      "deferred": ["a town counts the distinct realms its own caravans reach"],
+      "effects": []
+    },
+    "travellingPlayers": {
+      "name": "Travelling Players",
+      "decks": ["commerce", "magisterial"],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The cart is a stage with wheels on it.",
+      "text": "Foreign routes from a city with a Monument gain +2 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "culture": 2,
+          "origin": { "test": "hasBuilding", "building": "monument" },
+          "crossing": "international"
+        }
+      ]
+    },
+    "theCosmopolitanCourt": {
+      "name": "The Cosmopolitan Court",
+      "decks": ["commerce", "magisterial"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Six languages at one table, and the wine does the translating.",
+      "text": "Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +2 gold.",
+      "deferred": ["a town's own foreign roads are counted toward the names it raises"],
+      "effects": []
+    },
+    "cloisterSchools": {
+      "name": "Cloister Schools",
+      "decks": ["devotion", "scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Bread in the morning, letters in the afternoon.",
+      "text": "Cities with both a Temple and a Library gain +3 food and +3 science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 3,
+          "science": 3,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "hasBuilding", "building": "temple" },
+              { "test": "hasBuilding", "building": "library" }
+            ]
+          }
+        }
+      ]
+    },
+    "theCloister": {
+      "name": "The Cloister",
+      "decks": ["devotion", "scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The walls keep the world out and the argument in.",
+      "text": "Cities with a Temple gain science equal to 20% of their base faith. Their Libraries and Universities each gain +2 food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "from": "faith",
+          "to": "science",
+          "percent": 20,
+          "scope": { "test": "hasBuilding", "building": "temple" }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "hasBuilding", "building": "temple" },
+              { "test": "hasBuilding", "building": "library" }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "hasBuilding", "building": "temple" },
+              { "test": "hasBuilding", "building": "university" }
+            ]
+          }
+        }
+      ]
+    },
+    "sacredCommissions": {
+      "name": "Sacred Commissions",
+      "decks": ["devotion", "magisterial"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The masons were paid in indulgence and stone.",
+      "text": "Cities with a Holy Site gain +25% production toward wonders. Completing a wonder grants 40 faith.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 25,
+          "scope": { "test": "hasImprovement", "improvement": "holySite" }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "completion",
+          "wonder": true,
+          "grant": { "yield": "faith", "amount": 40 }
+        }
+      ]
+    },
+    "sacredPatronage": {
+      "name": "Sacred Patronage",
+      "decks": ["devotion", "magisterial"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Genius is cheap where the faithful are many.",
+      "text": "Faith may purchase great-person drafts at the escalating conversion price. Spending a great person grants 30 faith, at most once per turn.",
+      "deferred": ["spending a great person pays faith, but never more than once in a turn"],
+      "effects": []
+    },
+    "illuminatedTreatises": {
+      "name": "Illuminated Treatises",
+      "decks": ["scientific", "magisterial"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Gold leaf on a proof nobody can read yet.",
+      "text": "Cities with both a Library and a Monument gain +1 science and +1 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 1,
+          "culture": 1,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "hasBuilding", "building": "library" },
+              { "test": "hasBuilding", "building": "monument" }
+            ]
+          }
+        }
+      ]
+    },
+    "theHouseOfWisdomCross": {
+      "name": "The House of Wisdom",
+      "decks": ["scientific", "magisterial"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Translate everything, and argue afterwards.",
+      "text": "Worked Academies gain +2 culture. Cities working an Academy gain +1 renown and +20% production toward wonders. Each city receives the city bonus once.",
+      "deferred": ["the towns that work an academy each raise a name of their own"],
+      "effects": []
+    },
+    "marcherLords": {
+      "name": "Marcher Lords",
+      "decks": ["dominion", "expansionist"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The border is a place, and somebody has to live there.",
+      "text": "Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one.",
+      "deferred": ["a town planted near a rival's border is cheaper to hold"],
+      "effects": []
+    },
+    "triumphalArches": {
+      "name": "Triumphal Arches",
+      "decks": ["dominion", "magisterial"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Stone remembers the parade long after the army forgets it.",
+      "text": "Capturing a city grants 40 culture and +1 general renown. Cities containing a wonder gain +5 defence.",
+      "deferred": [
+        "taking a town raises the name of a general in particular, and a town that holds a wonder is the harder to storm"
+      ],
+      "effects": []
+    },
+    "theCrusaderOrders": {
+      "name": "The Crusader Orders",
+      "decks": ["dominion", "devotion"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "They took vows, and then they took the coast.",
+      "text": "Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it.",
+      "deferred": ["taking a town preaches your faith into it, and the unbelieving ground is the harder fought"],
+      "effects": []
+    },
+    "theGrainExchange": {
+      "name": "The Grain Exchange",
+      "decks": ["expansionist", "commerce"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A full granary is a promise other towns can eat.",
+      "text": "Domestic routes from a city with a Granary give +3 food to their destination. Cities receiving one gain +1 happiness.",
+      "deferred": ["the town at the far end of one of these particular roads is the gladder for it"],
+      "effects": []
+    },
+    "theMonasteryLibraries": {
+      "name": "The Monastery Libraries",
+      "decks": ["devotion", "scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Copy it twice: once for God, once for the shelf.",
+      "text": "Monasteries give +3 science. Libraries give +2 faith.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 3,
+          "scope": { "test": "hasBuilding", "building": "monastery" }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "faith": 2,
+          "scope": { "test": "hasBuilding", "building": "library" }
+        }
+      ]
+    },
+    "theMerchantNavigators": {
+      "name": "The Merchant Navigators",
+      "decks": ["commerce", "scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The chart was drawn to find a market, and found a world.",
+      "text": "Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +3 science.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": { "category": "naval" }
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "science": 3,
+          "origin": {
+            "test": "all",
+            "of": [
+              { "test": "hasBuilding", "building": "harbour" },
+              { "test": "hasBuilding", "building": "library" }
+            ]
+          }
+        }
+      ]
+    },
+    "gardenProvinces": {
+      "name": "Garden Provinces",
+      "decks": ["expansionist", "magisterial"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The road brought the seed, and the square brought the song.",
+      "text": "Connected cities with a Monument gain +2 food and +2 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 2,
+          "culture": 2,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "connected" },
+              { "test": "hasBuilding", "building": "monument" }
+            ]
+          }
+        }
+      ]
+    },
+
+    "hearthStores": {
+      "name": "Hearth Stores",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "What the hearth keeps, the winter cannot ask for.",
+      "text": "Your capital gains +1 food.",
+      "effects": [{ "kind": "pays", "where": "city", "food": 1, "scope": { "test": "capital" } }]
+    },
+    "commonTools": {
+      "name": "Common Tools",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "One good adze, borrowed by everybody.",
+      "text": "Your capital gains +1 production toward workers and buildings.",
+      "deferred": ["the hammers are for workers and buildings, and for nothing else"],
+      "effects": []
+    },
+    "watchmen": {
+      "name": "Watchmen",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "They know which stones are loose.",
+      "text": "Friendly combat units gain +2 strength when defending in your territory.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "side": "defend",
+          "when": { "test": "ownTerritory" }
+        }
+      ]
+    },
+    "restingCamps": {
+      "name": "Resting Camps",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A fire, a pot, and nobody shouting.",
+      "text": "Friendly units that take no action this turn heal an additional 5 health when otherwise eligible to heal.",
+      "effects": [{ "kind": "unitStat", "stat": "heal", "amount": 5 }]
+    },
+    "localMarkets": {
+      "name": "Local Markets",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Two stalls make a market; three make a rumour.",
+      "text": "Your capital gains +2 gold.",
+      "effects": [{ "kind": "pays", "where": "city", "gold": 2, "scope": { "test": "capital" } }]
+    },
+    "theVillageScribe": {
+      "name": "The Village Scribe",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "He writes the letters and reads them back wrong on purpose.",
+      "text": "Your capital gains +1 science.",
+      "effects": [{ "kind": "pays", "where": "city", "science": 1, "scope": { "test": "capital" } }]
+    },
+    "publicGatherings": {
+      "name": "Public Gatherings",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A crowd is a town finding out what it thinks.",
+      "text": "Your capital gains +1 culture.",
+      "effects": [{ "kind": "pays", "where": "city", "culture": 1, "scope": { "test": "capital" } }]
+    },
+    "householdAltars": {
+      "name": "Household Altars",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The smallest shrine is the one nobody skips.",
+      "text": "Your capital gains +1 faith.",
+      "effects": [{ "kind": "pays", "where": "city", "faith": 1, "scope": { "test": "capital" } }]
+    },
+    "boundaryStonesCommon": {
+      "name": "Boundary Stones",
+      "decks": [],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Move one at night and the whole valley knows by noon.",
+      "text": "Cities with a Monument expand their borders 20% faster. This does not increase draft culture.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "borderCulture",
+          "percent": 20,
+          "scope": { "test": "hasBuilding", "building": "monument" }
+        }
+      ]
+    },
+    "publicWells": {
+      "name": "Public Wells",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Dig deep enough and the dry town forgets it was dry.",
+      "text": "Cities without freshwater gain +1 food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 1,
+          "scope": { "test": "notFreshwater" }
+        }
+      ]
+    },
+    "civicPeace": {
+      "name": "Civic Peace",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Nothing happened today, and that was the achievement.",
+      "text": "Gain +1 empire happiness.",
+      "effects": [{ "kind": "happiness", "amount": 1 }]
+    },
+    "roadCrews": {
+      "name": "Road Crews",
+      "decks": [],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "They mend the road they are standing on, forever.",
+      "text": "Workers gain +1 movement when starting their turn on a road you own.",
+      "deferred": ["a worker that wakes on one of your roads travels further that day"],
+      "effects": []
+    },
+    "roadMaintenance": {
+      "name": "Road Maintenance",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A gravel barrow beats a rebuilt bridge.",
+      "text": "Road upkeep is reduced by 20%, saving at most 4 gold per turn.",
+      "deferred": ["the upkeep of your roads is reduced, up to a limit each turn"],
+      "effects": []
+    },
+    "emergencyStores": {
+      "name": "Emergency Stores",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Sealed jars, and an argument about when to open them.",
+      "text": "Cities of at most four population gain +1 food and +1 production toward buildings.",
+      "deferred": ["the hammers are for buildings, and for nothing else"],
+      "effects": []
+    },
+    "localClerks": {
+      "name": "Local Clerks",
+      "decks": [],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The register is the realm, kept in a smaller hand.",
+      "text": "Gain +1 authority capacity.",
+      "effects": [{ "kind": "authority", "amount": 1 }]
+    },
+    "publicHospitals": {
+      "name": "Public Hospitals",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A ward with windows, which was the whole discovery.",
+      "text": "Cities of at least eight population gain +1 happiness.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": { "test": "populationAtLeast", "value": 8 }
+        }
+      ]
+    },
+    "commonLedgers": {
+      "name": "Common Ledgers",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Everything counted twice, by two people who dislike each other.",
+      "text": "Cities with a Market gain +1 science; cities with a Library gain +1 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 1,
+          "scope": { "test": "hasBuilding", "building": "market" }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": 1,
+          "scope": { "test": "hasBuilding", "building": "library" }
+        }
+      ]
+    },
+    "cityWatches": {
+      "name": "City Watches",
+      "decks": [],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Half a lantern, all night, on every corner.",
+      "text": "Your cities gain +4 defence. Garrisoned units heal an additional 5 health when otherwise eligible to heal.",
+      "deferred": ["a soldier standing inside one of your towns mends faster there"],
+      "effects": []
+    }
+  }
 }
