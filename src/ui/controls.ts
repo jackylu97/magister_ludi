@@ -312,7 +312,7 @@ import { triumphDef } from '../sim/triumphData';
 import type { BeadAge } from '../sim/beadData';
 import type { BeadAward } from '../sim/beads';
 import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
-import { type RouteMode, type TraderPlunder, routeCities } from '../sim/trade';
+import type { RouteMode, TraderPlunder } from '../sim/trade';
 import { autoExploreError } from '../sim/explore';
 import { type UnitDef, isExplorer, trades, unitDef, unitMaxHp } from '../sim/unitData';
 import { type DisbandReport, treasuryInDebt } from '../sim/upkeep';
@@ -2800,13 +2800,6 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * would notice until a scout walked past a ruin in silence.
    */
   function commit(command: Command): CommandResult {
-    // Read before the dispatch, for `unitSnapshot`'s reason exactly: a caravan
-    // that is plundered during this command is off the board by the time
-    // anybody reports it, and the route died with it (a plundered caravan is a
-    // plundered route). "Your caravan **to Nippur**" is therefore a fact only
-    // the moment before can answer, and re-deriving it afterwards is not a
-    // worse implementation — it is an impossible one.
-    const caravans = caravanDestinations();
     const result = dispatch(getGame(), command);
     if (result.ok) {
       // Orders can move, consume or transfer the piece under a stationary
@@ -2817,16 +2810,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       renderer.noteStateChanged?.();
       pollSightings();
       reportReligion();
-      reportRaids(result, caravans);
-      reportWonders(result);
-      reportGrants(result);
       reportConsecrations(result);
-      reportRoutes(result);
-      reportDiplomacy(result);
       reportExplorers(result);
       reportSieges(result);
       reportCampNews(result);
-      reportPillages(result);
       reportDisbands(command, result);
       reportStarvation(result);
       reportGuilds(result);
@@ -2839,7 +2826,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       checkGreatPersonOffer();
       // **The commit funnel's one outward report of the command itself** — see
       // `reportCommand`, which is this line, exposed, so the two screens that
-      // dispatch for themselves can reach the same listener.
+      // dispatch for themselves can reach the same listener. It carries the
+      // *shared* half of the news with it (`reportSharedNews`), which is why
+      // the raid, route, pillage and diplomacy lines are no longer in the list
+      // above: they are news about this seat whoever's order caused them, and
+      // running them here as well would say everything twice.
       reportCommand(command, result);
     }
     return result;
@@ -2864,7 +2855,64 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function reportCommand(command: Command, result: CommandResult): void {
     if (!result.ok) return;
+    reportSharedNews(result);
     onCommand?.(command, result);
+  }
+
+  /**
+   * **The news that is about this seat, whoever's order caused it.**
+   *
+   * The register the ruling of 2026-09-17 asked for (`docs/flags.md` (jjjjjj)),
+   * and the whole of the bug it was filed against: a route ends inside the
+   * command of whoever ended it, and until now the owner only ever heard about
+   * their own commands. `commit` runs for this client's orders alone — a
+   * rival's go to `reportCommand` (the bots' driver reports every one of them
+   * there, and so do the two screens that dispatch for themselves) — so a
+   * neighbour declaring war swept away three of the player's routes and told
+   * them about the war and not about the routes.
+   *
+   * **The test, and it is the one a new reporter is measured against:**
+   *
+   *   · *Could another empire's order produce this field?* If it could not —
+   *     the field arrives on `endTurn` alone, or on a verb only this seat
+   *     issues — the reporter stays in `commit`, where it has always been, and
+   *     moving it would buy nothing.
+   *   · *Is every line it can print either filtered to this seat, or news the
+   *     whole world is told?* If a reporter can narrate another empire's own
+   *     doings, it stays in `commit` — that is exactly the guard
+   *     `reportCommand`'s docblock is keeping, and it is right.
+   *
+   * Six pass, and each is filtered where it stands: a **raid** (this seat as
+   * the defender, and never as the attacker), a **plundered caravan** on the
+   * arrival path, a **route that ended** (this seat's own), a **pillage** (this
+   * seat as the victim), the **diplomatic** lines (a war and a peace are public
+   * by the worksheet's own ruling; every other line in it names this seat), and
+   * a **wonder** — which is deliberately not seat-filtered because a marvel is
+   * the one thing another empire finishing takes away from you, and a rite's
+   * hammers can finish one inside a rival's command. `reportGrants` rides with
+   * the wonder line because the two are one piece of news read twice, the
+   * world's half and the owner's, and separating them would print the second
+   * before the first.
+   *
+   * The ones that stayed, and why they are not oversights: the **sighting**
+   * and **faith** polls read the *board* against a baseline rather than reading
+   * this result, and their honest cadence is "the board has stopped moving" —
+   * running them inside each of a dozen bot orders would narrate a rival's
+   * march hex by hex. Everything else in `commit`'s list arrives on the
+   * resolving `endTurn` or on a verb this seat issued: sieges, camps, disbands,
+   * starvation, guilds, triumphs, an age opening, the census, the Opus, beads,
+   * consecrations, explorers, and the two offers that raise a card. A rival's
+   * order cannot carry any of them, and two of them open a modal — which is a
+   * thing no rival's order may ever do.
+   */
+  function reportSharedNews(result: CommandResult): void {
+    reportRaids(result);
+    reportTraderLosses(result);
+    reportRoutes(result);
+    reportPillages(result);
+    reportWonders(result);
+    reportGrants(result);
+    reportDiplomacy(result);
   }
 
   /**
@@ -2989,21 +3037,6 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
-   * **A route ran out.** One line per caravan of this seat's that reached the
-   * end of its twenty turns during the resolution.
-   *
-   * `reportTriumphs`' shape and `reportGrants`' scale: seat-filtered, read off
-   * the reducer's own report (`CommandResult.routesEnded`, which arrives on the
-   * resolving `endTurn` alone), and folded into `commit` so there is one call
-   * site rather than one per verb. Nothing here diffs the board, and it could
-   * not: a route that ended left no trace on the piece except an absence, and a
-   * renewed one looks exactly like a route that was always running.
-   *
-   * The sentence is `tradeLines.ts`', with the two halves the player has to tell
-   * apart — a caravan come home is a slot to spend and a piece to give an order
-   * to, and one that set out again is neither.
-   */
-  /**
    * **A war opened, a war ended, an army sent home, a town pulled down.**
    *
    * `reportRoutes`' shape and reason, four kinds of news at once because they
@@ -3113,11 +3146,34 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     return list;
   }
 
+  /**
+   * **A route ended.** One line per caravan of this seat's whose route stopped
+   * — its term run out at home, the road closed by a war, a town at one end
+   * pulled down or lost, or the cart stranded where it could not path.
+   *
+   * Seat-filtered, read off the reducer's own report
+   * (`CommandResult.routesEnded`). Nothing here diffs the board, and it could
+   * not: a route that ended left no trace on the piece except an absence, and a
+   * renewed one looks exactly like a route that was always running.
+   *
+   * It is in the **shared register** rather than in `commit`'s list, and that
+   * is the whole of the ruling of 2026-09-17: three of those four endings are
+   * decided inside *somebody else's* command — a declaration sweeps every route
+   * between two empires, a razing takes both its ends — so a reporter that only
+   * ever ran for this client's own orders was a reporter that could not see the
+   * commonest way a player loses a route. See `reportSharedNews`.
+   *
+   * The sentence is `tradeLines.ts`', and so is the **silence**: an uneventful
+   * renewal answers `null` and says nothing, because fifteen routes renewing on
+   * twenty-turn terms is a notice a turn and a log that holds a hundred entries
+   * was losing real news to it.
+   */
   function reportRoutes(result: CommandResult): void {
     if (!result.ok || !result.routesEnded) return;
     for (const report of result.routesEnded) {
       if (report.ownerId !== localPlayerId) continue;
-      announce(routeEndSentence(getGame().state, report));
+      const line = routeEndSentence(getGame().state, report);
+      if (line !== null) announce(line);
     }
   }
 
@@ -3600,7 +3656,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * banner already shows the bar. The day a *player* besieges a town, this is
    * the function that grows the clause.
    */
-  function reportRaids(result: CommandResult, caravans: ReadonlyMap<number, string>): void {
+  function reportRaids(result: CommandResult): void {
     if (!result.ok || !result.combats) return;
     const { state } = getGame();
     for (const combat of result.combats) {
@@ -3612,10 +3668,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // it is none of those three. The piece is dead like anything else in
       // `killed`, but what a player has lost is the *route* — twenty turns of
       // food from a town they chose — and "your trader was slain" would bury
-      // that under a casualty report. The destination comes from the snapshot
-      // `commit` took before the dispatch; see there.
+      // that under a casualty report. The destination is carried on the report
+      // itself (`TraderPlunder.toCityId`) — see `plunderLossSentence`.
       if (combat.plundered) {
-        announce(plunderLossSentence(caravans.get(combat.defenderUnitId) ?? null), { cell });
+        announce(plunderLossSentence(state, combat.plundered), { cell });
         continue;
       }
       const attacker = isBarbarian(state, combat.attackerOwnerId)
@@ -3645,23 +3701,37 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
-   * Where each of the local seat's laden caravans is bound, by unit id.
+   * **A caravan of this seat's ridden down by a piece that walked onto it.**
    *
-   * Taken before a dispatch and read after it (`commit`). Two or three entries
-   * in a normal game, so it costs nothing; and it is the only way the interface
-   * can name the far end of a route that has just been plundered — the piece is
-   * gone, and the route was the piece.
+   * `reportRaids`' plunder clause one path over, and the half that used to be
+   * missing entirely (the ruling of 2026-09-17, `docs/flags.md` (jjjjjj)). A
+   * cart is stacking-free and has no defence, so *walking onto it* is the
+   * ordinary way to take one — no blow is struck, nothing rides `combats`, and
+   * the only record is `ArrivalReport.plundered`, which the arrival block read
+   * for the **raider's** spoils and nobody read for the owner's loss.
+   *
+   * Seat-filtered on the victim, which is what keeps the two halves of one
+   * event apart: the raider hears what their soldiers took (`reportArrivals`)
+   * and the owner hears what they lost, and neither is ever told the other's
+   * sentence. For this seat's own order the filter is simply never true — a
+   * piece cannot plunder its own empire's cart — so the line belongs to a
+   * rival's command, which is why it is in the shared register rather than in
+   * the arrival block beside its twin.
+   *
+   * The hex comes off the report (`TraderPlunder.at`) rather than off a piece,
+   * because the piece that did it is somebody else's and may have marched on.
    */
-  function caravanDestinations(): Map<number, string> {
-    const names = new Map<number, string>();
+  function reportTraderLosses(result: CommandResult): void {
+    if (!result.ok || !result.arrivals) return;
     const { state } = getGame();
-    for (const unit of state.units) {
-      if (unit.ownerId !== localPlayerId) continue;
-      const pair = routeCities(state, unit);
-      if (!pair) continue;
-      names.set(unit.id, cityDisplayName(state, pair.to));
+    for (const arrival of result.arrivals) {
+      for (const plunder of arrival.plundered) {
+        if (plunder.fromOwnerId !== localPlayerId) continue;
+        announce(plunderLossSentence(state, plunder), {
+          cell: { col: plunder.at.col, row: plunder.at.row },
+        });
+      }
     }
-    return names;
   }
 
   // --- move mode -----------------------------------------------------------
@@ -6730,7 +6800,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // same way and for the same reason: the gold is banked, the grain is in a
       // basket and the caravan is gone, so only the command that paid it can
       // say what it was worth (`ArrivalReport.plundered`).
+      //
+      // **This is the raider's sentence and only the raider's.** The owner's is
+      // `reportTraderLosses`, in the shared register, because the order that
+      // costs them the cart is never their own. The clause below can therefore
+      // never be true for a march this seat ordered; it is written so that the
+      // day a relayed order reaches this function under netcode, the victim
+      // does not read a boast about their own caravan.
       for (const plunder of arrival.plundered) {
+        if (plunder.fromOwnerId === localPlayerId) continue;
         const victim = playerById(getGame().state, plunder.fromOwnerId)?.name ?? 'an empire';
         announce(plunderSpoilsSentence(plunder, victim), { cell: at });
       }
