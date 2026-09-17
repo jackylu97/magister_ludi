@@ -1,0 +1,284 @@
+/**
+ * **The shared shelf, pinned** — `data/decks/common.json`, the seventh deck file
+ * (the decks rework, `docs/plans/decks-rework.md` D1b; the design of record is
+ * `docs/six-decks-first-cut.md`, its "Cross-type cards" and "Generic common
+ * pool" tables, read against that doc's "Card-reading conventions").
+ *
+ * The file holds **two kinds of row and no third**: a *generic* row belongs to
+ * every seat and names no deck (`decks: []`), a *cross-type* row names exactly
+ * two (`decks: [a, b]`) and is drawn by a seat holding either. A row naming one
+ * deck belongs in that deck's own file and fails `decks.test.ts`' register
+ * before it reaches here.
+ *
+ * What is pinned, in the brief's order: the two shapes of membership; a band
+ * and a rarity the draw can read; every live row's effects in the evaluator's
+ * own vocabulary and printable in the describers' own words; every deferred row
+ * out of the pools and carrying its sentence in plain prose; and the third
+ * position's cadence dealt to a two-deck seat — a generic on a generic turn, a
+ * cross naming one of the seat's decks on a cross turn, and never a cross
+ * naming neither.
+ *
+ * **The doc tables are `statecraftDocSync.test.ts`'** (D1a re-cut the
+ * cross-type and generic tables of `docs/orders-and-doctrines.md` to read this
+ * file's two kinds). Nothing here mirrors them a second time.
+ */
+
+import { describe, expect, it } from 'vitest';
+
+import { type Game, createGame } from '../../../src/sim/game';
+import { applyCommand } from '../../../src/sim/commands';
+import { type GameState, type Player, playerById } from '../../../src/sim/state';
+import {
+  eligibleFor,
+  positionBag,
+  settleDraft,
+  thirdPositionOf,
+} from '../../../src/sim/statecraft';
+import { describeCard, describeEffects, stripRefs } from '../../../src/sim/statecraft/describers';
+import {
+  type CardEffect,
+  type OrderId,
+  BANDS,
+  DECK_FILE_ORDERS,
+  DECK_IDS,
+  isDeckId,
+  orderDef,
+  orderIsDealt,
+} from '../../../src/sim/statecraftData';
+
+/** Every row of the shared file, in file order. */
+const COMMON: readonly OrderId[] = DECK_FILE_ORDERS.common;
+
+/** A row nothing deals — no effects and no charter. See `orderIsDealt`. */
+function isDeferred(id: OrderId): boolean {
+  return (orderDef(id).deferred?.length ?? 0) > 0;
+}
+
+const LIVE = COMMON.filter((id) => !isDeferred(id));
+const DEFERRED = COMMON.filter((id) => isDeferred(id));
+
+const RARITIES = ['common', 'uncommon', 'rare'];
+
+/**
+ * The evaluator's own source, for the register below: `statecraft/evaluator.ts`
+ * is the one module that switches on a `CardEffect.kind`, so a kind it never
+ * names is a shape nothing reads. Read the repo's way (Vite's raw import), and
+ * `?raw` rather than a parse because what is being asked is whether the word is
+ * written there at all.
+ */
+const evaluatorFiles = import.meta.glob('../../../src/sim/statecraft/evaluator.ts', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+});
+const EVALUATOR = Object.values(evaluatorFiles)[0] as string;
+
+describe('the shared shelf is two kinds of row and no third', () => {
+  it('holds rows at all, of both kinds', () => {
+    expect(COMMON.length).toBeGreaterThan(0);
+    expect(LIVE.length).toBeGreaterThan(0);
+    expect(COMMON.filter((id) => orderDef(id).decks.length === 0).length).toBeGreaterThan(0);
+    expect(COMMON.filter((id) => orderDef(id).decks.length === 2).length).toBeGreaterThan(0);
+  });
+
+  it('names zero decks or two, each a deck, and never the same one twice', () => {
+    for (const id of COMMON) {
+      const home = orderDef(id).decks;
+      expect([0, 2], `${id} names ${home.length} deck(s)`).toContain(home.length);
+      for (const deck of home) expect(isDeckId(deck), `${id}: "${deck}"`).toBe(true);
+      expect(new Set(home).size, `${id} names one deck twice`).toBe(home.length);
+      for (const deck of home) expect(DECK_IDS, id).toContain(deck);
+    }
+  });
+
+  it('gives every row a band, a rarity, a name, a thread and its ratified words', () => {
+    for (const id of COMMON) {
+      const def = orderDef(id);
+      expect(BANDS, `${id} — the band`).toContain(def.band);
+      expect(RARITIES, `${id} — the rarity`).toContain(def.rarity);
+      expect(def.name.length, `${id} — the name`).toBeGreaterThan(0);
+      expect(def.flavor.length, `${id} — the flavour`).toBeGreaterThan(0);
+      expect(def.text, `${id} carries no ratified text`).toBeDefined();
+      expect(def.text!.length, `${id} — the words`).toBeGreaterThan(0);
+      // The shared shelf carries no archetype thread: a card everybody may draw
+      // belongs to nobody's line.
+      expect(def.line, `${id} — the thread`).toBe('none');
+      // The old pool and office fields are the retired shelf's; a row written
+      // after the rework carries neither.
+      expect(def.pool, `${id} carries a pre-rework pool`).toBeUndefined();
+      expect(def.slot, `${id} carries a pre-rework office`).toBeUndefined();
+      expect(def.retired, `${id} is retired`).toBeUndefined();
+    }
+  });
+
+  it('writes no id twice, and writes every id in lowerCamel', () => {
+    expect(new Set(COMMON).size).toBe(COMMON.length);
+    for (const id of COMMON) expect(id, id).toMatch(/^[a-z][A-Za-z0-9]*$/);
+  });
+});
+
+describe('a live row', () => {
+  it('carries effects, and is dealt', () => {
+    for (const id of LIVE) {
+      expect(orderDef(id).effects.length, `${id} is live and pays nothing`).toBeGreaterThan(0);
+      expect(orderDef(id).deferred, id).toBeUndefined();
+      expect(orderIsDealt(id), `${id} is live and in no pool`).toBe(true);
+    }
+  });
+
+  it('says every clause in a shape the evaluator reads — the register', () => {
+    // A nested clause counts: `conditionRule.then` holds ordinary effects and a
+    // shape nothing reads is no better for being gated.
+    function walk(effects: readonly CardEffect[], id: OrderId): void {
+      for (const effect of effects) {
+        expect(
+          EVALUATOR.includes(`'${effect.kind}'`),
+          `${id} names "${effect.kind}", which the evaluator never reads`,
+        ).toBe(true);
+        if (effect.kind === 'conditionRule') walk(effect.then, id);
+      }
+    }
+    for (const id of LIVE) walk(orderDef(id).effects, id);
+  });
+
+  it('prints through the describers, in whole sentences, with no raw keyword ref', () => {
+    for (const id of LIVE) {
+      const clauses = describeCard(id);
+      expect(clauses.length, `${id} describes as nothing`).toBeGreaterThan(0);
+      for (const clause of clauses) {
+        expect(clause.text.trim().length, `${id} — an empty clause`).toBeGreaterThan(0);
+        // Every named thing is a well-formed ref (`[[kind:id|Name]]`); strip
+        // them and nothing that opens one may be left.
+        expect(stripRefs(clause.text), `${id} — a raw ref survives`).not.toContain('[[');
+        expect(clause.deferred, `${id} — a live row prints a struck clause`).not.toBe(true);
+      }
+      // The card's face is its effects' words first, whatever it adds after.
+      const printed = describeEffects(orderDef(id).effects, 'empire');
+      expect(printed.length, `${id} — the effects describe as nothing`).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('a deferred row', () => {
+  it('carries its sentence in plain words, no effects, and sits in no pool', () => {
+    for (const id of DEFERRED) {
+      const def = orderDef(id);
+      expect(def.effects, `${id} is deferred and carries effects`).toEqual([]);
+      expect(def.deferred!.length, `${id} — the deferred list`).toBeGreaterThan(0);
+      for (const sentence of def.deferred!) {
+        expect(sentence.trim().length, `${id} — an empty deferred clause`).toBeGreaterThan(0);
+        // Player prose: no identifiers, no numbers (rule 7).
+        expect(sentence, `${id} — "${sentence}" names an identifier`).not.toMatch(/[a-z][A-Z]|[_[\]{}]/);
+        expect(sentence, `${id} — "${sentence}" prints a number`).not.toMatch(/\d/);
+      }
+      // `orderIsDealt`'s own rule: no effects and no charter is no pool.
+      expect(orderIsDealt(id), `${id} is deferred and dealt`).toBe(false);
+      expect(def.charter, `${id} is deferred and charters something`).toBeUndefined();
+      // Still fully readable — the Compendium prints it.
+      expect(def.text, `${id} carries no ratified text`).toBeDefined();
+    }
+  });
+});
+
+// --- the draw ----------------------------------------------------------------
+
+/** A duel: seat 0 under Pachacuti (expansionist · commerce), seat 1 the rainbow. */
+function seated(seed = 11): Game {
+  return createGame({
+    seed,
+    sizeName: 'duel',
+    players: [
+      { name: 'Ada', color: '#d4502e', isHuman: true, leader: 'pachacuti' },
+      { name: 'Bors', color: '#3a7fe8', leader: 'ibnBattutaOfTangier' },
+    ],
+  });
+}
+
+/** Fills the meter and deals a draft to this seat; answers what it dealt. */
+function dealTo(state: GameState, player: Player) {
+  player.culturePool = 10_000;
+  return settleDraft(state, player);
+}
+
+describe('the third position, dealt to a two-deck seat', () => {
+  it('bags a generic for everybody and a cross only where a deck is shared', () => {
+    const g = seated();
+    const ada = playerById(g.state, 0)!;
+    expect(ada.decks).toEqual(['expansionist', 'commerce']);
+    const eligible = eligibleFor(g.state, ada);
+
+    const generic = positionBag(eligible, { kind: 'generic' }, ada.decks);
+    expect(generic.length, 'no generic is eligible at the opening band').toBeGreaterThan(0);
+    for (const id of generic) expect(orderDef(id).decks, id).toEqual([]);
+
+    const cross = positionBag(eligible, { kind: 'cross' }, ada.decks);
+    expect(cross.length, 'no cross-type is eligible at the opening band').toBeGreaterThan(0);
+    for (const id of cross) {
+      const home = orderDef(id).decks;
+      expect(home.length, id).toBe(2);
+      expect(
+        home.some((deck) => ada.decks.includes(deck)),
+        `${id} (${home.join(' · ')}) names neither of the seat's decks`,
+      ).toBe(true);
+    }
+
+    // And the cut is real: a cross naming neither of this seat's decks is on
+    // the shelf and out of its bag.
+    const foreign = COMMON.filter((id) => {
+      const home = orderDef(id).decks;
+      return orderIsDealt(id) && home.length === 2 && !home.some((deck) => ada.decks.includes(deck));
+    });
+    expect(foreign.length, 'the shelf carries no cross outside this seat').toBeGreaterThan(0);
+    for (const id of foreign) expect(cross, id).not.toContain(id);
+  });
+
+  it('deals a generic on the cadence’s generic turns and a shared cross on its cross turns', () => {
+    const g = seated();
+    const ada = playerById(g.state, 0)!;
+    let dealtGeneric = 0;
+    let dealtCross = 0;
+    // Eight regular drafts: the cadence (generic · cross · generic · single)
+    // twice over. Each hand is skipped, which spends it and advances the count.
+    for (let n = 1; n <= 8; n++) {
+      const dealt = dealTo(g.state, ada);
+      expect(dealt, `draft ${n}`).not.toBeNull();
+      expect(ada.statecraft.drafts, `draft ${n}`).toBe(n);
+      const options = dealt!.offer.options;
+      const positions = dealt!.offer.positions;
+      expect(positions?.[2], `draft ${n} — the third position`).toEqual(
+        thirdPositionOf(n).turn === 'single'
+          ? { kind: 'deck', deck: ada.decks[thirdPositionOf(n).single % ada.decks.length]! }
+          : { kind: thirdPositionOf(n).turn },
+      );
+      const third = options[2];
+      if (third !== undefined) {
+        const home = orderDef(third).decks;
+        if (thirdPositionOf(n).turn === 'generic') {
+          expect(home, `draft ${n} — the third card`).toEqual([]);
+          dealtGeneric += 1;
+        } else if (thirdPositionOf(n).turn === 'cross') {
+          expect(home.length, `draft ${n} — the third card`).toBe(2);
+          expect(
+            home.some((deck) => ada.decks.includes(deck)),
+            `draft ${n} dealt ${third} (${home.join(' · ')}), which names neither of the seat's decks`,
+          ).toBe(true);
+          dealtCross += 1;
+        }
+      }
+      // A cross naming neither deck is never anywhere in the hand.
+      for (const id of options) {
+        const home = orderDef(id).decks;
+        if (home.length !== 2) continue;
+        expect(
+          home.some((deck) => ada.decks.includes(deck)),
+          `draft ${n} dealt ${id} (${home.join(' · ')}) out of the seat's pool`,
+        ).toBe(true);
+      }
+      expect(applyCommand(g.state, { type: 'skipOrderOffer', playerId: 0 }).ok, `draft ${n}`).toBe(true);
+    }
+    // The cadence actually came round: four generic turns and two cross turns
+    // in eight drafts, and both kinds were really dealt.
+    expect(dealtGeneric).toBe(4);
+    expect(dealtCross).toBe(2);
+  });
+});
