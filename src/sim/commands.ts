@@ -184,12 +184,18 @@ import {
   doctrineChoiceError,
   forgetTheLaw,
   governmentChoiceError,
+  openRewardHandAt,
   orderChoiceError,
   orderSkipError,
+  rewardChoiceError,
+  rewardOpenError,
+  rewardPassError,
   recordScalingOccasion,
   settleDoctrineChoice,
   settleOrderChoice,
   settleOrderSkip,
+  settleRewardChoice,
+  settleRewardPass,
   slotOrderAt,
   slotOrderError,
   unslotOrderAt,
@@ -1039,6 +1045,51 @@ export interface ChooseDoctrineCommand extends PlayerCommand {
 }
 
 /**
+ * **Opens a banked reward hand** (the decks rework, D1a; the design doc's
+ * "Doctrine reward hands"): spends the oldest of `PlayerStatecraft.rewardHands`
+ * and deals its three rares from `state.rng` into `pendingReward`.
+ *
+ * A command rather than a deal made at the milestone, and the difference is
+ * the whole shape of the rule: a banked reward is *"the same currently
+ * unlocked, leader-eligible catalogue"* at the moment it is opened, so a rare
+ * taken in a normal draft in between is simply not in it, and a band that
+ * opened in between is. The deal is a function of the log — the open is in it
+ * — and never of when somebody looked at a screen.
+ *
+ * It names nothing: the oldest banked count is the one opened, and a seat with
+ * two banked opens them one at a time. An empty shelf is not a refusal — the
+ * command is taken, the count spent, and `CommandResult.rewardExhausted` says
+ * the reward resolved as exhausted at no cost.
+ *
+ * Turn-gated like every other act, and a trap for nobody: a reward blocks
+ * nothing, so a seat that ends its turn with one banked keeps it.
+ */
+export interface OpenRewardHandCommand extends PlayerCommand {
+  type: 'openRewardHand';
+}
+
+/**
+ * **Takes one rare from the reward hand** into the collection. `chooseOrder`'s
+ * shape, refusal for refusal: an index into `RewardOffer.options`, never an id.
+ * An ordinary rare then waits for a chair; a charter's grant is written on the
+ * spot (`applyCharter`). No pity moves — none was read to deal the hand.
+ */
+export interface ChooseRewardCommand extends PlayerCommand {
+  type: 'chooseReward';
+  optionIndex: number;
+}
+
+/**
+ * **Passes on the reward hand, for nothing** — no pity, no refund, no bead;
+ * there was no price and the design doc's *"passing forfeits that
+ * opportunity"* is the whole of it. `skipOrderOffer`'s shape without its
+ * bargain.
+ */
+export interface PassRewardCommand extends PlayerCommand {
+  type: 'passReward';
+}
+
+/**
  * Buys a thing outright, out of a named bank, in one of this player's cities.
  *
  * **One transaction, two banks** (ledger Entry XXIX; Entry XXVIII is the augur
@@ -1708,6 +1759,9 @@ export type Command =
   | UnslotOrderCommand
   | AdoptGovernmentCommand
   | ChooseDoctrineCommand
+  | OpenRewardHandCommand
+  | ChooseRewardCommand
+  | PassRewardCommand
   | PurchaseItemCommand
   | ContributeCommand
   | ConsecrateCommand
@@ -1841,6 +1895,13 @@ export type CommandResult =
        * about.
        */
       opusOpened?: boolean;
+      /**
+       * **The reward hand resolved as exhausted** — an `openRewardHand` that
+       * found no rare left to deal (the decks rework, D1a; the design doc's
+       * *"resolve the reward as exhausted with no cost"*). The count was spent
+       * and nothing was dealt; a screen that opened the hand is owed the word.
+       */
+      rewardExhausted?: true;
       /**
        * A war opening, from `declareWar` alone (`WarDeclaredReport`).
        *
@@ -3265,7 +3326,15 @@ function applyChooseOrder(state: GameState, command: ChooseOrderCommand): Comman
   const problem = orderChoiceError(state, actor.id, command.optionIndex);
   if (problem) return fail(problem);
 
-  settleOrderChoice(actor, command.optionIndex);
+  const taken = settleOrderChoice(actor, command.optionIndex);
+  // **A charter's grant just changed what the seat may build and research**
+  // (D1a): `isUnlocked` reads the cards through the law's memo, so the memo is
+  // dropped and the meters told, exactly as a slotting does. An ordinary card
+  // lands in the collection and changes nothing until it is seated.
+  if (taken?.chartered) {
+    forgetTheLaw(state);
+    bumpEconomy(state);
+  }
   return ok();
 }
 
@@ -3465,6 +3534,70 @@ function applyAdoptGovernment(
   // again inside this command today, and the drop costs nothing — it is here
   // so the seam is in `forgetTheLaw`'s register the day something does.
   forgetTheLaw(state);
+  return ok();
+}
+
+/**
+ * Opens a reward hand. See `OpenRewardHandCommand`.
+ *
+ * `applySkipOrderOffer`'s shape: the seat's two questions here, everything
+ * about the *bank* delegated whole to `rewardOpenError`, and not one line below
+ * the validation runs until both have been answered — so a refused open leaves
+ * the state byte-identical, generator included. An exhausted shelf is an
+ * accepted open that dealt nothing, and the result says so.
+ */
+function applyOpenRewardHand(state: GameState, command: OpenRewardHandCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot open a reward hand`);
+  }
+
+  const problem = rewardOpenError(state, actor.id);
+  if (problem) return fail(problem);
+
+  const opened = openRewardHandAt(state, actor);
+  const result = ok();
+  if (result.ok && opened !== null && opened.offer === null) result.rewardExhausted = true;
+  return result;
+}
+
+/**
+ * Takes a rare from the reward hand. See `ChooseRewardCommand`.
+ * `applyChooseOrder`'s twin down to the announcement: a charter's grant may
+ * change what the seat can build, so the law's memo is dropped and the meters
+ * told, exactly as a pick does.
+ */
+function applyChooseReward(state: GameState, command: ChooseRewardCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot take a reward`);
+  }
+
+  const problem = rewardChoiceError(state, actor.id, command.optionIndex);
+  if (problem) return fail(problem);
+
+  const taken = settleRewardChoice(actor, command.optionIndex);
+  if (taken?.chartered) {
+    forgetTheLaw(state);
+    bumpEconomy(state);
+  }
+  return ok();
+}
+
+/** Passes on the reward hand. See `PassRewardCommand`. `applySkipOrderOffer`'s twin. */
+function applyPassReward(state: GameState, command: PassRewardCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot pass on a reward`);
+  }
+
+  const problem = rewardPassError(state, actor.id);
+  if (problem) return fail(problem);
+
+  settleRewardPass(actor);
   return ok();
 }
 
@@ -4630,6 +4763,11 @@ function orderedUnitId(command: Command): number | undefined {
     case 'unslotOrder':
     case 'adoptGovernment':
     case 'chooseDoctrine':
+    // The reward hand's three verbs are about the empire's collection, exactly
+    // as a draft is: nothing on the board wakes.
+    case 'openRewardHand':
+    case 'chooseReward':
+    case 'passReward':
     // Buying a piece names a *type*, and taking a god names an offer; neither is
     // an order to anything standing on the board.
     case 'purchaseItem':
@@ -4749,6 +4887,9 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
   unslotOrder: 'economy',
   adoptGovernment: 'economy',
   chooseDoctrine: 'economy',
+  openRewardHand: 'economy',
+  chooseReward: 'economy',
+  passReward: 'economy',
   purchaseItem: 'economy',
   contribute: 'economy',
   consecrate: 'economy',
@@ -4972,6 +5113,12 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyAdoptGovernment(state, command);
     case 'chooseDoctrine':
       return applyChooseDoctrine(state, command);
+    case 'openRewardHand':
+      return applyOpenRewardHand(state, command);
+    case 'chooseReward':
+      return applyChooseReward(state, command);
+    case 'passReward':
+      return applyPassReward(state, command);
     case 'purchaseItem':
       return applyPurchaseItem(state, command);
     case 'contribute':

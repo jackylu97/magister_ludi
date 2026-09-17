@@ -597,10 +597,19 @@ describe('determinism', () => {
    * digits changed and nothing else — the same byte length at both seeds, and
    * the meter's first two rungs are today's exactly, so no seat's second
    * draft moved inside twenty turns.
+   *
+   * Re-taken for schema 119 (the decks rework, D1a, branch `decks`): the
+   * print's `schemaVersion` digits changed, and every seat carries four new
+   * fields (`decks` — all six for these seats under nobody — `charteredTechs`,
+   * `charteredBuildings`, `charteredRites`) and `rewardHands` on its deck,
+   * which is the whole of the growth (424 bytes at both seeds). No outcome
+   * moved: every pre-rework Order row is retired and D1b's rows do not exist
+   * yet, so the pool is empty and the one draft a seat could have reached in
+   * twenty turns is an exhausted hand that charges nothing and deals nothing.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'c8c2841c:187669',
-    2026: '20397393:187283',
+    11: 'df212a6f:188093',
+    2026: 'bacc0db8:187707',
   };
 
   for (const seed of [11, 2026]) {

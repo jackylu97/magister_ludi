@@ -158,6 +158,17 @@ export interface OfferOption {
    * same sentence about a different kind of gift.
    */
   payoff: string;
+  /**
+   * **Small chips under the name** — the deck badge and the charter mark of
+   * the decks rework (D1a): "Dominion", "Commerce · Devotion", "Charter". One
+   * chip each, in the caller's order; absent or empty draws none, which is the
+   * honest face for a card of nobody's deck.
+   *
+   * Strings, like everything else that crosses this boundary: the caller has
+   * already looked the deck's word up (`deckBadges.ts`) and this component
+   * knows nothing about decks.
+   */
+  badges?: readonly string[];
   /** One line of flavour, set in the name face. */
   flavor: string;
   /**
@@ -1011,6 +1022,13 @@ export function createOfferCard(
       }
       button.append(element('span', 'offer-option-title', option.title));
       if (!tarot) button.append(element('span', 'offer-payoff', option.payoff));
+      // The deck badge and the charter mark (D1a), one chip each, under the
+      // name. Drawn only when the caller handed some over.
+      if (option.badges !== undefined && option.badges.length > 0) {
+        const chips = element('span', 'offer-badges');
+        for (const badge of option.badges) chips.append(element('span', 'offer-badge', badge));
+        button.append(chips);
+      }
       if (option.note !== undefined) {
         // A card's clauses joined into one line — a descriptor, so the things it
         // names come out bold. Never links: this whole face is a `<button>` and

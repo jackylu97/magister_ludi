@@ -13,13 +13,26 @@
  * dealing, the whole command matrix, seals, adoption, every hook family end to
  * end, and the twelve-turn save round-trip.
  */
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { Command } from '../../src/sim/commands';
 import { dispatch, replay, snapshotState } from '../../src/sim/game';
 import type { PlayerStatecraft } from '../../src/sim/statecraft';
 import { STARTING_GOVERNMENT } from '../../src/sim/statecraftData';
-import { found, game } from './statecraftHelpers';
+import { found, game, stockStandardDecks } from './statecraftHelpers';
+
+/**
+ * **The shelf, stocked for the file** (the decks rework, D1a): every
+ * pre-rework Order row is retired, so a sixty-turn draft sequence would be
+ * sixty exhausted hands unless the bench un-retires rows into decks —
+ * `stockStandardDecks`, restored after the last test because the module graph
+ * outlives the file (`statecraftHelpers.ts`).
+ */
+let restoreShelf: () => void = () => {};
+beforeAll(() => {
+  restoreShelf = stockStandardDecks();
+});
+afterAll(() => restoreShelf());
 
 describe('determinism', () => {
   it('replays a full Statecraft sequence byte for byte', () => {

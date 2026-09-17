@@ -179,26 +179,28 @@ describe('the deck', () => {
 // --- 2. the chair -----------------------------------------------------------
 
 describe('the seating', () => {
-  it('takes the last chair of its own flavour, and turns the Order there out', () => {
+  it('takes the last chair, and turns the Order there out', () => {
+    // **Re-cut for the decks rework** (D1a): every chair is universal, so "the
+    // last of its own flavour" is the last chair of the council — the
+    // Sultanate's ninth — and the rule that it is the *last* (the least damage
+    // to an arrangement built top-down) is what survives.
     const state = newGame(config());
     const player = seat(state);
-    // The Sultanate: five military chairs, so "last of its flavour" is a claim
-    // with somewhere else it could have gone.
     govern(state, player, 'theSultanate');
     const layout = slotTypesOf(player.statecraft);
-    const lastMilitary = layout.lastIndexOf('military');
-    const firstMilitary = layout.indexOf('military');
-    const sitting = slotByHand(state, player, lastMilitary);
-    const safe = slotByHand(state, player, firstMilitary);
+    expect(layout).toHaveLength(9);
+    const last = layout.length - 1;
+    const sitting = slotByHand(state, player, last);
+    const safe = slotByHand(state, player, 0);
 
     seatNamed(state, player, 'thinRanks');
-    expect(maliceAt(player, lastMilitary)).toBe('thinRanks');
+    expect(maliceAt(player, last)).toBe('thinRanks');
     // The Order is out of the chair, its seal broken — and still held, because
     // nothing was ever spent on it and nothing is taken away.
-    expect(player.statecraft.slots[lastMilitary]).toBeNull();
+    expect(player.statecraft.slots[last]).toBeNull();
     expect(player.statecraft.orders).toContain(sitting);
     // The rest of the arrangement is untouched.
-    expect(player.statecraft.slots[firstMilitary]?.card).toBe(safe);
+    expect(player.statecraft.slots[0]?.card).toBe(safe);
   });
 
   it('falls back on the last wildcard where the realm has no chair of that flavour', () => {
@@ -220,9 +222,10 @@ describe('the seating', () => {
     seatNamed(state, player, 'deserters');
     const chairs = player.malices.map((held) => held.chair);
     expect(new Set(chairs).size).toBe(2);
-    // One military chair in the chiefdom, so the second falls to the wildcard.
+    // Every chair universal (D1a): the first takes the last chair, the second
+    // the one before it.
     const layout = slotTypesOf(player.statecraft);
-    expect(chairs).toEqual([layout.indexOf('military'), layout.lastIndexOf('wildcard')]);
+    expect(chairs).toEqual([layout.length - 1, layout.length - 2]);
   });
 
   it('is never refused: with every chair taken it sits in the ninth chair nobody has', () => {
@@ -259,7 +262,10 @@ describe('the chair a malice holds', () => {
     const chair = player.malices[0]!.chair!;
 
     const refusal = unslotOrderError(state, player.id, chair);
-    expect(refusal).toBe('The Thin Ranks holds slot 1 and cannot be moved');
+    // The last chair of the chiefdom's three (D1a: every chair is universal,
+    // so a malice takes the last).
+    expect(chair).toBe(2);
+    expect(refusal).toBe(`The Thin Ranks holds slot ${chair + 1} and cannot be moved`);
 
     const before = JSON.stringify(state);
     const result = applyCommand(state, { type: 'unslotOrder', playerId: player.id, slotIndex: chair });
@@ -273,14 +279,14 @@ describe('the chair a malice holds', () => {
     const player = seat(state);
     seatNamed(state, player, 'thinRanks');
     const chair = player.malices[0]!.chair!;
-    const card = ORDER_IDS.find(
-      (id) => orderDef(id).slot === 'military' && orderDef(id).retired !== true,
-    )!;
+    // Any row the seat holds fits any chair (D1a); a retired row is still a
+    // card a seat may hold, and the refusal is the chair's, not the card's.
+    const card = ORDER_IDS.find((id) => orderDef(id).charter === undefined)!;
     player.statecraft.orders.push(card);
     bumpRevision(state);
 
     expect(slotOrderError(state, player.id, card, chair)).toBe(
-      'The Thin Ranks holds slot 1 and cannot be moved',
+      `The Thin Ranks holds slot ${chair + 1} and cannot be moved`,
     );
     const before = JSON.stringify(state);
     const result = applyCommand(state, {
@@ -393,14 +399,16 @@ describe('an adoption', () => {
     const player = seat(state);
     govern(state, player, 'chiefdom');
     seatNamed(state, player, 'thinRanks');
-    expect(player.malices[0]!.chair).toBe(slotTypesOf(player.statecraft).indexOf('military'));
+    // The last chair, every chair being universal (D1a).
+    expect(player.malices[0]!.chair).toBe(slotTypesOf(player.statecraft).length - 1);
 
-    // What `adoptGovernmentAt` does to the array, and then the re-seating.
+    // What `adoptGovernmentAt` does to the array, and then the re-seating: the
+    // last chair of the wider council.
     govern(state, player, 'theSultanate');
     reseatMalices(player);
     const layout = slotTypesOf(player.statecraft);
-    expect(player.malices[0]!.chair).toBe(layout.lastIndexOf('military'));
-    expect(maliceAt(player, layout.lastIndexOf('military'))).toBe('thinRanks');
+    expect(player.malices[0]!.chair).toBe(layout.length - 1);
+    expect(maliceAt(player, layout.length - 1)).toBe('thinRanks');
   });
 
   it('re-seats two malices into two chairs, never one', () => {

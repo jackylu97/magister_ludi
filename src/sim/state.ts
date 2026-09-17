@@ -72,12 +72,13 @@ import type { TriumphId } from "./triumphData";
 import { bumpEconomy } from "./slate";
 import type { GameMap } from "./map";
 import { generateMap, getMapSize } from "./mapgen";
-import { type LeaderId, isLeaderId } from "./leaderData";
+import { type LeaderId, isLeaderId, leaderDecks } from "./leaderData";
 import { type MapgenOverrides, resolveMapgenConfig } from "./mapgenData";
 import {
   type BeliefId,
   type ConsecrationId,
   type PlayerPantheon,
+  type RiteId,
   newPlayerPantheon,
 } from "./religionData";
 import { type Rng, hashSeed, makeRng, nextInt } from "./rng";
@@ -97,7 +98,9 @@ import {
   newPlayerStatecraft,
   refitSlots,
 } from "./statecraft";
-import type { CardEffect, CardId } from "./statecraftData";
+// A value import as well as the types: `statecraftData.ts` is a runtime leaf
+// (the JSON and its vocabulary) and imports this module not at all.
+import { type CardEffect, type CardId, type DeckId, isDeckId } from "./statecraftData";
 import { chooseStartPositionsFor, planStartingUnits } from "./startPositions";
 import type { TechId } from "./techData";
 import {
@@ -988,8 +991,32 @@ import {
  * draft from the third is priced off a different curve, so the meter fills on
  * different turns and every hand after it is a different deal. 117 is S2's,
  * the lifetime tally, taken in the same batch.
+ *
+ * v119 (the decks rework, batch D1a on branch `decks` —
+ * `docs/plans/decks-rework.md`, ruled `docs/flags.md` (iiiiii); the design of
+ * record is `docs/six-decks-first-cut.md`): **the card system learns decks.**
+ * Four fields join the seat: `Player.decks` (the figure's two, all six for the
+ * rainbow and for a seat under nobody), `charteredTechs`, `charteredBuildings`
+ * and `charteredRites` (what a charter's pick has opened; three lists that only
+ * grow). Two join the deck: `PlayerStatecraft.rewardHands` (the rare-only
+ * reward hands banked at regular draft counts 4 / 18 / 29, as absolute counts)
+ * and `pendingReward` (one of them opened and on the table). `slots` is a flat
+ * list of universal chairs — 3 / 4 / 6 / 9 by the government's tier, the M/E/W
+ * spread retired — and a government offer's `tier` is unchanged. Every
+ * pre-rework Order and Doctrine row is `retired: true` and deleted from
+ * nothing; every row carries `decks` and `band`; the draw is rarity-first
+ * (60 / 30 / 10) into positions the seat's decks and the draft count decide,
+ * and an exhausted pool charges nothing. Three commands join the log
+ * (`openRewardHand`, `chooseReward`, `passReward`).
+ *
+ * **A v118 save is refused and does not replay** (`loadGame` tests the
+ * schema for exact equality): every hand from the first is a different deal —
+ * a different pool, a different draw, different chairs to seat it in — so a
+ * v118 command log would pick indexes into hands this build never dealt. Nothing
+ * migrates; the branch starts its saves afresh, which is what a playtest branch
+ * is for.
  */
-export const SCHEMA_VERSION = 118;
+export const SCHEMA_VERSION = 119;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1111,6 +1138,21 @@ export interface PlayerSpec {
    * player who chose Modu and got somebody else's steppe.
    */
   leader?: LeaderId;
+  /**
+   * **The decks this seat draws from**, or absent to take the figure's own
+   * (`leaderDecks`: the row's two, or all six for the rainbow and for a seat
+   * under nobody). The decks rework's one config override (D1a: *"config may
+   * override per seat; default from the leader"*), so a harness or a test may
+   * seat a plain chair under any pair without naming a figure.
+   *
+   * Read by `newGame` alone, into `Player.decks`; the map never asks. Refused
+   * by `validateConfig` when it names a deck the six do not include, or names
+   * one twice, or names none at all — a seat with no deck would draft from the
+   * commons alone for a whole game. Written by `normalizeConfig` only when it
+   * is named, `leader`'s rule, so a config that never heard of decks
+   * normalises byte-identically.
+   */
+  decks?: DeckId[];
   /** Defaults to false — the caller decides who sits at the keyboard. */
   isHuman?: boolean;
 }
@@ -1734,6 +1776,48 @@ export interface Player {
    * from before leaders existed.
    */
   leader?: LeaderId;
+  /**
+   * **The decks this seat drafts from** (the decks rework, D1a; schema 119) —
+   * the figure's two, all six for the rainbow and for a seat under nobody, or
+   * whatever `PlayerSpec.decks` named. Written once in `newGame` and never
+   * again: a seat's decks are fixed for the game (*"no chosen secondary
+   * attributes"*, the design doc's structure paragraph), and mid-game pool
+   * expansion is held out of D1 by the user.
+   *
+   * Always present, never optional, and on the wild too (empty): every reader
+   * indexes a seat without asking which kind it is. The seat pool is
+   * `deckPoolOf` (`statecraft/draft.ts`), which is this list against every
+   * row's `OrderDef.decks`.
+   */
+  decks: DeckId[];
+  /**
+   * **The technologies a charter has opened for this seat** (schema 119) —
+   * the research gate's list (`researchError`, `tech.ts`): a node a charter
+   * names is researchable by a seat whose list names it and by nobody else.
+   *
+   * A **list of ids** rather than a flag per charter, for `legacies`' reason:
+   * it is the register of what has been granted, so a second charter naming a
+   * technology needs no second field, and iteration order that is part of the
+   * state is iteration order a replay reproduces. Grows in exactly one place
+   * (`applyCharter`, on the pick) and nothing ever removes an entry — a charter
+   * is a grant, and a grant taken back would be a research plan pulled out
+   * from under the seat. Always present, never optional.
+   */
+  charteredTechs: TechId[];
+  /**
+   * **The buildings a charter has opened for this seat** — `charteredTechs`'
+   * sibling, read by `cardUnlocksBuilding` (`statecraft/evaluator.ts`), which
+   * is the one place the existing `unlockedByCard` seam asks whether the
+   * empire's cards open a row. A chartered row is buildable and purchasable
+   * on the terms every card-opened row is, and costs what it costs.
+   */
+  charteredBuildings: BuildingId[];
+  /**
+   * **The rites a charter has made learnable** — the third sibling, read by
+   * `hasAbility` (`tech.ts`) through each rite's own ability id, so a chartered
+   * rite is known on exactly the terms a technology's rite is known.
+   */
+  charteredRites: RiteId[];
   /**
    * The lifetime totals a **flow** wager subtracts against, one per accumulator
    * (`WAGER_ACCUMULATORS`, `wagerData.ts`).
@@ -3624,6 +3708,9 @@ export function normalizeConfig(config: GameConfig): GameConfig {
       // And the figure, on the same terms again — which is what keeps a
       // leaderless roster's map the map it always was. See `PlayerSpec.leader`.
       if (spec.leader !== undefined) player.leader = spec.leader;
+      // And the decks, on the same terms: a copy rather than an alias, so a
+      // caller that keeps editing its own list cannot rewrite a game's seat.
+      if (spec.decks !== undefined) player.decks = [...spec.decks];
       return player;
     }),
   };
@@ -3678,6 +3765,20 @@ function validateConfig(config: GameConfig): void {
   for (const spec of config.players) {
     if (spec.leader !== undefined && !isLeaderId(spec.leader)) {
       throw new Error(`Unknown leader "${spec.leader}"`);
+    }
+    // The decks, refused on the same terms (`PlayerSpec.decks`): a name off
+    // the six, a deck named twice, or no deck at all is a seat that would draft
+    // a game nobody asked for.
+    if (spec.decks !== undefined) {
+      if (!Array.isArray(spec.decks) || spec.decks.length === 0) {
+        throw new Error(`Seat "${spec.name}" names no deck at all`);
+      }
+      for (const deck of spec.decks) {
+        if (!isDeckId(deck)) throw new Error(`Unknown deck "${String(deck)}"`);
+      }
+      if (new Set(spec.decks).size !== spec.decks.length) {
+        throw new Error(`Seat "${spec.name}" names a deck twice`);
+      }
     }
   }
 }
@@ -3777,6 +3878,16 @@ export function newGame(config: GameConfig): GameState {
       // that named none has no key, so a leaderless game is byte-identical to a
       // game from before leaders existed (pinned, `test/sim/leaders.test.ts`).
       ...(spec.leader === undefined ? {} : { leader: spec.leader }),
+      // **The seat's decks, fixed for the game** (D1a): the config's own list
+      // if it named one, else the figure's — and all six for a seat under
+      // nobody (`leaderDecks` states why). Copied, never aliased.
+      decks: spec.decks === undefined ? leaderDecks(spec.leader) : [...spec.decks],
+      // Nothing chartered yet: the three lists grow on a charter's pick and
+      // nowhere else (`applyCharter`). Fresh every time, for `techsResearched`'s
+      // reason.
+      charteredTechs: [],
+      charteredBuildings: [],
+      charteredRites: [],
       isHuman: spec.isHuman ?? false,
       gold: 0,
       sciencePool: 0,
@@ -3985,6 +4096,13 @@ function seatBarbarians(state: GameState): void {
     goldSpent: 0,
     eliminated: false,
     barbarian: true,
+    // **No decks and nothing chartered, ever**: the wild drafts nothing
+    // (`runStatecraft` skips it), so its pool is empty by construction. Present
+    // so that every reader may index a seat without asking which kind it is.
+    decks: [],
+    charteredTechs: [],
+    charteredBuildings: [],
+    charteredRites: [],
     // A chiefdom the wild will never leave. Present so that every reader may
     // index a seat without asking which kind it is; filled by nothing, because
     // `runStatecraft` skips the wild the way `advanceResearch` does.

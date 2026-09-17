@@ -69,8 +69,13 @@ function seatPriestKing(state: GameState, playerId: number): void {
  * were about staging rather than about the table. What these tests need is "two
  * offices that take either card", so they ask the layout for them.
  */
+// **Re-cut for the decks rework** (D1a): every chair is universal, so every
+// office of the layout is a wildcard and the first would be "the wildcard" too.
+// The tests seat their subject in office 0 and move it to WILD[0], so the list
+// is the offices *other than the first* — still "offices that take either
+// card", still read off the layout.
 const WILD: number[] = slotLayout('priestKing')
-  .map((type, index) => (type === 'wildcard' ? index : -1))
+  .map((type, index) => (type === 'wildcard' && index > 0 ? index : -1))
   .filter((index) => index >= 0);
 
 /** An empty arrangement of the fixture's shape — what `occupants` compares to. */
@@ -206,18 +211,17 @@ describe('the refusals are the reducer’s own', () => {
     expect(validate(g.state, 0, remove(staged, 0))).toBe(problem);
   });
 
-  it('refuses a card in the wrong kind of office, in the reducer’s words', () => {
+  it('takes any card in any office — every chair is universal', () => {
+    // **Re-cut for the decks rework** (D1a). This used to pin the reducer's
+    // "First Rites is wildcard and slot 1 is military" refusal; there is no
+    // typed office left to refuse into, so the claim is the opposite one, read
+    // off the same two gates: the guard and `validate` both answer null for a
+    // held card in the first chair.
     const g = game();
     grant(g.state, 0, 'firstRites');
-    // The chiefdom is [military, economic] and First Rites is a wildcard card.
     const staged = stage(live(g.state));
-    expect(placeError(g.state, 0, staged, 'firstRites', 0)).toBe(
-      'First Rites is wildcard and slot 1 is military',
-    );
-    // Staged past the guard anyway, `validate` is the same sentence again.
-    expect(validate(g.state, 0, place(staged, 0, 'firstRites', g.state.turn))).toBe(
-      'First Rites is wildcard and slot 1 is military',
-    );
+    expect(placeError(g.state, 0, staged, 'firstRites', 0)).toBeNull();
+    expect(validate(g.state, 0, place(staged, 0, 'firstRites', g.state.turn))).toBeNull();
   });
 
   it('refuses the same Order twice, and an office that is already occupied', () => {

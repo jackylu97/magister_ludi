@@ -9,7 +9,7 @@
  * that can catch a hook that was declared and never read.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bumpEconomy } from '../../src/sim/slate';
 
 import { createGame, dispatch, snapshotState } from "../../src/sim/game";
@@ -107,19 +107,15 @@ import {
   draftCost,
   drawDoctrineOffer,
   drawOrderOffer,
-  drawOrderOptions,
-  drawWeighted,
-  drawWithoutReplacement,
   filledOrderSlots,
   liveEffects,
-  livePool,
-  drawablePool,
+  deckPoolOf,
+  eligibleFor,
   musterPeriodicUnits,
   orderAtSlotPosition,
   payWindfallGrants,
   newPlayerStatecraft,
   orderChoiceError,
-  orderDrawWeight,
   planDraft,
   rarityDrawWeight,
   runPeriodicBoons,
@@ -130,6 +126,7 @@ import {
   slotOrderError,
   slottedOrdersOfFlavour,
   statecraftBlocker,
+  cardExtraChairs,
   stripRefs,
   tileConditionWords,
   unslotOrderError,
@@ -160,7 +157,15 @@ import {
   poolOrders,
   slotLayout,
 } from "../../src/sim/statecraftData";
-import { nextFloat } from "../../src/sim/rng";
+// The decks rework's readings (D1a), beside the table they read.
+import {
+  DECK_IDS,
+  TIER_LADDER,
+  chairsAtTier,
+  orderFitsSlot,
+  ordersForDecks,
+  slotCount,
+} from "../../src/sim/statecraftData";
 import { getTileAt, neighborTiles, tileHex } from "../../src/sim/map";
 import { isCoastal } from "../../src/sim/water";
 import { arriveOnTile } from "../../src/sim/arrival";
@@ -252,7 +257,25 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
 }
 
 /** A city for a player, on the tile their first unit is standing on. */
-import { found, game, keepTheRites, marchOut } from "./statecraftHelpers";
+import { found, game, keepTheRites, marchOut, stockStandardDecks } from "./statecraftHelpers";
+
+/**
+ * **The shelf, stocked for the file** (the decks rework, D1a): every
+ * pre-rework Order and Doctrine row is `retired: true` and D1b's rows do not
+ * exist yet, so every draft in this file would be an exhausted hand that
+ * charges nothing — and every loop that drafts toward a rung would never
+ * arrive. `stockStandardDecks` un-retires sixty rows of the table into the six
+ * decks for the file's lifetime (`statecraftHelpers.ts` says how), and the
+ * restore runs after the last test because the module graph outlives the
+ * file. A seat under nobody holds all six decks, so the bench seats draw the
+ * whole stocked shelf. Tests about a *specific* retired row read the row and
+ * `ordersForDecks`, never the pool of a government — there is no such pool.
+ */
+let restoreShelf: () => void = () => {};
+beforeAll(() => {
+  restoreShelf = stockStandardDecks();
+});
+afterAll(() => restoreShelf());
 
 // --- the table --------------------------------------------------------------
 
@@ -278,20 +301,24 @@ describe("the card table", () => {
     // Gov IV and Gov V were written on 2026-08-28, so the live ladder is now the
     // whole ratified one and the two lists agree end to end.
     expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 29, 45]);
-    expect(STATECRAFT.tierLadder).toEqual([4, 10, 18, 29, 45]);
-    expect(STATECRAFT.tierLadder.slice(0, GOVERNMENT_TIERS.length)).toEqual([
-      ...GOVERNMENT_TIERS,
-    ]);
+    // **The decks rework** (D1a): `tierLadder` is the four-rung ladder of bands
+    // and chairs now — 0 / 4 / 18 / 29 — read by the sim, and the governments
+    // are still offered at their rows' own tiers. The two lists are different
+    // questions (`StatecraftConfig.tierLadder`).
+    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29]);
     for (const tier of GOVERNMENT_TIERS) {
       expect(governmentsAtTier(tier), `tier ${tier}`).toHaveLength(3);
     }
   });
 
-  it("grows the slot spread monotonically up the ladder", () => {
+  it("never shrinks the chairs up the ladder", () => {
+    // **Re-cut for the decks rework** (D1a): chairs are the tier's rung —
+    // 3 / 4 / 4 / 6 / 9 / 9 — so a tier between two rungs keeps the rung below
+    // it and the count is monotone, not strictly so.
     let last = slotLayout(STARTING_GOVERNMENT).length;
     for (const tier of GOVERNMENT_TIERS) {
       for (const id of governmentsAtTier(tier)) {
-        expect(slotLayout(id).length, id).toBeGreaterThan(last);
+        expect(slotLayout(id).length, id).toBeGreaterThanOrEqual(last);
       }
       last = Math.min(
         ...governmentsAtTier(tier).map((id) => slotLayout(id).length),
@@ -313,11 +340,14 @@ describe("the card table", () => {
     }
   });
 
-  it("fills every live Doctrine pool, and keeps the deferred one out of all of them", () => {
+  it("deals no Doctrine pool at any tier (D1a), and keeps the deferred one out of all of them", () => {
+    // **Re-cut for the decks rework**: every Doctrine row is retired — a
+    // Doctrine is the reward hand now — so every tier's pool is empty and the
+    // rows are kept for saves and the Compendium.
     for (const tier of GOVERNMENT_TIERS) {
-      expect(poolDoctrines(tier).length, `tier ${tier}`).toBeGreaterThanOrEqual(
-        RULES.offers.doctrine,
-      );
+      expect(poolDoctrines(tier), `tier ${tier}`).toEqual([]);
+      expect(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === tier).length, `tier ${tier}`)
+        .toBeGreaterThanOrEqual(RULES.offers.doctrine);
     }
     // Religious Mandate awaits religion, a war state and the beads. It sits at
     // tier 0, which is not a live pool, so it can never be dealt.
@@ -338,14 +368,12 @@ describe("the card table", () => {
     // chiefdom-pool Orders are wildcard-only (First Rites, Fire-Keepers, Hearth
     // Songs, First Fruits), and a starting government that could never play a
     // card its own pool deals is a draft that hands a seat a dead card.
+    // **Re-cut for the decks rework** (D1a): every chair is universal, so the
+    // chiefdom's three take any card the shelf deals.
     const layout = slotLayout(STARTING_GOVERNMENT);
-    expect(layout).toEqual(["military", "economic", "wildcard"]);
-    const pool = ORDER_IDS.filter((id) => orderDef(id).pool === "chiefdom");
-    for (const id of pool) {
-      expect(
-        layout.includes(orderDef(id).slot) || layout.includes("wildcard"),
-        id,
-      ).toBe(true);
+    expect(layout).toEqual(["wildcard", "wildcard", "wildcard"]);
+    for (const id of ordersForDecks(DECK_IDS)) {
+      expect(layout.every((type) => orderFitsSlot(id, type)), id).toBe(true);
     }
   });
 
@@ -668,22 +696,23 @@ describe("the draft", () => {
     const offer = drawOrderOffer(g.state, player);
     expect(offer.options).toHaveLength(3);
     expect(new Set(offer.options).size).toBe(3);
-    const pool = new Set(livePool(sc));
+    const pool = new Set(eligibleFor(g.state, player));
     for (const id of offer.options) expect(pool.has(id), id).toBe(true);
     // The hand is the whole offer: there is no fourth face since the levelling
-    // ruling of 2026-09-04.
-    expect(Object.keys(offer)).toEqual(["options"]);
+    // ruling of 2026-09-04 — and since D1a the positions it was dealt into ride
+    // beside it, so a redraw can keep them.
+    expect(Object.keys(offer)).toEqual(["options", "positions"]);
+    void sc;
   });
 
   it("never re-offers a card already held", () => {
     const g = game();
     const player = g.state.players[0]!;
     const sc = player.statecraft;
-    for (const id of ORDER_IDS.filter((id) => orderDef(id).pool === "chiefdom"))
-      grant(sc, id);
-    // Every chiefdom card is held, so the live pool is empty and the draw hands
-    // back what it has — the honest answer (see `drawWithoutReplacement`).
-    expect(livePool(sc)).toEqual([]);
+    for (const id of eligibleFor(g.state, player)) grant(sc, id);
+    // Every card the seat's decks can deal it is held, so the bag is empty and
+    // the draw hands back what it has — the honest answer.
+    expect(eligibleFor(g.state, player)).toEqual([]);
     expect(drawOrderOffer(g.state, player).options).toEqual([]);
   });
 
@@ -794,30 +823,18 @@ describe("the command matrix", () => {
     );
   });
 
-  it("refuses a type mismatch with the reducer’s own sentence", () => {
+  it("takes any card in any chair — every chair is universal (D1a)", () => {
+    // **Re-cut for the decks rework.** This pinned "is military and slot 2 is
+    // economic"; there is no typed chair left to refuse into. The chiefdom's
+    // three are three wildcards and a held card goes in any of them.
     const g = game();
     const sc = g.state.players[0]!.statecraft;
-    // The chiefdom's layout is [military, economic, wildcard] — the third slot
-    // arrived with the playtest pass, so that the wildcard-only cards in the
-    // chiefdom pool (First Rites, Fire-Keepers, Hearth Songs, First Fruits) are
-    // cards an opening government can actually play. Blooded Spears is military,
-    // so the economic slot still refuses it.
-    expect(slotLayout(sc.government)).toEqual([
-      "military",
-      "economic",
-      "wildcard",
-    ]);
+    expect(slotLayout(sc.government)).toEqual(["wildcard", "wildcard", "wildcard"]);
     grant(sc, "bloodedSpears");
-    refuses(
-      g,
-      {
-        type: "slotOrder",
-        playerId: 0,
-        cardId: "bloodedSpears",
-        slotIndex: 1,
-      } as Command,
-      "is military and slot 2 is economic",
-    );
+    expect(
+      dispatch(g, { type: "slotOrder", playerId: 0, cardId: "bloodedSpears", slotIndex: 1 } as Command).ok,
+    ).toBe(true);
+    expect(sc.slots[1]?.card).toBe("bloodedSpears");
   });
 
   it("refuses a slot index the government does not have", () => {
@@ -1050,46 +1067,32 @@ describe("adoption", () => {
     expect(sc.slots.every((entry) => entry === null)).toBe(true);
     // The card is back in the collection, unsealed.
     expect(sc.orders).toContain("bloodedSpears");
-    // The offer is spent, and the Doctrine draft is open and blocking.
+    // The offer is spent — and **no Doctrine draft opens** (D1a): every
+    // Doctrine row is retired, the pool deals nothing, and an adoption blocks
+    // nothing afterwards. The reward hand is the Doctrine now.
     expect(sc.pendingGovernment).toBeUndefined();
-    expect(sc.pendingDoctrine!.options).toHaveLength(3);
-    expect(new Set(sc.pendingDoctrine!.options).size).toBe(3);
-    for (const id of sc.pendingDoctrine!.options) {
-      expect(poolDoctrines(FIRST_RUNG), id).toContain(id);
-    }
-    expect(statecraftBlocker(player)).toBe("a Doctrine draft is waiting");
-
-    expect(
-      dispatch(g, {
-        type: "chooseDoctrine",
-        playerId: 0,
-        optionIndex: 0,
-      } as Command).ok,
-    ).toBe(true);
-    expect(sc.doctrines).toHaveLength(1);
     expect(sc.pendingDoctrine).toBeUndefined();
+    expect(statecraftBlocker(player)).toBeNull();
+    expect(sc.doctrines).toHaveLength(0);
   });
 
-  it("opens the next Order pool on adoption", () => {
+  it("widens the council on adoption and turns no shelf over", () => {
     const g = game();
     const player = toFirstRung(g);
+    const before = deckPoolOf(g.state, player);
     expect(poolOfGovernment(player.statecraft.government)).toBe("chiefdom");
     dispatch(g, {
       type: "adoptGovernment",
       playerId: 0,
       choiceIndex: 0,
     } as Command);
+    // **Re-cut for the decks rework** (D1a): a pool used to turn over whole on
+    // adoption; a deck never does ("no pool rotates away"). What an adoption
+    // buys now is chairs — the tier's rung — and the seat pool is the same
+    // shelf before and after.
     expect(poolOfGovernment(player.statecraft.government)).toBe("governmentI");
-    // The live pool is the new government's cards and **nothing else** (user,
-    // 2026-09-03). The chiefdom leftovers used to ride along; adopting now turns
-    // the whole shelf over, and a chiefdom card never taken is gone for good.
-    const pool = new Set(livePool(player.statecraft));
-    expect([...pool].some((id) => orderDef(id).pool === "governmentI")).toBe(
-      true,
-    );
-    expect([...pool].every((id) => orderDef(id).pool === "governmentI")).toBe(
-      true,
-    );
+    expect(new Set(deckPoolOf(g.state, player))).toEqual(new Set(before));
+    expect(player.statecraft.slots).toHaveLength(chairsAtTier(FIRST_RUNG));
   });
 
   it("banks the offer until it is claimed", () => {
@@ -1116,40 +1119,30 @@ describe("adoption", () => {
     ).toBe(true);
   });
 
-  it("never offers a Doctrine twice in one game", () => {
+  it("deals no Doctrine at any adoption — the reward hand is the Doctrine now (D1a)", () => {
+    // **Re-cut for the decks rework.** This drafted to every rung of the ladder
+    // and pinned that no Doctrine was ever dealt twice. Every Doctrine row is
+    // retired — a Doctrine is the rare-only reward hand now, not a card class —
+    // so an adoption at any tier opens no Doctrine draft and blocks nothing,
+    // and the collection of Doctrines stays empty for the game. The rungs are
+    // reached by writing the count rather than drafting the stocked shelf dry:
+    // a seat that has drafted everything its decks can deal is an exhausted
+    // hand, which is the other rule this file pins.
     const g = game();
     const player = g.state.players[0]!;
-    const seen = new Set<string>();
     for (const tier of GOVERNMENT_TIERS) {
-      while (player.statecraft.drafts < tier) {
-        player.culturePool = draftCost(player.statecraft.drafts);
-        settleCultureWindfall(g.state, player);
-        dispatch(g, {
-          type: "chooseOrder",
-          playerId: 0,
-          optionIndex: 0,
-        } as Command);
-      }
-      dispatch(g, {
-        type: "adoptGovernment",
-        playerId: 0,
-        choiceIndex: 0,
-      } as Command);
-      for (const id of player.statecraft.pendingDoctrine?.options ?? []) {
-        // Within a tier, without replacement; across tiers, pools do not overlap.
-        expect(seen.has(id), id).toBe(false);
-        seen.add(id);
-      }
-      dispatch(g, {
-        type: "chooseDoctrine",
-        playerId: 0,
-        optionIndex: 0,
-      } as Command);
+      player.statecraft.drafts = tier;
+      player.statecraft.pendingGovernment = { tier, options: governmentsAtTier(tier) };
+      expect(
+        dispatch(g, { type: "adoptGovernment", playerId: 0, choiceIndex: 0 } as Command).ok,
+      ).toBe(true);
+      expect(player.statecraft.pendingDoctrine).toBeUndefined();
+      expect(statecraftBlocker(player)).toBeNull();
+      expect(player.statecraft.slots).toHaveLength(
+        chairsAtTier(tier) + cardExtraChairs(g.state, 0),
+      );
     }
-    expect(player.statecraft.doctrines).toHaveLength(GOVERNMENT_TIERS.length);
-    expect(new Set(player.statecraft.doctrines).size).toBe(
-      GOVERNMENT_TIERS.length,
-    );
+    expect(player.statecraft.doctrines).toEqual([]);
   });
 });
 
@@ -1743,7 +1736,10 @@ describe("determinism", () => {
     // 118 since batch B1 (2026-09-16): the reroll's count is zeroed by
     // adoption and the meter's exponent eases to 2.2, so every draft from the
     // third is priced off a different curve and a v117 log does not replay.
-    expect(SCHEMA_VERSION).toBe(118);
+    // 119 since D1a (the decks rework, branch `decks`): four seat fields, the
+    // reward hands, universal chairs and a draw that deals every hand
+    // differently — a v118 save is refused (`state.ts`'s changelog).
+    expect(SCHEMA_VERSION).toBe(119);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2414,128 +2410,32 @@ describe("a card is what it prints", () => {
   });
 });
 
-describe("the draw is weighted by rarity", () => {
-  /** How the table weighs each rung, before any pity. */
-  const WEIGHTS = STATECRAFT.rarityWeights;
-
-  it("reads the ratified weights off the table, and the pity beside them", () => {
-    // The sheet's proposal, ratified 2026-09-04. Pinned here because every
-    // frequency below is a reading of these four numbers.
-    expect(WEIGHTS).toEqual({ common: 4, uncommon: 2, rare: 1 });
-    expect(STATECRAFT.skipPity).toEqual({ uncommon: 1, rare: 1 });
-  });
-
-  it("weighs a card by its row, and adds the pity to the two rungs that take it", () => {
-    expect(rarityDrawWeight("common", 0)).toBe(4);
-    expect(rarityDrawWeight("uncommon", 0)).toBe(2);
-    expect(rarityDrawWeight("rare", 0)).toBe(1);
-    // Three passes: the commons stand still and the rest close on them. That is
-    // the whole of the promise — pity moves the top of the deck, never the floor.
-    expect(rarityDrawWeight("common", 3)).toBe(4);
-    expect(rarityDrawWeight("uncommon", 3)).toBe(5);
-    expect(rarityDrawWeight("rare", 3)).toBe(4);
-    // And a card asks through its own row.
-    expect(orderDrawWeight("bloodedSpears", 0)).toBe(
-      rarityDrawWeight(orderDef("bloodedSpears").rarity, 0),
-    );
-  });
-
+describe("the draw is rarity-first", () => {
   /**
-   * The frequencies, **on named seeds**, over a bag built for the purpose.
-   *
-   * A deterministic pin rather than a statistical claim: the same seeds deal the
-   * same hands forever, so what is asserted is *these draws*, and the count is
-   * only the readable way to state it. The bag is one rare against three
-   * commons of the same office, so the spread rule cannot reach in and pick for
-   * the weights — every draw here is one sub-bag's.
+   * **Re-cut for the decks rework** (D1a). The describe that stood here pinned
+   * the per-card weights of 2026-09-04 (4 · 2 · 1 inside the M/E/W spread) and
+   * the pity added to them. The draw is rarity-first now — a rung at 60 / 30 /
+   * 10, then a card within it — and the pity is a shift of those points; the
+   * positions, the cadence, the odds within tolerance, the one-roll contract
+   * and the pity's effect on a dealt hand are pinned in `decks.test.ts`. What
+   * stays here is the shape of the table the old pins read.
    */
-  it("deals a rare card about a thirteenth as often as three commons", () => {
-    const g = game(5);
-    // Chiefdom military rows: one of each rung is not on the table, so the bag
-    // is assembled by hand out of ids and weighed by a function of the id.
-    const bag: OrderId[] = [
-      "bloodedSpears",
-      "farRunners",
-      "militiaLevies",
-      "campFollowers",
-    ];
-    const weight = (id: OrderId): number => (id === "campFollowers" ? 1 : 4);
-    let rares = 0;
-    for (let i = 0; i < 130; i++) {
-      const [drawn] = drawWeighted(g.state, bag, 1, weight);
-      if (drawn === "campFollowers") rares += 1;
+  it("reads the ratified odds off the table, and the pity beside them", () => {
+    expect(STATECRAFT.rarityOdds).toEqual({ common: 60, uncommon: 30, rare: 10 });
+    expect(STATECRAFT.skipPity).toEqual({ uncommon: 10, rare: 5 });
+    expect("rarityWeights" in STATECRAFT).toBe(false);
+  });
+
+  it("moves the rare rung up with every pass, and floors common at nought", () => {
+    // Strictly up while common still has points to give (four passes empty
+    // it at 10 + 5 a pass), then the floor holds the shift where it is.
+    let last = rarityDrawWeight("rare", 0);
+    for (let skips = 1; skips <= 4; skips++) {
+      const now = rarityDrawWeight("rare", skips);
+      expect(now).toBeGreaterThan(last);
+      last = now;
     }
-    // Fifteen of a hundred and thirty, on seed 5, exactly — a number this build
-    // produces and the next one must reproduce. Change the seed or the weights
-    // and this moves; it is the pin, not a statistical claim. It was thirteen
-    // until schema 102 and twelve until 107, and both moves are the same one
-    // move: `newGame` used to shuffle two decks of deed cards off this
-    // generator, G2 took four reckonings out of each of them, and Q1 took the
-    // decks themselves — so every draw in the game after `newGame` starts from a
-    // different place. The *frequency* is unchanged: it is the same weighted
-    // bag, and 15/130 is 0.115 against a weight share of 1/13 = 0.077 on a
-    // sample this small.
-    expect(rares).toBe(15);
-  });
-
-  it("deals nothing but the weighted card when everything else weighs nothing", () => {
-    const g = game(3);
-    const bag: OrderId[] = ["bloodedSpears", "farRunners", "militiaLevies"];
-    const only = (id: OrderId): number => (id === "militiaLevies" ? 1 : 0);
-    for (let i = 0; i < 20; i++) {
-      expect(drawWeighted(g.state, bag, 1, only)).toEqual(["militiaLevies"]);
-    }
-  });
-
-  it("spends exactly one roll per card it takes, weighted or not", () => {
-    // The roll contract, unchanged by the weights (`drawWeighted`). Two draws
-    // of two from the same seeded state must land in the same place as one draw
-    // of four would have left the generator.
-    const a = game(17);
-    const b = game(17);
-    const bag: OrderId[] = [
-      "bloodedSpears",
-      "farRunners",
-      "militiaLevies",
-      "campFollowers",
-    ];
-    drawWeighted(a.state, bag, 4, () => 1);
-    drawWithoutReplacement(b.state, bag, 4);
-    expect(nextFloat(a.state.rng)).toBe(nextFloat(b.state.rng));
-  });
-
-  it("keeps the military/economic/wildcard spread under weighting", () => {
-    // The guarantee rides *inside* each sub-bag rather than around the hand, so
-    // weighting cannot cost a hand its spread. Ten drafts, every one of them
-    // one of each — and the pool is the chiefdom's, whose rarities are the
-    // table's own.
-    const g = game(41);
-    const sc = g.state.players[0]!.statecraft;
-    for (let i = 0; i < 10; i++) {
-      const hand = drawOrderOptions(g.state, livePool(sc), 3, (id) =>
-        orderDrawWeight(id, 0),
-      );
-      expect(hand, `draft ${i}`).toHaveLength(3);
-      expect(
-        new Set(hand.map((id) => orderDef(id).slot)),
-        `draft ${i}`,
-      ).toEqual(new Set(SLOT_TYPES));
-    }
-  });
-
-  it("deals a hand the pity has changed, from the same state", () => {
-    // The pity is read at the deal (`drawOrderOffer`), so two empires on the
-    // same seeded state with different skip counts are dealt different hands.
-    // The seed is chosen rather than arbitrary: a weighted draw with a heavier
-    // thumb on it may still land on the same three cards, so the pin needs a
-    // seed where it does not — 23 was that seed until batch C1 moved it to 22 and batch Q1 moved the whole
-    // stream (schema 108) and 31 is it now.
-    const clean = game(31);
-    const patient = game(31);
-    patient.state.players[0]!.statecraft.orderSkips = 4;
-    const a = drawOrderOffer(clean.state, clean.state.players[0]!);
-    const b = drawOrderOffer(patient.state, patient.state.players[0]!);
-    expect(a.options).not.toEqual(b.options);
+    expect(rarityDrawWeight("common", 99)).toBe(0);
   });
 });
 
@@ -3132,7 +3032,9 @@ describe("the master-list cut of 2026-08-28", () => {
   it("offers Gov IV and Gov V at their rungs, and deals a Doctrine pool for each", () => {
     for (const tier of [29, 45]) {
       expect(governmentsAtTier(tier)).toHaveLength(3);
-      expect(poolDoctrines(tier).length).toBeGreaterThanOrEqual(
+      // D1a: the Doctrine pools are retired shelves; the rows are kept.
+      expect(poolDoctrines(tier)).toEqual([]);
+      expect(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === tier).length).toBeGreaterThanOrEqual(
         RULES.offers.doctrine,
       );
       // **Every rung opens its own shelf** (the cards pass of 2026-09-05). Both
@@ -3165,12 +3067,9 @@ describe("the master-list cut of 2026-08-28", () => {
         choiceIndex: 0,
       } as Command).ok,
     ).toBe(true);
-    expect(player.statecraft.pendingDoctrine?.options.length).toBe(
-      RULES.offers.doctrine,
-    );
-    for (const id of player.statecraft.pendingDoctrine!.options) {
-      expect(doctrineDef(id).tier).toBe(29);
-    }
+    // And no Doctrine draft opens (D1a) — the council widens to the rung's nine.
+    expect(player.statecraft.pendingDoctrine).toBeUndefined();
+    expect(player.statecraft.slots).toHaveLength(chairsAtTier(29));
   });
 
   it("retires The Loose Rein from every pool while keeping the row readable", () => {
@@ -4060,7 +3959,7 @@ describe("the Orders pass of 2026-08-29", () => {
       expect(def.note, id).toBeTruthy();
       // `poolOrders` is the one reader of `retired`, so a withdrawn row is out
       // of the draw, the upgrade roll and every screen at once.
-      expect(poolOrders(def.pool).includes(id as never), id).toBe(false);
+      expect(poolOrders(def.pool!).includes(id as never), id).toBe(false);
     }
   });
 
@@ -4606,7 +4505,7 @@ describe("the balance pass of 2026-08-31", () => {
   it("places every row this pass touched in the pool the doc puts it in", () => {
     // The Long Watch moved up a pool; the eight new Orders and the three new
     // Doctrines land where the master list's tables put them.
-    const pool = (id: string): string => orderDef(id as never).pool;
+    const pool = (id: string): string => orderDef(id as never).pool!;
     expect(pool("theLongWatch")).toBe("governmentI");
     expect(pool("waysideShrines")).toBe("governmentI");
     expect(pool("theUnbrokenLand")).toBe("governmentI");
@@ -4626,9 +4525,10 @@ describe("the balance pass of 2026-08-31", () => {
     // user: "this is the payoff card"), so it is back in the bag — and Foreign
     // Quarters took its place as the withdrawn row, which keeps its row so a
     // save replays and leaves every pool.
-    expect(poolOrders("governmentIII").includes("theOldWays" as never)).toBe(
-      true,
-    );
+    // D1a retired every row of every pool; what survives of this pin is the
+    // shelf each sat on, and that Foreign Quarters was withdrawn before it.
+    expect(orderDef("theOldWays" as never).pool).toBe("governmentIII");
+    expect(orderDef("foreignQuarters" as never).note).toContain("etired");
     expect(
       poolOrders("governmentII").includes("foreignQuarters" as never),
     ).toBe(false);
@@ -5436,122 +5336,26 @@ describe("the playtest nerf batch of 2026-09-03", () => {
  * is the failure worth catching, and the deals are cheap.
  */
 describe("the Order draft", () => {
-  /** Forty consecutive drafts from one game, which is one generator walked. */
-  function drafts(g: ReturnType<typeof game>, count = 40): OrderId[][] {
-    const player = g.state.players[0]!;
-    const hands: OrderId[][] = [];
-    for (let i = 0; i < count; i++)
-      hands.push(drawOrderOffer(g.state, player).options);
-    return hands;
-  }
-
-  it("deals the current government’s pool and nothing behind it", () => {
-    for (const seed of [7, 11, 23, 41, 97]) {
-      const g = game(seed);
-      const player = g.state.players[0]!;
-      player.statecraft.government = "republic";
-      bumpRevision(g.state);
-      expect(poolOfGovernment(player.statecraft.government)).toBe(
-        "governmentII",
-      );
-      for (const hand of drafts(g)) {
-        for (const id of hand)
-          expect(orderDef(id).pool, `${seed} ${id}`).toBe("governmentII");
-      }
-    }
-  });
-
-  it("shows one of every slot type in a hand of three", () => {
-    // Every pool in the data stocks all three types, so the guarantee is
-    // reachable from every government — which is why an unreachable one is
-    // asserted here rather than assumed.
-    for (const pool of ORDER_POOLS) {
-      for (const type of SLOT_TYPES) {
-        expect(
-          poolOrders(pool).some((id) => orderDef(id).slot === type),
-          `${pool} ${type}`,
-        ).toBe(true);
-      }
-    }
-    for (const seed of [3, 13, 29, 53]) {
-      for (const government of ["chiefdom", "republic"] as const) {
-        const g = game(seed);
-        const player = g.state.players[0]!;
-        player.statecraft.government = government;
-        bumpRevision(g.state);
-        for (const hand of drafts(g)) {
-          expect(hand, `${seed} ${government}`).toHaveLength(3);
-          const types = new Set(hand.map((id) => orderDef(id).slot));
-          for (const type of SLOT_TYPES) {
-            expect(
-              types.has(type),
-              `${seed} ${government} ${type} in ${hand.join()}`,
-            ).toBe(true);
-          }
-        }
-      }
-    }
-  });
-
-  it("deals a legal hand from a pool with no military left in it", () => {
-    const g = game(59);
-    const player = g.state.players[0]!;
-    const sc = player.statecraft;
-    // Hold every military card the chiefdom has: the military sub-bag is empty,
-    // the slot deals nothing and falls through to the open fill. A hand is still
-    // three cards — an empty sub-bag is not a shorter hand.
-    for (const id of poolOrders("chiefdom")) {
-      if (orderDef(id).slot === "military") grant(sc, id);
-    }
-    expect(livePool(sc).some((id) => orderDef(id).slot === "military")).toBe(
-      false,
-    );
-    for (const hand of drafts(g, 20)) {
-      expect(hand).toHaveLength(3);
-      expect(new Set(hand).size).toBe(3);
-      for (const id of hand) expect(orderDef(id).slot).not.toBe("military");
-      const types = new Set(hand.map((id) => orderDef(id).slot));
-      expect(types.has("economic")).toBe(true);
-      expect(types.has("wildcard")).toBe(true);
-    }
-  });
-
-  it("hands the cards back in the pool’s own file order, with no slot seam", () => {
-    // The guaranteed picks are drawn military-economic-wildcard; a hand that
-    // came back in draw order would read as a rule about which face is best.
-    const g = game(67);
-    const player = g.state.players[0]!;
-    for (const hand of drafts(g, 20)) {
-      const pool = livePool(player.statecraft);
-      expect(hand).toEqual(pool.filter((id) => hand.includes(id)));
-    }
-  });
-
-  it("deals the same forty hands from the same generator state", () => {
-    for (const seed of [7, 31]) {
-      expect(drafts(game(seed))).toEqual(drafts(game(seed)));
-    }
-  });
-
-  it("keeps the plain uniform draw for a hand narrower than the spread", () => {
-    // Nothing trims a draft today, so this is the rule stating its own
-    // precondition: below three cards the guarantee cannot be honoured and the
-    // draw is the old one, over the same pool.
-    const g = game(71);
-    const player = g.state.players[0]!;
-    const pool = livePool(player.statecraft);
-    const seen = new Set<string>();
-    for (let i = 0; i < 40; i++) {
-      const hand = drawOrderOptions(g.state, pool, 2);
-      expect(hand).toHaveLength(2);
-      expect(hand).toEqual(pool.filter((id) => hand.includes(id)));
-      seen.add(hand.map((id) => orderDef(id).slot).join("+"));
-    }
-    // A two-card hand is free to be two of a kind — the proof the guarantee is
-    // off below three rather than quietly half-applied.
-    expect(
-      [...seen].some((pair) => pair.split("+")[0] === pair.split("+")[1]),
-    ).toBe(true);
+  /**
+   * **Re-cut for the decks rework** (D1a). The five pins that stood here were
+   * the M/E/W spread's — one of every office in a hand of three, a legal hand
+   * from a pool with no military left, the file-order shuffle, the plain draw
+   * for a narrow hand — and the spread is retired: a hand is three positions
+   * (the seat's two decks and the cadence's third), dealt rarity-first, in
+   * position order. Those rules are pinned in `decks.test.ts`; what stays here
+   * is the one claim both draws made and the one this file's bench can make.
+   */
+  it("deals the seat's own shelf and nothing behind it, and the same hand from the same state", () => {
+    const a = game(41);
+    const b = game(41);
+    const seatA = playerById(a.state, 0)!;
+    const seatB = playerById(b.state, 0)!;
+    seatA.statecraft.drafts = 1;
+    seatB.statecraft.drafts = 1;
+    const hand = drawOrderOffer(a.state, seatA);
+    expect(hand.options).toHaveLength(3);
+    for (const id of hand.options) expect(deckPoolOf(a.state, seatA), id).toContain(id);
+    expect(drawOrderOffer(b.state, seatB)).toEqual(hand);
   });
 });
 
@@ -5742,15 +5546,17 @@ describe("the user's card pass of 2026-09-03", () => {
     for (const id of ["borderBallads", "wolfRunners"] as OrderId[]) {
       expect(orderDef(id).retired, id).toBe(true);
       expect(orderDef(id).note, id).toBeTruthy();
-      expect(poolOrders(orderDef(id).pool).includes(id), id).toBe(false);
+      expect(poolOrders(orderDef(id).pool!).includes(id), id).toBe(false);
       expect(describeCard(id).length, id).toBeGreaterThan(0);
     }
     // **Mountain Hold came back** (batch E4a). It was withdrawn for its unbuilt
     // half alone — the row was written for a mountain two hexes off and built
     // for one beside — and cutting that clause leaves a card that pays exactly
     // what it prints, so it is dealt again.
-    expect(doctrineDef("mountainHold").retired).toBeUndefined();
-    expect(poolDoctrines(10).includes("mountainHold" as never)).toBe(true);
+    // Retired again with every Doctrine row by D1a — the row is kept and
+    // still says what it does.
+    expect(doctrineDef("mountainHold").retired).toBe(true);
+    expect(doctrineDef("mountainHold").tier).toBe(10);
     expect(describeCard("mountainHold").length).toBeGreaterThan(0);
     // And the second row the pass added is dealt. **First Fruits is not**: batch
     // F retired the first citizen's tithe (`docs/history/orders-pass-3.md` §2), so it is
@@ -5759,7 +5565,10 @@ describe("the user's card pass of 2026-09-03", () => {
       poolOrders("chiefdom").includes("firstFruitsOffering" as never),
     ).toBe(false);
     expect(describeCard("firstFruitsOffering").length).toBeGreaterThan(0);
-    expect(poolDoctrines(10).includes("theSacredPath" as never)).toBe(true);
+    // The Sacred Path: a tier-10 Doctrine row, retired with every Doctrine by
+    // D1a and kept.
+    expect(doctrineDef("theSacredPath").tier).toBe(10);
+    expect(doctrineDef("theSacredPath").retired).toBe(true);
   });
 
   it("reads the shape this pass declared from at least one live card", () => {
@@ -6136,9 +5945,8 @@ describe("the card-shapes pass of 2026-09-04", () => {
     for (const id of ["theSaltRoad", "hearthSongs"] as OrderId[]) {
       // Out of the draw, by the one clause that reads `retired`.
       expect(orderDef(id).retired, id).toBe(true);
-      expect(poolOrders(orderDef(id).pool).includes(id), id).toBe(false);
-      const sc = newPlayerStatecraft();
-      expect(livePool(sc).includes(id), id).toBe(false);
+      expect(poolOrders(orderDef(id).pool!).includes(id), id).toBe(false);
+      expect(ordersForDecks(DECK_IDS).includes(id), id).toBe(false);
       // And still fully readable, which is what a save from before the cut
       // needs: the row keeps its name, its face and its effects.
       expect(cardDef(id).name, id).toBeTruthy();
@@ -6565,31 +6373,33 @@ describe("the cards pass of 2026-09-05", () => {
       "governmentIV",
       "governmentV",
     ]);
-    // And the pools are stocked: a rung with nothing on it would deal an empty
-    // hand rather than throw, which is exactly the silence this pass ended.
-    expect(poolOrders("governmentIV").length).toBeGreaterThanOrEqual(
-      RULES.offers.order,
-    );
-    expect(poolOrders("governmentV").length).toBeGreaterThanOrEqual(
-      RULES.offers.order,
-    );
+    // The shelves were stocked; D1a retired every row on them and kept the
+    // rows, and the seat's decks are the draw now. (`poolOrders` is not asked
+    // here: the bench un-retires rows for the file, and a stocked row keeps
+    // the pool it sat on.)
+    for (const pool of ["governmentIV", "governmentV"] as const) {
+      expect(ORDER_IDS.filter((id) => orderDef(id).pool === pool).length).toBeGreaterThanOrEqual(
+        RULES.offers.order,
+      );
+    }
   });
 
-  it("turns the shelf over on adoption — the current pool alone, both new rungs", () => {
+  it("keeps the seat pool through the late governments — no shelf turns over (D1a)", () => {
+    // **Re-cut for the decks rework**: the two late rungs used to open shelves
+    // of their own; a seat draws from its decks under every government now,
+    // and the late governments supply nine chairs.
     const g = game(781);
-    const sc = playerById(g.state, 0)!.statecraft;
+    const player = playerById(g.state, 0)!;
+    const sc = player.statecraft;
+    const before = deckPoolOf(g.state, player);
     sc.government = "theCuria";
     bumpRevision(g.state);
-    const fourth = new Set(livePool(sc));
-    expect(fourth.size).toBe(poolOrders("governmentIV").length);
-    for (const id of fourth) expect(orderDef(id).pool, id).toBe("governmentIV");
-    // The previous government's leftovers do not ride along (the ruling of
-    // 2026-09-03, unchanged by this pass).
-    expect(fourth.has("theFarCharts" as never)).toBe(false);
+    expect(deckPoolOf(g.state, player)).toEqual(before);
+    expect(slotCount("theCuria")).toBe(9);
     sc.government = "theEmpire";
     bumpRevision(g.state);
-    for (const id of livePool(sc))
-      expect(orderDef(id).pool, id).toBe("governmentV");
+    expect(deckPoolOf(g.state, player)).toEqual(before);
+    expect(slotCount("theEmpire")).toBe(9);
   });
 
   it("takes the eight cuts out of every pool and leaves them readable", () => {
@@ -6791,8 +6601,9 @@ describe("the cards pass of 2026-09-05", () => {
     // **Blitz was built** on 2026-09-07 (batch E4a): both halves are one `rule`
     // apiece — a kill hands the walking back, and the trench is forbidden — so
     // the row that had no stock half at all now has two and is dealt again.
-    expect(doctrineDef("blitz").retired).toBeUndefined();
-    expect(poolDoctrines(45).includes("blitz" as never)).toBe(true);
+    // Retired with every Doctrine row by D1a; the words still print.
+    expect(doctrineDef("blitz").retired).toBe(true);
+    expect(poolDoctrines(45)).toEqual([]);
     expect(said("blitz")).toEqual([
       "a unit that kills gets its movement back for the rest of the turn",
       "your units cannot fortify",
@@ -7260,7 +7071,8 @@ describe("the Æra III fork of 2026-09-05", () => {
   });
 
   it("seats the three new rows in the tier-18 pool, and leaves the seal alone", () => {
-    const pool = poolDoctrines(18);
+    // The tier's rows rather than its (retired, empty) pool — D1a.
+    const pool = DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === 18);
     for (const id of [
       "thePilgrimWays",
       "theNaturalPhilosophers",
@@ -8118,23 +7930,27 @@ describe("the engine shapes", () => {
     const sc = playerById(g.state, 0)!.statecraft;
     expect(slotTypesOf(sc)).toHaveLength(sc.slots.length);
     seat(g.state, 0, 1, "waysideShrines");
-    // The chair's flavour, never the card's: Wayside Shrines is a wildcard row
-    // sitting in the economic chair, and the position card is paid for where the
-    // player put it.
-    expect(slotTypesOf(sc)[1]).toBe("economic");
-    expect(orderAtSlotPosition(sc, 1, "economic")).toBe("waysideShrines");
+    // **Every chair is universal** (D1a): the second chair is the second
+    // chair, a flavour names no chair at all, and the position card is paid for
+    // where the player put it.
+    expect(slotTypesOf(sc)[1]).toBe("wildcard");
+    expect(orderAtSlotPosition(sc, 2)).toBe("waysideShrines");
+    expect(orderAtSlotPosition(sc, 2, "wildcard")).toBe("waysideShrines");
+    expect(orderAtSlotPosition(sc, 1, "economic")).toBeNull();
     expect(orderAtSlotPosition(sc, 1, "military")).toBeNull();
     expect(orderAtSlotPosition(sc, 1)).toBeNull();
-    expect(orderAtSlotPosition(sc, 9, "economic")).toBeNull();
+    expect(orderAtSlotPosition(sc, 9)).toBeNull();
   });
 
-  it("pays the Order in the first economic chair twice over", () => {
+  it("pays the Order in the second chair twice over", () => {
+    // D1a: no chair has a flavour, so the position card names a position of
+    // the whole council — the second chair — and the engine is unchanged.
     withCards(
       [
         ["waysideShrines", [{ kind: "pays", where: "city", food: 3, gold: 2 }]],
         [
           "theChoir",
-          [{ kind: "slotPosition", slot: "economic", position: 1, factor: 2 }],
+          [{ kind: "slotPosition", position: 2, factor: 2 }],
         ],
       ],
       () => {
@@ -8992,8 +8808,8 @@ describe("the order pass of 2026-09-06", () => {
     for (const id of RETIRED) {
       const def = orderDef(id);
       expect(def.retired, id).toBe(true);
-      expect(poolOrders(def.pool).includes(id), id).toBe(false);
-      expect(livePool(newPlayerStatecraft()).includes(id), id).toBe(false);
+      expect(poolOrders(def.pool!).includes(id), id).toBe(false);
+      expect(ordersForDecks(DECK_IDS).includes(id), id).toBe(false);
       // A withdrawn row keeps its face so a save that holds it still loads, and
       // says out loud that it is withdrawn.
       expect(def.name, id).toBeTruthy();
@@ -9133,7 +8949,7 @@ describe("the cadence and the chairs, as ruled on the third pass", () => {
   it("takes a quarter off the chairs at tiers 18, 29 and 45, and leaves the early ones alone", () => {
     /** A government's spread, M/E/W, as the doc's Slots column prints it. */
     const spread = (id: GovernmentId): [number, number, number] => {
-      const slots = governmentDef(id).slots;
+      const slots = governmentDef(id).slots!;
       return [slots.military, slots.economic, slots.wildcard];
     };
     const chairs = (id: GovernmentId): number =>
@@ -9217,17 +9033,22 @@ describe("an Order dealt only from its age", () => {
     // age question. What is pinned is that both readings agree — a retired row
     // is off the shelf and out of the bag at every age.
     const g = game();
-    const sc = playerById(g.state, 0)!.statecraft;
+    const player = playerById(g.state, 0)!;
+    const sc = player.statecraft;
     sc.government = "theEmpire";
     bumpRevision(g.state);
     for (const id of gated) {
-      expect(livePool(sc), id).not.toContain(id);
-      expect(drawablePool(sc, 3), id).not.toContain(id);
-      expect(drawablePool(sc, 4), id).not.toContain(id);
+      // D1a: off the shelf (`ordersForDecks` is the one reader of `retired`
+      // for the draw) and out of the bag, whatever the age.
+      expect(ordersForDecks(DECK_IDS), id).not.toContain(id);
+      expect(eligibleFor(g.state, player), id).not.toContain(id);
     }
-    // And nothing else in the pool minds the age, which is what leaves the gate
-    // a rule with no live row asking for it.
-    expect(drawablePool(sc, 1)).toEqual(livePool(sc));
+    // And nothing else on the stocked shelf minds the age, which is what leaves
+    // the gate a rule with no live row asking for it: the opening band at age
+    // one is the whole of what the bag holds, `fromAge` or no.
+    expect(eligibleFor(g.state, player)).toEqual(
+      deckPoolOf(g.state, player).filter((id) => orderDef(id).band === 0 && !sc.orders.includes(id)),
+    );
   });
 
   it("never deals one to an empire still in an earlier age", () => {
@@ -9251,8 +9072,8 @@ describe("an Order dealt only from its age", () => {
     expect(player.statecraft.slots.map((s) => s?.card ?? null)).toContain(
       gated[0],
     );
-    // Held rows leave every pool reading; the gate never touches the holding.
-    expect(livePool(player.statecraft)).not.toContain(gated[0]);
+    // Held rows leave the bag; the gate never touches the holding.
+    expect(eligibleFor(g.state, player)).not.toContain(gated[0]);
   });
 });
 
@@ -9706,10 +9527,11 @@ describe("the Orders balance pass of 2026-09-08", () => {
     expect(orderDef("fishWeirs" as never).line).toBe("tide");
     expect(orderDef("boatwrights" as never).pool).toBe("chiefdom");
     expect(orderDef("fishWeirs" as never).pool).toBe("governmentI");
-    // Both are dealt: a row in the data and out of the bag would be a card
-    // nobody can ever hold.
-    expect(poolOrders("chiefdom").includes("boatwrights" as never)).toBe(true);
-    expect(poolOrders("governmentI").includes("fishWeirs" as never)).toBe(true);
+    // Both retired by D1a with the rest of the shelf, kept for saves and the
+    // Compendium, and dealt by nobody until D1b writes them into a deck.
+    expect(orderDef("boatwrights" as never).retired).toBe(true);
+    expect(orderDef("fishWeirs" as never).retired).toBe(true);
+    expect(orderDef("boatwrights" as never).pool).toBe("chiefdom");
   });
 
   it("The Elders' Writ seats two", () => {

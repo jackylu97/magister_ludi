@@ -3,6 +3,10 @@
     "pachacuti": {
       "name": "Pachacuti",
       "people": "Inca",
+      "decks": [
+        "expansionist",
+        "commerce"
+      ],
       "abilities": [
         {
           "id": "qhapaqNan",
@@ -94,6 +98,10 @@
     "taizong": {
       "name": "Emperor Taizong",
       "people": "Tang",
+      "decks": [
+        "dominion",
+        "magisterial"
+      ],
       "abilities": [
         {
           "id": "theMandate",
@@ -184,6 +192,10 @@
     "modu": {
       "name": "Modu Chanyu",
       "people": "Xiongnu",
+      "decks": [
+        "dominion",
+        "devotion"
+      ],
       "abilities": [
         {
           "id": "steppeRiders",
@@ -281,6 +293,10 @@
     "akhenaten": {
       "name": "Akhenaten",
       "people": "Egyptians",
+      "decks": [
+        "devotion",
+        "magisterial"
+      ],
       "abilities": [
         {
           "id": "greatWorks",
@@ -366,6 +382,10 @@
     "almamun": {
       "name": "Al-Ma'mun",
       "people": "Abbasids",
+      "decks": [
+        "devotion",
+        "scientific"
+      ],
       "abilities": [
         {
           "id": "mutazila",
@@ -443,6 +463,10 @@
     "mithridates": {
       "name": "Mithridates VI",
       "people": "Pontics",
+      "decks": [
+        "dominion",
+        "expansionist"
+      ],
       "abilities": [
         {
           "id": "poisonKing",
@@ -530,6 +554,10 @@
     "joan": {
       "name": "Joan of Arc",
       "people": "French",
+      "decks": [
+        "dominion",
+        "devotion"
+      ],
       "abilities": [
         {
           "id": "theVoices",
@@ -602,6 +630,10 @@
     "mansaMusa": {
       "name": "Mansa Musa",
       "people": "Malians",
+      "decks": [
+        "commerce",
+        "devotion"
+      ],
       "abilities": [
         {
           "id": "goldOfWangara",
@@ -707,6 +739,10 @@
     "zhengHeOfMing": {
       "name": "Zheng He",
       "people": "Ming",
+      "decks": [
+        "commerce",
+        "dominion"
+      ],
       "abilities": [
         {
           "id": "treasureFleet",
@@ -799,6 +835,10 @@
     "nezahualcoyotl": {
       "name": "Nezahualcoyotl",
       "people": "Texcocans",
+      "decks": [
+        "expansionist",
+        "scientific"
+      ],
       "abilities": [
         {
           "id": "theDikes",
@@ -887,6 +927,10 @@
     "hypatiaOfAlexandria": {
       "name": "Hypatia",
       "people": "Alexandrians",
+      "decks": [
+        "scientific",
+        "magisterial"
+      ],
       "abilities": [
         {
           "id": "theMuseion",
@@ -957,6 +1001,10 @@
     "hildegard": {
       "name": "Hildegard of Bingen",
       "people": "Rhinelanders",
+      "decks": [
+        "devotion",
+        "magisterial"
+      ],
       "abilities": [
         {
           "id": "theRites",
@@ -1041,11 +1089,12 @@
     "ibnBattutaOfTangier": {
       "name": "Ibn Battuta",
       "people": "Maghrebis",
+      "rainbow": true,
       "abilities": [
         {
           "id": "guestAtEveryCourt",
           "name": "A Guest at Every Court",
-          "text": "One more wildcard chair in every government.",
+          "text": "One more chair in every government.",
           "effects": [
             {
               "kind": "slotRider",

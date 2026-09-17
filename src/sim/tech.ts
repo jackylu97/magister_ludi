@@ -432,6 +432,11 @@ function columnReached(state: GameState, playerId: number, column: number): bool
 }
 import { RULES } from './rulesData';
 import type { CityScope } from './statecraftData';
+// Value imports from two runtime leaves (the JSON tables and their readers):
+// the charter gate asks the card rows which technologies a charter opens, and
+// the ability fold asks the rite table which ability a chartered rite is.
+import { techIsChartered } from './statecraftData';
+import { riteAbility } from './religionData';
 import {
   cardGrantsAbility,
   cardUnlocksBuilding,
@@ -520,6 +525,13 @@ export function hasAbility(state: GameState, playerId: number, ability: AbilityI
   const player = playerById(state, playerId);
   if (!player) return false;
   if (techsGrant(player.techsResearched, ability)) return true;
+  // **A chartered rite is known** (the decks rework, D1a; `CharterSpec`): the
+  // seat's `charteredRites` is read through each rite's own ability id, so a
+  // rite a charter opened is known on exactly the terms a technology's rite is
+  // — the third clause of the one fold, beside the tree and the cards.
+  for (const rite of player.charteredRites) {
+    if (riteAbility(rite) === ability) return true;
+  }
   return cardGrantsAbility(state, playerId, ability);
 }
 
@@ -1356,6 +1368,15 @@ export function researchError(
   const def = techDef(techId);
   if (player.techsResearched.includes(techId)) {
     return `${player.name} has already researched ${def.name}`;
+  }
+  // **A chartered technology is researchable by the seat its charter opened
+  // it for and by nobody else** (the decks rework, D1a; `CharterSpec`). Asked
+  // of the card rows (`techIsChartered`, derived from every charter's
+  // `unlocks.tech`) and of the seat's own list (`Player.charteredTechs`,
+  // written on the pick), so a node placed off-lane by the data batch is shut
+  // to a seat that has not drafted its way in and needs no flag of its own.
+  if (techIsChartered(techId) && !player.charteredTechs.includes(techId)) {
+    return `${def.name} is opened by a charter ${player.name} has not drafted`;
   }
 
   const next = plannedResearch(state, playerId, techId, mode);

@@ -25,7 +25,7 @@
  *   · the price is always **inside the band**.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   AI,
@@ -88,13 +88,16 @@ import {
   riteError,
 } from '../../src/sim/religion';
 import { improvementYield, workForFamily } from '../../src/sim/improvementData';
-import { livePool, slotTypesOf } from '../../src/sim/statecraft';
+import { eligibleFor, expectedHandBags, slotTypesOf } from '../../src/sim/statecraft';
+import { stockStandardDecks } from './statecraftHelpers';
+
 import {
+  DOCTRINE_IDS,
   ORDER_IDS,
   type OrderId,
+  doctrineDef,
   orderDef,
   orderFitsSlot,
-  poolDoctrines,
 } from '../../src/sim/statecraftData';
 import {
   foundCityAt,
@@ -114,6 +117,20 @@ import { renownPerTurn } from '../../src/sim/renown';
 import { createMap, getTileAt, neighborTiles, tileHex, wrappedDistance } from '../../src/sim/map';
 import { newGame } from '../../src/sim/state';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
+
+/**
+ * **The shelf, stocked for the file** (the decks rework, D1a): every
+ * pre-rework Order row is retired and D1b's rows do not exist yet, so a bot
+ * that appraises a draft has nothing to appraise unless the bench un-retires
+ * rows into decks. `stockStandardDecks` does, deterministically, and the
+ * restore runs after the last test because the module graph outlives the
+ * file (`statecraftHelpers.ts`, `game`'s docblock).
+ */
+let restoreShelf: () => void = () => {};
+beforeAll(() => {
+  restoreShelf = stockStandardDecks();
+});
+afterAll(() => restoreShelf());
 
 /**
  * **A bench** — `aiAppraisal.test.ts`' and `aiWar.test.ts`' board, for its
@@ -1163,20 +1180,27 @@ describe('the draft plan', () => {
   it('estimates the best of a hand from the draw’s own shape, with no roll at all', () => {
     // The estimator's three properties, each on a pool whose answer can be
     // written down by hand rather than measured.
-    const pool = livePool(seat(benchState(1), 0).statecraft);
+    // **Re-cut for the decks rework** (D1a): the estimator reads the deal's own
+    // bags, one per position (`expectedHandBags`), and each bag's rarity-first
+    // odds. The shelf is the bench's stocked one — every pre-rework row is
+    // retired, and the seat under nobody holds all six decks.
+    const state = benchState(1);
+    const pool = eligibleFor(state, seat(state, 0));
     expect(pool.length).toBeGreaterThan(3);
+    const bags = expectedHandBags(state, seat(state, 0));
+    expect(bags.length).toBe(3);
 
     // 1. **A one-card hand is that card.** One draw from one bag whose only
     //    member scores 10 is worth exactly 10.
-    const one = expectedBestOrder([pool[0]!], 1, 0, () => 10);
+    const one = expectedBestOrder([[pool[0]!]], 0, () => 10);
     expect(one).toBe(10);
 
     // 2. **A wider hand is never worth less than a narrower one.** More draws
-    //    can only raise a maximum, whatever the weights.
+    //    can only raise a maximum, whatever the odds.
     const score = (id: string): number => id.length;
     let previous = -Infinity;
     for (const size of [1, 2, 3, 4, 5]) {
-      const value = expectedBestOrder(pool, size, 0, score as never);
+      const value = expectedBestOrder(Array.from({ length: size }, () => pool), 0, score as never);
       expect(value).toBeGreaterThanOrEqual(previous);
       previous = value;
     }
@@ -1185,27 +1209,28 @@ describe('the draft plan', () => {
     //    expectation of a maximum over cards drawn from that pool cannot leave
     //    the pool's own range.
     const values = pool.map((id) => score(id));
-    const hand = expectedBestOrder(pool, 4, 0, score as never);
+    const hand = expectedBestOrder(bags, 0, score as never);
     expect(hand).toBeGreaterThanOrEqual(Math.min(...values));
     expect(hand).toBeLessThanOrEqual(Math.max(...values));
 
     // 4. **Nothing is rolled.** The same question twice is the same number, and
     //    an empty pool or an empty hand is nought rather than a throw.
-    expect(expectedBestOrder(pool, 4, 0, score as never)).toBe(hand);
-    expect(expectedBestOrder([], 4, 0, score as never)).toBe(0);
-    expect(expectedBestOrder(pool, 0, 0, score as never)).toBe(0);
+    expect(expectedBestOrder(bags, 0, score as never)).toBe(hand);
+    expect(expectedBestOrder([], 0, score as never)).toBe(0);
+    expect(expectedBestOrder([[]], 0, score as never)).toBe(0);
   });
 
   it('reads the pity: a passed draft makes the next hand worth more, never less', () => {
-    // The whole reason a pass is worth anything. `rarityDrawWeight` adds
-    // `skipPity` to the uncommon and rare rungs, so a bag drawn with a pass
-    // banked leans toward the rarer cards — and if the rarer cards are the
-    // better ones, the expected best of the hand rises.
-    const pool = livePool(seat(benchState(1), 0).statecraft);
+    // The whole reason a pass is worth anything. `rarityOdds` moves `skipPity`
+    // points out of common and into the uncommon and rare rungs, so a bag drawn
+    // with a pass banked leans toward the rarer cards — and if the rarer cards
+    // are the better ones, the expected best of the hand rises.
+    const state = benchState(1);
+    const bags = expectedHandBags(state, seat(state, 0));
     const rarity = (id: string): number =>
       ({ common: 1, uncommon: 5, rare: 20 })[orderDef(id as never).rarity] ?? 0;
-    const plain = expectedBestOrder(pool, 4, 0, rarity as never);
-    const pitied = expectedBestOrder(pool, 4, 3, rarity as never);
+    const plain = expectedBestOrder(bags, 0, rarity as never);
+    const pitied = expectedBestOrder(bags, 3, rarity as never);
     expect(pitied).toBeGreaterThan(plain);
   });
 
@@ -1251,7 +1276,7 @@ describe('the draft plan', () => {
     // by the ordinary argmax.
     const state = benchState(2);
     const player = seat(state, 0);
-    player.statecraft.pendingOrder = { options: livePool(player.statecraft).slice(0, 3) };
+    player.statecraft.pendingOrder = { options: eligibleFor(state, player).slice(0, 3) };
     const decision = nextBotDecision(state, player.id);
     expect(decision?.kind).toBe('draft');
     const pass = decision!.candidates.find((candidate) => candidate.label === 'pass the hand');
@@ -1319,9 +1344,22 @@ describe('the draft plan', () => {
         expect(chosen.score).toBeGreaterThanOrEqual(other.score);
       }
     }
-    // And on this board, no hand is passed at all: every one of them held a card
-    // worth more than a rung of pity.
-    expect(offered.filter((decision) => decision.command.type === 'skipOrderOffer')).toEqual([]);
+    // **Re-cut for the decks rework** (D1a): this used to add that no hand on
+    // this board was passed at all. That was a fact about the old chiefdom
+    // pool; the bench's stocked shelf deals rows this seat scores at nothing
+    // (a coastal card to an inland town, a caravan card with no route), and a
+    // hand of three such is exactly the hand the ruling says to pass. The claim
+    // that survives is the ruling itself, asserted above hand by hand: a pass
+    // wins only on the argmax, against a margin and never against the whole
+    // next hand.
+    const passed = offered.filter((decision) => decision.command.type === 'skipOrderOffer');
+    for (const decision of passed) {
+      const pass = decision.candidates.find((candidate) => candidate.label === 'pass the hand')!;
+      for (const card of decision.candidates) {
+        if (card === pass) continue;
+        expect(card.score).toBeLessThanOrEqual(pass.score);
+      }
+    }
   });
 
   it('never passes a hand of three cards it wants', () => {
@@ -1333,7 +1371,7 @@ describe('the draft plan', () => {
     const ctx = valueContext(state, player);
     // The three the seat itself scores highest out of the live pool — an
     // arranged hand rather than whatever the first three ids happen to be.
-    const wanted = livePool(player.statecraft)
+    const wanted = eligibleFor(state, player)
       .map((id) => ({ id, score: explainCard(player, id, ctx).total }))
       .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1))
       .slice(0, 3);
@@ -1920,7 +1958,18 @@ describe('batch 8 — the arrangement, improved once a turn', () => {
     const fitting = ORDER_IDS.filter(
       (id) => orderFitsSlot(id, type) && orderDef(id).retired !== true,
     );
-    return [fitting[0]!, fitting[1]!];
+    // **Re-cut for the decks rework** (D1a): every chair is universal, so the
+    // first two live rows in file order fit and the pair used to be whichever
+    // two the old chiefdom pool put first. A pair whose scores are a hair apart
+    // in either direction — a card counts the council it sits in — is a pair
+    // the arm swaps both ways, which is not the claim under test. The claim is
+    // about a pair the seat's own appraisal ranks clearly, so the bench takes
+    // the best and the worst of the stocked shelf by that appraisal.
+    const ctx = valueContext(game.state, player);
+    const ranked = [...fitting].sort(
+      (a, b) => explainCard(player, b, ctx).total - explainCard(player, a, ctx).total || (a < b ? -1 : 1),
+    );
+    return [ranked[0]!, ranked[ranked.length - 1]!];
   }
 
   it('swaps the better card in exactly once, and stays silent the other way round', () => {
@@ -2675,7 +2724,12 @@ describe('the faith book', () => {
 
     // Now put a Doctrine draft on the table beside it. The verb would redeal
     // *that*, so the belief arm stands down and the seat answers the Doctrine.
-    player.statecraft.pendingDoctrine = { options: poolDoctrines(4).slice(0, 3) };
+    // A Doctrine on the table: the rows are retired (D1a — a Doctrine is the
+    // reward hand now), so the pool deals none, and the bench sets three of the
+    // tier-4 rows itself; a retired row is still a `DoctrineId` the pick takes.
+    player.statecraft.pendingDoctrine = {
+      options: DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === 4).slice(0, 3),
+    };
     expect(player.statecraft.pendingDoctrine.options.length).toBeGreaterThan(0);
     expect(rerollKindFor(player)).toBe('doctrine');
     const first = nextBotDecision(state, player.id);

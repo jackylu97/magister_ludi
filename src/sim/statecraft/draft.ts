@@ -27,7 +27,9 @@ import { nextFloat } from '../rng';
 import { RULES } from '../rulesData';
 import { type GameState, type HeldMalice, type Player, playerById, realPlayers } from '../state';
 import {
+  type Band,
   type CardId,
+  type DeckId,
   type DoctrineId,
   type GovernmentId,
   type OrderId,
@@ -36,19 +38,22 @@ import {
   type SlotType,
   type TallyOccasion,
   GOVERNMENT_TIERS,
-  SLOT_TYPES,
+  REWARD_DRAFTS,
   STARTING_GOVERNMENT,
   STATECRAFT,
+  bandTierAt,
   doctrineDef,
   governmentDef,
   governmentsAtTier,
+  isCharter,
   isDoctrineId,
   isGovernmentId,
   isOrderId,
   orderDef,
   orderFitsSlot,
+  orderSlot,
+  ordersForDecks,
   poolDoctrines,
-  poolOfGovernment,
   poolOrders,
   slotCount,
   slotLayout,
@@ -117,28 +122,83 @@ export function nextDraftCost(player: Player): number {
  *   · **culture already paid stays paid.** The draft's cost came out when the
  *     meter filled (`settleDraft`); passing does not hand it back, which is
  *     what makes the choice cost something.
+ *
+ * **Restated for the rarity-first draw** (the decks rework, D1a): the bag is no
+ * longer weighted per card. A rung is drawn first at the table's odds
+ * (`rarityOdds`, 60 / 30 / 10 renormalised over the rungs the bag holds) and a
+ * card uniformly within it, so what a pass buys is a *shift* of those odds —
+ * `skipPity` points moved out of common and into uncommon and rare per skip —
+ * and never a growth of them.
  */
 
-/** The weight one card carries in a bag drawn by an empire that has skipped `skips` times. */
-export function orderDrawWeight(id: OrderId, skips: number): number {
-  return rarityDrawWeight(orderDef(id).rarity, skips);
+/** The three rungs, weakest pull first — the order the odds are read in. */
+export const RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
+
+/**
+ * **The odds of each rung under `skips` consecutive passes**, in probability
+ * points — the table's own numbers with the pity moved (never added): each
+ * skip takes `skipPity.uncommon + skipPity.rare` points off common, floored at
+ * nought, and hands them to the two rungs the knob names.
+ *
+ * Points rather than a normalised probability, because a bag rarely holds all
+ * three rungs: `drawRarityFirst` renormalises over the rungs actually present,
+ * which is the design doc's rule word for word (*"renormalize if a rarity is
+ * absent"*), and a table that had already been normalised over three would be
+ * normalised twice.
+ */
+export function rarityOdds(skips: number): Record<OrderRarity, number> {
+  const passes = Math.max(0, Math.floor(skips));
+  const base = STATECRAFT.rarityOdds;
+  const up = Math.max(0, STATECRAFT.skipPity.uncommon ?? 0) * passes;
+  const top = Math.max(0, STATECRAFT.skipPity.rare ?? 0) * passes;
+  const common = Math.max(0, (base.common ?? 0) - up - top);
+  // What common could not give, the two rungs do not receive: the shift is
+  // bounded by the floor so that three passes on a thin table cannot mint
+  // probability out of nothing.
+  const given = Math.min(up + top, Math.max(0, base.common ?? 0));
+  const share = up + top <= 0 ? 0 : given / (up + top);
+  return {
+    common,
+    uncommon: Math.max(0, (base.uncommon ?? 0) + up * share),
+    rare: Math.max(0, (base.rare ?? 0) + top * share),
+  };
 }
 
 /**
- * The same reading, by rung rather than by card — what a screen or a test asks
- * when it wants the shape of the bag rather than the weight of one row.
- *
- * The pity is added, never multiplied, and only to the two rungs `skipPity`
- * names: common is not a key of it (see `StatecraftConfig.skipPity`), so a
- * passed draft can only ever move the deck's top, never its floor. Floored at
- * zero so a retuned knob cannot make a rung impossible to draw by going
- * negative — a weightless bag is a draw that has to fall back on its last item,
- * and an unreachable card is not a balance decision anybody meant to take.
+ * The same reading, by rung — what a screen asks when it wants to say whether
+ * a pass buys anything (`passFigure`, `main.ts`: the rare rung's points now
+ * against its points after one more pass).
  */
 export function rarityDrawWeight(rarity: OrderRarity, skips: number): number {
-  const base = STATECRAFT.rarityWeights[rarity] ?? 0;
-  const pity = rarity === 'common' ? 0 : (STATECRAFT.skipPity[rarity] ?? 0);
-  return Math.max(0, base + pity * Math.max(0, Math.floor(skips)));
+  return rarityOdds(skips)[rarity];
+}
+
+/**
+ * **The chance each card in a bag has of being the one dealt**, under the
+ * rarity-first draw — the distribution `drawRarityFirst` samples from, written
+ * out so the bot's expectation (`expectedBestOrder`, `ai/wants.ts`) and the
+ * tests read the same arithmetic the draw performs rather than a second copy.
+ *
+ * A rung's points are renormalised over the rungs the bag holds, and a rung's
+ * share is split evenly over its cards. An empty bag is an empty list. A bag
+ * whose every rung weighs nothing (a table retuned to nought) is dealt
+ * uniformly, which is `drawRarityFirst`'s own fallback.
+ */
+export function rarityFirstOdds(
+  bag: readonly OrderId[],
+  skips: number,
+): { id: OrderId; chance: number }[] {
+  if (bag.length === 0) return [];
+  const odds = rarityOdds(skips);
+  const counts: Record<OrderRarity, number> = { common: 0, uncommon: 0, rare: 0 };
+  for (const id of bag) counts[orderDef(id).rarity] += 1;
+  let total = 0;
+  for (const rarity of RARITIES) if (counts[rarity] > 0) total += odds[rarity];
+  return bag.map((id) => {
+    const rarity = orderDef(id).rarity;
+    const chance = total <= 0 ? 1 / bag.length : odds[rarity] / total / counts[rarity];
+    return { id, chance };
+  });
 }
 
 // --- what a player holds ----------------------------------------------------
@@ -217,8 +277,20 @@ export interface SlottedOrder {
  * reducer has to tell apart from a pick.
  */
 export interface OrderOffer {
-  /** The new cards, in draw order. */
+  /** The new cards, in draw order — position for position with `positions`. */
   options: OrderId[];
+  /**
+   * **Which category each position of the base hand was dealt from** (the
+   * decks rework, D1a): the seat's first deck, its second, and the third
+   * position's turn of the cadence — or, on a rainbow seat, the two decks the
+   * hand sampled. Written when the hand is dealt and read by two things: the
+   * screen's badge, and a **redraw**, which must keep the same categories (the
+   * design doc's rule 6: *"redraws keep the same position categories"*) — so
+   * `drawOrderOffer` reads the hand it replaces off the state rather than
+   * re-sampling a rainbow seat's decks. Absent on a hand from before the
+   * rework, which no save this build loads can hold.
+   */
+  positions?: HandPosition[];
   /**
    * **This hand has already had its free redraw** — the Rihla's stamp (batch
    * L6a, `CardActionRule` `rerollOffers`). Presence is the state and it dies
@@ -227,6 +299,40 @@ export interface OrderOffer {
    */
   rerolled?: true;
 }
+
+/**
+ * **A reward hand on the table** — three rares (or fewer) dealt when a banked
+ * reward was opened (`openRewardHandAt`), and the draft count it was banked
+ * at. Spent by `chooseReward` or `passReward`; blocks nothing.
+ */
+export interface RewardOffer {
+  /** The regular draft count this reward was banked at — 4, 18 or 29. */
+  drafts: number;
+  /** The rares dealt, in draw order — position for position with `positions`. */
+  options: OrderId[];
+  /** `OrderOffer.positions`' twin: the deck each position came from. */
+  positions?: HandPosition[];
+}
+
+/**
+ * **What category one position of a hand is dealt from** — the vocabulary of
+ * the design doc's "Normal three-card hands", rules 1 and 2.
+ *
+ *   · `deck` — a single-type card of one named deck (the first two positions
+ *     of every hand, and the third's every fourth turn);
+ *   · `generic` — a row with no membership, everybody's (the third's first and
+ *     third turns);
+ *   · `cross` — a two-deck row naming either of the seat's decks (the third's
+ *     second turn).
+ *
+ * A position whose category holds nothing falls back to the eligible union
+ * (rule 5), and the badge then says what the *card* is rather than what the
+ * position asked for — `positions` records the ask, the row records the card.
+ */
+export type HandPosition =
+  | { kind: 'deck'; deck: DeckId }
+  | { kind: 'generic' }
+  | { kind: 'cross' };
 
 /**
  * One growing card's counter: what it is counting for, and how much.
@@ -427,12 +533,34 @@ export interface PlayerStatecraft {
    * takes `?? []` for it: that seat's deck has paid nothing it remembers.
    */
   yieldTallies: CardYieldTally[];
+  /**
+   * **The reward hands this empire has banked and not yet opened**, as the
+   * regular draft counts they were banked at (the decks rework, D1a; the
+   * design doc's "Doctrine reward hands": *"the player may bank or pass the
+   * reward; a banked reward does not block End Turn"*).
+   *
+   * **Counts and not hands**, and that is the rule's own shape: the hand is
+   * dealt when the reward is *opened* (`openRewardHandAt`, a command), from
+   * the shelf as it stands then — so a rare taken in a normal draft between
+   * the banking and the opening is simply not in it, which is the doc's
+   * *"taking any rare in a normal draft removes that same ID from future
+   * doctrine hands"* with nothing to remove. An absolute count in every
+   * other timed fact's register: written by `settleDraft`, spent by the open,
+   * ticked by nothing. Always present, never optional.
+   */
+  rewardHands: number[];
   /** A draft awaiting a pick, or the key is absent. Blocks End Turn. */
   pendingOrder?: OrderOffer;
   /** A Doctrine draft awaiting a pick, or absent. Blocks End Turn. */
   pendingDoctrine?: DoctrineOffer;
   /** A banked government offer, or absent. Deliberately does **not** block. */
   pendingGovernment?: GovernmentOffer;
+  /**
+   * **A reward hand opened and on the table**, or absent. Deliberately does
+   * **not** block — a reward is a gift the empire may take or leave, and a
+   * hand left on the table across a turn is a hand it has not yet answered.
+   */
+  pendingReward?: RewardOffer;
 }
 
 /** A brand-new empire's Statecraft: the chiefdom, one slot spread, nothing held. */
@@ -448,6 +576,7 @@ export function newPlayerStatecraft(): PlayerStatecraft {
     rerollsTaken: 0,
     tallies: [],
     yieldTallies: [],
+    rewardHands: [],
   };
 }
 
@@ -698,45 +827,84 @@ export function orderAtSlotPosition(
 }
 
 /**
- * The **live pool**: this government's own cards, minus everything already held
- * (the minus-held half is Entry XV's).
+ * **The seat pool** — every dealt row this seat's decks may draw, in file
+ * order: its own decks' single-type rows, the cross-type rows naming either,
+ * and the generic rows that belong to everybody (`docs/six-decks-first-cut.md`
+ * "The structure"; the decks rework, D1a). A rainbow seat holds all six decks
+ * and its pool is the whole dealt table.
  *
- * **The current pool alone** (user, 2026-09-03). It carried the previous
- * government's leftovers until then, and the reason to drop them is that the
- * leftovers were most of the bag: a seat adopting Government I drafted from
- * thirteen chiefdom rows beside thirty-four new ones, so a third of every hand
- * was the age it had just left and the new pool — the reward for adopting —
- * arrived diluted. An unpicked card from the old government is gone for good
- * now; adopting is the moment a whole shelf turns over.
- *
- * Through `poolOrders`, which is the one reader of `retired` — a withdrawn row
- * has to be out of the draw and out of every screen by the same clause. In file
- * order, because a draw that depends on an order must depend on an order the
- * data carries.
+ * **The draw's source, replacing `poolOfGovernment`** (kept in
+ * `statecraftData.ts` for the retired shelves, read by nothing live). A pool
+ * used to turn over whole on adoption; a deck never does — *"no pool rotates
+ * away"* — so what an adoption buys now is chairs, and what a draft count buys
+ * is a band (`bandOpen`). Held cards are **not** taken out here: this is the
+ * shelf's shape, which the bot's margin and the Compendium ask about; the bag
+ * a hand is dealt from is `eligibleFor`.
  */
-export function livePool(sc: PlayerStatecraft): OrderId[] {
-  const held = new Set(sc.orders);
-  return poolOrders(poolOfGovernment(sc.government)).filter((id) => !held.has(id));
+export function deckPoolOf(state: GameState, player: Player): OrderId[] {
+  void state;
+  return ordersForDecks(player.decks);
 }
 
 /**
- * `livePool` with the rows' own age gates applied — **the bag the draw deals
- * from**.
- *
- * Governments carry no age gate (ruled), so a seat that climbs the tier ladder
- * fast opens pool V in Æra III, and the four bead Orders — whose whole text is
- * the last age — were in its hand (the user, 2026-09-06: "the era 4 victory
- * cards are showing in the game at age 3, that's a bug"). `OrderDef.fromAge` is
- * the row's answer, and this is its one reader: the empire's `highestAge` must
- * reach it. The pool-shape reading above stays ungated on purpose — it is what
- * the bot's margin and the tests ask about a government's whole shelf, and a
- * row already held keeps its chair whatever the age says: the gate is on the
- * deal, never on the holding.
+ * **Is a two-deck seat, or a rainbow one?** Read off the list's length, never
+ * off the figure: a seat under nobody holds all six too (`leaderDecks`), and
+ * the draw's rainbow rule — two *distinct* decks sampled per hand — is the
+ * honest deal for any seat holding more than a pair.
  */
-export function drawablePool(sc: PlayerStatecraft, age: TechAge): OrderId[] {
-  return livePool(sc).filter((id) => {
-    const from = orderDef(id).fromAge;
-    return from === undefined || age >= from;
+export function isRainbowSeat(player: Player): boolean {
+  return player.decks.length > 2;
+}
+
+/**
+ * **The seat's research age** — the highest age among its technologies,
+ * floored at one (`highestAge` answers one for an empty list). The age half of
+ * the band gate, and deliberately the *empire's* age rather than the world's
+ * mean: the design doc's age check names *"the highest age among that
+ * empire's researched technologies"* and rules the calendar out by name.
+ */
+export function researchAgeOf(player: Player): TechAge {
+  return highestAge(player.techsResearched);
+}
+
+/**
+ * **May this band be dealt to a seat at this ladder tier and this age?** Both
+ * gates, per the age check of 2026-09-16: the band's rung reached on the draft
+ * ladder **and** its age reached in the tree — band 0 from age one, band 1
+ * from age two, and so on — so that *"reaching Government I through culture
+ * alone cannot offer an age-2 Market card while the empire is still in age
+ * 1"*. Earlier bands stay open: nothing rotates away.
+ */
+export function bandOpen(band: Band, tier: Band, age: TechAge): boolean {
+  return band <= tier && band + 1 <= age;
+}
+
+/** The band tier this seat's draft count has reached. See `bandTierAt`. */
+export function bandTierOf(sc: PlayerStatecraft): Band {
+  return bandTierAt(sc.drafts);
+}
+
+/**
+ * **The bag a hand is dealt from**: the seat pool with the bands gated on the
+ * seat's tier and age, minus everything already held (the minus-held half is
+ * Entry XV's), in file order. The old `fromAge` gate rides along for any
+ * retired row that still carries one — a row already held keeps its chair
+ * whatever the age says; the gate is on the deal, never on the holding.
+ *
+ * Empty is a real answer and the one the exhausted-pool rule reads
+ * (`draftExhausted`): a seat that holds everything its decks and bands can
+ * deal it is charged nothing for a draft that would deal nothing.
+ */
+export function eligibleFor(state: GameState, player: Player): OrderId[] {
+  const sc = player.statecraft;
+  const tier = bandTierOf(sc);
+  const age = researchAgeOf(player);
+  const held = new Set(sc.orders);
+  return deckPoolOf(state, player).filter((id) => {
+    if (held.has(id)) return false;
+    const def = orderDef(id);
+    if (!bandOpen(def.band, tier, age)) return false;
+    return def.fromAge === undefined || age >= def.fromAge;
   });
 }
 
@@ -965,89 +1133,268 @@ export function offerSize(state: GameState, playerId: number, kind: OfferKind): 
   return foldOfferSize(explainOfferSize(state, playerId, kind));
 }
 
-/**
- * The smallest hand the spread rule applies to.
- *
- * Three slot types need three cards to show one of each, so a hand narrower than
- * that cannot honour the guarantee and does not try — it is dealt plain uniform.
- * A hand is only ever narrower than three when a rider *trims* it, which today
- * nothing does; the clause is here so the rule states its own precondition
- * rather than assuming the table's number.
- */
-const SPREAD_MIN_SIZE = SLOT_TYPES.length;
+// --- the positions -----------------------------------------------------------
 
 /**
- * The new cards of one draft: `size` from `pool`, and for a hand of three or
- * more, **at least one military, one economic and one wildcard** (user,
- * 2026-09-03).
- *
- * The complaint the rule answers is that a uniform draw over a pool that is half
- * economic deals all-economic hands often enough to be the thing a player
- * remembers about drafting, and a draft whose three faces are one question is
- * not the deckbuilder question. Guaranteeing the spread costs nothing in pool
- * design — every pool stocks all three types — and turns each draft into three
- * comparable offers.
- *
- * **The order of the draws is fixed and stated**: military, then economic, then
- * wildcard (`SLOT_TYPES`, the same order a spread is printed and a screen lays
- * slots out), then the open fill from everything not yet taken. Fixed because a
- * generator read in a different order is a different game from the same seed.
- *
- * **The roll contract.** Each of the four draws goes through `drawWeighted`, so
- * each spends exactly one roll per card it actually takes and none for a card it
- * cannot: a draft spends `(non-empty slot sub-bags) + min(size − guaranteed,
- * rest)` rolls, which is three plus `size − 3` — that is, exactly `size` —
- * whenever the pool can supply all three types and enough cards to fill the
- * hand, and fewer only when the bag itself is short. Emptiness is a fact about
- * the pool and the government, never about the moment, so two runs of the same
- * state spend the same rolls in the same order. A slot whose sub-bag is empty
- * simply deals nothing and falls through to the open fill, which is the same
- * honest answer a short pool has always got.
- *
- * **The rarity weights ride inside the guarantee, never around it** (the ruling
- * of 2026-09-04). Each of the four bags is drawn *by weight* rather than
- * uniformly, so a rare military card is rare among military cards and the
- * spread still deals one of each — which is the only composition of the two
- * rules that keeps both promises. Weighting the hand as a whole and then
- * repairing the spread afterwards would be a guarantee that quietly stops
- * holding whenever the repair has to reach past a weight, and one roll per card
- * is what a replay is owed either way.
- *
- * **The hand comes back in the pool's own file order**, not in draw order. The
- * guaranteed picks would otherwise arrive military-economic-wildcard and the
- * fill after them, and a player would read the seam — the first three faces of
- * every wide draft standing in slot order — as a rule about which card is best.
- * Sorting is display only: the picks are already made, and a choice names an
- * index into what it is shown.
- *
- * Exported for the pins rather than for a second caller: `drawOrderOffer` is the
- * only one, and a rule about *what a generator deals* is testable only by asking
- * it for many hands at a size the table does not currently hand out.
+ * **The base hand is three positions** (the design doc's "Normal three-card
+ * hands"): two from the seat's decks, one by the cadence. `rules.offers.order`
+ * is still the table's size and a rider still widens it (`explainOfferSize`)
+ * — the extra cards are dealt after the base hand from the eligible union,
+ * rarity-first, *"without extra guaranteed generic or cross positions"* (rule
+ * 6). A hand narrower than three (nothing trims one today) deals its first
+ * `size` positions and no more.
  */
-export function drawOrderOptions(
-  state: GameState,
-  pool: readonly OrderId[],
-  size: number,
-  weightOf: (id: OrderId) => number = () => 1,
-): OrderId[] {
-  const taken = new Set<OrderId>();
-  if (size >= SPREAD_MIN_SIZE) {
-    // The sub-bags partition the pool — `OrderDef.slot` is the card's own single
-    // type, and there is no wildcard *card* that fits everywhere — so no draw
-    // here can take a card another already has.
-    for (const type of SLOT_TYPES) {
-      const bag = pool.filter((id) => orderDef(id).slot === type);
-      for (const id of drawWeighted(state, bag, 1, weightOf)) taken.add(id);
-    }
-  }
-  const rest = pool.filter((id) => !taken.has(id));
-  for (const id of drawWeighted(state, rest, size - taken.size, weightOf)) taken.add(id);
-  return pool.filter((id) => taken.has(id));
+export const HAND_POSITIONS = 3;
+
+/**
+ * **The third position's cadence**, by regular draft number: generic → cross →
+ * generic → single, repeating (rule 2). Draft one deals a generic third card,
+ * draft two a cross, draft four a single-type card from one of the seat's own
+ * decks — and *"the extra single-type position alternates between the two
+ * leader decks on successive occurrences"*, which is the second index below.
+ */
+const THIRD_CADENCE: readonly ('generic' | 'cross' | 'single')[] = [
+  'generic',
+  'cross',
+  'generic',
+  'single',
+];
+
+/**
+ * **What the third position asks for on the `draftNumber`-th regular draft**,
+ * and — when it asks for a single-type card — *which* of the seat's decks by
+ * the count of single turns so far. Pure arithmetic on the draft count, so a
+ * redraw of the same draft asks the same question (rule 6: *"a new paid
+ * regular draft advances the cadence; repeatedly passing/redrawing one offer
+ * does not"*).
+ */
+export function thirdPositionOf(draftNumber: number): { turn: 'generic' | 'cross' | 'single'; single: number } {
+  const n = Math.max(1, Math.floor(draftNumber));
+  const turn = THIRD_CADENCE[(n - 1) % THIRD_CADENCE.length]!;
+  return { turn, single: Math.floor((n - 1) / THIRD_CADENCE.length) };
 }
 
 /**
- * Deals one draft: `offerSize` cards from the live pool, weighted by rarity and
- * by the pity this empire's passes have banked.
+ * **The three positions this hand is dealt into** — the seat's two decks and
+ * the third by the cadence, or on a rainbow seat two decks sampled distinct
+ * and the third's single turn a *different* deck where one exists (rule 4).
+ *
+ * The rainbow sampling spends `state.rng` — two rolls for the pair and one
+ * more on a single turn — and it is the only part of the ask that does: a
+ * two-deck seat's positions are a function of its row and the draft count.
+ * Rolled here rather than in the draw so that the ask is written onto the
+ * offer (`OrderOffer.positions`) and a redraw can keep it without rolling
+ * again — the whole reason `positions` exists.
+ */
+export function drawHandPositions(state: GameState, player: Player, draftNumber: number): HandPosition[] {
+  const decks = player.decks;
+  const third = thirdPositionOf(draftNumber);
+  let first: DeckId | undefined;
+  let second: DeckId | undefined;
+  if (isRainbowSeat(player)) {
+    // Two *different* decks, uniformly: the first off the whole list, the
+    // second off the list without it. Deliberately not `drawWithoutReplacement`
+    // over a two-count, whose rolls would be the same two — written out so the
+    // roll contract reads on the page.
+    [first] = drawWithoutReplacement(state, decks, 1);
+    [second] = drawWithoutReplacement(state, decks.filter((deck) => deck !== first), 1);
+  } else {
+    first = decks[0];
+    second = decks[1] ?? decks[0];
+  }
+  const positions: HandPosition[] = [];
+  if (first !== undefined) positions.push({ kind: 'deck', deck: first });
+  if (second !== undefined) positions.push({ kind: 'deck', deck: second });
+  if (third.turn === 'generic') positions.push({ kind: 'generic' });
+  else if (third.turn === 'cross') positions.push({ kind: 'cross' });
+  else if (isRainbowSeat(player)) {
+    // "Choose a different third type if possible": the decks not already in
+    // the hand, or the whole list when the seat holds only the two.
+    const others = decks.filter((deck) => deck !== first && deck !== second);
+    const [deck] = drawWithoutReplacement(state, others.length > 0 ? others : decks, 1);
+    if (deck !== undefined) positions.push({ kind: 'deck', deck });
+  } else {
+    const deck = decks[third.single % Math.max(1, decks.length)];
+    if (deck !== undefined) positions.push({ kind: 'deck', deck });
+  }
+  return positions;
+}
+
+/**
+ * **The rows of a bag that answer one position's ask.** A `deck` position is
+ * the single-type rows of that deck (a cross-type row has two homes and is the
+ * cross position's, not either deck's); `cross` is every two-deck row that
+ * names any of the seat's decks; `generic` is every row with no home.
+ */
+export function positionBag(
+  bag: readonly OrderId[],
+  position: HandPosition,
+  decks: readonly DeckId[],
+): OrderId[] {
+  return bag.filter((id) => {
+    const home = orderDef(id).decks;
+    switch (position.kind) {
+      case 'deck':
+        return home.length === 1 && home[0] === position.deck;
+      case 'cross':
+        return home.length === 2 && home.some((deck) => decks.includes(deck));
+      case 'generic':
+        return home.length === 0;
+      default: {
+        const unhandled: never = position;
+        void unhandled;
+        return false;
+      }
+    }
+  });
+}
+
+/**
+ * **One card, rarity first** (rule 1): a rung at the odds of `rarityOdds`
+ * renormalised over the rungs the bag holds, then a card uniformly within it —
+ * in **one roll**. The roll lands in the rungs' points laid end to end; where
+ * it lands says the rung, and how far into the rung it landed, rescaled, says
+ * the card. One roll per card is the contract `drawWeighted` kept and the one
+ * a replay is owed either way; two rolls would say the same thing and spend
+ * twice.
+ *
+ * An empty bag deals nothing and spends nothing (emptiness is a fact about the
+ * shelf, never about the moment, so two runs of one state spend the same
+ * rolls). A table whose every rung weighs nothing deals uniformly.
+ */
+export function drawRarityFirst(
+  state: GameState,
+  bag: readonly OrderId[],
+  skips: number,
+): OrderId | undefined {
+  if (bag.length === 0) return undefined;
+  const odds = rarityOdds(skips);
+  const rungs = RARITIES.map((rarity) => ({
+    rarity,
+    cards: bag.filter((id) => orderDef(id).rarity === rarity),
+  })).filter((rung) => rung.cards.length > 0);
+  let total = 0;
+  for (const rung of rungs) total += Math.max(0, odds[rung.rarity]);
+  const roll = nextFloat(state.rng);
+  if (total <= 0) {
+    return bag[Math.min(bag.length - 1, Math.floor(roll * bag.length))];
+  }
+  let running = 0;
+  for (let index = 0; index < rungs.length; index++) {
+    const rung = rungs[index]!;
+    const width = Math.max(0, odds[rung.rarity]) / total;
+    const last = index === rungs.length - 1;
+    if (roll < running + width || last) {
+      const within = width <= 0 ? 0 : Math.min(0.999999, Math.max(0, (roll - running) / width));
+      return rung.cards[Math.min(rung.cards.length - 1, Math.floor(within * rung.cards.length))];
+    }
+    running += width;
+  }
+  return bag[bag.length - 1];
+}
+
+/**
+ * **The new cards of one draft**: one per position, then the extras — the
+ * design doc's "Normal three-card hands", rules 1, 2, 5 and 6 (the decks
+ * rework, D1a; this replaced the M/E/W spread of 2026-09-03).
+ *
+ * Position by position, in the order `positions` names them: the bag is the
+ * position's own category out of what is eligible and not yet in the hand
+ * (`positionBag`), or the whole of it when the category is empty (rule 5), and
+ * one card comes out rarity-first (`drawRarityFirst`). Then the extra cards a
+ * rider added, from the union, the same way. **Every position excludes the
+ * hand** — a card dealt twice is two cards and a joke — and nothing here can
+ * reach a deck the seat does not hold, because `eligible` is already the
+ * seat's own.
+ *
+ * **The roll contract**: one roll per card actually dealt and none for a
+ * position whose bag is empty. Emptiness is a fact about the shelf and the
+ * collection, never about the moment, so two runs of one state spend the same
+ * rolls in the same order — the replay's whole claim on a draw.
+ *
+ * **The hand comes back in position order**, and that is a change from the
+ * spread's file-order shuffle, made on purpose: a position *is* a fact about
+ * the card (the badge says which deck asked for it), and `positions` is
+ * written beside the options index for index. A choice still names an index
+ * into what it is shown.
+ *
+ * Exported for the pins and for the bot's expectation of a hand: a rule about
+ * *what a generator deals* is testable only by asking it for many hands.
+ */
+export function drawOrderOptions(
+  state: GameState,
+  eligible: readonly OrderId[],
+  positions: readonly HandPosition[],
+  size: number,
+  skips: number,
+  decks: readonly DeckId[],
+): OrderId[] {
+  const hand: OrderId[] = [];
+  const open = (): OrderId[] => eligible.filter((id) => !hand.includes(id));
+  const wanted = Math.max(0, Math.floor(size));
+  for (const position of positions.slice(0, wanted)) {
+    const rest = open();
+    // Rule 5: the position's own category, or the whole eligible union when
+    // that category holds nothing this seat does not already own. Never an
+    // inaccessible deck, never a duplicate — both are outside `eligible`.
+    const bag = positionBag(rest, position, decks);
+    const drawn = drawRarityFirst(state, bag.length > 0 ? bag : rest, skips);
+    if (drawn !== undefined) hand.push(drawn);
+  }
+  // The extra cards a rider adds (rule 6): distinct, eligible, rarity-first,
+  // from the union — no guaranteed category.
+  for (let extra = hand.length; extra < wanted; extra++) {
+    const drawn = drawRarityFirst(state, open(), skips);
+    if (drawn === undefined) break;
+    hand.push(drawn);
+  }
+  return hand;
+}
+
+/**
+ * **The bags the next hand would be dealt from, one per card, with no roll** —
+ * the draw's shape read as a plan, for the bot's expectation of a hand
+ * (`expectedBestOrder`, `ai/wants.ts`) and for nothing that deals.
+ *
+ * A two-deck seat's positions are pure arithmetic (`thirdPositionOf`), so its
+ * bags are the draw's own, fallback included. A rainbow seat's two decks are
+ * rolled at the deal, which a reading may not do, so its deck positions are
+ * approximated by **the union of its single-type rows** — an honest widening
+ * written down: the estimate reads a rainbow hand as slightly better than any
+ * one pair of decks would deal. The count read is the *next* draft's when no
+ * hand is on the table (`sc.drafts + 1`), and the standing hand's positions
+ * when one is — the same rule the deal keeps.
+ */
+export function expectedHandBags(state: GameState, player: Player): OrderId[][] {
+  const sc = player.statecraft;
+  const eligible = eligibleFor(state, player);
+  if (eligible.length === 0) return [];
+  const size = offerSize(state, player.id, 'order');
+  const bags: OrderId[][] = [];
+  const standing = sc.pendingOrder?.positions;
+  const third = thirdPositionOf(sc.drafts + 1);
+  const rainbow = isRainbowSeat(player);
+  const anyDeck = eligible.filter((id) => {
+    const home = orderDef(id).decks;
+    return home.length === 1 && player.decks.includes(home[0]!);
+  });
+  const positions: (HandPosition | 'anyDeck')[] = standing
+    ? [...standing]
+    : rainbow
+      ? ['anyDeck', 'anyDeck', third.turn === 'generic' ? { kind: 'generic' } : third.turn === 'cross' ? { kind: 'cross' } : 'anyDeck']
+      : drawHandPositions(state, player, sc.drafts + 1);
+  for (const position of positions.slice(0, size)) {
+    const bag = position === 'anyDeck' ? anyDeck : positionBag(eligible, position, player.decks);
+    bags.push(bag.length > 0 ? bag : eligible);
+  }
+  for (let extra = bags.length; extra < size; extra++) bags.push(eligible);
+  return bags;
+}
+
+/**
+ * Deals one draft: `offerSize` cards from the seat's eligible bag, into the
+ * positions the seat's decks and the draft count decide, rarity-first under
+ * the pity this empire's passes have banked.
  *
  * One draw and no second one. There *was* a second — an owned card rolled as
  * the upgrade target, the other half of Entry XV's "widen or deepen" — and it
@@ -1060,20 +1407,46 @@ export function drawOrderOptions(
  * are on the table has bought itself a better *next* hand, never a better one
  * in front of it.
  *
+ * **A redraw keeps the hand's positions** (rule 6). When a hand is already on
+ * the table — which is the reroll's case and only the reroll's, since
+ * `settleDraft` never deals over an unanswered draft — the ask is read off it
+ * rather than rolled again, so a rainbow seat's redraw is dealt into the two
+ * decks it was dealt into, and the cadence does not move for a hand that was
+ * merely asked twice. The count the cadence reads is `sc.drafts`, which
+ * `settleDraft` has already raised to this draft's number.
+ *
  * **How many cards is asked of `offerSize`** — which is why this takes the whole
  * player rather than its `PlayerStatecraft`: a rider may sit on a wonder
  * standing in one of its cities, and the empire is what knows that.
  */
 export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
   const sc = player.statecraft;
-  const skips = sc.orderSkips;
+  const positions = sc.pendingOrder?.positions ?? drawHandPositions(state, player, sc.drafts);
   const options = drawOrderOptions(
     state,
-    drawablePool(sc, highestAge(player.techsResearched)),
+    eligibleFor(state, player),
+    positions,
     offerSize(state, player.id, 'order'),
-    (id) => orderDrawWeight(id, skips),
+    sc.orderSkips,
+    player.decks,
   );
-  return { options };
+  return { options, positions };
+}
+
+/**
+ * **Is this empire owed a draft it cannot be dealt?** The meter is full and the
+ * eligible bag is empty — the exhausted-pool rule (the design doc's rule 7:
+ * *"explain that it is exhausted and stop charging for empty normal drafts"*).
+ * `settleDraft` reads it to charge nothing; the statecraft screen reads it to
+ * say so. Derived, never stored: the culture stays in the pool and the day a
+ * band opens or a card is added the draft simply happens.
+ */
+export function draftExhausted(state: GameState, player: Player): boolean {
+  if (player.barbarian) return false;
+  const sc = player.statecraft;
+  if (sc.pendingOrder !== undefined || sc.pendingDoctrine !== undefined) return false;
+  if (planDraft(player) === null) return false;
+  return eligibleFor(state, player).length === 0;
 }
 
 /**
@@ -1167,6 +1540,13 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
   if (sc.pendingOrder !== undefined || sc.pendingDoctrine !== undefined) return null;
   const plan = planDraft(player);
   if (!plan) return null;
+  // **An exhausted pool charges nothing** (the decks rework, D1a; the design
+  // doc's rule 7). Asked before a byte moves: the culture stays banked, the
+  // count stays where it is — a draft that dealt nothing was not a regular
+  // draft, so it advances neither the cadence nor the ladder — and the screen
+  // says why through `draftExhausted`. Nothing is written, so a seat whose
+  // decks have run dry serialises exactly as it did the turn before.
+  if (eligibleFor(state, player).length === 0) return null;
 
   player.culturePool = plan.overflow;
   // The banks are a line of the meters too — see `collectYields` (batch M3).
@@ -1174,6 +1554,11 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
   sc.drafts = plan.tier;
   const offer = drawOrderOffer(state, player);
   sc.pendingOrder = offer;
+  // **A reward hand is banked at the ladder's rungs** (the design doc's
+  // "Doctrine reward hands": 4, 18 and 29) — a count, never a hand, and never a
+  // blocker. See `PlayerStatecraft.rewardHands` for why the deal waits for the
+  // open.
+  if (REWARD_DRAFTS.includes(plan.tier)) sc.rewardHands.push(plan.tier);
 
   let government: GovernmentOffer | null = null;
   if (plan.offersGovernment) {
@@ -1299,6 +1684,8 @@ export function orderSkipError(state: GameState, playerId: number): string | nul
 export interface OrderChoice {
   id: OrderId;
   name: string;
+  /** True when the card was a charter and its grant has just been written. */
+  chartered: boolean;
 }
 
 /**
@@ -1336,7 +1723,36 @@ export function settleOrderChoice(player: Player, optionIndex: number): OrderCho
   delete sc.pendingOrder;
   sc.orderSkips = 0;
   if (!sc.orders.includes(id)) sc.orders.push(id);
-  return { id, name: orderDef(id).name };
+  // **A charter acts on the pick** (the decks rework, D1a) — see `applyCharter`.
+  const chartered = applyCharter(player, id);
+  return { id, name: orderDef(id).name, chartered };
+}
+
+/**
+ * **Applies a charter's grant to the seat, once** — the one writer of
+ * `Player.charteredTechs`, `charteredBuildings` and `charteredRites`
+ * (`CharterSpec` carries the whole argument for why a charter is a grant on
+ * the pick and never a chair).
+ *
+ * Called by the two verbs that take a card into the collection
+ * (`settleOrderChoice`, `settleRewardChoice`) and by nothing else, so a third
+ * way to draft a card would call this or not grant at all. A row that is no
+ * charter writes nothing and answers `false`. Every list is grown by presence
+ * — an id already there is left there — so a grant is idempotent and a save
+ * that replays it lands on the same bytes.
+ */
+export function applyCharter(player: Player, id: OrderId): boolean {
+  const charter = orderDef(id).charter;
+  if (charter === undefined) return false;
+  const { tech, building, rites } = charter.unlocks;
+  if (tech !== undefined && !player.charteredTechs.includes(tech)) player.charteredTechs.push(tech);
+  if (building !== undefined && !player.charteredBuildings.includes(building)) {
+    player.charteredBuildings.push(building);
+  }
+  for (const rite of rites ?? []) {
+    if (!player.charteredRites.includes(rite)) player.charteredRites.push(rite);
+  }
+  return true;
 }
 
 /** What a pass did, for the announcement. */
@@ -1374,6 +1790,181 @@ export function settleOrderSkip(state: GameState, player: Player): OrderSkip | n
   return { skips: sc.orderSkips };
 }
 
+// --- the reward hand ----------------------------------------------------------
+
+/**
+ * **The reward hand** (`docs/six-decks-first-cut.md` "Doctrine reward hands";
+ * the decks rework, D1a): at regular draft counts 4, 18 and 29 an empire is
+ * owed *"three distinct unowned rare cards from the same currently unlocked,
+ * leader-eligible catalogue"* — a bonus draw of rares, and what the Doctrine
+ * draft became. The Doctrine rows are retired; the rare-only hand is dealt
+ * from the Orders, and a rare taken here is an Order in the collection like
+ * any other (a charter grants; an ordinary rare waits for a chair).
+ *
+ * Three verbs, and the shape follows the draft's with one deliberate
+ * difference: the reward is **banked as a count and dealt on the open**.
+ *
+ *   · `openRewardHand` spends one banked count and deals the hand from the
+ *     shelf *as it stands then* — three positions, the seat's two decks and
+ *     then the union (rainbow: two decks sampled distinct), rares only, every
+ *     position falling back to the union of eligible rares, extras by
+ *     `explainOfferSize` after the base three. An empty shelf resolves the
+ *     reward as **exhausted at no cost**: the count is spent, nothing is
+ *     dealt, and the open reports it.
+ *   · `chooseReward` takes one into the collection and applies a charter.
+ *   · `passReward` forfeits the hand for nothing — no pity, no refund; there
+ *     was no price.
+ *
+ * None of the three blocks End Turn (`statecraftBlocker` leaves them out), and
+ * a hand opened and not answered stays on the table. A rare taken in a normal
+ * draft between the banking and the open is simply not dealt (the bag is
+ * "what is eligible and unowned" at the open) — the doc's *"vice versa"*
+ * clause, kept by construction rather than by a second list.
+ */
+
+/** Why this player cannot open a reward hand, or `null` when they can. */
+export function rewardOpenError(state: GameState, playerId: number): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  const sc = player.statecraft;
+  if (sc.rewardHands.length === 0) return `${player.name} has no reward hand banked`;
+  if (sc.pendingReward !== undefined) return `${player.name} already has a reward hand on the table`;
+  return null;
+}
+
+/**
+ * **The rares this seat may be dealt in a reward hand**: the eligible bag
+ * (bands gated, held excluded) narrowed to the rare rung. The same one bag the
+ * normal draft deals from, which is what makes *"the same rare can appear in
+ * normal drafts and cannot be owned twice"* true without a second register.
+ */
+export function eligibleRaresFor(state: GameState, player: Player): OrderId[] {
+  return eligibleFor(state, player).filter((id) => orderDef(id).rarity === 'rare');
+}
+
+/**
+ * **The three positions of a reward hand**: the seat's two decks, then the
+ * union — *"prefer a single-type rare from each leader deck, then another
+ * eligible rare, including cross-types"*. A rainbow seat samples two distinct
+ * decks (two rolls), exactly as its normal hand does; the third position is
+ * `cross` here as a name for "anything eligible", and `positionBag` on a rare
+ * bag falls back to the union in the draw whenever the ask is not met.
+ */
+export function drawRewardPositions(state: GameState, player: Player): HandPosition[] {
+  const decks = player.decks;
+  let first: DeckId | undefined;
+  let second: DeckId | undefined;
+  if (isRainbowSeat(player)) {
+    [first] = drawWithoutReplacement(state, decks, 1);
+    [second] = drawWithoutReplacement(state, decks.filter((deck) => deck !== first), 1);
+  } else {
+    first = decks[0];
+    second = decks[1] ?? decks[0];
+  }
+  const positions: HandPosition[] = [];
+  if (first !== undefined) positions.push({ kind: 'deck', deck: first });
+  if (second !== undefined) positions.push({ kind: 'deck', deck: second });
+  positions.push({ kind: 'cross' });
+  return positions;
+}
+
+/** What opening a reward did, for the announcement. */
+export interface RewardOpening {
+  /** The draft count the reward was banked at. */
+  drafts: number;
+  /** The hand dealt, or `null` when the shelf held no rare — exhausted, at no cost. */
+  offer: RewardOffer | null;
+}
+
+/**
+ * Spends one banked reward and deals its hand. Validates nothing — the rule is
+ * `rewardOpenError`'s. The oldest banked count is the one opened, because the
+ * list is in banking order and a reward is a reward whichever rung it came
+ * from. The rares are dealt with **no pity**: a pass on a reward buys nothing
+ * (`settleRewardPass`), so there is no count to read.
+ */
+export function openRewardHandAt(state: GameState, player: Player): RewardOpening | null {
+  const sc = player.statecraft;
+  if (sc.rewardHands.length === 0 || sc.pendingReward !== undefined) return null;
+  const drafts = sc.rewardHands.shift()!;
+  const rares = eligibleRaresFor(state, player);
+  if (rares.length === 0) return { drafts, offer: null };
+  const positions = drawRewardPositions(state, player);
+  const options = drawOrderOptions(
+    state,
+    rares,
+    positions,
+    // The base three, and whatever a rider adds to an Order draft — *"extra-
+    // offer effects … apply to these hands too"*.
+    Math.max(HAND_POSITIONS, offerSize(state, player.id, 'order')),
+    0,
+    player.decks,
+  );
+  if (options.length === 0) return { drafts, offer: null };
+  const offer: RewardOffer = { drafts, options, positions };
+  sc.pendingReward = offer;
+  return { drafts, offer };
+}
+
+/** Why this player cannot take this reward option, or `null`. `orderChoiceError`'s twin. */
+export function rewardChoiceError(
+  state: GameState,
+  playerId: number,
+  optionIndex: unknown,
+): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  const offer = player.statecraft.pendingReward;
+  if (!offer) return `${player.name} has no reward hand on the table`;
+  if (!Number.isInteger(optionIndex)) {
+    return `chooseReward needs an integer optionIndex, got ${String(optionIndex)}`;
+  }
+  const index = optionIndex as number;
+  const size = offer.options.length;
+  if (index < 0 || index >= size) return `Option ${index} is not one of the ${size} offered`;
+  const id = offer.options[index];
+  if (!isOrderId(id)) return `Option ${index} names no known Order`;
+  // Reachable only across turns: a hand left open while a normal draft took
+  // the same rare. The card is the seat's already; the answer is to pass.
+  if (player.statecraft.orders.includes(id)) {
+    return `${player.name} already holds ${orderDef(id).name}`;
+  }
+  return null;
+}
+
+/** Takes one rare from the reward hand. `settleOrderChoice`'s shape; no pity to zero. */
+export function settleRewardChoice(player: Player, optionIndex: number): OrderChoice | null {
+  const sc = player.statecraft;
+  const offer = sc.pendingReward;
+  if (!offer) return null;
+  const id = offer.options[optionIndex];
+  if (id === undefined || !isOrderId(id)) return null;
+  delete sc.pendingReward;
+  if (!sc.orders.includes(id)) sc.orders.push(id);
+  const chartered = applyCharter(player, id);
+  return { id, name: orderDef(id).name, chartered };
+}
+
+/** Why this player cannot pass on their reward hand, or `null`. */
+export function rewardPassError(state: GameState, playerId: number): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  if (!player.statecraft.pendingReward) return `${player.name} has no reward hand to pass on`;
+  return null;
+}
+
+/**
+ * Forfeits the reward hand. **For nothing**: no pity, because no pity was
+ * read to deal it, and no bead — a reward was a gift, and passing a gift is
+ * not the pass the Last Laurels pays for.
+ */
+export function settleRewardPass(player: Player): boolean {
+  const sc = player.statecraft;
+  if (!sc.pendingReward) return false;
+  delete sc.pendingReward;
+  return true;
+}
+
 // --- the slots --------------------------------------------------------------
 
 /**
@@ -1399,6 +1990,9 @@ export function slotOrderError(
   const sc = player.statecraft;
   if (!isOrderId(cardId)) return `"${String(cardId)}" is not a known Order`;
   if (!holdsOrder(sc, cardId)) return `${player.name} does not hold ${orderDef(cardId).name}`;
+  // **A charter is never seated** (D1a, `CharterSpec`): its grant was written
+  // on the pick, and a chair spent on it would be a chair spent on nothing.
+  if (isCharter(cardId)) return `${orderDef(cardId).name} is a charter and never sits in a chair`;
   if (!Number.isInteger(slotIndex)) {
     return `slotOrder needs an integer slotIndex, got ${String(slotIndex)}`;
   }
@@ -1419,7 +2013,7 @@ export function slotOrderError(
   if (malice !== null) return maliceChairRefusal(index, malice);
   const type = layout[index]!;
   if (!orderFitsSlot(cardId, type)) {
-    return `${orderDef(cardId).name} is ${SLOT_WORDS[orderDef(cardId).slot]} and slot ${
+    return `${orderDef(cardId).name} is ${SLOT_WORDS[orderSlot(cardId)]} and slot ${
       index + 1
     } is ${SLOT_WORDS[type]}`;
   }
@@ -1922,7 +2516,11 @@ export function hasStatecraftOffer(player: Player): boolean {
   return (
     sc.pendingOrder !== undefined ||
     sc.pendingDoctrine !== undefined ||
-    sc.pendingGovernment !== undefined
+    sc.pendingGovernment !== undefined ||
+    // A banked or opened reward hand is a card waiting too (D1a) — it blocks
+    // nothing, and the badge is how a player finds out it is there.
+    sc.pendingReward !== undefined ||
+    sc.rewardHands.length > 0
   );
 }
 

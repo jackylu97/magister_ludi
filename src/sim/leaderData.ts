@@ -62,7 +62,10 @@ import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
 // Type-only, and it must stay that way: `state.ts` imports this file, so a
 // value edge back to it would be the runtime cycle `CLAUDE.md` warns about.
 import type { GameState } from './state';
-import type { CardDefBase, CardEffect } from './statecraftData';
+// A value import one way only: `statecraftData.ts` is a runtime leaf (the
+// JSON and its types) and imports this file type-only, so the deck vocabulary
+// may be read here without the type cycle becoming a runtime one.
+import { type CardDefBase, type CardEffect, DECK_IDS, type DeckId, isDeckId } from './statecraftData';
 import { type TechAge, techAgeBands } from './techData';
 import { FEATURE_IDS, TERRAIN_IDS, type TerrainId } from './terrainData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from './unitData';
@@ -434,6 +437,24 @@ export interface LeaderDef {
    */
   people: string;
   /**
+   * **The two decks this figure's seat draws from** (`docs/six-decks-first-cut.md`
+   * "Leader pools"; the decks rework, D1a) — or absent on the one figure who
+   * says `rainbow` instead. Exactly two, distinct, checked at load: the table
+   * is two columns wide and *"do not author a bespoke third pool for each
+   * pair"* is the doc's own instruction. Copied onto `Player.decks` at
+   * `newGame` (a seat's config may override it), and read by nothing else.
+   */
+  decks?: [DeckId, DeckId];
+  /**
+   * **All six decks** — Ibn Battuta's row, and the reason `decks` is optional:
+   * *"Rainbow: all six … adapting a varied collection through an extra chair
+   * and free redraw"*. A flag rather than a six-long list so that the sheet
+   * says what the figure *is* and the draw's rainbow sampling (rule 4) has a
+   * row to read it off. A row carries one of the two, never both and never
+   * neither.
+   */
+  rainbow?: true;
+  /**
    * **The towns this figure founds**, in order of importance — the empire it
    * ruled, or the age it ruled in (`docs/flags.md` (pppp)).
    *
@@ -514,6 +535,26 @@ export function leaderDef(id: LeaderId): LeaderDef {
   const def = LEADER_DATA.leaders[id];
   if (!def) throw new Error(`Unknown leader "${id}"`);
   return def;
+}
+
+/**
+ * **The decks a seat under this figure draws from** — the row's two, or all six
+ * for the rainbow, or all six again for a seat under nobody.
+ *
+ * The last clause is a decision and it is stated here: a leaderless seat is
+ * the dev harness's seat (hot-seat, the digests, most of the test suite), and
+ * a harness seat that drafted from the commons alone would play a game no
+ * figure plays. All six is the one pool that restricts nothing, so a plain
+ * game is the widest game rather than the narrowest; a config that wants
+ * otherwise names `PlayerSpec.decks`. The rainbow *draw* (two distinct decks
+ * sampled per hand) follows from the list's length and never from the row —
+ * see `isRainbowSeat` in `statecraft/draft.ts`.
+ */
+export function leaderDecks(leader: LeaderId | undefined): DeckId[] {
+  if (leader === undefined) return [...DECK_IDS];
+  const def = leaderDef(leader);
+  if (def.rainbow === true || def.decks === undefined) return [...DECK_IDS];
+  return [...def.decks];
 }
 
 /** The bias a seat carries, or `undefined` when it sits under no figure at all. */
@@ -872,6 +913,25 @@ for (const id of LEADER_IDS) {
     if (typeof within !== 'number' || !Number.isFinite(within) || within < 0) {
       throw new Error(`${where} wants "${key}" at no honest distance`);
     }
+  }
+
+  // --- the decks ---------------------------------------------------------------
+  // One of the two, never both and never neither (D1a): a figure holds two
+  // distinct decks off the six, or is the rainbow. A figure with no decks would
+  // draft from the commons alone for a whole game, which is a row that quietly
+  // never fires — the same failure the abilities check below refuses.
+  if (def.rainbow === true && def.decks !== undefined) {
+    throw new Error(`${where} is the rainbow and names decks as well`);
+  }
+  if (def.rainbow !== true) {
+    const decks = def.decks;
+    if (!Array.isArray(decks) || decks.length !== 2) {
+      throw new Error(`${where} does not carry exactly two decks`);
+    }
+    for (const deck of decks) {
+      if (!isDeckId(deck)) throw new Error(`${where} names "${String(deck)}", which is no deck`);
+    }
+    if (decks[0] === decks[1]) throw new Error(`${where} names the same deck twice`);
   }
 
   // --- the two abilities and the two uniques ---------------------------------

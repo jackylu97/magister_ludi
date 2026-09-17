@@ -167,13 +167,110 @@ export type CardId =
   | LeaderAbilityId;
 
 /**
+ * **The six decks** (`docs/six-decks-first-cut.md` "The structure"; the decks
+ * rework, `docs/plans/decks-rework.md` D1a, ruled `docs/flags.md` (iiiiii)).
+ *
+ * A deck is the thing a card *belongs to* and the thing a leader *holds*: every
+ * figure carries two of these on its row, Ibn Battuta carries all six, and a
+ * seat drafts from its own decks plus the shared commons and the cross-type
+ * rows that name either of its decks (`deckPoolOf`, `statecraft/draft.ts`).
+ * Six and no seventh, because the generic pool is deliberately *not* a deck —
+ * a row with no deck membership belongs to everyone, and giving that a name
+ * would be a seventh deck every rainbow draw had to sample (the design doc's
+ * rule 4 says so in as many words).
+ *
+ * The order here is the design doc's table order, and it is the order every
+ * sweep walks: a rainbow seat's two sampled decks are drawn out of this list,
+ * and a draw that depends on an order must depend on an order the data carries.
+ */
+export type DeckId =
+  | 'dominion'
+  | 'expansionist'
+  | 'commerce'
+  | 'devotion'
+  | 'scientific'
+  | 'magisterial';
+
+/** The six decks, in the design doc's order. See `DeckId`. */
+export const DECK_IDS: readonly DeckId[] = [
+  'dominion',
+  'expansionist',
+  'commerce',
+  'devotion',
+  'scientific',
+  'magisterial',
+];
+
+/** How a deck reads on a card, a badge and a leader's face. One table, one voice. */
+export const DECK_WORDS: Record<DeckId, string> = {
+  dominion: 'Dominion',
+  expansionist: 'Expansionist',
+  commerce: 'Commerce',
+  devotion: 'Devotion',
+  scientific: 'Scientific',
+  magisterial: 'Magisterial',
+};
+
+export function isDeckId(value: unknown): value is DeckId {
+  return typeof value === 'string' && (DECK_IDS as readonly string[]).includes(value);
+}
+
+/**
+ * **The four content bands** (the design doc's "Four content bands"): Early ·
+ * Middle · Late · Final, numbered as the ladder's rungs are so that a band is
+ * drawable exactly when the seat's draft count has reached rung `band` of
+ * `tierLadder` **and** its research age has reached `band + 1` — both, per the
+ * age check of 2026-09-16 (`bandOpen`, `statecraft/draft.ts`).
+ */
+export type Band = 0 | 1 | 2 | 3;
+
+/** The four bands in order. `tierLadder` has one rung per member. */
+export const BANDS: readonly Band[] = [0, 1, 2, 3];
+
+/**
+ * **What a charter hands over when it is drafted** (the design doc's "The
+ * structure": *"Five Scientific research Charters and three Commerce building
+ * Charters instead unlock their named content once drafted and never occupy a
+ * chair"*, and the two Devotion rite charters beside them).
+ *
+ * A charter is an Order row with this field on it. It is drafted like any
+ * other — dealt into a hand by its deck, band and rarity — and the pick is
+ * where it acts: `applyCharter` writes the named technology, building or rites
+ * onto the seat (`Player.charteredTechs` and its two siblings), once, and the
+ * card then sits in the collection as a record of the grant. It never enters a
+ * chair (`slotOrderError` refuses it), because a charter has nothing to say
+ * while seated — the grant is a fact about the seat from the moment of the
+ * pick, and a chair would be a chair spent on a card that does nothing there.
+ *
+ * What the grant *opens* and what it *gives* are two different things, and the
+ * design doc is exact about it: a chartered technology becomes **researchable**
+ * (the research gate reads the list), a chartered building becomes
+ * **buildable** (through the existing `unlockedByCard` seam), chartered rites
+ * become **learnable** (the ability gate reads the list) — and every one of them
+ * still costs what it costs. A charter grants neither a free technology nor a
+ * free building.
+ */
+export interface CharterSpec {
+  unlocks: {
+    tech?: TechId;
+    building?: BuildingId;
+    rites?: RiteId[];
+  };
+}
+
+/**
  * Which slot an Order fits, and therefore what a government's spread is counted
  * in.
  *
- * Three rather than Entry XV's four: the ratified table (`docs/deprecated/statecraft-cards.md`)
- * types every Order M/E/W, and a *diplomatic* slot with no diplomacy to spend it
- * on would be a slot the player can only fill with a wildcard card. It joins the
- * union the day the system it names exists.
+ * **Unread by the draw and the chairs since the decks rework** (D1a): every
+ * chair is universal now — a government supplies a *count* of chairs and no
+ * layout — so `slotLayout` answers `'wildcard'` for every chair and
+ * `orderFitsSlot` is true of every card. The type stays because the retired
+ * rows still carry the field (the Compendium prints it, a save may hold a row
+ * that pays by it — `slottedOrdersOfFlavour` reads the *card's* flavour, never
+ * the chair's) and because a malice's row names the chair it takes in this
+ * vocabulary. It joins nothing new: a row written after the rework carries no
+ * `slot` at all.
  */
 export type SlotType = 'military' | 'economic' | 'wildcard';
 
@@ -4887,12 +4984,39 @@ export type SlotSpread = Record<SlotType, number>;
 export interface GovernmentDef extends CardDefBase {
   /** The culture tier at which this government is offered. 0 is the start. */
   tier: number;
-  slots: SlotSpread;
+  /**
+   * **How many chairs this government supplies** — the whole of what a
+   * government says about seating since the decks rework (D1a: *"chairs are
+   * universal"*). The number is its tier's rung on `tierLadder` (3 / 4 / 6 / 9
+   * at draft counts 0 / 4 / 18 / 29; a tier between rungs takes the rung below
+   * it), written on the row so that the sixteen governments stay rows with a
+   * signature each and the count is a field somebody can retune.
+   *
+   * A leader's extra chair and a card's (`CardSlotRiderEffect`) are added on
+   * top by `chairCount`, exactly as they were added on top of the spread.
+   */
+  chairs: number;
+  /**
+   * The old M/E/W spread, **left in place and read by nothing** (D1a). The
+   * rows keep it because a row is a record; `slotLayout` no longer derives
+   * anything from it. A government written after the rework carries none.
+   */
+  slots?: SlotSpread;
 }
 
 export interface DoctrineDef extends CardDefBase {
   /** Which adoption's pool this belongs to. 0 means *no live pool* — deferred. */
   tier: number;
+  /**
+   * The deck memberships and the band, in the shape every Order row carries
+   * (see `OrderDef.decks`). **Every Doctrine row is retired** since the decks
+   * rework — a Doctrine is a rare-only reward *draft* now, not a card class —
+   * and the two fields are here so that the schema is one schema across the
+   * card table: a row of either class says which deck it belongs to and when
+   * it may be dealt, whether or not anything deals it.
+   */
+  decks: DeckId[];
+  band: Band;
   /**
    * **Withdrawn from the pool**: never dealt, and still fully readable.
    * `OrderDef.retired` at the Doctrine's scale, and it is a second field rather
@@ -4979,8 +5103,45 @@ export interface OrderSlotGrant {
 }
 
 export interface OrderDef extends CardDefBase {
-  pool: OrderPool;
-  slot: SlotType;
+  /**
+   * The government pool this row was dealt from **before the decks rework**,
+   * and the office it fitted. Both **left in place and read by no draw** (D1a):
+   * `poolOrders`/`poolOfGovernment` still answer for the retired shelves so a
+   * save that holds one of these rows reads as it did, and the Compendium
+   * prints the fields, but nothing live deals by them. A row written after the
+   * rework carries neither.
+   */
+  pool?: OrderPool;
+  slot?: SlotType;
+  /**
+   * **Which decks this card belongs to** — the draw's first question since the
+   * decks rework (`docs/six-decks-first-cut.md` "The structure"; D1a).
+   *
+   * One deck is a single-type card, dealt into the position that deck fills.
+   * Two decks is a **cross-type** card: one row, one id, one effect, and
+   * *either* membership grants access — a seat holding one of the two draws
+   * it, and matching both neither doubles its chance nor its effect (rule 3).
+   * **Empty is generic**: a row with no membership belongs to every seat, in
+   * the third position's generic turn (rule 2), and to nobody's deck in
+   * particular. Required on every row, retired ones included, for `rarity`'s
+   * reason: a card's home is a decision, not a default. The old rows carry the
+   * empty list because no deck was ever assigned to them and they are retired
+   * — D1b's rows are the first to name one.
+   */
+  decks: DeckId[];
+  /**
+   * **When this card may first be dealt** — the content band (`Band`; the
+   * design doc's Early / Middle / Late / Final). A card is drawable when the
+   * seat has reached the band's rung of the draft ladder **and** its research
+   * age (`bandOpen`, `statecraft/draft.ts`), and stays drawable ever after: no
+   * pool rotates away. Required on every row, retired ones included.
+   */
+  band: Band;
+  /**
+   * **What drafting this hands over, once** — see `CharterSpec`. Present on a
+   * charter row and on no other; a row with it is never seated.
+   */
+  charter?: CharterSpec;
   /**
    * **How often this card is dealt** — the draw's only weight (the user's
    * ruling of 2026-09-04: *"players are given an option to skip and increase
@@ -4993,10 +5154,13 @@ export interface OrderDef extends CardDefBase {
    * skip worth anything, because a pass is paid for in the only currency the
    * draft has, *what the next hand is likely to be*.
    *
-   * Required on every row, retired ones included, so adding a card is a
-   * decision about how often it turns up rather than a field somebody forgets
-   * and a default quietly answers for. The weights themselves are
-   * `StatecraftConfig.rarityWeights`; the pity a skip buys is `skipPity`.
+   * Since the decks rework the rarity is drawn **first** — a rung at the odds
+   * of `StatecraftConfig.rarityOdds`, then a card uniformly within the rung —
+   * so a rarity is a probability target and never a per-card weight that
+   * shrinks as the catalogue grows (the design doc's rule 1). Required on
+   * every row, retired ones included, so adding a card is a decision about how
+   * often it turns up rather than a field somebody forgets and a default
+   * quietly answers for. The pity a skip buys is `skipPity`.
    */
   rarity: OrderRarity;
   /** True for a card with no archetype thread. Presentation only. */
@@ -5063,34 +5227,45 @@ export interface StatecraftMeterConfig {
   sealTurns: number;
 }
 
+/**
+ * One rung of the draft ladder: the regular draft count it opens at, and the
+ * chairs a government of that rung supplies. See `StatecraftConfig.tierLadder`.
+ */
+export interface TierRung {
+  drafts: number;
+  chairs: number;
+}
+
 export interface StatecraftConfig {
   meter: StatecraftMeterConfig;
   /**
-   * **How often each rung of `OrderDef.rarity` is dealt**, as relative weights
-   * over the bag a draft draws from — the worksheet's proposal, ratified
-   * 2026-09-04: common 4, uncommon 2, rare 1.
+   * **How often each rung of `OrderDef.rarity` is dealt**, as probability
+   * points over the rungs *present in a bag* — the design doc's rule 1, common
+   * 60 · uncommon 30 · rare 10, renormalised when a rarity is absent.
    *
-   * Relative rather than probabilities, because the bag changes size every
-   * draft (a pool minus what the empire already holds) and a probability
-   * written down would be a probability about a bag nobody has. A weight is
-   * read against whatever is actually in the bag, which is the only reading
-   * that survives a pool being drained.
-   *
-   * It replaced `maxOrderLevel`, and the replacement is the whole shape of the
-   * ruling: what a second draft used to buy (a deeper card) is now what a
-   * *skipped* draft buys (a rarer bag).
+   * Points rather than per-card weights, and that is the whole difference from
+   * the `rarityWeights` this replaced (D1a): a weight per card made a rarity's
+   * share grow with how many cards of it the catalogue held, so a deck with
+   * thirty commons and three rares dealt rares far more seldom than a deck with
+   * ten and three. A target is a promise about the *hand* — one card in ten is
+   * rare — kept whatever the shelf holds, which is the only reading a designer
+   * can size a catalogue against. Read in one place (`rarityOdds`,
+   * `statecraft/draft.ts`) and drawn in one (`drawRarityFirst`).
    */
-  rarityWeights: Record<OrderRarity, number>;
+  rarityOdds: Record<OrderRarity, number>;
   /**
-   * **What one skipped draft adds** to the uncommon and rare weights of the
-   * next one — the pity half of the same ruling, one turn of the same dial.
+   * **What one skipped draft moves** out of the common rung's points and into
+   * the uncommon and rare rungs' — the pity half of the 2026-09-04 ruling, one
+   * turn of the same dial, restated for the rarity-first draw (D1a).
    *
-   * Added to the weight rather than multiplied into it, and added *per
-   * consecutive skip* (`PlayerStatecraft.orderSkips`, reset by taking a card),
-   * so the empire that passes three hands running is drawing from a bag where
-   * a rare card weighs 1 + 3 against a common card's 4. Common is deliberately
-   * not a key: pity is a promise about the *top* of the deck, and a knob that
-   * could raise the commons would be a knob that can undo the promise.
+   * Moved rather than added, so the three rungs still sum to what they summed
+   * to and a pass is a *shift* of probability rather than a growth of it: with
+   * the table at 60/30/10 and this at 10/5, one pass deals 45/40/15, two deal
+   * 30/50/20, and the common rung floors at nought rather than going negative.
+   * Per consecutive skip (`PlayerStatecraft.orderSkips`, reset by taking a
+   * card). Common is deliberately not a key: pity is a promise about the *top*
+   * of the deck, and a knob that could raise the commons would be a knob that
+   * can undo the promise.
    */
   skipPity: Record<Exclude<OrderRarity, 'common'>, number>;
   // There is deliberately **no `offer` block**. How many cards a draft deals was
@@ -5100,23 +5275,25 @@ export interface StatecraftConfig {
   // sat here were dead the day that landed, and a dead number in a data file is
   // a dial a designer will one day turn expecting something to happen.
   /**
-   * The **whole** ratified ladder of draft tiers at which a government is
-   * offered — 4, 10, 18, 29, 45 (user, 2026-08-27) — including the two rungs no
-   * government row reaches yet.
+   * **The four rungs of the decks rework** (`docs/six-decks-first-cut.md`
+   * "Four content bands": Chiefdom · Government I · II · III at regular draft
+   * counts 0 · 4 · 18 · 29, with 3 · 4 · 6 · 9 chairs), and — unlike the five
+   * numbers this replaced — **read by the simulation in three places**:
    *
-   * It is written down here and nowhere else because the ladder is a *pacing*
-   * decision and the rows are a *content* one, and the two are ratified at
-   * different times: tiers 29 and 45 belong to Gov IV and Gov V, whose triples
-   * are not designed. Recording them on the rows would mean inventing six
-   * governments to hold two numbers.
+   *   · a **band** opens at its rung's draft count (`bandTierAt`, the tier
+   *     half of `bandOpen`);
+   *   · a **reward hand** is banked when a seat's regular draft count reaches
+   *     any rung but the first (`REWARD_DRAFTS`, read by `settleDraft`);
+   *   · a government's **chairs** are its tier's rung (`chairsAtTier`, the
+   *     figure written onto each row's `chairs`).
    *
-   * **Nothing in the simulation reads this.** `GOVERNMENT_TIERS` is still the
-   * live answer and is still read off the rows, so an empire is offered a
-   * charter at exactly the tiers a triple exists for and never at a rung with
-   * nothing on it. This is the designer's note to the next pass: when Gov IV is
-   * written, its rows carry `tier: 29` and `GOVERNMENT_TIERS` grows by itself.
+   * The governments are still *offered* at the rows' own tiers
+   * (`GOVERNMENT_TIERS`, read off the rows: 4 · 10 · 18 · 29 · 45), which is a
+   * different question — a tier between two rungs keeps the rung below it, so
+   * the tier-10 rows supply four chairs and the tier-45 rows nine. The ladder
+   * is the design doc's table and a sync test holds the two together.
    */
-  tierLadder: number[];
+  tierLadder: TierRung[];
   governments: Record<GovernmentId, GovernmentDef>;
   doctrines: Record<DoctrineId, DoctrineDef>;
   orders: Record<OrderId, OrderDef>;
@@ -5278,42 +5455,162 @@ export function governmentsAtTier(tier: number): GovernmentId[] {
   return GOVERNMENT_IDS.filter((id) => governmentDef(id).tier === tier);
 }
 
-/** How many slots of each type a government opens, and how many in total. */
+/**
+ * How many slots of each type a government opens — **every one of them a
+ * wildcard since the decks rework** (D1a: chairs are universal). Derived from
+ * `chairs` and never from the row's old `slots` field, so the one reading of a
+ * government's seating is the count.
+ */
 export function slotSpread(id: GovernmentId): SlotSpread {
-  return governmentDef(id).slots;
+  return { military: 0, economic: 0, wildcard: slotCount(id) };
 }
 
 /**
- * The slot *layout* a government produces: one entry per slot, in `SLOT_TYPES`
- * order, military first.
+ * The slot *layout* a government produces: one entry per chair, and every
+ * entry `'wildcard'` since the decks rework.
  *
- * A flat array rather than three counters, because the state stores what is *in*
- * each slot by index and an index has to mean the same thing in every reading of
- * it. Derived from the government rather than stored, so a save carries what is
- * slotted and never a second copy of the spread that could disagree with it.
+ * A flat array still, because the state stores what is *in* each chair by
+ * index and an index has to mean the same thing in every reading of it. The
+ * three flavours went with the M/E/W spread (D1a); what a government says now
+ * is *how many*, and this is that number said as a list so that every reader
+ * of the layout — the screen's column, the malice's seating, the position
+ * cards — keeps its shape.
  */
 export function slotLayout(id: GovernmentId): SlotType[] {
-  const spread = slotSpread(id);
   const layout: SlotType[] = [];
-  for (const type of SLOT_TYPES) {
-    for (let i = 0; i < Math.max(0, Math.floor(spread[type])); i++) layout.push(type);
-  }
+  for (let i = 0; i < slotCount(id); i++) layout.push('wildcard');
   return layout;
 }
 
-/** How many slots a government has in all. */
+/** How many chairs a government supplies. The row's own figure, floored at nought. */
 export function slotCount(id: GovernmentId): number {
-  return slotLayout(id).length;
+  return Math.max(0, Math.floor(governmentDef(id).chairs));
 }
 
 /**
  * Does an Order fit a slot of this type?
  *
- * A **wildcard slot takes anything**, and a typed slot takes only its own type —
- * the Civ VI rule, and the reason the wildcard count is the flexibility a
- * government sells. There is no wildcard *card*: the type on an Order is what it
- * is, and a card that fitted everywhere would make the spread meaningless.
+ * A **wildcard slot takes anything** — and since the decks rework every chair
+ * is one, so this answers `true` for every card in every chair. The typed
+ * clause stays for the retired rows' sake: a row that still carries a `slot`
+ * fits its own flavour as it always did, which matters to nothing live and
+ * keeps the rule readable.
  */
 export function orderFitsSlot(order: OrderId, slot: SlotType): boolean {
-  return slot === 'wildcard' || orderDef(order).slot === slot;
+  return slot === 'wildcard' || orderSlot(order) === slot;
+}
+
+/**
+ * The office a retired row fitted, or `'wildcard'` for a row written after the
+ * rework — **the one reading of `OrderDef.slot`** for the surfaces that still
+ * print it (the Compendium's shelf, the old collection grouping). Nothing that
+ * deals or seats a card asks this.
+ */
+export function orderSlot(order: OrderId): SlotType {
+  return orderDef(order).slot ?? 'wildcard';
+}
+
+// --- the decks ---------------------------------------------------------------
+
+/** The ladder's rungs in draft-count order. See `StatecraftConfig.tierLadder`. */
+export const TIER_LADDER: readonly TierRung[] = [...STATECRAFT.tierLadder]
+  .map((rung) => ({ drafts: Math.max(0, Math.floor(rung.drafts)), chairs: Math.max(0, Math.floor(rung.chairs)) }))
+  .sort((a, b) => a.drafts - b.drafts);
+
+/**
+ * **The band tier a draft count has reached** — the index of the highest rung
+ * whose draft count is at or below `drafts`, which is what the design doc
+ * calls the seat's government tier in the four-stage sense.
+ *
+ * Read off the **draft count** and never off the adopted government, and that
+ * is a decision worth stating: adoption is bankable (Entry XV), so a seat may
+ * sit at twenty drafts under the chiefdom with a triple it has not claimed, and
+ * a shelf held shut by an unclaimed charter would be a shelf the reward hand at
+ * draft eighteen could not deal from. The design doc says the thresholds *"are
+ * culture-draft counts, not turns, ages or technology requirements"*, and
+ * *"reaching Government I through culture alone"* is the case its age check
+ * exists to answer — so culture alone is what reaches it.
+ */
+export function bandTierAt(drafts: number): Band {
+  let tier = 0;
+  for (let index = 0; index < TIER_LADDER.length; index++) {
+    if (TIER_LADDER[index]!.drafts <= drafts) tier = index;
+  }
+  return Math.min(3, tier) as Band;
+}
+
+/** The chairs the ladder supplies at a government's tier: the rung at or below it. */
+export function chairsAtTier(tier: number): number {
+  return TIER_LADDER[bandTierAt(tier)]?.chairs ?? 0;
+}
+
+/**
+ * **The regular draft counts at which a reward hand is banked** — every rung of
+ * the ladder but the first (the design doc's "Doctrine reward hands": *"at
+ * proposed reform milestones 4, 18 and 29"*). Read by `settleDraft`.
+ */
+export const REWARD_DRAFTS: readonly number[] = TIER_LADDER.slice(1).map((rung) => rung.drafts);
+
+/** Is this row a charter — drafted for its grant, never seated? */
+export function isCharter(id: OrderId): boolean {
+  return orderDef(id).charter !== undefined;
+}
+
+/**
+ * **Is this row on any shelf at all?** The one reading of what keeps a row out
+ * of every pool, so the three reasons are stated once:
+ *
+ *   · **retired** — withdrawn, kept for saves and the Compendium (the rule
+ *     `OrderDef.retired` states, and every pre-rework row carries it);
+ *   · **deferred whole** — a row with a `deferred` sentence and nothing to
+ *     slot: no effects and no charter. D1b's convention for a card whose text
+ *     needs a shape that does not exist yet: in the data, in the Compendium,
+ *     in no pool. A row with effects *and* a deferred half is dealt — the half
+ *     that is built is a card.
+ *
+ * A charter with no effects is dealt: its grant is the whole of the card.
+ */
+export function orderIsDealt(id: OrderId): boolean {
+  const def = orderDef(id);
+  if (def.retired === true) return false;
+  if (def.effects.length === 0 && def.charter === undefined) return false;
+  return true;
+}
+
+/**
+ * **Every dealt row that this set of decks may draw**, in file order — the seat
+ * pool's shape without a seat: a generic row (no membership) for everyone, a
+ * single or cross-type row when *any* of its decks is held. `deckPoolOf` in
+ * `statecraft/draft.ts` asks this of `Player.decks`; the tests and the
+ * Compendium ask it of a deck list of their own.
+ */
+export function ordersForDecks(decks: readonly DeckId[]): OrderId[] {
+  return ORDER_IDS.filter((id) => {
+    if (!orderIsDealt(id)) return false;
+    const home = orderDef(id).decks;
+    if (home.length === 0) return true;
+    return home.some((deck) => decks.includes(deck));
+  });
+}
+
+/**
+ * **The technologies a charter names**, in file order — the set the research
+ * gate asks about (`researchError`, `tech.ts`). Derived from the card rows
+ * rather than marked on the tech rows, so a chartered technology is a fact
+ * about the charter that opens it and a tech row needs no second flag: a node
+ * named here is researchable by a seat whose `charteredTechs` names it and by
+ * nobody else, however the tree places it.
+ */
+export function charteredTechIds(): TechId[] {
+  const techs: TechId[] = [];
+  for (const id of ORDER_IDS) {
+    const tech = orderDef(id).charter?.unlocks.tech;
+    if (tech !== undefined && !techs.includes(tech)) techs.push(tech);
+  }
+  return techs;
+}
+
+/** Is this technology one only a charter opens? See `charteredTechIds`. */
+export function techIsChartered(tech: TechId): boolean {
+  return charteredTechIds().includes(tech);
 }

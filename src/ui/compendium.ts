@@ -1632,11 +1632,16 @@ function orderEntry(id: OrderId): CompendiumEntry {
     id: compendiumId('order', id),
     section: 'order',
     name: def.name,
-    eyebrow: `${def.slot} order`,
+    // The deck is the card's home since the decks rework (D1a); the old office
+    // and pool print only where a retired row still carries them. The
+    // grouping by deck is D1c's.
+    eyebrow: `${def.decks.length === 0 ? 'generic' : def.decks.join(' · ')} ${def.charter === undefined ? 'order' : 'charter'}`,
     mark: { kind: 'glyph', glyph: '❧' },
     rows: [
-      ...row('Slot it fits', def.slot),
-      ...row('Draft pool', def.pool),
+      ...row('Decks', def.decks.length === 0 ? 'every seat' : def.decks.join(' · ')),
+      ...row('Band', String(def.band)),
+      ...(def.slot === undefined ? [] : row('Slot it fitted', def.slot)),
+      ...(def.pool === undefined ? [] : row('Draft pool, retired', def.pool)),
       // **How often it turns up** (the levelling ruling of 2026-09-04). A draft
       // weighs its bag by this and by nothing else, and passing on a hand
       // raises what the next one is likely to hold — so a player who is told

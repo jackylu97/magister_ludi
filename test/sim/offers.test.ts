@@ -21,7 +21,7 @@
  * varied while the code is held still.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt } from '../../src/sim/cities';
@@ -37,10 +37,12 @@ import {
   type OfferKind,
   drawDoctrineOffer,
   drawOrderOffer,
+  eligibleFor,
   explainOfferSize,
-  livePool,
   offerSize,
 } from '../../src/sim/statecraft';
+import { stockStandardDecks } from './statecraftHelpers';
+
 import {
   type CardEffect,
   type CardOfferRiderEffect,
@@ -50,6 +52,19 @@ import {
 } from '../../src/sim/statecraftData';
 import { type GameState, claimWonder, newGame, bumpRevision } from '../../src/sim/state';
 import { game, found } from './statecraftHelpers';
+
+/**
+ * **The shelf, stocked for the file** (the decks rework, D1a): every
+ * pre-rework Order row is retired, so a draft that must deal a hand to be
+ * widened has nothing to deal unless the bench un-retires rows into decks —
+ * `stockStandardDecks`, restored after the last test because the module graph
+ * outlives the file (`statecraftHelpers.ts`).
+ */
+let restoreShelf: () => void = () => {};
+beforeAll(() => {
+  restoreShelf = stockStandardDecks();
+});
+afterAll(() => restoreShelf());
 
 const KINDS: OfferKind[] = ['order', 'doctrine', 'belief', 'discovery', 'greatPerson'];
 
@@ -241,12 +256,13 @@ describe('every generator draws offerSize cards', () => {
     // One card held, which since the levelling ruling of 2026-09-04 changes
     // only the *pool* — the card held is out of the bag, and there is no fourth
     // face for it to be rolled onto.
-    player.statecraft.orders.push('firstRites');
+    const held = eligibleFor(g.state, player)[0]!;
+    player.statecraft.orders.push(held);
     expect(drawOrderOffer(g.state, player).options).toHaveLength(3);
     raiseOracle(g.state, 0);
     const wide = drawOrderOffer(g.state, player);
     expect(wide.options).toHaveLength(4);
-    expect(wide.options).not.toContain('firstRites');
+    expect(wide.options).not.toContain(held);
   });
 
   it('the Doctrine triple at adoption', () => {
@@ -256,10 +272,15 @@ describe('every generator draws offerSize cards', () => {
     // written here: a Doctrine pool is keyed to an adoption tier and the ladder
     // is a pacing dial (4/10/18 since 2026-08-27).
     const rung = GOVERNMENT_TIERS[0]!;
-    expect(drawDoctrineOffer(g.state, player, rung).options).toHaveLength(3);
+    // **Re-cut for the decks rework** (D1a): every Doctrine row is retired —
+    // a Doctrine is the rare-only reward hand now, not a card class — so the
+    // triple deals nothing at any rung, widened or not, and the generator
+    // still asks `offerSize` (the register pin below reads the source for it).
+    expect(drawDoctrineOffer(g.state, player, rung).options).toHaveLength(0);
     withEffects(buildingDef('theOracle'), [rider('doctrine')], () => {
       raiseOracle(g.state, 0);
-      expect(drawDoctrineOffer(g.state, player, rung).options).toHaveLength(4);
+      expect(offerSize(g.state, 0, 'doctrine')).toBe(4);
+      expect(drawDoctrineOffer(g.state, player, rung).options).toHaveLength(0);
     });
   });
 
@@ -308,11 +329,11 @@ describe('a pool shorter than the offer', () => {
   it('deals nothing at all from an empty pool, and still returns an offer', () => {
     const g = game();
     const player = g.state.players[0]!;
-    for (const id of ORDER_IDS.filter((id) => orderDef(id).pool === 'chiefdom')) {
-      player.statecraft.orders.push(id);
-    }
+    // Every card the seat's decks can deal it, held (D1a: the bag is
+    // `eligibleFor`, the seat pool minus the held, band-gated).
+    for (const id of eligibleFor(g.state, player)) player.statecraft.orders.push(id);
     raiseOracle(g.state, 0);
-    expect(livePool(player.statecraft)).toEqual([]);
+    expect(eligibleFor(g.state, player)).toEqual([]);
     expect(drawOrderOffer(g.state, player).options).toEqual([]);
   });
 });

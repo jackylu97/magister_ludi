@@ -5962,6 +5962,12 @@ export function cardUnlocksBuilding(
   for (const { effect } of effectsOfKind(state, playerId, 'unlocksBuilding')) {
     if (effect.building === building) return true;
   }
+  // **A chartered building is open** (the decks rework, D1a; `CharterSpec`):
+  // the seat's `charteredBuildings` is the grant a charter's pick wrote, read
+  // here so that the one availability question `isUnlocked` asks of the cards
+  // has one answer — a charter is a card's grant, not a second gate beside it.
+  const seat = playerById(state, playerId);
+  if (seat !== undefined && seat.charteredBuildings.includes(building)) return true;
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     if (cityBeliefUnlocksBuilding(state, city, building)) return true;
