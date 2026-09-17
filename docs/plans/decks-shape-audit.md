@@ -69,6 +69,23 @@ Each is a batch of its own, and each is a design decision before it is code.
 - **Card-unlocked buildings that do not exist yet** — the Plantation House, the Purple Works, the Dye Vats, and the Devotion rites (Mourning, Watch, Passage).
 - **A worker-built improvement and a claim rule** — Expansionist's Spade line.
 
+## The build order — ruled 2026-09-17
+
+The user: *"lets try and get broad coverage, but leave any new mechanics that are only needed for 1-2 cards."* So the filter is **three cards or it does not get built**, and the batches below are ordered by cards freed per unit of work. Counts are approximate and overlap: a card blocked by two shapes is freed only when both land.
+
+| Batch | What it builds | Cards freed | Kind |
+|---|---|---|---|
+| **D2a — predicates** | Threshold on a building count · worked-improvement scope · wonder-holding scope · negation in scopes and empire conditions (at peace, without a rite) · adjacency members on a tile condition | ~50 | new members on existing unions |
+| **D2b — counts and reach** | `count`/`per`/`max` on the effects that lack them · distinct-kind counts · the empire-building selector · a scope on renown · a scope and building-category on the purchase rider · a per-city authority discount or surcharge | ~45 | new fields on existing shapes |
+| **D2c — occasions** | Tally members (kill, unit trained, camp cleared, growth, building completed, wonder completed) · windfall grants scaled by the occasion's own facts · first-of-a-kind records · a once-per-turn limiter | ~25 | new members and one record |
+| **D2d — the age stamp** | "Placed on turn" on buildings, works, forests and routes, read as "at least twenty turns old" | ~12 | one new fact |
+| **D2e — the bilateral grant** | A grant that pays another empire (a foreign host, a partner's capital) · the per-empire commercial post | ~15 | one new payee, one new record |
+| **D2f — the systems** | Population payments · planting and regrowth · priced city commands · the charter-keyed tree · the three card-unlocked buildings and the three rites · the worker claim rule | ~30 | a batch apiece, design decisions first |
+
+**Cut by the rule** (kept as deferred rows, never built): the founding-trait record (2 cards — Expansionist's The Land Shapes Us and its finish). Everything else in this audit clears three.
+
+**Watch for**: D2a and D2b together are most of the catalogue and they are the same kind of work — growing the vocabulary rather than the world. They should be one agent each, run back to back, with the card files re-swept after each to un-defer whatever the batch freed. A row is un-deferred by deleting its `deferred` and writing its `effects`; nothing else about it changes.
+
 ## Two rules the batch hit, and what they cost
 
 **Never bend a card.** Where one clause fit and its partner did not, the card deferred whole. That is the right rule and it cost real rows: six in Devotion, five in the commons, several in Scientific. Each is one line of data waiting on its partner, and the ranking above is exactly the order that frees them.
