@@ -947,4 +947,104 @@ describe('the shared news register', () => {
       expect(shared).not.toContain(reporter);
     }
   });
+
+  /**
+   * **The loudest member the register will ever have** (the ruling of
+   * 2026-09-17, `docs/flags.md` (llllll)): the user finished the Magnum Opus and
+   * no sheet appeared.
+   *
+   * The sim was right — `realiseItem` closes the age off the row's
+   * `endsTheGame` marker however the work was finished — and the interface was
+   * wrong: `onVictory` fired from the attack handler and the End Turn press and
+   * nowhere else, each guarded by a `wonBefore` captured before its own
+   * dispatch. A contribution of gold, a faith purchase, a rite's hammers, a
+   * rival's own order: every one of them won the game in silence, and the next
+   * End Turn then saw a game already won and stayed silent for ever.
+   *
+   * A win passes both halves of the register's membership test, so it joins the
+   * register and the two bolted-on checks go.
+   */
+  it('announces the end of the game, and does it there and nowhere else', () => {
+    expect(shared).toContain('reportVictory();');
+    // Not left behind in the funnel as well: a member in both lists says
+    // everything twice for this seat's own orders.
+    expect(funnel).not.toContain('reportVictory();');
+  });
+
+  it('reads the board rather than a field on the result', () => {
+    // `state.winnerId` is the one scalar a command moves with no diff behind it,
+    // and its two writers (`closeTheGreatWork`, `updateElimination`) are reached
+    // from a dozen commands. A reporter that wanted a `CommandResult` field
+    // would need one carried through all of them.
+    const check = braceBody(source, 'function reportVictory(');
+    expect(check).toContain('getGame().state.winnerId');
+    expect(check).toContain('onVictory?.(winner);');
+  });
+
+  /**
+   * **Fire-once is a fact about the client, not about a command.** The sheet was
+   * raised or it was not — which is why the flag lives on the closure and why
+   * the claim is staked inside the check, before the winner is handed anywhere.
+   */
+  it('raises the sheet exactly once however many commands follow', () => {
+    const check = braceBody(source, 'function reportVictory(');
+    expect(check).toContain('if (victoryAnnounced) return;');
+    expect(check).toContain('victoryAnnounced = true;');
+    // And re-baselined when a replaced game arrives, so a save of a game
+    // somebody else finished announces nothing new.
+    expect(braceBody(source, 'refresh: (seatId = 0) =>')).toContain(
+      'victoryAnnounced = getGame().state.winnerId !== null;',
+    );
+  });
+
+  /**
+   * **Nothing about announcing may touch `GameState`** (hard rule 2): a flag the
+   * reducer could see would put the interface into the replay.
+   */
+  it('never writes the winner it reads', () => {
+    expect(source).not.toContain('winnerId =');
+  });
+
+  /**
+   * **And no third check.** `onVictory` is called in exactly three places: the
+   * register's own, and the two releases of the claim the register already made
+   * — the hand-over beat and the branch where the turn did not resolve. Both
+   * releases name `decided`, which is `heldVictory`'s contents, so neither can
+   * decide anything for itself.
+   */
+  it('leaves the two bolted-on checks nowhere in the file', () => {
+    expect(source).not.toContain('wonBefore =');
+    const calls = source.match(/onVictory\?\.\(/g) ?? [];
+    expect(calls.length).toBe(3);
+    // Every call outside the register releases the register's own claim.
+    expect((source.match(/onVictory\?\.\(decided\);/g) ?? []).length).toBe(2);
+    // The attack handler, which used to carry one of them, carries none.
+    expect(braceBody(source, 'function issueAttack(')).not.toContain('onVictory');
+  });
+
+  /**
+   * **The hand-over still owns the moment at a resolving end turn** — behind the
+   * turn card, after the Triumph and the bead news — and the two cannot both
+   * fire, because `reportVictory` stakes the claim and then hands the winner to
+   * the holder instead of raising the sheet. `heldTriumphs`' arrangement,
+   * emptied on both branches for the same reason.
+   */
+  it('hands a win earned in a resolution to the hand-over beat', () => {
+    const press = braceBody(source, 'function endTurn(');
+    expect(press).toContain('heldVictory = { winner: null };');
+    expect(press).toContain('const decided = heldVictory?.winner ?? null;');
+    expect(press).toContain('heldVictory = null;');
+    expect(press).toContain(
+      'scheduleHandOver(report, deficitLines(meters), earned, beadNews, decided);',
+    );
+    // And the beat puts it last of all, in front of a Triumph sheet earned on
+    // the same turn.
+    const beat = braceBody(source, 'function scheduleHandOver(');
+    expect(beat.indexOf('onVictory?.(decided);')).toBeGreaterThan(
+      beat.indexOf('onTriumphs?.(triumphs);'),
+    );
+    expect(beat.indexOf('onVictory?.(decided);')).toBeGreaterThan(
+      beat.indexOf('onBeadAwards?.(beadNews.awards);'),
+    );
+  });
 });

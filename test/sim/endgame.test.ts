@@ -41,7 +41,12 @@ import {
 import { awardBeadGrant, beadGrantedTo, closeTheGreatWork } from '../../src/sim/beads';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
-import { buildingProductionCost, foundCityAt, realiseItem } from '../../src/sim/cities';
+import {
+  buildingProductionCost,
+  foundCityAt,
+  realiseItem,
+  settleProductionWindfall,
+} from '../../src/sim/cities';
 import { createGame, dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import { nextBotCommand } from '../../src/ai/bot';
@@ -639,6 +644,114 @@ describe('the Opus is funded the cathedral’s way', () => {
     expect(player.gold).toBe(0);
     expect(g.state.winnerId).toBe(0);
     expect(result.ok && result.beads!.length).toBeGreaterThan(0);
+  });
+});
+
+// --- how many ways the age can close ----------------------------------------
+
+/**
+ * **The evidence for the interface ruling of 2026-09-17** (`docs/flags.md`
+ * (llllll)): the user finished the Magnum Opus and no victory screen appeared.
+ *
+ * The sim was never the fault, and this is where that is put beyond argument.
+ * `closeTheGreatWork` hangs off `BuildingDef.endsTheGame` inside `realiseItem` —
+ * the one routine that means "the town now has the thing" — so the age closes
+ * however the work was finished, and the ways to finish it are many: the turn
+ * phase settling production, a contribution of gold or faith, an outright
+ * purchase, and **every one-time grant of hammers there is**, which all reach
+ * the same `settleProductionWindfall`. The interface had bolted its check onto
+ * two handlers, so all but one of these won the game in silence.
+ *
+ * Driven for real where it can be, and read off the source where the claim is
+ * about *which modules* can reach the seam at all.
+ */
+describe('the Opus closes the age by every road into a town', () => {
+  /** A seat holding the closer, with its rod full and a town to build in. */
+  function ready() {
+    const g = game();
+    learn(g.state, 0, CLOSER);
+    fillRod(g.state, 0);
+    const town = found(g.state, 0);
+    town.queue.length = 0;
+    town.queue.push({ kind: 'building', id: OPUS });
+    town.hammerBasket = 0;
+    return { g, town };
+  }
+
+  it('is bought outright, and the purchase ends the game', () => {
+    // The Opus is deliberately not flagged `wonder: true` — its own row says
+    // gold and faith may be poured into it — so the refusal that keeps a marvel
+    // off the market does not cover it, and a purchase is a real road in.
+    const { g, town } = ready();
+    const player = playerById(g.state, 0)!;
+    player.gold = buildingProductionCost(OPUS, g.state, 0) * RULES.production.goldPerHammer;
+
+    const result = applyCommand(g.state, {
+      type: 'purchaseItem',
+      playerId: 0,
+      cityId: town.id,
+      item: { kind: 'building', id: OPUS },
+      currency: 'gold',
+    } as Command);
+
+    expect(result.ok).toBe(true);
+    expect(town.buildings).toContain(OPUS);
+    expect(g.state.winnerId).toBe(0);
+  });
+
+  it('is finished by a one-time grant of hammers, and that ends the game too', () => {
+    // `payRiteRiders`' two lines, and a chop's, and a claimed ruin's, and an
+    // engineer's: hammers into the basket, then the one settlement routine.
+    // CLAUDE.md names the rite as a known silent seam ("a rite's hammers
+    // completing a wonder carry no toast") and this is the sim half of it —
+    // the age closes, whatever the interface then says about it.
+    const { g, town } = ready();
+    const cost = buildingProductionCost(OPUS, g.state, 0);
+    town.hammerBasket = cost - 5;
+    expect(g.state.winnerId).toBeNull();
+
+    town.hammerBasket += 5;
+    const done = settleProductionWindfall(g.state, town);
+
+    expect(done).not.toBeNull();
+    expect(town.buildings).toContain(OPUS);
+    expect(g.state.winnerId).toBe(0);
+  });
+
+  /**
+   * The register the ruling was argued from: the completion seam is reached
+   * from far more than the turn phase, so a victory check that lived on the End
+   * Turn press could only ever cover one of these.
+   */
+  it('is reached from every grant of hammers in the simulation', () => {
+    const callers = Object.entries(SIM_SOURCE)
+      .filter(([, text]) => /settleProductionWindfall\(state, /.test(text))
+      .map(([path]) => path.slice(path.lastIndexOf('/') + 1))
+      .sort();
+    for (const module of [
+      // The turn phase's own mid-turn twin, and the contribution beside it.
+      'cities.ts',
+      'purchase.ts',
+      // A rite's riders, a chop, a claimed ruin, an engineer, a trade route,
+      // a bead's boon, a card's gift, a battle's spoils, a treaty's town.
+      'religion.ts',
+      'improvements.ts',
+      'discoveries.ts',
+      'greatPeople.ts',
+      'trade.ts',
+      'beads.ts',
+      'combat.ts',
+      'diplomacy.ts',
+    ]) {
+      expect(callers).toContain(module);
+    }
+    // And the marker is read in exactly one place, which is why every one of
+    // them closes the age without knowing it can.
+    const closers = Object.entries(SIM_SOURCE).filter(([, text]) =>
+      text.includes('closeTheGreatWork(state, city)'),
+    );
+    expect(closers.length).toBe(1);
+    expect(closers[0]![0].endsWith('/cities.ts')).toBe(true);
   });
 });
 

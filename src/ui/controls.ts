@@ -1760,11 +1760,14 @@ export interface GameControlsOptions {
   onDamage?: (events: readonly DamageEvent[]) => void;
 
   /**
-   * The game ended: one player is left standing.
+   * The game ended: the Magnum Opus stands, or one empire is left standing.
    *
-   * Fired once, on the command that decided it, and only when `winnerId` went
-   * from null to a player — a state that is already won does not re-announce
-   * itself on every later click.
+   * **Fired exactly once per game, whoever's command decided it** — see
+   * `reportVictory`, the one check, which sits in the shared news register
+   * every accepted command passes rather than on the two handlers it used to be
+   * bolted onto. A win that lands mid-turn is announced on the spot; one that
+   * lands inside a resolution arrives with the hand-over, behind the turn card.
+   * A game already decided when this client attached announces nothing.
    */
   onVictory?: (playerId: number) => void;
 
@@ -2882,17 +2885,22 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    *     doings, it stays in `commit` — that is exactly the guard
    *     `reportCommand`'s docblock is keeping, and it is right.
    *
-   * Six pass, and each is filtered where it stands: a **raid** (this seat as
+   * Seven pass, and each is filtered where it stands: a **raid** (this seat as
    * the defender, and never as the attacker), a **plundered caravan** on the
    * arrival path, a **route that ended** (this seat's own), a **pillage** (this
    * seat as the victim), the **diplomatic** lines (a war and a peace are public
-   * by the worksheet's own ruling; every other line in it names this seat), and
-   * a **wonder** — which is deliberately not seat-filtered because a marvel is
+   * by the worksheet's own ruling; every other line in it names this seat), a
+   * **wonder** — which is deliberately not seat-filtered because a marvel is
    * the one thing another empire finishing takes away from you, and a rite's
-   * hammers can finish one inside a rival's command. `reportGrants` rides with
-   * the wonder line because the two are one piece of news read twice, the
-   * world's half and the owner's, and separating them would print the second
+   * hammers can finish one inside a rival's command — and, **last and loudest,
+   * the end of the game** (2026-09-17, `docs/flags.md` (llllll)). `reportGrants`
+   * rides with the wonder line because the two are one piece of news read twice,
+   * the world's half and the owner's, and separating them would print the second
    * before the first.
+   *
+   * `reportVictory` is last for the reason `scheduleHandOver` puts it last:
+   * the marvel that closed the age is announced before the age closing, and the
+   * sheet stands in front of every line said behind it.
    *
    * The ones that stayed, and why they are not oversights: the **sighting**
    * and **faith** polls read the *board* against a baseline rather than reading
@@ -2913,6 +2921,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     reportWonders(result);
     reportGrants(result);
     reportDiplomacy(result);
+    reportVictory();
   }
 
   /**
@@ -3543,6 +3552,60 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * **And the finish line was crossed.** The one victory check in this module,
+   * and the last thing the shared register says.
+   *
+   * It passes both halves of `reportSharedNews`' test, and it is the ruling of
+   * 2026-09-17 (`docs/flags.md` (llllll)) arriving where it belongs. *Could
+   * another empire's order produce it?* — a rival finishing the Magnum Opus
+   * closes the age inside that rival's own command, and the last empire left
+   * standing is settled inside whichever blow, razing or treaty emptied the
+   * second-to-last chair. *Is every line news the world is told?* — there is no
+   * louder one in the game: the sheet is raised for every seat, the winner's
+   * and the losers' alike (`main.ts`'s listener says why).
+   *
+   * **Read off the state, not off the result**, and that is the whole shape of
+   * the fix. `state.winnerId` is the one scalar a command can move that leaves
+   * no field on `CommandResult` behind it, and its two writers are reached from
+   * everywhere: `closeTheGreatWork`, off the Opus row's `endsTheGame` marker,
+   * runs inside `realiseItem` — the one routine that means "the town now has
+   * the thing" — so the work is finished by the turn phase settling production,
+   * by a contribution of gold or faith, by a purchase where the Valley of Kings
+   * lifts the rule, and by every one-time grant of hammers there is (a rite's
+   * riders, a chop, a claimed ruin, an engineer, a trade route, a bead); and
+   * `updateElimination` writes it from a blow, a razing and a ceded town.
+   * Asking the *result* would mean a field carried through all of them and a
+   * reporter that forgot one would simply go quiet. Asking the state asks the
+   * only question there is: is the race over.
+   *
+   * Until this the check was bolted onto two handlers — the attack and the End
+   * Turn press — each guarded by a `wonBefore` captured before its own dispatch.
+   * A win arriving any other way announced nothing, and the next End Turn then
+   * saw a game already won and stayed silent for ever. There is **one** check
+   * now, and there must never be a second.
+   *
+   * **Who owns the moment.** Ordinarily this does, on the spot — a win that
+   * lands mid-turn is the news of that command. The one exception is a win that
+   * lands inside a *resolution*, which belongs behind the turn card beside the
+   * Triumph and the bead news: `endTurn` opens `heldVictory` around its own
+   * `commit`, and this hands the winner over instead of raising the sheet
+   * itself (`reportTriumphs`' arrangement exactly). The claim on
+   * `victoryAnnounced` is made **here** on both paths, so the register and the
+   * hand-over can never both fire.
+   */
+  function reportVictory(): void {
+    if (victoryAnnounced) return;
+    const winner = getGame().state.winnerId;
+    if (winner === null) return;
+    victoryAnnounced = true;
+    if (heldVictory !== null) {
+      heldVictory.winner = winner;
+      return;
+    }
+    onVictory?.(winner);
+  }
+
+  /**
    * Triumphs collected while a resolution is being applied, or `null` whenever
    * nothing is collecting.
    *
@@ -3582,6 +3645,39 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     census: CensusRecord | null;
   }
   let heldBeadNews: HeldBeadNews | null = null;
+
+  /**
+   * **Has this client announced that the game is over?**
+   *
+   * The whole of the fire-once rule, and deliberately a fact about *the page*
+   * rather than about any one command: the sheet was raised, or it was not. A
+   * `wonBefore` captured around a dispatch — which is what this replaced — can
+   * only ever speak for that dispatch, and every other way of winning the game
+   * went unannounced because of it (`docs/flags.md` (llllll)).
+   *
+   * **Never on `GameState`.** Announcing is a client's business; a flag the
+   * reducer could see would put the interface into the replay and determinism
+   * is not negotiable (hard rule 2).
+   *
+   * Baselined against the board in `refresh`, which is the seam a replaced game
+   * arrives through: a save of a game that was already decided is a board this
+   * client never saw decided, and there is nothing new to announce about it.
+   */
+  let victoryAnnounced = false;
+
+  /**
+   * The win collected while a resolution is being applied, or `null` whenever
+   * nothing is collecting.
+   *
+   * `heldTriumphs`' and `heldBeadNews`' third, on exactly their terms: every
+   * ordinary command leaves it `null` and a win goes straight to the sheet;
+   * `endTurn` opens it around its own `commit` and empties it itself, on both
+   * branches, so a decided game can never be stranded. A box rather than a bare
+   * `number | null`, because the two questions are different — "is anything
+   * collecting" and "was anything won" — and one nullable number cannot answer
+   * both.
+   */
+  let heldVictory: { winner: number | null } | null = null;
 
   /**
    * The Statecraft screen's batch, through the same seam every other order takes.
@@ -5063,7 +5159,6 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // comparison below is a value against itself.
     const cityHeldBy = cityBefore?.ownerId ?? null;
     const attackerFrom = { col: unit.col, row: unit.row };
-    const wonBefore = state.winnerId;
 
     renderer.skipAnimations();
     const command: Command = {
@@ -5108,9 +5203,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       onCityCaptured?.(cityBefore.id);
     }
 
-    if (getGame().state.winnerId !== null && wonBefore === null) {
-      onVictory?.(getGame().state.winnerId!);
-    }
+    // **And no victory check here.** A blow that empties the last rival chair is
+    // one of a dozen ways the game ends, and the check that reads them all is
+    // `reportVictory`, inside the shared register `commit` above already went
+    // through. It has therefore already fired by this line — the sheet stands
+    // over the board while the narration below files itself behind it, which is
+    // the same order a Doctrine's card arrives in (`reportGrants`).
 
     renderer.invalidate();
     refreshOverlays();
@@ -7081,7 +7179,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     triumphs: readonly TriumphAward[],
     /** The Bead Race's news from this resolution. See `HeldBeadNews`. */
     beadNews: HeldBeadNews,
-    /** The seat that crossed the bead threshold in this resolution, or null. */
+    /**
+     * The seat that won the game inside this resolution, or null.
+     *
+     * Handed down rather than read here, and it is `reportVictory`'s claim that
+     * travels with it: the register decided there *is* a win and deferred the
+     * sheet to this beat (`heldVictory`), so nothing below may check the board
+     * for itself or the two would both fire.
+     */
     decided: number | null = null,
   ): void {
     const marching = renderer.pendingAnimationMs?.() ?? 0;
@@ -7523,16 +7628,21 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // a turn that went by, it is a standing condition the player has to act on,
     // and it repeats every turn until they do — which is the point of it.
     const debt = debtWarning(playerById(getGame().state, localPlayerId));
-    // The winner is the one scalar a resolution can move that leaves no diff
-    // behind it — the world's clock now rides the report (`beadAgeOpened`) — so
-    // it is read here, in the same breath and for the same reason as the
-    // research snapshot above.
-    const wonBefore = getGame().state.winnerId;
+    // And the end of the game, on exactly the terms the two holders above are
+    // opened on: a race decided inside this resolution belongs behind the turn
+    // card, not in front of the marches. The *check* is not here — it is
+    // `reportVictory`, in the shared register, the one place every accepted
+    // command passes (2026-09-17, `docs/flags.md` (llllll)) — and this only asks
+    // it to hand the winner over rather than raise the sheet on the spot.
+    // Emptied on **both** branches below, a Triumph's reason exactly.
+    heldVictory = { winner: null };
     const result = commit({ type: 'endTurn', playerId: localPlayerId });
     const earned = heldTriumphs;
     heldTriumphs = null;
     const beadNews = heldBeadNews ?? { awards: [], ageOpened: null, census: null };
     heldBeadNews = null;
+    const decided = heldVictory?.winner ?? null;
+    heldVictory = null;
     if (!result.ok) return;
     if (debt !== null) announce(debt);
 
@@ -7558,14 +7668,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // read three seconds later. Its pan is a link the player follows, never a
       // camera move of its own — so it cannot fight the marches.
       announceWakes(asleep);
-      // The threshold was crossed inside the resolution: the sheet belongs to
-      // the hand-over, behind the turn card, exactly where a Triumph's does.
-      // `wonBefore` is what makes it fire once — a game that has been won stays
-      // won, and every later End Turn press must not re-announce it.
-      const decided =
-        getGame().state.winnerId !== null && wonBefore === null
-          ? getGame().state.winnerId
-          : null;
+      // The race was decided inside the resolution: the sheet belongs to the
+      // hand-over, behind the turn card, exactly where a Triumph's does. What
+      // makes it fire once is `victoryAnnounced`, claimed by `reportVictory`
+      // before it handed the winner over — a game that has been won stays won,
+      // and no later press, order or rival's command re-announces it.
       scheduleHandOver(report, deficitLines(meters), earned, beadNews, decided);
       return;
     }
@@ -7574,9 +7681,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (earned.length > 0) onTriumphs?.(earned);
     if (beadNews.awards.length > 0) onBeadAwards?.(beadNews.awards);
     if (beadNews.ageOpened !== null) onBeadAgeOpened?.(beadNews.ageOpened);
-    if (getGame().state.winnerId !== null && wonBefore === null) {
-      onVictory?.(getGame().state.winnerId!);
-    }
+    // The other half of emptying the holder, and not a second check: the claim
+    // was already made in `reportVictory` and this is the seat's copy of it
+    // being released, exactly as the Triumph and the beads above are.
+    if (decided !== null) onVictory?.(decided);
     const next = nextOpenSeat(localPlayerId);
     if (next !== null) {
       setLocalPlayer(next);
@@ -8093,6 +8201,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // resumed seat's own history already crossed — see
       // `checkFirstStatecraftDraft`.
       statecraftDraftAnnounced = (playerById(getGame().state, seatId)?.statecraft.drafts ?? 0) > 0;
+      // **A game already decided when this client sat down was not decided in
+      // front of it**, and the sheet is a moment rather than a standing fact: a
+      // save of a finished game announces nothing new, and a new table has
+      // nothing announced about it yet. Baselined here on the same terms as the
+      // draft above, and for the same reason — this is the one seam a replaced
+      // game arrives through (`GameControls.refresh`'s own contract).
+      victoryAnnounced = getGame().state.winnerId !== null;
       // Deliberately **false** rather than "whatever this seat holds": a resumed
       // game with a name already waiting should say so once, which is exactly
       // what a rising edge against `false` does on the next commit.
