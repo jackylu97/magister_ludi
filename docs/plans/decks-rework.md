@@ -40,6 +40,24 @@ The Compendium grouped by deck with the retired rows in their own shelf; the dra
 
 Each wave builds one shape and un-defers every row that waited on it. First wave, by cards served per shape: the **age stamp** (a "placed on turn" fact on buildings, works, forests and routes, read as "how long has it stood"), the **charter-keyed tree** (off-lane tech rows gated by `charteredTechs`), **planting and maturity**, **population payments**, the **per-empire commercial post**, **miracle commands**. Later waves per the deferred lists.
 
+## The queue — ruled 2026-09-17
+
+The user: *"queue them all up in order."* What follows is the order of record. Each batch is one agent on a worktree off `decks`, gated by the orchestrator (typecheck + core tier per module + build) and merged before the next in its lane starts. D1a and D1b have landed; D2a and D2b landed 2026-09-17 (`docs/plans/decks-shape-audit.md` records what each took off the shelf).
+
+| # | Batch | What it is | Runs |
+|---|---|---|---|
+| 1 | **D1c** | the surfaces: the Compendium grouped by deck, the retired shelf its own, charter marks finished | now, beside 2 |
+| 2 | **M1** | `(mmmmmm)`: the screens in `main.ts` that dispatch around both reporters, and the seat-reset the same call sites cause | now, beside 1 |
+| 3 | **D2c** | occasions: tally members, windfalls scaled by the occasion's own facts, first-of-a-kind records, a once-per-turn limiter — ~25 cards | after 1 and 2 |
+| 4 | **D2d** | the age stamp: "placed on turn" on buildings, works, forests and routes — ~12 cards | after 3 |
+| 5 | **D2e** | the bilateral grant: a grant that pays another empire, and the per-empire commercial post — ~15 cards | after 4 |
+| 6 | **A1** | the two silent arrivals: a barbarian's plunder during turn resolution, and a rival taking your worker — the turn report drops arrival reports | after 5 |
+| 7 | **D2f** | the systems — ~30 cards | **blocked**: each is a design decision before it is code |
+
+**D2f is not queued as work.** Population payments and migration, planting and maturity and regrowth, priced city commands, the charter-keyed tree, the three card-unlocked buildings and the three Devotion rites, and the worker claim rule are six separate systems; each needs a ruling in this file or in `docs/flags.md` before an agent may fly. The queue stops at 6 and the rulings are asked for then.
+
+**Standing, outside the queue**: the war-and-peace slow test's red (bots stop signing peace against the live pool — a balance finding, measured twice, unmoved by D2a and D2b); the flavour pass over all 399 rows (agent-written, wants the voice that owns it); the bot tuner, parked by the user until the rework settles.
+
 ## What is not in D1
 
 The government simplification to three forms (held; governments keep their signatures and gain a chair count only). New strategic resources and unit-requirement promotions (parked by the design doc). Any bot tuning (held with the tuner). Pool expansion mid-game (deferred by the user).
