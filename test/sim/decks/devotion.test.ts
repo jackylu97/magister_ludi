@@ -65,6 +65,10 @@ const KINDS_USED = [
   'conditionRule',
   'happiness',
   'unitStat',
+  // D2a: The Rites Commonwealth's *"demand 15% less population happiness"*,
+  // which is a rate of the simulation narrowed to the towns keeping a rite —
+  // the shape that came with the negation the card's other half needed.
+  'rulePercent',
 ] as const satisfies readonly CardEffectKind[];
 
 /** The rarities the doc's C/U/R column spells. */

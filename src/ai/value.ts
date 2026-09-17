@@ -3988,6 +3988,15 @@ function conditionIsLive(
       }
       return false;
     }
+    case 'atPeace': {
+      // The exact complement of the arm above it, off the same register and for
+      // its reason: a realm that has burnt a hundred camps and signed nothing is
+      // at peace, so The Long Peace prices at what the rule will actually pay.
+      for (const war of ctx.state.wars) {
+        if (war.a === ctx.playerId || war.b === ctx.playerId) return false;
+      }
+      return true;
+    }
     case 'keepingRite': {
       // Through `cityRite`, the simulation's own reading of what a town is
       // keeping — the same predicate the gate itself goes through, so the bot

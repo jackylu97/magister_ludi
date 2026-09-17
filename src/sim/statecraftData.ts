@@ -784,6 +784,112 @@ export type CityScope =
        */
       crossing?: 'domestic' | 'international';
     }
+  /**
+   * The town has raised **at least this many buildings of one shelf** — The
+   * Civic Stage's *"cities with at least two culture buildings"*, and most of
+   * Magisterial's civic line with it.
+   *
+   * `hasBuilding` asked of *how many* rather than of *which*, and the two are
+   * deliberately two members rather than a count on that one: a card that names
+   * a Monument means the Monument, and a card that says "several culture
+   * buildings" means the shelf and does not care which of them. Read through
+   * `buildingsOfCategoryIn` — the same walk `CountKind`'s `buildingsOfCategory`
+   * takes with `within: 'city'` — so a card that *counts* a town's culture
+   * houses for gold and a card that *admits* the town for having them cannot
+   * disagree about how many there are.
+   *
+   * The shelf is `BuildingDef.category`, the one word every row declares, so an
+   * eighth amphitheatre joins every card written on it without an edit here —
+   * `CardPaysEffect.category`'s bargain one table over. `atLeast` is on the row
+   * rather than fixed here for `queueDepth`'s reason: the figure is the card's,
+   * and a row wanting three of them is a JSON row. Inclusive, exactly as
+   * `populationAtLeast` is.
+   */
+  | { test: 'buildingsOfCategory'; category: BuildingCategory; atLeast: number }
+  /**
+   * **A citizen of this town is standing on one of these works** — The
+   * Sculptors' Quarries' masons, who are paid for the quarry somebody is
+   * actually cutting.
+   *
+   * `hasImprovement`'s companion and emphatically not a reading of it: that one
+   * asks what lies *inside the borders*, and a quarry in the third ring that
+   * nobody works is still the town's quarry by that reading — which is the
+   * wrong sentence for a card about labour. This asks `City.workedTiles`, the
+   * assignment itself, so the line moves the turn a governor moves a citizen
+   * and a town that grows into its quarry starts collecting.
+   *
+   * A **list**, `anyImprovement`'s shape one scale up and for its reason: the
+   * ratified text names one kind of ground ("mines and camps", Lay Offerings)
+   * that the improvement table spells as two rows. Asked through
+   * `tileConditionHolds` — so `improvementCountsAs` applies here exactly as it
+   * does on a hex line, and a variant row joins by carrying `countsAs`.
+   *
+   * `atLeast` counts them, and it is a field rather than a second member for
+   * `buildingsOfCategory`'s reason: "working a quarry" and "working at least
+   * two of them" are one question with a threshold on it. Absent is one, which
+   * is what every "working a …" row means.
+   */
+  | { test: 'workingImprovement'; improvements: ImprovementId[]; atLeast?: number }
+  /**
+   * **A citizen of this town is standing on a great person's work** — The
+   * Master's Presence, The Laureate, and Scientific's whole distributed-works
+   * line.
+   *
+   * `workingImprovement` asked of the *family* rather than of the rows, exactly
+   * as `TileCondition`'s `greatWork` is and through that very condition: it
+   * reads the marker the improvement table already carries
+   * (`ImprovementDef.greatPerson`, presence is the marker), so the sixth work
+   * added the day a great admiral lands joins every card written on this for
+   * free.
+   *
+   * `adjacentGreatWork` is the other question about the same stones and stays
+   * its own member: that one asks whether an academy *stands next door to the
+   * centre* — a fact about where the settler stopped — and this asks whether
+   * anybody is working it, which is a decision the player makes every turn.
+   */
+  | { test: 'workingGreatWork'; atLeast?: number }
+  /**
+   * **A marvel stands in this town** — The Grand Tour's, The Civic Pantheon's,
+   * and every Magisterial row whose subject is the town a wonder was built in.
+   *
+   * `hasBuilding` asked of the class rather than of the row (`isWonder`, the
+   * data's own declaration), and it is the predicate `CountKind`'s `wonders`
+   * with `within: 'city'` could never be: a count says *how many* and pays per
+   * marvel, and "cities containing a wonder" admits the town once however many
+   * it holds. Both read the same declaration, so the shelf a card counts and
+   * the town a card admits cannot disagree.
+   *
+   * Pay follows the stones, like every other wonder reading: a captured town
+   * carries its marvel to its captor, and the scope moves with it the turn the
+   * town changes hands.
+   */
+  | { test: 'hasWonder' }
+  /**
+   * **No marvel stands in this town** — The Wonder Commonwealth's other half,
+   * which pays the towns the marvels passed over.
+   *
+   * A named inverse rather than a `not` composite, and this is the batch that
+   * had to decide (D2a). The union already refuses one twice over
+   * (`notFreshwater`, `notCapital`, `populationAtMost`), and the refusal gets
+   * *stronger* now that `all` and `any` both stand: a `not` over those two
+   * would make the scope a full boolean algebra, and a full boolean algebra is
+   * a thing no describer can print — "every city that is not (coastal and
+   * keeping a rite)" is a sentence a first-time player cannot act on, which is
+   * hard rule 7 said as a type. A named member costs one arm and one phrase and
+   * buys a clause a player can read. So negations are written down one card at
+   * a time, exactly as the three before them were, and a scope nobody has asked
+   * the opposite of never grows one.
+   */
+  | { test: 'notHasWonder' }
+  /**
+   * **No rite is running in this town** — The Rites Commonwealth's penalty,
+   * which is the whole point of a card that rewards the towns that do keep one.
+   *
+   * `keepingRite`'s mirror, through the same `cityRite` reading so the two
+   * halves of one card cannot both be true of one town. A named member for
+   * `notHasWonder`'s stated reason.
+   */
+  | { test: 'notKeepingRite' }
   | { test: 'all'; of: CityScope[] }
   /**
    * **Any one of these** holds — the Stable's pasture *or* camp.
@@ -797,7 +903,8 @@ export type CityScope =
    *
    * It stays as narrow as that argument: `all` and `any`, and still no `not`,
    * because a scope system that can say anything is a query language nobody can
-   * print. An empty list admits nothing, which is the honest reading of "any of
+   * print — the argument D2a re-ran and kept, written out on `notHasWonder`.
+   * An empty list admits nothing, which is the honest reading of "any of
    * none" and the same answer `all` of none would give inverted.
    */
   | { test: 'any'; of: CityScope[] };
@@ -856,6 +963,24 @@ export type EmpireCondition =
    * says it lands.
    */
   | { test: 'atWar' }
+  /**
+   * **Nobody is shooting at you** — The Long Peace's unpaid garrisons, Reserve
+   * Officers' quiet half, and The Pageants of Peace.
+   *
+   * `atWar`'s mirror and a **named member** rather than a `not` composite: this
+   * union has none and is not getting one, for the reason `CityScope`'s
+   * `notHasWonder` spells out — the moment a gate can be any boolean tree it is
+   * a gate nobody can print, and "while you are at peace" is a sentence a
+   * player acts on where "while not (at war or …)" is not.
+   *
+   * Read off the same register (`state.wars`) and therefore with the same
+   * honesty: the wild signs nothing and is never in it, so a realm that has
+   * burnt a hundred camps and declared on nobody is at peace here — which is
+   * what a card about peace means. The two arms are exact complements, so a
+   * card carrying both halves covers every turn of the game and never both at
+   * once.
+   */
+  | { test: 'atPeace' }
   /**
    * **A rite is burning somewhere in this realm** — The Rite of the Sky, whose
    * riders are bolder while the fires are lit.
@@ -1361,6 +1486,54 @@ export type TileCondition =
    * would otherwise have to spell out.
    */
   | { test: 'greatWork' }
+  /**
+   * **A road runs through this hex** — Market Gardens' farms, which are worth a
+   * coin because the cart can reach them.
+   *
+   * `Tile.road` and nothing else, which is the one field a road is ever written
+   * on (`layRoad`, `roads.ts`). **Presence, never the builder**: this predicate
+   * holds a tile and no empire — it is handed to a granary and to a luxury as
+   * well as to a card — so "whose road" is a question it cannot ask, and a
+   * clause that pretended to would be answering about the reader rather than
+   * about the ground. A road on your own hex is in practice yours or an ally's;
+   * a rival's road inside your borders is a road your carts can use too.
+   *
+   * Absence is the state, `unimproved`'s reading of the same kind of field, so
+   * a hex whose road was never laid simply says no.
+   */
+  | { test: 'road' }
+  /**
+   * **One of the six hexes touching this one satisfies that** — Market Gardens'
+   * farms beside a road, The Sculpted Landscape's fields beside a master's
+   * work.
+   *
+   * The one member of this union whose answer is a fact about ground the
+   * predicate does not hold, and it is answered the only honest way there is:
+   * **the caller hands in the ring**. `TileCondition` is a tile and no map by
+   * construction (see the union's own docblock and `adjacentMountain`'s, which
+   * bakes its answer onto the ground precisely because mountains never move),
+   * and roads, woods and works all move — so the ring cannot be baked and a
+   * second kind of condition with a second kind of caller would have been the
+   * price. Instead `tileConditionHolds` takes a fourth argument, a thunk for
+   * the neighbours, exactly as `yields` takes one for the breakdown; the yield
+   * chain supplies it from `TileYieldContext.neighbours`, and **a caller that
+   * hands in no ring answers no** — `yields`' own bargain, taken for its reason.
+   *
+   * It is a **composite over the union** rather than three named members
+   * ("beside a road", "beside a forest", "beside a work") because the ring asks
+   * the same question the hex asks: the six neighbours are hexes, and every
+   * predicate that reads a hex already exists. So "beside an unimproved forest"
+   * is this member over `all`, and nothing new is written the day a card wants
+   * "beside a quarry".
+   *
+   * **A `beside` inside a `beside` answers no.** The ring is not re-supplied to
+   * the inner evaluation, so the reach is exactly one hex and cannot become a
+   * flood fill — a rule the type could not express and the cost of the walk
+   * makes worth stating. The hex's own breakdown is not handed down either: a
+   * neighbour's worth is not this hex's, and `yields` asked of a neighbour
+   * answers no for the same reason a bare caller's does.
+   */
+  | { test: 'beside'; of: TileCondition }
   /**
    * Every one of these holds. `CityScope`'s composite, one scale down, and here
    * for its reason: a wooded tundra and a mine standing on a luxury are single
@@ -2954,9 +3127,12 @@ export interface CardPaysEffect extends CardYieldBag {
    *
    * A multiplier on this row's own bag rather than a count of its own, and it is
    * `perEndpointLuxury`'s bargain read one ground over: the thing counted is a
-   * fact about *the hex*, and nothing in the count vocabulary can see a hex's
-   * six neighbours — a `CountKind` is asked of an empire or of a town, and
-   * `TileCondition` answers yes or no about ground it holds without a map.
+   * fact about *the hex*, and nothing in the count vocabulary can **count** a
+   * hex's six neighbours — a `CountKind` is asked of an empire or of a town, and
+   * `TileCondition` answers yes or no. Since D2a that condition can *ask* about
+   * the ring (`beside`), which is a different sentence and deliberately so: a
+   * predicate admits the hex once however many peaks stand around it, and this
+   * field is what pays a helping apiece.
    *
    * Read off the ground's own baked mark (`Tile.mountainsBeside`, written once
    * at generation), so the peak is counted where the adjacency is already

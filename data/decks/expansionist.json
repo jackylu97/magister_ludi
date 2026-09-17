@@ -234,7 +234,7 @@
       "rarity": "uncommon",
       "flavor": "The best field is the one the wood still watches.",
       "text": "Worked ordinary improvements beside unimproved forest gain +1 production per adjacent forest, at most +2. Worked unimproved forests beside a farm gain +2 food, once per forest.",
-      "note": "A hex can be paid for the mountains that stand beside it and for nothing else that does.",
+      "note": "A hex is paid for what stands beside it now, but only once — never a helping for every wood in the ring.",
       "deferred": [
         "works pay more for every wild wood standing next to them",
         "a wild wood beside a field feeds better for it"
@@ -335,7 +335,7 @@
       "rarity": "common",
       "flavor": "Great work throws a long shade, and things grow in it.",
       "text": "+1 culture on tiles adjacent to a great work.",
-      "note": "A provisional name for a line the worksheet has not finished. A hex cannot yet be paid for what stands beside it.",
+      "note": "A provisional name for a line the worksheet has not finished. The rule itself is ready; the card is not.",
       "deferred": [
         "ground beside a great one's work sings for it",
         "the name, the rarity and the wording are the designer's to settle"
@@ -350,7 +350,7 @@
       "rarity": "common",
       "flavor": "One field teaches the next.",
       "text": "Farms gain +1 production for every two adjacent farm tiles.",
-      "note": "A provisional name for a line the worksheet has not finished, and marked uncertain there. A hex cannot yet be paid for what stands beside it.",
+      "note": "A provisional name for a line the worksheet has not finished, and marked uncertain there. A hex is paid for what stands beside it now, but not once for every second one of them.",
       "deferred": [
         "a field builds better for every second field beside it",
         "the name, the rarity and the wording are the designer's to settle"
@@ -456,7 +456,7 @@
       "rarity": "rare",
       "flavor": "He wanted nothing, and the ground gave it anyway.",
       "text": "Great-person works qualify for your unimproved-land card bonuses. Each great-person work also grants adjacent worked tiles +2 of each of its positive native yield types. [Native yields exclude card additions; no propagation.]",
-      "note": "No card can change what another card's ground condition admits, and a hex cannot yet be paid for what stands beside it.",
+      "note": "No card can change what another card's ground condition admits.",
       "deferred": [
         "a great one's work counts as wild ground for your other laws",
         "ground beside a great one's work shares in whatever that work provides"
@@ -627,7 +627,7 @@
       "rarity": "common",
       "flavor": "Put two masters on one street and watch.",
       "text": "Great works with an adjacent great work gain double yields. This never stacks.",
-      "note": "A provisional name for a line the worksheet has not finished. A hex cannot yet be paid for what stands beside it.",
+      "note": "A provisional name for a line the worksheet has not finished. The rule itself is ready; the card is not.",
       "deferred": [
         "a great one's work standing beside another pays twice over, however many stand there",
         "the name, the rarity and the wording are the designer's to settle"
@@ -710,7 +710,7 @@
       "rarity": "common",
       "flavor": "The tenth sheaf, and the wild hedge that grew it.",
       "text": "Worked farms beside unimproved land gain +3 gold, once per farm. Farms beside a mature unimproved forest also gain +2 production.",
-      "note": "A hex can be paid for the mountains that stand beside it and for nothing else that does, and no wood in the game is young or old.",
+      "note": "No wood in the game is young or old, so the second half cannot tell which trees it means.",
       "deferred": [
         "a field beside wild ground is worth coin for it",
         "a field beside a grown wild wood builds better besides"

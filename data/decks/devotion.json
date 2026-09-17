@@ -55,12 +55,20 @@
       "rarity": "common",
       "flavor": "The miners leave a little of what they cut on the ledge outside.",
       "text": "Worked mines and camps gain +1 faith. A city working at least two gains +3 gold, once per city.",
-      "note": "Not built, both halves together: a town can be asked what stands inside its borders and never how many of a thing its people are actually working.",
-      "deferred": [
-        "worked mines and camps pay an offering of faith",
-        "a town working two of them takes a little coin besides"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "faith": 1,
+          "on": { "test": "anyImprovement", "improvements": ["mine", "camp"] }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": 3,
+          "scope": { "test": "workingImprovement", "improvements": ["mine", "camp"], "atLeast": 2 }
+        }
+      ]
     },
     "theMonasticTable": {
       "name": "The Monastic Table",
@@ -209,12 +217,16 @@
       "rarity": "rare",
       "flavor": "A realm at prayer together, and one village that is not.",
       "text": "Cities keeping a rite gain +3 production and demand 15% less population happiness. Your cities without a rite gain −1 happiness.",
-      "note": "Not built, both halves together: the law can name the towns that keep a rite and has no way at all to name the towns that do not.",
-      "deferred": [
-        "towns keeping a rite work harder and ask less of the realm",
-        "towns keeping none are the poorer for it"
-      ],
-      "effects": []
+      "effects": [
+        { "kind": "pays", "where": "city", "production": 3, "scope": { "test": "keepingRite" } },
+        {
+          "kind": "rulePercent",
+          "rule": "happinessDemand",
+          "percent": -15,
+          "scope": { "test": "keepingRite" }
+        },
+        { "kind": "happiness", "amount": -1, "per": "city", "scope": { "test": "notKeepingRite" } }
+      ]
     },
     "pilgrimsWelcome": {
       "name": "Pilgrims' Welcome",
@@ -471,12 +483,21 @@
       "rarity": "common",
       "flavor": "They buried him at the edge of the barley and the barley never forgot.",
       "text": "Worked Holy Sites give +3 food and +3 production. A city working one gains +2 happiness, once per city.",
-      "note": "Not built, both halves together: the law can ask what stands inside a town's borders and not what its people are working.",
-      "deferred": [
-        "worked holy sites feed and build",
-        "a town working one is the gladder for it"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 3,
+          "production": 3,
+          "on": { "test": "improvement", "improvement": "holySite" }
+        },
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": { "test": "workingImprovement", "improvements": ["holySite"] }
+        }
+      ]
     },
     "theCathedralWorks": {
       "name": "The Cathedral Works",
@@ -844,7 +865,7 @@
       "rarity": "uncommon",
       "flavor": "Gold, bone and barley, kept in the same cold room.",
       "text": "A city with a Cathedral, a relic and a worked Holy Site gains +20% gold and culture, and +25% production toward wonders and the Magnum Opus. Pays once per city.",
-      "note": "Not built: the law can ask what stands inside a town's borders and not what its people are working.",
+      "note": "Not built: a bonus on building can name one row or one category, never a marvel and the last work of all at once.",
       "deferred": [
         "a town with a cathedral, a relic and a worked holy site grows rich, sings, and builds the great works faster"
       ],

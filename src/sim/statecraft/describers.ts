@@ -2528,6 +2528,55 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // being performed, which is the sentence the rite panel itself uses.
       into.qualifiers.push('while it is keeping a rite');
       return;
+    case 'notKeepingRite':
+      // The mirror in the same words, negated where the sentence negates: "while
+      // it is keeping no rite" is the form the positive half already set.
+      into.qualifiers.push('while it is keeping no rite');
+      return;
+    case 'buildingsOfCategory':
+      // The **shelf as a plain word** and the figure the row carries —
+      // "with two or more culture buildings", `populationAtLeast`'s form one
+      // shelf over. A category is already an ordinary English word (culture,
+      // faith, gold), so nothing needs translating; the count is spelled out
+      // because a bare "2+" inside a sentence is a figure with no noun on it
+      // (batch L1, §1c).
+      into.qualifiers.push(
+        `with ${scope.atLeast} or more ${scope.category} buildings`,
+      );
+      return;
+    case 'workingImprovement': {
+      // **"working"**, which is the word the city panel uses for a citizen
+      // standing on a hex — never "with", which is the borders and the
+      // neighbouring scope. The works are named the way every other clause names
+      // them, article outside the mark, and a list joins with the "or" it means.
+      if (scope.improvements.length === 0) return;
+      const first = improvementDef(scope.improvements[0]!).name;
+      const names = scope.improvements
+        .map((id) => ref('improvement', id, improvementDef(id).name))
+        .join(' or ');
+      into.qualifiers.push(
+        scope.atLeast !== undefined && scope.atLeast > 1
+          ? `working ${scope.atLeast} or more hexes with ${indefinite(first)} ${names}`
+          : `working ${indefinite(first)} ${names}`,
+      );
+      return;
+    }
+    case 'workingGreatWork':
+      into.qualifiers.push(
+        scope.atLeast !== undefined && scope.atLeast > 1
+          ? `working ${scope.atLeast} or more great people's works`
+          : "working a great person's work",
+      );
+      return;
+    case 'hasWonder':
+      // "Containing a wonder" is the design doc's own phrase for it, and it is
+      // the one that does not read as "having built" — a captured marvel is in
+      // the town that holds it whoever raised it.
+      into.qualifiers.push('containing a wonder');
+      return;
+    case 'notHasWonder':
+      into.qualifiers.push('containing no wonder');
+      return;
     case 'follows':
       // "your religion" was the old ruling's wording and it is now wrong twice
       // over: the card may be printing in a compendium nobody's seat owns, and
@@ -2972,6 +3021,14 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
     case 'yields':
       into.qualifiers.push(`that yields ${on.yield}`);
       return;
+    case 'road':
+      // "With a road", the sentence a city scope uses for a building it holds,
+      // rather than an adjective: "road hex" is not a kind of ground.
+      into.qualifiers.push('with a road');
+      return;
+    case 'beside':
+      into.qualifiers.push(`beside ${besideWords(on.of)}`);
+      return;
     case 'all':
       for (const inner of on.of) tilePhrase(inner, into);
       return;
@@ -2981,6 +3038,32 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       return;
     }
   }
+}
+
+/**
+ * **What stands next door**, as the thing rather than as a hex — "a road", "a
+ * great person's work", "an unimproved forest".
+ *
+ * `anyPhrase`'s bargain one union down: the inner condition is phrased on its
+ * own and then read back, because the ring's sentence is about the *thing*
+ * beside the hex and `tileConditionWords` would have said "beside a hex with a
+ * road" — a noun the reader has to look past to reach the one that matters.
+ *
+ * A qualifier already names its thing with an article ("with a Farm", "carrying
+ * a great person's work"), so the preposition comes off and the rest stands; a
+ * condition that is only adjectives *is* a noun phrase in English ("an
+ * unimproved forest"), which is why those need no noun added. A condition that
+ * is both keeps the noun, because "an improved with a Mine" is not a sentence.
+ */
+function besideWords(on: TileCondition): string {
+  const inner: TilePhrase = { adjectives: [], qualifiers: [] };
+  tilePhrase(on, inner);
+  const adjectival = inner.adjectives.join(' ');
+  const named = inner.qualifiers.map((text) => text.replace(/^(?:with|carrying) /, ''));
+  if (adjectival !== '' && named.length === 0) return `${indefinite(adjectival)} ${adjectival}`;
+  if (adjectival === '' && named.length > 0) return named.join(' and ');
+  if (adjectival === '') return 'a hex';
+  return `${indefinite(adjectival)} ${adjectival} hex ${inner.qualifiers.join(' ')}`;
 }
 
 /**
@@ -3723,5 +3806,9 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   // in any city and a building in the capital are one entry and two rows.
   queueHolds: 'while',
   atWar: 'while you are at war',
+  // The complement said the way a player would say it, not as a negation of the
+  // line above: "while you are at peace" is a state of the realm a player plans
+  // around, and "while you are not at war" is the same fact spelled as algebra.
+  atPeace: 'while you are at peace',
   keepingRite: 'while a rite is being kept anywhere in your empire',
 };

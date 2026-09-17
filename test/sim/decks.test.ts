@@ -207,8 +207,13 @@ describe('the schema, as landed', () => {
       else expect(def.deferred, `${id} is in no pool`).toBeDefined();
       if (dealt) live += 1;
     }
-    expect(live).toBe(143);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(143);
+    // **D2a moved this** (`docs/plans/decks-shape-audit.md`, "D2a — predicates"):
+    // five new members on unions the evaluator already walked — a threshold on a
+    // shelf of buildings, a worked improvement, a worked great person's work, a
+    // marvel standing in the town, the negations those wanted, and the ring of
+    // six on a hex condition — un-deferred thirty-two rows across five files.
+    expect(live).toBe(175);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(175);
   });
 
   /**
@@ -471,7 +476,7 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
         expect(pool, `${id} is deferred`).not.toContain(id);
       }
       // And the deferred half is the bulk of the catalogue, not a rounding.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(256);
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(224);
     }
   });
 

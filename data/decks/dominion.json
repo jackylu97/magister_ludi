@@ -1782,11 +1782,33 @@
       "rarity": "uncommon",
       "flavor": "In peace they build. In war they do not.",
       "text": "While at war, cities with a Barracks produce military units 40% faster; while at peace, those cities gain +20% production toward buildings.",
-      "deferred": [
-        "while you are at war a town with a barracks raises soldiers faster",
-        "while you are at peace that same town puts more production behind its buildings"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": { "test": "atWar" },
+          "then": [
+                    {
+                      "kind": "productionBonus",
+                      "category": "unit",
+                      "class": { "category": "military" },
+                      "percent": 40,
+                      "scope": { "test": "hasBuilding", "building": "barracks" }
+                    }
+                  ]
+        },
+        {
+          "kind": "conditionRule",
+          "when": { "test": "atPeace" },
+          "then": [
+                    {
+                      "kind": "productionBonus",
+                      "category": "building",
+                      "percent": 20,
+                      "scope": { "test": "hasBuilding", "building": "barracks" }
+                    }
+                  ]
+        }
+      ]
     },
     "blockadeAdmirals": {
       "name": "Blockade Admirals",
@@ -1953,10 +1975,21 @@
       "rarity": "uncommon",
       "flavor": "The army waits, and costs nothing while it waits.",
       "text": "While at peace, garrisoned units cost no upkeep and cities with a Barracks gain +25% culture.",
-      "deferred": [
-        "while you are at peace the units standing in your towns cost nothing to keep, and a town with a barracks makes more culture"
-      ],
-      "effects": []
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": { "test": "atPeace" },
+          "then": [
+                    { "kind": "upkeepRebate", "free": true, "where": "garrison" },
+                    {
+                      "kind": "percentYields",
+                      "yield": "culture",
+                      "percent": 25,
+                      "scope": { "test": "hasBuilding", "building": "barracks" }
+                    }
+                  ]
+        }
+      ]
     },
     "theVeteransGrant": {
       "name": "The Veterans' Grant",

@@ -24,7 +24,7 @@
  */
 
 import { type BuildingId } from '../buildingData';
-import { type Tile } from '../map';
+import { type Tile, neighborTiles, tileHex } from '../map';
 import { improvementDef, improvementYield } from '../improvementData';
 import { resourceDef, resourceIsVisibleTo, resourceYield } from '../resourceData';
 import { type CardId } from '../statecraftData';
@@ -208,6 +208,25 @@ export interface TileYieldContext {
    * the fight's own `freshwater` condition all go on reading the ground.
    */
   irrigates?: boolean;
+  /**
+   * **The six hexes touching a given one** — the ring `TileCondition`'s
+   * `beside` asks about (D2a: Market Gardens' farms beside a road, The Sculpted
+   * Landscape's fields beside a master's work).
+   *
+   * A **closure rather than a map**, and that is what keeps this chain what it
+   * is: `explainTileYield` knows about a tile and a context and nothing else —
+   * no `GameState`, no board — so the answer arrives pre-resolved exactly as
+   * `lines` does. `yieldContextFor` is the one place it is built, because that
+   * is the one place with a board in hand, and every context downstream of it
+   * (`cityContext`, the bot's what-ifs) carries it by the spread that copies
+   * the rest.
+   *
+   * Absent for a context-less (omniscient) evaluation and for the callers that
+   * hold a bare tile, and a condition that asks the ring with nothing to ask
+   * answers **no** — `TileCondition`'s `yields` bargain, taken for its reason.
+   * Called lazily and once per hex, by the one arm that wants it.
+   */
+  neighbours?: (tile: Tile) => readonly Tile[];
 }
 
 /**
@@ -260,6 +279,13 @@ export function yieldContextFor(
   // both tables once, here, rather than once per tile.
   const lines = [...cardTileLines(state, playerId), ...resourceTileLines(state, playerId)];
   if (lines.length > 0) ctx.lines = lines;
+  // **The ring, as a closure** — the one place in the chain that has a board to
+  // close over. Written whatever the law says, because a building's and a
+  // luxury's tile lines join the list downstream (`cityContext`) and a context
+  // that carried the ring only when a *card* had already spoken would answer the
+  // same question two ways. It costs one function reference and is never called
+  // unless a condition asks the neighbours. See `TileYieldContext.neighbours`.
+  ctx.neighbours = (tile) => neighborTiles(state.map, tileHex(tile));
   return ctx;
 }
 
@@ -416,6 +442,17 @@ export function explainTileYield(
   let paid: TileYield | undefined;
   const paidSoFar = (): TileYield => (paid ??= foldTileLines(list));
 
+  // **The ring of six, taken once and only if asked** (`TileCondition`'s
+  // `beside`). The same bargain as the reading above it: the context hands in
+  // how to get it, the one arm that wants it is the only thing that calls, and a
+  // context with no board behind it leaves the thunk absent so the condition
+  // answers no. Memoised per hex, because a card that dresses farms beside roads
+  // is asked of every line on every tile of every town.
+  let ring: readonly Tile[] | undefined;
+  const near = ctx?.neighbours;
+  const besideThunk =
+    near === undefined ? undefined : (): readonly Tile[] => (ring ??= near(tile));
+
   // The empire's law, holdings and works, last, and as ordinary `add` entries:
   // Common Granary's food on a resource hex, a granary's food on water, tyrian's
   // culture on a fishing boat — each a line in this breakdown exactly as the
@@ -458,7 +495,7 @@ export function explainTileYield(
 
   const sourceIndex = new Map<string, number>();
   const pushLine = (line: TileLine): void => {
-    if (!tileConditionHolds(tile, line.on, paidSoFar)) return;
+    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk)) return;
     // A line that is **only** a percentage carries no bag at all (The
     // Commonwealth's works). It is paid by the pass at the foot of this
     // function, and a zero-in-every-voice entry pushed here would be a row in
@@ -565,7 +602,7 @@ export function explainTileYield(
     const works = line.percent ?? 0;
     const ground = line.basePercent ?? 0;
     if (works === 0 && ground === 0) continue;
-    if (!tileConditionHolds(tile, line.on, paidSoFar)) continue;
+    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk)) continue;
     if (works !== 0) {
       worksPercent += works;
       if (!worksSources.includes(line.source)) worksSources.push(line.source);

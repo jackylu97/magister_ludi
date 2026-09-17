@@ -212,8 +212,21 @@
       "rarity": "common",
       "flavor": "The cabbage that reaches the road is worth two in the field.",
       "text": "Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination.",
-      "deferred": ["a farm standing beside a road is worth a coin"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
+          "on": {
+                  "test": "all",
+                  "of": [
+                          { "test": "improvement", "improvement": "farm" },
+                          { "test": "beside", "of": { "test": "road" } }
+                        ]
+                }
+        },
+        { "kind": "pays", "where": "route", "food": 1, "crossing": "domestic" }
+      ]
     },
     "theProvincialFair": {
       "name": "The Provincial Fair",
@@ -347,8 +360,21 @@
       "rarity": "uncommon",
       "flavor": "The master left, and the valley kept the habit.",
       "text": "Farms beside a great-person improvement gain +1 food and +1 culture. Each farm receives this once regardless of the number of adjacent works.",
-      "deferred": ["a field that lies beside a master's work is the better for it"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "culture": 1,
+          "on": {
+                  "test": "all",
+                  "of": [
+                          { "test": "improvement", "improvement": "farm" },
+                          { "test": "beside", "of": { "test": "greatWork" } }
+                        ]
+                }
+        }
+      ]
     },
     "pilgrimMarkets": {
       "name": "Pilgrim Markets",
