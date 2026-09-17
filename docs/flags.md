@@ -117,6 +117,45 @@ buildings reference doc with the sync test green; the Compendium prints both
 from the rows; a v117 log replays (no schema change — a new row and a new
 stamp on an old row are data).
 
+**(llllll) A game can be won and never announced — RULED, V2** (the user,
+2026-09-17, playtesting: *"i didn't get a victory screen after completing the
+magnum opus. I had >7 beads, maybe that was the reason"*).
+
+**Not the beads.** Beads gate the *door* — the threshold lives in `buildError`
+— and never the close; holding more than the threshold is simply holding more.
+`data/buildings.json`'s `theMagnumOpus` carries `endsTheGame: true`, and
+`realiseItem` (`src/sim/cities.ts`) calls `closeTheGreatWork` off that marker
+"in the one routine that means *the city now has the thing*, so an Opus
+hammered out, hurried by contributions or bought outright all close the age by
+this line". **The sim is right: `state.winnerId` was almost certainly set.**
+
+**The interface is wrong.** `onVictory` fires from exactly **two** places in
+`src/ui/controls.ts`: the **attack** handler (line ~5111) and the **end-turn
+press** (~7566 and ~7577). Both guard on `wonBefore === null`, captured before
+their own dispatch, so each fires once. Any *other* command that sets
+`winnerId` announces nothing — and then the next End Turn sees a game already
+won, `wonBefore !== null`, and stays silent **for ever**. The Opus can be
+finished by a path that is neither an attack nor an end turn — a rite's hammers
+(CLAUDE.md names this seam: "a rite's hammers completing a wonder carry no
+toast (known gap)"), a contribution, a purchase — and every one of those wins
+the game in silence. A rival winning inside its own command is the same hole
+seen from the other side.
+
+**The fix**: the victory check belongs in **one** place that every accepted
+command passes, not bolted onto two of them. T2 has just built exactly that
+seam — `reportSharedNews`, the register of news that is *about me whoever
+caused it*, reached from both `commit` (this seat's orders) and
+`reportCommand` (a rival's). A win is the loudest member that register will
+ever have. The "fire once" guard moves with it and becomes a fact about the
+client, not about a command: **the game was announced, or it was not.** Delete
+the two bolted-on checks; do not leave a third.
+
+**Pins**: the Opus finished by production announces once; finished by a rite's
+hammers announces once; finished by a contribution or a purchase announces
+once; a rival finishing it announces to every seat; last-empire-standing still
+announces; the sheet is raised exactly once however many commands follow; a
+game already won before the client attached announces nothing new.
+
 **(kkkkkk) A trader is a marker on the ground, not a piece in the way — RULED, T3**
 (the user, 2026-09-17: *"there can be as many traders on a single tile as
 needed, they don't count towards tile unit limits. If a unit is standing on
