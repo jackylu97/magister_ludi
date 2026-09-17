@@ -128,6 +128,7 @@ import {
   statecraftBlocker,
   cardExtraChairs,
   stripRefs,
+  cityScopeWords,
   tileConditionWords,
   unslotOrderError,
   windfallPayout,
@@ -136,6 +137,7 @@ import {
   type CardEffect,
   type CardEffectKind,
   type CardWindfallRiderEffect,
+  type CityScope,
   type GovernmentId,
   type TileCondition,
   type OrderId,
@@ -166,7 +168,8 @@ import {
   ordersForDecks,
   slotCount,
 } from "../../src/sim/statecraftData";
-import { getTileAt, neighborTiles, tileHex } from "../../src/sim/map";
+import { type Tile, getTileAt, neighborTiles, tileHex } from "../../src/sim/map";
+import { isPassable } from "../../src/sim/pathfind";
 import { isCoastal } from "../../src/sim/water";
 import { arriveOnTile } from "../../src/sim/arrival";
 import { closeWar, openWar } from "../../src/sim/wars";
@@ -8464,9 +8467,15 @@ describe("the engine shapes", () => {
     "armyContracts · routeYield",
     "provisioningContracts · routeYield",
     "thePatronsRoad · routeYield",
+    // D2a: The Muses' Call's *"+20% renown"*, un-deferred with the worked-work
+    // scope its other half wanted.
+    "theMusesCall · cityRenownPercent",
     // The four crosses, `common.json`'s own: roads out of a garrison, out of a
     // library, out of a monument, and the navigators' sea lanes.
     "commonTheEscortedRoads · routeYield",
+    // D2a: Market Gardens' second helping of grain on a road that never leaves,
+    // un-deferred with the ring of six its first half wanted.
+    "marketGardens · routeYield",
     "merchantScholars · routeYield",
     "travellingPlayers · routeYield",
     "theMerchantNavigators · routeYield",
@@ -10382,5 +10391,280 @@ describe("the orders and doctrines pass of 2026-09-10", () => {
     bumpRevision(g.state);
     expect(share("science")).toBe(2);
     expect(share("culture")).toBe(2);
+  });
+});
+
+// --- D2a: the five predicates ------------------------------------------------
+
+/**
+ * **The five predicates of D2a** (`docs/plans/decks-shape-audit.md`, "The build
+ * order"): a threshold on a shelf of buildings, a worked improvement, a worked
+ * great person's work, a marvel standing in the town, the negations those
+ * wanted, and the ring of six on a hex condition.
+ *
+ * One behavioural pin per member — the true case, the false case, and the
+ * sentence the describer prints — because the kind-level registers cannot see a
+ * `CityScope`, an `EmpireCondition` or a `TileCondition`: a member nobody reads
+ * would sail straight through them. The **member register** is the last test in
+ * the block and is a read of the live table, so a predicate built and
+ * un-deferred with nothing fails here rather than three files away.
+ */
+describe("D2a — the predicates", () => {
+  it("counts a shelf of buildings and admits the town at the threshold", () => {
+    const g = game(7301);
+    const city = found(g.state, 0);
+    const two: CityScope = { test: "buildingsOfCategory", category: "culture", atLeast: 2 };
+    city.buildings.length = 0;
+    bumpRevision(g.state);
+    expect(cityScopeAdmits(g.state, city, two)).toBe(false);
+    city.buildings.push("monument" as never);
+    expect(cityScopeAdmits(g.state, city, two)).toBe(false);
+    city.buildings.push("amphitheater" as never);
+    expect(cityScopeAdmits(g.state, city, two)).toBe(true);
+    // **The shelf, not the roster**: a library is a science house and buys
+    // nothing here, which is the whole of what `BuildingDef.category` says.
+    const three: CityScope = { ...two, atLeast: 3 };
+    city.buildings.push("library" as never);
+    expect(cityScopeAdmits(g.state, city, three)).toBe(false);
+    city.buildings.push("garden" as never);
+    expect(cityScopeAdmits(g.state, city, three)).toBe(true);
+    // One walk, two readers: the count the yields ask agrees with the threshold.
+    expect(
+      countOf(
+        g.state,
+        0,
+        "" as never,
+        {
+          kind: "pays",
+          where: "city",
+          basis: "count",
+          count: "buildingsOfCategory",
+          category: "culture",
+          within: "city",
+        },
+        city,
+      ),
+    ).toBe(3);
+    expect(stripRefs(cityScopeWords(two))).toBe("every city with 2 or more culture buildings");
+  });
+
+  it("asks what a citizen is standing on, not what the borders hold", () => {
+    const g = game(7303);
+    const city = found(g.state, 0);
+    const working: CityScope = { test: "workingImprovement", improvements: ["quarry"] };
+    const inBorders: CityScope = { test: "hasImprovement", improvement: "quarry" };
+    const owned = ownedTiles(g.state, city).find(
+      (tile) => !(tile.col === city.col && tile.row === city.row),
+    )!;
+    owned.improvement = "quarry" as never;
+    city.workedTiles = city.workedTiles.filter(
+      (cell) => !(cell.col === owned.col && cell.row === owned.row),
+    );
+    bumpRevision(g.state);
+    // **A quarry the borders hold that nobody works**: the old scope admits it,
+    // the new one does not, and that difference is the whole reason for the pair.
+    expect(cityScopeAdmits(g.state, city, inBorders)).toBe(true);
+    expect(cityScopeAdmits(g.state, city, working)).toBe(false);
+    city.workedTiles.push({ col: owned.col, row: owned.row });
+    bumpRevision(g.state);
+    expect(cityScopeAdmits(g.state, city, working)).toBe(true);
+    // The threshold counts the worked hexes and nothing else.
+    expect(cityScopeAdmits(g.state, city, { ...working, atLeast: 2 })).toBe(false);
+    expect(stripRefs(cityScopeWords(working))).toBe("every city working a Quarry");
+  });
+
+  it("asks whether a citizen works a great person's work, off the table's own marker", () => {
+    const g = game(7305);
+    const city = found(g.state, 0);
+    const scope: CityScope = { test: "workingGreatWork" };
+    const owned = ownedTiles(g.state, city).find(
+      (tile) => !(tile.col === city.col && tile.row === city.row),
+    )!;
+    city.workedTiles = city.workedTiles.filter(
+      (cell) => !(cell.col === owned.col && cell.row === owned.row),
+    );
+    bumpRevision(g.state);
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+    // A farm is not a master's work; an academy is — and nothing here names one
+    // of the five, because the marker on the improvement row is the reading.
+    owned.improvement = "farm" as never;
+    city.workedTiles.push({ col: owned.col, row: owned.row });
+    bumpRevision(g.state);
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+    owned.improvement = "academy" as never;
+    bumpRevision(g.state);
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(true);
+    expect(stripRefs(cityScopeWords(scope))).toBe("every city working a great person's work");
+  });
+
+  it("admits a town for the marvel standing in it, and its mirror for the want of one", () => {
+    const g = game(7307);
+    const city = found(g.state, 0);
+    const holds: CityScope = { test: "hasWonder" };
+    const holdsNot: CityScope = { test: "notHasWonder" };
+    city.buildings.length = 0;
+    bumpRevision(g.state);
+    expect(cityScopeAdmits(g.state, city, holds)).toBe(false);
+    expect(cityScopeAdmits(g.state, city, holdsNot)).toBe(true);
+    // An ordinary building is not a marvel; the class is the data's own.
+    city.buildings.push("monument" as never);
+    expect(cityScopeAdmits(g.state, city, holds)).toBe(false);
+    city.buildings.push("pyramids" as never);
+    expect(cityScopeAdmits(g.state, city, holds)).toBe(true);
+    expect(cityScopeAdmits(g.state, city, holdsNot)).toBe(false);
+    expect(stripRefs(cityScopeWords(holds))).toBe("every city containing a wonder");
+    expect(stripRefs(cityScopeWords(holdsNot))).toBe("every city containing no wonder");
+  });
+
+  it("names the towns keeping no rite as a member rather than as a negation", () => {
+    const g = game(7309);
+    keepTheRites(g.state);
+    const city = found(g.state, 0);
+    expect(cityScopeAdmits(g.state, city, { test: "keepingRite" })).toBe(false);
+    expect(cityScopeAdmits(g.state, city, { test: "notKeepingRite" })).toBe(true);
+    expect(stripRefs(cityScopeWords({ test: "notKeepingRite" }))).toBe(
+      "every city while it is keeping no rite",
+    );
+  });
+
+  it("opens a clause on the peace, and shuts it the turn a war is signed", () => {
+    // The bench opens at war (`statecraftHelpers`), so the gate is shut to begin
+    // with and the peace is what opens it — the honest direction for a card
+    // whose whole subject is that nobody is shooting at you.
+    const g = game(7310);
+    const city = found(g.state, 0);
+    city.buildings.push("barracks" as never);
+    slot(g.state, 0, "theLongPeace" as never);
+    bumpRevision(g.state);
+    const culture = (): number =>
+      explainCardPercentYields(g.state, city)
+        .filter((line) => line.card === "theLongPeace")
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(g.state.wars.some((war) => war.a === 0 || war.b === 0)).toBe(true);
+    expect(culture()).toBe(0);
+    closeWar(g.state, 0, 1);
+    bumpRevision(g.state);
+    expect(culture()).toBe(25);
+    openWar(g.state, 0, 1);
+    bumpRevision(g.state);
+    expect(culture()).toBe(0);
+    expect(
+      describeEffects([
+        {
+          kind: "conditionRule",
+          when: { test: "atPeace" },
+          then: [{ kind: "happiness", amount: 1 }],
+        },
+      ]).map((clause) => stripRefs(clause.text)),
+    ).toEqual(["while you are at peace: +1 happiness"]);
+  });
+
+  it("asks the ring of six, and answers no to a caller with no ring to hand in", () => {
+    const g = game(7311);
+    const city = found(g.state, 0);
+    const beside: TileCondition = {
+      test: "all",
+      of: [
+        { test: "improvement", improvement: "farm" },
+        { test: "beside", of: { test: "road" } },
+      ],
+    };
+    const centre = getTileAt(g.state.map, city.col, city.row)!;
+    const field = neighborTiles(g.state.map, tileHex(centre)).find((tile) => isPassable(tile))!;
+    field.improvement = "farm" as never;
+    const ring = (): readonly Tile[] => neighborTiles(g.state.map, tileHex(field));
+    for (const near of ring()) delete near.road;
+    // No road anywhere: the farm is a farm and nothing stands beside it.
+    expect(tileConditionHolds(field, beside, undefined, ring)).toBe(false);
+    ring()[0]!.road = 0;
+    expect(tileConditionHolds(field, beside, undefined, ring)).toBe(true);
+    // **A caller with no ring answers no**, which is the member's whole bargain:
+    // a granary's water line and a luxury's signature ask this predicate about a
+    // bare hex, with no board behind them.
+    expect(tileConditionHolds(field, beside)).toBe(false);
+    // And the reach is exactly one hex — a `beside` inside a `beside` is not a
+    // flood fill, because the ring does not travel into the inner question.
+    expect(
+      tileConditionHolds(
+        field,
+        { test: "beside", of: { test: "beside", of: { test: "road" } } },
+        undefined,
+        ring,
+      ),
+    ).toBe(false);
+    expect(stripRefs(tileConditionWords(beside))).toBe("hex with a Farm beside a road");
+    expect(stripRefs(tileConditionWords({ test: "beside", of: { test: "greatWork" } }))).toBe(
+      "hex beside a great person's work",
+    );
+  });
+
+  it("pays Market Gardens' coin on the farm a road reaches, through the chain's own context", () => {
+    const g = game(7313);
+    const city = found(g.state, 0);
+    slot(g.state, 0, "marketGardens" as never);
+    const centre = getTileAt(g.state.map, city.col, city.row)!;
+    const field = neighborTiles(g.state.map, tileHex(centre)).find((tile) => isPassable(tile))!;
+    field.improvement = "farm" as never;
+    for (const near of neighborTiles(g.state.map, tileHex(field))) delete near.road;
+    bumpRevision(g.state);
+    const coin = (): number =>
+      explainTileYield(field, yieldContextFor(g.state, 0))
+        .filter((line) => line.card === "marketGardens")
+        .reduce((sum, line) => sum + line.gold, 0);
+    expect(coin()).toBe(0);
+    // A road on one of the six, and the hex's own breakdown grows a line for it —
+    // rule 5, with the ring read through `TileYieldContext.neighbours`.
+    neighborTiles(g.state.map, tileHex(field))[0]!.road = 0;
+    bumpRevision(g.state);
+    expect(coin()).toBe(1);
+  });
+
+  /**
+   * **The member register**, the discipline every scope pass above keeps: a
+   * predicate declared, worded and evaluated but named by no live row is a
+   * predicate nobody has tested. Read off the live table itself.
+   */
+  it("reads every predicate this batch declared from at least one live row", () => {
+    const scopes = new Set<string>();
+    const conditions = new Set<string>();
+    const tiles = new Set<string>();
+    const noteScope = (scope: unknown): void => {
+      if (!scope || typeof scope !== "object") return;
+      const test = (scope as { test?: string }).test;
+      if (test !== undefined) scopes.add(test);
+      for (const inner of (scope as { of?: unknown[] }).of ?? []) noteScope(inner);
+    };
+    const noteTile = (on: unknown): void => {
+      if (!on || typeof on !== "object") return;
+      const test = (on as { test?: string }).test;
+      if (test !== undefined) tiles.add(test);
+      const nested = (on as { of?: unknown }).of;
+      if (Array.isArray(nested)) for (const inner of nested) noteTile(inner);
+      else if (nested !== undefined) noteTile(nested);
+    };
+    const walk = (effects: readonly CardEffect[]): void => {
+      for (const effect of effects) {
+        noteScope((effect as { scope?: unknown }).scope);
+        noteTile((effect as { on?: unknown }).on);
+        if (effect.kind === "conditionRule") {
+          conditions.add(effect.when.test);
+          walk(effect.then);
+        }
+      }
+    };
+    for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS])
+      walk(cardDef(id).effects);
+    for (const test of [
+      "buildingsOfCategory",
+      "workingImprovement",
+      "workingGreatWork",
+      "hasWonder",
+      "notHasWonder",
+      "notKeepingRite",
+    ]) {
+      expect(scopes.has(test), test).toBe(true);
+    }
+    expect(conditions.has("atPeace")).toBe(true);
+    for (const test of ["beside", "road"]) expect(tiles.has(test), test).toBe(true);
   });
 });

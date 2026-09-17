@@ -282,10 +282,16 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A gift of learning keeps giving grain.",
-      "deferred": [
-        "each town working a great person's work is fed and worked the better for it, once per town"
-      ],
-      "effects": []
+      "text": "Each city working at least one great-person improvement gains +4 food and +3 production, once per city.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 4,
+          "production": 3,
+          "scope": { "test": "workingGreatWork" }
+        }
+      ]
     },
     "theMetallurgistsCharter": {
       "name": "The Metallurgists' Charter",
@@ -424,10 +430,28 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Quiet halls, full barns, and very few drums.",
-      "deferred": [
-        "towns working a great person's work grow and build faster, but raise soldiers more slowly"
-      ],
-      "effects": []
+      "text": "Cities working a great-person improvement gain +25% food and +20% production, but produce military units 25% more slowly.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "food",
+          "percent": 25,
+          "scope": { "test": "workingGreatWork" }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 20,
+          "scope": { "test": "workingGreatWork" }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "class": { "category": "military" },
+          "percent": -25,
+          "scope": { "test": "workingGreatWork" }
+        }
+      ]
     },
     "theMechanistsCharter": {
       "name": "The Mechanists' Charter",

@@ -39,6 +39,7 @@ import { foldEmpireRates } from '../yields/empire';
 import { signedPlain as signed } from '../yieldFormat';
 import {
   BUILDING_IDS,
+  type BuildingCategory,
   type BuildingId,
   type ProductionCategory,
   buildingDef,
@@ -1340,6 +1341,11 @@ function empireConditionHolds(
       // Law's forges on turn one and never closed them. A war is one row per
       // unordered pair, so "am I at war" is "does a row name me".
       return state.wars.some((war) => war.a === playerId || war.b === playerId);
+    case 'atPeace':
+      // The exact complement, off the same register and therefore with the same
+      // honesty: the wild has nothing to sign and is never in it, so a realm
+      // that has burnt a hundred camps and declared on nobody is at peace here.
+      return !state.wars.some((war) => war.a === playerId || war.b === playerId);
     case 'keepingRite': {
       // Through `cityRite`, the one reading of "what is this town keeping" —
       // the same predicate `CityScope`'s own `keepingRite` arm goes through, so
@@ -1582,6 +1588,49 @@ function isFrontierCity(state: GameState, city: City, radius: number): boolean {
 }
 
 /**
+ * **How many buildings of one shelf this town has raised.**
+ *
+ * One walk, two readers: `CountKind`'s `buildingsOfCategory` with
+ * `within: 'city'` pays per house, and `CityScope`'s `buildingsOfCategory`
+ * admits the town for having enough of them. They are the same question asked
+ * for two purposes, and a second loop is exactly how a card that counts a
+ * town's culture houses and a card that asks whether it keeps two would start
+ * disagreeing about what a culture house is. The shelf is
+ * `BuildingDef.category`, the one word every row declares.
+ */
+function buildingsOfCategoryIn(city: City, category: BuildingCategory): number {
+  let here = 0;
+  for (const id of city.buildings) {
+    if (buildingDef(id).category === category) here += 1;
+  }
+  return here;
+}
+
+/**
+ * **How many of this town's worked hexes satisfy that condition.**
+ *
+ * The one reading behind `CityScope`'s two working scopes, and it is
+ * `workedUnimprovedTiles`' loop with the condition handed in rather than spelled
+ * out: `City.workedTiles` is the assignment itself, so the answer moves the turn
+ * a governor moves a citizen, and `tileConditionHolds` is what decides whether
+ * the hex counts — so "working a quarry" means here exactly what "+1⚒ on every
+ * quarry hex" means one ledger down, `improvementCountsAs` and all.
+ *
+ * The ring is deliberately **not** handed in: a `beside` asked of a worked hex
+ * would need this town's map walk on every citizen of every town every refresh,
+ * and no card asks it. A condition that wants the neighbours answers no here,
+ * which is that member's own stated bargain.
+ */
+function worksHolding(state: GameState, city: City, on: TileCondition): number {
+  let total = 0;
+  for (const cell of city.workedTiles) {
+    const tile = getTileAt(state.map, cell.col, cell.row);
+    if (tile && tileConditionHolds(tile, on)) total += 1;
+  }
+  return total;
+}
+
+/**
  * Does a scoped effect land in this city? Absent scope means every city.
  *
  * `scopeAdmits` in `resourceEffects.ts` widened from two words to a shape — one
@@ -1685,6 +1734,37 @@ export function cityScopeAdmits(
       // a comparison against `City.timed`'s absolute stamps, so the lamp goes
       // out on the turn the rite's own expiry passes and nothing ticks.
       return cityRite(state, city) !== null;
+    case 'notKeepingRite':
+      // The mirror through the same reading, `notCapital`'s construction: two
+      // halves of one card asked of one answer cannot both be true of one town.
+      return cityRite(state, city) === null;
+    case 'buildingsOfCategory':
+      // The shelf counted through the one walk `CountKind`'s own
+      // `buildingsOfCategory` takes, so a card paid *per* culture house and a
+      // card admitted *for having* two of them count the same houses.
+      return buildingsOfCategoryIn(city, scope.category) >= scope.atLeast;
+    case 'workingImprovement':
+      // **The assignment, not the borders** — `City.workedTiles`, so the line
+      // moves the turn a governor moves a citizen. Asked through the hex's own
+      // predicate, so a variant row that `countsAs` a quarry is a quarry here.
+      return (
+        worksHolding(state, city, {
+          test: 'anyImprovement',
+          improvements: scope.improvements,
+        }) >= (scope.atLeast ?? 1)
+      );
+    case 'workingGreatWork':
+      // The family rather than the rows, off the improvement table's own marker
+      // — so the sixth work joins for free. See the scope.
+      return worksHolding(state, city, { test: 'greatWork' }) >= (scope.atLeast ?? 1);
+    case 'hasWonder':
+      // The class the data declares (`isWonder`), the same declaration
+      // `CountKind`'s `wonders` counts — so a card that counts a town's marvels
+      // and a card that admits it for holding one read one shelf. A boolean, so
+      // three marvels admit it once.
+      return city.buildings.some((id) => isWonder(id));
+    case 'notHasWonder':
+      return !city.buildings.some((id) => isWonder(id));
     case 'hasBuildingYielding':
       // Asked of what a row *does*, off its own six voices, so a retuned library
       // moves the scope with it. `wonder: true` is Hero of Alexandria's half.
@@ -1863,6 +1943,26 @@ function scopeNote(scope?: CityScope): string | null {
       return buildingDef(scope.building).name.toLowerCase();
     case 'keepingRite':
       return 'keeping a rite';
+    case 'notKeepingRite':
+      return 'keeping no rite';
+    case 'buildingsOfCategory':
+      return `${scope.atLeast}+ ${scope.category} buildings`;
+    case 'workingImprovement': {
+      const named = scope.improvements
+        .map((id) => improvementDef(id).name.toLowerCase())
+        .join('/');
+      return scope.atLeast !== undefined && scope.atLeast > 1
+        ? `working ${scope.atLeast} ${named}`
+        : `working a ${named}`;
+    }
+    case 'workingGreatWork':
+      return scope.atLeast !== undefined && scope.atLeast > 1
+        ? `working ${scope.atLeast} great works`
+        : "working a great person's work";
+    case 'hasWonder':
+      return 'holds a wonder';
+    case 'notHasWonder':
+      return 'holds no wonder';
     case 'hasBuildingYielding':
       return scope.wonder === true ? `${scope.yields} wonder` : `${scope.yields} building`;
     case 'onTerrain':
@@ -2187,19 +2287,15 @@ export function countOf(
       const wanted = effect.category;
       if (wanted === undefined) return 0;
       if (effect.within === 'city') {
+        // Through the one walk, which `CityScope`'s own `buildingsOfCategory`
+        // also asks — see `buildingsOfCategoryIn`.
         if (!city) return 0;
-        let here = 0;
-        for (const id of city.buildings) {
-          if (buildingDef(id).category === wanted) here += 1;
-        }
-        return here;
+        return buildingsOfCategoryIn(city, wanted);
       }
       let total = 0;
       for (const town of state.cities) {
         if (town.ownerId !== playerId) continue;
-        for (const id of town.buildings) {
-          if (buildingDef(id).category === wanted) total += 1;
-        }
+        total += buildingsOfCategoryIn(town, wanted);
       }
       return total;
     }
@@ -3284,11 +3380,19 @@ export type CardTileLine = TileLine;
  * the answer is a walk of the hex's whole breakdown, and almost no game holds a
  * card that asks. So the caller hands in *how to get it* and the one arm that
  * wants it is the only thing that ever calls.
+ *
+ * `beside` is **the six hexes touching this one**, handed in the same way and
+ * for the same bargain (D2a, `TileCondition`'s `beside`): a tile carries no map,
+ * and roads, woods and works move — so a caller that has the board supplies the
+ * ring lazily and a caller that has only a tile answers no. The thunk is *not*
+ * passed down into the neighbour's own evaluation, which is what keeps the reach
+ * exactly one hex, and neither is `paid`: a neighbour's worth is not this hex's.
  */
 export function tileConditionHolds(
   tile: Tile,
   on: TileCondition,
   paid?: () => Partial<Record<CityYieldKey, number>>,
+  beside?: () => readonly Tile[],
 ): boolean {
   const test = on.test;
   switch (test) {
@@ -3363,9 +3467,19 @@ export function tileConditionHolds(
       // reading of the ground. A caller with nothing to hand in answers no —
       // see the condition, and `CardRulePercentEffect.scope`'s bargain.
       return (paid?.()[on.yield] ?? 0) > 0;
+    case 'road':
+      // The one field a road is ever written on, asked of its presence and never
+      // of its builder: this predicate holds a tile and no empire. See the
+      // condition.
+      return tile.road !== undefined;
+    case 'beside':
+      // **The ring the caller handed in**, or no ring and therefore no. Neither
+      // the ring nor the breakdown travels into the inner question, which is
+      // what keeps the reach one hex and a neighbour's worth its own.
+      return beside !== undefined && beside().some((next) => tileConditionHolds(next, on.of));
     case 'all': {
       for (const inner of on.of) {
-        if (!tileConditionHolds(tile, inner, paid)) return false;
+        if (!tileConditionHolds(tile, inner, paid, beside)) return false;
       }
       return true;
     }
@@ -3382,7 +3496,9 @@ export function tileConditionHolds(
  * rather than the ground alone? `explainTileYield` lands the lines that do not
  * ask first and the lines that do second, so a belief's faith on a desert hex
  * is there to be read by an Order that pays on faith (the user, 2026-09-07).
- * The one reader is `yields`; `all` asks its parts.
+ * The one reader is `yields`; `all` asks its parts. A `beside` asks the *ring*
+ * and never this hex's fold — the breakdown does not travel into a neighbour's
+ * question — so it lands in the first pass whatever it holds.
  */
 export function tileConditionReadsFold(on: TileCondition | undefined): boolean {
   if (on === undefined) return false;

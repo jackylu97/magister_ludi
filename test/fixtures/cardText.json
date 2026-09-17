@@ -2960,14 +2960,12 @@
   ],
   "reserveOfficers": [
    {
-    "raw": "while you are at war a town with a barracks raises soldiers faster — not built yet",
-    "text": "while you are at war a town with a barracks raises soldiers faster — not built yet",
-    "deferred": true
+    "raw": "while you are at war: +40% production toward military units, in every city with a [[building:barracks|Barracks]]",
+    "text": "while you are at war: +40% production toward military units, in every city with a Barracks"
    },
    {
-    "raw": "while you are at peace that same town puts more production behind its buildings — not built yet",
-    "text": "while you are at peace that same town puts more production behind its buildings — not built yet",
-    "deferred": true
+    "raw": "while you are at peace: +20% production toward buildings, in every city with a [[building:barracks|Barracks]]",
+    "text": "while you are at peace: +20% production toward buildings, in every city with a Barracks"
    }
   ],
   "blockadeAdmirals": [
@@ -3024,9 +3022,8 @@
   ],
   "theLongPeace": [
    {
-    "raw": "while you are at peace the units standing in your towns cost nothing to keep, and a town with a barracks makes more culture — not built yet",
-    "text": "while you are at peace the units standing in your towns cost nothing to keep, and a town with a barracks makes more culture — not built yet",
-    "deferred": true
+    "raw": "while you are at peace: all units cost no gold in maintenance while standing in one of your cities; +25% culture in every city with a [[building:barracks|Barracks]]",
+    "text": "while you are at peace: all units cost no gold in maintenance while standing in one of your cities; +25% culture in every city with a Barracks"
    }
   ],
   "theVeteransGrant": [
@@ -3993,14 +3990,12 @@
   ],
   "layOfferings": [
    {
-    "raw": "worked mines and camps pay an offering of faith — not built yet",
-    "text": "worked mines and camps pay an offering of faith — not built yet",
-    "deferred": true
+    "raw": "+1 faith on every hex with a [[improvement:mine|Mine]] or [[improvement:camp|Camp]]",
+    "text": "+1 faith on every hex with a Mine or Camp"
    },
    {
-    "raw": "a town working two of them takes a little coin besides — not built yet",
-    "text": "a town working two of them takes a little coin besides — not built yet",
-    "deferred": true
+    "raw": "+3 gold in every city working 2 or more hexes with a [[improvement:mine|Mine]] or [[improvement:camp|Camp]]",
+    "text": "+3 gold in every city working 2 or more hexes with a Mine or Camp"
    }
   ],
   "theMonasticTable": [
@@ -4057,14 +4052,16 @@
   ],
   "theRitesCommonwealth": [
    {
-    "raw": "towns keeping a rite work harder and ask less of the realm — not built yet",
-    "text": "towns keeping a rite work harder and ask less of the realm — not built yet",
-    "deferred": true
+    "raw": "+3 production in every city while it is keeping a rite",
+    "text": "+3 production in every city while it is keeping a rite"
    },
    {
-    "raw": "towns keeping none are the poorer for it — not built yet",
-    "text": "towns keeping none are the poorer for it — not built yet",
-    "deferred": true
+    "raw": "-15% happiness demanded per citizen, in every city while it is keeping a rite",
+    "text": "-15% happiness demanded per citizen, in every city while it is keeping a rite"
+   },
+   {
+    "raw": "-1 happiness in every city while it is keeping no rite",
+    "text": "-1 happiness in every city while it is keeping no rite"
    }
   ],
   "pilgrimsWelcome": [
@@ -4191,14 +4188,12 @@
   ],
   "devotionTheSaintsFields": [
    {
-    "raw": "worked holy sites feed and build — not built yet",
-    "text": "worked holy sites feed and build — not built yet",
-    "deferred": true
+    "raw": "+3 food, +3 production on every hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+3 food, +3 production on every hex with a Holy Site"
    },
    {
-    "raw": "a town working one is the gladder for it — not built yet",
-    "text": "a town working one is the gladder for it — not built yet",
-    "deferred": true
+    "raw": "+2 happiness in every city working a [[improvement:holySite|Holy Site]]",
+    "text": "+2 happiness in every city working a Holy Site"
    }
   ],
   "theCathedralWorks": [
@@ -4525,9 +4520,8 @@
   ],
   "theEndowedProvinces": [
    {
-    "raw": "each town working a great person's work is fed and worked the better for it, once per town — not built yet",
-    "text": "each town working a great person's work is fed and worked the better for it, once per town — not built yet",
-    "deferred": true
+    "raw": "+4 food, +3 production in every city working a great person's work",
+    "text": "+4 food, +3 production in every city working a great person's work"
    }
   ],
   "theMetallurgistsCharter": [
@@ -4609,9 +4603,16 @@
   ],
   "theQuietFaculties": [
    {
-    "raw": "towns working a great person's work grow and build faster, but raise soldiers more slowly — not built yet",
-    "text": "towns working a great person's work grow and build faster, but raise soldiers more slowly — not built yet",
-    "deferred": true
+    "raw": "+25% food in every city working a great person's work",
+    "text": "+25% food in every city working a great person's work"
+   },
+   {
+    "raw": "+20% production in every city working a great person's work",
+    "text": "+20% production in every city working a great person's work"
+   },
+   {
+    "raw": "-25% production toward military units, in every city working a great person's work",
+    "text": "-25% production toward military units, in every city working a great person's work"
    }
   ],
   "theMechanistsCharter": [
@@ -4733,26 +4734,22 @@
   ],
   "theSculptorsQuarries": [
    {
-    "raw": "Worked quarries pay production and culture. — not built yet",
-    "text": "Worked quarries pay production and culture. — not built yet",
-    "deferred": true
+    "raw": "+1 production, +1 culture on every hex with a [[improvement:quarry|Quarry]]",
+    "text": "+1 production, +1 culture on every hex with a Quarry"
    },
    {
-    "raw": "A town that works a quarry builds faster. A town can be asked whether a quarry stands anywhere inside its borders, but not whether one of its citizens is standing in it. — not built yet",
-    "text": "A town that works a quarry builds faster. A town can be asked whether a quarry stands anywhere inside its borders, but not whether one of its citizens is standing in it. — not built yet",
-    "deferred": true
+    "raw": "+15% production toward buildings, in every city working a [[improvement:quarry|Quarry]]",
+    "text": "+15% production toward buildings, in every city working a Quarry"
    }
   ],
   "thePageantFields": [
    {
-    "raw": "Worked farms and plantations pay extra food in towns that keep a Monument. — not built yet",
-    "text": "Worked farms and plantations pay extra food in towns that keep a Monument. — not built yet",
-    "deferred": true
+    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] or [[improvement:plantation|Plantation]], in every city with a [[building:monument|Monument]]",
+    "text": "+1 food on every hex with a Farm or Plantation, in every city with a Monument"
    },
    {
-    "raw": "A town working several such fields is paid culture. Nothing counts how many fields of a named kind a town is working. — not built yet",
-    "text": "A town working several such fields is paid culture. Nothing counts how many fields of a named kind a town is working. — not built yet",
-    "deferred": true
+    "raw": "+2 culture in every city working 3 or more hexes with a [[improvement:farm|Farm]] or [[improvement:plantation|Plantation]]",
+    "text": "+2 culture in every city working 3 or more hexes with a Farm or Plantation"
    }
   ],
   "hearthCeremonies": [
@@ -4838,21 +4835,22 @@
   ],
   "theChancery": [
    {
-    "raw": "Your Monuments widen the writ. — not built yet",
-    "text": "Your Monuments widen the writ. — not built yet",
-    "deferred": true
+    "raw": "+1 authority capacity per 2 [[building:monument|Monuments]] (at most +3 authority capacity)",
+    "text": "+1 authority capacity per 2 Monuments (at most +3 authority capacity)"
    },
    {
-    "raw": "Towns that keep several culture buildings pay gold. A town can be asked whether it has raised a named building, but not how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several culture buildings pay gold. A town can be asked whether it has raised a named building, but not how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+2 gold in every city with 2 or more culture buildings",
+    "text": "+2 gold in every city with 2 or more culture buildings"
    }
   ],
   "theCivicStage": [
    {
-    "raw": "Towns that keep several culture buildings are gladder and better fed. A town can be asked whether it has raised a named building, but not how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several culture buildings are gladder and better fed. A town can be asked whether it has raised a named building, but not how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+3 food in every city with 2 or more culture buildings",
+    "text": "+3 food in every city with 2 or more culture buildings"
+   },
+   {
+    "raw": "+2 happiness in every city with 2 or more culture buildings",
+    "text": "+2 happiness in every city with 2 or more culture buildings"
    }
   ],
   "thePublicCopyists": [
@@ -4873,16 +4871,19 @@
   ],
   "provincialPatrons": [
    {
-    "raw": "Provincial towns that keep several culture buildings pay renown and culture. A town cannot be asked how many buildings of a kind it keeps, and a standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
-    "text": "Provincial towns that keep several culture buildings pay renown and culture. A town cannot be asked how many buildings of a kind it keeps, and a standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
+    "raw": "Provincial towns that keep several culture buildings pay renown and culture. A standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
+    "text": "Provincial towns that keep several culture buildings pay renown and culture. A standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
     "deferred": true
    }
   ],
   "theCitizensWatch": [
    {
-    "raw": "Towns that keep several culture buildings raise soldiers faster and stand harder. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several culture buildings raise soldiers faster and stand harder. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+20% production toward military units, in every city with 2 or more culture buildings",
+    "text": "+20% production toward military units, in every city with 2 or more culture buildings"
+   },
+   {
+    "raw": "every city with 2 or more culture buildings: +3 city defence",
+    "text": "every city with 2 or more culture buildings: +3 city defence"
    }
   ],
   "theHarbourFestival": [
@@ -4919,8 +4920,8 @@
   ],
   "magisterialTheLaureate": [
    {
-    "raw": "A town whose citizens work a great person's lasting work is paid culture, knowledge and renown. A town can be asked whether such a work stands next door to it, but not whether one of its citizens is standing in it — and a standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
-    "text": "A town whose citizens work a great person's lasting work is paid culture, knowledge and renown. A town can be asked whether such a work stands next door to it, but not whether one of its citizens is standing in it — and a standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
+    "raw": "A town whose citizens work a great person's lasting work is paid culture, knowledge and renown. A standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
+    "text": "A town whose citizens work a great person's lasting work is paid culture, knowledge and renown. A standing trickle of renown cannot be narrowed to a class of town at all. — not built yet",
     "deferred": true
    }
   ],
@@ -4996,20 +4997,18 @@
   ],
   "theMusesCall": [
    {
-    "raw": "Your renown grows faster. — not built yet",
-    "text": "Your renown grows faster. — not built yet",
-    "deferred": true
+    "raw": "+20% renown",
+    "text": "+20% renown"
    },
    {
-    "raw": "A town whose citizens work a great person's lasting work is fed and supplied. A town can be asked whether such a work stands next door to it, but not whether one of its citizens is standing in it. — not built yet",
-    "text": "A town whose citizens work a great person's lasting work is fed and supplied. A town can be asked whether such a work stands next door to it, but not whether one of its citizens is standing in it. — not built yet",
-    "deferred": true
+    "raw": "+3 food, +3 production in every city working a great person's work",
+    "text": "+3 food, +3 production in every city working a great person's work"
    }
   ],
   "theArtisanCourt": [
    {
-    "raw": "A town whose citizens work a great person's lasting work pays renown and buys culture buildings cheaper. A town cannot be asked what its citizens are working; a standing trickle of renown cannot be narrowed to a class of town; and a purchase discount cannot be narrowed to buildings of one sort. — not built yet",
-    "text": "A town whose citizens work a great person's lasting work pays renown and buys culture buildings cheaper. A town cannot be asked what its citizens are working; a standing trickle of renown cannot be narrowed to a class of town; and a purchase discount cannot be narrowed to buildings of one sort. — not built yet",
+    "raw": "A town whose citizens work a great person's lasting work pays renown and buys culture buildings cheaper. A standing trickle of renown cannot be narrowed to a class of town, and a purchase discount cannot be narrowed to buildings of one sort. — not built yet",
+    "text": "A town whose citizens work a great person's lasting work pays renown and buys culture buildings cheaper. A standing trickle of renown cannot be narrowed to a class of town, and a purchase discount cannot be narrowed to buildings of one sort. — not built yet",
     "deferred": true
    }
   ],
@@ -5035,21 +5034,22 @@
   ],
   "theCourtArchives": [
    {
-    "raw": "Your culture buildings teach. — not built yet",
-    "text": "Your culture buildings teach. — not built yet",
-    "deferred": true
+    "raw": "+2 science in every city per culture building there",
+    "text": "+2 science in every city per culture building there"
    },
    {
-    "raw": "Towns that keep several of them pay gold. A town can be asked whether it has raised a named building, but not how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several of them pay gold. A town can be asked whether it has raised a named building, but not how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+5 gold in every city with 2 or more culture buildings",
+    "text": "+5 gold in every city with 2 or more culture buildings"
    }
   ],
   "thePublicGallery": [
    {
-    "raw": "Towns that keep several culture buildings are fed and gladdened. A town can be asked whether it has raised a named building, but not how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several culture buildings are fed and gladdened. A town can be asked whether it has raised a named building, but not how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+6 food in every city with 3 or more culture buildings",
+    "text": "+6 food in every city with 3 or more culture buildings"
+   },
+   {
+    "raw": "+3 happiness in every city with 3 or more culture buildings",
+    "text": "+3 happiness in every city with 3 or more culture buildings"
    }
   ],
   "theMonumentalProvinces": [
@@ -5060,82 +5060,94 @@
   ],
   "theCivicFaith": [
    {
-    "raw": "Your culture buildings pay faith. — not built yet",
-    "text": "Your culture buildings pay faith. — not built yet",
-    "deferred": true
+    "raw": "+3 faith in every city per culture building there",
+    "text": "+3 faith in every city per culture building there"
    },
    {
-    "raw": "Towns holding a wonder are gladder. A town can be asked whether it has raised a named building, or whether it keeps a marvel that supplies one named yield — but not simply whether a marvel stands in it. — not built yet",
-    "text": "Towns holding a wonder are gladder. A town can be asked whether it has raised a named building, or whether it keeps a marvel that supplies one named yield — but not simply whether a marvel stands in it. — not built yet",
-    "deferred": true
+    "raw": "+3 happiness in every city containing a wonder",
+    "text": "+3 happiness in every city containing a wonder"
    }
   ],
   "theProvincialChancery": [
    {
-    "raw": "Provincial towns that keep several culture buildings widen the writ and teach. Nothing counts the towns that satisfy a condition of that kind, because a town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Provincial towns that keep several culture buildings widen the writ and teach. Nothing counts the towns that satisfy a condition of that kind, because a town cannot be asked how many buildings of a kind it keeps. — not built yet",
+    "raw": "Provincial towns that keep several culture buildings widen the writ and teach. A writ that widens town by town cannot be held to a ceiling. — not built yet",
+    "text": "Provincial towns that keep several culture buildings widen the writ and teach. A writ that widens town by town cannot be held to a ceiling. — not built yet",
     "deferred": true
    }
   ],
   "thePalaceGuard": [
    {
-    "raw": "Towns that keep several culture buildings raise soldiers faster and are defended harder. A town cannot be asked how many buildings of a kind it keeps, and a strength line cannot be told which buildings stand in the town behind it. — not built yet",
-    "text": "Towns that keep several culture buildings raise soldiers faster and are defended harder. A town cannot be asked how many buildings of a kind it keeps, and a strength line cannot be told which buildings stand in the town behind it. — not built yet",
+    "raw": "Towns that keep several culture buildings raise soldiers faster and are defended harder. A strength line cannot be told which buildings stand in the town behind it. — not built yet",
+    "text": "Towns that keep several culture buildings raise soldiers faster and are defended harder. A strength line cannot be told which buildings stand in the town behind it. — not built yet",
     "deferred": true
    }
   ],
   "theMaritimeGalleries": [
    {
-    "raw": "Your harbours pay culture and knowledge. — not built yet",
-    "text": "Your harbours pay culture and knowledge. — not built yet",
-    "deferred": true
+    "raw": "+5 culture in every city per [[building:harbour|Harbour]] there",
+    "text": "+5 culture in every city per Harbour there"
    },
    {
-    "raw": "Ships raised in a town of several culture buildings are veterans for life. A mark set on a new piece can be narrowed to the town that raised it, but a town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Ships raised in a town of several culture buildings are veterans for life. A mark set on a new piece can be narrowed to the town that raised it, but a town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+3 science in every city per [[building:harbour|Harbour]] there",
+    "text": "+3 science in every city per Harbour there"
+   },
+   {
+    "raw": "newly created ships in every city with 2 or more culture buildings gain +3 combat strength",
+    "text": "newly created ships in every city with 2 or more culture buildings gain +3 combat strength"
    }
   ],
   "theProvincialStages": [
    {
-    "raw": "Provincial towns that keep several culture buildings pay renown and food. A town cannot be asked how many buildings of a kind it keeps, and a standing trickle of renown cannot be narrowed to a class of town. — not built yet",
-    "text": "Provincial towns that keep several culture buildings pay renown and food. A town cannot be asked how many buildings of a kind it keeps, and a standing trickle of renown cannot be narrowed to a class of town. — not built yet",
+    "raw": "Provincial towns that keep several culture buildings pay renown and food. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
+    "text": "Provincial towns that keep several culture buildings pay renown and food. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
     "deferred": true
    }
   ],
   "magisterialTheMastersPresence": [
    {
-    "raw": "A town whose citizens work a great person's lasting work builds faster and earns more. A town can be asked whether such a work stands next door to it, but not whether one of its citizens is standing in it. — not built yet",
-    "text": "A town whose citizens work a great person's lasting work builds faster and earns more. A town can be asked whether such a work stands next door to it, but not whether one of its citizens is standing in it. — not built yet",
-    "deferred": true
+    "raw": "+20% production toward buildings, in every city working a great person's work",
+    "text": "+20% production toward buildings, in every city working a great person's work"
+   },
+   {
+    "raw": "+15% gold in every city working a great person's work",
+    "text": "+15% gold in every city working a great person's work"
    }
   ],
   "theGrandTour": [
    {
-    "raw": "Towns holding a wonder pay culture and knowledge, and towns whose citizens work a great person's lasting work are gladder. A town cannot simply be asked whether a marvel stands in it, nor what its citizens are working. — not built yet",
-    "text": "Towns holding a wonder pay culture and knowledge, and towns whose citizens work a great person's lasting work are gladder. A town cannot simply be asked whether a marvel stands in it, nor what its citizens are working. — not built yet",
-    "deferred": true
+    "raw": "+5 science, +5 culture in every city containing a wonder",
+    "text": "+5 science, +5 culture in every city containing a wonder"
+   },
+   {
+    "raw": "+2 happiness in every city working a great person's work",
+    "text": "+2 happiness in every city working a great person's work"
    }
   ],
   "theLearnedPatron": [
    {
-    "raw": "Towns that keep several culture buildings turn part of their culture into knowledge, up to a limit. A town cannot be asked how many buildings of a kind it keeps, and a share of one yield paid as another carries no ceiling. — not built yet",
-    "text": "Towns that keep several culture buildings turn part of their culture into knowledge, up to a limit. A town cannot be asked how many buildings of a kind it keeps, and a share of one yield paid as another carries no ceiling. — not built yet",
+    "raw": "Towns that keep several culture buildings turn part of their culture into knowledge, up to a limit. A share of one yield paid as another carries no ceiling. — not built yet",
+    "text": "Towns that keep several culture buildings turn part of their culture into knowledge, up to a limit. A share of one yield paid as another carries no ceiling. — not built yet",
     "deferred": true
    }
   ],
   "thePerformersTreasury": [
    {
-    "raw": "Towns that keep several culture buildings turn part of their culture into coin. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several culture buildings turn part of their culture into coin. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "20% of the culture in every city with 2 or more culture buildings is gained again as gold",
+    "text": "20% of the culture in every city with 2 or more culture buildings is gained again as gold"
    }
   ],
   "theCivicHarvest": [
    {
-    "raw": "Large towns that keep several culture buildings are fed, gladdened, and keep part of what they spend on growing. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Large towns that keep several culture buildings are fed, gladdened, and keep part of what they spend on growing. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+25% food in every city of 10 or more citizens with 2 or more culture buildings",
+    "text": "+25% food in every city of 10 or more citizens with 2 or more culture buildings"
+   },
+   {
+    "raw": "+3 happiness in every city of 10 or more citizens with 2 or more culture buildings",
+    "text": "+3 happiness in every city of 10 or more citizens with 2 or more culture buildings"
+   },
+   {
+    "raw": "+20% of the stored food kept when a city grows, in every city of 10 or more citizens with 2 or more culture buildings",
+    "text": "+20% of the stored food kept when a city grows, in every city of 10 or more citizens with 2 or more culture buildings"
    }
   ],
   "theSenateCharter": [
@@ -5166,14 +5178,12 @@
   ],
   "thePatronsFleet": [
    {
-    "raw": "Towns with a harbour and several culture buildings build ships faster. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns with a harbour and several culture buildings build ships faster. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+35% production toward ships, in every city with a [[building:harbour|Harbour]] with 2 or more culture buildings",
+    "text": "+35% production toward ships, in every city with a Harbour with 2 or more culture buildings"
    },
    {
-    "raw": "Your ships travel further. — not built yet",
-    "text": "Your ships travel further. — not built yet",
-    "deferred": true
+    "raw": "ships: +1 movement",
+    "text": "ships: +1 movement"
    }
   ],
   "theCulturalEmbassies": [
@@ -5185,15 +5195,15 @@
   ],
   "theMonumentalCourt": [
    {
-    "raw": "Towns holding a wonder pay renown and build culture buildings and further marvels faster. A town cannot simply be asked whether a marvel stands in it, and a standing trickle of renown cannot be narrowed to a class of town. — not built yet",
-    "text": "Towns holding a wonder pay renown and build culture buildings and further marvels faster. A town cannot simply be asked whether a marvel stands in it, and a standing trickle of renown cannot be narrowed to a class of town. — not built yet",
+    "raw": "Towns holding a wonder pay renown and build culture buildings and further marvels faster. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
+    "text": "Towns holding a wonder pay renown and build culture buildings and further marvels faster. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
     "deferred": true
    }
   ],
   "theCivicCommonwealth": [
    {
-    "raw": "Towns that keep several culture buildings ask less of the realm's mood and less of its writ. A town cannot be asked how many buildings of a kind it keeps, and what a town costs to hold can be rewritten only for a captured town, a coastal one or one founded on hills. — not built yet",
-    "text": "Towns that keep several culture buildings ask less of the realm's mood and less of its writ. A town cannot be asked how many buildings of a kind it keeps, and what a town costs to hold can be rewritten only for a captured town, a coastal one or one founded on hills. — not built yet",
+    "raw": "Towns that keep several culture buildings ask less of the realm's mood and less of its writ. What a town costs to hold can be rewritten only for a captured town, a coastal one or one founded on hills. — not built yet",
+    "text": "Towns that keep several culture buildings ask less of the realm's mood and less of its writ. What a town costs to hold can be rewritten only for a captured town, a coastal one or one founded on hills. — not built yet",
     "deferred": true
    }
   ],
@@ -5218,67 +5228,80 @@
   ],
   "theLaureateCities": [
    {
-    "raw": "Great towns that keep several culture buildings sing and teach. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Great towns that keep several culture buildings sing and teach. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+25% culture in every city of 12 or more citizens with 2 or more culture buildings",
+    "text": "+25% culture in every city of 12 or more citizens with 2 or more culture buildings"
+   },
+   {
+    "raw": "+10% science in every city of 12 or more citizens with 2 or more culture buildings",
+    "text": "+10% science in every city of 12 or more citizens with 2 or more culture buildings"
    }
   ],
   "theNationalGalleries": [
    {
-    "raw": "Your culture buildings feed and enrich their towns. — not built yet",
-    "text": "Your culture buildings feed and enrich their towns. — not built yet",
-    "deferred": true
+    "raw": "+5 food in every city per culture building there",
+    "text": "+5 food in every city per culture building there"
    },
    {
-    "raw": "Towns that keep several of them are gladder. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several of them are gladder. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+5 gold in every city per culture building there",
+    "text": "+5 gold in every city per culture building there"
+   },
+   {
+    "raw": "+4 happiness in every city with 3 or more culture buildings",
+    "text": "+4 happiness in every city with 3 or more culture buildings"
    }
   ],
   "theProvincialAcademies": [
    {
-    "raw": "Provincial towns on the road that keep a library and several culture buildings build and teach faster. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Provincial towns on the road that keep a library and several culture buildings build and teach faster. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "+20% production in every city joined to your capital by road but your capital with a [[building:library|Library]] with 2 or more culture buildings",
+    "text": "+20% production in every city joined to your capital by road but your capital with a Library with 2 or more culture buildings"
+   },
+   {
+    "raw": "+10% science in every city joined to your capital by road but your capital with a [[building:library|Library]] with 2 or more culture buildings",
+    "text": "+10% science in every city joined to your capital by road but your capital with a Library with 2 or more culture buildings"
    }
   ],
   "theCivicPantheon": [
    {
-    "raw": "Towns holding a wonder pray and earn more, and every marvel sings. A town cannot simply be asked whether a marvel stands in it. — not built yet",
-    "text": "Towns holding a wonder pray and earn more, and every marvel sings. A town cannot simply be asked whether a marvel stands in it. — not built yet",
-    "deferred": true
+    "raw": "+25% faith in every city containing a wonder",
+    "text": "+25% faith in every city containing a wonder"
+   },
+   {
+    "raw": "+20% gold in every city containing a wonder",
+    "text": "+20% gold in every city containing a wonder"
+   },
+   {
+    "raw": "+10 culture in every city per wonder standing there",
+    "text": "+10 culture in every city per wonder standing there"
    }
   ],
   "magisterialTheSalon": [
    {
-    "raw": "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A town cannot be asked what its citizens are working, and a standing trickle of renown cannot be narrowed to a class of town. — not built yet",
-    "text": "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A town cannot be asked what its citizens are working, and a standing trickle of renown cannot be narrowed to a class of town. — not built yet",
+    "raw": "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
+    "text": "Culture buildings pay renown in towns whose citizens work a great person's lasting work. A standing trickle of renown cannot be narrowed to a class of town. — not built yet",
     "deferred": true
    }
   ],
   "magisterialTheMagistersCourt": [
    {
-    "raw": "Towns holding a wonder press on faster with the Great Work and with cathedrals. A town cannot simply be asked whether a marvel stands in it, and a bonus on building can name one row or one category, never two rows at once. — not built yet",
-    "text": "Towns holding a wonder press on faster with the Great Work and with cathedrals. A town cannot simply be asked whether a marvel stands in it, and a bonus on building can name one row or one category, never two rows at once. — not built yet",
+    "raw": "Towns holding a wonder press on faster with the Great Work and with cathedrals. A bonus on building can name one row or one category, never two rows at once. — not built yet",
+    "text": "Towns holding a wonder press on faster with the Great Work and with cathedrals. A bonus on building can name one row or one category, never two rows at once. — not built yet",
     "deferred": true
    }
   ],
   "theMastersDomain": [
    {
-    "raw": "Worked great-person works supply and feed. — not built yet",
-    "text": "Worked great-person works supply and feed. — not built yet",
-    "deferred": true
+    "raw": "+8 food, +8 production on every hex carrying a great person's work",
+    "text": "+8 food, +8 production on every hex carrying a great person's work"
    },
    {
-    "raw": "The towns that work them earn more. A town can be asked whether such a work stands next door to it, but not whether one of its citizens is standing in it. — not built yet",
-    "text": "The towns that work them earn more. A town can be asked whether such a work stands next door to it, but not whether one of its citizens is standing in it. — not built yet",
-    "deferred": true
+    "raw": "+20% gold in every city working a great person's work",
+    "text": "+20% gold in every city working a great person's work"
    }
   ],
   "theGreatChancery": [
    {
-    "raw": "Towns that keep several culture buildings widen the writ and sing louder. Nothing counts the towns that satisfy a condition of that kind, because a town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several culture buildings widen the writ and sing louder. Nothing counts the towns that satisfy a condition of that kind, because a town cannot be asked how many buildings of a kind it keeps. — not built yet",
+    "raw": "Towns that keep several culture buildings widen the writ and sing louder. A writ that widens town by town cannot be held to a ceiling. — not built yet",
+    "text": "Towns that keep several culture buildings widen the writ and sing louder. A writ that widens town by town cannot be held to a ceiling. — not built yet",
     "deferred": true
    }
   ],
@@ -5289,8 +5312,8 @@
     "deferred": true
    },
    {
-    "raw": "Towns that keep several culture buildings raise soldiers faster. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several culture buildings raise soldiers faster. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
+    "raw": "Towns that keep several culture buildings raise soldiers faster. — not built yet",
+    "text": "Towns that keep several culture buildings raise soldiers faster. — not built yet",
     "deferred": true
    }
   ],
@@ -5306,23 +5329,25 @@
   ],
   "thePageantsOfPeace": [
    {
-    "raw": "While you are fighting nobody, towns that keep several culture buildings sing louder and are gladder. A realm can be asked whether there is a war on, but not whether it is at peace with every neighbour, and a town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "While you are fighting nobody, towns that keep several culture buildings sing louder and are gladder. A realm can be asked whether there is a war on, but not whether it is at peace with every neighbour, and a town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "while you are at peace: +20% culture in every city with 2 or more culture buildings; +2 happiness in every city with 2 or more culture buildings",
+    "text": "while you are at peace: +20% culture in every city with 2 or more culture buildings; +2 happiness in every city with 2 or more culture buildings"
    }
   ],
   "theLivingCanon": [
    {
-    "raw": "Towns that keep several culture buildings are fed and supplied in proportion to the variety of legacies you still hold. Nothing counts how many kinds of great person have left you a legacy, and a town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several culture buildings are fed and supplied in proportion to the variety of legacies you still hold. Nothing counts how many kinds of great person have left you a legacy, and a town cannot be asked how many buildings of a kind it keeps. — not built yet",
+    "raw": "Towns that keep several culture buildings are fed and supplied in proportion to the variety of legacies you still hold. Nothing counts how many kinds of great person have left you a legacy. — not built yet",
+    "text": "Towns that keep several culture buildings are fed and supplied in proportion to the variety of legacies you still hold. Nothing counts how many kinds of great person have left you a legacy. — not built yet",
     "deferred": true
    }
   ],
   "theUniversalCourt": [
    {
-    "raw": "Towns that keep several culture buildings turn part of their culture into food and coin. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "text": "Towns that keep several culture buildings turn part of their culture into food and coin. A town cannot be asked how many buildings of a kind it keeps. — not built yet",
-    "deferred": true
+    "raw": "25% of the culture in every city with 3 or more culture buildings is gained again as food",
+    "text": "25% of the culture in every city with 3 or more culture buildings is gained again as food"
+   },
+   {
+    "raw": "25% of the culture in every city with 3 or more culture buildings is gained again as gold",
+    "text": "25% of the culture in every city with 3 or more culture buildings is gained again as gold"
    }
   ],
   "theLastCommission": [
@@ -5334,9 +5359,16 @@
   ],
   "theWonderCommonwealth": [
    {
-    "raw": "Towns holding a wonder build and grow faster, and the towns without one sing instead. A town cannot simply be asked whether a marvel stands in it, and there is no way to ask the opposite question at all. — not built yet",
-    "text": "Towns holding a wonder build and grow faster, and the towns without one sing instead. A town cannot simply be asked whether a marvel stands in it, and there is no way to ask the opposite question at all. — not built yet",
-    "deferred": true
+    "raw": "+25% production in every city containing a wonder",
+    "text": "+25% production in every city containing a wonder"
+   },
+   {
+    "raw": "+25% food in every city containing a wonder",
+    "text": "+25% food in every city containing a wonder"
+   },
+   {
+    "raw": "+10% culture in every city containing no wonder",
+    "text": "+10% culture in every city containing no wonder"
    }
   ],
   "frontierGarrisons": [
@@ -5422,9 +5454,12 @@
   ],
   "marketGardens": [
    {
-    "raw": "a farm standing beside a road is worth a coin — not built yet",
-    "text": "a farm standing beside a road is worth a coin — not built yet",
-    "deferred": true
+    "raw": "+1 gold on every hex with a [[improvement:farm|Farm]] beside a road",
+    "text": "+1 gold on every hex with a Farm beside a road"
+   },
+   {
+    "raw": "+1 food on every trade route between two of your own cities",
+    "text": "+1 food on every trade route between two of your own cities"
    }
   ],
   "theProvincialFair": [
@@ -5476,9 +5511,8 @@
   ],
   "theSculptedLandscape": [
    {
-    "raw": "a field that lies beside a master's work is the better for it — not built yet",
-    "text": "a field that lies beside a master's work is the better for it — not built yet",
-    "deferred": true
+    "raw": "+1 food, +1 culture on every hex with a [[improvement:farm|Farm]] beside a great person's work",
+    "text": "+1 food, +1 culture on every hex with a Farm beside a great person's work"
    }
   ],
   "pilgrimMarkets": [

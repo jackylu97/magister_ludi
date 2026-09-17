@@ -81,9 +81,30 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * two changes cannot be separated at this seed and are not claimed separately.
  * Measured twice, same bytes both runs.
  */
+/**
+ * **Re-cut for D2a (the predicates, branch `decks`)**. Five new members on
+ * unions the evaluator already walked — a threshold on a shelf of buildings, a
+ * worked improvement, a worked great person's work, a marvel standing in the
+ * town, the negations those wanted, and the ring of six on a hex condition —
+ * un-deferred **thirty-two rows**, taking the live catalogue from a hundred and
+ * forty-three to a hundred and seventy-five. Twenty-three of them are
+ * Magisterial's, which was the thinnest deck in the audit, so a Magisterial seat
+ * now draws from roughly twice the shelf it drew from yesterday and every seat's
+ * hands, picks, chairs and downstream decisions move with it. Duel
+ * `1ccd794d:245595` → `af754d10:245540`, standard `4180e4e6:893888` →
+ * `1b9b9b99:900701`.
+ *
+ * The prints move in **opposite directions**, which is what a differently-stocked
+ * pool looks like rather than a bug: the standard board's six seats hold more
+ * cards at turn 120 and print longer, and the duel's two hold a shade fewer —
+ * the same number of drafts spent on a wider shelf is not the same collection.
+ * Nothing about the *engine* changed in this batch; the bot appraises the new
+ * rows through exactly the walk it already had. Measured twice, same bytes both
+ * runs.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: '1ccd794d:245595',
-  standard: '4180e4e6:893888',
+  duel: 'af754d10:245540',
+  standard: '1b9b9b99:900701',
 };
 
 /**
