@@ -19,6 +19,37 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(nnnnnn) A dealt card's face — RULED, U1, 2026-09-17** (the user, 2026-09-17:
+*"could you take a look at the UI for the new cards? Lets have the icons
+reflect what kind of card they are, also, i notice the deck type is mentioned
+on the card design twice. Please consolidate the design so that the icons are
+informative, deck type is on the card just once, add the rarity to the card
+somewhere."*). Three faults on one face, all of them D1c's stated leftovers.
+
+1. **The emblem says nothing.** All 399 new rows carry `line: 'none'`, so
+   `cardFace` gives every one of them the same neutral lozenge — three cards in
+   a hand are three identical plates. The fifteen `CardLine` threads are dead
+   for rows written after the rework (`docs/plans/decks-shape-audit.md`'s foot:
+   *"`line` is dead for the new rows… the deck is the thread now"*), and the
+   emblem should be the **deck's** mark.
+2. **The deck is named twice**, in the eyebrow (`orderPayoff` → "Dominion
+   order") and again on the chip under the title (`orderBadges`). D1c kept both
+   deliberately — the eyebrow is the accessible reading order, the chip is the
+   visual badge — but on screen it is the same word twice.
+3. **Rarity is nowhere on the card**, though it is the field the draw is
+   weighted by and the one thing that tells a player whether a card they passed
+   on is likely to come round again.
+
+**The ruling**: the deck is named **once in words** and shown **once as a
+mark**. The eyebrow keeps the words (it is the reading order, and it is where a
+cross-type names both of its decks); the emblem takes the deck's own drawing
+and the deck's own ink; the chip the deck word vacates is spent on **rarity**,
+which the card has never carried. A charter keeps its own chip — a charter is a
+kind, not a deck, and the fact that it takes no chair is the one thing a player
+cannot work out from the clauses. The rarity marks are the doc's own and the
+sync test's: ● common · ◆ uncommon · ○ rare
+(`docs/orders-and-doctrines.md` §Rarity).
+
 **(rrrrr) The Khopesh upgrades into the Legionary — BUILT** (the user,
 2026-09-15: *"khopesh should upgrade into legionary"*). `upgradesTo` on the
 row: it went straight to the Longswordsman, skipping the rung every other
