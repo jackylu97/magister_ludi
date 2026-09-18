@@ -49,13 +49,21 @@ Three properties matter for this codebase:
 
 If one improved tile is one copy, an empire with two horse tiles fields two mounted units in the whole game. That is not a constraint, it is a wall.
 
-So a resource row should say how many copies each improved source provides:
+**The user, 2026-09-18:** *"lets have the number of copies on a tile of strategic resources be 3-8."*
+
+So a tile carries a **quantity**, rolled when the resource is placed, and each resource row gives the range it rolls in:
 
 ```
-"copiesPerSource": 3
+"copiesPerSource": [3, 5]
 ```
 
-This is the main balance dial and it belongs in data. A herd of three horse tiles at 3 copies each supports nine horsemen; a single iron seam at 2 supports two swordsmen. It also lets horses be plentiful and niter precious without touching the map budget.
+A range rather than a constant, and per tile rather than per resource, for three reasons. It is what the user asked for — "on a tile", with a span wide enough that the span is the point. It is the shape the neighbouring field already uses: `clusterSize: [2, 3]` sits two lines away in the same rows and means exactly this kind of thing. And it makes a deposit worth scouting — a seven-copy iron hill is a prize somebody will fight over, where a flat constant makes every seam interchangeable.
+
+A resource that should not vary writes `[3, 3]`, so the constant is still available.
+
+**Where the quantity lives.** On the tile, written once by `placeResources` in `newGame`, from the map rng, exactly as `Tile.resource` itself is. That puts it with the *placed-once* tile facts and **not** with the mutable ones — CLAUDE.md's register of mutable tile fields is `improvement`, `feature`, `discovery`, `road`, `vein`, `surveyed`, and this joins none of them. Nothing may regenerate it mid-game, for the same reason nothing may regenerate a resource.
+
+This is the main balance dial for army size, and it is the natural place to compensate for rarity: a camel seam is rarer on the map than a horse herd, so each one carries more.
 
 ### Cost per unit
 
@@ -67,15 +75,17 @@ Likewise `resourceCost` on a unit row, default 1 — so a knight can later cost 
 
 Seven resources. Two promotions, two new, three kept.
 
-| Resource | Status | Revealed by | Age | Role | Copies per source |
+| Resource | Status | Revealed by | Age | Role | Copies per tile |
 |---|---|---|---|---|---|
-| **Obsidian** | **new** | *(visible from the start)* | 1 | early blade — the alternative to copper | 3 |
-| **Copper** | promote from bonus | Mining | 1 | early blade — the alternative to obsidian | 3 |
-| **Horses** | keep | Husbandry | 1 | mount — the alternative to camels | 3 |
-| **Camels** | **new** | Husbandry | 1 | mount — the alternative to horses | 3 |
-| **Iron** | keep | Bronze Panoply | 2 | the steel blade | 2 |
-| **Ivory** | promote from luxury | *(visible from the start)* | 2 | the elephant | 2 |
-| **Niter** | keep, **moved earlier** | Physics | 4 | powder | 2 |
+| **Obsidian** | **new** | *(visible from the start)* | 1 | early blade — the alternative to copper | 4–6 |
+| **Copper** | promote from bonus | Mining | 1 | early blade — the alternative to obsidian | 3–5 |
+| **Horses** | keep | Husbandry | 1 | mount — the alternative to camels | 3–5 |
+| **Camels** | **new** | Husbandry | 1 | mount — the alternative to horses | 5–8 |
+| **Iron** | keep | Bronze Panoply | 2 | the steel blade | 4–6 |
+| **Ivory** | promote from luxury | *(visible from the start)* | 2 | the elephant | 4–6 |
+| **Niter** | keep, **moved earlier** | Physics | 4 | powder | 5–8 |
+
+The quantities run **opposite to the map shares**, deliberately. Horses and copper are the common finds and carry the least each; camels and niter are the rare ones and carry the most. So a camel seam is hard to find and worth a great deal when you do, which is both the historical picture and the way to keep a desert empire's army the size of a grassland empire's without making camels common. The whole roster spans the user's 3–8.
 
 ### The shape I think makes this work: paired alternatives
 
@@ -114,23 +124,25 @@ No new technology nodes. The lanes are your chart and adding nodes is a separate
 | Unit | Age | Needs today | Proposed |
 |---|---|---|---|
 | spearman | 1 | — | no requirement |
-| phalanx, swordsman, khopesh | 2 | — | **obsidian or copper** |
+| phalanx, swordsman | 2 | — | **obsidian or copper** |
+| khopesh *(Akhenaten)* | — | iron | **no requirement** — a unique |
 | chariot, chariot archer | 1 | horses | **horses or camels** |
 | horseman, horse archer | 3 | horses | **horses or camels** |
 | knight | 4 | horses | **horses or camels** |
 | camel archer *(Al-Ma'mun)* | — | — | no requirement |
 | eagle warrior *(Nezahualcoyotl)* | — | — | no requirement |
 | slinger *(Pachacuti)* | — | — | no requirement |
-| the 6 mounted uniques | — | horses | **horses or camels** |
+| the 6 mounted uniques | — | horses | **no requirement** — uniques |
 | legionary, longswordsman | 2–4 | iron | unchanged |
 | war elephant | 3 | ivory *(luxury)* | **ivory** *(now strategic)* |
 add: siege elephant, age 4, requires ivory. +6 attack towards cities. 2 movement, strong ranged attack.
 | fire lance | 4 | niter | unchanged |
 
-> **⚠ UNRESOLVED — two rulings disagree, and nobody should write these rows until it is settled.**
-> Ruling 2 says *"unique units should not require strategic resources."* Every one of the thirteen leader uniques is a standalone unit — none declares a `replaces` — so that rule reaches all of them. But two rows above still gate uniques: **khopesh** sits on obsidian-or-copper, and **the 6 mounted uniques** sit on horses-or-camels.
-> Read by ruling 2, both rows become **no requirement**, and the seven uniques that are gated today (khopesh on iron; the mounted six on horses) all come off their resource. That is the reading I would take, and it is a real balance change — a leader's unique unit becomes strictly easier to field than the standard unit it stands beside.
-> Awaiting the user. Everything else in this document can be built meanwhile.
+**No leader unique requires a strategic resource** — settled 2026-09-18: *"yup, all unique units don't require strategic resources. we can nerf later on if we need."*
+
+This reaches all thirteen, since none of them declares a `replaces` and every one is a standalone unit. Two rows above are read by it: **khopesh** comes off obsidian-or-copper and **the six mounted uniques** come off horses-or-camels. Seven uniques that are gated today lose their requirement — khopesh on iron, the mounted six on horses.
+
+It is a real balance change and the user has taken it knowingly: a leader's unique unit becomes strictly easier to field than the standard unit it stands beside, and Mansa Musa's mandekalu needs nothing where a plain knight needs a mount. Flagged here so that whoever tunes this later knows it was a choice and not an oversight.
 
 ### The tiles themselves
 
