@@ -31,6 +31,7 @@ import { type Command, applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
+import { resourceDef } from '../../src/sim/resourceData';
 import { type City, type GameState, newGame, playerById, bumpRevision } from '../../src/sim/state';
 import { openWar } from '../../src/sim/wars';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -93,6 +94,40 @@ describe('the two columns', () => {
     const spare = dealPanel(state, 0, 1);
     expect(spare.yours.luxuries[0]!.note).toBe('spare');
     expect(spare.yours.luxuries[0]!.copies).toBe(2);
+  });
+
+  it('carries what may actually be offered beside what is held', () => {
+    // Batch R4, ruling 4 — "only trade away available copies". The row leads
+    // with `spare` (`availableCopies`, which is `dealSideError`'s own reading)
+    // rather than with the held count, so the table can never quote a number the
+    // reducer is about to refuse. No shipped luxury is spent by a unit today —
+    // ivory went strategic — so the two agree on every row the game has; the
+    // field exists because the rule is the reducer's, not this list's.
+    const state = bench();
+    const mine = town(state, 0, 3, 4);
+    town(state, 1, 10, 4);
+    giveSilk(state, mine, 2, 3);
+    giveSilk(state, mine, 4, 5);
+    const model = dealPanel(state, 0, 1);
+    expect(model.yours.luxuries[0]!.spare).toBe(2);
+    expect(model.yours.luxuries[0]!.spare).toBe(model.yours.luxuries[0]!.copies);
+  });
+
+  it('offers no strategic resource at all, whatever an empire holds of it', () => {
+    // Ivory is strategic since batch R3 (ruling 1), and the deal vocabulary
+    // lends luxuries only (`isLendableResource`). A player will notice it gone,
+    // so the column has to be the thing that never shows it rather than a
+    // refusal after the fact.
+    const state = bench();
+    const mine = town(state, 0, 3, 4);
+    town(state, 1, 10, 4);
+    const tile = getTileAt(state.map, 2, 3)!;
+    tile.resource = 'ivory';
+    tile.improvement = 'camp';
+    state.tileOwner[tileIndex(state.map, 2, 3)] = mine.id;
+    bumpRevision(state);
+    expect(resourceDef('ivory').kind).toBe('strategic');
+    expect(dealPanel(state, 0, 1).yours.luxuries).toEqual([]);
   });
 
   it('drops a lent seam out of the giver’s column and into the receiver’s', () => {

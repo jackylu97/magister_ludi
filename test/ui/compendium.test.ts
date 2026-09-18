@@ -39,7 +39,8 @@ import {
   riteDef,
 } from '../../src/sim/religionData';
 import { unitRosterCost } from '../../src/sim/cities';
-import { RESOURCE_IDS } from '../../src/sim/resourceData';
+import { RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
+import { describeResourceSignature } from '../../src/sim/resourceEffects';
 import { anyCardDef, describeBuildingRow, stripRefs } from '../../src/sim/statecraft';
 import { DOCTRINE_IDS, ORDER_IDS, doctrineDef, orderIsDealt } from '../../src/sim/statecraftData';
 import { newGame } from '../../src/sim/state';
@@ -58,7 +59,7 @@ import {
   BEAD_RULES,
   beadQuestDef,
 } from '../../src/sim/beadData';
-import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
+import { UNIT_TYPE_IDS, requiredResourcesOf, unitDef } from '../../src/sim/unitData';
 import {
   DEFAULT_ENTRY,
   OPENING_WORDS,
@@ -1530,5 +1531,109 @@ describe('what opens a thing', () => {
     for (const kind of ['tech', 'leader', 'belief', ...cardKinds]) {
       expect(kinds, `the book links a ${kind}`).toContain(kind);
     }
+  });
+});
+
+/**
+ * **What the book says about a resource you spend** — batch R4, the Compendium
+ * half of `docs/strategic-resources-proposal.md` §4's S5.
+ *
+ * Every entry is generated from the rows and the sim's own describers, so what
+ * is covered here is not the wording of a figure but whether the two rules a
+ * player cannot guess from an effect line are stated at all: that one copy is
+ * enough for the empire bonus, and that everything past the first is spent.
+ */
+describe('a resource that is spent', () => {
+  function resourcePage(id: string): CompendiumSection['entries'][number] {
+    const found = everyEntry().find((row) => row.id === `resource:${id}`);
+    if (!found) throw new Error(`no entry for ${id}`);
+    return found;
+  }
+
+  it('prints the copies a seam rolls, on a strategic row and no other', () => {
+    for (const id of RESOURCE_IDS) {
+      const copies = resourceDef(id).copiesPerSource;
+      const line = resourcePage(id).rows.find((row) => row.label === 'Copies per seam');
+      if (copies === undefined) {
+        expect(line, id).toBeUndefined();
+        continue;
+      }
+      // The row's own range, read off the data — never a figure written here.
+      expect(line?.figures, id).toBe(
+        copies[0] === copies[1] ? `${copies[0]}` : `${copies[0]}–${copies[1]}`,
+      );
+    }
+  });
+
+  it('says one copy is enough for the bonus, wherever there is a bonus', () => {
+    for (const id of RESOURCE_IDS) {
+      const said = resourcePage(id).clauses.some((clause) =>
+        /only a single improved copy/.test(clause.text),
+      );
+      expect(said, id).toBe(describeResourceSignature(id).length > 0);
+    }
+  });
+
+  it('says a unit holds a copy, and that a strategic resource never crosses a table', () => {
+    for (const id of RESOURCE_IDS) {
+      const page = resourcePage(id);
+      const strategic = resourceDef(id).kind === 'strategic';
+      expect(
+        page.clauses.some((clause) => /holds one copy for as long as it lives/.test(clause.text)),
+        id,
+      ).toBe(strategic);
+      expect(
+        page.clauses.some((clause) => /cannot be traded away/.test(clause.text)),
+        id,
+      ).toBe(strategic);
+    }
+  });
+
+  it('puts no number in any of those sentences (rule 7)', () => {
+    for (const id of RESOURCE_IDS) {
+      for (const clause of resourcePage(id).clauses) {
+        if (!/single improved copy|holds one copy|cannot be traded away/.test(clause.text)) continue;
+        expect(stripRefs(clause.text), id).not.toMatch(/\d/);
+      }
+    }
+  });
+});
+
+/**
+ * **What the book says about a unit that spends one.** The pair is the half a
+ * sentence gets quietly wrong: a row that takes obsidian *or* copper must never
+ * read as a row that wants both.
+ */
+describe('a unit that spends a copy', () => {
+  it('names either resource as a choice, and links each to its own page', () => {
+    let gated = 0;
+    for (const id of UNIT_TYPE_IDS) {
+      const wants = requiredResourcesOf(unitDef(id));
+      if (wants.length === 0) continue;
+      gated += 1;
+      const page = everyEntry().find((row) => row.id === `unit:${id}`);
+      const clause = page?.clauses.find((line) => /must have a spare copy/.test(line.text));
+      expect(clause, id).toBeDefined();
+      const text = clause!.text;
+      for (const resource of wants) {
+        expect(text, id).toContain(`[[resource:${resource}|${resourceDef(resource).name}]]`);
+      }
+      if (wants.length > 1) {
+        // The names are joined by "or" and never by "and" — a pair is a choice,
+        // not a bill. Asked of the phrase itself, since the sentence around it
+        // legitimately has an "and" in it.
+        const names = wants.map((resource) => resourceDef(resource).name);
+        expect(stripRefs(text), id).toContain(names.join(' or '));
+        expect(stripRefs(text), id).not.toContain(names.join(' and '));
+      }
+      // Both halves of the rule: which resources will do, and that the copy is
+      // held rather than merely owned — plus the queue's own reservation.
+      expect(text, id).toContain('for as long as it lives');
+      expect(
+        page!.clauses.some((line) => /waiting in a build queue holds its copy/.test(line.text)),
+        id,
+      ).toBe(true);
+    }
+    expect(gated).toBeGreaterThan(0);
   });
 });

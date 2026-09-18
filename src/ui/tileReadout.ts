@@ -61,6 +61,8 @@ import { YIELD_GLYPH, YIELD_NAME, type YieldKey, signedMeterFigure } from './fig
 import { roundYield } from '../sim/yieldFormat';
 import { yieldFigureNodes } from './yieldMark';
 import { resourceMarkNode } from './resourceMark';
+import { tileCopyCount } from './resourceCopies';
+import { element } from './dom';
 import { seatName } from '../sim/leaderData';
 
 /**
@@ -701,7 +703,8 @@ export function resourceRequirementOf(
 }
 
 /**
- * The resource row: the drawn mark, the name, and the kind.
+ * The resource row: the drawn mark, the name, the kind, and — for a strategic
+ * seam — how many copies this particular hex is worth.
  *
  * Nodes rather than a string, which is what the drawn mark costs and all it
  * costs: the mark is an element carrying a CSS mask (see
@@ -714,6 +717,14 @@ export function resourceRequirementOf(
  * resource is hidden answers `null` exactly like a tile with nothing on it —
  * the honest report of "you do not know of anything here", and the same "no row
  * at all" the other describers now speak.
+ *
+ * **The quantity is the reason to look at one hill rather than the next** (batch
+ * R3 put it on the tile; batch R4 prints it). A strategic seam rolls three to
+ * eight copies when the map is made, and that roll is the whole difference
+ * between an iron hill worth founding a town toward and one that is not — so it
+ * belongs on the readout a player is looking at while they choose where to
+ * settle. A bonus or luxury seam has no roll and prints nothing
+ * (`tileCopyCount`).
  */
 export function resourceRowNode(state: GameState, playerId: number, tile: Tile): Node | null {
   const id = visibleResourceAt(state, playerId, tile);
@@ -727,6 +738,17 @@ export function resourceRowNode(state: GameState, playerId: number, tile: Tile):
   const row = document.createDocumentFragment();
   row.append(resourceMarkNode(id));
   row.append(document.createTextNode(` ${def.name} (${kind})`));
+  const copies = tileCopyCount(tile);
+  if (copies !== null) {
+    // Its own element, because every figure in this interface is tabular mono
+    // and rule 7 keeps numbers out of written prose. The word is beside it so
+    // the figure is not a bare number on a card of named rows.
+    row.append(document.createTextNode(' '));
+    const seam = element('span', 'tile-copies', String(copies));
+    seam.title = 'Copies this seam is worth once it is improved.';
+    row.append(seam);
+    row.append(document.createTextNode(copies === 1 ? ' copy' : ' copies'));
+  }
   return row;
 }
 

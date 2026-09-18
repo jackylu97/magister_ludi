@@ -328,6 +328,33 @@ export function percentFigure(percent: number): string {
 }
 
 /**
+ * "2/3" — copies of a strategic resource an empire could still spend, over the
+ * copies it controls.
+ *
+ * The same grammar `poolFigure` gives renown against its ladder, and for the
+ * same reason: "how much room have I left" is one question, not two, and a
+ * player reading 2/3 on the holdings rail and 2/3 on a build row is reading one
+ * number in one voice. Which side is which is said in words by the surface (the
+ * rail captions its column, a build row and every spoken label say "spare of"),
+ * never by the figure — rule 7 keeps numbers out of prose and prose out of
+ * numbers.
+ */
+export function copiesFigure(spare: number, held: number): string {
+  return `${figure(spare)}/${figure(held)}`;
+}
+
+/**
+ * The same pair in words, for a `title` or an `aria-label`: "2 spare of 3".
+ *
+ * A screen reader given "2/3" says "two slash three", which is the one surface
+ * a compact figure makes worse — so every call site that prints `copiesFigure`
+ * carries this beside it.
+ */
+export function copiesWords(spare: number, held: number): string {
+  return `${figure(spare)} spare of ${figure(held)}`;
+}
+
+/**
  * The mark for a modifier on *territory* — a boundary stone, and a placeholder
  * like every other glyph in this table.
  *

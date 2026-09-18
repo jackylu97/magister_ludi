@@ -310,6 +310,16 @@ export interface DealChoice {
   /** The town's own id, for a city row; absent on the others. */
   cityId?: number;
   copies?: number;
+  /**
+   * Copies of this luxury that could actually be promised — controlled, less
+   * what this empire's own army and queues have spoken for (ruling 4, "only
+   * trade away available copies").
+   *
+   * Beside `copies` rather than instead of it, because the two answer different
+   * questions and a player at the table asks both: *how much of this do I have*
+   * and *how much of it can I move*. Absent on the rows that are not a resource.
+   */
+  spare?: number;
   population?: number;
   /** "Silk", "Open borders", "Uruk". */
   label: string;
@@ -504,13 +514,22 @@ function dealSide(
     // **What may actually be promised** (batch R1, ruling 4 — "only trade away
     // available copies"). A copy a unit of this empire is standing on is spoken
     // for, and `dealSideError` refuses it, so the row has to say so rather than
-    // offer a bargain the reducer will throw out. Ivory is the kind this reaches
-    // today: it is a luxury and the war elephant spends it.
+    // offer a bargain the reducer will throw out.
+    //
+    // **No shipped luxury is spent by a unit today.** Ivory was the one that
+    // would have been, and batch R3 made it strategic instead (ruling 1), which
+    // takes it out of `controlledHoldings(…, 'luxury')` and therefore off this
+    // list entirely — a real change a player will notice, and the reason the
+    // deal vocabulary lends luxuries only (`isLendableResource` in `deals.ts`).
+    // So this subtraction is nought on every row the game currently ships. It
+    // stays because the rule is the reducer's, not this list's: the day a
+    // luxury gates a unit the panel already agrees with the refusal.
     const spare = availableCopies(state, giverId, holding.id);
     luxuries.push({
       id: holding.id,
       label: resourceDef(holding.id).name,
       copies,
+      spare,
       // A **spare** is what the panel marks, not what it enforces: an empire
       // may lend its last copy and simply hand the contentment across, which is
       // the ruling. The mark is there so a player can see which lending costs
@@ -521,8 +540,8 @@ function dealSide(
       // A kind with no **net** copy left is not in `controlledHoldings` at all,
       // so the list still does most of the gating. What it cannot see since
       // batch R1 is a copy this empire's own army has spoken for, and that is
-      // what this greys. R4 owns the full treatment (a count on the row);
-      // this is the one line that keeps the panel and the reducer agreeing.
+      // what this greys; the row prints both figures beside it (batch R4), so a
+      // player reads why before the refusal rather than after it.
       error: spare < 1 ? 'every copy is already spoken for' : null,
     });
   }
@@ -965,7 +984,10 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const goods=dealSide(options.getState(),options.getPlayerId(),chosen?.playerId??options.getPlayerId(),false).luxuries;
     foot.append(element('p','eyebrow','Your luxuries'));
     foot.append(element('p','diplo-stock',`${figure(goods.length)} kinds · ${figure(goods.reduce((n,c)=>n+(c.copies??0),0))} copies`));
-    foot.append(element('p','hint','Counts include active exchanges. A spare is a copy you can offer while keeping one.'));
+    // The hint says what the rows' own figure counts (batch R4). "A spare is a
+    // copy you can offer while keeping one" described the old `held − 1` note
+    // and would now describe nothing on the screen.
+    foot.append(element('p','hint','Only luxuries cross a table — a strategic resource cannot be traded. Counts include active exchanges, and what you can offer is what none of your own units is already using.'));
     column.append(foot);
     return column;
   }
@@ -1508,8 +1530,27 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     wrap.append(input);
     wrap.append(element('span', 'diplo-check-label', choice.label));
     if(choice.copies!==undefined) {
-      const count=element('span','diplo-copy',figure(choice.copies));count.append(element('small','','held'));wrap.append(count);
-      wrap.append(element('small','diplo-check-note',choice.copies>1?`${figure(choice.copies-1)} spare`:'Last copy'));
+      // **The headline figure is what can be offered, not what is held** (batch
+      // R4, ruling 4 — "only trade away available copies"). The row used to lead
+      // with the held count and note `held − 1` beside it, on the reasoning that
+      // a spare is a copy you can give while keeping one. That was the whole
+      // rule while a copy could only be lent; since batch R1 a copy can also be
+      // carrying a unit, and a table leading with the held count quotes a number
+      // the reducer may be about to refuse. `spare` is `availableCopies`, which
+      // is `dealSideError`'s own reading, so the row and the refusal are one
+      // answer.
+      //
+      // The held count appears **only when it differs**. Today it never does —
+      // no shipped luxury gates a unit, since ivory went strategic — and a
+      // second figure that always equals the first is the bookkeeping this
+      // batch is meant to remove, not add.
+      const spare = choice.spare ?? choice.copies;
+      const count=element('span','diplo-copy',figure(spare));count.append(element('small','','to offer'));wrap.append(count);
+      const note = spare < 1 ? 'None to offer'
+        : choice.copies === 1 ? 'Last copy'
+        : spare < choice.copies ? `${figure(choice.copies)} held`
+        : null;
+      if (note !== null) wrap.append(element('small','diplo-check-note',note));
     } else if(choice.population!==undefined) wrap.append(element('span','diplo-check-note',choice.error??`Population ${figure(choice.population)}`));
     else if (choice.note !== null) wrap.append(element('span', 'diplo-check-note', choice.note));
     return wrap;

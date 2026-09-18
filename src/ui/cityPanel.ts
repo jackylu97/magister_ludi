@@ -102,7 +102,7 @@ import {
   MODIFIER_STAGES,
   STAGE_LABEL,
 } from '../sim/yields/stages';
-import { CITY_YIELD_KEYS, type CityYieldKey, type ResourceId } from '../sim/resourceData';
+import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
 import {
   type SpecialistYieldLine,
   citySpecialistYields,
@@ -114,7 +114,7 @@ import type { SpecialistFamily } from '../sim/greatPeopleData';
 // The town's one reading — see `renderCity`, and `readings.ts` for the model.
 import { readCity } from '../sim/readings';
 import { cityRouteRows, routeSlotsLine as routeSlotsLineOf } from './tradeLines';
-import { resourceLabelNodes } from './resourceMark';
+import { requirementNodes, requirementWords } from './resourceCopies';
 import { setYieldText, yieldMarkNode } from './yieldMark';
 import { roundYield } from '../sim/yieldFormat';
 import {
@@ -132,7 +132,6 @@ import { type PressureLine, explainPressure } from '../sim/religion';
 import { pressureLedgerText } from './religionScreen';
 import {
   buildError,
-  eitherResourceWords,
   isUnlocked,
   requiredResource,
   upgradeTargetForType,
@@ -169,25 +168,6 @@ import { setDescriptorText } from './keywords';
 import { yieldElement as element } from './yieldMark';
 import { seatName } from '../sim/leaderData';
 
-
-/**
- * A row's strategic resources with their marks — "⛏ Iron", or "🐎 Horses or 🐪
- * Camels" when the row accepts either (batch R1, `UnitDef.requiresResource`).
- *
- * `resourceLabelNodes` for each, joined by the same word the sim's refusal uses
- * (`eitherResourceWords` in `tech.ts`), because a player reading "or" on a
- * button and "or" in the refusal is reading one rule. Nodes rather than a string
- * for `resourceLabelNodes`' reason: a mark is an element carrying a CSS mask and
- * cannot ride inside a template string.
- */
-function resourceListNodes(ids: readonly ResourceId[]): DocumentFragment {
-  const fragment = document.createDocumentFragment();
-  ids.forEach((id, index) => {
-    if (index > 0) fragment.append(document.createTextNode(index === ids.length - 1 ? ' or ' : ', '));
-    fragment.append(resourceLabelNodes(id));
-  });
-  return fragment;
-}
 
 /**
  * One faith with a claim on this town, as the city sheet lists it.
@@ -1298,7 +1278,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         item.classList.add('wanting');
       }
       item.append('Needs improved ');
-      item.append(resourceListNodes(wants));
+      // **With the empire's own count on it** (batch R4). "Needs improved Iron"
+      // is the rule; "Iron 2/3" is the decision, and this is the card a player
+      // is reading while they decide. A pair keeps a figure per resource, so
+      // horses-or-camels reads as a choice rather than as a bill for both.
+      item.append(requirementNodes(state, city.ownerId, wants));
+      item.title = `Needs improved ${requirementWords(state, city.ownerId, wants)}`;
       notes.append(item);
     }
     if (def.upgradesTo !== undefined) {
@@ -2559,8 +2544,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // spoken one is words only: a screen reader reading a resource's glyph
       // announces its Unicode name before the word it decorates, which is the
       // one surface an icon makes *worse*.
+      // Since batch R4 the spoken form carries the counts too, in words rather
+      // than as `0/8`: a screen reader given a slashed pair reads "zero slash
+      // eight", which is the one thing the drawn figure is better at.
       const needsSpoken =
-        missing.length === 0 ? '' : `improved ${eitherResourceWords(missing)}`;
+        missing.length === 0
+          ? ''
+          : `improved ${requirementWords(state, city.ownerId, missing)}`;
       // A label rather than a `title`, and that is the hover card's doing: a
       // native tooltip would arrive a second *after* the card, on top of it,
       // saying less. The sentence is kept — it is the only place a screen
@@ -2591,7 +2581,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         // user, 2026-09-08).
         price.classList.add('is-reason', 'wanting');
         price.append('needs improved ');
-        price.append(resourceListNodes(missing));
+        // The count goes on the refusal itself (batch R4), because "needs
+        // improved Copper" said to a player who is looking at eight copper mines
+        // is the refusal the proposal calls the worst way to learn a rule.
+        // "Copper 0/8" says the whole of it: you have eight, every one is
+        // carrying something.
+        price.append(requirementNodes(state, city.ownerId, missing));
       } else {
         setYieldText(
           price,

@@ -150,7 +150,7 @@ import {
   deckWord,
   orderPayoff,
 } from './deckBadges';
-import { eitherResourceWords, gatingTech } from '../sim/tech';
+import { gatingTech } from '../sim/tech';
 import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../sim/techData';
 import {
   LEADER_ABILITY_IDS,
@@ -550,6 +550,23 @@ function techRef(id: TechId): string {
 }
 
 /**
+ * "Iron", or "Horses or Camels" — a row's resource list, each name a link to
+ * that resource's own page.
+ *
+ * `eitherResourceWords` (`tech.ts`) is the same phrase in plain words, and it
+ * stays that way: it is what the reducer's refusal prints, and a refusal arrives
+ * on a toast and a context card where a keyword mark would be stripped anyway.
+ * The book is the one surface where a reader wanting to know what obsidian *is*
+ * should be one click from finding out, so it joins the two halves itself. The
+ * word between them is the refusal's, so the two describe one rule.
+ */
+function resourceRefWords(ids: readonly ResourceId[]): string {
+  const names = ids.map((id) => ref('resource', id, resourceDef(id).name));
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]!}`;
+}
+
+/**
  * `[[leader:pachacuti|Pachacuti]]`. The Leaders shelf anchors its pages
  * `leader:<id>` (`compendiumId`), so the mark is already an address the book
  * honours; `RefKind` has simply never needed the kind, because no describer
@@ -899,10 +916,25 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   const wants = requiredResourcesOf(def);
   if (wants.length > 0) {
     out.push({
+      // Either name will do, and the sentence says so with the same "or" the
+      // refusal uses — a reader must not come away thinking the row wants both.
+      // The names are keyword refs here (`resourceRefWords`) because the book is
+      // where a reader asking "what is obsidian" should be one click from an
+      // answer; the reducer's own refusal keeps the plain phrase.
       text:
-        `Your empire must have a spare copy of improved ${eitherResourceWords(wants)} ` +
+        `Your empire must have a spare copy of improved ${resourceRefWords(wants)} ` +
         'to build one, and this unit holds that copy for as long as it lives. ' +
         'It is handed back when the unit dies or is disbanded.',
+    });
+    // **A queued row holds its copy too** (ruling 5, "reserve on queueing"). The
+    // rule a player meets by queueing more than they can supply and being
+    // refused at the button rather than ten turns later, so it is worth its own
+    // line rather than a clause on the one above.
+    out.push({
+      text:
+        'A row waiting in a build queue holds its copy from the moment you add it, ' +
+        'so a queue can never promise more units than your empire can supply.',
+      note: true,
     });
   }
   if (def.minCityPop > 0) {
@@ -925,7 +957,7 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
       text:
         climbs.length === 0
           ? `Once you can build the ${unitDef(def.upgradesTo).name}, this is no longer offered.`
-          : `Once you can build the ${unitDef(def.upgradesTo).name}, this is no longer offered — until then, with no spare improved ${eitherResourceWords(climbs)} to hand, it stays on the list.`,
+          : `Once you can build the ${unitDef(def.upgradesTo).name}, this is no longer offered — until then, with no spare improved ${resourceRefWords(climbs)} to hand, it stays on the list.`,
     });
   }
   if (def.purchase !== undefined) {
@@ -1465,6 +1497,12 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
 function resourceEntry(id: ResourceId): CompendiumEntry {
   const def: ResourceDef = resourceDef(id);
   const opener = improvementForResource(id);
+  // **Copies per seam** (batch R3's `copiesPerSource`, printed by R4). Only a
+  // strategic row rolls a quantity, and it is the figure that decides whether
+  // one hill is worth a town: a seam at the top of its range feeds twice the
+  // army a seam at the bottom does. Read straight off the row, like every other
+  // figure in this book.
+  const copies = def.copiesPerSource;
   const rows: CompendiumRow[] = [
     ...row('Adds to the hex', tileYieldFigures(def.yields)),
     ...row('Terrain', eitherWords(def.validTerrain.map((terrain) => terrain))),
@@ -1472,6 +1510,10 @@ function resourceEntry(id: ResourceId): CompendiumEntry {
     ...row('Flat or hills', def.hills === undefined ? '' : def.hills ? 'hills' : 'flat'),
     ...row('Revealed by', techName(def.requiresTech)),
     ...row('Needs improvement', opener === null ? '' : improvementDef(opener).name),
+    ...row(
+      'Copies per seam',
+      copies === undefined ? '' : copies[0] === copies[1] ? `${copies[0]}` : `${copies[0]}–${copies[1]}`,
+    ),
   ];
   const clauses: CompendiumClause[] = describeResourceSignature(id).map((line) => ({
     text:
@@ -1479,6 +1521,37 @@ function resourceEntry(id: ResourceId): CompendiumEntry {
         ? line.text
         : `${line.text} — from ${ageWord(line.fromAge)} onward`,
   }));
+  // **One copy is enough for the bonus** (the user, 2026-09-18: *"players gain
+  // this bonus for having at least one copy, only applies once regardless of
+  // number of copies"*). Said on every row that has a signature at all, because
+  // it is the rule the signature is subject to and a reader cannot guess it from
+  // the effect alone. No number in the sentence — rule 7 — and none is needed:
+  // "one" is the rule, not a quantity.
+  if (clauses.length > 0) {
+    clauses.push({
+      text:
+        'Your empire needs only a single improved copy for this: holding more adds nothing to it. ' +
+        'Every copy beyond the first is there to be spent on units, or lent across a table.',
+      note: true,
+    });
+  }
+  // **What a strategic seam is for.** The other half of the copies model, said
+  // once here so a reader who arrives at iron before they arrive at the
+  // longswordsman still meets the rule.
+  if (def.kind === 'strategic') {
+    clauses.push({
+      text:
+        'A unit that needs this holds one copy for as long as it lives, and hands it back when it dies ' +
+        'or is disbanded. A row waiting in a build queue holds one too. What is left is what you can ' +
+        'still build with.',
+      note: true,
+    });
+    clauses.push({
+      text:
+        'A strategic resource cannot be traded away. Only luxuries cross a table.',
+      note: true,
+    });
+  }
   if (def.requiresTech !== undefined) {
     clauses.push({
       text:

@@ -153,6 +153,7 @@ import {
 import { type NotificationsPanel, createNotificationsPanel } from './ui/notificationsPanel';
 import { createPopover } from './ui/popover';
 import { type HudDock, createHudDock } from './ui/hudDock';
+import { type HoldingsRail, createHoldingsRail } from './ui/holdingsRail';
 import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
 import { type DiplomacyScreen, createDiplomacyScreen } from './ui/diplomacyScreen';
@@ -965,6 +966,18 @@ let meterCards: CivYieldStrip | null = null;
  * declared before there is one.
  */
 let hudDock: HudDock | null = null;
+
+/**
+ * The holdings rail — what strategic resources this seat holds and how much of
+ * each is still free, under the dock. A holder for `hudDock`'s reason exactly:
+ * it reads a game, and `updatePanel` is declared before there is one.
+ *
+ * It is the one fixed HUD surface whose element is not markup in `index.html`.
+ * `createHoldingsRail` builds its own card and this mounts it once, on the boot
+ * that builds it; the element then outlives every later game the way
+ * `#hud-dock` does, and each new rail replaces the last one's rows.
+ */
+let holdings: HoldingsRail | null = null;
 
 /**
  * Every notice the seats have been shown, and the two surfaces that show them.
@@ -2688,6 +2701,11 @@ async function boot(initial: Game | null): Promise<void> {
     // The dock's badge and its open Faith card change on the same facts the
     // strip above just read, so it refreshes in the same breath.
     hudDock?.render();
+    // The holdings rail, on the same beat: ground changing hands, a unit built
+    // or lost, a row queued and a bargain signed all move a copy, and all of
+    // them land here. It watches `state.revision` and the seat itself, so the
+    // pointer moves that also reach this function cost two comparisons.
+    holdings?.render();
     // The research card changes with the seat, with the science rate and with
     // every completed tech, so it refreshes wherever the rest of the HUD does.
     techTree?.render();
@@ -4937,6 +4955,19 @@ async function boot(initial: Game | null): Promise<void> {
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
   });
+
+  /**
+   * The holdings rail, under the dock. It builds its own card (see
+   * `src/ui/holdingsRail.ts` for why), so the mount is here and happens once:
+   * a later boot replaces the rail and swaps its element for the new one's.
+   */
+  const previousHoldings = holdings;
+  holdings = createHoldingsRail({
+    getGame: () => game,
+    localPlayerId: () => controls.localPlayerId(),
+  });
+  if (previousHoldings) previousHoldings.root.replaceWith(holdings.root);
+  else hudDockEl.after(holdings.root);
   diplomacy = createDiplomacyScreen({
     overlay: diplomacyOverlayEl,
     body: diplomacyBodyEl,

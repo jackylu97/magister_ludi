@@ -2715,6 +2715,16 @@ button.seat:active {
   color: var(--vermilion);
 }
 
+/* How many copies a strategic seam is worth — the roll `placeResources` made
+   for this hex and no other (batch R3). A figure, so it is set in the number
+   face like every other figure in this interface; the word after it is ordinary
+   text, because "copies" is a noun and not part of the number. */
+.tile-copies {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 /* **The wanting voice** — one class for every line where the game tells the
    player they are missing a prerequisite (a technology, a building, a
    condition): small, vermilion, italic, in the copy face — the tile cell's
@@ -3150,6 +3160,96 @@ kbd {
   position: relative;
   z-index: auto;
   pointer-events: auto;
+}
+
+/* --- the holdings rail -----------------------------------------------------
+   What strategic resources this empire holds, and how much of each is still
+   free. Third card in the left column, under the dock, pinned by the same
+   arithmetic `#hud-dock-popovers` above uses so it can never drift into the
+   buttons. See `src/ui/holdingsRail.ts` for why it is here and not in the top
+   bar: that strip already shrinks twice to fit the window, and seven more items
+   would cost the yields their legibility.
+
+   The card builds itself in TypeScript rather than sitting in `index.html`,
+   which is why it is `position: fixed` here rather than inheriting a column's.
+   It hides outright when the empire holds nothing — `hidden` is the whole of its
+   state, and `.hud-card` is `display: flex`, so the attribute needs saying
+   twice to win. */
+#hud-holdings {
+  position: fixed;
+  top: calc(
+    var(--topbar-h) + 12px + var(--research-card-h) + 10px + var(--hud-dock-h) + 10px
+  );
+  left: 14px;
+  z-index: 10;
+  width: 230px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 10px 6px;
+}
+
+#hud-holdings[hidden] {
+  display: none;
+}
+
+.holdings-eyebrow {
+  margin: 0;
+}
+
+.holdings-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+/* Three columns: the mark, the name, and the pair of figures hard right. A
+   grid rather than a flex row with a spacer, so every row's figures line up
+   under each other — which is the whole reason the rail is readable at a
+   glance rather than something to be parsed. */
+.holdings-row {
+  display: grid;
+  grid-template-columns: 1.2em 1fr auto;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--face-ui);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.holdings-mark {
+  display: inline-block;
+  color: var(--ink-soft);
+}
+
+.holdings-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The figure pair, in the house voice every number in this interface is set in.
+   `is-none` is the one state a glance has to catch with no gesture at all: an
+   empire whose last copy is already carrying something. */
+.res-copies {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.res-copies.is-none {
+  color: var(--vermilion);
+}
+
+.holdings-caption {
+  margin: 0;
+  font-size: 9.5px;
 }
 
 /* --- bottom-left: the context card ----------------------------------------
@@ -4269,6 +4369,11 @@ body:has(.city-mode:not([hidden])) #topbar,
 body:has(.city-mode:not([hidden])) #hud-research,
 body:has(.city-mode:not([hidden])) #hud-dock,
 body:has(.city-mode:not([hidden])) #hud-dock-popovers,
+/* The holdings rail stands down with the rest of the left column, and the
+   count it carries is not lost: the build list in this very screen prints the
+   same two figures on the row that wants them ("needs improved Copper 0/8"),
+   which is nearer the decision than a rail in the corner is. */
+body:has(.city-mode:not([hidden])) #hud-holdings,
 body:has(.city-mode:not([hidden])) #hud-meters,
 body:has(.city-mode:not([hidden])) #hud-popovers {
   display: none;
