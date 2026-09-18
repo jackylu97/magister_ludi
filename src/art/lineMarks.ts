@@ -57,7 +57,7 @@ import {
   solid,
   spark,
 } from './resourceMarks';
-import type { CardLine, SlotType } from '../sim/statecraftData';
+import type { CardLine, DeckId, SlotType } from '../sim/statecraftData';
 
 /** One mark, plus the sentence that says what it depicts. Structurally `SiteMark`. */
 export interface LineMark {
@@ -237,6 +237,136 @@ export const CARD_LINE_MARKS: Readonly<Record<AnyCardLine, LineMark>> = {
 };
 
 /**
+ * **The six decks, drawn** — the emblem in the middle of a dealt card since U1.
+ *
+ * `docs/flags.md` item (nnnnnn), the user reading a hand: *"lets have the icons
+ * reflect what kind of card they are"*. Every row written after the decks
+ * rework carries `line: 'none'`, so `CARD_LINE_MARKS` gave four hundred cards
+ * the same lozenge and a hand of three was three identical plates. A card's
+ * home is its **deck** now, so the emblem is the deck's.
+ *
+ * Each mark is a picture of *what the deck rewards*, read off
+ * `docs/six-decks-first-cut.md`'s six identities and no second source. Four of
+ * the six were drawn twice, because the obvious mark was already somebody's —
+ * this set has to be unique against the seven threads, the three slot ghosts,
+ * the four dock buttons, the meters and the forty-one resources:
+ *
+ *   · **Dominion** — recruiting, positioning and using military units. Crossed
+ *     spears rather than the sword the slot ghost owns: a sword is one duel and
+ *     this deck is an army.
+ *   · **Expansionist** — citizens, land and settlement geography. A homestead,
+ *     the one silhouette that says *a place people now live*. The wheat ear the
+ *     first sketch used is the wheat resource's, and the Green Belt's sprig and
+ *     the Ploughshare's blade already crowd that field.
+ *   · **Commerce** — routes, partnerships, goods and deliberate spending. A
+ *     purse drawn shut, because the two marks nearer the idea are taken: the
+ *     strapped bale on two wheels is the Caravans dock button and the stack of
+ *     struck coin is the coin resource.
+ *   · **Devotion** — sacred buildings, rites and conversion. A bell: the thing
+ *     that calls a town to a rite. Not a censer (the incense resource) and not
+ *     a candle (the Procession's, and the faith glyph's).
+ *   · **Scientific** — research detours, institutions and works. A pair of
+ *     dividers over the arc they scribe — measurement, not the sky, which the
+ *     Star Chart thread already owns.
+ *   · **Magisterial** — cultural institutions, wonders, great works. An obelisk
+ *     on its plinth: a thing raised to be remembered. The laurel that suggested
+ *     itself is the renown meter's, and the colonnade is the Marble Court's.
+ *
+ * **A card of nobody's deck keeps the lozenge seal**, and that is a ruling
+ * rather than a fallback: a generic row joins no deck, the seal is already this
+ * interface's mark for exactly that, and a seventh drawing for "no deck" would
+ * be drawing a deck that is not one. It is the `'none'` paths *by reference*,
+ * so the neutral face cannot drift into two drawings.
+ *
+ * **A card of two decks gets a mark of its own** — the seal doubled, two
+ * lozenges interlocked. Every other answer says something untrue. One deck's
+ * drawing denies the other half of the card; both drawings at emblem size are
+ * two illegible drawings; and the plain single seal would file a cross-type
+ * beside the cards of nobody's deck, which is the opposite of what it is. The
+ * doubled seal *is* the fact, and it reads as a sibling of the single one, so
+ * the two neutral faces are a family: one seal is a card of no deck, two
+ * interlocked are a card of two.
+ */
+export type DeckFace = DeckId | 'shared' | 'generic';
+
+export const DECK_MARKS: Readonly<Record<DeckFace, LineMark>> = {
+  dominion: {
+    note: 'two spears crossed, leaf-bladed — an army, not a duel',
+    paths: [
+      ink(line(12, 54, 44, 18)),
+      solid(poly(54, 8, 47.5, 21.5, 40.5, 14.5)),
+      ink(line(52, 54, 20, 18)),
+      solid(poly(10, 8, 23.5, 14.5, 16.5, 21.5)),
+    ],
+  },
+  expansionist: {
+    note: 'a homestead: a gabled roof over its walls, with a door',
+    paths: [
+      ink('M10 34L32 15L54 34'),
+      ink(poly(18, 34, 46, 34, 46, 55, 18, 55)),
+      ink(poly(27, 43, 37, 43, 37, 55, 27, 55)),
+    ],
+  },
+  commerce: {
+    note: 'a merchant’s purse, cinched at the neck over its gathered mouth',
+    paths: [
+      // The first sketch closed the neck with an arch and came out a padlock;
+      // the second put two tie-ends above the cinch and came out with ears. The
+      // gathered mouth is a plain collar above the cord, and the sack is wider
+      // at the foot than at the mouth — which is the shape a bag of coin sits in
+      // and the shape a lock does not.
+      ink('M22 27Q7 43 14 53Q21 59 32 59Q43 59 50 53Q57 43 42 27Z'),
+      ink(line(22, 27, 42, 27)),
+      ink('M24 27L27 15L37 15L40 27'),
+    ],
+  },
+  devotion: {
+    note: 'a bell on its loop, the clapper under the lip',
+    paths: [
+      ink('M18 46Q18 19 32 17Q46 19 46 46'),
+      ink(line(12, 46, 52, 46)),
+      ink(line(32, 17, 32, 12)),
+      ink(dot(32, 9, 4)),
+      solid(dot(32, 53, 5)),
+    ],
+  },
+  scientific: {
+    note: 'a pair of dividers, hinge and legs, open on the span they measure',
+    paths: [
+      // The first sketch put the scribed arc between the points and closed the
+      // silhouette into a bell — which is the Devotion deck's, one card away in
+      // the same hand. Open legs and a hinge plate instead: nothing else in any
+      // of these sets is a lambda.
+      ink(line(32, 16, 13, 53)),
+      ink(line(32, 16, 51, 53)),
+      solid(dot(32, 13, 5)),
+      ink(line(25, 24, 39, 24)),
+    ],
+  },
+  magisterial: {
+    note: 'an obelisk on its plinth — a thing raised to be remembered',
+    paths: [
+      ink('M28 15L32 6L36 15'),
+      ink(poly(28, 15, 36, 15, 39, 45, 25, 45)),
+      ink(poly(17, 45, 47, 45, 47, 56, 17, 56)),
+    ],
+  },
+  // By reference, never a second drawing: a generic card, the card back and the
+  // neutral thread are one seal, and the day it is redrawn all three move.
+  generic: {
+    note: 'the lozenge seal — a card that joins no deck',
+    paths: CARD_LINE_MARKS.none.paths,
+  },
+  shared: {
+    note: 'the seal doubled: two lozenges interlocked — a card two decks share',
+    paths: [
+      ink(poly(23, 14, 41, 32, 23, 50, 5, 32)),
+      ink(poly(41, 14, 59, 32, 41, 50, 23, 32)),
+    ],
+  },
+};
+
+/**
  * The three offices a slot can be, drawn.
  *
  * These are *ghosts* before they are pictures — an empty slot prints its own
@@ -319,4 +449,15 @@ export function cardLineMarkDataUri(id: AnyCardLine, color = '#000'): string {
 /** The slot office's ghost, as a `data:` URI. */
 export function slotMarkDataUri(slot: SlotType, color = '#000'): string {
   return markUri(`slot|${slot}|${color}`, SLOT_MARKS[slot], color);
+}
+
+/**
+ * The deck's emblem, as a `data:` URI. See `DECK_MARKS`.
+ *
+ * Its own cache key rather than the line's, because `'generic'` and `'none'`
+ * draw the same paths and a shared key would make one of them answer for the
+ * other the day they stop doing so.
+ */
+export function deckMarkDataUri(face: DeckFace, color = '#000'): string {
+  return markUri(`deck|${face}|${color}`, DECK_MARKS[face], color);
 }

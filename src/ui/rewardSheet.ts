@@ -36,7 +36,8 @@ import { orderDef } from '../sim/statecraftData';
 import { element } from './dom';
 import { setDescriptorText } from './keywords';
 import { createModalShell } from './modalShell';
-import { orderBadges, orderPayoff } from './deckBadges';
+import { deckMarkNode } from './cardLine';
+import { deckFaceOf, orderChipsNode, orderPayoff } from './deckBadges';
 
 export interface RewardSheet {
   readonly isOpen: boolean;
@@ -188,23 +189,25 @@ export function createRewardSheet(options: RewardSheetOptions): RewardSheet {
       button.type = 'button';
       button.className = 'sc-card sc-card-order reward-card';
       button.dataset.index = String(index);
+      // **The deck's mark and the deck's ink** (U1), as on the hand that deals
+      // an ordinary draft and in the collection afterwards: the accent key on
+      // the card, the drawing as a chip in the eyebrow, and the deck's name in
+      // the eyebrow's own words. A reward hand deals faces out of the same
+      // decks, and a rare read here has to be the same card it is anywhere.
+      const face = deckFaceOf(def);
+      button.dataset.line = face;
       const headRow = element('div', 'sc-card-head');
+      const emblem = deckMarkNode(face);
+      emblem.classList.add('sc-card-emblem');
+      headRow.append(emblem);
       headRow.append(element('span', 'sc-card-type', orderPayoff(id)));
       button.append(headRow);
       button.append(element('h4', 'sc-card-name', def.name));
-      // The deck badges and the charter mark, inked by their tone — the same
-      // chips the draft sheet deals, out of the same table, so a rare read on
-      // this sheet and the same rare read on the ordinary one are one face.
-      const badges = orderBadges(id);
-      if (badges.length > 0) {
-        const chips = element('p', 'offer-badges');
-        for (const badge of badges) {
-          const chip = element('span', 'offer-badge', badge.label);
-          if (badge.tone !== undefined) chip.dataset.tone = badge.tone;
-          chips.append(chip);
-        }
-        button.append(chips);
-      }
+      // The rarity chip and the charter mark, inked by their tone — the same
+      // chips the draft sheet deals, out of the same table and through the same
+      // printer, so a rare read on this sheet and the same rare read on the
+      // ordinary one are one face.
+      button.append(orderChipsNode(id));
       const list = element('ul', 'sc-card-clauses');
       for (const clause of describeCard(id)) {
         const item = element('li', clause.deferred ? 'sc-clause is-deferred' : 'sc-clause');

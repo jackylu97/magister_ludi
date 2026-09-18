@@ -323,18 +323,26 @@ describe('an entry', () => {
   });
 
   it('wears the mark its own kind is drawn with, and no new ones', () => {
-    // Three kinds and no fourth: the piece's badge, the resource's drawn mark,
-    // the table's own glyph. A fourth would be an icon this pass invented.
+    // Four kinds and no fifth: the piece's badge, the resource's drawn mark, a
+    // card's deck emblem, the table's own glyph. Each of the four is a drawing
+    // that already existed for some other surface — the rule is that the book
+    // invents no icon of its own, not that it may only print letters.
     for (const entry of everyEntry()) {
       if (entry.mark === null) continue;
-      expect(['badge', 'resource', 'glyph'], entry.id).toContain(entry.mark.kind);
+      expect(['badge', 'resource', 'deck', 'glyph'], entry.id).toContain(entry.mark.kind);
     }
     // A unit wears its piece's badge class; a resource is drawn by the printer
-    // resources are always drawn by.
+    // resources are always drawn by; an Order wears the emblem it is dealt with.
     const swordsman = everyEntry().find((entry) => entry.id === 'unit:swordsman');
     expect(swordsman?.mark).toEqual({ kind: 'badge', badge: unitDef('swordsman').modelClass });
     const wheat = everyEntry().find((entry) => entry.id === 'resource:wheat');
     expect(wheat?.mark).toEqual({ kind: 'resource', resource: 'wheat' });
+    const spears = everyEntry().find((entry) => entry.id === 'order:dominionBloodedSpears');
+    expect(spears?.mark).toEqual({ kind: 'deck', deck: 'dominion' });
+    // The withdrawn row of the same name is a pre-rework card with no deck at
+    // all, and it wears the seal a card of nobody's deck wears.
+    const retired = everyEntry().find((entry) => entry.id === 'order:bloodedSpears');
+    expect(retired?.mark).toEqual({ kind: 'deck', deck: 'generic' });
   });
 });
 

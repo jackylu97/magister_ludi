@@ -159,19 +159,19 @@ export interface OfferOption {
    */
   payoff: string;
   /**
-   * **Small chips under the name** — the deck badge and the charter mark of
-   * the decks rework (D1a, finished in D1c): "Dominion", "Commerce" beside
-   * "Devotion", "Charter — takes no chair". One chip each, in the caller's
-   * order; absent or empty draws none, which is the honest face for a card of
-   * nobody's deck.
+   * **Small chips under the name** — the standing of the card, in the caller's
+   * own terms: "Rare", "Charter — takes no chair". One chip each, in the
+   * caller's order; absent or empty draws none.
    *
-   * A **label and an opaque tone**, exactly as `line` is and for exactly that
-   * reason: a chip wants its deck's ink, and which ink a deck wears is a thing
-   * `style.css` decides. The caller has already looked the word and the key up
-   * (`deckBadges.ts`); this component still knows nothing about decks and must
-   * not start guessing.
+   * A **label, an opaque tone and an optional mark**, and the tone is exactly
+   * what `line` is and for exactly that reason: a chip wants the ink of
+   * whatever it stands for, and which ink that is is a thing `style.css`
+   * decides. The mark is a single character set before the label and hidden
+   * from the reading — the caller has already chosen it, and this component
+   * still knows nothing about decks, rarity or charters and must not start
+   * guessing (`deckBadges.ts` is where all three live).
    */
-  badges?: readonly { label: string; tone?: string }[];
+  badges?: readonly { label: string; tone?: string; mark?: string }[];
   /** One line of flavour, set in the name face. */
   flavor: string;
   /**
@@ -1025,15 +1025,27 @@ export function createOfferCard(
       }
       button.append(element('span', 'offer-option-title', option.title));
       if (!tarot) button.append(element('span', 'offer-payoff', option.payoff));
-      // The deck badge and the charter mark (D1a), one chip each, under the
-      // name. Drawn only when the caller handed some over; the tone is set as a
-      // data attribute and inked by one block of `style.css`, the way the
-      // accent on the frame already is.
+      // The rarity and the charter mark (U1), one chip each, under the name.
+      // Drawn only when the caller handed some over; the tone is set as a data
+      // attribute and inked by one block of `style.css`, the way the accent on
+      // the frame already is.
       if (option.badges !== undefined && option.badges.length > 0) {
         const chips = element('span', 'offer-badges');
         for (const badge of option.badges) {
-          const chip = element('span', 'offer-badge', badge.label);
+          const chip = element('span', 'offer-badge');
           if (badge.tone !== undefined) chip.dataset.tone = badge.tone;
+          // The mark is set rather than written through the yield printer, for
+          // the votive plate's reason: a character here stands for the card's
+          // standing and must not be mistaken for a yield's glyph and swapped
+          // for a drawing of one. Hidden from the reading — the label beside it
+          // says the word out loud.
+          if (badge.mark !== undefined) {
+            const mark = element('span', 'offer-badge-mark');
+            mark.setAttribute('aria-hidden', 'true');
+            mark.textContent = badge.mark;
+            chip.append(mark);
+          }
+          chip.append(element('span', 'offer-badge-label', badge.label));
           chips.append(chip);
         }
         button.append(chips);
