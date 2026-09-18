@@ -158,7 +158,7 @@ This is the part that keeps a resource interesting after your army is built. It 
 | **Obsidian** | melee units +1 combat strength | **new shape** — `combatLine` is a card effect but not yet a resource one |
 | **Copper** | +1 gold in every city | **yes** — `perCityYields` |
 | **Horses** | faster movement along roads | **almost** — `rulePercent` exists but `ResourceRule` admits only three of the nine card rules; `roadStepCost` has to join it |
-| **Iron** | all units +10 health | **new shape** — see the question below |
+| **Iron** | fighting units +10 health, live | **new shape** — see below |
 | **Ivory** | +4 happiness | **yes** — `extraHappiness`, which is exactly what it pays as a luxury today |
 | **Camels** | +1 gold on every trade route | **yes** — `routeYields` |
 | **Niter** | +10% science, empire-wide | **yes** — `percentYields` |
@@ -171,21 +171,19 @@ Seven resources, seven jobs: obsidian makes you fight better, copper makes you r
 - **Horses' road rule.** `ResourceRule` is `Extract<CardRule, 'happinessDemand' | 'borderCost' | 'growthCarryover'>` — three of the nine. `roadStepCost` joins that list.
 - **Iron's health.** The largest of the three, and it needs a ruling first.
 
-#### Iron's +10 health — one question before it can be built
+#### Iron's +10 health — settled 2026-09-18
 
-The game already has a +10 health mechanism and it is a **creation stamp**: `UnitStamp.hp`, written when a piece is built, read by `unitMaxHp` as `roster maxHp + stamp`, and carried by the piece for life (it survives an upgrade — only the type changes). The War Hall does exactly this, and the design doc's Alloys technology proposes the same *"units subsequently trained gain +10 maximum health permanently"*.
+**A live bonus, on fighting units only.** While the empire controls at least one iron, every piece of its that can fight has +10 maximum health. Lose the last iron and the army loses it.
 
-So there are two readings of "all units +10 health", and they play differently:
+Live rather than a creation stamp, so that all seven bonuses obey one rule a player can guess instead of six obeying it and iron being an exception. The user, on why civilians are excluded: *"civilians are captured immediately when a different unit walks on it, so hp doesnt make sense for civilian units"* — which is right, and it is why `arriveOnTile` is the seam that takes a settler rather than `planCombat`. Health a piece can never spend is health that should not be printed on it.
 
-**(a) A creation stamp.** Units trained *while you hold iron* keep +10 for life, whether or not you keep the iron. Uses the mechanism that exists, matches the War Hall and Alloys, and has no awkward edges. It makes *when* you secure iron matter — an empire that holds iron early has a permanently tougher old guard. But it is not what "you gain this bonus for having at least one copy" says, and it would make iron the only one of the seven that is not live.
+**The test is `isCivilian`, not the category.** `isCivilian(def)` already exists and is documented as *"a civilian in combat terms — capturable, never a threat"*; it is `!isCombatant`, which is strength or range above nothing. Use it rather than `category === 'military'`, which would silently exclude all **fourteen naval units** — a ship fights, and a war galley is exactly the kind of thing an iron-rich empire should field a tougher version of. Barbarians are excluded, as they are from every empire reading.
 
-**(b) A live empire bonus.** While you hold iron, every unit you own has +10 maximum health; lose your last iron and the army loses it. Consistent with the other six, and simpler to state: *you have iron, your army is tougher.* Losing your only iron mine weakening your whole army is good drama, and close to the Civ 5 shortage feeling.
+**What it costs to build.** The existing +10 health mechanism is a creation stamp — `UnitStamp.hp`, written when a piece is built and read by `unitMaxHp` as `roster maxHp + stamp`, carried for life through upgrades. That is what the War Hall does, and what the design doc's Alloys technology proposes. A live bonus cannot use it, because a stamp is written once. So:
 
-The cost of (b) is real but bounded. `unitMaxHp(unit)` would have to consult the owning empire, so it takes the state — and its readers all change with it: the heal cap, the forecast's two bars, the upgrade's health fraction, and the renderer's hp bar. It also needs a rule for the moment the bonus goes away, since a piece at 110 of 110 would be over its new maximum. *Recommended clamp: current health drops to the new maximum, the way a signed stamp already floors at 1 — you lose the ten points, not a proportion.*
-
-*Recommendation: **(b)**, for consistency. Six live bonuses and one stamp would be a rule a player has to be told; seven live bonuses is a rule they can guess. But if the signature change looks like a bad trade when someone reads the call sites, (a) is a legitimate answer and it is the cheaper one.*
-
-**Also to settle: does "all units" include civilians?** A settler, worker or trader with +10 health is meaningfully harder to capture. *Recommended: yes — "all" is the simpler rule, and a tougher settler is a reasonable thing for an iron-rich empire to have. Barbarians are excluded, as they are from every empire reading.*
+- `unitMaxHp(unit)` gains the state and the owner, and **every reader changes with it**: the heal cap (`healUnits`, a rite, a pillage, a great person's act), both of the forecast's bars, the upgrade's health fraction in `tech.ts`, and the health bar the renderer draws. Its docblock already calls itself *the* maximum and lists those readers, so the list is known — it is a signature change on a hot helper, not a hunt.
+- **A clamp is needed for the moment the bonus goes**, since a piece at 110 of 110 would be over its new maximum. *Current health drops to the new maximum — you lose the ten points, not a proportion.* Where that clamp runs matters: it should be a comparison at the point of reading, in the spirit of "timed effects are comparisons, never countdowns", rather than a sweep that rewrites every unit the turn an iron mine is pillaged.
+- This is the one bonus of the seven that makes the **empire reading hot**: `unitMaxHp` is asked per piece per frame by the renderer. `hasResource` is memoised on the economy clock, which is the right clock for it — losing an iron mine is an economy event — so this should be cheap, but it wants measuring rather than assuming.
 
 **Five of the seven are one JSON row with no code at all.** A luxury's effect vocabulary (`ResourceEffect` in `src/sim/resourceData.ts`) already carries `perCityYields`, `improvementYields`, `routeYields`, `extraHappiness`, `productionBonus`, `percentYields`, `buildingCategoryYields`, `unitUpkeepRebate` and more — and it is deliberately the cards' vocabulary wherever the two mean the same thing. Only two bonuses need anything built:
 
