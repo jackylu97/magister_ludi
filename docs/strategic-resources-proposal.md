@@ -113,17 +113,18 @@ No new technology nodes. The lanes are your chart and adding nodes is a separate
 
 | Unit | Age | Needs today | Proposed |
 |---|---|---|---|
-| spearman | 1 | — | **obsidian or copper** |
-| phalanx | 2 | — | **obsidian or copper** |
+| spearman | 1 | — | no requirement |
+| phalanx, swordsman, khopesh | 2 | — | **obsidian or copper** |
 | chariot, chariot archer | 1 | horses | **horses or camels** |
 | horseman, horse archer | 3 | horses | **horses or camels** |
 | knight | 4 | horses | **horses or camels** |
-| camel archer *(Al-Ma'mun)* | — | — | **camels** |
-| eagle warrior *(Nezahualcoyotl)* | — | — | **obsidian** |
-| slinger *(Pachacuti)* | — | — | **obsidian** |
+| camel archer *(Al-Ma'mun)* | — | — | no requirement |
+| eagle warrior *(Nezahualcoyotl)* | — | — | no requirement |
+| slinger *(Pachacuti)* | — | — | no requirement |
 | the 6 mounted uniques | — | horses | **horses or camels** |
-| swordsman, legionary, longswordsman, khopesh | 2–4 | iron | unchanged |
+| legionary, longswordsman | 2–4 | iron | unchanged |
 | war elephant | 3 | ivory *(luxury)* | **ivory** *(now strategic)* |
+add: siege elephant, age 4, requires ivory. +6 attack towards cities. 2 movement, strong ranged attack.
 | fire lance | 4 | niter | unchanged |
 
 The two leader uniques that are currently ungated — the eagle warrior and the slinger — take the single resource rather than the pair, because a unique unit rewarding a specific start is the point of a unique unit.
@@ -137,12 +138,50 @@ Every strategic tile should be worth working before you need the resource.
 | Obsidian | — *(new)* | +2 production | mine | hills, and desert/tundra |
 | Copper | +1 production, +1 gold | unchanged | mine | hills (as today) |
 | Horses | +1 production | **+1 production, +1 food** | pasture | grassland, plains |
-| Camels | — *(new)* | +1 production, +1 gold | pasture | desert |
-| Iron | +1 production | unchanged | mine | as today |
+| Camels | — *(new)* | +1 production, +1 gold | camp | desert |
+| Iron | +1 production, +1 science | unchanged | mine | as today |
 | Ivory | +1 food, +1 production | unchanged | camp | plains |
 | Niter | +1 gold | **+1 production, +1 gold** | mine | as today |
 
 Horses gaining food reflects that a pasture feeds people, and makes an early horse tile worth settling toward for a reason other than war.
+
+### The empire bonus — one copy is enough
+
+**The user, 2026-09-18:** *"Each strategic should also have special effects, so that they're still useful throughout the game, players gain this bonus for having at least one copy, only applies once regardless of number of copies."*
+
+This is the part that keeps a resource interesting after your army is built. It also creates a good tension with consumption: **your first copy is for the bonus, every copy after it is for the army.** An empire down to its last iron has a real decision to make.
+
+| Resource | Bonus | Fit | Note |
+|---|---|---|---|
+| **Obsidian** | melee units +1 combat strength | **excellent** | Combat is flat points on one ledger, so this is a labelled strength line and nothing new. |
+| **Copper** | +1 production in every city | works | Scales with city count — see "what I would change" below. |
+| **Horses** | faster movement along roads | **excellent** | `roadStepCost` is already a card rule folded into `MoveProfile.roadStep`. Zero new code, and it stacks with Machinery correctly. |
+| **Iron** | +1 production on mines | good | Scales with mine count, which is a different axis from city count. |
+| **Ivory** | +1 happiness in every city | works, **but the number is wrong** | See below. |
+| **Niter** | +1 science on mines | works | Thematically the weakest, and it stacks with iron on the same tiles. |
+| **Camels** | *(none given)* | — | Seven resources, six bonuses. Needs one. |
+
+**The bonus reads controlled copies, not available ones.** If it read available copies, building an army would switch off your economy — commit your last iron to a swordsman and every mine in the empire loses a point of production. That is a perverse incentive and it would teach players not to build units, which is the opposite of the point. *Recommended: the bonus asks "do you control at least one", the same question `hasResource` already answers.*
+
+#### Where the numbers are off
+
+**Ivory.** A luxury pays **+4 happiness** once, empire-wide (`rules.meters.happiness.perUniqueLuxury`). *"+1 happiness in every city"* beats that at five cities and keeps growing. So promoting ivory out of the luxury pool would make it **stronger** than it is today, and uniquely scaling — the one resource whose bonus has no ceiling. *Recommended: **+4 happiness**, flat, which is exactly what ivory pays now. It keeps its job, changes its category, and does not quietly become the best resource in the game.*
+
+**Camels.** Needs a bonus, and the historical fit is trade. Three options: **+1 gold on every trade route**, **one extra trade route**, or **desert tiles +1 production**. *Recommended: the extra trade route — it is the only bonus in the list that opens a decision rather than adding a number, and it serves both leaders whose identity is desert commerce.*
+
+**Niter.** Science on mines is a stretch — saltpetre is not a learning material — and it lands on the same tiles as iron's bonus, so a hill empire double-dips. *Alternative: **+25% production toward siege and gunpowder units**, which is the same story told forward, or simply +1 production on mines to match iron.*
+
+#### Two things that apply to the whole list
+
+**Four of the six scale with empire size** (copper and ivory per city, iron and niter per mine). That is the pattern the user named at the start of this work — *"it kind of plays like i'm stacking bonuses that supplement what i'm already doing"*. Only obsidian and horses are qualitative. Worth deciding deliberately rather than by accident.
+
+**All six decay.** The user, on age 4 card yields: *"flat bonuses are inconsequential in that age… they either need to be massive flat bonuses or percentages."* The same is true here. +1 production per city is large on turn 30 and invisible on turn 200. Three ways out, and one should be picked:
+
+1. **Scale with age** — the bonus is +1 per age reached, so copper pays +1 early and +4 late.
+2. **Make the late resources' bonuses percentages** — niter gives +10% science rather than +1 on mines.
+3. **Accept the decay as intended** — an early resource is an early advantage, and niter's late arrival is what keeps it relevant. This is defensible, and it is the least work.
+
+*Recommended: option 1 for the two age-1 economic bonuses (copper, ivory) and option 3 for everything else. Obsidian's +1 strength and horses' road speed both stay meaningful late without scaling, because combat strength and movement are not inflated by the same curve yields are.*
 
 ---
 
@@ -192,25 +231,53 @@ Obsidian and camels need candidate lists, the strategic purse needs retuning (se
 
 ---
 
-## 5. The density problem
+## 5. How many, and in what proportions
 
-**Adding kinds to the strategic purse makes every existing kind rarer**, because the purse is split between kinds by frequency weight. This is arithmetic, not opinion:
+**The user, 2026-09-18:** *"we should massively up the number of total strategics. Also, each resource should take up a ratio of the total pool, i think there should be reduced quantitites of resources that appear later in the game. Camels should also be more rare than horses (historically true) and obsidian should be somewhat rare."*
+
+The mechanism for the ratio already exists and is exactly right: the strategic purse (`strategicPer1000LandTiles`) is split between kinds by each row's `frequency` weight. So `frequency` **is** the share of the pool. Nothing needs building; the numbers need setting.
+
+### Why the purse has to rise a long way
+
+Splitting a fixed purse seven ways makes everything rarer:
 
 - Today: budget 22 tiles per 1000 land tiles, weights totalling 29 (horses 11, iron 11, niter 7). Horses get 22 × 11/29 = **8.3 per 1000**.
-- With seven kinds at comparable weights (roughly 65 total), horses get 22 × 11/65 = **3.7 per 1000**. Less than half.
+- Seven kinds at the same budget: horses get roughly **3.7 per 1000**. Less than half.
 
-A standard map is 80×52 with roughly 1,400 land tiles, so today there are about **31 strategic tiles on the entire map**, shared by every empire on it. Under seven kinds at the current budget there would be the same 31, cut seven ways.
+A standard map is 80×52 with about 1,400 land tiles, so today there are roughly **31 strategic tiles on the entire map**, shared by every empire on it. That is already thin for a boolean gate, and it is far too thin for a model where copies are spent.
 
-So `strategicPer1000LandTiles` has to rise to roughly **50** just to hold the current per-kind density — and that is before asking whether the current density is right under a model where copies are consumed.
+### Proposed: purse 60, weights as a share of 100
 
-Two dials, and they interact:
+| Resource | Age | Share | Per 1000 land | Standard map | Today |
+|---|---|---|---|---|---|
+| **Horses** | 1 | 22 | 13.2 | ~18 | ~12 |
+| **Copper** | 1 | 20 | 12.0 | ~17 | — |
+| **Obsidian** | 1 | 13 | 7.8 | ~11 | — |
+| **Camels** | 1 | 10 | 6.0 | ~8 | — |
+| **Iron** | 2 | 15 | 9.0 | ~13 | ~12 |
+| **Ivory** | 2 | 12 | 7.2 | ~10 | — |
+| **Niter** | 4 | 8 | 4.8 | ~7 | ~7 |
+| **Total** | | **100** | **60** | **~84** | ~31 |
 
-- **The purse** decides how many tiles exist, and so how contested the map is. More tiles means fewer wars over the last iron hill.
-- **`copiesPerSource`** decides how large an army one seam supports. Higher means the same map supports bigger armies without more conflict.
+Weights are written as a share of 100 so the ratio is readable straight off the row. The purse nearly triples, and the map carries **about 84 strategic tiles instead of 31**.
 
-My recommendation: raise the purse to hold current per-kind density, and use `copiesPerSource` as the army-size dial. That keeps map contest roughly where it is and makes army size a number we can tune without changing anyone's mental picture of the map.
+Against the user's three constraints:
 
-**This wants measurement, not reasoning.** Build it with the numbers above, then measure in the arena: standard map, six empires, turn 100 — how many mounted units does a typical empire field, and how often is a build refused for want of a copy?
+- **Camels rarer than horses** — 10 against 22, so a camel seam is worth better than twice a horse herd.
+- **Obsidian somewhat rare** — 13, below both age-1 mainstays and above camels.
+- **Later is scarcer** — by cohort: **age 1 holds 65 of the 100**, age 2 holds 27, age 4 holds 8.
+
+### One tension worth naming
+
+"Later is scarcer" and "camels and obsidian are rare" pull against each other. Iron is age 2 but it is a mainline resource gating the whole sword ladder, so at share 15 it sits *above* obsidian (13) and camels (10), which are age 1. Strictly read, later should be below everything earlier.
+
+I have read the rule as applying to **the age cohort as a whole** — each age gets a smaller slice of the map than the one before — with rarity *within* a cohort set by how historically common the thing was and how much work it does. If you meant it strictly per resource, obsidian and camels have to rise above iron, which makes the two rare resources common and defeats the other half of the instruction. *Flagging rather than choosing.*
+
+### The other dial
+
+`copiesPerSource` decides how large an army one seam supports, and it is the right place to compensate for rarity. A camel seam at 10 share but 4 copies per source is worth roughly as much *army* as a horse herd at 22 share and 3 copies — while still being a rarer and more valuable thing to find, to defend, and to trade for.
+
+**This wants measurement, not reasoning.** Build it with these numbers, then measure in the arena: standard map, six empires, turn 100 — how many mounted units does a typical empire field, how often is a build refused for want of a copy, and how many empires are missing an entire role.
 
 ---
 
@@ -218,34 +285,34 @@ My recommendation: raise the purse to hold current per-kind density, and use `co
 
 **1. Does ivory stop being a luxury?** A resource row has one `kind`. Making ivory strategic takes it out of the luxury pool, which is one fewer happiness source and one fewer thing to trade for happiness. The alternative is letting a row be both, which is a schema change and a new question for every luxury effect.
 
-*I recommend it becomes purely strategic. "Make ivory a military requirement" is what the parked note says, and a resource that is both would need a rule for what a war elephant does to your happiness.*
+ivory just a strategic
 
 **2. Pairs, or one resource per unit?** Section 3 proposes obsidian-or-copper and horses-or-camels. The alternative is that each gates its own units: obsidian for the eagle warrior and slinger only, camels for the camel archer only.
 
-*I recommend the pairs. Without them, obsidian and camels each serve one leader's unique unit, which is not worth a slot in the map budget — and the pairing is what stops an early start roll from deciding a game.*
+yes, keep the _ or _ scheme. unique units should not require strategic resources.
 
 **3. What happens when you lose a copy you were using?** Pillage a mine, lose a city, or have a deal expire, and you have four horsemen and three copies.
 
 - **(a) Nothing happens to the units.** You cannot build or upgrade more until you are back in the black. No new state, no new rule.
 - **(b) Civ 5's answer.** Surplus units are unsupplied and take a combat penalty until it clears. It fits — combat is flat points on one ledger, so it is one labelled negative line — but it needs a deterministic rule for *which* units are unsupplied (newest first, by unit id).
 
-*I recommend (a) first, with (b) as a later addition if the model feels toothless.*
+let's go with a.
 
 **4. May you trade away a copy you are using?** Today a deal can promise any controlled copy.
 
-*I recommend a deal may only promise available copies. Otherwise every deal is a potential army-breaker, and the alternative is answering question 3 again.*
+yes, only trade away available copies.
 
 **5. Does a unit in the production queue reserve a copy?** If not, you can queue four horsemen on three copies and the fourth is refused on completion, wasting the production.
 
-*I recommend yes — reserve on queueing, so the refusal happens when you press the button rather than ten turns later.*
+yes, reserve on queueing.
 
 **6. Do free units consume a copy?** Cards, ruins and completion grants hand out units. A free knight that needs no horse is a card that dodges the system.
 
-*I recommend yes, and the grant simply fails to arrive if you have no copy — `done: false` is already a real outcome for a completion grant.*
+free units do not require a copy.
 
 **7. Should the spearman be gated at all?** It is the first real defensive unit. Even with the obsidian/copper pair, a start with neither is a start in trouble.
 
-*I recommend gating it, because the pair plus a start guarantee (section 7) makes "neither" close to impossible — but if you want age 1 left entirely free, gate the phalanx instead and let the spearman be the unit anyone can always build.*
+no gating spearmen.
 
 ---
 
