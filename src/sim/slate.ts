@@ -145,13 +145,19 @@
  *     unless the function it is in announces (or is excused by name, with the
  *     reason). A new unannounced write fails core the day it is written.
  *   · **Only two tenants can be asked mid-write, and it is the module graph that
- *     says so.** `meterEffects` and `controlledHoldings` are asked from inside
- *     the simulation; `readCity`, `readEmpire` and `readEmpirePercents` live in
- *     `readings.ts`, which **no module in `src/sim` imports** — it cannot,
- *     without the runtime cycle `test/mapgen/moduleCycles.test.ts` gates. So the
- *     three readings above are only ever asked at rest, where the command's and
- *     the phase's own bump has always answered for them; the register carries
- *     that argument and the cycle test keeps it true.
+ *     mostly says so.** `meterEffects` and `controlledHoldings` are asked from
+ *     inside the simulation. `readCity`, `readEmpire` and `readEmpirePercents`
+ *     live in `readings.ts`, which almost nothing in `src/sim` may import —
+ *     that is the runtime cycle `test/mapgen/moduleCycles.test.ts` gates — and
+ *     the three modules that do are named and argued rather than assumed:
+ *     `cardImpact.ts` (a reading for a card face, above the reducer and imported
+ *     back by nothing), `ledgerFold.ts` and `wagers.ts`. The last two are each
+ *     asked from inside a *phase* — `recordDeckTally` at the head of
+ *     `collectYields`, `turnReadings` at the head of `wagers` — and both are
+ *     asked **before that phase writes anything**, which is what keeps the
+ *     argument rather than bending it. The register test pins the list of
+ *     importers exactly, so a fourth is a decision somebody has to make on
+ *     purpose.
  *   · **The command's and the phase's bumps stay** — conservative, and one
  *     integer compare each. A write that announces twice costs a walk; a write
  *     that announces not at all is a wrong answer, so the direction of every
@@ -166,6 +172,31 @@
  * A caller that pokes the state by hand — a bench, a fixture — is a writer and
  * calls `bumpRevision` the way a command does. That was already the contract
  * (`GameState.revision`); this file is the first tenant that can tell.
+ *
+ * ---
+ *
+ * **Batch R1: a sixth tenant, and it is not on the slate.**
+ *
+ * The card evaluator's law (`liveEffects`, `statecraft/evaluator.ts`) keeps a
+ * memo of its own — it has to, it sits below this file's tenants and they fold
+ * it — and until R1 that memo was keyed on `GameState.revision` alone. The
+ * revision is raised **after** a handler and **after** a phase, so inside either
+ * one the counter still names the world as it was on the way in: a handler that
+ * changed the law and then read it in the same call got whatever had been
+ * remembered under that stamp, which is the pre-command law if a reader had
+ * asked a moment earlier and the fresh one if nobody had. A played game (the
+ * bot's appraisal asks every turn) and a replay of its own log (nothing asks)
+ * therefore parted — `settleBeliefChoice` re-seats a town off the law it has
+ * just changed, and the two boards seated it differently.
+ *
+ * It is keyed on `economyStamp` beside the revision now, which is to say it
+ * subscribes to the counter this file already moves at the mutation. Nothing
+ * here changed for it: the fields the register governs are, field for field, the
+ * eleven sources of that walk, because the walk the register was derived from
+ * (`meterEffects`) folds it. The lesson for the next such memo is the one M3
+ * already taught and R1 paid for twice: **a cache keyed on a counter raised
+ * after the fact is an input**, and the only safe counter is the one the write
+ * itself moves.
  */
 
 import type { GameState } from './state';
@@ -270,6 +301,12 @@ export function setSlatePhase(name: string): void {
  * reading, so nothing but a test may switch it on. It is a module flag rather
  * than a field for `epoch`'s reason exactly — the state is stringified into
  * every save hash.
+ *
+ * **The law reads this flag too** (batch R1): `liveReading`
+ * (`statecraft/evaluator.ts`) is a subscriber to the economy clock now, so it is
+ * a subscriber to the proof as well, and `shadowCheckLaw` disbelieves a hit the
+ * way `shadowCheck` below does. It earned its place on the first run: it found a
+ * charter counting its chairs off the law of the charter it had just replaced.
  */
 let shadow = false;
 

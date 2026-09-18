@@ -3,7 +3,7 @@
  * that filters its walk.
  *
  * `liveEffects` is the walk: the eleven sources a seat's law comes out of, folded
- * once and remembered on `state.revision` (`liveReading`). Every reader below
+ * once and remembered on the board's two clocks (`liveReading`). Every reader below
  * filters it and returns a **labelled list**; every consumer folds that list
  * into a breakdown it already had — rule 5 read at the scale of a card. Nothing
  * outside this file switches on `effect.kind`, which is the claim CLAUDE.md
@@ -92,6 +92,7 @@ import { cityRite } from '../religion';
 import { settleRenownWindfall } from '../renown';
 import { type CityYieldKey, type ResourceKind, resourceDef, resourceYield } from '../resourceData';
 import { nextFloat } from '../rng';
+import { economyStamp, slateShadow } from '../slate';
 import { connectedCities } from '../roads';
 // A leaf, exactly as `roads.ts` beside it is, and it became one so this line
 // could exist: `routeEndsHere` asks whether a caravan's road still describes the
@@ -445,15 +446,45 @@ interface LiveReading {
 }
 
 /**
- * One board's remembered law, thrown away whole the moment the revision moves.
+ * One board's remembered law, thrown away whole the moment **either clock**
+ * moves.
  *
  * Keyed `playerId * 2 + cut`, because there are two readings of one seat and
  * they differ: at `conditionDepth > 0` every gated clause contributes nothing
  * (the module docblock's cut), so an empire being *asked about* has a shorter
  * law than the same empire being paid. Two slots, never mixed.
+ *
+ * **Two stamps, and the second one is batch R1's whole fix.** The revision is
+ * raised by `applyCommand` *after* the handler and by the phase loop *after* the
+ * phase, so inside a handler the counter still names the world as it was on the
+ * way in. A handler that changes the law and then reads it in the same call
+ * therefore reads whatever was remembered under that stamp — which is nothing at
+ * all if nobody asked before the command, and the pre-command law if somebody
+ * did. That is a reading that depends on **who was watching**, and a live game
+ * (where the bot's appraisal warms the memo every turn) and a replay of its own
+ * log (where nothing asks) parted over it: `settleBeliefChoice` re-seats a
+ * town's citizens off the law it just changed, and the two boards seated them
+ * differently. See `forgetTheLaw` for the seams that were being patched by hand.
+ *
+ * The economy stamp (`slate.ts`, "The two clocks") is the counter batch M3 moved
+ * **to the mutation**: every write that changes what an empire-wide walk folds
+ * announces itself on the line it happens, and `test/sim/slateRegister.test.ts`
+ * fails the day one forgets. The list of fields that register governs is, field
+ * for field, the eleven sources of this walk — because the walk it was derived
+ * from is `meterEffects`, and `meterEffects` folds this one. So keying the law on
+ * it is not a new promise: it is this memo finally subscribing to the promise the
+ * simulation already keeps, and every future seam that changes the law inherits
+ * it without a register of its own.
+ *
+ * The revision stays beside it and is not redundant. The economy clock is the
+ * *coarser* of the two at command granularity — `bumpPiecesOnly` moves the
+ * revision alone — so dropping it would be a weakening. Either counter moving
+ * throws the law away, which is strictly more conservative than what stood here
+ * before.
  */
 interface LiveSlate {
   revision: number;
+  economy: number;
   bySeat: Map<number, LiveReading>;
 }
 
@@ -493,10 +524,19 @@ const LIVE_MEMO = new WeakMap<GameState, LiveSlate>();
  * **Why it is gone.** Batch E2 gave the simulation the announcement it lacked:
  * `GameState.revision`, raised by `applyCommand` after every accepted command
  * and once by `runEndOfTurn` after each phase — the two ways the world moves at
- * all. So the key is `(state identity, state.revision, seat)`, the same two
+ * all. So the key is `(state identity, the clocks, seat)`, the same handful of
  * integers and one object every other memo in the game uses (`readings.ts`,
  * `cardImpactSheet`, the Reliquary), and the gates come free: a meter that moved
- * moved because the board moved, and a board that moved raised the revision.
+ * moved because the board moved, and a board that moved raised a counter.
+ *
+ * **Which counters, and batch R1's correction.** The revision alone was not
+ * enough, and the reason is the sentence below with its exception taken
+ * seriously: the revision is raised *after* a handler and *after* a phase, so
+ * a handler that changes the law and reads it again — `settleBeliefChoice`
+ * re-seating a town off the god it has just pushed — is asking *inside* the
+ * window, where the counter has not moved and whatever a reader left behind is
+ * what it gets. The economy stamp is keyed beside it now (`LiveSlate`,
+ * `slate.ts`), because that is the counter batch M3 moved to the mutation.
  *
  * **The contract, stated once and stated here.** *A reading is taken at rest;
  * whoever moves the state moves the revision.* Inside a command handler or
@@ -507,17 +547,63 @@ const LIVE_MEMO = new WeakMap<GameState, LiveSlate>();
  * exists.
  */
 function liveReading(state: GameState, playerId: number): LiveReading {
+  // **Both stamps, and either one moving is the whole slate** (batch R1; the
+  // argument is on `LiveSlate`). The revision answers for a reader at rest; the
+  // economy stamp answers for a writer mid-handler, which is where the law can
+  // change under an ask that is about to be made three lines later.
+  const economy = economyStamp(state);
   let slate = LIVE_MEMO.get(state);
-  if (slate === undefined || slate.revision !== state.revision) {
-    slate = { revision: state.revision, bySeat: new Map<number, LiveReading>() };
+  if (slate === undefined || slate.revision !== state.revision || slate.economy !== economy) {
+    slate = { revision: state.revision, economy, bySeat: new Map<number, LiveReading>() };
     LIVE_MEMO.set(state, slate);
   }
   const key = playerId * 2 + (conditionDepth > 0 ? 1 : 0);
   const held = slate.bySeat.get(key);
-  if (held !== undefined) return held;
+  if (held !== undefined) {
+    if (slateShadow()) shadowCheckLaw(state, playerId, held);
+    return held;
+  }
   const fresh: LiveReading = { list: buildLiveEffects(state, playerId), byKind: new Map() };
   slate.bySeat.set(key, fresh);
   return fresh;
+}
+
+/**
+ * **The hit, disbelieved** — the slate's `shadowCheck` for the law, and the
+ * proof batch R1's fix leans on.
+ *
+ * The fix is only as good as the claim underneath it: *every write that changes
+ * this walk announces itself on the line it happens*. That claim is not new —
+ * it is batch M3's, and `test/sim/slateRegister.test.ts` reads the sources for
+ * it — but until R1 the law was not a subscriber, so no shadow run had ever
+ * tested it. It is one now, on exactly the slate's terms: switched by the same
+ * `setSlateShadow`, off by default, never in data, and paid for only by the
+ * proof run (`test/slateShadow.ts`).
+ *
+ * **One rebuild at most, and the flag is why.** `buildLiveEffects` evaluates the
+ * gated clauses, and a gate asks the law again at `conditionDepth > 0`; without
+ * a guard every one of those asks would disbelieve itself in turn and the check
+ * would cost the walk raised to the depth of the deepest condition. The
+ * outermost ask is the only one that recomputes.
+ */
+let lawShadowing = false;
+
+function shadowCheckLaw(state: GameState, playerId: number, held: LiveReading): void {
+  if (lawShadowing) return;
+  lawShadowing = true;
+  let now: string;
+  try {
+    now = JSON.stringify(buildLiveEffects(state, playerId));
+  } finally {
+    lawShadowing = false;
+  }
+  const remembered = JSON.stringify(held.list);
+  if (remembered === now) return;
+  throw new Error(
+    `law shadow: seat ${playerId}'s law is stale at turn ${state.turn}` +
+      `\n  remembered: ${remembered.slice(0, 400)}` +
+      `\n  fresh:      ${now.slice(0, 400)}`,
+  );
 }
 
 /**
@@ -556,9 +642,22 @@ function liveReading(state: GameState, playerId: number): LiveReading {
  *     the chairs being rebuilt, so the slate warmed there must not outlive the
  *     rebuild.
  *
- * A new seam that changes a seat's holdings and then reads them **in the same
- * call** joins this register. One that merely changes them needs nothing: the
- * command or the phase it sits in announces it on the way out.
+ * **Batch R1 took the register's job away from it, and the register stays.**
+ * Every seam above was a hand-kept patch for one hole: the memo was keyed on
+ * `GameState.revision`, which is raised *after* a handler and *after* a phase,
+ * so a handler that changed the law and read it again was reading whatever a
+ * reader at rest had happened to leave behind. The list was found incomplete
+ * twice — three seams by the replay test, then `settleBeliefChoice` by it again
+ * (batch R1), which re-seats a town off the god it has just pushed. The law is
+ * keyed on the **economy stamp** now as well (see `LiveSlate`), so every write
+ * that changes it announces on the line it happens and a new seam inherits the
+ * drop without joining anything.
+ *
+ * These calls are therefore belt and braces rather than the mechanism, and they
+ * stay for two reasons: each is correct, each costs one `WeakMap.delete`, and a
+ * seam that says out loud "the law I am about to read is the one I just changed"
+ * is a sentence the next reader is better off for. A new seam of that kind is
+ * welcome here and no longer *owed* here.
  */
 export function forgetTheLaw(state: GameState): void {
   LIVE_MEMO.delete(state);
