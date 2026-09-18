@@ -55,6 +55,7 @@ import { bumpEconomy } from '../../src/sim/slate';
 import {
   type GameState,
   type Unit,
+  bumpRevision,
   createUnit,
   newGame,
   removeUnit,
@@ -372,7 +373,12 @@ describe('a queued row reserves its copy', () => {
 
   it('refuses a purchase past the last copy, and allows one inside it', () => {
     const { state } = ironBench(1);
+    // Poking the treasury by hand is a hand mutation, so it announces itself —
+    // `benches.test.ts` keeps the register, and the reason is this file's own
+    // subject: a reading taken against a board somebody moved in silence is a
+    // reading of the board as it was.
     state.players[0]!.gold = 100000;
+    bumpRevision(state);
     // A purchase is a *new* piece and holds nothing yet, so it is gated on a
     // spare copy exactly as a queue row is — `purchaseError` asks `buildError`.
     expect(buildError(state, 0, 'unit', 'longswordsman')).toBeNull();
