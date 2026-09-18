@@ -151,25 +151,75 @@ Horses gaining food reflects that a pasture feeds people, and makes an early hor
 
 This is the part that keeps a resource interesting after your army is built. It also creates a good tension with consumption: **your first copy is for the bonus, every copy after it is for the army.** An empire down to its last iron has a real decision to make.
 
-| Resource | Bonus | Fit | Note |
-|---|---|---|---|
-| **Obsidian** | melee units +1 combat strength | **excellent** | Combat is flat points on one ledger, so this is a labelled strength line and nothing new. |
-| **Copper** | +1 production in every city | works | Scales with city count — see "what I would change" below. |
-| **Horses** | faster movement along roads | **excellent** | `roadStepCost` is already a card rule folded into `MoveProfile.roadStep`. Zero new code, and it stacks with Machinery correctly. |
-| **Iron** | +1 production on mines | good | Scales with mine count, which is a different axis from city count. |
-| **Ivory** | +1 happiness in every city | works, **but the number is wrong** | See below. |
-| **Niter** | +1 science on mines | works | Thematically the weakest, and it stacks with iron on the same tiles. |
-| **Camels** | *(none given)* | — | Seven resources, six bonuses. Needs one. |
+| Resource | Bonus | Already expressible? |
+|---|---|---|
+| **Obsidian** | melee units +1 combat strength | **new shape** — `combatLine` is a card effect but not yet a resource one |
+| **Copper** | +1 production in every city | **yes** — `perCityYields` |
+| **Horses** | faster movement along roads | **almost** — `rulePercent` exists but `ResourceRule` admits only three of the nine card rules; `roadStepCost` has to join it |
+| **Iron** | +1 production on mines | **yes** — `improvementYields` |
+| **Ivory** | **+4 happiness** *(settled 2026-09-18)* | **yes** — `extraHappiness`, which is exactly what it pays as a luxury today |
+| **Niter** | +1 science on mines | **yes** — `improvementYields` |
+| **Camels** | **+1 gold on every trade route** *(settled 2026-09-18)* | **yes** — `routeYields` |
+
+**Five of the seven are one JSON row with no code at all.** A luxury's effect vocabulary (`ResourceEffect` in `src/sim/resourceData.ts`) already carries `perCityYields`, `improvementYields`, `routeYields`, `extraHappiness`, `productionBonus`, `percentYields`, `buildingCategoryYields`, `unitUpkeepRebate` and more — and it is deliberately the cards' vocabulary wherever the two mean the same thing. Only two bonuses need anything built:
+
+- **Obsidian's combat line.** `combatLine` is a card shape; adding it to `ResourceEffect` is the smaller half of the work, and one evaluator reads the whole vocabulary.
+- **Horses' road rule.** `ResourceRule` is `Extract<CardRule, 'happinessDemand' | 'borderCost' | 'growthCarryover'>` — three of the nine. `roadStepCost` joins that list.
+
+Both are additions to a union that already exists, not new systems. That is worth knowing before choosing between the alternatives below: **a bonus that fits the vocabulary costs a data row; one that does not costs a batch.**
 
 **The bonus reads controlled copies, not available ones.** If it read available copies, building an army would switch off your economy — commit your last iron to a swordsman and every mine in the empire loses a point of production. That is a perverse incentive and it would teach players not to build units, which is the opposite of the point. *Recommended: the bonus asks "do you control at least one", the same question `hasResource` already answers.*
 
-#### Where the numbers are off
+#### Settled 2026-09-18
 
-**Ivory.** A luxury pays **+4 happiness** once, empire-wide (`rules.meters.happiness.perUniqueLuxury`). *"+1 happiness in every city"* beats that at five cities and keeps growing. So promoting ivory out of the luxury pool would make it **stronger** than it is today, and uniquely scaling — the one resource whose bonus has no ceiling. *Recommended: **+4 happiness**, flat, which is exactly what ivory pays now. It keeps its job, changes its category, and does not quietly become the best resource in the game.*
+**Ivory is +4 happiness**, flat and empire-wide. That is exactly what ivory pays as a luxury today (`rules.meters.happiness.perUniqueLuxury`), so it keeps its job and changes only its category. The rejected version — +1 per city — beat +4 at five cities and kept growing, which would have made promoting ivory a straight upgrade and given it the only bonus in the set with no ceiling.
 
-**Camels.** Needs a bonus, and the historical fit is trade. Three options: **+1 gold on every trade route**, **one extra trade route**, or **desert tiles +1 production**. *Recommended: the extra trade route — it is the only bonus in the list that opens a decision rather than adding a number, and it serves both leaders whose identity is desert commerce.*
+**Camels are +1 gold on every trade route.** One `routeYields` row, and the historical fit is exact: the camel caravan *is* the overland route.
 
-**Niter.** Science on mines is a stretch — saltpetre is not a learning material — and it lands on the same tiles as iron's bonus, so a hill empire double-dips. *Alternative: **+25% production toward siege and gunpowder units**, which is the same story told forward, or simply +1 production on mines to match iron.*
+#### Alternatives for iron, copper and niter
+
+Each option below says what it is historically, and what it would cost to build. "**One row**" means the vocabulary already carries it.
+
+**Iron.** The real historical impact of iron was agricultural before it was military — iron ploughshares broke heavy northern soils that bronze could not.
+
+| Option | The history | Cost |
+|---|---|---|
+| +1 production on mines *(current)* | Iron tools cut rock faster | one row |
+| **+1 food on farms** | The iron ploughshare — the change that actually fed Europe | one row |
+| −25% unit upkeep | Standardised equipment made armies cheap to keep, which is why iron-age states fielded bigger ones | one row (`unitUpkeepRebate`) |
+| +15% production toward units | Arsenals and armouries | one row (`productionBonus`) |
+| Melee units +10 max health | Iron scale and mail | **new shape** (`unitStamp`) |
+| +1 production in cities with a Smithy or Forge | The smith's quarter | one row (`buildingCategoryYields`) |
+
+*My pick: **+1 food on farms**. It is the most historically true of the six, it is the least expected, and it puts iron on a different axis from every other bonus in the set — iron makes you grow rather than making you stronger, which is a more interesting reason to want it than "more production".*
+
+**Copper.** Copper was the first worked metal, but its longest-running role was money: copper coin was the everyday currency of almost every premodern economy, while silver and gold were for the state.
+
+| Option | The history | Cost |
+|---|---|---|
+| +1 production in every city *(current)* | Bronze-age tooling | one row |
+| **+1 gold in every city** | Copper coinage — the small change of the ancient world | one row |
+| +10% production toward buildings | Bronze saws, chisels and drills built things | one row |
+| +1 production on mines and quarries | The extraction economy | two rows |
+| +1 faith in cities with a Shrine or Temple | Ritual bronze — the Shang vessels, the temple bells | one row |
+| +2 culture in the capital | Bronze casting as the first monumental art | needs `pays` widened beyond empire-flat |
+
+*My pick: **+1 gold in every city**. It is more historically true than production, and it separates copper from iron — under the current list both are "a bit more production", which makes them feel like the same resource twice.*
+
+**Niter.** Saltpetre is the one where the obvious story and the true story diverge most. It is the oxidiser in gunpowder, but saltpetre beds were also a fertiliser and a curing salt, and the search for it is what drove early chemistry.
+
+| Option | The history | Cost |
+|---|---|---|
+| +1 science on mines *(current)* | The alchemists' search for it became chemistry | one row |
+| **+10% science empire-wide** | The same story as a rate rather than a flat — and a rate does not decay | one row (`percentYields`) |
+| +1 food on farms | Saltpetre beds as fertiliser | one row *(collides with the iron option above)* |
+| +2 production on mines | Blasting powder in the workings | one row |
+| +25% production toward siege and gunpowder units | The obvious military reading | **needs a narrower category** than `ProductionCategory` has |
+| Cities +5 strength | Powder artillery on the walls | **new shape** (`cityStat`) |
+
+*My pick: **+10% science empire-wide**. It tells the true story — niter is why chemistry happened — and it is the one bonus in the whole set that answers the decay problem, because a percentage of a late-game science total is large exactly when a flat +1 has become invisible. It also stops niter and iron paying on the same tiles.*
+
+**If all three picks are taken**, the set reads: obsidian makes you fight better, copper makes you rich, horses make you fast, iron makes you grow, ivory makes you content, camels make you trade, niter makes you learn. Seven resources, seven different jobs, and only one of them is production.
 
 #### Two things that apply to the whole list
 
