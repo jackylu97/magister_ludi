@@ -361,9 +361,13 @@ import {
   isRanged,
   trades,
   unitDef,
+  unitHp,
   unitMaxHp,
   unitStampStrength,
 } from './unitData';
+// The empire's live share of a piece's maximum health, and the strength lines a
+// strategic resource puts on a fight. Both are batch R2's.
+import { resourceCombatLines, unitHealthBonus } from './resourceEffects';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { improvementDef } from './improvementData';
 import { awardBeadOccasion } from './beads';
@@ -1778,8 +1782,12 @@ function planCombat(
         ? isBarbarian(state, defenderOwnerId)
         : !isBarbarian(state, defenderOwnerId) && isBarbarian(state, attacker.ownerId),
     vsCity: target.city !== null,
-    targetHp: target.city ? target.city.hp : target.unit!.hp,
-    targetMaxHp: target.city ? cityMaxHp(target.city) : unitMaxHp(target.unit!),
+    targetHp: target.city
+      ? target.city.hp
+      : unitHp(target.unit!, unitHealthBonus(state, target.unit!.ownerId)),
+    targetMaxHp: target.city
+      ? cityMaxHp(target.city)
+      : unitMaxHp(target.unit!, unitHealthBonus(state, target.unit!.ownerId)),
     // **The piece on the other side**, whichever side is asking — Lautaro's "+3
     // vs mounted". Absent when the thing opposite is a city, which has no
     // silhouette, so a `vsClass` line simply does not pay against walls.
@@ -1805,6 +1813,23 @@ function planCombat(
   }
   if (target.unit) {
     for (const line of cardCombatLines(state, situationFor(target.unit, 'defender'))) {
+      bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
+    }
+  }
+  /**
+   * The empire's **resources**, both sides — obsidian's point on melee.
+   *
+   * The cards' clause one table over and read by the same function
+   * (`combatLineAmount`), so a strength line means the same thing whichever row
+   * declares it. It lands in the same `bonuses` list, is counted into the same
+   * two strengths and is itemised on the same forecast card, which is what keeps
+   * a player able to see where every point came from.
+   */
+  for (const line of resourceCombatLines(state, situationFor(attacker, 'attacker'))) {
+    bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
+  }
+  if (target.unit) {
+    for (const line of resourceCombatLines(state, situationFor(target.unit, 'defender'))) {
       bonuses.push({ source: line.source, side: 'defender', amount: line.amount });
     }
   }
@@ -2044,10 +2069,13 @@ function planCombat(
       defenderLines.push({ source: 'Fortified', amount: defenderFortify });
     }
     defenderName = defenderDef.name;
-    defenderHp = defenderUnit.hp;
-    // The **piece's** maximum, stamp and all, so the bar a player reads is the
-    // bar the heal cap fills. See `unitMaxHp`.
-    defenderMaxHp = unitMaxHp(defenderUnit);
+    // The **piece's** maximum, stamp, empire and all, so the bar a player reads
+    // is the bar the heal cap fills. See `unitMaxHp`. The health is read through
+    // `unitHp` for the same reason: an empire that has just lost its last iron
+    // has pieces standing above a maximum that shrank under them, and the
+    // forecast must show what the fight will actually use.
+    defenderMaxHp = unitMaxHp(defenderUnit, unitHealthBonus(state, defenderUnit.ownerId));
+    defenderHp = unitHp(defenderUnit, unitHealthBonus(state, defenderUnit.ownerId));
   }
 
   // The flat lines join **last** on the defender's side, and after the branch so
@@ -2236,8 +2264,13 @@ function planCombat(
    */
   const defenderCanDie = target.unit !== null && dealt(1 + band) >= defenderHp - defenderFloor;
   const attackerFloor = defenderCanDie ? 1 : 0;
+  // What the attacker actually brings, clamped against its own maximum — see
+  // `unitHp`. A column standing above a maximum that shrank under it (the empire
+  // lost its last iron) fights on the lower figure, and the forecast has to say
+  // so or the bar and the blow disagree.
+  const attackerHp = unitHp(attacker, unitHealthBonus(state, attacker.ownerId));
   const taken = (roll: number): number =>
-    clampDamage(damageAtRoll(baseToAttacker, roll), attacker.hp, attackerFloor);
+    clampDamage(damageAtRoll(baseToAttacker, roll), attackerHp, attackerFloor);
 
   const damageToDefender = dealt(1);
 
@@ -2262,8 +2295,8 @@ function planCombat(
     damageToDefenderMax: dealt(1 + band),
     damageToAttackerMin: taken(1 - band),
     damageToAttackerMax: taken(1 + band),
-    attackerHp: attacker.hp,
-    attackerMaxHp: unitMaxHp(attacker),
+    attackerHp,
+    attackerMaxHp: unitMaxHp(attacker, unitHealthBonus(state, attacker.ownerId)),
     defenderHp,
     defenderMaxHp,
     capturesUnit,
@@ -2549,7 +2582,12 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       }
     } else {
       const defender = target.unit!;
-      defender.hp -= dealt;
+      // **Through `unitHp`, not off the raw field.** A piece standing above a
+      // maximum that shrank under it (its empire lost its last iron) loses the
+      // extra points here, at the moment health moves, rather than in a sweep
+      // the turn the mine was pillaged. That is the clamp, and it is the same
+      // figure `planCombat` forecast a moment ago.
+      defender.hp = unitHp(defender, unitHealthBonus(state, defender.ownerId)) - dealt;
       if (defender.hp <= 0) {
         const fallenOwner = defender.ownerId;
         const fromWild = playerById(state, fallenOwner)?.barbarian === true;
@@ -2576,7 +2614,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         // the attacker's own.
         if (fromWild && cardBehaviorRule(state, attacker.ownerId, 'barbarianKillsConvert')) {
           captureUnit(state, defender, attacker.ownerId);
-          defender.hp = unitMaxHp(defender);
+          defender.hp = unitMaxHp(defender, unitHealthBonus(state, defender.ownerId));
           outcome.capturedUnitId = defender.id;
           defenderDied = true;
         } else {
@@ -2619,8 +2657,10 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // defender is charged through, with 1 in place of 0. A defender that lived
     // keeps every point of its counter, so an attacker can still die here.
     const attackerFloor = defenderDied && target.unit !== null ? 1 : 0;
-    outcome.damageToAttacker = clampDamage(counter, attacker.hp, attackerFloor);
-    attacker.hp -= outcome.damageToAttacker;
+    // The attacker's own clamp, `unitHp`'s reason word for word one side over.
+    const standing = unitHp(attacker, unitHealthBonus(state, attacker.ownerId));
+    outcome.damageToAttacker = clampDamage(counter, standing, attackerFloor);
+    attacker.hp = standing - outcome.damageToAttacker;
   }
 
   // 3 & 4 — the attacker's own fate and bookkeeping. A dead attacker needs
@@ -2949,7 +2989,10 @@ function payBattleRiders(
     // Capped at the **piece's** maximum, like every other heal in the game
     // (`unitMaxHp`): a bloodied victory patches a column up, it does not make it
     // new. The pillage's and the rite's line, at the third seam.
-    healed.hp = Math.min(unitMaxHp(healed), healed.hp + payout.heal);
+    healed.hp = Math.min(
+      unitMaxHp(healed, unitHealthBonus(state, healed.ownerId)),
+      healed.hp + payout.heal,
+    );
   }
   if (
     payout.grants.length === 0 &&

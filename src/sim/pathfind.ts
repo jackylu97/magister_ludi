@@ -111,6 +111,10 @@
 import { cityAt, tileOwnerField } from './cities';
 import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex, tileIndex, wrappedDistance } from './map';
 import { RULES } from './rulesData';
+// The resource half of the road rule. A function-level edge only — nothing at
+// this module's top level calls into it — and the same shape of cycle
+// `./statecraft` below already makes, since that reaches `cities.ts` too.
+import { foldRulePercent, resourceRulePercent } from './resourceEffects';
 import {
   cardBehaviorRule,
   cardBorderZoc,
@@ -453,10 +457,16 @@ export interface MoveProfile {
    * mover's empire's own `roadStepCost` percentage on it (Machinery's −40, a
    * third becoming a fifth).
    *
+   * **Two vocabularies feed that percentage** since batch R2: the cards' rule and
+   * a strategic resource's, whose whole bonus in horses' case is that this
+   * empire's roads are quicker to march along. They are summed and the price is
+   * taken once, so two sources of a discount read as one total rather than as two
+   * multiplications — `ruleFactor`'s bargain (`meters.ts`) one ledger over.
+   *
    * The fifth fact about the mover a step's price depends on, and hoisted for
    * `embarks`' reason exactly: the answer is a walk of this empire's whole card
-   * table, and a step's price is asked tens of thousands of times inside one
-   * search. It is a fact about the **empire**, never about the paving — anybody
+   * table and its holdings, and a step's price is asked tens of thousands of
+   * times inside one search. It is a fact about the **empire**, never about the paving — anybody
    * walks a highway (`isRoadStep`), and what changes is what *this* army's carts
    * make of one.
    *
@@ -665,8 +675,18 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   // never per edge. `cardRulePercent` is the one reading of a rule's percentage
   // and `foldCardRulePercent` its one fold, exactly as the settler's discount and
   // the army's payroll are read — see `MoveProfile.roadStep`.
+  // **Both vocabularies, summed once** — Machinery's card rule and, since batch
+  // R2, a strategic resource's (horses, whose whole bonus is that this empire's
+  // roads are quicker to march along). Summed before the price is taken, exactly
+  // as `ruleFactor` sums the two halves for a city's rules, so two sources of a
+  // discount read as one total rather than as two multiplications one after the
+  // other. The sign is `CardRule`'s throughout: a negative percentage is a
+  // discount.
   const roadStep = roadStepCostWith(
-    owner === undefined ? 0 : foldCardRulePercent(cardRulePercent(state, owner.id, 'roadStepCost')),
+    owner === undefined
+      ? 0
+      : foldCardRulePercent(cardRulePercent(state, owner.id, 'roadStepCost')) +
+        foldRulePercent(resourceRulePercent(state, owner.id, 'roadStepCost')),
   );
   // Admiralty's landing, asked once for the sweep beside the road's price and
   // for its reason: a fact about the empire, never about the water. Written only

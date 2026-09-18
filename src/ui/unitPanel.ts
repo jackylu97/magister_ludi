@@ -49,7 +49,9 @@ import { inZoneOfControl, pathTurns } from '../sim/pathfind';
 import { cityAt } from '../sim/cities';
 import type { GameState, Unit } from '../sim/state';
 import type { TileYield } from '../sim/terrainData';
-import { isExplorer, trades, unitDef, unitMaxHp } from '../sim/unitData';
+import { isExplorer, trades, unitDef, unitHp, unitMaxHp } from '../sim/unitData';
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+import { unitHealthBonus } from '../sim/resourceEffects';
 import { unitUpkeep, unitUpkeepOf } from '../sim/upkeep';
 import type { ImprovementOption } from './controls';
 import { cityDisplayName } from './cityDisplay';
@@ -1345,8 +1347,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     const stats = element('div', 'unit-stats');
     // The **piece's** maximum, stamp and all — see `unitMaxHp`. A veteran shown
     // against the roster's sheet reads as wounded at full health.
-    const maxHp = unitMaxHp(unit);
-    stats.append(stat('Health', `${unit.hp}/${maxHp}`, unit.hp < maxHp));
+    const healthBonus = unitHealthBonus(getGame().state, unit.ownerId);
+    const maxHp = unitMaxHp(unit, healthBonus);
+    const hp = unitHp(unit, healthBonus);
+    stats.append(stat('Health', `${hp}/${maxHp}`, hp < maxHp));
     stats.append(
       stat('Moves', `${unit.movesLeft}/${def.movement}`, unit.movesLeft <= 0),
     );

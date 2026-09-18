@@ -1070,7 +1070,8 @@ export interface StampedUnit {
 }
 
 /**
- * **THE** maximum health of one piece — the roster's figure plus its stamp.
+ * **THE** maximum health of one piece — the roster's figure, plus its stamp,
+ * plus whatever its empire supplies today.
  *
  * One helper, and every reader of a *unit's* maximum goes through it: the heal
  * cap (`healUnits`, a rite, a pillage, a great person's act), the forecast's two
@@ -1080,12 +1081,66 @@ export interface StampedUnit {
  * the split matters: a stamped legion whose bar read against the roster would
  * have shown a full unit at 90%.
  *
+ * Two inputs, and they are different in kind (batch R2)
+ * ----------------------------------------------------
+ *   · the **stamp** is a fact about the piece. A card wrote it at the piece's
+ *     birth and it stays for life, so it needs nothing but the unit in hand.
+ *   · `empireHp` is a fact about the **empire today** — iron's ten points, which
+ *     the army has for as long as the empire controls a copy and loses the turn
+ *     the last one is pillaged or traded away. It is a parameter rather than
+ *     something this function could look up, because this file is a data leaf:
+ *     the answer lives in `unitHealthBonus` (`resourceEffects.ts`), which has to
+ *     walk the empire's ground, and a value import of that from here would close
+ *     a cycle around half the simulation.
+ *
+ * So every caller with a `GameState` in hand passes `unitHealthBonus(state,
+ * unit.ownerId)`, and `test/sim/resourceBonuses.test.ts` reads the sources to
+ * check that they do. Callers that cannot are the ones with no empire to ask:
+ * `unitMaxHp({ type })` as a roster reading, a pathfinding probe, the flair
+ * gallery's invented pieces.
+ *
+ * **Who may spend it is decided here**, not by the caller. A civilian gets
+ * nothing (`isCivilian`) — a settler is captured by being walked onto, so health
+ * it can never spend should not be printed on it. The empire's figure is handed
+ * in whole and this is the one place it is refused, so no surface can give a
+ * worker ten points the simulation does not believe in.
+ *
  * Floored at 1, because a stamp is signed and a card that took a piece's last
  * point of health would be a card that deletes an army on the turn it is
  * slotted.
  */
-export function unitMaxHp(unit: StampedUnit): number {
-  return Math.max(1, unitDef(unit.type).maxHp + (unit.stamp?.hp ?? 0));
+export function unitMaxHp(unit: StampedUnit, empireHp = 0): number {
+  const def = unitDef(unit.type);
+  const live = empireHp !== 0 && !isCivilian(def) ? empireHp : 0;
+  return Math.max(1, def.maxHp + (unit.stamp?.hp ?? 0) + live);
+}
+
+/** A piece whose current health is being read. `StampedUnit` plus the wound. */
+export interface WoundedUnit extends StampedUnit {
+  hp: number;
+}
+
+/**
+ * **The health a piece actually has**, which is never more than its maximum.
+ *
+ * The clamp for the moment an empire's bonus goes away (batch R2). A swordsman
+ * at 110 of 110 is at 110 of 100 the instant the last iron mine is pillaged, and
+ * the ruling is that it loses the ten points rather than a proportion — so this
+ * is `min(stored, maximum)` and nothing cleverer.
+ *
+ * A **comparison at the point of reading**, not a sweep that rewrites every unit
+ * the turn a mine changes hands. That is the same discipline timed effects keep
+ * ("comparisons, never countdowns"), and it is also the only lawful shape: a
+ * sweep over `state.units` outside `applyCommand` would break hard rule 1, and
+ * one inside it would have to be triggered from every place a copy can be lost —
+ * a pillage, a capture, a city lost, a deal expiring, a tech never learnt.
+ *
+ * The stored field stays where it was until something writes it, and the two
+ * places that write health already clamp: a heal is `min(unitMaxHp, hp + n)`,
+ * and combat subtracts from this reading rather than from the raw field.
+ */
+export function unitHp(unit: WoundedUnit, empireHp = 0): number {
+  return Math.min(unit.hp, unitMaxHp(unit, empireHp));
 }
 
 /**

@@ -174,6 +174,8 @@ import {
 } from "./state";
 import { setSlatePhase } from "./slate";
 import { isCombatant, unitDef, unitMaxHp } from "./unitData";
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+import { unitHealthBonus } from "./resourceEffects";
 import { fullMovement, isRested } from "./units";
 import { RULES } from "./rulesData";
 import { recomputeAllVisibility, sightOf } from "./visibility";
@@ -879,7 +881,10 @@ function healUnits(state: GameState): void {
     // **The piece's** maximum, not the roster's: a stamped legion (The Muster
     // Roll) mends to the ten points its law gave it. `unitMaxHp` is the one
     // reading of that, and every heal cap in the game goes through it.
-    const maxHp = unitMaxHp(unit);
+    // And the **empire's** share of it since batch R2 (iron's ten points), so a
+    // rested swordsman mends to the figure its empire's mines are paying for
+    // today rather than to the roster's.
+    const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
     if (unit.hp >= maxHp) continue;
     // Field Surgeons, through the one place a heal is decided. It rides on the
     // *rested* rule rather than replacing it: "heal +5 per turn anywhere" means

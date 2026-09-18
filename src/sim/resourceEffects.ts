@@ -1,12 +1,27 @@
 /**
- * What a luxury does beyond its happiness: the **one** evaluator for the
+ * What a resource does beyond its tile yield: the **one** evaluator for the
  * signature-effect vocabulary.
  *
  * Every luxury pays the same two things — whatever its row puts on its tile, and
  * a flat `meters.happiness.perUniqueLuxury` to whoever has it in hand. On top of
  * that each row declares a *list* of `effects` (`resourceData.ts`), and this
- * module is the only place in the game that reads one. Fifteen shapes go in;
+ * module is the only place in the game that reads one. Seventeen shapes go in;
  * labelled lists come out; nothing anywhere else switches on `effect.kind`.
+ *
+ * Strategic resources, and the one rule that differs (batch R2)
+ * -------------------------------------------------------------
+ * Since batch R2 a **strategic** row may carry the same list. It is the empire
+ * bonus an empire gets for controlling at least one copy — copper's coin in
+ * every city, camels' coin on every route, niter's tenth of science, ivory's
+ * contentment, obsidian's point of strength, horses' quicker roads, iron's ten
+ * points of health. Written in this vocabulary, read by this evaluator, and the
+ * only thing that differs is the counting: a strategic bonus pays **once**
+ * however many copies the empire holds (`copiesFor`), because the user's ruling
+ * is that the first copy buys the bonus and every copy after it is for the army.
+ *
+ * The bonus reads **controlled** copies and never available ones. If it read
+ * what is left after the army has taken its share, building units would switch
+ * an empire's economy off, which would teach players not to build units.
  *
  * What batch H6 did, and what it did not
  * --------------------------------------
@@ -27,7 +42,7 @@
  *     `authoritySupply` **are** `CardPaysEffect`,
  *     `CardHappinessTierBoostEffect` and `CardAuthorityEffect`;
  *   · the colliding private names are one each: the walk is
- *     `liveLuxuryEffects`, the label is `lineLabel`, the town count is
+ *     `liveResourceEffects`, the label is `lineLabel`, the town count is
  *     `citiesOf` (`state.ts`), and `signed` was already one.
  *
  * What is **not** done, deliberately and with the reason written where the next
@@ -144,11 +159,15 @@ import {
 } from './resourceData';
 import { type ImprovementId, improvementDef } from './improvementData';
 import {
+  type CombatSituation,
   type TileLine,
   cardAmplifier,
   cardBehaviorRule,
   cityScopeAdmits,
   cityScopeWords,
+  combatLineAmount,
+  combatWhenWords,
+  filterWords,
 } from './statecraft';
 import { type City, type GameState, type Unit, citiesOf, playerById } from './state';
 import { type TechAge, highestAge } from './techData';
@@ -278,6 +297,13 @@ function copiesFor(
 ): number {
   if (imported) return IMPORTED_SHARE;
   if (effect.perCopy) return resourceCopies(state, playerId, id);
+  // **A strategic resource's bonus pays once** — the user's ruling of
+  // 2026-09-18: *"players gain this bonus for having at least one copy, only
+  // applies once regardless of number of copies."* So the two clauses below,
+  // which are both ways of counting a luxury more than once, are asked only of a
+  // luxury. A strategic row that wrote `perCopy` would still scale, because that
+  // is the row saying so out loud; nothing else may scale it behind its back.
+  if (resourceDef(id).kind !== 'luxury') return 1;
   // The Grand Bazaar's second clause, and the one place a card reaches into this
   // vocabulary: "additional copies of a luxury count at 30%". The uniqueness rule
   // above is unchanged — one kind counts once — and this adds a *fraction* of
@@ -496,12 +522,25 @@ export function importedLuxuries(state: GameState, playerId: number): ResourceId
 }
 
 /**
- * Every live effect this player's luxuries declare, resource-table order first
+ * Every live effect this player's resources declare, resource-table order first
  * and row order within that, each paired with the resource it belongs to.
  *
  * The single walk. Everything below filters it by kind rather than repeating
  * the uniqueness reading, the age gate and the table order ten times — which is
  * how "one evaluator" stays true as the vocabulary grows.
+ *
+ * **Two kinds since batch R2**: the luxuries first, then the strategic
+ * resources. A strategic row carries the empire-wide bonus its owner gets for
+ * controlling at least one copy (copper's coin a city, niter's science, iron's
+ * ten points of health), written in this same vocabulary and read here rather
+ * than in a second evaluator. The two kinds are walked in separate passes rather
+ * than interleaved because `controlledResources` answers one kind at a time and
+ * is remembered per kind; each pass is in table order, so the whole list is
+ * stable and a replay reaches it the same way round.
+ *
+ * What differs between the two is only the **counting rule**, and it lives in
+ * `copiesFor`: a luxury may be amplified by a card and may scale with copies, a
+ * strategic bonus pays once however many copies are held.
  *
  * **The borrowed copies come last and carry a mark** (The Silk Road). They are
  * appended rather than merged into the first list because they are a different
@@ -512,13 +551,18 @@ export function importedLuxuries(state: GameState, playerId: number): ResourceId
  * `copiesFor` turns it into the share, and the share is what halves the
  * fourteen figures a luxury can pay.
  */
-function liveLuxuryEffects(
+function liveResourceEffects(
   state: GameState,
   playerId: number,
 ): { id: ResourceId; effect: ResourceEffect; imported: boolean }[] {
   const age = ageOf(state, playerId);
   const list: { id: ResourceId; effect: ResourceEffect; imported: boolean }[] = [];
   for (const id of controlledResources(state, playerId, 'luxury')) {
+    for (const effect of resourceEffects(id)) {
+      if (effectIsLive(effect, age)) list.push({ id, effect, imported: false });
+    }
+  }
+  for (const id of controlledResources(state, playerId, 'strategic')) {
     for (const effect of resourceEffects(id)) {
       if (effectIsLive(effect, age)) list.push({ id, effect, imported: false });
     }
@@ -552,7 +596,7 @@ export function cityResourceYields(state: GameState, city: City): ResourceYieldL
   const owner = city.ownerId;
   const local = cityResources(state, city, 'luxury');
   const list: ResourceYieldLine[] = [];
-  for (const { id, effect, imported } of liveLuxuryEffects(state, owner)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, owner)) {
     if (effect.kind === 'buildingCategoryYields') {
       // **Paid where the building stands.** The shape's whole reading: a
       // workshop is what earns the line, so the town that raised the workshop is
@@ -620,7 +664,7 @@ function foldOne(line: ResourceYieldLine): number {
  */
 export function empireResourceYields(state: GameState, playerId: number): ResourceYieldLine[] {
   const list: ResourceYieldLine[] = [];
-  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
     if (effect.kind !== 'pays') continue;
     list.push(lineOf(id, effect, 'empire', copiesFor(state, playerId, id, effect, imported), 1, imported));
   }
@@ -681,7 +725,7 @@ export function resourceTileLines(state: GameState, playerId: number): TileLine[
   // refresh, so this is the difference between a fifth of a turn resolution and
   // nothing at all on the boards where the sea is empty.
   if (!boardHasAny(state, IMPROVEMENTS_PAID_ON)) return list;
-  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
     if (effect.kind !== 'improvementYields') continue;
     const copies = copiesFor(state, playerId, id, effect, imported);
     // Through `lineOf` so a `perCopy` improvement line scales and labels itself
@@ -778,7 +822,7 @@ export function endpointLuxuryCount(state: GameState, from: City, to: City): num
 export function resourceRouteYields(state: GameState, playerId: number): ResourceRouteLine[] {
   const list: ResourceRouteLine[] = [];
   if (!tableHasLive(state, playerId, 'routeYields')) return list;
-  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
     if (effect.kind !== 'routeYields') continue;
     const paid = lineOf(id, effect, 'trade route', copiesFor(state, playerId, id, effect, imported), 1, imported);
     if (paid.food === 0 && paid.production === 0 && paid.gold === 0) continue;
@@ -828,7 +872,7 @@ export function resourceUpkeepRebateLines(
 ): ResourceUpkeepLine[] {
   const list: ResourceUpkeepLine[] = [];
   if (!tableHasLive(state, playerId, 'unitUpkeepRebate')) return list;
-  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
     if (effect.kind !== 'unitUpkeepRebate') continue;
     const off = effect.amount * copiesFor(state, playerId, id, effect, imported);
     if (off <= 0) continue;
@@ -905,7 +949,7 @@ function cityCount(state: GameState, playerId: number, coastalOnly: boolean): nu
  */
 export function resourceHappiness(state: GameState, playerId: number): ResourceHappinessLine[] {
   const list: ResourceHappinessLine[] = [];
-  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
     // **A building's contentment is the empire's**, not the town's — happiness
     // is an empire meter and there is no city-scale reading of it to land in
     // (`meters.ts`). So the same selector that pays faith into one workshop's
@@ -953,7 +997,7 @@ export function resourceHappiness(state: GameState, playerId: number): ResourceH
  */
 export function resourceAuthority(state: GameState, playerId: number): ResourceAuthorityLine[] {
   const list: ResourceAuthorityLine[] = [];
-  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
     if (effect.kind !== 'authority') continue;
     const copies = copiesFor(state, playerId, id, effect, imported);
     const towns = effect.per === 'city' ? cityCount(state, playerId, false) : 1;
@@ -982,7 +1026,7 @@ export function resourceAuthority(state: GameState, playerId: number): ResourceA
  */
 export function resourceRenown(state: GameState, playerId: number): ResourceRenownLine[] {
   const list: ResourceRenownLine[] = [];
-  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
     if (effect.kind !== 'renownPerCity') continue;
     const copies = copiesFor(state, playerId, id, effect, imported);
     const towns = cityCount(state, playerId, false);
@@ -1008,7 +1052,7 @@ export function resourceTierBoost(state: GameState, playerId: number): {
 } {
   const lines: ResourceHappinessLine[] = [];
   let points = 0;
-  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
     if (effect.kind !== 'happinessTierBoost') continue;
     const copies = copiesFor(state, playerId, id, effect, imported);
     const amount = effect.points * copies;
@@ -1039,7 +1083,7 @@ export function resourceProduction(
   const owner = city.ownerId;
   const local = cityResources(state, city, 'luxury');
   const list: ResourceProductionLine[] = [];
-  for (const { id, effect, imported } of liveLuxuryEffects(state, owner)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, owner)) {
     if (effect.kind !== 'productionBonus' || effect.category !== category) continue;
     if (effect.scope !== 'empire' && !local.includes(id)) continue;
     const copies = copiesFor(state, owner, id, effect, imported);
@@ -1071,7 +1115,7 @@ export function resourceProduction(
 export function resourcePercentYields(state: GameState, city: City): ResourcePercentLine[] {
   const owner = city.ownerId;
   const list: ResourcePercentLine[] = [];
-  for (const { id, effect, imported } of liveLuxuryEffects(state, owner)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, owner)) {
     if (effect.kind !== 'percentYields') continue;
     if (!scopeAdmits(state, city, effect.scope, cityResources(state, city, 'luxury'), id)) continue;
     const copies = copiesFor(state, owner, id, effect, imported);
@@ -1103,7 +1147,7 @@ export function resourceRulePercent(
   rule: ResourceRule,
 ): ResourceRuleLine[] {
   const list: ResourceRuleLine[] = [];
-  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
     if (effect.kind !== 'rulePercent' || effect.rule !== rule) continue;
     const copies = copiesFor(state, playerId, id, effect, imported);
     list.push({
@@ -1132,7 +1176,7 @@ export function resourceConnectionPercent(
   playerId: number,
 ): ResourceRuleLine[] {
   const list: ResourceRuleLine[] = [];
-  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
     if (effect.kind !== 'connectionPercent') continue;
     const copies = copiesFor(state, playerId, id, effect, imported);
     list.push({
@@ -1149,6 +1193,112 @@ export function foldRulePercent(list: readonly ResourceRuleLine[]): number {
   let percent = 0;
   for (const line of list) percent += line.percent;
   return percent;
+}
+
+// --- the army ---------------------------------------------------------------
+
+/** One strength line a resource contributes. `CardCombatLine` without the card. */
+export interface ResourceCombatLine {
+  resource: ResourceId;
+  source: string;
+  amount: number;
+}
+
+/**
+ * Every flat strength this empire's resources give one side of one fight —
+ * obsidian's point on melee, in table order.
+ *
+ * `cardCombatLines`' twin, and deliberately reading the same shape through the
+ * same function: a resource row declares `CardCombatLineEffect` whole, and
+ * `combatLineAmount` (`statecraft/evaluator.ts`) decides posture, silhouette,
+ * the piece opposite, the condition and the scaling for both tables. What this
+ * side owns is which resources the empire holds and what the line is labelled;
+ * everything else is one reading.
+ *
+ * The lines join `planCombat`'s ordered list beside the cards' and the ground's
+ * (hard rule 5), so the forecast itemises them and a player can see where the
+ * point came from. Flat points, never a multiplier — the combat trap.
+ */
+export function resourceCombatLines(
+  state: GameState,
+  situation: CombatSituation,
+): ResourceCombatLine[] {
+  const playerId = situation.unit.ownerId;
+  const list: ResourceCombatLine[] = [];
+  if (!tableHasLive(state, playerId, 'combatLine')) return list;
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
+    if (effect.kind !== 'combatLine') continue;
+    const each = combatLineAmount(state, situation, effect);
+    if (each === null) continue;
+    const copies = copiesFor(state, playerId, id, effect, imported);
+    // Floored, because a strength line is a whole number of points on a ledger
+    // of whole numbers: a borrowed luxury's half a point would otherwise make
+    // one side's total a fraction nobody could read off the forecast.
+    const amount = Math.floor(each * copies);
+    if (amount === 0) continue;
+    list.push({ resource: id, source: lineLabel(id, 'in battle', copies, imported), amount });
+  }
+  return list;
+}
+
+/** One line of extra maximum health a resource gives this empire's fighters. */
+export interface ResourceHealthLine {
+  resource: ResourceId;
+  source: string;
+  amount: number;
+}
+
+/**
+ * The extra maximum health this empire's resources give every piece of its that
+ * can fight, in table order — iron's ten points.
+ *
+ * **Live, and that is the whole design.** The other way to give a piece extra
+ * health is `UnitStamp.hp`, written once at its birth and carried for life; that
+ * is what a card does and it is the wrong shape here, because all seven strategic
+ * bonuses are meant to obey one rule a player can guess ("hold one copy and you
+ * get this"). So this is asked every time a maximum is read, and the turn an
+ * empire loses its last iron the army is back to the roster's figure.
+ *
+ * Who gets it is decided in `unitMaxHp` and not here: this answers "what does the
+ * empire supply", the unit table answers "may this piece spend it". That split is
+ * what lets the renderer's health bar and the Compendium ask the same question as
+ * `planCombat` without either of them knowing what a civilian is.
+ */
+export function resourceUnitHealth(state: GameState, playerId: number): ResourceHealthLine[] {
+  const list: ResourceHealthLine[] = [];
+  if (!tableHasLive(state, playerId, 'unitHealth')) return list;
+  for (const { id, effect, imported } of liveResourceEffects(state, playerId)) {
+    if (effect.kind !== 'unitHealth') continue;
+    const copies = copiesFor(state, playerId, id, effect, imported);
+    const amount = Math.floor(effect.amount * copies);
+    if (amount === 0) continue;
+    list.push({ resource: id, source: lineLabel(id, 'fighting units', copies, imported), amount });
+  }
+  return list;
+}
+
+/**
+ * What the lines above come to — the one number `unitMaxHp` is handed.
+ *
+ * **Remembered on the economy clock**, and that is the right clock rather than a
+ * convenient one. The inputs are the ground, what has been dug on it, what a
+ * bargain lent away and which technologies the empire holds, which is exactly
+ * what `resourceCopies` is remembered on; losing an iron mine is an economy event
+ * and announces itself as one. It deliberately does **not** move when a unit is
+ * built or dies, which is what separates it from batch R1's committed count — that
+ * one is a fact about pieces and is not memoised at all for that reason.
+ *
+ * It has to be cheap because the renderer asks for a piece's maximum once per
+ * piece per frame. Measured on a turn-120 six-seat board, warm:
+ * **about 0.1 microseconds a call** through the memo, against about 40 for the
+ * uncached walk — see `test/sim/resourceBonuses.test.ts`, which prints the figure.
+ */
+export function unitHealthBonus(state: GameState, playerId: number): number {
+  return slateMemo(state, 'economy', 'unitHealth', String(playerId), () => {
+    let total = 0;
+    for (const line of resourceUnitHealth(state, playerId)) total += line.amount;
+    return total;
+  });
 }
 
 // --- words ------------------------------------------------------------------
@@ -1233,6 +1383,17 @@ function describeOne(effect: ResourceEffect): string | null {
   if (effect.kind === 'connectionPercent') {
     return `${signed(effect.percent)}% gold from the roads between your cities${each}`;
   }
+  if (effect.kind === 'combatLine') {
+    // The cards' own two word tables, so a resource and a card that say the same
+    // thing read the same way. Both are ref-free; see the note in `statecraft.ts`.
+    const who = effect.class === undefined ? '' : ` for ${filterWords(effect.class)}`;
+    const against = effect.vsClass === undefined ? '' : ` against ${filterWords(effect.vsClass)}`;
+    const when = combatWhenWords(effect.when);
+    return `${signed(effect.amount)} combat strength${who}${against} ${when}${each}`.trim();
+  }
+  if (effect.kind === 'unitHealth') {
+    return `${signed(effect.amount)} maximum health for your units that can fight${each}`;
+  }
   // The two bag shapes that name their own multiplier rather than a set of
   // cities, written here so `describeOne` stays one sentence-builder over one
   // yield-bag reading — the reason a new bag shape costs a clause and not a
@@ -1273,6 +1434,7 @@ const RULE_WORDS: Record<ResourceRule, string> = {
   happinessDemand: 'happiness demanded per citizen',
   borderCost: 'culture for the next border hex',
   growthCarryover: 'of the stored food kept when a city grows',
+  roadStepCost: 'of the movement a step along a road costs',
 };
 
 /**

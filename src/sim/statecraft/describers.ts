@@ -3005,7 +3005,7 @@ function scopeCondition(scope: CityScope): string {
     .trim();
 }
 
-function filterWords(filter: UnitFilter): string {
+export function filterWords(filter: UnitFilter): string {
   // The named row first, because it is the *narrowest* clause and a phrase that
   // said "workers" when the filter means one row would be a promise the price
   // does not keep. Pluralised off the roster's own name (hard rule 7: the

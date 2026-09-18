@@ -118,6 +118,8 @@ import type { ActionRuleId, CardEffect } from './statecraftData';
 import { settleResearchWindfall } from './tech';
 import { highestAge } from './techData';
 import { unitDef, unitMaxHp } from './unitData';
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+import { unitHealthBonus } from './resourceEffects';
 import { recomputeVisibilityFor } from './visibility';
 import { bumpEconomy } from './slate';
 
@@ -967,7 +969,7 @@ export function greatPersonActAt(
         { kind: 'combatLine', amount: PEOPLE.generalCombat, when: { test: 'always' }, side: 'both' },
       ];
       for (const other of unitsWithin(state, unit, PEOPLE.generalRadius)) {
-        other.hp = unitMaxHp(other);
+        other.hp = unitMaxHp(other, unitHealthBonus(state, other.ownerId));
         done.expiresTurn = stampTimed(state, other, id, PEOPLE.generalTurns, effects);
         done.blessed.push(other.id);
       }

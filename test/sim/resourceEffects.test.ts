@@ -236,9 +236,10 @@ describe('the effect vocabulary', () => {
     for (const id of RESOURCE_IDS) {
       for (const effect of resourceEffects(id)) {
         expect(RESOURCE_EFFECT_KINDS).toContain(effect.kind);
-        // Only luxuries carry a signature: a bonus resource is its tile yield
-        // and a strategic one is a production gate, and neither has a second job.
-        expect(resourceDef(id).kind).toBe('luxury');
+        // A luxury or a strategic resource, never a bonus one. A bonus row is
+        // its tile yield and has no second job; a strategic row has carried an
+        // empire-wide bonus since batch R2, written in this same vocabulary.
+        expect(['luxury', 'strategic']).toContain(resourceDef(id).kind);
       }
     }
   });
@@ -273,11 +274,23 @@ describe('the effect vocabulary', () => {
     for (const id of RESOURCE_IDS) {
       for (const effect of resourceEffects(id)) declared.add(effect.kind);
     }
+    //
+    // **`combatLine` and `unitHealth` joined the list in batch R2** and are the
+    // first two entries that are waiting for a row rather than left over from
+    // one. They are the strategic resources' two new shapes — obsidian's point
+    // of strength and iron's ten points of health — and batch R2 builds the
+    // vocabulary while batch R3 writes the rows, so for one batch they are
+    // declared and unused. Both are held live the same way the four above are:
+    // by rows installed at runtime in `test/sim/resourceBonuses.test.ts`, which
+    // exercises each of them end to end. When R3 lands its roster these two
+    // lines come out.
     expect(RESOURCE_EFFECT_KINDS.filter((kind) => !declared.has(kind))).toEqual([
       'perPopulationYields',
       'authority',
       'percentYields',
       'happinessTierBoost',
+      'combatLine',
+      'unitHealth',
     ]);
     expect(luxuryWith('perCityYields', (effect) => effect.scope === 'owner')).toBeUndefined();
   });

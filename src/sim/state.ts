@@ -116,6 +116,8 @@ import {
   unitDef,
   unitMaxHp,
 } from "./unitData";
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+import { unitHealthBonus } from "./resourceEffects";
 import {
   type CitySighting,
   newVisibilityGrid,
@@ -4484,7 +4486,11 @@ export function createUnit(
     type,
     col,
     row,
-    hp: stamped ? unitMaxHp({ type, stamp }) : def.maxHp,
+    // The empire's own share rides in beside the stamp (batch R2): a swordsman
+    // raised while its empire controls iron is born at the higher figure, not
+    // ten points wounded. `unitMaxHp` refuses it for a civilian, so a settler is
+    // still born at the roster's number.
+    hp: unitMaxHp({ type, ...(stamped ? { stamp } : {}) }, unitHealthBonus(state, ownerId)),
     // "Full movement" is the roster's plus the piece's own stamp, for the
     // health's reason exactly (`unitMaxHp`): a conscript minted at the sheet's
     // two points and stamped to three a line later would be born a third of a

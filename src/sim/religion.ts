@@ -164,6 +164,8 @@ import { RULES } from './rulesData';
 import { awardBeadOccasion, awardOrderBeads } from './beads';
 import { awardOccasion } from './triumphs';
 import { unitDef, unitMaxHp } from './unitData';
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+import { unitHealthBonus } from './resourceEffects';
 import { bumpEconomy } from './slate';
 
 // --- the pantheon's slots ---------------------------------------------------
@@ -2779,7 +2781,7 @@ export function healAdjacentAt(state: GameState, player: Player, unit: Unit): He
       const tile = getTileAt(state.map, other.col, other.row);
       if (!tile) continue;
       if (wrappedDistance(state.map, eye, tileHex(tile)) > 1) continue;
-      const maxHp = unitMaxHp(other);
+      const maxHp = unitMaxHp(other, unitHealthBonus(state, other.ownerId));
       const healed = Math.max(0, Math.min(maxHp, other.hp + amount) - other.hp);
       other.hp += healed;
       units.push({ unitId: other.id, healed });
@@ -2811,7 +2813,7 @@ export function healAdjacentPreview(state: GameState, unitId: number): HealingRe
     const tile = getTileAt(state.map, other.col, other.row);
     if (!tile) continue;
     if (wrappedDistance(state.map, eye, tileHex(tile)) > 1) continue;
-    const maxHp = unitMaxHp(other);
+    const maxHp = unitMaxHp(other, unitHealthBonus(state, other.ownerId));
     units.push({ unitId: other.id, healed: Math.max(0, Math.min(maxHp, other.hp + amount) - other.hp) });
   }
   return { units, apostleSpent: (unit.chargesLeft ?? 0) <= 1 };

@@ -493,9 +493,12 @@ import {
   isUnitTypeId,
   requiredResourcesOf,
   unitDef,
+  unitHp,
   unitMaxHp,
 } from './unitData';
 import { bumpEconomy } from './slate';
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+import { unitHealthBonus } from './resourceEffects';
 
 const RESEARCH = RULES.research;
 
@@ -1910,7 +1913,7 @@ export function upgradeUnits(state: GameState, player: Player): void {
       // The banks are a line of the meters too — see `collectYields` (batch M3).
       bumpEconomy(state);
     }
-    applyUpgrade(unit, target);
+    applyUpgrade(unit, target, unitHealthBonus(state, unit.ownerId));
   }
 }
 
@@ -1997,16 +2000,24 @@ export function upgradeTargetForType(
 }
 
 /** Retypes a unit, keeping its health fraction and capping its movement. */
-function applyUpgrade(unit: Unit, target: UnitTypeId): void {
+function applyUpgrade(unit: Unit, target: UnitTypeId, empireHp: number): void {
   // Both maxima are the **piece's** (`unitMaxHp`), which is what keeps a stamp
   // whole across an upgrade: a warrior at 110 of 110 becomes a swordsman at
   // full health rather than at ten points over a sheet that never knew about
   // The Muster Roll. The stamp travels with the piece; only the type changes.
-  const beforeMax = unitMaxHp(unit);
+  //
+  // The empire's own share is handed in and used on **both** sides for the same
+  // reason (batch R2): a fraction taken against a maximum that included iron's
+  // ten points and then applied to one that did not would quietly wound every
+  // piece an empire upgraded. `unitMaxHp` decides for itself whether the piece
+  // may spend it, so a civilian is unaffected on either side.
+  const beforeMax = unitMaxHp(unit, empireHp);
   const after = unitDef(target);
-  const fraction = beforeMax > 0 ? unit.hp / beforeMax : 1;
+  // `unitHp` and not the raw field: a piece standing above a maximum that shrank
+  // under it upgrades from the health it actually has.
+  const fraction = beforeMax > 0 ? unitHp(unit, empireHp) / beforeMax : 1;
   unit.type = target;
-  const afterMax = unitMaxHp(unit);
+  const afterMax = unitMaxHp(unit, empireHp);
   // Rounded, floored at one hit point: a unit that survived its upgrade is
   // alive, however unkind the arithmetic.
   unit.hp = Math.max(1, Math.min(afterMax, Math.round(afterMax * fraction)));

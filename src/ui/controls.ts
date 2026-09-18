@@ -314,7 +314,9 @@ import type { BeadAward } from '../sim/beads';
 import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
 import type { RouteMode, TraderPlunder } from '../sim/trade';
 import { autoExploreError } from '../sim/explore';
-import { type UnitDef, isExplorer, trades, unitDef, unitMaxHp } from '../sim/unitData';
+import { type UnitDef, isExplorer, trades, unitDef, unitHp, unitMaxHp } from '../sim/unitData';
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+import { unitHealthBonus } from '../sim/resourceEffects';
 import { type DisbandReport, treasuryInDebt } from '../sim/upkeep';
 import {
   sleepError,
@@ -3825,7 +3827,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // Still standing: the hit points it has left, read off the board rather
       // than subtracted here, so the line agrees with the bar over its head.
       const survivor = unitById(state, combat.defenderUnitId);
-      const left = survivor === undefined ? '' : ` — ${survivor.hp}/${unitMaxHp(survivor)}`;
+      const left =
+        survivor === undefined
+          ? ''
+          : ` — ${unitHp(survivor, unitHealthBonus(state, survivor.ownerId))}/${unitMaxHp(survivor, unitHealthBonus(state, survivor.ownerId))}`;
       announce(
         `⚔ Your ${combat.defenderName.toLowerCase()} was attacked by ${attacker}${left}`,
         { cell },

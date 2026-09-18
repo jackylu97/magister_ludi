@@ -23,8 +23,13 @@
  * Three kinds, three mechanical homes (design ledger, Entry IX)
  * -------------------------------------------------------------
  *   · **bonus** — fourteen of them. Pure tile-yield modifiers.
- *   · **strategic** — horses, iron. They *gate unit production* through
- *     `requiresResource` in `data/units.json`; see `buildError` in `tech.ts`.
+ *   · **strategic** — horses, iron, niter. They *gate unit production* through
+ *     `requiresResource` in `data/units.json` (see `buildError` in `tech.ts`),
+ *     each living unit holds one copy while it is alive (batch R1), and since
+ *     batch R2 each may also carry a **list of signature effects** the empire
+ *     gets for controlling at least one copy — the same vocabulary a luxury
+ *     uses, read by the same evaluator, counted once however many copies are
+ *     held.
  *   · **luxury** — twenty-five now, twenty-one on land and four in the sea. Each
  *     pays whatever its row puts on its tile, each is worth a flat
  *     `meters.happiness.perUniqueLuxury` to the empire that holds one, and most
@@ -101,6 +106,7 @@ import type { BuildingCategory, ProductionCategory } from './buildingData';
 // until batch H6; one vocabulary now, and no runtime edge either way.
 import type {
   CardAuthorityEffect,
+  CardCombatLineEffect,
   CardPaysEffect,
   CardHappinessTierBoostEffect,
   CardRule,
@@ -185,16 +191,28 @@ export type ResourceCityScope = 'owner' | CityScope;
 /**
  * A rule of the simulation a signature may put a signed percentage on.
  *
- * Three, and the union stays **a subset of `CardRule`** (`statecraftData.ts`) on
+ * Four, and the union stays **a subset of `CardRule`** (`statecraftData.ts`) on
  * purpose: `ruleFactor` (`meters.ts`) asks both vocabularies the same question
  * and sums the two answers, so a word this table knew and the cards did not
  * would be a word that fails to compile there. That is exactly why spices' share
  * of the connections line is `connectionPercent` — its own shape, one consumer —
- * rather than a fourth rule nobody else could name.
+ * rather than a fifth rule nobody else could name.
+ *
+ * `roadStepCost` joined in batch R2, for horses: a strategic resource that makes
+ * an empire's roads quicker to march along. It reaches the same one number
+ * Machinery's card rule reaches (`MoveProfile.roadStep`, built in `moveProfile`),
+ * summed with it before the price is snapped, so two sources of a discount read
+ * as one total and not as two multiplications.
+ *
+ * **The sign is the rule's own and it is easy to get backwards: a negative
+ * percentage is a discount.** Machinery's third-to-a-fifth is −40. A resource
+ * that made roads quicker writes a negative number; a positive one would slow
+ * its owner's army down. Same convention as `settlerCost` and `unitUpkeep`, and
+ * `test/sim/resourceBonuses.test.ts` pins the direction.
  */
 export type ResourceRule = Extract<
   CardRule,
-  'happinessDemand' | 'borderCost' | 'growthCarryover'
+  'happinessDemand' | 'borderCost' | 'growthCarryover' | 'roadStepCost'
 >;
 
 /**
@@ -233,8 +251,14 @@ export interface ResourceEffectModifiers {
 type Signature<T> = T & ResourceEffectModifiers;
 
 /**
- * The whole signature-effect vocabulary: thirteen shapes, and each one earns its
- * place by being the smallest generic thing several ratified rows need.
+ * The whole signature-effect vocabulary: seventeen shapes, and each one earns
+ * its place by being the smallest generic thing several ratified rows need.
+ *
+ * **Not only luxuries any more** (batch R2). Every strategic resource carries an
+ * empire-wide bonus an empire gets for controlling at least one copy, however
+ * many it holds, and those bonuses are written in this same vocabulary and read
+ * by the same evaluator. `resourceEffects.ts` walks luxury *and* strategic rows;
+ * what differs is only the counting rule, which is stated there.
  *
  * Kept deliberately small — a luxury table where every row could name an
  * arbitrary effect is a table where every row is a special case in the
@@ -327,6 +351,16 @@ type Signature<T> = T & ResourceEffectModifiers;
  *                       banked once for the empire, which never rides Entry
  *                       XVII's two city stages and must not be routed through
  *                       them. Applied and floored once, in `empireGold.ts`.
+ *   · `combatLine`      a labelled strength line on this empire's pieces, under
+ *                       a stated condition — obsidian's point on melee. It is
+ *                       `CardCombatLineEffect` whole, so a row says `when`,
+ *                       `side`, `class` and `vsClass` exactly as a card does and
+ *                       one evaluator reads both. The line joins `planCombat`'s
+ *                       ordered list beside the cards' (hard rule 5); it is
+ *                       never a multiplier.
+ *   · `unitHealth`      extra maximum health on every piece of this empire that
+ *                       can fight — iron's ten points, live rather than stamped
+ *                       at a piece's birth. Read through `unitMaxHp`.
  *
  * Uniqueness is not part of the shape because it is part of the *reading*: an
  * empire effect counts once per kind however many seams feed it, and an
@@ -379,7 +413,36 @@ export type ResourceEffect =
   | Signature<{ kind: 'routeYields' } & ResourceYieldBag>
   | Signature<{ kind: 'renownPerCity'; amount: number }>
   | Signature<{ kind: 'unitUpkeepRebate'; amount: number }>
-  | Signature<{ kind: 'connectionPercent'; percent: number }>;
+  | Signature<{ kind: 'connectionPercent'; percent: number }>
+  // **The card's own shape again** (batch R2, obsidian's melee point). A strength
+  // line under a stated condition is the same idea whichever table declares it,
+  // so this is `CardCombatLineEffect` — the `when`, the `side`, the `class` and
+  // the `vsClass` all mean here exactly what they mean on a card, and one
+  // evaluator (`combatLineAmount`, `statecraft/evaluator.ts`) reads both.
+  | Signature<CardCombatLineEffect>
+  | Signature<{
+      kind: 'unitHealth';
+      /**
+       * Extra maximum health for every piece of this empire **that can fight**
+       * — iron's ten points.
+       *
+       * Live, not a stamp: the moment the empire stops controlling the resource
+       * the army stops being tougher. That is what makes it different from
+       * `UnitStamp.hp`, which a card writes once at a piece's birth and which
+       * stays with the veteran after the card is gone.
+       *
+       * Who counts is `isCivilian` (`unitData.ts`) — a settler is captured by
+       * being walked onto, so health it can never spend should not be printed on
+       * it. `category === 'military'` would have been the obvious test and it is
+       * the wrong one: it excludes every ship, and a war galley is exactly the
+       * kind of thing an iron-rich empire should field a tougher version of.
+       *
+       * Read through `unitMaxHp` and nowhere else. See `resourceUnitHealth` in
+       * `resourceEffects.ts` for the fold and for what happens to a piece that is
+       * above its maximum when the last copy goes.
+       */
+      amount: number;
+    }>;
 
 /**
  * **A luxury's whole use of the cards' one `pays` shape** — flat, to the empire.
@@ -412,6 +475,11 @@ export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
   'renownPerCity',
   'unitUpkeepRebate',
   'connectionPercent',
+  // Batch R2: the strategic resources' two new shapes. The first is the card
+  // table's own `combatLine`; the second has no card twin, because a card's
+  // health bonus is a stamp written at a piece's birth and this one is live.
+  'combatLine',
+  'unitHealth',
 ];
 
 /** Every rule a `rulePercent` may name. Validation, and the evaluator's switch. */
@@ -419,6 +487,7 @@ export const RESOURCE_RULES: readonly ResourceRule[] = [
   'happinessDemand',
   'borderCost',
   'growthCarryover',
+  'roadStepCost',
 ];
 
 /**
@@ -458,6 +527,9 @@ const PRODUCTION_CATEGORY_SET: Record<ProductionCategory, true> = {
 const RESOURCE_PRODUCTION_CATEGORIES = Object.keys(
   PRODUCTION_CATEGORY_SET,
 ) as readonly ProductionCategory[];
+
+/** The three postures a `combatLine` may fight in. See `CardCombatLineEffect`. */
+const COMBAT_LINE_SIDES: readonly CardCombatLineEffect['side'][] = ['attack', 'defend', 'both'];
 
 /** The three voices a trade route pays. A `routeYields` bag may name no other. */
 const ROUTE_YIELD_KEYS: readonly (keyof ResourceYieldBag)[] = ['food', 'production', 'gold'];
@@ -505,9 +577,13 @@ export interface ResourceDef {
    * the order every surface prints them in, so a row a designer reads top to
    * bottom is a hover a player reads top to bottom.
    *
-   * Absent for every bonus and strategic row, and absent is lawful for a luxury
-   * too — ivory ships that way, because its ratified effect is a unique unit and
-   * unique units are a system this game does not have yet.
+   * Absent for every bonus row, and absent is lawful for a luxury too — ivory
+   * ships that way, because its ratified effect is a unique unit and unique
+   * units are a system this game does not have yet.
+   *
+   * A **strategic** row reads the same list (batch R2), and one rule of its own
+   * on top: the bonus is for controlling at least one copy, so it pays once
+   * however many copies the empire holds. See `resourceEffects.ts`.
    */
   effects?: ResourceEffect[];
   /**
@@ -748,9 +824,26 @@ function validateEffect(where: string, effect: ResourceEffect): void {
     effect.kind === 'extraHappiness' ||
     effect.kind === 'authority' ||
     effect.kind === 'renownPerCity' ||
-    effect.kind === 'unitUpkeepRebate'
+    effect.kind === 'unitUpkeepRebate' ||
+    effect.kind === 'unitHealth'
   ) {
     if (!Number.isFinite(effect.amount)) throw new Error(`${where} has a non-numeric amount`);
+    return;
+  }
+  if (effect.kind === 'combatLine') {
+    if (!Number.isFinite(effect.amount)) throw new Error(`${where} has a non-numeric amount`);
+    // The three postures, spelled out rather than trusted to the type: a row
+    // arrives from JSON, and a side nobody recognises is a strength line that
+    // silently never fires — the quiet-nothing this validator exists to refuse.
+    if (!COMBAT_LINE_SIDES.includes(effect.side)) {
+      throw new Error(`${where} fights on unknown side "${effect.side}"`);
+    }
+    // The condition decides whether the line pays at all, so a row without one
+    // would be a line nobody could read the rule of. `'always'` is how a row
+    // says "in every fight", and it has to be written out.
+    if (effect.when === undefined || typeof effect.when.test !== 'string') {
+      throw new Error(`${where} names no condition`);
+    }
     return;
   }
   if (effect.kind === 'happinessTierBoost') {

@@ -129,6 +129,7 @@ import {
   type CardEffect,
   type CardFlagRuleId,
   type CardCityStatEffect,
+  type CardCombatLineEffect,
   type CardHappinessEffect,
   type CardId,
   type CardLandfallEffect,
@@ -163,6 +164,10 @@ import {
 } from '../statecraftData';
 import { type TerrainId, isWaterTerrain } from '../terrainData';
 import { type BeadGrantId, anyBeadDef, isBeadCardId } from '../beadData';
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+// A function-level edge: that module re-enters this one through the index, and
+// nothing at either top level calls across.
+import { unitHealthBonus } from '../resourceEffects';
 import { isMaliceId, maliceDef } from '../maliceData';
 // The figure's own table, a leaf, so the twelfth source of the law costs this
 // module no edge it did not already have. See `buildLiveEffects`.
@@ -5037,7 +5042,6 @@ export interface CardCombatLine {
  * `CombatBonusLine`).
  */
 export function cardCombatLines(state: GameState, situation: CombatSituation): CardCombatLine[] {
-  const owner = situation.unit.ownerId;
   const list: CardCombatLine[] = [];
   // **The one place a fight asks a *town's* cards.** Warrior Monks is a strength
   // line a *religion* puts on the walls of every city that follows it, and since
@@ -5053,33 +5057,53 @@ export function cardCombatLines(state: GameState, situation: CombatSituation): C
     ? [...liveUnitEffects(state, situation.unit), ...followerBeliefEffects(state, here)]
     : liveUnitEffects(state, situation.unit);
   for (const { source, card, effect } of pickKind(live, 'combatLine')) {
-    if (effect.side !== 'both' && effect.side !== situation.side) continue;
-    // Which units the line reaches, asked of the same predicate `unitStat` asks
-    // — the Alhambra's mounted +2. Of *this* piece, whichever side it is on, so
-    // a line that pays both postures pays a knight in either.
-    if (!unitMatches(situation.unit.type, effect.class)) continue;
-    // And who it pays *against* — Lautaro's mounted. A line with `vsClass` never
-    // fires at a city, which has no type at all: see `CardCombatLineEffect`.
-    if (effect.vsClass !== undefined) {
-      if (situation.vsType === undefined) continue;
-      if (!unitMatches(situation.vsType, effect.vsClass)) continue;
-    }
-    if (!combatConditionHolds(state, situation, effect.when)) continue;
-    const each = effect.amount;
-    if (each === 0) continue;
-    if (!effect.scaled) {
-      list.push({ card, source, amount: each });
-      continue;
-    }
-    const total = combatScaleCount(state, owner, situation.unit, effect.scaled);
-    let amount = each * helpings(total, effect.scaled.per, undefined);
-    if (effect.scaled.max !== undefined) {
-      amount = Math.sign(amount) * Math.min(Math.abs(amount), effect.scaled.max);
-    }
-    if (amount === 0) continue;
+    const amount = combatLineAmount(state, situation, effect);
+    if (amount === null) continue;
     list.push({ card, source, amount });
   }
   return list;
+}
+
+/**
+ * What one `combatLine` is worth in one fight, or `null` when it does not fire.
+ *
+ * The whole semantics of the shape — posture, silhouette, the piece opposite,
+ * the condition and the scaling — in one place, because since batch R2 there are
+ * **two** tables that declare the shape: a card's clause and a strategic
+ * resource's signature (obsidian's point on melee). They mean the same thing, so
+ * they are read by the same function rather than by two that could drift; the
+ * resource half calls it from `resourceCombatLines` (`resourceEffects.ts`), and
+ * the label and the attribution stay each caller's own.
+ *
+ * `null` rather than zero, so a caller can tell "this line does not apply" from
+ * "this line applies and comes to nothing" without re-testing the condition.
+ */
+export function combatLineAmount(
+  state: GameState,
+  situation: CombatSituation,
+  effect: CardCombatLineEffect,
+): number | null {
+  if (effect.side !== 'both' && effect.side !== situation.side) return null;
+  // Which units the line reaches, asked of the same predicate `unitStat` asks
+  // — the Alhambra's mounted +2. Of *this* piece, whichever side it is on, so
+  // a line that pays both postures pays a knight in either.
+  if (!unitMatches(situation.unit.type, effect.class)) return null;
+  // And who it pays *against* — Lautaro's mounted. A line with `vsClass` never
+  // fires at a city, which has no type at all: see `CardCombatLineEffect`.
+  if (effect.vsClass !== undefined) {
+    if (situation.vsType === undefined) return null;
+    if (!unitMatches(situation.vsType, effect.vsClass)) return null;
+  }
+  if (!combatConditionHolds(state, situation, effect.when)) return null;
+  const each = effect.amount;
+  if (each === 0) return null;
+  if (!effect.scaled) return each;
+  const total = combatScaleCount(state, situation.unit.ownerId, situation.unit, effect.scaled);
+  let amount = each * helpings(total, effect.scaled.per, undefined);
+  if (effect.scaled.max !== undefined) {
+    amount = Math.sign(amount) * Math.min(Math.abs(amount), effect.scaled.max);
+  }
+  return amount === 0 ? null : amount;
 }
 
 /**
@@ -6549,7 +6573,7 @@ export function payWindfallGrants(
   if (payout.healAll) {
     for (const unit of state.units) {
       if (unit.ownerId !== player.id) continue;
-      unit.hp = unitMaxHp(unit);
+      unit.hp = unitMaxHp(unit, unitHealthBonus(state, player.id));
     }
   }
   // **The only writer of `Player.timed`** — Crassus' bill, stamped at an

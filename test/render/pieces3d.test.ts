@@ -1773,7 +1773,7 @@ describe('the worker charge badge', () => {
     expect(signUnits(b)).toBe(signUnits(a));
   });
 
-  it('hashes exactly the ten properties the trap names', () => {
+  it('hashes exactly the eleven properties the trap names', () => {
     // Read through Vite's raw glob rather than `node:fs` — the pattern
     // `test/sim/cities.test.ts` set for the same kind of assertion, and for the
     // same reason: this project has no node typings and a source read is not
@@ -1795,6 +1795,13 @@ describe('the worker charge badge', () => {
       'unit.row',
       'unit.hp',
       'unit.ownerId',
+      // Added deliberately with the strategic resources' empire bonuses (batch
+      // R2), and the first member that is not a property of the piece at all.
+      // Iron gives every fighting piece of an empire ten points of maximum
+      // health for as long as the empire controls a copy, so the bar over a
+      // piece that has not moved, healed or changed hands is different on the
+      // turn the mine is dug and different again on the turn it is pillaged.
+      'unitHealthBonus(state',
       '(UNIT_TYPE_INDEX.get(unit.type)',
       'chargesLeft(unit)',
       'personIndex(unit)',

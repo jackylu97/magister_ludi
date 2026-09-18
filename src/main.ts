@@ -62,7 +62,9 @@ import type { Tile } from './sim/map';
 import { describeUpgrade } from './sim/tech';
 import { isExploredBy, isVisibleTo } from './sim/visibility';
 import { techDef } from './sim/techData';
-import { unitDef, unitMaxHp } from './sim/unitData';
+import { unitDef, unitHp, unitMaxHp } from './sim/unitData';
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+import { unitHealthBonus } from './sim/resourceEffects';
 import { Renderer } from './render/renderer';
 import { loadSprites } from './render/sprites';
 import { createFlatTileArtist, createTileArtist } from './render/tileVisuals';
@@ -1749,7 +1751,8 @@ function describeUnitsOn(state: GameState, playerId: number, tile: Tile): string
   if (!first) return null;
   const def = unitDef(first.type);
   const more = units.length > 1 ? ` +${units.length - 1}` : '';
-  return `${def.name} · ${first.hp}/${unitMaxHp(first)} hp · ${seatName(state, first.ownerId)}${more}`;
+  const bonus = unitHealthBonus(state, first.ownerId);
+  return `${def.name} · ${unitHp(first, bonus)}/${unitMaxHp(first, bonus)} hp · ${seatName(state, first.ownerId)}${more}`;
 }
 
 /**

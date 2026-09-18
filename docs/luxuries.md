@@ -14,7 +14,8 @@ Read alongside `data/resources.json` (the table itself), `src/sim/resourceData.t
 ## The shape of a row
 
 A resource is a JSON row and nothing else. It declares where it may sit, what it
-puts on its tile, and — for a luxury — a **list of signature effects**:
+puts on its tile, and — for a luxury or a strategic resource — a **list of
+signature effects**:
 
 ```jsonc
 "gems": {
@@ -33,6 +34,32 @@ luxury **two tiers**: what it does from the moment you hold it, and what it does
 additionally once your empire reaches Æra III (`fromAge: 3`, gated on
 `highestAge`). A locked tier is still *shown* — the hover names it and labels it
 "Æra III" — because a payoff a player cannot see is a payoff they cannot plan for.
+
+### Strategic resources share this vocabulary
+
+Since batch R2 a **strategic** row may carry the same `effects` list. It is the
+empire-wide bonus its owner gets for controlling at least one copy, whatever the
+army has already spent: copper's coin in every city, camels' coin on every trade
+route, niter's share of science, ivory's contentment, obsidian's point of combat
+strength, horses' quicker roads, iron's ten points of maximum health on every
+piece that can fight. One evaluator reads both kinds
+(`src/sim/resourceEffects.ts`). See `docs/strategic-resources-proposal.md`.
+
+One rule differs, and it is the counting. A strategic bonus pays **once**,
+however many copies the empire holds — the first copy buys the bonus and every
+copy after it is for the army — so neither `perCopy` nor the Grand Bazaar's
+"additional copies count at 30%" reaches it unless the row itself says `perCopy`.
+The bonus also reads *controlled* copies rather than available ones: if it read
+what the army had left over, building units would switch an empire's economy off.
+
+Two shapes were added for it. `combatLine` is the cards' own shape
+(`CardCombatLineEffect`), read by the same function a card's strength line is
+read by, so it joins the fight's ordered list of labelled points. `unitHealth`
+has no card twin, because a card's extra health is a stamp written once at a
+piece's birth and this one is live: it is read through `unitMaxHp` every time a
+maximum is asked for, it reaches every non-civilian piece (`isCivilian`, so ships
+are included and settlers are not), and when the last copy goes a piece standing
+above its new maximum loses the extra points rather than a proportion.
 
 ### Uniqueness, and the one exception
 

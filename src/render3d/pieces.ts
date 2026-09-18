@@ -155,6 +155,10 @@ import { type GameMap, tileIndex } from '../sim/map';
 import { type GameState, type Unit, isBarbarian } from '../sim/state';
 import type { TerrainId } from '../sim/terrainData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef, unitMaxHp } from '../sim/unitData';
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+// Remembered on the economy clock, so asking it per piece per repaint is a map
+// lookup rather than a walk of the empire's ground.
+import { unitHealthBonus } from '../sim/resourceEffects';
 // The simulation's own reading of "this piece occupies no slot", asked here for
 // the half of the same sentence that is about the picture — see
 // `coveredTraders`. Never a category compared against a name in the renderer.
@@ -433,9 +437,16 @@ export function buildBadge(
  * The stamp is therefore **not** in the piece fingerprint (`signUnits`): what is
  * drawn is a *fraction*, so a stamped warrior at full health and a plain one at
  * full health are the same mark.
+ *
+ * `empireHp` is the empire's live share of that maximum — iron's ten points
+ * (batch R2) — handed in because this module may not walk an empire's ground.
+ * It **is** in the fingerprint, unlike the stamp, and for the opposite reason:
+ * it can change while nothing about the piece does, so a swordsman at 100 points
+ * goes from showing no bar to showing a nine-tenths bar on the turn its empire
+ * digs its first iron. See `signUnits`.
  */
-export function hpBarFill(unit: Unit): number | null {
-  const fraction = Math.max(0, Math.min(1, unit.hp / unitMaxHp(unit)));
+export function hpBarFill(unit: Unit, empireHp = 0): number | null {
+  const fraction = Math.max(0, Math.min(1, unit.hp / unitMaxHp(unit, empireHp)));
   return fraction >= 1 ? null : fraction;
 }
 
@@ -1222,6 +1233,7 @@ export class UnitLayer {
           faceCamera,
           slots,
           routedBarHandles,
+          unitHealthBonus(state, unit.ownerId),
         );
       }
     }
@@ -1445,11 +1457,12 @@ export class UnitLayer {
     faceCamera: Quaternion,
     slots: InstanceHandle[],
     routedBarHandles: InstanceHandle[],
+    empireHp: number,
   ): void {
     // `hpBarFill`, not arithmetic of its own: the walking copy asks the same
     // function (`buildHpBar`), and two readings of "how hurt is it" would be two
     // answers the moment one of them was edited.
-    const fraction = hpBarFill(unit);
+    const fraction = hpBarFill(unit, empireHp);
     if (fraction === null) return;
 
     // The quad's origin is its left edge, so the anchor is shifted half a bar
@@ -1650,6 +1663,15 @@ export class UnitLayer {
  * moved the fingerprint on the frame they arrived, and the boots that leave move
  * it again. Adding a member for it would have hashed the same facts twice. That
  * is a decision too, and the pin below is what makes the next one one.
+ *
+ * **The empire's health bonus is a member** (batch R2), and it is the first one
+ * that is not a property of the unit at all. Iron gives every fighting piece of
+ * an empire ten points of maximum health for as long as the empire holds a copy,
+ * so the bar over a piece that has not moved, healed or changed hands is
+ * different on the turn the mine is dug and different again on the turn it is
+ * pillaged. Nothing about the piece says so, which is exactly why it has to be
+ * hashed. It is remembered on the economy clock (`unitHealthBonus`), so asking
+ * it once per piece per repaint is a map lookup.
  */
 export function signUnits(state: GameState): number {
   let h = Math.imul(2166136261 ^ state.units.length, 16777619) ^ signWars(state);
@@ -1659,6 +1681,7 @@ export function signUnits(state: GameState): number {
     h = Math.imul(h ^ unit.row, 16777619);
     h = Math.imul(h ^ unit.hp, 16777619);
     h = Math.imul(h ^ unit.ownerId, 16777619);
+    h = Math.imul(h ^ unitHealthBonus(state, unit.ownerId), 16777619);
     h = Math.imul(h ^ (UNIT_TYPE_INDEX.get(unit.type) ?? -1), 16777619);
     h = Math.imul(h ^ chargesLeft(unit), 16777619);
     h = Math.imul(h ^ personIndex(unit), 16777619);

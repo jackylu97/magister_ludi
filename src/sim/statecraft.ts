@@ -96,6 +96,10 @@ export {
   cardCityStat,
   cardCombatLines,
   cardCombatPercent,
+  // The per-effect half of `cardCombatLines`, which the resource evaluator calls
+  // so that a card's strength line and a strategic resource's are read by one
+  // function. See `combatLineAmount`.
+  combatLineAmount,
   cardEmpireRenownShares,
   cardExtraCharges,
   cardFoundingRider,
@@ -192,6 +196,12 @@ export type {
 
 export {
   cityScopeWords,
+  // The two halves of a strength line's sentence, shared with the resource
+  // table's own describer since batch R2 — obsidian says "+1 combat strength for
+  // melee units" in exactly the words a card would use. Both are ref-free, so a
+  // surface that prints a resource's signature without `stripRefs` stays honest.
+  combatWhenWords,
+  filterWords,
   describeBuildingRow,
   describeCard,
   describeEffects,

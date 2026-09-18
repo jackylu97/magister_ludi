@@ -125,6 +125,8 @@ import {
   terrainDef,
 } from './terrainData';
 import { isExplorer, unitDef, unitMaxHp } from './unitData';
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+import { unitHealthBonus } from './resourceEffects';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { hasFreshWater } from './water';
 import { bumpEconomy } from './slate';
@@ -1617,7 +1619,7 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     // actually moved by rather than as what was offered, so a full-strength
     // raider's line does not promise twenty-five points it never took.
     const before = unit.hp;
-    unit.hp = Math.min(unitMaxHp(unit), unit.hp + payout.heal);
+    unit.hp = Math.min(unitMaxHp(unit, unitHealthBonus(state, unit.ownerId)), unit.hp + payout.heal);
     report.heal = unit.hp - before;
   }
   return report;

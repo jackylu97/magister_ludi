@@ -285,7 +285,9 @@ import { type SiegeField, cityBeatenDown, cityMaxHp, siegeField, underSiege } fr
 import type { Game } from '../sim/game';
 import { tileIndex } from '../sim/map';
 import { type City, type GameState, type Unit, isBarbarian } from '../sim/state';
-import { unitDef, unitMaxHp } from '../sim/unitData';
+import { unitDef, unitHp, unitMaxHp } from '../sim/unitData';
+// The empire's live share of a piece's maximum health — iron's ten points (R2).
+import { unitHealthBonus } from '../sim/resourceEffects';
 import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
 import { cityDisplayName } from './cityDisplay';
 import { cityMarkDataUri } from '../art/cityMarks';
@@ -749,7 +751,8 @@ export function garrisonRow(
   const pieces: GarrisonPiece[] = [];
   for (const unit of garrison.slice(0, GARRISON_ROW.cap)) {
     const wild = isBarbarian(state, unit.ownerId);
-    const hurt = hpBarFill(unit);
+    const bonus = unitHealthBonus(state, unit.ownerId);
+    const hurt = hpBarFill(unit, bonus);
     const name = unitDef(unit.type).name;
     const selected = unit.id === selectedUnitId;
     // The board's own rim: `unitColor` rather than the player's raw colour, so a
@@ -768,7 +771,7 @@ export function garrisonRow(
       mine: commandable(unit, seat),
       // The figures follow the town's own hover (`healthBar`): the same order,
       // the same words, one hover away from a drawing that is only a glance.
-      label: hurt === null ? name : `${name} · ${unit.hp}/${unitMaxHp(unit)} hp`,
+      label: hurt === null ? name : `${name} · ${unitHp(unit, bonus)}/${unitMaxHp(unit, bonus)} hp`,
     });
   }
   return {
