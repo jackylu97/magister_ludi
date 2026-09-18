@@ -151,15 +151,41 @@ Horses gaining food reflects that a pasture feeds people, and makes an early hor
 
 This is the part that keeps a resource interesting after your army is built. It also creates a good tension with consumption: **your first copy is for the bonus, every copy after it is for the army.** An empire down to its last iron has a real decision to make.
 
+### The settled set — 2026-09-18
+
 | Resource | Bonus | Already expressible? |
 |---|---|---|
 | **Obsidian** | melee units +1 combat strength | **new shape** — `combatLine` is a card effect but not yet a resource one |
-| **Copper** | +1 production in every city | **yes** — `perCityYields` |
+| **Copper** | +1 gold in every city | **yes** — `perCityYields` |
 | **Horses** | faster movement along roads | **almost** — `rulePercent` exists but `ResourceRule` admits only three of the nine card rules; `roadStepCost` has to join it |
-| **Iron** | +1 production on mines | **yes** — `improvementYields` |
-| **Ivory** | **+4 happiness** *(settled 2026-09-18)* | **yes** — `extraHappiness`, which is exactly what it pays as a luxury today |
-| **Niter** | +1 science on mines | **yes** — `improvementYields` |
-| **Camels** | **+1 gold on every trade route** *(settled 2026-09-18)* | **yes** — `routeYields` |
+| **Iron** | all units +10 health | **new shape** — see the question below |
+| **Ivory** | +4 happiness | **yes** — `extraHappiness`, which is exactly what it pays as a luxury today |
+| **Camels** | +1 gold on every trade route | **yes** — `routeYields` |
+| **Niter** | +10% science, empire-wide | **yes** — `percentYields` |
+
+Seven resources, seven jobs: obsidian makes you fight better, copper makes you rich, horses make you fast, iron makes you tough, ivory makes you content, camels make you trade, niter makes you learn. Copper and camels both pay gold, but from different places — a city and a route — so a landlocked empire and a trading one value them differently.
+
+**Four are one JSON row with no code at all.** The luxury effect vocabulary (`ResourceEffect` in `src/sim/resourceData.ts`) already carries `perCityYields`, `extraHappiness`, `routeYields` and `percentYields`, and it is deliberately the cards' vocabulary wherever the two mean the same thing. Three need something:
+
+- **Obsidian's combat line.** `combatLine` is a card shape; adding it to `ResourceEffect` is a member on a union that exists, and one evaluator reads the whole vocabulary.
+- **Horses' road rule.** `ResourceRule` is `Extract<CardRule, 'happinessDemand' | 'borderCost' | 'growthCarryover'>` — three of the nine. `roadStepCost` joins that list.
+- **Iron's health.** The largest of the three, and it needs a ruling first.
+
+#### Iron's +10 health — one question before it can be built
+
+The game already has a +10 health mechanism and it is a **creation stamp**: `UnitStamp.hp`, written when a piece is built, read by `unitMaxHp` as `roster maxHp + stamp`, and carried by the piece for life (it survives an upgrade — only the type changes). The War Hall does exactly this, and the design doc's Alloys technology proposes the same *"units subsequently trained gain +10 maximum health permanently"*.
+
+So there are two readings of "all units +10 health", and they play differently:
+
+**(a) A creation stamp.** Units trained *while you hold iron* keep +10 for life, whether or not you keep the iron. Uses the mechanism that exists, matches the War Hall and Alloys, and has no awkward edges. It makes *when* you secure iron matter — an empire that holds iron early has a permanently tougher old guard. But it is not what "you gain this bonus for having at least one copy" says, and it would make iron the only one of the seven that is not live.
+
+**(b) A live empire bonus.** While you hold iron, every unit you own has +10 maximum health; lose your last iron and the army loses it. Consistent with the other six, and simpler to state: *you have iron, your army is tougher.* Losing your only iron mine weakening your whole army is good drama, and close to the Civ 5 shortage feeling.
+
+The cost of (b) is real but bounded. `unitMaxHp(unit)` would have to consult the owning empire, so it takes the state — and its readers all change with it: the heal cap, the forecast's two bars, the upgrade's health fraction, and the renderer's hp bar. It also needs a rule for the moment the bonus goes away, since a piece at 110 of 110 would be over its new maximum. *Recommended clamp: current health drops to the new maximum, the way a signed stamp already floors at 1 — you lose the ten points, not a proportion.*
+
+*Recommendation: **(b)**, for consistency. Six live bonuses and one stamp would be a rule a player has to be told; seven live bonuses is a rule they can guess. But if the signature change looks like a bad trade when someone reads the call sites, (a) is a legitimate answer and it is the cheaper one.*
+
+**Also to settle: does "all units" include civilians?** A settler, worker or trader with +10 health is meaningfully harder to capture. *Recommended: yes — "all" is the simpler rule, and a tougher settler is a reasonable thing for an iron-rich empire to have. Barbarians are excluded, as they are from every empire reading.*
 
 **Five of the seven are one JSON row with no code at all.** A luxury's effect vocabulary (`ResourceEffect` in `src/sim/resourceData.ts`) already carries `perCityYields`, `improvementYields`, `routeYields`, `extraHappiness`, `productionBonus`, `percentYields`, `buildingCategoryYields`, `unitUpkeepRebate` and more — and it is deliberately the cards' vocabulary wherever the two mean the same thing. Only two bonuses need anything built:
 
