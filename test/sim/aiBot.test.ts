@@ -465,13 +465,16 @@ describe('the bot defends itself', () => {
     // **Re-sited a fourth time for D1b**: the decks carry live rows now, so the
     // bots draft from turn one and the played board is a differently-developed
     // town by turn sixteen — where the quiet pick had become a scout, which is
-    // a combatant, and the comparison said nothing. Swept 8–30 again:
-    // twenty-one reads as the addendum says — a worker in the quiet world, a
-    // warrior under the column (so do 18–25; 8–15 and 29–30 raise a scout
-    // either way, 26–27 a worker either way). It is asserted below rather than
-    // assumed: the quiet pick must be something other than a soldier, or the
-    // test proves nothing by finding one under siege.
-    const game = grownGame(21);
+    // a combatant, and the comparison said nothing.
+    // **Re-sited a fifth time for R3**: the strategic roster changed what the
+    // ground carries and what a town can raise, and turn twenty-one now reads
+    // a worker either way. Swept 8–30 again: **nineteen** reads as the addendum
+    // says — a worker in the quiet world, a warrior under the column — and so
+    // does every turn from 16 to 20, which is the widest contiguous run on this
+    // board. It is asserted below rather than assumed: the quiet pick must be
+    // something other than a soldier, or the test proves nothing by finding one
+    // under siege.
+    const game = grownGame(19);
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
     // A quiet world is ESTABLISHED, not assumed (2026-09-05): on the retuned

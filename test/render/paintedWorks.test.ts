@@ -147,7 +147,7 @@ describe('painted resources and core improvements', () => {
     for (const [col, resource] of [[1, 'horses'], [3, 'iron'], [5, 'niter']] as const) getTileAt(state.map, col, 2)!.resource = resource;
     const f = fixtures(state); f.build(); expect(f.layer.entries).toHaveLength(0);
     let previous = signPaintedWorks(state, 0);
-    for (const [tech, resource] of [['husbandry', 'horses'], ['bronzePanoply', 'iron'], ['alchemy', 'niter']] as const) {
+    for (const [tech, resource] of [['husbandry', 'horses'], ['bronzePanoply', 'iron'], ['physics', 'niter']] as const) {
       state.players[0]!.techsResearched.push(tech);
       expect(signPaintedWorks(state, 0)).not.toBe(previous); previous = signPaintedWorks(state, 0);
       f.build(); expect(f.layer.entries.map(entry => entry.resource)).toContain(resource);
@@ -222,7 +222,11 @@ describe('painted resources and core improvements', () => {
   });
 
   it('removes pillaged works but retains the seam and ignores unrelated state in its fingerprint', () => {
+    // Copper became a strategic row in batch R3, revealed by Mining — so the
+    // seat holds the tech, or the seam is never drawn for it and the claim
+    // below (the work goes, the seam stays) is about an empty hex.
     const state = world(), tile = getTileAt(state.map, 3, 2)!; tile.hills = true; tile.resource = 'copper'; tile.improvement = 'mine'; tile.road = 0;
+    state.players[0]!.techsResearched.push('mining');
     const f = fixtures(state); f.build(); const before = signPaintedWorks(state, 0);
     state.players[0]!.gold += 1; expect(signPaintedWorks(state, 0)).toBe(before);
     const raider = createUnit(state, 1, 'warrior', tile.col, tile.row); pillageAt(state, raider, tile);
@@ -532,7 +536,8 @@ describe('painted special improvements', () => {
       expect(hasResource(state, 0, tile.resource!)).toBe(!gated);
     }
     const before = signPaintedWorks(state, 0);
-    state.players[0]!.techsResearched.push('husbandry', 'bronzePanoply', 'alchemy'); bumpEconomy(state); f.build();
+    // Niter's reveal moved from Alchemy to Physics in batch R3.
+    state.players[0]!.techsResearched.push('husbandry', 'bronzePanoply', 'physics'); bumpEconomy(state); f.build();
     expect(signPaintedWorks(state, 0)).not.toBe(before);
     for (const tile of tiles) {
       const cell = tileIndex(state.map, tile.col, tile.row);

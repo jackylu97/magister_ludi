@@ -180,6 +180,7 @@ import {
   RESOURCE_IDS,
   type ResourceId,
   resourceDef,
+  strategicGroups,
   tileSuitsResource,
 } from './resourceData';
 import { RULES } from './rulesData';
@@ -289,9 +290,15 @@ export function isHomeLandmass(
 }
 
 /**
- * Which of the guaranteed strategics each hex could *ever* be armed with —
- * one flag per row of `resources.startStrategics`, set where a hex whose own
- * terrain suits that row stands within `startStrategicRadius`.
+ * Which of the guaranteed strategic **groups** each hex could ever be armed
+ * from — one flag per group of `resources.startStrategics`, set where a hex
+ * whose own terrain suits **any member** of that group stands within
+ * `startStrategicRadius`.
+ *
+ * A group rather than a row since batch R3: a blade is obsidian or copper and a
+ * mount is horses or camels, so a site is armable when the ground in reach can
+ * grow either. Reading it any other way would refuse a desert start for having
+ * no copper hill while camels and obsidian sit next to it.
  *
  * A **ground** fact, asked before a single resource has been placed, which is
  * what makes it a legal thing for a site rejection to read. Ruled 2026-09-05
@@ -310,10 +317,10 @@ export function isHomeLandmass(
  * grid however wide the radius is.
  */
 export interface StrategicGround {
-  /** Row id → flag per tile index: 1 where a legal hex is in reach. */
-  reach: Map<ResourceId, Uint8Array>;
-  /** The rows asked about, in sheet order. Empty disables the refusal. */
-  rows: ResourceId[];
+  /** Per group, by index: 1 where a hex suiting any member is in reach. */
+  reach: Uint8Array[];
+  /** The groups asked about, in sheet order. Empty disables the refusal. */
+  groups: ResourceId[][];
 }
 
 /**
@@ -324,19 +331,17 @@ export interface StrategicGround {
 export function strategicGround(map: GameMap): StrategicGround {
   const config = mapgenFor(map).resources;
   const radius = Math.max(0, Math.round(config.startStrategicRadius));
-  const rows = (config.startStrategics ?? []).filter(
-    (id) => RESOURCE_IDS.includes(id) && resourceDef(id).kind === 'strategic',
-  );
-  const reach = new Map<ResourceId, Uint8Array>();
-  for (const id of rows) {
-    const def = resourceDef(id);
+  const groups = strategicGroups(config.startStrategics);
+  const reach: Uint8Array[] = [];
+  for (const group of groups) {
+    const defs = group.map(resourceDef);
     const flag = new Uint8Array(map.tiles.length);
     // Sources in tile-index order. The walk's outcome is a distance field and
     // so is order-independent, but the queue is index-ordered anyway — the
     // discipline every sweep in this codebase keeps.
     let frontier: Tile[] = [];
     for (const tile of map.tiles) {
-      if (!tileSuitsResource(tile, def)) continue;
+      if (!defs.some((def) => tileSuitsResource(tile, def))) continue;
       flag[tileIndex(map, tile.col, tile.row)] = 1;
       frontier.push(tile);
     }
@@ -352,9 +357,9 @@ export function strategicGround(map: GameMap): StrategicGround {
       }
       frontier = next;
     }
-    reach.set(id, flag);
+    reach.push(flag);
   }
-  return { reach, rows };
+  return { reach, groups };
 }
 
 /** A scored site: the ledger, its fold, and whether it is allowed at all. */
@@ -763,9 +768,12 @@ function scoreSite(
   if (reject === null) {
     const field = arms ?? strategicGround(map);
     const at = tileIndex(map, tile.col, tile.row);
-    for (const id of field.rows) {
-      if (field.reach.get(id)?.[at]) continue;
-      reject = `no ground for ${resourceDef(id).name.toLowerCase()}`;
+    for (let group = 0; group < field.groups.length; group++) {
+      if (field.reach[group]?.[at]) continue;
+      // "no ground for obsidian or copper" — the whole group, because what the
+      // site lacks is the promise and not one row of it.
+      const names = field.groups[group]!.map((id) => resourceDef(id).name.toLowerCase());
+      reject = `no ground for ${names.join(' or ')}`;
       break;
     }
   }

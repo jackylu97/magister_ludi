@@ -135,36 +135,36 @@ column, which is carried through every regeneration.
 | Archer | ranged | 15 | 20 | 2 | 2 | 100 | 2 | light | 15 | — | Fletching | Bowman | — |  |
 | Bowman | ranged | 20 | 28 | 2 | 2 | 100 | 2 | line | 61 | — | Siegecraft | Composite Bowman | — |  |
 | Spearman | melee | 25 | — | — | 2 | 100 | 2 | line | 27 | — | Bronzeworking | Phalanx | — |  |
-| Horseman | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 151 | — | The Saddle | Knight | needs improved Horses |  |
-| War Chariot | mounted | 33 | — | — | 4 | 100 | 2 | heavy | 51 | — | The Wheel | Horseman | needs improved Horses |  |
-| Chariot Archer | mountedRanged | 20 | 26 | 2 | 3 | 100 | 2 | heavy | 51 | — | The Wheel | Horse Archer | needs improved Horses |  |
-| Swordsman | melee | 35 | — | — | 2 | 100 | 2 | line | 46 | — | Bronze Panoply | Legionary | needs improved Iron |  |
+| Horseman | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 151 | — | The Saddle | Knight | needs improved Horses or Camels |  |
+| War Chariot | mounted | 33 | — | — | 4 | 100 | 2 | heavy | 51 | — | The Wheel | Horseman | needs improved Horses or Camels |  |
+| Chariot Archer | mountedRanged | 20 | 26 | 2 | 3 | 100 | 2 | heavy | 51 | — | The Wheel | Horse Archer | needs improved Horses or Camels |  |
+| Swordsman | melee | 35 | — | — | 2 | 100 | 2 | line | 46 | — | Bronze Panoply | Legionary | needs improved Obsidian or Copper |  |
 | Catapult | siege | 35 | 42 | 2 | 1 | 100 | 2 | engine | 174 | — | Mathematics | Trebuchet | — |  |
 | Composite Bowman | ranged | 30 | 39 | 2 | 2 | 100 | 2 | line | 105 | — | Mathematics | Crossbowman | — |  |
 | Pikeman | melee | 52 | — | — | 2 | 120 | 2 | line | 238 | — | Castellany | — | — |  |
 | Crossbowman | ranged | 45 | 50 | 2 | 2 | 110 | 2 | line | 181 | — | Machinery | — | — |  |
-| Knight | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 445 | — | Militant Orders | — | needs improved Horses |  |
+| Knight | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 445 | — | Militant Orders | — | needs improved Horses or Camels |  |
 | Longswordsman | melee | 55 | — | — | 2 | 120 | 2 | heavy | 340 | — | Steel | — | needs improved Iron |  |
 | Trebuchet | siege | 40 | 48 | 2 | 1 | 110 | 2 | engine | 391 | — | Natural Philosophy | — | — |  |
-| Phalanx | melee | 30 | — | — | 2 | 110 | 2 | line | 46 | — | Bronze Panoply | Spear Wall | — |  |
+| Phalanx | melee | 30 | — | — | 2 | 110 | 2 | line | 46 | — | Bronze Panoply | Spear Wall | needs improved Obsidian or Copper |  |
 | Legionary | melee | 45 | — | — | 2 | 110 | 2 | line | 81 | — | Iron Working | Longswordsman | needs improved Iron |  |
-| Horse Archer | mountedRanged | 32 | 42 | 2 | 4 | 100 | 2 | heavy | 151 | — | The Saddle | — | needs improved Horses |  |
+| Horse Archer | mountedRanged | 32 | 42 | 2 | 4 | 100 | 2 | heavy | 151 | — | The Saddle | — | needs improved Horses or Camels |  |
 | Spear Wall | melee | 42 | — | — | 2 | 110 | 2 | line | 81 | — | Iron Working | Pikeman | — |  |
 | War Elephant | mounted | 50 | — | — | 3 | 130 | 2 | heavy | 151 | — | The Saddle | — | needs improved Ivory |  |
 | The Fire Lance | melee | 80 | — | — | 2 | 120 | 2 | heavy | 583 | — | Alchemy | — | needs improved Niter |  |
 | Knights Templar | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 445 | — | — | — | opened by a card · bought with faith only · mirrors the best mounted |  |
 | Slinger | ranged | 20 | 30 | 2 | 2 | 100 | 2 | line | 61 | — | — | Composite Bowman | unslowed by hills |  |
 | Fubing | melee | 27 | — | — | 2 | 110 | 2 | light | 19 | — | — | Spear Wall | — |  |
-| Tang Heavy Cavalry | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | needs improved Horses |  |
-| The Whistling Arrow | mountedRanged | 20 | 26 | 3 | 3 | 100 | 2 | heavy | 51 | — | — | Horse Archer | needs improved Horses |  |
-| Xiongnu Horse Archer | mountedRanged | 32 | 42 | 2 | 5 | 100 | 2 | heavy | 151 | — | — | — | needs improved Horses |  |
-| The Chanyu's Guard | mounted | 66 | — | — | 5 | 130 | 2 | heavy | 445 | — | — | — | needs improved Horses |  |
-| The Khopesh | melee | 35 | — | — | 2 | 110 | 2 | line | 46 | — | — | Legionary | needs improved Iron |  |
+| Tang Heavy Cavalry | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | — |  |
+| The Whistling Arrow | mountedRanged | 20 | 26 | 3 | 3 | 100 | 2 | heavy | 51 | — | — | Horse Archer | — |  |
+| Xiongnu Horse Archer | mountedRanged | 32 | 42 | 2 | 5 | 100 | 2 | heavy | 151 | — | — | — | — |  |
+| The Chanyu's Guard | mounted | 66 | — | — | 5 | 130 | 2 | heavy | 445 | — | — | — | — |  |
+| The Khopesh | melee | 35 | — | — | 2 | 110 | 2 | line | 46 | — | — | Legionary | — |  |
 | Camel Archer | mountedRanged | 32 | 46 | 2 | 4 | 100 | 2 | heavy | 151 | — | — | — | — |  |
 | The Pontic Peltast | melee | 26 | — | — | 2 | 110 | 2 | line | 27 | — | — | Spear Wall | — |  |
-| The Scythed Chariot | mounted | 46 | — | — | 4 | 110 | 2 | heavy | 198 | — | — | — | needs improved Horses |  |
-| The Gendarme | mounted | 66 | — | — | 4 | 130 | 2 | heavy | 445 | — | — | — | needs improved Horses |  |
-| The Mandekalu | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | needs improved Horses |  |
+| The Scythed Chariot | mounted | 46 | — | — | 4 | 110 | 2 | heavy | 198 | — | — | — | — |  |
+| The Gendarme | mounted | 66 | — | — | 4 | 130 | 2 | heavy | 445 | — | — | — | — |  |
+| The Mandekalu | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | — |  |
 | The Eagle Warrior | melee | 36 | — | — | 2 | 110 | 2 | line | 61 | — | — | Longswordsman | — |  |
 
 ### Naval — 14 rows

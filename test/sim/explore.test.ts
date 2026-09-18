@@ -636,10 +636,19 @@ describe('determinism', () => {
    * caravan is hired, so no road opens. The only thing that moved is the print's
    * `schemaVersion` digits — three characters becoming three characters, which
    * is why the length holds and the hash does not.
+   *
+   * **Re-taken for batch R3 (the strategic roster).** This one is a real move
+   * and not a schema digit. Two new resource rows joined the table and two rows
+   * changed kind, which moves the scatter's own weighted draw, and every
+   * strategic tile now rolls a quantity off the map rng — so the board these
+   * seats range over is a different board at both seeds. Larger by about 850
+   * bytes, which is the quantity written onto the strategic tiles a duel map
+   * carries. Nobody still founds a town here, so the reasons above are all
+   * still the reasons; what changed is the ground.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '0d6e1b4d:188105',
-    2026: 'a536d3f2:187719',
+    11: 'cd2e51d6:188968',
+    2026: '04e5f2f0:188539',
   };
 
   for (const seed of [11, 2026]) {

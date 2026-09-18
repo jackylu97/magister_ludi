@@ -936,6 +936,32 @@ Attempts are capped at `attemptsPerResource × budget`, so a map whose terrain
 cannot hold the budget finishes rather than spinning. Falling short is not an
 error; it is what a poor map is.
 
+### How much a strategic seam is worth
+
+A strategic tile carries a **quantity** — how many copies the seam holds — rolled
+per tile from the row's own `copiesPerSource` range in `data/resources.json` and
+written to `Tile.resourceCopies`. Batch R3, and it exists because a unit holds one
+copy of a strategic resource for as long as it lives: one copy per tile would make
+a two-horse empire a two-horseman empire for the whole game.
+
+Every row's ceiling is 8 and the floor is what differs, so a rare resource buys a
+better *worst* case rather than a better best one and no deposit of anything is
+ever capped below a jackpot. The floors as shipped: horses and copper 3, obsidian,
+iron and ivory 4, camels and niter 5.
+
+The roll is the **last** pass of `placeResources`, after the guarantees, and it
+walks the finished board in tile-index order. Two things follow. Which tile
+carries which resource on a given seed is exactly what it would be without
+quantities, because every draw here comes after every placement draw. And a tile
+planted by a guarantee — which rolls no dice of its own — still gets a number,
+because the pass reads the board rather than remembering what it placed.
+
+The quantity is a **placed-once** tile fact, `Tile.resource`'s sibling: nothing
+regenerates it mid-game, for the reason nothing regenerates a resource. What an
+empire may actually draw on is a separate question — `resourceCopies`
+(`cities.ts`) sums the quantity over the opened seams that empire owns, less what
+it has lent away.
+
 ### The luxury settle pass
 
 `settleLuxuryDensity`. The luxuries are dealt per continent first and the budget
@@ -1092,9 +1118,10 @@ possible start (the maximum roster) is checked and each gap filled:
 3. one of those kinds standing in a seam of `startLuxuryCopies` tiles — Civ 5's
    region luxury. One lonely wine four hexes off is a curiosity; a seam of two is
    a reason to plant a city on it;
-4. a copy of **every row in `startStrategics`** within `startStrategicRadius`
-   (`ensureStartStrategics`, ruled 2026-09-05: *"every capital has both horses
-   and iron within six tiles"*);
+4. a copy from **every group in `startStrategics`** within
+   `startStrategicRadius` (`ensureStartStrategics`, ruled 2026-09-05: *"every
+   capital has both horses and iron within six tiles"*, widened to groups in
+   batch R3 — one blade source and one mount source);
 5. one resource of **every kind a seated leader's `furnish` names** within
    `startFurnishRadius` (`ensureStartFurnishing` — stage three below). The only
    guarantee a *figure* asks for, and the only one a seat can be without.
@@ -1108,21 +1135,29 @@ above them is retuned.
 #### The strategic guarantee, and the refusal behind it
 
 Whether an empire can field a horseman or a swordsman before the classical age is
-not flavour, and the scatter's twenty-two strategic tiles per 1000 land is far too
-thin to promise either — so the two rows the opening turns on are promised
-outright. It is a **list of ids**, not a count: which strategics matter at the
-opening is a design statement. The seat's reveal tech still gates *seeing* the
-copy; the guarantee is about the ground, not about knowledge.
+not flavour, and a uniform scatter is too thin to promise either — so the two
+things the opening turns on are promised outright. It is a **list of groups**,
+not a count: which strategics matter at the opening is a design statement, and
+since batch R3 a group is satisfied by **any one member** of it. The two groups
+are the blade (obsidian or copper) and the mount (horses or camels); their
+members sit on different ground on purpose, so a start with no hill for copper is
+a start with desert for obsidian or camels. The seat's reveal tech still gates
+*seeing* the copy; the guarantee is about the ground, not about knowledge.
 
-Measured over five seeds and the maximum twelve-seat roster (120 seat-resource
-pairs per size), the scatter supplies about forty of them on its own and the
-guarantee forces the rest — 68 forced at `standard`, 69 at `large`, 79 at `huge`,
-73 at `giant` — and **no seat is left short at any size from `standard` up**.
+Planting goes by **nearest hex, not by group order** — the group's own order only
+breaks a tie on one hex — so a desert seat is armed with obsidian because desert
+hills are what it has, and not because the sheet lists obsidian first.
 
-What it cannot do is invent ground: iron wants a featureless hill. So the *site*
-is refused instead — `strategicGround` (`startPositions.ts`) dilates the legal
-hexes of each listed row out to the radius, once per map, and a site outside every
-row's reach is the chooser's seventh hard rejection. **That clause is unreachable
+Measured at batch R3 over eight standard seeds: the scatter now supplies almost
+all of it on its own and the guarantee forces about **7 tiles a map** across the
+whole twelve-seat roster — the purse at 60 and a group satisfied by either member
+together leave very little to fill. **No seat is left short.**
+
+What it cannot do is invent ground: copper wants a featureless hill. So the
+*site* is refused instead — `strategicGround` (`startPositions.ts`) dilates the
+legal hexes of each **group** out to the radius, once per map (a hex counts when
+it suits any member), and a site outside a group's reach is the chooser's seventh
+hard rejection. **That clause is unreachable
 on the standard sheet**: over the same sweep, every one of the sixty seats at
 `standard` and above has legal ground for both rows in reach. It fires only on
 `duel` asked to seat twelve — ten of sixty seats there have no featureless hill or
@@ -1542,13 +1577,13 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 | `luxuryScarcityBias` | 1.5 | exponent on `continents/hosts` in the draw weight; 0 = frequency alone |
 | `bonusPer1000LandTiles` | 110 | bonus resource tiles per 1000 land (85 until 2026-08-27 — the playtest wanted a wider, more coastal game) |
 | `seaFrequencyMultiplier` | 1.35 | weight on every bonus row whose legal terrain is all water (fish, crabs), drawn out of the same purse by `drawWeighted` — a seventh sea row inherits it |
-| `strategicPer1000LandTiles` | 22 | strategic resource tiles per 1000 land |
+| `strategicPer1000LandTiles` | 60 | strategic resource tiles per 1000 land (22 until batch R3, when the roster grew from three rows to seven and a fixed purse split seven ways would have made everything rarer) |
 | `minSpacing` | 2 | minimum hex distance between two different finds |
 | `attemptsPerResource` | 12 | draws allowed per budgeted tile before a scatter gives up |
 | `startFoodRadius` | 3 | how far from a start a bonus food must be for the guarantee to rest |
 | `startLuxuryRadius` | 4 | how far a start's guaranteed luxuries may be |
 | `startLuxuryKinds` | 2 | distinct luxury kinds every start is guaranteed |
-| `startStrategics` | `["horses","iron"]` | strategic rows every start is guaranteed a copy of. Empty disables both the guarantee and the site refusal behind it |
+| `startStrategics` | `[["obsidian","copper"],["horses","camels"]]` | strategic **groups** every start is guaranteed a copy from — any one member satisfies a group. Empty disables both the guarantee and the site refusal behind it |
 | `startStrategicRadius` | 6 | how far from a start those copies may be |
 | `startBiasRadius` | 4 | how far a seated leader's resource bias reaches from its own start (stage two) |
 | `startFurnishRadius` | 3 | how far its furnishing may stand (stage three) |

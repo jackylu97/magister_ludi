@@ -121,6 +121,26 @@ function connectIron(state: GameState, playerId: number, col: number, row: numbe
   // The city clause opens a seam only to an owner who holds the improvement's
   // tech (`openedResource`), so the town needs Mining as well as the reveal.
   grant(state, playerId, 'mining');
+  // **And a blade, since batch R3.** The sword rung below the legionary moved
+  // off iron onto the obsidian/copper pair, so an empire with iron and no blade
+  // climbs no further than the warrior — the chain stops at the first rung it
+  // cannot field. One copper is enough however many pieces climb: a blade rung
+  // nobody stops on holds no copy.
+  connectBlade(state, playerId);
+}
+
+/** One improved copper on any hex this player owns — the blade half. */
+function connectBlade(state: GameState, playerId: number): void {
+  for (const tile of state.map.tiles) {
+    if (tile.resource !== undefined) continue;
+    if (tileOwnerPlayerId(state, tile.col, tile.row) !== playerId) continue;
+    tile.hills = true;
+    tile.resource = 'copper';
+    tile.improvement = 'mine';
+    bumpEconomy(state);
+    return;
+  }
+  throw new Error('no spare hex for a blade');
 }
 
 /**
@@ -1005,35 +1025,34 @@ describe('obsolete units', () => {
     expect(buildError(state, 0, 'unit', 'swordsman')).toContain('needs');
   });
 
-  it('keeps the warrior while the swords’ iron is out of reach', () => {
-    // The ruling of 2026-09-04 ("let's make the swordsman require iron") moves
-    // the exception a rung earlier: the **sword** wants a seam now, so Bronze
-    // Panoply alone offers nothing new and the warrior stays on the list.
-    //
-    // Note what the tree does with that, because it is the whole shape of the
-    // change: iron is *named* by Iron Working, an age above the sword's own
-    // node, so there is no board on which an empire holds the sword's seam
-    // without also holding the legionary that supersedes it. The Æra II sword
-    // is therefore a row no empire builds — the wild still fields them
-    // (`barbarianTier` asks the technology and never `hasResource`) — and the
-    // rung that actually retires the warrior is the legionary, below.
+  it('keeps the warrior while the swords’ blade is out of reach', () => {
+    // The ruling of 2026-09-04 ("let's make the swordsman require iron") moved
+    // the exception a rung earlier, and batch R3 moved the *seam*: the Æra II
+    // sword is forged from obsidian or copper now, and iron begins at the
+    // legionary. Bronze Panoply alone still offers nothing new, so the warrior
+    // stays on the list.
     const state = flatState();
     grantPrereqs(state, 0, 'bronzePanoply');
     grant(state, 0, 'bronzePanoply');
-    expect(buildError(state, 0, 'unit', 'swordsman')).toBe('Swordsman needs improved Iron');
+    expect(buildError(state, 0, 'unit', 'swordsman')).toBe(
+      'Swordsman needs improved Obsidian or Copper',
+    );
     expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
     expect(upgradeTargetForType(state, 0, 'warrior')).toBeNull();
   });
 
   it('takes the warrior off the list the moment a sword can be built', () => {
-    // One seam opens both swords, so an empire that mines iron walks the
-    // warrior the whole chain in one step and an empire without it walks
-    // nothing. The message names the rung the piece would actually become.
+    // Two seams open the line since batch R3 — a blade for the sword rung and
+    // iron above it — so an empire that mines both walks the warrior the whole
+    // chain in one step and an empire without either walks nothing. The message
+    // names the rung the piece would actually become.
     const state = flatState();
     grantPrereqs(state, 0, 'ironWorking');
     grant(state, 0, 'ironWorking');
     expect(buildError(state, 0, 'unit', 'legionary')).toBe('Legionary needs improved Iron');
-    expect(buildError(state, 0, 'unit', 'swordsman')).toBe('Swordsman needs improved Iron');
+    expect(buildError(state, 0, 'unit', 'swordsman')).toBe(
+      'Swordsman needs improved Obsidian or Copper',
+    );
     expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
     expect(upgradeTargetForType(state, 0, 'warrior')).toBeNull();
 
@@ -1048,19 +1067,23 @@ describe('obsolete units', () => {
     expect(upgradeTargetForType(state, 0, 'warrior')).toBe('legionary');
   });
 
-  it('gives the row back when the iron is lost again', () => {
+  it('gives the row back when the seams are lost again', () => {
     // The one gate in `buildError` that goes backwards, and it must: a captured
-    // mine takes both swords with it, and an empire that can field neither is an
-    // empire that had better be allowed its warriors again.
+    // mine takes a sword with it, and an empire that can field neither sword is
+    // an empire that had better be allowed its warriors again. Both seams go,
+    // because both rungs are gated and either one left standing would offer the
+    // warrior a successor.
     const state = flatState();
     grantPrereqs(state, 0, 'ironWorking');
     grant(state, 0, 'ironWorking');
     connectIron(state, 0, 8, 5);
     expect(buildError(state, 0, 'unit', 'warrior')).not.toBeNull();
-    at(state.map, 8, 5).resource = undefined;
+    for (const tile of state.map.tiles) tile.resource = undefined;
     bumpEconomy(state);
     expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
-    expect(buildError(state, 0, 'unit', 'swordsman')).toBe('Swordsman needs improved Iron');
+    expect(buildError(state, 0, 'unit', 'swordsman')).toBe(
+      'Swordsman needs improved Obsidian or Copper',
+    );
   });
 
   it('never climbs into a row no technology reaches', () => {
@@ -1151,15 +1174,20 @@ describe('auto-upgrade', () => {
     expect(after.type).toBe('legionary');
     expect(after.col).toBe(8);
     expect(after.row).toBe(5);
-    // 60% of a legionary's 110 maximum, rounded.
-    expect(after.hp).toBe(66);
+    // Sixty of the warrior's maximum, carried across as a fraction. Both
+    // maxima carry **iron's ten points** since batch R3 — the empire just
+    // connected an iron seam, and `unitHealth` is live on every piece that can
+    // fight — so it is 60 of 110 taken to 120, not 60 of 100 taken to 110.
+    expect(after.hp).toBe(65);
     expect(state.units).toHaveLength(1);
   });
 
   it('keeps the percentage when the new type is tougher', () => {
     const state = flatState();
     const unit = createUnit(state, 0, 'swordsman', 8, 5);
-    unit.hp = 50; // half of 100
+    // Half of the printed 100 — and a little under half of the real maximum,
+    // because the seam connected below puts iron's ten points on every piece.
+    unit.hp = 50;
     connectIron(state, 0, 8, 5);
     // The melee ladder is warrior → swordsman → **legionary** → longswordsman,
     // and Steel descends through Iron Working, so its own prerequisites are the
@@ -1169,9 +1197,10 @@ describe('auto-upgrade', () => {
     state.players[0]!.sciencePool = techDef('steel').cost;
 
     advanceResearch(state);
-    // Half of a longswordsman's 120.
+    // The fraction, carried. Both maxima carry iron's ten live points (batch
+    // R3), so it is 50 of 110 taken to 130 rather than 50 of 100 taken to 120.
     expect(state.units[0]!.type).toBe('longswordsman');
-    expect(state.units[0]!.hp).toBe(60);
+    expect(state.units[0]!.hp).toBe(59);
     expect(unitDef('longswordsman').maxHp).toBe(120);
   });
 
@@ -2160,10 +2189,11 @@ describe('the shape of the tree', () => {
     expect(unitDef('archer').upgradesTo).toBe('bowman');
     expect(unitDef('bowman').upgradesTo).toBe('compositeBowman');
     expect(unitDef('compositeBowman').upgradesTo).toBe('crossbowman');
-    // **Both swords are iron rungs** since the ruling of 2026-09-04 ("let's make
-    // the swordsman require iron"): the Æra II sword asks for the seam its
-    // successor asks for, so an empire with no mine fights on with warriors.
-    expect(unitDef('swordsman').requiresResource).toBe('iron');
+    // **The ladder crosses two seams** since batch R3: the Æra II sword is
+    // forged from obsidian or copper and iron begins one rung above it, which
+    // is the blade → steel story the roster is built on. An empire with neither
+    // mine fights on with warriors.
+    expect(unitDef('swordsman').requiresResource).toEqual(['obsidian', 'copper']);
     expect(unitDef('legionary').requiresResource).toBe('iron');
     // And no chain loops: every ladder ends.
     for (const id of UNIT_TYPE_IDS) {

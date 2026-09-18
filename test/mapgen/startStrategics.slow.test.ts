@@ -25,7 +25,7 @@ import { RULES } from '../../src/sim/rulesData';
 import { detailFor } from './fixtures';
 
 const SEEDS = [1, 7, 42, 1234, 90210];
-const WANTED = MAPGEN_CONFIG.resources.startStrategics;
+const GROUPS = MAPGEN_CONFIG.resources.startStrategics;
 const RADIUS = MAPGEN_CONFIG.resources.startStrategicRadius;
 
 /** The one board the promise is not made on. See the file docblock. */
@@ -36,9 +36,13 @@ const CROWDED = 'duel';
  * why they are named rather than tolerated.
  */
 const KNOWN_SHORT: Record<string, string[]> = {
-  // Two since M2's crowding radius went to 26 (the orchestrator, 2026-09-11):
-  // the capitals moved once more, and each of these has legal ground in reach.
-  standard: ['standard/7 (53,8) iron', 'standard/90210 (21,21) iron'],
+  // **One at batch R3**, down from two. The promise became one blade source and
+  // one mount source — a group is satisfied by either member — and the purse
+  // rose from 22 to 60, which closed the second miss. This seat still has legal
+  // blade ground in reach and every hex of it is already carrying something
+  // else by the time the pass asks, which is the stated give-up: the guarantee
+  // bends `minSpacing` but never plants over another find.
+  standard: ['standard/7 (53,8) obsidian|copper'],
 };
 
 describe('every capital is armed', () => {
@@ -60,13 +64,21 @@ describe('every capital is armed', () => {
         for (const start of starts) {
           seats += 1;
           const near = mapRange(detail.map, tileHex(start), RADIUS);
-          for (const id of WANTED) {
-            if (near.some((tile) => tile.resource === id)) continue;
-            short.push(`${size}/${seed} (${start.col},${start.row}) ${id}`);
+          for (const group of GROUPS) {
+            // **Any member arms the group.** Obsidian and copper are the same
+            // promise asked of different ground.
+            const defs = group.map(resourceDef);
+            if (
+              near.some((tile) => tile.resource !== undefined && group.includes(tile.resource))
+            ) {
+              continue;
+            }
+            const name = group.join('|');
+            short.push(`${size}/${seed} (${start.col},${start.row}) ${name}`);
             // Was it even possible? A seat with no legal hex in reach is the
             // refusal clause's case, not the guarantee's failure.
-            if (!near.some((tile) => tileSuitsResource(tile, resourceDef(id)))) {
-              groundless.push(`${size}/${seed} (${start.col},${start.row}) ${id}`);
+            if (!near.some((tile) => defs.some((def) => tileSuitsResource(tile, def)))) {
+              groundless.push(`${size}/${seed} (${start.col},${start.row}) ${name}`);
             }
           }
         }
@@ -95,9 +107,11 @@ describe('every capital is armed', () => {
       // spacing (`docs/flags.md` (rrrr), (tttt)) moved the standard boards'
       // capitals onto different hills.
       expect(short).toEqual(KNOWN_SHORT[size] ?? []);
-      // And the guarantee is doing real work at every size: the scatter alone
-      // does not arm two thirds of the seats.
-      expect(forced).toBeGreaterThan(seats / 2);
+      // And the guarantee is still doing real work, though far less of it than
+      // before batch R3: the purse at 60 and a group satisfied by either member
+      // mean the scatter arms most seats on its own, so what is asserted is that
+      // the pass is not inert rather than that it carries the promise.
+      expect(forced).toBeGreaterThan(0);
     }
   });
 });

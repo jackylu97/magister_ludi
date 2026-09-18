@@ -1,11 +1,15 @@
 /**
  * The strategic start guarantee (`ensureStartStrategics`, `resources.ts`), ruled
  * 2026-09-05: *"every capital has both horses and iron within six tiles."*
+ * Widened to **groups** in batch R3, where the promise became one blade source
+ * and one mount source: a group is satisfied by any one of its members, because
+ * obsidian and copper are the same promise asked of different ground.
  *
  * Three claims, and the third is the one that makes the first two safe:
  *
- *   1. **Every seat is armed.** Over the maximum roster, every row of
- *      `startStrategics` stands within `startStrategicRadius` of every start.
+ *   1. **Every seat is armed.** Over the maximum roster, every group of
+ *      `startStrategics` has a member within `startStrategicRadius` of every
+ *      start.
  *   2. **On legal ground.** A forced copy sits on a hex its own row allows —
  *      the guarantee bends the spacing rule, never the terrain filter.
  *   3. **It costs the stream nothing.** It rolls no dice, so switching it off
@@ -20,25 +24,41 @@ import { describe, expect, it } from 'vitest';
 import { generateMap } from '../../src/sim/mapgen';
 import { MAPGEN_CONFIG } from '../../src/sim/mapgenData';
 import { mapRange, tileHex, tileIndex } from '../../src/sim/map';
-import { RESOURCE_IDS, resourceDef, tileSuitsResource } from '../../src/sim/resourceData';
+import {
+  RESOURCE_IDS,
+  resourceDef,
+  strategicGroups,
+  tileSuitsResource,
+} from '../../src/sim/resourceData';
 import { chooseStartPositions, strategicGround } from '../../src/sim/startPositions';
 import { RULES } from '../../src/sim/rulesData';
 import { mapFor } from './fixtures';
 
-const WANTED = MAPGEN_CONFIG.resources.startStrategics;
+const GROUPS = MAPGEN_CONFIG.resources.startStrategics;
+/** Every id any group names — what a planted copy is allowed to be. */
+const WANTED = GROUPS.flat();
 const RADIUS = MAPGEN_CONFIG.resources.startStrategicRadius;
 
 /** The sheet with the guarantee switched off — an empty list disables it. */
 const OFF = { resources: { startStrategics: [] } };
 
 describe('the strategic start guarantee', () => {
-  it('ships the two rows the ruling names', () => {
-    expect(WANTED).toEqual(['horses', 'iron']);
+  it('ships the two groups the ruling names', () => {
+    expect(GROUPS).toEqual([
+      ['obsidian', 'copper'],
+      ['horses', 'camels'],
+    ]);
     expect(RADIUS).toBe(6);
     for (const id of WANTED) {
       expect(RESOURCE_IDS).toContain(id);
       expect(resourceDef(id).kind).toBe('strategic');
     }
+    // The cleaning the three readers share: real strategic rows only, and a
+    // group emptied by the cleaning is dropped rather than left to promise
+    // nothing.
+    expect(strategicGroups(GROUPS)).toEqual(GROUPS);
+    expect(strategicGroups([['wheat'], ['iron', 'nonsense' as never]])).toEqual([['iron']]);
+    expect(strategicGroups(undefined)).toEqual([]);
   });
 
   it('arms every seat of the maximum roster', () => {
@@ -47,10 +67,14 @@ describe('the strategic start guarantee', () => {
     expect(starts.length).toBe(RULES.game.maxPlayers);
     for (const start of starts) {
       const near = mapRange(map, tileHex(start), RADIUS);
-      for (const id of WANTED) {
-        const found = near.some((tile) => tile.resource === id);
-        expect(`(${start.col},${start.row}) ${id} ${found}`).toBe(
-          `(${start.col},${start.row}) ${id} true`,
+      for (const group of GROUPS) {
+        // **Any member.** A desert seat armed with obsidian and camels and a
+        // grassland seat armed with copper and horses are both armed.
+        const found = near.some(
+          (tile) => tile.resource !== undefined && group.includes(tile.resource),
+        );
+        expect(`(${start.col},${start.row}) ${group.join('|')} ${found}`).toBe(
+          `(${start.col},${start.row}) ${group.join('|')} true`,
         );
       }
     }
@@ -115,17 +139,20 @@ describe('the ground behind the guarantee', () => {
     // duel board, where asking 1000 hexes the slow way is affordable.
     const map = mapFor(23, 'duel');
     const field = strategicGround(map);
-    expect(field.rows).toEqual([...WANTED]);
-    for (const id of field.rows) {
-      const def = resourceDef(id);
-      const flag = field.reach.get(id)!;
+    expect(field.groups).toEqual(GROUPS);
+    for (let at = 0; at < field.groups.length; at++) {
+      const group = field.groups[at]!;
+      const defs = group.map(resourceDef);
+      const flag = field.reach[at]!;
       for (const tile of map.tiles) {
+        // The slow reading is the disjunction, because the group is: a hex is
+        // armable when *something* in reach can grow *either* member.
         const slow = mapRange(map, tileHex(tile), RADIUS).some((near) =>
-          tileSuitsResource(near, def),
+          defs.some((def) => tileSuitsResource(near, def)),
         );
         const fast = flag[tileIndex(map, tile.col, tile.row)] === 1;
-        expect(`${id} (${tile.col},${tile.row}) ${fast}`).toBe(
-          `${id} (${tile.col},${tile.row}) ${slow}`,
+        expect(`${group.join('|')} (${tile.col},${tile.row}) ${fast}`).toBe(
+          `${group.join('|')} (${tile.col},${tile.row}) ${slow}`,
         );
       }
     }
@@ -135,6 +162,6 @@ describe('the ground behind the guarantee', () => {
     // An empty list is the off switch for both halves: no guarantee, and no
     // seventh rejection in the chooser.
     const map = generateMap(23, 'duel', OFF);
-    expect(strategicGround(map).rows).toEqual([]);
+    expect(strategicGround(map).groups).toEqual([]);
   });
 });

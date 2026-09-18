@@ -4023,6 +4023,17 @@ describe("the Orders pass of 2026-08-29", () => {
     const seams = ownedTiles(g.state, city).filter(
       (t) => t.col !== city.col || t.row !== city.row,
     );
+    // **Bare ground first.** The count is of the whole empire's duplicate
+    // kinds, so a seed whose opening ring already holds two of something makes
+    // the first assertion below read a fair the test did not plant. Clearing
+    // what the generator dealt is what makes this a test about the card rather
+    // than about a map roll.
+    for (const tile of g.state.map.tiles) {
+      delete tile.resource;
+      delete tile.resourceCopies;
+      delete tile.improvement;
+    }
+    bumpEconomy(g.state);
     slot(g.state, 0, "villageFairs");
     const fairs = (): number =>
       foldMeter(

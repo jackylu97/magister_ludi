@@ -138,6 +138,23 @@ export interface Tile {
    */
   resource?: ResourceId;
   /**
+   * How many **copies** the strategic resource on this tile carries, or the key
+   * is **absent** — which it is on every tile that is not a strategic seam.
+   *
+   * Rolled once per tile from the row's `copiesPerSource` range by
+   * `placeResources` (`resources.ts`), off the map rng, in tile-index order.
+   * `resource`'s sibling in every way that matters: written at the end of
+   * generation, never afterwards, and absent rather than a stored `1` so that
+   * two maps that are the same map serialise identically.
+   *
+   * It is **not** a mutable tile field. Nothing regenerates it mid-game, for the
+   * reason nothing regenerates a resource: an empire that has counted its horses
+   * must be able to count them again and get the same answer. What an empire may
+   * actually draw on is a separate question — `countResourceCopies` (`cities.ts`)
+   * sums this over the opened seams it owns.
+   */
+  resourceCopies?: number;
+  /**
    * The farm, mine or pasture standing on this tile, or the key is **absent**
    * when there is none. Absence rather than a `'none'` sentinel, for the reason
    * `resource` gives above.

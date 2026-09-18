@@ -144,7 +144,10 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "requiresResource": "horses",
+      "requiresResource": [
+        "horses",
+        "camels"
+      ],
       "upgradesTo": "knight",
       "modelClass": "mounted",
       "glyph": "H",
@@ -161,7 +164,10 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "requiresResource": "horses",
+      "requiresResource": [
+        "horses",
+        "camels"
+      ],
       "upgradesTo": "horseman",
       "modelClass": "mounted",
       "glyph": "C"
@@ -179,7 +185,10 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "requiresResource": "horses",
+      "requiresResource": [
+        "horses",
+        "camels"
+      ],
       "modelClass": "mountedRanged",
       "glyph": "Y",
       "upgradesTo": "horseArcher"
@@ -192,7 +201,10 @@
       "maxHp": 100,
       "combatStrength": 35,
       "size": "line",
-      "requiresResource": "iron",
+      "requiresResource": [
+        "obsidian",
+        "copper"
+      ],
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -290,7 +302,10 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "requiresResource": "horses",
+      "requiresResource": [
+        "horses",
+        "camels"
+      ],
       "modelClass": "mounted",
       "glyph": "N"
     },
@@ -732,6 +747,10 @@
     },
     "phalanx": {
       "name": "Phalanx",
+      "requiresResource": [
+        "obsidian",
+        "copper"
+      ],
       "category": "military",
       "movement": 2,
       "sight": 2,
@@ -778,7 +797,10 @@
       "rangedStrength": 42,
       "range": 2,
       "size": "heavy",
-      "requiresResource": "horses",
+      "requiresResource": [
+        "horses",
+        "camels"
+      ],
       "modelClass": "mountedRanged",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -801,7 +823,10 @@
           "vsKind": "ranged"
         }
       ],
-      "requiresResource": "horses",
+      "requiresResource": [
+        "horses",
+        "camels"
+      ],
       "modelClass": "mounted",
       "awaitsTech": true,
       "retired": true,
@@ -979,7 +1004,6 @@
         }
       ],
       "note": "Lamellar and a long lance, and it fights best with foot beside it.",
-      "requiresResource": "horses",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -999,7 +1023,6 @@
       "size": "heavy",
       "column": 3,
       "unlockedByLeader": true,
-      "requiresResource": "horses",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1029,7 +1052,6 @@
         }
       ],
       "note": "It shoots and rides on: a kill leaves it with its feet still moving.",
-      "requiresResource": "horses",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1063,7 +1085,6 @@
         }
       ],
       "note": "The Chanyu’s own household, and the archers riding next to it shoot harder for the company.",
-      "requiresResource": "horses",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1094,7 +1115,6 @@
         }
       ],
       "note": "A sickle sword, and it fights hardest on ground that keeps its king’s god.",
-      "requiresResource": "iron",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1185,7 +1205,6 @@
       "size": "heavy",
       "column": 8,
       "unlockedByLeader": true,
-      "requiresResource": "horses",
       "combatLines": [
         {
           "label": "Against foot",
@@ -1209,7 +1228,6 @@
       "size": "heavy",
       "column": 11,
       "unlockedByLeader": true,
-      "requiresResource": "horses",
       "combatLines": [
         {
           "label": "Against cities",
@@ -1235,7 +1253,6 @@
       "size": "heavy",
       "column": 7,
       "unlockedByLeader": true,
-      "requiresResource": "horses",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,

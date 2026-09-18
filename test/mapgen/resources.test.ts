@@ -6,6 +6,7 @@ import {
   advanceProduction,
   foundCityAt,
   hasResource,
+  resourceCopies,
 } from '../../src/sim/cities';
 import {
   explainTileYield,
@@ -62,8 +63,8 @@ import { resetVisibility } from '../../src/sim/visibility';
 // --- the table --------------------------------------------------------------
 
 describe('the resource table', () => {
-  it('names forty-three resources across the three kinds', () => {
-    expect(RESOURCE_IDS).toHaveLength(43);
+  it('names forty-five resources across the three kinds', () => {
+    expect(RESOURCE_IDS).toHaveLength(45);
     // Table order is iteration order and therefore part of every seeded outcome,
     // so each kind is asserted in order rather than sorted.
     //
@@ -75,17 +76,23 @@ describe('the resource table', () => {
     // middle would have moved every wheat field in the game.
     expect(resourcesOfKind('bonus')).toEqual([
       'wheat', 'cattle', 'deer', 'fish', 'stone', 'rice', 'maize', 'bananas',
-      'copper', 'tin', 'clay', 'reeds', 'crabs', 'bison', 'richOre',
+      'tin', 'clay', 'reeds', 'crabs', 'bison', 'richOre',
     ]);
-    // **Niter** joined the strategics with the tree re-cut of 2026-09-02: the
-    // closing node names it, and the Fire Lance is the one row that asks for it.
-    expect(resourcesOfKind('strategic')).toEqual(['horses', 'iron', 'niter']);
-    // Twenty-five luxuries since the ratified table: twenty-one on land and the
-    // four that sit in the sea, which are placed and fully specified and cannot
-    // be *held* by anybody until work boats exist (see `docs/luxuries.md`).
+    // **Seven strategics since batch R3** — two promoted and two new. Copper
+    // and ivory kept the row positions they held as a bonus and a luxury, which
+    // is why the list is not in one block: a row moved inside this table moves
+    // every draw the scatter makes, and a promotion is a change of kind rather
+    // than a change of place.
+    expect(resourcesOfKind('strategic')).toEqual([
+      'copper', 'obsidian', 'horses', 'camels', 'iron', 'niter', 'ivory',
+    ]);
+    // Twenty-four luxuries: twenty on land and the four that sit in the sea,
+    // which are placed and fully specified and cannot be *held* by anybody
+    // until work boats exist (see `docs/luxuries.md`). Ivory left the pool for
+    // the strategic table in batch R3.
     expect(resourcesOfKind('luxury')).toEqual([
       'gems', 'silk', 'wine', 'spices', 'salt', 'incense', 'jade', 'marble', 'furs', 'dyes',
-      'ivory', 'amber', 'tea', 'coffee', 'cotton', 'sugar', 'olives', 'lapis', 'silver',
+      'amber', 'tea', 'coffee', 'cotton', 'sugar', 'olives', 'lapis', 'silver',
       'gold', 'honey', 'pearls', 'coral', 'whales', 'tyrian',
     ]);
   });
@@ -139,7 +146,22 @@ describe('the resource table', () => {
     // Iron Working names the iron since the re-cut of 2026-09-02 — the
     // worksheet's "reveals Iron (passive) — gates this line".
     expect(resourceDef('iron').requiresTech).toBe('bronzePanoply'); // moved 2026-09-04
-    expect(resourceDef('niter').requiresTech).toBe('alchemy');
+    // Niter moved from Alchemy to Physics in batch R3: Alchemy is the endgame
+    // node that opens the Magnum Opus, so a fire lance revealed there was a
+    // unit almost nobody built.
+    expect(resourceDef('niter').requiresTech).toBe('physics');
+    // Copper was a bonus row until batch R3, when it became the blade pair's
+    // half that lives on ordinary hills. Mining unlocked nothing at all before
+    // it, which is the hole the placement fills.
+    expect(resourceDef('copper').requiresTech).toBe('mining');
+    // Obsidian, camels and ivory: the first two are new rows and the third was
+    // promoted, and none of the three is hidden. Obsidian must be visible from
+    // turn one or the blade pair is not a pair — anything revealing it would
+    // put it after copper. Ivory was already visible and promoting it should
+    // not hide it.
+    expect(resourceDef('obsidian').requiresTech).toBeUndefined();
+    expect(resourceDef('ivory').requiresTech).toBeUndefined();
+    expect(resourceDef('camels').requiresTech).toBe('husbandry');
     // Horses joined it in the Age I rework: Husbandry is the tech that unlocks
     // the horseman and the pasture, so it is also the tech that says where the
     // horses are, and the reveal now reads as part of one package rather than
@@ -153,7 +175,7 @@ describe('the resource table', () => {
     // incense is visible from turn one like every other luxury.
     expect(resourceDef('incense').requiresTech).toBeUndefined();
     const gated = RESOURCE_IDS.filter((id) => resourceDef(id).requiresTech !== undefined);
-    expect(gated).toEqual(['horses', 'iron', 'niter']);
+    expect(gated).toEqual(['copper', 'horses', 'camels', 'iron', 'niter']);
   });
 
   it('recognises its own ids and nothing else', () => {
@@ -341,13 +363,17 @@ describe('strategic resources gate production', () => {
     // (`UnitDef.requiresResource`). Nothing in the live data writes a pair yet;
     // `test/sim/resourceCopies.test.ts` pins the shape behaviourally and pins
     // that absence, so the day R3 writes one this file needs no edit.
-    expect(requiredResource('unit', 'horseman')).toEqual(['horses']);
-    expect(requiredResource('unit', 'chariot')).toEqual(['horses']);
-    expect(requiredResource('unit', 'knight')).toEqual(['horses']);
-    // The whole melee line above the warrior is iron since the ruling of
-    // 2026-09-04 ("let's make the swordsman require iron"): the Æra II sword
-    // asks for the seam its successors ask for.
-    expect(requiredResource('unit', 'swordsman')).toEqual(['iron']);
+    // **Pairs since batch R3**: the mounted line accepts horses or camels and
+    // the blade line obsidian or copper, so a start poor in one is rich in the
+    // other. `requiredResourcesOf` was already the list form for the single
+    // rows, which is why nothing below it had to change.
+    expect(requiredResource('unit', 'horseman')).toEqual(['horses', 'camels']);
+    expect(requiredResource('unit', 'chariot')).toEqual(['horses', 'camels']);
+    expect(requiredResource('unit', 'knight')).toEqual(['horses', 'camels']);
+    // The sword moved down a rung in batch R3: the Æra II blade is forged from
+    // obsidian or copper and it is iron from the legionary up, which is the
+    // copper/obsidian → iron ladder the roster is built on.
+    expect(requiredResource('unit', 'swordsman')).toEqual(['obsidian', 'copper']);
     expect(requiredResource('unit', 'legionary')).toEqual(['iron']);
     expect(requiredResource('unit', 'longswordsman')).toEqual(['iron']);
     expect(requiredResource('unit', 'fireLance')).toEqual(['niter']);
@@ -356,13 +382,12 @@ describe('strategic resources gate production', () => {
   });
 
   it('every gated unit names a resource the table actually has', () => {
-    // **And a strategic one, with the war elephant as the stated exception**
-    // (the tree pass of 2026-08-30). Iron and horses are war metals and a unit
-    // gated on one is a unit gated on a seam; ivory is a *luxury*, and the
-    // elephant is the one row where "you may raise this because you happen to
-    // have that" is the point rather than an oversight. The gate is the same
-    // rule either way — `openedResource` never asked what kind a resource was —
-    // so what this pins is the **decision**, not a limitation of the mechanism.
+    // **And a strategic one, with no exceptions left.** Ivory was the stated
+    // exception until batch R3 — the war elephant was the one row gated on a
+    // luxury — and promoting ivory to the strategic table closed it. What this
+    // pins is still the decision rather than a limit of the mechanism:
+    // `openedResource` has never asked what kind a resource was, so a luxury
+    // gate would work; the roster simply does not write one.
     const luxuryGated: string[] = [];
     for (const id of UNIT_TYPE_IDS) {
       const needs = requiredResourcesOf(unitDef(id));
@@ -371,9 +396,32 @@ describe('strategic resources gate production', () => {
       if (needs.every((seam) => resourceDef(seam).kind === 'strategic')) continue;
       luxuryGated.push(id);
     }
-    expect(luxuryGated).toEqual(['warElephant']);
+    expect(luxuryGated).toEqual([]);
     expect(requiredResourcesOf(unitDef('warElephant'))).toEqual(['ivory']);
-    expect(resourceDef('ivory').kind).toBe('luxury');
+    expect(resourceDef('ivory').kind).toBe('strategic');
+  });
+
+  it('gates no unique unit on a strategic resource', () => {
+    // Settled 2026-09-18: *"yup, all unique units don't require strategic
+    // resources."* The rows a leader's table or a leader's ability hands out
+    // are the whole of what a unique is, and none of them names a seam — so the
+    // gated catalogue is exactly the standard roster, listed here so a new
+    // requirement has to be added deliberately.
+    const gated = UNIT_TYPE_IDS.filter((id) => requiredResourcesOf(unitDef(id)).length > 0);
+    expect(gated).toEqual([
+      'horseman',
+      'chariot',
+      'chariotArcher',
+      'swordsman',
+      'knight',
+      'longswordsman',
+      'phalanx',
+      'legionary',
+      'horseArcher',
+      'cataphract',
+      'warElephant',
+      'fireLance',
+    ]);
   });
 
   it('counts a resource as held when the player owns it AND has improved it', () => {
@@ -514,7 +562,9 @@ describe('strategic resources gate production', () => {
     // What the city panel disables a button with, and what the reducer refuses
     // with, are the same call. A divergence here is a button that lies.
     // "improved", since M7: owning the tile stopped being enough.
-    expect(buildError(state, 0, 'unit', 'horseman')).toBe('Horseman needs improved Horses');
+    expect(buildError(state, 0, 'unit', 'horseman')).toBe(
+      'Horseman needs improved Horses or Camels',
+    );
     // A row with nothing above it in the data is the honest positive control
     // here: the warrior would now be refused for having been *replaced* (the
     // obsolescence ruling of 2026-09-03) in a fixture holding every technology,
@@ -522,14 +572,17 @@ describe('strategic resources gate production', () => {
     expect(unitDef('worker').upgradesTo).toBeUndefined();
     expect(buildError(state, 0, 'unit', 'worker')).toBeNull();
     // And the warrior is the *other* control since 2026-09-04: every rung above
-    // it wants iron, and this fixture has none, so the antiquated row is still
-    // offered — the obsolescence ruling's own exception. Mine the seam and the
-    // same call flips to the replacement sentence, naming the rung the piece
-    // would actually reach.
+    // it wants a seam, and this fixture has none, so the antiquated row is
+    // still offered — the obsolescence ruling's own exception. Mine the seams
+    // and the same call flips to the replacement sentence, naming the rung the
+    // piece would actually reach. **Two seams since batch R3**: the sword rung
+    // wants a blade and the two rungs above it want iron, and the walk stops at
+    // the first rung it cannot field.
     expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
-    at(state, 5, 4).resource = 'iron';
-    bumpEconomy(state);
+    at(state, 5, 4).resource = 'copper';
     at(state, 5, 4).improvement = 'mine';
+    at(state, 6, 4).resource = 'iron';
+    at(state, 6, 4).improvement = 'mine';
     bumpEconomy(state);
     expect(buildError(state, 0, 'unit', 'warrior')).toBe(
       'Warrior has been replaced by the Longswordsman',
@@ -813,9 +866,17 @@ describe('luxury placement', () => {
         CONFIG.maxContinentsPerLuxury,
         Math.ceil((count * CONFIG.luxuryKindsPerContinent) / luxuries.length),
       );
+      // **The cap is a preference and the code says so**: when a hand cannot be
+      // filled under it the draw falls back to the least-used kinds rather than
+      // deadlocking. That fallback became reachable when ivory left the luxury
+      // pool in batch R3 — thirty continents want 120 slots and twenty-four
+      // kinds at a cap of five supply exactly 120, so the deal has no slack at
+      // all and one kind ends up a continent over. One over is the whole of the
+      // slip; a deal that piled onto one kind would fail here.
+      const slack = 1;
       for (const [id, seen] of appearances) {
-        expect(`${count} continents, ${id} on ${seen} <= ${cap}`).toBe(
-          `${count} continents, ${id} on ${Math.min(seen, cap)} <= ${cap}`,
+        expect(`${count} continents, ${id} on ${seen} <= ${cap + slack}`).toBe(
+          `${count} continents, ${id} on ${Math.min(seen, cap + slack)} <= ${cap + slack}`,
         );
       }
       // And the hands are not all the same hand.
@@ -923,5 +984,109 @@ describe('a resource nobody wrote code for', () => {
         () => undefined,
       ),
     ).toThrow(/age 9/);
+  });
+});
+
+// --- how much a seam is worth ----------------------------------------------
+
+/**
+ * **The per-tile quantity** (batch R3, `docs/strategic-resources-proposal.md`
+ * section 2).
+ *
+ * A unit holds one copy of a strategic resource while it lives, so one copy per
+ * tile would make a two-horse empire a two-horseman empire for the whole game.
+ * Each strategic row gives an inclusive range and each tile rolls inside it, off
+ * the map rng.
+ *
+ * Three claims:
+ *
+ *   1. **Every strategic tile has one, in range, and nothing else has one.**
+ *   2. **It is deterministic.** Same seed, same quantities, to the tile.
+ *   3. **The roll comes last**, after every placement draw, so which tile
+ *      carries which resource is untouched by it.
+ */
+describe('a strategic tile carries a quantity', () => {
+  it('rolls every strategic tile inside its own row’s range, and nothing else', () => {
+    const map = mapFor(7, 'standard');
+    let strategics = 0;
+    for (const tile of map.tiles) {
+      const range =
+        tile.resource === undefined ? undefined : resourceDef(tile.resource).copiesPerSource;
+      if (range === undefined) {
+        // A bonus or luxury seam is worth one of its kind by definition, so it
+        // carries no number at all — absence, `resource`'s own convention.
+        expect(
+          `${tile.resource ?? 'bare'} at (${tile.col},${tile.row}): ${tile.resourceCopies}`,
+        ).toBe(`${tile.resource ?? 'bare'} at (${tile.col},${tile.row}): undefined`);
+        continue;
+      }
+      strategics += 1;
+      const rolled = tile.resourceCopies;
+      expect(typeof rolled, `${tile.resource} at (${tile.col},${tile.row})`).toBe('number');
+      expect(rolled!, `${tile.resource} at (${tile.col},${tile.row})`).toBeGreaterThanOrEqual(
+        range[0],
+      );
+      expect(rolled!, `${tile.resource} at (${tile.col},${tile.row})`).toBeLessThanOrEqual(
+        range[1],
+      );
+    }
+    expect(strategics).toBeGreaterThan(0);
+  });
+
+  it('spends the whole range rather than one value of it', () => {
+    // A roll that always came back at the floor would satisfy the range check
+    // above and would be a constant wearing a range's clothes. Read over one
+    // map, which carries enough seams of enough kinds to show the spread — and
+    // every row's ceiling is 8, so the top of the range has to turn up.
+    const map = mapFor(7, 'standard');
+    const rolled = new Set<number>();
+    for (const tile of map.tiles) {
+      if (tile.resourceCopies !== undefined) rolled.add(tile.resourceCopies);
+    }
+    expect(rolled.size).toBeGreaterThan(3);
+    expect(Math.max(...rolled)).toBe(8);
+  });
+
+  it('is the same map twice from one seed', () => {
+    // Generated rather than memoised: what is under test is that generating
+    // twice lands in the same place, which a cache would assert for it.
+    const print = (map: GameMap): string =>
+      map.tiles.map((tile) => `${tile.resource ?? ''}:${tile.resourceCopies ?? ''}`).join('|');
+    expect(print(generateMap(4243, 'standard'))).toBe(print(generateMap(4243, 'standard')));
+  });
+
+  it('is the empire’s count, not a count of tiles', () => {
+    // The other end of the same field: `resourceCopies` sums the quantity over
+    // the opened seams an empire owns, so one seven-copy hill is seven copies
+    // and not one.
+    const state = bareState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    const first = at(state, 5, 4);
+    first.resource = 'iron';
+    first.improvement = improvementForResource('iron')!;
+    first.resourceCopies = 7;
+    bumpEconomy(state);
+    expect(resourceCopies(state, 0, 'iron')).toBe(7);
+    // And a second seam adds its own roll rather than another one.
+    const second = at(state, 6, 4);
+    second.resource = 'iron';
+    second.improvement = improvementForResource('iron')!;
+    second.resourceCopies = 3;
+    bumpEconomy(state);
+    expect(resourceCopies(state, 0, 'iron')).toBe(10);
+  });
+
+  it('reads the row rather than the number, so a rewritten seam pays its own worth', () => {
+    // Nothing in the rules rewrites a tile's resource — they are placed once, in
+    // `newGame` — but a bench does, and a leftover quantity under a luxury would
+    // quietly multiply it. The reading asks whether the row has a range at all.
+    const state = bareState();
+    foundCityAt(state, 0, at(state, 5, 5));
+    const tile = at(state, 5, 4);
+    tile.resource = 'silk';
+    tile.improvement = improvementForResource('silk')!;
+    tile.resourceCopies = 6;
+    bumpEconomy(state);
+    expect(resourceCopies(state, 0, 'silk')).toBe(1);
   });
 });

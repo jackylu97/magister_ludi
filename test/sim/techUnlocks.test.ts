@@ -169,13 +169,31 @@ describe('techGifts', () => {
       name: resourceDef('iron').name,
       glyph: resourceDef('iron').emoji,
     });
-    // Alchemy is the second reveal the closing node buys, and the only other
-    // strategic seam the tree names.
+    // **Niter moved to Physics in batch R3.** Alchemy is the closing node that
+    // opens the Magnum Opus, so a seam revealed there arrived as the game was
+    // ending and the fire lance was a row almost nobody built. Physics is two
+    // steps earlier and already unlocks the trebuchet.
     expect(
-      techGifts('alchemy')
+      techGifts('physics')
         .filter((gift) => gift.kind === 'reveal')
         .map((gift) => gift.id),
     ).toEqual(['niter']);
+    expect(techGifts('alchemy').filter((gift) => gift.kind === 'reveal')).toEqual([]);
+    // Mining reveals copper, which is the hole batch R3 filled: the node
+    // unlocked nothing at all before the promotion, and "you learn to dig
+    // before you can use what is down there" is the story.
+    expect(
+      techGifts('mining')
+        .filter((gift) => gift.kind === 'reveal')
+        .map((gift) => gift.id),
+    ).toEqual(['copper']);
+    // Husbandry reveals both mounts at once, so the pair opens together and
+    // neither empire is ahead of the other on timing.
+    expect(
+      techGifts('husbandry')
+        .filter((gift) => gift.kind === 'reveal')
+        .map((gift) => gift.id),
+    ).toEqual(['horses', 'camels']);
   });
 
   it('finds the improvement renewals a tech switches on, with what they add', () => {
@@ -298,13 +316,18 @@ describe('techGifts', () => {
     // a node whose whole gift is a verb is still a package.
     const authored = improvementDef('mine').requiresTech;
     const chop = chopDef('forest')!;
+    // **And copper's reveal since batch R3**, which is a third gift on the same
+    // node. It has to go too before Mining hands over nothing, and taking it
+    // away is one field on the resource row — the same shape as the other two.
+    const copperTech = resourceDef('copper').requiresTech;
     try {
       delete (improvementDef('mine') as { requiresTech?: unknown }).requiresTech;
-      // The axe alone still makes Mining a package.
-      expect(techGifts('mining')).toHaveLength(1);
+      // The axe and the reveal still make Mining a package.
+      expect(techGifts('mining')).toHaveLength(2);
       expect(unlockDataProblems()).toEqual([]);
 
       chop.tech = 'earthenware';
+      delete (resourceDef('copper') as { requiresTech?: unknown }).requiresTech;
       expect(techGifts('mining')).toEqual([]);
       expect(unlockDataProblems()).toContain(
         'tech "mining" hands over nothing (every node is a package — see Entry V)',
@@ -312,6 +335,7 @@ describe('techGifts', () => {
     } finally {
       (improvementDef('mine') as { requiresTech?: unknown }).requiresTech = authored;
       chop.tech = 'mining';
+      (resourceDef('copper') as { requiresTech?: unknown }).requiresTech = copperTech;
     }
     expect(unlockDataProblems()).toEqual([]);
   });

@@ -23,8 +23,9 @@
  *      — the existing marker for "this empire never paid for this piece".
  *   5. **A row may accept either of two resources** and takes one copy of one of
  *      them. The tie-break is the first in the row's own order that has a copy
- *      free, and it is pinned here on a row this file builds for the pin,
- *      because no live row writes a pair yet (batch R3 does).
+ *      free. The live roster writes two pairs since batch R3 (blade and mount);
+ *      the behaviour is pinned on a row this file builds, whose two halves it
+ *      can seed independently.
  *   6. **The upgrade ladder stops at a rung whose copy is spent**, and a rung
  *      that shares its resource with the rung below carries the copy up.
  *   7. **A bargain may promise only available copies** (ruling 4).
@@ -48,6 +49,7 @@ import {
 } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { improvementForResource } from '../../src/sim/improvementData';
+import { LEADER_IDS, leaderDef } from '../../src/sim/leaderData';
 import { dealSideError } from '../../src/sim/diplomacy';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { snapshotState } from '../../src/sim/game';
@@ -171,12 +173,11 @@ function setQueue(state: GameState, cityId: number, queue: UnitTypeId[]) {
  * back — including on the way out of a throw.
  *
  * The unit table's `withExtraResources` (`resourceData.ts`), scoped to this file
- * because the claim it holds up is this file's. No live row writes a resource
- * *pair* yet — batch R3 does — and the discipline this codebase keeps is that a
- * shape declared and never read fails its register test. So the pair is pinned
- * behaviourally on a row built for the pin, and the test below asserts the live
- * catalogue carries none; the day R3 writes one, that assertion fails and
- * somebody deletes this note along with it.
+ * because the claim it holds up is this file's. The live roster writes two
+ * pairs since batch R3, but the pins below want a pair whose two halves the
+ * bench can seed independently — an iron-or-horses blade is nonsense as design
+ * and exactly right as a pin, because what is being held still is the shape and
+ * not the roster.
  *
  * Nothing memoises off the unit table, so there is no slate to discard here the
  * way `withExtraResources` has to.
@@ -205,7 +206,7 @@ describe('the copies model keeps control and commitment apart', () => {
     expect(committedCopies(state, 0, 'iron')).toBe(0);
     expect(availableCopies(state, 0, 'iron')).toBe(3);
 
-    createUnit(state, 0, 'swordsman', 5, 6);
+    createUnit(state, 0, 'legionary', 5, 6);
     expect(resourceCopies(state, 0, 'iron')).toBe(3);
     expect(committedCopies(state, 0, 'iron')).toBe(1);
     expect(availableCopies(state, 0, 'iron')).toBe(2);
@@ -213,9 +214,9 @@ describe('the copies model keeps control and commitment apart', () => {
 
   it('leaves `hasResource` answering the old question — do I control any at all', () => {
     const { state } = ironBench(1);
-    createUnit(state, 0, 'swordsman', 5, 6);
+    createUnit(state, 0, 'legionary', 5, 6);
     // The whole of the claim: the last copy is spent, and the empire still has
-    // iron. An empire whose iron is in a swordsman's hand still owns iron mines
+    // iron. An empire whose iron is in a legionary's hand still owns iron mines
     // and those mines still pay iron's yields — which is what the luxury
     // signatures, the empire bonuses R2 builds and the card evaluator all read.
     expect(availableCopies(state, 0, 'iron')).toBe(0);
@@ -226,8 +227,8 @@ describe('the copies model keeps control and commitment apart', () => {
 
   it('floors at nothing when an empire is past its holdings (ruling 3)', () => {
     const { state } = ironBench(2);
-    createUnit(state, 0, 'swordsman', 5, 6);
-    createUnit(state, 0, 'swordsman', 5, 7);
+    createUnit(state, 0, 'legionary', 5, 6);
+    createUnit(state, 0, 'legionary', 5, 7);
     // The mine under them is pillaged. **Nothing happens to the units** — the
     // user's ruling 3, "let's go with a" — they keep fighting and the empire
     // simply builds no more until it is back in the black.
@@ -235,7 +236,7 @@ describe('the copies model keeps control and commitment apart', () => {
     expect(resourceCopies(state, 0, 'iron')).toBe(1);
     expect(committedCopies(state, 0, 'iron')).toBe(2);
     expect(availableCopies(state, 0, 'iron')).toBe(0);
-    expect(state.units.filter((unit) => unit.type === 'swordsman')).toHaveLength(2);
+    expect(state.units.filter((unit) => unit.type === 'legionary')).toHaveLength(2);
   });
 
   it('counts a barbarian seat against nobody but itself', () => {
@@ -258,8 +259,8 @@ describe('the copies model keeps control and commitment apart', () => {
     foundCityAt(state, 0, at(state, 5, 5));
     seam(state, 'iron', 2);
     const wild = state.players[state.players.length - 1]!;
-    createUnit(state, wild.id, 'swordsman', 8, 8);
-    // The walk is by owner, so the wild's swordsman is the wild's problem — and
+    createUnit(state, wild.id, 'legionary', 8, 8);
+    // The walk is by owner, so the wild's legionary is the wild's problem — and
     // the wild owns no ground to spend, which is why nothing has to say so.
     expect(committedCopies(state, 0, 'iron')).toBe(0);
     expect(availableCopies(state, 0, 'iron')).toBe(2);
@@ -272,7 +273,7 @@ describe('the copies model keeps control and commitment apart', () => {
 describe('a living unit holds a copy and hands it back', () => {
   it('frees the copy when the unit dies', () => {
     const { state } = ironBench(1);
-    const sword = createUnit(state, 0, 'swordsman', 5, 6);
+    const sword = createUnit(state, 0, 'legionary', 5, 6);
     expect(availableCopies(state, 0, 'iron')).toBe(0);
     removeUnit(state, sword.id);
     expect(availableCopies(state, 0, 'iron')).toBe(1);
@@ -280,7 +281,7 @@ describe('a living unit holds a copy and hands it back', () => {
 
   it('frees the copy when the unit is disbanded', () => {
     const { state } = ironBench(1);
-    const sword = createUnit(state, 0, 'swordsman', 5, 6);
+    const sword = createUnit(state, 0, 'legionary', 5, 6);
     expect(availableCopies(state, 0, 'iron')).toBe(0);
     const result = applyCommand(state, {
       type: 'disbandUnit',
@@ -293,7 +294,7 @@ describe('a living unit holds a copy and hands it back', () => {
 
   it('frees the copy when the unit is captured', () => {
     const { state } = ironBench(1);
-    const sword = createUnit(state, 0, 'swordsman', 5, 6);
+    const sword = createUnit(state, 0, 'legionary', 5, 6);
     expect(availableCopies(state, 0, 'iron')).toBe(0);
     captureUnit(state, sword, 1);
     // Seat 0 gets its iron back because the piece is no longer its own. Seat 1
@@ -411,16 +412,42 @@ describe('the refusal names the real problem', () => {
 // --- 5. the pair ------------------------------------------------------------
 
 describe('a row that accepts either of two resources', () => {
-  it('names no pair in the live catalogue yet — batch R3 writes the first', () => {
-    // The D2b discipline, one system over: a shape declared and never read is a
-    // shape nobody has tested. The pair is pinned behaviourally below on a row
-    // this file builds; this assertion is what fails the day a real row writes
-    // one, so that somebody deletes the note on `UnitDef.requiresResource`.
+  it('is the live catalogue since batch R3 — the blade pair and the mount pair', () => {
+    // The shape was declared in R1 and unused for two batches; R3 wrote the
+    // rows, so this is now a statement about the roster rather than about an
+    // absence. Two pairs and no more: a blade is obsidian or copper, a mount is
+    // horses or camels, and everything else names one seam or none.
     const pairs = UNIT_TYPE_IDS.filter((id) => Array.isArray(unitDef(id).requiresResource));
-    expect(pairs).toEqual([]);
-    // And the reading is already the list form everywhere, single rows included.
-    expect(requiredResourcesOf(unitDef('swordsman'))).toEqual(['iron']);
+    const shapes = new Set(pairs.map((id) => requiredResourcesOf(unitDef(id)).join('|')));
+    expect([...shapes].sort()).toEqual(['horses|camels', 'obsidian|copper'].sort());
+    // Every pair row, so a new one has to be added here deliberately.
+    expect(pairs).toEqual([
+      'horseman',
+      'chariot',
+      'chariotArcher',
+      'swordsman',
+      'knight',
+      'phalanx',
+      'horseArcher',
+      'cataphract',
+    ]);
+    // And the reading is the list form everywhere, single rows included.
+    expect(requiredResourcesOf(unitDef('longswordsman'))).toEqual(['iron']);
     expect(requiredResourcesOf(unitDef('warrior'))).toEqual([]);
+  });
+
+  it('gates no leader unique on a strategic resource', () => {
+    // Settled 2026-09-18: *"yup, all unique units don't require strategic
+    // resources."* Seven rows lost a requirement when R3 landed — the khopesh
+    // on iron and the six mounted uniques on horses. A leader's own row is
+    // reachable from the leader table; the three uniques a leader's *ability*
+    // hands out are covered by the exhaustive pair list above and by the
+    // catalogue sweep in `test/mapgen/resources.test.ts`.
+    for (const id of LEADER_IDS) {
+      const unique = leaderDef(id).unit;
+      if (unique === undefined) continue;
+      expect([id, requiredResourcesOf(unitDef(unique))]).toEqual([id, []]);
+    }
   });
 
   it('takes one copy of one of the two, never one of each', () => {
@@ -513,86 +540,121 @@ describe('the upgrade ladder stops at a rung whose copy is spent', () => {
   it('climbs a rung that needs a copy nobody is using', () => {
     const { state } = ironBench(1);
     // Every technology is researched on this bench, so the only thing between a
-    // warrior and the top of its chain is the iron.
-    expect(upgradeTargetForType(state, 0, 'warrior')).toBe('longswordsman');
+    // swordsman and the top of its chain is the iron the legionary above it
+    // claims. (The swordsman's own blade is the pair batch R3 wrote; the bench
+    // has none, which is exactly why the climb starts here rather than at the
+    // warrior — a warrior would stop one rung lower for want of a blade.)
+    expect(upgradeTargetForType(state, 0, 'swordsman')).toBe('longswordsman');
   });
 
   it('refuses the climb when the empire’s own army holds every copy', () => {
     const { state } = ironBench(1);
-    createUnit(state, 0, 'swordsman', 5, 6);
+    createUnit(state, 0, 'legionary', 5, 6);
     // **An upgrade can be blocked by your own army**, which is the subtlety
-    // worth naming: a warrior climbing to a swordsman is a *new* claim on the
-    // empire's iron, not a transfer. One iron, one swordsman, and the warrior
-    // stays a warrior.
-    expect(upgradeTargetForType(state, 0, 'warrior')).toBeNull();
-    // And the build list agrees, which is the whole reason the two ask one
-    // walk: the antiquated row stays on offer exactly as long as the better one
-    // is out of reach.
-    expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
+    // worth naming: a swordsman climbing to a legionary is a *new* claim on the
+    // empire's iron, not a transfer. One iron, one legionary, and the swordsman
+    // stays a swordsman.
+    expect(upgradeTargetForType(state, 0, 'swordsman')).toBeNull();
   });
 
   it('carries a copy up a rung that shares its resource', () => {
     const { state } = ironBench(1);
-    const sword = createUnit(state, 0, 'swordsman', 5, 6);
-    // The swordsman is already holding the only iron. Becoming a longswordsman
+    const legion = createUnit(state, 0, 'legionary', 5, 6);
+    // The legionary is already holding the only iron. Becoming a longswordsman
     // is the same copy in a different pair of hands, so asking for a spare here
-    // would freeze the whole sword line at its first rung.
+    // would freeze the whole sword line at that rung.
     expect(availableCopies(state, 0, 'iron')).toBe(0);
-    expect(requiredResourcesOf(unitDef('swordsman'))).toEqual(['iron']);
+    expect(requiredResourcesOf(unitDef('legionary'))).toEqual(['iron']);
     expect(requiredResourcesOf(unitDef('longswordsman'))).toEqual(['iron']);
-    expect(upgradeTargetForType(state, 0, sword.type)).toBe('longswordsman');
+    expect(upgradeTargetForType(state, 0, legion.type)).toBe('longswordsman');
+  });
+
+  it('carries a pair\u2019s copy up a rung that accepts the same pair', () => {
+    // The live mount line, and the reason sharing is asked of the whole list on
+    // both sides: a horseman on the empire's one horse climbs to a knight that
+    // accepts horses or camels, and carries the horse it already holds.
+    const state = bench();
+    foundCityAt(state, 0, at(state, 5, 5));
+    seam(state, 'horses', 1);
+    const rider = createUnit(state, 0, 'horseman', 5, 6);
+    expect(availableCopies(state, 0, 'horses')).toBe(0);
+    expect(upgradeTargetForType(state, 0, rider.type)).toBe('knight');
   });
 
   it('still stops a shared rung when the empire loses the resource outright', () => {
     const { state } = ironBench(1);
-    const sword = createUnit(state, 0, 'swordsman', 5, 6);
+    const legion = createUnit(state, 0, 'legionary', 5, 6);
     pillage(state, 0);
     expect(hasResource(state, 0, 'iron')).toBe(false);
-    expect(upgradeTargetForType(state, 0, sword.type)).toBeNull();
+    expect(upgradeTargetForType(state, 0, legion.type)).toBeNull();
   });
 });
 
 // --- 7. the trade gate (ruling 4) -------------------------------------------
 
 describe('a bargain may promise only available copies', () => {
-  /** Ivory is the kind this reaches today: a luxury the war elephant spends. */
-  function ivoryBench(count: number): GameState {
+  /**
+   * Furs, and a war elephant told to want them.
+   *
+   * The deal vocabulary lends **luxuries only** (`isLendableResource`,
+   * `deals.ts`), and since batch R3 no luxury is spent by any unit — ivory, the
+   * one that was, is a strategic resource now. So the bench makes a spender:
+   * `withRequirement` puts furs on the elephant for the length of a test, which
+   * is the same proof-by-invention the resource table's own tests rest on, and
+   * the rule under test is untouched by which kind happens to be standing in.
+   */
+  function fursBench(count: number): GameState {
     const state = bench();
     foundCityAt(state, 0, at(state, 5, 5));
-    seam(state, 'ivory', count);
+    seam(state, 'furs', count);
     return state;
   }
 
   it('lets an empire lend a copy nothing is standing on', () => {
-    const state = ivoryBench(1);
-    expect(resourceCopies(state, 0, 'ivory')).toBe(1);
-    expect(dealSideError(state, 0, 1, { luxuries: ['ivory'] }, false)).toBeNull();
+    const state = fursBench(1);
+    expect(resourceCopies(state, 0, 'furs')).toBe(1);
+    expect(dealSideError(state, 0, 1, { luxuries: ['furs'] }, false)).toBeNull();
   });
 
-  it('refuses a copy the empire’s own army has spoken for', () => {
-    const state = ivoryBench(1);
-    expect(requiredResourcesOf(unitDef('warElephant'))).toEqual(['ivory']);
-    createUnit(state, 0, 'warElephant', 5, 6);
-    expect(resourceCopies(state, 0, 'ivory')).toBe(1);
-    expect(availableCopies(state, 0, 'ivory')).toBe(0);
-    expect(dealSideError(state, 0, 1, { luxuries: ['ivory'] }, false)).toBe(
-      'The A have no ivory to spare — every copy is already spoken for',
-    );
+  it('refuses a copy the empire\u2019s own army has spoken for', () => {
+    const state = fursBench(1);
+    withRequirement('warElephant', 'furs', () => {
+      createUnit(state, 0, 'warElephant', 5, 6);
+      expect(resourceCopies(state, 0, 'furs')).toBe(1);
+      expect(availableCopies(state, 0, 'furs')).toBe(0);
+      expect(dealSideError(state, 0, 1, { luxuries: ['furs'] }, false)).toBe(
+        'The A have no furs to spare — every copy is already spoken for',
+      );
+    });
   });
 
   it('keeps the older sentence for an empire that holds none at all', () => {
     const state = bench();
     foundCityAt(state, 0, at(state, 5, 5));
-    expect(dealSideError(state, 0, 1, { luxuries: ['ivory'] }, false)).toBe(
-      'The A have no ivory to lend',
+    expect(dealSideError(state, 0, 1, { luxuries: ['furs'] }, false)).toBe(
+      'The A have no furs to lend',
     );
   });
 
   it('lends the spare of two and refuses the second', () => {
-    const state = ivoryBench(2);
-    createUnit(state, 0, 'warElephant', 5, 6);
-    expect(availableCopies(state, 0, 'ivory')).toBe(1);
-    expect(dealSideError(state, 0, 1, { luxuries: ['ivory'] }, false)).toBeNull();
+    const state = fursBench(2);
+    withRequirement('warElephant', 'furs', () => {
+      createUnit(state, 0, 'warElephant', 5, 6);
+      expect(availableCopies(state, 0, 'furs')).toBe(1);
+      expect(dealSideError(state, 0, 1, { luxuries: ['furs'] }, false)).toBeNull();
+    });
+  });
+
+  it('will not lend a strategic resource at all, however many copies are spare', () => {
+    // The other half of the gate, and the reason the bench above had to move:
+    // ivory is a strategic row since batch R3 and the deal vocabulary is
+    // luxuries only. Nothing in this batch changed that policy — it is recorded
+    // here so that the day somebody widens it, this is the line that says so.
+    const { state } = ironBench(3);
+    expect(availableCopies(state, 0, 'iron')).toBe(3);
+    expect(dealSideError(state, 0, 1, { luxuries: ['iron'] }, false)).toBe(
+      'Iron is not a luxury and cannot be lent',
+    );
   });
 });
 
@@ -695,7 +757,7 @@ describe('the committed reading is on no clock at all', () => {
     // Not vacuous. The reading has to change *within* one command's worth of
     // writes, because that is the window a memo would get wrong.
     const { state } = ironBench(1);
-    const sword = createUnit(state, 0, 'swordsman', 5, 6);
+    const sword = createUnit(state, 0, 'legionary', 5, 6);
     expect(availableCopies(state, 0, 'iron')).toBe(0);
     // No announcement of any kind between these two lines — no `bumpEconomy`,
     // no `bumpRevision`, no command boundary. A memo on either clock would hand

@@ -190,7 +190,10 @@ function plant(state: GameState, city: City, col: number, row: number, id: Resou
   // revision moves with it.
   bumpRevision(state);
   expect(state.tileOwner[row * state.map.width + col]).toBe(city.id);
-  expect(cityResources(state, city, 'luxury')).toContain(id);
+  // The row's own kind, not "luxury": ivory moved to the strategic table in
+  // batch R3 and its signature went with it, which is the whole of what the
+  // evaluator's kind-blindness is for.
+  expect(cityResources(state, city, resourceDef(id).kind)).toContain(id);
   return tile;
 }
 
@@ -274,23 +277,16 @@ describe('the effect vocabulary', () => {
     for (const id of RESOURCE_IDS) {
       for (const effect of resourceEffects(id)) declared.add(effect.kind);
     }
+    // `combatLine` and `unitHealth` were on this list for one batch — R2 built
+    // the two shapes and R3 wrote the rows. Obsidian declares the first and iron
+    // the second, so both are gone from the exception list and are held live by
+    // the live table rather than by a fixture.
     //
-    // **`combatLine` and `unitHealth` joined the list in batch R2** and are the
-    // first two entries that are waiting for a row rather than left over from
-    // one. They are the strategic resources' two new shapes — obsidian's point
-    // of strength and iron's ten points of health — and batch R2 builds the
-    // vocabulary while batch R3 writes the rows, so for one batch they are
-    // declared and unused. Both are held live the same way the four above are:
-    // by rows installed at runtime in `test/sim/resourceBonuses.test.ts`, which
-    // exercises each of them end to end. When R3 lands its roster these two
-    // lines come out.
+    // `percentYields` left it the same way: niter's ten per cent of science.
     expect(RESOURCE_EFFECT_KINDS.filter((kind) => !declared.has(kind))).toEqual([
       'perPopulationYields',
       'authority',
-      'percentYields',
       'happinessTierBoost',
-      'combatLine',
-      'unitHealth',
     ]);
     expect(luxuryWith('perCityYields', (effect) => effect.scope === 'owner')).toBeUndefined();
   });

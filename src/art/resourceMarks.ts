@@ -571,6 +571,32 @@ export const RESOURCE_MARKS: Readonly<Record<string, ResourceMark>> = {
     'M7.6 13.6h8.8',
   ),
 
+  // The volcanic glass, drawn as what a knapper makes of it rather than as a
+  // lump: a leaf-shaped blade with the ridge down the middle and two flake scars
+  // off it. A lump of anything is a lump of everything at roundel size, and the
+  // point of obsidian on this table is that it arms a soldier.
+  obsidian: drawn(
+    'a knapped blade, ridged, with two flake scars',
+    'M12 2.6l4.7 7.5l-2 11.3h-5.4l-2 -11.3z',
+    'M12 2.6v19.1',
+    'M9.4 7.4l2.6 2.4',
+    'M14.6 7.4l-2.6 2.4',
+  ),
+
+  // The other mount, and it has to read against `horses` at a glance, so what is
+  // drawn is the one thing a horse does not have: the hump. Body, hump, long
+  // neck, small head, four legs.
+  camels: drawn(
+    'a camel in profile, one hump, long neck',
+    'M5.6 13.4c0 -3.4 1.9 -5.6 4.4 -5.6c2.5 0 4.2 2 4.4 4.8',
+    'M5.6 13.4h8.8',
+    'M14.4 12.6c0 -3.6 1.3 -5.6 3 -5.6c1.2 0 2 .8 2.3 2.2l.3 1.8l-2.6 .5',
+    'M6.6 13.4v5.2',
+    'M9 13.4v5.2',
+    'M12.4 13.4v5.2',
+    'M14.2 13.4v5.2',
+  ),
+
   // --- luxury --------------------------------------------------------------
   gems: tabler(
     'a cut gem, table and pavilion, with one facet line',

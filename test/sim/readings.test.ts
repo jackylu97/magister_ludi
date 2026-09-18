@@ -509,6 +509,10 @@ describe('the two empire walks are remembered on the same slate', () => {
         silk: {
           ...(resourceDef('silk') as unknown as Record<string, unknown>),
           kind: 'strategic',
+          // Every strategic row carries a copy range and the table's validator
+          // refuses one that does not (batch R3), so a row invented as a
+          // strategic has to carry one too.
+          copiesPerSource: [1, 1],
         } as never,
       },
       () => controlledHoldings(state, 0, 'luxury').map((holding) => holding.id),

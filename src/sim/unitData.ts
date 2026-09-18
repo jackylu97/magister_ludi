@@ -730,11 +730,11 @@ export interface UnitDef {
    * checked `=== 'iron'` would be right for the single form and silently wrong
    * for the pair.
    *
-   * **Nothing in `data/units.json` writes the list form yet** — batch R3 does,
-   * when the roster grows the copper/obsidian and horses/camels pairs. The shape
-   * is pinned behaviourally in `test/sim/resourceCopies.test.ts` on a row the
-   * test builds for the pin, and that test also asserts no live row carries a
-   * list; the day one does, the assertion fails and this paragraph is deleted.
+   * Two pairs are live (batch R3): the blade line names `["obsidian",
+   * "copper"]` and the mounted line names `["horses", "camels"]`. The two
+   * members of a pair sit on different ground on purpose, so a start that is
+   * poor in one is rich in the other and no empire is locked out of a whole
+   * kind of army by the map roll.
    *
    * "Has a free copy" is `availableCopies` in `cities.ts` — copies the empire
    * controls, less the copies its living units and queued rows have already

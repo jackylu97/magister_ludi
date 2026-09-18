@@ -322,11 +322,23 @@ era 3: trade routes supply +1 gold
 `+1🎭 +2🪙` on tile · **+2 culture** · Æra III: **+1 culture in every
 city**. ("Same bonuses as silk", as ratified.)
 
-### Ivory — plains
-`+1🌾 +1⚙` on tile · **+10% production toward units, in every city**.
-The hammer half is an ordinary `productionBonus` at empire scope — marble's
-shape one category over (batch E4a, 2026-09-07). The war elephant the row was
-ratified with is a roster row now, so nothing here waits on unique units.
+### Ivory — plains — **moved to the strategic table, batch R3**
+`+1🌾 +1⚙` on tile · **+4 happiness** · **+10% production toward units, in
+every city**.
+
+Ivory is a **strategic** row now (the user's ruling, 2026-09-18: *"ivory just a
+strategic"*), so it is not a luxury for any purpose: it does not pay the flat
+every unique luxury pays, it is not in the count the Bazaar and Pilgrimage read,
+it does not count toward the Eight Luxuries, and it cannot be lent in a bargain —
+the deal vocabulary lends luxuries only. What it gained is the war elephant's
+gate as a real strategic, a copy count per tile, and the **+4 happiness** bonus,
+which is the same figure `meters.happiness.perUniqueLuxury` pays and is written
+to hand back exactly what the row gave up. The hammer half is unchanged: an
+ordinary `productionBonus` at empire scope (batch E4a, 2026-09-07), and a
+strategic row reads the same effect list a luxury does.
+
+The row is kept in this section rather than deleted because its signature is
+written in this vocabulary and read by this evaluator; what changed is its kind.
 
 ### Amber — forest on grassland/plains/tundra
 `+1🪙` on tile · **+2 happiness** ·
@@ -479,7 +491,7 @@ Everything above, in one place, by what it waits on.
 | Unit upkeep | salt's −10% |
 | Faith **spending** | incense Æra III |
 | ~~Fishing boats / work boats~~ | ~~whales Æra III (part), tyrian's base line; **and every signature of all four sea luxuries**~~ — **all landed 2026-08-26**, Entry XXVII |
-| Unique units | ivory (war elephants, and its Æra III combat tier) |
+| Unique units | ~~ivory (war elephants, and its Æra III combat tier)~~ — ivory left this table for the strategic roster in batch R3; the war elephant is gated on it as a strategic resource now |
 | A building classification | jade's base line, tea Æra III, coffee Æra III, cotton Æra III |
 
 **Re-read 2026-09-02.** Most of the systems this table waits on have since been

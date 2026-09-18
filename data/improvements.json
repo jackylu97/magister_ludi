@@ -138,6 +138,7 @@
       "improvesResource": [
         "iron",
         "niter",
+        "obsidian",
         "gems",
         "marble",
         "copper",
@@ -204,12 +205,14 @@
         "deer",
         "furs",
         "ivory",
+        "camels",
         "amber"
       ],
       "improvesResource": [
         "deer",
         "furs",
         "ivory",
+        "camels",
         "amber"
       ],
       "clearsClutter": false

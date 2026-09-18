@@ -134,6 +134,7 @@ import {
   isBonusFood,
   resourceDef,
   resourcesOfKind,
+  strategicGroups,
   tileSuitsResource,
 } from './resourceData';
 import { type Rng, nextFloat, nextInt } from './rng';
@@ -881,21 +882,29 @@ export interface ResourceConfig {
    */
   startLuxuryCopies: number;
   /**
-   * The strategic rows **every** start is guaranteed a copy of, by id.
+   * The strategic **groups** every start is guaranteed a copy from: a list of
+   * lists, and a start is armed for a group when it has any one member of it.
    *
-   * Ruled 2026-09-05 (`docs/flags.md` note 20): "every capital has both horses
-   * and iron within six tiles". The two openings a strategic gates — the
-   * horseman and the swordsman — are not flavour, they are whether an empire
-   * has an early army at all, and the scatter's own budget of twenty-two
-   * strategic tiles per 1000 land is far too thin to promise either. So they
-   * are promised, exactly as the bonus food and the two luxuries already are.
+   * Ruled 2026-09-05 (`docs/flags.md` note 20), and widened to groups in batch
+   * R3. The two openings a strategic gates — the blade and the mount — are not
+   * flavour, they are whether an empire has an early army at all, and the
+   * scatter's budget alone is far too thin to promise either. So they are
+   * promised, exactly as the bonus food and the two luxuries already are.
    *
-   * A **list of ids**, not a count: which strategics matter at the opening is a
-   * design statement, and a designer removing iron from it is making that
-   * statement. An id that is not a strategic row is ignored rather than
-   * refused, so a mistyped sheet loses the guarantee instead of the map.
+   * Groups rather than plain ids because a blade is *obsidian or copper* and a
+   * mount is *horses or camels* (`docs/strategic-resources-proposal.md`
+   * section 3): the two members sit on different ground on purpose, so a start
+   * with no hill for copper is a start with desert for camels, and demanding
+   * both by name would promise more than the map can carry. A single-member
+   * group is the old shape and still means what it meant.
+   *
+   * Which strategics matter at the opening is a design statement, and a
+   * designer taking the mount pair out of this list is making it. An id that is
+   * not a strategic row is dropped rather than refused, so a mistyped sheet
+   * loses the guarantee instead of the map; a group left empty by that drop is
+   * dropped with it.
    */
-  startStrategics: ResourceId[];
+  startStrategics: ResourceId[][];
   /** How far from a start those copies may be. Six, as the ruling names. */
   startStrategicRadius: number;
   /**
@@ -1271,10 +1280,47 @@ export function placeResources(
   // asked for. Rolls nothing — see `settleLuxuryDensity`.
   settleLuxuryDensity(map, continents, byContinent, guaranteed, land, config);
 
+  // --- pass 5: how much each strategic seam is worth ------------------------
+  // Last of all, once every tile that is going to carry a strategic carries
+  // one. See `rollStrategicQuantities`.
+  rollStrategicQuantities(map, rng);
+
   // The one figure this pass has to *tell* somebody, because it cannot be read
   // off the finished map: how many strategics the guarantee had to force. A
   // copy it planted and a copy the scatter dealt are the same tile afterwards.
   return forcedStrategics;
+}
+
+/**
+ * Rolls each strategic tile's **quantity** — how many copies the seam carries.
+ *
+ * Batch R3, and the other half of the copies model: a unit holds one copy while
+ * it lives (batch R1), so one copy per tile would make a two-horse empire a
+ * two-horseman empire for the whole game. Each row gives an inclusive range
+ * (`ResourceDef.copiesPerSource`) and each tile rolls inside it, so a seven-copy
+ * iron hill is a prize somebody will fight over where a flat number makes every
+ * deposit interchangeable.
+ *
+ * **Last, and in tile-index order**, which is what keeps the rest of the
+ * generator still. Every draw this pass makes comes after every placement draw,
+ * so *which* tile carries *which* resource on a given seed is exactly what it
+ * would have been without quantities — the same bargain the buried rows struck
+ * when veins arrived. Ordering by tile index rather than by the order tiles were
+ * planted is what lets the guarantee passes, which roll nothing, still hand
+ * their copies a number.
+ *
+ * Tiles with no strategic on them are left with the key absent, `resource`'s own
+ * convention: a bare hex has never had a quantity rather than having one of
+ * nothing.
+ */
+function rollStrategicQuantities(map: GameMap, rng: Rng): void {
+  for (const tile of map.tiles) {
+    if (tile.resource === undefined) continue;
+    const range = resourceDef(tile.resource).copiesPerSource;
+    if (!range) continue;
+    const [min, max] = range;
+    tile.resourceCopies = min >= max ? min : nextInt(rng, min, max + 1);
+  }
 }
 
 /**
@@ -1722,17 +1768,24 @@ function ensureStartFood(
 }
 
 /**
- * The third fairness pass: a copy of every `startStrategics` row within
+ * The third fairness pass: a copy from every `startStrategics` **group** within
  * `startStrategicRadius` of every possible start. No dice — see the module
  * docblock, and the note below on why that matters more here than anywhere.
  *
  * Ruled 2026-09-05 (`docs/flags.md` note 20), in the user's words: "every
- * capital has both horses and iron within six tiles". The scatter deals
- * strategics on a budget of about twenty-two tiles per 1000 land, weighted, so
- * whether an empire can field a horseman before the classical age is decided by
- * a uniform draw over the whole world. That is the one kind of unfairness a
- * player reads as the game having cheated rather than as a map: a neighbour
- * with cavalry and no answer to it.
+ * capital has both horses and iron within six tiles"; widened to groups in
+ * batch R3, where the promise became one blade source and one mount source.
+ * Whether an empire can field a horseman before the classical age would
+ * otherwise be decided by a uniform draw over the whole world, and that is the
+ * one kind of unfairness a player reads as the game having cheated rather than
+ * as a map: a neighbour with cavalry and no answer to it.
+ *
+ * **A group is satisfied by any one member.** Obsidian and copper are the same
+ * promise — an early blade — asked of different ground, so a start that already
+ * has copper needs no obsidian and one with neither takes whichever its own
+ * hexes will grow. Planting by nearest hex rather than by group order is what
+ * makes that read as the ground's choice: a desert start is armed with obsidian
+ * because obsidian is what desert hills carry, not because the list says so.
  *
  * **It rolls nothing**, which is the shape both passes above it use and the
  * shape that makes this safe to add to a shipped generator: the resource
@@ -1764,19 +1817,15 @@ function ensureStartStrategics(
 ): number {
   const radius = Math.max(0, Math.round(config.startStrategicRadius));
   const spacing = Math.max(1, Math.round(config.minSpacing));
-  // Table order is irrelevant here — the list is the designer's — but an id
-  // that is not a strategic row is dropped rather than trusted.
-  const wanted = (config.startStrategics ?? []).filter(
-    (id) => RESOURCE_IDS.includes(id) && resourceDef(id).kind === 'strategic',
-  );
-  if (wanted.length === 0) return 0;
+  const groups = strategicGroups(config.startStrategics);
+  if (groups.length === 0) return 0;
 
   let forced = 0;
   for (const start of starts) {
     const from = tileHex(start);
     const near = mapRange(map, from, radius);
     // Nearest first, ties by tile index, exactly as the two passes above order
-    // their candidates. Built once per start and re-read per resource: a tile
+    // their candidates. Built once per start and re-read per group: a tile
     // that was taken by the first plant is skipped by the second, because the
     // filter below asks the live tile.
     const ordered = near
@@ -1787,15 +1836,23 @@ function ensureStartStrategics(
       }))
       .sort((a, b) => a.distance - b.distance || a.index - b.index);
 
-    for (const id of wanted) {
-      if (near.some((tile) => tile.resource === id)) continue;
-      const def = resourceDef(id);
-      const pick = (respectSpacing: boolean): Tile | null => {
+    for (const group of groups) {
+      if (near.some((tile) => tile.resource !== undefined && group.includes(tile.resource))) {
+        continue;
+      }
+      // **Hexes outside, rows inside**: the nearest legal hex wins and the
+      // group's own order only breaks a tie on one hex. That is what makes the
+      // pair a fact about the ground rather than about the sheet — a start
+      // whose nearest bare hill is desert is armed with obsidian and one whose
+      // nearest is grassland is armed with copper, and neither is the list's
+      // doing.
+      const pick = (respectSpacing: boolean): { tile: Tile; id: ResourceId } | null => {
         for (const entry of ordered) {
           if (entry.tile.resource !== undefined) continue;
-          if (!tileSuitsResource(entry.tile, def)) continue;
           if (respectSpacing && hasResourceNear(map, entry.tile, spacing - 1, new Set())) continue;
-          return entry.tile;
+          for (const id of group) {
+            if (tileSuitsResource(entry.tile, resourceDef(id))) return { tile: entry.tile, id };
+          }
         }
         return null;
       };
@@ -1805,7 +1862,7 @@ function ensureStartStrategics(
       // one copy short is the honest outcome rather than a resource on a hex its
       // own row forbids.
       if (chosen === null) continue;
-      chosen.resource = id;
+      chosen.tile.resource = chosen.id;
       forced += 1;
     }
   }

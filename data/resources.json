@@ -178,7 +178,7 @@
     },
     "copper": {
       "name": "Copper",
-      "kind": "bonus",
+      "kind": "strategic",
       "yields": {
         "food": 0,
         "production": 1,
@@ -194,12 +194,23 @@
         "none"
       ],
       "hills": true,
-      "frequency": 5,
+      "requiresTech": "mining",
+      "frequency": 20,
       "clusterSize": [
         1,
         2
       ],
-      "emoji": "🫖"
+      "copiesPerSource": [
+        3,
+        8
+      ],
+      "emoji": "🫖",
+      "effects": [
+        {
+          "kind": "perCityYields",
+          "gold": 1
+        }
+      ]
     },
     "tin": {
       "name": "Tin",
@@ -315,11 +326,51 @@
       ],
       "emoji": "🦬"
     },
+    "obsidian": {
+      "name": "Obsidian",
+      "kind": "strategic",
+      "yields": {
+        "food": 0,
+        "production": 2,
+        "gold": 0
+      },
+      "validTerrain": [
+        "desert",
+        "tundra"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "hills": true,
+      "frequency": 13,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "copiesPerSource": [
+        4,
+        8
+      ],
+      "emoji": "🌋",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "class": {
+            "modelClass": "melee"
+          },
+          "when": {
+            "test": "always"
+          }
+        }
+      ]
+    },
     "horses": {
       "name": "Horses",
       "kind": "strategic",
       "yields": {
-        "food": 0,
+        "food": 1,
         "production": 1,
         "gold": 0
       },
@@ -332,12 +383,55 @@
       ],
       "hills": false,
       "requiresTech": "husbandry",
-      "frequency": 11,
+      "frequency": 22,
       "clusterSize": [
         2,
         3
       ],
-      "emoji": "🐴"
+      "copiesPerSource": [
+        3,
+        8
+      ],
+      "emoji": "🐴",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "roadStepCost",
+          "percent": -20
+        }
+      ]
+    },
+    "camels": {
+      "name": "Camels",
+      "kind": "strategic",
+      "yields": {
+        "food": 0,
+        "production": 1,
+        "gold": 1
+      },
+      "validTerrain": [
+        "desert"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "requiresTech": "husbandry",
+      "frequency": 10,
+      "clusterSize": [
+        1,
+        2
+      ],
+      "copiesPerSource": [
+        5,
+        8
+      ],
+      "emoji": "🐪",
+      "effects": [
+        {
+          "kind": "routeYields",
+          "gold": 1
+        }
+      ]
     },
     "iron": {
       "name": "Iron",
@@ -358,19 +452,29 @@
       ],
       "hills": true,
       "requiresTech": "bronzePanoply",
-      "frequency": 11,
+      "frequency": 15,
       "clusterSize": [
         1,
         2
       ],
-      "emoji": "⛏️"
+      "copiesPerSource": [
+        4,
+        8
+      ],
+      "emoji": "⛏️",
+      "effects": [
+        {
+          "kind": "unitHealth",
+          "amount": 10
+        }
+      ]
     },
     "niter": {
       "name": "Niter",
       "kind": "strategic",
       "yields": {
         "food": 0,
-        "production": 0,
+        "production": 1,
         "gold": 1
       },
       "validTerrain": [
@@ -382,13 +486,24 @@
         "none"
       ],
       "hills": false,
-      "requiresTech": "alchemy",
-      "frequency": 7,
+      "requiresTech": "physics",
+      "frequency": 8,
       "clusterSize": [
         1,
         2
       ],
-      "emoji": "⚗️"
+      "copiesPerSource": [
+        5,
+        8
+      ],
+      "emoji": "⚗️",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10
+        }
+      ]
     },
     "gems": {
       "name": "Gems",
@@ -750,7 +865,7 @@
     },
     "ivory": {
       "name": "Ivory",
-      "kind": "luxury",
+      "kind": "strategic",
       "yields": {
         "food": 1,
         "production": 1,
@@ -762,13 +877,21 @@
       "validFeatures": [
         "none"
       ],
-      "frequency": 2,
+      "frequency": 12,
       "clusterSize": [
         1,
         2
       ],
+      "copiesPerSource": [
+        4,
+        8
+      ],
       "emoji": "🐘",
       "effects": [
+        {
+          "kind": "extraHappiness",
+          "amount": 4
+        },
         {
           "kind": "productionBonus",
           "category": "unit",

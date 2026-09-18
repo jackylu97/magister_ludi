@@ -4,16 +4,19 @@ import improvementData from '../../data/improvements.json';
 export const resourceDefinitions=resourceData.resources;
 export const improvementDefinitions=improvementData.improvements;
 const groups={
- animal:['cattle','horses','bison','deer','furs','ivory'],
+ animal:['cattle','horses','bison','deer','furs','ivory','camels'],
  crop:['wheat','rice','maize','reeds'],
  shrub:['bananas','silk','wine','spices','incense','dyes','tea','coffee','cotton','sugar','olives','honey'],
- ore:['stone','copper','tin','clay','iron','niter','gems','salt','jade','marble','amber','lapis','silver','gold','richOre'],
+ ore:['stone','copper','tin','clay','iron','niter','obsidian','gems','salt','jade','marble','amber','lapis','silver','gold','richOre'],
  marine:['fish','crabs','pearls','coral','whales','tyrian'],
 };
 export const resourceFamilies=Object.fromEntries(Object.entries(groups).flatMap(([family,ids])=>ids.map(id=>[id,family])));
-export const animalAsset={cattle:'cattle',horses:'horse',bison:'bison',deer:'deer',furs:'beaver',ivory:'elephant'};
+// Camels borrow the horse sculpt: there is no camel model yet, and a mount
+// drawn as a mount is a better placeholder than an undrawn hex. Everything
+// visual here is a placeholder to be dialed later.
+export const animalAsset={cattle:'cattle',horses:'horse',bison:'bison',deer:'deer',furs:'beaver',ivory:'elephant',camels:'horse'};
 export const resourceColors={
- stone:'#bcc1b6',copper:'#bd8958',tin:'#a2b5bc',clay:'#c48458',iron:'#706e78',niter:'#c5c3a5',gems:'#718ea2',salt:'#dbd2b6',jade:'#649d83',marble:'#d2ccc0',amber:'#b17b3a',lapis:'#4f6baf',silver:'#bacad1',gold:'#c2a055',richOre:'#8c939c',
+ stone:'#bcc1b6',copper:'#bd8958',tin:'#a2b5bc',clay:'#c48458',iron:'#706e78',niter:'#c5c3a5',obsidian:'#3b3846',gems:'#718ea2',salt:'#dbd2b6',jade:'#649d83',marble:'#d2ccc0',amber:'#b17b3a',lapis:'#4f6baf',silver:'#bacad1',gold:'#c2a055',richOre:'#8c939c',
  wheat:'#c4ac5b',rice:'#94a55c',maize:'#b7ab5a',reeds:'#91a165',
  wine:'#9f8392',cotton:'#ddd0a8',spices:'#af8758',dyes:'#a19ac2',tea:'#abc897',coffee:'#b8ad8c',sugar:'#b7c299',olives:'#a8b6a1',incense:'#c4b7a2',silk:'#b8caad',bananas:'#bcc488',honey:'#c6b78a',
 };

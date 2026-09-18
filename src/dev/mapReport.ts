@@ -41,6 +41,7 @@ import {
   type ResourceId,
   type ResourceKind,
   resourceDef,
+  strategicGroups,
 } from '../sim/resourceData';
 import {
   START_WANT_KEYS,
@@ -385,9 +386,11 @@ export function startReport(state: GameState, seats: readonly StartSeat[] = []):
   const radius = Math.max(0, Math.round(config.startLuxuryRadius));
   const armsRadius = Math.max(0, Math.round(config.startStrategicRadius));
   const furnishRadius = Math.max(0, Math.round(config.startFurnishRadius));
-  const armsWanted = (config.startStrategics ?? []).filter(
-    (id) => RESOURCE_IDS.includes(id) && resourceDef(id).kind === 'strategic',
-  );
+  // The guarantee's groups (batch R3): a start is armed for a group when it
+  // holds any one member, so the report flattens them for the "what is in
+  // reach" column and asks per group for the "what is missing" one.
+  const armsGroups = strategicGroups(config.startStrategics);
+  const armsWanted = armsGroups.flat();
   // The seats as the chooser sees them: the figures the caller handed over,
   // padded out to the roster with empty chairs. A page that names no figures
   // asks exactly the question it always asked — `chooseStartPositionsFor`
@@ -427,9 +430,16 @@ export function startReport(state: GameState, seats: readonly StartSeat[] = []):
       reject: scored.reject,
       luxuries: luxuriesNear(map, tile, radius),
       strategics: strategicsNear(map, tile, armsRadius, armsWanted),
-      strategicsMissing: armsWanted.filter(
-        (id) => !mapRange(map, tileHex(tile), armsRadius).some((near) => near.resource === id),
-      ),
+      // One entry per group nothing in reach can satisfy, named by its first
+      // member — a group is a promise and what is missing is the promise.
+      strategicsMissing: armsGroups
+        .filter(
+          (group) =>
+            !mapRange(map, tileHex(tile), armsRadius).some(
+              (near) => near.resource !== undefined && group.includes(near.resource),
+            ),
+        )
+        .map((group) => group[0]!),
       freshwater: hasFreshWater(tile),
       coast: isCoastal(map, tile),
       nearestRival: nearestRivalTo(map, seated, seat),

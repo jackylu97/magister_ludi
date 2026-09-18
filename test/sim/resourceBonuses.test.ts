@@ -45,6 +45,7 @@ import {
   type ResourceId,
   RESOURCE_EFFECT_KINDS,
   resourceDef,
+  resourcesOfKind,
   withExtraResources,
 } from '../../src/sim/resourceData';
 import {
@@ -59,6 +60,7 @@ import {
   foldRulePercent,
   unitHealthBonus,
 } from '../../src/sim/resourceEffects';
+import { RULES } from '../../src/sim/rulesData';
 import { bumpEconomy } from '../../src/sim/slate';
 import {
   type GameState,
@@ -696,5 +698,127 @@ describe('asking the empire for a maximum', () => {
       expect(sink).toBeGreaterThan(0);
       expect(warm).toBeLessThan(uncached);
     });
+  });
+});
+
+// --- the seven live rows ----------------------------------------------------
+
+/**
+ * **The roster's own bonuses, off `data/resources.json` and no fixture.**
+ *
+ * Batch R3 wrote the rows the fixtures above stand in for, and the two have to
+ * be pinned separately. A fixture proves the *machinery* works — the evaluator
+ * reads a strategic row, the shape pays, the sign is the right way round. Only
+ * the live table proves the **rows** work, and the trap this batch had in front
+ * of it was exactly that: R2 found that the walk every resource reading filtered
+ * used to ask for luxuries only, so a strategic row's effect would have loaded,
+ * validated, printed and paid nothing. A row that silently pays nothing looks
+ * identical to a row that pays, until somebody counts.
+ *
+ * One test a resource, each asking the reading that resource's shape lands in.
+ */
+describe('the seven strategic resources pay what their rows say', () => {
+  /** Every technology, so nothing here is refused for want of a reveal. */
+  it('copper: a coin in every city', () => {
+    const state = held('copper');
+    const line = cityResourceYields(state, state.cities[0]!).find(
+      (entry) => entry.resource === 'copper',
+    );
+    expect(line).toBeDefined();
+    expect(line!.gold).toBe(1);
+    // And it is the empire's, not the seam's town: a second city is paid too.
+    foundCityAt(state, 0, at(state, 9, 5));
+    bumpRevision(state);
+    expect(
+      cityResourceYields(state, state.cities[1]!).find((entry) => entry.resource === 'copper')!.gold,
+    ).toBe(1);
+  });
+
+  it('obsidian: a point of strength on a melee piece, and on nothing else', () => {
+    const state = held('obsidian');
+    openWar(state, 0, 1);
+    const foot = createUnit(state, 0, 'warrior', 3, 3);
+    createUnit(state, 1, 'warrior', 4, 3);
+    const view = previewCombat(state, foot.id, { col: 4, row: 3 });
+    if (!view.ok) throw new Error(view.error);
+    const line = view.attackerLines.find((entry) => entry.source.startsWith('Obsidian'));
+    expect(line).toBeDefined();
+    expect(line!.amount).toBe(1);
+    // The row names the melee silhouette, so an archer standing in the same
+    // empire fights on its printed number.
+    const bow = createUnit(state, 0, 'archer', 3, 4);
+    expect(
+      resourceCombatLines(state, {
+        unit: bow,
+        side: 'attack',
+        tile: at(state, 4, 3),
+        vsBarbarians: false,
+        vsCity: false,
+        targetHp: 100,
+        targetMaxHp: 100,
+      }),
+    ).toEqual([]);
+  });
+
+  it('horses: quicker along a road, and the sign is a discount', () => {
+    const state = held('horses', 1, plainTechs(4));
+    expect(foldRulePercent(resourceRulePercent(state, 0, 'roadStepCost'))).toBe(-20);
+    const quicker = moveProfile(state, createUnit(state, 0, 'warrior', 5, 5)).roadStep;
+    expect(quicker).toBeLessThan(roadStepCost);
+    expect(quicker).toBe(roadStepCostWith(-20));
+  });
+
+  it('camels: a coin on every trade route', () => {
+    const state = held('camels');
+    expect(resourceRouteYields(state, 0).find((line) => line.resource === 'camels')?.gold).toBe(1);
+  });
+
+  it('iron: ten points of maximum health on every piece that can fight', () => {
+    const state = held('iron');
+    const bonus = unitHealthBonus(state, 0);
+    expect(bonus).toBe(10);
+    const sword = createUnit(state, 0, 'longswordsman', 5, 5);
+    expect(unitMaxHp(sword, bonus)).toBe(unitDef('longswordsman').maxHp + 10);
+    // A ship counts and a settler does not — `isCivilian`, not the category.
+    const hull = createUnit(state, 0, 'warGalley', 5, 5);
+    expect(unitMaxHp(hull, bonus)).toBe(unitDef('warGalley').maxHp + 10);
+    const settler = createUnit(state, 0, 'settler', 5, 5);
+    expect(isCivilian(unitDef('settler'))).toBe(true);
+    expect(unitMaxHp(settler, bonus)).toBe(unitDef('settler').maxHp);
+  });
+
+  it('ivory: four happiness, which is exactly what it paid as a luxury', () => {
+    const state = held('ivory');
+    const line = resourceHappiness(state, 0).find((entry) => entry.resource === 'ivory');
+    expect(line?.amount).toBe(4);
+    // **The number is the one it replaces.** Ivory left the luxury pool in
+    // batch R3, and the flat every unique luxury pays went with it. The bonus is
+    // written to hand back the same figure, so the row is a change of category
+    // rather than a nerf — and this is the line that fails if one of the two
+    // moves without the other.
+    expect(line!.amount).toBe(RULES.meters.happiness.perUniqueLuxury);
+  });
+
+  it('niter: a tenth more science, everywhere', () => {
+    const state = held('niter');
+    const line = resourcePercentYields(state, state.cities[0]!).find(
+      (entry) => entry.resource === 'niter',
+    );
+    expect(line?.yield).toBe('science');
+    expect(line?.percent).toBe(10);
+  });
+
+  it('pays every one of them once, however many copies the empire holds', () => {
+    // The user's ruling read off the live rows rather than off a fixture: six
+    // ivory seams are one ivory's contentment.
+    const many = held('ivory', 6);
+    expect(resourceCopies(many, 0, 'ivory')).toBe(6);
+    expect(resourceHappiness(many, 0).find((line) => line.resource === 'ivory')?.amount).toBe(4);
+  });
+
+  it('gives every strategic row a bonus — none of the seven is silent', () => {
+    for (const id of resourcesOfKind('strategic')) {
+      expect(`${id}: ${resourceDef(id).effects?.length ?? 0}`).not.toBe(`${id}: 0`);
+    }
   });
 });

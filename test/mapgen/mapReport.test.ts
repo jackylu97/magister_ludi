@@ -271,11 +271,21 @@ describe('mapReport', () => {
     expect(report.rows).toHaveLength(4);
     for (const row of report.rows) {
       const near = mapRange(st.map, tileHex(st.map.tiles[tileIndex(st.map, row.col, row.row)]!), report.strategicRadius);
-      for (const id of MAPGEN_CONFIG.resources.startStrategics) {
-        const copies = near.filter((tile) => tile.resource === id).length;
-        const listed = row.strategics.find((entry) => entry.id === id);
-        expect(`${id} ${listed?.copies ?? 0}`).toBe(`${id} ${copies}`);
-        expect(row.strategicsMissing.includes(id)).toBe(copies === 0);
+      // **Per group since batch R3**: the promise is one blade source and one
+      // mount source, so what the column tallies is every member of a group and
+      // what "missing" means is a group with no member in reach — named by its
+      // first id, which is how the report prints it.
+      for (const group of MAPGEN_CONFIG.resources.startStrategics) {
+        let held = 0;
+        for (const id of group) {
+          const copies = near.filter((tile) => tile.resource === id).length;
+          held += copies;
+          const listed = row.strategics.find((entry) => entry.id === id);
+          expect(`${id} ${listed?.copies ?? 0}`).toBe(`${id} ${copies}`);
+        }
+        expect(`${group.join('|')} missing ${row.strategicsMissing.includes(group[0]!)}`).toBe(
+          `${group.join('|')} missing ${held === 0}`,
+        );
       }
     }
     expect(report.seatsMissingStrategics).toBe(

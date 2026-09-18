@@ -22,15 +22,23 @@
  *
  * Three kinds, three mechanical homes (design ledger, Entry IX)
  * -------------------------------------------------------------
- *   · **bonus** — fourteen of them. Pure tile-yield modifiers.
- *   · **strategic** — horses, iron, niter. They *gate unit production* through
+ *   · **bonus** — thirteen of them. Pure tile-yield modifiers.
+ *   · **strategic** — seven since batch R3: copper, obsidian, horses, camels,
+ *     iron, niter and ivory. They *gate unit production* through
  *     `requiresResource` in `data/units.json` (see `buildError` in `tech.ts`),
- *     each living unit holds one copy while it is alive (batch R1), and since
- *     batch R2 each may also carry a **list of signature effects** the empire
- *     gets for controlling at least one copy — the same vocabulary a luxury
- *     uses, read by the same evaluator, counted once however many copies are
- *     held.
- *   · **luxury** — twenty-five now, twenty-one on land and four in the sea. Each
+ *     each living unit holds one copy while it is alive (batch R1), and each
+ *     carries a **list of signature effects** the empire gets for controlling at
+ *     least one copy — the same vocabulary a luxury uses, read by the same
+ *     evaluator, counted once however many copies are held.
+ *
+ *     A tile of one carries a **quantity** rather than a single copy
+ *     (`copiesPerSource`, rolled per tile by `placeResources` and kept on
+ *     `Tile.resourceCopies`), which is the dial deciding how large an army a
+ *     seam supports. They fall into two pairs and three singles: obsidian or
+ *     copper arms the early blade, horses or camels mount the early cavalry, and
+ *     iron, ivory and niter stand alone. A unit in a paired role names both ids
+ *     and spends whichever it has.
+ *   · **luxury** — twenty-four now, twenty on land and four in the sea. Each
  *     pays whatever its row puts on its tile, each is worth a flat
  *     `meters.happiness.perUniqueLuxury` to the empire that holds one, and most
  *     carry a **list of signature effects** on top of that — a base tier and,
@@ -625,6 +633,27 @@ export interface ResourceDef {
   buried?: true;
   /** Inclusive `[min, max]` tiles one find spreads over. Absent means 1. */
   clusterSize?: [number, number];
+  /**
+   * How many **copies** one tile of this resource carries, as an inclusive
+   * `[min, max]` rolled per tile when the map is made (batch R3).
+   *
+   * Strategic rows only, and every strategic row must have one. A copy is what a
+   * unit holds while it lives (batch R1), so this is the dial that decides how
+   * large an army one seam supports. One tile meaning one copy made a two-horse
+   * empire a two-horseman empire for the whole game, which is a wall rather than
+   * a constraint.
+   *
+   * A range per tile rather than a constant per resource, so a seam is worth
+   * scouting: a seven-copy iron hill is something to fight over where a flat
+   * number makes every deposit interchangeable. Every row's maximum is 8 and the
+   * floor is what differs, so a rare resource buys a better worst case rather
+   * than a better best one. A row that should not vary writes `[n, n]`.
+   *
+   * The roll lives on the tile (`Tile.resourceCopies`) and is written once, by
+   * `placeResources`. It is not a mutable tile field: nothing regenerates it
+   * mid-game, for the same reason nothing regenerates a resource.
+   */
+  copiesPerSource?: [number, number];
 }
 
 export interface ResourceData {
@@ -753,6 +782,32 @@ export function resourceIsVisibleTo(id: ResourceId, techs: readonly TechId[]): b
 /** Every resource of a kind, in table order. */
 export function resourcesOfKind(kind: ResourceKind): ResourceId[] {
   return RESOURCE_IDS.filter((id) => resourceDef(id).kind === kind);
+}
+
+/**
+ * The start guarantee's groups, cleaned: real strategic rows only, and no empty
+ * group left behind by the cleaning.
+ *
+ * `resources.startStrategics` in `data/mapgen.json` is a list of lists — a
+ * start is armed for a group when it holds any one member (batch R3). Three
+ * places ask the same question of it: the generator's guarantee pass
+ * (`ensureStartStrategics`, `resources.ts`), the site refusal behind it
+ * (`strategicGround`, `startPositions.ts`) and the map report. They may not
+ * share a module — `resources.ts` imports `startPositions.ts`, so a helper in
+ * either would close a runtime cycle — so it lives down here with the table it
+ * filters against, which is a leaf both can reach.
+ *
+ * A mistyped id loses its place in a group rather than the map, exactly as it
+ * did when the sheet held plain ids.
+ */
+export function strategicGroups(
+  sheet: readonly (readonly ResourceId[])[] | undefined,
+): ResourceId[][] {
+  return (sheet ?? [])
+    .map((group) =>
+      group.filter((id) => RESOURCE_IDS.includes(id) && resourceDef(id).kind === 'strategic'),
+    )
+    .filter((group) => group.length > 0);
 }
 
 /**
@@ -964,6 +1019,20 @@ function validateTable(): void {
     const cluster = def.clusterSize;
     if (cluster && (cluster[0] < 1 || cluster[1] < cluster[0])) {
       throw new Error(`${where} has a nonsensical clusterSize [${cluster[0]}, ${cluster[1]}]`);
+    }
+    // **A strategic row carries a copy range and nothing else may.** A strategic
+    // without one would quietly be worth a single copy a tile, which is the
+    // wall batch R3 exists to remove; a bonus or luxury row with one would be a
+    // dial a designer turned expecting something to happen, since only strategic
+    // copies are ever counted (`countResourceCopies`, `cities.ts`).
+    const copies = def.copiesPerSource;
+    if (def.kind === 'strategic') {
+      if (!copies) throw new Error(`${where} is strategic and names no copiesPerSource`);
+      if (copies[0] < 1 || copies[1] < copies[0]) {
+        throw new Error(`${where} has a nonsensical copiesPerSource [${copies[0]}, ${copies[1]}]`);
+      }
+    } else if (copies) {
+      throw new Error(`${where} is not strategic and may not carry copiesPerSource`);
     }
     for (const [index, effect] of (def.effects ?? []).entries()) {
       validateEffect(`${where} effect ${index}`, effect);

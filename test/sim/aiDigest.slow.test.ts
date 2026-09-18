@@ -224,9 +224,45 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * written down here because it is part of what this print measures. Measured
  * twice, same bytes both runs.
  */
+/**
+ * **Re-cut for R3 (the roster and the map)** — batch 3 of
+ * `docs/strategic-resources-proposal.md`. Duel `fc6eca56:265734` →
+ * `1e3ae648:281597`, standard `adb36756:935196` → `3500d4f1:951201`.
+ *
+ * Three resources became seven, and everything downstream of that moves:
+ *
+ *   · **The board is a different board.** Obsidian and camels are new rows and
+ *     copper and ivory changed kind, so the scatter's weighted draw lands
+ *     somewhere else on every seed; the strategic purse went from 22 tiles per
+ *     1000 land to 60; and every strategic tile now rolls a quantity off the
+ *     map rng. The terrain is untouched — the resource stream is drawn last —
+ *     but which hex carries which seam is new everywhere.
+ *   · **What a bot can build moved.** The sword line came off iron onto the
+ *     obsidian/copper pair, the mounted line accepts camels as well as horses,
+ *     the phalanx gained a requirement it never had, and seven leader uniques
+ *     lost the one they had. Niter's reveal moved from Alchemy to Physics, so
+ *     the fire lance is reachable in a game that ends.
+ *   · **Every empire now has seven standing bonuses to hold.** A copy of copper
+ *     pays a coin in every city, ivory four happiness, camels a coin a route,
+ *     niter a tenth of science, iron ten points of health on every fighting
+ *     piece, obsidian a point of melee strength, horses quicker roads. Those
+ *     are live from the first turn a seam is dug, and they change what a seat
+ *     can afford long before they change what it builds.
+ *
+ * **Both prints grew again**, about six per cent on the duel board and under
+ * two on the standard one. The direction is the one the batch intends: a tile
+ * carries three to eight copies instead of one, so a seat that used to stall at
+ * its second horseman fields a cavalry arm, and an empire with iron keeps a
+ * larger army alive. Nothing stalled and no command was refused, which the
+ * assertion above this one checks before the hash does.
+ *
+ * Nothing in `src/ai` was touched. The bot still appraises a resource as a
+ * boolean and will sometimes queue a row the gate refuses and pick again; that
+ * is batch R5's job. Measured twice, same bytes both runs.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: 'fc6eca56:265734',
-  standard: 'adb36756:935196',
+  duel: '1e3ae648:281597',
+  standard: '3500d4f1:951201',
 };
 
 /**

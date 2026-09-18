@@ -799,6 +799,31 @@ export function controlsAnyOf(
   return wants.some((id) => hasResource(state, playerId, id));
 }
 
+/**
+ * How many copies **one tile** of a resource is worth.
+ *
+ * Its own rolled quantity where the row it carries has a range to roll in
+ * (`Tile.resourceCopies`, written once by `placeResources` off
+ * `copiesPerSource`), and one otherwise. A bonus or luxury seam is worth one of
+ * its kind by definition, and only strategic rows carry a range — the table's
+ * validator refuses the other combinations.
+ *
+ * **The row decides, not the presence of the number.** Asking the row rather
+ * than reading `resourceCopies` on its own is what keeps a tile whose resource
+ * was rewritten from paying the old seam's quantity. Nothing in the rules
+ * rewrites one — resources are placed once, in `newGame` — but a bench that
+ * pokes a board does, and a count that silently multiplied there would be found
+ * by nobody.
+ *
+ * Written once here because both sweeps below want it and a second reading is a
+ * second place the two could disagree about what a seam is worth.
+ */
+function tileCopies(tile: Tile): number {
+  if (tile.resource === undefined) return 0;
+  if (resourceDef(tile.resource).copiesPerSource === undefined) return 1;
+  return tile.resourceCopies ?? 1;
+}
+
 /** The sweep itself — `resourceCopies` with the slate taken off. */
 function countResourceCopies(
   state: GameState,
@@ -812,7 +837,9 @@ function countResourceCopies(
     const tile = tiles[index]!;
     if (tile.resource !== resourceId) continue;
     if (owner.at(index) !== playerId) continue;
-    if (openedResource(state, tile, playerId) !== null) mine += 1;
+    // **The tile's own quantity**, not one per tile (batch R3). A seam is worth
+    // what it rolled, which is the dial that decides how large an army it feeds.
+    if (openedResource(state, tile, playerId) !== null) mine += tileCopies(tile);
   }
   const lentAway = lentCopiesAwayBy(state, playerId)[resourceId] ?? 0;
   const lentIn = lentCopiesHeld(state, playerId)[resourceId] ?? 0;
@@ -890,7 +917,10 @@ function holdingsOf(
     const tile = tiles[index]!;
     const holding = openedResource(state, tile, playerId);
     if (holding === null || resourceDef(holding.id).kind !== kind) continue;
-    opened.set(holding.id, (opened.get(holding.id) ?? 0) + 1);
+    // The tile's own quantity, exactly as `countResourceCopies` counts it — the
+    // two are the same arithmetic and the kind is dropped from this list when
+    // the net figure reaches nothing.
+    opened.set(holding.id, (opened.get(holding.id) ?? 0) + tileCopies(tile));
     if (held.get(holding.id)?.via === 'improvement') continue;
     held.set(holding.id, holding);
   }

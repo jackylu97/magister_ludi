@@ -8643,6 +8643,36 @@
   "theWagerOfThePurse": []
  },
  "resource": {
+  "copper": [
+   {
+    "text": "+1 gold in every city"
+   }
+  ],
+  "obsidian": [
+   {
+    "text": "+1 combat strength for melee units"
+   }
+  ],
+  "horses": [
+   {
+    "text": "-20% of the movement a step along a road costs"
+   }
+  ],
+  "camels": [
+   {
+    "text": "+1 gold on every trade route"
+   }
+  ],
+  "iron": [
+   {
+    "text": "+10 maximum health for your units that can fight"
+   }
+  ],
+  "niter": [
+   {
+    "text": "+10% science in every city"
+   }
+  ],
   "gems": [
    {
     "text": "+3 gold to the empire"
@@ -8737,6 +8767,9 @@
    }
   ],
   "ivory": [
+   {
+    "text": "+4 happiness"
+   },
    {
     "text": "+10% production toward units in every city"
    }

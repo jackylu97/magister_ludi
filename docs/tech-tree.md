@@ -194,15 +194,15 @@ Workshop → Forge · Shrine → Temple.
 |---|---|---|---|---|---|
 | Agriculture | 5 | — | Settler, Warrior, Scout, Worker | — | workers may build Farm |
 | Fletching | 11 | Agriculture | Archer | — | workers may build Camp |
-| Husbandry | 11 | Agriculture | — | **The Temple of Artemis** | workers may build Pasture · reveals **Horses** |
-| Mining | 11 | Agriculture | — | — | workers may build Mine · Clear Forest |
+| Husbandry | 11 | Agriculture | — | **The Temple of Artemis** | workers may build Pasture · reveals **Horses** · reveals **Camels** |
+| Mining | 11 | Agriculture | — | — | workers may build Mine · Clear Forest · reveals **Copper** |
 | Pottery | 11 | Agriculture | — | Granary | — |
 | Bronzeworking | 24 | Mining | Spearman | Barracks, **The Walls of Uruk** | Clear Jungle · Blessing of Arms |
 | Calendar | 24 | Fletching | — | **The Hanging Gardens**, *Tithes* (project) | workers may build Plantation |
 | Divination | 24 | Husbandry | — | Shrine, **The Oracle** | Rite of the Harvest · Omen Reading |
 | Sailing | 24 | Pottery | Trireme | Lighthouse, **The Great Lighthouse** | workers may build Fishing Boat · Embark |
 | Stonecraft | 24 | Pottery | — | Monument, Palisade, **Stonehenge**, **The Pyramids** | workers may build Quarry · Consecration of the Bounds |
-| The Wheel | 50 | Bronzeworking, Stonecraft | War Chariot *(needs improved Horses)*, Chariot Archer *(needs improved Horses)* | Stable | — |
+| The Wheel | 50 | Bronzeworking, Stonecraft | War Chariot *(needs improved Horses or Camels)*, Chariot Archer *(needs improved Horses or Camels)* | Stable | — |
 | Writing | 50 | Divination, Calendar | — | Library, **The Great Ziggurat**, *Scholarship* (project) | Open Borders |
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
@@ -213,7 +213,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Bronze Panoply | 100 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | Smithy, War Hall | reveals **Iron** |
+| Bronze Panoply | 100 | The Wheel | Phalanx *(needs improved Obsidian or Copper)*, Swordsman *(needs improved Obsidian or Copper)* | Smithy, War Hall | reveals **Iron** |
 | Chronology | 100 | Writing | — | Chart the Stars ‡ | The Long Count · renewals: Plantation +1🎭 |
 | Currency | 100 | The Wheel | Trader *(never built — comes with a route bought in gold)* | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
 | Epic Poetry † | 100 | Writing | — | Amphitheater, **The Theatre of Dionysus**, Heroic Epic ‡ | Ancestor Rites |
@@ -248,7 +248,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 | Satrapies | 650 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
 | Shipwrights | 650 | The Silk Road | Galley, Tower Ship, Fire Ship | Shipyard | — |
 | The Civil Service | 650 | Code of Laws | — | — | — |
-| The Saddle | 650 | Iron Working | Horseman *(needs improved Horses)*, Horse Archer *(needs improved Horses)*, War Elephant *(needs improved Ivory)* | — | renewals: Pasture +1⚙ |
+| The Saddle | 650 | Iron Working | Horseman *(needs improved Horses or Camels)*, Horse Archer *(needs improved Horses or Camels)*, War Elephant *(needs improved Ivory)* | — | renewals: Pasture +1⚙ |
 | Daughter Cities | 1150 | The Civil Service | — | Town Charter ◇ | — |
 | Engineering | 1150 | The Saddle | — | Aqueduct, Watermill, **The Circus Maximus** | — |
 | Guildhalls | 1150 | Satrapies | — | Workshop | — |
@@ -295,15 +295,15 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 | Paper Money | 1960 | Shipwrights, Guildhalls | — | Bazaar, Bourse ‡ | — |
 | Scholarship | 1960 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | — |
 | Castellany | 3250 | Divine Right | Pikeman | Castle | — |
-| Natural Philosophy | 3250 | Scholarship | Trebuchet | **Machu Picchu** | — |
+| Natural Philosophy | 3250 | Scholarship | Trebuchet | **Machu Picchu** | reveals **Niter** |
 | Steel | 3250 | Machinery | Longswordsman *(needs improved Iron)* | Forge | — |
 | The Golden Roads | 3250 | Paper Money | — | — | — |
-| Militant Orders | 5150 | Steel | Knight *(needs improved Horses)* | **The Alhambra** | — |
+| Militant Orders | 5150 | Steel | Knight *(needs improved Horses or Camels)* | **The Alhambra** | — |
 | Movable Type | 5150 | Steel, The Golden Roads | — | Printing House | — |
 | The Astrolabe | 5150 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
 | The Counting Houses | 5150 | The Golden Roads, Castellany | — | Bank | — |
 | The Holy Office | 5150 | Scholarship | Inquisitor | **Notre-Dame** | — |
-| Alchemy | 8000 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance *(needs improved Niter)* | The Alchemical Society, The Alchemical Codex ‡ | reveals **Niter** · pays a **bead** to every completer |
+| Alchemy | 8000 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance *(needs improved Niter)* | The Alchemical Society, The Alchemical Codex ‡ | pays a **bead** to every completer |
 
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
