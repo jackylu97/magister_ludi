@@ -708,8 +708,9 @@ export interface UnitDef {
    */
   minCityPop: number;
   /**
-   * The strategic resource a player must control to build this, or absent when
-   * the type needs none.
+   * The strategic resource a player must have a free copy of to build this —
+   * one id, or a list the row accepts **any one of** — or absent when the type
+   * needs none.
    *
    * The whole of the strategic-resource rule (design ledger, Entry IX), and it
    * lives here rather than in `resources.json` for the reason `foundsCity` and
@@ -717,12 +718,31 @@ export interface UnitDef {
    * a second mounted line adds one field and every rule that mentions horses
    * follows it. Nothing in `src/sim/` compares a unit type against `"horseman"`.
    *
-   * "Controls" is `hasResource` in `cities.ts` — owning a tile that carries it.
-   * The gate itself is `buildError` in `tech.ts`, beside the technology gate, so
-   * the reducer's validation and the city panel's buildable list ask one
-   * question and cannot drift apart.
+   * **A list means "either"** (batch R1, `docs/strategic-resources-proposal.md`
+   * section 3). A row that names two resources is built from whichever of them
+   * the empire can spare, and it holds one copy of that one — not one of each.
+   * Which copy it takes is decided by `resolveCommitments` in `cities.ts`: the
+   * first id in this list, read left to right, that still has a copy free. So
+   * the order a designer writes the ids in is part of the rule, and a replay
+   * lands on the same assignment because the list is an array.
+   *
+   * Read through `requiredResourcesOf` below, never by hand: a caller that
+   * checked `=== 'iron'` would be right for the single form and silently wrong
+   * for the pair.
+   *
+   * **Nothing in `data/units.json` writes the list form yet** — batch R3 does,
+   * when the roster grows the copper/obsidian and horses/camels pairs. The shape
+   * is pinned behaviourally in `test/sim/resourceCopies.test.ts` on a row the
+   * test builds for the pin, and that test also asserts no live row carries a
+   * list; the day one does, the assertion fails and this paragraph is deleted.
+   *
+   * "Has a free copy" is `availableCopies` in `cities.ts` — copies the empire
+   * controls, less the copies its living units and queued rows have already
+   * spoken for. The gate itself is `buildError` in `tech.ts`, beside the
+   * technology gate, so the reducer's validation and the city panel's buildable
+   * list ask one question and cannot drift apart.
    */
-  requiresResource?: ResourceId;
+  requiresResource?: ResourceId | ResourceId[];
   /**
    * The type this one becomes when its successor's technology lands, or absent
    * when the line ends here.
@@ -871,6 +891,51 @@ export const UNIT_TYPE_IDS = Object.keys(UNIT_DATA.units) as UnitTypeId[];
 
 export function unitDef(id: UnitTypeId): UnitDef {
   return UNIT_DATA.units[id];
+}
+
+/** Nothing at all, shared so the common answer allocates no array. */
+const NO_RESOURCES: readonly ResourceId[] = [];
+
+/**
+ * One-element lists, one per resource id, so reading a row that names a single
+ * resource allocates nothing after the first time.
+ *
+ * Measured and worth it: `resolveCommitments` (`cities.ts`) walks every unit an
+ * empire owns and asks this of each, and the build gate reaches that walk for
+ * every gated row the bot prices. Building a fresh `[id]` each time cost about a
+ * third of the whole walk (10.6 µs a call down to 7.0 on a twelve-town,
+ * eighty-unit empire), all of it garbage.
+ *
+ * Keyed on the **id**, not on the row, which is what keeps it honest while a
+ * test swaps a row's requirement out from under the table
+ * (`test/sim/resourceCopies.test.ts`): the lookup is by whatever the row says
+ * right now. Nothing iterates this map — it is lookup only, hard rule 2.
+ */
+const SINGLE_RESOURCE = new Map<ResourceId, readonly ResourceId[]>();
+
+/**
+ * The strategic resources this row accepts, as a list — **empty for a row that
+ * needs none, and any one of them will do for a row that names several**.
+ *
+ * The one reader of `UnitDef.requiresResource`, so the two written forms (one id
+ * or a list of them) are one shape everywhere else in the game. Every gate, the
+ * upgrade ladder, the city panel and the Compendium ask this rather than the
+ * field, which is what lets batch R3 write a pair onto a row without touching a
+ * line of the code that reads it.
+ *
+ * The list is returned in the row's own order and callers depend on that: the
+ * order decides which copy a pair takes (`resolveCommitments` in `cities.ts`).
+ */
+export function requiredResourcesOf(def: UnitDef): readonly ResourceId[] {
+  const wants = def.requiresResource;
+  if (wants === undefined) return NO_RESOURCES;
+  if (typeof wants !== 'string') return wants;
+  let single = SINGLE_RESOURCE.get(wants);
+  if (single === undefined) {
+    single = [wants];
+    SINGLE_RESOURCE.set(wants, single);
+  }
+  return single;
 }
 
 /**

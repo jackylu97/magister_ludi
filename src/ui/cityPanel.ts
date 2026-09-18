@@ -33,7 +33,7 @@ import {
   explainGrowthPercent,
   growthSurplus,
   growthThreshold,
-  hasResource,
+  canSpareAnyOf,
   productionAwaitingRoom,
   queueItemCost,
   queueItemName,
@@ -102,7 +102,7 @@ import {
   MODIFIER_STAGES,
   STAGE_LABEL,
 } from '../sim/yields/stages';
-import { CITY_YIELD_KEYS, type CityYieldKey, resourceDef } from '../sim/resourceData';
+import { CITY_YIELD_KEYS, type CityYieldKey, type ResourceId } from '../sim/resourceData';
 import {
   type SpecialistYieldLine,
   citySpecialistYields,
@@ -130,10 +130,22 @@ import {
 } from '../sim/state';
 import { type PressureLine, explainPressure } from '../sim/religion';
 import { pressureLedgerText } from './religionScreen';
-import { buildError, isUnlocked, requiredResource, upgradeTargetForType } from '../sim/tech';
+import {
+  buildError,
+  eitherResourceWords,
+  isUnlocked,
+  requiredResource,
+  upgradeTargetForType,
+} from '../sim/tech';
 import { BEAD_FAMILY_MARK } from './beadsScreen';
 import { describeBeadBoon } from '../sim/beads';
-import { type UnitDef, type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
+import {
+  type UnitDef,
+  type UnitTypeId,
+  UNIT_TYPE_IDS,
+  requiredResourcesOf,
+  unitDef,
+} from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { cityDisplayName } from './cityDisplay';
 import {
@@ -157,6 +169,25 @@ import { setDescriptorText } from './keywords';
 import { yieldElement as element } from './yieldMark';
 import { seatName } from '../sim/leaderData';
 
+
+/**
+ * A row's strategic resources with their marks — "⛏ Iron", or "🐎 Horses or 🐪
+ * Camels" when the row accepts either (batch R1, `UnitDef.requiresResource`).
+ *
+ * `resourceLabelNodes` for each, joined by the same word the sim's refusal uses
+ * (`eitherResourceWords` in `tech.ts`), because a player reading "or" on a
+ * button and "or" in the refusal is reading one rule. Nodes rather than a string
+ * for `resourceLabelNodes`' reason: a mark is an element carrying a CSS mask and
+ * cannot ride inside a template string.
+ */
+function resourceListNodes(ids: readonly ResourceId[]): DocumentFragment {
+  const fragment = document.createDocumentFragment();
+  ids.forEach((id, index) => {
+    if (index > 0) fragment.append(document.createTextNode(index === ids.length - 1 ? ' or ' : ', '));
+    fragment.append(resourceLabelNodes(id));
+  });
+  return fragment;
+}
 
 /**
  * One faith with a claim on this town, as the city sheet lists it.
@@ -1254,16 +1285,20 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         note(`Needs a city of ${def.minCityPop}`, city.population < def.minCityPop),
       );
     }
-    if (def.requiresResource !== undefined) {
+    const wants = requiredResourcesOf(def);
+    if (wants.length > 0) {
       // The one note that is built rather than written: the resource's mark is
       // an element carrying a CSS mask, so it cannot ride inside a template
       // string. See `src/ui/resourceMark.ts`.
       const item = element('li');
-      if (!hasResource(state, city.ownerId, def.requiresResource)) {
+      // Wanting when the empire cannot **spare** a copy, which is the reducer's
+      // own question since batch R1 — an army that has spoken for the last iron
+      // is as much a reason this card cannot be built as an unmined hill is.
+      if (!canSpareAnyOf(state, city.ownerId, wants)) {
         item.classList.add('wanting');
       }
       item.append('Needs improved ');
-      item.append(resourceLabelNodes(def.requiresResource));
+      item.append(resourceListNodes(wants));
       notes.append(item);
     }
     if (def.upgradesTo !== undefined) {
@@ -2505,9 +2540,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // hidden, unlike an unresearched type. `buildError` is the reducer's own
       // sentence; the technology half of it can never fire here, because a type
       // that failed it was skipped by `isUnlocked` above.
+      // A list since batch R1, because a row may accept either of two resources
+      // (`UnitDef.requiresResource`), and asked as "can the empire spare one"
+      // rather than "does it hold one" so the greyed row and the reducer's own
+      // refusal agree about a copy an army is already standing on.
       const missing = requiredResource('unit', id);
       const needsResource =
-        missing !== null && !hasResource(state, city.ownerId, missing);
+        missing.length > 0 && !canSpareAnyOf(state, city.ownerId, missing);
       const button = element('button', 'city-buildable');
       button.type = 'button';
       button.disabled = locked || tooSmall || needsResource;
@@ -2520,7 +2559,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // spoken one is words only: a screen reader reading a resource's glyph
       // announces its Unicode name before the word it decorates, which is the
       // one surface an icon makes *worse*.
-      const needsSpoken = missing === null ? '' : `improved ${resourceDef(missing).name}`;
+      const needsSpoken =
+        missing.length === 0 ? '' : `improved ${eitherResourceWords(missing)}`;
       // A label rather than a `title`, and that is the hover card's doing: a
       // native tooltip would arrive a second *after* the card, on top of it,
       // saying less. The sentence is kept — it is the only place a screen
@@ -2543,7 +2583,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // the price column exists to hold prices, which is what lets the name
       // beside it keep its own width (see `.city-buildable`).
       const price = element('span', 'city-buildable-cost');
-      if (needsResource && missing !== null) {
+      if (needsResource && missing.length > 0) {
         // `is-reason` is the *layout* — the whole row instead of the price
         // column — and `wanting` is the voice: this cell has stopped quoting a
         // schedule and started naming something the empire has not got, which is
@@ -2551,7 +2591,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         // user, 2026-09-08).
         price.classList.add('is-reason', 'wanting');
         price.append('needs improved ');
-        price.append(resourceLabelNodes(missing));
+        price.append(resourceListNodes(missing));
       } else {
         setYieldText(
           price,

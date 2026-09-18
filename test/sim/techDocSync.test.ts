@@ -45,8 +45,8 @@ import {
   techDef,
 } from '../../src/sim/techData';
 import { type TechGift, techGifts } from '../../src/sim/techUnlocks';
-import { unitDef } from '../../src/sim/unitData';
-import { resourceDef } from '../../src/sim/resourceData';
+import { requiredResourcesOf, unitDef } from '../../src/sim/unitData';
+import { eitherResourceWords } from '../../src/sim/tech';
 import { renewalNote } from '../../src/ui/techTree';
 import { techRuleNote } from '../../src/ui/techRuleWords';
 
@@ -100,8 +100,12 @@ function nodesOfAge(age: TechAge): TechId[] {
 function unitCell(gift: TechGift & { kind: 'unit' }): string {
   const def = unitDef(gift.id);
   const seams: string[] = [];
-  if (def.requiresResource !== undefined) {
-    seams.push(`needs improved ${resourceDef(def.requiresResource).name}`);
+  // A list since batch R1 (`UnitDef.requiresResource` may name a pair). The
+  // phrase is the sim's own (`eitherResourceWords`), so a doc cell and a build
+  // refusal say the same words about the same row.
+  const wants = requiredResourcesOf(def);
+  if (wants.length > 0) {
+    seams.push(`needs improved ${eitherResourceWords(wants)}`);
   }
   // The caravan is neither hammered nor bought since R1 (the user's ruling of
   // 2026-09-09, `docs/flags.md` (iii)): it arrives with a route paid for in gold

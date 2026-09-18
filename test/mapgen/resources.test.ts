@@ -56,7 +56,7 @@ import {
   tileYield,
 } from '../../src/sim/terrainData';
 import { TECH_IDS } from '../../src/sim/techData';
-import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
+import { UNIT_TYPE_IDS, requiredResourcesOf, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 
 // --- the table --------------------------------------------------------------
@@ -337,18 +337,22 @@ function at(state: GameState, col: number, row: number): Tile {
 
 describe('strategic resources gate production', () => {
   it('names the resource each unit line needs, from the data', () => {
-    expect(requiredResource('unit', 'horseman')).toBe('horses');
-    expect(requiredResource('unit', 'chariot')).toBe('horses');
-    expect(requiredResource('unit', 'knight')).toBe('horses');
+    // A **list** since batch R1 — a row may accept either of two resources
+    // (`UnitDef.requiresResource`). Nothing in the live data writes a pair yet;
+    // `test/sim/resourceCopies.test.ts` pins the shape behaviourally and pins
+    // that absence, so the day R3 writes one this file needs no edit.
+    expect(requiredResource('unit', 'horseman')).toEqual(['horses']);
+    expect(requiredResource('unit', 'chariot')).toEqual(['horses']);
+    expect(requiredResource('unit', 'knight')).toEqual(['horses']);
     // The whole melee line above the warrior is iron since the ruling of
     // 2026-09-04 ("let's make the swordsman require iron"): the Æra II sword
     // asks for the seam its successors ask for.
-    expect(requiredResource('unit', 'swordsman')).toBe('iron');
-    expect(requiredResource('unit', 'legionary')).toBe('iron');
-    expect(requiredResource('unit', 'longswordsman')).toBe('iron');
-    expect(requiredResource('unit', 'fireLance')).toBe('niter');
-    expect(requiredResource('unit', 'warrior')).toBeNull();
-    expect(requiredResource('building', 'library')).toBeNull();
+    expect(requiredResource('unit', 'swordsman')).toEqual(['iron']);
+    expect(requiredResource('unit', 'legionary')).toEqual(['iron']);
+    expect(requiredResource('unit', 'longswordsman')).toEqual(['iron']);
+    expect(requiredResource('unit', 'fireLance')).toEqual(['niter']);
+    expect(requiredResource('unit', 'warrior')).toEqual([]);
+    expect(requiredResource('building', 'library')).toEqual([]);
   });
 
   it('every gated unit names a resource the table actually has', () => {
@@ -361,14 +365,14 @@ describe('strategic resources gate production', () => {
     // so what this pins is the **decision**, not a limitation of the mechanism.
     const luxuryGated: string[] = [];
     for (const id of UNIT_TYPE_IDS) {
-      const needs = unitDef(id).requiresResource;
-      if (needs === undefined) continue;
-      expect(RESOURCE_IDS).toContain(needs);
-      if (resourceDef(needs).kind === 'strategic') continue;
+      const needs = requiredResourcesOf(unitDef(id));
+      if (needs.length === 0) continue;
+      for (const seam of needs) expect(RESOURCE_IDS).toContain(seam);
+      if (needs.every((seam) => resourceDef(seam).kind === 'strategic')) continue;
       luxuryGated.push(id);
     }
     expect(luxuryGated).toEqual(['warElephant']);
-    expect(unitDef('warElephant').requiresResource).toBe('ivory');
+    expect(requiredResourcesOf(unitDef('warElephant'))).toEqual(['ivory']);
     expect(resourceDef('ivory').kind).toBe('luxury');
   });
 

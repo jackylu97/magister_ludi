@@ -382,10 +382,13 @@
 
 import { BUILDING_IDS, type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
 import {
+  type QueueReplacement,
+  canSpareAnyOf,
+  controlsAnyOf,
   emptyCityYields,
-  hasResource,
   isCoastalCity,
   refreshCityDerived,
+  resourceCopies,
   turnsToFill,
   type CityYields,
 } from './cities';
@@ -484,7 +487,14 @@ import { awardOccasion } from './triumphs';
 import { BEAD_RULES, isBeadEndeavourId } from './beadData';
 import { awardBeadGrant, awardOrderBeads, endeavourError, endeavourIsOffered } from './beads';
 import { isProjectId, projectDef } from './projectData';
-import { type UnitTypeId, isNaval, isUnitTypeId, unitDef, unitMaxHp } from './unitData';
+import {
+  type UnitTypeId,
+  isNaval,
+  isUnitTypeId,
+  requiredResourcesOf,
+  unitDef,
+  unitMaxHp,
+} from './unitData';
 import { bumpEconomy } from './slate';
 
 const RESEARCH = RULES.research;
@@ -785,15 +795,58 @@ function siteWords(site: CityScope): string {
 }
 
 /**
- * The strategic resource a queue item needs, or `null` when it needs none.
+ * The strategic resources a queue item accepts — **any one of them will do** —
+ * and an empty list when it needs none.
  *
- * Buildings and projects never do today; the signature takes the kind anyway so
- * the gate below can ask one question about all three, and so the day a stable
- * needs horses this is the only line that changes.
+ * Buildings and projects never need one today; the signature takes the kind
+ * anyway so the gate below can ask one question about all three, and so the day
+ * a stable needs horses this is the only line that changes.
+ *
+ * A list rather than one id since batch R1, because a row may name a pair (see
+ * `UnitDef.requiresResource`). Every caller reads the list form, so a row that
+ * grows a second id changes no code.
  */
-export function requiredResource(kind: QueueKind, id: string): ResourceId | null {
-  if (kind !== 'unit' || !isUnitTypeId(id)) return null;
-  return unitDef(id).requiresResource ?? null;
+export function requiredResource(kind: QueueKind, id: string): readonly ResourceId[] {
+  if (kind !== 'unit' || !isUnitTypeId(id)) return NO_REQUIRED_RESOURCES;
+  return requiredResourcesOf(unitDef(id));
+}
+
+/** Shared so the common answer allocates nothing. */
+const NO_REQUIRED_RESOURCES: readonly ResourceId[] = [];
+
+/**
+ * The two things a caller may tell the build gate about the copies model.
+ *
+ * Both are exceptions, both are argued, and both are pinned by source in
+ * `test/sim/resourceCopies.test.ts` — a third caller that wants one has to
+ * decide to want it.
+ */
+export interface BuildGateOptions {
+  /**
+   * The queue this town is about to be given, when the caller is validating a
+   * replacement rather than asking about one more row. See `QueueReplacement`
+   * in `cities.ts`; only `validateQueue` passes it.
+   */
+  replacing?: QueueReplacement;
+  /**
+   * **Ask only whether the empire controls the resource, never whether a copy
+   * is free.**
+   *
+   * For the two readings that price *what this empire could field* rather than
+   * *what this town may raise now*, and each has its own reason:
+   *
+   *   · `bestOfClassFor` (`cities.ts`) picks the row a free grant hands over —
+   *     the Statue of Zeus' sword, an Order's levy. Ruling 6 says a free unit
+   *     needs no copy and is refused by nothing, so a grant that quietly
+   *     downgraded from swordsman to warrior because the empire's iron was all
+   *     in the field would be exactly the refusal the ruling forbids;
+   *   · `strongestTrainable` (`combat.ts`) is a city's own defence strength. It
+   *     is meant to follow the *ground* — "an empire that loses its iron to a
+   *     pillage defends its towns with spearmen again the same turn" — and
+   *     nothing about the model says a town's walls should soften every time its
+   *     empire trains a swordsman somewhere else.
+   */
+  ignoreCommitments?: boolean;
 }
 
 /**
@@ -838,6 +891,9 @@ export function requiredResource(kind: QueueKind, id: string): ResourceId | null
  * that town is excluded from the sweep; the caller that has none (a purchase, a
  * report) gets the stricter reading, which is the honest answer to "could this
  * empire start one anywhere".
+ *
+ * `options` is batch R1's and carries the two things the copies model needs.
+ * See `BuildGateOptions`.
  */
 export function buildError(
   state: GameState,
@@ -845,6 +901,7 @@ export function buildError(
   kind: QueueKind,
   id: string,
   city?: City,
+  options?: BuildGateOptions,
 ): string | null {
   // **The endeavour's own sentence, before the tree's.** `isUnlocked` answers
   // no for a race project that is off the table, already won or out of reach,
@@ -1154,16 +1211,55 @@ export function buildError(
     }
   }
 
-  const resource = requiredResource(kind, id);
-  if (resource !== null && !hasResource(state, playerId, resource)) {
+  const wants = requiredResource(kind, id);
+  if (wants.length > 0) {
+    // **Two refusals, because they are two different problems.** Before batch R1
+    // there was one boolean and one sentence; now an empire can hold the seam
+    // and still be unable to build, and "needs improved Iron" said to a player
+    // who has iron and has spent it is a lie that sends them prospecting.
+    //
     // "improved", since M7. Owning the seam stopped being enough the day workers
-    // landed (`hasResource`, design ledger Entry IX's correction), and a
-    // refusal that said only "needs Iron" to a player whose borders already
-    // contain an unmined iron hill would be sending them to war over something
-    // they have. One word, in the one place the sentence is written.
-    return `${itemName(kind, id)} needs improved ${resourceDef(resource).name}`;
+    // landed (`hasResource`, design ledger Entry IX's correction), and a refusal
+    // that said only "needs Iron" to a player whose borders already contain an
+    // unmined iron hill would be sending them to war over something they have.
+    // One word, in the one place the sentence is written.
+    const names = eitherResourceWords(wants);
+    if (!controlsAnyOf(state, playerId, wants)) {
+      return `${itemName(kind, id)} needs improved ${names}`;
+    }
+    if (
+      options?.ignoreCommitments !== true &&
+      !canSpareAnyOf(state, playerId, wants, options?.replacing)
+    ) {
+      // How many the empire actually holds across everything the row accepts,
+      // because that is the number the player is looking at on their own map and
+      // cannot square with a refusal. All of them are spoken for, or this clause
+      // would not have been reached.
+      let held = 0;
+      for (const resource of wants) held += resourceCopies(state, playerId, resource);
+      const spent =
+        held === 1
+          ? 'your empire has one and it is already spoken for'
+          : `your empire has ${held} and every one is already spoken for`;
+      return `${itemName(kind, id)} needs improved ${names} (${spent})`;
+    }
   }
   return null;
+}
+
+/**
+ * "Horses", or "Horses or Camels" — a row's resource list in the words a refusal
+ * and a card both print.
+ *
+ * One phrase builder so the gate, the panel and the Compendium cannot describe a
+ * pair three ways. The list order is the row's, which is also the order the copy
+ * is taken in (`resolveCommitments`), so a player reading "Horses or Camels"
+ * is reading the preference as well as the choice.
+ */
+export function eitherResourceWords(wants: readonly ResourceId[]): string {
+  const names = wants.map((id) => resourceDef(id).name);
+  if (names.length <= 1) return names[0] ?? '';
+  return `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]!}`;
 }
 
 // --- what a player can see --------------------------------------------------
@@ -1869,8 +1965,32 @@ export function upgradeTargetForType(
     // The gate `buildError` keeps at the queue: a rung that needs iron is not
     // climbed until the empire controls iron (user, 2026-08-29 — "iron working
     // should only upgrade warriors when iron is available").
-    const resource = unitDef(next).requiresResource;
-    if (resource !== undefined && !hasResource(state, playerId, resource)) break;
+    //
+    // **Since batch R1 the copy has to be free as well, and the climb may carry
+    // one up with it.** Two arms, and the second is the subtlety:
+    //
+    //   · a rung that shares a resource with the one below it costs no new copy.
+    //     A swordsman becoming a longswordsman was already holding an iron and
+    //     goes on holding the same one — the piece changes type, the ledger does
+    //     not move — so asking for a spare here would refuse every piece its own
+    //     copy and freeze the whole sword line at the first rung;
+    //   · a rung that needs something the rung below did not needs a copy
+    //     nobody is using. A warrior climbing to a swordsman is a *new* claim on
+    //     the empire's iron, so **an upgrade can be blocked by your own army**:
+    //     three swordsmen on three iron means the fourth warrior stays a
+    //     warrior. That surprises a player, and it is Civ 5's behaviour and the
+    //     honest reading of ruling 5 — a copy already spent is spent.
+    //
+    // Sharing is asked of the whole list on both sides, so a pair inherits it:
+    // a chariot that accepts horses or camels climbing to a horseman that
+    // accepts the same two carries whichever copy it holds.
+    const wants = requiredResourcesOf(unitDef(next));
+    if (wants.length > 0) {
+      const holds = requiredResourcesOf(unitDef(current));
+      const carried = wants.some((resource) => holds.includes(resource));
+      if (!carried && !canSpareAnyOf(state, playerId, wants)) break;
+      if (carried && !controlsAnyOf(state, playerId, wants)) break;
+    }
     current = next;
   }
   return current === type ? null : current;

@@ -93,7 +93,12 @@ import {
   sideTakenBy,
   termsAreEmpty,
 } from '../sim/deals';
-import { capitalCityOf, controlledHoldings, resourceCopies } from '../sim/cities';
+import {
+  availableCopies,
+  capitalCityOf,
+  controlledHoldings,
+  resourceCopies,
+} from '../sim/cities';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { figure } from './figures';
 import type { ConfirmRequest } from './confirmCard';
@@ -496,6 +501,12 @@ function dealSide(
   const luxuries: DealChoice[] = [];
   for (const holding of controlledHoldings(state, giverId, 'luxury')) {
     const copies = resourceCopies(state, giverId, holding.id);
+    // **What may actually be promised** (batch R1, ruling 4 — "only trade away
+    // available copies"). A copy a unit of this empire is standing on is spoken
+    // for, and `dealSideError` refuses it, so the row has to say so rather than
+    // offer a bargain the reducer will throw out. Ivory is the kind this reaches
+    // today: it is a luxury and the war elephant spends it.
+    const spare = availableCopies(state, giverId, holding.id);
     luxuries.push({
       id: holding.id,
       label: resourceDef(holding.id).name,
@@ -506,11 +517,13 @@ function dealSide(
       // them nothing — and since the copies ruling it is exact, because
       // `resourceCopies` has already taken off everything promised elsewhere:
       // two amber with one lent reads as one, and the mark goes out.
-      note: copies > 1 ? 'spare' : null,
+      note: spare > 1 ? 'spare' : null,
       // A kind with no **net** copy left is not in `controlledHoldings` at all,
-      // which is the same figure `dealSideError` refuses on, so there is nothing
-      // here to grey — the list *is* the gate.
-      error: null,
+      // so the list still does most of the gating. What it cannot see since
+      // batch R1 is a copy this empire's own army has spoken for, and that is
+      // what this greys. R4 owns the full treatment (a count on the row);
+      // this is the one line that keeps the panel and the reducer agreeing.
+      error: spare < 1 ? 'every copy is already spoken for' : null,
     });
   }
   const cities: DealChoice[] = [];

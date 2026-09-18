@@ -39,7 +39,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { unitRosterCost } from '../../src/sim/cities';
-import { resourceDef } from '../../src/sim/resourceData';
 import { RULES } from '../../src/sim/rulesData';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import {
@@ -47,9 +46,11 @@ import {
   type UnitCategory,
   type UnitDef,
   type UnitTypeId,
+  requiredResourcesOf,
   unitDef,
   unitMaxHp,
 } from '../../src/sim/unitData';
+import { eitherResourceWords } from '../../src/sim/tech';
 
 // Declared rather than imported from `node:process` — `cardTextSnapshot.test.ts`'
 // bargain and `vite.config.ts`', for their reason: this project's type surface is
@@ -144,9 +145,9 @@ function marks(def: UnitDef): string {
     out.push(def.purchase.exclusive === true ? `bought with ${bank} only` : `bought with ${bank}`);
   }
   if (def.mirrors !== undefined) out.push(`mirrors the best ${def.mirrors.modelClass}`);
-  if (def.requiresResource !== undefined) {
-    out.push(`needs improved ${resourceDef(def.requiresResource).name}`);
-  }
+  // A list since batch R1; see the same cell in `techDocSync.test.ts`.
+  const wants = requiredResourcesOf(def);
+  if (wants.length > 0) out.push(`needs improved ${eitherResourceWords(wants)}`);
   if (def.greatWork === true) out.push('great person');
   if (def.foundsCity) out.push('founds cities');
   if (def.charges !== undefined) out.push(plural(def.charges, 'charge'));

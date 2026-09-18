@@ -191,9 +191,42 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * nothing to the bot (The Old Academy's, today). It undervalues one row and lies
  * about none. Measured twice, same bytes both runs.
  */
+/**
+ * **Re-cut for R1 (the copies model, branch `decks`)** — batch 1 of
+ * `docs/strategic-resources-proposal.md`. A unit that needs a strategic
+ * resource now holds one copy of it while it lives, and a row queued in a town
+ * holds one from the moment it is queued, so an empire can no longer build an
+ * unlimited army off a single iron hill. Duel `10d89ce1:260423` →
+ * `fc6eca56:265734`, standard `624b2217:922586` → `adb36756:935196`.
+ *
+ * No resource row and no unit row changed; the roster is batch R3's. What moved
+ * is the gate, against the three strategics that already existed: horses gate
+ * eleven mounted rows, iron four swords, niter the fire lance. Six seats over a
+ * hundred and twenty turns hold a handful of copies apiece, so a seat that used
+ * to queue its fourth horseman now queues something else — and every decision
+ * after that is a different decision. The **upgrade ladder** moves with it and
+ * moves earlier: a warrior climbing to a swordsman is a new claim on the
+ * empire's iron rather than a free retyping, so the sweep that used to march a
+ * whole line up at Iron Working now marches as many of it as there are copies
+ * and leaves the rest as warriors. That is the change a bot feels first,
+ * because it happens on the turn a technology lands rather than on a build
+ * decision.
+ *
+ * **Both prints grew**, by about two per cent on each board, and the direction
+ * is the right way round: a seat refused a mounted row builds a building or a
+ * cheaper unit instead, and finishes the game with more standing than the army
+ * it could not field. Nothing was lost — no seat stalled and no command was
+ * refused, which the assertion above this one checks before the hash does.
+ *
+ * Nothing in `src/ai` was touched and the bot is not taught the new rule in this
+ * batch: it still appraises a resource as a boolean, so it will sometimes queue
+ * a row the gate refuses and pick again. That is batch R5's job and it is
+ * written down here because it is part of what this print measures. Measured
+ * twice, same bytes both runs.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: '10d89ce1:260423',
-  standard: '624b2217:922586',
+  duel: 'fc6eca56:265734',
+  standard: 'adb36756:935196',
 };
 
 /**
