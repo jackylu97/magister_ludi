@@ -127,7 +127,10 @@ No new technology nodes. The lanes are your chart and adding nodes is a separate
 add: siege elephant, age 4, requires ivory. +6 attack towards cities. 2 movement, strong ranged attack.
 | fire lance | 4 | niter | unchanged |
 
-The two leader uniques that are currently ungated — the eagle warrior and the slinger — take the single resource rather than the pair, because a unique unit rewarding a specific start is the point of a unique unit.
+> **⚠ UNRESOLVED — two rulings disagree, and nobody should write these rows until it is settled.**
+> Ruling 2 says *"unique units should not require strategic resources."* Every one of the thirteen leader uniques is a standalone unit — none declares a `replaces` — so that rule reaches all of them. But two rows above still gate uniques: **khopesh** sits on obsidian-or-copper, and **the 6 mounted uniques** sit on horses-or-camels.
+> Read by ruling 2, both rows become **no requirement**, and the seven uniques that are gated today (khopesh on iron; the mounted six on horses) all come off their resource. That is the reading I would take, and it is a real balance change — a leader's unique unit becomes strictly easier to field than the standard unit it stands beside.
+> Awaiting the user. Everything else in this document can be built meanwhile.
 
 ### The tiles themselves
 
@@ -399,3 +402,25 @@ no gating spearmen.
 **Army sizes collapse.** If the numbers are wrong in the tight direction, a turn-100 empire fields four mounted units instead of twelve and the military game shrinks. This is the failure I would watch for first, and the arena measurement in section 5 is how to catch it.
 
 **It becomes bookkeeping.** The model only earns its place if a player can see it at a glance and plan around it. If the counts are buried in a submenu, all it does is refuse people. S5 matters as much as S1.
+
+---
+
+## 8. The build queue — 2026-09-18
+
+The user: *"let's start queuing up agents to implement these changes."* Sections 1–7 are the spec; this is the order the work happens in. Each batch is one agent on a worktree off `decks`, gated by the orchestrator (typecheck + core tier per module + build) and merged before the next one starts.
+
+**Why this is mostly sequential.** Each batch adds a field or a shape the next one writes rows against, and three of the five want the same files. `unitData.ts` and `tech.ts` in particular are touched by both R1 and R2, so running them together would put two agents in one file.
+
+| # | Batch | What it is | Depends on |
+|---|---|---|---|
+| 1 | **R1 — the copies model** | Committed and available copies; the build gate; `requiresResource` as a pair; the upgrade ladder; queue reservation (ruling 5); the trade gate (ruling 4). Sim only, no new resources yet. | — |
+| 2 | **R2 — the bonus vocabulary** | `combatLine` on `ResourceEffect`; `roadStepCost` into `ResourceRule`; iron's live `unitMaxHp` and its clamp. Sim only. | R1 |
+| 3 | **R3 — the roster and the map** | The four new or promoted rows, `copiesPerSource`, the shares, the purse at 60, candidate lists, start guarantees. Data and mapgen. | R1, R2 |
+| 4 | **R4 — the surfaces** | City panel counts, an always-visible holdings strip, the Compendium sentences, the diplomacy screen offering available copies. | R3 |
+| 5 | **R5 — the bot** | Appraisal reads available copies rather than a boolean. | R3 |
+
+R4 and R5 are on disjoint fences (`src/ui` and `src/ai`) and run together.
+
+**The decks queue is paused behind this.** `docs/plans/decks-rework.md` still has D2e (the bilateral grant, ~15 cards) and A1 (the two silent arrivals) unstarted, and D2f blocked on rulings. They resume when R5 lands.
+
+**What R1 must not do.** It changes no resource rows and adds no resources. The roster is R3's, and the unique-unit question above is R3's to write once the user has settled it. R1's job is the machinery, proven against the three strategics that exist today.
