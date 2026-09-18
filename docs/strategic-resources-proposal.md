@@ -63,7 +63,7 @@ A resource that should not vary writes `[3, 3]`, so the constant is still availa
 
 **Where the quantity lives.** On the tile, written once by `placeResources` in `newGame`, from the map rng, exactly as `Tile.resource` itself is. That puts it with the *placed-once* tile facts and **not** with the mutable ones — CLAUDE.md's register of mutable tile fields is `improvement`, `feature`, `discovery`, `road`, `vein`, `surveyed`, and this joins none of them. Nothing may regenerate it mid-game, for the same reason nothing may regenerate a resource.
 
-This is the main balance dial for army size, and it is the natural place to compensate for rarity: a camel seam is rarer on the map than a horse herd, so each one carries more.
+This is the main balance dial for army size. **Every resource's maximum is 8 and the floor is what varies** (settled 2026-09-18) — so the rarer a resource is on the map, the higher its worst case, and no deposit of anything is ever capped below a jackpot.
 
 ### Cost per unit
 
@@ -77,15 +77,35 @@ Seven resources. Two promotions, two new, three kept.
 
 | Resource | Status | Revealed by | Age | Role | Copies per tile |
 |---|---|---|---|---|---|
-| **Obsidian** | **new** | *(visible from the start)* | 1 | early blade — the alternative to copper | 4–6 |
-| **Copper** | promote from bonus | Mining | 1 | early blade — the alternative to obsidian | 3–5 |
-| **Horses** | keep | Husbandry | 1 | mount — the alternative to camels | 3–5 |
+| **Obsidian** | **new** | *(visible from the start)* | 1 | early blade — the alternative to copper | 4–8 |
+| **Copper** | promote from bonus | Mining | 1 | early blade — the alternative to obsidian | 3–8 |
+| **Horses** | keep | Husbandry | 1 | mount — the alternative to camels | 3–8 |
 | **Camels** | **new** | Husbandry | 1 | mount — the alternative to horses | 5–8 |
-| **Iron** | keep | Bronze Panoply | 2 | the steel blade | 4–6 |
-| **Ivory** | promote from luxury | *(visible from the start)* | 2 | the elephant | 4–6 |
+| **Iron** | keep | Bronze Panoply | 2 | the steel blade | 4–8 |
+| **Ivory** | promote from luxury | *(visible from the start)* | 2 | the elephant | 4–8 |
 | **Niter** | keep, **moved earlier** | Physics | 4 | powder | 5–8 |
 
-The quantities run **opposite to the map shares**, deliberately. Horses and copper are the common finds and carry the least each; camels and niter are the rare ones and carry the most. So a camel seam is hard to find and worth a great deal when you do, which is both the historical picture and the way to keep a desert empire's army the size of a grassland empire's without making camels common. The whole roster spans the user's 3–8.
+**Every maximum is 8; the floor is what differs** (settled 2026-09-18). So any seam of anything can roll a jackpot, and what a rare resource buys you is a better *worst* case rather than a better best one. A camel seam is never disappointing; a horse herd sometimes is. That makes scouting worth doing on every deposit rather than only on the rare ones.
+
+### What that means in copies on the ground
+
+Expected copies per 1000 land tiles, which is tiles × the mean of the range:
+
+| Resource | Tiles | Mean | Copies |
+|---|---|---|---|
+| Horses | 13.2 | 5.5 | **73** |
+| Copper | 12.0 | 5.5 | **66** |
+| Iron | 9.0 | 6.0 | **54** |
+| Obsidian | 7.8 | 6.0 | **47** |
+| Ivory | 7.2 | 6.0 | **43** |
+| Camels | 6.0 | 6.5 | **39** |
+| Niter | 4.8 | 6.5 | **31** |
+
+The reassuring number is that **the two pairs come out level**: blade is 66 + 47 = 113, mount is 73 + 39 = 112. Since a paired unit accepts either, the blade pool and the mount pool are the same size, which is what keeps the two halves of an army in step.
+
+The number to watch is **inside** the mount pair. A grassland empire with horses and no camels draws on 73; a desert empire with camels and no horses draws on 39. So a pure-desert empire fields roughly **half** the mounted force of a pure-grassland one — the per-tile range no longer compensates for the share the way it did when maxima differed, because the means have converged (5.5 against 6.5).
+
+That may well be the intended picture: desert is harsh, and the desert empire is getting an extra trade route out of the same resource. But it is a design fact rather than an accident, and the lever if it plays badly is **camels' map share**, not their range — raising camels from 10 to 15 closes most of the gap without touching the 3–8 span.
 
 ### The shape I think makes this work: paired alternatives
 
