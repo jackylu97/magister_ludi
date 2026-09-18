@@ -123,7 +123,7 @@ import {
   resourceCopies,
 } from './cities';
 import { RULES } from './rulesData';
-import { slateMemo } from './slate';
+import { economyStamp, slateMemo } from './slate';
 // The three route readings this module needs to answer "what is a caravan of
 // mine carrying home" — a leaf (`routes.ts`) below both this file and
 // `routeYields.ts`, which is where the pair resolution has always lived.
@@ -452,10 +452,30 @@ const IMPORTED_SHARE = Math.max(0, RULES.trade.importedLuxuryPercent) / 100;
  * fact about a *piece* — where a caravan is standing and what it is carrying —
  * and the economy half is the ground and nothing but (see "The two clocks" in
  * `slate.ts`).
+ *
+ * **And on the economy stamp inside it** (batch R1). The revision is raised
+ * *after* a handler and *after* a phase, and this reading is asked from **inside**
+ * both — `resourceTileLines` → `yieldContextFor` → `chooseCitizens`, which is
+ * to say every time `refreshCityDerived` re-seats a town. So the revision alone
+ * cannot see a bargain signed or lapsed, a road cut or a seam improved halfway
+ * through the call that is about to read it; the shadow run found this list
+ * holding a luxury a deal had already taken back (turn 97 of a bot game,
+ * `["dyes","sugar"]` against a fresh `["dyes"]`). Every one of those writes
+ * announces `bumpEconomy` on the line it happens (batch M3, and
+ * `test/sim/slateRegister.test.ts` is what holds it true), so putting the stamp
+ * **in the key** makes a moved world a miss rather than a wrong answer.
+ *
+ * In the key rather than in the clock, deliberately: it keeps the entry's
+ * lifetime the revision's — which is the honest one, since a caravan's step
+ * moves only that counter at the command's own scale — and adds the second
+ * question without asking `slate.ts` for a third clock, which its own docblock
+ * says is a batch. The cost is a few dead entries inside one revision, thrown
+ * away whole the moment it moves.
  */
 export function importedLuxuries(state: GameState, playerId: number): ResourceId[] {
   if (!cardBehaviorRule(state, playerId, 'routesImportLuxuries')) return [];
-  return slateMemo(state, 'revision', 'importedLuxuries', String(playerId), () => {
+  const key = `${playerId}:${economyStamp(state)}`;
+  return slateMemo(state, 'revision', 'importedLuxuries', key, () => {
     const held = new Set<ResourceId>(controlledResources(state, playerId, 'luxury'));
     const lent = new Set<ResourceId>();
     for (const unit of state.units) {

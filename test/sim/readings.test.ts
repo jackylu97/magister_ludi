@@ -68,6 +68,9 @@ import { type City, type GameState, bumpRevision, newGame, playerById } from '..
 import { snapshotState } from '../../src/sim/game';
 import { END_OF_TURN_PHASES, runEndOfTurn } from '../../src/sim/turn';
 import { found, game } from './statecraftHelpers';
+import { refreshCityDerived } from '../../src/sim/cities';
+import { type BeliefId, BELIEF_IDS } from '../../src/sim/religionData';
+import { liveEffects } from '../../src/sim/statecraft/evaluator';
 
 /** The steps a town's list may carry — `docs/yields.md`'s 1 through 10. */
 const TOWN_STEPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -1052,3 +1055,178 @@ describe('the routes reading asks the gate once a pair', () => {
     }
   });
 });
+
+/**
+ * **A reading changes nothing** — batch R1, the replay divergence.
+ *
+ * The bug this pins, stated as the rule it broke: *a memo is a cache, and a
+ * cache may not be an input*. The card evaluator's law (`liveEffects`) was
+ * remembered under `GameState.revision` alone — and the revision is raised by
+ * `applyCommand` **after** the handler and by the phase loop **after** the
+ * phase, so inside a handler the counter still names the world as it was on the
+ * way in. A handler that changes the law and then reads it in the same call
+ * therefore read whatever happened to be remembered under that stamp: the
+ * pre-command law if somebody had asked before the command, and the fresh one if
+ * nobody had. `settleBeliefChoice` is exactly such a handler — it pushes the god
+ * and then re-seats every town of the empire off the law it just changed
+ * (`refreshBeliefDerived` → `refreshCityDerived` → `assignCitizens`) — so a
+ * played game, where the bot's appraisal warms the memo every turn, seated a
+ * town differently from a replay of its own log, where nothing asks.
+ *
+ * It cost the suite a **hundred-turn** slow test to notice (`aiDecision.slow`'s
+ * "writes a log that replays to the same board", divergent since at least schema
+ * 120): the seating difference was washed out by `collectYields` re-seating the
+ * town at the top of the very next phase, and survived only in
+ * `PlayerStatecraft.yieldTallies`, which `recordDeckTally` writes one line
+ * *before* that re-seating. Two integers in eight hundred thousand bytes. This
+ * is the same claim asked in one command, in the core tier, so the next one is
+ * caught the day it is written.
+ *
+ * The fix is a clock, not a call: the law is keyed on the **economy stamp**
+ * beside the revision (`slate.ts`, "The two clocks"), which is the counter batch
+ * M3 moved to the mutation — and the field list `test/sim/slateRegister.test.ts`
+ * governs is, field for field, the eleven sources of this walk, because the walk
+ * it was derived from folds this one. So the sweep below is a sweep over the
+ * *data*: every god in the bag, on three boards and three town sizes, taken by a
+ * seat that had been read and by one that had not.
+ *
+ * **And it says out loud what would make it vacuous.** The only way a stale law
+ * can be *seen* from outside a handler is a citizen standing somewhere else, so
+ * the second claim is that at least one god in the sweep actually moves the
+ * seating. A map generator or a belief row that quietly took that away would
+ * leave a green test asserting nothing; it fails instead, naming the gap.
+ */
+describe('a reading taken at rest changes no outcome', () => {
+  /** The benches the sweep runs on, and the town sizes it runs them at. */
+  const BOARDS = [7, 11, 13];
+  const SIZES = [4, 6];
+
+  /**
+   * One seat takes one god — or takes none — on a board whose town has people
+   * enough for the seating to have a choice, with the law either read a moment
+   * before the command or never read at all. The two boards are the claim.
+   */
+  function takesAGod(seed: number, pop: number, belief: BeliefId | null, warm: boolean): string {
+    const { state } = game(seed);
+    const city = found(state, 0)!;
+    city.population = pop;
+    // A bench that pokes the state is a writer (`GameState.revision`), and this
+    // is the seating the command is about to redo.
+    refreshCityDerived(state, city);
+    if (belief === null) {
+      bumpRevision(state);
+      return JSON.stringify(city.workedTiles);
+    }
+    playerById(state, 0)!.pantheon.pending = { options: [belief] };
+    bumpRevision(state);
+    // **The whole of the experiment.** Nothing else differs between the two
+    // boards: one of them was looked at.
+    if (warm) liveEffects(state, 0);
+    const taken = applyCommand(state, { type: 'chooseBelief', playerId: 0, optionIndex: 0 });
+    expect(taken.ok, `${belief}: ${taken.ok ? '' : taken.error}`).toBe(true);
+    return snapshotState(state);
+  }
+
+  it('seats a town the same whether or not the law was read before the command', () => {
+    expect(BELIEF_IDS.length).toBeGreaterThan(0);
+    for (const seed of BOARDS) {
+      for (const pop of SIZES) {
+        for (const belief of BELIEF_IDS) {
+          const where = `seed ${seed}, pop ${pop}, ${belief}`;
+          expect(takesAGod(seed, pop, belief, true), where).toBe(
+            takesAGod(seed, pop, belief, false),
+          );
+        }
+      }
+    }
+  });
+
+  it('is not vacuous: some god in the sweep moves a citizen', () => {
+    // The claim above can only *see* a stale law through the seating, so this is
+    // the proof that the sweep has something to see. `workedTiles` alone, off
+    // the cold board — the rest of a snapshot differs for reasons that are not
+    // the assignment.
+    const moved: string[] = [];
+    for (const seed of BOARDS) {
+      for (const pop of SIZES) {
+        const without = takesAGod(seed, pop, null, false);
+        for (const belief of BELIEF_IDS) {
+          const seated = JSON.parse(takesAGod(seed, pop, belief, false)) as {
+            cities: { workedTiles: unknown }[];
+          };
+          if (JSON.stringify(seated.cities[0]!.workedTiles) !== without) {
+            moved.push(`seed ${seed}, pop ${pop}, ${belief}`);
+          }
+        }
+      }
+    }
+    expect(moved.length, 'no god in the sweep re-seats a town — the sweep sees nothing').toBeGreaterThan(0);
+  });
+
+  it('keys the law on both clocks, so every announced write reaches it', () => {
+    // The source register beside the behaviour, `readingsSource`'s idiom: the
+    // sweep above is one seam, and what makes every *other* seam safe is that
+    // the memo subscribes to the counter M3's register already governs. A law
+    // remembered under the revision alone is the bug, whatever the data says.
+    const text = stripped('../../src/sim/statecraft/evaluator.ts');
+    expect(text).toContain('economyStamp(state)');
+    expect(text).toMatch(/slate\.economy\s*!==\s*economy/);
+  });
+
+  it('disbelieves the law too, and names it when it is stale', () => {
+    // The detector, tested the way `slate.ts`'s own is one describe up: a field
+    // the walk folds poked by hand after the walk was taken is exactly the stale
+    // answer this check exists to name. `statecraft.government` is the walk's
+    // first source.
+    const { state } = game(11);
+    found(state, 0);
+    void liveEffects(state, 0);
+    playerById(state, 0)!.statecraft.government = 'warChief';
+    const was = slateShadow();
+    setSlateShadow(true);
+    try {
+      expect(() => liveEffects(state, 0)).toThrowError(/law shadow/);
+    } finally {
+      // Restored, never switched off — the note on the slate's own pair says why.
+      setSlateShadow(was);
+    }
+  });
+
+  it('drops the law where a charter changes hands, before the chairs are counted', () => {
+    // The second seam the law shadow found, pinned where it lives (batch R1,
+    // `adoptGovernmentAt` in `draft.ts`). `chairCount` reads the law to ask what
+    // a card like The King's Friends adds to the spread, and it is asked between
+    // the new government being written and the chairs being rebuilt — so unless
+    // the walk is thrown away on the line the charter changes, a played game
+    // counts chairs off the **old** charter's law and a replay of its own log
+    // counts them off the new one. It is latent on today's seeds only because no
+    // seat on them holds a chair-opening card; the order of these three lines is
+    // the whole of the fix, so the order is what is pinned.
+    const text = stripped('../../src/sim/statecraft/draft.ts');
+    const body = /function adoptGovernmentAt\([\s\S]*?\n\}/.exec(text)?.[0] ?? '';
+    expect(body.length, 'adoptGovernmentAt found').toBeGreaterThan(100);
+    const charter = body.indexOf('sc.government = id');
+    const drop = body.indexOf('forgetTheLaw(state)', charter);
+    const chairs = body.indexOf('chairCount(', charter);
+    expect(charter, 'the charter is written').toBeGreaterThan(-1);
+    expect(chairs, 'the chairs are counted after it').toBeGreaterThan(charter);
+    expect(drop, 'the law is dropped after the charter').toBeGreaterThan(charter);
+    expect(drop, 'and before the chairs are counted').toBeLessThan(chairs);
+  });
+});
+
+/** One `src/sim` file with its prose taken out — `readingsSource`'s idiom, shared. */
+function stripped(path: string): string {
+  const files = import.meta.glob('../../src/sim/**/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+  const text = files[path];
+  expect(typeof text, `${path} readable`).toBe('string');
+  return text!
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .map((line) => line.replace(/\/\/.*$/, ''))
+    .join('\n');
+}

@@ -2464,6 +2464,20 @@ export function adoptGovernmentAt(
     if (slot) amnestied.push(slot.card);
   }
   sc.government = id;
+  // **The charter has changed hands, and the chair count below reads it**
+  // (batch R1). A government is the first source of `liveEffects`, and the walk
+  // is remembered — so without this line `chairCount` answered off whatever was
+  // remembered under the stamps this command came in on: the **old** charter's
+  // law in a played game, where a reader had warmed the memo a moment before,
+  // and the **new** one in a replay of that game's own log, where nothing had
+  // asked. Two boards, one log. The law shadow found it on turn 23 of a bot
+  // game; it is latent on today's seeds only because no seat there holds a card
+  // that opens a chair, and `cardExtraChairs` answers the same either way.
+  //
+  // Dropping it here also makes the count the one the comment below has always
+  // claimed it was — *the new government with the old chairs* — rather than the
+  // whole of the old charter.
+  forgetTheLaw(state);
   // Rebuilt rather than resized: the new layout's slot 2 is not the old one's,
   // so carrying anything across by index would seal the wrong card in the wrong
   // kind of slot. The amnesty is total by construction.
@@ -2475,7 +2489,10 @@ export function adoptGovernmentAt(
   // comes **after** the rebuild, not before it: a bump in front of this line
   // would have the memo record the old slots as this government's first
   // reading, and a benched card would go on paying (found 2026-09-10, the
-  // growing-orders pin).
+  // growing-orders pin). That is still true, and the drop above does not undo
+  // it: the walk this count takes records the **old chairs**, and the drop after
+  // the rebuild is what throws that reading away again. One drop each side, and
+  // each for its own half of the sentence.
   sc.slots = new Array<SlottedOrder | null>(chairCount(state, player.id, id)).fill(null);
   // **The reroll's ladder starts again** (B1 rule 3, `docs/flags.md` (aaaaaa)):
   // a fresh charter arrives with a cheap reroll. An event write here, in the
