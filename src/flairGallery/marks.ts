@@ -29,7 +29,14 @@ import {
   tradeMarkDataUri,
 } from '../art/dockMarks';
 import { type HeraldryId, HERALDRY_IDS, heraldryMarkDataUri } from '../art/heraldryMarks';
-import { CARD_LINE_MARKS, SLOT_MARKS, cardLineMarkDataUri, slotMarkDataUri } from '../art/lineMarks';
+import {
+  CARD_LINE_MARKS,
+  DECK_MARKS,
+  SLOT_MARKS,
+  cardLineMarkDataUri,
+  deckMarkDataUri,
+  slotMarkDataUri,
+} from '../art/lineMarks';
 import {
   DRACONES_LINES,
   MARGINALIA_MARK_IDS,
@@ -180,11 +187,25 @@ function dockFamily(into: HTMLElement): void {
 }
 
 function lineFamily(into: HTMLElement): void {
+  // The decks first, because they are what a dealt card wears: the threads
+  // below them are dead for every row written after the decks rework, and a
+  // gallery that led with them would be leading with the retired set.
+  const decks = markGrid(
+    block(
+      into,
+      'Decks — src/art/lineMarks.ts',
+      'The emblem in the middle of a dealt card (U1). One drawing a deck, each a picture of what that deck rewards; `generic` is the lozenge seal a card of nobody’s deck keeps, and `shared` is that seal doubled for a card two decks split between them.',
+    ),
+  );
+  for (const [id, mark] of Object.entries(DECK_MARKS)) {
+    markCell(decks, id, deckMarkDataUri(id as keyof typeof DECK_MARKS), mark.note);
+  }
+
   const lines = markGrid(
     block(
       into,
-      'Card lines — src/art/lineMarks.ts',
-      'The seven archetype threads and the neutral seal, drawn as the tarot emblem in the middle of a card face. `none` is most of a good hand, which is why it is a real drawing rather than an absence.',
+      'Card lines — the same file',
+      'The seven archetype threads and the neutral seal, the emblem a card face wore before the decks rework. Retired for Orders — every row written after the rework carries no thread — and still drawn by a Doctrine and a government, which have no deck.',
     ),
   );
   for (const [id, mark] of Object.entries(CARD_LINE_MARKS)) {

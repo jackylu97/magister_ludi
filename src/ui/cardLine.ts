@@ -28,10 +28,16 @@
  * emoji set failed, one of which was a straight collision with the faith glyph.
  */
 
-import { type AnyCardLine, cardLineMarkDataUri, slotMarkDataUri } from '../art/lineMarks';
+import {
+  type AnyCardLine,
+  type DeckFace,
+  cardLineMarkDataUri,
+  deckMarkDataUri,
+  slotMarkDataUri,
+} from '../art/lineMarks';
 import type { CardLine, SlotType } from '../sim/statecraftData';
 
-export type { AnyCardLine };
+export type { AnyCardLine, DeckFace };
 
 /**
  * How a line reads when the interface has to *say* it — a card's title
@@ -149,4 +155,31 @@ export function cardLineMarkUrl(id: AnyCardLine): string {
 /** The same, for a slot's office. See `governmentEmblem` in `main.ts`. */
 export function slotMarkUrl(slot: SlotType): string {
   return `url("${slotMarkDataUri(slot)}")`;
+}
+
+/**
+ * **The deck's emblem** — what a dealt Order wears in the middle of its frame
+ * since U1, in place of the archetype thread's mark.
+ *
+ * Here beside the thread's printers rather than in `deckBadges.ts`, and the
+ * split is the one this file has always drawn: *what a card looks like* is the
+ * interface's opinion and lives here; *which face a row is entitled to* is a
+ * fact about decks and lives with the words (`deckFaceOf`). So this takes a
+ * face and hands back a picture, and knows nothing about how one was chosen.
+ *
+ * The accent key is the face's own id — `data-line="dominion"` — which is why
+ * no deck id may ever collide with a `CardLine` id: one block of `style.css`
+ * resolves both, exactly as it has since there were only threads.
+ */
+export function deckMarkNode(face: DeckFace): HTMLSpanElement {
+  const span = document.createElement('span');
+  span.setAttribute('aria-hidden', 'true');
+  span.className = 'line-mark';
+  span.style.setProperty('--line-mark', `url("${deckMarkDataUri(face)}")`);
+  return span;
+}
+
+/** The same, as a bare CSS `url(…)` value. See `cardLineMarkUrl`. */
+export function deckMarkUrl(face: DeckFace): string {
+  return `url("${deckMarkDataUri(face)}")`;
 }

@@ -114,6 +114,19 @@
   --deck-magisterial: #a04a63;
   --deck-charter: #7a6338;
 
+  /* --- rarity ------------------------------------------------------------ */
+  /* The chip the deck word vacated (U1). A *ladder* rather than three more
+     hues: a common is faint ink, an uncommon is full ink, and a rare is the
+     only one with a colour on it at all — which is what makes a rare read as a
+     rare across a hand without being read. Gilt is the house's precious ink and
+     the one the interface already uses for a thing worth having; it is near the
+     Commerce deck's gold, and that is tolerable because the two never sit on
+     the same element — the deck is the emblem in the middle of the frame and
+     the rarity is a hairline chip under the name. */
+  --rarity-common: rgba(29, 26, 32, 0.42);
+  --rarity-uncommon: #56505a;
+  --rarity-rare: #c8901f;
+
   /* --- yield voices ----------------------------------------------------- */
   --y-food: #3f9636;
   --y-prod: #c26a1d;
@@ -402,6 +415,46 @@ body {
 
 [data-line='tide'] {
   --line-ink: var(--line-tide);
+}
+
+/* **The six decks resolve through the same key** (U1). A dealt card's accent is
+   its deck now, not its archetype thread — every row written after the decks
+   rework carries `line: 'none'` — so `deckFaceOf` sets a deck id here where a
+   thread id used to stand, and one block still answers for both. No deck id may
+   ever collide with a `CardLine` id for exactly this reason. */
+[data-line='dominion'] {
+  --line-ink: var(--deck-dominion);
+}
+
+[data-line='expansionist'] {
+  --line-ink: var(--deck-expansionist);
+}
+
+[data-line='commerce'] {
+  --line-ink: var(--deck-commerce);
+}
+
+[data-line='devotion'] {
+  --line-ink: var(--deck-devotion);
+}
+
+[data-line='scientific'] {
+  --line-ink: var(--deck-scientific);
+}
+
+[data-line='magisterial'] {
+  --line-ink: var(--deck-magisterial);
+}
+
+/* The two faces that have no single deck take plain ink, and both for the same
+   reason the neutral thread does: a hand where every card shouts has no accent.
+   A cross-type takes it for one reason more — the accent lands on the frame as
+   well as the mark, a frame cannot be two colours, and painting it in the first
+   of the row's two decks would be a card wearing half of its own answer. The
+   doubled seal says the fact instead, and the eyebrow names both decks. */
+[data-line='generic'],
+[data-line='shared'] {
+  --line-ink: var(--line-none);
 }
 
 /* A mark that *leads* a figure (`⚙ +10%`, the modifier voice) wants its air on
@@ -9381,26 +9434,22 @@ body:has(.city-mode:not([hidden])) #hud-context {
   --line-ink: var(--grape);
 }
 
-/* The six decks (D1c), on both the heading and the cards under it. The
-   collection groups by deck since the rework — `sc-group-<deck>` on the block
-   and `sc-card-<deck>` on each face — and the three offices above are the
-   retired M/E/W spread, kept because a saved seat's chairs still name them. */
-.sc-group-dominion,
-.sc-card-dominion { --line-ink: var(--deck-dominion); }
-.sc-group-expansionist,
-.sc-card-expansionist { --line-ink: var(--deck-expansionist); }
-.sc-group-commerce,
-.sc-card-commerce { --line-ink: var(--deck-commerce); }
-.sc-group-devotion,
-.sc-card-devotion { --line-ink: var(--deck-devotion); }
-.sc-group-scientific,
-.sc-card-scientific { --line-ink: var(--deck-scientific); }
-.sc-group-magisterial,
-.sc-card-magisterial { --line-ink: var(--deck-magisterial); }
+/* The six decks (D1c), **on the heading alone** since U1. The collection groups
+   by deck — `sc-group-<deck>` on the block — and each face under it used to
+   carry the same class, which inked a cross-type in whichever of its two decks
+   the seat happened to hold first. A card's accent is the card's own face now
+   (`data-line`, off the row's decks), and the shelf it is filed on no longer
+   decides its colour. The three offices above are the retired M/E/W spread,
+   kept because a saved seat's chairs still name them. */
+.sc-group-dominion { --line-ink: var(--deck-dominion); }
+.sc-group-expansionist { --line-ink: var(--deck-expansionist); }
+.sc-group-commerce { --line-ink: var(--deck-commerce); }
+.sc-group-devotion { --line-ink: var(--deck-devotion); }
+.sc-group-scientific { --line-ink: var(--deck-scientific); }
+.sc-group-magisterial { --line-ink: var(--deck-magisterial); }
 /* A card of no deck keeps plain ink, and that is the point of it: a collection
    where every card shouts has no accent. */
-.sc-group-generic,
-.sc-card-generic { --line-ink: var(--line-none); }
+.sc-group-generic { --line-ink: var(--line-none); }
 
 .sc-group-head .sc-group-mark {
   color: var(--line-ink, var(--ink-soft));
@@ -10923,14 +10972,13 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-soft);
 }
 
-/* --- the deck badges -----------------------------------------------------
-   The chips under a dealt card's name (the decks rework, D1a; inked in D1c).
-   D1a set them as bare body text, which put the deck's word twice on the same
-   card in the same grey — once in the mono eyebrow above and once in running
-   text below — and said nothing the eyebrow had not. A chip is a chip now: the
-   mono small-caps this interface marks every small fact in, on a hairline of
-   its deck's own ink, so a hand of three reads as three decks before a word of
-   it is read.
+/* --- the card's chips ----------------------------------------------------
+   The chips under a dealt card's name (the decks rework, D1a; inked in D1c;
+   **spent on rarity in U1**). D1a set them as bare body text, which put the
+   deck's word twice on the same card in the same grey — once in the mono
+   eyebrow above and once in running text below — and said nothing the eyebrow
+   had not. D1c made them chips and inked them, and the word was still twice.
+   The deck is the emblem's now; the chip carries the field the card never had.
 
    Ink on the rule and on the letters, never a fill. A filled chip is a tag, and
    a tag on a card in a hand is a thing to press; these answer nothing, and the
@@ -10944,7 +10992,10 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 .offer-badge {
-  padding: 1px 6px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.34em;
+  padding: 1px 7px;
   border: 1px solid var(--badge-ink, var(--ink-faint));
   border-radius: 999px;
   background: none;
@@ -10958,12 +11009,36 @@ body:has(.city-mode:not([hidden])) #hud-context {
   white-space: nowrap;
 }
 
-.offer-badge[data-tone='dominion'] { --badge-ink: var(--deck-dominion); }
-.offer-badge[data-tone='expansionist'] { --badge-ink: var(--deck-expansionist); }
-.offer-badge[data-tone='commerce'] { --badge-ink: var(--deck-commerce); }
-.offer-badge[data-tone='devotion'] { --badge-ink: var(--deck-devotion); }
-.offer-badge[data-tone='scientific'] { --badge-ink: var(--deck-scientific); }
-.offer-badge[data-tone='magisterial'] { --badge-ink: var(--deck-magisterial); }
+/* The ● ◆ ○ of the doc's own Rarity column, set a shade larger than the word so
+   the shape carries at a glance and the letters stay the small fact they are.
+   No letter-spacing: a mark is one character and the tracking would push it off
+   its own centre. */
+.offer-badge-mark {
+  font-size: 1.15em;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+/* The three rungs. A ladder, not three hues — see `--rarity-*`: faint ink, full
+   ink, and then the one chip in the hand with a colour on it. The rare wears a
+   heavier rule as well, because gilt on parchment is a quiet contrast and the
+   card it is on is the one a player is meant to notice. */
+.offer-badge[data-tone='common'] { --badge-ink: var(--rarity-common); }
+.offer-badge[data-tone='uncommon'] { --badge-ink: var(--rarity-uncommon); }
+
+.offer-badge[data-tone='rare'] {
+  --badge-ink: var(--rarity-rare);
+  border-width: 1.5px;
+}
+
+/* On a listed card — the collection's compact face and the reward sheet's — the
+   chips sit under the name at the card's own left edge rather than centred: the
+   whole of those two faces is left-ruled, and a centred chip row on a left-ruled
+   card reads as a caption for the line above it. */
+.sc-card .offer-badges {
+  justify-content: flex-start;
+  margin: 3px 0 1px;
+}
 
 /* The charter's chip carries a sentence rather than a word, because the word on
    its own means nothing to a first-time player — so it is allowed to wrap and
@@ -11514,6 +11589,19 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .cmp-mark-badge img {
   width: 20px;
   height: 20px;
+}
+
+/* A card's deck, drawn (U1): the same emblem the card wears in a hand, at the
+   shelf mark's size and in the deck's own ink — which `data-line` on this box
+   has already resolved to `--line-ink`. `color` rather than a fill, because the
+   drawing inside is a mask painting `currentColor`. */
+.cmp-mark-deck {
+  color: var(--line-ink, var(--ink-soft));
+}
+
+.cmp-mark-deck .line-mark {
+  width: 19px;
+  height: 19px;
 }
 
 /* The figures. Every number in this interface is tabular mono (the specimen's

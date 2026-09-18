@@ -44,10 +44,11 @@
  * tarot proportion is a *ceremony* and it stays where the ceremony is — the
  * draft spread (`offerCard.ts`), which is where a card is dealt and turned over.
  * The hand is where a player compares thirty of them, and thirty tarot plates is
- * a scroll. Three things still carry the archetype line's accent — the frame
- * rule, the emblem chip and the eyebrow — so a hand reads as coloured at a
- * glance without any of the colour landing on the parchment itself. The table of
- * what a line looks like is `cardLine.ts`; the drawings are `src/art/lineMarks.ts`.
+ * a scroll. Three things still carry the accent — the frame rule, the emblem
+ * chip and the eyebrow — so a hand reads as coloured at a glance without any of
+ * the colour landing on the parchment itself, and since U1 the accent is the
+ * card's **deck** rather than its archetype thread. The table of what a face
+ * looks like is `cardLine.ts`; the drawings are `src/art/lineMarks.ts`.
  *
  * A Doctrine wears a **heavier** frame — a gilt double rule — for the reason the
  * Doctrine offer does (`offerCard.ts`'s `weight`): adoption day is the one
@@ -153,6 +154,7 @@ import {
   type CardEffect,
   type CardId,
   type CountKind,
+  type DeckId,
   type GovernmentId,
   type OrderId,
   type SlotType,
@@ -178,8 +180,15 @@ import {
   cardImpactSheet,
   explainCardImpact,
 } from '../sim/cardImpact';
-import { CARD_LINE_NAME, cardLineMarkNode, lineOf, slotMarkNode } from './cardLine';
-import { GENERIC_WORD, deckWord, orderPayoff } from './deckBadges';
+import {
+  CARD_LINE_NAME,
+  type DeckFace,
+  cardLineMarkNode,
+  deckMarkNode,
+  lineOf,
+  slotMarkNode,
+} from './cardLine';
+import { GENERIC_WORD, deckFaceOf, deckWord, orderChipsNode, orderPayoff } from './deckBadges';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import { createModalShell } from './modalShell';
 import {
@@ -386,27 +395,55 @@ function sealStamp(left: number): HTMLElement {
  * `into` is filled rather than returned so the caller can decide whether the
  * card is an `<article>` or a `<button>`, which is the one real difference
  * between a Doctrine (nothing to do to it) and an Order (pick it up).
+ *
+ * **An Order is drawn by its deck** (U1) and everything else by its archetype
+ * thread, and which it is arrives as a parameter rather than being sniffed off
+ * the row. The two classes both carry a `decks` field — a Doctrine's is the
+ * empty list every pre-rework row got — so a builder that guessed from the
+ * shape would quietly strip every Doctrine of the thread it was drawn for and
+ * hand it the seal instead. The caller knows what class it is holding; this
+ * does not, and must not start guessing.
  */
 function drawCardFace(
   into: HTMLElement,
   def: CardDefBase,
   eyebrow: string,
   clauses: readonly CardClause[],
+  /**
+   * The deck's face, for an Order. Absent draws the archetype thread's.
+   *
+   * `chips` rides with it because only an Order has any: the rarity, and the
+   * charter's sentence where the row is one. A Doctrine is never dealt and has
+   * no rarity to state.
+   */
+  deck?: { face: DeckFace; decks: readonly DeckId[]; chips?: HTMLElement },
 ): void {
   const id = lineOf(def);
-  into.dataset.line = id;
+  into.dataset.line = deck === undefined ? id : deck.face;
   // The accent's own name, for the one thing a colour cannot do: say what it is.
-  into.title = id === 'none' ? def.name : `${def.name} · ${CARD_LINE_NAME[id]}`;
+  // A deck's name for a card that has one, the thread's for a card that does
+  // not, and the card's name alone where neither has anything to say.
+  const accent =
+    deck === undefined
+      ? id === 'none'
+        ? ''
+        : CARD_LINE_NAME[id]
+      : deck.decks.map(deckWord).join(' · ');
+  into.title = accent === '' ? def.name : `${def.name} · ${accent}`;
   const head = element('div', 'sc-card-head');
   // The emblem is a **chip** in the eyebrow rather than a plate in the middle of
-  // the card: the drawing is kept (it is how a line is recognised) and the
+  // the card: the drawing is kept (it is how a deck is recognised) and the
   // whitespace around it is what went.
-  const emblem = cardLineMarkNode(id);
+  const emblem = deck === undefined ? cardLineMarkNode(id) : deckMarkNode(deck.face);
   emblem.classList.add('sc-card-emblem');
   head.append(emblem);
   head.append(element('span', 'sc-card-type', eyebrow));
   into.append(head);
   into.append(element('h4', 'sc-card-name', def.name));
+  // The chips under the name, where the hand that dealt the card puts them: a
+  // card has to read the same in the collection as it did on the sheet, and
+  // rarity is the one field a player looks a held card up for.
+  if (deck?.chips !== undefined) into.append(deck.chips);
   // A Doctrine's face is an `<article>` and an Order's is a `<button>`, which is
   // exactly the difference between "read this" and "pick this up" — and
   // therefore exactly the question the keyword rule asks.
@@ -1162,14 +1199,23 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         const def = orderDef(id);
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = `sc-card sc-card-order sc-card-${key}`;
+        // **The shelf it is filed on does not decide its ink** (U1). It used to
+        // carry `sc-card-<deck>` off the group key, which inked a cross-type in
+        // whichever of its two decks the seat happened to hold first. The card's
+        // accent is the card's face now — `data-line`, set by `drawCardFace` off
+        // the row's own decks — and the group class stays on the heading alone.
+        button.className = 'sc-card sc-card-order';
         if (slotted.has(id)) button.classList.add('sc-card-slotted');
         if (held === id) button.classList.add('sc-card-held');
         // The card's own face, from the one describer — the collection and the
         // offer that dealt it read identically because there is one reading of
-        // a row and no second one to drift from it. The eyebrow is the deck
-        // badge the card was dealt with, and the charter mark where it is one.
-        drawCardFace(button, def, orderPayoff(id), describeCard(id));
+        // a row and no second one to drift from it. The eyebrow names the deck
+        // in words and the emblem draws it (U1).
+        drawCardFace(button, def, orderPayoff(id), describeCard(id), {
+          face: deckFaceOf(def),
+          decks: def.decks,
+          chips: orderChipsNode(id),
+        });
         // The stamp's seat, always built and mostly wearing the flourish — see
         // `stampFor`. The element is the same one whichever face it shows, so a
         // card slotted and unslotted does not change height.

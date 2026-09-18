@@ -143,7 +143,13 @@ import {
   orderDef,
   orderIsDealt,
 } from '../sim/statecraftData';
-import { deckWord } from './deckBadges';
+import {
+  RARITY_MARK,
+  RARITY_WORD,
+  deckFaceOf,
+  deckWord,
+  orderPayoff,
+} from './deckBadges';
 import { gatingTech } from '../sim/tech';
 import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../sim/techData';
 import {
@@ -168,7 +174,7 @@ import {
   unitDef,
 } from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
-import { CARD_LINE_NAME, lineOf } from './cardLine';
+import { CARD_LINE_NAME, type DeckFace, deckMarkNode, lineOf } from './cardLine';
 import { setDescriptorText } from './keywords';
 import { renderPamphletBody } from './pamphlet';
 import { SHELF_INTROS } from './compendiumShelves';
@@ -257,6 +263,11 @@ export type CompendiumSectionId =
 export type CompendiumMark =
   | { kind: 'badge'; badge: string }
   | { kind: 'resource'; resource: ResourceId }
+  // A card's deck, drawn by the one printer a deck is ever drawn by (U1) — the
+  // same emblem the card wears in a hand and in the collection. Still no new
+  // icon: the six drawings exist because a dealt card needed them, and the book
+  // borrows them rather than keeping a shelf glyph of its own.
+  | { kind: 'deck'; deck: DeckFace }
   | { kind: 'glyph'; glyph: string };
 
 /** One figure of an entry: a label and the number, as it is written. */
@@ -1652,25 +1663,31 @@ function lineRow(def: Parameters<typeof lineOf>[0]): CompendiumRow[] {
 }
 
 /**
- * The three rungs in a first-time player's words.
+ * The three rungs, **with the mark the card in the hand wears** (U1).
  *
- * `OrderDef.rarity`'s own names are the draw's, and "common" is a word that
- * reads as a judgement about a card rather than a statement about a deck — so
- * the shelf says what the weight *does* instead. Nothing here invents a figure:
- * the exact weights are a balance dial (`rarityWeights`), and a card that
- * printed one would be a card that lies the day it is retuned.
+ * This shelf used to soften the field to "often · less often · seldom", on the
+ * argument that "common" reads as a judgement about a card rather than a
+ * statement about a deck. That argument held while rarity lived here and
+ * nowhere else. It does not survive the ruling that put the field on the card
+ * face: a player who has just been dealt a chip saying Rare and then looks the
+ * card up must find the same word, or the book and the hand are two vocabularies
+ * for one fact. So the words are `deckBadges.ts`' — one table, four surfaces —
+ * and the ● ◆ ○ that leads them is the doc's own Rarity column
+ * (`docs/orders-and-doctrines.md` §Rarity), which is also the sync test's.
+ *
+ * Nothing here invents a figure: the exact weights are a balance dial
+ * (`rarityWeights`), and a card that printed one would be a card that lies the
+ * day it is retuned.
  */
-const RARITY_WORDS: Record<OrderRarity, string> = {
-  common: 'often',
-  uncommon: 'less often',
-  rare: 'seldom',
-};
+function rarityFigure(rarity: OrderRarity): string {
+  return `${RARITY_MARK[rarity]} ${RARITY_WORD[rarity]}`;
+}
 
 /**
  * **The four bands in the design's own names** (`Band`, `statecraftData.ts`;
  * the design doc's "Four content bands").
  *
- * `RARITY_WORDS`' argument, one field over. A band is a rung of the draft
+ * `rarityFigure`'s argument, one field over. A band is a rung of the draft
  * ladder crossed with an age, and the row printed the rung's *number* — which
  * is an index into a table the player has never seen, and a digit on a card
  * that claims nothing. The four names are plain English and the Orders shelf's
@@ -1808,7 +1825,6 @@ const ORDER_GROUPS: readonly string[] = [
 
 function orderEntry(id: OrderId): CompendiumEntry {
   const def = orderDef(id);
-  const decks = def.decks.map(deckWord).join(' · ');
   return {
     id: compendiumId('order', id),
     section: 'order',
@@ -1818,14 +1834,27 @@ function orderEntry(id: OrderId): CompendiumEntry {
     // and pool print only where a retired row still carries them. A row that is
     // on no shelf says so here as well as in its first clause, because the
     // eyebrow is the line a reader skimming a shelf actually reads.
+    //
+    // **The words are `orderPayoff`'s** (U1), lowercased for the house's small
+    // caps and not composed again here. This page joined `decks` itself until
+    // the ruling, which is one door too many for one sentence: the eyebrow on a
+    // dealt card and the eyebrow on its page are the same line and must come
+    // out of the same function, or the day a cross-type's separator changes it
+    // changes on one of them.
+    //
     // The standing is joined with a dash rather than the middle dot, because the
     // dot is already the separator *inside* the name — "dominion · expansionist
     // order" is one phrase, and a third dot after it would read as a third deck.
     eyebrow: [
-      `${def.decks.length === 0 ? 'generic' : decks.toLowerCase()} ${def.charter === undefined ? 'order' : 'charter'}`,
+      orderPayoff(id).toLowerCase(),
       ...(def.retired === true ? ['withdrawn'] : orderIsDealt(id) ? [] : ['not dealt yet']),
     ].join(' — '),
-    mark: { kind: 'glyph', glyph: '❧' },
+    // **The deck's own drawing** (U1), in place of the printer's fleuron every
+    // Order wore. The shelf mark is the same emblem the card carries in the hand
+    // and in the collection, out of the same table — a card two decks share
+    // wears the doubled seal here as it does there, and a card of nobody's deck
+    // the single one.
+    mark: { kind: 'deck', deck: deckFaceOf(def) },
     rows: [
       // The deck is the eyebrow's and the shelf's; what the row adds is the two
       // facts about the draw that are nowhere else — when the card can first
@@ -1837,8 +1866,8 @@ function orderEntry(id: OrderId): CompendiumEntry {
       // weighs its bag by this and by nothing else, and passing on a hand
       // raises what the next one is likely to hold — so a player who is told
       // the pass buys rarer cards has to be able to find out which cards those
-      // are. One word, off the row, in the draw's own vocabulary.
-      ...row('How often it is dealt', RARITY_WORDS[def.rarity]),
+      // are. The mark and the word the dealt card wears, off one table.
+      ...row('Rarity', rarityFigure(def.rarity)),
       ...lineRow(def),
     ],
     // Why it is not dealt first, then what it does, then what a charter is: the
@@ -2819,6 +2848,15 @@ function markNode(mark: CompendiumMark): HTMLElement {
     img.src = `/sprites/icons/${mark.badge}.svg`;
     img.alt = '';
     box.append(img);
+    return box;
+  }
+  if (mark.kind === 'deck') {
+    // The accent key rides the box, so the drawing inside it takes the deck's
+    // ink from the one stylesheet block that resolves `data-line` — the same
+    // colour the card wears on the sheet that dealt it.
+    const box = element('span', 'cmp-mark cmp-mark-deck');
+    box.dataset.line = mark.deck;
+    box.append(deckMarkNode(mark.deck));
     return box;
   }
   const box = element('span', 'cmp-mark');
