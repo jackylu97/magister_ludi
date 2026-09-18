@@ -259,10 +259,48 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * Nothing in `src/ai` was touched. The bot still appraises a resource as a
  * boolean and will sometimes queue a row the gate refuses and pick again; that
  * is batch R5's job. Measured twice, same bytes both runs.
+ *
+ * ---
+ *
+ * **Batch R5 — the bot learns to count copies.** Duel `1e3ae648:281597` →
+ * `e37cc04e:277027`, standard `3500d4f1:951201` → `d7516cde:955202`.
+ *
+ * Three changes move it, and each moves a different decision:
+ *
+ *   · **the production gate now asks the reducer's question.** A unit reserves
+ *     its strategic copy when it is queued, and every production command the bot
+ *     sends replaces the town's whole queue — so a row asked about on its own
+ *     was counted against a queue that was on its way out. `queueAhead` was
+ *     dropping live resource-gated rows out of the queue it was rebuilding (a
+ *     swordsman holding the empire's only obsidian judged itself unbuildable),
+ *     and `cityCommand` could offer two rows on one free copy and have the
+ *     reducer refuse the pair. Both now walk the proposal the way
+ *     `validateQueue` walks it;
+ *   · **a seam is priced in copies, not as a boolean.** The first copy of a kind
+ *     is worth its empire-wide bonus and stops there; every copy after it is one
+ *     more unit the empire may field, at `site.strategicCopyValue` each, tapered
+ *     on what the empire can already spare. So a seven-copy iron hill is a
+ *     better site than a three-copy one and an empire with no iron wants one
+ *     several times more than an empire with twenty spare horses wants a
+ *     twenty-first;
+ *   · **the spade joins the settler and the purse.** Ground an empire already
+ *     owns arms nobody until there is a mine on it, so the improvement plan now
+ *     prices the seam a spade would open.
+ *
+ * **Both prints shrank a little on the duel board and grew a little on the
+ * standard one** — under two per cent either way. The direction is not the
+ * interesting number; what the change is for is measured elsewhere. Over six
+ * duel boards to turn 40, both seats: copies held rose 35 → 43 and copies the
+ * army had actually taken up rose 4 → 10, at a cost of about a tenth of a town
+ * per seat. The copy value is the measured pick of a four-point sweep; the
+ * sweep is written out on `AiConfig.site.strategicCopyValue`.
+ *
+ * No command was refused and nothing stalled, which the assertion above the
+ * hash checks first. Measured twice, same bytes both runs.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '1e3ae648:281597',
-  standard: '3500d4f1:951201',
+  duel: 'e37cc04e:277027',
+  standard: 'd7516cde:955202',
 };
 
 /**

@@ -165,6 +165,8 @@ import {
   explainYields,
   newResourceTerms,
   realmResources,
+  spareResourceCopies,
+  tileSeamCopies,
   sciencePrice,
   townProduction,
   hammerTerm,
@@ -343,6 +345,7 @@ import {
   unitDef,
   unitMaxHp,
 } from '../sim/unitData';
+import { unitHealthBonus } from '../sim/resourceEffects';
 import { sleepError, unitOfferedForOrders } from '../sim/units';
 import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { atWar } from '../sim/wars';
@@ -474,6 +477,11 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     // purchasing plan would buy. It reads the map and nothing else, so it can be
     // built with the prior.
     realm: realmResources(state, player.id),
+    // **What this empire could still commit of each strategic kind** (batch
+    // R5). Taken here for `realm`'s reason exactly: the settler's arm prices two
+    // hundred candidate hexes in one decision, and this is what tells the first
+    // copy of a kind apart from its ninth. See `ValueContext.spare`.
+    spare: spareResourceCopies(state, player.id),
     // **The lean is built on the prior**, one line down, and is `null` here for
     // the reason every other price is: a wager appraised against the prices it
     // is itself about to lift would be the fixed point batch 1 refused.
@@ -2657,11 +2665,15 @@ export function queueAhead(
   city: City,
   wanted: QueueItem,
 ): QueueItem[] {
-  const rest = city.queue.filter(
-    (item) =>
-      !sameItem(item, wanted) && buildError(state, player.id, item.kind, item.id, city) === null,
-  );
-  return [wanted, ...rest];
+  // **Walked as the reducer walks it**, not filtered row by row (batch R5). A
+  // queued unit reserves its strategic copy, so a row asked on its own sees its
+  // own reservation and every other row's — a horseman standing in this very
+  // queue would have judged itself unbuildable and been dropped. `acceptableQueue`
+  // asks each row against the rows already kept ahead of it, which is
+  // `validateQueue`'s own question and therefore the only one whose answer the
+  // reducer will agree with.
+  const rest = city.queue.filter((item) => !sameItem(item, wanted));
+  return acceptableQueue(state, player, city, [wanted, ...rest]);
 }
 
 /**
@@ -4319,7 +4331,21 @@ function cityCommand(
   // candidate sends one row and the reducer takes it, because the rule refuses a
   // queue *shortened* below the floor and never a town that has run out of
   // things it may build. See `applySetCityProduction`.
-  const queue = table.ranked.slice(0, Math.max(1, cityQueueFloor(city)));
+  // **And only as much of it as the reducer will take** (batch R5). Each
+  // candidate was gated alone, but a queue is validated as a whole: two rows
+  // wanting the empire's last free strategic copy both pass on their own and the
+  // second is refused in the command, which throws the whole queue out and leaves
+  // the town building nothing. `acceptableQueue` walks the proposal the way
+  // `validateQueue` does. The winner survives it by construction — it passed the
+  // same gate with an empty queue ahead of it — so the town is never left with
+  // nothing to start.
+  const queue = acceptableQueue(
+    state,
+    player,
+    city,
+    table.ranked.slice(0, Math.max(1, cityQueueFloor(city))),
+  );
+  if (queue.length === 0) return null;
   const behind = queue.slice(1);
   return {
     kind: 'build',
@@ -5575,11 +5601,77 @@ function canQueueBuilding(
  * warrior proposed beside a warrior would be the excuse spent on the one thing
  * it was not for. Asked of the same walk the gate asks (`upgradeTargetForType`),
  * so the two cannot drift apart.
+ *
+ * **`queued` is the copies model's half** (batch R5, and the reason this gained
+ * an argument). A unit reserves its strategic copy from the moment it is queued
+ * (batch R1, ruling 5), so `buildError` asked plainly counts this town's
+ * *standing* queue against the row — and every production command this bot sends
+ * is `setCityProduction`, which throws that standing queue away. Asked plainly,
+ * a town already building the empire's only horse row would be told it may not
+ * build a horse row, which is the one thing it is certainly allowed to do.
+ *
+ * So the question is put the way the reducer puts it (`validateQueue`): "against
+ * the queue I am actually proposing". `queued` is the unit rows already accepted
+ * into that proposal, which is empty for a town starting fresh and grows as a
+ * multi-row queue is built up. Getting this wrong in the other direction is the
+ * worse half — two rows each gated alone on one free copy are both offered, the
+ * reducer refuses the second, and it takes **none** of the queue, so the town
+ * builds nothing at all and the blocker never clears.
  */
-function canQueueUnit(state: GameState, player: Player, city: City, id: UnitTypeId): boolean {
+function canQueueUnit(
+  state: GameState,
+  player: Player,
+  city: City,
+  id: UnitTypeId,
+  queued: readonly UnitTypeId[] = [],
+): boolean {
   if (city.population < unitDef(id).minCityPop) return false;
   if (upgradeTargetForType(state, player.id, id) !== null) return false;
-  return buildError(state, player.id, 'unit', id, city) === null;
+  return (
+    buildError(state, player.id, 'unit', id, city, {
+      replacing: { cityId: city.id, queued },
+    }) === null
+  );
+}
+
+/**
+ * **The longest head of this proposal the reducer would actually take** — the
+ * one place the bot builds a multi-row queue, and batch R5's answer to the
+ * copies model.
+ *
+ * `setCityProduction` replaces a town's whole queue and `validateQueue` walks
+ * the new one row by row, counting the unit rows it has already accepted against
+ * the strategic copies the empire can spare. A row it refuses fails the **whole**
+ * command, so a queue this bot assembles out of candidates each judged on its
+ * own can be refused entire — the town then builds nothing, and because the
+ * blocker never clears it proposes the same illegal queue again next turn.
+ *
+ * So the proposal is walked here exactly as the reducer walks it, and a row the
+ * reducer would refuse is dropped rather than left in to sink the command. That
+ * is the same treatment `queueAhead` already gave a row the world had killed
+ * (a wonder a rival finished); this extends it to the one refusal that depends
+ * on what stands *earlier in the same queue*.
+ *
+ * Building rows and projects pass through the same gate because they have their
+ * own reasons to be refused — a wonder another town is raising, a duplicate —
+ * and a walk that checked only the unit rows would let those sink the command
+ * instead.
+ */
+function acceptableQueue(
+  state: GameState,
+  player: Player,
+  city: City,
+  rows: readonly QueueItem[],
+): QueueItem[] {
+  const kept: QueueItem[] = [];
+  const queued: UnitTypeId[] = [];
+  for (const row of rows) {
+    const replacing = { cityId: city.id, queued: [...queued] };
+    if (buildError(state, player.id, row.kind, row.id, city, { replacing }) !== null) continue;
+    kept.push(row);
+    if (row.kind === 'unit') queued.push(row.id);
+  }
+  return kept;
 }
 
 // --- units ------------------------------------------------------------------
@@ -6349,7 +6441,13 @@ export function explainSiteValue(
   // gated half; a settler walking to a hill does not need to have heard of the
   // iron under it.
   for (const seam of site.seams) {
-    bonuses.push(...newResourceTerms(held, ai, seam.id, `at (${seam.col},${seam.row})`));
+    // The seam's own rolled quantity, off the tile it stands on — a seven-copy
+    // iron hill arms seven pieces and a three-copy one arms three, and a settler
+    // that could not tell them apart walked past the better half of the map.
+    const at = getTileAt(state.map, seam.col, seam.row);
+    bonuses.push(
+      ...newResourceTerms(ctx, held, seam.id, `at (${seam.col},${seam.row})`, tileSeamCopies(at)),
+    );
   }
   // Best first, ties by tile index — a fact about the board rather than about the
   // order the range walk happened to visit hexes in (rule 2).
@@ -7016,7 +7114,10 @@ function rangedFriendReady(
  *
  *   · **Below `military.healBelowHealth` of its own maximum** — the piece's,
  *     through `unitMaxHp`, so a stamped legion is measured against the ten
- *     points its law gave it rather than against the roster's figure.
+ *     points its law gave it rather than against the roster's figure. The
+ *     empire's own figure goes in with it (`unitHealthBonus`, batch R2's iron
+ *     bonus): without it a bot with iron reads every piece as a larger share of
+ *     full than it is and rests one notch later than its dial says.
  *   · **Standing on ground this empire owns.** That is the whole of "in safe
  *     territory" in v1, and the honest deferral is that a piece hurt *deep in a
  *     rival's fields* does not retreat — it goes on fighting, because walking it
@@ -7037,7 +7138,7 @@ function rangedFriendReady(
  */
 function restAndHeal(state: GameState, player: Player, unit: Unit): UnitChoice | null {
   const ai = aiFor(player);
-  const maxHp = unitMaxHp(unit);
+  const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
   if (maxHp <= 0) return null;
   const share = unit.hp / maxHp;
   if (share >= ai.military.healBelowHealth) return null;
@@ -7092,7 +7193,7 @@ function restAndHeal(state: GameState, player: Player, unit: Unit): UnitChoice |
  */
 function fallBackAndHeal(state: GameState, player: Player, unit: Unit): UnitTarget | null {
   const ai = aiFor(player);
-  const maxHp = unitMaxHp(unit);
+  const maxHp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
   if (maxHp <= 0) return null;
   if (unit.hp / maxHp >= ai.military.withdrawBelowHealth) return null;
   if (tileOwnerPlayerId(state, unit.col, unit.row) === player.id) return null;

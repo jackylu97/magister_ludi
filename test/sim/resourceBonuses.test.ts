@@ -550,9 +550,6 @@ describe('who asks the empire', () => {
   const NO_EMPIRE: readonly string[] = [
     // A roster reading with no piece at all — "how tough is this type".
     '../../src/ai/value.ts',
-    // The bot's own health fraction. Batch R5's fence, not this one's: it would
-    // judge an iron-rich army slightly healthier than it is and nothing worse.
-    '../../src/ai/bot.ts',
     // The gallery invents pieces on no board; there is no state to ask.
     '../../src/flairGallery/flourishes.ts',
   ];
@@ -571,6 +568,9 @@ describe('who asks the empire', () => {
     '../../src/ui/cityBanners.ts',
     '../../src/ui/unitPanel.ts',
     '../../src/ui/controls.ts',
+    // The bot's two health fractions, joined by batch R5. It has a board in hand
+    // at both, so it asks the empire like everyone else.
+    '../../src/ai/bot.ts',
   ];
 
   /**

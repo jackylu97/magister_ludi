@@ -33,8 +33,10 @@ import {
   botSitting,
   chooseProduction,
   explainCard,
+  explainSiteValue,
   nextBotCommand,
   nextBotDecision,
+  queueAhead,
   valueContext,
 } from '../../src/ai/bot';
 import { driveBots } from '../../src/ai/driver';
@@ -53,11 +55,14 @@ import {
   hasFoldReadEngine,
   meterWeight,
   bagOfTileYield,
+  newResourceTerms,
   realmResources,
+  tileSeamCopies,
   voiceWeight,
   yieldWeight,
 } from '../../src/ai/value';
 import { caravanRefusal, explainCaravan } from '../../src/ai/routes';
+import { buildImprovementPlan } from '../../src/ai/plan';
 import { purchaseError, routePrice } from '../../src/sim/purchase';
 import { routeStartable } from '../../src/sim/trade';
 import { type Want, expectedBestOrder, savingRows, worthPerCoin } from '../../src/ai/wants';
@@ -87,7 +92,7 @@ import {
   riteCostFor,
   riteError,
 } from '../../src/sim/religion';
-import { improvementYield, workForFamily } from '../../src/sim/improvementData';
+import { improvementForResource, improvementYield, workForFamily } from '../../src/sim/improvementData';
 import { eligibleFor, expectedHandBags, slotTypesOf } from '../../src/sim/statecraft';
 import { stockStandardDecks } from './statecraftHelpers';
 
@@ -105,6 +110,7 @@ import {
   mirrorRowFor,
   purchasableTiles,
   refreshCityDerived,
+  resourceCopies,
   tilePurchaseError,
 } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
@@ -114,9 +120,10 @@ import {
 } from '../../src/sim/yields/empire';
 import { authorityOf, happinessOf } from '../../src/sim/meters';
 import { renownPerTurn } from '../../src/sim/renown';
-import { createMap, getTileAt, neighborTiles, tileHex, wrappedDistance } from '../../src/sim/map';
+import { type Tile, createMap, getTileAt, neighborTiles, tileHex, wrappedDistance } from '../../src/sim/map';
 import { newGame } from '../../src/sim/state';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
+import { RESOURCE_IDS, type ResourceId, resourceDef } from '../../src/sim/resourceData';
 
 /**
  * **The shelf, stocked for the file** (the decks rework, D1a): every
@@ -3165,5 +3172,264 @@ describe('every refusal that is not the piece in the hex strikes the row, as bef
       purchaseError(state, player.id, city.id, { kind: 'building', id: built }, 'gold'),
     ).not.toBe(null);
     expect(valueContext(state, player).wants.gold.some((row) => row.label === label)).toBe(false);
+  });
+});
+
+/**
+ * **The copies model, as the bot reads it** — batch R5.
+ *
+ * A strategic resource stopped being a yes/no the day a unit began holding a
+ * copy of it for as long as it lives (batch R1) and a tile began carrying three
+ * to eight of them (batch R3). Two things had to follow in the bot, and these
+ * are the pins for both.
+ *
+ * **The gate.** Every production command this bot sends is `setCityProduction`,
+ * which replaces a town's whole queue, and `validateQueue` walks the proposed
+ * queue counting the unit rows it has already accepted. So a row asked about on
+ * its own gets a different answer from the one the reducer will give, in both
+ * directions: a town's standing queue counts against a row it is about to
+ * replace, and two rows that each pass alone can both be offered and sink the
+ * command between them. `acceptableQueue` in `bot.ts` asks the reducer's
+ * question instead.
+ *
+ * **The worth.** The first copy of a kind switches on that kind's empire-wide
+ * bonus and stops there; every copy after it is one more unit the empire may
+ * field. Those are two different lines with two different shapes, and
+ * `newResourceTerms` prints both.
+ */
+describe('the copies model in the appraisal', () => {
+  /** A one-seat bench with one town and a named seam beside it. */
+  function seamBench(
+    resource: ResourceId,
+    copies: number,
+    improved: boolean,
+  ): { state: GameState; player: Player; city: City; tile: Tile } {
+    const state = benchState(1);
+    const player = seat(state, 0);
+    const city = state.cities[0]!;
+    const tile = getTileAt(state.map, city.col + 1, city.row)!;
+    tile.resource = resource;
+    tile.resourceCopies = copies;
+    if (improved) {
+      const needed = improvementForResource(resource);
+      if (needed !== null) tile.improvement = needed;
+    }
+    grant(state, player, resourceDef(resource).requiresTech);
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    return { state, player, city, tile };
+  }
+
+  /**
+   * The asymmetry the whole model turns on, said as one comparison: the same
+   * seam, the same size, worth more to an empire that has none of its kind.
+   */
+  it('pays far more for the first copy of a kind than for another of one it holds', () => {
+    const { state, player } = seamBench('obsidian', 5, false);
+    const ctx = valueContext(state, player);
+    const first = newResourceTerms(ctx, new Set<ResourceId>(), 'obsidian', 'here', 5);
+    const another = newResourceTerms(ctx, new Set<ResourceId>(['obsidian']), 'obsidian', 'here', 5);
+    expect(foldTerms(first)).toBeGreaterThan(foldTerms(another));
+    // And the second is not nothing: copies are army, and an empire that already
+    // holds a kind still wants more of them. That is the whole difference from
+    // the boolean this replaced, which paid the second seam zero.
+    expect(foldTerms(another)).toBeGreaterThan(0);
+    // The gap is the empire-wide bonus, paid once however many copies there are.
+    expect(foldTerms(first) - foldTerms(another)).toBeCloseTo(ctx.ai.site.newStrategicBonus, 6);
+  });
+
+  /** A seven-copy seam is a better seam, which is the point of the quantity. */
+  it('reads the seam’s own quantity, so a rich seam beats a thin one', () => {
+    const { state, player } = seamBench('obsidian', 5, false);
+    const ctx = valueContext(state, player);
+    const held = new Set<ResourceId>(['obsidian']);
+    const thin = foldTerms(newResourceTerms(ctx, held, 'obsidian', 'here', 3));
+    const rich = foldTerms(newResourceTerms(ctx, held, 'obsidian', 'here', 8));
+    expect(rich).toBeGreaterThan(thin);
+    expect(rich / thin).toBeCloseTo(8 / 3, 6);
+  });
+
+  /**
+   * And it falls away as the empire fills up. An empire that can already field
+   * twenty more horsemen is not short of horses, whatever the map says.
+   */
+  it('tapers the copies line on what the empire can already spare', () => {
+    const { state, player } = seamBench('obsidian', 5, false);
+    const base = valueContext(state, player);
+    const held = new Set<ResourceId>(['obsidian']);
+    const short = { ...base, spare: new Map<ResourceId, number>([['obsidian', 0]]) };
+    const flush = { ...base, spare: new Map<ResourceId, number>([['obsidian', 30]]) };
+    const wanting = foldTerms(newResourceTerms(short, held, 'obsidian', 'here', 5));
+    const sated = foldTerms(newResourceTerms(flush, held, 'obsidian', 'here', 5));
+    expect(wanting).toBeGreaterThan(sated);
+    expect(sated).toBeGreaterThan(0);
+  });
+
+  /** A luxury keeps the shape it always had: one signature, paid once. */
+  it('leaves a luxury a single line, and pays nothing for a second copy of one', () => {
+    const { state, player } = seamBench('obsidian', 5, false);
+    const ctx = valueContext(state, player);
+    const lux = RESOURCE_IDS.find((id) => resourceDef(id).kind === 'luxury')!;
+    expect(foldTerms(newResourceTerms(ctx, new Set<ResourceId>(), lux, 'here', 8))).toBe(
+      ctx.ai.site.newLuxuryBonus,
+    );
+    expect(newResourceTerms(ctx, new Set<ResourceId>([lux]), lux, 'here', 8)).toEqual([]);
+  });
+
+  /**
+   * The bot's own reading of a tile's quantity against the simulation's. The two
+   * are separate functions — `tileCopies` is private to `cities.ts` — so what is
+   * pinned is the observable they share: an empire whose only seam is this hex
+   * controls exactly the copies the hex rolled.
+   */
+  it('reads a tile’s copies the way the simulation counts them', () => {
+    const { state, tile } = seamBench('obsidian', 7, true);
+    expect(tileSeamCopies(tile)).toBe(7);
+    expect(resourceCopies(state, 0, 'obsidian')).toBe(7);
+    // A row with no range to roll in is one copy, whatever is left on the tile.
+    const lux = RESOURCE_IDS.find((id) => resourceDef(id).kind === 'luxury')!;
+    expect(tileSeamCopies({ ...tile, resource: lux })).toBe(1);
+    expect(tileSeamCopies(undefined)).toBe(0);
+  });
+
+  /**
+   * A settler can tell a rich seam from a thin one — the same claim as the term
+   * test above, asked of the whole site reading so that nothing between the two
+   * quietly drops it.
+   */
+  it('scores a site with a rich seam above the same site with a thin one', () => {
+    const thin = seamBench('obsidian', 3, false);
+    const rich = seamBench('obsidian', 8, false);
+    const scoreOf = (bench: { state: GameState; player: Player; city: City }) => {
+      const where = getTileAt(bench.state.map, bench.city.col + 3, bench.city.row)!;
+      const ctx = valueContext(bench.state, bench.player);
+      return explainSiteValue(bench.state, new Set<ResourceId>(), ctx, where).total;
+    };
+    expect(scoreOf(rich)).toBeGreaterThan(scoreOf(thin));
+  });
+
+  /**
+   * **The spade, which is the arm that actually produces copies.** A settler
+   * walks to a seam and a purse buys the hex under one, but ground this empire
+   * already owns arms nobody until there is a mine on it. Before batch R5 the
+   * plan priced that hex at the point of production the mine prints and nothing
+   * more, so a lone iron hill had no more claim on a worker than the eight plain
+   * hills beside it.
+   *
+   * The reading is **access**, not ground, which is the distinction
+   * `newResourceTerms` is called out to make: the empire owns the hex in both
+   * halves of this case, and what changes is whether it can draw on what is
+   * under it.
+   */
+  it('prices the spade that opens a seam above the same spade on bare ground', () => {
+    const shut = seamBench('obsidian', 8, false);
+    // The spade itself needs its node before the plan will lay one anywhere.
+    grant(shut.state, shut.player, 'mining');
+    const ctx = valueContext(shut.state, shut.player);
+    const seam = getTileAt(shut.state.map, shut.city.col + 1, shut.city.row)!;
+    const bare = getTileAt(shut.state.map, shut.city.col + 2, shut.city.row)!;
+    const plan = buildImprovementPlan(shut.state, shut.player, ctx);
+    const worth = (tile: { col: number; row: number }) =>
+      plan.entries.find((entry) => entry.col === tile.col && entry.row === tile.row)?.value ?? 0;
+    expect(worth(seam)).toBeGreaterThan(worth(bare));
+    // And the extra is the seam, named — not a yield that happened to differ.
+    const entry = plan.entries.find((row) => row.col === seam.col && row.row === seam.row)!;
+    expect(entry.terms.some((term) => term.label.includes('would open on'))).toBe(true);
+  });
+
+  /**
+   * **The regression batch R1 left in this file's fence.** A queued unit holds
+   * its copy, so a row asked about plainly sees its own reservation — and
+   * `queueAhead` filtered the standing queue row by row. On an empire whose only
+   * copy is in the queue, every resource-gated row judged itself unbuildable and
+   * was silently dropped out of the command.
+   */
+  it('keeps a queued row that is holding the empire’s only copy', () => {
+    const { state, player, city } = seamBench('obsidian', 1, true);
+    grant(state, player, gatingTech('unit', 'swordsman') ?? undefined);
+    city.queue = [{ kind: 'unit', id: 'swordsman' }];
+    bumpRevision(state);
+    expect(hasResource(state, 0, 'obsidian')).toBe(true);
+    const ahead = queueAhead(state, player, city, { kind: 'unit', id: 'warrior' });
+    expect(ahead.map((row) => row.id)).toEqual(['warrior', 'swordsman']);
+    // And the reducer agrees, which is the only test that matters: the command
+    // the bot would send is one the game takes.
+    expect(
+      applyCommand(state, {
+        type: 'setCityProduction',
+        playerId: 0,
+        cityId: city.id,
+        queue: ahead,
+      }),
+    ).toEqual({ ok: true });
+  });
+
+  /**
+   * The other direction, and the worse one: two rows that each pass alone on the
+   * last free copy are both offered, the reducer refuses the second, and it
+   * takes **none** of the queue — so the town builds nothing and proposes the
+   * same illegal command again next turn.
+   */
+  it('never offers a queue the reducer would refuse whole', () => {
+    const { state, player, city } = seamBench('obsidian', 1, true);
+    grant(state, player, gatingTech('unit', 'swordsman') ?? undefined);
+    city.queue = [];
+    bumpRevision(state);
+    const asked = queueAhead(state, player, city, { kind: 'unit', id: 'swordsman' });
+    expect(asked).toEqual([{ kind: 'unit', id: 'swordsman' }]);
+    // Two of them is what the reducer refuses, and what the bot must not send.
+    expect(
+      applyCommand(state, {
+        type: 'setCityProduction',
+        playerId: 0,
+        cityId: city.id,
+        queue: [
+          { kind: 'unit', id: 'swordsman' },
+          { kind: 'unit', id: 'swordsman' },
+        ],
+      }).ok,
+    ).toBe(false);
+  });
+
+  /**
+   * **Every queue this bot proposes is one the game takes** — the claim the two
+   * cases above are the mechanism of, asserted over a played board rather than a
+   * built one. A refused production command is a town that builds nothing and a
+   * blocker that never clears.
+   */
+  it('sends no production command the game refuses, over a played board', () => {
+    const game = grownGame(RIPE);
+    const sent = game.log.filter((command) => command.type === 'setCityProduction').length;
+    expect(sent).toBeGreaterThan(0);
+    const warnings: string[] = [];
+    for (let turn = 0; turn < 6; turn++) driveBots(game, { warn: (line) => warnings.push(line) });
+    expect(warnings).toEqual([]);
+  });
+
+  /**
+   * **A strategic cannot be traded at all today** (`isLendableResource` in
+   * `src/sim/deals.ts` is luxury-only), so wanting one means settling toward it,
+   * buying the hex under it, or digging it up — never buying it from a rival.
+   * The bot's deal arms sweep `controlledResources(…, 'luxury')` and therefore
+   * name only luxuries; this pins that, because a paper naming a strategic would
+   * be refused by `dealSideError` and the offer wasted.
+   *
+   * It is also the pin for what batch R3 cost: ivory became strategic, so it
+   * dropped out of every tribute demand and every spare-for-wanted swap. That is
+   * correct rather than an oversight — an ivory offered would be an offer the
+   * rules refuse — and it is written down here so the next reader does not
+   * "fix" it by putting ivory back.
+   */
+  it('names no strategic resource in any deal it writes', () => {
+    const game = grownGame(RIPE);
+    for (let turn = 0; turn < 6; turn++) driveBots(game, { warn: () => {} });
+    for (const command of game.log) {
+      const paper = command as { give?: { luxuries?: string[] }; take?: { luxuries?: string[] } };
+      for (const side of [paper.give, paper.take]) {
+        for (const id of side?.luxuries ?? []) {
+          expect(resourceDef(id as ResourceId).kind).toBe('luxury');
+        }
+      }
+    }
   });
 });

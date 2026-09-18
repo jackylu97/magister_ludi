@@ -108,6 +108,7 @@ import { levyReading } from './campaign';
 // the top bar and the Ledger do (batch E2). See `readings.ts`.
 import { readCity, readEmpirePercents } from '../sim/readings';
 import {
+  availableCopies,
   buildingProductionCost,
   capitalCityOf,
   emptyCityYields,
@@ -131,7 +132,7 @@ import {
   stageEmpireFold,
 } from '../sim/yields/empire';
 import { explainEmpireGold } from '../sim/empireGold';
-import { getTileAt } from '../sim/map';
+import { type Tile, getTileAt } from '../sim/map';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
 import { renownPerTurn } from '../sim/renown';
 // The pair resolution and a road's own length, off the leaf every fold reads
@@ -139,7 +140,7 @@ import { renownPerTurn } from '../sim/renown';
 // are running or how far apart their two towns are.
 import { FAMILIES } from '../sim/greatPeopleData';
 import { routeCities, routeHexes, routeIsLive } from '../sim/routes';
-import { type ResourceId, resourceDef } from '../sim/resourceData';
+import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import { availableRites, cityRite } from '../sim/religion';
 import { LIVE_RITE_IDS, riteDef } from '../sim/religionData';
 import { RULES } from '../sim/rulesData';
@@ -470,6 +471,40 @@ export interface ValueContext {
    * and the settler's arm asks it of two hundred candidate hexes.
    */
   realm: ReadonlySet<ResourceId>;
+  /**
+   * **How many copies of each strategic resource this empire could still spend**
+   * — `availableCopies` per kind, taken once (batch R5).
+   *
+   * The reading that tells a first copy apart from a ninth. Under the copies
+   * model a unit holds one copy of what it needs for as long as it lives, so a
+   * seam is two different things at once: the first copy of a kind switches on
+   * that kind's empire-wide bonus, once and forever, and every copy after it is
+   * one more unit this empire may field. An empire with twenty spare horses
+   * gains almost nothing from a twenty-first; an empire with none gains a whole
+   * branch of its roster back. `newResourceTerms` is where the two are priced
+   * apart, and this is the number it tapers on.
+   *
+   * **Access, not ground** — `availableCopies` counts what the empire may draw
+   * on and subtracts what its army and its queues have already spoken for. That
+   * is deliberately the other reading from `realm` above: `realm` answers "have
+   * we a seam of this kind anywhere in our borders", which is the right question
+   * for a bonus paid once, and this answers "have we a copy to hand", which is
+   * the right question for a copy that gets spent.
+   *
+   * Hoisted for `realm`'s reason: `availableCopies` walks this seat's units and
+   * its towns' queues, and the settler's arm prices two hundred candidate hexes
+   * in one decision, so it is taken once per kind per decision rather than once
+   * per hex. Strategic kinds only — nothing else has copies to spend.
+   *
+   * **Not memoised, and it does not need to be.** Batch R1 refused to put
+   * `availableCopies` on either clock and argued it at length in
+   * `src/sim/cities.ts`; nothing here weakens that. Measured on a duel board
+   * played sixty turns: **28 µs** for all seven kinds, against **11.6 µs** for
+   * `realmResources` sitting beside it and **17.5 ms** for the whole context
+   * they both ride on. That is **0.16%** of one decision's hoisting, so the walk
+   * runs fresh and the question of caching it does not arise.
+   */
+  spare: ReadonlyMap<ResourceId, number>;
   /**
    * **The bar this seat staked, and what reaching it is worth** (batch W2,
    * `docs/wager.md` §6) — or `null` for a seat with no live stake at all, which
@@ -1218,38 +1253,143 @@ export function realmResources(state: GameState, playerId: number): ReadonlySet<
 }
 
 /**
- * **What a hex whose kind this empire has none of is worth**, as printed terms —
- * the site scorer's two bonuses, read through one door so that a site and a hex
- * for sale cannot disagree about which seams are new.
+ * **How many copies the seam on this hex is worth** — the tile's own rolled
+ * quantity, or one where its row has no range to roll in.
  *
- * `realm` is `ValueContext.realm`; it is passed rather than read off the context
- * because the settler's arm hoists its own copy for a two-hundred-hex ring walk.
+ * The same rule `tileCopies` keeps inside `src/sim/cities.ts`, and it asks the
+ * *row* rather than reading `Tile.resourceCopies` on its own for the same
+ * reason: only a strategic row carries a `copiesPerSource` range, so a number
+ * left on a tile whose resource was rewritten must not be paid for the seam
+ * standing there now. A hex with no seam, or one this appraisal cannot see, is
+ * nought.
+ *
+ * It is written here rather than imported because the simulation's copy is
+ * private to the file that sweeps the map with it. If it is ever exported, this
+ * should go and the import should take its place — the two must not drift, and
+ * `test/sim/aiWants.test.ts` pins them against each other.
+ */
+export function tileSeamCopies(tile: Tile | undefined): number {
+  if (tile === undefined || tile.resource === undefined) return 0;
+  if (resourceDef(tile.resource).copiesPerSource === undefined) return 1;
+  return tile.resourceCopies ?? 1;
+}
+
+/**
+ * **Spare copies of every strategic kind, by id** — `ValueContext.spare`.
+ *
+ * One `availableCopies` a kind, which is one walk of this seat's units and its
+ * towns' queues each. Strategic rows only: a luxury or a bonus seam has no
+ * copies to spend, so asking would be a walk for an answer nobody reads.
+ *
+ * A `Map` rather than a plain object because the caller only ever asks it by
+ * key — it is never iterated, so nothing here decides an outcome by insertion
+ * order (hard rule 2).
+ */
+export function spareResourceCopies(
+  state: GameState,
+  playerId: number,
+): ReadonlyMap<ResourceId, number> {
+  const spare = new Map<ResourceId, number>();
+  for (const id of RESOURCE_IDS) {
+    if (resourceDef(id).kind !== 'strategic') continue;
+    spare.set(id, availableCopies(state, playerId, id));
+  }
+  return spare;
+}
+
+/**
+ * **What a seam on a hex is worth to this empire**, as printed terms — read
+ * through one door so that a site, a hex for sale and a spade cannot disagree
+ * about what an iron hill is.
+ *
+ * A luxury is one line and has always been: a luxury is a *signature*, a second
+ * copy of it pays nothing new, so it is worth `site.newLuxuryBonus` to an
+ * empire that has none and nothing at all to one that has.
+ *
+ * **A strategic is two lines, and that is batch R5's whole point.** The copies
+ * model made a strategic seam two different things at once:
+ *
+ *   · **the first copy switches on the kind's empire-wide bonus** — copper's
+ *     coin in every town, ivory's contentment, niter's beakers, iron's ten
+ *     points of health. One copy is enough and a second pays it no better, so
+ *     this is the luxury's own shape and it keeps the luxury's own knob,
+ *     `site.newStrategicBonus`;
+ *   · **every copy is one more unit this empire may field.** A unit holds its
+ *     copy for as long as it lives, so copies are army, and a seam that rolled
+ *     eight of them is worth a great deal more than one that rolled three.
+ *     `site.strategicCopyValue` a copy.
+ *
+ * The second line **tapers on what this empire can already spare**
+ * (`ValueContext.spare`, `site.strategicSpareTaper`). An empire with twenty
+ * horses to hand does not need a twenty-first before it needs anything else;
+ * an empire that cannot field another horseman needs one badly. The share is
+ * `taper / (taper + spare)` — full worth at nothing to spare, half at the
+ * taper's own figure, and falling away from there. A taper of nought reads as
+ * "only copies of a kind I have run out of", which is the honest extreme rather
+ * than a division by zero.
+ *
+ * Together those two are the asymmetry the model turns on: an empire with no
+ * iron values an iron seam several times over what the same empire values its
+ * ninth horse herd, and it says so in two printed lines rather than in one
+ * constant.
+ *
+ * **`held` is the caller's choice of reading, and the two callers choose
+ * differently on purpose.** The settler and the hex on offer pass
+ * `ValueContext.realm` — the seams standing on this empire's own ground,
+ * improved or not — because buying or settling a hex is about *potential* and a
+ * copy owned and unmined is still a copy. The spade passes the empire's
+ * **access** instead, because the whole of what a mine on an iron hill does is
+ * turn ground this empire already owns into iron it can actually draw on. Both
+ * are stated where they are passed.
+ *
+ * `copies` is the seam's own rolled quantity (`Tile.resourceCopies`, 3 to 8 on
+ * a strategic row). A caller that cannot see the tile passes 1, which prices
+ * the seam as the boolean it was before this batch.
  */
 export function newResourceTerms(
-  realm: ReadonlySet<ResourceId>,
-  ai: AiConfig,
+  ctx: ValueContext,
+  held: ReadonlySet<ResourceId>,
   resource: ResourceId | undefined,
   where: string,
+  copies: number,
 ): ValueTerm[] {
-  if (resource === undefined || realm.has(resource)) return [];
-  const kind = resourceDef(resource).kind;
-  if (kind === 'luxury') {
+  if (resource === undefined) return [];
+  const def = resourceDef(resource);
+  const ai = ctx.ai;
+  if (def.kind === 'luxury') {
+    if (held.has(resource)) return [];
     return [
       {
-        label: `${resourceDef(resource).name} ${where} — a luxury this empire owns no copy of`,
+        label: `${def.name} ${where} — a luxury this empire owns no copy of`,
         value: ai.site.newLuxuryBonus,
       },
     ];
   }
-  if (kind === 'strategic') {
-    return [
-      {
-        label: `${resourceDef(resource).name} ${where} — a strategic kind this empire owns no copy of`,
-        value: ai.site.newStrategicBonus,
-      },
-    ];
+  if (def.kind !== 'strategic') return [];
+  const terms: ValueTerm[] = [];
+  if (!held.has(resource)) {
+    terms.push({
+      label:
+        `${def.name} ${where} — the first ${def.name} this empire would hold, ` +
+        'and one copy is the whole of what its empire-wide bonus asks',
+      value: ai.site.newStrategicBonus,
+    });
   }
-  return [];
+  const each = ai.site.strategicCopyValue;
+  if (each > 0 && copies > 0) {
+    const spare = ctx.spare.get(resource) ?? 0;
+    const taper = Math.max(0, ai.site.strategicSpareTaper);
+    const share = taper + spare === 0 ? 1 : taper / (taper + spare);
+    if (share > 0) {
+      terms.push({
+        label:
+          `${copies} ${copies === 1 ? 'copy' : 'copies'} of ${def.name} ${where} at ` +
+          `${round(each)} each, × ${round(share)} — this empire can already spare ${spare}`,
+        value: copies * each * share,
+      });
+    }
+  }
+  return terms;
 }
 
 /** What a meter was multiplied by, and why — a label; it changes no fold. */

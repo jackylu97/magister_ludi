@@ -30,7 +30,9 @@
   "site": {
     "freshWaterBonus": 6,
     "newLuxuryBonus": 14,
-    "newStrategicBonus": 10
+    "newStrategicBonus": 10,
+    "strategicCopyValue": 1,
+    "strategicSpareTaper": 6
   },
   "workers": {
     "searchRadius": 6,
