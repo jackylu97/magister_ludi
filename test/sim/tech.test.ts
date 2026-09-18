@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { BUILDING_IDS, type BuildingId, buildingDef, isBuildingId } from '../../src/sim/buildingData';
 import {
   foundCityAt,
+  tileOwnerPlayerId,
 } from '../../src/sim/cities';
 import {
   foldTile,
@@ -120,6 +121,36 @@ function connectIron(state: GameState, playerId: number, col: number, row: numbe
   // The city clause opens a seam only to an owner who holds the improvement's
   // tech (`openedResource`), so the town needs Mining as well as the reveal.
   grant(state, playerId, 'mining');
+}
+
+/**
+ * Opens `count` more improved iron on hexes this player already owns.
+ *
+ * **Batch R1's helper**, and the reason it exists is the copies model: a unit
+ * that needs iron holds a copy of it while it lives, so an empire with one seam
+ * upgrades exactly one warrior. The tests below are about the *ladder* — does
+ * the whole line climb, is each retooling charged for, does the report count
+ * them — and they say what they mean only if the empire has copies to spare.
+ * `test/sim/resourceCopies.test.ts` is where the scarcity is the point.
+ *
+ * Any owned hex will do: `openedResource` asks for the improvement the table
+ * names and nothing about the terrain, so this mine opens a seam wherever it
+ * lands.
+ */
+function spareIron(state: GameState, playerId: number, count: number): void {
+  let placed = 0;
+  for (const tile of state.map.tiles) {
+    if (placed >= count) break;
+    if (tile.resource !== undefined) continue;
+    if (tileOwnerPlayerId(state, tile.col, tile.row) !== playerId) continue;
+    tile.hills = true;
+    tile.resource = 'iron';
+    tile.improvement = 'mine';
+    placed += 1;
+  }
+  if (placed < count) throw new Error(`only ${placed} spare hexes for iron`);
+  // A bench that pokes the state is a writer (`slate.ts`).
+  bumpEconomy(state);
 }
 
 function at(map: GameMap, col: number, row: number): Tile {
@@ -1069,6 +1100,12 @@ describe('obsolete units', () => {
     grantPrereqs(state, 0, 'ironWorking');
     grant(state, 0, 'ironWorking');
     connectIron(state, 0, 4, 5);
+    // **A second copy, since batch R1.** The obsolescence walk now asks for a
+    // *spare* copy, and the legionary queued two lines down would otherwise take
+    // the only one — at which point the warrior stops being obsolete and this
+    // test is about the copies model rather than about the build list. The
+    // copies model has its own file.
+    spareIron(state, 0, 1);
 
     // The hammers already in it are real: the standing row survives, and the
     // queue around it stays editable.
@@ -1145,6 +1182,9 @@ describe('auto-upgrade', () => {
     createUnit(state, 1, 'warrior', 2, 2); // another player's
     grantPrereqs(state, 0, 'ironWorking');
     connectIron(state, 0, 8, 5);
+    // Three copies for three warriors (batch R1): the claim here is that the
+    // whole line climbs and nothing else does, not that iron is scarce.
+    spareIron(state, 0, 2);
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
 
@@ -1218,6 +1258,10 @@ describe('auto-upgrade', () => {
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 8, 5 + i);
     grantPrereqs(state, 0, 'ironWorking');
     connectIron(state, 0, 8, 5);
+    // Three copies for three warriors (batch R1). What stops the third here is
+    // the **treasury**, which is the whole point of the test, and it would be
+    // hidden if the iron ran out first.
+    spareIron(state, 0, 2);
     applyCommand(state, choose(0, 'ironWorking'));
     state.players[0]!.sciencePool = techDef('ironWorking').cost;
     state.players[0]!.gold = 25;
@@ -1257,6 +1301,9 @@ describe('auto-upgrade', () => {
     for (let i = 0; i < 3; i++) createUnit(state, 0, 'warrior', 8, 5 + i);
     grantPrereqs(state, 0, 'ironWorking');
     connectIron(state, 0, 8, 5);
+    // Three copies for three warriors (batch R1); the claim is what the report
+    // counts, not how far the iron goes.
+    spareIron(state, 0, 2);
     const before = researchSnapshot(state, 0);
 
     applyCommand(state, choose(0, 'ironWorking'));

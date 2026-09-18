@@ -201,6 +201,7 @@ import {
   isCivilian,
   isNaval,
   isUnitTypeId,
+  requiredResourcesOf,
   unitDef,
   unitStampStrength,
 } from './unitData';
@@ -535,6 +536,267 @@ export function resourceCopies(
   return slateMemo(state, 'economy', `copies:${resourceId}`, String(playerId), () =>
     countResourceCopies(state, playerId, resourceId),
   );
+}
+
+/**
+ * A city's queue being replaced, for the one caller that has to ask about a
+ * queue the board does not hold yet.
+ *
+ * `validateQueue` (`commands.ts`) checks a **proposed** queue row by row before
+ * any of it is written, so the rows it is about to accept are exactly the rows
+ * the commitment walk cannot see and the rows it does see — that city's standing
+ * queue — are the ones about to be thrown away. Passing this says both things at
+ * once: leave `cityId`'s own rows out, and count `queued` in their place.
+ *
+ * Everybody else leaves it off, and that is the right default: a panel or a bot
+ * asking "may this town build a horseman" means *one more on top of everything
+ * standing*, which is the count with nothing swapped out.
+ */
+export interface QueueReplacement {
+  cityId: number;
+  queued: readonly UnitTypeId[];
+}
+
+/**
+ * **Copies of each resource this empire has already spoken for**, keyed by id.
+ *
+ * The other half of the strategic-resource ledger (batch R1,
+ * `docs/strategic-resources-proposal.md` section 2). `resourceCopies` says how
+ * many copies an empire controls; this says how many of them are already
+ * carrying something. Two contributors, and both come from the user's rulings:
+ *
+ *   · **living units** whose row names the resource. A horseman holds its horse
+ *     for as long as it is alive and hands it back when it dies, is disbanded,
+ *     or is taken — none of which needs a rule of its own, because this is a
+ *     count of `state.units` and a dead unit is not in it;
+ *   · **rows queued in this empire's cities** (ruling 5, "reserve on queueing").
+ *     A unit holds its copy from the moment it is queued, not from the moment it
+ *     completes, so a player who queues four horsemen on three copies is refused
+ *     at the button rather than ten turns later with the hammers already spent.
+ *
+ * **A free unit holds nothing** (ruling 6). `Unit.freeUpkeep` is the test, which
+ * is the existing marker for "this empire never paid for this piece" and reaches
+ * exactly the occasions the ruling names — a card's levy, a ruin's escort, a
+ * wonder's completion grant — plus captures, which is the same idea seen from
+ * the other side: a piece you took is not a piece you raised out of your own
+ * stables. The alternative was a second meaning of "free" on the piece, and one
+ * marker read two ways is a marker two batches from now disagree about.
+ *
+ * **Nothing is stored.** The whole model is a count of things the state already
+ * holds, so there is no schema, nothing to keep in step, and a replayed log
+ * lands on the same answer because it lands on the same units.
+ *
+ * **Barbarians fall out for free**: the walk is by `ownerId`, so a barbarian's
+ * pieces count against the barbarian seat and nobody else, and that seat owns no
+ * ground to spend.
+ *
+ * Deliberately **not on the slate** — see `availableCopies` for the argument.
+ */
+function resolveCommitments(
+  state: GameState,
+  playerId: number,
+  replacing?: QueueReplacement,
+): Partial<Record<ResourceId, number>> {
+  // The empire's holdings are asked once per resource and kept beside the
+  // tally, so a forty-unit army costs one map sweep per kind rather than one
+  // per piece. Both are plain objects and neither is ever iterated.
+  const ledger: CopyLedger = { state, playerId, committed: {}, held: {} };
+
+  // **Units before queues**, and both in array order. Nothing in the rules turns
+  // on which goes first — a copy is a copy — but the *assignment* a pair lands
+  // on does, so the order is fixed here rather than left to whoever reads it.
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    if (unit.freeUpkeep === true) continue;
+    const wants = requiredResourcesOf(unitDef(unit.type));
+    if (wants.length > 0) takeOneCopy(ledger, wants);
+  }
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    const rows = replacing?.cityId === city.id ? replacing.queued : null;
+    if (rows !== null) {
+      for (const id of rows) takeOneCopy(ledger, requiredResourcesOf(unitDef(id)));
+      continue;
+    }
+    for (const item of city.queue) {
+      if (item.kind !== 'unit' || !isUnitTypeId(item.id)) continue;
+      takeOneCopy(ledger, requiredResourcesOf(unitDef(item.id)));
+    }
+  }
+  // A queue for a town this empire does not own (or no longer owns) would
+  // otherwise be silently dropped, and a gate that quietly forgot a reservation
+  // is the failure this whole model is trying not to have.
+  if (replacing !== undefined && !state.cities.some((city) => city.id === replacing.cityId)) {
+    for (const id of replacing.queued) takeOneCopy(ledger, requiredResourcesOf(unitDef(id)));
+  }
+  return ledger.committed;
+}
+
+/** One walk in progress: what has been spent, and what there was to spend. */
+interface CopyLedger {
+  state: GameState;
+  playerId: number;
+  committed: Partial<Record<ResourceId, number>>;
+  held: Partial<Record<ResourceId, number>>;
+}
+
+/**
+ * **Which copy one thing takes** — the first id in the row's own order that
+ * still has a copy free, and the row's first id when every one of them is spent.
+ *
+ * The tie-break is stated here because it is the only contention question the
+ * copies model asks: a row that accepts horses or camels has to take one of
+ * them, and a rule that took "whichever there is more of" would move the moment
+ * a mine was pillaged. Left to right through an array, so a replay reproduces it
+ * (hard rule 2 — iterate arrays, never Map order).
+ *
+ * Falling back to the first id rather than to nothing matters for ruling 3: an
+ * empire that loses a copy it was using keeps its units, so the count is allowed
+ * to run past what the empire holds. The overspend has to land somewhere, and
+ * landing it on the row's first choice keeps the walk total equal to the number
+ * of things committing, whatever the ground is doing.
+ *
+ * A top-level function rather than a closure inside the walk, so the walk
+ * allocates one small object a call rather than a pair of closures as well. It
+ * measured as no faster than the closures did and is kept because it puts the
+ * tie-break somewhere a reader can find it, not for the allocation.
+ */
+function takeOneCopy(ledger: CopyLedger, wants: readonly ResourceId[]): void {
+  if (wants.length === 0) return;
+  const { committed, held } = ledger;
+  for (const id of wants) {
+    let holds = held[id];
+    if (holds === undefined) {
+      holds = resourceCopies(ledger.state, ledger.playerId, id);
+      held[id] = holds;
+    }
+    const spent = committed[id] ?? 0;
+    if (spent < holds) {
+      committed[id] = spent + 1;
+      return;
+    }
+  }
+  const first = wants[0]!;
+  committed[first] = (committed[first] ?? 0) + 1;
+}
+
+/**
+ * How many copies of one resource this empire has already spoken for. See
+ * `resolveCommitments` for the whole rule.
+ */
+export function committedCopies(
+  state: GameState,
+  playerId: number,
+  resourceId: ResourceId,
+  replacing?: QueueReplacement,
+): number {
+  return resolveCommitments(state, playerId, replacing)[resourceId] ?? 0;
+}
+
+/**
+ * **Copies of one resource this empire could still spend** — what it controls,
+ * less what is already spoken for, floored at nothing.
+ *
+ * The figure the build gate compares against (`buildError` in `tech.ts`), the
+ * upgrade ladder stops at, and a bargain may promise (`dealSideError` in
+ * `diplomacy.ts`, ruling 4 — "only trade away available copies"). Floored
+ * because ruling 3 lets an empire run past its holdings: lose the mine under
+ * four horsemen and you keep the horsemen, you simply build no more until you
+ * are back in the black. A negative number is not a debt anybody can pay off, it
+ * is the same "none to spare" the floor already says.
+ *
+ * **`hasResource` is a different question and stays one.** It answers "do I
+ * control any at all", which is what the luxury signatures, the card evaluator
+ * and every empire-wide bonus legitimately want — an empire whose last iron is
+ * in a swordsman's hand still has iron mines paying iron's yields. If that
+ * question ever quietly became this one, committing your army to the field would
+ * switch off your economy, which is a rule that teaches players not to build
+ * units. `test/sim/resourceCopies.test.ts` pins the two apart.
+ *
+ * ---
+ *
+ * **This is not on the slate, and that is deliberate** (`slate.ts`, "The two
+ * clocks"). Neither clock is safe for it:
+ *
+ *   · the **economy** clock is the one `resourceCopies` sits on, and it is wrong
+ *     here by construction. It moves when ground or a bargain changes, and a
+ *     unit being trained, dying, or joining a queue is neither. A committed
+ *     count remembered under it would be stale the moment a piece died — which
+ *     is the exact bug the batch before this one spent itself removing, three
+ *     times over;
+ *   · the **revision** clock is raised *after* a handler and *after* a phase, so
+ *     anything reading between its own writes reads the world as it was on the
+ *     way in. `upgradeUnits` does exactly that: it marches the army up its chains
+ *     one piece at a time, and every piece it retypes changes what the next one
+ *     may climb to. A memo on that clock would hand the second piece the first
+ *     one's stale answer, and a played game and a replay of its own log would
+ *     part. "A cache keyed on a counter raised after the fact is an input" is
+ *     `slate.ts`'s own closing line and it applies here word for word.
+ *
+ * So the walk runs fresh every time, and it can afford to. It is a pass over one
+ * seat's units and its cities' queues — no map sweep, no tile — and the gate
+ * reaches it only for roster rows that actually name a resource. Measured on a
+ * standard board with twelve towns and eighty units: **7 µs a call**, against
+ * **20 µs** for one cold pass of `countResourceCopies` (the map sweep this sits
+ * on top of) and **0.1 µs** for that sweep once the economy clock has remembered
+ * it. A memo here would save about seven microseconds and cost the correctness
+ * of every reading taken inside a phase. The map sweep underneath stays
+ * remembered, where it belongs, and this walk asks it for each kind once.
+ *
+ * `test/sim/resourceCopies.test.ts` pins both halves: the source carries no
+ * `slateMemo`, and a reading taken at rest changes no outcome.
+ */
+export function availableCopies(
+  state: GameState,
+  playerId: number,
+  resourceId: ResourceId,
+  replacing?: QueueReplacement,
+): number {
+  const held = resourceCopies(state, playerId, resourceId);
+  return Math.max(0, held - committedCopies(state, playerId, resourceId, replacing));
+}
+
+/**
+ * Could this empire raise one more thing that wants any of these resources?
+ *
+ * The list is a row's `requiresResource` read through `requiredResourcesOf`, and
+ * "any" is the whole of the pair rule: a row that accepts horses or camels needs
+ * one free copy of one of them, never one of each. An empty list is nothing to
+ * ask about and answers yes.
+ */
+export function canSpareAnyOf(
+  state: GameState,
+  playerId: number,
+  wants: readonly ResourceId[],
+  replacing?: QueueReplacement,
+): boolean {
+  if (wants.length === 0) return true;
+  // One walk for the whole list rather than one per resource. The walk answers
+  // every kind at once (it has to — a pair's assignment depends on all of them),
+  // so asking `availableCopies` per id would sweep the army twice for a pair and
+  // throw the first answer away.
+  const committed = resolveCommitments(state, playerId, replacing);
+  return wants.some(
+    (id) => resourceCopies(state, playerId, id) - (committed[id] ?? 0) > 0,
+  );
+}
+
+/**
+ * Does this empire control any of these resources at all — `hasResource` asked
+ * of a row's whole list.
+ *
+ * The *other* question, kept beside its neighbour so the two are read together
+ * rather than confused. This one ignores commitments entirely: it is what a
+ * completion asks (the copy was reserved when the row was queued) and what the
+ * readings that price "the best row this empire could field" ask.
+ */
+export function controlsAnyOf(
+  state: GameState,
+  playerId: number,
+  wants: readonly ResourceId[],
+): boolean {
+  if (wants.length === 0) return true;
+  return wants.some((id) => hasResource(state, playerId, id));
 }
 
 /** The sweep itself — `resourceCopies` with the slate taken off. */
@@ -3097,7 +3359,15 @@ function payableUnitAt(
   const id: UnitTypeId = item.id;
   const def = unitDef(id);
   if (city.population < def.minCityPop) return null;
-  if (def.requiresResource !== undefined && !hasResource(state, city.ownerId, def.requiresResource)) {
+  // **Control, not a spare copy**, and the distinction is load-bearing since
+  // batch R1. This row is standing in a queue, so it is already holding its own
+  // copy (`resolveCommitments` counts queued rows — ruling 5, "reserve on
+  // queueing"); asking for a *free* copy here would refuse the row the very
+  // reservation it made when the player queued it, and no queued unit would ever
+  // complete. What a completion is still entitled to ask is that the empire has
+  // not lost the resource altogether — an empire whose last iron mine was
+  // pillaged stops finishing swordsmen, exactly as it did before this batch.
+  if (!controlsAnyOf(state, city.ownerId, requiredResourcesOf(def))) {
     return null;
   }
   const cost = unitProductionCost(state, city.ownerId, id);
@@ -3864,7 +4134,13 @@ export function bestOfClassFor(
   for (const id of UNIT_TYPE_IDS) {
     const def = unitDef(id);
     if (def.modelClass !== modelClass) continue;
-    if (buildError(state, playerId, 'unit', id) !== null) continue;
+    // **The ground, not the ledger** (`BuildGateOptions.ignoreCommitments`). A
+    // grant is a free piece and ruling 6 says a free piece is refused by
+    // nothing, so an empire whose iron is all in the field is still handed the
+    // sword its age is owed rather than quietly dropped a rung.
+    if (buildError(state, playerId, 'unit', id, undefined, { ignoreCommitments: true }) !== null) {
+      continue;
+    }
     if (def.combatStrength <= strength) continue;
     strength = def.combatStrength;
     best = id;

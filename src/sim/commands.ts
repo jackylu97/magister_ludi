@@ -2547,6 +2547,22 @@ function validateQueue(state: GameState, city: City, raw: unknown): QueueItem[] 
   const items: QueueItem[] = [];
   const seenBuildings = new Set<string>();
   const seenProjects = new Set<string>();
+  /**
+   * **The unit rows accepted so far, for the copies model** (batch R1, ruling 5
+   * — "reserve on queueing").
+   *
+   * A queued unit holds its strategic copy from the moment it is queued, so this
+   * queue's own rows have to be counted as it is walked or four horsemen sent in
+   * one command would each see the other three as not yet existing and all four
+   * would be accepted on three copies. And the town's *standing* queue has to be
+   * left out at the same time, because it is the thing being replaced — counting
+   * it would refuse a player re-sending the very queue they already have.
+   *
+   * Both halves are one object handed to the gate. It is the copies model's
+   * version of the `city` argument two clauses up, which excuses a wonder this
+   * town is already building for exactly the same reason.
+   */
+  const queued: UnitTypeId[] = [];
   for (let i = 0; i < raw.length; i++) {
     const item = readQueueItem(raw[i]);
     if (!item) return `Queue item ${i} is not a known unit, building or project`;
@@ -2554,8 +2570,11 @@ function validateQueue(state: GameState, city: City, raw: unknown): QueueItem[] 
     // The city is handed over so the wonder clause can tell "this town is
     // already building it" (fine — it is what is being re-sent) from "another of
     // my towns is" (a second copy that could never complete). See `buildError`.
-    const blocked = buildError(state, city.ownerId, item.kind, item.id, city);
+    const blocked = buildError(state, city.ownerId, item.kind, item.id, city, {
+      replacing: { cityId: city.id, queued },
+    });
     if (blocked !== null) return blocked;
+    if (item.kind === 'unit') queued.push(item.id);
 
     if (item.kind === 'building') {
       if (city.buildings.includes(item.id)) {

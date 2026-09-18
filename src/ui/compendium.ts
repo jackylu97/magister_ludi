@@ -150,7 +150,7 @@ import {
   deckWord,
   orderPayoff,
 } from './deckBadges';
-import { gatingTech } from '../sim/tech';
+import { eitherResourceWords, gatingTech } from '../sim/tech';
 import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../sim/techData';
 import {
   LEADER_ABILITY_IDS,
@@ -171,6 +171,7 @@ import {
   isCombatant,
   isExplorer,
   isNaval,
+  requiredResourcesOf,
   unitDef,
 } from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
@@ -890,9 +891,18 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   // used to say so here. All three are the *opening* line's business now
   // (`queueOpening`), where the card and the figure are named as keyword refs
   // rather than as "something your empire has adopted".
-  if (def.requiresResource !== undefined) {
+  // Since batch R1 a row may accept either of two resources, and the sentence
+  // says both halves of the rule: which resources will do, and that a copy is
+  // *spent* rather than merely owned. "One of them" without a number, because
+  // numbers do not go in written prose (rule 7) and the count a player needs is
+  // on the city panel where they are deciding.
+  const wants = requiredResourcesOf(def);
+  if (wants.length > 0) {
     out.push({
-      text: `Your empire must control improved ${resourceDef(def.requiresResource).name} to build one.`,
+      text:
+        `Your empire must have a spare copy of improved ${eitherResourceWords(wants)} ` +
+        'to build one, and this unit holds that copy for as long as it lives. ' +
+        'It is handed back when the unit dies or is disbanded.',
     });
   }
   if (def.minCityPop > 0) {
@@ -910,12 +920,12 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
     // own terms rather than as a rule about lists, and the strategic-resource
     // exception is said here too because it is the one thing that keeps the old
     // row on offer (`buildError`, `upgradeTargetForType`).
-    const wants = unitDef(def.upgradesTo).requiresResource;
+    const climbs = requiredResourcesOf(unitDef(def.upgradesTo));
     out.push({
       text:
-        wants === undefined
+        climbs.length === 0
           ? `Once you can build the ${unitDef(def.upgradesTo).name}, this is no longer offered.`
-          : `Once you can build the ${unitDef(def.upgradesTo).name}, this is no longer offered — until then, with no improved ${resourceDef(wants).name} to hand, it stays on the list.`,
+          : `Once you can build the ${unitDef(def.upgradesTo).name}, this is no longer offered — until then, with no spare improved ${eitherResourceWords(climbs)} to hand, it stays on the list.`,
     });
   }
   if (def.purchase !== undefined) {

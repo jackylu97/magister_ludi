@@ -48,6 +48,7 @@ import { awardOrderBeads } from './beads';
 import { type City, allocateEntityId, cityById, playerById, realPlayers } from './state';
 import type { GameState, Unit } from './state';
 import {
+  availableCopies,
   capitalCityOf,
   refreshCityDerived,
   resourceCopies,
@@ -414,8 +415,18 @@ export function dealSideError(
     }
     if (seen.includes(id)) return `${resourceDef(id).name} is named twice`;
     seen.push(id);
-    if (resourceCopies(state, giverId, id) < 1) {
-      return `The ${giver.name} have no ${resourceDef(id).name.toLowerCase()} to lend`;
+    // **Available copies, not controlled ones** (batch R1, ruling 4 — "only
+    // trade away available copies"). `availableCopies` is `resourceCopies` with
+    // the empire's own commitments taken off, so the lending arithmetic stays in
+    // one subtraction: a copy a war elephant is standing on is not a copy
+    // anybody may promise across a table, and an empire cannot lend the same
+    // copy twice or lend one it is already using.
+    if (availableCopies(state, giverId, id) < 1) {
+      const held = resourceCopies(state, giverId, id);
+      const name = resourceDef(id).name.toLowerCase();
+      return held > 0
+        ? `The ${giver.name} have no ${name} to spare — every copy is already spoken for`
+        : `The ${giver.name} have no ${name} to lend`;
     }
   }
 

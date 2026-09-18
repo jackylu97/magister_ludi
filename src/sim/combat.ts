@@ -909,7 +909,14 @@ function strongestTrainable(state: GameState, playerId: number): UnitTypeId | nu
   for (const type of UNIT_TYPE_IDS) {
     const def = unitDef(type);
     if (!isCombatant(def) || def.combatStrength <= bestStrength) continue;
-    if (buildError(state, playerId, 'unit', type) !== null) continue;
+    // **The ground, not the ledger** (`BuildGateOptions.ignoreCommitments`,
+    // batch R1). The paragraph above is about a pillage taking the iron away;
+    // a town's walls are not meant to soften because its empire put that iron
+    // into an army somewhere else, which is what the copies model would do here
+    // if this asked for a spare copy.
+    if (buildError(state, playerId, 'unit', type, undefined, { ignoreCommitments: true }) !== null) {
+      continue;
+    }
     best = type;
     bestStrength = def.combatStrength;
   }
