@@ -13,6 +13,27 @@ UI language: `docs/design-specimen.html` (ink/parchment; every number tabular mo
 The RNG separator `hashSeed('webciv:gameplay:…')` (`src/sim/state.ts`) must NEVER
 be renamed — it would change every seeded outcome. No further rename passes.
 
+## Writing (docs, comments, commit messages, reports)
+**Write in plain English.** The user's ruling, 2026-09-17: *"I'm not sure why the
+text always comes out in medieval game-voice, but lets just axe that entirely."*
+This governs everything we write — docs, docblocks, commit messages, agent
+briefs, agent reports, test names, and any new player-facing prose.
+
+- Say what a thing does, plainly. "The register of mid-turn yield mutations"
+  becomes "the list of functions that change a city's yields mid-turn".
+- No archaic or ornamental vocabulary: no *hence*, *whence*, *thus*, *owed*,
+  *sacred*, *the one true X*, *a thing is a thing's*. No inverted word order.
+- No em-dash-strung aphorisms standing in for an explanation. One clear
+  sentence beats a memorable one.
+- Commit messages: a plain summary line, then plain prose about what changed
+  and why. Not "the arena keeps sheets — save, load and delete a dial by name".
+- Existing files are full of the old voice. **Do not match it.** Rule 6 asks
+  for the *why*, not for the register. A rewrite pass over what is already
+  written is a separate job the user will schedule; until then, new text is
+  plain and old text is left alone.
+- Plain does not mean vague or shorter. Keep the precision, the file and
+  symbol names, the numbers, and the reasoning. Drop only the costume.
+
 ## Spec workflow (how rulings become code)
 - A user ruling lands in a FILE before any agent flies: `docs/flags.md` for
   open/resolved rulings, or the system's reference doc. Agent briefs point at
@@ -22,8 +43,9 @@ be renamed — it would change every seeded outcome. No further rename passes.
 - A doc table that mirrors data carries a sync test (the
   `test/sim/statecraftDocSync.test.ts` pattern): doc rows ↔ data rows, retired
   rows excluded. A row edited in one place and not the other fails core.
-- Reference docs read as technical documents: bulleted, concise, current-state;
-  history lives in `docs/history/design-history.md` and git.
+- Reference docs read as technical documents: bulleted, concise, current-state,
+  plain English (see **Writing** above); history lives in
+  `docs/history/design-history.md` and git.
 
 ## Commands & test discipline
 - `npm run dev` · `npm run typecheck` · `npm run test` (core tier) · `npm run build`.
@@ -109,13 +131,16 @@ be renamed — it would change every seeded outcome. No further rename passes.
    sum, `readX` is the memo and lives in `src/sim/readings.ts` alone; the table
    of what each was called is `docs/history/yields-history.md`, the register is
    `test/sim/verbs.test.ts`.
-6. Docblock comments explain *why*, in the existing files' voice.
+6. Docblock comments explain *why*, in plain English (see **Writing** at the
+   top). Do not copy the ornate voice of the file you are editing.
 7. **Player-facing words are plain**: rules stated in a first-time player's terms
    through the word tables in `statecraft/describers.ts`; a data row's `note`/`deferred` is
    player prose with no identifiers; flavour only in `flavor`/`epigram`, always
-   labelled Flavour. Voice: `src/ui/compendiumText.ts`'s docblock. Numbers never
-   appear in written prose. (Apostrophes inside compendiumText's single-quoted
-   strings must be `\'`-escaped.)
+   labelled Flavour. Numbers never appear in written prose. (Apostrophes inside
+   compendiumText's single-quoted strings must be `\'`-escaped.) New prose is
+   plain English per **Writing**; `src/ui/compendiumText.ts`'s docblock
+   describes the voice much of the existing text was written in, and is history
+   rather than a target.
 
 ## Traps — sim
 - **Mutable tile fields are exactly**: `improvement`, `improvedOn`, `feature`,
