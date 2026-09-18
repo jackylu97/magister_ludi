@@ -10,6 +10,8 @@
   "site.freshWaterBonus": { "min": 0, "max": 20 },
   "site.newLuxuryBonus": { "min": 0, "max": 40 },
   "site.newStrategicBonus": { "min": 0, "max": 40 },
+  "site.strategicCopyValue": { "min": 0, "max": 10 },
+  "site.strategicSpareTaper": { "min": 0, "max": 30 },
   "workers.searchRadius": { "min": 3, "max": 10, "integer": true },
   "workers.planTopN": { "min": 2, "max": 10, "integer": true },
   "workers.planRadius": { "min": 2, "max": 6, "integer": true },

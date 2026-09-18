@@ -113,6 +113,7 @@ import {
   explainYields,
   bagOfTileYield,
   newResourceTerms,
+  tileSeamCopies,
   yieldDelta,
   yieldWeight,
 } from './value';
@@ -594,6 +595,13 @@ function routeWant(state: GameState, player: Player, ctx: ValueContext): Want | 
  *     cannot disagree about which silk is the first silk, and neither of them
  *     asks whether the seam is *worked* — a copy owned and unimproved is a copy.
  *
+ *     Since batch R5 a **strategic** seam adds a second line to that: the copies
+ *     the hex actually rolled, at `site.strategicCopyValue` each, tapered on
+ *     what this empire can already spare. A unit holds its copy while it lives,
+ *     so copies are army rather than a signature, and an eight-copy iron hill is
+ *     a very different hex from a three-copy one. The whole shape is argued at
+ *     `newResourceTerms`.
+ *
  * **The citizen who would stand there** (batch X5b, the ruling on the flags
  * board, item (ggg)). A hex bought is a hex meant to be *worked*, and the
  * ground it pays was the whole of what this arm charged for it: the citizen
@@ -693,7 +701,7 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
         value: 0,
       });
     }
-    terms.push(...newResourceTerms(ctx.realm, ctx.ai, tile.resource, 'on the hex'));
+    terms.push(...newResourceTerms(ctx, ctx.realm, tile.resource, 'on the hex', tileSeamCopies(tile)));
     const owed = next !== null && next.col === tile.col && next.row === tile.row;
     const share = owed ? soonShare : 1;
     const claim: ValueTerm = {

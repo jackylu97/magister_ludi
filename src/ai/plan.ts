@@ -81,12 +81,17 @@ import {
   explainLump,
   explainYields,
   hammerTerm,
+  newResourceTerms,
+  tileSeamCopies,
 } from './value';
 
-import { assignableTiles, hasResource, tileOwnerPlayerId, yieldScore } from '../sim/cities';
+import { assignableTiles, cityAt, hasResource, tileOwnerPlayerId, yieldScore } from '../sim/cities';
 import {
   type ImprovementId,
+  improvementCountsAs,
   improvementDef,
+  improvementForResource,
+  isGreatPersonWork,
   isImprovementId,
 } from '../sim/improvementData';
 import {
@@ -273,6 +278,9 @@ function improvementEntry(
   // does not know which — which is the fallback `hammerPrice` states.
   const hammers = hammerTerm(delta.production ?? 0, ctx);
   if (hammers !== null) terms.push(hammers);
+  for (const term of seamOpeningTerms(state, player, ctx, tile, improvement)) {
+    terms.push(term);
+  }
   for (const term of plannedRiderTerms(ctx, tile, improvement, ground(tile))) {
     terms.push(term);
   }
@@ -285,6 +293,109 @@ function improvementEntry(
     terms,
     unclaimed: true,
   };
+}
+
+/**
+ * **What the spade opens under the hex**, over and above the yields it adds —
+ * batch R5, and the third of the three doors a strategic resource reaches this
+ * bot through.
+ *
+ * The other two are about ground this empire does not have yet: a site a settler
+ * would walk to, and a hex a town would buy. This one is about ground it already
+ * owns and has not dug. Under the copies model that is the step that actually
+ * produces copies — an iron hill inside the borders arms nobody until there is a
+ * mine on it — and until this term existed the bot had no reason to mine the one
+ * iron hill before the eight plain ones beside it. The yield delta above does
+ * count the seam's own row once the improvement opens it, which is a real pull
+ * and a small one: a copy of iron is worth far more than the point of production
+ * the mine prints.
+ *
+ * **Access, not ground** — the `held` set handed to `newResourceTerms` is what
+ * this empire can already *draw on* (`hasResource`), where the settler's arm
+ * passes what stands on its land (`ValueContext.realm`). Both readings are
+ * argued at `newResourceTerms`, and this is the caller the distinction was
+ * written for: the whole point of the spade is that the empire owns the hex and
+ * cannot use what is under it.
+ *
+ * Three gates, and each of them is the simulation's own reading rather than a
+ * guess of ours:
+ *
+ *   · **the improvement has to be the one that opens it**, and the seam has to
+ *     be shut today. Both are `openedResource`'s own answer, asked of the hex as
+ *     it stands and again of a copy with the spade's work on it
+ *     (`improvementOpensSeam`) — so a farm on an iron hill is told from a mine
+ *     on it without this file holding a second copy of the improvement mapping,
+ *     and a seam a town on the seam already opened is not paid for twice;
+ *   · **the empire has to be able to name the seam** (`resourceIsVisibleTo`),
+ *     the same reveal gate rule 5's context keeps. An empire that has not
+ *     researched the node sees a bare hill;
+ *   · **strategic kinds only**, which falls out of `newResourceTerms` — a
+ *     luxury's signature is already paid by the site and hex arms, and paying it
+ *     again for the spade would be one silk counted twice.
+ */
+function seamOpeningTerms(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  tile: Tile,
+  improvement: ImprovementId,
+): ValueTerm[] {
+  const seam = tile.resource;
+  if (seam === undefined) return [];
+  if (resourceDef(seam).kind !== 'strategic') return [];
+  if (!resourceIsVisibleTo(seam, player.techsResearched)) return [];
+  // Would this spade actually open it? The simulation answers by pricing the hex
+  // with and without the improvement under this empire's own context: a seam the
+  // improvement does not open contributes nothing to the difference, so a row
+  // that adds no seam yield is a row that opens no seam.
+  if (!improvementOpensSeam(state, tile, improvement)) return [];
+  const held = hasResource(state, player.id, seam) ? new Set<ResourceId>([seam]) : new Set<ResourceId>();
+  return newResourceTerms(
+    ctx,
+    held,
+    seam,
+    `the ${improvementDef(improvement).name} would open on (${tile.col},${tile.row})`,
+    tileSeamCopies(tile),
+  );
+}
+
+/**
+ * Would this spade turn a seam this empire cannot draw on into one it can?
+ *
+ * `openedResource` in `cities.ts` is the rule and it is private to that file, so
+ * this asks the same three clauses off the same exported tables rather than
+ * guessing at them: a great person's work opens whatever it stands on, the
+ * improvement the row names opens it (or a variant that counts as that row —
+ * `improvementCountsAs`, so a terrace is a farm), and a town standing on the
+ * hex opens it with no spade at all.
+ *
+ * The reveal gate is the caller's, already asked. What is left here is *shut
+ * today, open tomorrow*: a hex whose seam is already open pays this nothing,
+ * because the copies are in the empire's hands and digging changes nothing about
+ * them.
+ *
+ * `openedResource` keeping this rule to itself is why the sim's own copy cannot
+ * be called, and that is a seam worth watching — if the three clauses ever grow
+ * a fourth, this reading goes quietly stale. `test/sim/aiWants.test.ts` pins the
+ * two against each other through `hasResource`, which is the observable both
+ * sides share.
+ */
+function improvementOpensSeam(
+  state: GameState,
+  tile: Tile,
+  improvement: ImprovementId,
+): boolean {
+  const seam = tile.resource;
+  if (seam === undefined) return false;
+  const on = tile.improvement;
+  // Already open: a work, the right improvement, or a town on the hex.
+  if (on !== undefined && isGreatPersonWork(on)) return false;
+  const needed = improvementForResource(seam);
+  if (needed === null) return false;
+  if (on !== undefined && improvementCountsAs(on, needed)) return false;
+  if (cityAt(state, tile.col, tile.row) !== undefined) return false;
+  // Shut today. Does the candidate open it?
+  return isGreatPersonWork(improvement) || improvementCountsAs(improvement, needed);
 }
 
 /**

@@ -295,8 +295,55 @@ export interface AiConfig {
      * on the board can pay.
      */
     newLuxuryBonus: number;
-    /** The same sentence for a strategic kind — iron an empire cannot field. */
+    /**
+     * The same sentence for a strategic kind — the *first* copy of it, which is
+     * the whole of what that kind's empire-wide bonus asks for. Copper pays its
+     * coin in every town on one copy exactly as it does on eight, so this is
+     * paid once and the copies below are paid separately.
+     */
     newStrategicBonus: number;
+    /**
+     * **What one copy of a strategic resource is worth** — batch R5.
+     *
+     * A copy is one unit this empire may field and keep alive, so a seam that
+     * rolled eight copies arms roughly eight pieces and one that rolled three
+     * arms three. Paid whether or not the empire already holds the kind, which
+     * is what separates it from `newStrategicBonus` above: the bonus is a
+     * signature and stops at one, the copies are army and go on counting.
+     *
+     * Small next to the bonus on purpose, and the figure is measured rather than
+     * reasoned. Swept over six duel boards to turn 40, both seats, counting the
+     * copies each empire ended up holding and how many of them its army had
+     * actually taken up:
+     *
+     *     0     31 towns, 35 copies held,  4 committed   (the boolean this replaced)
+     *     0.5   25 towns, 42 copies held,  4 committed
+     *     1     28 towns, 43 copies held, 10 committed
+     *     2     26 towns, 64 copies held,  0 committed
+     *
+     * One is the only setting that turns seams into an army — two and a half
+     * times as many resource-gated pieces in the field as the boolean managed.
+     * Two is worse than useless: the settler walks past good ground toward the
+     * eighth horse herd on the map, the empire ends up sitting on sixty-four
+     * copies, and it builds nothing that needs one. The cost at one is about a
+     * tenth of a town over six seeds, which is inside what six seeds can read.
+     */
+    strategicCopyValue: number;
+    /**
+     * **How many spare copies halve the worth of another one** (batch R5).
+     *
+     * The copies line above is multiplied by `taper / (taper + spare)`, where
+     * `spare` is what this empire could still commit of that kind
+     * (`ValueContext.spare`). So an empire that can field no more horsemen pays
+     * the full copy value for a horse seam, one with this many spare pays half,
+     * and one swimming in them pays almost nothing.
+     *
+     * This is the dial that states *how much* more the first copy is worth than
+     * the ninth. Nought reads as "only kinds I have run out of" and turns the
+     * copies line into a scarcity switch; a very large figure turns the taper
+     * off and values every copy the same.
+     */
+    strategicSpareTaper: number;
   };
   /**
    * What a worker is for, and how far ahead the **improvement plan** looks.
