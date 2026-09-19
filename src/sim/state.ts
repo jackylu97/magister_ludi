@@ -1060,8 +1060,27 @@ import {
  * at all, so every card written on an age would answer "not old enough" forever
  * and the state it reached would not be the state it recorded. The branch
  * migrates nothing, for D1a's stated reason.
+ *
+ * v122 (the decks rework, batch D2e on branch `decks` — the bilateral grant and
+ * the trading post): **a town remembers whose traders keep a house in it.**
+ * `City.posts` is the one new field: a list of `CommercialPost` records, one per
+ * empire that has traded here, each carrying the absolute turn that empire's
+ * unbroken trading presence in the town began. A post is *established* once that
+ * presence has lasted a full route term (`rules.trade.routeTurns`), and an
+ * established post is permanent — war, capture and cancellation never remove
+ * one. Only the writers in `trade.ts` touch the list, and nothing ticks: the
+ * ripening is `state.turn - since >= term`, an absolute turn compared, exactly
+ * as v121's stamps are.
+ *
+ * Beside it the card vocabulary gains the other half of the batch,
+ * `CardPaysEffect.payee`, which is how a card may pay an empire that is not the
+ * one holding it.
+ *
+ * **A v121 save is refused and does not replay**, for v121's own reason one
+ * paragraph up: a v121 log carries no posts, so every card written on one would
+ * answer "no house here" forever. The branch migrates nothing.
  */
-export const SCHEMA_VERSION = 121;
+export const SCHEMA_VERSION = 122;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2766,6 +2785,36 @@ export type QueueKind = QueueItem["kind"];
  */
 export type UnitPurchaseBucket = "militaryGold" | "civilianGold" | "faith";
 
+/**
+ * One empire's commercial post in one town (batch D2e) — the per-empire half of
+ * a trading post, which `City.tradingPost` could never be because both ends of
+ * a route write the same flag.
+ *
+ * **A date, not a flag**, and that is the whole of the record. An empire's post
+ * ripens after a full route term of unbroken trading presence here
+ * (`rules.trade.routeTurns`, the "normal twenty-turn term" the design calls
+ * for), so what has to be stored is when the presence started; whether it has
+ * ripened yet is a subtraction anybody can do. `TimedEffect.expiresTurn`'s
+ * discipline exactly — an absolute turn, compared and never counted down — and
+ * the reason a post needs no sweep and no phase of its own.
+ *
+ * `since` moves in one direction only, and only while the post is still unripe:
+ * the two writers in `trade.ts` add a record when an empire's first caravan
+ * reaches the town and drop an unripe one when that empire's last route to the
+ * town ends. Once a post is established the record is never touched again —
+ * which is what makes "going to war does not remove these posts" true without a
+ * clause anywhere saying so.
+ */
+export interface CommercialPost {
+  /** Whose post it is. A player id, never an index into anything. */
+  by: number;
+  /**
+   * The absolute turn this empire's unbroken trading presence in the town
+   * began — the turn its first still-running route here opened.
+   */
+  since: number;
+}
+
 export interface City {
   id: number;
   ownerId: number;
@@ -3018,6 +3067,22 @@ export interface City {
    * else reads it.
    */
   tradingPost?: boolean;
+  /**
+   * Which empires keep a commercial post in this town, or the key is **absent**
+   * on a town no caravan has traded with (batch D2e).
+   *
+   * `tradingPost` beside it answers a different question and keeps answering it:
+   * that flag is about the *place* — has any route ever touched this town — and
+   * it buys route range for whoever sends the next caravan. This list is about
+   * *whose*, which is the thing five Commerce cards ask and the flag cannot say.
+   * Both stay, because "a town on the trade network" and "my house stands here"
+   * are two facts and a card wants the second.
+   *
+   * One record per empire, appended in the order the presences began, and read
+   * by index nowhere — so the order is stable under replay and never an outcome.
+   * `trade.ts` holds both writers and there is no third.
+   */
+  posts?: CommercialPost[];
   /**
    * The turn this town last bought a unit **of each class**, or the key is
    * **absent** on a town that never has (user, 2026-08-28 playtest: "cities can

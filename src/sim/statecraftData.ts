@@ -878,6 +878,31 @@ export type CityScope =
       atMost?: number;
     }
   /**
+   * **This empire's commercial post stands in the town, and is paying** — The
+   * Merchant Commonwealth's provinces, and the Posts line in Commerce (batch
+   * D2e).
+   *
+   * `routeEndsHere`'s neighbour and a different question: that one asks whether
+   * carts are coming *now*, and this asks whether they came long enough to leave
+   * a house behind. A post is established by a route term of unbroken trading
+   * presence and is then permanent, so a card written on it is paying for a
+   * relationship that was built rather than for traffic on the day.
+   *
+   * Asked through `cityPostPays` (`routes.ts`), so the design's two suspensions
+   * come with it and no row has to spell them: a post pays nothing while its
+   * holder and the town's owner are at war, or while the town is blockaded. The
+   * card that wants the footprint whatever the weather is not a scope at all —
+   * it is a strength line, and `CombatCondition`'s `inCityWithPost` is where it
+   * asks.
+   *
+   * **Whose post** is the empire the card belongs to, which is the `viewerId`
+   * every scope is already handed. That is the whole of the member: a town is
+   * admitted for holding *your* house, whoever owns the town — so a row scoped
+   * this way and paid `where: 'city'` reaches your own provinces, and the same
+   * row carrying `payee: 'host'` reaches the foreign ones.
+   */
+  | { test: 'holdsPost' }
+  /**
    * The town has raised **at least this many buildings of one shelf** — The
    * Civic Stage's *"cities with at least two culture buildings"*, and most of
    * Magisterial's civic line with it.
@@ -1199,6 +1224,24 @@ export type CombatCondition =
    * reads. One fact about a town, asked at two scales.
    */
   | { test: 'capturedCity' }
+  /**
+   * A city holding **this player's commercial post** stands on the contested
+   * tile — Entrenched Interests, and the one card that reads a post without
+   * reading its income (batch D2e).
+   *
+   * `inCity` with the owner test swapped for a post test, which is exactly what
+   * the card says: *"in cities holding your trading post, including foreign
+   * cities"*. So it admits your own towns where your house stands and a rival's
+   * town where it stands too, and the soldier standing in the street is paid
+   * either way.
+   *
+   * Read through `cityHoldsPost` (`routes.ts`) and deliberately **not** through
+   * `cityPostPays`: the card's second sentence is *"going to war does not remove
+   * these posts"*, and a strength line that went out the moment war started
+   * would be the one line in the game that only works in peacetime. The
+   * suspension is about income; this is about the factors who live there.
+   */
+  | { test: 'inCityWithPost' }
   /** The contested tile carries this feature. Nzinga's forest and jungle. */
   | { test: 'onFeature'; feature: string }
   /**
@@ -1968,6 +2011,23 @@ export type CountKind =
    * card has asked yet.
    */
   | 'foreignTradeRoutes'
+  /**
+   * **Foreign towns holding this empire's paying commercial post** — The Foreign
+   * Factor's *"each foreign city holding your established commercial post"*
+   * (batch D2e).
+   *
+   * Foreign by construction rather than by a field: every card that counts posts
+   * is counting the ones abroad, because a house in your own province is a thing
+   * the `holdsPost` scope admits a town *for* and not a thing an empire tallies.
+   * If a card ever wants its own, that is a second member and a second sentence.
+   *
+   * Through `cityPostPays` (`routes.ts`), so the count and the town scope agree
+   * about which posts are live: a post suspended by war or by a blockade is not
+   * counted, exactly as it is not paid. That is what makes The Foreign Factor's
+   * two halves one card — the coin it takes and the coin it gives out are
+   * counting the same houses.
+   */
+  | 'postCities'
   /**
    * Trade routes this empire runs whose **partner is one of its own towns** —
    * The Provisioners' grain, which never leaves the realm.
@@ -4182,6 +4242,46 @@ export interface CardPaysEffect extends CardYieldBag {
    * are "more than fourteen hexes apart" carries fifteen.
    */
   minHexes?: number;
+  /**
+   * **Who this line pays, when it is not the empire holding the card** — The
+   * Common Road's coin to the town its caravan reaches, The Foreign Factor's to
+   * the town its house stands in (batch D2e, the bilateral grant).
+   *
+   * Absent on every row written before this one and on almost every row since,
+   * and absent means what it has always meant: a card pays the empire that holds
+   * it. This is the exception, not a widening of the rule — a reader that does
+   * not mention `payee` is reading the common case and is still correct.
+   *
+   * `'host'` means a different empire's books, and which town those are is
+   * decided by `where`:
+   *
+   *   · `where: 'route'` — the **town the caravan is walking to**, whoever owns
+   *     it. The destination fold (`explainRouteYieldBetween`) already lands in
+   *     that town's own sheet and its owner's bank, so the line arrives inside
+   *     the payee's own explanation rather than beside it, which is rule 5. On a
+   *     domestic trade route the host is one of your own towns and the row pays it
+   *     there; a card that means "abroad" says `crossing: 'international'`.
+   *   · `where: 'city'` — **every foreign town holding this empire's paying
+   *     commercial post** (`cityPostPays`, `routes.ts`). Foreign only, which is
+   *     what makes the field mean one thing: a row that wants to pay your own
+   *     provinces for holding your house is an ordinary `where: 'city'` row
+   *     scoped `holdsPost` and needs no payee at all. The town's own
+   *     `City.posts` is the index of who might pay it, so a town no foreign
+   *     house stands in costs nothing to ask.
+   *
+   * No other `where` reads it, and a row that names one is refused by the
+   * register test rather than quietly paying its own empire. A row carrying it
+   * is read **only** by the payee's fold — the ordinary passes skip it — so
+   * there is no arrangement under which one row pays twice.
+   *
+   * **The premium and the amplifier stay home.** A host grant is not raised by
+   * the sea premium, by a share, or by a law that multiplies "your trade route
+   * yields" — those are the sender's dials on the sender's goods, and the
+   * design says so outright (*"ordinary sea premiums apply to route yields, but
+   * not a second time to an explicit host grant"*). A blockade at either end
+   * still takes it back, because a shut harbour trades with nobody.
+   */
+  payee?: 'host';
 }
 
 /**

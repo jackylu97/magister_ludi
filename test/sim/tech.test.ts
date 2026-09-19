@@ -1614,7 +1614,7 @@ describe('research in the log', () => {
     // when it opened, so a v120 log answers "not old enough" to every card
     // written on an age — a bump within the branch, which migrates nothing
     // either way.
-    expect(SCHEMA_VERSION).toBe(121);
+    expect(SCHEMA_VERSION).toBe(122);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

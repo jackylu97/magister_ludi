@@ -18,7 +18,9 @@
  * resolution it performs — it simply no longer owns the words.
  */
 
+import { cityBlockaded } from './blockade';
 import { offsetToAxial, wrappedDistance } from './map';
+import { RULES } from './rulesData';
 import { type City, type GameState, type TradeRoute, type Unit, cityById } from './state';
 // The war register, and the only thing this leaf asks about diplomacy.
 // `wars.ts` imports the rules, the state and the deal terms and nothing else.
@@ -282,4 +284,89 @@ export function countRoutesAt(
 export function routeAge(state: GameState, route: TradeRoute): number | undefined {
   if (route.startedTurn === undefined) return undefined;
   return state.turn - route.startedTurn;
+}
+
+// --- commercial posts -------------------------------------------------------
+
+/**
+ * How long an empire must trade with a town before its post is established —
+ * one full route term (`rules.trade.routeTurns`, twenty).
+ *
+ * The design's own words are *"completes a normal twenty-turn term"*, so this
+ * reads the term itself rather than a knob of its own. Deliberately the **base**
+ * term and not `routeTermFor`, which is the empire's term with its cards on it:
+ * a card that lets your trade routes run longer would otherwise make your houses take
+ * longer to establish, which is the opposite of what it says.
+ */
+export function postTermTurns(): number {
+  return Math.max(1, Math.floor(RULES.trade.routeTurns));
+}
+
+/**
+ * When this empire's unbroken trading presence in this town began, or
+ * `undefined` if it has none.
+ *
+ * The raw record. Every other question about a post is asked through one of the
+ * two readers below; this is here for the writers in `trade.ts` and for a test
+ * that wants to see the date.
+ */
+export function postSince(city: City, playerId: number): number | undefined {
+  return city.posts?.find((post) => post.by === playerId)?.since;
+}
+
+/**
+ * **Does this empire hold an established commercial post in this town?**
+ *
+ * The record plus the term, and nothing else — not who owns the town, not
+ * whether the two empires are fighting, not whether the harbour is shut. That is
+ * deliberate and it is the sentence Entrenched Interests prints: *"going to war
+ * does not remove these posts"*. A post is a building that happened to be built;
+ * war does not unbuild it.
+ *
+ * Whether a post still *pays* is the other question, and `cityPostPays` is where
+ * it is asked. Keeping the two apart is what lets one card read the footprint
+ * and five others read the income without either having to know about the other.
+ */
+export function cityHoldsPost(state: GameState, city: City, playerId: number): boolean {
+  const since = postSince(city, playerId);
+  if (since === undefined) return false;
+  return state.turn - since >= postTermTurns();
+}
+
+/**
+ * **Is this empire's post in this town paying it today?**
+ *
+ * `cityHoldsPost` and the design's two suspensions, stated once here so that no
+ * card has to carry them: *"foreign post income and card range privileges are
+ * suspended during war or while the host city is blockaded"*
+ * (`docs/six-decks-first-cut.md`). Neither suspension touches the record, so a
+ * war that ends restores the income the turn peace is signed and a blockade
+ * lifted does the same — which is what "suspended" means rather than "lost".
+ *
+ * Both clauses are asked of the **host**, so they are free on a post in one of
+ * your own towns: nobody is at war with themselves, and a blockade of your own
+ * port already stops its routes paying one fold over.
+ */
+export function cityPostPays(state: GameState, city: City, playerId: number): boolean {
+  if (!cityHoldsPost(state, city, playerId)) return false;
+  if (atWar(state, playerId, city.ownerId)) return false;
+  return !cityBlockaded(state, city);
+}
+
+/**
+ * How many **foreign** towns hold this empire's paying post — `CountKind`'s
+ * `postCities` narrowed the way every card that asks wants it.
+ *
+ * Over `state.cities` in array order, which is a walk and not a lookup because a
+ * post lives on the town and there is no register keyed the other way. The same
+ * bargain `countRoutesAt` makes one function up: one walk behind every question,
+ * rather than a second index that can fall out of step with the first.
+ */
+export function foreignPostCities(state: GameState, playerId: number): number {
+  let total = 0;
+  for (const city of state.cities) {
+    if (city.ownerId === playerId) continue;
+    if (cityPostPays(state, city, playerId)) total += 1;
+  }
+  return total;
 }

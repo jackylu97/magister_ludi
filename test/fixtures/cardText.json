@@ -3723,9 +3723,12 @@
   ],
   "theCommonRoad": [
    {
-    "raw": "a road that ends abroad pays you, and pays the town it ends in — not built yet",
-    "text": "a road that ends abroad pays you, and pays the town it ends in — not built yet",
-    "deferred": true
+    "raw": "+2 gold, +2 science, +2 culture on every trade route that ends in another empire’s city",
+    "text": "+2 gold, +2 science, +2 culture on every trade route that ends in another empire’s city"
+   },
+   {
+    "raw": "+2 gold on every trade route that ends in another empire’s city, paid to the city it reaches",
+    "text": "+2 gold on every trade route that ends in another empire’s city, paid to the city it reaches"
    }
   ],
   "theReturnLeg": [
@@ -3899,9 +3902,12 @@
   ],
   "theForeignFactor": [
    {
-    "raw": "every foreign town where your house is established pays you, and pays its host, while the peace holds — not built yet",
-    "text": "every foreign town where your house is established pays you, and pays its host, while the peace holds — not built yet",
-    "deferred": true
+    "raw": "+3 gold per foreign city holding your trading post",
+    "text": "+3 gold per foreign city holding your trading post"
+   },
+   {
+    "raw": "+1 gold in every foreign city holding your trading post",
+    "text": "+1 gold in every foreign city holding your trading post"
    }
   ],
   "theConsulate": [
@@ -4164,11 +4170,20 @@
     "deferred": true
    }
   ],
+  "entrenchedInterests": [
+   {
+    "raw": "+3 combat strength while standing in a city holding your trading post",
+    "text": "+3 combat strength while standing in a city holding your trading post"
+   }
+  ],
   "theMerchantCommonwealth": [
    {
-    "raw": "your own towns where your house is established and one of your roads ends rest easier and are easier to hold — not built yet",
-    "text": "your own towns where your house is established and one of your roads ends rest easier and are easier to hold — not built yet",
-    "deferred": true
+    "raw": "+2 happiness in every city one of your own trade routes ends at that holds your trading post",
+    "text": "+2 happiness in every city one of your own trade routes ends at that holds your trading post"
+   },
+   {
+    "raw": "the authority a city one of your own trade routes ends at that holds your trading post costs falls by 1",
+    "text": "the authority a city one of your own trade routes ends at that holds your trading post costs falls by 1"
    }
   ],
   "theMerchantWorks": [
