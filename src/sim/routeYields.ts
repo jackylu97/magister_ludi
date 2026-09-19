@@ -80,8 +80,12 @@ const PRODUCTION_CATEGORIES: readonly BuildingCategory[] = ['production', 'milit
  * for a route, exactly as `trade.ts` re-exports these onward for the screens.
  */
 export {
+  type RouteCrossing,
+  type RouteEnd,
   type RouteMode,
   ROUTE_MODES,
+  countRoutesAt,
+  liveRouteCities,
   routeAge,
   routeCities,
   routeHexes,

@@ -3875,9 +3875,16 @@
   ],
   "theHomeMarket": [
    {
-    "raw": "a town that more than one of your own roads ends in grows, works and rests better — not built yet",
-    "text": "a town that more than one of your own roads ends in grows, works and rests better — not built yet",
-    "deferred": true
+    "raw": "+20% food in every city 2 or more trade routes of your own end at",
+    "text": "+20% food in every city 2 or more trade routes of your own end at"
+   },
+   {
+    "raw": "+20% production in every city 2 or more trade routes of your own end at",
+    "text": "+20% production in every city 2 or more trade routes of your own end at"
+   },
+   {
+    "raw": "+2 happiness in every city 2 or more trade routes of your own end at",
+    "text": "+2 happiness in every city 2 or more trade routes of your own end at"
    }
   ],
   "theCaravanseraiNetwork": [
@@ -3972,14 +3979,16 @@
   ],
   "theLeagueOfCities": [
    {
-    "raw": "a town that sends out one of your roads works harder and is easier to hold — not built yet",
-    "text": "a town that sends out one of your roads works harder and is easier to hold — not built yet",
-    "deferred": true
+    "raw": "+15% production in every city a trade route sets out from",
+    "text": "+15% production in every city a trade route sets out from"
    },
    {
-    "raw": "a town that sends none loses gold — not built yet",
-    "text": "a town that sends none loses gold — not built yet",
-    "deferred": true
+    "raw": "the authority a city a trade route sets out from costs falls by 1",
+    "text": "the authority a city a trade route sets out from costs falls by 1"
+   },
+   {
+    "raw": "-10% gold in every city no trade route sets out from",
+    "text": "-10% gold in every city no trade route sets out from"
    }
   ],
   "theCharterFleet": [
@@ -4132,9 +4141,20 @@
   ],
   "theCharteredMetropolis": [
    {
-    "raw": "a town that sends out several of your roads grows and works and sings far better, and is far harder to hold — not built yet",
-    "text": "a town that sends out several of your roads grows and works and sings far better, and is far harder to hold — not built yet",
-    "deferred": true
+    "raw": "+25% food in every city 3 or more trade routes set out from",
+    "text": "+25% food in every city 3 or more trade routes set out from"
+   },
+   {
+    "raw": "+25% production in every city 3 or more trade routes set out from",
+    "text": "+25% production in every city 3 or more trade routes set out from"
+   },
+   {
+    "raw": "+25% culture in every city 3 or more trade routes set out from",
+    "text": "+25% culture in every city 3 or more trade routes set out from"
+   },
+   {
+    "raw": "the authority a city 3 or more trade routes set out from costs rises by 4",
+    "text": "the authority a city 3 or more trade routes set out from costs rises by 4"
    }
   ],
   "theAdmiraltyOfTrade": [
@@ -5877,9 +5897,12 @@
   ],
   "theCosmopolitanCourt": [
    {
-    "raw": "a town's own foreign roads are counted toward the names it raises — not built yet",
-    "text": "a town's own foreign roads are counted toward the names it raises — not built yet",
-    "deferred": true
+    "raw": "+1 renown per turn in every city with 1 or more culture buildings, per trade route to another empire leaving it, at most 3 per city",
+    "text": "+1 renown per turn in every city with 1 or more culture buildings, per trade route to another empire leaving it, at most 3 per city"
+   },
+   {
+    "raw": "+2 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings",
+    "text": "+2 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings"
    }
   ],
   "cloisterSchools": [

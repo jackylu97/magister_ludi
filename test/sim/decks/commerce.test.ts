@@ -233,7 +233,15 @@ describe('a live Commerce row is a card', () => {
     // row and wanted two things: the border freeze lifted for the counter alone,
     // and a timed grant that renews its window rather than stacking a second
     // one.
-    expect(live().length).toBe(46);
+    //
+    // **And three more with C5**, all three waiting on one thing: a town could
+    // be asked whether a trade route ended in it and never how many, and never
+    // anything at all about routes setting out. The Home Market, The League of
+    // Cities and The Chartered Metropolis are that tally with a threshold on
+    // it. The two authority clauses needed nothing new — a scoped repricing of
+    // what a town costs to hold was built in D2b — and the percentages and the
+    // contentment were ordinary all along.
+    expect(live().length).toBe(49);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -316,13 +324,16 @@ describe('a live Commerce row is a card', () => {
     // percentage on a rule of the realm and an upkeep surcharge), the renown
     // trickle with C2's Customs Houses, and three with C3: a share of the
     // realm's renown and a narrowed draft (A Court of Merchants) and a
-    // percentage on a town's yields (The Gilded Scaffold's slower work). A
-    // nineteenth here would be a shape a later pass added without saying so.
+    // percentage on a town's yields (The Gilded Scaffold's slower work). C5
+    // adds the nineteenth: a repricing of what one town costs to hold, which
+    // The League of Cities and The Chartered Metropolis both carry. A
+    // twentieth here would be a shape a later pass added without saying so.
     expect([...kinds].sort()).toEqual([
       'authority',
       'cityRenownPercent',
       'combatLine',
       'happiness',
+      'meterRule',
       'offerRider',
       'pays',
       'percentYields',
@@ -362,8 +373,10 @@ describe('a deferred Commerce row is a promise, not a card', () => {
   it('pays nothing, says what it would have said, and sits in no pool', () => {
     // C2 took two off it — Travellers' Letters and The Customs Houses. C3 took
     // three more: The Gilded Scaffold, The Brokers' Redraw and Venture Routes.
-    // (Civic Receipts was already live; C3 reworked it.)
-    expect(deferred().length).toBe(24);
+    // (Civic Receipts was already live; C3 reworked it.) C5 takes three more
+    // with the route tally: The Home Market, The League of Cities and The
+    // Chartered Metropolis.
+    expect(deferred().length).toBe(21);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);

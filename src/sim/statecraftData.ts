@@ -799,20 +799,35 @@ export type CityScope =
    */
   | { test: 'newest' }
   /**
-   * A **trade route ends here** — the Bank's coin, which is only worth counting
-   * in a town the caravans actually come to.
+   * **Trade routes meet this town** — the Bank's coin, which is only worth
+   * counting in a town the caravans actually come to, and the three Commerce
+   * rows that ask how many rather than whether (batch C5).
    *
-   * The one scope whose subject is a *caravan* rather than the town, and it is
-   * a scope rather than a count for the reason `garrisoned` is: the question is
-   * "is there one", not "how many", and a row that wanted the number says
-   * `pays` count. Read off the pieces — `Unit.trade` **is** the route (there is
-   * no register), and a route naming this town as its destination is a route
-   * ending here whoever sent it, which is the same reading `cityRouteYields`
-   * banks a foreign caravan's coin by.
+   * The one scope whose subject is a *caravan* rather than the town. It began
+   * as a yes-or-no, for the reason `garrisoned` is one, and it is now a
+   * threshold on a tally: The Home Market wants two routes arriving, The
+   * Chartered Metropolis three setting out, The League of Cities one setting
+   * out and its own mirror for the towns with none. One member with three
+   * optional fields rather than four members, because the alternative is
+   * spelling `crossing` and the direction again in each of them.
    *
-   * A route that has lapsed pays nothing and admits nothing: the reading is
-   * `routeIsLive`'s, so the scope stops admitting on the turn the caravan's own
-   * expiry passes, exactly as the yield it is scoped over does.
+   * Read off the pieces through `countRoutesAt` (`routes.ts`) — `Unit.trade`
+   * **is** the route, there is no register, and the tally and the predicate
+   * have to be one walk or they will eventually disagree. Only **active**
+   * routes are counted (`routeIsLive`), which is the one test there is: a
+   * lapsed route sits inert on its cart until the shuttle tidies it, and a town
+   * a dead route once ended at is not a town caravans come to. Two of the cards
+   * say "paying routes"; the user ruled that decorative (2026-09-19), so there
+   * is nothing here for that word to select on.
+   *
+   * Whoever *sent* the caravan is not asked, exactly as `cityRouteYields` does
+   * not ask: a foreign caravan in your market is a caravan in your market. Note
+   * that the cards' word "your" costs nothing here — a route setting out from a
+   * town belongs to that town's owner by construction, and a domestic route
+   * arriving started in another of the same empire's towns.
+   *
+   * The name is the one this member had when it could only say yes, kept rather
+   * than migrated because four data files outside batch C5's fence spell it.
    */
   | {
       test: 'routeEndsHere';
@@ -827,6 +842,40 @@ export type CityScope =
        * what every row written before it meant.
        */
       crossing?: 'domestic' | 'international';
+      /**
+       * **Which way the road runs, seen from this town** — routes arriving, or
+       * routes setting out. Absent is `'arriving'`, which is what every row
+       * written before batch C5 meant.
+       *
+       * A field rather than a second member because the two directions take the
+       * same `crossing` and the same threshold, and a `routeLeavesHere` beside
+       * this one would have had to repeat both. The two really are one question
+       * asked from the two ends of the same road — `countRoutesAt` answers them
+       * with the same walk and the same idea of what "still paying" means.
+       */
+      direction?: 'arriving' | 'departing';
+      /**
+       * **How many such routes the town needs.** Absent is one, which is what a
+       * yes-or-no always meant.
+       *
+       * Inclusive, exactly as `populationAtLeast` and `buildingsOfCategory` are,
+       * and on the row rather than fixed here for their reason: the figure is
+       * the card's.
+       */
+      atLeast?: number;
+      /**
+       * **…or at most this many** — The League of Cities' second sentence, the
+       * towns that send none.
+       *
+       * The negation, and it is a field here rather than a `notRouteEndsHere`
+       * member (the form `notHasWonder` and `notKeepingRite` take) because a
+       * negated route question still has to name a direction and a crossing, and
+       * a second member would have carried a second copy of both. `atMost: 0` is
+       * the sentence every card in the design actually writes; a row carrying
+       * both fields means the band between them, which is a real sentence nobody
+       * has written yet.
+       */
+      atMost?: number;
     }
   /**
    * The town has raised **at least this many buildings of one shelf** — The
@@ -1908,6 +1957,15 @@ export type CountKind =
    * member each is what lets the words be written without a second table. The
    * far end is read off the board each turn (`TradeRoute.to` resolved through
    * `cityById`), so a partner that changes hands changes the count with it.
+   *
+   * **Narrowed to one town by `within: 'city'`** (batch C5): the foreign routes
+   * that set out from *that* town, which is The Cosmopolitan Court's count.
+   * Departing rather than arriving is the only reading the narrowing can have —
+   * a foreign route this empire runs ends in somebody else's town, so "arriving
+   * at one of my own" would be nought everywhere. `tradeRoutes` and
+   * `internalTradeRoutes` take no such narrowing: both ends of a domestic route
+   * are this empire's, so a town scale would have to pick a direction, and no
+   * card has asked yet.
    */
   | 'foreignTradeRoutes'
   /**
@@ -5578,6 +5636,30 @@ export interface CardRenownEffect {
    */
   countPer?: number;
   /**
+   * **Count it town by town, and cap it town by town** — The Cosmopolitan
+   * Court's *"+1 renown per outgoing foreign route, at most three per city"*
+   * (batch C5).
+   *
+   * `CardPaysEffect.within`'s field one shape over and the same word, and it
+   * changes three things about a `count` trickle at once, which is why it is one
+   * field and not three: the count is asked of each town rather than of the
+   * realm, `max` becomes the ceiling **per town** rather than over the whole
+   * sum, and `scope` — which means nothing on a bare count — starts naming which
+   * towns are walked.
+   *
+   * A card wanting a per-town cap could not be written any other way. An empire
+   * count with a ceiling caps the realm's total, and a staircase of three
+   * `per: 'city'` rows at three thresholds adds up to the same figure while
+   * printing three near-identical sentences at the player, which is the near-fit
+   * the deck's house rule refuses. The trickle is still an **empire** fact: it
+   * accrues on the player and joins `explainRenown`'s one list, exactly as
+   * `scope` says of the `per: 'city'` arm.
+   *
+   * Meaningless with `per` (that field is read first and wins) and ignored
+   * there.
+   */
+  within?: 'city';
+  /**
    * Which hexes a `count: 'tilesInBorders'` trickle counts — The Customs
    * Houses' works (batch C2).
    *
@@ -5586,7 +5668,10 @@ export interface CardRenownEffect {
    * takes one has to be able to carry it. Ignored by every other count.
    */
   tile?: TileCondition;
-  /** The most helpings that ever pay. `count` only. */
+  /**
+   * The most helpings that ever pay. `count` only — and **per town** where the
+   * row also says `within: 'city'`, which is the whole reason that field exists.
+   */
   max?: number;
   /** Which family this feeds. Absent feeds the pool and no family. */
   family?: Family;
@@ -5605,9 +5690,11 @@ export interface CardRenownEffect {
    * that earned it", which is the sentence seven Magisterial rows are written in
    * and none of them could say.
    *
-   * Meaningless on the other three multipliers (`'wonder'`,
-   * `'buildingOfCategory'`, and a bare `count`) and ignored there: those count
-   * *things*, and a scope is a predicate over a town. Absent counts every town,
+   * Meaningless on `'wonder'` and `'buildingOfCategory'` and ignored there:
+   * those count *things*, and a scope is a predicate over a town. A bare
+   * `count` ignores it too, for the same reason — unless the row says
+   * `within: 'city'`, which turns the count into a walk over towns and so gives
+   * the scope something to narrow. Absent counts every town,
    * which is what every row written before it meant, so the Council of Elders is
    * byte-identical without being touched.
    */

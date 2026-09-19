@@ -854,11 +854,27 @@
       "rarity": "uncommon",
       "flavor": "Every road that ends here was built for here.",
       "text": "Cities receiving at least two of your domestic routes gain +20% food, +20% production and +2 happiness, once per city.",
-      "effects": [],
-      "deferred": [
-        "a town that more than one of your own roads ends in grows, works and rests better"
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "food",
+          "percent": 20,
+          "scope": { "test": "routeEndsHere", "crossing": "domestic", "atLeast": 2 }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 20,
+          "scope": { "test": "routeEndsHere", "crossing": "domestic", "atLeast": 2 }
+        },
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": { "test": "routeEndsHere", "crossing": "domestic", "atLeast": 2 }
+        }
       ],
-      "note": "Held whole. A town can be asked whether a road ends in it, never how many do."
+      "note": "A city has to be the end of two trade routes between your own cities at once, and the contentment is paid once per city however many arrive."
     },
     "theCaravanseraiNetwork": {
       "name": "The Caravanserai Network",
@@ -1126,12 +1142,27 @@
       "rarity": "rare",
       "flavor": "The league is a promise between markets, not between kings.",
       "text": "Cities with one of your paying outgoing routes gain +15% production and cost one less authority, minimum one. Cities without one lose 10% gold.",
-      "effects": [],
-      "deferred": [
-        "a town that sends out one of your roads works harder and is easier to hold",
-        "a town that sends none loses gold"
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 15,
+          "scope": { "test": "routeEndsHere", "direction": "departing" }
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": -1,
+          "scope": { "test": "routeEndsHere", "direction": "departing" }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": -10,
+          "scope": { "test": "routeEndsHere", "direction": "departing", "atMost": 0 }
+        }
       ],
-      "note": "Held whole. A town can be asked whether a road ends in it, never whether one sets out from it, and no law makes a single town cheaper to hold."
+      "note": "A paying trade route is simply an active one — a route that has lapsed, been cancelled or been plundered is not counted. The discount never takes a city below one authority and never charges a city that was already free."
     },
     "theCharterFleet": {
       "name": "The Charter Fleet",
@@ -1548,11 +1579,33 @@
       "rarity": "rare",
       "flavor": "One city, and every road in the world leading to it.",
       "text": "Cities with at least three of your paying outgoing routes gain +25% food, production and culture, but each costs +4 authority while qualified.",
-      "effects": [],
-      "deferred": [
-        "a town that sends out several of your roads grows and works and sings far better, and is far harder to hold"
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "food",
+          "percent": 25,
+          "scope": { "test": "routeEndsHere", "direction": "departing", "atLeast": 3 }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 25,
+          "scope": { "test": "routeEndsHere", "direction": "departing", "atLeast": 3 }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 25,
+          "scope": { "test": "routeEndsHere", "direction": "departing", "atLeast": 3 }
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": 4,
+          "scope": { "test": "routeEndsHere", "direction": "departing", "atLeast": 3 }
+        }
       ],
-      "note": "Held whole. A town can be asked whether a road ends in it, never how many set out from it, and no law raises what one town costs to hold."
+      "note": "A paying trade route is simply an active one — a route that has lapsed, been cancelled or been plundered is not counted. A city stops paying the extra authority the moment it drops below three."
     },
     "theAdmiraltyOfTrade": {
       "name": "The Admiralty of Trade",
