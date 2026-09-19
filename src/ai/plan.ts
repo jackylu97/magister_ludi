@@ -82,16 +82,23 @@ import {
   explainYields,
   hammerTerm,
   newResourceTerms,
-  tileSeamCopies,
 } from './value';
 
-import { assignableTiles, cityAt, hasResource, tileOwnerPlayerId, yieldScore } from '../sim/cities';
+import {
+  assignableTiles,
+  hasResource,
+  improvementWouldOpenResource,
+  tileCopies,
+  tileOwnerPlayerId,
+  yieldScore,
+} from '../sim/cities';
+// `improvementCountsAs`, `improvementForResource`, `isGreatPersonWork` and
+// `cityAt` came in here for `improvementOpensSeam`, the copy of `openedResource`
+// batch R6 deleted. Nothing in this file assembles the improvement mapping any
+// more, so they went with it.
 import {
   type ImprovementId,
-  improvementCountsAs,
   improvementDef,
-  improvementForResource,
-  isGreatPersonWork,
   isImprovementId,
 } from '../sim/improvementData';
 import {
@@ -323,12 +330,15 @@ function improvementEntry(
  *   · **the improvement has to be the one that opens it**, and the seam has to
  *     be shut today. Both are `openedResource`'s own answer, asked of the hex as
  *     it stands and again of a copy with the spade's work on it
- *     (`improvementOpensSeam`) — so a farm on an iron hill is told from a mine
- *     on it without this file holding a second copy of the improvement mapping,
- *     and a seam a town on the seam already opened is not paid for twice;
+ *     (`improvementWouldOpenResource` in `cities.ts`, batch R6) — so a farm on
+ *     an iron hill is told from a mine on it without this file holding a second
+ *     copy of the improvement mapping, and a seam a town on the seam already
+ *     opened is not paid for twice;
  *   · **the empire has to be able to name the seam** (`resourceIsVisibleTo`),
  *     the same reveal gate rule 5's context keeps. An empire that has not
- *     researched the node sees a bare hill;
+ *     researched the node sees a bare hill. `openedResource` asks this too, so
+ *     the line below is an early out rather than the rule — it reads the row's
+ *     own public gate and states nothing of its own;
  *   · **strategic kinds only**, which falls out of `newResourceTerms` — a
  *     luxury's signature is already paid by the site and hex arms, and paying it
  *     again for the spade would be one silk counted twice.
@@ -344,59 +354,41 @@ function seamOpeningTerms(
   if (seam === undefined) return [];
   if (resourceDef(seam).kind !== 'strategic') return [];
   if (!resourceIsVisibleTo(seam, player.techsResearched)) return [];
-  // Would this spade actually open it? The simulation answers by pricing the hex
-  // with and without the improvement under this empire's own context: a seam the
-  // improvement does not open contributes nothing to the difference, so a row
-  // that adds no seam yield is a row that opens no seam.
-  if (!improvementOpensSeam(state, tile, improvement)) return [];
+  // Would this spade actually open it? The simulation answers, by asking
+  // `openedResource` of the hex as it stands and again of a copy with the
+  // improvement on it (`improvementWouldOpenResource`, batch R6). This file used
+  // to restate those clauses; it no longer holds any part of the rule.
+  if (!improvementWouldOpenResource(state, tile, player.id, improvement)) return [];
   const held = hasResource(state, player.id, seam) ? new Set<ResourceId>([seam]) : new Set<ResourceId>();
   return newResourceTerms(
     ctx,
     held,
     seam,
     `the ${improvementDef(improvement).name} would open on (${tile.col},${tile.row})`,
-    tileSeamCopies(tile),
+    tileCopies(tile),
   );
 }
 
-/**
- * Would this spade turn a seam this empire cannot draw on into one it can?
- *
- * `openedResource` in `cities.ts` is the rule and it is private to that file, so
- * this asks the same three clauses off the same exported tables rather than
- * guessing at them: a great person's work opens whatever it stands on, the
- * improvement the row names opens it (or a variant that counts as that row —
- * `improvementCountsAs`, so a terrace is a farm), and a town standing on the
- * hex opens it with no spade at all.
- *
- * The reveal gate is the caller's, already asked. What is left here is *shut
- * today, open tomorrow*: a hex whose seam is already open pays this nothing,
- * because the copies are in the empire's hands and digging changes nothing about
- * them.
- *
- * `openedResource` keeping this rule to itself is why the sim's own copy cannot
- * be called, and that is a seam worth watching — if the three clauses ever grow
- * a fourth, this reading goes quietly stale. `test/sim/aiWants.test.ts` pins the
- * two against each other through `hasResource`, which is the observable both
- * sides share.
- */
-function improvementOpensSeam(
-  state: GameState,
-  tile: Tile,
-  improvement: ImprovementId,
-): boolean {
-  const seam = tile.resource;
-  if (seam === undefined) return false;
-  const on = tile.improvement;
-  // Already open: a work, the right improvement, or a town on the hex.
-  if (on !== undefined && isGreatPersonWork(on)) return false;
-  const needed = improvementForResource(seam);
-  if (needed === null) return false;
-  if (on !== undefined && improvementCountsAs(on, needed)) return false;
-  if (cityAt(state, tile.col, tile.row) !== undefined) return false;
-  // Shut today. Does the candidate open it?
-  return isGreatPersonWork(improvement) || improvementCountsAs(improvement, needed);
-}
+// `improvementOpensSeam` was here and was deleted in batch R6 (`docs/flags.md`
+// (oooooo)). It restated `openedResource`'s clauses because R5 could not edit
+// the simulation, and its own docblock warned that a fourth clause would leave
+// it stale without anyone noticing. It had in fact already disagreed with the
+// simulation in two places:
+//
+//   · it treated any town on the seam as already opening it, where
+//     `openedResource` also asks whether that town's owner holds the technology
+//     the opening improvement needs;
+//   · it answered "no" for a great person's work standing on a seam no
+//     improvement names, which the simulation treats as opened.
+//
+// **Neither could fire through this file's one caller**, and that is worth
+// writing down rather than glossing. `improvementEntry` returns early on
+// `improvementErrorAt`, which refuses every improvement on a hex a town stands
+// on, so the first case was unreachable; and every resource in the table has an
+// opener today, so the second was too. Nothing was mispriced. What the two
+// disagreements show is that the copy had drifted while still looking right —
+// exactly the failure its own docblock predicted — which is the argument for
+// composing `improvementWouldOpenResource` out of the real reading instead.
 
 /**
  * **What this hex would collect once the plan the seat has already declared
@@ -653,6 +645,15 @@ function siteGround(ctx: ValueContext): SiteGround | null {
     // in X1d-ground. So a reachable node buys a hex the *right to be improved*
     // and never the sight of what is buried under it: fishing boats on fish
     // anybody can see, and no mine on iron nobody has a word for yet.
+    //
+    // One seam crosses that line, and it is the hypothesis being honest rather
+    // than a leak (batch R6): the mine waives `requiresHills` on a hex carrying
+    // a seam it alone opens, and that waiver asks whether the seat can name the
+    // seam. Flat niter is the only such ground today, so a seat with Physics
+    // reachable is promised a mine there. That is what "if every reachable node
+    // were held" means — with Physics held the mine really is legal — and the
+    // promise is the mine's own hammer alone, because the niter's yield is read
+    // through the real seat's eyes below and cancels out of the delta.
     ground: yieldContextFor(ctx.state, player.id),
   };
   memo.siteGround = held;

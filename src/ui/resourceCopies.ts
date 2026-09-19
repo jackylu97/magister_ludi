@@ -42,7 +42,7 @@
 
 import { type GameState, playerById } from '../sim/state';
 import { type ResourceId, RESOURCE_IDS, resourceDef } from '../sim/resourceData';
-import { availableCopies, committedCopies, resourceCopies } from '../sim/cities';
+import { availableCopies, committedCopies, resourceCopies, tileCopies } from '../sim/cities';
 import { isResourceVisible } from '../sim/tech';
 import type { Tile } from '../sim/map';
 import { copiesFigure, copiesWords } from './figures';
@@ -112,24 +112,24 @@ export function strategicHoldings(state: GameState, playerId: number): CopyCount
  * How many copies **one hex** of a resource is worth, or `null` for a seam whose
  * row has no quantity to roll.
  *
- * A bonus or luxury seam is worth one of its kind by definition and prints
- * nothing; only strategic rows carry `copiesPerSource`, so only they have a
- * number a player could settle toward. The rule is read off the **row** rather
- * than off the presence of `Tile.resourceCopies`, which is what keeps a hand-poked
- * board from printing a quantity for a seam that has none.
+ * **How many** is not decided here — that is `tileCopies`, the simulation's one
+ * reading, and this calls it. Until batch R6 this function restated it, because
+ * R4 was fenced out of `src/sim/`; `tileCopies` is exported now and the copy is
+ * gone (`docs/flags.md` (oooooo)).
  *
- * This mirrors `tileCopies` in `src/sim/cities.ts`, which is private to that
- * module. R4 is fenced out of `src/sim/`, so the reading is written twice rather
- * than the simulation changed under another batch's feet — the one duplication
- * in this file, and `test/ui/resourceCopies.test.ts` pins both halves against
- * the data rows. Exporting `tileCopies` and deleting this is a one-line change
- * for whoever owns `cities.ts` next.
+ * What is left here is a question about *printing*, which is this file's to
+ * answer: only a strategic row carries a `copiesPerSource` range, so only a
+ * strategic seam has a number a player could settle toward. A bonus or luxury
+ * seam is worth one of its kind by definition and a figure beside it would be
+ * noise. Asking the row rather than the presence of `Tile.resourceCopies` is
+ * what keeps a hand-poked board from printing a quantity for a seam that has
+ * none.
  */
 export function tileCopyCount(tile: Tile): number | null {
   const id = tile.resource;
   if (id === undefined) return null;
   if (resourceDef(id).copiesPerSource === undefined) return null;
-  return tile.resourceCopies ?? 1;
+  return tileCopies(tile);
 }
 
 /**

@@ -281,6 +281,48 @@ describe('the improvement table', () => {
       expect(improvementDef(id).clearsClutter).toBe(false);
     }
   });
+
+  it('leaves no seam its own improvement cannot reach', () => {
+    // Batch R6, `docs/flags.md` (oooooo). A row that demands hills and opens a
+    // resource which spawns on flat ground has written a seam nobody can work:
+    // the resource's own improvement is refused by the ground, and no other
+    // improvement opens it. That is exactly what niter was until the mine took
+    // `hillsIf: ['ownResource']`, and it is a data mistake rather than a code
+    // one — so it is asked of the whole table here rather than fixed once for
+    // the one row that hit it. The mirror (a flat-ground row opening a
+    // hills-only seam) is the farm's wheat, and the farm has carried the waiver
+    // since 2026-08-27.
+    //
+    // Stated over the table so a future flat mine-resource, or a new
+    // hills-demanding row, fails here rather than in a playtest three weeks on.
+    for (const id of IMPROVEMENT_IDS) {
+      const def = improvementDef(id);
+      if (def.requiresHills === undefined) continue;
+      const waived = (def.hillsIf ?? []).includes('ownResource');
+      for (const resource of def.improvesResource ?? []) {
+        // Only the seams this row is the sole opener for are stranded — a
+        // resource a second row also opens has somewhere else to go.
+        if (improvementForResource(resource) !== id) continue;
+        const ground = resourceDef(resource).hills;
+        if (ground === undefined || ground === def.requiresHills) continue;
+        expect(
+          waived,
+          `${id} demands ${def.requiresHills ? 'hills' : 'flat ground'} but opens ` +
+            `${resource}, which spawns on the other one — it needs ` +
+            `hillsIf: ['ownResource']`,
+        ).toBe(true);
+      }
+    }
+    // The state of the table today, so the claim above is read against known
+    // ground rather than passing vacuously.
+    expect(improvementDef('mine').hillsIf).toEqual(['ownResource']);
+    expect(improvementDef('farm').hillsIf).toEqual(['freshwater', 'ownResource']);
+    expect(
+      (improvementDef('mine').improvesResource ?? []).filter(
+        (resource) => resourceDef(resource).hills === false,
+      ),
+    ).toEqual(['niter']);
+  });
 });
 
 // --- the worker -------------------------------------------------------------
@@ -592,6 +634,65 @@ describe('buildImprovement', () => {
       // A seam that is *not* the farm's own waives nothing.
       tile.resource = 'iron';
       expect(improvementError(state, worker.id, 'farm')).toBe('A farm needs flat ground');
+    });
+
+    it('mines flat ground that carries niter, and nothing else flat', () => {
+      // The farm's waiver read the other way round (batch R6, `docs/flags.md`
+      // (oooooo)). Niter is the one mine-opened resource that spawns on flat
+      // ground — every other one in `improvesResource` is `hills: true` — and
+      // the mine is the only improvement that opens it, so before this waiver a
+      // flat niter seam could not be worked at all. The waiver is `ownResource`
+      // on the mine's row; nothing here names niter in code.
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.terrain = 'plains';
+      tile.hills = false;
+      tile.resource = 'niter';
+      bumpRevision(state);
+      expect(improvementError(state, worker.id, 'mine')).toBeNull();
+
+      // Reveal-gated, which is the whole reason the waiver may be trusted: a hex
+      // that quietly became mineable would be the map leaking through a button.
+      // Niter needs Physics, so this arm is load-bearing rather than theoretical
+      // — the farm's waiver has never had a tech-gated seam to guard against.
+      const seat = state.players[0]!;
+      seat.techsResearched = seat.techsResearched.filter((tech) => tech !== 'physics');
+      bumpRevision(state);
+      expect(improvementError(state, worker.id, 'mine')).toBe('A mine needs hills');
+
+      seat.techsResearched.push('physics');
+      bumpRevision(state);
+      expect(improvementError(state, worker.id, 'mine')).toBeNull();
+
+      // And the rule the waiver is an exception to is still the rule: flat
+      // ground carrying nothing refuses a mine, with the sentence it always
+      // gave. This is the half that would be lost by putting `hills: true` on
+      // niter's row instead, which is why the ruling went the other way.
+      tile.resource = undefined;
+      bumpRevision(state);
+      expect(improvementError(state, worker.id, 'mine')).toBe('A mine needs hills');
+
+      // A seam some *other* improvement opens waives nothing either — the
+      // waiver asks `improvementForResource` rather than "is there a resource".
+      tile.resource = 'wheat';
+      bumpRevision(state);
+      expect(improvementError(state, worker.id, 'mine')).toBe('A mine needs hills');
+    });
+
+    it('hands the niter over once the mine is up', () => {
+      // The point of the waiver: the copies, not the hammer. A worked flat niter
+      // seam has to reach the empire the way a hill seam does, through
+      // `openedResource`'s improvement clause.
+      const { state, worker } = workerState();
+      const tile = at(state, 5, 4);
+      tile.terrain = 'plains';
+      tile.hills = false;
+      tile.resource = 'niter';
+      bumpRevision(state);
+      expect(hasResource(state, 0, 'niter')).toBe(false);
+      expect(applyCommand(state, build(0, worker.id, 'mine')).ok).toBe(true);
+      expect(tile.improvement).toBe('mine');
+      expect(hasResource(state, 0, 'niter')).toBe(true);
     });
 
     it('keeps grassland and plains farmable with no water anywhere near', () => {

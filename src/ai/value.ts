@@ -132,7 +132,7 @@ import {
   stageEmpireFold,
 } from '../sim/yields/empire';
 import { explainEmpireGold } from '../sim/empireGold';
-import { type Tile, getTileAt } from '../sim/map';
+import { getTileAt } from '../sim/map';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
 import { renownPerTurn } from '../sim/renown';
 // The pair resolution and a road's own length, off the leaf every fold reads
@@ -1252,27 +1252,13 @@ export function realmResources(state: GameState, playerId: number): ReadonlySet<
   return held;
 }
 
-/**
- * **How many copies the seam on this hex is worth** — the tile's own rolled
- * quantity, or one where its row has no range to roll in.
- *
- * The same rule `tileCopies` keeps inside `src/sim/cities.ts`, and it asks the
- * *row* rather than reading `Tile.resourceCopies` on its own for the same
- * reason: only a strategic row carries a `copiesPerSource` range, so a number
- * left on a tile whose resource was rewritten must not be paid for the seam
- * standing there now. A hex with no seam, or one this appraisal cannot see, is
- * nought.
- *
- * It is written here rather than imported because the simulation's copy is
- * private to the file that sweeps the map with it. If it is ever exported, this
- * should go and the import should take its place — the two must not drift, and
- * `test/sim/aiWants.test.ts` pins them against each other.
- */
-export function tileSeamCopies(tile: Tile | undefined): number {
-  if (tile === undefined || tile.resource === undefined) return 0;
-  if (resourceDef(tile.resource).copiesPerSource === undefined) return 1;
-  return tile.resourceCopies ?? 1;
-}
+// `tileSeamCopies` was here and was deleted in batch R6 (`docs/flags.md`
+// (oooooo)). It was a copy of `tileCopies` in `src/sim/cities.ts`, written
+// because R5 could not edit the simulation, and its own docblock said to delete
+// it once `tileCopies` was exported. That has happened. The three appraisals
+// that used it — the site's seams in `bot.ts`, the hex's own in `wants.ts` and
+// the spade's in `plan.ts` — import `tileCopies` directly, so nothing in
+// `src/ai/` decides what a seam is worth.
 
 /**
  * **Spare copies of every strategic kind, by id** — `ValueContext.spare`.

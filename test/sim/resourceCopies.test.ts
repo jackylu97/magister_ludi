@@ -45,10 +45,11 @@ import {
   controlsAnyOf,
   foundCityAt,
   hasResource,
+  improvementWouldOpenResource,
   resourceCopies,
 } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
-import { improvementForResource } from '../../src/sim/improvementData';
+import { improvementDef, improvementForResource } from '../../src/sim/improvementData';
 import { LEADER_IDS, leaderDef } from '../../src/sim/leaderData';
 import { dealSideError } from '../../src/sim/diplomacy';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
@@ -72,7 +73,7 @@ import {
   unitDef,
 } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
-import type { ResourceId } from '../../src/sim/resourceData';
+import { type ResourceId, resourceDef } from '../../src/sim/resourceData';
 
 // --- the bench --------------------------------------------------------------
 
@@ -764,5 +765,182 @@ describe('the committed reading is on no clock at all', () => {
     // the second ask the first one's answer.
     state.units = state.units.filter((unit) => unit.id !== sword.id);
     expect(availableCopies(state, 0, 'iron')).toBe(1);
+  });
+});
+
+// --- would a spade open it? -------------------------------------------------
+
+/**
+ * `improvementWouldOpenResource`, the composition batch R6 put beside
+ * `openedResource` so the bot could stop restating it.
+ *
+ * Only one caller asks it — the bot prices a spade partly on the copies it would
+ * open. The two states pinned below are the two the deleted copy answered
+ * differently from the simulation. Neither could reach it through that caller,
+ * so neither was a live mispricing; they are pinned because they are the states
+ * a second copy gets wrong, and this reading is what there is instead of one.
+ */
+describe('improvementWouldOpenResource', () => {
+  it('says yes for the improvement that opens the seam, and no for any other', () => {
+    const state = bench();
+    foundCityAt(state, 0, at(state, 5, 5));
+    const tile = at(state, 6, 4);
+    tile.resource = 'iron';
+    bumpEconomy(state);
+    expect(improvementWouldOpenResource(state, tile, 0, 'mine')).toBe(true);
+    expect(improvementWouldOpenResource(state, tile, 0, 'farm')).toBe(false);
+    // A seam already open pays a spade nothing: the copies are in hand.
+    tile.improvement = 'mine';
+    bumpEconomy(state);
+    expect(improvementWouldOpenResource(state, tile, 0, 'mine')).toBe(false);
+  });
+
+  it('answers for a town on the seam the way the simulation does', () => {
+    // **The disagreement the deleted copy carried.** `openedResource`'s town
+    // clause is not "a town stands here" — it is "a town stands here *and* its
+    // owner holds the technology the opening improvement needs". The bot's copy
+    // dropped the second half and treated every town on a seam as already open.
+    // It never cost anything, because the bot asks `improvementErrorAt` first
+    // and no improvement may be built on a town's own hex — but the copy was
+    // wrong, and the only reason it did not show was a gate somewhere else.
+    const state = bench();
+    const city = foundCityAt(state, 0, at(state, 5, 5));
+    const tile = at(state, city.col, city.row);
+    tile.resource = 'iron';
+    const seat = state.players[0]!;
+    const mining = improvementDef('mine').requiresTech!;
+    seat.techsResearched = seat.techsResearched.filter((tech) => tech !== mining);
+    bumpRevision(state);
+    bumpEconomy(state);
+    // The town does not open it without Mining, so a mine here would — which is
+    // what the simulation says and what the copy denied.
+    expect(hasResource(state, 0, 'iron')).toBe(false);
+    expect(improvementWouldOpenResource(state, tile, 0, 'mine')).toBe(true);
+
+    // With Mining the town opens it on its own, and the spade is worth nothing.
+    seat.techsResearched.push(mining);
+    bumpRevision(state);
+    bumpEconomy(state);
+    expect(hasResource(state, 0, 'iron')).toBe(true);
+    expect(improvementWouldOpenResource(state, tile, 0, 'mine')).toBe(false);
+  });
+
+  it('is gated by the reveal, like every other reading of a seam', () => {
+    // Niter needs Physics. An empire that cannot name the seam is not shown a
+    // spade worth taking, which is `openedResource`'s first clause arriving here
+    // for free — the copy had no reveal clause at all and leaned on its caller.
+    const state = bench();
+    foundCityAt(state, 0, at(state, 5, 5));
+    const tile = at(state, 6, 4);
+    tile.resource = 'niter';
+    const seat = state.players[0]!;
+    const physics = resourceDef('niter').requiresTech!;
+    seat.techsResearched = seat.techsResearched.filter((tech) => tech !== physics);
+    bumpRevision(state);
+    bumpEconomy(state);
+    expect(improvementWouldOpenResource(state, tile, 0, 'mine')).toBe(false);
+    seat.techsResearched.push(physics);
+    bumpRevision(state);
+    bumpEconomy(state);
+    expect(improvementWouldOpenResource(state, tile, 0, 'mine')).toBe(true);
+  });
+});
+
+// --- one rule, one place ----------------------------------------------------
+
+/**
+ * The whole of `src/`, read as text.
+ *
+ * `?raw` through `import.meta.glob`, the idiom `benches.test.ts` uses: these are
+ * claims about what the code *says*, so they are read rather than called. The
+ * glob is every source file and not just the three the deduplication touched,
+ * because the point is to catch the *next* copy, and the next copy will be
+ * written by whichever batch is fenced out of `src/sim/` next — which could be
+ * the spectator page or the arena as easily as the bot.
+ */
+const SOURCE = import.meta.glob('../../src/**/*.ts', {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>;
+
+/** A file's code without its prose — a comment naming a deleted function is not a copy. */
+function codeOf(text: string): string {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .map((line) => line.replace(/\/\/.*$/, ''))
+    .join('\n');
+}
+
+/** Which files' code matches, by path. */
+function filesMatching(pattern: RegExp): string[] {
+  return Object.entries(SOURCE)
+    .filter(([, text]) => pattern.test(codeOf(text)))
+    .map(([path]) => path)
+    .sort();
+}
+
+/**
+ * **Two rules that were written three times, pinned by source** — batch R6,
+ * `docs/flags.md` (oooooo).
+ *
+ * R4 and R5 were each fenced out of `src/sim/`, so each restated a rule that
+ * lives there rather than change the simulation under another batch's feet. Both
+ * authors annotated their copy and said what to do about it. This is the doing,
+ * and these are the assertions that keep it done: a fourth clause added to
+ * `openedResource`, or a change to what a hex's quantity means, must not be able
+ * to leave a stale second reading behind in the UI or the bot.
+ *
+ * Read as text rather than called, because "it is written once" is a claim about
+ * the source and nothing observable can distinguish two readings that agree
+ * today. That is exactly how the copies stayed unnoticed.
+ */
+describe('one rule, one place', () => {
+  it('decides what a hex of a resource is worth in exactly one file', () => {
+    // The load-bearing line of `tileCopies`: fall back to one copy when the tile
+    // carries no rolled quantity. Both deleted copies had it verbatim.
+    const rule = filesMatching(/resourceCopies\s*\?\?\s*1/);
+    expect(rule).toEqual(['../../src/sim/cities.ts']);
+
+    // And the names the two copies went by are gone from the code. The comments
+    // that say where they went are prose and are stripped before this looks.
+    expect(filesMatching(/\btileSeamCopies\b/)).toEqual([]);
+  });
+
+  it('decides what opens a seam in exactly one file', () => {
+    // `improvementOpensSeam` in `src/ai/plan.ts` restated `openedResource`'s
+    // clauses and is gone; `improvementWouldOpenResource` composes the real
+    // reading instead, beside it.
+    expect(filesMatching(/\bimprovementOpensSeam\b/)).toEqual([]);
+    expect(filesMatching(/\bimprovementWouldOpenResource\b/)).toContain(
+      '../../src/sim/cities.ts',
+    );
+
+    // The stronger claim, and the one that survives a rename: restating the
+    // access rule takes these two readings, and nothing outside the simulation
+    // holds either. `improvementForResource` is deliberately not on this list —
+    // inverting the table to *name* a hex's opener is what the tile readout and
+    // the Compendium legitimately do, and it decides no access.
+    for (const name of ['improvementCountsAs', 'isGreatPersonWork']) {
+      const outside = filesMatching(new RegExp(`\\b${name}\\b`)).filter(
+        (path) => !path.startsWith('../../src/sim/'),
+      );
+      expect(
+        outside,
+        `${name} is read outside src/sim/. If that is a second reading of what ` +
+          `opens a seam, ask the simulation instead. If it is something else, ` +
+          `say so here and narrow this claim.`,
+      ).toEqual([]);
+    }
+  });
+
+  it('keeps the UI asking the simulation for the count', () => {
+    // `tileCopyCount` is still here, and should be: the *printing* decision —
+    // does this seam have a figure worth showing — is the UI's. What it must not
+    // do is work out the number itself.
+    const ui = codeOf(SOURCE['../../src/ui/resourceCopies.ts']!);
+    expect(ui).toContain('tileCopies(tile)');
+    expect(ui).not.toMatch(/resourceCopies\s*\?\?\s*1/);
   });
 });

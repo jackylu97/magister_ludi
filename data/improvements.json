@@ -135,6 +135,9 @@
         "none"
       ],
       "requiresHills": true,
+      "hillsIf": [
+        "ownResource"
+      ],
       "improvesResource": [
         "iron",
         "niter",

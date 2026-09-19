@@ -166,7 +166,6 @@ import {
   newResourceTerms,
   realmResources,
   spareResourceCopies,
-  tileSeamCopies,
   sciencePrice,
   townProduction,
   hammerTerm,
@@ -222,6 +221,7 @@ import {
   growthThreshold,
   queueItemCost,
   tileContextAt,
+  tileCopies,
   tileOwnerCityId,
   tileOwnerPlayerId,
   tilePurchaseError,
@@ -6445,8 +6445,17 @@ export function explainSiteValue(
     // iron hill arms seven pieces and a three-copy one arms three, and a settler
     // that could not tell them apart walked past the better half of the map.
     const at = getTileAt(state.map, seam.col, seam.row);
+    // The simulation's own count (batch R6): the seam reading walked the map to
+    // find this hex, so a hex it cannot find again is off the board and worth
+    // nothing. `tileCopies` is asked of a tile, so the nothing is answered here.
     bonuses.push(
-      ...newResourceTerms(ctx, held, seam.id, `at (${seam.col},${seam.row})`, tileSeamCopies(at)),
+      ...newResourceTerms(
+        ctx,
+        held,
+        seam.id,
+        `at (${seam.col},${seam.row})`,
+        at === undefined ? 0 : tileCopies(at),
+      ),
     );
   }
   // Best first, ties by tile index — a fact about the board rather than about the

@@ -487,10 +487,19 @@ function hasAdjacentImprovement(
  * own seam — "wheat on a hill wants a farm and can take nothing else, so
  * refusing the farm makes it unimprovable" (user, 2026-08-27).
  *
+ * The mine carries `ownResource` for the same problem read the other way round
+ * (batch R6, `docs/flags.md` (oooooo)). Niter is the one mine-opened resource
+ * that spawns on flat ground, and the mine is the only improvement that opens
+ * it, so without the waiver a flat niter seam could not be worked at all — only
+ * a city standing on it or an academy planted on it would hand over the copies.
+ * `requiresHills` still refuses a mine on flat ground that carries nothing,
+ * which is the rule the waiver is a narrow exception to.
+ *
  * `ownResource` asks **revealed** seams only, which is the seam clause's rule a
- * few lines down and is here for that rule's reason: a hill that quietly became
- * farmable would be the map leaking through a button. No farm-opened resource is
- * tech-gated today, so the clause changes nothing now and cannot leak later.
+ * few lines down and is here for that rule's reason: a hex that quietly became
+ * buildable would be the map leaking through a button. That gate is load-bearing
+ * now rather than theoretical — niter needs Physics, so before Physics the flat
+ * hex refuses the mine with the sentence it has always given.
  *
  * A third reason stood here between L3c and L8 — `townTerraces`, waived by a
  * hall Pachacuti's towns raised — and it left with the hall (`docs/flags.md`

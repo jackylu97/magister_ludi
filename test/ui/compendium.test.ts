@@ -992,6 +992,25 @@ describe('never hand-written prose about a number', () => {
     expect(sourceOf('compendium.ts')).toContain("from './religionScreen'");
   });
 
+  it('says which ground a hills waiver forgives, from the row’s own side', () => {
+    // Batch R6. The waiver clause used to open "Hills are allowed where the hex
+    // …" for every row, which was written from the farm's side: the farm wants
+    // flat ground, so the waiver buys it a hillside. The mine wants hills, so
+    // the same waiver buys it flat ground, and the fixed opening printed the
+    // sentence backwards for it. The opening is read off `requiresHills` now.
+    const clausesOf = (name: string) =>
+      everyEntry()
+        .find((entry) => entry.name === name)!
+        .clauses.map((clause) => clause.text);
+    expect(clausesOf('Mine')).toContain(
+      'Flat ground is allowed where the hex carries a resource this improvement gives access to.',
+    );
+    expect(clausesOf('Farm')).toContain(
+      'Hills are allowed where the hex is beside fresh water or carries a resource this ' +
+        'improvement gives access to.',
+    );
+  });
+
   it('describes a defender’s edge as points, never a percentage, and names siege', () => {
     // Combat moved to flat points (2026-08-28); the Compendium's own words for
     // it must never regress to "%", and the written-shelf rule (below) already

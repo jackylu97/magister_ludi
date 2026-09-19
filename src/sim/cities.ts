@@ -416,6 +416,43 @@ function openedResource(
 }
 
 /**
+ * Would planting this improvement here hand this player a seam they cannot draw
+ * on today?
+ *
+ * Both halves are `openedResource` — asked of the hex as it stands, and again of
+ * a copy of the hex with the improvement on it — so this is a composition of the
+ * one rule rather than a second statement of it. That matters because the
+ * question has one caller and it is outside the simulation: the bot prices a
+ * spade partly on the copies it would open (`seamOpeningTerms`, `src/ai/plan.ts`),
+ * and before batch R6 it asked the question by restating `openedResource`'s
+ * clauses on its own side of the fence. That copy had already drifted in two
+ * ways — it missed the technology the town-on-the-seam clause asks for, and it
+ * answered "no" for a work standing on a seam no improvement names. Neither
+ * could fire through its caller, so nothing was mispriced; what they showed is
+ * that a copy goes stale while still looking right. The composition is here,
+ * beside the rule, and the copy is gone.
+ *
+ * The spread is safe and is the reason this lives in this file rather than in
+ * the bot's: `openedResource` reads only `resource`, `improvement`, `col` and
+ * `row` off the tile, all of them copied, and it never writes. A clause that
+ * started reading some other tile field would be written here, next to this.
+ *
+ * "Cannot draw on today" is the whole of the first half: a seam a town already
+ * opened, or one a work already stands on, pays a spade nothing, because the
+ * copies are in the empire's hands whatever happens next.
+ */
+export function improvementWouldOpenResource(
+  state: GameState,
+  tile: Tile,
+  playerId: number,
+  improvement: ImprovementId,
+): boolean {
+  if (tile.resource === undefined) return false;
+  if (openedResource(state, tile, playerId) !== null) return false;
+  return openedResource(state, { ...tile, improvement }, playerId) !== null;
+}
+
+/**
  * Does this player *control* this resource — hold a tile carrying it, worked by
  * the improvement that opens it or by a city standing on top of it?
  *
@@ -817,8 +854,17 @@ export function controlsAnyOf(
  *
  * Written once here because both sweeps below want it and a second reading is a
  * second place the two could disagree about what a seam is worth.
+ *
+ * **Exported** (batch R6, `docs/flags.md` (oooooo)). It was private while R4 and
+ * R5 were fenced out of `src/sim/`, and each of them wrote the rule again on its
+ * own side of the fence — `tileCopyCount` in `src/ui/resourceCopies.ts` and
+ * `tileSeamCopies` in `src/ai/value.ts`, both annotated by their authors as
+ * copies to be deleted the day this was exported. They are gone; this is the one
+ * reading, and `test/sim/resourceCopies.test.ts` reads the sources to keep it
+ * that way. The export adds no load-time import edge, because both callers are
+ * outside `src/sim/` and both already import this module.
  */
-function tileCopies(tile: Tile): number {
+export function tileCopies(tile: Tile): number {
   if (tile.resource === undefined) return 0;
   if (resourceDef(tile.resource).copiesPerSource === undefined) return 1;
   return tile.resourceCopies ?? 1;

@@ -106,6 +106,12 @@
  * reaches both. Marble went the other way for the same reason read forwards: it
  * is hills-only, so the mine reaches all of it.
  *
+ * The mine has since taken `hillsIf: ['ownResource']` (batch R6), so that hole
+ * would no longer open — a flat seam the mine is the sole opener for waives the
+ * high ground. The split stands anyway, on the older ground that salt and jade
+ * are quarry work, and the waiver is deliberately the narrow exception rather
+ * than a licence to file every flat seam under the mine.
+ *
  * Growth renewals are upgrades, not new rows (Entry I)
  * ---------------------------------------------------
  * `upgrades` is the punctuated-renewal hook: a list of `{tech, add,

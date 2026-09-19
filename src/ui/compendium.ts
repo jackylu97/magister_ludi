@@ -478,8 +478,10 @@ function eitherWords(parts: readonly string[]): string {
  * between L3c and L8 — a town that had cut steps into its hillsides — and an
  * `else` arm would have printed the resource's sentence for it. It went out
  * with the hall (`docs/flags.md` (bbbbb)) and the table stays, because the
- * lesson outlives the row. Each phrase completes "Hills are allowed where the
- * hex …".
+ * lesson outlives the row. Each phrase completes the opening the caller picks
+ * off `requiresHills` — "Hills are allowed where the hex …" for a row that
+ * wants flat ground, "Flat ground is allowed where the hex …" for one that
+ * wants hills.
  */
 const HILLS_WAIVER_WORDS: Record<HillsWaiver, string> = {
   freshwater: 'is beside fresh water',
@@ -1405,8 +1407,14 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
   ];
   const clauses: CompendiumClause[] = [];
   if (def.hillsIf !== undefined && def.hillsIf.length > 0) {
+    // The waiver forgives whichever ground the row refused, so the opening is
+    // read off `requiresHills` rather than written out. The farm wants flat
+    // ground and the waiver buys it a hillside; the mine wants hills and the
+    // waiver buys it flat ground for a niter seam (batch R6). One sentence for
+    // both would be false for one of them.
+    const allowed = def.requiresHills === true ? 'Flat ground is' : 'Hills are';
     clauses.push({
-      text: `Hills are allowed where the hex ${eitherWords(
+      text: `${allowed} allowed where the hex ${eitherWords(
         // One phrase per waiver, off the union rather than off a ternary: a
         // third reason arrived with the Terraces (batch L3c) and an `else`
         // would have printed the resource's sentence for it.

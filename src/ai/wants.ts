@@ -113,7 +113,6 @@ import {
   explainYields,
   bagOfTileYield,
   newResourceTerms,
-  tileSeamCopies,
   yieldDelta,
   yieldWeight,
 } from './value';
@@ -124,6 +123,7 @@ import {
   borderGrowth,
   cityTile,
   mirrorRowFor,
+  tileCopies,
   tileOwnerPlayerId,
   tilePurchaseError,
   tilePurchasePrice,
@@ -701,7 +701,7 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
         value: 0,
       });
     }
-    terms.push(...newResourceTerms(ctx, ctx.realm, tile.resource, 'on the hex', tileSeamCopies(tile)));
+    terms.push(...newResourceTerms(ctx, ctx.realm, tile.resource, 'on the hex', tileCopies(tile)));
     const owed = next !== null && next.col === tile.col && next.row === tile.row;
     const share = owed ? soonShare : 1;
     const claim: ValueTerm = {

@@ -57,7 +57,6 @@ import {
   bagOfTileYield,
   newResourceTerms,
   realmResources,
-  tileSeamCopies,
   voiceWeight,
   yieldWeight,
 } from '../../src/ai/value';
@@ -111,6 +110,7 @@ import {
   purchasableTiles,
   refreshCityDerived,
   resourceCopies,
+  tileCopies,
   tilePurchaseError,
 } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
@@ -3277,19 +3277,24 @@ describe('the copies model in the appraisal', () => {
   });
 
   /**
-   * The bot's own reading of a tile's quantity against the simulation's. The two
-   * are separate functions — `tileCopies` is private to `cities.ts` — so what is
-   * pinned is the observable they share: an empire whose only seam is this hex
-   * controls exactly the copies the hex rolled.
+   * The bot reads a tile's quantity out of the simulation now.
+   *
+   * This used to pin the bot's own `tileSeamCopies` against `resourceCopies`,
+   * because the simulation's `tileCopies` was private to `cities.ts` and R5 was
+   * fenced out of it. Batch R6 exported `tileCopies` and deleted the bot's copy,
+   * so the two readings cannot disagree by construction. What is still worth
+   * asserting is that the bot's appraisals are fed by it — kept here because the
+   * claim the bot cares about is the observable one: an empire whose only seam
+   * is this hex controls exactly the copies the hex rolled.
    */
   it('reads a tile’s copies the way the simulation counts them', () => {
     const { state, tile } = seamBench('obsidian', 7, true);
-    expect(tileSeamCopies(tile)).toBe(7);
+    expect(tileCopies(tile)).toBe(7);
     expect(resourceCopies(state, 0, 'obsidian')).toBe(7);
     // A row with no range to roll in is one copy, whatever is left on the tile.
     const lux = RESOURCE_IDS.find((id) => resourceDef(id).kind === 'luxury')!;
-    expect(tileSeamCopies({ ...tile, resource: lux })).toBe(1);
-    expect(tileSeamCopies(undefined)).toBe(0);
+    expect(tileCopies({ ...tile, resource: lux })).toBe(1);
+    expect(tileCopies({ ...tile, resource: undefined })).toBe(0);
   });
 
   /**

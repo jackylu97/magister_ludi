@@ -511,6 +511,9 @@
                                         into the star chart
            under it     #hud-dock       Statecraft, Religion and Diplomacy,
                                         centre — see the dock's own comment
+           under it     #hud-holdings   the strategic resources the empire holds
+                                        and what it has spent them on, hidden
+                                        until it holds one
            bottom-left  #hud-context    what is under the cursor, and refusals
            right        #city-panel / #unit-panel — one at a time
            bottom-right #hud-end-turn   the one button pressed every single turn
@@ -528,6 +531,12 @@
          The last two are *screens*, not cards: each covers the window including
          the bar, owns the keyboard while it is up, and closes the other as it
          opens — see `closePopovers` and the `onOpen` hooks in src/main.ts.
+
+         #hud-holdings is the one surface on that list with no markup here: it
+         builds its own element in src/ui/holdingsRail.ts and main.ts mounts it
+         after #hud-dock. It is listed all the same, because this comment is the
+         register of what the player can be looking at and a surface missing
+         from it is a surface the next reader does not know exists.
          ============================================================ -->
 
     <!-- The top bar: a slim ink rule across the whole window, in reading order.
