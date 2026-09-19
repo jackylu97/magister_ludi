@@ -19,6 +19,44 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(pppppp) Four Commerce cards that lift a rule — RULED, C3, 2026-09-19** (the
+user, 2026-09-19, answering four questions). Each of these was cheap to build
+and expensive to decide; the decisions are below, with what each rule was
+protecting so a later reader knows it was weighed rather than missed.
+
+1. **A Court of Merchants — fall back to the normal draw.** When the merchant
+   roster is spent, the offer is drawn the ordinary weighted way. The card is a
+   strong nudge, never a lock, so the reason the draw is weighted rather than
+   restricted — *a spent roster banks rather than blocks* — survives intact.
+2. **The Gilded Scaffold — build it as written.** Gold buys world wonders and
+   every city loses 15% production while it is held. This lifts *a wonder is
+   never for sale*, which existed so that one-per-world was not decided by who
+   was richest the turn it unlocked. The lift has a precedent in the same
+   clause: the Valley of Kings already waives it for faith in one town
+   (`BuildingDef.faithBuysWonders`). Build the gold lift the same way — an
+   action rule read at the one refusal in `purchaseError`, not a second path.
+3. **The Brokers' Redraw — gold at a premium.** Gold may pay for a redraw, but
+   it costs more than the faith ladder would, so faith stays the efficient
+   route and the card is a convenience rather than a replacement. This keeps
+   faith worth holding for an empire that keeps no religion, which is what
+   faith-only was protecting. The premium is a number for `data/statecraft.json`,
+   never a constant in code.
+4. **Civic Receipts — pay on the purchase of any building.** The user's words:
+   *"rework: pay on purchase of any building."* **Read as: every building
+   purchase pays, with no first-time restriction and no ordinary-building
+   restriction** — not "the first purchase of any building". The offered option
+   was the narrower one and it was declined in favour of a rework, and "on
+   purchase of any building" says what it says. This is a real buff: a standing
+   10% culture rebate on every building bought, uncapped. It also takes the card
+   off the ledger of firsts entirely, which removes the withholding case C1
+   shipped deliberately. **If the narrower reading was meant, it is a one-word
+   correction and the card should carry `first` again.**
+
+**Venture Routes** is built in the same batch and needed no ruling: a route's
+term is `expiresTurn = state.turn + TRADE.routeTurns`, a constant, so a
+percentage on it is the shape `settlerCost`, `unitUpkeep` and `roadStepCost`
+already are.
+
 **(oooooo) Niter cannot be mined, and one rule is written in three places —
 RULED, R6, 2026-09-18** (the user, 2026-09-18: *"ok yeah, put in the niter fix
 and the deduplications"*). Two jobs, both cleanup after the five strategic
