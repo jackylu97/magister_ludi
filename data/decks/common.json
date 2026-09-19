@@ -569,8 +569,24 @@
       "rarity": "rare",
       "flavor": "Six languages at one table, and the wine does the translating.",
       "text": "Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +2 gold.",
-      "deferred": ["a town's own foreign roads are counted toward the names it raises"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 1,
+          "count": "foreignTradeRoutes",
+          "within": "city",
+          "max": 3,
+          "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 1 }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": { "test": "greatWork" },
+          "gold": 2,
+          "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 1 }
+        }
+      ],
+      "note": "A city is counted for the trade routes that set out from it to another empire, and never for more than three. The extra gold wants a citizen standing on the work, as every tile bonus does."
     },
     "cloisterSchools": {
       "name": "Cloister Schools",

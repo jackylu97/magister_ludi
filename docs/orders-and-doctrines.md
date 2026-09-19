@@ -249,11 +249,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Maritime Authority | 2 | ● | S | Gain +3 authority. Naval units gain +5 combat strength against cities. |
 | Professional Retainers | 2 | ● | S | All units gain +3 combat strength and cost +1 gold in maintenance. |
 | The Caravanserai Network | 2 | ◆ | S | Each city receiving a domestic trade route grants +1 happiness, once per city. Domestic routes gain +1 production and +1 gold. |
+| The Home Market | 2 | ◆ | P | Cities receiving at least two of your domestic routes gain +20% food, +20% production and +2 happiness, once per city. |
+| The League of Cities | 2 | ○ | P | Cities with one of your paying outgoing routes gain +15% production and cost one less authority, minimum one. Cities without one lose 10% gold. |
 | The Charter Fleet | 2 | ◆ | S | Naval combat units cost 20% less gold to purchase. Naval combat units you purchase with gold gain +1 movement permanently. Normal coastal, technology and purchase requirements remain. |
 | The Scholars' Roads | 2 | ○ | P | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. |
 | The Money Lenders | 2 | ○ | P | Earn interest equal to 2% of your treasury each turn, with no cap. |
 | The Brokers' Redraw | 2 | ○ | S | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. |
 | The Paid Army | 3 | ◆ | S | Military-unit upkeep falls by 1 gold, minimum zero. Military units cost 25% less gold to purchase. |
+| The Chartered Metropolis | 3 | ○ | P | Cities with at least three of your paying outgoing routes gain +25% food, production and culture, but each costs +4 authority while qualified. |
 | A Court of Merchants | 3 | ○ | S | Gain +50% renown, but great-person offers contain only Great Merchants. |
 | The Gilded Scaffold | 3 | ○ | P | You may purchase world wonders. All your cities lose 15% production. |
 | Merchant Princes | 3 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
@@ -404,6 +407,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Letters of Marque | Dominion · Commerce | 3 | ○ | S | Naval combat kills grant 40 gold. Cities with a Harbour purchase naval combat units for 25% less gold, but produce those units 20% more slowly. |
 | The Exchange of Discoveries | Commerce · Scientific | 3 | ◆ | S | +1 science on mines and quarries on a resource. Additional +1 if the city has a market. |
 | Garden Provinces | Expansionist · Magisterial | 2 | ● | P | Connected cities with a Monument gain +2 food and +2 culture. |
+| The Cosmopolitan Court | Commerce · Magisterial | 3 | ○ | S | Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +2 gold. |
 
 ### Generic
 
@@ -507,7 +511,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Post Riders** — Held whole. A piece can be paid for the ground it stands on, but the road under it is not among the grounds it can be asked about. † a cart or a workman that wakes on your own road travels further that turn
 - **Established Routes** — Held whole. A caravan is hired and lapses; nothing remembers that the same road was run before. † a road kept up across renewals pays far more
 - **The Market Writ** — A line the design is still writing, entered under a working name so that it is not lost. Both halves would be ordinary law once the card is named and its words are settled. † your markets widen your writ, and land is cheaper to buy
-- **The Home Market** — Held whole. A town can be asked whether a road ends in it, never how many do. † a town that more than one of your own roads ends in grows, works and rests better
 - **The Caravanserai Network** — Held whole. What a road pays cannot be made to rise with the number of towns your other roads reach. † each of your towns that one of your own roads ends in gladdens the realm and enriches the roads themselves
 - **The Foreign Factor** — Held whole. A standing commercial house abroad is a new fact about a town, and no law of yours can pay a foreign town. † every foreign town where your house is established pays you, and pays its host, while the peace holds
 - **The Consulate** — Held whole. A standing commercial house abroad has no place on the board, and a discount of yours cannot be handed to another empire. † towns where your house is established buy more cheaply, whoever owns them, and each foreign host sings for you
@@ -515,7 +518,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Purple Works** — Held whole. The works it would open has not been drawn up yet, and neither has the good it would make. † drafting this opens the purple works for building
 - **The Money Lenders** — Half built, and so held whole. A surcharge reaches the things a city buys, and never the hire of a cart or the calling of a great name. † your treasury pays you interest each turn, up to a ceiling; everything you buy, hire or call for costs more while the lenders are seated
 - **The Harbour Chain** — Held whole. Extra roads are granted to the realm or once per town, never counted off a tally of harbours. † your harbours together open more roads than you could otherwise run; a sea road between two of your established houses runs longer
-- **The League of Cities** — Held whole. A town can be asked whether a road ends in it, never whether one sets out from it, and no law makes a single town cheaper to hold. † a town that sends out one of your roads works harder and is easier to hold; a town that sends none loses gold
 - **The Charter Fleet** — Half built, and so held whole. A piece can be born stronger or hardier, but nothing can be written on it about how far it sees. † hulls bought with gold cost less and are built with keener lookouts for the rest of their lives
 - **Export Guilds** — Held whole. Nothing asks whether a particular good is being sold abroad this turn. † a town working a good you are currently selling abroad builds faster and rests easier
 - **The Exchange** — Half built, and so held whole. A law of yours pays your own books; it cannot teach a foreign capital. † every foreign realm your roads reach teaches your whole empire, and learns from it
@@ -524,7 +526,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Dye Vats** — Held whole. The vats they would open have not been drawn up yet, so the charter has nothing to grant. † drafting this opens the dye vats for building
 - **The Endowment** — Held whole. A soldier can be marked at his birth by the bank that paid for him; a building cannot. † a building you buy is better for the rest of its life than one you raised
 - **The World's Exchange** — Held whole. Hammers behind a thing are raised by a flat share, never by a share counted off how far your roads reach.
-- **The Chartered Metropolis** — Held whole. A town can be asked whether a road ends in it, never how many set out from it, and no law raises what one town costs to hold. † a town that sends out several of your roads grows and works and sings far better, and is far harder to hold
 - **The Admiralty of Trade** — Held whole. A standing commercial house has no place on the board, and nothing may waive how far a road is allowed to reach. † a sea road between two of your established houses may be run at any distance
 - **The Merchant Commonwealth** — Held whole. A standing commercial house has no place on the board, and no law makes a single town cheaper to hold. † your own towns where your house is established and one of your roads ends rest easier and are easier to hold
 - **The Merchant Works** — Half built, and so held whole. A town can be asked whether it is raising a wonder, but the realm's single great houses and the last work of all are not a class anything can name. † a town raising one of the realm's great houses turns a share of its coin into stone, and loses a share of its coin while it does
@@ -602,7 +603,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Garden Cities** — † the farms a town actually works are counted, and paid in song
 - **Pilgrim Markets** — † a road pays when either of its two ends keeps a holy site
 - **The Exchange of Discoveries** — † a town counts the distinct realms its own caravans reach
-- **The Cosmopolitan Court** — † a town's own foreign roads are counted toward the names it raises
 - **Sacred Patronage** — Half built and therefore not built: a gift may now be held to once a turn, but the moment the world announces is a great one spending themselves on their boon — so a card written on the spending would pay for one of the ways a person may be spent and stay silent for the others. † spending a great person pays faith, but never more than once in a turn
 - **Triumphal Arches** — † taking a town raises the name of a general in particular. A town that holds a wonder can be told from one that does not now, but the renown an occasion pays favours nobody in particular — a deed is not a shelf of buildings, and the draw's bias is a fact about what an empire keeps.
 - **The Crusader Orders** — † taking a town preaches your faith into it, and the unbelieving ground is the harder fought

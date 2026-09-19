@@ -172,19 +172,97 @@ export function routeHexes(state: GameState, from: City, to: City): number {
 }
 
 /**
- * Is this caravan's route still paying?
+ * The two towns of a route that is **still active**, or `null`.
  *
- * The `TimedEffect` reading exactly (`state.turn < expiresTurn`): an absolute
- * turn, compared and never counted down. A lapsed route is **inert rather than
- * gone** — the piece keeps walking home carrying a dead route, and the shuttle
- * phase is what tidies it up when it gets there, which is the same broom-not-a-
- * clock bargain `pruneTimedEffects` makes.
+ * `routeIsLive` and `routeCities` asked as one question, because every caller
+ * that cares whether a route is still running also wants to know which pair it
+ * joins — and two calls resolve the same two cities twice. The expiry is the
+ * `TimedEffect` reading exactly (`state.turn < expiresTurn`): an absolute turn,
+ * compared and never counted down.
+ */
+export function liveRouteCities(
+  state: GameState,
+  unit: Unit,
+): { from: City; to: City } | null {
+  const route = unit.trade;
+  if (!route) return null;
+  if (state.turn >= route.expiresTurn) return null;
+  return routeCities(state, unit);
+}
+
+/**
+ * Is this caravan's route still active?
+ *
+ * The one test, and there is no second one. A lapsed route is **inert rather
+ * than gone** — the piece keeps walking home carrying a dead route, and the
+ * shuttle phase is what tidies it up when it gets there, which is the same
+ * broom-not-a-clock bargain `pruneTimedEffects` makes — so "active" is the
+ * whole of the question. Two Commerce cards say "paying" in their text; the
+ * user ruled on 2026-09-19 that the word is decorative and means active, so
+ * nothing here tests anything else.
  */
 export function routeIsLive(state: GameState, unit: Unit): boolean {
-  const route = unit.trade;
-  if (!route) return false;
-  if (state.turn >= route.expiresTurn) return false;
-  return routeCities(state, unit) !== null;
+  return liveRouteCities(state, unit) !== null;
+}
+
+/** Which way a route runs, seen from one town. See `countRoutesAt`. */
+export type RouteEnd = 'arriving' | 'departing';
+
+/**
+ * Whose town the far end of a route belongs to — `routeIsInternational` said as
+ * a narrowing a card can carry.
+ *
+ * The same two words `CardPaysEffect.crossing` and `CityScope`'s
+ * `routeEndsHere` already use, named here so the leaf that answers the question
+ * owns the vocabulary and the card table imports it rather than respelling it.
+ */
+export type RouteCrossing = 'domestic' | 'international';
+
+/**
+ * **How many active routes meet this town**, by which way they run and whose
+ * town is at the other end.
+ *
+ * The one walk behind every route question a *town* is asked. `Unit.trade` is
+ * the route and there is no register, so the only way to answer is to walk the
+ * pieces; putting that walk here rather than in the card evaluator is what keeps
+ * the predicate ("does one end here") and the tally ("how many set out from
+ * here") from becoming two readings that can disagree. The scope
+ * `routeEndsHere` is this function compared against a threshold, and the count
+ * `foreignTradeRoutes` narrowed to a town is this function with the other
+ * direction.
+ *
+ * **Nobody asks who sent it**, and nobody needs to. A route departing a town is
+ * that town's owner's by construction (`routeCities` drops a route whose origin
+ * has changed hands), and a domestic route arriving at your town started in
+ * another of your towns. So "your outgoing routes" and "outgoing routes" name
+ * the same set, and a foreign caravan in your market is still counted the way
+ * `routeEndsHere` has always counted it.
+ *
+ * The cheap test is first: the id comparison rejects almost every piece on the
+ * board before the pair resolution, which is the part that walks the city list.
+ */
+export function countRoutesAt(
+  state: GameState,
+  city: City,
+  end: RouteEnd,
+  crossing?: RouteCrossing,
+): number {
+  let total = 0;
+  for (const unit of state.units) {
+    const route = unit.trade;
+    if (route === undefined) continue;
+    if ((end === 'arriving' ? route.to : route.from) !== city.id) continue;
+    const pair = liveRouteCities(state, unit);
+    if (pair === null) continue;
+    if (
+      crossing !== undefined &&
+      routeIsInternational(pair.from, pair.to) !== (crossing === 'international')
+    ) {
+      continue;
+    }
+    total += 1;
+  }
+  return total;
 }
 
 /**

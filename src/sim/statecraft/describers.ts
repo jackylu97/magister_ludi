@@ -2032,12 +2032,27 @@ function describeEffect(
                 // through the count's own noun — the same table a `pays` count
                 // and a counted wall print through, so three surfaces name one
                 // count one way.
+                //
+                // **Town by town where the row says so** (`within: 'city'`,
+                // batch C5): the towns lead and the count trails, because that
+                // is the order the sentence has to be read in — "in every city
+                // with a culture building, per trade route to another empire
+                // leaving it" names the city before "it" refers back to it.
                 effect.count !== undefined
-                ? ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count, tile: effect.tile }, ''))}`
+                ? `${effect.within === 'city' ? ` in ${scopeWordsFor(subject, effect.scope)},` : ''}` +
+                  ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count, tile: effect.tile, within: effect.within }, ''))}`
                 : '';
+      // **The per-town ceiling, said out loud.** A cap on an empire count is
+      // already inside the figure a player sees; a cap per town is not, and a
+      // card that promised one renown a route without saying where it stopped
+      // would be the kind of silence hard rule 7 exists to prevent.
+      const cap =
+        effect.within === 'city' && effect.max !== undefined
+          ? `, at most ${effect.amount * effect.max} per city`
+          : '';
       const family = effect.family === undefined ? '' : `, favouring ${effect.family}s`;
       out.push({
-        text: `${signed(effect.amount)} renown per turn${where}${family}`,
+        text: `${signed(effect.amount)} renown per turn${where}${cap}${family}`,
       });
       return;
     }
@@ -2439,6 +2454,18 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   // table is never asked for, and "per wonder you hold in this city" reads as
   // two claims about two places. Standing, not held: the count is what is on
   // this town's shelf.
+  // **The town's own caravans abroad** — `foreignTradeRoutes` narrowed to the
+  // town it is counted in (`within: 'city'`, batch C5). The direction is in the
+  // words because it is in the count: a foreign route a town is counted for is
+  // one that sets out from it, and "trade route to another empire" on its own
+  // would read as the whole realm's.
+  if (effect.count === 'foreignTradeRoutes' && effect.within === 'city') {
+    const from = place === '' ? 'it' : place.replace(/^in /, '');
+    return {
+      one: `trade route to another empire leaving ${from}`,
+      many: `trade routes to another empire leaving ${from}`,
+    };
+  }
   if (effect.count === 'wonders' && effect.within === 'city') {
     const at = place === '' ? 'in this city' : place;
     return { one: `wonder standing ${at}`, many: `wonders standing ${at}` };
@@ -2609,6 +2636,9 @@ function countNamesItsTown(effect: CardPaysEffect): boolean {
   // `countNoun` rather than in the table below because it takes an argument and
   // the table's formatters are handed only the place.
   if (effect.count === 'tilesInBorders') return true;
+  // The town's caravans abroad, for the same reason: `countNoun` builds the
+  // place into "leaving there", so a tail would name the town twice.
+  if (effect.count === 'foreignTradeRoutes' && effect.within === 'city') return true;
   return effect.count !== undefined && TOWN_COUNT_WORDS[effect.count] !== undefined;
 }
 
@@ -2904,18 +2934,7 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push(anyPhrase(scope.of));
       return;
     case 'routeEndsHere':
-      // The plain words: what the town has is caravans arriving, which is the
-      // sentence the trade screen itself uses. **Whose** caravan, where the row
-      // asks (The Entrepôt) — "another empire's", not "international", because
-      // that is the word the rest of this table uses for the far side of a
-      // border.
-      into.qualifiers.push(
-        scope.crossing === undefined
-          ? 'a trade route ends at'
-          : scope.crossing === 'international'
-            ? "another empire's trade route ends at"
-            : 'one of your own trade routes ends at',
-      );
+      into.qualifiers.push(routePhrase(scope));
       return;
     default: {
       const unhandled: never = test;
@@ -2923,6 +2942,64 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     }
   }
+}
+
+/**
+ * What trade routes a town has, in the words a player reads.
+ *
+ * **"Trade route", always** — never "road", which is the paved hex and a
+ * different thing entirely, and never bare "route". The direction is a verb
+ * rather than an adjective because that is how the sentence reads once the noun
+ * is in front of it: "every city two or more trade routes end at", "every city a
+ * trade route sets out from".
+ *
+ * The far end is named where the row narrows it, and it is named from the end
+ * the town is standing at: a caravan *arriving* is described by whose it is
+ * ("another empire's"), and one *setting out* by where it is going ("to another
+ * empire"). Same fact, two sentences, and each is the one a player would say.
+ *
+ * The three sentences a row could say before batch C5 are printed exactly as
+ * they were, so no live card's words moved when the tally arrived.
+ */
+function routePhrase(scope: Extract<CityScope, { test: 'routeEndsHere' }>): string {
+  const out = scope.direction === 'departing';
+  // The bare noun, with no article on it, so a figure or a "no" can sit in
+  // front of it. The whose-clause trails the noun in every form here — "trade
+  // routes of your own" — because a possessive in front ("another empire's
+  // trade routes") cannot take one of those words ahead of it.
+  const noun = (many: boolean): string => {
+    const routes = many ? 'trade routes' : 'trade route';
+    if (scope.crossing === undefined) return routes;
+    if (out) {
+      return scope.crossing === 'international'
+        ? `${routes} to another empire`
+        : `${routes} to another of your cities`;
+    }
+    return scope.crossing === 'international'
+      ? `${routes} of another empire`
+      : `${routes} of your own`;
+  };
+  const verb = (many: boolean): string =>
+    out ? (many ? 'set out from' : 'sets out from') : many ? 'end at' : 'ends at';
+  // The negation reads as "no …", which is the only form the design writes; a
+  // band between two figures would read as a range and nothing asks for one yet.
+  if (scope.atMost !== undefined && scope.atLeast === undefined) {
+    return scope.atMost === 0
+      ? `no ${noun(false)} ${verb(false)}`
+      : `at most ${scope.atMost} ${noun(true)} ${verb(true)}`;
+  }
+  const least = scope.atLeast ?? 1;
+  if (least > 1) return `${least} or more ${noun(true)} ${verb(true)}`;
+  // **The singular, and the two arriving forms are written out**, because the
+  // sentences the table has always printed put the whose-clause in front of the
+  // noun and so cannot take a bare "a": "another empire's trade route ends at",
+  // "one of your own trade routes ends at". Both are exactly what live rows
+  // printed before the tally arrived.
+  if (!out) {
+    if (scope.crossing === 'international') return "another empire's trade route ends at";
+    if (scope.crossing === 'domestic') return 'one of your own trade routes ends at';
+  }
+  return `a ${noun(false)} ${verb(false)}`;
 }
 
 /**

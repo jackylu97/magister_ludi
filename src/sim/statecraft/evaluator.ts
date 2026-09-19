@@ -95,10 +95,10 @@ import { nextFloat } from '../rng';
 import { economyStamp, slateShadow } from '../slate';
 import { connectedCities } from '../roads';
 // A leaf, exactly as `roads.ts` beside it is, and it became one so this line
-// could exist: `routeEndsHere` asks whether a caravan's road still describes the
-// board, `routeYields.ts` imports this file for the lines a card puts on a
-// caravan, and a question two hubs ask lives below both of them (`routes.ts`).
-import { routeIsInternational, routeIsLive } from '../routes';
+// could exist: `routeEndsHere` asks how many trade routes meet a town,
+// `routeYields.ts` imports this file for the lines a card puts on a caravan,
+// and a question two hubs ask lives below both of them (`routes.ts`).
+import { countRoutesAt, routeIsInternational } from '../routes';
 import {
   type City,
   type GameState,
@@ -134,6 +134,7 @@ import {
   type CardId,
   type CardLandfallEffect,
   type CardPaysEffect,
+  type CardRenownEffect,
   type PayBasis,
   type CardRule,
   type CityRuleId,
@@ -2044,29 +2045,20 @@ export function cityScopeAdmits(
       return false;
     }
     case 'routeEndsHere': {
-      // **`Unit.trade` is the route** — there is no register — so the question
-      // is asked of the pieces, and only of the ones still paying: a lapsed
-      // route is inert (`routeIsLive`) and a town it once ended at is not a
-      // town caravans come to. Whoever *sent* it is not asked, exactly as
-      // `cityRouteYields` does not ask: a foreign caravan in your market is a
-      // caravan in your market.
+      // **One walk in the leaf, and a comparison here.** `countRoutesAt`
+      // (`routes.ts`) is the only place trade routes are counted at a town, so
+      // the predicate this scope started as and the tally it is now cannot
+      // drift apart — and neither can it drift from `CountKind`'s
+      // `foreignTradeRoutes` narrowed to a town, which asks the same function
+      // the other way round.
       //
-      // **Unless the row names a crossing** (The Entrepôt): then the sender is
-      // exactly the question, and it is asked through `routeIsInternational` —
-      // the same reading a route `pays` row's own `crossing` takes — so the two
-      // cannot disagree about what a foreign road is. A caravan whose origin has
-      // left the board is no road at all and admits nothing.
-      const wanted = scope.crossing;
-      for (const unit of state.units) {
-        const route = unit.trade;
-        if (route?.to !== city.id) continue;
-        if (!routeIsLive(state, unit)) continue;
-        if (wanted === undefined) return true;
-        const origin = state.cities.find((town) => town.id === route.from);
-        if (!origin) continue;
-        if (routeIsInternational(origin, city) === (wanted === 'international')) return true;
-      }
-      return false;
+      // A row naming neither threshold is the yes-or-no every card written
+      // before batch C5 meant: one or more. `atMost` is the negation (The
+      // League of Cities' towns that send nothing out) and is asked as well as
+      // `atLeast`, not instead of it, so a row carrying both means the band.
+      const found = countRoutesAt(state, city, scope.direction ?? 'arriving', scope.crossing);
+      if (found < (scope.atLeast ?? (scope.atMost === undefined ? 1 : 0))) return false;
+      return scope.atMost === undefined || found <= scope.atMost;
     }
     default: {
       const unhandled: never = test;
@@ -2181,10 +2173,21 @@ function scopeNote(scope?: CityScope): string | null {
       return 'newest city';
     case 'follows':
       return 'follows this faith';
-    case 'routeEndsHere':
-      return scope.crossing === undefined
-        ? 'a route ends here'
-        : `a ${scope.crossing === 'international' ? 'foreign' : 'domestic'} route ends here`;
+    case 'routeEndsHere': {
+      // The hover's short form: whose route, how many, and which way it runs.
+      // "Trade route" in full because "route" on its own has been read as a
+      // paved road more than once.
+      const whose =
+        scope.crossing === undefined
+          ? 'trade route'
+          : `${scope.crossing === 'international' ? 'foreign' : 'domestic'} trade route`;
+      const way = scope.direction === 'departing' ? 'leaves here' : 'ends here';
+      if (scope.atMost !== undefined && scope.atLeast === undefined) {
+        return scope.atMost === 0 ? `no ${whose} ${way}` : `at most ${scope.atMost} ${whose}s ${way}`;
+      }
+      const least = scope.atLeast ?? 1;
+      return least > 1 ? `${least}+ ${whose}s ${way}` : `a ${whose} ${way}`;
+    }
     case 'all':
       return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' + ');
     case 'any':
@@ -2599,6 +2602,15 @@ export function countOf(
       // never moves — so this is exactly "how many marvels exist".
       return state.wonders.length;
     case 'foreignTradeRoutes': {
+      // **Narrowed to one town** (batch C5, The Cosmopolitan Court): the foreign
+      // routes setting out from it, through the same `countRoutesAt` the scope
+      // `routeEndsHere` asks — so a card that admits a town for sending routes
+      // abroad and a card that pays it per route cannot disagree about how many
+      // there are. Departing is the only reading a town scale can have here; see
+      // the count.
+      if (effect.within === 'city') {
+        return city ? countRoutesAt(state, city, 'departing', 'international') : 0;
+      }
       // `tradeRoutes` and one more question of the same caravan, asked of the
       // board for that count's reason exactly. The far end is resolved fresh
       // every turn, so a partner that changes hands changes the count with it —
@@ -7249,6 +7261,54 @@ export interface CardRenownLine {
  */
 const RENOWN_PROBE = { where: 'empire', to: 'authority', amount: 0 } as const;
 
+/**
+ * How many helpings a **counted** renown trickle pays, at whichever scale the
+ * row asks for.
+ *
+ * Two scales and one count. The realm's is what every counted row meant before
+ * batch C5 — one `countOf`, then the row's divisor and ceiling. A row saying
+ * `within: 'city'` is asked town by town instead, and the divisor and the
+ * ceiling are applied **inside** the walk, which is the whole of what the field
+ * buys: The Cosmopolitan Court's three-per-town cap cannot be said any other
+ * way, because a ceiling over the sum would let one busy port eat the whole
+ * allowance. `scope` picks the towns, through the same `cityScopeAdmits` every
+ * other narrowed clause goes through.
+ *
+ * `citiesOf` is the town walk every evaluator uses, so the order is the board's
+ * own and nothing here iterates a keyed collection.
+ */
+function countedRenownHelpings(
+  state: GameState,
+  playerId: number,
+  card: CardId,
+  effect: CardRenownEffect,
+): number {
+  const probe: CardPaysEffect = {
+    kind: 'pays',
+    basis: 'count',
+    ...RENOWN_PROBE,
+    count: effect.count,
+    // The ground the count is asked of, where the row named one (The Customs
+    // Houses). A count that takes an argument is handed it here or it counts
+    // nothing — see the count.
+    tile: effect.tile,
+    within: effect.within,
+  };
+  if (effect.within !== 'city') {
+    return helpings(countOf(state, playerId, card, probe), effect.countPer, effect.max);
+  }
+  let total = 0;
+  for (const city of citiesOf(state, playerId)) {
+    if (!cityScopeAdmits(state, city, effect.scope, playerId)) continue;
+    total += helpings(
+      countOf(state, playerId, card, probe, city),
+      effect.countPer,
+      effect.max,
+    );
+  }
+  return total;
+}
+
 export function cardRenownLines(state: GameState, playerId: number): CardRenownLine[] {
   const list: CardRenownLine[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'renown')) {
@@ -7291,20 +7351,7 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
               // cap are the counts' own (`helpings`), so a renown line and a
               // yield line round the same way.
               effect.count !== undefined
-              ? helpings(
-                  countOf(state, playerId, card, {
-                    kind: 'pays',
-                    basis: 'count',
-                    ...RENOWN_PROBE,
-                    count: effect.count,
-                    // The ground the count is asked of, where the row named one
-                    // (The Customs Houses). A count that takes an argument is
-                    // handed it here or it counts nothing — see the count.
-                    tile: effect.tile,
-                  }),
-                  effect.countPer,
-                  effect.max,
-                )
+              ? countedRenownHelpings(state, playerId, card, effect)
               : 1;
     const amount = each * times;
     if (amount === 0) continue;
