@@ -1272,14 +1272,20 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   // The two endgame markers, in a first-time player's words. Read off the row
   // rather than written into each note, so a fifth capstone says the same thing
   // without anybody remembering to type it again.
+  // **Two facts, two sentences** (batch C7). Being one of the realm's great
+  // houses and being buildable only once were one marker until Caravanserai
+  // Cities needed them apart, and the page says each where its own marker is
+  // set. The class comes first because a player meeting one of these needs the
+  // noun before the rule — every card that asks for "an empire building" is
+  // asking for this shelf, and nothing else on the page would say which rows
+  // those are. The limit follows as its own sentence, and it says "normally",
+  // because a card can lift it.
+  if (def.empireBuilding === true) {
+    clauses.push({ text: 'An empire building.', note: true });
+  }
   if (def.oncePerEmpire === true) {
-    // The class has a name now (the user, 2026-09-17): a row nobody may raise
-    // twice is an **empire building**. The name is said first and the rule
-    // second, because a player meeting one of these needs the noun before the
-    // clause — every card that asks for "an empire building" is asking for this
-    // shelf, and nothing else on the page would tell them which rows those are.
     clauses.push({
-      text: 'An empire building: you may have only one of these, in one of your cities.',
+      text: 'You may normally have only one of these, in one of your cities.',
       note: true,
     });
   }

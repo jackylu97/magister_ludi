@@ -1578,6 +1578,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "effects": [
         {
           "kind": "percentYields",
@@ -1733,6 +1734,7 @@
       "routeSlots": 1,
       "routeSlotsPerPopulation": 8,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "effects": [
         {
           "kind": "pays",
@@ -1979,6 +1981,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "effects": [
         {
           "kind": "pays",
@@ -2056,6 +2059,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "requiresSite": {
         "test": "hasBuilding",
         "building": "library"
@@ -2100,6 +2104,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "requiresSite": {
         "test": "hasBuilding",
         "building": "university"
@@ -2132,6 +2137,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "requiresSite": {
         "test": "hasBuilding",
         "building": "alchemicalSociety"
@@ -2176,6 +2182,7 @@
       "culture": 4,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "worldUnlockTech": "alchemy",
       "acceptsContributions": true,
       "endsTheGame": true,
@@ -2581,6 +2588,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "effects": [
         {
           "kind": "cityRenownPercent",
@@ -2609,6 +2617,7 @@
       "sciencePerPop": 0,
       "authorityCapacity": 3,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "unitUpkeepRebate": 1,
       "effects": [
         {
@@ -2638,6 +2647,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "effects": [
         {
           "kind": "pressure",
@@ -3021,6 +3031,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "oncePerEmpire": true,
+      "empireBuilding": true,
       "unlockedByLeader": true,
       "faithBuysWonders": true,
       "effects": [

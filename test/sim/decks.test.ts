@@ -282,8 +282,19 @@ describe('the schema, as landed', () => {
     // Commonwealth) and one brand-new live row was written (Entrenched
     // Interests, which the user's sheet listed and the data had never carried).
     // Four more live rows, all in the Commerce file.
-    expect(live).toBe(265);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(265);
+    //
+    // **And C7 an eleventh time** ("the six one-blocker Commerce rows"), which
+    // opened five seams: a route's pay may be narrowed by the medium it takes,
+    // how far a caravan may be sent by sea joined the figures a law may move, a
+    // named rule waives that reach between two towns holding your post, a
+    // purchase rider may ride on hiring a caravan, and `BuildingDef`'s
+    // one-to-a-realm marker was split into the limit and the class so a card can
+    // lift the first without touching the second. Five deferred Commerce rows
+    // came live — The Admiralty of Trade, The Harbour Chain, The Factors'
+    // Houses, Caravanserai Cities and Strategic Exports. Five more live rows,
+    // all in the Commerce file.
+    expect(live).toBe(270);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(270);
   });
 
   /**
@@ -572,7 +583,13 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // Factor and The Merchant Commonwealth, freed by the trading post and the
       // grant that pays another empire. Its fourth card, Entrenched Interests,
       // is a new live row and so moves nothing here.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(156);
+      //
+      // **C7 took five more**, all Commerce: The Admiralty of Trade, The
+      // Harbour Chain, The Factors' Houses, Caravanserai Cities and Strategic
+      // Exports. Its sixth row, The Exchange, stays deferred with the
+      // measurement written down — it wants a third place a card may name a
+      // payee, which is neither of the two that exist.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(151);
     }
   });
 

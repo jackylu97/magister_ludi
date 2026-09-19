@@ -72,6 +72,9 @@ import {
   isOrderId,
   orderDef,
 } from '../statecraftData';
+// Type-only: the route's medium, from the leaf that owns the word, so the card
+// face and the gate cannot end up spelling it differently.
+import type { RouteMode } from '../routes';
 import { beadGrantDef } from '../beadData';
 import { ABILITY_TECH, abilityDef, techDef } from '../techData';
 import { type ModelClass, unitDef } from '../unitData';
@@ -285,9 +288,17 @@ function routeWhose(effect: {
   crossing?: 'domestic' | 'international';
   standingTurns?: number;
   minHexes?: number;
+  mode?: RouteMode;
 }): string {
   const parts: string[] = [];
   if (effect.origin !== undefined) parts.push(`sent from ${cityScopeWords(effect.origin)}`);
+  // **Which way the road runs** (batch C7, The Harbour Chain). A fact about the
+  // road itself, so it sits with the term and the crossing rather than with
+  // either end's scope — and it is said in a player's words ("run by sea"),
+  // never as a mode.
+  if (effect.mode !== undefined) {
+    parts.push(effect.mode === 'sea' ? 'run by sea' : 'run overland');
+  }
   // **How far apart the two towns are**, beside the term and for its reason: a
   // fact about the road rather than about either end. Said as the distance the
   // ends are apart, which is the figure a player can measure on the map — not as
@@ -977,10 +988,22 @@ function describePays(
     // a card that left it unsaid would be a card that lies about its bench.
     const counted =
       effect.count === 'tally' ? ', counted while this Order stands in a slot' : '';
+    // **Which roads a counted route line is about** (batch C7). The route arm
+    // below never runs for a counted row — this branch answers and returns — so
+    // the one narrowing that arm would have printed has to be printed here, or
+    // The Harbour Chain's coin by the distance reads as a coin on every road.
+    // Said in the same words `routeWhose` uses, so the two clauses of one card
+    // cannot describe the same roads differently.
+    const medium =
+      effect.where === 'route' && effect.mode !== undefined
+        ? effect.mode === 'sea'
+          ? ', on trade routes run by sea'
+          : ', on trade routes run overland'
+        : '';
     out.push({
       text:
         `${payoutWords(effect, 1, voice)}${place.paidIn} per ${countWords(effect.per, words)}` +
-        `${here}${cap}${counted}`,
+        `${here}${cap}${counted}${medium}`,
     });
     return;
   }
@@ -1448,6 +1471,15 @@ function describeEffect(
       return;
     }
     case 'rule': {
+      // **A rule about one building names it** (batch C7, Caravanserai Cities).
+      // The stem in the table has a slot for the row's name rather than the
+      // name baked in, so the words come from the building table exactly as
+      // every other named thing in a describer does — and as a keyword ref, so
+      // the Compendium links it.
+      if (effect.building !== undefined) {
+        out.push({ text: FLAG_RULE_BUILDING_WORDS(effect.rule, buildingWords(effect.building)) });
+        return;
+      }
       // A rule of the whole realm reads as itself; a rule of one line of
       // soldiers is said **of that line**, because "mounted units: pillaging
       // costs your units no movement" is the plumbing showing through a sentence
@@ -2002,14 +2034,35 @@ function describeEffect(
       const what =
         on === 'building'
           ? houses
-          : on === 'all'
-            ? `${filterWords(effect.class)} and ${houses}`
-            : filterWords(effect.class);
+          : // **The road, which is not a row on a shelf** (batch C7, The Factors'
+            // Houses). It names what a player actually buys — the caravan —
+            // rather than "a trade route", because the price is the cart's and
+            // the sentence reads as a thing with a price on it. `class` is not
+            // asked of it, exactly as it is not asked of a building, so the
+            // filter's "all units" must not leak in here.
+            on === 'route'
+            ? 'hiring a caravan'
+            : on === 'all'
+              ? `${filterWords(effect.class)} and ${houses}`
+              : filterWords(effect.class);
       // **Where the price is asked**, when it is not asked everywhere — a rider
       // that read as a realm-wide discount and paid only in the barracks towns
       // is a card that lies by omission. The one sentence-builder, trailing as
       // its own clause exactly as a scoped `productionBonus`' does.
       const where = effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope)}`;
+      // **A route takes a verb, not a plural** (batch C7). Every other subject
+      // this arm prints is a *plural of things on a shelf* — "mounted units
+      // cost −20% to buy" — and "hiring a caravan cost −15% to buy" is that
+      // stem with the wrong number and a second verb for the same act. So the
+      // road gets its own sentence, in the same order and with the same sign
+      // discipline.
+      if (on === 'route') {
+        out.push({
+          text:
+            `${what} costs ${Math.abs(percent)}% ${percent < 0 ? 'less' : 'more'}${where}`,
+        });
+        return;
+      }
       // "cost −25%", not "−25% cost": the sign belongs to the price, and a
       // discount read as a bonus is the one thing this line must not do.
       out.push({
@@ -3560,6 +3613,13 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `your trade routes run ${-percent}% fewer turns before they lapse`
       : `your trade routes run ${percent}% longer before they lapse`,
+  // Said as the **reach**, which is what a longer range is, and with the medium
+  // in front because the rule is about sea routes and nothing else. A player
+  // reading "your routes reach further" would plan a land road on it.
+  seaRouteRange: (percent) =>
+    percent < 0
+      ? `your sea routes reach ${-percent}% less far`
+      : `your sea routes reach ${percent}% further`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -4187,6 +4247,15 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   // The figure leads, for `cityRenownPercent`'s reason: "pays +100% renown"
   // reads as the whole payout rather than as the share added to it.
   triumphRenown: (percent) => `${signed(percent)}% renown from every Triumph`,
+  // **A doubling is said as twice**, because that is the card's own word and
+  // "+100% copies" is a phrase a player has to do arithmetic on. Anything else
+  // keeps the share in front, the way every other gain on this table reads. It
+  // says *your* deposits out loud: a seam somebody lent you is not doubled, and
+  // a player who was not told would plan around the wrong number.
+  strategicCopies: (percent) =>
+    percent === 100
+      ? 'your strategic resource deposits supply twice as many copies'
+      : `your strategic resource deposits supply ${signed(percent)}% copies`,
 };
 
 /**
@@ -4213,6 +4282,10 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
   greatPersonAct: (amount) => `a great person's act pays ${signed(amount)} more`,
   connectionYields: (amount) => `each connected city pays ${signed(amount)} gold`,
   triumphRenown: (amount) => `every Triumph pays ${signed(amount)} more renown`,
+  // A whole-ledger figure, so this reads as the table's docblock says such an
+  // entry should: plainly, so that a row nobody should write announces itself.
+  strategicCopies: (amount) =>
+    `each of your strategic resource deposits supplies ${signed(amount)} copies`,
 };
 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {
@@ -4287,6 +4360,18 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // surcharge and a player reading the pair needs to know what they are buying.
   buysWithoutResources:
     'units you buy need none of the strategic resources they would need to be built',
+  // The fallback sentence, which a row should never reach: `buildsEverywhere`
+  // names a building and is printed by `FLAG_RULE_BUILDING_WORDS` instead. It is
+  // here because the table is exhaustive over the union, and it says the plain
+  // truth rather than nothing at all.
+  buildsEverywhere: 'you may build more than one of a building that is normally one to a realm',
+  // Said as what the distance stops mattering for, and it names the two
+  // conditions the rule carries in its own id — a player told only "your sea
+  // routes ignore range" would try it between a pair of towns that has never
+  // traded. Everything else the gate asks is still asked, which is the card's
+  // own second sentence and is left to the card to print.
+  postsWaiveSeaRouteRange:
+    'your sea routes may join two cities that both hold your trading post however far apart they are',
   // Facts a card declares true of every town. `CityRuleId`.
   freshwater: 'every city of yours counts as being on fresh water',
   // Things about the world that stop being true — or start. `BehaviorRuleId`.
@@ -4345,6 +4430,28 @@ const FLAG_RULE_CLASS_WORDS: Partial<Record<CardFlagRuleId, (who: string) => str
   freePillage: (who) => `${who} pillage without spending movement`,
   ignored: (who) => `${who} ignore enemy zone of control`,
 };
+
+/**
+ * The rules that read differently **of one named building** —
+ * `CardRuleEffect.building`, and Caravanserai Cities is the only row that
+ * carries one (batch C7).
+ *
+ * A function rather than a third `Record` because exactly one member of the
+ * union takes a building at all, and a table with one entry and a fallback is a
+ * table that hides how narrow the case is. A rule that names a building it has
+ * nothing to say about falls back to the flat sentence with the name in front,
+ * which is `FLAG_RULE_CLASS_WORDS`' own bargain: a narrowing added tomorrow is
+ * never silent, only plain.
+ *
+ * The sentence says *every* city out loud because that is the half a player
+ * acts on, and it deliberately does **not** say the building stops being an
+ * empire building — it does not. What the card lifts is the limit, and nothing
+ * about the price or the class moves with it.
+ */
+function FLAG_RULE_BUILDING_WORDS(rule: CardFlagRuleId, what: string): string {
+  if (rule === 'buildsEverywhere') return `you may build ${what} in every city`;
+  return `${what}: ${FLAG_RULE_WORDS[rule]}`;
+}
 
 const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   cityCountAtMost: 'while you hold at most',

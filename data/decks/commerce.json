@@ -510,11 +510,23 @@
       "rarity": "common",
       "flavor": "The factor never leaves. That is the whole of his value.",
       "text": "Your cities holding your established commercial post gain +2 gold and +4 culture. Hiring a caravan from such a city costs 15% less.",
-      "effects": [],
-      "deferred": [
-        "the towns where your house is established pay gold and culture, and send caravans more cheaply"
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": 2,
+          "culture": 4,
+          "scope": { "test": "holdsPost" }
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "route",
+          "percent": -15,
+          "scope": { "test": "holdsPost" }
+        }
       ],
-      "note": "Held whole, and now for one reason rather than two. The trading post arrived and the first sentence is ready to write. What a caravan costs to hire is a fold of its own that no card reaches, and it is priced for the empire rather than for a town, so \"from such a city\" wants both — the price made movable, and made a question about an origin."
+      "note": "Both halves ask the same town the same question, so the coin and the discount can never disagree about which towns they mean. The hire price took the two moves the old note named: a caravan's price is now a fold that purchase riders reach, and it is asked of the town the road sets out from — which the reducer has always handed it and simply dropped. A rider has to name the road to ride on it: the rows that say they ride on everything were written about things with a shelf and a production cost, and letting them reprice a caravan by accident would have changed three live cards without a word. Known gap: the Trade screen's headline price is still the empire's plain figure, so a seat holding this card is quoted the full price and charged the lower one."
     },
     "thePlantersCharter": {
       "name": "The Planters' Charter",
@@ -1150,12 +1162,31 @@
       "rarity": "uncommon",
       "flavor": "Count the harbours and you have counted the fleet.",
       "text": "Gain +1 route capacity per two Harbours you own, at most +4. Sea routes gain +3 range and +1 gold for every 4 hexes travelled.",
-      "effects": [],
-      "deferred": [
-        "your harbours together open more roads than you could otherwise run",
-        "a road run by sea reaches further and pays by the distance it covers"
+      "effects": [
+        {
+          "kind": "routeRider",
+          "extra": 1,
+          "count": "buildingsOfKind",
+          "building": "harbour",
+          "per": 2,
+          "max": 4
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "seaRouteRange",
+          "percent": 30
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "basis": "count",
+          "count": "routeLength",
+          "per": 4,
+          "gold": 1,
+          "mode": "sea"
+        }
       ],
-      "note": "Half built, and so held whole. Counting the harbours for extra roads is ordinary law now, and so is paying a road by its own length — but neither can be asked of a sea road alone, because nothing narrows a road's pay by the crossing it takes, and how far a road may reach is not a figure any law may move."
+      "note": "The road per two harbours was written for this card by name and was waiting. The other two sentences needed one word each. A route's pay may now be narrowed by the medium it takes, which is a fact about the road rather than about either of its towns — the same kind of narrowing as which side of a border it crosses, and read the same way — so the coin by the distance is paid on the water and nowhere else. And how far a caravan may be sent by sea joined the short list of figures a law may move, which is the one-line move a route's term already was. The share is taken of the table's own reach and the trading posts' turns are added after it, so the card adds exactly the three turns it prints however many posts the pair holds."
     },
     "theLeagueOfCities": {
       "name": "The League of Cities",
@@ -1248,7 +1279,7 @@
       "deferred": [
         "every foreign realm your roads reach teaches your whole empire, and learns from it"
       ],
-      "note": "Half built, and so held whole. A law may pay another empire now, but only where the town being paid is already in hand — the town a caravan reaches, or a town holding your trading post — and a partner's capital is neither. The first sentence is the harder half either way: a counted line pays a flat figure per helping and cannot yet pay a percentage per helping."
+      "note": "Half built, and so held whole — but the half that is missing is not the one the old note named. A counted line pays a share per helping perfectly well and has for some time: a live card one table over already gives a share of science for every realm your roads reach, off the very same count this card wants, so the first sentence could be written today and was not only because the row is held whole. What is genuinely missing is the second sentence. A law may pay another empire, but only at the two places the town being paid is already in hand — the town a caravan walks to, and a town holding your trading post. A partner's capital is neither, and reaching it means walking every other realm's law at every town of theirs, which is the one thing the shape deliberately refuses to do. Either that walk, or a third place a payee may be named."
     },
     "theBrokersRedraw": {
       "name": "The Brokers' Redraw",
@@ -1357,11 +1388,22 @@
       "rarity": "uncommon",
       "flavor": "What the forge needs, somebody else needs more.",
       "text": "Trade routes gain +1 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity.",
-      "effects": [],
-      "deferred": [
-        "your caravans teach what your mines have opened, and every seam you work gives up twice as much"
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "basis": "count",
+          "count": "improvedStrategicResources",
+          "within": "city",
+          "science": 1
+        },
+        {
+          "kind": "effectAmplifier",
+          "target": "strategicCopies",
+          "percent": 100
+        }
       ],
-      "note": "Half built, and so held whole. The beaker on the road is an ordinary line — an improved strategic seam is already counted, in a town or across the realm. How many copies a seam supplies is decided where the map is swept, and no card reaches in there yet; the day it does, this row lights whole."
+      "note": "The beaker on the trade route is an ordinary counted line, asked of the town the caravan left. The doubling touches no ground at all, which is the user's ruling: the seams on the map are what they always were, and what changes is the total your realm holds. It is taken of the copies your own opened seams supply and of nothing else, so a copy another empire lent you is not doubled and a copy you lent away comes off the doubled figure rather than being doubled with it. It is applied outside the walk that is remembered from turn to turn, because that walk is remembered on a clock that does not move when a card is taken up — a law read inside it would leave every count stale for the rest of the turn, and a stale count is a unit a seat can or cannot build, which is how a played game starts disagreeing with a replay of its own log."
     },
     "purchasedProsperity": {
       "name": "Purchased Prosperity",
@@ -1484,11 +1526,20 @@
       "rarity": "uncommon",
       "flavor": "One yard in the realm was never enough yards.",
       "text": "Caravanserais can be built in every city. Cities with a Caravanserai gain +20% gold.",
-      "effects": [],
-      "deferred": [
-        "the walled yard stops being one to a realm, and every town that keeps one grows richer"
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "buildsEverywhere",
+          "building": "caravanserai"
+        },
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 20,
+          "scope": { "test": "hasBuilding", "building": "caravanserai" }
+        }
       ],
-      "note": "Half built, and so held whole. The share of coin is an ordinary town line. The other half is not a limit a card can lift: the mark that says one to a realm is the same mark that says this is one of the realm's great houses, and four other clauses read it that way — so a card that unlocked the second yard would quietly give the realm two of a thing that is counted as one."
+      "note": "Being one to a realm and being one of the realm's great houses were a single mark doing two jobs, and this card is what needed them apart. They are two marks now, and every building that carried the old one carries both, so nothing about any existing row moved. The card lifts the limit and leaves the class exactly where it was: a realm may raise a yard in every town, and every one of them is still a great house — still priced against how many towns it will serve, still admitted wherever a card asks for an empire building, still counted as one of them, and still passed over by a discount written for the ordinary shelves. The card buys many of an expensive thing rather than turning it into a cheap one. One thing had to be made safe alongside it: the walk that gathers what a realm's great houses do used to read each town's shelf in turn, which was harmless while a realm could hold only one of each, so it now reads each row once however many copies stand."
     },
     "theDyeVats": {
       "name": "The Dye Vats",
@@ -1642,11 +1693,13 @@
       "rarity": "rare",
       "flavor": "The sea has no middle, only two ends.",
       "text": "Your sea routes may connect two cities holding your established commercial posts regardless of range. A legal sea path, access, peace and route capacity are still required.",
-      "effects": [],
-      "deferred": [
-        "a sea road between two of your established houses may be run at any distance"
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "postsWaiveSeaRouteRange"
+        }
       ],
-      "note": "Held whole, and now for one reason rather than two. The trading post arrived, and the gate that prices a route's reach holds both towns when it asks. How far a trade route may be sent is still one figure no card may move, and waiving it outright for a pair of towns wants a named rule read at that gate."
+      "note": "The waiver is one named rule read at the one place the gate prices a route's reach, beside the clause it lifts. It is narrow on purpose: the road must run by sea, and both towns must hold a post of yours that is actually paying — a war or a blockade suspends the privilege exactly as it suspends a post's income, which is the rule every post already follows. Nothing else about the gate moves, so the card's second sentence is true by construction: a sea lane no caravan could sail, a partner you have not met, a war, a full slot table and a route already running that way are all still refused."
     },
     "entrenchedInterests": {
       "name": "Entrenched Interests",

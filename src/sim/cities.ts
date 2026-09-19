@@ -66,6 +66,7 @@ import {
   type CompletionGrant,
   buildingDef,
   isBuildingId,
+  isEmpireBuilding,
   isWonder,
 } from './buildingData';
 // The two sides of the lending rule (schema 57). `deals.ts` is a leaf — it
@@ -123,6 +124,7 @@ import { settleRenownWindfall } from './renown';
 import { type CitizenFocus, type CitizenLean, type CitizenWeights, RULES } from './rulesData';
 import {
   cardActionRule,
+  cardAmplifier,
   cardMeterFlag,
   cardFoundingRider,
   cardRulePercent,
@@ -570,9 +572,65 @@ export function resourceCopies(
   // position. See "The two clocks" in `slate.ts`, and note that the two readings
   // are now provably the same arithmetic on the same clock rather than one
   // remembered and one re-swept.
-  return slateMemo(state, 'economy', `copies:${resourceId}`, String(playerId), () =>
-    countResourceCopies(state, playerId, resourceId),
+  //
+  // **What is remembered is the ground alone** (batch C7). Strategic Exports
+  // doubles what a realm's own seams supply, and the law could not go inside
+  // this memo: a card is slotted mid-turn and the economy clock does not move
+  // for it, so the figure would stay stale for the rest of the turn — and a
+  // stale copy count is a unit a seat can or cannot build, which is a played
+  // game parting from a replay of its own log. So the sweep stays law-free and
+  // `ownCopies` below applies the share on the way out.
+  const mine = ownCopies(
+    slateMemo(state, 'economy', `copies:${resourceId}`, String(playerId), () =>
+      sweepOwnCopies(state, playerId, resourceId),
+    ),
+    state,
+    playerId,
+    resourceId,
   );
+  return netCopies(state, playerId, resourceId, mine);
+}
+
+/**
+ * **The share a card takes of what this empire's own seams supply** — Strategic
+ * Exports' doubling (`AmplifierTarget`'s `strategicCopies`, batch C7).
+ *
+ * Outside every memo, for the reason `resourceCopies` states: the walks are
+ * remembered on a clock that does not move when a card is slotted. Applied to
+ * the **ground's** term only, which is the card's own word — *your* strategic
+ * resource deposits — so copies a bargain lent this empire are untouched and
+ * copies it lent away are subtracted from the doubled figure, not doubled with
+ * it.
+ *
+ * Strategic rows only, asked of `ResourceDef.kind`, and floored once.
+ */
+function ownCopies(
+  swept: number,
+  state: GameState,
+  playerId: number,
+  resourceId: ResourceId,
+): number {
+  if (swept === 0) return 0;
+  if (resourceDef(resourceId).kind !== 'strategic') return swept;
+  const percent = cardAmplifier(state, playerId, 'strategicCopies');
+  if (percent === 0) return swept;
+  return Math.max(0, Math.floor((swept * (100 + percent)) / 100));
+}
+
+/**
+ * The lending arithmetic, over a figure the ground has already supplied — one
+ * implementation, so `resourceCopies` and `controlledHoldings` cannot disagree
+ * about what an empire is holding.
+ */
+function netCopies(
+  state: GameState,
+  playerId: number,
+  resourceId: ResourceId,
+  mine: number,
+): number {
+  const lentAway = lentCopiesAwayBy(state, playerId)[resourceId] ?? 0;
+  const lentIn = lentCopiesHeld(state, playerId)[resourceId] ?? 0;
+  return Math.max(0, mine - lentAway) + lentIn;
 }
 
 /**
@@ -870,8 +928,16 @@ export function tileCopies(tile: Tile): number {
   return tile.resourceCopies ?? 1;
 }
 
-/** The sweep itself — `resourceCopies` with the slate taken off. */
-function countResourceCopies(
+/**
+ * **What this empire's own opened tiles supply** — the ground's term, and the
+ * only part of `resourceCopies` that walks the map.
+ *
+ * Deliberately **law-free** (batch C7): this is what the economy-clock memo
+ * remembers, and that clock does not move when a card is slotted. The card's
+ * share and the lending arithmetic are both applied outside it, by `ownCopies`
+ * and `netCopies`. See `resourceCopies`.
+ */
+function sweepOwnCopies(
   state: GameState,
   playerId: number,
   resourceId: ResourceId,
@@ -887,9 +953,7 @@ function countResourceCopies(
     // what it rolled, which is the dial that decides how large an army it feeds.
     if (openedResource(state, tile, playerId) !== null) mine += tileCopies(tile);
   }
-  const lentAway = lentCopiesAwayBy(state, playerId)[resourceId] ?? 0;
-  const lentIn = lentCopiesHeld(state, playerId)[resourceId] ?? 0;
-  return Math.max(0, mine - lentAway) + lentIn;
+  return mine;
 }
 
 /**
@@ -938,16 +1002,54 @@ export function controlledHoldings(
   // them and what a bargain lent away. Where a piece is standing cannot enter
   // it, and a seat that spends its turn marching now pays for this once instead
   // of once a step. See "The two clocks" in `slate.ts`.
-  return slateMemo(state, 'economy', `holdings:${kind}`, String(playerId), () =>
-    holdingsOf(state, playerId, kind),
+  const swept = slateMemo(state, 'economy', `holdings:${kind}`, String(playerId), () =>
+    sweepHoldings(state, playerId, kind),
   );
+  // **The remembered list, handed straight back — identity and all** (the claim
+  // `test/sim/readings.test.ts` pins under "hands the same list back until the
+  // world moves"). The sweep and the list it produces are both law-free, which
+  // is still true of every kind but one.
+  //
+  // **The exception is strategic** (batch C7). What a kind is dropped for is its
+  // *net* figure, and Strategic Exports puts a card in that figure — so for this
+  // one kind the last step is taken again outside the memo, on `resourceCopies`'
+  // own two helpers, which is what keeps the two readings the same arithmetic
+  // the docblock above promises. It is outside rather than inside for the reason
+  // `resourceCopies` gives: a card slotted mid-turn does not move the economy
+  // clock, and a stale copy count is a unit a seat can or cannot build.
+  //
+  // A seat with no such card pays nothing for this: the amplifier is nought, the
+  // rebuild is skipped, and the remembered list is returned with its identity
+  // intact exactly as a luxury's is.
+  if (kind !== 'strategic') return swept.list;
+  const percent = cardAmplifier(state, playerId, 'strategicCopies');
+  if (percent === 0) return swept.list;
+  return RESOURCE_IDS.filter((id) => {
+    if (!swept.held.has(id)) return false;
+    const mine = ownCopies(swept.opened.get(id) ?? 0, state, playerId, id);
+    return netCopies(state, playerId, id, mine) > 0;
+  }).map((id) => swept.held.get(id)!);
 }
 
-function holdingsOf(
+/**
+ * What one `controlledHoldings` sweep found: the list as the ground alone would
+ * have it, the holdings by id, and how many copies each was opened for.
+ *
+ * The list is kept beside the two maps rather than derived from them on every
+ * ask, because the identity of the array is part of what the memo promises —
+ * see `controlledHoldings`.
+ */
+interface SweptHoldings {
+  list: ResourceHolding[];
+  held: Map<ResourceId, ResourceHolding>;
+  opened: Map<ResourceId, number>;
+}
+
+function sweepHoldings(
   state: GameState,
   playerId: number,
   kind: ResourceKind,
-): ResourceHolding[] {
+): SweptHoldings {
   // The whole holding rather than its `via` alone, because the ledger's word for
   // it now depends on *which* improvement opened the seam and not on the table.
   const held = new Map<ResourceId, ResourceHolding>();
@@ -970,8 +1072,6 @@ function holdingsOf(
     if (held.get(holding.id)?.via === 'improvement') continue;
     held.set(holding.id, holding);
   }
-  const lentAway = lentCopiesAwayBy(state, playerId);
-  const lentIn = lentCopiesHeld(state, playerId);
   // A seam another empire lent, folded in **after** the sweep and only where the
   // empire holds none of its own left: your own silk is the more specific fact,
   // the same precedence the improved reading already wins by above, and it is
@@ -980,14 +1080,18 @@ function holdingsOf(
     if (resourceDef(lent.id).kind !== kind || held.has(lent.id)) continue;
     held.set(lent.id, lent);
   }
-  return RESOURCE_IDS.filter((id) => {
+  // The net filter as the ground alone would have it — no card in it, which is
+  // what lets this whole result be remembered on the economy clock. A seat
+  // holding Strategic Exports takes the same filter again outside the memo.
+  const list = RESOURCE_IDS.filter((id) => {
     if (!held.has(id)) return false;
-    // `resourceCopies`' arithmetic, off the sweep just taken: an empire that
-    // lent its only amber keeps no amber to be content about, and one that lent
-    // the spare of two keeps the kind. The line that survives is its own — a
-    // caravan is a holding of its own only where nothing of the kind is left.
-    return Math.max(0, (opened.get(id) ?? 0) - (lentAway[id] ?? 0)) + (lentIn[id] ?? 0) > 0;
+    // An empire that lent its only amber keeps no amber to be content about, and
+    // one that lent the spare of two keeps the kind. The line that survives is
+    // its own — a caravan is a holding of its own only where nothing of the kind
+    // is left.
+    return netCopies(state, playerId, id, opened.get(id) ?? 0) > 0;
   }).map((id) => held.get(id)!);
+  return { list, held, opened };
 }
 
 /** The same list as ids alone — what most callers want. */
@@ -2614,7 +2718,14 @@ export function explainBuildingCost(
     buildingCostColumn(id),
   );
   let running = foldUnitCost(lines);
-  if (def.oncePerEmpire === true) {
+  // **The class, not the limit** (batch C7). This line prices a great house by
+  // how many towns it will serve, and that is a fact about what the row *is*
+  // rather than about how many of them a realm may hold — so it reads
+  // `BuildingDef.empireBuilding` and is untouched by the card that lifts the
+  // limit. A realm under Caravanserai Cities pays this premium on every yard it
+  // raises, which is the user's ruling: the card buys many of an expensive
+  // thing rather than turning it into a cheap one.
+  if (isEmpireBuilding(id)) {
     const cities =
       state !== undefined && playerId !== undefined
         ? citiesHeldBy(state, playerId)

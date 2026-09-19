@@ -1110,8 +1110,44 @@ export interface BuildingDef {
    *
    * Refused in `buildError` (and therefore in `purchaseError`, which asks it),
    * in the two clauses a wonder is refused by and for their reasons.
+   *
+   * **This is the limit and only the limit** (batch C7, the user's ruling:
+   * *"we need two different flags, can be built once and is empire building"*).
+   * Being one to a realm and being one of the realm's great houses were one
+   * boolean doing two jobs, and Caravanserai Cities is the card that needed them
+   * apart: it lets a realm raise several caravanserais, and each one is still an
+   * empire building in every other reading. So this field answers *"may a second
+   * be built"* and `empireBuilding` beside it answers *"is this one of the great
+   * houses"*. Every row that carries one carries the other today, so nothing
+   * about any existing building moved when they were split.
+   *
+   * A card may lift this and nothing else — `ActionRuleId`'s `buildsEverywhere`,
+   * read beside the refusal in `buildError`.
    */
   oncePerEmpire?: boolean;
+  /**
+   * **This row is one of the realm's great houses** — the class, where
+   * `oncePerEmpire` above is the limit (batch C7).
+   *
+   * What every reading that asks *"is this an empire building"* looks at, and
+   * there are ten of them: the price (`uniqueCostFactor`, which scales a great
+   * house by how many towns it serves), the division between the empire's effect
+   * walk and a town's (`oneOfAKind`), `CityScope`'s `hasEmpireBuilding` and
+   * `queueHolds`, `CountKind`'s `empireBuildings`, the age of the oldest one a
+   * town holds, and the three card narrowings that name a side of the
+   * great-house line (a production bonus, a windfall rider, a purchase rider).
+   *
+   * A **wonder is not one of these** and never was: the two classes are separate
+   * by this marker's own reading, and a card that means both says so with two
+   * rows.
+   *
+   * Kept a field of its own rather than derived from `oncePerEmpire` because the
+   * whole point of the split is that the two can differ — under Caravanserai
+   * Cities a realm holds several caravanserais and every one of them is still a
+   * great house, which is the user's ruling exactly: the card buys you many of
+   * an expensive thing rather than turning it into a cheap thing.
+   */
+  empireBuilding?: boolean;
   /**
    * **The world opens this row, not the tree** — the Magnum Opus, which becomes
    * buildable for *every* empire the moment the world's first seat completes
@@ -1405,6 +1441,26 @@ export function isWonder(id: BuildingId): boolean {
 
 /** Every wonder, in the table's own order. The roster, derived from the flag. */
 export const WONDER_IDS: readonly BuildingId[] = BUILDING_IDS.filter(isWonder);
+
+/**
+ * **Is this row one of the realm's great houses?** The one reading of
+ * `BuildingDef.empireBuilding` (batch C7).
+ *
+ * `isWonder`'s sibling one scale in, and here for that function's reason: ten
+ * places ask this question, and a marker read ten different ways is a marker
+ * that will eventually be read ten different ways. It is the **class** and never
+ * the limit — whether a second may be built is `oncePerEmpire`, asked in
+ * `buildError` alone, and a card may lift that without touching this.
+ */
+export function isEmpireBuilding(id: BuildingId): boolean {
+  return buildingDef(id).empireBuilding === true;
+}
+
+/**
+ * Does the table hold any great house at all? A cheap static guard for the walk
+ * in `liveEffects` that sweeps for them.
+ */
+export const ANY_EMPIRE_BUILDING: boolean = BUILDING_IDS.some(isEmpireBuilding);
 
 /**
  * **Does this row supply this voice at all** — "a science building", "a faith

@@ -161,6 +161,7 @@ import {
 } from './state';
 import { atWar } from './wars';
 import {
+  cardActionRule,
   cardRouteSlots,
   cardRulePercent,
   payWindfallGrants,
@@ -180,7 +181,13 @@ import { routeCities, routeIsLive } from './routeYields';
 // The mode's own three names, from the leaf that owns them (see the re-export
 // below): a `export … from` binds nothing locally, and every gate in this file
 // is written in terms of a mode.
-import { type RouteMode, ROUTE_MODES, caravanTypeFor, postTermTurns } from './routes';
+import {
+  type RouteMode,
+  ROUTE_MODES,
+  caravanTypeFor,
+  cityPostPays,
+  postTermTurns,
+} from './routes';
 import { bumpEconomy } from './slate';
 
 export {
@@ -619,10 +626,66 @@ export function usedRouteSlots(state: GameState, playerId: number): number {
  * endpoints adds `rules.trade.postRangeTurns`. That is the user's ruling and the
  * whole of what a post is for — the first route to a town is the expensive one,
  * and every route after it reaches further.
+ *
+ * **And this empire's law on top** (batch C7, The Harbour Chain). `CardRule`'s
+ * `seaRouteRange` is a percentage on the base figure, read here and nowhere
+ * else, so the gate and every screen that prints a reach agree by construction.
+ * Two things about where it lands:
+ *
+ *   · it is taken of the **base** and the posts' turns are added afterwards, so
+ *     a card whose words are "+3 range" adds exactly three whatever the pair
+ *     holds. Taking it of the sum would have paid more for a well-established
+ *     pair than the card prints, which is the kind of quiet extra a player
+ *     cannot check;
+ *   · it is asked **only of a sea route**, because that is what the rule's own
+ *     name says. A land route reads the table's figure and nothing else, which
+ *     is what every game without the card reads.
+ *
+ * Floored once and never below a single turn, exactly as `routeTermFor` handles
+ * the other constant a card may bend.
  */
-export function routeRange(from: City, to: City): number {
+export function routeRange(
+  state: GameState,
+  playerId: number,
+  from: City,
+  to: City,
+  mode: RouteMode = 'land',
+): number {
+  let base = TRADE.rangeTurns;
+  if (mode === 'sea') {
+    let percent = 0;
+    for (const line of cardRulePercent(state, playerId, 'seaRouteRange')) percent += line.percent;
+    if (percent !== 0) base = Math.max(1, Math.floor((base * (100 + percent)) / 100));
+  }
   const posts = (from.tradingPost === true ? 1 : 0) + (to.tradingPost === true ? 1 : 0);
-  return TRADE.rangeTurns + TRADE.postRangeTurns * posts;
+  return base + TRADE.postRangeTurns * posts;
+}
+
+/**
+ * **Is the range waived between these two towns?** The Admiralty of Trade's one
+ * clause (batch C7, `ActionRuleId`'s `postsWaiveSeaRouteRange`).
+ *
+ * Three conditions, all of them the card's own printed words: the road runs by
+ * sea, both towns hold a **paying** post of this empire's, and the law is held.
+ * `cityPostPays` rather than `cityHoldsPost` because the design says so out loud
+ * — *"foreign post income and card range privileges are suspended during war or
+ * while the host city is blockaded"* — and a privilege is exactly what this is.
+ *
+ * It waives the range clause and nothing else. Every other refusal in
+ * `gateRoute` still runs, which is the card's second sentence: a sea lane a
+ * caravan cannot sail, a partner not met, a war, a full slot table and a route
+ * already running that way are all still refused.
+ */
+function rangeWaived(
+  state: GameState,
+  playerId: number,
+  from: City,
+  to: City,
+  mode: RouteMode,
+): boolean {
+  if (mode !== 'sea') return false;
+  if (!cardActionRule(state, playerId, 'postsWaiveSeaRouteRange')) return false;
+  return cityPostPays(state, from, playerId) && cityPostPays(state, to, playerId);
 }
 
 /**
@@ -1131,17 +1194,21 @@ function gateRoute(
     };
   }
 
-  const range = routeRange(from, to);
+  const range = routeRange(state, playerId, from, to, survey.mode);
   // A full purse: the range is a fact about the two towns, not about how much
   // any caravan has left today. See `pathTurns`.
   const full = fullMovement(probe, state);
   const turns = pathTurns(state, probe, path, { left: full, refill: full });
+  // **The waiver, asked only where the distance would refuse** — The Admiralty
+  // of Trade. It is the last clause of the gate because it is the narrowest: a
+  // pair that is in range anyway never has to ask, and a pair that is not is
+  // still refused for every other reason above.
+  const refused = turns > range && !rangeWaived(state, playerId, from, to, survey.mode);
   // The march is reported either way — a row refused for distance is still a row
   // a screen prints the distance of.
   return {
     mode: survey.mode,
-    refusal:
-      turns > range ? `${to.name} is ${turns} turns away; a caravan may be sent ${range}` : null,
+    refusal: refused ? `${to.name} is ${turns} turns away; a caravan may be sent ${range}` : null,
     path,
     turns,
   };

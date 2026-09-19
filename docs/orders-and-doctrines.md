@@ -239,6 +239,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Market Writ | 1 | ◆ | P | +1 authority for every two Markets in your empire. Buying tiles costs 30% less. |
 | The Convoy | 1 | ● | S | Your combat units within one hex of your trader gain +4 strength. Your traders gain +1 movement. Traders remain plunderable. |
 | Financed Industry | 1 | ○ | P | Cities gain production equal to 20% of their gold yield. Every city loses 3 food. |
+| The Factors' Houses | 1 | ● | P | Your cities holding your established commercial post gain +2 gold and +4 culture. Hiring a caravan from such a city costs 15% less. |
 | The Chartered Arsenal | 2 | ◆ | S | Military units purchased with gold gain +4 strength permanently on creation. |
 | Luxury Caravans | 2 | ● | P | Trade routes gain +1 gold for every luxury resource tile in their origin city. |
 | Mining Districts | 2 | ◆ | S | Worked mines gain +1 gold and +1 science for every two adjacent mines. |
@@ -257,11 +258,15 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Scholars' Roads | 2 | ○ | P | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. |
 | The Money Lenders | 2 | ○ | P | Earn interest equal to 2% of your treasury each turn, with no cap. |
 | The Brokers' Redraw | 2 | ○ | S | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. |
+| The Harbour Chain | 2 | ◆ | P | Gain +1 route capacity per two Harbours you own, at most +4. Sea routes gain +3 range and +1 gold for every 4 hexes travelled. |
+| Strategic Exports | 2 | ◆ | P | Trade routes gain +1 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity. |
 | The Paid Army | 3 | ◆ | S | Military-unit upkeep falls by 1 gold, minimum zero. Military units cost 25% less gold to purchase. |
 | The Chartered Metropolis | 3 | ○ | P | Cities with at least three of your paying outgoing routes gain +25% food, production and culture, but each costs +4 authority while qualified. |
 | A Court of Merchants | 3 | ○ | S | Gain +50% renown, but great-person offers contain only Great Merchants. |
 | Entrenched Interests | 3 | ◆ | S | Your units gain +3 combat strength in cities holding your trading post, including foreign cities. Going to war does not remove these posts. |
 | The Merchant Commonwealth | 3 | ◆ | S | Each owned city with your established commercial post receiving a domestic route gains +2 happiness and costs one less authority, minimum one. |
+| Caravanserai Cities | 3 | ◆ | P | Caravanserais can be built in every city. Cities with a Caravanserai gain +20% gold. |
+| The Admiralty of Trade | 3 | ○ | S | Your sea routes may connect two cities holding your established commercial posts regardless of range. A legal sea path, access, peace and route capacity are still required. |
 | The Gilded Scaffold | 3 | ○ | P | You may purchase world wonders. All your cities lose 15% production. |
 | Merchant Princes | 3 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
 | The World's Exchange | 3 | ○ | S | Each different foreign empire currently served by your routes grants +10% production toward the Opus, at most +40%. Existing construction and victory requirements remain. |

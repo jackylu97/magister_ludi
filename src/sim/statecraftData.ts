@@ -74,6 +74,9 @@ import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, ConsecrationId, RiteId } from './religionData';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
 import type { TerrainId } from './terrainData';
+// Type-only, so no load-time edge: a route's medium is one vocabulary and the
+// card table names it rather than respelling it. See `CardPaysEffect.mode`.
+import type { RouteMode } from './routes';
 // Type-only in both directions, exactly as `beadData.ts` and `religionData.ts`
 // are: a technology's row carries ordinary `CardEffect`s and a tech id is a
 // `CardId`, and a *value* import either way would turn a type cycle into a
@@ -2869,7 +2872,28 @@ export type CardRule =
    * around; the row is a percentage because that is what the shape takes, and
    * the two agree at the term the rules table currently holds.
    */
-  | 'routeTerm';
+  | 'routeTerm'
+  /**
+   * **How far a caravan may be sent by sea** (`rules.trade.rangeTurns`) — The
+   * Harbour Chain's three extra turns of reach (batch C7).
+   *
+   * The eleventh rule, and `routeTerm`'s neighbour in every respect: the range
+   * is one constant the gate reads in one place (`routeRange`, `trade.ts`), so a
+   * percentage on it is the same shape as a settler's price rather than a new
+   * kind of effect. A **positive** percentage is further, because the figure is
+   * a length and not a price.
+   *
+   * The medium is in the rule's name rather than in a narrowing on the shape,
+   * for `ActionRuleId`'s `capitalBuysWithoutLimit` reason: `cardRulePercent`
+   * asks the empire and takes at most a town, so it has no route to ask which
+   * way one runs. A card that wanted longer land routes would be a twelfth
+   * member.
+   *
+   * The percentage is taken of the **base** range and the trading posts' turns
+   * are added after it, so a card reading "+3 range" adds exactly three however
+   * many posts the pair holds. `routeRange`'s docblock says why.
+   */
+  | 'seaRouteRange';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -3112,7 +3136,54 @@ export type ActionRuleId =
    * on growing for free, and this says it may go on *paying*. A card that meant
    * both would name both.
    */
-  | 'goldBuysFrozenTiles';
+  | 'goldBuysFrozenTiles'
+  /**
+   * **A sea route between two towns that both hold this empire's trading post
+   * may be sent any distance** — The Admiralty of Trade (batch C7).
+   *
+   * The range clause in `gateRoute` (`trade.ts`) compares the march against
+   * `routeRange`, and this is one more condition on that comparison rather than
+   * a change to the figure — `goldBuysWonders`' and `goldBuysFrozenTiles`' shape
+   * exactly, and for their reason: every other clause of the gate still runs, so
+   * a sea lane that does not exist, a partner not met, a war, a full slot table
+   * and a route already running that way are all still refused. The card's own
+   * sentence says as much.
+   *
+   * The two narrowings are named in the rule because a flag rule carries no
+   * scope (`cardActionRule` asks the empire), which is `capitalBuysWithoutLimit`'s
+   * stated bargain. The gate holds both towns and the mode when it asks, so it
+   * can answer them itself: the mode must be `sea`, and both towns must hold a
+   * **paying** post (`cityPostPays`), which is the design's own suspension —
+   * *"foreign post income and card range privileges are suspended during war or
+   * while the host city is blockaded"*. A card that wanted the same licence by
+   * land would be a second member here.
+   */
+  | 'postsWaiveSeaRouteRange'
+  /**
+   * **The named building may be raised in every town** — Caravanserai Cities
+   * (batch C7).
+   *
+   * It lifts `BuildingDef.oncePerEmpire`, the *limit*, and nothing else. That
+   * separation is the whole of the work behind this member and it is the user's
+   * own ruling: *"the caravanserai should still be an empire building"*. So the
+   * row keeps `BuildingDef.empireBuilding`, and every reading that asks what
+   * class a building is goes on answering the same — the price still scales a
+   * great house by the towns it serves, `hasEmpireBuilding` still admits the
+   * town, `CountKind`'s `empireBuildings` still counts each one, and Private
+   * Patronage's discount on the *ordinary* shelves still passes it by. The card
+   * buys a realm many of an expensive thing rather than turning it into a cheap
+   * thing.
+   *
+   * **Which** building is `CardRuleEffect.building`, which is why this is the
+   * first rule in the union to carry a narrowing that is not a `UnitFilter`: a
+   * flag rule reaches the empire, and "every building loses its limit" is not a
+   * sentence anybody wants written by accident.
+   *
+   * Read in `buildError` (`tech.ts`) beside the refusal it lifts, which is
+   * `goldBuysWonders`' shape: every other clause of the gate still runs, so the
+   * technology, the site and the town's own duplicate check all still refuse.
+   */
+  | 'buildsEverywhere';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -3298,6 +3369,34 @@ export type MetaRuleId = 'sealTurns';
 
 /** What an amplifier reaches into. */
 export type AmplifierTarget =
+  /**
+   * **How many copies this empire's own strategic seams supply** — Strategic
+   * Exports' doubling (batch C7).
+   *
+   * The user's ruling is what makes it an amplifier rather than anything that
+   * touches the board: *"it doesn't need to modify map state, just the player
+   * data on resource totals"*. So no card writes `Tile.resourceCopies`, the
+   * tile facts stay placed-once, and this scales the empire's **total** on the
+   * way out of the sweep.
+   *
+   * Read in `resourceCopies` and in `controlledHoldings` (`cities.ts`), on the
+   * one term the two folds share — what the empire's own opened tiles supply —
+   * and **outside the memo those two walks are kept in**. Two reasons, and both
+   * are load-bearing:
+   *
+   *   · the walk is remembered on the economy clock, and that clock does not
+   *     move when a card is slotted. A law read inside it would leave every copy
+   *     count stale for the rest of the turn, and a stale copy count is a unit a
+   *     seat can or cannot build — a played game parting from a replay of its
+   *     own log;
+   *   · copies another empire **lent** you are not your deposits. The card says
+   *     *your* strategic resource deposits, so the factor reaches the term the
+   *     ground supplies and neither of the two terms a bargain moves.
+   *
+   * Strategic rows only, which is the card's own word: asked of
+   * `ResourceDef.kind`, so a luxury seam is untouched however large the share.
+   */
+  | 'strategicCopies'
   /** The flat happiness every unique luxury pays. */
   | 'luxuryHappiness'
   /** What a *duplicate* copy of a luxury is worth, as a share of the first. */
@@ -4242,6 +4341,28 @@ export interface CardPaysEffect extends CardYieldBag {
    * are "more than fourteen hexes apart" carries fifteen.
    */
   minHexes?: number;
+  /**
+   * **Which medium the road takes** — The Harbour Chain's coin by the mile, paid
+   * on the water and nowhere else (batch C7). `where: 'route'`.
+   *
+   * `crossing`'s fourth sibling, and it is the same kind of narrowing: a fact
+   * about the *road* that neither end's scope can answer. The board has always
+   * known it — a route is entirely a land route or entirely a sea route
+   * (`TradeRoute.sea`, read through `routeMode`), and the fold that prices one
+   * has been handed the mode since batch R1 for the sea premium — so nothing new
+   * is decided here. What is new is only that a card may say the word.
+   *
+   * Absent reaches both media, which is what every row written before it meant.
+   * The mode is handed down from `explainRouteYieldBetween` and its sender twin,
+   * both of which already take it; a caller that names none is treated as land,
+   * which is the same conservative default those folds have always had — so a
+   * preview of a pair before a mode has been chosen is never promised a sea
+   * line it has not earned.
+   *
+   * A card that wants a **longer** sea route is not this field: range is not a
+   * yield, and it says so with `CardRule`'s `seaRouteRange`.
+   */
+  mode?: RouteMode;
   /**
    * **Who this line pays, when it is not the empire holding the card** — The
    * Common Road's coin to the town its caravan reaches, The Foreign Factor's to
@@ -5292,6 +5413,21 @@ export interface CardRuleEffect {
    * simply never consulted rather than silently narrowing it to nothing.
    */
   class?: UnitFilter;
+  /**
+   * **Which building the rule is true of** — Caravanserai Cities' yard, and the
+   * only rule in the union that reads it (`buildsEverywhere`).
+   *
+   * `class`' sibling on the other half of the table, and required in spirit
+   * where it is meaningful: a rule that lifted the one-to-a-realm limit on
+   * *every* building is a sentence no card says, so `cardBuildsEverywhere` asks
+   * for the id and a row that names none matches nothing rather than matching
+   * everything. That is the opposite default from `class`, deliberately — a
+   * missing unit filter widens a rule that was already about the whole army,
+   * and a missing building id would widen a rule that is about one row.
+   *
+   * Meaningless on every other member and simply never consulted there.
+   */
+  building?: BuildingId;
 }
 
 /**
@@ -5536,8 +5672,22 @@ export interface CardPantheonSlotsEffect {
 export interface CardPurchaseRiderEffect {
   kind: 'purchaseRider';
   class: UnitFilter;
-  /** Which kind of purchase this rides on. Absent means `'unit'`. */
-  on?: 'unit' | 'building' | 'all';
+  /**
+   * Which kind of purchase this rides on. Absent means `'unit'`.
+   *
+   * **`'route'` is the fourth, and `'all'` deliberately does not include it**
+   * (batch C7, The Factors' Houses). The other three are rows on a shelf: a unit
+   * or a building with a production cost, a bank and a queue. A trade route is
+   * none of those — `explainRoutePrice` prices the caravan the road puts on the
+   * board and returns, and no bank names it — so the three cards in play that
+   * say `'all'` were written about the roster and repricing their owners' routes
+   * would be changing live cards by a side effect. A row that means a route says
+   * so.
+   *
+   * `class` is not asked of a route, exactly as it is not asked of a building:
+   * the row writes `{}` and the filter is skipped.
+   */
+  on?: 'unit' | 'building' | 'route' | 'all';
   /** Signed whole percent off the price. `-25` is the Ziggurat's quarter. */
   percent: number;
   /**

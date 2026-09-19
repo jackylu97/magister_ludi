@@ -594,7 +594,13 @@ function routesReading(state: GameState, playerId: number): RoutesReading {
       if (other.id === row.to.id || other.id === row.from.id) continue;
       const turns = turnsBetween.get(pairKey(row.to.id, other.id));
       if (turns === undefined) continue;
-      const range = routeRange(row.to, other);
+      // The land reading (`routeRange`'s own default), which is what the
+      // approximation below already assumes: this loop is measuring reach off
+      // turn counts it took for whichever mode the gate surveyed, and a seat
+      // holding a card that lengthens its *sea* routes is quoted the shorter
+      // figure here — the honest direction to be wrong in, since the reach a
+      // post is promised is never more than the reach it buys.
+      const range = routeRange(state, playerId, row.to, other);
       if (turns > range && turns <= range + extra) reached.push(other.id);
     }
     row.postReach = reached;

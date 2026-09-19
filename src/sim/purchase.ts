@@ -350,12 +350,17 @@ export function explainPurchaseCost(
 ): PurchasePrice | null {
   if (!cityById(state, cityId)) return null;
   // **A route, before anything the roster has to say** (batch R1). It is the
-  // one subject here that is not a row on a shelf: no bank names it, no
-  // building's congregation opens it and no rider rides on it, so it takes its
-  // own lines and returns.
+  // one subject here that is not a row on a shelf: no bank names it and no
+  // building's congregation opens it, so it takes its own lines and returns.
+  //
+  // **A rider that names the road does ride on it** since batch C7 (The Factors'
+  // Houses). The town is handed down rather than dropped — `applyBuyRoute` has
+  // always passed the origin — so "hiring a caravan from such a city costs less"
+  // has somewhere to land. The fold is `explainRoutePrice`'s, so there is still
+  // one implementation of what a route costs.
   if (item.kind === 'route') {
     if (currency !== 'gold') return null;
-    const lines = explainRoutePrice(state, playerId);
+    const lines = explainRoutePrice(state, playerId, cityId);
     return lines === null ? null : { currency: 'gold', lines, total: foldUnitCost(lines) };
   }
   const bank = rosterBank(item);
@@ -456,14 +461,30 @@ export function explainPurchaseCost(
  *
  * It takes **no pair of towns**, and that is the design rather than a
  * simplification: which two towns a route joins decides what it *pays*
- * (`routeYields.ts`) and never what it *costs*. One figure over every row of
- * the Trade screen, one figure the bot ranks against, one figure the reducer
- * charges.
+ * (`routeYields.ts`) and never what it *costs*.
+ *
+ * **It does take the town the caravan is hired in** (batch C7, The Factors'
+ * Houses). That is the *origin*, not a pair: `applyBuyRoute` and the Trade
+ * screen both ask the price of the town the road sets out from, and a card may
+ * now discount it there (`CardPurchaseRiderEffect` with `on: 'route'`). A caller
+ * that names no town gets the empire's plain figure with no rider on it, which
+ * is what every caller got before this and what a screen wanting one headline
+ * price still wants. So a scoped rider is silent where there is nowhere to
+ * spend, exactly as `cardPurchaseRiders` documents.
+ *
+ * **Known gap**: the Trade screen's headline price (`readRoutes`, which asks
+ * with no town) is the undiscounted one, so a seat holding The Factors' Houses
+ * is quoted the plain figure and charged the discounted one. Being charged less
+ * than quoted is the safe direction, and pricing the sheet per row is a UI pass.
  *
  * The knob's line is omitted when it changes nothing, so a world at the ruled
  * 1 prints exactly the caravan's converted cost and no line that says "× 1".
  */
-export function explainRoutePrice(state: GameState, playerId: number): UnitCostLine[] | null {
+export function explainRoutePrice(
+  state: GameState,
+  playerId: number,
+  cityId?: number,
+): UnitCostLine[] | null {
   const type = caravanTypeFor(state, playerId);
   if (type === null) return null;
   const hammers = explainUnitCost(state, playerId, type);
@@ -481,6 +502,12 @@ export function explainRoutePrice(state: GameState, playerId: number): UnitCostL
       amount: Math.floor(converted * multiplier) - converted,
     });
   }
+  // **Last, so the discount is off the price and not off the hammers** — the
+  // ordering `explainPurchaseCost` already keeps for a unit and a building, and
+  // the reason it is here rather than one function up: this is the fold a
+  // route's price is, and a rider applied outside it would be a second
+  // multiplication the fold could not see.
+  if (cityId !== undefined) applyRiders(state, playerId, cityId, { kind: 'route' }, 'gold', lines);
   return lines;
 }
 
@@ -621,7 +648,7 @@ function applyRiders(
   state: GameState,
   playerId: number,
   cityId: number,
-  item: PurchasableItem,
+  item: PurchaseSubject,
   currency: PurchaseCurrency,
   lines: UnitCostLine[],
 ): void {

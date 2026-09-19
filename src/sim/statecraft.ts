@@ -89,6 +89,7 @@ export {
   cardBeadOccasions,
   cardBehaviorRule,
   cardBorderZoc,
+  cardBuildsEverywhere,
   cardZocIgnored,
   cardBuildingHappiness,
   cardBuildingPercents,

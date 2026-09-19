@@ -441,6 +441,7 @@ import type { CityScope, FirstKind } from './statecraftData';
 import { techIsChartered } from './statecraftData';
 import { riteAbility } from './religionData';
 import {
+  cardBuildsEverywhere,
   cardGrantsAbility,
   cardUnlocksBuilding,
   cardUnlocksUnit,
@@ -1108,7 +1109,20 @@ export function buildError(
   // town, because every other empire may still raise theirs. The second clause
   // is the wonder's word for word and for its reason: a second copy in one realm
   // is a queue that can never complete.
-  if (kind === 'building' && isBuildingId(id) && buildingDef(id).oncePerEmpire === true) {
+  //
+  // **And a card may lift it** (batch C7, Caravanserai Cities —
+  // `ActionRuleId`'s `buildsEverywhere`). This is the *limit* and the only place
+  // it is read; what class the row belongs to is `BuildingDef.empireBuilding`
+  // and is not touched here, so a realm under the card holds several yards and
+  // every one of them is still one of its great houses. Every other clause of
+  // this gate still runs: the technology, the site, and the town's own "already
+  // built it" check above are all asked exactly as they were.
+  if (
+    kind === 'building' &&
+    isBuildingId(id) &&
+    buildingDef(id).oncePerEmpire === true &&
+    !cardBuildsEverywhere(state, playerId, id)
+  ) {
     for (const other of state.cities) {
       if (other.ownerId !== playerId) continue;
       if (other.buildings.includes(id)) {

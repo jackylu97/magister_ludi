@@ -42,6 +42,7 @@ import {
   availableCopies,
   canSpareAnyOf,
   committedCopies,
+  controlledHoldings,
   controlsAnyOf,
   foundCityAt,
   hasResource,
@@ -942,5 +943,105 @@ describe('one rule, one place', () => {
     const ui = codeOf(SOURCE['../../src/ui/resourceCopies.ts']!);
     expect(ui).toContain('tileCopies(tile)');
     expect(ui).not.toMatch(/resourceCopies\s*\?\?\s*1/);
+  });
+});
+
+/**
+ * **Strategic Exports — the empire's totals doubled, and the ground untouched**
+ * (batch C7; the user's ruling: *"it doesn't need to modify map state, just the
+ * player data on resource totals"*).
+ *
+ * Four claims, and they fail for different reasons:
+ *
+ *   1. **it doubles what this empire's own seams supply**, and every consumer
+ *      that means "how many copies does this empire have" sees it — the number,
+ *      the boolean, what is spare, and the holdings list;
+ *   2. **no tile changes.** `Tile.resourceCopies` is placed once at generation
+ *      and no card writes it, which is what keeps the board a fact;
+ *   3. **it is not remembered across a slotting.** The walk behind these figures
+ *      is memoised on the economy clock and a card being slotted does not move
+ *      that clock — so the law is read outside the memo, and taking the reading
+ *      before the card is slotted must not poison the reading after. This is the
+ *      one that would have shipped silently;
+ *   4. **it reaches deposits, not gifts.** A copy another empire lent is not one
+ *      of yours, and a copy you lent away comes off the doubled figure rather
+ *      than being doubled with it.
+ */
+describe('a card that doubles what a realm’s own seams supply', () => {
+  /** Puts an Order in seat 0's hand and in a chair. Only a slotted row is law. */
+  function slot(state: GameState, id: string): void {
+    const sc = state.players[0]!.statecraft;
+    if (!sc.orders.includes(id as never)) sc.orders.push(id as never);
+    sc.slots.push({ card: id as never, sealedUntil: state.turn });
+    bumpRevision(state);
+  }
+
+  it('doubles the empire’s copies of a strategic seam and leaves luxuries alone', () => {
+    const { state } = ironBench(2);
+    // Gems are a luxury, opened on the far side of the ring so the two kinds do
+    // not stand on each other. The kind is asked of the table rather than
+    // assumed — ivory reads like a luxury and the data says strategic.
+    seam(state, 'gems', 1, 2);
+    expect(resourceDef('gems').kind).toBe('luxury');
+    expect(resourceCopies(state, 0, 'iron')).toBe(2);
+    expect(resourceCopies(state, 0, 'gems')).toBe(1);
+
+    slot(state, 'strategicExports');
+    expect(resourceCopies(state, 0, 'iron')).toBe(4);
+    // The card's own word is *strategic*, and a luxury is not one.
+    expect(resourceCopies(state, 0, 'gems')).toBe(1);
+    // And it is this empire's law and nobody else's.
+    expect(resourceCopies(state, 1, 'iron')).toBe(0);
+  });
+
+  it('writes nothing on the board', () => {
+    const { state } = ironBench(2);
+    const before = state.map.tiles.map((tile) => tile.resourceCopies);
+    slot(state, 'strategicExports');
+    expect(resourceCopies(state, 0, 'iron')).toBe(4);
+    // The ground is the ground. A card that reached the tiles would have made
+    // the doubling permanent and survivable by losing the card.
+    expect(state.map.tiles.map((tile) => tile.resourceCopies)).toEqual(before);
+  });
+
+  it('is not remembered from before the card was taken up, or after it is dropped', () => {
+    const { state } = ironBench(2);
+    // **The reading taken first is the trap.** The walk behind this is memoised
+    // on the economy clock, and slotting a card does not move that clock — so a
+    // seat that asked before slotting would go on being told two for the rest of
+    // the turn, and a stale copy count is a unit it can or cannot build.
+    expect(resourceCopies(state, 0, 'iron')).toBe(2);
+    slot(state, 'strategicExports');
+    expect(resourceCopies(state, 0, 'iron')).toBe(4);
+
+    // And the way back down, which is the same claim from the other side: a
+    // seat that loses the chair loses the copies with it.
+    const sc = state.players[0]!.statecraft;
+    sc.slots = [];
+    bumpRevision(state);
+    expect(resourceCopies(state, 0, 'iron')).toBe(2);
+  });
+
+  it('carries the doubled figure to every reading of what an empire holds', () => {
+    const { state, cityId } = ironBench(1);
+    slot(state, 'strategicExports');
+    expect(hasResource(state, 0, 'iron')).toBe(true);
+    // One seam, two copies: what is spare is counted off the doubled figure, so
+    // a realm under this card fields an army the same seam could not have fed.
+    expect(availableCopies(state, 0, 'iron')).toBe(2);
+    expect(canSpareAnyOf(state, 0, ['iron'])).toBe(true);
+    expect(cityId).toBeGreaterThan(0);
+  });
+
+  it('holds a kind the empire would otherwise have lent away entirely', () => {
+    // Two dug seams, three promised away: without the card the realm is left
+    // with none and drops the kind; with it, four minus three is one and the
+    // kind survives. The doubling is taken of the ground's term and the promise
+    // comes off afterwards — never the other way round.
+    const { state } = ironBench(2);
+    expect(resourceCopies(state, 0, 'iron')).toBe(2);
+    slot(state, 'strategicExports');
+    expect(resourceCopies(state, 0, 'iron')).toBe(4);
+    expect(controlledHoldings(state, 0, 'strategic').map((row) => row.id)).toContain('iron');
   });
 });

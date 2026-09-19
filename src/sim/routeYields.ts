@@ -255,7 +255,7 @@ export function explainRouteYieldBetween(
     // the sea premium is deliberately **not** taken of it: the ruling raises
     // what a sea route *pays the seat that sent it*, and that fold is
     // `explainRouteSenderYieldBetween`'s.
-    hostGrants(state, from, to, lines, label, age);
+    hostGrants(state, from, to, lines, label, age, mode);
     return blockaded(state, from, to, lines);
   }
 
@@ -318,8 +318,8 @@ export function explainRouteYieldBetween(
   // grammar the user's marks revealed: put yields on a thing, then multiply the
   // thing. A line added after the share would be a line "double your trade route
   // yields" could not see.
-  cardLines(state, from, to, lines, label, age);
-  shares(state, from, to, lines, label, age);
+  cardLines(state, from, to, lines, label, age, 'self', mode);
+  shares(state, from, to, lines, label, age, mode);
   bySea(mode, lines, label);
   amplify(state, from, lines, label);
   // **After the sender's dials, deliberately.** A host grant is not the sender's
@@ -328,7 +328,7 @@ export function explainRouteYieldBetween(
   // explicit host grant"*. On a domestic trade route the host is one of this empire's
   // own towns, so the line lands where every other line on this fold lands; the
   // shape is the same either way and only the books differ.
-  hostGrants(state, from, to, lines, label, age);
+  hostGrants(state, from, to, lines, label, age, mode);
   return blockaded(state, from, to, lines);
 }
 
@@ -357,8 +357,9 @@ function hostGrants(
   lines: RouteYieldLine[],
   label: (note: string) => string,
   age?: number,
+  mode?: RouteMode,
 ): void {
-  cardLines(state, from, to, lines, label, age, 'host');
+  cardLines(state, from, to, lines, label, age, 'host', mode);
 }
 
 /**
@@ -432,6 +433,13 @@ function cardLines(
   label: (note: string) => string,
   age?: number,
   payee: 'self' | 'host' = 'self',
+  /**
+   * Which way the road runs — handed down so a row that names a medium
+   * (`CardPaysEffect.mode`, The Harbour Chain's coin by the mile) is asked about
+   * the crossing this caravan actually makes. Both folds above hold it already,
+   * for the sea premium.
+   */
+  mode?: RouteMode,
 ): void {
   // **The one count this fold takes, and the one thing only this module can
   // answer**: how many distinct luxuries the two ends hold between them (The
@@ -443,7 +451,7 @@ function cardLines(
   // it for why it is the distance and not the walked path), and a game whose
   // cards say nothing about the miles measures none.
   let hexes = -1;
-  for (const paid of cardRouteYieldLines(state, from, to, age, payee)) {
+  for (const paid of cardRouteYieldLines(state, from, to, age, payee, mode)) {
     let helpings = 1;
     let note = paid.source;
     if (paid.perEndpointLuxury) {
@@ -504,8 +512,10 @@ function shares(
   lines: RouteYieldLine[],
   label: (note: string) => string,
   age?: number,
+  /** Which way the road runs. See `cardLines`' own parameter. */
+  mode?: RouteMode,
 ): void {
-  const rows = cardRouteShareLines(state, from, to, age);
+  const rows = cardRouteShareLines(state, from, to, age, mode);
   if (rows.length === 0) return;
   // The fold **as it stands before any share spoke**, so two of them read the
   // same road and their order cannot change what either pays —
@@ -689,8 +699,8 @@ export function explainRouteSenderYieldBetween(
   // The sender's own cards on its own caravan — see `cardLines`. It rides the
   // foreign fold exactly as the amplifier does, because the line belongs to the
   // seat that sent the goods and this is that seat's book.
-  cardLines(state, from, to, lines, label, age);
-  shares(state, from, to, lines, label, age);
+  cardLines(state, from, to, lines, label, age, 'self', mode);
+  shares(state, from, to, lines, label, age, mode);
   // **The crossing pays here too**, and here is where it matters most: an
   // international route's whole worth to the seat that sent it is this fold,
   // and the ruling is about what a sea route pays, not about whose town it

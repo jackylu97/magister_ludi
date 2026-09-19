@@ -2097,7 +2097,9 @@ export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
   followingOnly: 'availability, asked of the congregation by `purchaseError` before the fold',
   requiresBuilding: 'the chain’s one link, refused by `buildError` in the parent’s own name',
   requiresSite: 'a refusal rather than a worth — `siteRefusal` prints the simulation’s own sentence for the sited rows',
-  oncePerEmpire: 'one per realm: a refusal, and a line on the *price* (`docs/production-costs.md`), never a worth',
+  oncePerEmpire: 'one per realm: a refusal `buildError` makes, which a card may lift (batch C7) — never a worth',
+  empireBuilding:
+    'the *class*, split from the limit beside it in batch C7: it decides the price line (`docs/production-costs.md`) and which card clauses name the row, both of which are folded where they are read, so the marker itself is worth nothing on its own',
   wonder: 'one per world: the production category and the claim, both the rules’ business; what a wonder pays is its `effects`, its `renown` and its grants, all folded above',
   consecrated: 'the patron roll — uniform over the consecrations, and this bot has no reading of a patron',
   acceptsContributions: 'a way to pay a basket; the bot has no contribution arm to price it for',
@@ -3827,6 +3829,13 @@ function ruleRewriteValue(
       // so a figure here would be invented rather than measured. Named so the
       // exhaustiveness check below goes on catching the next member.
       return ctx.ai.score.unknownEffect;
+    case 'seaRouteRange':
+      // **Not priced yet either** (batch C7, which added the rule), and for
+      // `routeTerm`'s reason one line up: extra reach is worth the partners it
+      // brings inside the gate, and the bot picks partners off what a pair pays
+      // rather than off how far it may be sent. Named so the exhaustiveness
+      // check below goes on catching the next member.
+      return ctx.ai.score.unknownEffect;
     default:
       return unreadRule(rule, ctx);
   }
@@ -3920,6 +3929,13 @@ function scoreAmplifier(
       // An act is priced where it is chosen (`bot.ts` weighs the acts it is
       // choosing between), and a blessing's length is not a rate and appears in
       // no reading of one — F2's own written-down cut, kept.
+      return ctx.ai.score.unknownEffect;
+    case 'strategicCopies':
+      // **Not priced yet** (batch C7, which added the target). Copies are not a
+      // yield: what a spare seam is worth is whether it unlocks a row the seat
+      // wanted to build or a bargain it wanted to strike, and both of those are
+      // weighed where they are chosen rather than as a rate here. Named so the
+      // exhaustiveness check below goes on catching the next member.
       return ctx.ai.score.unknownEffect;
     default:
       return unreadTarget(effect.target, ctx);

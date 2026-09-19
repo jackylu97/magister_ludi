@@ -2866,7 +2866,7 @@ describe('the gate is asked once and hands back what it measured', () => {
     )!;
     expect(land.refusal).toMatch(/turns away/);
     expect(land.path).not.toBeNull();
-    expect(land.turns).toBeGreaterThan(routeRange(home, far));
+    expect(land.turns).toBeGreaterThan(routeRange(state, 0, home, far, 'land'));
   });
 
   it('a refusal taken before the survey carries no march at all', () => {
@@ -2913,5 +2913,142 @@ describe('the gate is asked once and hands back what it measured', () => {
     );
     expect(findPathToFirst(island.state, far, centres, dry)).toBeNull();
     for (const goal of centres) expect(findPath(island.state, far, goal, dry)).toBeNull();
+  });
+});
+
+/**
+ * **How far a caravan may be sent, and the two cards that move it** (batch C7).
+ *
+ * The range was one figure the gate read and no law could touch. Two Commerce
+ * rows wanted it, and they wanted opposite things, so they are two shapes:
+ *
+ *   · The Harbour Chain **lengthens** it — `CardRule`'s `seaRouteRange`, a
+ *     percentage on the table's own figure, exactly as Venture Routes is a
+ *     percentage on the term;
+ *   · The Admiralty of Trade **waives** it between one pair of towns —
+ *     `ActionRuleId`'s `postsWaiveSeaRouteRange`, read as one more condition
+ *     beside the clause it lifts, which is the shape three other live rows in
+ *     that deck already use for a refusal.
+ *
+ * Both are asked only of a sea route, and both leave every other clause of the
+ * gate where it was. That second half is the part worth pinning: a waiver that
+ * quietly admitted a pair with no lane between them, or one more caravan than
+ * the seat had markets for, would be a much larger card than the one printed.
+ */
+describe('a route’s reach', () => {
+  /** Puts an Order in a seat's hand and in a chair. Only a slotted row is law. */
+  function slot(state: GameState, playerId: number, id: string): void {
+    const sc = playerById(state, playerId)!.statecraft;
+    if (!sc.orders.includes(id as never)) sc.orders.push(id as never);
+    sc.slots.push({ card: id as never, sealedUntil: state.turn });
+    bumpRevision(state);
+  }
+
+  it('is the table’s figure by land, and The Harbour Chain’s by sea', () => {
+    const { state, home, partner } = seaWorld(false);
+    const plain = TRADE.rangeTurns;
+    expect(routeRange(state, 0, home, partner, 'land')).toBe(plain);
+    expect(routeRange(state, 0, home, partner, 'sea')).toBe(plain);
+
+    slot(state, 0, 'theHarbourChain');
+    // The card's own printed words are three turns, and the row is a percentage
+    // because that is what the shape takes — the two agree at the figure the
+    // rules table holds, which is the bargain Venture Routes already made.
+    expect(routeRange(state, 0, home, partner, 'sea')).toBe(plain + 3);
+    // Nothing at all by land: the rule names the medium in its own id.
+    expect(routeRange(state, 0, home, partner, 'land')).toBe(plain);
+    // And a seat without the card is untouched, which is what makes this a law
+    // rather than a change to the table.
+    expect(routeRange(state, 1, home, partner, 'sea')).toBe(plain);
+  });
+
+  it('adds the trading posts’ turns after the share, so the card pays what it prints', () => {
+    const { state, home, partner } = seaWorld(false);
+    home.tradingPost = true;
+    partner.tradingPost = true;
+    const posts = TRADE.rangeTurns + TRADE.postRangeTurns * 2;
+    expect(routeRange(state, 0, home, partner, 'sea')).toBe(posts);
+
+    slot(state, 0, 'theHarbourChain');
+    // Exactly three more, not three more *and* a share of the posts' six — the
+    // difference between the card's own sentence and a quiet extra.
+    expect(routeRange(state, 0, home, partner, 'sea')).toBe(posts + 3);
+  });
+
+  /**
+   * Two of this seat's towns on opposite shores of one ocean, far enough apart
+   * that the gate refuses the lane for distance alone. Everything else about
+   * the pair is legal, which is what lets the waiver be tested on its own.
+   *
+   * The separation is measured across the **wrap**, which is the trap this
+   * fixture fell into once: two towns near opposite edges of a narrow board are
+   * neighbours the short way round, and the first draft of this world was
+   * quietly in range.
+   */
+  function farSeaWorld(): { state: GameState; home: City; partner: City } {
+    const state = bareState(60, 9);
+    for (const tile of state.map.tiles) tile.terrain = 'coast';
+    at(state, 2, 4).terrain = 'grassland';
+    at(state, 32, 4).terrain = 'grassland';
+    const home = foundCityAt(state, 0, at(state, 2, 4));
+    const partner = foundCityAt(state, 0, at(state, 32, 4));
+    home.buildings.push('market');
+    bumpRevision(state);
+    createUnit(state, 0, 'trader', 2, 4);
+    return { state, home, partner };
+  }
+
+  it('refuses a lane that is simply too long, card or no card', () => {
+    const { state, home, partner } = farSeaWorld();
+    expect(routeStartable(state, 0, home.id, partner.id, 'sea')).toMatch(/turns away/);
+    // The law alone is not enough: the two houses are half the sentence.
+    slot(state, 0, 'theAdmiraltyOfTrade');
+    expect(routeStartable(state, 0, home.id, partner.id, 'sea')).toMatch(/turns away/);
+  });
+
+  it('opens it once both towns hold a paying post of this empire’s', () => {
+    const { state, home, partner } = farSeaWorld();
+    slot(state, 0, 'theAdmiraltyOfTrade');
+    const ripe = state.turn - RULES.trade.routeTurns;
+    home.posts = [{ by: 0, since: ripe }];
+    partner.posts = [{ by: 0, since: ripe }];
+    bumpRevision(state);
+    expect(routeStartable(state, 0, home.id, partner.id, 'sea')).toBeNull();
+
+    // **One house is not two.** The card says both, and a post at one end only
+    // is exactly the case a looser reading would have let through.
+    partner.posts = [];
+    bumpRevision(state);
+    expect(routeStartable(state, 0, home.id, partner.id, 'sea')).toMatch(/turns away/);
+  });
+
+  it('waives the distance and nothing else', () => {
+    const { state, home, partner } = farSeaWorld();
+    slot(state, 0, 'theAdmiraltyOfTrade');
+    const ripe = state.turn - RULES.trade.routeTurns;
+    home.posts = [{ by: 0, since: ripe }];
+    partner.posts = [{ by: 0, since: ripe }];
+    bumpRevision(state);
+
+    // By land, where this board has no lane at all: still refused, and refused
+    // for the ground rather than for the distance.
+    expect(routeStartable(state, 0, home.id, partner.id, 'land')).toMatch(/No road/);
+
+    // And the slot table still binds. One market is one route, so the reverse
+    // leg is refused for capacity with the waiver held and both posts standing.
+    const trader = state.units.find((unit) => unit.ownerId === 0 && trades(unitDef(unit.type)))!;
+    expect(
+      applyCommand(state, {
+        type: 'startRoute',
+        playerId: 0,
+        unitId: trader.id,
+        fromCityId: home.id,
+        toCityId: partner.id,
+        mode: 'sea',
+      }).ok,
+    ).toBe(true);
+    expect(routeStartable(state, 0, partner.id, home.id, 'sea')).toMatch(
+      /trade routes are running/,
+    );
   });
 });

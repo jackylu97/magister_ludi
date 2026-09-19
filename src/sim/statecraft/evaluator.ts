@@ -38,13 +38,14 @@ import { queueCategory } from '../yields/town';
 import { foldEmpireRates } from '../yields/empire';
 import { signedPlain as signed } from '../yieldFormat';
 import {
-  BUILDING_IDS,
+  ANY_EMPIRE_BUILDING,
   type BuildingCategory,
   type BuildingId,
   type ProductionCategory,
   buildingDef,
   buildingPaysVoice,
   isBuildingId,
+  isEmpireBuilding,
   isWonder,
 } from '../buildingData';
 import {
@@ -99,6 +100,7 @@ import { connectedCities } from '../roads';
 // `routeYields.ts` imports this file for the lines a card puts on a caravan,
 // and a question two hubs ask lives below both of them (`routes.ts`).
 import {
+  type RouteMode,
   cityHoldsPost,
   cityPostPays,
   countRoutesAt,
@@ -777,23 +779,37 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   // list, so a conqueror inherits the walls, the granary and the Oracle together
   // — the same reading `City.timed` takes of a rite performed on a place.
   //
-  // **A capstone is read from here too** (Entry LVIII, the endgame): a
-  // `oncePerEmpire` row — the Magnum Opus and the three great works of the
-  // Observatory — is one per *realm* exactly as a wonder is one per world, so
-  // reading it from the empire's walk counts it once and its clauses may say
-  // "every soldier you have" without being a granary's effect counted once per
-  // granary. That is the whole of `cityBuildingEffects`' argument, answered at
-  // one scale out; the two walks skip each other's rows, so nothing is read
-  // twice.
+  // **A great house is read from here too** (Entry LVIII, the endgame): a
+  // `BuildingDef.empireBuilding` row — the Magnum Opus, the three great works of
+  // the Observatory, the Caravanserai — is the realm's exactly as a wonder is
+  // the world's, so reading it from the empire's walk counts it once and its
+  // clauses may say "every soldier you have" without being a granary's effect
+  // counted once per granary. That is the whole of `cityBuildingEffects`'
+  // argument, answered at one scale out; the two walks skip each other's rows,
+  // so nothing is read twice.
+  //
+  // **Once per row, not once per copy** (batch C7). A realm used to hold at most
+  // one of these by construction, so walking the towns and pushing whatever each
+  // held could not double anything. Caravanserai Cities ends that: the card
+  // lifts the one-to-a-realm limit and leaves the class alone, so a seat may
+  // hold several yards and every one of them is still the realm's. Pushing the
+  // row per copy would pay its clauses per copy — the Caravanserai's own grain
+  // and hammers on every caravan, multiplied by how many yards stood anywhere —
+  // which is precisely the silent multiplication the empire/town division exists
+  // to prevent. The seen set is the fix, and it is the right fix even for the
+  // rows that cannot repeat: it makes the walk say what it means.
   //
   // The guard is the empty register **or** a table that has any such row in it:
   // the walk is several per city per turn, and in a game where nobody has
   // finished anything one of a kind there is nothing here to sweep for.
   if (state.wonders.length > 0 || ONE_OF_A_KIND) {
+    const seen = new Set<BuildingId>();
     for (const city of state.cities) {
       if (city.ownerId !== playerId) continue;
       for (const id of city.buildings) {
         if (!oneOfAKind(id)) continue;
+        if (seen.has(id)) continue;
+        seen.add(id);
         push(id, isWonder(id) ? CLASS_WORD.wonder : CLASS_WORD.building, buildingDef(id).effects ?? []);
       }
     }
@@ -1276,11 +1292,11 @@ function consecrationEffects(state: GameState, city: City): LiveCardEffect[] {
  * no stands in every town that built one and belongs to the town's own walk.
  */
 export function oneOfAKind(id: BuildingId): boolean {
-  return isWonder(id) || buildingDef(id).oncePerEmpire === true;
+  return isWonder(id) || isEmpireBuilding(id);
 }
 
 /** Does the table hold any one-of-a-kind row at all? `liveEffects`' cheap guard. */
-const ONE_OF_A_KIND = BUILDING_IDS.some((id) => buildingDef(id).oncePerEmpire === true);
+const ONE_OF_A_KIND = ANY_EMPIRE_BUILDING;
 
 /**
  * The effects the **ordinary buildings standing in this town** contribute.
@@ -1770,7 +1786,7 @@ function worksHolding(state: GameState, city: City, on: TileCondition): number {
 function oldestEmpireBuildingAge(state: GameState, city: City): number | undefined {
   let oldest: number | undefined;
   for (const id of city.buildings) {
-    if (buildingDef(id).oncePerEmpire !== true) continue;
+    if (!isEmpireBuilding(id)) continue;
     const age = buildingAge(state, city, id);
     if (age === undefined) continue;
     if (oldest === undefined || age > oldest) oldest = age;
@@ -1835,7 +1851,7 @@ export function cityScopeAdmits(
       // building has no marker to read, so the narrowing refuses it.
       if (scope.empireBuilding === true) {
         if (front.kind !== 'building' || !isBuildingId(front.id)) return false;
-        if (buildingDef(front.id).oncePerEmpire !== true) return false;
+        if (!isEmpireBuilding(front.id)) return false;
       }
       return true;
     }
@@ -1956,7 +1972,7 @@ export function cityScopeAdmits(
       // a Pyramid in it would be paying for a class nobody chose. `hasWonder` is
       // the other class and asks the other declaration. A boolean, so a town
       // holding a Forum and a Bourse is admitted once.
-      return city.buildings.some((id) => buildingDef(id).oncePerEmpire === true);
+      return city.buildings.some(isEmpireBuilding);
     }
     case 'hasBuildingYielding':
       // Asked of what a row *does*, off its own six voices, so a retuned library
@@ -2800,7 +2816,7 @@ export function countOf(
       const walk = (town: City): number => {
         let here = 0;
         for (const id of town.buildings) {
-          if (buildingDef(id).oncePerEmpire === true) here += 1;
+          if (isEmpireBuilding(id)) here += 1;
         }
         return here;
       };
@@ -4389,7 +4405,7 @@ export function cardProduction(
     // building in hand — a unit, a project — satisfies neither reading.
     if (effect.empireBuilding !== undefined) {
       if (building === undefined) continue;
-      if ((buildingDef(building).oncePerEmpire === true) !== effect.empireBuilding) continue;
+      if (isEmpireBuilding(building) !== effect.empireBuilding) continue;
     }
     // *Where* the hammers land, where `modelClass` is *what* they land on. The
     // town is already in hand — a production modifier is asked of one city's
@@ -6059,7 +6075,7 @@ export function windfallPayout(
     }
     if (effect.empireBuilding !== undefined) {
       if (facts.building === undefined) return false;
-      if ((buildingDef(facts.building).oncePerEmpire === true) !== effect.empireBuilding) {
+      if (isEmpireBuilding(facts.building) !== effect.empireBuilding) {
         return false;
       }
     }
@@ -6876,6 +6892,34 @@ export function cardActionRule(state: GameState, playerId: number, rule: ActionR
 }
 
 /**
+ * **May this empire raise this building in more than one town?** Caravanserai
+ * Cities' one question (batch C7, `ActionRuleId`'s `buildsEverywhere`).
+ *
+ * A reader of its own rather than `cardActionRule` because the rule names a
+ * *building* and `cardRuleHolds` only knows how to narrow by a unit filter. The
+ * default is the opposite of that filter's, deliberately: a row naming no
+ * building matches nothing. A missing unit filter widens a rule that was already
+ * about the whole army; a missing building id would widen a rule that is about
+ * one row, and "every building in the game loses its limit" is not a sentence
+ * any card says.
+ *
+ * It answers about the **limit** alone. The building is still whatever class its
+ * row says it is — `isEmpireBuilding` is untouched by this — which is the user's
+ * ruling and the reason the two markers were split.
+ */
+export function cardBuildsEverywhere(
+  state: GameState,
+  playerId: number,
+  building: BuildingId,
+): boolean {
+  for (const { effect } of pickKind(liveEffects(state, playerId), 'rule')) {
+    if (effect.rule !== 'buildsEverywhere') continue;
+    if (effect.building === building) return true;
+  }
+  return false;
+}
+
+/**
  * Does this empire hold a card declaring this behaviour rule?
  *
  * `type` is the **piece the rule is being asked about**, for the rows that name
@@ -6989,7 +7033,7 @@ export interface CardPurchaseLine {
 export function cardPurchaseRiders(
   state: GameState,
   playerId: number,
-  kind: 'unit' | 'building',
+  kind: 'unit' | 'building' | 'route',
   type?: UnitTypeId,
   /**
    * The town the price is being asked in — `applyRiders` (`purchase.ts`) always
@@ -7005,7 +7049,12 @@ export function cardPurchaseRiders(
   const list: CardPurchaseLine[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'purchaseRider')) {
     const on = effect.on ?? 'unit';
-    if (on !== 'all' && on !== kind) continue;
+    // **A route is named or it is not reached** (batch C7). `'all'` is the two
+    // roster kinds and deliberately not the road: the three live rows that say
+    // it were written about things with a production cost and a shelf, and
+    // letting them reprice a caravan's hire would be changing live cards by a
+    // side effect. See `CardPurchaseRiderEffect.on`.
+    if (kind === 'route' ? on !== 'route' : on !== 'all' && on !== kind) continue;
     if (kind === 'unit' && (type === undefined || !unitMatches(type, effect.class))) continue;
     // **Which shelf**, and only ever of a building: "religious spearmen" is not
     // a sentence, so a row naming a category is silent on every unit whatever
@@ -7020,7 +7069,7 @@ export function cardPurchaseRiders(
     // the windfall rider ask it.
     if (effect.empireBuilding !== undefined) {
       if (kind !== 'building' || building === undefined) continue;
-      if ((buildingDef(building).oncePerEmpire === true) !== effect.empireBuilding) continue;
+      if (isEmpireBuilding(building) !== effect.empireBuilding) continue;
     }
     // **Where the price is asked.** A rider naming a class of town is paid in
     // that class and nowhere else, which is the difference between a reason to
@@ -7609,6 +7658,13 @@ export function cardRouteYieldLines(
   to?: City,
   age?: number,
   payee: 'self' | 'host' = 'self',
+  /**
+   * Which way the road runs — `CardPaysEffect.mode`, batch C7. Optional and
+   * treated as land where a caller names none, which is the same conservative
+   * default the two folds in `routeYields.ts` already take: a preview of a pair
+   * before a mode has been chosen is never promised a sea line.
+   */
+  mode?: RouteMode,
 ): CardRouteLine[] {
   const list: CardRouteLine[] = [];
   for (const { source, card, effect } of routeRows(state, from, to)) {
@@ -7619,7 +7675,7 @@ export function cardRouteYieldLines(
     // this batch — so the two askings partition the rows and nothing is paid
     // twice. See `CardPaysEffect.payee`.
     if ((effect.payee === 'host' ? 'host' : 'self') !== payee) continue;
-    if (!routeScopesAdmit(state, effect, from, to, age)) continue;
+    if (!routeScopesAdmit(state, effect, from, to, age, mode)) continue;
     // **A road counted by a fact about the town that sent it** — Ore Caravans'
     // mines and Luxury Caravans' seams (batch C2). Resolved here rather than
     // carried, which is the opposite bargain from `routeLength` and for that
@@ -7676,6 +7732,8 @@ export function cardRouteShareLines(
   from: City,
   to?: City,
   age?: number,
+  /** Which way the road runs. See `cardRouteYieldLines`' own parameter. */
+  mode?: RouteMode,
 ): CardRouteShareLine[] {
   const list: CardRouteShareLine[] = [];
   for (const { source, card, effect } of routeRows(state, from, to)) {
@@ -7685,7 +7743,7 @@ export function cardRouteShareLines(
     // row that said both would be refused by the register test; this is the
     // reading that makes the refusal honest.
     if (effect.payee !== undefined) continue;
-    if (!routeScopesAdmit(state, effect, from, to, age)) continue;
+    if (!routeScopesAdmit(state, effect, from, to, age, mode)) continue;
     for (const share of effect.share) {
       if (share.percent === 0) continue;
       list.push({
@@ -7756,10 +7814,12 @@ function routeScopesAdmit(
     destination?: CityScope;
     crossing?: 'domestic' | 'international';
     standingTurns?: number;
+    mode?: RouteMode;
   },
   from: City,
   to?: City,
   age?: number,
+  mode?: RouteMode,
 ): boolean {
   if (effect.origin !== undefined && !cityScopeAdmits(state, from, effect.origin)) return false;
   if (effect.destination !== undefined) {
@@ -7779,6 +7839,11 @@ function routeScopesAdmit(
   if (effect.standingTurns !== undefined) {
     if (age === undefined || age < effect.standingTurns) return false;
   }
+  // **Which medium the road takes** (batch C7). A caller that names none is
+  // asking about land, which is the default both folds in `routeYields.ts` have
+  // always carried — so a sea row is silent on a preview that has not chosen a
+  // mode yet, exactly as it is silent on a land road.
+  if (effect.mode !== undefined && effect.mode !== (mode ?? 'land')) return false;
   return true;
 }
 
@@ -7788,10 +7853,14 @@ function routeScopeNote(effect: {
   destination?: CityScope;
   crossing?: 'domestic' | 'international';
   standingTurns?: number;
+  mode?: RouteMode;
 }): string | null {
   const notes = [
     scopeNote(effect.origin),
     scopeNote(effect.destination),
+    // The medium, beside the crossing and for its reason: a fact about the road
+    // rather than about either end.
+    effect.mode === undefined ? null : effect.mode === 'sea' ? 'by sea' : 'by land',
     // The term reads as a word of its own beside the crossing, and for its
     // reason: it is a narrowing a player cannot check by looking at either town.
     effect.standingTurns === undefined ? null : `kept ${effect.standingTurns}+ turns`,

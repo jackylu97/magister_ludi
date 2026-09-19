@@ -88,7 +88,9 @@ import {
 import { RELIGION } from '../../../src/sim/religionData';
 import {
   cardRenownLines,
+  cardRouteYieldLines,
   cardUnitStamp,
+  cityScopeAdmits,
   countOf,
   describeCard,
   describeEffects,
@@ -253,7 +255,20 @@ describe('a live Commerce row is a card', () => {
     // Merchant Commonwealth only the first, and The Foreign Factor both; the
     // fourth, Entrenched Interests, is a brand-new row that reads the post
     // without reading its income.
-    expect(live().length).toBe(53);
+    //
+    // **And five more with C7**, each of which had been left waiting on one
+    // thing. The Admiralty of Trade wanted a named rule at the gate that prices
+    // a route's reach. The Harbour Chain wanted a route's pay to be narrowable
+    // by the medium it takes, and how far a sea route may be sent to become a
+    // figure a law may move. The Factors' Houses wanted a caravan's hire price
+    // to be a fold a purchase rider reaches, asked of the town the route sets
+    // out from. Caravanserai Cities wanted `BuildingDef`'s one-to-a-realm marker
+    // split into the limit and the class, so the card lifts the first and every
+    // reading of the second — the price, the two scopes, the count and the
+    // narrowings — goes on answering the same. Strategic Exports wanted an
+    // amplifier on what a realm's own strategic seams supply, applied outside
+    // the walk that is memoised on the economy clock.
+    expect(live().length).toBe(58);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -338,12 +353,15 @@ describe('a live Commerce row is a card', () => {
     // realm's renown and a narrowed draft (A Court of Merchants) and a
     // percentage on a town's yields (The Gilded Scaffold's slower work). C5
     // adds the nineteenth: a repricing of what one town costs to hold, which
-    // The League of Cities and The Chartered Metropolis both carry. A
-    // twentieth here would be a shape a later pass added without saying so.
+    // The League of Cities and The Chartered Metropolis both carry. C7 adds
+    // the twentieth: an amplifier on somebody else's table, which is Strategic
+    // Exports doubling what this realm's own strategic seams supply. A
+    // twenty-first here would be a shape a later pass added without saying so.
     expect([...kinds].sort()).toEqual([
       'authority',
       'cityRenownPercent',
       'combatLine',
+      'effectAmplifier',
       'happiness',
       'meterRule',
       'offerRider',
@@ -389,8 +407,12 @@ describe('a deferred Commerce row is a promise, not a card', () => {
     // with the route tally: The Home Market, The League of Cities and The
     // Chartered Metropolis. C6 takes three more with the trading post and the
     // grant that pays another empire: The Common Road, The Foreign Factor and
-    // The Merchant Commonwealth.
-    expect(deferred().length).toBe(18);
+    // The Merchant Commonwealth. C7 takes five more: The Admiralty of Trade,
+    // The Harbour Chain and The Factors' Houses off the route gate and the
+    // caravan's hire price, Caravanserai Cities off the split between a
+    // building's limit and its class, and Strategic Exports off an amplifier on
+    // what a realm's own seams supply.
+    expect(deferred().length).toBe(13);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -1750,5 +1772,182 @@ describe('C4 — the great-house marker, read from both sides', () => {
     expect(
       writers((effect) => effect.kind === 'productionBonus' && effect.empireBuilding === false),
     ).toEqual(['privatePatronage']);
+  });
+
+  // --- C7: the route gate, the caravan's price, and the two building marks ---
+
+  /**
+   * **Caravanserai Cities — many yards, every one of them still a great house**
+   * (the user's ruling: *"the caravanserai should still be an empire building.
+   * we need two different flags, can be built once and is empire building"*).
+   *
+   * The card lifts the **limit** and leaves the **class** exactly where it was,
+   * and the two used to be one boolean. So what is pinned here is the half that
+   * could have gone wrong silently: every reading that asks what class a
+   * building is must go on answering the same under the card, and the one walk
+   * that used to rely on the limit for its arithmetic must not start paying the
+   * yard's own clause once per yard.
+   */
+  describe('the two marks a building carries', () => {
+    /** The row the card names, and the one every claim below is about. */
+    const YARD: BuildingId = 'caravanserai';
+
+    /** A second town of this seat, a few hexes along from the first. */
+    function otherTown(g: ReturnType<typeof bench>, at = 4) {
+      const unit = g.state.units.find((u) => u.ownerId === 0)!;
+      return foundCityAt(g.state, 0, getTileAt(g.state.map, unit.col + at, unit.row)!);
+    }
+
+    it('gives every limited row both marks, so nothing about an existing row moved', () => {
+      // The split is only safe because the two sets are the same set today. A
+      // row that gained one and not the other would be a behaviour change
+      // nobody asked for, hiding inside a refactor.
+      const limited = BUILDING_IDS.filter((id) => buildingDef(id).oncePerEmpire === true);
+      const classed = BUILDING_IDS.filter((id) => buildingDef(id).empireBuilding === true);
+      expect(limited.length).toBeGreaterThan(0);
+      expect(classed).toEqual(limited);
+    });
+
+    it('lifts the limit for the named row and for nothing else', () => {
+      const g = bench(['caravanseraiCities']);
+      learned(g);
+      const first = town(g);
+      const second = otherTown(g);
+      // The card's own building, standing in one town: the second town may
+      // still raise one, which is the whole sentence.
+      first.buildings.push(YARD);
+      bumpRevision(g.state);
+      expect(buildError(g.state, 0, 'building', YARD, second)).toBeNull();
+
+      // Another one-to-a-realm row is untouched: the rule names a building, and
+      // a row it does not name keeps its limit.
+      const other = BUILDING_IDS.find(
+        (id) => id !== YARD && buildingDef(id).oncePerEmpire === true && buildingDef(id).wonder !== true,
+      );
+      expect(other, 'a second one-to-a-realm row').toBeDefined();
+      first.buildings.push(other!);
+      bumpRevision(g.state);
+      expect(buildError(g.state, 0, 'building', other!, second)).not.toBeNull();
+    });
+
+    it('still refuses the second yard to a seat without the card', () => {
+      const g = bench([]);
+      learned(g);
+      const first = town(g);
+      const second = otherTown(g);
+      first.buildings.push(YARD);
+      bumpRevision(g.state);
+      expect(buildError(g.state, 0, 'building', YARD, second)).not.toBeNull();
+    });
+
+    it('keeps the yard an empire building in every reading of the class', () => {
+      const g = bench(['caravanseraiCities']);
+      const city = town(g);
+      city.buildings.push(YARD);
+      refreshCityDerived(g.state, city);
+      bumpRevision(g.state);
+
+      // 1. the class marker itself, which is what the other four read.
+      expect(buildingDef(YARD).empireBuilding).toBe(true);
+      // 2. the price: a great house is still scaled by the towns it will serve,
+      //    so the card buys many of an expensive thing rather than a cheap one.
+      const priced = explainBuildingCost(YARD, g.state, 0);
+      expect(priced.some((line) => /^Empire of /.test(line.source))).toBe(true);
+      // 3. the scope a card asks when it wants a town holding one.
+      expect(cityScopeAdmits(g.state, city, { test: 'hasEmpireBuilding' })).toBe(true);
+      // 4. the count of them.
+      expect(
+        countOf(g.state, 0, 'theMerchantWorks' as OrderId, {
+          kind: 'pays',
+          where: 'empire',
+          basis: 'count',
+          count: 'empireBuildings',
+          to: 'gold',
+          amount: 1,
+        }),
+      ).toBeGreaterThan(0);
+      // 5. the narrowing that means "the ordinary shelves" — Private Patronage's
+      //    discount must still pass the yard by.
+      const ordinary = explainPurchaseCost(g.state, 0, city.id, { kind: 'building', id: YARD }, 'gold');
+      const withCard = bench(['caravanseraiCities', 'privatePatronage']);
+      const there = town(withCard);
+      const patronised = explainPurchaseCost(
+        withCard.state,
+        0,
+        there.id,
+        { kind: 'building', id: YARD },
+        'gold',
+      );
+      expect(ordinary).not.toBeNull();
+      expect(patronised!.total).toBe(ordinary!.total);
+    });
+
+    it('pays the yard’s own clause once however many yards stand', () => {
+      // **The silent multiplication this had to avoid.** The walk that gathers
+      // what a realm's great houses do reads each town's shelf in turn, which
+      // was harmless while a realm could hold one of each. Two yards must not
+      // pay the row twice — a caravan out of a yard town gets the row's grain
+      // and hammers once.
+      const one = bench(['caravanseraiCities']);
+      const onlyTown = town(one);
+      onlyTown.buildings.push(YARD);
+      bumpRevision(one.state);
+      const alone = cardRouteYieldLines(one.state, onlyTown, onlyTown).filter(
+        (line) => line.card === YARD,
+      );
+
+      const two = bench(['caravanseraiCities']);
+      const here = town(two);
+      const there = otherTown(two);
+      here.buildings.push(YARD);
+      there.buildings.push(YARD);
+      bumpRevision(two.state);
+      const doubled = cardRouteYieldLines(two.state, here, here).filter(
+        (line) => line.card === YARD,
+      );
+
+      expect(alone.length).toBe(1);
+      expect(doubled.length).toBe(1);
+      expect(doubled[0]!.food).toBe(alone[0]!.food);
+      expect(doubled[0]!.production).toBe(alone[0]!.production);
+    });
+  });
+
+  /**
+   * **The member register**, C2's pattern, for the shapes C7 declared.
+   */
+  it('registers exactly which rows write the six things C7 declared', () => {
+    const writers = (match: (effect: CardEffect) => boolean): string[] =>
+      COMMERCE.filter((id) => orderDef(id).effects.some(match));
+
+    // The route gate's two: one waives the reach, one lengthens it.
+    expect(
+      writers((effect) => effect.kind === 'rule' && effect.rule === 'postsWaiveSeaRouteRange'),
+    ).toEqual(['theAdmiraltyOfTrade']);
+    expect(
+      writers((effect) => effect.kind === 'rulePercent' && effect.rule === 'seaRouteRange'),
+    ).toEqual(['theHarbourChain']);
+
+    // A route line narrowed by the medium the road takes.
+    expect(writers((effect) => effect.kind === 'pays' && effect.mode !== undefined)).toEqual([
+      'theHarbourChain',
+    ]);
+
+    // A purchase rider that rides on hiring a caravan.
+    expect(writers((effect) => effect.kind === 'purchaseRider' && effect.on === 'route')).toEqual([
+      'theFactorsHouses',
+    ]);
+
+    // A rule narrowed to one building, which lifts a limit and not a class.
+    expect(
+      writers((effect) => effect.kind === 'rule' && effect.building !== undefined),
+    ).toEqual(['caravanseraiCities']);
+
+    // And the amplifier on what a realm's own strategic seams supply.
+    expect(
+      writers(
+        (effect) => effect.kind === 'effectAmplifier' && effect.target === 'strategicCopies',
+      ),
+    ).toEqual(['strategicExports']);
   });
 });
