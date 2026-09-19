@@ -226,6 +226,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Founding Capital | 0 | ◆ | S | Founding a city grants 75 gold. |
 | Private Patronage | 0 | ○ | S | Gold purchases of ordinary buildings cost 30% less. Producing those buildings normally takes 20% more production. Empire buildings and wonders are unaffected. |
 | Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +2 food and +2 production. |
+| The Common Road | 1 | ● | S | Your foreign routes grant you +2 gold, +2 science and +2 culture. Each also grants its host city +2 gold. |
 | Bought Swords | 1 | ◆ | S | Military units cost 20% less gold to purchase, but 10% more production to train. Purchases still do not count as training. |
 | Civic Receipts | 1 | ◆ | S | Buying any building grants culture equal to 10% of the gold paid, with no cap. |
 | Venture Routes | 1 | ◆ | P | Your routes gain two turns of range. Routes whose endpoints are more than fourteen hexes apart gain +100% gold, using the shortest wrapped map distance. |
@@ -251,6 +252,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Caravanserai Network | 2 | ◆ | S | Each city receiving a domestic trade route grants +1 happiness, once per city. Domestic routes gain +1 production and +1 gold. |
 | The Home Market | 2 | ◆ | P | Cities receiving at least two of your domestic routes gain +20% food, +20% production and +2 happiness, once per city. |
 | The League of Cities | 2 | ○ | P | Cities with one of your paying outgoing routes gain +15% production and cost one less authority, minimum one. Cities without one lose 10% gold. |
+| The Foreign Factor | 2 | ◆ | P | Each foreign city holding your established commercial post grants you +3 gold and its host city +1 gold per turn while you are at peace and the host is not blockaded. |
 | The Charter Fleet | 2 | ◆ | S | Naval combat units cost 20% less gold to purchase. Naval combat units you purchase with gold gain +1 movement permanently. Normal coastal, technology and purchase requirements remain. |
 | The Scholars' Roads | 2 | ○ | P | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. |
 | The Money Lenders | 2 | ○ | P | Earn interest equal to 2% of your treasury each turn, with no cap. |
@@ -258,6 +260,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Paid Army | 3 | ◆ | S | Military-unit upkeep falls by 1 gold, minimum zero. Military units cost 25% less gold to purchase. |
 | The Chartered Metropolis | 3 | ○ | P | Cities with at least three of your paying outgoing routes gain +25% food, production and culture, but each costs +4 authority while qualified. |
 | A Court of Merchants | 3 | ○ | S | Gain +50% renown, but great-person offers contain only Great Merchants. |
+| Entrenched Interests | 3 | ◆ | S | Your units gain +3 combat strength in cities holding your trading post, including foreign cities. Going to war does not remove these posts. |
+| The Merchant Commonwealth | 3 | ◆ | S | Each owned city with your established commercial post receiving a domestic route gains +2 happiness and costs one less authority, minimum one. |
 | The Gilded Scaffold | 3 | ○ | P | You may purchase world wonders. All your cities lose 15% production. |
 | Merchant Princes | 3 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
 | The World's Exchange | 3 | ○ | S | Each different foreign empire currently served by your routes grants +10% production toward the Opus, at most +40%. Existing construction and victory requirements remain. |

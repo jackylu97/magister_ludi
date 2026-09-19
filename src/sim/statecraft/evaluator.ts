@@ -98,7 +98,13 @@ import { connectedCities } from '../roads';
 // could exist: `routeEndsHere` asks how many trade routes meet a town,
 // `routeYields.ts` imports this file for the lines a card puts on a caravan,
 // and a question two hubs ask lives below both of them (`routes.ts`).
-import { countRoutesAt, routeIsInternational } from '../routes';
+import {
+  cityHoldsPost,
+  cityPostPays,
+  countRoutesAt,
+  foreignPostCities,
+  routeIsInternational,
+} from '../routes';
 import {
   type City,
   type GameState,
@@ -2060,6 +2066,16 @@ export function cityScopeAdmits(
       if (found < (scope.atLeast ?? (scope.atMost === undefined ? 1 : 0))) return false;
       return scope.atMost === undefined || found <= scope.atMost;
     }
+    case 'holdsPost':
+      // **Whose house** is the empire reading the card — the same `viewerId` a
+      // follower belief is admitted by, and the reason the parameter exists. A
+      // caller that does not name one is asking about the town's own owner,
+      // which is the only honest default: a scope with nobody behind it cannot
+      // mean "mine".
+      //
+      // `cityPostPays` rather than `cityHoldsPost`, so war and a blockade
+      // suspend every line written on the scope at once. See the scope.
+      return cityPostPays(state, city, viewerId ?? city.ownerId);
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -2188,6 +2204,8 @@ function scopeNote(scope?: CityScope): string | null {
       const least = scope.atLeast ?? 1;
       return least > 1 ? `${least}+ ${whose}s ${way}` : `a ${whose} ${way}`;
     }
+    case 'holdsPost':
+      return 'your trading post stands here';
     case 'all':
       return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' + ');
     case 'any':
@@ -2601,6 +2619,12 @@ export function countOf(
       // The claim register, which is the one place a wonder is written down and
       // never moves — so this is exactly "how many marvels exist".
       return state.wonders.length;
+    case 'postCities':
+      // The one walk over the towns (`routes.ts`), asked through the same
+      // `cityPostPays` the `holdsPost` scope asks — so the houses this card
+      // counts and the houses it pays are the same houses. Foreign by
+      // construction; see the count.
+      return foreignPostCities(state, playerId);
     case 'foreignTradeRoutes': {
       // **Narrowed to one town** (batch C5, The Cosmopolitan Court): the foreign
       // routes setting out from it, through the same `countRoutesAt` the scope
@@ -3268,6 +3292,11 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
 
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
     if (effect.where !== 'city' || basisOf(effect) !== 'flat') continue;
+    // **A row that pays somebody else is not read here.** `payee` is the batch
+    // D2e exception and it is read in exactly one place (`foreignPostLines`
+    // below, and the route fold for the route half) — so this pass, which is
+    // "what my own law pays my own town", stays the common case it always was.
+    if (effect.payee !== undefined) continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     const line = emptyLine(card, label(source, scopeNote(effect.scope)));
     for (const key of VOICES) line[key] = (effect[key] ?? 0);
@@ -3277,6 +3306,7 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
     if (effect.basis !== 'count' || !paysAVoice(effect)) continue;
     if (effect.where === 'empire') continue;
+    if (effect.payee !== undefined) continue;
     // **`capital` is a city line that lands in one town**, and it is read here
     // rather than in the empire fold because that is the only place a voice the
     // empire has no bank for can be paid at all: `collectYields` banks an empire
@@ -3320,12 +3350,73 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
     if (paysSomething(line)) list.push(line);
   }
 
+  // **What another empire's law pays this town** — the bilateral grant, batch
+  // D2e. Before the deck reading below it on purpose: those engines are *this*
+  // empire's laws raising *this* empire's card lines, and a grant from abroad is
+  // neither. See `foreignPostLines`.
+  for (const line of foreignPostLines(state, city)) list.push(line);
+
   // **The deck reading itself**, last and off a snapshot of everything above it.
   // See `deckModifierLines`: the engines are computed from the fold *as it stood
   // before any engine spoke*, so two of them cannot amplify each other and their
   // order cannot change what either pays.
   for (const line of deckModifierLines(state, owner, list, city)) list.push(line);
 
+  return list;
+}
+
+/**
+ * **What foreign empires' laws pay this town for the houses they keep in it** —
+ * The Foreign Factor's coin to its host (batch D2e, the bilateral grant).
+ *
+ * The first thing in the game where player A's card puts a yield in player B's
+ * books, so three things are worth stating plainly.
+ *
+ * **It lands in the payee's own explanation.** The list this returns is part of
+ * `explainCardCityYields`, which is `explainCity` step 3 — so the coin appears
+ * on the host's own city sheet, with the foreign card's name on it, and the
+ * host's total is still the fold of the host's list. That is rule 5, and it is
+ * the reason this is a list here rather than a transfer somewhere else.
+ *
+ * **The town's own record is the index.** `City.posts` already says which
+ * empires keep a house here, so the walk is over that short list and not over
+ * every seat in the game: a town no foreign trader has settled in reads one
+ * absent key and stops. Nothing has to be hoisted and no sweep has to be
+ * ordered.
+ *
+ * **The order is stated.** `City.posts` is an array appended in the order the
+ * presences began, and each payer's rows come out of `effectsOfKind`, which is
+ * an array too. Two empires paying each other cannot race: every city is priced
+ * before any bank is credited (`collectYields`), and neither empire's fold
+ * reads the other's totals.
+ *
+ * Own-empire records are skipped. A card that wants to pay your own provinces
+ * for holding your own house says so with the `holdsPost` scope and no `payee`,
+ * and is paid by the ordinary pass above — see `CardPaysEffect.payee`.
+ */
+function foreignPostLines(state: GameState, city: City): CardYieldLine[] {
+  const posts = city.posts;
+  if (posts === undefined || posts.length === 0) return [];
+  const list: CardYieldLine[] = [];
+  for (const post of posts) {
+    if (post.by === city.ownerId) continue;
+    // The suspensions come with the reading, so a war or a blockade silences
+    // every foreign grant at once rather than each card carrying the clause.
+    if (!cityPostPays(state, city, post.by)) continue;
+    const payer = state.players[post.by];
+    if (payer === undefined) continue;
+    for (const { source, card, effect } of effectsOfKind(state, post.by, 'pays')) {
+      if (effect.where !== 'city' || effect.payee !== 'host') continue;
+      if (basisOf(effect) !== 'flat') continue;
+      // Any further narrowing is asked with the **payer** as the viewer, which
+      // is what makes "your" mean the payer's in a scope on somebody else's
+      // town.
+      if (!cityScopeAdmits(state, city, effect.scope, post.by)) continue;
+      const line = emptyLine(card, `${source} · ${payer.name}`);
+      for (const key of VOICES) line[key] = (effect[key] ?? 0);
+      if (paysSomething(line)) list.push(line);
+    }
+  }
   return list;
 }
 
@@ -4983,6 +5074,13 @@ function combatConditionHolds(
       // field `CityScope`'s `captured` asks of it.
       const here = cityAt(state, situation.tile.col, situation.tile.row);
       return here !== undefined && here.ownerId === situation.unit.ownerId && here.captured;
+    }
+    case 'inCityWithPost': {
+      // `inCity` with the owner test swapped for a post test — the card says
+      // "including foreign cities", so who owns the town is exactly the thing
+      // not asked. `cityHoldsPost` and not `cityPostPays`: see the condition.
+      const here = cityAt(state, situation.tile.col, situation.tile.row);
+      return here !== undefined && cityHoldsPost(state, here, situation.unit.ownerId);
     }
     case 'onFeature':
       return situation.tile.feature === when.feature;
@@ -7510,9 +7608,17 @@ export function cardRouteYieldLines(
   from: City,
   to?: City,
   age?: number,
+  payee: 'self' | 'host' = 'self',
 ): CardRouteLine[] {
   const list: CardRouteLine[] = [];
   for (const { source, card, effect } of routeRows(state, from, to)) {
+    // **Which books this line is bound for** (batch D2e). Two folds ask this
+    // function about the same trade route: the one that pays the empire that sent
+    // cart, and the one that pays the town it walks to. A row says which it
+    // means with `payee`, absent being the sender — every row written before
+    // this batch — so the two askings partition the rows and nothing is paid
+    // twice. See `CardPaysEffect.payee`.
+    if ((effect.payee === 'host' ? 'host' : 'self') !== payee) continue;
     if (!routeScopesAdmit(state, effect, from, to, age)) continue;
     // **A road counted by a fact about the town that sent it** — Ore Caravans'
     // mines and Luxury Caravans' seams (batch C2). Resolved here rather than
@@ -7574,6 +7680,11 @@ export function cardRouteShareLines(
   const list: CardRouteShareLine[] = [];
   for (const { source, card, effect } of routeRows(state, from, to)) {
     if (effect.share === undefined) continue;
+    // A share is the sender's dial on the sender's goods and never rides a host
+    // grant — the design's *"not a second time to an explicit host grant"*. A
+    // row that said both would be refused by the register test; this is the
+    // reading that makes the refusal honest.
+    if (effect.payee !== undefined) continue;
     if (!routeScopesAdmit(state, effect, from, to, age)) continue;
     for (const share of effect.share) {
       if (share.percent === 0) continue;

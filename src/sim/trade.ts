@@ -180,7 +180,7 @@ import { routeCities, routeIsLive } from './routeYields';
 // The mode's own three names, from the leaf that owns them (see the re-export
 // below): a `export … from` binds nothing locally, and every gate in this file
 // is written in terms of a mode.
-import { type RouteMode, ROUTE_MODES, caravanTypeFor } from './routes';
+import { type RouteMode, ROUTE_MODES, caravanTypeFor, postTermTurns } from './routes';
 import { bumpEconomy } from './slate';
 
 export {
@@ -327,8 +327,77 @@ export function endRoute(state: GameState, unit: Unit): void {
   const route = unit.trade;
   if (!route) return;
   delete unit.trade;
+  // The commercial post at each end, before the destination is re-seated: a
+  // route that ends before its empire's presence here ripened takes the record
+  // with it, and one that ends after it changes nothing. See `closePost`.
+  closePost(state, cityById(state, route.from), unit.ownerId);
+  closePost(state, cityById(state, route.to), unit.ownerId);
   const to = cityById(state, route.to);
   if (to && to.ownerId === unit.ownerId) refreshCityDerived(state, to);
+}
+
+// --- commercial posts -------------------------------------------------------
+
+/**
+ * **The two writers of `City.posts`, and there is no third.**
+ *
+ * The design (`docs/six-decks-first-cut.md`): *"A paying route that reaches its
+ * destination and completes a normal twenty-turn term establishes that
+ * operator's commercial post at both endpoints. Starting/cancelling does not
+ * qualify."*
+ *
+ * Written as a **date opened and a date kept** rather than as a sweep that looks
+ * for ripe routes each turn. An empire's first caravan to a town opens the
+ * record; the record ripens on its own after a route term
+ * (`postTermTurns`, `routes.ts`), because a date compared against `state.turn`
+ * needs nobody to visit it; and a route that ends *before* it ripened takes it
+ * away again, which is exactly what "starting and cancelling does not qualify"
+ * asks for. So there is no post phase, nothing ticks, and the whole rule lives
+ * in the two functions below.
+ *
+ * What continuity means here: **at least one route touching the town**. An
+ * empire that keeps a trade route to Uruk running, renews it, replaces the caravan or
+ * runs a second one beside it has never left, so the record stands and its date
+ * is the one it opened with. The moment that empire's last route to the town
+ * ends, an unripe record goes — and a ripe one stays for good.
+ */
+function openPost(state: GameState, city: City, playerId: number): void {
+  if (city.posts === undefined) city.posts = [];
+  if (city.posts.some((post) => post.by === playerId)) return;
+  city.posts.push({ by: playerId, since: state.turn });
+}
+
+/**
+ * `openPost`'s other half — drop an unripe record when this empire's last route
+ * to the town ends.
+ *
+ * `state.units` is walked rather than a counter kept, for `countRoutesAt`'s
+ * reason one file down: `Unit.trade` is the route and there is no register, so
+ * a count kept anywhere else is a second answer that can fall out of step. The
+ * caravan whose route is ending has already had `unit.trade` deleted by
+ * `endRoute`, so it does not count itself.
+ *
+ * An **established** post is never touched here, and that is the whole of
+ * "going to war does not remove these posts": war ends routes, ending a route
+ * reaches this function, and this function looks at a ripe record and leaves.
+ */
+function closePost(state: GameState, city: City | undefined, playerId: number): void {
+  if (!city) return;
+  const posts = city.posts;
+  if (posts === undefined) return;
+  const at = posts.findIndex((post) => post.by === playerId);
+  if (at < 0) return;
+  if (state.turn - posts[at]!.since >= postTermTurns()) return;
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    const route = unit.trade;
+    if (route === undefined) continue;
+    if (route.from === city.id || route.to === city.id) return;
+  }
+  posts.splice(at, 1);
+  // Presence is the state, `Unit.trade`'s rule: a town no empire keeps a house
+  // in serialises exactly as a town that never had one.
+  if (posts.length === 0) delete city.posts;
 }
 
 /**
@@ -614,7 +683,16 @@ export function caravanProbeFor(state: GameState, playerId: number, from: City):
  * more as a line of its own fold, and that file may not import this one. One
  * import site for a route is still `trade.ts`.
  */
-export { type RouteMode, ROUTE_MODES, routeMode } from './routes';
+export {
+  type RouteMode,
+  ROUTE_MODES,
+  cityHoldsPost,
+  cityPostPays,
+  foreignPostCities,
+  postSince,
+  postTermTurns,
+  routeMode,
+} from './routes';
 
 /**
  * The movement profile a caravan surveys and walks **one mode's** route with.
@@ -1205,6 +1283,8 @@ export function startRouteAt(
   };
   from.tradingPost = true;
   to.tradingPost = true;
+  openPost(state, from, unit.ownerId);
+  openPost(state, to, unit.ownerId);
 
   // Through the one goal resolution (`routeLegPath`): a route abroad is walked
   // to the partner's doorstep, which is the hex the gate priced the range on.

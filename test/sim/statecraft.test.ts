@@ -1752,7 +1752,7 @@ describe("determinism", () => {
     // each of its buildings went up, a hex when its work was raised and a route
     // when it opened, so a v120 log answers "not old enough" to every card
     // written on an age — a bump *within* the branch, which migrates nothing.
-    expect(SCHEMA_VERSION).toBe(121);
+    expect(SCHEMA_VERSION).toBe(122);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -8487,6 +8487,12 @@ describe("the engine shapes", () => {
     "armyContracts · routeYield",
     "armyContracts · routeYield",
     "provisioningContracts · routeYield",
+    // C6: The Common Road is two rows of the same shape and not one read twice
+    // — one paid to the empire that sent the caravan, one paid to the town it
+    // reaches (`CardPaysEffect.payee`). Army Contracts' case exactly: a card
+    // that says two things about one road says them in two rows.
+    "theCommonRoad · routeYield",
+    "theCommonRoad · routeYield",
     // C3: Venture Routes doubles the coin on a long haul. A route `pays` share
     // like Established Routes', gated on a new narrowing of the same kind — the
     // distance between the two towns (`CardPaysEffect.minHexes`), which is a

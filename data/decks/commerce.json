@@ -148,7 +148,7 @@
         "meeting an empire for the first time pays you, and pays them",
         "claiming a discovery pays gold"
       ],
-      "note": "Held whole. The world does not announce a first meeting, and no law of yours can put coin in another realm's treasury."
+      "note": "Held whole. The world still does not announce a first meeting. And the grant that pays another empire is a standing line on a town's sheet, where this card wants a one-off paid into a foreign treasury on a single occasion — a windfall banks onto the empire holding the card and knows nothing of a payee."
     },
     "thePathfindersCompany": {
       "name": "The Pathfinders' Company",
@@ -421,11 +421,24 @@
       "rarity": "common",
       "flavor": "A road belongs to whoever is standing on it.",
       "text": "Your foreign routes grant you +2 gold, +2 science and +2 culture. Each also grants its host city +2 gold.",
-      "effects": [],
-      "deferred": [
-        "a road that ends abroad pays you, and pays the town it ends in"
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "international",
+          "gold": 2,
+          "science": 2,
+          "culture": 2
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "international",
+          "payee": "host",
+          "gold": 2
+        }
       ],
-      "note": "Half built, and so held whole. A law of yours pays your own books; it has no way to put coin in a foreign market."
+      "note": "The host's two gold are paid to the foreign city the caravan reaches, and appear on that city's own sheet under this card's name. They are a flat grant: the sea premium and any percentage of yours raise what the trade route pays you, never what it pays your host. A blockade at either end stops both halves, as it stops everything a caravan carries."
     },
     "theReturnLeg": {
       "name": "The Return Leg",
@@ -501,7 +514,7 @@
       "deferred": [
         "the towns where your house is established pay gold and culture, and send caravans more cheaply"
       ],
-      "note": "Held whole. A standing commercial house is a new fact about a town, and nothing on the board keeps one yet."
+      "note": "Held whole, and now for one reason rather than two. The trading post arrived and the first sentence is ready to write. What a caravan costs to hire is a fold of its own that no card reaches, and it is priced for the empire rather than for a town, so \"from such a city\" wants both — the price made movable, and made a question about an origin."
     },
     "thePlantersCharter": {
       "name": "The Planters' Charter",
@@ -617,7 +630,7 @@
       "deferred": [
         "every partner you have a standing agreement with pays your capital, and theirs"
       ],
-      "note": "Held whole. Nothing counts your standing agreements, and no law of yours can pay a foreign capital."
+      "note": "Held whole, and now for one reason rather than two. A law may pay another empire, but only where the town being paid is already in hand — the town a caravan reaches, or a town holding your trading post. A partner's capital is neither. Nothing counts your standing agreements either."
     },
     "thePostRiders": {
       "name": "The Post Riders",
@@ -915,11 +928,23 @@
       "rarity": "uncommon",
       "flavor": "Our man in their market, and their man in ours.",
       "text": "Each foreign city holding your established commercial post grants you +3 gold and its host city +1 gold per turn while you are at peace and the host is not blockaded.",
-      "effects": [],
-      "deferred": [
-        "every foreign town where your house is established pays you, and pays its host, while the peace holds"
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 3,
+          "count": "postCities"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "payee": "host",
+          "gold": 1
+        }
       ],
-      "note": "Held whole. A standing commercial house abroad is a new fact about a town, and no law of yours can pay a foreign town."
+      "note": "A trading post is established after a full route term of unbroken trading with a town, and it is yours from then on. The two provisos the card prints are the rule every post follows and not this card's own: a post pays nobody while its holder and the host are at war, or while the host city is blockaded. Both halves count the same posts, so the coin you take and the coin the host takes always match."
     },
     "theConsulate": {
       "name": "The Consulate",
@@ -935,7 +960,7 @@
       "deferred": [
         "towns where your house is established buy more cheaply, whoever owns them, and each foreign host sings for you"
       ],
-      "note": "Held whole. A standing commercial house abroad has no place on the board, and a discount of yours cannot be handed to another empire."
+      "note": "Held whole, and now for one reason rather than two. Your trading post is a thing the board records, and the card's second sentence — coin per foreign host, while at peace and unblocked — could be written today. The first sentence cannot: a price is quoted to the empire that is buying, off that empire's own laws, and handing a discount to somebody else is a different seam from paying them a yield."
     },
     "theWarehouses": {
       "name": "The Warehouses",
@@ -1223,7 +1248,7 @@
       "deferred": [
         "every foreign realm your roads reach teaches your whole empire, and learns from it"
       ],
-      "note": "Half built, and so held whole. A law of yours pays your own books; it cannot teach a foreign capital."
+      "note": "Half built, and so held whole. A law may pay another empire now, but only where the town being paid is already in hand — the town a caravan reaches, or a town holding your trading post — and a partner's capital is neither. The first sentence is the harder half either way: a counted line pays a flat figure per helping and cannot yet pay a percentage per helping."
     },
     "theBrokersRedraw": {
       "name": "The Brokers' Redraw",
@@ -1621,7 +1646,29 @@
       "deferred": [
         "a sea road between two of your established houses may be run at any distance"
       ],
-      "note": "Held whole. A standing commercial house has no place on the board, and nothing may waive how far a road is allowed to reach."
+      "note": "Held whole, and now for one reason rather than two. The trading post arrived, and the gate that prices a route's reach holds both towns when it asks. How far a trade route may be sent is still one figure no card may move, and waiving it outright for a pair of towns wants a named rule read at that gate."
+    },
+    "entrenchedInterests": {
+      "name": "Entrenched Interests",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The factors stayed. They always stay.",
+      "text": "Your units gain +3 combat strength in cities holding your trading post, including foreign cities. Going to war does not remove these posts.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "inCityWithPost"
+          }
+        }
+      ],
+      "note": "Who owns the city is not asked: the line pays in your own towns and in a rival's alike, wherever your trading post stands. The card's second sentence is the rule a post already follows — a post is never removed, by war or by anything else, and war only suspends what a post pays. So this line keeps working against the very empire you established it with."
     },
     "theMerchantCommonwealth": {
       "name": "The Merchant Commonwealth",
@@ -1633,11 +1680,43 @@
       "rarity": "uncommon",
       "flavor": "Govern by ledger and the provinces govern themselves.",
       "text": "Each owned city with your established commercial post receiving a domestic route gains +2 happiness and costs one less authority, minimum one.",
-      "effects": [],
-      "deferred": [
-        "your own towns where your house is established and one of your roads ends rest easier and are easier to hold"
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "per": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "routeEndsHere",
+                "crossing": "domestic"
+              },
+              {
+                "test": "holdsPost"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": -1,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "routeEndsHere",
+                "crossing": "domestic"
+              },
+              {
+                "test": "holdsPost"
+              }
+            ]
+          }
+        }
       ],
-      "note": "Held whole. A standing commercial house has no place on the board, and no law makes a single town cheaper to hold."
+      "note": "Both halves ask the same two questions of the same town: your trading post stands there, and one of your own trade routes ends there. A town has to answer yes to both, this turn, so a route that lapses takes the contentment and the discount with it while the post itself stays. The discount never takes a city below one authority and never charges a city that was already free."
     },
     "theMerchantWorks": {
       "name": "The Merchant Works",

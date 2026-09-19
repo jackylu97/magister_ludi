@@ -273,8 +273,17 @@ describe('the schema, as landed', () => {
     // renown trickle may carry a ceiling per town rather than one over the whole
     // realm. Four more live rows — The Home Market, The League of Cities, The
     // Chartered Metropolis and the shared Cosmopolitan Court.
-    expect(live).toBe(261);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(261);
+    //
+    // **And C6 a tenth time** ("the bilateral grant and the trading post"): a
+    // town now records which empires keep a trading post in it, and a card may
+    // pay an empire that is not the one holding it — on the town a caravan
+    // reaches, or on a foreign town holding your post. Three deferred Commerce
+    // rows came live (The Common Road, The Foreign Factor, The Merchant
+    // Commonwealth) and one brand-new live row was written (Entrenched
+    // Interests, which the user's sheet listed and the data had never carried).
+    // Four more live rows, all in the Commerce file.
+    expect(live).toBe(265);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(265);
   });
 
   /**
@@ -389,11 +398,12 @@ describe('the schema, as landed', () => {
   });
 
   it('bumps the schema: a pre-rework save is refused, and the seat carries the four new fields', () => {
-    // 121 since D2d: a town remembers when each of its buildings went up, a hex
-    // when its work was raised and a route when it opened, so a v120 log would
-    // answer "not old enough" to every card written on an age. A bump within the
-    // branch, which migrates nothing either way.
-    expect(SCHEMA_VERSION).toBe(121);
+    // 122 since C6: a town records which empires keep a trading post in it
+    // (`City.posts`), so a v121 log would answer "no house here" to every card
+    // written on one. A bump within the branch, which migrates nothing either
+    // way — 121 was D2d's, where a town, a hex and a route each learnt to
+    // remember when they were placed.
+    expect(SCHEMA_VERSION).toBe(122);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -557,7 +567,12 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // Merchants is a new live row.
       // **C5 took four more**: the three Commerce rows that count trade routes
       // arriving at or leaving a town, and the shared Cosmopolitan Court.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(159);
+      //
+      // **C6 took three more**, all Commerce: The Common Road, The Foreign
+      // Factor and The Merchant Commonwealth, freed by the trading post and the
+      // grant that pays another empire. Its fourth card, Entrenched Interests,
+      // is a new live row and so moves nothing here.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(156);
     }
   });
 

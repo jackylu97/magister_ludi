@@ -1125,7 +1125,13 @@ function describePays(
       effect.perEndpointLuxury === true
         ? ', for each luxury in the city it left or the city it reaches'
         : '';
-    out.push({ text: `${words} on ${whose}${each}` });
+    // **Who the coin goes to**, said only when it is not the obvious answer.
+    // A caravan's line has always been paid to whoever the trade route's own fold pays,
+    // and the one row shape that breaks that says so out loud — "to the city it
+    // reaches" — because the whole point of the card is that somebody else gets
+    // it. See `CardPaysEffect.payee`.
+    const toWhom = effect.payee === 'host' ? ', paid to the city it reaches' : '';
+    out.push({ text: `${words} on ${whose}${each}${toWhom}` });
     return;
   }
 
@@ -1133,6 +1139,13 @@ function describePays(
   if (!words) return;
   if (effect.where === 'empire') {
     out.push({ text: `${words} to the empire` });
+    return;
+  }
+  // The bilateral grant at the town scale: the payee is a foreign city holding
+  // this empire's trading post, and no scope can say that because a scope narrows
+  // the towns a line already reaches. So the phrase is the payee's own.
+  if (effect.payee === 'host') {
+    out.push({ text: `${words} in every foreign city holding your trading post` });
     return;
   }
   out.push({ text: `${words} in ${scopeWordsFor(subject, effect.scope)}` });
@@ -2936,6 +2949,17 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'routeEndsHere':
       into.qualifiers.push(routePhrase(scope));
       return;
+    case 'holdsPost':
+      // "Trading post", the words the player already sees in the city panel —
+      // the design doc's "commercial post" is a design word and never reaches a
+      // card.
+      // A full relative clause rather than a participle ("holding …"), because
+      // this scope's first card joins it to the route clause and two trailing
+      // participles run into one another: "every city one of your own trade
+      // routes ends at that holds your trading post" parses, and the shorter
+      // form does not.
+      into.qualifiers.push('that holds your trading post');
+      return;
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -3549,6 +3573,9 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   capitalTerritory: 'inside your capital’s borders',
   inCity: 'while standing in one of your cities',
   capturedCity: 'in a city you captured',
+  // Whose city is deliberately not said, because the card's own sentence is
+  // "including foreign cities" — the post is the whole of the test.
+  inCityWithPost: 'while standing in a city holding your trading post',
   // The feature is printed by `describeEffect`, so that forest and jungle are
   // one table entry and two data rows — `buildingsOfKind`'s bargain.
   onFeature: 'in',
@@ -3937,6 +3964,12 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   discoveredCamps: { one: 'barbarian camp you have found', many: 'barbarian camps you have found' },
   tradeRoutes: { one: 'trade route you run', many: 'trade routes you run' },
   worldWonders: { one: 'wonder in the world', many: 'wonders in the world' },
+  // "Foreign" is in the words because it is in the count: a post in one of your
+  // own towns is not tallied here. See the count.
+  postCities: {
+    one: 'foreign city holding your trading post',
+    many: 'foreign cities holding your trading post',
+  },
   foreignTradeRoutes: {
     one: 'trade route to another empire',
     many: 'trade routes to another empire',

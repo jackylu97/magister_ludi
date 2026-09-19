@@ -127,16 +127,18 @@ const live = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).effects.lengt
 const deferred = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).effects.length === 0);
 
 describe('the Commerce deck is one deck', () => {
-  it('carries sixty-seven rows, every one of them a Commerce card', () => {
+  it('carries seventy-one rows, every one of them a Commerce card', () => {
     // Sixty after C1; C2 adds the six the sheet proposed and nobody had written
     // down yet (Ore Caravans, Frontier Investment, Luxury Caravans, Mining
     // Districts, The Capital Arsenal, Foreign Procurement). C3 adds one more,
     // A Court of Merchants — a sheet row that had never been entered at all.
     // C4 adds the last three the sheet names and nobody had written down:
     // Strategic Exports and Purchased Prosperity in Tier II, Caravanserai
-    // Cities in Tier III. The data and `docs/decks/commerce.md` now hold the
-    // same seventy exclusive rows.
-    expect(COMMERCE.length).toBe(70);
+    // Cities in Tier III. C6 adds Entrenched Interests, the fourth and last
+    // sheet row the data had never carried — the three still missing (Spy
+    // Networks, Royal Assays, The Masters' Guild) each wait on a shape nobody
+    // has built, so they stay unwritten rather than entered as deferred rows.
+    expect(COMMERCE.length).toBe(71);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -171,7 +173,9 @@ describe('the Commerce deck is one deck', () => {
     // C3 adds A Court of Merchants in Tier III, where the sheet puts it.
     // C4 adds three more the same way: Strategic Exports and Purchased
     // Prosperity in Tier II, Caravanserai Cities in Tier III.
-    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 25, 12]);
+    // C6 adds Entrenched Interests in Tier III, where the sheet puts it — a row
+    // the user's sheet has always listed and the data had never carried.
+    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 25, 13]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
 
@@ -241,7 +245,15 @@ describe('a live Commerce row is a card', () => {
     // it. The two authority clauses needed nothing new — a scoped repricing of
     // what a town costs to hold was built in D2b — and the percentages and the
     // contentment were ordinary all along.
-    expect(live().length).toBe(49);
+    //
+    // **And four more with C6**, on the two systems the deck's Posts line was
+    // waiting for. A town now records which empires keep a trading post in it
+    // (`City.posts`), and a card may pay an empire that is not the one holding
+    // it (`CardPaysEffect.payee`). The Common Road wanted only the second, The
+    // Merchant Commonwealth only the first, and The Foreign Factor both; the
+    // fourth, Entrenched Interests, is a brand-new row that reads the post
+    // without reading its income.
+    expect(live().length).toBe(53);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -375,8 +387,10 @@ describe('a deferred Commerce row is a promise, not a card', () => {
     // three more: The Gilded Scaffold, The Brokers' Redraw and Venture Routes.
     // (Civic Receipts was already live; C3 reworked it.) C5 takes three more
     // with the route tally: The Home Market, The League of Cities and The
-    // Chartered Metropolis.
-    expect(deferred().length).toBe(21);
+    // Chartered Metropolis. C6 takes three more with the trading post and the
+    // grant that pays another empire: The Common Road, The Foreign Factor and
+    // The Merchant Commonwealth.
+    expect(deferred().length).toBe(18);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
