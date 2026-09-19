@@ -32,9 +32,11 @@ Gain +5 culture after improving a resource tile
 
 | Card | Rarity | Status | The card | What the game does, or why not |
 |---|---|---|---|---|
-| **Public Wells** | common | built | Cities without freshwater gain +1 food. | +1 food in every city without fresh water |
-| **Civic Peace** | common | built | Gain +1 empire happiness. | +1 happiness |
-| **Road Crews** | common | deferred | Workers gain +1 movement when starting their turn on a road you own. | *no blocker recorded on the row* |
+cistern works: allows building a cistern (+2 food +2 faith, city is treated as being on freshwater and supplies freshwater to adjacent tiles)
++15% production towards age 1/2 wonders
+every tile with at least 1 faith gains 1 more
+every tile with at least 1 gold gains 1 more
+
 
 ## Tier II
 
