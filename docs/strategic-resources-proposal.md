@@ -456,3 +456,41 @@ R4 and R5 are on disjoint fences (`src/ui` and `src/ai`) and run together.
 **The decks queue is paused behind this.** `docs/plans/decks-rework.md` still has D2e (the bilateral grant, ~15 cards) and A1 (the two silent arrivals) unstarted, and D2f blocked on rulings. They resume when R5 lands.
 
 **What R1 must not do.** It changes no resource rows and adds no resources. The roster is R3's, and the unique-unit question above is R3's to write once the user has settled it. R1's job is the machinery, proven against the three strategics that exist today.
+
+---
+
+## 9. What is left — 2026-09-18
+
+R1 to R5 have all landed on `decks` and the core tier is green over them. What the five batches left behind, in the order I would do it.
+
+### Bugs
+
+- **Niter cannot be mined on most of its own ground.** Its row is `hills: false` on plains, desert and tundra; `mine` is the only improvement that lists it and carries `requiresHills: true`. So a flat niter seam can only be opened by a city standing on it or a great person's academy. Pre-existing, but it mattered far less when the gate was a boolean than it does now that copies are spent. Fix is either `hills: true` on the row or letting the mine take flat ground for niter.
+- **`deepenThinSeams` misses a legal hex.** R3 found it on seed 7: cotton at three copies on continent 3 with one free, legal, un-crowded hex the pass should have grown onto. Latent and pre-existing — R3 only moved the board onto it — and named in a test so a second occurrence fails the build.
+
+### Debts the fences created
+
+- **Three copies of one rule.** `tileCopies` is private to `src/sim/cities.ts`, and both `src/ui/resourceCopies.ts` (`tileCopyCount`) and `src/ai/value.ts` (`tileSeamCopies`) restate it because R4 and R5 were fenced out of the simulation. Export the sim's one and delete the other two.
+- **`improvementOpensSeam` restates `openedResource`'s clauses** in `src/ai/`, for the same reason. A fourth clause added to `openedResource` leaves it quietly stale.
+- **The HUD register comment in `index.html`** does not list the holdings rail, because that file was outside R4's fence.
+
+### Not built
+
+- **The siege elephant.** Added to the gating table by the user (age 4, requires ivory, +6 attack against cities, 2 movement, strong ranged). A new roster row is a size, a column, a model class, a tree placement and a Compendium entry, which was outside R3's "requirements only" fence on `data/units.json`.
+- **`resourceCost` on a unit row.** Every unit costs exactly one copy, hard-coded. The field would let a knight cost two horses without a code change, and this codebase fails a register test for a shape declared and never read — so it lands with the row that uses it, not before.
+- **Camels have no sculpt.** They borrow the horse model, and the tile mark is a placeholder. Both want the art pass.
+
+### Measurements still owed
+
+- **The turn-100 army reading** section 5 asks for: standard map, six empires — how many mounted units does a typical empire field, how often is a build refused for want of a copy, and how many empires are missing a role entirely. Nobody has run it.
+- **The ~10% drop in towns at turn 40** that R5's sweep showed. Six seeds cannot separate it from noise, and the repo's own note says eight seeds cannot read happiness at ±6.5. Wants 32 seeds before anyone calls it fine.
+
+### Gates
+
+- **The slow tier has not been run end to end over the resource work.** `npm run test:all` is the push-gate and nothing has been pushed; the digests were re-cut per batch and `aiWar.slow` remains the known red it has been for seven batches.
+
+### Known and accepted
+
+- A pure-desert empire fields roughly half the mounted force of a pure-grassland one (section 3). The lever is camels' map share, not their range.
+- No leader unique requires a resource, so a unique is strictly easier to field than the standard unit beside it (section 3). The user took this knowingly: *"we can nerf later on if we need."*
+- Ivory lost more than the happiness swap — tradeability entirely, all three luxury count kinds, one of the eight toward The Eight Luxuries, the Consecration rite's culture, and Silk Road imports. It gained six times the map presence.
