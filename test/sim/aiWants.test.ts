@@ -2467,11 +2467,15 @@ describe('the marginal draft reading', () => {
       expect(marginal.total, id).toBe(walked.total);
       expect(marginal.terms, id).toEqual(walked.terms);
     }
-    // The register: fifteen rows in the whole table carry a shape the fold reads,
-    // and they are the only rows whose appraisal this batch moved. It was
-    // fourteen until D2a un-deferred The Muses' Call, whose *"+20% renown"* is
-    // the fifteenth — a share of a figure the books already keep.
-    expect(engines).toBe(15);
+    // The register: sixteen rows in the whole table carry a shape the fold
+    // reads, and they are the only rows whose appraisal this batch moved. It was
+    // fourteen until D2a un-deferred The Muses' Call, whose *"+20% renown"* is a
+    // share of a figure the books already keep, and sixteen since batch C3 built
+    // A Court of Merchants, whose *"+50% renown"* is the same shape one deck
+    // over. A row joins this count whenever a card takes a share of something
+    // the books already total, which is a design decision each time and not a
+    // number to nudge when a test goes red.
+    expect(engines).toBe(16);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books
