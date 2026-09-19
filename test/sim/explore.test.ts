@@ -645,10 +645,16 @@ describe('determinism', () => {
    * bytes, which is the quantity written onto the strategic tiles a duel map
    * carries. Nobody still founds a town here, so the reasons above are all
    * still the reasons; what changed is the ground.
+   *
+   * **C6 moved the hash and not the length**, at both seeds, which is the
+   * signature of a schema bump and nothing else: 121 became 122, three
+   * characters for three. Nobody founds a town in this sweep and no empire opens
+   * a trading post, so not one byte of board or behaviour moved — only the
+   * version the state records itself under.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'cd2e51d6:188968',
-    2026: '04e5f2f0:188539',
+    11: 'ab2ea567:188968',
+    2026: '547ef243:188539',
   };
 
   for (const seed of [11, 2026]) {
