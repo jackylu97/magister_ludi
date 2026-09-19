@@ -14,6 +14,9 @@
     "uncommon": 10,
     "rare": 5
   },
+  "redraw": {
+    "goldMultiple": 6
+  },
   "governments": {
     "chiefdom": {
       "name": "Chiefdom",

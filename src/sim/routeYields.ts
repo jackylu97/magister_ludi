@@ -469,7 +469,18 @@ function shares(
   // same road and their order cannot change what either pays —
   // `cardYieldConversions`' rule, one ledger over.
   const base = foldRouteYield(lines);
+  // **The road's own length**, measured only if a row asks — `cardLines`' hoist
+  // one clause over, and the same reason it lives here rather than in the
+  // evaluator: only something holding both ends can answer how far apart they
+  // are (`CardPaysEffect.minHexes`, batch C3).
+  let hexes = -1;
   for (const row of rows) {
+    if (row.minHexes !== undefined) {
+      if (hexes < 0) hexes = routeHexes(state, from, to);
+      // A road short of the threshold carries the row and pays nothing for it,
+      // exactly as a road with no luxuries on it does.
+      if (hexes < row.minHexes) continue;
+    }
     const share = (voice: keyof typeof base): number =>
       row.yield === 'all' || row.yield === voice
         ? Math.floor((base[voice] * row.percent) / 100)

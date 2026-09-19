@@ -3820,6 +3820,13 @@ function ruleRewriteValue(
       // Both buy ground, and ground is priced by the settle table rather than by
       // this currency — the two weight tables batch 4 wrote down as a known gap.
       return ctx.ai.score.unknownEffect;
+    case 'routeTerm':
+      // **Not priced yet, deliberately** (batch C3, which added the rule). A
+      // longer term is worth the caravans it saves re-hiring, and the bot does
+      // not hire caravans off a term at all — it hires them off route capacity —
+      // so a figure here would be invented rather than measured. Named so the
+      // exhaustiveness check below goes on catching the next member.
+      return ctx.ai.score.unknownEffect;
     default:
       return unreadRule(rule, ctx);
   }

@@ -150,7 +150,7 @@ import {
   buildingRitePay,
   cityKeepsRelics,
 } from './buildingEffects';
-import { type PressureRuleId, governmentDef } from './statecraftData';
+import { type PressureRuleId, STATECRAFT, governmentDef } from './statecraftData';
 // The great-person dealer, for the heavy hand `settleReroll` redeals. A
 // function-level import (the documented exception): `greatPeople.ts` reaches
 // `cities.ts`, which reaches this module — the cycle `cities.ts` and this file
@@ -731,10 +731,34 @@ function stampRedrawn(player: Player, kind: RerollKind): void {
   }
 }
 
+/**
+ * **Which bank pays for a redraw.** Faith unless a card opened the other one.
+ *
+ * `PurchaseCurrency`'s twin one system over, and named after it for the reason
+ * the great-person offer's `OfferCurrency` is: what is being bought is not an
+ * item, so it is not `purchase.ts`' question — but "which bank" is the same
+ * question, and a command carrying a currency field is the precedent.
+ */
+export type RerollCurrency = 'faith' | 'gold';
+
+/**
+ * **May this empire pay gold for a redraw?** The Brokers' Redraw's door, read in
+ * one place so the price, the refusal and the settlement agree.
+ *
+ * A belief hand is deliberately included: it is a hand like any other at the
+ * counter, and the card's words are "a draft", not "an Order draft". What the
+ * card does *not* change is the ladder — a belief hand's first asking is still
+ * free, in either bank, because a price of nothing multiplies to nothing.
+ */
+export function goldMayRedraw(state: GameState, playerId: number): boolean {
+  return cardActionRule(state, playerId, 'goldBuysRedraw');
+}
+
 export function explainRerollCost(
   state: GameState,
   playerId: number,
   kind: RerollKind = 'order',
+  currency: RerollCurrency = 'faith',
 ): RerollPrice {
   const player = playerById(state, playerId);
   // **The Rihla, first and alone on the list** (batch L6a): a waived price is a
@@ -768,6 +792,17 @@ export function explainRerollCost(
     const heavy = Math.floor(full * Math.max(0, spec.heavyMultiple));
     if (heavy !== full) lines.push({ source: HEAVY_WORD[kind], amount: heavy - full });
   }
+  // **The gold premium, last and printed** (The Brokers' Redraw, batch C3). The
+  // ladder above is unchanged — gold climbs the same rungs the faith bank does —
+  // and this is the one line that says the coin costs more, so a player reading
+  // the sheet can see exactly what the convenience is charging them. Floored
+  // once, for the heavy multiple's reason exactly, and the figure is
+  // `statecraft.redraw.goldMultiple`.
+  if (currency === 'gold') {
+    const faith = foldUnitCost(lines);
+    const coin = Math.floor(faith * Math.max(0, STATECRAFT.redraw.goldMultiple));
+    if (coin !== faith) lines.push({ source: 'Paid in coin, not in prayer', amount: coin - faith });
+  }
   return { lines, total: foldUnitCost(lines) };
 }
 
@@ -781,8 +816,9 @@ export function nextRerollCost(
   state: GameState,
   playerId: number,
   kind: RerollKind = 'order',
+  currency: RerollCurrency = 'faith',
 ): number {
-  return explainRerollCost(state, playerId, kind).total;
+  return explainRerollCost(state, playerId, kind, currency).total;
 }
 
 /**
@@ -797,7 +833,11 @@ export function nextRerollCost(
  * which is what "prophet re-rolls reset per roll" means; the Order draft's
  * lifetime count is not consulted and does not move.
  */
-export function explainBeliefRerollCost(state: GameState, playerId: number): RerollPrice {
+export function explainBeliefRerollCost(
+  state: GameState,
+  playerId: number,
+  currency: RerollCurrency = 'faith',
+): RerollPrice {
   const player = playerById(state, playerId);
   const offer = player?.pantheon.pending;
   const asked = Math.max(0, Math.floor(offer?.rerolls ?? 0));
@@ -816,12 +856,23 @@ export function explainBeliefRerollCost(state: GameState, playerId: number): Rer
       amount: full - aged,
     });
   }
+  // The gold premium, `explainRerollCost`'s line one ladder over — the hand's
+  // own ladder is untouched and the coin is what costs more.
+  if (currency === 'gold') {
+    const faith = foldUnitCost(lines);
+    const coin = Math.floor(faith * Math.max(0, STATECRAFT.redraw.goldMultiple));
+    if (coin !== faith) lines.push({ source: 'Paid in coin, not in prayer', amount: coin - faith });
+  }
   return { lines, total: foldUnitCost(lines) };
 }
 
 /** What asking this belief hand again costs. The fold; nothing on the first asking. */
-export function nextBeliefRerollCost(state: GameState, playerId: number): number {
-  return explainBeliefRerollCost(state, playerId).total;
+export function nextBeliefRerollCost(
+  state: GameState,
+  playerId: number,
+  currency: RerollCurrency = 'faith',
+): number {
+  return explainBeliefRerollCost(state, playerId, currency).total;
 }
 
 /**
@@ -889,11 +940,26 @@ export function rerollDoorOpen(state: GameState, playerId: number): boolean {
   return hasAbility(state, playerId, RELIGION.reroll.ability);
 }
 
-export function rerollError(state: GameState, playerId: number): string | null {
+export function rerollError(
+  state: GameState,
+  playerId: number,
+  named: unknown = 'faith',
+): string | null {
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
   const kind = rerollKindFor(player);
   if (kind === null) return `${player.name} has no draft waiting to be answered`;
+  // **The bank, before anything about the hand** (The Brokers' Redraw, batch
+  // C3). Taken as `unknown` and narrowed here, which is `purchaseError`'s own
+  // shape one system over: the currency arrives off a plain JSON command, so the
+  // gate that says which banks exist is this one and the reducer is left with
+  // nothing to validate.
+  const currency: RerollCurrency | null =
+    named === 'gold' ? 'gold' : named === 'faith' ? 'faith' : null;
+  if (currency === null) return `There is no bank called "${String(named)}"`;
+  if (currency === 'gold' && !goldMayRedraw(state, playerId)) {
+    return 'A fresh hand is asked for with faith, not with gold';
+  }
   // **A belief hand — the ladder's or a prophet's — asks nothing the first
   // time and faith after that**, rising per asking on this hand and reset with
   // the next (the user, 2026-09-06, evening: "once you are shown your options,
@@ -902,28 +968,51 @@ export function rerollError(state: GameState, playerId: number): string | null {
   // I, before the Long Count, and a free asking that waited on a later tech
   // would not be free. The Order draft's clauses follow, for the Order draft.
   if (kind === 'belief') {
-    const price = nextBeliefRerollCost(state, playerId);
+    const price = nextBeliefRerollCost(state, playerId, currency);
     if (price <= 0) return null;
-    if (player.faithPool < price) {
-      return `Asking again costs ${price} faith and ${player.name} has ${Math.floor(player.faithPool)}`;
+    if (bankOfPlayer(player, currency) < price) {
+      return (
+        `Asking again costs ${price} ${currency} and ${player.name} has ` +
+        `${Math.floor(bankOfPlayer(player, currency))}`
+      );
     }
     return null;
   }
   if (!rerollDoorOpen(state, playerId)) {
     return 'Your calendars cannot yet call for a second reading';
   }
-  const price = nextRerollCost(state, playerId, kind);
-  if (player.faithPool < price) {
-    return `A second reading asks ${price} faith and ${player.name} has ${Math.floor(player.faithPool)}`;
+  const price = nextRerollCost(state, playerId, kind, currency);
+  if (bankOfPlayer(player, currency) < price) {
+    return (
+      `A second reading asks ${price} ${currency} and ${player.name} has ` +
+      `${Math.floor(bankOfPlayer(player, currency))}`
+    );
   }
   return null;
+}
+
+/**
+ * What one of this empire's two redraw banks holds. The one reading, so the
+ * refusal above and the settlement below cannot charge different purses.
+ */
+function bankOfPlayer(player: Player, currency: RerollCurrency): number {
+  return currency === 'gold' ? player.gold : player.faithPool;
 }
 
 /** What a reroll did, for the line the interface announces it in. */
 export interface RerollOutcome {
   kind: RerollKind;
-  /** Faith the bank gave up. Nought for a belief hand's first asking. */
+  /**
+   * What the bank gave up. Nought for a belief hand's first asking, and nought
+   * under the Rihla's free redraw. In `currency`'s units.
+   */
   paid: number;
+  /**
+   * Which bank paid — faith unless The Brokers' Redraw opened the other one
+   * and the command named it (batch C3). Carried so the announcement can say
+   * what was spent rather than guessing at the usual bank.
+   */
+  currency: RerollCurrency;
   /** Rerolls this empire has taken once this one is counted. */
   taken: number;
 }
@@ -984,9 +1073,22 @@ export interface RerollOutcome {
  * name joins `state.recruited` on the pick — so the pool a redeal draws from
  * still holds at least the cards being given up.
  */
-export function settleReroll(state: GameState, player: Player): RerollOutcome | null {
+export function settleReroll(
+  state: GameState,
+  player: Player,
+  currency: RerollCurrency = 'faith',
+): RerollOutcome | null {
   const kind = rerollKindFor(player);
   if (kind === null) return null;
+  // **One purse, spent in one place per arm** (The Brokers' Redraw, batch C3).
+  // The bank is the command's and the price is `explainRerollCost`'s, so the
+  // gold arm is the faith arm with two words swapped — nothing about which hand
+  // is dealt, which count is raised or which stamp is written changes with the
+  // coin.
+  const spend = (paid: number): void => {
+    if (currency === 'gold') player.gold = Math.max(0, player.gold - paid);
+    else player.faithPool = Math.max(0, player.faithPool - paid);
+  };
 
   if (kind === 'belief') {
     const old = player.pantheon.pending!;
@@ -1008,13 +1110,13 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
     // belief ladder's price for that asking, read *before* the count moves.
     // Nothing here touches the Order draft's lifetime count or the chairs'
     // tally: a god asked again is not an Order asked again.
-    const paid = nextBeliefRerollCost(state, player.id);
-    player.faithPool = Math.max(0, player.faithPool - paid);
+    const paid = nextBeliefRerollCost(state, player.id, currency);
+    spend(paid);
     // The banks are a line of the meters too (batch M3, `slate.ts`).
     bumpEconomy(state);
     offer.rerolls = (old.rerolls ?? 0) + 1;
     player.pantheon.pending = offer;
-    return { kind, paid, taken: player.statecraft.rerollsTaken };
+    return { kind, paid, currency, taken: player.statecraft.rerollsTaken };
   }
 
   const sc = player.statecraft;
@@ -1023,8 +1125,8 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
   // price should remember. Read before a byte moves, since the stamp below is
   // what makes the answer change.
   const free = rihlaPaysFor(state, player, kind);
-  const paid = free ? 0 : nextRerollCost(state, player.id, kind);
-  player.faithPool = Math.max(0, player.faithPool - paid);
+  const paid = free ? 0 : nextRerollCost(state, player.id, kind, currency);
+  spend(paid);
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
   if (!free) sc.rerollsTaken += 1;
@@ -1032,7 +1134,7 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
   if (kind === 'doctrine') {
     sc.pendingDoctrine = drawDoctrineOffer(state, player, governmentDef(sc.government).tier);
     if (free) stampRedrawn(player, kind);
-    return { kind, paid, taken: sc.rerollsTaken };
+    return { kind, paid, currency, taken: sc.rerollsTaken };
   }
   if (kind === 'greatPerson') {
     const old = player.greatPersonOffer!;
@@ -1043,7 +1145,7 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
         ? drawGreatPersonOffer(state, player)
         : drawGreatPersonOffer(state, player, old.family);
     if (free) stampRedrawn(player, kind);
-    return { kind, paid, taken: sc.rerollsTaken };
+    return { kind, paid, currency, taken: sc.rerollsTaken };
   }
 
   // The Order draft, and the one hand the chairs are counting.
@@ -1053,7 +1155,7 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
   }
   sc.pendingOrder = drawOrderOffer(state, player);
   if (free) stampRedrawn(player, kind);
-  return { kind, paid, taken: sc.rerollsTaken };
+  return { kind, paid, currency, taken: sc.rerollsTaken };
 }
 
 /**

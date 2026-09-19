@@ -226,7 +226,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Founding Capital | 0 | ◆ | S | Founding a city grants 75 gold. |
 | Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +2 food and +2 production. |
 | Bought Swords | 1 | ◆ | S | Military units cost 20% less gold to purchase, but 10% more production to train. Purchases still do not count as training. |
-| Civic Receipts | 1 | ◆ | S | Purchasing an ordinary building for the first time in a city grants culture equal to 10% of the gold paid, with no cap. |
+| Civic Receipts | 1 | ◆ | S | Buying any building grants culture equal to 10% of the gold paid, with no cap. |
+| Venture Routes | 1 | ◆ | P | Your routes gain two turns of range. Routes whose endpoints are more than fourteen hexes apart gain +100% gold, using the shortest wrapped map distance. |
 | Established Routes | 1 | ◆ | P | A trade route you have kept up for at least thirty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. |
 | Commercial Education | 1 | ● | P | Gold buildings provide +2 science. |
 | Strategic Reserves | 1 | ● | S | Worked strategic resource tiles gain +1 science and +1 gold. |
@@ -249,7 +250,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Charter Fleet | 2 | ◆ | S | Naval combat units cost 20% less gold to purchase. Naval combat units you purchase with gold gain +1 movement permanently. Normal coastal, technology and purchase requirements remain. |
 | The Scholars' Roads | 2 | ○ | P | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. |
 | The Money Lenders | 2 | ○ | P | Earn interest equal to 2% of your treasury each turn, with no cap. |
+| The Brokers' Redraw | 2 | ○ | S | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. |
 | The Paid Army | 3 | ◆ | S | Military-unit upkeep falls by 1 gold, minimum zero. Military units cost 25% less gold to purchase. |
+| A Court of Merchants | 3 | ○ | S | Gain +50% renown, but great-person offers contain only Great Merchants. |
+| The Gilded Scaffold | 3 | ○ | P | You may purchase world wonders. All your cities lose 15% production. |
 | Merchant Princes | 3 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
 | The World's Exchange | 3 | ○ | S | Each different foreign empire currently served by your routes grants +10% production toward the Opus, at most +40%. Existing construction and victory requirements remain. |
 
@@ -492,7 +496,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Private Patronage** — Held whole. A discount here would reach the great national houses as well, and the card says it must not. † buying an ordinary building costs less, and raising one the slow way costs more
 - **The Common Road** — Half built, and so held whole. A law of yours pays your own books; it has no way to put coin in a foreign market. † a road that ends abroad pays you, and pays the town it ends in
 - **The Return Leg** — Held whole. A caravan's earnings are banked where it arrives, and there is no way to send a share of them home. † a road pays the town it left as well as the town it reaches, and the second helping never travels again
-- **Venture Routes** — Held whole. Nothing can lengthen a caravan's term, and a road's pay cannot be made to turn on how far it reaches. † your roads run longer before they lapse; a road between distant towns pays far more gold
 - **The Merchant Ledger** — Held whole. No book in this game records which markets your caravans have already found. † hiring a caravan costs less; every new market your roads reach for the first time teaches and sings, for as long as you keep the ledger
 - **The Factors' Houses** — Held whole. A standing commercial house is a new fact about a town, and nothing on the board keeps one yet. † the towns where your house is established pay gold and culture, and send caravans more cheaply
 - **The Planters' Charter** — Held whole. The house it would open has not been drawn up yet, so the charter has nothing to grant. † drafting this opens the planters' house for building
@@ -513,7 +516,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Charter Fleet** — Half built, and so held whole. A piece can be born stronger or hardier, but nothing can be written on it about how far it sees. † hulls bought with gold cost less and are built with keener lookouts for the rest of their lives
 - **Export Guilds** — Held whole. Nothing asks whether a particular good is being sold abroad this turn. † a town working a good you are currently selling abroad builds faster and rests easier
 - **The Exchange** — Half built, and so held whole. A law of yours pays your own books; it cannot teach a foreign capital. † every foreign realm your roads reach teaches your whole empire, and learns from it
-- **The Brokers' Redraw** — A line the design is still writing, entered under a working name so that it is not lost. A redraw is paid for out of the faith bank and nothing else, and the bank a redraw draws on is not a thing a law may change. † a hand may be redrawn for coin instead of for prayer, and everything else you buy costs more
 - **The Scholars' Roads** — A line the design is still writing, entered under a working name so that it is not lost. Each of its three halves would be ordinary law once the card is named and its words are settled. † you may run fewer roads, and every one of them teaches and sings far more
 - **The Customs Houses** — A line the design is still writing, entered under a working name so that it is not lost. Renown is paid for a town's buildings and never for one hex's works, and no town's gold can be made to go further at the counter. † a customs house pays gold and renown, and its town buys more with what it earns
 - **The Dye Vats** — Held whole. The vats they would open have not been drawn up yet, so the charter has nothing to grant. † drafting this opens the dye vats for building
@@ -523,7 +525,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Admiralty of Trade** — Held whole. A standing commercial house has no place on the board, and nothing may waive how far a road is allowed to reach. † a sea road between two of your established houses may be run at any distance
 - **The Merchant Commonwealth** — Held whole. A standing commercial house has no place on the board, and no law makes a single town cheaper to hold. † your own towns where your house is established and one of your roads ends rest easier and are easier to hold
 - **The Merchant Works** — Half built, and so held whole. A town can be asked whether it is raising a wonder, but the realm's single great houses and the last work of all are not a class anything can name. † a town raising one of the realm's great houses turns a share of its coin into stone, and loses a share of its coin while it does
-- **The Gilded Scaffold** — A line the design is still writing, entered under a working name so that it is not lost. A wonder is refused at the counter before a price is ever asked for, and nothing may open that door. † a wonder may be bought outright, and every town of yours works more slowly for it
 - **Pastoral Shrines** — Not built, both halves together: the law can dress a herder's ground, and nothing can yet ask whether the realm keeps a single pen anywhere at all, which is the clause the capital's hammers hang on. † worked pastures pay an offering of faith and a little more food; your capital works harder while you keep a penned herd anywhere at all
 - **Hearth Blessings** — Not built: a town remembers how many people live in it and not how many ever did, so nothing can tell a new high from an ordinary birth. † a town growing past the largest it has ever been gives thanks in faith; a shrine there sets bread on the table besides
 - **The Book of Mercy** — Not built: neither observance has been written into the book of rites, so the charter has nothing to open. The row is kept so the two may be written. † a town may mourn, and while it grieves its people ask far less of it and it raises no soldiers; a town may keep a watch, seeing the raiders' camps around it and taking faith for every kill near its walls

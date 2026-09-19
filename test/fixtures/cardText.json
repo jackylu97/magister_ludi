@@ -3708,8 +3708,8 @@
   ],
   "civicReceipts": [
    {
-    "raw": "buying anything (not an empire building, the first building that city ever buys) grants culture equal to 10% of the gold paid",
-    "text": "buying anything (not an empire building, the first building that city ever buys) grants culture equal to 10% of the gold paid"
+    "raw": "buying a building grants culture equal to 10% of the gold paid",
+    "text": "buying a building grants culture equal to 10% of the gold paid"
    }
   ],
   "provisioningContracts": [
@@ -3734,14 +3734,12 @@
   ],
   "ventureRoutes": [
    {
-    "raw": "your roads run longer before they lapse — not built yet",
-    "text": "your roads run longer before they lapse — not built yet",
-    "deferred": true
+    "raw": "your trade routes run 10% longer before they lapse",
+    "text": "your trade routes run 10% longer before they lapse"
    },
    {
-    "raw": "a road between distant towns pays far more gold — not built yet",
-    "text": "a road between distant towns pays far more gold — not built yet",
-    "deferred": true
+    "raw": "+100% gold on every trade route whose two cities are at least 15 hexes apart",
+    "text": "+100% gold on every trade route whose two cities are at least 15 hexes apart"
    }
   ],
   "theMerchantLedger": [
@@ -4007,9 +4005,12 @@
   ],
   "theBrokersRedraw": [
    {
-    "raw": "a hand may be redrawn for coin instead of for prayer, and everything else you buy costs more — not built yet",
-    "text": "a hand may be redrawn for coin instead of for prayer, and everything else you buy costs more — not built yet",
-    "deferred": true
+    "raw": "you may pay gold for a fresh hand, at a higher price than faith would ask",
+    "text": "you may pay gold for a fresh hand, at a higher price than faith would ask"
+   },
+   {
+    "raw": "all units and buildings cost +10% to buy",
+    "text": "all units and buildings cost +10% to buy"
    }
   ],
   "theScholarsRoads": [
@@ -4132,9 +4133,22 @@
   ],
   "theGildedScaffold": [
    {
-    "raw": "a wonder may be bought outright, and every town of yours works more slowly for it — not built yet",
-    "text": "a wonder may be bought outright, and every town of yours works more slowly for it — not built yet",
-    "deferred": true
+    "raw": "you may buy world wonders with gold",
+    "text": "you may buy world wonders with gold"
+   },
+   {
+    "raw": "-15% production in every city",
+    "text": "-15% production in every city"
+   }
+  ],
+  "aCourtOfMerchants": [
+   {
+    "raw": "+50% renown",
+    "text": "+50% renown"
+   },
+   {
+    "raw": "every great-person offer shows only great merchants, until there are none left to call",
+    "text": "every great-person offer shows only great merchants, until there are none left to call"
    }
   ],
   "devotionFirstRites": [

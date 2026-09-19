@@ -8487,6 +8487,11 @@ describe("the engine shapes", () => {
     "armyContracts · routeYield",
     "armyContracts · routeYield",
     "provisioningContracts · routeYield",
+    // C3: Venture Routes doubles the coin on a long haul. A route `pays` share
+    // like Established Routes', gated on a new narrowing of the same kind — the
+    // distance between the two towns (`CardPaysEffect.minHexes`), which is a
+    // fact about the pair exactly as the term and the crossing are.
+    "ventureRoutes · routeYield",
     // D2d: Established Routes' half again on a road kept up, un-deferred with
     // the term the route `pays` learned (`TradeRoute.startedTurn`).
     "establishedRoutes · routeYield",
@@ -8503,6 +8508,10 @@ describe("the engine shapes", () => {
     "theCaravanseraiNetwork · routeYield",
     "theScholarsRoads · routeYield",
     "theScholarsRoads · routeYield",
+    // C3: A Court of Merchants' half again, taken of the whole recurring
+    // trickle rather than of one town's buildings — `where: 'empire'`, the
+    // second row in the game to say it.
+    "aCourtOfMerchants · cityRenownPercent",
     "thePatronsRoad · routeYield",
     // D2a: The Muses' Call's *"+20% renown"*, un-deferred with the worked-work
     // scope its other half wanted.

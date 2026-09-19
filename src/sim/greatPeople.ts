@@ -107,6 +107,7 @@ import { renownThreshold, settleRenownWindfall } from './renown';
 import {
   cardActionRule,
   cardAmplifier,
+  cardOfferFamily,
   offerSize,
   payWindfallGrants,
   recordScalingOccasion,
@@ -312,7 +313,21 @@ export function drawGreatPersonOffer(
   family?: Family,
 ): GreatPersonOffer {
   const size = offerSize(state, player.id, 'greatPerson');
-  const remaining = greatPersonPool(state, player, size, family);
+  // **A Court of Merchants narrows an unnarrowed hand** (batch C3, ruled in
+  // `docs/flags.md` item (pppppp)). Asked only when the caller named no family
+  // of its own, so the Academy's scholar draft — a hand somebody bought *as
+  // scholars* — is untouched, and so is a reroll redealing a narrowed hand as
+  // what it was dealt as.
+  //
+  // **And it falls back rather than locking.** A family with nobody left
+  // uncalled deals the ordinary weighted hand instead of an empty one, which is
+  // the whole of the ruling: the reason the draw is weighted rather than
+  // restricted is that a spent roster banks rather than blocks, and a card that
+  // could empty one family and then deal nothing would have taken that away.
+  // Checked against the pool rather than against a roster count so it asks the
+  // same question `greatPersonPool` answers — the spill included.
+  const narrowed = family !== undefined ? family : narrowingFamily(state, player, size);
+  const remaining = greatPersonPool(state, player, size, narrowed);
   const weights = greatPersonWeights(player, remaining);
   const wanted = Math.min(Math.max(0, Math.floor(size)), remaining.length);
   const options: GreatPersonId[] = [];
@@ -336,7 +351,29 @@ export function drawGreatPersonOffer(
     remaining.splice(chosen, 1);
     weights.splice(chosen, 1);
   }
-  return family === undefined ? { options } : { options, family };
+  // The narrowing a card made is written onto the hand exactly as one a caller
+  // named is, and for the same reason: a reroll deals the hand again as what it
+  // was dealt as. A seat that loses the card mid-hand still redeals merchants,
+  // which is the honest reading of "this is the hand you were dealt".
+  return narrowed === undefined ? { options } : { options, family: narrowed };
+}
+
+/**
+ * The family this empire's law narrows an unnamed great-person draft to, or
+ * `undefined` — A Court of Merchants, with its fallback applied.
+ *
+ * Two questions and both are the ruling's: does a card narrow the draw at all
+ * (`cardOfferFamily`), and has that family anybody left to call. A family that
+ * is spent answers `undefined` and the hand is dealt the ordinary way.
+ *
+ * Kept beside the draw rather than inside `greatPersonPool`, because the pool is
+ * asked with a family by three callers that mean it literally and this is the
+ * one caller that means it as a preference.
+ */
+function narrowingFamily(state: GameState, player: Player, size: number): Family | undefined {
+  const wanted = cardOfferFamily(state, player.id);
+  if (wanted === undefined) return undefined;
+  return greatPersonPool(state, player, size, wanted).length === 0 ? undefined : wanted;
 }
 
 // --- buying the recruitment -------------------------------------------------

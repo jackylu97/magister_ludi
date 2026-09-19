@@ -44,13 +44,37 @@
 import { describe, expect, it } from 'vitest';
 
 import { createGame } from '../../../src/sim/game';
-import { addBuilding, bumpRevision, playerById } from '../../../src/sim/state';
-import { foundCityAt, ownedTiles } from '../../../src/sim/cities';
-import { getTileAt, neighborTiles, raiseImprovement, tileHex } from '../../../src/sim/map';
+import { type City, addBuilding, bumpRevision, playerById } from '../../../src/sim/state';
+import {
+  explainBuildingCost,
+  foldUnitCost,
+  foundCityAt,
+  ownedTiles,
+} from '../../../src/sim/cities';
+import {
+  getTileAt,
+  neighborTiles,
+  raiseImprovement,
+  tileHex,
+  wrappedDistance,
+} from '../../../src/sim/map';
+import { isWaterTerrain } from '../../../src/sim/terrainData';
 import { cityContext, explainTileYield } from '../../../src/sim/yields/hex';
-import { purchaseError } from '../../../src/sim/purchase';
+import { explainPurchaseCost, purchaseError, purchaseItemAt } from '../../../src/sim/purchase';
+import { readCity } from '../../../src/sim/readings';
 import { buildError, gatingTech } from '../../../src/sim/tech';
+import { RULES } from '../../../src/sim/rulesData';
 import { explainRouteYieldBetween, foldRouteYield } from '../../../src/sim/routeYields';
+import { routeTermFor } from '../../../src/sim/trade';
+import { drawGreatPersonOffer } from '../../../src/sim/greatPeople';
+import { GREAT_PERSON_IDS, greatPersonDef } from '../../../src/sim/greatPeopleData';
+import {
+  explainRerollCost,
+  nextRerollCost,
+  rerollError,
+  settleReroll,
+} from '../../../src/sim/religion';
+import { RELIGION } from '../../../src/sim/religionData';
 import {
   cardRenownLines,
   cardUnitStamp,
@@ -59,6 +83,8 @@ import {
   describeEffects,
   drawOrderOffer,
   eligibleFor,
+  explainOfferSize,
+  foldOfferSize,
   stripRefs,
 } from '../../../src/sim/statecraft';
 import {
@@ -68,11 +94,12 @@ import {
   DECK_FILES,
   DECK_FILE_ORDERS,
   ORDER_IDS,
+  STATECRAFT,
   orderDef,
   orderIsDealt,
   ordersForDecks,
 } from '../../../src/sim/statecraftData';
-import { BUILDING_IDS } from '../../../src/sim/buildingData';
+import { BUILDING_IDS, buildingDef } from '../../../src/sim/buildingData';
 import type { UnitTypeId } from '../../../src/sim/unitData';
 import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
 
@@ -89,11 +116,12 @@ const live = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).effects.lengt
 const deferred = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).effects.length === 0);
 
 describe('the Commerce deck is one deck', () => {
-  it('carries sixty-six rows, every one of them a Commerce card', () => {
+  it('carries sixty-seven rows, every one of them a Commerce card', () => {
     // Sixty after C1; C2 adds the six the sheet proposed and nobody had written
     // down yet (Ore Caravans, Frontier Investment, Luxury Caravans, Mining
-    // Districts, The Capital Arsenal, Foreign Procurement).
-    expect(COMMERCE.length).toBe(66);
+    // Districts, The Capital Arsenal, Foreign Procurement). C3 adds one more,
+    // A Court of Merchants — a sheet row that had never been entered at all.
+    expect(COMMERCE.length).toBe(67);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -125,7 +153,8 @@ describe('the Commerce deck is one deck', () => {
     // C2 adds six more, again by the tier the sheet puts them in: two in Tier I
     // (Ore Caravans, Frontier Investment) and four in Tier II (Luxury Caravans,
     // Mining Districts, The Capital Arsenal, Foreign Procurement).
-    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 23, 10]);
+    // C3 adds A Court of Merchants in Tier III, where the sheet puts it.
+    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 23, 11]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
 
@@ -149,7 +178,7 @@ describe('the Commerce deck is one deck', () => {
 });
 
 describe('a live Commerce row is a card', () => {
-  it('pays through thirty-nine rows, and every one of them is dealt', () => {
+  it('pays through forty-three rows, and every one of them is dealt', () => {
     // The World's Exchange joined them with D2b: hammers behind a thing may be
     // counted off a thing the realm holds now, and the courts its roads reach
     // are one such thing. **Civic Receipts joined with D2c**: a purchase now
@@ -172,7 +201,13 @@ describe('a live Commerce row is a card', () => {
     // deferred rows waiting on one field each — Travellers' Letters on a count
     // of the empires a seat has met, The Customs Houses on a count of the hexes
     // inside its borders.
-    expect(live().length).toBe(39);
+    //
+    // **And four more with C3**, the four rows the user ruled on (`docs/flags.md`
+    // item (pppppp)): The Gilded Scaffold, The Brokers' Redraw, Venture Routes
+    // and Civic Receipts' rework. A Court of Merchants is the fifth card of the
+    // batch and is a brand-new row, so it raises the deck's size rather than
+    // moving a row off the deferred list.
+    expect(live().length).toBe(43);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -250,16 +285,21 @@ describe('a live Commerce row is a card', () => {
         check(id, effect);
       }
     }
-    // Fifteen shapes carry the whole live half — six joined with C1's rows
+    // Eighteen shapes carry the whole live half — six joined with C1's rows
     // (a contentment line, a capacity line, a strength line, a route rider, a
-    // percentage on a rule of the realm and an upkeep surcharge) and the renown
-    // trickle with C2's Customs Houses — and a sixteenth here would be a shape
-    // a later pass added without saying so.
+    // percentage on a rule of the realm and an upkeep surcharge), the renown
+    // trickle with C2's Customs Houses, and three with C3: a share of the
+    // realm's renown and a narrowed draft (A Court of Merchants) and a
+    // percentage on a town's yields (The Gilded Scaffold's slower work). A
+    // nineteenth here would be a shape a later pass added without saying so.
     expect([...kinds].sort()).toEqual([
       'authority',
+      'cityRenownPercent',
       'combatLine',
       'happiness',
+      'offerRider',
       'pays',
+      'percentYields',
       'productionBonus',
       'purchaseRider',
       'renown',
@@ -294,8 +334,10 @@ describe('a live Commerce row is a card', () => {
 
 describe('a deferred Commerce row is a promise, not a card', () => {
   it('pays nothing, says what it would have said, and sits in no pool', () => {
-    // C2 took two off it — Travellers' Letters and The Customs Houses.
-    expect(deferred().length).toBe(27);
+    // C2 took two off it — Travellers' Letters and The Customs Houses. C3 took
+    // three more: The Gilded Scaffold, The Brokers' Redraw and Venture Routes.
+    // (Civic Receipts was already live; C3 reworked it.)
+    expect(deferred().length).toBe(24);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -867,5 +909,449 @@ describe('C2 — the counts, the ring and the two counter rules', () => {
     to.population = 6;
     bumpRevision(g.state);
     expect(named()).toEqual([]);
+  });
+});
+
+// --- C3, the five cards that lift a rule --------------------------------------
+
+/**
+ * **Batch C3**: the Commerce cards that lift a rule of the simulation. Four of
+ * them needed a user ruling before they could be built and got one
+ * (`docs/flags.md` item (pppppp), 2026-09-19); Venture Routes needed none.
+ *
+ * What was added to the vocabulary, and which row writes each:
+ *
+ *   · two `ActionRuleId`s — `goldBuysWonders` (The Gilded Scaffold) and
+ *     `goldBuysRedraw` (The Brokers' Redraw), each read at a refusal that
+ *     already had a lift beside it rather than as a second path to the thing;
+ *   · `CardRule`'s `routeTerm` — how long a trade route runs before it lapses,
+ *     the tenth rule and the same shape as a settler's price (Venture Routes);
+ *   · `CardPaysEffect.minHexes` — a route narrowing on the distance between the
+ *     two towns, carried rather than resolved (Venture Routes);
+ *   · `CardOfferRiderEffect.family` — a draft dealt from one family, falling
+ *     back to the whole roster when that family is spent (A Court of Merchants);
+ *   · `CardWindfallRiderEffect.anyBuilding` — the occasion was about a building,
+ *     whichever one (Civic Receipts' rework).
+ *
+ * Civic Receipts is the one card whose **text** the ruling changed: "pay on
+ * purchase of any building" is read as every building purchase paying, so the
+ * card came off the ledger of firsts entirely and the ordinary-building
+ * narrowing went with it.
+ */
+describe('C3 — the five cards that lift a rule', () => {
+  /** A duel with one Commerce seat, the named cards in its chairs. */
+  function bench(cards: string[]) {
+    const g = createGame({
+      seed: 67,
+      sizeName: 'duel',
+      players: [
+        { name: 'Musa', color: '#d4502e', isHuman: true, leader: 'mansaMusa' },
+        { name: 'Bors', color: '#3a7fe8', leader: 'pachacuti' },
+      ],
+    });
+    const musa = playerById(g.state, 0)!;
+    for (const card of cards) {
+      musa.statecraft.orders.push(card as OrderId);
+      musa.statecraft.slots.push({ card: card as OrderId, sealedUntil: g.state.turn });
+    }
+    bumpRevision(g.state);
+    return g;
+  }
+
+  /** A town of this seat, founded a few hexes along from its opening piece. */
+  function town(g: ReturnType<typeof bench>, at = 0) {
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    const tile = getTileAt(g.state.map, unit.col + at, unit.row)!;
+    return foundCityAt(g.state, 0, tile);
+  }
+
+  /** Clear the town's own hex, so a bought piece has somewhere to stand. */
+  function empty(g: ReturnType<typeof bench>, city: { col: number; row: number }) {
+    g.state.units = g.state.units.filter(
+      (unit) => unit.col !== city.col || unit.row !== city.row,
+    );
+    bumpRevision(g.state);
+  }
+
+  /** Hand this seat the card mid-game, the way a draft would. */
+  function slot(g: ReturnType<typeof bench>, card: string): void {
+    const musa = playerById(g.state, 0)!;
+    musa.statecraft.orders.push(card as OrderId);
+    musa.statecraft.slots.push({ card: card as OrderId, sealedUntil: g.state.turn });
+    bumpRevision(g.state);
+  }
+
+  /**
+   * **The member register.** C2's discipline, kept: a member of a union the
+   * evaluator already walks, and a field on a shape it already reads, both sail
+   * straight through the kind-level registers in `statecraft.test.ts`. So each
+   * pass names what it declared and says which row writes it.
+   */
+  it('registers exactly which rows write the five things C3 declared', () => {
+    const writers = (
+      match: (effect: CardEffect) => boolean,
+    ): string[] => COMMERCE.filter((id) => orderDef(id).effects.some(match));
+
+    expect(
+      writers((effect) => effect.kind === 'rule' && effect.rule === 'goldBuysWonders'),
+    ).toEqual(['theGildedScaffold']);
+    expect(
+      writers((effect) => effect.kind === 'rule' && effect.rule === 'goldBuysRedraw'),
+    ).toEqual(['theBrokersRedraw']);
+    expect(
+      writers((effect) => effect.kind === 'rulePercent' && effect.rule === 'routeTerm'),
+    ).toEqual(['ventureRoutes']);
+    expect(writers((effect) => effect.kind === 'pays' && effect.minHexes !== undefined)).toEqual([
+      'ventureRoutes',
+    ]);
+    expect(writers((effect) => effect.kind === 'offerRider' && effect.family !== undefined)).toEqual(
+      ['aCourtOfMerchants'],
+    );
+    expect(
+      writers((effect) => effect.kind === 'windfallRider' && effect.anyBuilding === true),
+    ).toEqual(['civicReceipts']);
+  });
+
+  // --- The Gilded Scaffold ---------------------------------------------------
+
+  /**
+   * The lift is a **second clause on the one `if`** that refuses a wonder, not a
+   * second way to buy one — so what is pinned is as much what still refuses as
+   * what stops refusing.
+   */
+  describe('The Gilded Scaffold — a marvel at the counter', () => {
+    const WONDER = { kind: 'building', id: 'stonehenge' } as const;
+
+    /** A seat with a treasury, a town with room, and the wonder's technology in. */
+    function ready(cards: string[] = []) {
+      const g = bench(cards);
+      const city = town(g);
+      empty(g, city);
+      const musa = playerById(g.state, 0)!;
+      musa.gold = 99999;
+      musa.faithPool = 99999;
+      const gate = gatingTech('building', 'stonehenge');
+      if (gate) musa.techsResearched.push(gate);
+      bumpRevision(g.state);
+      return { g, city, musa };
+    }
+
+    it('refuses a wonder in both banks until the card is held, then sells it for gold', () => {
+      const { g, city } = ready();
+      expect(purchaseError(g.state, 0, city.id, WONDER, 'gold')).toContain('must be built');
+      slot(g, 'theGildedScaffold');
+      expect(purchaseError(g.state, 0, city.id, WONDER, 'gold')).toBeNull();
+      // **Gold alone.** The faith lift is the Valley of Kings' and is narrow in
+      // two dimensions on purpose; this card widens one of them and not both, so
+      // a town with no such shelf still cannot rush a marvel with prayer.
+      expect(purchaseError(g.state, 0, city.id, WONDER, 'faith')).toContain('must be built');
+    });
+
+    it('prices it at the row’s own hammers, the ordinary gold rate', () => {
+      const { g, city } = ready(['theGildedScaffold']);
+      const price = explainPurchaseCost(g.state, 0, city.id, WONDER, 'gold');
+      expect(price).not.toBeNull();
+      expect(price!.currency).toBe('gold');
+      const hammers = foldUnitCost(explainBuildingCost('stonehenge', g.state, 0));
+      expect(price!.total).toBe(Math.floor(hammers * RULES.production.goldPerHammer));
+    });
+
+    it('leaves every other refusal standing', () => {
+      const { g, city, musa } = ready(['theGildedScaffold']);
+      // **The technology.** `buildError` is still the gate below the lift.
+      const gate = gatingTech('building', 'stonehenge')!;
+      musa.techsResearched = musa.techsResearched.filter((tech) => tech !== gate);
+      bumpRevision(g.state);
+      expect(purchaseError(g.state, 0, city.id, WONDER, 'gold')).not.toBeNull();
+      musa.techsResearched.push(gate);
+      bumpRevision(g.state);
+      expect(purchaseError(g.state, 0, city.id, WONDER, 'gold')).toBeNull();
+      // **One per world.** A wonder another empire has claimed is refused by the
+      // claim's own sentence, which is `buildError`'s rather than this card's.
+      g.state.wonders.push({ building: 'stonehenge', playerId: 1, cityId: 999, turn: 1 });
+      bumpRevision(g.state);
+      expect(purchaseError(g.state, 0, city.id, WONDER, 'gold')).not.toBeNull();
+      g.state.wonders.pop();
+      bumpRevision(g.state);
+      expect(purchaseError(g.state, 0, city.id, WONDER, 'gold')).toBeNull();
+      // **The treasury.** A card that opens a door does not fill a purse.
+      musa.gold = 3;
+      bumpRevision(g.state);
+      expect(purchaseError(g.state, 0, city.id, WONDER, 'gold')).toContain('costs');
+    });
+
+    it('slows every town by the share its other half prints', () => {
+      const { g, city } = ready();
+      const named = () =>
+        readCity(g.state, city).percents.filter(
+          (line) => line.yield === 'production' && line.source.includes('Gilded Scaffold'),
+        );
+      expect(named()).toEqual([]);
+      slot(g, 'theGildedScaffold');
+      const lines = named();
+      expect(lines.length).toBe(1);
+      expect(lines[0]!.percent).toBe(-15);
+    });
+  });
+
+  // --- A Court of Merchants --------------------------------------------------
+
+  /**
+   * The narrowing is a **nudge and never a lock** — the whole of the ruling. A
+   * court whose merchants have all been called deals the ordinary hand, so "a
+   * spent roster banks rather than blocks" survives the card.
+   */
+  describe('A Court of Merchants — a bench of one family', () => {
+    it('deals merchants alone while any are left to call', () => {
+      const g = bench([]);
+      const musa = playerById(g.state, 0)!;
+      const open = drawGreatPersonOffer(g.state, musa);
+      expect(open.options.length).toBeGreaterThan(0);
+      expect(open.family).toBeUndefined();
+      slot(g, 'aCourtOfMerchants');
+      const court = drawGreatPersonOffer(g.state, musa);
+      expect(court.options.length).toBeGreaterThan(0);
+      expect(court.family).toBe('merchant');
+      for (const id of court.options) expect(greatPersonDef(id).family, id).toBe('merchant');
+    });
+
+    it('falls back to the ordinary draw when the merchants run out', () => {
+      const g = bench(['aCourtOfMerchants']);
+      const musa = playerById(g.state, 0)!;
+      // Every great merchant in the world already called. The roster is spent
+      // for this family and for no other.
+      for (const id of GREAT_PERSON_IDS) {
+        if (greatPersonDef(id).family === 'merchant') g.state.recruited.push(id);
+      }
+      bumpRevision(g.state);
+      const hand = drawGreatPersonOffer(g.state, musa);
+      expect(hand.options.length).toBeGreaterThan(0);
+      expect(hand.family).toBeUndefined();
+      for (const id of hand.options) expect(greatPersonDef(id).family, id).not.toBe('merchant');
+    });
+
+    it('leaves a hand somebody bought as scholars dealt as scholars', () => {
+      const g = bench(['aCourtOfMerchants']);
+      const musa = playerById(g.state, 0)!;
+      const hand = drawGreatPersonOffer(g.state, musa, 'scholar');
+      expect(hand.family).toBe('scholar');
+      for (const id of hand.options) expect(greatPersonDef(id).family, id).toBe('scholar');
+    });
+
+    it('deals no extra card — a narrowing is not a widening', () => {
+      const g = bench([]);
+      const before = foldOfferSize(explainOfferSize(g.state, 0, 'greatPerson'));
+      slot(g, 'aCourtOfMerchants');
+      expect(foldOfferSize(explainOfferSize(g.state, 0, 'greatPerson'))).toBe(before);
+    });
+  });
+
+  // --- The Brokers' Redraw ---------------------------------------------------
+
+  /**
+   * **Gold at a premium** is the ruling, and the premium is a row in
+   * `data/statecraft.json` rather than a constant in the code — so what is
+   * pinned is the *relation* (gold costs more than the faith ladder would ask)
+   * and the multiple the sheet currently holds, read off the sheet.
+   */
+  describe("The Brokers' Redraw — a fresh hand for coin", () => {
+    /** A seat with an Order draft on the table and both banks full. */
+    function drafting(cards: string[]) {
+      const g = bench(cards);
+      const musa = playerById(g.state, 0)!;
+      musa.faithPool = 99999;
+      musa.gold = 99999;
+      // The door the faith arm needs, so the two banks meet the same clauses
+      // rather than one of them being refused for a second reason.
+      musa.techsResearched.push(RELIGION.reroll.ability as TechId);
+      musa.statecraft.pendingOrder = drawOrderOffer(g.state, musa);
+      bumpRevision(g.state);
+      return { g, musa };
+    }
+
+    it('refuses gold until the card is held', () => {
+      const { g } = drafting([]);
+      expect(rerollError(g.state, 0, 'faith')).toBeNull();
+      expect(rerollError(g.state, 0, 'gold')).toContain('not with gold');
+      slot(g, 'theBrokersRedraw');
+      expect(rerollError(g.state, 0, 'gold')).toBeNull();
+      // A bank nobody has heard of is refused in `purchaseError`'s voice.
+      expect(rerollError(g.state, 0, 'hammers')).toContain('no bank called');
+    });
+
+    it('charges more for coin than the faith ladder asks, by the sheet’s multiple', () => {
+      const { g } = drafting(['theBrokersRedraw']);
+      const faith = nextRerollCost(g.state, 0, 'order', 'faith');
+      const coin = nextRerollCost(g.state, 0, 'order', 'gold');
+      expect(faith).toBeGreaterThan(0);
+      expect(coin).toBeGreaterThan(faith);
+      expect(coin).toBe(Math.floor(faith * STATECRAFT.redraw.goldMultiple));
+      // The premium is its own line on the sheet, so a player can see what the
+      // convenience charges — rule 5 at the scale of a price tag.
+      expect(explainRerollCost(g.state, 0, 'order', 'gold').lines.length).toBeGreaterThan(
+        explainRerollCost(g.state, 0, 'order', 'faith').lines.length,
+      );
+    });
+
+    it('spends the bank the command named and leaves the other alone', () => {
+      const { g, musa } = drafting(['theBrokersRedraw']);
+      const coin = nextRerollCost(g.state, 0, 'order', 'gold');
+      const faithBefore = musa.faithPool;
+      const goldBefore = musa.gold;
+      const out = settleReroll(g.state, musa, 'gold');
+      expect(out?.currency).toBe('gold');
+      expect(out?.paid).toBe(coin);
+      expect(musa.gold).toBe(goldBefore - coin);
+      expect(musa.faithPool).toBe(faithBefore);
+      // **One ladder, whichever bank paid**: a redraw bought with coin makes the
+      // next redraw dearer exactly as one bought with prayer does.
+      expect(musa.statecraft.rerollsTaken).toBe(1);
+    });
+
+    it('puts its surcharge on everything else this empire buys', () => {
+      const g = bench([]);
+      const city = town(g);
+      empty(g, city);
+      playerById(g.state, 0)!.gold = 99999;
+      bumpRevision(g.state);
+      const priced = (item: { kind: 'unit' | 'building'; id: string }) =>
+        explainPurchaseCost(g.state, 0, city.id, item as never, 'gold')!.total;
+      const sword = priced({ kind: 'unit', id: 'warrior' });
+      const roof = priced({ kind: 'building', id: 'monument' });
+      slot(g, 'theBrokersRedraw');
+      expect(priced({ kind: 'unit', id: 'warrior' })).toBeGreaterThan(sword);
+      expect(priced({ kind: 'building', id: 'monument' })).toBeGreaterThan(roof);
+    });
+  });
+
+  // --- Civic Receipts --------------------------------------------------------
+
+  /**
+   * The rework: **every** building purchase pays. Pinned here are the two things
+   * that changed — a town's second roof pays, and one of the realm's single
+   * great houses pays — plus the one narrowing that stayed, which is that a unit
+   * bought at the same counter pays nothing.
+   */
+  describe('Civic Receipts — a rebate on every roof', () => {
+    function shop() {
+      const g = bench(['civicReceipts']);
+      const city = town(g);
+      empty(g, city);
+      const musa = playerById(g.state, 0)!;
+      musa.gold = 99999;
+      musa.culturePool = 0;
+      for (const id of BUILDING_IDS) {
+        const gate = gatingTech('building', id);
+        if (gate && !musa.techsResearched.includes(gate)) musa.techsResearched.push(gate);
+      }
+      bumpRevision(g.state);
+      return { g, city };
+    }
+
+    /** What the culture pool gained by buying this row here. */
+    function buy(
+      g: ReturnType<typeof bench>,
+      city: City,
+      item: { kind: 'unit' | 'building'; id: string },
+    ): number {
+      const musa = playerById(g.state, 0)!;
+      expect(purchaseError(g.state, 0, city.id, item, 'gold'), item.id).toBeNull();
+      const before = musa.culturePool;
+      purchaseItemAt(g.state, musa, city, item as never, 'gold');
+      return musa.culturePool - before;
+    }
+
+    it('pays a tenth of the coin on the second building as well as the first', () => {
+      const { g, city } = shop();
+      expect(buy(g, city, { kind: 'building', id: 'monument' })).toBeGreaterThan(0);
+      // **The whole of the rework.** Before C3 this was nought: the card rode on
+      // the ledger of firsts, and a town's first purchase is the only first it
+      // has.
+      expect(buy(g, city, { kind: 'building', id: 'granary' })).toBeGreaterThan(0);
+    });
+
+    it('pays for one of the realm’s single great houses too', () => {
+      const { g, city } = shop();
+      // The other half of the rework: `empireBuilding: false` is gone, so a
+      // shelf the card used to refuse is an ordinary roof at the till.
+      const empire = BUILDING_IDS.find(
+        (id) =>
+          buildingDef(id).oncePerEmpire === true &&
+          buildingDef(id).wonder !== true &&
+          purchaseError(g.state, 0, city.id, { kind: 'building', id }, 'gold') === null,
+      );
+      expect(empire, 'a once-per-empire building this town may buy').toBeDefined();
+      expect(buy(g, city, { kind: 'building', id: empire! })).toBeGreaterThan(0);
+    });
+
+    it('pays nothing for a unit bought at the same counter', () => {
+      const { g, city } = shop();
+      expect(buy(g, city, { kind: 'unit', id: 'warrior' })).toBe(0);
+    });
+  });
+
+  // --- Venture Routes --------------------------------------------------------
+
+  describe('Venture Routes — a longer term and a longer haul', () => {
+    it('lengthens the term a route is opened with, and every renewal after', () => {
+      const g = bench([]);
+      const plain = routeTermFor(g.state, 0);
+      expect(plain).toBe(Math.max(1, Math.floor(RULES.trade.routeTurns)));
+      slot(g, 'ventureRoutes');
+      const longer = routeTermFor(g.state, 0);
+      // The card's own words are two turns, and at the term the rules table
+      // holds today the share the row carries comes to exactly that.
+      expect(longer - plain).toBe(2);
+      // And it is this empire's law alone. The renewal reads the same function
+      // and asks the caravan's owner, so a road already running picks the longer
+      // term up at its next renewal and keeps the date it started.
+      expect(routeTermFor(g.state, 1)).toBe(plain);
+    });
+
+    it('doubles the coin on a long road and leaves a short one alone', () => {
+      const g = bench(['ventureRoutes']);
+      const from = town(g, 0);
+      const near = town(g, 3);
+      from.population = 60;
+      near.population = 60;
+      for (const id of ['granary', 'library', 'market', 'monument'] as const) {
+        addBuilding(g.state, from, id);
+      }
+      // A town far enough away that the wrapped distance clears the threshold.
+      // Scanned rather than placed at an offset, because a duel board wraps and
+      // fifteen columns along is not fifteen hexes away.
+      const origin = tileHex(getTileAt(g.state.map, from.col, from.row)!);
+      const distant = g.state.map.tiles.find(
+        (tile) =>
+          !isWaterTerrain(tile.terrain) &&
+          wrappedDistance(g.state.map, origin, tileHex(tile)) >= 15,
+      );
+      expect(distant, 'a land hex at least fifteen away on this board').toBeDefined();
+      const far = foundCityAt(g.state, 0, distant!);
+      far.population = 60;
+      bumpRevision(g.state);
+
+      const named = (to: City) =>
+        explainRouteYieldBetween(g.state, from, to).filter((line) =>
+          line.source.includes('Venture Routes'),
+        );
+      const base = (to: City) =>
+        foldRouteYield(
+          explainRouteYieldBetween(g.state, from, to).filter(
+            (line) => !line.source.includes('Venture Routes'),
+          ),
+        );
+      // Three hexes apart is nowhere near the threshold: the row rides and pays
+      // nothing at all, which is the honest silence a road with no luxuries on
+      // it keeps.
+      expect(named(near)).toEqual([]);
+      // And the long haul takes the whole of the coin again — the gold alone,
+      // because that is the one voice the row names.
+      const paid = foldRouteYield(named(far));
+      expect(base(far).gold).toBeGreaterThan(0);
+      expect(paid.gold).toBe(base(far).gold);
+      expect(paid.food).toBe(0);
+      expect(paid.science).toBe(0);
+    });
   });
 });

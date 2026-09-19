@@ -539,14 +539,27 @@ describe('the member register', () => {
     // and a row that starts to must come back and say so here.
     expect(ceiling, "a grant's ceiling is named by no live row").toBe(false);
     expect(simSource('statecraft/evaluator.ts')).toContain('grant.max !== undefined');
-    // **Four of the five ledgers are named by a live row; the fifth is named by
+    // **Three of the five ledgers are named by a live row; two are named by
     // none, and that is stated rather than forgotten.** `conversion` is written
     // at its seam and *counted* by The Living Hymnal — the count is the whole of
     // what that card asks — but no rider narrows a moment by it, because the one
     // card that would (Missionary Hospitality) carries a second half about the
     // price of clergy that the roster has no word for. The ledger is read; it is
     // only the rider's narrowing that waits.
-    expect([...ledgers].sort()).toEqual(['buildingInCity', 'buildingKind', 'purchaseInCity', 'techWorld']);
+    //
+    // **`purchaseInCity` joined it in batch C3**, and for the ceiling's reason
+    // above: the user's ruling reworked Civic Receipts — the one row that named
+    // it — from *"the first building a city buys"* to *"any building"*, so the
+    // card came off the ledger of firsts entirely. The seam still marks it
+    // (`purchaseItemAt`) and the member stays, because a card that wants a
+    // town's first purchase again is then a JSON row rather than a new ledger,
+    // and because deleting the mark would change what a save carries. What is
+    // pinned is the honest state: nothing narrows by it today, and a row that
+    // starts to must come back and say so here.
+    expect([...ledgers].sort()).toEqual(['buildingInCity', 'buildingKind', 'techWorld']);
     expect(ledgers.has('conversion')).toBe(false);
+    expect(ledgers.has('purchaseInCity')).toBe(false);
+    // The mark is still made, which is what keeps the member restorable.
+    expect(simSource('purchase.ts')).toContain("'purchaseInCity'");
   });
 });

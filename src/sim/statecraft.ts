@@ -108,6 +108,7 @@ export {
   cardLandfallEffects,
   cardMeterFlag,
   cardMeterRule,
+  cardOfferFamily,
   cardOfferRule,
   cardPantheonSlots,
   cardPeriodicOffers,

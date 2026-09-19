@@ -248,8 +248,18 @@ describe('the schema, as landed', () => {
     // Six new rows plus four that were waiting on them, in two of the seven.
     // Frontier Investment needed nothing new at all: a route share already
     // takes a destination scope and a crossing.
-    expect(live).toBe(250);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(250);
+    //
+    // **And C3 a seventh time** (the Commerce cards that lift a rule of the
+    // simulation, ruled in `docs/flags.md` item (pppppp)): two named rules at
+    // refusals that already had a lift beside them — gold may buy a wonder, and
+    // gold may pay for a redraw — a percentage on how long a trade route runs,
+    // a route narrowing on how far apart its two towns are, a draft narrowed to
+    // one great-person family, and a filter saying an occasion was about a
+    // building at all. Three deferred rows came live, one brand-new row was
+    // written (A Court of Merchants), and Civic Receipts was reworked in place.
+    // Four more live rows, all in the Commerce file.
+    expect(live).toBe(254);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(254);
   });
 
   /**
@@ -525,7 +535,12 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // the Commerce file, Letters of Marque and The Exchange of Discoveries in
       // the shared one — while adding six new live rows, which are likewise not
       // counted here.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(166);
+      //
+      // **C3 took three more**, all Commerce: The Gilded Scaffold, The Brokers'
+      // Redraw and Venture Routes. Its fourth and fifth cards move nothing here
+      // — Civic Receipts was already live and was reworked, and A Court of
+      // Merchants is a new live row.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(163);
     }
   });
 

@@ -369,17 +369,16 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The town remembers who paid for the roof.",
-      "text": "Purchasing an ordinary building for the first time in a city grants culture equal to 10% of the gold paid, with no cap.",
+      "text": "Buying any building grants culture equal to 10% of the gold paid, with no cap.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "purchase",
-          "first": "purchaseInCity",
-          "empireBuilding": false,
+          "anyBuilding": true,
           "grant": { "yield": "culture", "amount": 0.1, "fromOccasion": "gold" }
         }
       ],
-      "note": "The ledger of firsts is kept per town and marks the first building a town buys, whatever it was; the card then asks whether that building was one of the realm's single great houses and pays nothing if it was. A town that bought a great house before it bought anything else never collects."
+      "note": "Every building a town buys pays, however many it has bought before and whichever shelf it came off. What the card still does not pay for is a unit bought at the same counter, which is the whole of what the word building narrows. The share is taken of what actually left the treasury, so a discount at the till is a smaller rebate."
     },
     "provisioningContracts": {
       "name": "Provisioning Contracts",
@@ -443,12 +442,22 @@
       "rarity": "uncommon",
       "flavor": "The far market pays for the risk of reaching it.",
       "text": "Your routes gain two turns of range. Routes whose endpoints are more than fourteen hexes apart gain +100% gold, using the shortest wrapped map distance.",
-      "effects": [],
-      "deferred": [
-        "your roads run longer before they lapse",
-        "a road between distant towns pays far more gold"
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "routeTerm",
+          "percent": 10
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "minHexes": 15,
+          "share": [
+            { "yield": "gold", "percent": 100 }
+          ]
+        }
       ],
-      "note": "Held whole. Nothing can lengthen a caravan's term, and a road's pay cannot be made to turn on how far it reaches."
+      "note": "The two extra turns are written as a share of the term rather than as a flat figure, because a rule of the simulation takes a percentage and nothing else; at the term the rules table holds today the share comes to exactly the turns the card prints. A renewal rewrites a route's end date, so a road already running gets the longer term from its next renewal on, and the date it started is untouched. The distance is between the two towns and not along the road a cart walks, measured across the map's wrap, so a road that only just qualifies goes on qualifying whoever paves what."
     },
     "theMerchantLedger": {
       "name": "The Merchant Ledger",
@@ -1184,11 +1193,19 @@
       "rarity": "rare",
       "flavor": "Anything can be bought, including another look at the table.",
       "text": "You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive.",
-      "effects": [],
-      "deferred": [
-        "a hand may be redrawn for coin instead of for prayer, and everything else you buy costs more"
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "goldBuysRedraw"
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "all",
+          "percent": 10
+        }
       ],
-      "note": "A line the design is still writing, entered under a working name so that it is not lost. A redraw is paid for out of the faith bank and nothing else, and the bank a redraw draws on is not a thing a law may change."
+      "note": "Gold opens the door and pays a premium for it: the price is the faith ladder's own figure, multiplied, so faith stays the cheaper way to ask for a fresh hand and the card is a convenience rather than a replacement. The ladder itself is untouched — a redraw in either bank climbs the same rungs and raises the same count — and a hand whose first asking is free stays free in both. The surcharge on the second line reaches every unit and every building this empire buys, in either bank."
     },
     "theScholarsRoads": {
       "name": "The Scholars' Roads",
@@ -1517,11 +1534,42 @@
       "rarity": "rare",
       "flavor": "Every marvel has a price. Most of them are simply not quoted.",
       "text": "You may purchase world wonders. All your cities lose 15% production.",
-      "effects": [],
-      "deferred": [
-        "a wonder may be bought outright, and every town of yours works more slowly for it"
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "goldBuysWonders"
+        },
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": -15
+        }
       ],
-      "note": "A line the design is still writing, entered under a working name so that it is not lost. A wonder is refused at the counter before a price is ever asked for, and nothing may open that door."
+      "note": "The treasury pays the wonder's full cost in hammers at the ordinary rate, and every other refusal at the counter still stands: a wonder another empire has already claimed, one whose technology is not in, and one whose site the ground does not hold are all refused as before. A wonder is still never bought by the faith bank, except in the one town whose own shelf opens it."
+    },
+    "aCourtOfMerchants": {
+      "name": "A Court of Merchants",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The chairs nearest the throne were bought, and everyone knows by whom.",
+      "text": "Gain +50% renown, but great-person offers contain only Great Merchants.",
+      "effects": [
+        {
+          "kind": "cityRenownPercent",
+          "percent": 50,
+          "where": "empire"
+        },
+        {
+          "kind": "offerRider",
+          "offer": "greatPerson",
+          "family": "merchant"
+        }
+      ],
+      "note": "The share is taken of everything the realm earns in renown each turn, and never of a lump a triumph pays. The narrowing is a strong nudge and not a lock: when every great merchant in the world has been called, the draft goes back to showing the whole roster, so a court that has run out of merchants still deals a hand. A draft somebody bought narrowed to another family is dealt as what it was bought as."
     }
   }
 }

@@ -889,10 +889,22 @@ export function purchaseError(
   // — `buildError` still refuses a wonder somebody else has claimed and one
   // whose site the ground does not hold — and the price is the ordinary
   // conversion of the row's own hammers at `faithPerHammer`.
+  //
+  // **Or this empire's law opens the treasury for one** — The Gilded Scaffold
+  // (`ActionRuleId`'s `goldBuysWonders`, batch C3, ruled in `docs/flags.md` item
+  // (pppppp)). The second clause of the same `if` rather than a second path to
+  // buying a wonder, which is what keeps the rest of this function intact: every
+  // gate below is asked exactly as it is for a granary, `buildError` included.
+  // Wider than the faith lift — one bank, every town — because the card is
+  // wider, and the price of that width is on the card's other half rather than
+  // here. The price is gold's ordinary one, the row's full production cost at
+  // `goldPerHammer`: a law widens which bank may pay and never what a thing
+  // costs.
   if (
     bought.kind === 'building' &&
     isWonder(bought.id) &&
-    !(currency === 'faith' && cityBuysWondersWithFaith(city))
+    !(currency === 'faith' && cityBuysWondersWithFaith(city)) &&
+    !(currency === 'gold' && cardActionRule(state, playerId, 'goldBuysWonders'))
   ) {
     return `${name} is a wonder — it must be built, not bought`;
   }
@@ -1255,10 +1267,18 @@ export function purchaseItemAt(
   //
   // **What the town had never bought before**, marked before the payout is
   // composed: a rider asks the world what was first and never decides it for
-  // itself (`markFirst`, the one writer). Keyed on the town alone, because Civic
-  // Receipts is about a town learning to buy and not about which roof it bought;
+  // itself (`markFirst`, the one writer). Keyed on the town alone, because the
+  // question is whether a town has learnt to buy and not which roof it bought;
   // a unit bought at the same till opens nothing, which is what keeps the
   // ledger's name honest.
+  //
+  // **No live card narrows by it since batch C3**, and the mark is kept anyway.
+  // Civic Receipts was the one row that asked, and the user's ruling reworked it
+  // from the first building a town buys to any building at all. The seam stays
+  // so a card that wants a town's first purchase again is a JSON row rather than
+  // a new ledger, and so a save goes on carrying what it carried;
+  // `test/sim/occasionRiders.test.ts` states the gap rather than leaving it to
+  // be found. Same discipline as `BehaviorRuleId`'s two unclaimed rules.
   const firsts: FirstKind[] = [];
   if (
     item.kind === 'building' &&

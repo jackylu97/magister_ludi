@@ -163,6 +163,7 @@ import {
   routeLegPath,
   routeMode,
   routeTarget,
+  routeTermFor,
 } from "./trade";
 import { type TriumphAward, triumphMarks, triumphsSince } from "./triumphs";
 import {
@@ -1130,7 +1131,11 @@ function marchOneTrader(
    * uneventful renewal is deliberately not news (`routeEndSentence`).
    */
   if (route.autoResend && state.turn >= route.expiresTurn) {
-    route.expiresTurn = state.turn + Math.max(1, Math.floor(RULES.trade.routeTurns));
+    // The term is the empire's own (`routeTermFor`, `trade.ts`), so a renewal
+    // gets exactly what a fresh route would — Venture Routes' longer term
+    // included. `startedTurn` is untouched, which is what keeps Established
+    // Routes counting the road's real age across every renewal.
+    route.expiresTurn = state.turn + routeTermFor(state, unit.ownerId);
     noteEnd(true);
   }
 

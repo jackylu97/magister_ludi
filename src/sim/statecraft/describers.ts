@@ -284,9 +284,19 @@ function routeWhose(effect: {
   destination?: CityScope;
   crossing?: 'domestic' | 'international';
   standingTurns?: number;
+  minHexes?: number;
 }): string {
   const parts: string[] = [];
   if (effect.origin !== undefined) parts.push(`sent from ${cityScopeWords(effect.origin)}`);
+  // **How far apart the two towns are**, beside the term and for its reason: a
+  // fact about the road rather than about either end. Said as the distance the
+  // ends are apart, which is the figure a player can measure on the map — not as
+  // the path a cart walks, which is a different number (see `routeHexes`).
+  if (effect.minHexes !== undefined) {
+    parts.push(
+      `whose two cities are at least ${effect.minHexes} hex${effect.minHexes === 1 ? '' : 'es'} apart`,
+    );
+  }
   // **How long the road has been kept up**, in the plainest words there are: a
   // player is told the caravan has been running the same road, never that a
   // route has "matured". First among the narrowings, because it is a fact about
@@ -1465,15 +1475,23 @@ function describeEffect(
       if (effect.empireBuilding === false) narrowings.push('not an empire building');
       if (effect.first !== undefined) narrowings.push(FIRST_WORDS[effect.first]);
       if (effect.oncePerTurn === true) narrowings.push('at most once a turn');
+      // **"A building" narrows the moment from the inside** (batch C3), the way
+      // the family does and for the family's stated reason: "buying anything (a
+      // building)" is a parenthesis undoing the word in front of it, where
+      // "buying a building" is the sentence the card actually makes. Applied to
+      // the occasion's own phrase rather than glued on, and an occasion with no
+      // such phrase is left alone — which keeps a row written onto the wrong
+      // occasion silent rather than wrong.
+      const said = occasionWords(
+        effect.occasion,
+        effect.vsBarbarians === true,
+        effect.capturedWonder === true,
+        effect.wonder === true,
+        effect.family,
+      );
       const occasion =
         only +
-        occasionWords(
-          effect.occasion,
-          effect.vsBarbarians === true,
-          effect.capturedWonder === true,
-          effect.wonder === true,
-          effect.family,
-        ) +
+        (effect.anyBuilding === true ? said.replace('anything', 'a building') : said) +
         (narrowings.length > 0 ? ` (${narrowings.join(', ')})` : '');
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
@@ -1664,6 +1682,22 @@ function describeEffect(
         return;
       }
       if (effect.offer === undefined) return;
+      // **The third sentence this shape can make** (batch C3): a narrowed draft,
+      // not a wider one. Read before the figure because a row carrying a family
+      // deals no extra card at all — `explainOfferSize` skips it for the same
+      // reason — so a figure printed here would be a promise nothing keeps.
+      //
+      // The fallback is said out loud. A player who reads "only great merchants"
+      // and then draws an engineer has been lied to by the card, and the
+      // fallback is the whole of the ruling this row exists under.
+      if (effect.family !== undefined) {
+        out.push({
+          text:
+            `${OFFER_DRAFT_WORDS[effect.offer]} shows only great ${effect.family}s, ` +
+            `until there are none left to call`,
+        });
+        return;
+      }
       const extra = (effect.extra ?? 1);
       out.push({
         text: `+${extra} ${extra === 1 ? 'card' : 'cards'} in ${OFFER_DRAFT_WORDS[effect.offer]}`,
@@ -3389,6 +3423,12 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `roads carry units ${-percent}% further`
       : `roads carry units ${percent}% less far`,
+  // Said as the **term**, which is the length it is: a longer road-life is a
+  // gain, so the figure keeps its sign in front the way every other gain does.
+  routeTerm: (percent) =>
+    percent < 0
+      ? `your trade routes run ${-percent}% fewer turns before they lapse`
+      : `your trade routes run ${percent}% longer before they lapse`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -4094,6 +4134,11 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   rerollOffers:
     'the first time you ask for a fresh hand of Orders, doctrines or great people, it costs nothing',
   capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
+  goldBuysWonders: 'you may buy world wonders with gold',
+  // Said as the bank that opens, with the price in the same breath: a player who
+  // reads only "you may redraw with gold" would learn the good half and miss the
+  // half that keeps faith the better route.
+  goldBuysRedraw: 'you may pay gold for a fresh hand, at a higher price than faith would ask',
   // Said as what the till stops asking for, because the card's other half is a
   // surcharge and a player reading the pair needs to know what they are buying.
   buysWithoutResources:

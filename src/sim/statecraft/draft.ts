@@ -1089,6 +1089,11 @@ export function explainOfferSize(
 
   for (const { source, effect } of effectsOfKind(state, playerId, 'offerRider')) {
     if (effect.offer !== kind && effect.offer !== 'all') continue;
+    // **A narrowing is not a widening** (batch C3): a row that names a family
+    // says which names a draft is dealt from and deals no extra card, so it is
+    // skipped before the figure below — which would otherwise read its absent
+    // `extra` as the ordinary one.
+    if (effect.family !== undefined) continue;
     // A rider with no figure deals the ordinary one card, so a data row may say
     // only which draft it widens. The cap below is what stops a stack of them
     // becoming a spread nobody can read.

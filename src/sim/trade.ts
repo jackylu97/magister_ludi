@@ -162,6 +162,7 @@ import {
 import { atWar } from './wars';
 import {
   cardRouteSlots,
+  cardRulePercent,
   payWindfallGrants,
   settleCultureWindfall,
   windfallPayout,
@@ -1156,6 +1157,30 @@ export function originCityOf(state: GameState, unit: Unit): City | null {
  * the piece carries and the ground it is aimed across are one decision. A land
  * route writes no `sea` key at all — presence is the state.
  */
+/**
+ * **How many turns a route this empire opens today runs for** — the one reading
+ * of the term, and the only thing that decides a `TradeRoute.expiresTurn`.
+ *
+ * `rules.trade.routeTurns` with this empire's `routeTerm` law on it (Venture
+ * Routes, batch C3): the percentages sum and apply once, which is Entry XVII's
+ * discipline at the scale of a constant, and the result is floored once and
+ * never drops below a single turn.
+ *
+ * Both writers of an expiry call it — `startRouteAt` below and the auto-resend
+ * in `marchTraders` (`turn.ts`) — so a renewal gets exactly the term a fresh
+ * route would. A renewal **rewrites** the expiry rather than extending it, so
+ * picking the card up lengthens every renewal from then on and dropping it
+ * shortens the next one; neither touches `TradeRoute.startedTurn`, which is
+ * what Established Routes counts, so nothing here moves a road's age.
+ */
+export function routeTermFor(state: GameState, playerId: number): number {
+  const base = Math.max(1, Math.floor(RULES.trade.routeTurns));
+  let percent = 0;
+  for (const line of cardRulePercent(state, playerId, 'routeTerm')) percent += line.percent;
+  if (percent === 0) return base;
+  return Math.max(1, Math.floor((base * (100 + percent)) / 100));
+}
+
 export function startRouteAt(
   state: GameState,
   unit: Unit,
@@ -1172,7 +1197,8 @@ export function startRouteAt(
     // started and `state.turn - startedTurn` is how long it has run unbroken.
     // See the field.
     startedTurn: state.turn,
-    expiresTurn: state.turn + Math.max(1, Math.floor(TRADE.routeTurns)),
+    // The term is the empire's, not the table's — see `routeTermFor`.
+    expiresTurn: state.turn + routeTermFor(state, unit.ownerId),
     outbound: true,
     autoResend: false,
     ...(mode === 'sea' ? { sea: true as const } : {}),

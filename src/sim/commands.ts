@@ -961,6 +961,17 @@ export interface SkipOrderOfferCommand extends PlayerCommand {
  */
 export interface RerollOfferCommand extends PlayerCommand {
   type: 'rerollOffer';
+  /**
+   * **Which bank pays** — absent means faith, which is what every redraw before
+   * The Brokers' Redraw meant (batch C3), so a save recorded before the field
+   * existed replays byte-identically.
+   *
+   * `PurchaseItemCommand.currency` is the precedent and this is the same idea:
+   * the *bank* is the caller's decision and the price is the rules'. Gold is
+   * refused unless a card opened it, and it is charged the faith ladder's figure
+   * times `statecraft.redraw.goldMultiple` — see `rerollError`.
+   */
+  currency?: 'faith' | 'gold';
 }
 
 /**
@@ -3439,10 +3450,14 @@ function applyRerollOffer(state: GameState, command: RerollOfferCommand): Comman
     return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot reroll a draft`);
   }
 
-  const problem = rerollError(state, actor.id);
+  // The bank the command named, defaulted to the one every redraw used before
+  // it was a parameter — see the field. `rerollError` is still the whole of the
+  // rule, this one included, so a refused bank leaves the state byte-identical
+  // exactly as a refused price does.
+  const problem = rerollError(state, actor.id, command.currency ?? 'faith');
   if (problem) return fail(problem);
 
-  settleReroll(state, actor);
+  settleReroll(state, actor, command.currency === 'gold' ? 'gold' : 'faith');
   return ok();
 }
 

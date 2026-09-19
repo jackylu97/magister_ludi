@@ -2707,7 +2707,31 @@ export type CardRule =
    * rule's sake: a third and a fifth are both exact fifteenths, and every
    * running total in the searches has to compare equal to itself.
    */
-  | 'roadStepCost';
+  | 'roadStepCost'
+  /**
+   * **How many turns a trade route runs before it lapses** (`rules.trade.
+   * routeTurns`) — Venture Routes' two extra turns (batch C3).
+   *
+   * The tenth rule, and it is here for the reason the three above it are: the
+   * term is one constant the game reads in one place, so a percentage on it is
+   * the same shape as a settler's price or a road step's cost rather than a new
+   * kind of effect. The sign is theirs too — a **positive** percentage is a
+   * longer term, because the figure is a length and not a price.
+   *
+   * Read through `routeTermFor` (`trade.ts`), which both writers of
+   * `TradeRoute.expiresTurn` call: the route being opened (`startRouteAt`) and
+   * the auto-resend that renews one (`marchTraders`, `turn.ts`). A renewal
+   * **rewrites** the expiry rather than extending it, so an empire that picks
+   * the card up gets longer terms from its next renewal on, and one that drops
+   * it goes back to the short term on the renewal after that. `startedTurn` is
+   * never touched by either, so Established Routes' thirty-turn count is
+   * unaffected by anything this rule does.
+   *
+   * A card's own words are in **turns** because that is what a player plans
+   * around; the row is a percentage because that is what the shape takes, and
+   * the two agree at the term the rules table currently holds.
+   */
+  | 'routeTerm';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -2895,7 +2919,42 @@ export type ActionRuleId =
    * That is the honest consequence of a derived ledger rather than a second
    * kind of unit nobody else would know about.
    */
-  | 'buysWithoutResources';
+  | 'buysWithoutResources'
+  /**
+   * **Gold may buy a world wonder** — The Gilded Scaffold (batch C3, ruled in
+   * `docs/flags.md` item (pppppp)).
+   *
+   * "A wonder is never for sale" is one `if` in `purchaseError`, and it already
+   * had one lift: the Valley of Kings waives it for faith in a single town
+   * (`BuildingDef.faithBuysWonders`). This is the second clause of that same
+   * `if` and not a second way to buy a wonder, which is what keeps every other
+   * refusal below it intact — `buildError` still refuses a wonder another empire
+   * has claimed, one whose technology is not in, and one whose site the ground
+   * does not hold.
+   *
+   * It is wider than the faith lift on purpose, because the card is: the faith
+   * lift is narrow in two dimensions (one bank, one town) and this is narrow in
+   * one (gold, anywhere this empire buys). What the original refusal protected —
+   * that one-per-world is not decided by whoever is richest the turn a wonder
+   * unlocks — is paid for by the card's other half rather than by the rule, and
+   * the ruling says so.
+   */
+  | 'goldBuysWonders'
+  /**
+   * **Gold may pay for a redraw** — The Brokers' Redraw (batch C3, the same
+   * ruling).
+   *
+   * A redraw is priced in faith on one rising ladder (`explainRerollCost`) and
+   * charged to `Player.faithPool`. This rule does not add a second ladder: it
+   * opens the *bank* as a parameter, the way `purchaseItem` has always carried
+   * one, and the gold figure is the faith figure times
+   * `statecraft.redraw.goldMultiple` — a premium above what the two banks trade
+   * at elsewhere in the game, so faith stays the efficient route and the card is
+   * a convenience rather than a replacement. That is what the faith-only rule
+   * was protecting: a reason to keep faith worth banking in an empire with no
+   * religion.
+   */
+  | 'goldBuysRedraw';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -3984,6 +4043,28 @@ export interface CardPaysEffect extends CardYieldBag {
    * the preview promised and the caravan never paid is a lie about a price.
    */
   standingTurns?: number;
+  /**
+   * **The two towns are at least this many hexes apart** — Venture Routes' long
+   * haul (batch C3). `where: 'route'`.
+   *
+   * `crossing`'s and `standingTurns`' third sibling: a fact about the *pair*
+   * that neither end's scope can answer. The distance is `routeHexes`
+   * (`routes.ts`), the one reading of how far apart two towns are — the wrapped
+   * map distance, not the path a cart walks, so the seam of a wrapping map is
+   * not a wall and the figure is the same for a road running and a road being
+   * considered.
+   *
+   * **Carried rather than resolved**, which is `CardRouteLine.perHexes`' bargain
+   * exactly: this module holds the law and the fold in `routeYields.ts` holds
+   * both ends, so the threshold comes through as a number and the fold does the
+   * measuring. Unlike `crossing` and `standingTurns`, a preview with no far end
+   * in hand is therefore not refused here — the fold with both ends is where the
+   * row is dropped.
+   *
+   * The figure is the **lowest distance that qualifies**, so a card whose words
+   * are "more than fourteen hexes apart" carries fifteen.
+   */
+  minHexes?: number;
 }
 
 /**
@@ -4640,6 +4721,20 @@ export interface CardWindfallRiderEffect {
    */
   empireBuilding?: boolean;
   /**
+   * The rider fires only when the occasion was about a **building at all**,
+   * whichever one — Civic Receipts' rebate on every roof a town buys (batch C3).
+   *
+   * `buildingCategory`'s and `empireBuilding`'s sibling with the narrowing taken
+   * out: all three read `WindfallOccasionFacts.building`, and this one asks only
+   * that the seam carried a row. The filter exists because the purchase occasion
+   * fires for a unit as well as for a building and carries no building on the
+   * unit's half, so a card that pays "on the purchase of any building" needs to
+   * say *building* out loud. Before the C3 rework Civic Receipts got that for
+   * free by carrying `empireBuilding: false`, which also excluded the realm's
+   * single great houses — a narrowing the rework removed.
+   */
+  anyBuilding?: true;
+  /**
    * The rider fires only when this occasion was a **first of its kind** — Master
    * Masons' guild, Civic Receipts' roof, The Patent Rolls' patent.
    *
@@ -4732,6 +4827,29 @@ export interface CardOfferRiderEffect {
   offer?: OfferRiderScope;
   /** How many extra cards it deals. Absent means one — the ordinary card. */
   extra?: number;
+  /**
+   * **The draft is dealt from one family alone** — A Court of Merchants' bench
+   * of merchants (batch C3).
+   *
+   * Only a great-person draft has families, so a row carrying this says
+   * `offer: 'greatPerson'` and every other reader ignores it. It narrows the
+   * **pool** and nothing else, which is the parameter `drawGreatPersonOffer`
+   * has taken since The Turning Heavens: the weights, the walk and the rolls
+   * stay the ordinary ones, so a narrowed hand is the same machine with a
+   * shorter bag.
+   *
+   * **It is a nudge and never a lock** (`docs/flags.md` item (pppppp)). When the
+   * named family has nobody left uncalled, the draw falls back to the whole
+   * roster, so the standing rule that a spent roster *banks rather than blocks*
+   * survives a card that would otherwise have been able to empty one family and
+   * then deal nothing at all.
+   *
+   * A row that carries this is **not a widening** and is skipped by
+   * `explainOfferSize`: narrowing a draft and dealing one more card are two
+   * different sentences that happen to live on one shape, exactly as `rule` and
+   * `extra` do.
+   */
+  family?: Family;
 }
 
 /**
@@ -6398,6 +6516,29 @@ export interface StatecraftConfig {
    * can undo the promise.
    */
   skipPity: Record<Exclude<OrderRarity, 'common'>, number>;
+  /**
+   * **What a redraw costs when gold pays for it** — The Brokers' Redraw (batch
+   * C3, ruled in `docs/flags.md` item (pppppp)).
+   *
+   * The faith ladder is unchanged and lives where it always did
+   * (`rules.religion.reroll`, folded by `explainRerollCost`); this is the one
+   * figure the gold arm adds, a multiple of whatever that ladder quotes. It is
+   * here rather than beside the faith ladder because the ladder is a rule of the
+   * draft and this is a card's price — a game with no such card never reads it.
+   *
+   * **Why the starting figure is six.** The game already prices its two banks
+   * against each other in one place: `rules.purchase.goldPerHammer` is four and
+   * `faithPerHammer` is one, so four gold buys what one faith buys at every
+   * counter in the game. Four would therefore be the break-even multiple and no
+   * premium at all. Six is half again on top of it, which is the ruling's "gold
+   * at a premium": gold can always redraw, and an empire that banks faith for it
+   * gets a third more hands for the same purchasing power. One number, and
+   * turning it is the whole of retuning the card.
+   */
+  redraw: {
+    /** The faith price times this, floored once, is the gold price. */
+    goldMultiple: number;
+  };
   // There is deliberately **no `offer` block**. How many cards a draft deals was
   // moved to `rules.offers` by the offer-size pass (Entry XXXI) and folded by
   // `explainOfferSize`, because a wonder, a belief or a great person may widen

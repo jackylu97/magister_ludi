@@ -5931,6 +5931,11 @@ export function windfallPayout(
         return false;
       }
     }
+    // And the widest of the three, asked of the same fact (batch C3): Civic
+    // Receipts pays for a roof and not for a soldier. It is a real narrowing
+    // rather than a no-op because the purchase occasion covers both, and it
+    // carries no `building` on the unit half.
+    if (effect.anyBuilding === true && facts.building === undefined) return false;
     // And the eighth, asked of the **world's ledger** rather than of a fact: the
     // seam has already written down what was first (`markFirst`) and handed the
     // answer down, so this is the card asking and never the card deciding.
@@ -6775,6 +6780,29 @@ export function cardOfferRule(state: GameState, playerId: number, rule: OfferRul
 }
 
 /**
+ * Which family this empire's law narrows a great-person draft to, or `undefined`
+ * when nothing does — A Court of Merchants' bench (batch C3).
+ *
+ * The **first** row that names one wins, in `liveEffects`' own order, so two
+ * cards that each narrow the draft do not silently cancel into the whole roster.
+ * Two such cards is a design decision rather than a case to handle here: there
+ * is exactly one row in the game that carries the field.
+ *
+ * It answers only for the great-person draft, because that is the only draft
+ * with families in it. The caller (`drawGreatPersonOffer`) is where the fallback
+ * lives: a family with nobody left uncalled deals the ordinary hand, so the card
+ * is a nudge and never a lock.
+ */
+export function cardOfferFamily(state: GameState, playerId: number): Family | undefined {
+  for (const { effect } of effectsOfKind(state, playerId, 'offerRider')) {
+    if (effect.family === undefined) continue;
+    if (effect.offer !== 'greatPerson') continue;
+    return effect.family;
+  }
+  return undefined;
+}
+
+/**
  * One line of what a card takes off a purchase price. See `CardPurchaseRiderEffect`.
  */
 export interface CardPurchaseLine {
@@ -7362,6 +7390,16 @@ export interface CardRouteShareLine {
   source: string;
   yield: CityYieldKey | 'all';
   percent: number;
+  /**
+   * The share is taken only on a road at least this many hexes long, or absent
+   * on a row that does not ask — Venture Routes' long haul (`CardPaysEffect.
+   * minHexes`, batch C3).
+   *
+   * **Carried rather than resolved**, `CardRouteLine.perHexes`' bargain exactly:
+   * this module holds the law and the fold in `routeYields.ts` holds both ends,
+   * and only something holding both can answer how far apart they are.
+   */
+  minHexes?: number;
 }
 
 export function cardRouteYieldLines(
@@ -7441,6 +7479,9 @@ export function cardRouteShareLines(
         source: label(source, routeScopeNote(effect)),
         yield: share.yield,
         percent: share.percent,
+        // The road's own length, carried for the fold that holds both ends to
+        // measure — see the field.
+        ...(effect.minHexes === undefined ? {} : { minHexes: effect.minHexes }),
       });
     }
   }
