@@ -4,15 +4,23 @@
  * investment" section of `docs/six-decks-first-cut.md`, its four tier tables,
  * its "Rules for these forty-four cards" and its three building payloads).
  *
- * Forty-nine rows: the doc's forty-four named cards and the five loose lines
- * the user is still writing, each entered under a working name so that it is
- * not lost. Eleven of them are **live** — a row whose sentence fits a shape the
- * evaluator already switches on — and thirty-eight are **deferred**: the row is
- * in the data and in the Compendium, carries its ratified words and the plain
- * sentence it is waiting to be able to say, and is in no pool. The house rule
- * is the deck's (`CardUpkeepSurchargeEffect`'s docblock says it out loud): a
- * card whose text needs a shape defers or gets the shape, never a near-fit, and
- * a card that is only half expressible defers whole.
+ * Sixty rows. Forty-nine were entered by D1b; **batch C1 added eleven** off the
+ * user's hand-edited sheet (`docs/decks/commerce.md`, which is the design of
+ * record now — the six-decks cut is the history behind it) and brought twenty of
+ * the existing rows live, so the deck stands at thirty-one **live** rows — a row
+ * whose sentence fits a shape the evaluator already switches on — and twenty-nine
+ * **deferred**: the row is in the data and in the Compendium, carries its
+ * ratified words and the plain sentence it is waiting to be able to say, and is
+ * in no pool. The house rule is the deck's (`CardUpkeepSurchargeEffect`'s
+ * docblock says it out loud): a card whose text needs a shape defers or gets the
+ * shape, never a near-fit, and a card that is only half expressible defers whole.
+ *
+ * What moved in C1 was mostly the **re-triage** rather than the vocabulary: most
+ * of D1b's deferral notes were written before D2a–D2d and R1–R3 landed and were
+ * simply out of date. One shape was added, and it is the one the user's own
+ * revision asked for — a card may now write a **movement** mark on a piece at its
+ * birth (`CardUnitStampEffect.movement`), which `UnitStamp` has carried since the
+ * Levée's conscripts and only `periodicMuster` could write.
  *
  * What is pinned here, in the order the batch asked for it:
  *
@@ -41,6 +49,7 @@ import { foundCityAt } from '../../../src/sim/cities';
 import { getTileAt } from '../../../src/sim/map';
 import { explainRouteYieldBetween, foldRouteYield } from '../../../src/sim/routeYields';
 import {
+  cardUnitStamp,
   describeCard,
   describeEffects,
   drawOrderOffer,
@@ -59,6 +68,7 @@ import {
   ordersForDecks,
 } from '../../../src/sim/statecraftData';
 import { BUILDING_IDS } from '../../../src/sim/buildingData';
+import type { UnitTypeId } from '../../../src/sim/unitData';
 import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
 
 /** Every id `data/decks/commerce.json` carries, in file order. */
@@ -74,8 +84,8 @@ const live = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).effects.lengt
 const deferred = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).effects.length === 0);
 
 describe('the Commerce deck is one deck', () => {
-  it('carries forty-nine rows, every one of them a Commerce card', () => {
-    expect(COMMERCE.length).toBe(49);
+  it('carries sixty rows, every one of them a Commerce card', () => {
+    expect(COMMERCE.length).toBe(60);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -98,11 +108,13 @@ describe('the Commerce deck is one deck', () => {
   it('spreads the four tiers as the doc’s tables do, with Civic Receipts moved on', () => {
     const bands = COMMERCE.map((id) => orderDef(id).band);
     const count = (band: number): number => bands.filter((b) => b === band).length;
-    // The doc's four tables are 10 / 12 / 13 / 9, plus the five loose lines
-    // (one in tier 1, three in tier 2, one in tier 3) and the user's own
-    // "[move to age 2]" on Civic Receipts, which takes it off the opening
-    // shelf and into the middle band.
-    expect([count(0), count(1), count(2), count(3)]).toEqual([9, 14, 16, 10]);
+    // D1b's nine / fourteen / sixteen / ten, plus C1's eleven new rows placed
+    // by the tier the user's sheet puts them in: four in Tier 0 (The Mineral
+    // Trade, Coastal Estates, Land Speculation, Founding Capital), four in
+    // Tier I (Commercial Education, Strategic Reserves, Market Foundations,
+    // Financed Industry) and three in Tier II (Civic Markets, Maritime
+    // Authority, Professional Retainers).
+    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 18, 19, 10]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
 
@@ -126,13 +138,23 @@ describe('the Commerce deck is one deck', () => {
 });
 
 describe('a live Commerce row is a card', () => {
-  it('pays through thirteen rows, and every one of them is dealt', () => {
+  it('pays through thirty-one rows, and every one of them is dealt', () => {
     // The World's Exchange joined them with D2b: hammers behind a thing may be
     // counted off a thing the realm holds now, and the courts its roads reach
     // are one such thing. **Civic Receipts joined with D2c**: a purchase now
     // says what it cost and whether it was that town's first, which is the
     // whole of what the receipt reads.
-    expect(live().length).toBe(14);
+    //
+    // **And seventeen more with C1.** Eleven are the user's new proposals, which
+    // were written against today's vocabulary and fit it. Six were D1b rows whose
+    // deferral notes had gone stale: The Market Writ and The Money Lenders wanted
+    // counts that exist, The Caravanserai Network and The Scholars' Roads wanted
+    // route lines and a route rider that exist, The Convoy wanted a strength line
+    // beside a cart that a shared card had already been paying for months, and
+    // The Charter Fleet wanted a mark on a hull that the user's own revision
+    // changed from sight, which nothing can write, to movement, which `UnitStamp`
+    // always could.
+    expect(live().length).toBe(31);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -168,8 +190,12 @@ describe('a live Commerce row is a card', () => {
           expect(effect.amount, where).not.toBe(0);
           break;
         case 'unitStamp':
+          // Three marks a birth can carry now — the league joined the pair with
+          // C1's Charter Fleet. A stamp naming none of them writes nothing.
           expect(
-            effect.hp !== undefined || effect.strength !== undefined,
+            effect.hp !== undefined ||
+              effect.strength !== undefined ||
+              effect.movement !== undefined,
             where,
           ).toBe(true);
           break;
@@ -196,17 +222,24 @@ describe('a live Commerce row is a card', () => {
         check(id, effect);
       }
     }
-    // Seven shapes carry the whole live half — the windfall rider joined with
-    // D2c's Civic Receipts — and an eighth here would be a shape a later pass
-    // added without saying so.
+    // Fourteen shapes carry the whole live half — six joined with C1's rows
+    // (a contentment line, a capacity line, a strength line, a route rider, a
+    // percentage on a rule of the realm and an upkeep surcharge) — and a
+    // fifteenth here would be a shape a later pass added without saying so.
     expect([...kinds].sort()).toEqual([
+      'authority',
+      'combatLine',
+      'happiness',
       'pays',
       'productionBonus',
       'purchaseRider',
+      'routeRider',
       'rule',
+      'rulePercent',
       'unitStamp',
       'unitStat',
       'upkeepRebate',
+      'upkeepSurcharge',
       'windfallRider',
     ]);
   });
@@ -231,7 +264,7 @@ describe('a live Commerce row is a card', () => {
 
 describe('a deferred Commerce row is a promise, not a card', () => {
   it('pays nothing, says what it would have said, and sits in no pool', () => {
-    expect(deferred().length).toBe(35);
+    expect(deferred().length).toBe(29);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -443,5 +476,53 @@ describe('Established Routes — a road kept up', () => {
     );
     const extra = foldRouteYield(kept);
     expect(extra.gold).toBe(Math.floor((base.gold * 50) / 100));
+  });
+});
+
+// --- C1, the movement mark ----------------------------------------------------
+
+/**
+ * **The Charter Fleet** came live with `CardUnitStampEffect.movement` (batch C1).
+ *
+ * The one shape this batch added, and it was the user's own revision that asked
+ * for it: the card used to promise its hulls a keener lookout, which is the one
+ * mark nothing can write on a piece, and the sheet now promises them a longer
+ * league instead — which `UnitStamp` has carried since the Levée's conscripts
+ * and which only a periodic muster could write until now.
+ *
+ * What is pinned is the whole of the card's narrowing: the mark is written on a
+ * **ship**, **bought with gold**, and on nothing else. A hull raised in the yard
+ * the slow way, a soldier bought at the same till and a ship bought with faith
+ * all leave the mark unwritten, which is what "naval combat units you purchase
+ * with gold" says.
+ */
+describe('The Charter Fleet — a hull bought with coin', () => {
+  const bench = () => {
+    const g = createGame({
+      seed: 41,
+      sizeName: 'duel',
+      players: [
+        { name: 'Musa', color: '#d4502e', isHuman: true, leader: 'mansaMusa' },
+        { name: 'Bors', color: '#3a7fe8', leader: 'pachacuti' },
+      ],
+    });
+    const musa = playerById(g.state, 0)!;
+    musa.statecraft.orders.push('theCharterFleet' as OrderId);
+    musa.statecraft.slots.push({ card: 'theCharterFleet' as OrderId, sealedUntil: g.state.turn });
+    bumpRevision(g.state);
+    return g;
+  };
+
+  it('marks a ship bought with gold, and nothing else on the roster or at the till', () => {
+    const g = bench();
+    const stamp = (type: UnitTypeId, bought?: 'gold' | 'faith') =>
+      cardUnitStamp(g.state, 0, undefined, type, bought);
+    expect(stamp('trireme', 'gold')).toEqual({ movement: 1 });
+    // The same hull raised in the yard, and the same hull bought out of the
+    // other bank: a stamp naming a till is silent at every other birth.
+    expect(stamp('trireme')).toEqual({});
+    expect(stamp('trireme', 'faith')).toEqual({});
+    // And a soldier bought at the same counter is not a ship.
+    expect(stamp('warrior', 'gold')).toEqual({});
   });
 });

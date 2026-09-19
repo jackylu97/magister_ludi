@@ -5429,6 +5429,7 @@ export function cardUnitStamp(
 ): UnitStamp {
   let hp = 0;
   let strength = 0;
+  let movement = 0;
   const born = at ? cityAt(state, at.col, at.row) : undefined;
   // **The birth town's own walk, where there is one** (M2, the War Hall):
   // an ordinary building's effects are the town's and not the empire's
@@ -5457,10 +5458,15 @@ export function cardUnitStamp(
     if (effect.bought !== undefined && effect.bought !== bought) continue;
     if (effect.hp !== undefined) hp += effect.hp;
     if (effect.strength !== undefined) strength += effect.strength;
+    // The third mark a birth can carry, folded beside the other two — see
+    // `CardUnitStampEffect.movement`. `UnitStamp` has held the field since the
+    // Levée's conscripts; a card had no way to write it until The Charter Fleet.
+    if (effect.movement !== undefined) movement += effect.movement;
   }
   const stamp: UnitStamp = {};
   if (hp !== 0) stamp.hp = hp;
   if (strength !== 0) stamp.strength = strength;
+  if (movement !== 0) stamp.movement = movement;
   return stamp;
 }
 

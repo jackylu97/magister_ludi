@@ -201,12 +201,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Every seam weighed, and weighed again.",
-      "text": "+2 gold on resource tiles that supply gold",
+      "text": "Worked resource tiles that supply gold gain +1 gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "gold": 2,
+          "gold": 1,
           "on": {
             "test": "all",
             "of": [
@@ -218,6 +218,105 @@
                 "yield": "gold"
               }
             ]
+          }
+        }
+      ]
+    },
+    "theMineralTrade": {
+      "name": "The Mineral Trade",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Ore that leaves the valley is worth more than ore that stays in it.",
+      "text": "Worked mines and quarries gain +2 gold but lose 1 production.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "anyImprovement",
+            "improvements": [
+              "mine",
+              "quarry"
+            ]
+          },
+          "gold": 2,
+          "production": -1
+        }
+      ]
+    },
+    "coastalEstates": {
+      "name": "Coastal Estates",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The house looks at the water, and the water pays the house.",
+      "text": "Worked plantations and fishing boats gain +1 food and +1 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "anyImprovement",
+            "improvements": [
+              "plantation",
+              "fishingBoats"
+            ]
+          },
+          "food": 1,
+          "gold": 1
+        }
+      ]
+    },
+    "landSpeculation": {
+      "name": "Land Speculation",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Buy the field before anyone knows what it is for.",
+      "text": "Buying tiles costs 50% less. Your capital loses 2 happiness.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "tilePurchase",
+          "percent": -50
+        },
+        {
+          "kind": "happiness",
+          "amount": -2,
+          "per": "city",
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "foundingCapital": {
+      "name": "Founding Capital",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Somebody has to pay for the first roof, and it is never the settler.",
+      "text": "Founding a city grants 75 gold.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "found",
+          "grant": {
+            "yield": "gold",
+            "amount": 75
           }
         }
       ]
@@ -247,15 +346,17 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The town remembers who paid for the roof.",
-      "text": "Purchasing an ordinary building for the first time in a city grants culture equal to 10% of the gold paid, at most 30 culture per purchase.",
+      "text": "Purchasing an ordinary building for the first time in a city grants culture equal to 10% of the gold paid, with no cap.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "purchase",
           "first": "purchaseInCity",
-          "grant": { "yield": "culture", "amount": 0.1, "fromOccasion": "gold", "max": 30 }
+          "empireBuilding": false,
+          "grant": { "yield": "culture", "amount": 0.1, "fromOccasion": "gold" }
         }
-      ]
+      ],
+      "note": "The ledger of firsts is kept per town and marks the first building a town buys, whatever it was; the card then asks whether that building was one of the realm's single great houses and pays nothing if it was. A town that bought a great house before it bought anything else never collects."
     },
     "provisioningContracts": {
       "name": "Provisioning Contracts",
@@ -266,13 +367,13 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Grain moves on paper long before it moves on a cart.",
-      "text": "Domestic routes grant their destination +3 food and +2 production.",
+      "text": "Domestic routes grant their destination +2 food and +2 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
           "crossing": "domestic",
-          "food": 3,
+          "food": 2,
           "production": 2
         }
       ]
@@ -419,12 +520,45 @@
       "rarity": "common",
       "flavor": "Guard the cart and you are guarding the year.",
       "text": "Your combat units within one hex of your trader gain +4 strength. Your traders gain +1 movement. Traders remain plunderable.",
-      "effects": [],
-      "deferred": [
-        "soldiers standing beside one of your carts fight harder",
-        "your carts travel further"
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "beside",
+            "class": {
+              "category": "trader"
+            }
+          },
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "beside",
+            "class": {
+              "category": "trader"
+            }
+          },
+          "class": {
+            "category": "naval"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "category": "trader"
+          }
+        }
       ],
-      "note": "Half built, and so held whole. A soldier can only be told that another soldier stands beside him; a cart is nobody's formation."
+      "note": "\"Combat units\" is the soldiers and the ships, which are two classes on the roster and so two lines here — the escort of a land road and the escort of a sea lane are the same promise made to both. A cart, a workman and a settler are none of them a combat unit and collect nothing."
     },
     "theTreatyPorts": {
       "name": "The Treaty Ports",
@@ -487,11 +621,120 @@
       "rarity": "uncommon",
       "flavor": "Where the stalls stand, the writ runs.",
       "text": "+1 authority for every two Markets in your empire. Buying tiles costs 30% less.",
-      "effects": [],
-      "deferred": [
-        "your markets widen your writ, and land is cheaper to buy"
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
+          "count": "buildingsOfKind",
+          "building": "market",
+          "per": 2
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "tilePurchase",
+          "percent": -30
+        }
+      ]
+    },
+    "commercialEducation": {
+      "name": "Commercial Education",
+      "decks": [
+        "commerce"
       ],
-      "note": "A line the design is still writing, entered under a working name so that it is not lost. Both halves would be ordinary law once the card is named and its words are settled."
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A boy who can keep a ledger can keep anything.",
+      "text": "Gold buildings provide +2 science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 2,
+          "count": "buildingsOfCategory",
+          "category": "gold",
+          "within": "city"
+        }
+      ]
+    },
+    "strategicReserves": {
+      "name": "Strategic Reserves",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Keep more than you need, and study what you keep.",
+      "text": "Worked strategic resource tiles gain +1 science and +1 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "resourceKind",
+            "kind": "strategic"
+          },
+          "science": 1,
+          "gold": 1
+        }
+      ]
+    },
+    "marketFoundations": {
+      "name": "Market Foundations",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Lay the stones for the stalls, and the town arranges itself around them.",
+      "text": "Gain +20% production toward Markets. Markets provide +1 happiness.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "market",
+          "percent": 20
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "building": "market"
+        }
+      ]
+    },
+    "financedIndustry": {
+      "name": "Financed Industry",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Coin buys the tools, and the men who used to eat go and use them.",
+      "text": "Cities gain production equal to 20% of their gold yield. Every city loses 3 food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "from": "gold",
+          "to": "production",
+          "percent": 20
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": -3
+        }
+      ],
+      "note": "The share is taken of the town's own flat coin as it stood before any conversion spoke, so a card that turns coin into hammers cannot feed a card that turns hammers into coin."
     },
     "theHomeMarket": {
       "name": "The Home Market",
@@ -518,12 +761,25 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Spread the halts and the desert shrinks.",
-      "text": "Each different owned city receiving one of your domestic routes grants +1 empire happiness, +1 production and +1 gold on domestic trade routes.",
-      "effects": [],
-      "deferred": [
-        "each of your towns that one of your own roads ends in gladdens the realm and enriches the roads themselves"
-      ],
-      "note": "Held whole. What a road pays cannot be made to rise with the number of towns your other roads reach."
+      "text": "Each city receiving a domestic trade route grants +1 happiness, once per city. Domestic routes gain +1 production and +1 gold.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "routeEndsHere",
+            "crossing": "domestic"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "domestic",
+          "production": 1,
+          "gold": 1
+        }
+      ]
     },
     "theForeignFactor": {
       "name": "The Foreign Factor",
@@ -603,13 +859,19 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Money left alone is the only servant that never sleeps.",
-      "text": "Earn interest equal to 2% of your treasury each turn, capped at 200 gpt. Gold purchases, caravan hires and gold-priced great-person offers cost 20% more while this card is active.",
-      "effects": [],
-      "deferred": [
-        "your treasury pays you interest each turn, up to a ceiling",
-        "everything you buy, hire or call for costs more while the lenders are seated"
+      "text": "Earn interest equal to 2% of your treasury each turn, with no cap.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "bankedGold",
+          "per": 50
+        }
       ],
-      "note": "Half built, and so held whole. A surcharge reaches the things a city buys, and never the hire of a cart or the calling of a great name."
+      "note": "The interest is a coin for every fiftieth in the treasury, which is the two per hundred the card quotes, counted off the bank as it stood when the books were opened and floored once."
     },
     "theCharteredArsenal": {
       "name": "The Chartered Arsenal",
@@ -641,14 +903,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Count the harbours and you have counted the fleet.",
-      "text": "Gain +1 route capacity per two Harbours you own, at most +4. Sea routes with your established post at both endpoints gain two turns of range.",
-      "note": "Half built, and so held whole. The harbours can be counted for extra roads now, but nothing on the board keeps a standing commercial house, so the sea road between two of them has no pair of houses to run between.",
+      "text": "Gain +1 route capacity per two Harbours you own, at most +4. Sea routes gain +3 range and +1 gold for every 4 hexes travelled.",
       "effects": [],
       "deferred": [
         "your harbours together open more roads than you could otherwise run",
-        "a sea road between two of your established houses runs longer"
+        "a road run by sea reaches further and pays by the distance it covers"
       ],
-      "note": "Held whole. Extra roads are granted to the realm or once per town, never counted off a tally of harbours."
+      "note": "Half built, and so held whole. Counting the harbours for extra roads is ordinary law now, and so is paying a road by its own length — but neither can be asked of a sea road alone, because nothing narrows a road's pay by the crossing it takes, and how far a road may reach is not a figure any law may move."
     },
     "theLeagueOfCities": {
       "name": "The League of Cities",
@@ -676,12 +937,25 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A hull bought is a hull at sea this season.",
-      "text": "Naval combat units cost 20% less gold to purchase. Naval combat units you purchase with gold gain +1 sight permanently. Normal coastal, technology and purchase requirements remain.",
-      "effects": [],
-      "deferred": [
-        "hulls bought with gold cost less and are built with keener lookouts for the rest of their lives"
-      ],
-      "note": "Half built, and so held whole. A piece can be born stronger or hardier, but nothing can be written on it about how far it sees."
+      "text": "Naval combat units cost 20% less gold to purchase. Naval combat units you purchase with gold gain +1 movement permanently. Normal coastal, technology and purchase requirements remain.",
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {
+            "category": "naval"
+          },
+          "on": "unit",
+          "percent": -20
+        },
+        {
+          "kind": "unitStamp",
+          "movement": 1,
+          "class": {
+            "category": "naval"
+          },
+          "bought": "gold"
+        }
+      ]
     },
     "exportGuilds": {
       "name": "Export Guilds",
@@ -741,11 +1015,26 @@
       "rarity": "rare",
       "flavor": "Fewer carts, better cargo.",
       "text": "Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture.",
-      "effects": [],
-      "deferred": [
-        "you may run fewer roads, and every one of them teaches and sings far more"
-      ],
-      "note": "A line the design is still writing, entered under a working name so that it is not lost. Each of its three halves would be ordinary law once the card is named and its words are settled."
+      "effects": [
+        {
+          "kind": "routeRider",
+          "extra": -4
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "science": 2,
+          "culture": 2
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "share": [
+            { "yield": "science", "percent": 50 },
+            { "yield": "culture", "percent": 50 }
+          ]
+        }
+      ]
     },
     "theCustomsHouses": {
       "name": "The Customs Houses",
@@ -762,6 +1051,82 @@
         "a customs house pays gold and renown, and its town buys more with what it earns"
       ],
       "note": "A line the design is still writing, entered under a working name so that it is not lost. Renown is paid for a town's buildings and never for one hex's works, and no town's gold can be made to go further at the counter."
+    },
+    "civicMarkets": {
+      "name": "Civic Markets",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The stalls teach arithmetic to everybody who buys anything.",
+      "text": "Markets provide +2 science and +2 food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "market"
+          },
+          "science": 2,
+          "food": 2
+        }
+      ]
+    },
+    "maritimeAuthority": {
+      "name": "Maritime Authority",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The flag over the harbour is the flag over the coast.",
+      "text": "Gain +3 authority. Naval units gain +5 combat strength against cities.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 3
+        },
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "attack",
+          "when": {
+            "test": "vsCity"
+          },
+          "class": {
+            "category": "naval"
+          }
+        }
+      ]
+    },
+    "professionalRetainers": {
+      "name": "Professional Retainers",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Men who are paid to fight fight better, and keep being paid.",
+      "text": "All units gain +3 combat strength and cost +1 gold in maintenance.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          }
+        },
+        {
+          "kind": "upkeepSurcharge",
+          "amount": 1
+        }
+      ]
     },
     "theDyeVats": {
       "name": "The Dye Vats",
