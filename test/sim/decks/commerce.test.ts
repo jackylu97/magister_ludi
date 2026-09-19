@@ -50,7 +50,18 @@ import {
   foldUnitCost,
   foundCityAt,
   ownedTiles,
+  purchasableTiles,
+  purchaseTileAt,
+  refreshCityDerived,
+  tilePurchaseError,
 } from '../../../src/sim/cities';
+import { bordersFrozen, happinessOf, meterEffects } from '../../../src/sim/meters';
+import {
+  type CityYieldLine,
+  explainCity,
+  productionModifiers,
+} from '../../../src/sim/yields/town';
+import type { BuildingId } from '../../../src/sim/buildingData';
 import {
   getTileAt,
   neighborTiles,
@@ -121,7 +132,11 @@ describe('the Commerce deck is one deck', () => {
     // down yet (Ore Caravans, Frontier Investment, Luxury Caravans, Mining
     // Districts, The Capital Arsenal, Foreign Procurement). C3 adds one more,
     // A Court of Merchants — a sheet row that had never been entered at all.
-    expect(COMMERCE.length).toBe(67);
+    // C4 adds the last three the sheet names and nobody had written down:
+    // Strategic Exports and Purchased Prosperity in Tier II, Caravanserai
+    // Cities in Tier III. The data and `docs/decks/commerce.md` now hold the
+    // same seventy exclusive rows.
+    expect(COMMERCE.length).toBe(70);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -154,7 +169,9 @@ describe('the Commerce deck is one deck', () => {
     // (Ore Caravans, Frontier Investment) and four in Tier II (Luxury Caravans,
     // Mining Districts, The Capital Arsenal, Foreign Procurement).
     // C3 adds A Court of Merchants in Tier III, where the sheet puts it.
-    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 23, 11]);
+    // C4 adds three more the same way: Strategic Exports and Purchased
+    // Prosperity in Tier II, Caravanserai Cities in Tier III.
+    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 25, 12]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
 
@@ -207,7 +224,16 @@ describe('a live Commerce row is a card', () => {
     // and Civic Receipts' rework. A Court of Merchants is the fifth card of the
     // batch and is a brand-new row, so it raises the deck's size rather than
     // moving a row off the deferred list.
-    expect(live().length).toBe(43);
+    //
+    // **And three more with C4.** The Merchant Works and Private Patronage were
+    // deferred rows waiting on one narrowing each — the marker that says a
+    // building is one of the realm's single great houses, asked of the row a
+    // town is building now and of the row being priced at the counter, in both
+    // cases from the side the card needed. Purchased Prosperity is a brand-new
+    // row and wanted two things: the border freeze lifted for the counter alone,
+    // and a timed grant that renews its window rather than stacking a second
+    // one.
+    expect(live().length).toBe(46);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -1353,5 +1379,349 @@ describe('C3 — the five cards that lift a rule', () => {
       expect(paid.food).toBe(0);
       expect(paid.science).toBe(0);
     });
+  });
+});
+
+/**
+ * **C4 — the three rows that turned on a marker, and the one that wanted a
+ * window.**
+ *
+ * Nine rows were re-triaged against today's vocabulary. Three went live and six
+ * defer; the six carry the exact missing piece in their own `note`, which is the
+ * whole point of deferring rather than bending.
+ *
+ * What the batch added, and which row writes it:
+ *
+ *   · `CityScope`'s `queueHolds.empireBuilding` — the row a town is building
+ *     right now is one of the realm's single great houses (The Merchant Works).
+ *     The same marker `CardProductionBonusEffect` and `CardWindfallRiderEffect`
+ *     already read, asked of the front of the queue;
+ *   · `CardPurchaseRiderEffect.empireBuilding` — which side of that line the
+ *     building being priced is on, and `CardProductionBonusEffect.empireBuilding`
+ *     widened from `true` to a boolean so the *ordinary* half can be named at
+ *     all (Private Patronage). There is no `not` in this vocabulary, so a card
+ *     whose sentence is "everything except the great houses" had no other way to
+ *     say it;
+ *   · `ActionRuleId`'s `goldBuysFrozenTiles` — the border freeze lifted for the
+ *     tile counter and nothing else, one more clause on the `if` that already
+ *     refuses (Purchased Prosperity);
+ *   · `WindfallGrantSpec.timed.renews` — a timed grant that rewrites its own
+ *     expiry instead of stacking a second entry (Purchased Prosperity). Crassus'
+ *     bill is meant to pile up; a card whose text reads "in the last five turns"
+ *     is one standing fact with a fresh date, and the two are different
+ *     sentences that had been sharing one shape.
+ */
+describe('C4 — the great-house marker, read from both sides', () => {
+  /** A duel with one Commerce seat, the named cards in its chairs. */
+  function bench(cards: string[]) {
+    const g = createGame({
+      seed: 71,
+      sizeName: 'duel',
+      players: [
+        { name: 'Musa', color: '#d4502e', isHuman: true, leader: 'mansaMusa' },
+        { name: 'Bors', color: '#3a7fe8', leader: 'pachacuti' },
+      ],
+    });
+    const musa = playerById(g.state, 0)!;
+    for (const card of cards) {
+      musa.statecraft.orders.push(card as OrderId);
+      musa.statecraft.slots.push({ card: card as OrderId, sealedUntil: g.state.turn });
+    }
+    bumpRevision(g.state);
+    return g;
+  }
+
+  /** A town of this seat, on the hex its opening piece is standing on. */
+  function town(g: ReturnType<typeof bench>) {
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    return foundCityAt(g.state, 0, getTileAt(g.state.map, unit.col, unit.row)!);
+  }
+
+  /** Every technology in, so the whole shelf is priceable. */
+  function learned(g: ReturnType<typeof bench>) {
+    const musa = playerById(g.state, 0)!;
+    for (const id of BUILDING_IDS) {
+      const gate = gatingTech('building', id);
+      if (gate && !musa.techsResearched.includes(gate)) musa.techsResearched.push(gate);
+    }
+    musa.gold = 999999;
+    bumpRevision(g.state);
+    return musa;
+  }
+
+  /** An ordinary building and one of the realm's single great houses, both buyable. */
+  function shelves(g: ReturnType<typeof bench>, city: City) {
+    const buyable = (id: BuildingId) =>
+      purchaseError(g.state, 0, city.id, { kind: 'building', id }, 'gold') === null;
+    const plain = BUILDING_IDS.find(
+      (id) => buildingDef(id).oncePerEmpire !== true && buildingDef(id).wonder !== true && buyable(id),
+    );
+    const great = BUILDING_IDS.find(
+      (id) => buildingDef(id).oncePerEmpire === true && buildingDef(id).wonder !== true && buyable(id),
+    );
+    expect(plain, 'an ordinary building this town may buy').toBeDefined();
+    expect(great, 'a once-per-empire building this town may buy').toBeDefined();
+    return { plain: plain!, great: great! };
+  }
+
+  // --- Private Patronage -----------------------------------------------------
+
+  describe('Private Patronage — cheaper at the till, slower in the queue', () => {
+    it('discounts an ordinary roof and leaves a great house at its own price', () => {
+      const bare = bench([]);
+      const held = bench(['privatePatronage']);
+      const bareTown = town(bare);
+      const heldTown = town(held);
+      learned(bare);
+      learned(held);
+      const { plain, great } = shelves(held, heldTown);
+
+      const price = (g: ReturnType<typeof bench>, city: City, id: BuildingId) => {
+        const bank = explainPurchaseCost(g.state, 0, city.id, { kind: 'building', id }, 'gold');
+        expect(bank, `${id} is priced in gold`).not.toBeNull();
+        return foldUnitCost(bank!.lines);
+      };
+
+      // The ordinary shelf is 30% off, and the figure is the card's own.
+      const plainBare = price(bare, bareTown, plain);
+      expect(price(held, heldTown, plain)).toBe(
+        Math.max(0, Math.floor((plainBare * 70) / 100)),
+      );
+      // And the great house pays exactly what it always paid — which is the half
+      // the card says out loud and the half nothing could say before C4.
+      expect(price(held, heldTown, great)).toBe(price(bare, bareTown, great));
+    });
+
+    it('slows an ordinary roof in the queue and leaves a great house alone', () => {
+      const g = bench(['privatePatronage']);
+      const city = town(g);
+      learned(g);
+      const { plain, great } = shelves(g, city);
+      const named = (id: BuildingId) =>
+        productionModifiers(g.state, city, { kind: 'building', id }).filter((line) =>
+          line.source.includes('Private Patronage'),
+        );
+      expect(named(plain).map((line) => line.percent)).toEqual([-20]);
+      expect(named(great)).toEqual([]);
+    });
+
+    it('says "ordinary buildings" on both halves, so the card cannot lie by omission', () => {
+      const words = describeCard('privatePatronage' as OrderId).map((clause) =>
+        stripRefs(clause.text),
+      );
+      for (const clause of words) expect(clause).toContain('ordinary buildings');
+    });
+  });
+
+  // --- The Merchant Works ----------------------------------------------------
+
+  describe('The Merchant Works — coin into stone, while the scaffolding is up', () => {
+    /** The card's two lines in this town, as the city's own ledger prints them. */
+    function lines(g: ReturnType<typeof bench>, city: City): CityYieldLine[] {
+      refreshCityDerived(g.state, city);
+      bumpRevision(g.state);
+      return explainCity(g.state, city).lines.filter((line) =>
+        line.source.includes('The Merchant Works'),
+      );
+    }
+
+    function site() {
+      const g = bench(['theMerchantWorks']);
+      const city = town(g);
+      learned(g);
+      // Something for the share to be a share *of*: the conversion reads the
+      // town's flat coin, and a town with no coin converts nothing.
+      city.population = 8;
+      addBuilding(g.state, city, 'market' as BuildingId);
+      bumpRevision(g.state);
+      return { g, city };
+    }
+
+    it('pays nothing while the town is raising an ordinary building', () => {
+      const { g, city } = site();
+      const plain = BUILDING_IDS.find(
+        (id) => buildingDef(id).oncePerEmpire !== true && buildingDef(id).wonder !== true,
+      )!;
+      city.queue = [{ kind: 'building', id: plain }] as never;
+      expect(lines(g, city)).toEqual([]);
+    });
+
+    it('converts and charges while the town is raising one of the realm’s great houses', () => {
+      const { g, city } = site();
+      const great = BUILDING_IDS.find(
+        (id) => buildingDef(id).oncePerEmpire === true && buildingDef(id).wonder !== true,
+      )!;
+      city.queue = [{ kind: 'building', id: great }] as never;
+      const paid = lines(g, city);
+      expect(paid.length).toBeGreaterThan(0);
+      // The conversion pays hammers, so the town's production is higher than the
+      // same town with nothing in its queue.
+      expect(paid.some((line) => line.production > 0)).toBe(true);
+    });
+
+    it('does the same for a wonder, which is the other class the card names', () => {
+      const { g, city } = site();
+      const marvel = BUILDING_IDS.find((id) => buildingDef(id).wonder === true)!;
+      city.queue = [{ kind: 'building', id: marvel }] as never;
+      expect(lines(g, city).length).toBeGreaterThan(0);
+    });
+
+    it('reads the front of the queue only — a great house standing second is a plan', () => {
+      const { g, city } = site();
+      const plain = BUILDING_IDS.find(
+        (id) => buildingDef(id).oncePerEmpire !== true && buildingDef(id).wonder !== true,
+      )!;
+      const great = BUILDING_IDS.find(
+        (id) => buildingDef(id).oncePerEmpire === true && buildingDef(id).wonder !== true,
+      )!;
+      city.queue = [
+        { kind: 'building', id: plain },
+        { kind: 'building', id: great },
+      ] as never;
+      expect(lines(g, city)).toEqual([]);
+    });
+  });
+
+  // --- Purchased Prosperity --------------------------------------------------
+
+  describe('Purchased Prosperity — the freeze lifted, and a window that renews', () => {
+    const FROZEN = 'Borders frozen — authority is overdrawn';
+
+    /**
+     * A seat whose writ is torn, holding the named cards. The deficit is
+     * **earned** by founding towns until the meter goes under, rather than
+     * written into a field: the freeze is derived, so a test that set it by hand
+     * would be testing its own arithmetic.
+     */
+    function overdrawn(cards: string[]) {
+      const g = bench(cards);
+      const first = town(g);
+      const musa = playerById(g.state, 0)!;
+      musa.gold = 999999;
+      const home = tileHex(getTileAt(g.state.map, first.col, first.row)!);
+      const land = g.state.map.tiles.filter(
+        (tile) =>
+          !isWaterTerrain(tile.terrain) &&
+          wrappedDistance(g.state.map, home, tileHex(tile)) >= 4 &&
+          g.state.tileOwner[g.state.map.tiles.indexOf(tile)] === null,
+      );
+      let next = 0;
+      while (!bordersFrozen(meterEffects(g.state, 0)) && next < land.length) {
+        foundCityAt(g.state, 0, land[next]!);
+        bumpRevision(g.state);
+        next += 4;
+      }
+      expect(bordersFrozen(meterEffects(g.state, 0)), 'a seat whose writ is overdrawn').toBe(true);
+      return { g, city: first, musa };
+    }
+
+    /** An unowned hex this town could buy, with whatever the writ says about it. */
+    function candidate(g: ReturnType<typeof bench>, city: City) {
+      return purchasableTiles(g.state, city).find(
+        (offer) => offer.error === null || offer.error === FROZEN,
+      );
+    }
+
+    it('refuses an overdrawn seat with no card and opens the counter to one holding this', () => {
+      const without = overdrawn([]);
+      const hexA = candidate(without.g, without.city);
+      expect(hexA, 'an unowned hex in reach').toBeDefined();
+      expect(tilePurchaseError(without.g.state, 0, without.city.id, hexA!)).toBe(FROZEN);
+
+      const with_ = overdrawn(['purchasedProsperity']);
+      const hexB = candidate(with_.g, with_.city);
+      expect(hexB, 'an unowned hex in reach').toBeDefined();
+      // The one lift, and only the one: the hex is buyable now, which means
+      // every other question in `tilePurchaseError` was asked and answered.
+      expect(tilePurchaseError(with_.g.state, 0, with_.city.id, hexB!)).toBeNull();
+    });
+
+    it('still refuses a hex the card has nothing to say about', () => {
+      const { g, city } = overdrawn(['purchasedProsperity']);
+      // Ground another town already owns. The freeze was never what stopped
+      // this, and lifting the freeze does not start it.
+      const owned = ownedTiles(g.state, city).find(
+        (tile) => tile.col !== city.col || tile.row !== city.row,
+      );
+      expect(owned, 'a hex this town already owns').toBeDefined();
+      expect(tilePurchaseError(g.state, 0, city.id, owned!)).not.toBeNull();
+    });
+
+    it('hangs a window on the realm when a hex is bought, and renews it rather than stacking', () => {
+      const g = bench(['purchasedProsperity']);
+      const city = town(g);
+      const musa = playerById(g.state, 0)!;
+      musa.gold = 999999;
+      bumpRevision(g.state);
+      const before = happinessOf(g.state, 0);
+
+      const buy = () => {
+        const offer = purchasableTiles(g.state, city).find((row) => row.error === null);
+        expect(offer, 'a hex this town may buy').toBeDefined();
+        purchaseTileAt(g.state, city, getTileAt(g.state.map, offer!.col, offer!.row)!);
+        bumpRevision(g.state);
+      };
+
+      buy();
+      const hung = musa.timed ?? [];
+      expect(hung.length).toBe(1);
+      expect(hung[0]!.expiresTurn).toBe(g.state.turn + 5);
+      const once = happinessOf(g.state, 0);
+      expect(once).toBeGreaterThan(before);
+
+      // **The whole of `renews`.** A second hex inside the window moves the end
+      // date and pays nothing again — where Crassus' bill, which does not renew,
+      // would have pushed a second entry and doubled the figure.
+      g.state.turn += 2;
+      buy();
+      expect((musa.timed ?? []).length).toBe(1);
+      expect(musa.timed![0]!.expiresTurn).toBe(g.state.turn + 5);
+      expect(happinessOf(g.state, 0)).toBe(once);
+    });
+  });
+
+  // --- the member register ---------------------------------------------------
+
+  /**
+   * **The member register**, C2's pattern. The kind-level registers in
+   * `statecraft.test.ts` only prove a *shape* is named by some row; a new member
+   * of a union the evaluator already walks, and a new field on a shape it
+   * already reads, sail straight through them. So the batch names what it
+   * declared and says which row writes it.
+   */
+  it('registers exactly which rows write the four things C4 declared', () => {
+    const writers = (match: (effect: CardEffect) => boolean): string[] =>
+      COMMERCE.filter((id) => orderDef(id).effects.some(match));
+
+    expect(
+      writers(
+        (effect) =>
+          effect.kind === 'pays' &&
+          effect.scope?.test === 'any' &&
+          effect.scope.of.some(
+            (inner) => inner.test === 'queueHolds' && inner.empireBuilding === true,
+          ),
+      ),
+    ).toEqual(['theMerchantWorks']);
+
+    expect(
+      writers((effect) => effect.kind === 'purchaseRider' && effect.empireBuilding !== undefined),
+    ).toEqual(['privatePatronage']);
+
+    expect(
+      writers((effect) => effect.kind === 'rule' && effect.rule === 'goldBuysFrozenTiles'),
+    ).toEqual(['purchasedProsperity']);
+
+    expect(
+      writers(
+        (effect) => effect.kind === 'windfallRider' && effect.grant?.timed?.renews === true,
+      ),
+    ).toEqual(['purchasedProsperity']);
+
+    // And the widening: `productionBonus.empireBuilding` was a `true` and is a
+    // boolean, so both readings are now written down somewhere in the table.
+    expect(
+      writers((effect) => effect.kind === 'productionBonus' && effect.empireBuilding === false),
+    ).toEqual(['privatePatronage']);
   });
 });

@@ -258,8 +258,17 @@ describe('the schema, as landed', () => {
     // building at all. Three deferred rows came live, one brand-new row was
     // written (A Court of Merchants), and Civic Receipts was reworked in place.
     // Four more live rows, all in the Commerce file.
-    expect(live).toBe(254);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(254);
+    //
+    // **And C4 an eighth time**: the marker that says a building is one of the
+    // realm's single great houses, read in two more places and from the side
+    // that names the *ordinary* shelves (The Merchant Works, Private Patronage),
+    // one more named rule at a refusal that already had one — the border freeze
+    // lifted for the tile counter (Purchased Prosperity) — and a timed grant
+    // that renews its window instead of stacking a second. Two deferred rows
+    // came live and three brand-new rows were written, one of them live.
+    // Three more live rows, all in the Commerce file.
+    expect(live).toBe(257);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(257);
   });
 
   /**

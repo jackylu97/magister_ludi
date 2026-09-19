@@ -1218,11 +1218,17 @@ function describeEffect(
       // The plural is composed off the **plain** name and then marked, exactly
       // as `countNoun` does it: pluralising a marked string would put the `s`
       // after the closing brackets.
-      const what = effect.empireBuilding
+      const what = effect.empireBuilding === true
         ? // The class, ahead of the category and behind the named row: a rider
           // that says "empire buildings" is narrower than one that says
           // "culture buildings" and wider than one that names the Forum.
           'empire buildings'
+        : effect.empireBuilding === false
+        ? // The other half of the same question — "ordinary" is the word the
+          // ratified text uses for a building that is not one of the realm's
+          // single great houses, and the line has to say it or a card that
+          // exempts them reads as if it did not.
+          'ordinary buildings'
         : effect.building
         ? ref(
             isWonder(effect.building) ? 'wonder' : 'building',
@@ -1608,10 +1614,18 @@ function describeEffect(
             ('percent' in nested && typeof nested.percent === 'number' && nested.percent > 0) ||
             positiveBag(nested),
         );
+        // **A window says it is a window** (batch C4, `WindfallGrantSpec.timed.
+        // renews`). "for 5 turns" and "for the next 5 turns, however often it
+        // happens" promise different things — one stacks and one does not — and
+        // a player who was not told which would plan around the wrong one.
+        const howLong =
+          grant.timed.renews === true
+            ? `for the next ${turns} turns, however often it happens`
+            : `for ${turns} turns`;
         out.push({
           text:
             `${occasion} ${pays ? 'grants' : 'costs your empire'} ` +
-            `${inner.map((clause) => clause.text).join('; ')} for ${turns} turns${per}`,
+            `${inner.map((clause) => clause.text).join('; ')} ${howLong}${per}`,
         });
       }
       if (grant?.healAll === true) {
@@ -1960,10 +1974,18 @@ function describeEffect(
       // religious houses). `CardProductionBonusEffect.buildingCategory`'s own
       // phrase, so a card that discounts culture houses at the counter and a
       // card that speeds them in the queue read as one sentence.
+      // `empireBuilding` names the class ahead of the shelf, exactly as the
+      // production bonus' own phrase does, so a card that discounts the
+      // ordinary shelves at the counter and a card that slows them in the queue
+      // read as one sentence.
       const houses =
-        effect.buildingCategory === undefined
-          ? 'buildings'
-          : `${effect.buildingCategory} buildings`;
+        effect.empireBuilding === true
+          ? 'empire buildings'
+          : effect.empireBuilding === false
+            ? 'ordinary buildings'
+            : effect.buildingCategory === undefined
+              ? 'buildings'
+              : `${effect.buildingCategory} buildings`;
       const what =
         on === 'building'
           ? houses
@@ -2670,7 +2692,15 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push(`settled on ${indefinite(scope.kind)} ${scope.kind} resource`);
       return;
     case 'queueHolds':
-      into.qualifiers.push(`while it is building ${indefinite(scope.category)} ${scope.category}`);
+      // "while it is building an empire building" — the narrowed reading gets
+      // its own words rather than an adjective on the category, because "an
+      // empire building" is the class's own name in the printed table and not a
+      // kind of queue row.
+      into.qualifiers.push(
+        scope.empireBuilding === true
+          ? 'while it is building an empire building'
+          : `while it is building ${indefinite(scope.category)} ${scope.category}`,
+      );
       return;
     case 'queueDepth':
       // "while it has 2 or more things to build" — the works list said the way a
@@ -4139,6 +4169,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // reads only "you may redraw with gold" would learn the good half and miss the
   // half that keeps faith the better route.
   goldBuysRedraw: 'you may pay gold for a fresh hand, at a higher price than faith would ask',
+  // Said as what the freeze stops stopping. A player who has never been
+  // overdrawn needs to be told what the rule is about, so the sentence names the
+  // condition rather than only the licence.
+  goldBuysFrozenTiles: 'you may still buy hexes while your authority is overdrawn',
   // Said as what the till stops asking for, because the card's other half is a
   // surcharge and a player reading the pair needs to know what they are buying.
   buysWithoutResources:

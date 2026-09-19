@@ -224,6 +224,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Coastal Estates | 0 | ● | S | Worked plantations and fishing boats gain +1 food and +1 gold. |
 | Land Speculation | 0 | ◆ | S | Buying tiles costs 50% less. Your capital loses 2 happiness. |
 | Founding Capital | 0 | ◆ | S | Founding a city grants 75 gold. |
+| Private Patronage | 0 | ○ | S | Gold purchases of ordinary buildings cost 30% less. Producing those buildings normally takes 20% more production. Empire buildings and wonders are unaffected. |
 | Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +2 food and +2 production. |
 | Bought Swords | 1 | ◆ | S | Military units cost 20% less gold to purchase, but 10% more production to train. Purchases still do not count as training. |
 | Civic Receipts | 1 | ◆ | S | Buying any building grants culture equal to 10% of the gold paid, with no cap. |
@@ -243,6 +244,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Capital Arsenal | 2 | ◆ | S | There is no limit on the number of units that can be purchased per turn in your capital. |
 | Foreign Procurement | 2 | ◆ | S | Ignore strategic resource requirements when purchasing units. All units cost 20% more. |
 | The Customs Houses | 2 | ◆ | S | Customs houses gain +3 gold and +1 renown. Cities with a customs house gain +15% gold toward purchasing. |
+| Purchased Prosperity | 2 | ◆ | S | You may purchase tiles with gold while your authority is negative. If you have purchased a tile in the last 5 turns, all your cities gain +1 happiness. |
 | Civic Markets | 2 | ● | P | Markets provide +2 science and +2 food. |
 | Maritime Authority | 2 | ● | S | Gain +3 authority. Naval units gain +5 combat strength against cities. |
 | Professional Retainers | 2 | ● | S | All units gain +3 combat strength and cost +1 gold in maintenance. |
@@ -256,6 +258,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Gilded Scaffold | 3 | ○ | P | You may purchase world wonders. All your cities lose 15% production. |
 | Merchant Princes | 3 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
 | The World's Exchange | 3 | ○ | S | Each different foreign empire currently served by your routes grants +10% production toward the Opus, at most +40%. Existing construction and victory requirements remain. |
+| The Merchant Works | 3 | ○ | P | Cities building an empire building, world wonder or the Opus gain production equal to 25% of their base city gold, but lose 20% of their gold income while doing so. Foreign-route empire gold and conversion outputs are excluded from the production basis. |
 
 ### Devotion
 

@@ -5274,7 +5274,14 @@ export function tilePurchaseError(
 
   if (!touchesTerritory(state, playerId, tile)) return 'Not next to your territory';
 
-  if (bordersFrozen(meterEffects(state, playerId))) {
+  // The freeze, and its one lift (Purchased Prosperity, batch C4). A second
+  // clause on this same `if` rather than a second way to buy a hex, which is
+  // what `goldBuysWonders` does at the other counter and for its reason: every
+  // refusal above and below this one is asked unchanged.
+  if (
+    bordersFrozen(meterEffects(state, playerId)) &&
+    !cardActionRule(state, playerId, 'goldBuysFrozenTiles')
+  ) {
     return 'Borders frozen — authority is overdrawn';
   }
 
@@ -5365,7 +5372,11 @@ export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
   // Chartered Companies' survey. A rider on an occasion that has no figure of
   // its own, so the base is zero and only the grants are read.
   const payout = windfallPayout(state, player.id, 'tilePurchase');
-  if (payout.grants.length > 0) {
+  // **A timed grant is a grant** (batch C4, Purchased Prosperity): the yield
+  // grants and the effects hung on the empire are two lists on one payout, and
+  // a gate that asked only the first silently dropped a rider whose whole
+  // payment is a window. `payWindfallGrants` reads both either way.
+  if (payout.grants.length > 0 || payout.timed.length > 0) {
     // Every bucket a rider can pay into settles here, for `settleGrowthWindfall`'s
     // reason: a grant that waited for the resolution would be a windfall the
     // player was shown and not given.

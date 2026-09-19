@@ -702,7 +702,27 @@ export type CityScope =
    * and a feast thrown for it would be a feast thrown for every row a player
    * ever queued.
    */
-  | { test: 'queueHolds'; category: ProductionCategory }
+  | {
+      test: 'queueHolds';
+      category: ProductionCategory;
+      /**
+       * And the row at the front is one of the realm's **single great houses** —
+       * The Merchant Works' (batch C4).
+       *
+       * `CardProductionBonusEffect.empireBuilding` and
+       * `CardWindfallRiderEffect.empireBuilding` asked about the row being built
+       * and the row just finished; this asks about the row being built *right
+       * now*, off the same marker (`BuildingDef.oncePerEmpire`) and with the
+       * same reading. A wonder is not one of these — `category: 'wonder'` is how
+       * a card names that class — so a row meaning both says `any` of two scopes,
+       * which is what The Merchant Works does.
+       *
+       * Meaningful only with `category: 'building'`: a unit and a project carry
+       * no such marker, so a scope naming both admits nothing rather than
+       * quietly widening.
+       */
+      empireBuilding?: true;
+    }
   /**
    * The town has **at least this many things lined up to build** — The Vizier's
    * Hall's clause, which pays a town that plans ahead and nothing to a town
@@ -2954,7 +2974,27 @@ export type ActionRuleId =
    * was protecting: a reason to keep faith worth banking in an empire with no
    * religion.
    */
-  | 'goldBuysRedraw';
+  | 'goldBuysRedraw'
+  /**
+   * **Gold may buy a hex while the writ is overdrawn** — Purchased Prosperity
+   * (batch C4).
+   *
+   * An empire in authority deficit has its borders frozen (`bordersFrozen`,
+   * `meters.ts`), and the freeze is deliberately three things at once: the
+   * accrual stops, the border stops expanding, and `purchaseTile` is refused —
+   * *"a freeze money could step around would be a freeze on the poor only"*,
+   * which is `tilePurchaseError`'s own note. This lifts the third of those and
+   * only the third, as one more clause on that same `if`, which is
+   * `goldBuysWonders`' shape and for its reason: every other refusal in the
+   * function still stands, so a hex another empire owns, a hex out of reach of
+   * any of your towns and a treasury that cannot pay are all still refused.
+   *
+   * It is deliberately **not** `MeterRuleId`'s `borderFreezeExempt`, which is
+   * the same freeze lifted at the accrual: that one says an overdrawn realm goes
+   * on growing for free, and this says it may go on *paying*. A card that meant
+   * both would name both.
+   */
+  | 'goldBuysFrozenTiles';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -3596,8 +3636,27 @@ export interface WindfallGrantSpec {
    * It is a **grant on a windfall** rather than a shape of its own because that
    * is exactly what it is: something an occasion hands over that the occasion did
    * not pay by itself. A rite stamps its own because a rite *is* the occasion.
+   *
+   * **`renews` is the window reading** (batch C4, Purchased Prosperity). Two
+   * different sentences hang a timed effect off a repeatable moment, and until
+   * now the vocabulary could only say the first:
+   *
+   *   · *a bill, one per occasion* — Crassus' unhappiness, which is meant to
+   *     pile up, and does, because each purchase pushes another entry;
+   *   · *a window, however often the moment comes* — "if you have bought a hex
+   *     in the last five turns, your cities are happier", which is one standing
+   *     fact with a fresh expiry date and not a stack of them.
+   *
+   * With `renews`, an entry this same card already hangs on this same holder has
+   * its `expiresTurn` **rewritten** instead of a second entry being pushed. That
+   * is the discipline every other timed thing in the game keeps — an absolute
+   * turn, compared rather than counted down — said about the writer rather than
+   * about the broom, and it is the only honest way to write a card whose text is
+   * a window: a stacking reading would pay a player who bought three hexes three
+   * times for a sentence that promises once. Absent is the bill, which is what
+   * every row written before this meant.
    */
-  timed?: { turns: number; effects: CardEffect[] };
+  timed?: { turns: number; effects: CardEffect[]; renews?: true };
   /**
    * **A lump of this empire's faith pressed on the towns around the occasion** —
    * The Crusade's, whose soldiers preach with what they have to hand.
@@ -4175,8 +4234,17 @@ export interface CardProductionBonusEffect {
    * carrying it says nothing about a unit or a project. A wonder is **not** one
    * of these — the two classes are separate by the marker's own reading — and a
    * card that means both says so with two rows.
+   *
+   * **`false` is the other half of the question** (batch C4, Private Patronage):
+   * an *ordinary* building is one the marker is absent from. It is a boolean
+   * rather than a `true` for `CardWindfallRiderEffect.empireBuilding`'s reason
+   * exactly — that field has been a boolean since it was written, and a card
+   * whose whole sentence is "everything except the great houses" has no other
+   * way to say so, because there is no `not` anywhere in this vocabulary and
+   * there will not be one. Absent still reaches every building, which is what
+   * every row written before this meant.
    */
-  empireBuilding?: true;
+  empireBuilding?: boolean;
   /**
    * **A share per helping of something counted** — The Great Consecration's
    * *"+5% toward the Magnum Opus for every foreign city that follows you, at
@@ -5071,8 +5139,11 @@ export interface CardRuleEffect {
 /**
  * Every rule a `rule` effect may name — the four disjoint sub-unions, joined.
  *
- * `RULE_WORDS` in `statecraft.ts` is an exhaustive `Record` over this, so a
- * member added to any of the four and left unworded fails the build.
+ * `FLAG_RULE_WORDS` in `statecraft/describers.ts` is an exhaustive `Record` over
+ * this, so a member added to any of the four and left unworded fails the build.
+ * (The table used to be called `RULE_WORDS` and to live in `statecraft.ts`; the
+ * name is taken now by `resourceEffects.ts`' table over `ResourceRule`, which is
+ * a different union.)
  */
 export type CardFlagRuleId = ActionRuleId | BehaviorRuleId | CityRuleId | ZocRuleId;
 
@@ -5348,6 +5419,29 @@ export interface CardPurchaseRiderEffect {
    * always had.
    */
   buildingCategory?: BuildingCategory;
+  /**
+   * **Which side of the great-house line the building is on** — Private
+   * Patronage's discount on the ordinary shelves and nothing else (batch C4).
+   *
+   * `buildingCategory`'s sibling, reading the marker the rows already carry
+   * (`BuildingDef.oncePerEmpire`) exactly as `CardProductionBonusEffect` and
+   * `CardWindfallRiderEffect` read it: `true` narrows to the realm's single
+   * great houses, `false` to everything that is not one. It is a boolean rather
+   * than a `true` because the card that needed it needed the negative half —
+   * "ordinary buildings" is a class this vocabulary can otherwise only name by a
+   * `not` it does not have.
+   *
+   * A **wonder** is not on either side of it and never reaches this field: one
+   * is refused in `purchaseError` before a price is asked for at all, so
+   * "wonders are unaffected" is true of every purchase rider by construction
+   * (and stays true under The Gilded Scaffold, which lifts that refusal in the
+   * `if` rather than routing a wonder through a second counter).
+   *
+   * Asked only of a building being priced, exactly as `buildingCategory` is: a
+   * row carrying it is silent on every unit, whatever `class` says. Absent
+   * reaches every building, which is what every row written before it meant.
+   */
+  empireBuilding?: boolean;
 }
 
 /**

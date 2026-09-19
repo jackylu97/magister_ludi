@@ -1821,7 +1821,16 @@ export function cityScopeAdmits(
       // site. Sorted through `queueCategory`, the one place a row is told what
       // it is, exactly as `EmpireCondition`'s arm does it one scale out.
       const front = city.queue[0];
-      return front !== undefined && queueCategory(front) === scope.category;
+      if (front === undefined || queueCategory(front) !== scope.category) return false;
+      // And the narrowing to a single great house, read off the marker the rows
+      // already carry rather than off `oneOfAKind`: a wonder is a class of its
+      // own and `category: 'wonder'` is how a card names it. A row that is not a
+      // building has no marker to read, so the narrowing refuses it.
+      if (scope.empireBuilding === true) {
+        if (front.kind !== 'building' || !isBuildingId(front.id)) return false;
+        if (buildingDef(front.id).oncePerEmpire !== true) return false;
+      }
+      return true;
     }
     case 'queueDepth':
       // The rows themselves, and nothing about them. `queueHolds` above asks
@@ -2093,7 +2102,9 @@ function scopeNote(scope?: CityScope): string | null {
     case 'onResourceKind':
       return `settled on ${scope.kind}`;
     case 'queueHolds':
-      return `building a ${scope.category}`;
+      return scope.empireBuilding === true
+        ? 'building an empire building'
+        : `building a ${scope.category}`;
     case 'queueDepth':
       return `${scope.atLeast} things queued`;
     case 'frontier':
@@ -4269,9 +4280,13 @@ export function cardProduction(
     // `oneOfAKind`, so a marvel is left to `category: 'wonder'` and a card that
     // says "empire buildings" does not quietly speed the Pyramids. See
     // `CardProductionBonusEffect.empireBuilding`.
-    if (effect.empireBuilding === true) {
+    // `false` is the ordinary-building reading (Private Patronage, batch C4):
+    // the same marker asked the other way round, which is the shape
+    // `CardWindfallRiderEffect.empireBuilding` has always had. A row with no
+    // building in hand — a unit, a project — satisfies neither reading.
+    if (effect.empireBuilding !== undefined) {
       if (building === undefined) continue;
-      if (buildingDef(building).oncePerEmpire !== true) continue;
+      if ((buildingDef(building).oncePerEmpire === true) !== effect.empireBuilding) continue;
     }
     // *Where* the hammers land, where `modelClass` is *what* they land on. The
     // town is already in hand — a production modifier is asked of one city's
@@ -5637,7 +5652,14 @@ export interface WindfallPayout {
    * bill. Composed here with every other figure (Entry XVIII.5) and stamped by
    * `payWindfallGrants`, which is the only writer of `Player.timed`.
    */
-  timed: { card: CardId; source: string; turns: number; effects: CardEffect[] }[];
+  timed: {
+    card: CardId;
+    source: string;
+    turns: number;
+    effects: CardEffect[];
+    /** The window reading: rewrite this card's own entries instead of stacking. */
+    renews?: true;
+  }[];
   /**
    * **Renown** a rider banks on this occasion — Triumphs' twenty-five for taking
    * a town.
@@ -5998,8 +6020,20 @@ export function windfallPayout(
       // `timedLive` reads them the way it reads a rite's, because a bill is a
       // bill.
       const turns = Math.max(1, grant.timed.turns);
-      payout.timed.push({ card, source, turns, effects: grant.timed.effects });
-      payout.lines.push({ card, source, note: `for ${turns} turns` });
+      payout.timed.push({
+        card,
+        source,
+        turns,
+        effects: grant.timed.effects,
+        ...(grant.timed.renews === true ? { renews: true as const } : {}),
+      });
+      // A window says so, because "for 5 turns" and "for 5 turns, again"
+      // promise different things to a player reading the announcement.
+      payout.lines.push({
+        card,
+        source,
+        note: grant.timed.renews === true ? `for ${turns} turns from now` : `for ${turns} turns`,
+      });
     }
     if (grant.renown !== undefined && grant.renown !== 0) {
       // Multiplied by the era and by the council exactly as a yield grant is —
@@ -6644,6 +6678,20 @@ export function payWindfallGrants(
   for (const hung of payout.timed) {
     const expiresTurn = state.turn + hung.turns;
     const list = player.timed ?? [];
+    // **A window renews, a bill stacks** (`WindfallGrantSpec.timed.renews`).
+    // Renewing rewrites the expiry on the entries this same card already hung
+    // and pushes nothing, so a card whose text is "in the last five turns" pays
+    // once however often the moment comes. Keyed on the card alone: a card hangs
+    // one window, and a row that hung two different windows off one occasion
+    // would be two cards.
+    if (hung.renews === true && list.some((held) => held.card === hung.card)) {
+      for (const held of list) {
+        if (held.card === hung.card) held.expiresTurn = expiresTurn;
+      }
+      player.timed = list;
+      bumpEconomy(state);
+      continue;
+    }
     for (const effect of hung.effects) list.push({ card: hung.card, effect, expiresTurn });
     player.timed = list;
     // **What the realm is carrying is `liveEffects`' eighth source** (batch M3,
@@ -6855,6 +6903,14 @@ export function cardPurchaseRiders(
     if (effect.buildingCategory !== undefined) {
       if (kind !== 'building' || building === undefined) continue;
       if (buildingDef(building).category !== effect.buildingCategory) continue;
+    }
+    // **Which side of the great-house line**, and again only ever of a building
+    // — Private Patronage's ordinary shelves. The marker the rows carry
+    // (`BuildingDef.oncePerEmpire`), asked the same way the production bonus and
+    // the windfall rider ask it.
+    if (effect.empireBuilding !== undefined) {
+      if (kind !== 'building' || building === undefined) continue;
+      if ((buildingDef(building).oncePerEmpire === true) !== effect.empireBuilding) continue;
     }
     // **Where the price is asked.** A rider naming a class of town is paid in
     // that class and nowhere else, which is the difference between a reason to

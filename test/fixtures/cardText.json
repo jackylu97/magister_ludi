@@ -3701,9 +3701,12 @@
   ],
   "privatePatronage": [
    {
-    "raw": "buying an ordinary building costs less, and raising one the slow way costs more — not built yet",
-    "text": "buying an ordinary building costs less, and raising one the slow way costs more — not built yet",
-    "deferred": true
+    "raw": "ordinary buildings cost −30% to buy",
+    "text": "ordinary buildings cost −30% to buy"
+   },
+   {
+    "raw": "-20% production toward ordinary buildings",
+    "text": "-20% production toward ordinary buildings"
    }
   ],
   "civicReceipts": [
@@ -4041,6 +4044,23 @@
     "text": "all units and buildings cost −15% to buy, in every city with a Customs House"
    }
   ],
+  "strategicExports": [
+   {
+    "raw": "your caravans teach what your mines have opened, and every seam you work gives up twice as much — not built yet",
+    "text": "your caravans teach what your mines have opened, and every seam you work gives up twice as much — not built yet",
+    "deferred": true
+   }
+  ],
+  "purchasedProsperity": [
+   {
+    "raw": "you may still buy hexes while your authority is overdrawn",
+    "text": "you may still buy hexes while your authority is overdrawn"
+   },
+   {
+    "raw": "buying a hex grants +1 happiness in every city for the next 5 turns, however often it happens",
+    "text": "buying a hex grants +1 happiness in every city for the next 5 turns, however often it happens"
+   }
+  ],
   "civicMarkets": [
    {
     "raw": "+2 food, +2 science in every city with a [[building:market|Market]]",
@@ -4065,6 +4085,13 @@
    {
     "raw": "all units cost 1 more gold in maintenance",
     "text": "all units cost 1 more gold in maintenance"
+   }
+  ],
+  "caravanseraiCities": [
+   {
+    "raw": "the walled yard stops being one to a realm, and every town that keeps one grows richer — not built yet",
+    "text": "the walled yard stops being one to a realm, and every town that keeps one grows richer — not built yet",
+    "deferred": true
    }
   ],
   "theDyeVats": [
@@ -4126,9 +4153,12 @@
   ],
   "theMerchantWorks": [
    {
-    "raw": "a town raising one of the realm's great houses turns a share of its coin into stone, and loses a share of its coin while it does — not built yet",
-    "text": "a town raising one of the realm's great houses turns a share of its coin into stone, and loses a share of its coin while it does — not built yet",
-    "deferred": true
+    "raw": "25% of the gold in every city while it is building a wonder or while it is building an empire building is gained again as production",
+    "text": "25% of the gold in every city while it is building a wonder or while it is building an empire building is gained again as production"
+   },
+   {
+    "raw": "-20% gold in every city while it is building a wonder or while it is building an empire building",
+    "text": "-20% gold in every city while it is building a wonder or while it is building an empire building"
    }
   ],
   "theGildedScaffold": [

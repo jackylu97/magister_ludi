@@ -353,12 +353,23 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "The purse builds faster than the quarry, and asks for its name on the door.",
-      "text": "Gold purchases of ordinary buildings cost 20% less. Producing those buildings normally takes 20% more production. Empire buildings and wonders are unaffected.",
-      "effects": [],
-      "deferred": [
-        "buying an ordinary building costs less, and raising one the slow way costs more"
+      "text": "Gold purchases of ordinary buildings cost 30% less. Producing those buildings normally takes 20% more production. Empire buildings and wonders are unaffected.",
+      "effects": [
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "building",
+          "empireBuilding": false,
+          "percent": -30
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "empireBuilding": false,
+          "percent": -20
+        }
       ],
-      "note": "Held whole. The realm's single great houses can be named now, and a marvel always could — but neither can be named by its absence, and this card is a discount on every building that is neither, so a discount written here would reach the great houses the card says it must not."
+      "note": "An ordinary building is one the realm may raise in every city. The two clauses read the same marker from opposite sides, so the discount at the counter and the penalty in the queue reach exactly the same shelves. A wonder is refused at the counter before a price is quoted, so it is untouched by the discount, and a wonder is its own kind of queue row, so it is untouched by the penalty."
     },
     "civicReceipts": {
       "name": "Civic Receipts",
@@ -1280,6 +1291,57 @@
       ],
       "note": "The coin wants a citizen standing on the works, as every hex line does. The renown and the discount do not: a customs house pays its realm for being there, and the town it stands in buys more cheaply whether or not anybody is working it."
     },
+    "strategicExports": {
+      "name": "Strategic Exports",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "What the forge needs, somebody else needs more.",
+      "text": "Trade routes gain +1 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity.",
+      "effects": [],
+      "deferred": [
+        "your caravans teach what your mines have opened, and every seam you work gives up twice as much"
+      ],
+      "note": "Half built, and so held whole. The beaker on the road is an ordinary line — an improved strategic seam is already counted, in a town or across the realm. How many copies a seam supplies is decided where the map is swept, and no card reaches in there yet; the day it does, this row lights whole."
+    },
+    "purchasedProsperity": {
+      "name": "Purchased Prosperity",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A country that is still buying land is a country that still believes in itself.",
+      "text": "You may purchase tiles with gold while your authority is negative. If you have purchased a tile in the last 5 turns, all your cities gain +1 happiness.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "goldBuysFrozenTiles"
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "tilePurchase",
+          "grant": {
+            "timed": {
+              "turns": 5,
+              "renews": true,
+              "effects": [
+                {
+                  "kind": "happiness",
+                  "amount": 1,
+                  "per": "city"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "note": "The freeze is lifted for this one counter and nothing else: a hex somebody else owns, a hex none of your towns can reach and a treasury that cannot pay are all still refused. The contentment is a window and not a bill — buying a second hex inside the five turns moves the end date rather than paying again."
+    },
     "civicMarkets": {
       "name": "Civic Markets",
       "decks": [
@@ -1355,6 +1417,22 @@
           "amount": 1
         }
       ]
+    },
+    "caravanseraiCities": {
+      "name": "Caravanserai Cities",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "One yard in the realm was never enough yards.",
+      "text": "Caravanserais can be built in every city. Cities with a Caravanserai gain +20% gold.",
+      "effects": [],
+      "deferred": [
+        "the walled yard stops being one to a realm, and every town that keeps one grows richer"
+      ],
+      "note": "Half built, and so held whole. The share of coin is an ordinary town line. The other half is not a limit a card can lift: the mark that says one to a realm is the same mark that says this is one of the realm's great houses, and four other clauses read it that way — so a card that unlocked the second yard would quietly give the realm two of a thing that is counted as one."
     },
     "theDyeVats": {
       "name": "The Dye Vats",
@@ -1518,11 +1596,50 @@
       "rarity": "rare",
       "flavor": "Coin becomes stone, and stone outlasts the coin.",
       "text": "Cities building an empire building, world wonder or the Opus gain production equal to 25% of their base city gold, but lose 20% of their gold income while doing so. Foreign-route empire gold and conversion outputs are excluded from the production basis.",
-      "effects": [],
-      "deferred": [
-        "a town raising one of the realm's great houses turns a share of its coin into stone, and loses a share of its coin while it does"
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "from": "gold",
+          "to": "production",
+          "percent": 25,
+          "scope": {
+            "test": "any",
+            "of": [
+              {
+                "test": "queueHolds",
+                "category": "wonder"
+              },
+              {
+                "test": "queueHolds",
+                "category": "building",
+                "empireBuilding": true
+              }
+            ]
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": -20,
+          "scope": {
+            "test": "any",
+            "of": [
+              {
+                "test": "queueHolds",
+                "category": "wonder"
+              },
+              {
+                "test": "queueHolds",
+                "category": "building",
+                "empireBuilding": true
+              }
+            ]
+          }
+        }
       ],
-      "note": "Half built, and so held whole. A town can be asked whether it is raising a wonder, but the realm's single great houses and the last work of all are not a class anything can name."
+      "note": "The last work of all is one of the realm's single great houses by the data's own declaration, so it is covered by the same clause the Forum is. The conversion reads the town's flat coin as it stood before any conversion spoke, which is why the share it pays and the share it costs do not chase each other, and why gold carried home by a foreign road — an empire figure, not a town one — is outside the basis. Only the row at the front of the queue counts: a marvel standing second is a plan."
     },
     "theGildedScaffold": {
       "name": "The Gilded Scaffold",
