@@ -19,6 +19,39 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(oooooo) Niter cannot be mined, and one rule is written in three places —
+RULED, R6, 2026-09-18** (the user, 2026-09-18: *"ok yeah, put in the niter fix
+and the deduplications"*). Two jobs, both cleanup after the five strategic
+resource batches; `docs/strategic-resources-proposal.md` §9 is the list.
+
+**The niter fix.** Niter's row is `hills: false` on plains, desert and tundra.
+`mine` is the only improvement that lists it and carries `requiresHills: true`,
+so a flat niter seam cannot be worked at all — only a city standing on it or a
+great person's academy opens it. This was survivable while the gate was a
+boolean and is not now that copies are spent.
+
+**The ruling: add `hillsIf: ["ownResource"]` to the mine's row.** The mechanism
+already exists and was built for the mirror image of this problem — the farm
+carries that waiver because *"wheat on a hill wants a farm and can take nothing
+else, so refusing the farm makes it unimprovable"* (the user, 2026-08-27).
+Niter on flat ground wants a mine and can take nothing else. Same ruling, other
+direction. It is a JSON edit the schema already validates, the waiver is gated
+on the resource being revealed so it cannot leak the map through a button, and
+**no other mine-opened resource is flat today** — copper, obsidian, iron, gems,
+marble, silver, gold and lapis are all `hills: true` — so the blast radius is
+niter alone. Rejected: putting `hills: true` on niter, which would move where it
+spawns, shrink its footprint and make it compete with iron and copper for hill
+tiles, all to avoid a one-word data edit.
+
+**The deduplications.** Three readings restate a rule that lives somewhere else,
+each because a batch was fenced out of the module that owns it:
+`tileCopies` (private to `cities.ts`) is restated by `tileCopyCount`
+(`src/ui/resourceCopies.ts`) and `tileSeamCopies` (`src/ai/value.ts`), and
+`openedResource`'s clauses are restated by `improvementOpensSeam` in `src/ai/`.
+Export the originals, delete the copies. Also: the HUD register comment in
+`index.html` does not list the holdings rail, because that file was outside R4's
+fence.
+
 **(nnnnnn) A dealt card's face — RULED, U1, 2026-09-17** (the user, 2026-09-17:
 *"could you take a look at the UI for the new cards? Lets have the icons
 reflect what kind of card they are, also, i notice the deck type is mentioned
