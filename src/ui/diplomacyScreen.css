@@ -18,7 +18,7 @@
 #diplomacy-body .diplo-people { font-size:10px; color:#7d7d6c; }
 #diplomacy-body .diplo-status { grid-column:2; margin:4px 0 0; font:500 10px var(--face-ui); color:#54725b; }
 #diplomacy-body .is-war .diplo-status { color:#993f31; }
-#diplomacy-body .diplo-marks { margin-left:50px; }.diplo-seal { display:grid; place-items:center; width:38px; height:49px; background:var(--court); border:1px solid var(--metal); border-radius:17px 17px 20px 20px; box-shadow:inset 0 0 0 3px var(--court),inset 0 0 0 4px var(--metal); flex:none; }
+#diplomacy-body .diplo-marks { margin-left:50px; }.diplo-seal { display:grid; place-items:center; width:38px; height:49px; background:var(--court); border:0; clip-path:polygon(0 0,100% 0,100% 81%,50% 100%,0 81%); flex:none; }
 .diplo-seal-mark { display:block; width:68%; height:68%; background:var(--metal); mask:var(--charge) center/contain no-repeat; -webkit-mask:var(--charge) center/contain no-repeat; }
 #diplomacy-body .diplo-foot { margin-top:auto; padding:18px 9px 0; border-color:#c9c5b1; }
 #diplomacy-body .hint { color:#7e7e6c; font-size:11px; line-height:1.65; }

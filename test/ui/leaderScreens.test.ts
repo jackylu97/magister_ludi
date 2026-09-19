@@ -449,7 +449,7 @@ describe('the sheet’s furniture', () => {
   it('gives the dock a fifth door wearing the seat’s own charge', () => {
     const dock = uiSource('hudDock.ts');
     expect(dock).toContain('leaderButton');
-    expect(dock).toContain('heraldryFor(localPlayerId(), player?.charge)');
+    expect(dock).toContain('heraldryFor(localPlayerId(), player?.charge, player?.leader)');
     expect(uiSource('main.ts')).toContain('hudDock.leaderButton.addEventListener');
   });
 });

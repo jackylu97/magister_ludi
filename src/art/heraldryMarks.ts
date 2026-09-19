@@ -49,6 +49,8 @@
  * mark that is a *file* cannot.
  */
 
+import { BANNER_LEADER_IDS, LEADER_BANNERS, isBannerLeaderId, type BannerLeaderId } from './leaderBanners';
+
 import {
   MARK_BOX,
   MARK_STROKE,
@@ -87,7 +89,10 @@ export const HERALDRY_IDS = [
   'sun',
 ] as const;
 
-export type HeraldryId = (typeof HERALDRY_IDS)[number];
+type LegacyHeraldryId = (typeof HERALDRY_IDS)[number];
+export type HeraldryId = LegacyHeraldryId | BannerLeaderId;
+/** Keep the twelve-seat fallback order stable; append leader art to the atlas. */
+export const ALL_HERALDRY_IDS: readonly HeraldryId[] = [...HERALDRY_IDS, ...BANNER_LEADER_IDS];
 
 /**
  * One charge's drawing, plus the sentence that says what it depicts.
@@ -137,7 +142,7 @@ function rays(cx: number, cy: number, r0: number, r1: number, count: number): st
  * (bee), profile (hound): no two of them collapse to the same twenty-pixel blob,
  * which is the only test a charge has to pass.
  */
-const HERALDRY_MARKS: Record<HeraldryId, HeraldryMark> = {
+const HERALDRY_MARKS: Record<LegacyHeraldryId, HeraldryMark> = {
   crescent: {
     note: 'a crescent moon, horns up, tapering to points',
     paths: [
@@ -268,12 +273,16 @@ const HERALDRY_MARKS: Record<HeraldryId, HeraldryMark> = {
 
 /** The drawing for one charge. Total, by construction. */
 export function heraldryMark(id: HeraldryId): HeraldryMark {
+  if (isBannerLeaderId(id)) {
+    const design = LEADER_BANNERS[id];
+    return { note: design.motif, paths: design.paths };
+  }
   return HERALDRY_MARKS[id];
 }
 
 /**
- * Which charge a seat flies: the one it named, or the one its seat order gives
- * it.
+ * Which charge a seat flies: its leader emblem when known, otherwise its
+ * saved charge or stable seat-order fallback.
  *
  * The one door into the fallback, and the reason nothing in setup had to change
  * when heraldry arrived. `charge` is a raw string because that is what the
@@ -285,7 +294,8 @@ export function heraldryMark(id: HeraldryId): HeraldryMark {
  * is: a negative index is not reachable today and `%` in this language would
  * return a negative one if it ever were.
  */
-export function heraldryFor(playerIndex: number, charge?: string): HeraldryId {
+export function heraldryFor(playerIndex: number, charge?: string, leader?: string): HeraldryId {
+  if (isBannerLeaderId(leader)) return leader;
   if (charge !== undefined && (HERALDRY_IDS as readonly string[]).includes(charge)) {
     return charge as HeraldryId;
   }

@@ -35,6 +35,7 @@
  * page of `append` calls that fail loudly or not at all.
  */
 
+import { leaderBannerInk } from '../art/leaderBanners';
 import {
   type LeaderAbilityId,
   type LeaderId,
@@ -492,13 +493,13 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
    * the *No leader* face wears the seat's, which is the palette's ink with the
    * board's own ink for a device (`seatInks`, the one door into that fallback).
    */
-  function canton(inks: SeatInks): HTMLElement {
+  function canton(inks: SeatInks, leader?: string): HTMLElement {
     const mark = element('span', 'leader-canton');
     mark.setAttribute('aria-hidden', 'true');
-    const uri = heraldryMarkDataUri(heraldryFor(0, options.charge), inks.secondary);
+    const uri = heraldryMarkDataUri(heraldryFor(0, options.charge, leader), inks.secondary);
     mark.style.setProperty('--canton-mark', `url("${uri}")`);
     mark.style.setProperty('--canton-field', inks.primary);
-    mark.style.setProperty('--canton-device', inks.secondary);
+    mark.style.setProperty('--canton-device', leaderBannerInk(leader, inks.primary, inks.secondary));
     return mark;
   }
 
@@ -570,11 +571,8 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
   /**
    * The whole of the chosen figure, beside the roster.
    *
-   * The plate is a slot rather than a painting: the two inks as a diagonal, the
-   * 3:4 crop the portraits will arrive in, and a label saying what it is (the
-   * mockup's own placeholder — the paintings come later, and a blank card in
-   * their place would read as a figure with something missing rather than as a
-   * frame with nothing in it yet).
+   * The reviewed banner fills the portrait slot. Its symbol is shared with
+   * the roster, diplomacy and map flags.
    *
    * The clauses are drawn into ordinary elements here rather than into a button,
    * so a keyword in an ability is a **link** into the Compendium: on this card a
@@ -591,10 +589,9 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
       return;
     }
     const face = faces.find((entry) => entry.id === chosen)!;
-    const plate = element('div', 'leader-plate');
-    plate.setAttribute('aria-hidden', 'true');
-    plate.style.setProperty('--plate-primary', face.colors.primary);
-    plate.style.setProperty('--plate-secondary', face.colors.secondary);
+    const plate = element('img', 'leader-plate');
+    plate.src = `/banners/${face.id}.svg`;
+    plate.alt = `${face.name} banner`;
     card.append(plate);
     card.append(element('h3', 'leader-detail-name', face.name));
     card.append(element('p', 'leader-detail-id', leaderIdentity(face)));
@@ -651,7 +648,7 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
       grid.append(
         drawFaceShell(
           'leader-face',
-          canton(face.colors),
+          canton(face.colors, face.id),
           face.name,
           leaderIdentity(face),
           chosen === face.id,

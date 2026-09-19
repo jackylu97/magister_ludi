@@ -704,7 +704,7 @@ export class CityLayer {
     );
 
     if (!icons) return;
-    const charge = heraldryFor(city.ownerId, state.players[city.ownerId]?.charge);
+    const charge = heraldryFor(city.ownerId, state.players[city.ownerId]?.charge, state.players[city.ownerId]?.leader);
     // `barQuad` runs from x = 0 at the pole out to x = 1, so the inset is a plain
     // fraction of the flag's own width in the flag's own frame — which is why the
     // charge stays put when somebody dials `flagWidth`.

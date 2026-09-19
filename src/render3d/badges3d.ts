@@ -92,7 +92,7 @@ import {
 } from 'three';
 
 import { CITY_MARK_IDS, type CityMarkId, cityMark } from '../art/cityMarks';
-import { HERALDRY_IDS, type HeraldryId, heraldryMark } from '../art/heraldryMarks';
+import { ALL_HERALDRY_IDS, type HeraldryId, heraldryMark } from '../art/heraldryMarks';
 import { DRACONES_LINES, marginaliaMark } from '../art/marginaliaMarks';
 import { pantheonMark } from '../art/pantheonMarks';
 import {
@@ -1094,7 +1094,7 @@ export type MarginaliaKey = (typeof MARGINALIA_CELLS)[number];
  * ruling removed it — the colour of a badge's rim is mark enough for a piece
  * that small. The cells stayed: the flag is still drawn from them.
  */
-export const CHARGE_CELLS: readonly HeraldryId[] = HERALDRY_IDS;
+export const CHARGE_CELLS: readonly HeraldryId[] = ALL_HERALDRY_IDS;
 
 /**
  * The pantheon's ten signs: one cell per `BeliefAxis`
@@ -1544,7 +1544,7 @@ function paintMarkPaths(
   context.lineJoin = 'round';
   for (const path of mark.paths) {
     const traced = new Path2D(path.d);
-    if (path.fill) context.fill(traced);
+    if (path.fill) context.fill(traced, path.fillRule ?? 'nonzero');
     const width = path.width ?? stroke;
     // Weight zero is "filled only" — a pip or an eye, which has no outline at
     // all rather than a hairline one, exactly as the authored files drew them.

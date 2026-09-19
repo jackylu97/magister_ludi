@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   HERALDRY_IDS,
+  ALL_HERALDRY_IDS,
   heraldryFor,
   heraldryMark,
   heraldryMarkDataUri,
@@ -210,16 +211,16 @@ describe('a seat always has a charge', () => {
 describe('every charge has a cell and a quad', () => {
   it('gives the board a standing quad per charge', () => {
     const geometry = new BoardGeometry();
-    expect(CHARGE_CELLS).toEqual([...HERALDRY_IDS]);
-    for (const id of HERALDRY_IDS) {
+    expect(CHARGE_CELLS).toEqual([...ALL_HERALDRY_IDS]);
+    for (const id of ALL_HERALDRY_IDS) {
       expect(geometry.chargeMarkers[id], id).toBeDefined();
       expect(geometry.chargeMarkers[id].getAttribute('uv'), id).toBeDefined();
     }
     // One quad per charge and no sharing: the atlas rectangle is baked into the
     // vertices, so two charges on one geometry would be two seats flying one
     // banner.
-    const quads = new Set(HERALDRY_IDS.map((id) => geometry.chargeMarkers[id]));
-    expect(quads.size).toBe(HERALDRY_IDS.length);
+    const quads = new Set(ALL_HERALDRY_IDS.map((id) => geometry.chargeMarkers[id]));
+    expect(quads.size).toBe(ALL_HERALDRY_IDS.length);
     geometry.dispose();
   });
 });

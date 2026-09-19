@@ -149,6 +149,8 @@ export const RESOURCE_MARK_SCALE = 0.9;
  * weight and no resource mark is filled. See the module docblock.
  */
 export interface MarkPath {
+  /** Cutouts in filled emblems use the same winding rule in SVG and Canvas. */
+  fillRule?: 'evenodd' | 'nonzero';
   /** SVG path data, in the mark's own grid. */
   d: string;
   /** Filled as well as stroked. Default false — an open stroke. */
@@ -857,6 +859,7 @@ export function markSvg(
   const body = paths
     .map((path) => {
       const attrs = [`d="${path.d}"`];
+      if (path.fillRule) attrs.push(`fill-rule="${path.fillRule}"`);
       if (path.fill) attrs.push(`fill="${color}"`);
       if (path.width !== undefined && path.width !== stroke) {
         // Weight zero is "filled only" — a pip or an eye, which has no outline

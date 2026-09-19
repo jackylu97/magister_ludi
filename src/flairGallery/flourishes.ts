@@ -24,6 +24,7 @@
  */
 
 import { EPIGRAPHS } from '../ui/frontispiece';
+import { leaderBannerInk } from '../art/leaderBanners';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import { leaderFaces } from '../ui/leaderSelect';
 import { VIEW3D } from '../render3d/lookData';
@@ -138,10 +139,10 @@ function seatInksStall(into: HTMLElement): void {
     canton.setAttribute('aria-hidden', 'true');
     canton.style.setProperty(
       '--canton-mark',
-      `url("${heraldryMarkDataUri(heraldryFor(0), face.colors.secondary)}")`,
+      `url("${heraldryMarkDataUri(heraldryFor(0, undefined, face.id), face.colors.secondary)}")`,
     );
     canton.style.setProperty('--canton-field', face.colors.primary);
-    canton.style.setProperty('--canton-device', face.colors.secondary);
+    canton.style.setProperty('--canton-device', leaderBannerInk(face.id, face.colors.primary, face.colors.secondary));
 
     const badge = element('span', 'seat-inks-badge');
     const border = element('span', 'seat-inks-border');

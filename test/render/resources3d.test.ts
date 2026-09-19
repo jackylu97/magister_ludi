@@ -46,7 +46,7 @@ import {
   buildBoard,
   resourcePropFactory,
 } from '../../src/render3d/board3d';
-import { HERALDRY_IDS } from '../../src/art/heraldryMarks';
+import { ALL_HERALDRY_IDS } from '../../src/art/heraldryMarks';
 import { BELIEF_AXES } from '../../src/sim/religionData';
 import { cairnStack } from '../../src/render3d/geometry';
 import { cellCenter, tileTopY } from '../../src/render3d/layout';
@@ -360,7 +360,7 @@ describe('the tile-icon atlas', () => {
     // no cell here is a banner that throws from inside the rasterisation, which
     // is the discovery kinds' failure exactly.
     expect(charges).toEqual([...CHARGE_CELLS]);
-    expect(CHARGE_CELLS).toEqual([...HERALDRY_IDS]);
+    expect(CHARGE_CELLS).toEqual([...ALL_HERALDRY_IDS]);
     // And the seventh, appended by religion v2: one cell per belief axis, which
     // is what a **religion's** device on a city banner is assembled from at draw
     // time. There is nothing fixed to bake a cell per *faith* of — a religion is

@@ -274,6 +274,7 @@
  * truth cannot.
  */
 
+import { leaderBannerInk } from '../art/leaderBanners';
 import {
   growthSurplus,
   growthThreshold,
@@ -1491,10 +1492,10 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       banner.root.style.setProperty('--banner-color', player?.color ?? '#9fb0c2');
       banner.root.style.setProperty('--banner-trim', inks.secondary);
       banner.canton.style.setProperty('--canton-field', player?.color ?? '#9fb0c2');
-      banner.canton.style.setProperty('--canton-device', inks.secondary);
+      banner.canton.style.setProperty('--canton-device', leaderBannerInk(player?.leader, inks.primary, inks.secondary));
       banner.canton.style.setProperty(
         '--canton-mark',
-        `url("${heraldryMarkDataUri(heraldryFor(facts.ownerId, player?.charge))}")`,
+        `url("${heraldryMarkDataUri(heraldryFor(facts.ownerId, player?.charge, player?.leader))}")`,
       );
 
       // The alarm ink is a class and is toggled outside the signature gate,

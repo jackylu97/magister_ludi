@@ -858,3 +858,26 @@ the Maghreb he set out from and came home to, Tangier first.
   ▢ the user may prefer the great-person rows renamed or retired instead.
 - ▢ whether a leader locks a persona for bots (rec: yes — the spectator page
   then reads as a story).
+
+
+## Banner integration and Ming deck update (2026-09-19)
+
+Zheng He now draws **Commerce + Magisterial**. His two abilities, Treasure Ship,
+and Longjiang Dockyard are unchanged. The intended identity is maritime exchange
+and imperial prestige, with naval strength supplied by his existing uniques.
+
+All thirteen leader emblems now appear in leader selection, the leader sheet,
+diplomacy, the HUD leader button, city labels and the map flag atlas. Leaderless
+seats retain their saved charge or seat-order fallback. Saved/custom colors remain
+authoritative; three stock banners use darker secondary ink for small-size contrast.
+
+Approved final motifs: Joan uses a single fleur-de-lis; Ming uses a flying crane with a swept feather fan, curved neck and trailing legs,
+inspired by Chinese civil-rank insignia. The crane is approved. Texcoco now uses
+a Tlaloc mask with ringed eyes, a nose bar and a curled, fanged mouth; the
+double-headed serpent was rejected after review. The mask draws on the Met’s
+Mixtec rain-god mask (1325–1521), rather than claiming a Texcoco personal standard. These are game emblems, not reconstructed personal
+standards. The other approved designs are retained. No outlines or border trim.
+
+Art and evidence: `src/art/leaderBanners.ts` and `public/banners/README.md`.
+Review: `/flair.html?review=banners`. Regenerate standalone SVGs with
+`npx vite-node scripts/exportLeaderBanners.ts`.

@@ -260,7 +260,7 @@ export function createHudDock(options: HudDockOptions): HudDock {
         // *mask* over `currentColor`, so the charge prints in the dock's ink
         // like the four doors beside it and never straight in seat ink, which
         // is the heraldry rule kept by the drawing rather than by discipline.
-        const uri = heraldryMarkDataUri(heraldryFor(localPlayerId(), player?.charge));
+        const uri = heraldryMarkDataUri(heraldryFor(localPlayerId(), player?.charge, player?.leader));
         icon.style.setProperty('--dock-mark', `url("${uri}")`);
       }
       // **No dot on the banner** (batch L6b): a figure is a known quantity from

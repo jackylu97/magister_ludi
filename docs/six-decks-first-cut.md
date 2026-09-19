@@ -42,7 +42,7 @@ No new quests, deck-unlock systems, currencies or chosen secondary attributes. C
 | Mithridates | Dominion + Expansionist | A compact, developed kingdom resisting larger empires |
 | Joan of Arc | Dominion + Devotion | Conversion and warfare reinforcing one another |
 | Mansa Musa | Commerce + Devotion | Commercial wealth and religious destinations |
-| Zheng He | Commerce + Dominion | Voyages, coastal networks and naval power |
+| Zheng He | Commerce + Magisterial | Voyages, coastal networks and imperial prestige |
 | Nezahualcoyotl | Expansionist + Scientific | Hydraulic engineering and populous cities; tentative |
 | Hypatia | Scientific + Magisterial | Scholars and great works |
 | Hildegard | Devotion + Magisterial | Rites, cultural communities and sacred institutions |
@@ -159,7 +159,7 @@ A deck should support compatible approaches and a reliable mixed route. Across i
 
 **Power fantasy:** “My armed forces make my civilization powerful.” Training, maintaining and deploying an army should sustain a functioning state: productive towns, military knowledge, legitimacy and the capacity to win. Peace, defence, raiding and conquest are different uses of that strength.
 
-**Leader needs.** Taizong wants a capable standing army, productive garrison towns and an educated imperial court. Mithridates wants a compact, food-rich kingdom whose trained defenders can defeat a larger neighbour; gaining cities cannot be its only route to power. Modu wants mobile mounted forces supported by pastoral production, with raids worth conducting even without annexation. Joan wants military success that reinforces a religious homeland and advances her campaigns. Zheng He needs fleets that can project power and protect an overseas economy. Their second decks amplify those plans; Dominion must itself supply food, gold, research, culture, early faith and administration. Naval forces should be able to serve the same strategic roles as land armies where appropriate.
+**Leader needs.** Taizong wants a capable standing army, productive garrison towns and an educated imperial court. Mithridates wants a compact, food-rich kingdom whose trained defenders can defeat a larger neighbour; gaining cities cannot be its only route to power. Modu wants mobile mounted forces supported by pastoral production, with raids worth conducting even without annexation. Joan wants military success that reinforces a religious homeland and advances her campaigns. Their second decks amplify those plans; Dominion must itself supply food, gold, research, culture, early faith and administration. Naval forces should be able to serve the same strategic roles as land armies where appropriate.
 
 | Main approach | Investment and source of power | What success feels like | (Claude) At the table |
 |---|---|---|---|
@@ -293,7 +293,7 @@ The age's business is the Opus and the last war: the band pays the standing army
 | Casus Belli | R | Capturing an original capital grants a bead. |
 | Total War | R | All your military units gain +8 strength and +1 movement. Every city demands +3 more happiness. |
 
-Garrisons, recruiting, raiding and formations each have support. Late naval and siege options give Zheng He and other military leaders an alternative to a melee-only finish. The rare choices favor a standing army, territorial conquest or mobile finishing blows.
+Garrisons, recruiting, raiding and formations each have support. Late naval and siege options give military leaders an alternative to a melee-only finish. The rare choices favor a standing army, territorial conquest or mobile finishing blows.
 
 ### Determinations — 2026-09-16
 
@@ -1172,6 +1172,8 @@ These replace, rather than supplement, the old government signatures. The existi
 No live data, descriptions, rules or save formats are changed by this document.
 
 ## Can these pools last a full game?
+
+**Historical draft snapshot:** the counts and sample builds below predate Zheng He’s approved Commerce + Magisterial swap; his old Dominion build is superseded. Current access is defined in `data/leaders.json`.
 
 These counts include all ten drafted access Charters as collection entries, not slottable options. They are cumulative catalogue counts by government band, assuming the corresponding research age has also been reached for the six reviewed decks. They are not a count of immediately usable cards or a measurement of hand quality; the other pools still await their age pass. A leader receives both fixed single-type decks, all shared commons and every cross-type matching either type. Duplicate membership is counted once.
 

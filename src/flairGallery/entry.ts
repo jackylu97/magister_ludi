@@ -4,7 +4,15 @@ import './style.css';
 import { element, section } from './sheet';
 
 const review = new URLSearchParams(location.search).get('review');
-if (review === 'diplomacy-game') {
+if (review === 'banners') {
+  document.body.classList.add('focused-works-review', 'focused-banners-review');
+  const nav = document.getElementById('index')!;
+  nav.append(element('h1', undefined, 'Leader banners'));
+  const back = element('a', undefined, 'Full art cabinet'); back.href = '/flair.html'; nav.append(back);
+  const root = section(document.getElementById('sheet')!, 'leader-banners', 'Leader banners',
+    'Historical references, simplified for the map.').root;
+  void import('./leaderBanners').then(module => module.drawLeaderBanners(root));
+} else if (review === 'diplomacy-game') {
   void import('./diplomacyGameReview').then(module => module.drawDiplomacyGameReview(document.getElementById('sheet')!));
 } else if (review === 'diplomacy') {
   document.body.classList.add('diplomacy-prototype');

@@ -34,6 +34,7 @@
  * A line's figure is the line's. This sheet gathers; it does not price.
  */
 
+import { leaderBannerInk } from '../art/leaderBanners';
 import { type LeaderId, leaderDef, seatName } from '../sim/leaderData';
 import type { CardClause } from '../sim/statecraft';
 import { type MeterContribution, explainAuthority, explainHappiness } from '../sim/meters';
@@ -363,10 +364,10 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
     const inks = seatInks(player);
     const mark = element('span', 'leader-canton');
     mark.setAttribute('aria-hidden', 'true');
-    const uri = heraldryMarkDataUri(heraldryFor(seat, player?.charge), inks.secondary);
+    const uri = heraldryMarkDataUri(heraldryFor(seat, player?.charge, player?.leader), inks.secondary);
     mark.style.setProperty('--canton-mark', `url("${uri}")`);
     mark.style.setProperty('--canton-field', inks.primary);
-    mark.style.setProperty('--canton-device', inks.secondary);
+    mark.style.setProperty('--canton-device', leaderBannerInk(player?.leader, inks.primary, inks.secondary));
     return mark;
   }
 

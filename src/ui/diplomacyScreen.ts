@@ -68,6 +68,7 @@
  * what the sentence says — has to be a function somebody can call.
  */
 
+import { leaderBannerInk } from '../art/leaderBanners';
 import type { GameState } from '../sim/state';
 import { playerById } from '../sim/state';
 import { seatName, seatPeople } from '../sim/leaderData';
@@ -895,9 +896,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const player=playerById(options.getState(),playerId);
     const inks=seatInks(player);
     const badge=element('span','diplo-seal');
-    badge.style.setProperty('--court',inks.primary);badge.style.setProperty('--metal',inks.secondary);
+    badge.style.setProperty('--court',inks.primary);badge.style.setProperty('--metal',leaderBannerInk(player?.leader, inks.primary, inks.secondary));
     const mark=element('span','diplo-seal-mark');
-    mark.style.setProperty('--charge',`url("${heraldryMarkDataUri(heraldryFor(playerId,player?.charge))}")`);
+    mark.style.setProperty('--charge',`url("${heraldryMarkDataUri(heraldryFor(playerId,player?.charge, player?.leader))}")`);
     badge.setAttribute('aria-hidden','true');badge.append(mark);return badge;
   }
 
