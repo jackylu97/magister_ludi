@@ -267,8 +267,14 @@ describe('the schema, as landed', () => {
     // that renews its window instead of stacking a second. Two deferred rows
     // came live and three brand-new rows were written, one of them live.
     // Three more live rows, all in the Commerce file.
-    expect(live).toBe(257);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(257);
+    //
+    // **And C5 a ninth time**: a card may now count the trade routes meeting a
+    // town, by direction and by whose town sits at the far end, and a counted
+    // renown trickle may carry a ceiling per town rather than one over the whole
+    // realm. Four more live rows — The Home Market, The League of Cities, The
+    // Chartered Metropolis and the shared Cosmopolitan Court.
+    expect(live).toBe(261);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(261);
   });
 
   /**
@@ -549,7 +555,9 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // Redraw and Venture Routes. Its fourth and fifth cards move nothing here
       // — Civic Receipts was already live and was reworked, and A Court of
       // Merchants is a new live row.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(163);
+      // **C5 took four more**: the three Commerce rows that count trade routes
+      // arriving at or leaving a town, and the shared Cosmopolitan Court.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(159);
     }
   });
 
