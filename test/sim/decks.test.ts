@@ -239,8 +239,17 @@ describe('the schema, as landed', () => {
     // **movement** mark a card may write on a piece at its birth, which
     // `UnitStamp` has carried since the Levée and only a muster could write.
     // Sixteen more rows, in one of the seven.
-    expect(live).toBe(240);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(240);
+    //
+    // **And C2 a sixth time** (the cheap Commerce members): a count of the
+    // hexes inside a realm's borders that answer a tile condition, a count of
+    // the empires a seat has met, a divisor on the per-neighbour hex reading,
+    // and two named rules at the purchase counter — the capital's exemption
+    // from the one-a-turn limit and a waiver of a unit's strategic resource.
+    // Six new rows plus four that were waiting on them, in two of the seven.
+    // Frontier Investment needed nothing new at all: a route share already
+    // takes a destination scope and a crossing.
+    expect(live).toBe(250);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(250);
   });
 
   /**
@@ -511,7 +520,12 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // written before D2a–D2d landed and had simply gone stale — while adding
       // eleven new live rows, which are not deferred and so are not counted
       // here.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(170);
+      //
+      // **C2 took four more** — Travellers' Letters and The Customs Houses in
+      // the Commerce file, Letters of Marque and The Exchange of Discoveries in
+      // the shared one — while adding six new live rows, which are likewise not
+      // counted here.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(166);
     }
   });
 

@@ -2376,7 +2376,50 @@ export type CountKind =
    * converted while it was somebody else's and taken a decade later is still a
    * verse the hymnal wrote first.
    */
-  | 'firstConversions';
+  | 'firstConversions'
+  /**
+   * **Hexes inside this empire's borders that satisfy `CardPaysEffect.tile`** —
+   * Ore Caravans' mines, Luxury Caravans' luxury seams, The Customs Houses'
+   * works (batch C2).
+   *
+   * The first count asked of the *ground* rather than of the towns, the army or
+   * the ledger, and it takes a whole `TileCondition` rather than being three
+   * members because those three cards count three different facts about a hex:
+   * what is built on it, what is buried in it, and which work stands there. The
+   * condition vocabulary already says all three, and `perNeighbour` took the
+   * same bargain one scale down — "beside a forest" and "beside an unimproved
+   * forest" are one field with a different condition.
+   *
+   * **Ownership, not labour.** The sweep is `ownedTiles`, the one town walk, so
+   * a mine nobody is working is still a mine the town has dug — the sheet's own
+   * rule for this line (*"mine adjacency and origin-city mine counts do not
+   * require every counted mine to be worked"*, `docs/decks/commerce.md`), and
+   * the opposite reading from `workedHills` and `workedTilesInCity`, which count
+   * citizens at work.
+   *
+   * Empire-wide by default and narrowed to one town by `within: 'city'`, the
+   * narrowing `improvedBonusResources` and `wonders` already take. A row naming
+   * no condition counts nothing, which is the honest answer for a question that
+   * never said which hexes.
+   */
+  | 'tilesInBorders'
+  /**
+   * **Other empires this seat has met** — Travellers' Letters, whose news
+   * travels with the cargo.
+   *
+   * `Player.metSeats`, the permanent register written by `recordMeetings`
+   * (`visibility.ts`) the first time this seat sees a piece or a hex of
+   * somebody else's. Read off the register rather than through
+   * `hasMetSeat` (`diplomacy.ts`) because that module imports this one: the
+   * derived clauses under the register only exist to backfill saves written
+   * before it, and the schema has moved far past them.
+   *
+   * The wild is never in the register and is filtered out again here, so a
+   * raider under your eye is nobody's acquaintance. Nothing lowers the count —
+   * an empire you met and then destroyed is still an empire you met — which is
+   * what makes the card's "no cap" safe to write.
+   */
+  | 'empiresMet';
 
 /**
  * **The ledgers of what an empire did first.** Each is one `GameState.firsts`
@@ -2816,7 +2859,43 @@ export type ActionRuleId =
    * ladder (`explainBeliefRerollCost`), so the rule would be waiving a price of
    * nought and then charging the second asking as if it were the first.
    */
-  | 'rerollOffers';
+  | 'rerollOffers'
+  /**
+   * **The capital may buy as many units in a turn as it can pay for** — The
+   * Capital Arsenal (batch C2).
+   *
+   * The one-buy-per-class-per-turn stamp (`City.purchasedUnitTurns`) is
+   * compared against in exactly one place, and this rule is a clause beside
+   * that comparison. Nothing else changes: the stamp is still written by
+   * `purchaseItemAt`, so a town that loses the card is back under the limit the
+   * same turn and no state has to be unwound.
+   *
+   * The capital is named in the rule rather than left to a scope because a flag
+   * rule carries none — `cardActionRule` asks the empire, not a town — and the
+   * one town every empire has exactly one of is the only place a flag can
+   * honestly mean. A second card that wanted the same licence somewhere else
+   * would want a scoped shape, which is a design decision rather than a member
+   * here.
+   */
+  | 'capitalBuysWithoutLimit'
+  /**
+   * **A unit bought with coin needs no strategic resource** — Foreign
+   * Procurement (batch C2).
+   *
+   * The requirement is `buildError`'s (`tech.ts`, the two clauses under
+   * `requiredResource`), and the purchase rail reaches it through that same
+   * gate — so the rule is read where the till asks the question and handed down
+   * as `BuildGateOptions.ignoreResourceRequirement` rather than read inside
+   * `buildError` itself. That is what keeps it a rule about *buying*: a town
+   * still may not put the swordsman in its queue.
+   *
+   * It waives the requirement and not the ledger. A piece bought this way is an
+   * ordinary piece afterwards, so it takes a copy in `resolveCommitments` like
+   * any other — an empire that buys past its iron finds the iron spoken for.
+   * That is the honest consequence of a derived ledger rather than a second
+   * kind of unit nobody else would know about.
+   */
+  | 'buysWithoutResources';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -3704,6 +3783,14 @@ export interface CardPaysEffect extends CardYieldBag {
    * The count's and the rate's, which is one question: "so many luxuries buy a
    * coin" and "so much faith a turn buys a beaker" are the same sentence about
    * two readings.
+   *
+   * **And the ring's** (batch C2): at `where: 'hex'` with `perNeighbour`, how
+   * many answering neighbours buy one helping — Mining Districts' *"+1 gold and
+   * +1 science for every two adjacent mines"*. That is the third reading of one
+   * question, and it is a reading of this field for `max`'s reason exactly:
+   * `max` already caps the helpings at both of those places, the two can never
+   * be asked of one row, and a divisor is a divisor. The division floors, so a
+   * hex with one mine beside it under a divisor of two is paid nothing.
    */
   per?: number;
   /**
@@ -3743,6 +3830,17 @@ export interface CardPaysEffect extends CardYieldBag {
   categories?: BuildingCategory[];
   /** Which units `unitsInField` counts. Absent counts every piece. */
   class?: UnitFilter;
+  /**
+   * Which hexes `tilesInBorders` counts — the ordinary `TileCondition` (batch
+   * C2). Absent counts nothing; see the count.
+   *
+   * Named apart from `on`, which is the hex a `where: 'hex'` line *lands on*.
+   * The two are different questions — one says where a yield is paid and this
+   * says what is being counted — and a row could honestly carry both (a hex
+   * line paid per mine in its own town), so one field serving both would have
+   * been a collision rather than a double duty.
+   */
+  tile?: TileCondition;
   /**
    * Which flavour `slottedOrdersOfSlot` counts. Absent counts every slotted
    * Order whatever its flavour, which is the honest reading of an unnamed
@@ -5267,6 +5365,15 @@ export interface CardRenownEffect {
    * (`where`, `basis`) pair here to make it disjoint.
    */
   countPer?: number;
+  /**
+   * Which hexes a `count: 'tilesInBorders'` trickle counts — The Customs
+   * Houses' works (batch C2).
+   *
+   * `CardPaysEffect.tile`'s field one ledger over, and here for `count`'s own
+   * reason: the renown probe hands the count its arguments, and a count that
+   * takes one has to be able to carry it. Ignored by every other count.
+   */
+  tile?: TileCondition;
   /** The most helpings that ever pay. `count` only. */
   max?: number;
   /** Which family this feeds. Absent feeds the pool and no family. */

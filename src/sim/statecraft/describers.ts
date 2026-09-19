@@ -1023,8 +1023,23 @@ function describePays(
     // a different sentence and reads as one — "on every farm beside a mountain,
     // once for each mountain".
     const perPeak = effect.perAdjacentMountain === true ? ', once for each mountain' : '';
+    // **And once for every neighbour that answers** (`perNeighbour`, first
+    // printed in batch C2 for Mining Districts). The peaks' tail one field over
+    // and the same sentence: the condition above says which hexes are paid and
+    // this says how many helpings one of them is worth. The divisor rides in
+    // `per` and the ceiling in `max`, exactly as a counted line's do, so the
+    // whole clause reads "on every worked mine, once for every 2 adjacent hexes
+    // with a Mine".
+    const ring = effect.perNeighbour;
+    const perRing =
+      ring === undefined
+        ? ''
+        : `, once for every ${countWords(effect.per, {
+            one: `adjacent ${tileConditionWords(ring)}`,
+            many: `adjacent ${tileConditionWords(ring).replace(/\bhex\b/, 'hexes')}`,
+          })}` + (effect.max === undefined ? '' : ` (at most ${effect.max})`);
     if (words) {
-      out.push({ text: `${words} on every ${tileConditionWords(on)}${whose}${perPeak}` });
+      out.push({ text: `${words} on every ${tileConditionWords(on)}${whose}${perPeak}${perRing}` });
     }
     // The percentage is its own clause, because it is a share of a *different*
     // number: the flat is what the card pays and this is what the works pay
@@ -1962,7 +1977,7 @@ function describeEffect(
                 // and a counted wall print through, so three surfaces name one
                 // count one way.
                 effect.count !== undefined
-                ? ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count }, ''))}`
+                ? ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count, tile: effect.tile }, ''))}`
                 : '';
       const family = effect.family === undefined ? '' : `, favouring ${effect.family}s`;
       out.push({
@@ -2436,6 +2451,28 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   if (effect.count === 'tally' && effect.tally !== undefined) {
     return TALLY_WORDS[effect.tally];
   }
+  // **The ground, said in the hex conditions' own words** (batch C2) — "per hex
+  // with a Mine in the origin city", "per hex carrying a luxury resource in
+  // your borders". `buildingsOfKind`'s bargain an eighth time: the argument is
+  // printed here, so three cards counting three different facts about a hex are
+  // one table entry.
+  //
+  // The town is in the noun rather than trailing it, because English wants it
+  // after whatever the condition said about the hex — so this count answers
+  // `countNamesItsTown`. A road's count names the town the caravan left, which
+  // is the only town a route line is ever read against.
+  if (effect.count === 'tilesInBorders' && effect.tile !== undefined) {
+    const words = tileConditionWords(effect.tile);
+    const at =
+      effect.within !== 'city'
+        ? 'in your borders'
+        : effect.where === 'route'
+          ? 'in the origin city'
+          : place === '' || place === 'in this city'
+            ? 'in this city'
+            : place;
+    return { one: `${words} ${at}`, many: `${words.replace(/\bhex\b/, 'hexes')} ${at}` };
+  }
   return effect.count === undefined ? EMPTY_WORDS : COUNT_WORDS[effect.count];
 }
 
@@ -2511,6 +2548,11 @@ const TOWN_COUNT_WORDS: Partial<Record<CountKind, (at: string) => PluralWords>> 
  * tail.
  */
 function countNamesItsTown(effect: CardPaysEffect): boolean {
+  // The ground count builds its own place into the noun ("hexes with a Mine in
+  // the origin city"), so a tail would say the town twice. Its words are in
+  // `countNoun` rather than in the table below because it takes an argument and
+  // the table's formatters are handed only the place.
+  if (effect.count === 'tilesInBorders') return true;
   return effect.count !== undefined && TOWN_COUNT_WORDS[effect.count] !== undefined;
 }
 
@@ -3734,6 +3776,13 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'foreign city you were the first to convert',
     many: 'foreign cities you were the first to convert',
   },
+  // The condition is not in these words: `countNoun` prints it, so that "per hex
+  // with a Mine" and "per hex carrying a luxury resource" are one entry —
+  // `buildingsOfCategory`'s bargain, asked of the ground.
+  tilesInBorders: { one: 'hex', many: 'hexes' },
+  // "Met", the register's own word, and "other empire" because the count never
+  // includes your own seat.
+  empiresMet: { one: 'other empire you have met', many: 'other empires you have met' },
   defensiveBuildings: {
     one: 'fortification in this city',
     many: 'fortifications in this city',
@@ -4044,6 +4093,11 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   buyScholarDraftWithFaith: 'a draft of great scholars may be bought with faith',
   rerollOffers:
     'the first time you ask for a fresh hand of Orders, doctrines or great people, it costs nothing',
+  capitalBuysWithoutLimit: 'your capital may buy as many units in a turn as it can pay for',
+  // Said as what the till stops asking for, because the card's other half is a
+  // surcharge and a player reading the pair needs to know what they are buying.
+  buysWithoutResources:
+    'units you buy need none of the strategic resources they would need to be built',
   // Facts a card declares true of every town. `CityRuleId`.
   freshwater: 'every city of yours counts as being on fresh water',
   // Things about the world that stop being true — or start. `BehaviorRuleId`.

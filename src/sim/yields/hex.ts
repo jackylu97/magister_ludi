@@ -551,8 +551,15 @@ export function explainTileYield(
       for (const neighbour of besideThunk()) {
         if (tileConditionHolds(neighbour, ringRule, undefined, undefined, ctx?.turn)) beside += 1;
       }
+      // **So many neighbours buy one helping** (`TileLine.perNeighbourPer`,
+      // batch C2 — Mining Districts' *"for every two adjacent mines"*). The
+      // division floors and comes before the ceiling, which is the counted
+      // `pays` basis' own order: a divisor says how much of the thing makes a
+      // helping and a ceiling says how many helpings ever pay.
+      const per = line.perNeighbourPer;
+      const servings = per === undefined || per <= 1 ? beside : Math.floor(beside / per);
       const cap = line.perNeighbourMax;
-      helpings *= cap === undefined ? beside : Math.min(beside, cap);
+      helpings *= cap === undefined ? servings : Math.min(servings, cap);
     }
     if (helpings === 0) return;
     const clamped = {

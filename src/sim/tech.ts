@@ -850,6 +850,19 @@ export interface BuildGateOptions {
    *     empire trains a swordsman somewhere else.
    */
   ignoreCommitments?: boolean;
+  /**
+   * **Do not ask for the strategic resource at all** — Foreign Procurement's
+   * licence, handed down by the till (batch C2).
+   *
+   * `ignoreCommitments` waives the *second* of the two resource refusals (every
+   * copy is spoken for) and leaves the first (the empire has none); this waives
+   * both, which is what "ignore strategic resource requirements" says. It is a
+   * parameter rather than a clause inside `buildError` because the rule is
+   * about **buying**: production asks the same gate and must go on refusing, so
+   * only the caller that knows a purchase is being priced may set it. The one
+   * caller is `purchaseError`, which reads `cardActionRule` for it.
+   */
+  ignoreResourceRequirement?: boolean;
 }
 
 /**
@@ -1215,7 +1228,7 @@ export function buildError(
   }
 
   const wants = requiredResource(kind, id);
-  if (wants.length > 0) {
+  if (wants.length > 0 && options?.ignoreResourceRequirement !== true) {
     // **Two refusals, because they are two different problems.** Before batch R1
     // there was one boolean and one sentence; now an empire can hold the seam
     // and still be unable to build, and "needs improved Iron" said to a player

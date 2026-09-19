@@ -3617,9 +3617,16 @@
   ],
   "travellersLetters": [
    {
-    "raw": "your capital learns and sings a little more for every foreign empire you have met — not built yet",
-    "text": "your capital learns and sings a little more for every foreign empire you have met — not built yet",
-    "deferred": true
+    "raw": "+2 science, +2 culture in your capital",
+    "text": "+2 science, +2 culture in your capital"
+   },
+   {
+    "raw": "+1 science in your capital per other empire you have met",
+    "text": "+1 science in your capital per other empire you have met"
+   },
+   {
+    "raw": "+1 culture in your capital per other empire you have met",
+    "text": "+1 culture in your capital per other empire you have met"
    }
   ],
   "lettersOfIntroduction": [
@@ -3829,6 +3836,22 @@
     "text": "+1 gold, +1 science on every hex carrying a strategic resource"
    }
   ],
+  "oreCaravans": [
+   {
+    "raw": "+1 gold per hex with a [[improvement:mine|Mine]] in the origin city",
+    "text": "+1 gold per hex with a Mine in the origin city"
+   }
+  ],
+  "frontierInvestment": [
+   {
+    "raw": "+100% everything on every trade route between two of your own cities and that ends in a city of 5 or fewer citizens",
+    "text": "+100% everything on every trade route between two of your own cities and that ends in a city of 5 or fewer citizens"
+   },
+   {
+    "raw": "all units and buildings cost −50% to buy, in every city of 5 or fewer citizens",
+    "text": "all units and buildings cost −50% to buy, in every city of 5 or fewer citizens"
+   }
+  ],
   "marketFoundations": [
    {
     "raw": "+20% production toward [[building:market|Markets]]",
@@ -3906,6 +3929,34 @@
     "text": "newly created military units bought with gold gain +4 combat strength"
    }
   ],
+  "luxuryCaravans": [
+   {
+    "raw": "+1 gold per hex carrying a luxury resource in the origin city",
+    "text": "+1 gold per hex carrying a luxury resource in the origin city"
+   }
+  ],
+  "miningDistricts": [
+   {
+    "raw": "+1 gold, +1 science on every hex with a [[improvement:mine|Mine]], once for every 2 adjacent hexes with a [[improvement:mine|Mine]]",
+    "text": "+1 gold, +1 science on every hex with a Mine, once for every 2 adjacent hexes with a Mine"
+   }
+  ],
+  "theCapitalArsenal": [
+   {
+    "raw": "your capital may buy as many units in a turn as it can pay for",
+    "text": "your capital may buy as many units in a turn as it can pay for"
+   }
+  ],
+  "foreignProcurement": [
+   {
+    "raw": "units you buy need none of the strategic resources they would need to be built",
+    "text": "units you buy need none of the strategic resources they would need to be built"
+   },
+   {
+    "raw": "all units cost +20% to buy",
+    "text": "all units cost +20% to buy"
+   }
+  ],
   "theHarbourChain": [
    {
     "raw": "your harbours together open more roads than you could otherwise run — not built yet",
@@ -3977,9 +4028,16 @@
   ],
   "theCustomsHouses": [
    {
-    "raw": "a customs house pays gold and renown, and its town buys more with what it earns — not built yet",
-    "text": "a customs house pays gold and renown, and its town buys more with what it earns — not built yet",
-    "deferred": true
+    "raw": "+3 gold on every hex with a [[improvement:customsHouse|Customs House]]",
+    "text": "+3 gold on every hex with a Customs House"
+   },
+   {
+    "raw": "+1 renown per turn per hex with a [[improvement:customsHouse|Customs House]] in your borders",
+    "text": "+1 renown per turn per hex with a Customs House in your borders"
+   },
+   {
+    "raw": "all units and buildings cost −15% to buy, in every city with a [[improvement:customsHouse|Customs House]]",
+    "text": "all units and buildings cost −15% to buy, in every city with a Customs House"
    }
   ],
   "civicMarkets": [
@@ -5601,9 +5659,16 @@
   ],
   "lettersOfMarque": [
    {
-    "raw": "cities with a harbour buy warships more cheaply, and build them more slowly — not built yet",
-    "text": "cities with a harbour buy warships more cheaply, and build them more slowly — not built yet",
-    "deferred": true
+    "raw": "for ships alone, killing a unit grants +40 gold",
+    "text": "for ships alone, killing a unit grants +40 gold"
+   },
+   {
+    "raw": "ships cost −25% to buy, in every city with a [[building:harbour|Harbour]]",
+    "text": "ships cost −25% to buy, in every city with a Harbour"
+   },
+   {
+    "raw": "-20% production toward ships, in every city with a [[building:harbour|Harbour]]",
+    "text": "-20% production toward ships, in every city with a Harbour"
    }
   ],
   "commonRitesOfPassage": [
@@ -5752,9 +5817,12 @@
   ],
   "theExchangeOfDiscoveries": [
    {
-    "raw": "a town counts the distinct realms its own caravans reach — not built yet",
-    "text": "a town counts the distinct realms its own caravans reach — not built yet",
-    "deferred": true
+    "raw": "+1 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] carrying a resource",
+    "text": "+1 science on every hex with a Mine or Quarry carrying a resource"
+   },
+   {
+    "raw": "+1 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] carrying a resource, in every city with a [[building:market|Market]]",
+    "text": "+1 science on every hex with a Mine or Quarry carrying a resource, in every city with a Market"
    }
   ],
   "travellingPlayers": [

@@ -45,11 +45,16 @@ import { describe, expect, it } from 'vitest';
 
 import { createGame } from '../../../src/sim/game';
 import { addBuilding, bumpRevision, playerById } from '../../../src/sim/state';
-import { foundCityAt } from '../../../src/sim/cities';
-import { getTileAt } from '../../../src/sim/map';
+import { foundCityAt, ownedTiles } from '../../../src/sim/cities';
+import { getTileAt, neighborTiles, raiseImprovement, tileHex } from '../../../src/sim/map';
+import { cityContext, explainTileYield } from '../../../src/sim/yields/hex';
+import { purchaseError } from '../../../src/sim/purchase';
+import { buildError, gatingTech } from '../../../src/sim/tech';
 import { explainRouteYieldBetween, foldRouteYield } from '../../../src/sim/routeYields';
 import {
+  cardRenownLines,
   cardUnitStamp,
+  countOf,
   describeCard,
   describeEffects,
   drawOrderOffer,
@@ -84,8 +89,11 @@ const live = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).effects.lengt
 const deferred = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).effects.length === 0);
 
 describe('the Commerce deck is one deck', () => {
-  it('carries sixty rows, every one of them a Commerce card', () => {
-    expect(COMMERCE.length).toBe(60);
+  it('carries sixty-six rows, every one of them a Commerce card', () => {
+    // Sixty after C1; C2 adds the six the sheet proposed and nobody had written
+    // down yet (Ore Caravans, Frontier Investment, Luxury Caravans, Mining
+    // Districts, The Capital Arsenal, Foreign Procurement).
+    expect(COMMERCE.length).toBe(66);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -114,7 +122,10 @@ describe('the Commerce deck is one deck', () => {
     // Tier I (Commercial Education, Strategic Reserves, Market Foundations,
     // Financed Industry) and three in Tier II (Civic Markets, Maritime
     // Authority, Professional Retainers).
-    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 18, 19, 10]);
+    // C2 adds six more, again by the tier the sheet puts them in: two in Tier I
+    // (Ore Caravans, Frontier Investment) and four in Tier II (Luxury Caravans,
+    // Mining Districts, The Capital Arsenal, Foreign Procurement).
+    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 23, 10]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
 
@@ -138,7 +149,7 @@ describe('the Commerce deck is one deck', () => {
 });
 
 describe('a live Commerce row is a card', () => {
-  it('pays through thirty-one rows, and every one of them is dealt', () => {
+  it('pays through thirty-nine rows, and every one of them is dealt', () => {
     // The World's Exchange joined them with D2b: hammers behind a thing may be
     // counted off a thing the realm holds now, and the courts its roads reach
     // are one such thing. **Civic Receipts joined with D2c**: a purchase now
@@ -154,7 +165,14 @@ describe('a live Commerce row is a card', () => {
     // The Charter Fleet wanted a mark on a hull that the user's own revision
     // changed from sight, which nothing can write, to movement, which `UnitStamp`
     // always could.
-    expect(live().length).toBe(31);
+    //
+    // **And eight more with C2.** Six are the sheet's proposals that had never
+    // been written down (Ore Caravans, Frontier Investment, Luxury Caravans,
+    // Mining Districts, The Capital Arsenal, Foreign Procurement) and two were
+    // deferred rows waiting on one field each — Travellers' Letters on a count
+    // of the empires a seat has met, The Customs Houses on a count of the hexes
+    // inside its borders.
+    expect(live().length).toBe(39);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -177,7 +195,17 @@ describe('a live Commerce row is a card', () => {
           if (effect.where === 'hex') expect(effect.on, where).toBeDefined();
           if ((effect.basis ?? 'flat') === 'count') {
             expect(effect.count, where).toBeDefined();
-            expect(effect.to, where).toBeDefined();
+            // **A caravan's count pays the bag** (the (route, count) pair, batch
+            // GP2) — every other count says its voice with `to`, because every
+            // other count pays into a fold that carries one voice at a time.
+            if (effect.where === 'route') {
+              const bag =
+                (effect.food ?? 0) + (effect.production ?? 0) + (effect.gold ?? 0) +
+                (effect.science ?? 0) + (effect.culture ?? 0);
+              expect(bag, where).not.toBe(0);
+            } else {
+              expect(effect.to, where).toBeDefined();
+            }
           }
           break;
         case 'productionBonus':
@@ -222,10 +250,11 @@ describe('a live Commerce row is a card', () => {
         check(id, effect);
       }
     }
-    // Fourteen shapes carry the whole live half — six joined with C1's rows
+    // Fifteen shapes carry the whole live half — six joined with C1's rows
     // (a contentment line, a capacity line, a strength line, a route rider, a
-    // percentage on a rule of the realm and an upkeep surcharge) — and a
-    // fifteenth here would be a shape a later pass added without saying so.
+    // percentage on a rule of the realm and an upkeep surcharge) and the renown
+    // trickle with C2's Customs Houses — and a sixteenth here would be a shape
+    // a later pass added without saying so.
     expect([...kinds].sort()).toEqual([
       'authority',
       'combatLine',
@@ -233,6 +262,7 @@ describe('a live Commerce row is a card', () => {
       'pays',
       'productionBonus',
       'purchaseRider',
+      'renown',
       'routeRider',
       'rule',
       'rulePercent',
@@ -264,7 +294,8 @@ describe('a live Commerce row is a card', () => {
 
 describe('a deferred Commerce row is a promise, not a card', () => {
   it('pays nothing, says what it would have said, and sits in no pool', () => {
-    expect(deferred().length).toBe(29);
+    // C2 took two off it — Travellers' Letters and The Customs Houses.
+    expect(deferred().length).toBe(27);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -524,5 +555,317 @@ describe('The Charter Fleet — a hull bought with coin', () => {
     expect(stamp('trireme', 'faith')).toEqual({});
     // And a soldier bought at the same counter is not a ship.
     expect(stamp('warrior', 'gold')).toEqual({});
+  });
+});
+
+// --- C2, the cheap members ----------------------------------------------------
+
+/**
+ * **Batch C2**: six rows the sheet proposed and nobody had written down, plus
+ * four that were each waiting on one field.
+ *
+ * Four things were added to the vocabulary and every one of them is written by a
+ * live row here:
+ *
+ *   · `CountKind`'s `tilesInBorders` — the hexes inside a realm's borders that
+ *     answer a `TileCondition`, narrowed to one town by `within: 'city'`. Three
+ *     rows count three different facts about a hex through it (a mine, a luxury
+ *     seam, a customs house), which is why it takes a condition rather than
+ *     being three members;
+ *   · `CountKind`'s `empiresMet` — Travellers' Letters, off `Player.metSeats`;
+ *   · `CardPaysEffect.per` read at the ring — Mining Districts' two adjacent
+ *     mines to a helping;
+ *   · two `ActionRuleId`s at the purchase counter — the capital's exemption from
+ *     the one-a-turn limit, and a waiver of a unit's strategic resource.
+ *
+ * Frontier Investment needed nothing new: a route `pays` share already asks both
+ * ends (`destination`, `crossing`), which is what "double bonuses from domestic
+ * trade routes into small towns" says.
+ */
+describe('C2 — the counts, the ring and the two counter rules', () => {
+  /** A duel with one Commerce seat, the named cards in its chairs. */
+  function bench(cards: string[]) {
+    const g = createGame({
+      seed: 53,
+      sizeName: 'duel',
+      players: [
+        { name: 'Musa', color: '#d4502e', isHuman: true, leader: 'mansaMusa' },
+        { name: 'Bors', color: '#3a7fe8', leader: 'pachacuti' },
+      ],
+    });
+    const musa = playerById(g.state, 0)!;
+    for (const card of cards) {
+      musa.statecraft.orders.push(card as OrderId);
+      musa.statecraft.slots.push({ card: card as OrderId, sealedUntil: g.state.turn });
+    }
+    bumpRevision(g.state);
+    return g;
+  }
+
+  /** A town of this seat, founded a few hexes along from its opening piece. */
+  function town(g: ReturnType<typeof bench>, at = 0) {
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    const tile = getTileAt(g.state.map, unit.col + at, unit.row)!;
+    return foundCityAt(g.state, 0, tile)!;
+  }
+
+  /**
+   * Clear the town's own hex. A bought unit has to have somewhere to stand, and
+   * the opening scout is parked exactly where the walls went up.
+   */
+  function empty(g: ReturnType<typeof bench>, city: { col: number; row: number }) {
+    g.state.units = g.state.units.filter(
+      (unit) => unit.col !== city.col || unit.row !== city.row,
+    );
+    bumpRevision(g.state);
+  }
+
+  /** Every hex a town owns but the one its walls stand on. */
+  function around(g: ReturnType<typeof bench>, city: { id: number; col: number; row: number }) {
+    return ownedTiles(g.state, city as never).filter(
+      (tile) => tile.col !== city.col || tile.row !== city.row,
+    );
+  }
+
+  /**
+   * **The member register.** The kind-level registers in `statecraft.test.ts`
+   * only prove a *shape* is named by some row: a new member of a union the
+   * evaluator already walks, and a new field on a shape it already reads, sail
+   * straight through them. So each pass names what it declared and says which
+   * row writes it — a member nothing writes is a member nothing has tested.
+   */
+  it('registers exactly which rows write the four things C2 declared', () => {
+    const writers = (
+      match: (effect: CardEffect) => boolean,
+    ): string[] => COMMERCE.filter((id) => orderDef(id).effects.some(match));
+
+    expect(
+      writers(
+        (effect) =>
+          (effect.kind === 'pays' && effect.count === 'tilesInBorders') ||
+          (effect.kind === 'renown' && effect.count === 'tilesInBorders'),
+      ),
+    ).toEqual(['oreCaravans', 'luxuryCaravans', 'theCustomsHouses']);
+    expect(writers((effect) => effect.kind === 'pays' && effect.count === 'empiresMet')).toEqual([
+      'travellersLetters',
+    ]);
+    expect(
+      writers(
+        (effect) =>
+          effect.kind === 'pays' && effect.perNeighbour !== undefined && effect.per !== undefined,
+      ),
+    ).toEqual(['miningDistricts']);
+    expect(
+      writers((effect) => effect.kind === 'rule' && effect.rule === 'capitalBuysWithoutLimit'),
+    ).toEqual(['theCapitalArsenal']);
+    expect(
+      writers((effect) => effect.kind === 'rule' && effect.rule === 'buysWithoutResources'),
+    ).toEqual(['foreignProcurement']);
+  });
+
+  it('counts the works inside a town’s borders, worked or not', () => {
+    const g = bench([]);
+    const city = town(g);
+    const probe = (within?: 'city') =>
+      countOf(
+        g.state,
+        0,
+        'oreCaravans' as OrderId,
+        {
+          kind: 'pays',
+          where: 'route',
+          basis: 'count',
+          count: 'tilesInBorders',
+          tile: { test: 'improvement', improvement: 'mine' },
+          ...(within === undefined ? {} : { within }),
+          gold: 1,
+        },
+        city,
+      );
+    expect(probe('city')).toBe(0);
+    // Three mines on ground the town owns, and **nobody standing on any of
+    // them**: the count is of what the valley has dug, not of what its citizens
+    // are doing today.
+    const owned = around(g, city);
+    expect(owned.length).toBeGreaterThanOrEqual(3);
+    for (const tile of owned.slice(0, 3)) raiseImprovement(tile, 'mine', g.state.turn);
+    city.workedTiles = [];
+    bumpRevision(g.state);
+    expect(probe('city')).toBe(3);
+    // The realm's reading is the same sweep over every town, so this realm's
+    // one town makes the two figures agree.
+    expect(probe()).toBe(3);
+  });
+
+  it('pays a caravan once per mine in the town it left', () => {
+    const g = bench(['oreCaravans']);
+    const from = town(g, 0);
+    const to = town(g, 4);
+    from.population = 6;
+    to.population = 6;
+    const named = () =>
+      explainRouteYieldBetween(g.state, from, to).filter((line) =>
+        line.source.includes('Ore Caravans'),
+      );
+    // No mines, no line at all — a bag of nothing says nothing.
+    expect(named()).toEqual([]);
+    for (const tile of around(g, from).slice(0, 2)) {
+      raiseImprovement(tile, 'mine', g.state.turn);
+    }
+    bumpRevision(g.state);
+    expect(foldRouteYield(named()).gold).toBe(2);
+    // And the count is the **origin's**: mines at the far end buy nothing.
+    for (const tile of around(g, to).slice(0, 3)) raiseImprovement(tile, 'mine', g.state.turn);
+    bumpRevision(g.state);
+    expect(foldRouteYield(named()).gold).toBe(2);
+  });
+
+  it('pays the realm a renown a turn for each customs house it holds', () => {
+    const g = bench(['theCustomsHouses']);
+    const city = town(g);
+    const named = () =>
+      cardRenownLines(g.state, 0).filter((line) => line.card === 'theCustomsHouses');
+    expect(named()).toEqual([]);
+    for (const tile of around(g, city).slice(0, 2)) {
+      raiseImprovement(tile, 'customsHouse', g.state.turn);
+    }
+    bumpRevision(g.state);
+    const lines = named();
+    expect(lines.length).toBe(1);
+    expect(lines[0]!.amount).toBe(2);
+  });
+
+  it('counts the empires a seat has met, and never the wild or itself', () => {
+    const g = bench([]);
+    const probe = () =>
+      countOf(g.state, 0, 'travellersLetters' as OrderId, {
+        kind: 'pays',
+        where: 'capital',
+        basis: 'count',
+        count: 'empiresMet',
+        to: 'science',
+        amount: 1,
+      });
+    const musa = playerById(g.state, 0)!;
+    musa.metSeats = [];
+    expect(probe()).toBe(0);
+    musa.metSeats = [1];
+    expect(probe()).toBe(1);
+    // A seat cannot meet itself, and the wild is nobody's acquaintance.
+    musa.metSeats = [0, 1];
+    expect(probe()).toBe(1);
+    const wild = g.state.players.find((p) => p.barbarian);
+    if (wild) {
+      musa.metSeats = [1, wild.id];
+      expect(probe()).toBe(1);
+    }
+  });
+
+  it('buys a helping of the ring for every two neighbours that answer', () => {
+    const g = bench(['miningDistricts']);
+    const city = town(g);
+    const centre = around(g, city)[0]!;
+    raiseImprovement(centre, 'mine', g.state.turn);
+    const ring = neighborTiles(g.state.map, tileHex(centre));
+    const paid = (): number => {
+      const ctx = cityContext(g.state, city);
+      const line = explainTileYield(centre, ctx).find((entry) =>
+        entry.source.includes('Mining Districts'),
+      );
+      return line?.gold ?? 0;
+    };
+    // One mine beside it is half a helping, which is nothing — the division
+    // floors, so an odd neighbour buys the miner nothing at all.
+    raiseImprovement(ring[0]!, 'mine', g.state.turn);
+    bumpRevision(g.state);
+    expect(paid()).toBe(0);
+    raiseImprovement(ring[1]!, 'mine', g.state.turn);
+    bumpRevision(g.state);
+    expect(paid()).toBe(1);
+    raiseImprovement(ring[2]!, 'mine', g.state.turn);
+    bumpRevision(g.state);
+    expect(paid()).toBe(1);
+    raiseImprovement(ring[3]!, 'mine', g.state.turn);
+    bumpRevision(g.state);
+    expect(paid()).toBe(2);
+  });
+
+  it('lifts the one-a-turn limit in the capital alone', () => {
+    const g = bench([]);
+    const capital = town(g, 0);
+    const other = town(g, 5);
+    empty(g, capital);
+    empty(g, other);
+    const musa = playerById(g.state, 0)!;
+    musa.gold = 9000;
+    const item = { kind: 'unit', id: 'warrior' } as const;
+    // The limit as it stands: a town that has bought a soldier today is done.
+    for (const city of [capital, other]) {
+      city.purchasedUnitTurns = { militaryGold: g.state.turn };
+    }
+    expect(purchaseError(g.state, 0, capital.id, item, 'gold')).toContain('already bought');
+    expect(purchaseError(g.state, 0, other.id, item, 'gold')).toContain('already bought');
+    musa.statecraft.orders.push('theCapitalArsenal' as OrderId);
+    musa.statecraft.slots.push({
+      card: 'theCapitalArsenal' as OrderId,
+      sealedUntil: g.state.turn,
+    });
+    bumpRevision(g.state);
+    expect(purchaseError(g.state, 0, capital.id, item, 'gold')).toBeNull();
+    // And nowhere else: the rule names the one town every empire has one of.
+    expect(purchaseError(g.state, 0, other.id, item, 'gold')).toContain('already bought');
+  });
+
+  it('waives a unit’s strategic resource at the till and nowhere else', () => {
+    const g = bench([]);
+    const city = town(g);
+    empty(g, city);
+    const musa = playerById(g.state, 0)!;
+    musa.gold = 9000;
+    const gate = gatingTech('unit', 'horseman');
+    expect(gate).not.toBeNull();
+    musa.techsResearched.push(gate!);
+    bumpRevision(g.state);
+    const item = { kind: 'unit', id: 'horseman' } as const;
+    // The empire has no horses, so both doors are shut.
+    expect(buildError(g.state, 0, 'unit', 'horseman', city)).toContain('needs improved');
+    expect(purchaseError(g.state, 0, city.id, item, 'gold')).toContain('needs improved');
+    musa.statecraft.orders.push('foreignProcurement' as OrderId);
+    musa.statecraft.slots.push({
+      card: 'foreignProcurement' as OrderId,
+      sealedUntil: g.state.turn,
+    });
+    bumpRevision(g.state);
+    expect(purchaseError(g.state, 0, city.id, item, 'gold')).toBeNull();
+    // **Production goes on asking.** The card says "when purchasing units", and
+    // the queue is not the counter.
+    expect(buildError(g.state, 0, 'unit', 'horseman', city)).toContain('needs improved');
+  });
+
+  it('doubles a domestic road into a small town, and leaves a big one alone', () => {
+    const g = bench(['frontierInvestment']);
+    const from = town(g, 0);
+    const to = town(g, 4);
+    from.population = 40;
+    for (const id of ['granary', 'library', 'market', 'monument'] as const) {
+      addBuilding(g.state, from, id);
+    }
+    to.population = 5;
+    bumpRevision(g.state);
+    const named = () =>
+      explainRouteYieldBetween(g.state, from, to).filter((line) =>
+        line.source.includes('Frontier Investment'),
+      );
+    const base = () =>
+      foldRouteYield(
+        explainRouteYieldBetween(g.state, from, to).filter(
+          (line) => !line.source.includes('Frontier Investment'),
+        ),
+      );
+    expect(foldRouteYield(named()).gold).toBe(base().gold);
+    // One citizen more and the town has outgrown the subsidy.
+    to.population = 6;
+    bumpRevision(g.state);
+    expect(named()).toEqual([]);
   });
 });

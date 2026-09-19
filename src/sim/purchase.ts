@@ -65,6 +65,7 @@ import {
   type QueueItem,
   type Unit,
   type UnitPurchaseBucket,
+  capitalCityOf,
   cityById,
   firstKey,
   frontKey,
@@ -977,7 +978,15 @@ export function purchaseError(
       // *this* town rather than about the empire — a wonder's site, and since
       // the naval line a hull's coastline — so a landlocked city cannot buy the
       // trireme it cannot build, and the sentence names the town either way.
-      const blocked = buildError(state, playerId, bought.kind, bought.id, city);
+      // **Foreign Procurement's licence** (batch C2): a card may waive the
+      // strategic resource a *purchased* unit would otherwise need. Read here
+      // rather than inside `buildError`, because the gate is production's too
+      // and production goes on asking — see `BuildGateOptions`. Units only: the
+      // card says "when purchasing units", and no building wants a seam anyway.
+      const blocked = buildError(state, playerId, bought.kind, bought.id, city, {
+        ignoreResourceRequirement:
+          bought.kind === 'unit' && cardActionRule(state, playerId, 'buysWithoutResources'),
+      });
       if (blocked !== null) return blocked;
     }
     if (bought.kind === 'building' && city.buildings.includes(bought.id)) {
@@ -1057,9 +1066,16 @@ export function purchaseError(
   // Buildings are deliberately untouched: a granary and a library bought on one
   // afternoon are two things the town then has to justify, where two bought
   // soldiers are an army that skipped the queue.
+  //
+  // **The Capital Arsenal lifts it in one town** (batch C2,
+  // `ActionRuleId`'s `capitalBuysWithoutLimit`): the stamp is still written, so
+  // a seat that loses the card is back under the limit the same turn.
   if (bought.kind === 'unit') {
     const bucket = unitPurchaseBucket(bought.id, currency);
-    if (city.purchasedUnitTurns?.[bucket] === state.turn) {
+    const arsenal =
+      capitalCityOf(state, playerId)?.id === city.id &&
+      cardActionRule(state, playerId, 'capitalBuysWithoutLimit');
+    if (!arsenal && city.purchasedUnitTurns?.[bucket] === state.turn) {
       return `${city.name} has already bought ${bucketWords(bucket)} this turn`;
     }
   }

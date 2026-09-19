@@ -2764,6 +2764,43 @@ export function countOf(
       }
       return total;
     }
+    case 'tilesInBorders': {
+      // **The ground, counted** — Ore Caravans' mines and The Customs Houses'
+      // works. The condition is the row's own, asked through the one predicate
+      // every tile question in the game goes through, so a card that *pays* a
+      // mine and a card that *counts* one cannot disagree about what a mine is.
+      //
+      // Ownership and not labour: `ownedTiles` is the town walk, so a seam
+      // nobody is standing on still counts. See the count's docblock.
+      const rule = effect.tile;
+      if (rule === undefined) return 0;
+      const walk = (town: City): number => {
+        let here = 0;
+        for (const tile of ownedTiles(state, town)) {
+          if (tileConditionHolds(tile, rule, undefined, undefined, state.turn)) here += 1;
+        }
+        return here;
+      };
+      if (effect.within === 'city') return city ? walk(city) : 0;
+      let total = 0;
+      for (const town of citiesOf(state, playerId)) total += walk(town);
+      return total;
+    }
+    case 'empiresMet': {
+      // The permanent register and nothing derived — see the count. The wild is
+      // never written into it and is refused again here, so a seat that has
+      // only ever met raiders counts nobody.
+      const seat = playerById(state, playerId);
+      if (!seat) return 0;
+      let met = 0;
+      for (const id of seat.metSeats) {
+        if (id === playerId) continue;
+        const other = playerById(state, id);
+        if (!other || other.barbarian === true) continue;
+        met += 1;
+      }
+      return met;
+    }
     case 'uniqueStrategicResources':
       // `uniqueLuxuries`' sweep with the other `ResourceKind`, which is
       // `improvedStrategicResources`' bargain read the other way round: that one
@@ -3708,6 +3745,15 @@ export interface TileLine {
   perNeighbour?: TileCondition;
   /** The most neighbours that ever pay — The Woodland Edge's two. */
   perNeighbourMax?: number;
+  /**
+   * **How many answering neighbours buy one helping** — Mining Districts' two
+   * (`CardPaysEffect.per` read at the ring, batch C2). Absent is one apiece.
+   *
+   * The division floors and happens before the cap, which is the order the
+   * counted `pays` basis already uses: a divisor says how much of the thing
+   * makes a helping, and a ceiling says how many helpings ever pay.
+   */
+  perNeighbourPer?: number;
   food: number;
   production: number;
   gold: number;
@@ -4103,6 +4149,10 @@ function tileLinesFrom(
     if (effect.perNeighbour !== undefined) {
       line.perNeighbour = effect.perNeighbour;
       if (effect.max !== undefined) line.perNeighbourMax = effect.max;
+      // The divisor, written only above one — `per: 1` is what every row
+      // written before this field meant, and a line carrying it would compare
+      // differently for saying the same thing.
+      if (effect.per !== undefined && effect.per > 1) line.perNeighbourPer = effect.per;
     }
     if (
       VOICES.some((key) => line[key] !== 0) ||
@@ -7163,6 +7213,10 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
                     basis: 'count',
                     ...RENOWN_PROBE,
                     count: effect.count,
+                    // The ground the count is asked of, where the row named one
+                    // (The Customs Houses). A count that takes an argument is
+                    // handed it here or it counts nothing — see the count.
+                    tile: effect.tile,
                   }),
                   effect.countPer,
                   effect.max,
@@ -7319,14 +7373,28 @@ export function cardRouteYieldLines(
   const list: CardRouteLine[] = [];
   for (const { source, card, effect } of routeRows(state, from, to)) {
     if (!routeScopesAdmit(state, effect, from, to, age)) continue;
+    // **A road counted by a fact about the town that sent it** — Ore Caravans'
+    // mines and Luxury Caravans' seams (batch C2). Resolved here rather than
+    // carried, which is the opposite bargain from `routeLength` and for that
+    // count's stated reason: the length is a fact about the *pair* and only the
+    // fold holding both ends can answer it, while these are facts about the
+    // origin, which this function has in hand. The origin is handed in as the
+    // count's town, so `within: 'city'` narrows to the town the caravan left.
+    //
+    // The bag is multiplied, which is the (route, count) pair's own rule — a
+    // caravan's line is a bag and the road's fold multiplies bags.
+    const counted =
+      effect.basis === 'count' && effect.count !== undefined && effect.count !== 'routeLength'
+        ? helpings(countOf(state, from.ownerId, card, effect, from), effect.per, effect.max)
+        : 1;
     const line: CardRouteLine = {
       card,
       source: label(source, routeScopeNote(effect)),
-      food: effect.food ?? 0,
-      production: effect.production ?? 0,
-      gold: effect.gold ?? 0,
-      science: effect.science ?? 0,
-      culture: effect.culture ?? 0,
+      food: (effect.food ?? 0) * counted,
+      production: (effect.production ?? 0) * counted,
+      gold: (effect.gold ?? 0) * counted,
+      science: (effect.science ?? 0) * counted,
+      culture: (effect.culture ?? 0) * counted,
       // Carried rather than resolved: this module holds the origin and the fold
       // in `routeYields.ts` holds both ends, and only the pair can answer "how
       // many luxuries are on this road". See `CardPaysEffect`.

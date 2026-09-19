@@ -216,6 +216,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Salt Tithes | 0 | ● | P | Gain +3 gold per distinct accessible improved luxury you produce. Worked luxury tiles gain +1 food. |
 | The Guild Halls | 0 | ● | P | A city gains +1 production per distinct luxury type it works. Worked camps and plantations gain +1 food. |
 | The Merchant Shrines | 0 | ● | P | Your capital gains +2 faith. Cities working an improved luxury gain +2 faith, once per city. |
+| Travellers' Letters | 0 | ● | P | Your capital gains +2 science and +2 culture, plus +1 of each per foreign empire met, no cap. |
 | The Pathfinders' Company | 0 | ◆ | S | Scouts gain +1 sight and +1 movement. |
 | The Lighthouse Keepers | 0 | ● | S | Ships gain +1 sight. Lighthouses cost 25% less production; worked fishing boats gain +1 food. |
 | The Assayer's Rule | 0 | ◆ | S | Worked resource tiles that supply gold gain +1 gold. |
@@ -229,11 +230,18 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Established Routes | 1 | ◆ | P | A trade route you have kept up for at least thirty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. |
 | Commercial Education | 1 | ● | P | Gold buildings provide +2 science. |
 | Strategic Reserves | 1 | ● | S | Worked strategic resource tiles gain +1 science and +1 gold. |
+| Ore Caravans | 1 | ● | P | Trade routes gain +1 gold for every mine in their origin city. |
+| Frontier Investment | 1 | ◆ | P | Cities of at most 5 population receive double bonuses from domestic trade routes and gain +50% gold toward purchasing. |
 | Market Foundations | 1 | ● | S | Gain +20% production toward Markets. Markets provide +1 happiness. |
 | The Market Writ | 1 | ◆ | P | +1 authority for every two Markets in your empire. Buying tiles costs 30% less. |
 | The Convoy | 1 | ● | S | Your combat units within one hex of your trader gain +4 strength. Your traders gain +1 movement. Traders remain plunderable. |
 | Financed Industry | 1 | ○ | P | Cities gain production equal to 20% of their gold yield. Every city loses 3 food. |
 | The Chartered Arsenal | 2 | ◆ | S | Military units purchased with gold gain +4 strength permanently on creation. |
+| Luxury Caravans | 2 | ● | P | Trade routes gain +1 gold for every luxury resource tile in their origin city. |
+| Mining Districts | 2 | ◆ | S | Worked mines gain +1 gold and +1 science for every two adjacent mines. |
+| The Capital Arsenal | 2 | ◆ | S | There is no limit on the number of units that can be purchased per turn in your capital. |
+| Foreign Procurement | 2 | ◆ | S | Ignore strategic resource requirements when purchasing units. All units cost 20% more. |
+| The Customs Houses | 2 | ◆ | S | Customs houses gain +3 gold and +1 renown. Cities with a customs house gain +15% gold toward purchasing. |
 | Civic Markets | 2 | ● | P | Markets provide +2 science and +2 food. |
 | Maritime Authority | 2 | ● | S | Gain +3 authority. Naval units gain +5 combat strength against cities. |
 | Professional Retainers | 2 | ● | S | All units gain +3 combat strength and cost +1 gold in maintenance. |
@@ -386,6 +394,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The House of Wisdom | Scientific · Magisterial | 3 | ◆ | S | Worked Academies gain +2 culture. Cities working an Academy gain +1 renown and +20% production toward wonders. Each city receives the city bonus once. |
 | Marcher Lords | Dominion · Expansionist | 2 | ◆ | P | Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one. |
 | The Merchant Navigators | Commerce · Scientific | 2 | ● | S | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +3 science. |
+| Letters of Marque | Dominion · Commerce | 3 | ○ | S | Naval combat kills grant 40 gold. Cities with a Harbour purchase naval combat units for 25% less gold, but produce those units 20% more slowly. |
+| The Exchange of Discoveries | Commerce · Scientific | 3 | ◆ | S | +1 science on mines and quarries on a resource. Additional +1 if the city has a market. |
 | Garden Provinces | Expansionist · Magisterial | 2 | ● | P | Connected cities with a Monument gain +2 food and +2 culture. |
 
 ### Generic

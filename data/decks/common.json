@@ -74,10 +74,29 @@
       "rarity": "rare",
       "flavor": "A signature turns a pirate into a patriot.",
       "text": "Naval combat kills grant 40 gold. Cities with a Harbour purchase naval combat units for 25% less gold, but produce those units 20% more slowly.",
-      "deferred": [
-        "cities with a harbour buy warships more cheaply, and build them more slowly"
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "class": { "category": "naval" },
+          "grant": { "yield": "gold", "amount": 40 }
+        },
+        {
+          "kind": "purchaseRider",
+          "class": { "category": "naval" },
+          "on": "unit",
+          "percent": -25,
+          "scope": { "test": "hasBuilding", "building": "harbour" }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "class": { "category": "naval" },
+          "percent": -20,
+          "scope": { "test": "hasBuilding", "building": "harbour" }
+        }
       ],
-      "effects": []
+      "note": "The coin is for a kill made by one of your ships, wherever it happens. The discount and the slower yards are asked of the town at the counter and of the town at the forge, which is the same town either way."
     },
     "commonRitesOfPassage": {
       "name": "Rites of Passage",
@@ -494,9 +513,35 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Two ports, two answers, and neither one wrong.",
-      "text": "Cities with a University gain +2 science for each distinct foreign empire served by their outgoing routes, at most +8. Those routes gain +2 gold.",
-      "deferred": ["a town counts the distinct realms its own caravans reach"],
-      "effects": []
+      "text": "+1 science on mines and quarries on a resource. Additional +1 if the city has a market.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "all",
+            "of": [
+              { "test": "anyImprovement", "improvements": ["mine", "quarry"] },
+              { "test": "hasResource" }
+            ]
+          },
+          "science": 1
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "all",
+            "of": [
+              { "test": "anyImprovement", "improvements": ["mine", "quarry"] },
+              { "test": "hasResource" }
+            ]
+          },
+          "scope": { "test": "hasBuilding", "building": "market" },
+          "science": 1
+        }
+      ],
+      "note": "Both lines land on the same hexes; the second is asked of the town that owns the ground, so a seam whose city has raised its stalls is worth two beakers rather than one."
     },
     "travellingPlayers": {
       "name": "Travelling Players",

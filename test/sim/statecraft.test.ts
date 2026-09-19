@@ -8490,6 +8490,11 @@ describe("the engine shapes", () => {
     // D2d: Established Routes' half again on a road kept up, un-deferred with
     // the term the route `pays` learned (`TradeRoute.startedTurn`).
     "establishedRoutes · routeYield",
+    // C2: Frontier Investment doubles what a domestic road carries into a small
+    // town. A share rather than an amplifier, because the dial that multiplies
+    // every road is a fact about the realm and takes no condition, while a
+    // route `pays` share already asks both ends (`destination`, `crossing`).
+    "frontierInvestment · routeYield",
     // C1: two Commerce rows whose deferral notes had gone stale. The
     // Caravanserai Network pays a domestic road a flat point of each, and The
     // Scholars' Roads pays every road two of the quiet voices and then takes

@@ -103,12 +103,35 @@
       "line": "none",
       "rarity": "common",
       "flavor": "News travels with the cargo, and is worth more.",
-      "text": "Your capital gains +2 science and +2 culture, plus +1 of each per foreign empire met, at most +4 additional science and culture.",
-      "effects": [],
-      "deferred": [
-        "your capital learns and sings a little more for every foreign empire you have met"
+      "text": "Your capital gains +2 science and +2 culture, plus +1 of each per foreign empire met, no cap.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": {
+            "test": "capital"
+          },
+          "science": 2,
+          "culture": 2
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "empiresMet",
+          "to": "science",
+          "amount": 1
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "empiresMet",
+          "to": "culture",
+          "amount": 1
+        }
       ],
-      "note": "Half built, and so held whole. Nothing in this game counts the empires you have met, so the letters have nobody to be addressed to."
+      "note": "An empire you have met stays met, so the letters never stop arriving — a rival you have since destroyed is still a rival you once wrote to."
     },
     "lettersOfIntroduction": {
       "name": "Letters of Introduction",
@@ -685,6 +708,71 @@
         }
       ]
     },
+    "oreCaravans": {
+      "name": "Ore Caravans",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The valley sells what the valley digs.",
+      "text": "Trade routes gain +1 gold for every mine in their origin city.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "within": "city",
+          "tile": {
+            "test": "improvement",
+            "improvement": "mine"
+          },
+          "gold": 1
+        }
+      ],
+      "note": "The mines are counted where the caravan set out, and a mine nobody is working still counts — the coin is for the ore the valley can send, not for the citizens standing in it."
+    },
+    "frontierInvestment": {
+      "name": "Frontier Investment",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Send the money where the town is still small enough to feel it.",
+      "text": "Cities of at most 5 population receive double bonuses from domestic trade routes and gain +50% gold toward purchasing.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "domestic",
+          "destination": {
+            "test": "populationAtMost",
+            "value": 5
+          },
+          "share": [
+            {
+              "yield": "all",
+              "percent": 100
+            }
+          ]
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "all",
+          "percent": -50,
+          "scope": {
+            "test": "populationAtMost",
+            "value": 5
+          }
+        }
+      ],
+      "note": "The doubling is taken of everything already on the cart, and it is asked of the town the road ends at — a small town grows out of it the turn it passes the mark."
+    },
     "marketFoundations": {
       "name": "Market Foundations",
       "decks": [
@@ -894,6 +982,103 @@
         }
       ]
     },
+    "luxuryCaravans": {
+      "name": "Luxury Caravans",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "One cart of dye is worth ten of grain.",
+      "text": "Trade routes gain +1 gold for every luxury resource tile in their origin city.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "within": "city",
+          "tile": {
+            "test": "resourceKind",
+            "kind": "luxury"
+          },
+          "gold": 1
+        }
+      ],
+      "note": "Every luxury hex inside the origin's borders counts, worked or not, and two seams of the same good are two — this is a count of ground rather than of the kinds your realm can name."
+    },
+    "miningDistricts": {
+      "name": "Mining Districts",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "One shaft is a hole. Six is an industry.",
+      "text": "Worked mines gain +1 gold and +1 science for every two adjacent mines.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "mine"
+          },
+          "perNeighbour": {
+            "test": "improvement",
+            "improvement": "mine"
+          },
+          "per": 2,
+          "gold": 1,
+          "science": 1
+        }
+      ],
+      "note": "The neighbours need not be worked and need not be yours; the mine being paid does have to be worked, which is true of every line that lands on a hex. Odd numbers round down, so a mine with three beside it is paid once."
+    },
+    "theCapitalArsenal": {
+      "name": "The Capital Arsenal",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The yard never closes, and the yard is here.",
+      "text": "There is no limit on the number of units that can be purchased per turn in your capital.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "capitalBuysWithoutLimit"
+        }
+      ],
+      "note": "Only the capital, and only the limit: every other refusal at the counter still stands, and a unit still needs somewhere to stand when it arrives."
+    },
+    "foreignProcurement": {
+      "name": "Foreign Procurement",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Somebody, somewhere, will sell you horses.",
+      "text": "Ignore strategic resource requirements when purchasing units. All units cost 20% more.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "buysWithoutResources"
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "unit",
+          "percent": 20
+        }
+      ],
+      "note": "The waiver is for the counter alone — a town still cannot put a knight in its queue without horses. A piece bought this way is an ordinary piece afterwards and still takes a copy, so an empire that buys past its iron finds the iron spoken for."
+    },
     "theHarbourChain": {
       "name": "The Harbour Chain",
       "decks": [
@@ -1046,11 +1231,37 @@
       "rarity": "uncommon",
       "flavor": "The gate that counts you is the gate that knows you.",
       "text": "Customs houses gain +3 gold and +1 renown. Cities with a customs house gain +15% gold toward purchasing.",
-      "effects": [],
-      "deferred": [
-        "a customs house pays gold and renown, and its town buys more with what it earns"
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "customsHouse"
+          },
+          "gold": 3
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "count": "tilesInBorders",
+          "tile": {
+            "test": "improvement",
+            "improvement": "customsHouse"
+          }
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "all",
+          "percent": -15,
+          "scope": {
+            "test": "hasImprovement",
+            "improvement": "customsHouse"
+          }
+        }
       ],
-      "note": "A line the design is still writing, entered under a working name so that it is not lost. Renown is paid for a town's buildings and never for one hex's works, and no town's gold can be made to go further at the counter."
+      "note": "The coin wants a citizen standing on the works, as every hex line does. The renown and the discount do not: a customs house pays its realm for being there, and the town it stands in buys more cheaply whether or not anybody is working it."
     },
     "civicMarkets": {
       "name": "Civic Markets",

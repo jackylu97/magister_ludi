@@ -282,3 +282,71 @@ describe('the third position, dealt to a two-deck seat', () => {
     expect(dealtCross).toBe(2);
   });
 });
+
+// --- C2, the two shared rows Commerce was waiting on --------------------------
+
+/**
+ * **Letters of Marque** and **The Exchange of Discoveries** came live in batch
+ * C2, and neither needed a new shape: C1 had found both fully reachable and
+ * left them only because this file was outside its fence.
+ *
+ * Both belong to **two** decks, so lighting them changes what Dominion and
+ * Scientific deal as well as what Commerce does — which is the point of a
+ * shared row and is stated here so the next reader of either deck's counts
+ * knows where the change came from.
+ */
+describe('C2 — the two shared rows', () => {
+  it('lights Letters of Marque for both its decks, with all three halves written', () => {
+    const def = orderDef('lettersOfMarque' as OrderId);
+    expect(def.decks).toEqual(['dominion', 'commerce']);
+    expect(def.deferred).toBeUndefined();
+    expect(orderIsDealt('lettersOfMarque' as OrderId)).toBe(true);
+    // A kill by one of this empire's ships, a discount at a harbour town's
+    // counter, and a penalty on that same town's yards.
+    expect(def.effects.map((effect) => effect.kind)).toEqual([
+      'windfallRider',
+      'purchaseRider',
+      'productionBonus',
+    ]);
+    for (const effect of def.effects) {
+      if (effect.kind === 'windfallRider') {
+        expect(effect.occasion).toBe('kill');
+        expect(effect.class).toEqual({ category: 'naval' });
+      }
+      if (effect.kind === 'purchaseRider' || effect.kind === 'productionBonus') {
+        expect(effect.scope).toEqual({ test: 'hasBuilding', building: 'harbour' });
+      }
+    }
+  });
+
+  it('lights The Exchange of Discoveries as two hex lines, the second scoped', () => {
+    const def = orderDef('theExchangeOfDiscoveries' as OrderId);
+    expect(def.decks).toEqual(['commerce', 'scientific']);
+    expect(def.deferred).toBeUndefined();
+    expect(orderIsDealt('theExchangeOfDiscoveries' as OrderId)).toBe(true);
+    // The user's sheet rewrote this card: the old text counted the courts a
+    // town's caravans reach, and the new one pays the seams themselves.
+    expect(def.text).toBe(
+      '+1 science on mines and quarries on a resource. Additional +1 if the city has a market.',
+    );
+    const lines = def.effects.filter(
+      (effect): effect is Extract<CardEffect, { kind: 'pays' }> => effect.kind === 'pays',
+    );
+    expect(lines.length).toBe(2);
+    for (const line of lines) {
+      expect(line.where).toBe('hex');
+      expect(line.science).toBe(1);
+      expect(line.on).toEqual({
+        test: 'all',
+        of: [
+          { test: 'anyImprovement', improvements: ['mine', 'quarry'] },
+          { test: 'hasResource' },
+        ],
+      });
+    }
+    // Only the second names the town that owns the ground — "additional +1 if
+    // the city has a market" is one clause about where, not about which hex.
+    expect(lines[0]!.scope).toBeUndefined();
+    expect(lines[1]!.scope).toEqual({ test: 'hasBuilding', building: 'market' });
+  });
+});

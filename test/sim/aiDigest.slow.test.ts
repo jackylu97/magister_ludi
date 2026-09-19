@@ -323,10 +323,34 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * shelf, so the two numbers are not measuring the same experiment. Nothing
  * stalled and no command was refused, which the assertion above this one checks
  * before the hash does. Measured twice, same bytes both runs.
+ *
+ * ---
+ *
+ * **Batch C2 — the cheap Commerce members.** Duel `25ba8a39:274085` →
+ * `71abc180:274152`, standard `b01dd2f0:959093` → `7a2d0e11:937239`.
+ *
+ * A wider live pool again, and for C1's reason exactly: nothing in `src/ai` was
+ * touched and no rule changed for a card that was already live. Ten more rows
+ * are dealt — six new Commerce cards off the user's sheet, two Commerce rows
+ * that were each waiting on one field, and two rows of the shared file, which
+ * widens Dominion's and Scientific's shelves as well as Commerce's. Every
+ * Commerce, Dominion and Scientific seat therefore draws from a different
+ * collection, and a hundred and twenty turns of compounding does the rest.
+ *
+ * One card also changes a figure a live row was already paying: The Exchange of
+ * Discoveries carried its old text in the data (a count of the courts a town's
+ * caravans reach) and now carries the sheet's, which pays science on mines and
+ * quarries instead.
+ *
+ * **The duel print is flat to within a rounding and the standard one shrank
+ * about two per cent.** Neither direction is a finding — the seats are drawing
+ * from a different shelf, so the two runs are not the same experiment. Nothing
+ * stalled and no command was refused, which the assertion above this one checks
+ * before the hash does. Measured twice, same bytes both runs.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '25ba8a39:274085',
-  standard: 'b01dd2f0:959093',
+  duel: '71abc180:274152',
+  standard: '7a2d0e11:937239',
 };
 
 /**
