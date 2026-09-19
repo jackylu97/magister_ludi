@@ -67,11 +67,21 @@ import { game, found, marchOut } from './statecraftHelpers';
  * The bench's own idiom (`religion.test.ts`' `simSource`), a glob rather than a
  * list so a seam moved into a new file is still read the day it moves.
  */
-const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
+const SIM_SOURCE = {
+  ...(import.meta.glob('../../src/sim/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>),
+  // **And the card system's own three**, since batch C1 asks this register a
+  // question about the evaluator: `moduleCycles.test.ts` globs both depths for
+  // the same reason, and a seam that moved into `statecraft/` is still a seam.
+  ...(import.meta.glob('../../src/sim/statecraft/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>),
+};
 
 function simSource(file: string): string {
   const key = Object.keys(SIM_SOURCE).find((path) => path.endsWith(`/${file}`));
@@ -512,7 +522,23 @@ describe('the member register', () => {
     expect(limiter, 'oncePerTurn').toBe(true);
     expect(shelf, 'buildingCategory').toBe(true);
     expect(greatHouse, 'empireBuilding').toBe(true);
-    expect(ceiling, "a grant's ceiling").toBe(true);
+    // **A grant's ceiling is read and named by nobody**, and that is stated here
+    // rather than forgotten — `conversion`'s bargain two claims down.
+    //
+    // Civic Receipts carried the only one (*"at most 30 culture per purchase"*)
+    // until batch C1 read the user's own sheet for the Commerce deck, which
+    // revises the row to *"with no cap"*. It is not an oversight and not a
+    // one-off: the same sheet takes the ceiling off The Money Lenders' interest,
+    // off The Merchant Ledger's beakers and off Travellers' Letters, so the
+    // design is moving away from capped grants rather than forgetting one.
+    //
+    // The shape stays, and stays **read** — the arm in `windfallPayout` is
+    // asserted below — because a ceiling is a thing a card may want again and
+    // deleting it would make the next row that asks for one a new shape rather
+    // than a field. What is pinned is the honest state: no Order names it today,
+    // and a row that starts to must come back and say so here.
+    expect(ceiling, "a grant's ceiling is named by no live row").toBe(false);
+    expect(simSource('statecraft/evaluator.ts')).toContain('grant.max !== undefined');
     // **Four of the five ledgers are named by a live row; the fifth is named by
     // none, and that is stated rather than forgotten.** `conversion` is written
     // at its seam and *counted* by The Living Hymnal — the count is the whole of

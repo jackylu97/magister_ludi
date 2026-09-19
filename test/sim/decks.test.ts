@@ -231,8 +231,16 @@ describe('the schema, as landed', () => {
     // maturity is deliberately not among them: a wood nobody planted has stood
     // since the world was made, so that word belongs to the planting system and
     // not to a stamp.
-    expect(live).toBe(223);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(223);
+    //
+    // **And C1 a fifth time** (the Commerce deck, read against the user's own
+    // sheet): no new predicate at all for fifteen of its sixteen, only a
+    // re-triage — most of D1b's deferral notes predate the four passes above and
+    // were out of date — plus the eleven rows the sheet adds and one field, a
+    // **movement** mark a card may write on a piece at its birth, which
+    // `UnitStamp` has carried since the Levée and only a muster could write.
+    // Sixteen more rows, in one of the seven.
+    expect(live).toBe(240);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(240);
   });
 
   /**
@@ -499,7 +507,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
         expect(pool, `${id} is deferred`).not.toContain(id);
       }
       // And the deferred half is the bulk of the catalogue, not a rounding.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(176);
+      // **C1 took five off it** — five Commerce rows whose deferral notes were
+      // written before D2a–D2d landed and had simply gone stale — while adding
+      // eleven new live rows, which are not deferred and so are not counted
+      // here.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(170);
     }
   });
 

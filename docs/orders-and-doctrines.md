@@ -218,12 +218,29 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Merchant Shrines | 0 | ● | P | Your capital gains +2 faith. Cities working an improved luxury gain +2 faith, once per city. |
 | The Pathfinders' Company | 0 | ◆ | S | Scouts gain +1 sight and +1 movement. |
 | The Lighthouse Keepers | 0 | ● | S | Ships gain +1 sight. Lighthouses cost 25% less production; worked fishing boats gain +1 food. |
-| The Assayer's Rule | 0 | ◆ | S | +2 gold on resource tiles that supply gold |
-| Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +3 food and +2 production. |
+| The Assayer's Rule | 0 | ◆ | S | Worked resource tiles that supply gold gain +1 gold. |
+| The Mineral Trade | 0 | ● | S | Worked mines and quarries gain +2 gold but lose 1 production. |
+| Coastal Estates | 0 | ● | S | Worked plantations and fishing boats gain +1 food and +1 gold. |
+| Land Speculation | 0 | ◆ | S | Buying tiles costs 50% less. Your capital loses 2 happiness. |
+| Founding Capital | 0 | ◆ | S | Founding a city grants 75 gold. |
+| Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +2 food and +2 production. |
 | Bought Swords | 1 | ◆ | S | Military units cost 20% less gold to purchase, but 10% more production to train. Purchases still do not count as training. |
-| Civic Receipts | 1 | ◆ | S | Purchasing an ordinary building for the first time in a city grants culture equal to 10% of the gold paid, at most 30 culture per purchase. |
+| Civic Receipts | 1 | ◆ | S | Purchasing an ordinary building for the first time in a city grants culture equal to 10% of the gold paid, with no cap. |
 | Established Routes | 1 | ◆ | P | A trade route you have kept up for at least thirty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. |
+| Commercial Education | 1 | ● | P | Gold buildings provide +2 science. |
+| Strategic Reserves | 1 | ● | S | Worked strategic resource tiles gain +1 science and +1 gold. |
+| Market Foundations | 1 | ● | S | Gain +20% production toward Markets. Markets provide +1 happiness. |
+| The Market Writ | 1 | ◆ | P | +1 authority for every two Markets in your empire. Buying tiles costs 30% less. |
+| The Convoy | 1 | ● | S | Your combat units within one hex of your trader gain +4 strength. Your traders gain +1 movement. Traders remain plunderable. |
+| Financed Industry | 1 | ○ | P | Cities gain production equal to 20% of their gold yield. Every city loses 3 food. |
 | The Chartered Arsenal | 2 | ◆ | S | Military units purchased with gold gain +4 strength permanently on creation. |
+| Civic Markets | 2 | ● | P | Markets provide +2 science and +2 food. |
+| Maritime Authority | 2 | ● | S | Gain +3 authority. Naval units gain +5 combat strength against cities. |
+| Professional Retainers | 2 | ● | S | All units gain +3 combat strength and cost +1 gold in maintenance. |
+| The Caravanserai Network | 2 | ◆ | S | Each city receiving a domestic trade route grants +1 happiness, once per city. Domestic routes gain +1 production and +1 gold. |
+| The Charter Fleet | 2 | ◆ | S | Naval combat units cost 20% less gold to purchase. Naval combat units you purchase with gold gain +1 movement permanently. Normal coastal, technology and purchase requirements remain. |
+| The Scholars' Roads | 2 | ○ | P | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. |
+| The Money Lenders | 2 | ○ | P | Earn interest equal to 2% of your treasury each turn, with no cap. |
 | The Paid Army | 3 | ◆ | S | Military-unit upkeep falls by 1 gold, minimum zero. Military units cost 25% less gold to purchase. |
 | Merchant Princes | 3 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
 | The World's Exchange | 3 | ○ | S | Each different foreign empire currently served by your routes grants +10% production toward the Opus, at most +40%. Existing construction and victory requirements remain. |

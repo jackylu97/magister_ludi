@@ -1372,6 +1372,7 @@ function describeEffect(
       // that promised a fleet-wide refit would be a card that lies.
       const hp = (effect.hp ?? 0);
       const strength = (effect.strength ?? 0);
+      const movement = (effect.movement ?? 0);
       // Where the stamp is written, when the row narrows it to one town — the
       // Terracotta Army's "units built in this city". The same sentence-builder
       // every other scoped clause uses, so a stamp and a yield say "in every
@@ -1391,6 +1392,14 @@ function describeEffect(
       }
       if (strength !== 0) {
         out.push({ text: `newly created ${born} gain ${signed(strength)} combat strength` });
+      }
+      // The league a piece is born with, said in the same sentence as the other
+      // two marks — "movement" is the word every allowance clause in the game
+      // already uses (`unitStat`'s above), so a stamp and a standing bonus read
+      // alike and a player can tell them apart only by "newly created", which is
+      // exactly the difference.
+      if (movement !== 0) {
+        out.push({ text: `newly created ${born} gain ${signed(movement)} movement` });
       }
       return;
     }
@@ -1677,8 +1686,15 @@ function describeEffect(
                 '',
               ),
             )}` + (effect.max === undefined ? '' : ` (at most ${signed(extra * effect.max)})`);
+      // **The sign is the figure's**, not the clause's (C1, The Scholars' Roads,
+      // the first rider that *narrows* the realm's capacity): a hard-coded plus
+      // printed "+-4 trade routes" the day a row bought its quality with fewer
+      // roads. `signed` is the one place a figure's sign is written in this
+      // file, and the plural still reads off the size rather than the sign, so
+      // "−4 trade routes" and "+4 trade routes" are one sentence with one word
+      // changed.
       out.push({
-        text: `+${extra} trade ${extra === 1 ? 'route' : 'routes'}${counted}${where}`,
+        text: `${signed(extra)} trade ${Math.abs(extra) === 1 ? 'route' : 'routes'}${counted}${where}`,
       });
       return;
     }

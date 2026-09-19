@@ -4271,6 +4271,26 @@ export interface CardUnitStampEffect {
   /** Strength points it carries into every fight, both sides. */
   strength?: number;
   /**
+   * Movement points every unit created while this is live is born with — The
+   * Charter Fleet's hulls, which are bought at sea and keep the extra league for
+   * the rest of their lives.
+   *
+   * `hp`'s sibling in every respect, and the field was missing here rather than
+   * missing from the game: `UnitStamp.movement` has existed since The Levée en
+   * Masse, is written by `periodicMuster`'s own `stamp`, and is read by the one
+   * evaluator of an allowance (`fullMovement`), so a piece marked here is
+   * already quoted correctly by every reader of a step's price. What this adds is
+   * the *card* half — the third of the three marks a birth can carry, written the
+   * way the other two are and folded in the same loop.
+   *
+   * The card that asked for it is the one the design revised **towards** the
+   * shape: The Charter Fleet used to promise its hulls a keener lookout, which is
+   * the one mark a piece cannot carry, and the sheet now promises them a longer
+   * league instead. A stamp is written once at the birth, so a fleet already at
+   * sea when the Order is slotted gains nothing.
+   */
+  movement?: number;
+  /**
    * Narrows the stamp to **the town the piece was raised in** — the Terracotta
    * Army's "units built in this city".
    *

@@ -3660,8 +3660,36 @@
   ],
   "commerceTheAssayersRule": [
    {
-    "raw": "+2 gold on every hex carrying a resource that yields gold",
-    "text": "+2 gold on every hex carrying a resource that yields gold"
+    "raw": "+1 gold on every hex carrying a resource that yields gold",
+    "text": "+1 gold on every hex carrying a resource that yields gold"
+   }
+  ],
+  "theMineralTrade": [
+   {
+    "raw": "-1 production, +2 gold on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]]",
+    "text": "-1 production, +2 gold on every hex with a Mine or Quarry"
+   }
+  ],
+  "coastalEstates": [
+   {
+    "raw": "+1 food, +1 gold on every hex with a [[improvement:plantation|Plantation]] or [[improvement:fishingBoats|Fishing Boat]]",
+    "text": "+1 food, +1 gold on every hex with a Plantation or Fishing Boat"
+   }
+  ],
+  "landSpeculation": [
+   {
+    "raw": "a hex costs 50% less to buy",
+    "text": "a hex costs 50% less to buy"
+   },
+   {
+    "raw": "-2 happiness in your capital",
+    "text": "-2 happiness in your capital"
+   }
+  ],
+  "foundingCapital": [
+   {
+    "raw": "founding a city grants +75 gold",
+    "text": "founding a city grants +75 gold"
    }
   ],
   "privatePatronage": [
@@ -3673,14 +3701,14 @@
   ],
   "civicReceipts": [
    {
-    "raw": "buying anything (the first building that city ever buys) grants culture equal to 10% of the gold paid, at most 30",
-    "text": "buying anything (the first building that city ever buys) grants culture equal to 10% of the gold paid, at most 30"
+    "raw": "buying anything (not an empire building, the first building that city ever buys) grants culture equal to 10% of the gold paid",
+    "text": "buying anything (not an empire building, the first building that city ever buys) grants culture equal to 10% of the gold paid"
    }
   ],
   "provisioningContracts": [
    {
-    "raw": "+3 food, +2 production on every trade route between two of your own cities",
-    "text": "+3 food, +2 production on every trade route between two of your own cities"
+    "raw": "+2 food, +2 production on every trade route between two of your own cities",
+    "text": "+2 food, +2 production on every trade route between two of your own cities"
    }
   ],
   "theCommonRoad": [
@@ -3747,14 +3775,16 @@
   ],
   "theConvoy": [
    {
-    "raw": "soldiers standing beside one of your carts fight harder — not built yet",
-    "text": "soldiers standing beside one of your carts fight harder — not built yet",
-    "deferred": true
+    "raw": "+4 combat strength for military units while standing beside trader units",
+    "text": "+4 combat strength for military units while standing beside trader units"
    },
    {
-    "raw": "your carts travel further — not built yet",
-    "text": "your carts travel further — not built yet",
-    "deferred": true
+    "raw": "+4 combat strength for ships while standing beside trader units",
+    "text": "+4 combat strength for ships while standing beside trader units"
+   },
+   {
+    "raw": "trader units: +1 movement",
+    "text": "trader units: +1 movement"
    }
   ],
   "theTreatyPorts": [
@@ -3779,9 +3809,44 @@
   ],
   "theMarketWrit": [
    {
-    "raw": "your markets widen your writ, and land is cheaper to buy — not built yet",
-    "text": "your markets widen your writ, and land is cheaper to buy — not built yet",
-    "deferred": true
+    "raw": "+1 authority capacity per 2 [[building:market|Markets]]",
+    "text": "+1 authority capacity per 2 Markets"
+   },
+   {
+    "raw": "a hex costs 30% less to buy",
+    "text": "a hex costs 30% less to buy"
+   }
+  ],
+  "commercialEducation": [
+   {
+    "raw": "+2 science in every city per gold building there",
+    "text": "+2 science in every city per gold building there"
+   }
+  ],
+  "strategicReserves": [
+   {
+    "raw": "+1 gold, +1 science on every hex carrying a strategic resource",
+    "text": "+1 gold, +1 science on every hex carrying a strategic resource"
+   }
+  ],
+  "marketFoundations": [
+   {
+    "raw": "+20% production toward [[building:market|Markets]]",
+    "text": "+20% production toward Markets"
+   },
+   {
+    "raw": "[[building:market|Markets]] supply +1 happiness",
+    "text": "Markets supply +1 happiness"
+   }
+  ],
+  "financedIndustry": [
+   {
+    "raw": "20% of the gold in every city is gained again as production",
+    "text": "20% of the gold in every city is gained again as production"
+   },
+   {
+    "raw": "-3 food in every city",
+    "text": "-3 food in every city"
    }
   ],
   "theHomeMarket": [
@@ -3793,9 +3858,12 @@
   ],
   "theCaravanseraiNetwork": [
    {
-    "raw": "each of your towns that one of your own roads ends in gladdens the realm and enriches the roads themselves — not built yet",
-    "text": "each of your towns that one of your own roads ends in gladdens the realm and enriches the roads themselves — not built yet",
-    "deferred": true
+    "raw": "+1 happiness in every city one of your own trade routes ends at",
+    "text": "+1 happiness in every city one of your own trade routes ends at"
+   },
+   {
+    "raw": "+1 production, +1 gold on every trade route between two of your own cities",
+    "text": "+1 production, +1 gold on every trade route between two of your own cities"
    }
   ],
   "theForeignFactor": [
@@ -3828,14 +3896,8 @@
   ],
   "theMoneyLenders": [
    {
-    "raw": "your treasury pays you interest each turn, up to a ceiling — not built yet",
-    "text": "your treasury pays you interest each turn, up to a ceiling — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "everything you buy, hire or call for costs more while the lenders are seated — not built yet",
-    "text": "everything you buy, hire or call for costs more while the lenders are seated — not built yet",
-    "deferred": true
+    "raw": "+1 gold per 50 gold in the treasury",
+    "text": "+1 gold per 50 gold in the treasury"
    }
   ],
   "theCharteredArsenal": [
@@ -3851,8 +3913,8 @@
     "deferred": true
    },
    {
-    "raw": "a sea road between two of your established houses runs longer — not built yet",
-    "text": "a sea road between two of your established houses runs longer — not built yet",
+    "raw": "a road run by sea reaches further and pays by the distance it covers — not built yet",
+    "text": "a road run by sea reaches further and pays by the distance it covers — not built yet",
     "deferred": true
    }
   ],
@@ -3870,9 +3932,12 @@
   ],
   "theCharterFleet": [
    {
-    "raw": "hulls bought with gold cost less and are built with keener lookouts for the rest of their lives — not built yet",
-    "text": "hulls bought with gold cost less and are built with keener lookouts for the rest of their lives — not built yet",
-    "deferred": true
+    "raw": "ships cost −20% to buy",
+    "text": "ships cost −20% to buy"
+   },
+   {
+    "raw": "newly created ships bought with gold gain +1 movement",
+    "text": "newly created ships bought with gold gain +1 movement"
    }
   ],
   "exportGuilds": [
@@ -3898,9 +3963,16 @@
   ],
   "theScholarsRoads": [
    {
-    "raw": "you may run fewer roads, and every one of them teaches and sings far more — not built yet",
-    "text": "you may run fewer roads, and every one of them teaches and sings far more — not built yet",
-    "deferred": true
+    "raw": "-4 trade routes",
+    "text": "-4 trade routes"
+   },
+   {
+    "raw": "+2 science, +2 culture on every trade route you send",
+    "text": "+2 science, +2 culture on every trade route you send"
+   },
+   {
+    "raw": "+50% science and culture on every trade route you send",
+    "text": "+50% science and culture on every trade route you send"
    }
   ],
   "theCustomsHouses": [
@@ -3908,6 +3980,32 @@
     "raw": "a customs house pays gold and renown, and its town buys more with what it earns — not built yet",
     "text": "a customs house pays gold and renown, and its town buys more with what it earns — not built yet",
     "deferred": true
+   }
+  ],
+  "civicMarkets": [
+   {
+    "raw": "+2 food, +2 science in every city with a [[building:market|Market]]",
+    "text": "+2 food, +2 science in every city with a Market"
+   }
+  ],
+  "maritimeAuthority": [
+   {
+    "raw": "+3 authority capacity",
+    "text": "+3 authority capacity"
+   },
+   {
+    "raw": "+5 combat strength for ships against cities",
+    "text": "+5 combat strength for ships against cities"
+   }
+  ],
+  "professionalRetainers": [
+   {
+    "raw": "+3 combat strength",
+    "text": "+3 combat strength"
+   },
+   {
+    "raw": "all units cost 1 more gold in maintenance",
+    "text": "all units cost 1 more gold in maintenance"
    }
   ],
   "theDyeVats": [

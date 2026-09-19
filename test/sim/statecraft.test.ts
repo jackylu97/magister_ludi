@@ -8490,6 +8490,14 @@ describe("the engine shapes", () => {
     // D2d: Established Routes' half again on a road kept up, un-deferred with
     // the term the route `pays` learned (`TradeRoute.startedTurn`).
     "establishedRoutes · routeYield",
+    // C1: two Commerce rows whose deferral notes had gone stale. The
+    // Caravanserai Network pays a domestic road a flat point of each, and The
+    // Scholars' Roads pays every road two of the quiet voices and then takes
+    // half again of what the road already carries — a flat row and a share row,
+    // which is why it registers twice.
+    "theCaravanseraiNetwork · routeYield",
+    "theScholarsRoads · routeYield",
+    "theScholarsRoads · routeYield",
     "thePatronsRoad · routeYield",
     // D2a: The Muses' Call's *"+20% renown"*, un-deferred with the worked-work
     // scope its other half wanted.

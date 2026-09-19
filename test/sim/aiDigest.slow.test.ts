@@ -297,10 +297,36 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * No command was refused and nothing stalled, which the assertion above the
  * hash checks first. Measured twice, same bytes both runs.
+ *
+ * ---
+ *
+ * **Batch C1 — the Commerce deck widens.** Duel `e37cc04e:277027` →
+ * `25ba8a39:274085`, standard `d7516cde:955202` → `b01dd2f0:959093`.
+ *
+ * **A wider live pool is a different collection**, and that is the whole of why
+ * this moved: nothing in `src/ai` was touched and no rule of the simulation
+ * changed for any card that was already live. The Commerce file went from
+ * fourteen dealt rows to thirty-one — eleven new rows off the user's own sheet
+ * (`docs/decks/commerce.md`) and six whose deferral notes had gone stale since
+ * the shape waves landed — so every Commerce seat's shelf is more than twice the
+ * size it was, the draw lands on different cards, and a hundred and twenty turns
+ * of compounding does the rest.
+ *
+ * Three of the revisions also change a figure a live card was already paying,
+ * which moves the board even where the draw does not: The Assayer's Rule pays
+ * one coin on a gold seam rather than two, Provisioning Contracts feeds a
+ * domestic road's destination two rather than three, and Civic Receipts' culture
+ * lost its ceiling and gained the refusal to pay for a great house.
+ *
+ * **The duel print shrank about one per cent and the standard one grew under a
+ * half.** Neither direction is a finding: the seats are drawing from a different
+ * shelf, so the two numbers are not measuring the same experiment. Nothing
+ * stalled and no command was refused, which the assertion above this one checks
+ * before the hash does. Measured twice, same bytes both runs.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'e37cc04e:277027',
-  standard: 'd7516cde:955202',
+  duel: '25ba8a39:274085',
+  standard: 'b01dd2f0:959093',
 };
 
 /**
