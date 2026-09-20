@@ -58,8 +58,22 @@ export function routeTurns(): number {
  * are printed by the same sentence wherever they land and a second list for the
  * foreign case is exactly the drift this file exists to end. A domestic fold
  * reads byte-identically: its two new voices are zero, and a zero is left out.
+ *
+ * **Six since batch C8**, which gave a trade route a faith voice. That was not a
+ * new thing a caravan could carry so much as a thing it had been carrying
+ * unpaid: Mansa Musa's The Hajj promises faith on two route rows and printed it
+ * on the card face while the fold had nowhere to put it. Leaving faith out here
+ * would have reproduced the same fault one layer up — the town banks the faith
+ * and the panel does not mention it — so the list follows the fold.
  */
-const ROUTE_KEYS = ['food', 'production', 'gold', 'science', 'culture'] as const;
+const ROUTE_KEYS = [
+  'food',
+  'production',
+  'gold',
+  'science',
+  'culture',
+  'faith',
+] as const;
 
 /**
  * "+3🌾 +2⚙ +1💰" — what a route is worth, zeroes left out.
@@ -77,6 +91,8 @@ export function routeFigures(fold: {
   /** Absent on a caller that has only ever known the domestic three. */
   science?: number;
   culture?: number;
+  /** Absent on a caller written before a caravan could carry faith (C8). */
+  faith?: number;
 }): string {
   const parts = ROUTE_KEYS.filter((key) => (fold[key] ?? 0) !== 0).map(
     (key) => `${signedFigure(fold[key] ?? 0)}${YIELD_GLYPH[key]}`,

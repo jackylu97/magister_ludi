@@ -58,6 +58,7 @@ import {
   routeReading,
   routeSlotsLine,
 } from '../../src/ui/tradeLines';
+import { YIELD_GLYPH, type YieldKey } from '../../src/ui/figures';
 import { explainBuildingUpkeep, explainUnitUpkeep } from '../../src/sim/upkeep';
 import { at, bareState } from '../sim/improvementHelpers';
 
@@ -144,6 +145,28 @@ describe('a routed caravan’s sheet', () => {
     const { state, trader } = routed();
     const reading = routeReading(state, trader)!;
     expect(reading.figures).toBe(routeFigures(foldRouteYield(explainRouteYield(state, trader))));
+  });
+
+  it('prints every voice the fold carries, faith included', () => {
+    // The fault this pins is the one batch C8 found one layer down. A trade
+    // route could not carry faith because the fold had no field for it — while
+    // Mansa Musa's The Hajj paid two faith on two route rows and printed that on
+    // the card face. C8 gave the fold the voice; leaving the panel's list at
+    // five would have reproduced the same fault here, with the town banking
+    // faith the panel never mentioned.
+    //
+    // Asserted against the yield keys rather than a literal list, so a seventh
+    // voice fails here rather than being quietly dropped by a readout.
+    const every = { food: 1, production: 2, gold: 3, science: 4, culture: 5, faith: 6 };
+    const printed = routeFigures(every);
+    for (const [key, amount] of Object.entries(every)) {
+      expect(printed, key).toContain(`+${amount}${YIELD_GLYPH[key as YieldKey]}`);
+    }
+    // And a zero is still left out, which is what makes a domestic route read
+    // exactly as it always did.
+    expect(routeFigures({ food: 1, production: 0, gold: 0 })).toBe(
+      `+1${YIELD_GLYPH.food}`,
+    );
   });
 
   it('is null for a caravan carrying nothing', () => {
