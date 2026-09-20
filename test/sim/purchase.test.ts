@@ -1178,6 +1178,10 @@ describe('the schema witness', () => {
     // when it opened, so a v120 log answers "not old enough" to every card
     // written on an age — a bump within the branch, which migrates nothing
     // either way.
-    expect(SCHEMA_VERSION).toBe(122);
+    // 123 since C8 (the decks rework, branch `decks`): a town remembers which
+    // bank paid for each of its buildings, so a v122 log answers "nobody bought
+    // this" to The Endowment for ever — a bump within the branch, which
+    // migrates nothing either way.
+    expect(SCHEMA_VERSION).toBe(123);
   });
 });

@@ -248,6 +248,20 @@ export function countRoutesAt(
   city: City,
   end: RouteEnd,
   crossing?: RouteCrossing,
+  /**
+   * **What the town at the other end has to be** — `CityScope`'s
+   * `routeEndsHere.farEnd`, The Grain Exchange's granary (batch C8).
+   *
+   * A predicate handed down rather than a scope, because answering a scope means
+   * the card evaluator and this file is a leaf that may not import it. The same
+   * shape `combat.ts` hands a presser down to the windfall riders: the caller
+   * owns the vocabulary, this owns the walk.
+   *
+   * Absent counts every route the other narrowings admit, which is what every
+   * caller written before it meant. Asked last, after the two cheap tests, so a
+   * board with no such card pays nothing for it.
+   */
+  farEndAdmits?: (other: City) => boolean,
 ): number {
   let total = 0;
   for (const unit of state.units) {
@@ -260,6 +274,12 @@ export function countRoutesAt(
       crossing !== undefined &&
       routeIsInternational(pair.from, pair.to) !== (crossing === 'international')
     ) {
+      continue;
+    }
+    // The far end is the *other* town of the pair, which is the one this walk
+    // did not match on: routes arriving here came from `from`, routes leaving
+    // here are going to `to`.
+    if (farEndAdmits !== undefined && !farEndAdmits(end === 'arriving' ? pair.from : pair.to)) {
       continue;
     }
     total += 1;

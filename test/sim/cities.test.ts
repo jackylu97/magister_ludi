@@ -3376,7 +3376,8 @@ describe('determinism with cities', () => {
     // when it opened, so a v120 log answers "not old enough" to every card
     // written on an age — a bump within the branch, which migrates nothing
     // either way.
-    expect(SCHEMA_VERSION).toBe(122);
+    // 123 since C8: a town records which bank paid for each of its buildings.
+    expect(SCHEMA_VERSION).toBe(123);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

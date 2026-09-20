@@ -243,6 +243,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Chartered Arsenal | 2 | ◆ | S | Military units purchased with gold gain +4 strength permanently on creation. |
 | Luxury Caravans | 2 | ● | P | Trade routes gain +1 gold for every luxury resource tile in their origin city. |
 | Mining Districts | 2 | ◆ | S | Worked mines gain +1 gold and +1 science for every two adjacent mines. |
+| Royal Assays | 2 | ◆ | P | Each improved luxury resource deposit with a mine provides one additional copy of that luxury. |
 | The Capital Arsenal | 2 | ◆ | S | There is no limit on the number of units that can be purchased per turn in your capital. |
 | Foreign Procurement | 2 | ◆ | S | Ignore strategic resource requirements when purchasing units. All units cost 20% more. |
 | The Customs Houses | 2 | ◆ | S | Customs houses gain +3 gold and +1 renown. Cities with a customs house gain +15% gold toward purchasing. |
@@ -260,6 +261,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Brokers' Redraw | 2 | ○ | S | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. |
 | The Harbour Chain | 2 | ◆ | P | Gain +1 route capacity per two Harbours you own, at most +4. Sea routes gain +3 range and +1 gold for every 4 hexes travelled. |
 | Strategic Exports | 2 | ◆ | P | Trade routes gain +1 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity. |
+| The Endowment | 3 | ◆ | P | Purchased buildings provide +2 science. |
 | The Paid Army | 3 | ◆ | S | Military-unit upkeep falls by 1 gold, minimum zero. Military units cost 25% less gold to purchase. |
 | The Chartered Metropolis | 3 | ○ | P | Cities with at least three of your paying outgoing routes gain +25% food, production and culture, but each costs +4 authority while qualified. |
 | A Court of Merchants | 3 | ○ | S | Gain +50% renown, but great-person offers contain only Great Merchants. |
@@ -416,6 +418,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Letters of Marque | Dominion · Commerce | 3 | ○ | S | Naval combat kills grant 40 gold. Cities with a Harbour purchase naval combat units for 25% less gold, but produce those units 20% more slowly. |
 | The Exchange of Discoveries | Commerce · Scientific | 3 | ◆ | S | +1 science on mines and quarries on a resource. Additional +1 if the city has a market. |
 | Garden Provinces | Expansionist · Magisterial | 2 | ● | P | Connected cities with a Monument gain +2 food and +2 culture. |
+| Pilgrim Markets | Commerce · Devotion | 1 | ◆ | S | Routes gain +2 gold and +2 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. |
+| The Grain Exchange | Expansionist · Commerce | 1 | ◆ | S | Domestic routes from a city with a Granary give +3 food to their destination. Cities receiving one gain +1 happiness. |
 | The Cosmopolitan Court | Commerce · Magisterial | 3 | ○ | S | Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +2 gold. |
 
 ### Generic

@@ -651,10 +651,15 @@ describe('determinism', () => {
    * characters for three. Nobody founds a town in this sweep and no empire opens
    * a trading post, so not one byte of board or behaviour moved — only the
    * version the state records itself under.
+   *
+   * **C8 did the same**: 122 became 123, and the lengths are unchanged at both
+   * seeds again. The batch added a record of which bank paid for a building,
+   * and nobody in this sweep founds a town, let alone buys anything to put in
+   * one — so the field is absent everywhere and only the version moved.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'ab2ea567:188968',
-    2026: '547ef243:188539',
+    11: '9e9fd810:188968',
+    2026: '3f99f836:188539',
   };
 
   for (const seed of [11, 2026]) {

@@ -293,8 +293,17 @@ describe('the schema, as landed', () => {
     // came live — The Admiralty of Trade, The Harbour Chain, The Factors'
     // Houses, Caravanserai Cities and Strategic Exports. Five more live rows,
     // all in the Commerce file.
-    expect(live).toBe(270);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(270);
+    //
+    // **And C8 a twelfth time** ("faith on routes, copies and provenance"),
+    // which opened four seams: a trade route may carry faith (it paid five
+    // voices and now pays six), a route line may name a condition satisfied by
+    // *either* of its two towns, a town may be asked what the far end of the
+    // routes reaching it holds, and a building records which bank paid for it
+    // beside the turn it went up. Four more live rows — Pilgrim Markets and The
+    // Grain Exchange in the shared file, The Endowment freed in Commerce, and
+    // Royal Assays written there for the first time.
+    expect(live).toBe(274);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(274);
   });
 
   /**
@@ -409,12 +418,12 @@ describe('the schema, as landed', () => {
   });
 
   it('bumps the schema: a pre-rework save is refused, and the seat carries the four new fields', () => {
-    // 122 since C6: a town records which empires keep a trading post in it
-    // (`City.posts`), so a v121 log would answer "no house here" to every card
-    // written on one. A bump within the branch, which migrates nothing either
-    // way — 121 was D2d's, where a town, a hex and a route each learnt to
-    // remember when they were placed.
-    expect(SCHEMA_VERSION).toBe(122);
+    // 123 since C8: a town records which bank paid for each of its buildings
+    // (`City.buildingBanks`), so a v122 log would answer "nobody bought this"
+    // to The Endowment for ever. A bump within the branch, which migrates
+    // nothing either way — 122 was C6's trading post, and 121 D2d's, where a
+    // town, a hex and a route each learnt to remember when they were placed.
+    expect(SCHEMA_VERSION).toBe(123);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -589,7 +598,17 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // Exports. Its sixth row, The Exchange, stays deferred with the
       // measurement written down — it wants a third place a card may name a
       // payee, which is neither of the two that exist.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(151);
+      //
+      // **C8 took three more**: Pilgrim Markets and The Grain Exchange out of
+      // the shared file, freed by faith on a route and by a town being able to
+      // ask what the far end of its roads holds, and The Endowment out of
+      // Commerce, freed by a building remembering which bank paid for it. Its
+      // fourth live card, Royal Assays, is a new row and so moves nothing here.
+      // Two Commerce rows stay deferred with their reasons re-cut: The Exchange
+      // (a card is never consulted about a road that arrives, and the sender is
+      // a third kind of payee) and The Warehouses (the doubling names one good,
+      // where every dial turns a class).
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(148);
     }
   });
 

@@ -879,6 +879,30 @@ export type CityScope =
        * has written yet.
        */
       atMost?: number;
+      /**
+       * **What the town at the far end of those routes must be** — The Grain
+       * Exchange's *"cities receiving one gain +1 happiness"*, where "one" is a
+       * domestic route out of a town with a Granary (batch C8).
+       *
+       * The field the scope was missing. `crossing` and `direction` narrow a
+       * route by facts about the *pair* and by which way it runs; this narrows it
+       * by the town at the other end, which is the one thing about a route a
+       * town could not previously be asked. Absent counts every route the other
+       * three fields admit, which is what every row written before it meant.
+       *
+       * An ordinary `CityScope`, evaluated by the ordinary evaluator: "from a
+       * town with a Granary" is `{ test: 'hasBuilding', building: 'granary' }`
+       * and no vocabulary of its own. `countRoutesAt` (`routes.ts`) takes it as a
+       * **predicate handed down** rather than as a scope, because that file is a
+       * leaf and may not import the evaluator that answers one — the same shape
+       * `combat.ts` hands a presser down to the windfall riders.
+       *
+       * **Do not write a route question inside it.** A `farEnd` that itself said
+       * `routeEndsHere` would walk the board once per route per town; nothing
+       * asks for that sentence and the evaluator refuses it rather than
+       * recursing (see `cityScopeAdmits`' arm).
+       */
+      farEnd?: CityScope;
     }
   /**
    * **This empire's commercial post stands in the town, and is paying** — The
@@ -1962,6 +1986,25 @@ export type CountKind =
    * than an edit here — which is exactly why the category and not a list.
    */
   | 'buildingsOfCategory'
+  /**
+   * Buildings somebody **bought** rather than built — The Endowment's, counted
+   * across the realm and narrowed to one town by `within: 'city'` (batch C8).
+   *
+   * `buildingsOfCategory`'s sibling asked about provenance instead of purpose.
+   * Read off `City.buildingBanks`, which is written only by `addBuilding` at the
+   * moment the till rings, so the count is of roofs an empire actually paid for
+   * at a counter — a completion, a card's grant, a founding Monument and a relic
+   * are all uncounted, and no reading afterwards could have told them apart.
+   *
+   * **Which bank is deliberately not asked.** The card says "purchased", and a
+   * library bought with faith is as bought as one bought with gold. A row that
+   * wanted one bank would be a narrowing on this member, not a second member.
+   *
+   * A captured town brings its record with it, exactly as it brings its dates:
+   * a conqueror who takes a town of bought roofs is paid for them, which is what
+   * pay-follows-the-stones already means everywhere else.
+   */
+  | 'purchasedBuildings'
   /**
    * **Fortification** buildings standing in this city (city-scoped) — a
    * palisade, a wall, whatever a later age calls a castle.
@@ -3397,6 +3440,39 @@ export type AmplifierTarget =
    * `ResourceDef.kind`, so a luxury seam is untouched however large the share.
    */
   | 'strategicCopies'
+  /**
+   * **How many copies a luxury deposit with a mine on it supplies** — Royal
+   * Assays' extra copy (batch C8).
+   *
+   * `strategicCopies` one kind over and one dial across: that one is a *share*
+   * of the whole term this empire's own strategic seams supply, and this is a
+   * **flat step per deposit** (`amount`, read through `cardAmplifierFlat`), which
+   * is what "each deposit provides one additional copy" says. A share could not
+   * have said it — half again on three seams is not one more from each.
+   *
+   * Everything C7 established about the other target holds here unchanged, and
+   * for the same reasons:
+   *
+   *   · read in `resourceCopies` (`cities.ts`) and **outside the memo** the map
+   *     walk is kept in, because that memo sits on the economy clock and a card
+   *     slotted mid-turn does not move it. A stale copy count is a unit a seat
+   *     can or cannot build;
+   *   · applied to the term the **ground** supplies, so a copy lent to this
+   *     empire gains nothing and a copy lent away comes off the raised figure
+   *     rather than being raised with it;
+   *   · no tile is written. The map's own quantities are placed once in
+   *     `newGame` and stay what they were.
+   *
+   * What differs is the narrowing: **luxury rows with a mine standing on them**.
+   * The kind is `ResourceDef.kind`, the work is the improvement on the hex, and
+   * the deposit has to be open to this empire like any other — the sweep counts
+   * qualifying deposits beside the copies they supply, so the law multiplies a
+   * figure the walk already had rather than walking the map a second time.
+   *
+   * The card says "improved … with a mine", which the mine itself satisfies: a
+   * mine is an improvement, so there is no second test for "improved".
+   */
+  | 'luxuryMineCopies'
   /** The flat happiness every unique luxury pays. */
   | 'luxuryHappiness'
   /** What a *duplicate* copy of a luxury is worth, as a share of the first. */
@@ -4248,6 +4324,30 @@ export interface CardPaysEffect extends CardYieldBag {
    * presses do not print your books.
    */
   destination?: CityScope;
+  /**
+   * **Either of the two towns will do** — Pilgrim Markets' *"routes gain +2 gold
+   * and +2 faith if either endpoint contains a Holy Site"* (batch C8).
+   *
+   * `origin` and `destination` are two clauses joined by *and*: a row carrying
+   * both pays only a road whose two ends both answer. This is the *or*, and it
+   * is a third field rather than a flag on the other two because it is a
+   * different question — "one of these two towns has a shrine" cannot be written
+   * as a predicate over either town alone, in the same way `crossing` cannot.
+   *
+   * **It pays once whatever happens**, which is the card's own second sentence.
+   * The row is admitted or it is not; a road with a holy site at both ends is
+   * one admitted road and carries the bag once. A card that wanted to pay per
+   * qualifying end would be counting, and would say so with a count.
+   *
+   * A row that names it and is asked about an origin with **no far end in hand**
+   * — a preview of a road nobody has drawn — admits nothing, exactly as
+   * `destination` and `crossing` do there and for their reason: a line the
+   * preview promised and the caravan never paid is a lie about a price.
+   *
+   * It composes with the other three: a row may say `eitherEnd` and `crossing`
+   * and mean "a domestic road with a shrine at one end of it".
+   */
+  eitherEnd?: CityScope;
   /**
    * A **share of what the road already carries**, voice by voice — The Silk
    * Exchange's doubled beakers and songs. `where: 'route'`.

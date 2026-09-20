@@ -1632,15 +1632,17 @@ describe('a route’s yields', () => {
     ]);
     // granary + library are food/science; the market and the workshop are
     // both production-side categories (gold, production).
-    // Five voices since a route may end abroad (2026-09-03); the two new ones
-    // are zero on every domestic line, which is the whole of "a domestic route
-    // reads byte-identically".
+    // Six voices: five since a route may end abroad (2026-09-03) and faith
+    // since batch C8 (Pilgrim Markets). Every one of them is zero on the lines
+    // a domestic route's building rates and coin produce, which is the whole of
+    // "a domestic route reads byte-identically".
     expect(foldRouteYield(lines)).toEqual({
       food: 1,
       production: 1,
       gold: 2,
       science: 0,
       culture: 0,
+      faith: 0,
     });
   });
 
@@ -2243,7 +2245,11 @@ describe('trade in the log', () => {
     // when it opened, so a v120 log answers "not old enough" to every card
     // written on an age — a bump within the branch, which migrates nothing
     // either way.
-    expect(SCHEMA_VERSION).toBe(122);
+    // 123 since C8 (the decks rework, branch `decks`): a town remembers which
+    // bank paid for each of its buildings, so a v122 log answers "nobody bought
+    // this" to The Endowment for ever — a bump within the branch, which
+    // migrates nothing either way.
+    expect(SCHEMA_VERSION).toBe(123);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {
@@ -2570,6 +2576,7 @@ describe('international routes', () => {
       gold: 4,
       science: 1,
       culture: 1,
+      faith: 0,
     });
 
     const theirs = explainRouteYield(state, trader);
@@ -2582,6 +2589,7 @@ describe('international routes', () => {
       gold: 1,
       science: 0,
       culture: 0,
+      faith: 0,
     });
     // The preview and the paying caravan are one implementation, abroad as at
     // home.

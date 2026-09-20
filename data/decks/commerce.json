@@ -983,12 +983,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A full shed is an argument nobody wins.",
-      "text": "Each luxury type with at least four accessible improved deposits you produce grants +6 gold, +4 culture and +3 happiness. Exported copies still count for this card; imported and manufactured copies do not.",
+      "text": "For each resource of which you control at least 4 copies, double its resource effect and gain +8 culture and +10 gold.",
       "effects": [],
       "deferred": [
-        "a luxury you dig in real quantity pays gold, culture and contentment"
+        "a good you hold in real quantity pays gold and culture, and works twice as hard"
       ],
-      "note": "Held whole. The realm can be asked which luxuries it holds more than one seam of, never which it holds a shed's worth of."
+      "note": "Held whole, and it is the doubling that holds it. Counting the goods the realm holds a shed's worth of is close now that copies are real and countable, though a card still has no way to name its own threshold — the one the game asks about duplicates is fixed. The other half aims a doubling at one named good, where every dial in the vocabulary turns a whole class at once."
     },
     "thePurpleWorks": {
       "name": "The Purple Works",
@@ -1109,6 +1109,25 @@
         }
       ],
       "note": "The neighbours need not be worked and need not be yours; the mine being paid does have to be worked, which is true of every line that lands on a hex. Odd numbers round down, so a mine with three beside it is paid once."
+    },
+    "royalAssays": {
+      "name": "Royal Assays",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The assayer's mark turns a rock into a quantity.",
+      "text": "Each improved luxury resource deposit with a mine provides one additional copy of that luxury.",
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "luxuryMineCopies",
+          "amount": 1
+        }
+      ],
+      "note": "No hex is changed. What grows is the number of copies your realm holds, taken of what your own deposits supply — so a copy another empire lent you is untouched, and a copy you lent away comes off the raised figure rather than being raised with it. A mine is an improvement, so there is no second test for improved. The deposit has to be open to you, like every other seam you count."
     },
     "theCapitalArsenal": {
       "name": "The Capital Arsenal",
@@ -1274,12 +1293,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Two ledgers open on one table is the oldest university there is.",
-      "text": "Each different foreign empire your routes currently serve grants you +5% science and culture empire wide. Each served empire's capital gains +2 science and +2 culture.",
+      "text": "Each different foreign empire your routes currently serve grants +5% science and culture empire-wide. Foreign routes to your cities grant +2 science and +2 culture to both you and the sender.",
       "effects": [],
       "deferred": [
         "every foreign realm your roads reach teaches your whole empire, and learns from it"
       ],
-      "note": "Half built, and so held whole — but the half that is missing is not the one the old note named. A counted line pays a share per helping perfectly well and has for some time: a live card one table over already gives a share of science for every realm your roads reach, off the very same count this card wants, so the first sentence could be written today and was not only because the row is held whole. What is genuinely missing is the second sentence. A law may pay another empire, but only at the two places the town being paid is already in hand — the town a caravan walks to, and a town holding your trading post. A partner's capital is neither, and reaching it means walking every other realm's law at every town of theirs, which is the one thing the shape deliberately refuses to do. Either that walk, or a third place a payee may be named."
+      "note": "Half built, and so held whole. The first sentence is a pair of ordinary rows and has been for some time: a live card one table over already gives a share of science for every realm your roads reach, off the very same count this card wants. The second sentence is the blocker, and the ratified wording makes it a different blocker than the old one. A law rides a road only from the end that sent the cart, and the empire holding this card is the end that receives it — so the card is never consulted about the road at all. On top of that, paying the sender means paying an empire that is neither the card holder nor the town a caravan reached, which is a third kind of payee. Both halves would have to be built."
     },
     "theBrokersRedraw": {
       "name": "The Brokers' Redraw",
@@ -1571,12 +1590,19 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Buy the roof, and endow the men under it.",
-      "text": "Ordinary buildings you purchase gain a permanent bonus to each positive native yield equal to 25% of that yield, with a minimum bonus of +2 per positive yield type. Replacing a building cannot stack the stamp.",
-      "effects": [],
-      "deferred": [
-        "a building you buy is better for the rest of its life than one you raised"
+      "text": "Purchased buildings provide +2 science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "purchasedBuildings",
+          "within": "city",
+          "to": "science",
+          "amount": 2
+        }
       ],
-      "note": "Held whole. A building now remembers the turn it was raised, but not the bank that paid for it — a soldier can be marked at his birth by the till, and a building cannot, so nothing can tell a bought roof from a hammered one afterwards."
+      "note": "A town now writes down which bank paid for each of its roofs, beside the turn they went up. Either bank counts: a library bought with faith is as bought as one bought with gold. A roof completed in the yard, granted by a card or laid as a relic counts for nothing. A captured town brings its record with it, so a conqueror is paid for the roofs its last owner bought."
     },
     "thePaidArmy": {
       "name": "The Paid Army",

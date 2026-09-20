@@ -476,8 +476,8 @@ function empireStandingLines(state: GameState, playerId: number): EmpireYieldLin
  * The voices a line actually carries, as a bag to spread over the six.
  *
  * The three additive sources speak in different numbers of voices — a luxury's
- * signature in six, a caravan in five (a route never pays faith), a treasury
- * line in one — and `EmpireYieldLine` speaks in six so that every reader asks
+ * signature in six, a caravan in six since batch C8 (it paid five until Pilgrim
+ * Markets put faith on a road), a treasury line in one — and `EmpireYieldLine` speaks in six so that every reader asks
  * one question of all of them. Copying only the keys a line declares is what
  * keeps a missing voice a nought rather than an `undefined` in a fold.
  */

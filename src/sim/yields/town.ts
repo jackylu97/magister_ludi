@@ -1338,13 +1338,15 @@ export function explainCity(
   // food is staged like every other flat (Entry XVII) and its gold reaches the
   // treasury through the same `collectYields` as the market's.
   //
-  // **All five voices a `RouteYieldLine` carries**, and that is the whole of the
-  // fix of 2026-09-06: the line grew science and culture with the international
+  // **Every voice a `RouteYieldLine` carries**, and that is the whole of the fix
+  // of 2026-09-06: the line grew science and culture with the international
   // ruling and this loop still folded the three it was born with, so
   // Ledger-Keepers' beaker and note were computed, printed by the trade panel,
   // and then dropped on the way into the town's basket. A fold that reads some of
-  // a list is rule 5 broken quietly. Faith is the one voice absent, because no
-  // route pays it and the line has no field for it.
+  // a list is rule 5 broken quietly. The loop hands `say` the whole line rather
+  // than named voices, which is why faith joining the shape in batch C8 (Pilgrim
+  // Markets) needed no edit here — `say` spreads all six and a line that says
+  // nothing about faith carries nought.
   for (const line of cityRouteYields(state, city)) say(6, line.source, 'trade', line);
 
   // **7 — the palace.** The seat of government, a line like every other rather

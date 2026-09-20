@@ -285,6 +285,7 @@ function bagWords(bag: Partial<Record<CityYieldKey, number>>): string {
 function routeWhose(effect: {
   origin?: CityScope;
   destination?: CityScope;
+  eitherEnd?: CityScope;
   crossing?: 'domestic' | 'international';
   standingTurns?: number;
   minHexes?: number;
@@ -292,6 +293,17 @@ function routeWhose(effect: {
 }): string {
   const parts: string[] = [];
   if (effect.origin !== undefined) parts.push(`sent from ${cityScopeWords(effect.origin)}`);
+  // **Either town will do** (batch C8, Pilgrim Markets). Said as one clause
+  // about the road rather than as two about its ends, because that is the
+  // sentence the card prints and the one a player can check: look at both
+  // towns, and one of them is enough. The scope's own "every city with a X"
+  // reads as a promise about the realm here, so the article is swapped exactly
+  // as the destination clause swaps it.
+  if (effect.eitherEnd !== undefined) {
+    const where = cityScopeWords(effect.eitherEnd);
+    const one = where.startsWith('every ') ? `a ${where.slice(6)}` : where;
+    parts.push(`with either end in ${one}`);
+  }
   // **Which way the road runs** (batch C7, The Harbour Chain). A fact about the
   // road itself, so it sits with the term and the crossing rather than with
   // either end's scope — and it is said in a player's words ("run by sea"),
@@ -1106,14 +1118,18 @@ function describePays(
   }
 
   if (effect.where === 'route') {
-    // Faith is not among a caravan's voices, for `RouteYieldLine`'s reason
-    // (nothing pays a road in it), so the bag is read as five.
+    // **All six voices since batch C8.** A caravan paid five and faith stayed
+    // out of `RouteYieldLine` while nothing paid it; Pilgrim Markets does, so
+    // the bag is read whole. This was a real gap and not only a missing card:
+    // Mansa Musa's The Hajj has always printed "+2 faith" on a road and the
+    // words dropped it here exactly as the fold dropped the figure.
     const words = bagWords({
       food: effect.food,
       production: effect.production,
       gold: effect.gold,
       science: effect.science,
       culture: effect.culture,
+      faith: effect.faith,
     });
     // **The share, said in its own clause** — The Silk Exchange's doubled
     // beakers and songs. It is a sentence about what the road *already*
@@ -3040,21 +3056,35 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
  */
 function routePhrase(scope: Extract<CityScope, { test: 'routeEndsHere' }>): string {
   const out = scope.direction === 'departing';
+  // **What the town at the far end holds** (batch C8, The Grain Exchange).
+  // Named from the town the sentence is about, so a route arriving comes "from"
+  // a city and one setting out goes "to" one. It trails the noun and leads the
+  // verb, which is where the clause reads: "one of your own trade routes from a
+  // city with a Granary ends at".
+  const far = ((): string => {
+    if (scope.farEnd === undefined) return '';
+    const inner: ScopePhrase = { adjectives: [], qualifiers: [] };
+    scopePhrase(scope.farEnd, inner);
+    const head = inner.adjectives.length === 0 ? 'city' : `${inner.adjectives.join(' ')} city`;
+    const tail = inner.qualifiers.join(' ');
+    const town = tail === '' ? head : `${head} ${tail}`;
+    return out ? ` to a ${town}` : ` from a ${town}`;
+  })();
   // The bare noun, with no article on it, so a figure or a "no" can sit in
   // front of it. The whose-clause trails the noun in every form here — "trade
   // routes of your own" — because a possessive in front ("another empire's
   // trade routes") cannot take one of those words ahead of it.
   const noun = (many: boolean): string => {
     const routes = many ? 'trade routes' : 'trade route';
-    if (scope.crossing === undefined) return routes;
+    if (scope.crossing === undefined) return `${routes}${far}`;
     if (out) {
       return scope.crossing === 'international'
-        ? `${routes} to another empire`
-        : `${routes} to another of your cities`;
+        ? `${routes} to another empire${far}`
+        : `${routes} to another of your cities${far}`;
     }
     return scope.crossing === 'international'
-      ? `${routes} of another empire`
-      : `${routes} of your own`;
+      ? `${routes} of another empire${far}`
+      : `${routes} of your own${far}`;
   };
   const verb = (many: boolean): string =>
     out ? (many ? 'set out from' : 'sets out from') : many ? 'end at' : 'ends at';
@@ -3073,8 +3103,10 @@ function routePhrase(scope: Extract<CityScope, { test: 'routeEndsHere' }>): stri
   // "one of your own trade routes ends at". Both are exactly what live rows
   // printed before the tally arrived.
   if (!out) {
-    if (scope.crossing === 'international') return "another empire's trade route ends at";
-    if (scope.crossing === 'domestic') return 'one of your own trade routes ends at';
+    if (scope.crossing === 'international') {
+      return `another empire's trade route${far} ends at`;
+    }
+    if (scope.crossing === 'domestic') return `one of your own trade routes${far} ends at`;
   }
   return `a ${noun(false)} ${verb(false)}`;
 }
@@ -3989,6 +4021,9 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // The category is not in these words either: `countNoun` prints it, so that
   // "per gold building" and "per faith building" are one entry.
   buildingsOfCategory: { one: 'building', many: 'buildings' },
+  // Provenance rather than purpose, so the noun says what was asked: "per
+  // purchased building" and not "per building".
+  purchasedBuildings: { one: 'purchased building', many: 'purchased buildings' },
   // The list is not in these words either, for `buildingsOfCategory`'s reason —
   // `countNoun` prints it, so any pair of categories is one entry.
   buildingsOfCategories: { one: 'building', many: 'buildings' },
@@ -4256,6 +4291,10 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
     percent === 100
       ? 'your strategic resource deposits supply twice as many copies'
       : `your strategic resource deposits supply ${signed(percent)}% copies`,
+  // A per-item figure, so a share of it is a row nobody should write — said
+  // plainly for this table's stated reason, the way a player finds out.
+  luxuryMineCopies: (percent) =>
+    `each of your luxury deposits with a mine supplies ${signed(percent)}% copies`,
 };
 
 /**
@@ -4286,6 +4325,12 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
   // entry should: plainly, so that a row nobody should write announces itself.
   strategicCopies: (amount) =>
     `each of your strategic resource deposits supplies ${signed(amount)} copies`,
+  // The card's own sentence, and a per-item figure is exactly what this table
+  // is for: the deposit is the item and the copy is the step.
+  luxuryMineCopies: (amount) =>
+    amount === 1
+      ? 'each of your luxury deposits with a mine supplies one more copy'
+      : `each of your luxury deposits with a mine supplies ${signed(amount)} copies`,
 };
 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {

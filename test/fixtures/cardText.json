@@ -3922,8 +3922,8 @@
   ],
   "theWarehouses": [
    {
-    "raw": "a luxury you dig in real quantity pays gold, culture and contentment — not built yet",
-    "text": "a luxury you dig in real quantity pays gold, culture and contentment — not built yet",
+    "raw": "a good you hold in real quantity pays gold and culture, and works twice as hard — not built yet",
+    "text": "a good you hold in real quantity pays gold and culture, and works twice as hard — not built yet",
     "deferred": true
    }
   ],
@@ -3956,6 +3956,12 @@
    {
     "raw": "+1 gold, +1 science on every hex with a [[improvement:mine|Mine]], once for every 2 adjacent hexes with a [[improvement:mine|Mine]]",
     "text": "+1 gold, +1 science on every hex with a Mine, once for every 2 adjacent hexes with a Mine"
+   }
+  ],
+  "royalAssays": [
+   {
+    "raw": "each of your luxury deposits with a mine supplies one more copy",
+    "text": "each of your luxury deposits with a mine supplies one more copy"
    }
   ],
   "theCapitalArsenal": [
@@ -4129,9 +4135,8 @@
   ],
   "theEndowment": [
    {
-    "raw": "a building you buy is better for the rest of its life than one you raised — not built yet",
-    "text": "a building you buy is better for the rest of its life than one you raised — not built yet",
-    "deferred": true
+    "raw": "+2 science in every city per purchased building there",
+    "text": "+2 science in every city per purchased building there"
    }
   ],
   "thePaidArmy": [
@@ -5883,9 +5888,8 @@
   ],
   "pilgrimMarkets": [
    {
-    "raw": "a road pays when either of its two ends keeps a holy site — not built yet",
-    "text": "a road pays when either of its two ends keeps a holy site — not built yet",
-    "deferred": true
+    "raw": "+2 gold, +2 faith on every trade route with either end in a city with a [[improvement:holySite|Holy Site]]",
+    "text": "+2 gold, +2 faith on every trade route with either end in a city with a Holy Site"
    }
   ],
   "commonTheTithe": [
@@ -6017,9 +6021,12 @@
   ],
   "theGrainExchange": [
    {
-    "raw": "the town at the far end of one of these particular roads is the gladder for it — not built yet",
-    "text": "the town at the far end of one of these particular roads is the gladder for it — not built yet",
-    "deferred": true
+    "raw": "+3 food on every trade route sent from every city with a [[building:granary|Granary]] and between two of your own cities",
+    "text": "+3 food on every trade route sent from every city with a Granary and between two of your own cities"
+   },
+   {
+    "raw": "+1 happiness in every city one of your own trade routes from a city with a [[building:granary|Granary]] ends at",
+    "text": "+1 happiness in every city one of your own trade routes from a city with a Granary ends at"
    }
   ],
   "theMonasteryLibraries": [
@@ -8400,12 +8407,12 @@
     "text": "+1 gold on every desert hex"
    },
    {
-    "raw": "+2 gold on every trade route sent from every city with a [[improvement:holySite|Holy Site]]",
-    "text": "+2 gold on every trade route sent from every city with a Holy Site"
+    "raw": "+2 gold, +2 faith on every trade route sent from every city with a [[improvement:holySite|Holy Site]]",
+    "text": "+2 gold, +2 faith on every trade route sent from every city with a Holy Site"
    },
    {
-    "raw": "+2 gold on every trade route that ends in a city with a [[improvement:holySite|Holy Site]]",
-    "text": "+2 gold on every trade route that ends in a city with a Holy Site"
+    "raw": "+2 gold, +2 faith on every trade route that ends in a city with a [[improvement:holySite|Holy Site]]",
+    "text": "+2 gold, +2 faith on every trade route that ends in a city with a Holy Site"
    }
   ],
   "zhengHeOfMing": [
@@ -8596,12 +8603,12 @@
   ],
   "theHajj": [
    {
-    "raw": "+2 gold on every trade route sent from every city with a [[improvement:holySite|Holy Site]]",
-    "text": "+2 gold on every trade route sent from every city with a Holy Site"
+    "raw": "+2 gold, +2 faith on every trade route sent from every city with a [[improvement:holySite|Holy Site]]",
+    "text": "+2 gold, +2 faith on every trade route sent from every city with a Holy Site"
    },
    {
-    "raw": "+2 gold on every trade route that ends in a city with a [[improvement:holySite|Holy Site]]",
-    "text": "+2 gold on every trade route that ends in a city with a Holy Site"
+    "raw": "+2 gold, +2 faith on every trade route that ends in a city with a [[improvement:holySite|Holy Site]]",
+    "text": "+2 gold, +2 faith on every trade route that ends in a city with a Holy Site"
    }
   ],
   "treasureFleet": [

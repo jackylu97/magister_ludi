@@ -1079,8 +1079,25 @@ import {
  * **A v121 save is refused and does not replay**, for v121's own reason one
  * paragraph up: a v121 log carries no posts, so every card written on one would
  * answer "no house here" forever. The branch migrates nothing.
+ *
+ * v123 (the decks rework, batch C8 on branch `decks` — provenance on a shelf):
+ * **a town remembers which bank paid for each of its buildings.**
+ * `City.buildingBanks` is the one new field: for each building bought at the
+ * till, which currency bought it. It is written only by `addBuilding`, beside
+ * the date v121 added, and it records nothing at all for a building that was
+ * completed in the queue, granted by a card or laid as a relic — absence is
+ * "nobody bought this", which is the common case and the shape every town from
+ * before the field already has.
+ *
+ * The field exists because provenance cannot be recovered afterwards: by the
+ * turn after a purchase a bought library and a built one are identical, and The
+ * Endowment pays for one and not the other.
+ *
+ * **A v122 save is refused and does not replay**, for the same reason as every
+ * bump on this branch: a v122 log carries no banks, so a card written on one
+ * would answer "nothing here was bought" forever. The branch migrates nothing.
  */
-export const SCHEMA_VERSION = 122;
+export const SCHEMA_VERSION = 123;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2874,6 +2891,30 @@ export interface City {
    * razed takes its whole record with it.
    */
   buildingTurns?: Partial<Record<BuildingId, number>>;
+  /**
+   * **Which bank paid for each of those buildings**, for the ones somebody
+   * bought — or the key is absent on a town that has bought none (batch C8).
+   *
+   * `buildingTurns`' companion, written in the same line of `addBuilding` and
+   * for the same reason that field exists: a fact about how a building arrived
+   * that cannot be worked out afterwards. A turn after the stones are up, a
+   * bought library and a built one are the same library — so the till has to say
+   * so at the moment it rings, or nothing can ever say so again.
+   *
+   * **Absence means nobody bought it.** A row completed in the queue, a card's
+   * grant, a founding law's free Monument and an apostle's relic all leave no
+   * entry, which is the honest record and is also the shape every town saved
+   * before this field already has.
+   *
+   * Keyed by `BuildingId` beside the shelf, exactly as the dates are, and for
+   * the same reason: the list is order, this is provenance, and nothing iterates
+   * this object for an outcome. Nothing removes an entry, because nothing
+   * demolishes a building; a captured town keeps its record along with its
+   * stones, so a bought library goes on paying its captor.
+   *
+   * The one reader is `buildingBank` below.
+   */
+  buildingBanks?: Partial<Record<BuildingId, 'gold' | 'faith'>>;
   /**
    * True once this city has been taken by force, ever.
    *
@@ -4867,14 +4908,48 @@ export function newCitySpecialists(): Record<SpecialistFamily, number> {
  *
  * Answers whether anything was written, for a caller that wants to know.
  */
-export function addBuilding(state: GameState, city: City, building: BuildingId): boolean {
+export function addBuilding(
+  state: GameState,
+  city: City,
+  building: BuildingId,
+  /**
+   * **Which bank paid**, where a till rang (batch C8). Absent is every other way
+   * stones arrive — a completion, a card's grant, a founding Monument, a relic —
+   * and writes no entry at all.
+   *
+   * A parameter for `RealiseOptions.bought`'s stated reason: nothing this
+   * function can see distinguishes a bought building from a built one, so the
+   * only place the fact exists is the caller that took the money.
+   */
+  bought?: 'gold' | 'faith',
+): boolean {
   if (city.buildings.includes(building)) return false;
   city.buildings.push(building);
   // Presence is the state and the record is built on demand, `itemProgress`'
   // convention: a town that has raised nothing serialises exactly as one from
   // before the field existed.
   (city.buildingTurns ??= {})[building] = state.turn;
+  // The same convention for the bank, one step stricter: a town that has bought
+  // nothing carries no object either, so the common case adds nothing to a save.
+  if (bought !== undefined) (city.buildingBanks ??= {})[building] = bought;
   return true;
+}
+
+/**
+ * **Which bank paid for this building in this town**, or `undefined` where
+ * nobody bought it — the one reading of `City.buildingBanks` (batch C8).
+ *
+ * `buildingAge`'s twin, and `undefined` means the same kind of thing it means
+ * there: not "this was free", but "this town cannot show that anyone bought it".
+ * A building the town does not hold answers `undefined` too, so a caller never
+ * has to check the shelf first.
+ */
+export function buildingBank(
+  city: City,
+  building: BuildingId,
+): 'gold' | 'faith' | undefined {
+  if (!city.buildings.includes(building)) return undefined;
+  return city.buildingBanks?.[building];
 }
 
 /**

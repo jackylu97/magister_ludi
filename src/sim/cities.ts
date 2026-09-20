@@ -125,6 +125,7 @@ import { type CitizenFocus, type CitizenLean, type CitizenWeights, RULES } from 
 import {
   cardActionRule,
   cardAmplifier,
+  cardAmplifierFlat,
   cardMeterFlag,
   cardFoundingRider,
   cardRulePercent,
@@ -580,6 +581,12 @@ export function resourceCopies(
   // stale copy count is a unit a seat can or cannot build, which is a played
   // game parting from a replay of its own log. So the sweep stays law-free and
   // `ownCopies` below applies the share on the way out.
+  //
+  // **The sweep answers two figures rather than one** since batch C8: the copies
+  // the ground supplies, and how many of those deposits carry a mine. Royal
+  // Assays pays per mined deposit, and what the memo has to remember is that
+  // count — a fact about the board — so that the law can still be applied
+  // outside it. Both are ground facts; neither reads a card.
   const mine = ownCopies(
     slateMemo(state, 'economy', `copies:${resourceId}`, String(playerId), () =>
       sweepOwnCopies(state, playerId, resourceId),
@@ -605,16 +612,28 @@ export function resourceCopies(
  * Strategic rows only, asked of `ResourceDef.kind`, and floored once.
  */
 function ownCopies(
-  swept: number,
+  swept: SweptCopies,
   state: GameState,
   playerId: number,
   resourceId: ResourceId,
 ): number {
-  if (swept === 0) return 0;
-  if (resourceDef(resourceId).kind !== 'strategic') return swept;
-  const percent = cardAmplifier(state, playerId, 'strategicCopies');
-  if (percent === 0) return swept;
-  return Math.max(0, Math.floor((swept * (100 + percent)) / 100));
+  if (swept.copies === 0) return 0;
+  const kind = resourceDef(resourceId).kind;
+  if (kind === 'strategic') {
+    const percent = cardAmplifier(state, playerId, 'strategicCopies');
+    if (percent === 0) return swept.copies;
+    return Math.max(0, Math.floor((swept.copies * (100 + percent)) / 100));
+  }
+  // **A flat step per deposit that carries a mine** — Royal Assays (batch C8).
+  // Luxury rows only, which is the card's own word, and a flat rather than a
+  // share because "each deposit provides one additional copy" is a count: half
+  // again on three seams is not one more from each. Here rather than inside the
+  // memo for `resourceCopies`' stated reason, which is the same reason Strategic
+  // Exports is here.
+  if (kind !== 'luxury' || swept.mined === 0) return swept.copies;
+  const extra = cardAmplifierFlat(state, playerId, 'luxuryMineCopies');
+  if (extra === 0) return swept.copies;
+  return Math.max(0, swept.copies + Math.floor(extra) * swept.mined);
 }
 
 /**
@@ -937,23 +956,47 @@ export function tileCopies(tile: Tile): number {
  * share and the lending arithmetic are both applied outside it, by `ownCopies`
  * and `netCopies`. See `resourceCopies`.
  */
+interface SweptCopies {
+  /** What the ground supplies, before any law. */
+  copies: number;
+  /**
+   * How many of those deposits carry a **mine** — Royal Assays' count (batch
+   * C8).
+   *
+   * Counted in the same walk rather than by a second sweep, and for the reason
+   * the whole decomposition exists: the walk is what the economy-clock memo
+   * remembers, the law is applied on the way out, and a law that needed a figure
+   * the memo had not kept would have had to walk the map again on every ask.
+   * Cheap to keep — one comparison per deposit already being looked at — and a
+   * game with no such card simply never reads it.
+   */
+  mined: number;
+}
+
 function sweepOwnCopies(
   state: GameState,
   playerId: number,
   resourceId: ResourceId,
-): number {
+): SweptCopies {
   const owner = tileOwnerField(state);
   const tiles = state.map.tiles;
-  let mine = 0;
+  let copies = 0;
+  let mined = 0;
   for (let index = 0; index < tiles.length; index++) {
     const tile = tiles[index]!;
     if (tile.resource !== resourceId) continue;
     if (owner.at(index) !== playerId) continue;
     // **The tile's own quantity**, not one per tile (batch R3). A seam is worth
     // what it rolled, which is the dial that decides how large an army it feeds.
-    if (openedResource(state, tile, playerId) !== null) mine += tileCopies(tile);
+    if (openedResource(state, tile, playerId) === null) continue;
+    copies += tileCopies(tile);
+    // Through the predicate, never a name, so a later row that stands in for a
+    // mine counts as one here exactly as it does everywhere else.
+    if (tile.improvement !== undefined && improvementCountsAs(tile.improvement, 'mine')) {
+      mined += 1;
+    }
   }
-  return mine;
+  return { copies, mined };
 }
 
 /**
@@ -1026,7 +1069,15 @@ export function controlledHoldings(
   if (percent === 0) return swept.list;
   return RESOURCE_IDS.filter((id) => {
     if (!swept.held.has(id)) return false;
-    const mine = ownCopies(swept.opened.get(id) ?? 0, state, playerId, id);
+    // The strategic branch alone, so the mined-deposit term Royal Assays reads
+    // is not wanted here — a luxury returns above, with its list's identity
+    // intact.
+    const mine = ownCopies(
+      { copies: swept.opened.get(id) ?? 0, mined: 0 },
+      state,
+      playerId,
+      id,
+    );
     return netCopies(state, playerId, id, mine) > 0;
   }).map((id) => swept.held.get(id)!);
 }
@@ -3990,9 +4041,13 @@ export interface RealiseOptions {
    *
    * `stamp`'s sibling and here for its stated reason: it cannot be derived from
    * anything this routine can see, so it is a parameter. Handed straight to
-   * `createUnit`, which is still the one writer of `Unit.stamp`; ignored for a
-   * building, which carries no stamp at all. Absent is a completion, a grant or
-   * an escort — every birth that no till rang up.
+   * `createUnit`, which is still the one writer of `Unit.stamp`. Absent is a
+   * completion, a grant or an escort — every birth that no till rang up.
+   *
+   * **A building reads it too since batch C8**: `addBuilding` writes it into
+   * `City.buildingBanks` beside the date, which is what lets The Endowment pay
+   * for a roof somebody bought. It used to be dropped for a building, on the
+   * grounds that only a piece carried a mark.
    */
   bought?: 'gold' | 'faith';
 }
@@ -4073,10 +4128,16 @@ export function realiseItem(
   options: RealiseOptions = {},
 ): RealisedItem {
   if (item.kind === 'building') {
-    // The shelf and the date in one write (`addBuilding`, `state.ts`): the stones
-    // topped out this turn, and a card that asks how long they have stood reads
-    // the stamp this call left.
-    addBuilding(state, city, item.id);
+    // The shelf, the date and the bank in one write (`addBuilding`, `state.ts`):
+    // the stones topped out this turn, and a card that asks how long they have
+    // stood reads the stamp this call left.
+    //
+    // **`bought` is no longer dropped here** (batch C8). It used to be ignored
+    // for a building because only a piece could carry a mark, and The Endowment
+    // pays for a roof somebody bought — so the till now says which bank it was
+    // and the town writes it down beside the date. Absent on every other way
+    // stones arrive, which is what a completion, a grant and a relic all are.
+    addBuilding(state, city, item.id, options.bought);
     // **The law changed under this very call** (batch E3a). A wonder is the
     // fifth source of `liveEffects`, the stones go up before the grants below
     // are asked for, and the remembered law is keyed on `GameState.revision` —

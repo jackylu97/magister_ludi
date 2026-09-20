@@ -44,7 +44,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { createGame } from '../../../src/sim/game';
-import { type City, addBuilding, bumpRevision, playerById } from '../../../src/sim/state';
+import {
+  type City,
+  addBuilding,
+  buildingBank,
+  bumpRevision,
+  playerById,
+} from '../../../src/sim/state';
+import { RESOURCE_IDS, type ResourceId, resourceDef } from '../../../src/sim/resourceData';
+import { improvementForResource } from '../../../src/sim/improvementData';
 import {
   explainBuildingCost,
   foldUnitCost,
@@ -53,6 +61,7 @@ import {
   purchasableTiles,
   purchaseTileAt,
   refreshCityDerived,
+  resourceCopies,
   tilePurchaseError,
 } from '../../../src/sim/cities';
 import { bordersFrozen, happinessOf, meterEffects } from '../../../src/sim/meters';
@@ -76,7 +85,7 @@ import { readCity } from '../../../src/sim/readings';
 import { buildError, gatingTech } from '../../../src/sim/tech';
 import { RULES } from '../../../src/sim/rulesData';
 import { explainRouteYieldBetween, foldRouteYield } from '../../../src/sim/routeYields';
-import { routeTermFor } from '../../../src/sim/trade';
+import { routeTermFor, startRouteAt } from '../../../src/sim/trade';
 import { drawGreatPersonOffer } from '../../../src/sim/greatPeople';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../../src/sim/greatPeopleData';
 import {
@@ -140,7 +149,11 @@ describe('the Commerce deck is one deck', () => {
     // sheet row the data had never carried — the three still missing (Spy
     // Networks, Royal Assays, The Masters' Guild) each wait on a shape nobody
     // has built, so they stay unwritten rather than entered as deferred rows.
-    expect(COMMERCE.length).toBe(71);
+    // C8 writes Royal Assays, the second of those three: an empire's own luxury
+    // deposits may now supply an extra copy where a mine stands on them, which
+    // is the same seam Strategic Exports opened one kind over. Spy Networks and
+    // The Masters' Guild are still unwritten.
+    expect(COMMERCE.length).toBe(72);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -177,7 +190,8 @@ describe('the Commerce deck is one deck', () => {
     // Prosperity in Tier II, Caravanserai Cities in Tier III.
     // C6 adds Entrenched Interests in Tier III, where the sheet puts it — a row
     // the user's sheet has always listed and the data had never carried.
-    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 25, 13]);
+    // C8 adds Royal Assays in Tier II, where the sheet puts it.
+    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 26, 13]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
 
@@ -268,7 +282,17 @@ describe('a live Commerce row is a card', () => {
     // narrowings — goes on answering the same. Strategic Exports wanted an
     // amplifier on what a realm's own strategic seams supply, applied outside
     // the walk that is memoised on the economy clock.
-    expect(live().length).toBe(58);
+    //
+    // **And two more with C8.** The Endowment was waiting on the one thing C4
+    // measured and could not find — a per-building record of the bank that paid,
+    // written beside the date — and it is a field on the town now
+    // (`City.buildingBanks`, schema 123), counted by `CountKind`'s
+    // `purchasedBuildings`. Royal Assays is a brand-new row and raises the
+    // deck's size rather than moving one off the deferred list: it takes the
+    // same path Strategic Exports took, a law applied to what the ground
+    // supplies on the way out of the memo, with a flat step per deposit instead
+    // of a share of the total.
+    expect(live().length).toBe(60);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -411,8 +435,9 @@ describe('a deferred Commerce row is a promise, not a card', () => {
     // The Harbour Chain and The Factors' Houses off the route gate and the
     // caravan's hire price, Caravanserai Cities off the split between a
     // building's limit and its class, and Strategic Exports off an amplifier on
-    // what a realm's own seams supply.
-    expect(deferred().length).toBe(13);
+    // what a realm's own seams supply. C8 takes one more, The Endowment, off a
+    // building remembering which bank paid for it.
+    expect(deferred().length).toBe(12);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -1949,5 +1974,396 @@ describe('C4 — the great-house marker, read from both sides', () => {
         (effect) => effect.kind === 'effectAmplifier' && effect.target === 'strategicCopies',
       ),
     ).toEqual(['strategicExports']);
+  });
+});
+
+// --- C8, faith on routes, copies and provenance -------------------------------
+
+/**
+ * **Batch C8**: four rows the user's sheet freed, and the four seams they
+ * needed.
+ *
+ * What was added to the vocabulary, and which row writes each:
+ *
+ *   · **faith on a trade route.** `RouteYieldLine` carried five voices and now
+ *     carries six. It was never a rule that a caravan may not carry faith — the
+ *     field's own docblock said faith stayed out "because nothing pays it", and
+ *     Pilgrim Markets is the row that now does. The voice is folded, staged and
+ *     banked by exactly the code the other five go through;
+ *   · `CardPaysEffect.eitherEnd` — a route line admitted when *one* of the two
+ *     towns answers, where `origin` and `destination` are joined by *and*
+ *     (Pilgrim Markets);
+ *   · `CityScope`'s `routeEndsHere.farEnd` — what the town at the other end of
+ *     the counted routes must be (The Grain Exchange's happiness). Handed down
+ *     to `countRoutesAt` as a predicate, because `routes.ts` is a leaf that may
+ *     not import the evaluator;
+ *   · `City.buildingBanks` and `CountKind`'s `purchasedBuildings` — which bank
+ *     paid for each of a town's roofs, written by `addBuilding` beside the date
+ *     (schema 123, The Endowment);
+ *   · `AmplifierTarget`'s `luxuryMineCopies` — a flat step per luxury deposit
+ *     with a mine on it, applied outside the economy-clock memo exactly as C7's
+ *     `strategicCopies` share is (Royal Assays).
+ *
+ * Two Commerce rows stay deferred and their reasons were re-cut rather than
+ * repeated. The Exchange: the sheet's ratified text asks about routes *arriving*
+ * at your towns, and a card is only ever consulted about a road from the end
+ * that sent it — so this empire's law never sees the road at all, and "the
+ * sender" is a third kind of payee besides. The Warehouses: the counting half is
+ * close, but the doubling aims at one named good where every dial in the
+ * vocabulary turns a whole class.
+ */
+describe('C8 — faith on a road, either end, and a bought roof', () => {
+  /** A duel with one Commerce seat, the named cards in its chairs. */
+  function bench(cards: string[]) {
+    const g = createGame({
+      seed: 83,
+      sizeName: 'duel',
+      players: [
+        { name: 'Musa', color: '#d4502e', isHuman: true, leader: 'mansaMusa' },
+        { name: 'Bors', color: '#3a7fe8', leader: 'pachacuti' },
+      ],
+    });
+    const musa = playerById(g.state, 0)!;
+    for (const card of cards) {
+      musa.statecraft.orders.push(card as OrderId);
+      musa.statecraft.slots.push({ card: card as OrderId, sealedUntil: g.state.turn });
+    }
+    bumpRevision(g.state);
+    return g;
+  }
+
+  /** A town of this seat, founded a few hexes along from its opening piece. */
+  function town(g: ReturnType<typeof bench>, at = 0) {
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    return foundCityAt(g.state, 0, getTileAt(g.state.map, unit.col + at, unit.row)!)!;
+  }
+
+  /** Every hex a town owns but the one its walls stand on. */
+  function around(g: ReturnType<typeof bench>, city: City) {
+    return ownedTiles(g.state, city).filter(
+      (tile) => tile.col !== city.col || tile.row !== city.row,
+    );
+  }
+
+  /**
+   * **The member register.** C2's discipline, kept: a member of a union the
+   * evaluator already walks, and a field on a shape it already reads, both sail
+   * straight through the kind-level registers in `statecraft.test.ts`.
+   */
+  it('registers exactly which rows write the four things C8 declared', () => {
+    const rows = [...COMMERCE, ...DECK_FILE_ORDERS.common];
+    const writers = (match: (effect: CardEffect) => boolean): string[] =>
+      rows.filter((id) => orderDef(id).effects.some(match));
+
+    expect(writers((effect) => effect.kind === 'pays' && effect.eitherEnd !== undefined)).toEqual([
+      'pilgrimMarkets',
+    ]);
+    // The only row in the game that pays a caravan in faith.
+    expect(
+      writers(
+        (effect) =>
+          effect.kind === 'pays' && effect.where === 'route' && (effect.faith ?? 0) !== 0,
+      ),
+    ).toEqual(['pilgrimMarkets']);
+    expect(
+      writers(
+        (effect) =>
+          effect.kind === 'happiness' &&
+          effect.scope?.test === 'routeEndsHere' &&
+          effect.scope.farEnd !== undefined,
+      ),
+    ).toEqual(['theGrainExchange']);
+    expect(
+      writers((effect) => effect.kind === 'pays' && effect.count === 'purchasedBuildings'),
+    ).toEqual(['theEndowment']);
+    expect(
+      writers(
+        (effect) => effect.kind === 'effectAmplifier' && effect.target === 'luxuryMineCopies',
+      ),
+    ).toEqual(['royalAssays']);
+  });
+
+  // --- Pilgrim Markets -------------------------------------------------------
+
+  describe('Pilgrim Markets — a shrine at either end', () => {
+    /** The card's own lines on a road between these two towns. */
+    const named = (g: ReturnType<typeof bench>, from: City, to: City) =>
+      explainRouteYieldBetween(g.state, from, to).filter((line) =>
+        line.source.includes('Pilgrim Markets'),
+      );
+
+    /** Plant a holy site on a hex the town owns. */
+    function shrine(g: ReturnType<typeof bench>, city: City) {
+      raiseImprovement(around(g, city)[0]!, 'holySite', g.state.turn);
+      bumpRevision(g.state);
+    }
+
+    it('pays nothing without a site, and coin and faith with one at either end', () => {
+      const g = bench(['pilgrimMarkets']);
+      const from = town(g, 0);
+      const to = town(g, 4);
+      expect(named(g, from, to)).toEqual([]);
+
+      // A site in the town the cart left.
+      shrine(g, from);
+      const sent = foldRouteYield(named(g, from, to));
+      expect(sent.gold).toBe(2);
+      expect(sent.faith).toBe(2);
+
+      // And a site in the town it walks to, with none where it started: the
+      // clause is a disjunction, so either end on its own is enough.
+      const other = bench(['pilgrimMarkets']);
+      const start = town(other, 0);
+      const end = town(other, 4);
+      shrine(other, end);
+      const arrived = foldRouteYield(named(other, start, end));
+      expect(arrived.gold).toBe(2);
+      expect(arrived.faith).toBe(2);
+    });
+
+    it('pays once and not twice when both ends keep a site', () => {
+      const g = bench(['pilgrimMarkets']);
+      const from = town(g, 0);
+      const to = town(g, 4);
+      shrine(g, from);
+      shrine(g, to);
+      const lines = named(g, from, to);
+      expect(lines.length).toBe(1);
+      expect(foldRouteYield(lines).faith).toBe(2);
+    });
+
+    it('promises a preview nothing while the far end is unchosen', () => {
+      const g = bench(['pilgrimMarkets']);
+      const from = town(g, 0);
+      shrine(g, from);
+      // The caller with one end in hand is asking about the origin alone, and a
+      // line answered there would be a line the preview promised and the
+      // caravan never paid — `destination`'s and `crossing`'s own bargain.
+      expect(
+        cardRouteYieldLines(g.state, from).filter((line) => line.card === 'pilgrimMarkets'),
+      ).toEqual([]);
+    });
+
+    /**
+     * **The leader ability that had been promising faith and paying none.**
+     *
+     * Mansa Musa's The Hajj is a live row of exactly this shape — *"trade routes
+     * that begin or end at a city holding a holy site pay +2 gold and +2
+     * faith"* — written as two route `pays` rows each carrying `faith: 2`. The
+     * fold had no field for the voice, so the figure was read off the row, never
+     * copied onto the line, and quietly dropped: the card said one thing and the
+     * ledger did another. Adding the voice fixes that in the same stroke, which
+     * is why the two are pinned together.
+     *
+     * A shrine at the origin therefore pays twice over on this bench — the
+     * card's two and the leader's two — and `foldRouteYield` is the one sum of
+     * both.
+     */
+    it('carries the faith through the fold, the leader’s promise included', () => {
+      const g = bench(['pilgrimMarkets']);
+      const from = town(g, 0);
+      const to = town(g, 4);
+      shrine(g, from);
+      const lines = explainRouteYieldBetween(g.state, from, to);
+      expect(foldRouteYield(lines.filter((l) => l.source.includes('Pilgrim Markets'))).faith).toBe(
+        2,
+      );
+      expect(foldRouteYield(lines.filter((l) => l.source.includes('Hajj'))).faith).toBe(2);
+      expect(foldRouteYield(lines).faith).toBe(4);
+    });
+  });
+
+  // --- The Grain Exchange ----------------------------------------------------
+
+  describe('The Grain Exchange — what the far end of the road holds', () => {
+    it('pays grain off a granary in the town the cart left, and not the one it reaches', () => {
+      const g = bench(['theGrainExchange']);
+      const from = town(g, 0);
+      const to = town(g, 4);
+      const named = () =>
+        explainRouteYieldBetween(g.state, from, to).filter((line) =>
+          line.source.includes('Grain Exchange'),
+        );
+      expect(named()).toEqual([]);
+      // A granary at the far end buys nothing: the clause is the origin's.
+      addBuilding(g.state, to, 'granary');
+      bumpRevision(g.state);
+      expect(named()).toEqual([]);
+      addBuilding(g.state, from, 'granary');
+      bumpRevision(g.state);
+      expect(foldRouteYield(named()).food).toBe(3);
+    });
+
+    it('gladdens a town only while one of those particular roads ends in it', () => {
+      const g = bench(['theGrainExchange']);
+      const from = town(g, 0);
+      const to = town(g, 4);
+      const scope = {
+        test: 'routeEndsHere',
+        crossing: 'domestic',
+        farEnd: { test: 'hasBuilding', building: 'granary' },
+      } as const;
+
+      // No road at all: the town is no gladder for one.
+      expect(cityScopeAdmits(g.state, to, scope)).toBe(false);
+
+      // A live road between the two, and still no granary at its origin.
+      const cart = g.state.units.find((u) => u.ownerId === 0)!;
+      startRouteAt(g.state, cart, from, to, 'land');
+      bumpRevision(g.state);
+      expect(cityScopeAdmits(g.state, to, scope)).toBe(false);
+
+      addBuilding(g.state, from, 'granary');
+      bumpRevision(g.state);
+      expect(cityScopeAdmits(g.state, to, scope)).toBe(true);
+      // And asked from the other end: the town that *sent* the cart is not the
+      // town that receives one.
+      expect(cityScopeAdmits(g.state, from, scope)).toBe(false);
+    });
+  });
+
+  // --- The Endowment ---------------------------------------------------------
+
+  describe('The Endowment — which bank paid for the roof', () => {
+    it('records the bank at the till and nothing at a completion', () => {
+      const g = bench([]);
+      const city = town(g);
+      // A roof raised in the yard leaves the record empty, which is the shape
+      // every town from before the field already has.
+      addBuilding(g.state, city, 'monument');
+      expect(buildingBank(city, 'monument')).toBeUndefined();
+      // And a roof somebody bought says which counter rang.
+      addBuilding(g.state, city, 'granary', 'gold');
+      expect(buildingBank(city, 'granary')).toBe('gold');
+      // A building the town does not hold answers the same as one nobody
+      // bought, so no caller has to check the shelf first.
+      expect(buildingBank(city, 'library')).toBeUndefined();
+    });
+
+    it('pays two beakers a bought roof, and nothing for one that was built', () => {
+      const g = bench(['theEndowment']);
+      const city = town(g);
+      const named = () =>
+        explainCity(g.state, city).lines.filter((line: CityYieldLine) =>
+          line.source.includes('Endowment'),
+        );
+      addBuilding(g.state, city, 'monument');
+      bumpRevision(g.state);
+      expect(named()).toEqual([]);
+
+      addBuilding(g.state, city, 'granary', 'gold');
+      bumpRevision(g.state);
+      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(2);
+
+      // **Either bank counts.** A library bought with faith is as bought as one
+      // bought with gold, which is what the card's "purchased" says.
+      addBuilding(g.state, city, 'library', 'faith');
+      bumpRevision(g.state);
+      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(4);
+    });
+
+    it('goes through the purchase counter, which is the only seam that rings', () => {
+      const g = bench([]);
+      const city = town(g);
+      const musa = playerById(g.state, 0)!;
+      musa.gold = 99999;
+      const gate = gatingTech('building', 'granary');
+      if (gate) musa.techsResearched.push(gate);
+      bumpRevision(g.state);
+      const item = { kind: 'building', id: 'granary' } as const;
+      expect(purchaseError(g.state, 0, city.id, item, 'gold')).toBeNull();
+      purchaseItemAt(g.state, musa, city, item, 'gold');
+      expect(city.buildings).toContain('granary');
+      expect(buildingBank(city, 'granary')).toBe('gold');
+    });
+  });
+
+  // --- Royal Assays ----------------------------------------------------------
+
+  describe('Royal Assays — a copy more from a mined seam', () => {
+    /**
+     * A town whose ground carries one luxury seam, open to its owner, with the
+     * named work standing on it. Answers the seam's id.
+     */
+    function seam(g: ReturnType<typeof bench>, city: City, resource: ResourceId) {
+      const musa = playerById(g.state, 0)!;
+      const tile = around(g, city)[0]!;
+      tile.resource = resource;
+      // **The work the seam's own row asks for**, so the deposit is genuinely
+      // opened — a plantation over a gem seam opens nothing, and a test that
+      // compared two closed seams would have compared two zeroes.
+      raiseImprovement(tile, improvementForResource(resource)!, g.state.turn);
+      // Whatever the row's reveal technology is, so the seam is one this empire
+      // can name — a resource pays only an empire that has the word for it.
+      const reveal = resourceDef(resource).requiresTech;
+      if (reveal && !musa.techsResearched.includes(reveal)) musa.techsResearched.push(reveal);
+      bumpRevision(g.state);
+    }
+
+    /** A luxury the table opens with a mine, and one it opens some other way. */
+    const luxWith = (mine: boolean): ResourceId =>
+      RESOURCE_IDS.find(
+        (id) =>
+          resourceDef(id).kind === 'luxury' &&
+          (improvementForResource(id) === 'mine') === mine &&
+          improvementForResource(id) !== null,
+      )!;
+
+    it('adds a copy per mined luxury deposit, and leaves an unmined one alone', () => {
+      const mined = luxWith(true);
+      const plain = bench([]);
+      seam(plain, town(plain), mined);
+      const base = resourceCopies(plain.state, 0, mined);
+      expect(base).toBeGreaterThan(0);
+
+      const held = bench(['royalAssays']);
+      seam(held, town(held), mined);
+      expect(resourceCopies(held.state, 0, mined)).toBe(base + 1);
+
+      // The work is the narrowing: a luxury the table opens with something else
+      // supplies exactly what it always did, card or no card.
+      const other = luxWith(false);
+      const grove = bench(['royalAssays']);
+      seam(grove, town(grove), other);
+      const bare = bench([]);
+      seam(bare, town(bare), other);
+      expect(resourceCopies(grove.state, 0, other)).toBe(resourceCopies(bare.state, 0, other));
+      expect(resourceCopies(grove.state, 0, other)).toBeGreaterThan(0);
+    });
+
+    it('leaves a strategic seam under a mine untouched', () => {
+      const g = bench(['royalAssays']);
+      const city = town(g);
+      const musa = playerById(g.state, 0)!;
+      const strategic = RESOURCE_IDS.find(
+        (id) => resourceDef(id).kind === 'strategic' && improvementForResource(id) === 'mine',
+      )!;
+      const tile = around(g, city)[0]!;
+      tile.resource = strategic;
+      tile.resourceCopies = 2;
+      raiseImprovement(tile, 'mine', g.state.turn);
+      const reveal = resourceDef(strategic).requiresTech;
+      if (reveal && !musa.techsResearched.includes(reveal)) musa.techsResearched.push(reveal);
+      bumpRevision(g.state);
+      // The card says *luxury*, so the strategic seam supplies its own rolled
+      // quantity and not one more.
+      expect(resourceCopies(g.state, 0, strategic)).toBe(2);
+    });
+
+    it('is read outside the memo, so slotting the card moves the count at once', () => {
+      const g = bench([]);
+      const lux = luxWith(true);
+      seam(g, town(g), lux);
+      const before = resourceCopies(g.state, 0, lux);
+      // Slotted mid-turn without touching the board. The economy clock does not
+      // move for a card, so a law read inside the remembered walk would leave
+      // this figure stale — C7's argument, and the reason this target is
+      // applied on the way out.
+      const musa = playerById(g.state, 0)!;
+      musa.statecraft.orders.push('royalAssays' as OrderId);
+      musa.statecraft.slots.push({ card: 'royalAssays' as OrderId, sealedUntil: g.state.turn });
+      bumpRevision(g.state);
+      expect(resourceCopies(g.state, 0, lux)).toBe(before + 1);
+    });
   });
 });

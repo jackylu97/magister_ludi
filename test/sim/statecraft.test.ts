@@ -1752,7 +1752,11 @@ describe("determinism", () => {
     // each of its buildings went up, a hex when its work was raised and a route
     // when it opened, so a v120 log answers "not old enough" to every card
     // written on an age — a bump *within* the branch, which migrates nothing.
-    expect(SCHEMA_VERSION).toBe(122);
+    // 123 since C8 (the decks rework, branch `decks`): a town remembers which
+    // bank paid for each of its buildings, so a v122 log answers "nobody bought
+    // this" to The Endowment for ever — a bump within the branch, which
+    // migrates nothing either way.
+    expect(SCHEMA_VERSION).toBe(123);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -8528,8 +8532,14 @@ describe("the engine shapes", () => {
     // D2a: Market Gardens' second helping of grain on a road that never leaves,
     // un-deferred with the ring of six its first half wanted.
     "marketGardens · routeYield",
+    // C8: the two shared rows the sheet freed. Pilgrim Markets is the first row
+    // in the game to pay a caravan in faith, and The Grain Exchange's grain is
+    // an ordinary route line whose other half is the happiness clause that
+    // needed a town to be able to ask what the far end of its roads holds.
+    "pilgrimMarkets · routeYield",
     "merchantScholars · routeYield",
     "travellingPlayers · routeYield",
+    "theGrainExchange · routeYield",
     "theMerchantNavigators · routeYield",
   ];
 

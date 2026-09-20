@@ -115,6 +115,7 @@ import {
   type TimedEffect,
   type Unit,
   buildingAge,
+  buildingBank,
   cityReligion,
   citiesOf,
   countFirsts,
@@ -2078,7 +2079,28 @@ export function cityScopeAdmits(
       // before batch C5 meant: one or more. `atMost` is the negation (The
       // League of Cities' towns that send nothing out) and is asked as well as
       // `atLeast`, not instead of it, so a row carrying both means the band.
-      const found = countRoutesAt(state, city, scope.direction ?? 'arriving', scope.crossing);
+      //
+      // **And what the far end must be**, where the row says so (batch C8). The
+      // scope goes down as a predicate rather than as data, because `routes.ts`
+      // is a leaf and cannot import the evaluator that answers a scope. A far-end
+      // scope that asked a route question of its own would walk the board once
+      // per route per town, so it is refused here instead — no row writes one,
+      // and refusing is cheaper to reason about than a depth counter.
+      const farEnd = scope.farEnd;
+      const admits =
+        farEnd === undefined
+          ? undefined
+          : (other: City): boolean =>
+              farEnd.test === 'routeEndsHere'
+                ? false
+                : cityScopeAdmits(state, other, farEnd, viewerId);
+      const found = countRoutesAt(
+        state,
+        city,
+        scope.direction ?? 'arriving',
+        scope.crossing,
+        admits,
+      );
       if (found < (scope.atLeast ?? (scope.atMost === undefined ? 1 : 0))) return false;
       return scope.atMost === undefined || found <= scope.atMost;
     }
@@ -2214,11 +2236,18 @@ function scopeNote(scope?: CityScope): string | null {
           ? 'trade route'
           : `${scope.crossing === 'international' ? 'foreign' : 'domestic'} trade route`;
       const way = scope.direction === 'departing' ? 'leaves here' : 'ends here';
+      // What the far end must be, where the row says so — appended rather than
+      // folded into `whose`, so the reader sees the town they came from named
+      // after the road that brought them.
+      const farNote = scopeNote(scope.farEnd);
+      const far = farNote === null ? '' : ` from a city with ${farNote}`;
       if (scope.atMost !== undefined && scope.atLeast === undefined) {
-        return scope.atMost === 0 ? `no ${whose} ${way}` : `at most ${scope.atMost} ${whose}s ${way}`;
+        return scope.atMost === 0
+          ? `no ${whose} ${way}${far}`
+          : `at most ${scope.atMost} ${whose}s ${way}${far}`;
       }
       const least = scope.atLeast ?? 1;
-      return least > 1 ? `${least}+ ${whose}s ${way}` : `a ${whose} ${way}`;
+      return least > 1 ? `${least}+ ${whose}s ${way}${far}` : `a ${whose} ${way}${far}`;
     }
     case 'holdsPost':
       return 'your trading post stands here';
@@ -2535,6 +2564,26 @@ export function countOf(
       for (const town of state.cities) {
         if (town.ownerId !== playerId) continue;
         total += buildingsOfCategoryIn(town, wanted);
+      }
+      return total;
+    }
+    case 'purchasedBuildings': {
+      // **Provenance, not purpose** (batch C8). `City.buildingBanks` holds an
+      // entry for every roof a till rang up and nothing for any other, so the
+      // count is the size of that record — walked over the town's shelf, which
+      // is the order every sweep takes, rather than over the object's keys.
+      const here = (town: City): number => {
+        let found = 0;
+        for (const id of town.buildings) {
+          if (buildingBank(town, id) !== undefined) found += 1;
+        }
+        return found;
+      };
+      if (effect.within === 'city') return city ? here(city) : 0;
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId !== playerId) continue;
+        total += here(town);
       }
       return total;
     }
@@ -7606,7 +7655,11 @@ export function cardEmpireRenownShares(
  * the seat that sent it, so a rival's presses never print your books, and the
  * clause only ever narrows which of your own roads a line rides.
  *
- * Faith is not in the shape and is not here: nothing pays a caravan in it.
+ * **Faith joined the shape in batch C8.** It had been left out because no row
+ * paid it, which the user's sheet changed: Pilgrim Markets pays a road that
+ * passes a shrine in faith as well as in coin. It is a voice of the line like
+ * any other and is folded, staged and banked by the same code as the five
+ * beside it — see `RouteYieldLine` in `routeYields.ts` for what that cost.
  */
 export interface CardRouteLine {
   card: CardId;
@@ -7616,6 +7669,7 @@ export interface CardRouteLine {
   gold: number;
   science: number;
   culture: number;
+  faith: number;
   /** The bag is paid once per luxury at either end. `CardPaysEffect`'s. */
   perEndpointLuxury: boolean;
   /**
@@ -7698,6 +7752,7 @@ export function cardRouteYieldLines(
       gold: (effect.gold ?? 0) * counted,
       science: (effect.science ?? 0) * counted,
       culture: (effect.culture ?? 0) * counted,
+      faith: (effect.faith ?? 0) * counted,
       // Carried rather than resolved: this module holds the origin and the fold
       // in `routeYields.ts` holds both ends, and only the pair can answer "how
       // many luxuries are on this road". See `CardPaysEffect`.
@@ -7710,7 +7765,7 @@ export function cardRouteYieldLines(
         : {}),
     };
     if (line.food === 0 && line.production === 0 && line.gold === 0) {
-      if (line.science === 0 && line.culture === 0) continue;
+      if (line.science === 0 && line.culture === 0 && line.faith === 0) continue;
     }
     list.push(line);
   }
@@ -7812,6 +7867,7 @@ function routeScopesAdmit(
   effect: {
     origin?: CityScope;
     destination?: CityScope;
+    eitherEnd?: CityScope;
     crossing?: 'domestic' | 'international';
     standingTurns?: number;
     mode?: RouteMode;
@@ -7825,6 +7881,19 @@ function routeScopesAdmit(
   if (effect.destination !== undefined) {
     if (!to) return false;
     if (!cityScopeAdmits(state, to, effect.destination)) return false;
+  }
+  // **Either town will do** (batch C8, Pilgrim Markets). The disjunction the
+  // other two clauses cannot express, and it takes their bargain with a caller
+  // holding one end: a preview with no far end is promised nothing, because a
+  // road whose destination is not chosen yet cannot be shown to have a shrine on
+  // it. Admitted once however many ends qualify — the row is a boolean and the
+  // bag is paid once, which is the card's own second sentence.
+  if (effect.eitherEnd !== undefined) {
+    if (!to) return false;
+    const either =
+      cityScopeAdmits(state, from, effect.eitherEnd) ||
+      cityScopeAdmits(state, to, effect.eitherEnd);
+    if (!either) return false;
   }
   if (effect.crossing !== undefined) {
     if (!to) return false;
@@ -7851,13 +7920,18 @@ function routeScopesAdmit(
 function routeScopeNote(effect: {
   origin?: CityScope;
   destination?: CityScope;
+  eitherEnd?: CityScope;
   crossing?: 'domestic' | 'international';
   standingTurns?: number;
   mode?: RouteMode;
 }): string | null {
+  const either = scopeNote(effect.eitherEnd);
   const notes = [
     scopeNote(effect.origin),
     scopeNote(effect.destination),
+    // The disjunction says which end it found nothing about, because "a holy
+    // site" on a route line would read as a fact about the origin.
+    either === null ? null : `${either} at either end`,
     // The medium, beside the crossing and for its reason: a fact about the road
     // rather than about either end.
     effect.mode === undefined ? null : effect.mode === 'sea' ? 'by sea' : 'by land',

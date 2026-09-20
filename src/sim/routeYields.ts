@@ -101,15 +101,17 @@ export {
  * (`explainRouteYieldBetween`) or, when it ends abroad, the empire that
  * **sent** it (`explainRouteSenderYieldBetween`).
  *
- * `CardYieldLine`'s shape minus the one voice no route pays. It carried three
- * yields and the comment here said a fourth would be a design decision rather
- * than a field — which is exactly what happened: the international ruling of
- * 2026-09-03 pays a sender science and culture, so the two joined **together**,
- * as one decision, and faith stayed out because nothing pays it.
+ * **All six voices since batch C8.** The line began with three; the
+ * international ruling of 2026-09-03 added science and culture together, as one
+ * decision; and faith stayed out with the stated reason *"nothing pays it"* —
+ * an absence for want of a card, not a rule that a caravan may not carry faith.
+ * The user's Commerce sheet asked for one (Pilgrim Markets, a road that passes a
+ * shrine), so the voice joined the same way the last two did: a field of the
+ * line, summed by `foldRouteYield` like any other and staged and banked by the
+ * same code, with no second path anywhere.
  *
- * A domestic line reads byte-identically to what it always did: the two new
- * voices are zero on every line the building rates and the coin produce, and
- * `foldRouteYield` sums them like any other.
+ * Every line that does not mention faith carries nought, so a route that passes
+ * no shrine reads exactly as it always did.
  */
 export interface RouteYieldLine {
   /** What the interface prints: "Caravan from Uruk · 3 buildings". */
@@ -119,12 +121,20 @@ export interface RouteYieldLine {
   gold: number;
   science: number;
   culture: number;
+  faith: number;
 }
 
-/** A line with the two rarely-used voices at zero — every domestic line's shape. */
+/** A line with the rarely-used voices at zero — every domestic line's shape. */
 function line(
   source: string,
-  bag: { food?: number; production?: number; gold?: number; science?: number; culture?: number },
+  bag: {
+    food?: number;
+    production?: number;
+    gold?: number;
+    science?: number;
+    culture?: number;
+    faith?: number;
+  },
 ): RouteYieldLine {
   return {
     source,
@@ -133,6 +143,7 @@ function line(
     gold: bag.gold ?? 0,
     science: bag.science ?? 0,
     culture: bag.culture ?? 0,
+    faith: bag.faith ?? 0,
   };
 }
 
@@ -407,9 +418,10 @@ function bySea(
     gold: (total.gold * percent) / 100,
     science: (total.science * percent) / 100,
     culture: (total.culture * percent) / 100,
+    faith: (total.faith * percent) / 100,
   };
   if (extra.food === 0 && extra.production === 0 && extra.gold === 0) {
-    if (extra.science === 0 && extra.culture === 0) return;
+    if (extra.science === 0 && extra.culture === 0 && extra.faith === 0) return;
   }
   lines.push(line(label(`by sea ${percent > 0 ? '+' : ''}${percent}%`), extra));
 }
@@ -478,6 +490,7 @@ function cardLines(
         gold: paid.gold * helpings,
         science: paid.science * helpings,
         culture: paid.culture * helpings,
+        faith: paid.faith * helpings,
       }),
     );
   }
@@ -543,13 +556,15 @@ function shares(
       gold: share('gold'),
       science: share('science'),
       culture: share('culture'),
+      faith: share('faith'),
     };
     if (
       extra.food === 0 &&
       extra.production === 0 &&
       extra.gold === 0 &&
       extra.science === 0 &&
-      extra.culture === 0
+      extra.culture === 0 &&
+      extra.faith === 0
     ) {
       continue;
     }
@@ -591,9 +606,10 @@ function amplify(
     gold: (total.gold * percent) / 100,
     science: (total.science * percent) / 100,
     culture: (total.culture * percent) / 100,
+    faith: (total.faith * percent) / 100,
   };
   if (extra.food === 0 && extra.production === 0 && extra.gold === 0) {
-    if (extra.science === 0 && extra.culture === 0) return;
+    if (extra.science === 0 && extra.culture === 0 && extra.faith === 0) return;
   }
   lines.push(line(label(`cards ${percent > 0 ? '+' : ''}${percent}%`), extra));
 }
@@ -635,7 +651,8 @@ function blockaded(
     total.production === 0 &&
     total.gold === 0 &&
     total.science === 0 &&
-    total.culture === 0;
+    total.culture === 0 &&
+    total.faith === 0;
   if (empty) return lines;
   lines.push(
     line(`Blockaded · ${cut.name}`, {
@@ -644,6 +661,7 @@ function blockaded(
       gold: -total.gold,
       science: -total.science,
       culture: -total.culture,
+      faith: -total.faith,
     }),
   );
   return lines;
@@ -752,14 +770,16 @@ export function foldRouteYield(lines: readonly RouteYieldLine[]): {
   gold: number;
   science: number;
   culture: number;
+  faith: number;
 } {
-  const total = { food: 0, production: 0, gold: 0, science: 0, culture: 0 };
+  const total = { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
   for (const entry of lines) {
     total.food += entry.food;
     total.production += entry.production;
     total.gold += entry.gold;
     total.science += entry.science;
     total.culture += entry.culture;
+    total.faith += entry.faith;
   }
   return total;
 }

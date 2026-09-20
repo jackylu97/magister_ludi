@@ -451,8 +451,16 @@
       "rarity": "uncommon",
       "flavor": "Every shrine grows a street of stalls.",
       "text": "Routes gain +2 gold and +2 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify.",
-      "deferred": ["a road pays when either of its two ends keeps a holy site"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "eitherEnd": { "test": "hasImprovement", "improvement": "holySite" },
+          "gold": 2,
+          "faith": 2
+        }
+      ],
+      "note": "The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex."
     },
     "commonTheTithe": {
       "name": "The Tithe",
@@ -827,8 +835,25 @@
       "rarity": "uncommon",
       "flavor": "A full granary is a promise other towns can eat.",
       "text": "Domestic routes from a city with a Granary give +3 food to their destination. Cities receiving one gain +1 happiness.",
-      "deferred": ["the town at the far end of one of these particular roads is the gladder for it"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "domestic",
+          "origin": { "test": "hasBuilding", "building": "granary" },
+          "food": 3
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "scope": {
+            "test": "routeEndsHere",
+            "crossing": "domestic",
+            "farEnd": { "test": "hasBuilding", "building": "granary" }
+          }
+        }
+      ],
+      "note": "Both halves name the same roads, so the grain and the contentment can never disagree about which towns they mean: a domestic route out of a town with a granary. The contentment is paid once per town however many such carts arrive, and it goes the turn the last of them lapses."
     },
     "theMonasteryLibraries": {
       "name": "The Monastery Libraries",

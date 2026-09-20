@@ -3931,11 +3931,19 @@ function scoreAmplifier(
       // no reading of one — F2's own written-down cut, kept.
       return ctx.ai.score.unknownEffect;
     case 'strategicCopies':
-      // **Not priced yet** (batch C7, which added the target). Copies are not a
-      // yield: what a spare seam is worth is whether it unlocks a row the seat
-      // wanted to build or a bargain it wanted to strike, and both of those are
-      // weighed where they are chosen rather than as a rate here. Named so the
-      // exhaustiveness check below goes on catching the next member.
+    case 'luxuryMineCopies':
+      // **Not priced yet** (batch C7 added the first, batch C8 the second).
+      // Copies are not a yield: what a spare seam is worth is whether it unlocks
+      // a row the seat wanted to build or a bargain it wanted to strike, and
+      // both of those are weighed where they are chosen rather than as a rate
+      // here. Named so the exhaustiveness check below goes on catching the next
+      // member.
+      //
+      // Royal Assays' copies are luxuries, which do have a rate — a duplicate
+      // luxury pays happiness — so this one could be priced. It is not, because
+      // what an extra copy is worth depends on whether the empire is already
+      // over the duplicate threshold, and that reading belongs beside the
+      // happiness meter rather than in an amplifier arm.
       return ctx.ai.score.unknownEffect;
     default:
       return unreadTarget(effect.target, ctx);

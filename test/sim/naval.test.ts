@@ -838,14 +838,17 @@ describe('the blockade', () => {
     expect(line, 'the blockade line').toBeDefined();
     // Rule 5: the total is the fold, and the fold is zero — the sheet says why
     // rather than a number quietly going to nothing.
-    // Five voices since a route may end abroad (2026-09-03); a domestic route
-    // never pays the two new ones, and the blockade takes back all five.
+    // Six voices: five since a route may end abroad (2026-09-03) and faith
+    // since batch C8. A shut harbour trades in none of them, so the blockade
+    // line takes back every one — which is why it is written as the negative of
+    // the whole fold rather than of a list of named voices.
     expect(foldRouteYield(cut)).toEqual({
       food: 0,
       production: 0,
       gold: 0,
       science: 0,
       culture: 0,
+      faith: 0,
     });
   });
 });
