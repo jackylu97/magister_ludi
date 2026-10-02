@@ -18,7 +18,7 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 
 **One mechanic per deck.** Each deck is built around a distinct part of the game — Commerce around trade routes, Devotion around religion — not around a yield. A deck still makes many yields, but it makes them *through its mechanic*.
 
-**Each deck has a real gap, and can play around it.** A deck is allowed to be weak at one of the essentials. A second deck can cover that gap, but a deck played on its own should be able to work around it with its own mechanic. The model is Commerce: it is weak at production, so it buys what other empires build. A gap handled this way becomes part of the deck's identity rather than a flaw.
+**Each deck has a real gap, and can play around it.** A deck is allowed to be weak at one of the essentials. A second deck can cover that gap, but a deck played on its own should be able to work around it with its own mechanic. The model is Commerce: it is weak at production, so it buys what other empires build. A gap handled this way becomes part of the deck's identity rather than a flaw. Expansionist is the one deck weak at two essentials, science and culture, and it makes up for that by raising the two limits on growth that every other deck runs into: authority and happiness.
 
 **Pairs: mechanics feed each other first, gaps get covered second.** The most interesting pairs are ones where one deck's mechanic creates something the other deck's mechanic can use. Covering each other's gaps is a welcome side effect, not the main point.
 
@@ -38,7 +38,7 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 | Deck | The way to play | Core mechanic | Its gap | How it plays around the gap |
 |---|---|---|---|---|
 | **Dominion** | Your army is your economy | Units: training, garrisons, raids, conquest | Developing its own cities, because its production goes into the army | Takes what others built, and its military buildings double as civic ones |
-| **Expansionist** | The map is your engine | Cultivating and claiming land: workers, improvements, settling, population | **Science** | The land teaches you: science from working and discovering varied land, not from science buildings *(proposal)* |
+| **Expansionist** | The map is your engine | Raising, tending and claiming land: workers, improvements, tended land, settling, population | **Science and culture** | Gets them only from particular terrain (science from mountains, culture from old forest and wild land), so how much it gets depends on the map; in return it raises authority and happiness, the two limits on growth |
 | **Commerce** | Wealth from connection | Trade routes, trading posts, resources, purchasing | Production | Buys what others build, and turns gold into production |
 | **Devotion** | Belief as a second economy | Religion: founding, spreading, rites, holy sites, religious units | Production | Spends faith where others spend production: faith purchases and miracles |
 | **Scientific** | Reach it first | The tech tree: earlier and exclusive access | Tempo and raw bonuses | What it fields is a step ahead of what anyone else can field |
@@ -68,6 +68,8 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 6. **Conquest pays** — captured cities arrive productive, captures give rewards, and provinces become cheaper to hold.
 7. **Unit quality** — mobility, mounted, siege, naval and defensive lines.
 8. **War or peace** — cards that pay differently at war and at peace, so a military empire can choose to stay peaceful.
+unit logistics: moving units around large empires/ mobility and ability to field large armies.
+great generals + citadels: bonuses, access, yields to your empire.
 
 **Where the sheet stands.** The reference deck. It has more self-development than the gap above suggests, but nearly all of it runs through military buildings and garrisons, which is consistent with "the army is the economy".
 
@@ -75,33 +77,78 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 
 ## Expansionist
 
-**The way to play.** The map is your engine. You cultivate land well and claim more of it, and your empire's strength is the quality and extent of the ground it works.
+**The way to play.** The map is your engine. You raise the land itself — cultivate it, tend it, claim it — and your empire's strength is how good and how extensive its ground is. Expansionist is the deck that raises the two limits on growth every other deck runs into: **authority**, which caps how many towns you can hold, and **happiness**, which caps how big they can grow. It can grow wide, tall, or both.
 
-**Gap and workaround.** Expansionist is weak at **science**. Science is the hardest essential to substitute, so the workaround has to be designed. *(proposal)* **The land teaches you:** science comes from working and discovering a variety of land — different terrains and features worked, new kinds of ground found — and from population itself, rather than from science buildings. Slow and steady, with a lower ceiling than Scientific, and it does not step on Scientific's identity.
+**Inspiration.** Two traditions of land that looked wild to outsiders but was carefully managed: **pre-Columbian agriculture** (the planted forests of the Amazon, Aztec chinampas, Andean terraces, dark earth) and **Indigenous Australian fire-stick farming** (cultural burning, eel traps, yam-daisy fields). Two Expansionist leaders already come from the first: Pachacuti (Inca terraces) and Nezahualcoyotl (Aztec chinampas).
 
-**Natural partners.** Culture and faith. Wild land, old groves, sacred sites and settled traditions give an Expansionist empire culture and faith without needing a second deck.
+**Gap and workaround.** Expansionist is weak at **science and culture**: a large body with a small brain. It reaches both **only through particular terrain** — science from mountains, culture from old forest and wild land — so how much it gets depends on where it settles. A mountain start gives a learned empire; a lowland start gives a large, slow one. That dependence on the map is deliberate: it is where this deck gets its variety from game to game. Its natural partners are the decks that supply what it lacks — Scientific and Magisterial — and Dominion, which turns its size into an army.
+
+**Two consequences to accept on purpose.**
+- **It drafts slowly.** Culture is the draft currency, so this deck sees fewer cards than the others. It plays the board rather than the card game, but its early cards need to be strong for each card it gets.
+- **Authority relief should be earned.** Early settling is already among the strongest things in the game, and a deck that lifts the authority limit feeds that directly. *(proposal)* Towns should become cheaper to hold by developing — working improved or tended land, or connecting to the capital — rather than through flat extra capacity.
 
 **Reaching the three essentials.**
 - **Production:** worked land — hills, mines, forests, chopping, pastures.
-- **Culture:** wild and worked land, harvest traditions, and a growing population. Claiming land directly also means it needs less culture for borders.
-- **Technology:** the weak one. Comes through the "land teaches you" workaround above.
+- **Technology:** weak. Only from terrain that teaches: mountains above all.
+- **Culture:** weak. Only from terrain that inspires: old forest, wild land, coast.
 
 **Bonus themes.**
-1. **Worked land pays more** — farms, pastures, mines and camps, plus regional specialities (highlands, steppe, coast, floodplain).
-2. **Claiming land** — getting ground without waiting for borders to grow: workers claiming hexes beside the border, settling, buying or taking tiles. This is half of the deck's identity and should be one of its biggest themes.
-3. **The woodland cycle** — keep forest, plant it, chop it, let it regrow. A running choice between keeping land wild and harvesting it.
-4. **Wild land is sacred** — unimproved land and forests give culture and faith.
-5. **Population as a resource** — growth pays, and citizens can be spent (levies) for production or units.
-6. **Variety of land as knowledge** — science from the number of different terrains and features worked or discovered. This is the science workaround. *(proposal)*
-7. **Settlement** — founding and connecting towns, with established towns supporting new ones.
+1. **Terrain has a job.** Each kind of land pays something specific, and this is how the deck reaches science and culture. For example: mountains give science; rivers and lakes give food and happiness; hills give production and defence; old forest and wild land give culture; desert and tundra get a reason to be settled at all.
+2. **Raising the land.** Adding yields to individual tiles is the deck's own objective: over a game an Expansionist player builds up its best tiles, and every game's best tiles are different. *(proposal)* Possible forms: **dark earth** (land gets richer the longer it is worked); **the Three Sisters** (a farm gains from particular neighbours, such as a plantation or a pasture beside it — a specific pairing, not a count of kinds); terraces and chinampas that enrich the ones beside them.
+3. **Tended land** — the managed wild. See below.
+4. **Authority from developed land.** How the deck grows wide: towns that work their land, or connect to the capital, cost less to hold.
+5. **Happiness from land and food.** How the deck grows tall: well-fed, well-watered cities are content. *(proposal)* Wild land as a commons — wild land inside your borders makes your cities content.
+6. **Claiming land** — getting ground without waiting for borders to grow.
+7. **Population as a resource** — growth pays, and citizens can be spent (levies) for production or units.
+8. **Settlement** — founding and connecting towns, with established towns supporting new ones.
 
-**Avoid.** Flat science bonuses on improvements or buildings. They cover the gap directly instead of playing around it.
+### Tended land
+
+**What it is.** Light-touch works that add yields to a tile but leave the land wild. They are the deck's own family of works, separate from ordinary improvements.
+
+**Agreed.**
+- The keyword is **tended**: you *tend* a tile, and the result is *tended land*.
+- A tended tile is **not an improvement**. It still counts as wild land for the deck's wild-land bonuses (The Old Songs, the groves, the commons), so tending and the wild-land line work together.
+- **Tended land cannot be pillaged.**
+- Tended works are **unlocked by Expansionist cards**, so the managed wild belongs to this deck.
+
+**The works.** From the two traditions:
+- **Forest garden** (the planted Amazon): on forest or jungle; food and production; the forest stays standing.
+- **Fish traps** (the Budj Bim eel traps in Victoria): on rivers and lakeshores.
+- **Root-crop grounds** (the murnong yam-daisy fields of south-east Australia): on grassland.
+- **Burned country** (fire-stick farming): grassland and scrub that has been burned, with more food and game.
+- **Wild orchards** (nut and fruit groves): on hills or forest; food and gold.
+- **Fertilising.**
+
+**Proposals.**
+- *(proposal)* **Tended works yield less than a proper improvement** — a farm still beats a garden on raw food — **and do not open resources**, so a luxury or strategic tile still pulls toward a proper improvement. This keeps the choice real and gives the deck **two ways to farm**: *the field* (farms, pastures, terraces) and *the managed wild* (tended land plus the wild-land bonuses). The draft decides which one a game leans into.
+- *(proposal)* **Workers decide where, once; towns decide when, on a cycle.** A worker's tending is a single action that pays forever. Anything that recurs — burning above all — is one decision per town, never one per tile: a town declares a **burning season**, burns all its scrub and grassland at once, yields less for a few turns and more for a long stretch, and cannot burn again for a while. The decision is *when* to burn, not *where*. This follows the ruling on augurs, which became a town action because a unit walked to each town was too many clicks for too little.
+- *(proposal)* **Fertilising is soil, not a work.** It sits underneath whatever is on the tile — a farm included — and survives when that work is pillaged or replaced, the way Amazonian dark earth is still fertile centuries later. Both ways of farming can then use it, and it becomes the part of the deck's investment that lasts.
+- *(proposal)* **Three words for three states:** *improved* (an ordinary improvement), *tended* (a tended work), and *wild* (no improvement — untouched or tended). The wild-land cards would say "wild" instead of "unimproved", so the rule reads *tended land is still wild* rather than *tended land counts as unimproved*. The risk: some flavour text uses "the wild" to mean barbarians. The fallback is to keep "unimproved" in rules text.
+
+### Ideas not yet chosen
+
+- **Outposts** — a worker plants a claim that owns the land around it, with no town and no authority cost; it can later grow into a town.
+- **Prospecting** — the buried-ore system and the worker's prospect action exist, and no card touches them; Expansionist could find, and profit from, more seams.
+- **The breadbasket** — surplus food turns into something useful once a city has stopped growing: happiness, authority, settlers.
+- **Daughter towns** — a town settled from another town costs no authority at first and sends food back to its parent.
+- **Hinterland** — big cities work one ring further out.
+- **The barbarian frontier** — clearing a camp claims the land around it.
+- **Migration** — citizens drift from crowded towns to small ones with room.
+- **Reshaping the land** — workers change terrain itself. The most expensive idea: terrain cannot change mid-game today, by a deliberate rule.
+
+**Avoid.**
+- **Bonuses that count how many different kinds of terrain or feature you have.** Terrain-*conditional* bonuses are good; counting kinds is not.
+- **Science or culture that does not come from terrain.** It covers the gap directly instead of playing around it.
 
 **Where the sheet stands.**
 - Cultivation is well covered.
-- **Claiming is thin.** Claim by the Spade, the deck's central claiming card, is deferred, and little else claims land. Half the deck's identity is mostly missing.
-- **The woodland cycle and levies are mostly deferred**, because planting and population-spending do not exist in the game yet.
-- **Several live cards give science directly**, which now conflicts with the gap: The Highlands (+2 science on hill mines), The Growing Annals, The Provincial Schools, and the shared Hydraulic Schools. The Naturalists (science per distinct feature worked) is the right kind of science for this deck and is the model for the workaround.
+- **Authority and happiness are almost entirely unbuilt.** Of the deck's own cards, only The Grain Dole (happiness for large cities) is live. The authority cards — The Local Census, Provincial Councils, The Pioneers' Portion, The Standing Patronage — are all deferred.
+- **Tended land does not exist yet.** It is a new family of works and needs building.
+- **Claiming is thin.** Claim by the Spade, the deck's central claiming card, is deferred.
+- **The woodland cycle and levies are mostly deferred**, because planting and spending citizens do not exist in the game yet.
+- **Science, against the new gap.** The Highlands (science on hill mines and quarries) is terrain-conditional and fits. The Naturalists (science per *kind* of feature worked) counts kinds and does not. The Growing Annals and The Provincial Schools (both deferred) and the shared Hydraulic Schools (live) give science that does not come from terrain.
+- **Culture, against the new gap.** The Old Songs (wild land), The Coast (fishing boats) and Forest Sanctuaries (old forest, deferred) are terrain-conditional and fit. Charcoal Burners pays culture from chopping, which spends the land rather than reading it.
 
 ---
 
@@ -184,7 +231,7 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 **Where the sheet stands.**
 - **The "access" identity is almost entirely unbuilt.** All five research charters are deferred because the technologies they open do not exist yet, and The Second Seat (an extra copy of an empire building) is deferred.
 - **The live cards lean on great-person works and maturity.** Maturity fits the design well (The Long Study, The Old Academy, Enduring Institutions, The Long Inheritance). The great-person works cards (Working Estates, The Endowed Provinces, Master Artificers, The Quiet Faculties) overlap heavily with Magisterial.
-- Exploration and discovery cards (Field Notebooks, Natural Philosophy, Practical Astronomy) may belong partly to Expansionist under the "land teaches you" proposal.
+- Exploration and discovery cards (Field Notebooks, Natural Philosophy, Practical Astronomy) sit outside the themes above; whether they stay here is open.
 
 ---
 
@@ -247,8 +294,8 @@ Two examples from the conversation:
 
 ## Open questions
 
-1. **Expansionist's science workaround.** Is "the land teaches you" the right idea, and if so, do the discovery cards currently in Scientific move to Expansionist?
+1. **Expansionist's tended land.** The open proposals are listed in its section: whether tended works yield less than improvements and open no resources; whether burning is a town's season rather than a worker's action; whether fertilising is soil or a tended work; and whether "wild" replaces "unimproved" in rules text.
 2. **Who owns great people?** Both Scientific and Magisterial have a large great-person strand. One option: Magisterial treats great people as flexible wildcards (any family, any use), while Scientific uses only the works that open new capability (academies, manufactories). Another is to give great people to one deck outright.
 3. **Magisterial and the card system.** Is bending the card system (reslotting, choosing what a card pays, more choice in a draft) the right form for Magisterial's flexibility?
 4. **Devotion and Commerce share a gap.** Both are weak at production; one substitutes gold and the other faith. Is that distinct enough, or should one of them have a different gap?
-5. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this.
+5. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this. *(proposal)* For Expansionist: **cultivate a heartland** — hold a number of tiles raised to their richest level. It grows out of what the deck already does, only this deck pursues it, and it cannot be finished quickly.
