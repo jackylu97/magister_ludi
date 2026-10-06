@@ -26,6 +26,32 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 
 **Each deck must be able to win.** Victory conditions are open to change to make this true. The leader pool is secondary; it can be rearranged to fit the decks once the decks are right.
 
+**Each deck generates its own currency and has its own way to spend it.** This is what a deck's "engine" means: the thing it makes in bulk, and what it turns that into.
+
+| Deck | Generates | Spends it on |
+|---|---|---|
+| Dominion | Units | Garrisons, raids and conquest |
+| Expansionist | Food and land | Citizens (levies) and claimed land |
+| Commerce | Gold | Purchases |
+| Devotion | Faith | Faith purchases and miracles |
+| Scientific | Science | Charter technologies, which unlock the deck's powerful cards |
+| Magisterial | Culture | Drafts |
+
+It also gives the pairs a simple test: does one deck's currency feed the other deck's way of spending it?
+
+**Each deck owns a great-person family.** *(proposal)* There are five great-person families, each with its own work, and the prophet's holy site makes a sixth — one per deck. Magisterial also keeps bonuses that apply to great people of *any* family, as its wildcard.
+
+| Family | Its work | Deck |
+|---|---|---|
+| General | Citadel | Dominion |
+| Merchant | Customs house | Commerce |
+| Scholar | Academy | Scientific |
+| Artist | Landmark | Magisterial |
+| Prophet *(a religious unit, not a great-person family)* | Holy site | Devotion |
+| Engineer | Manufactory | Expansionist *(proposal)*: public works — aqueducts, irrigation, terraces. The deck already has a hydraulic strand. |
+
+**Improvements: each deck has a main family, and every pair of decks shares some.** Overlap is how two decks find each other on the map, so some is needed: every pair of decks should share at least some improvement types. But when three or four decks all pay something on the same improvement, it stops belonging to any of them and those cards become generic. Each deck has a main family of its own, and the shared ones are chosen deliberately, pair by pair.
+
 ### Two facts about the essentials worth designing around
 
 - **Production is the easiest essential to substitute.** It can be bought with gold, bought with faith, taken by conquest, or hurried by rites. Technology and culture mostly cannot be bought or taken. So production is the natural place for a gap, and a deck that is weak at technology or culture needs a deliberately designed workaround.
@@ -41,8 +67,8 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 | **Expansionist** | The map is your engine | Raising, tending and claiming land: workers, improvements, tended land, settling, population | **Science and culture** | Gets them only from particular terrain (science from mountains, culture from old forest and wild land), so how much it gets depends on the map; in return it raises authority and happiness, the two limits on growth |
 | **Commerce** | Wealth from connection | Trade routes, trading posts, resources, purchasing | Production | Buys what others build, and turns gold into production |
 | **Devotion** | Belief as a second economy | Religion: founding, spreading, rites, holy sites, religious units | Production | Spends faith where others spend production: faith purchases and miracles |
-| **Scientific** | Reach it first | The tech tree: earlier and exclusive access | Tempo and raw bonuses | What it fields is a step ahead of what anyone else can field |
-| **Magisterial** | Adapt and redirect | Culture, great people, wonders, and the card system itself | Depth in any single engine | Converts one thing into another and bends the card system to what it needs now |
+| **Scientific** | Reach it first | The tech tree: charter technologies and earlier access | Tempo and raw bonuses | A few science bonuses fund expensive charter technologies, and those unlock the deck's powerful cards |
+| **Magisterial** | Play the draft | The card system itself: combinations of specific cards, boons on draft; culture, great people and wonders | Depth in any single engine, and weak until its combinations come together | Boons give it value while it gathers its combinations; conversion turns culture into whatever it needs |
 
 **Where the decks stand.** Dominion and Commerce are in a good place and are the reference for the others. Expansionist, Devotion, Scientific and Magisterial still need work; each section below says where the current sheet falls short of this design.
 
@@ -68,8 +94,9 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 6. **Conquest pays** — captured cities arrive productive, captures give rewards, and provinces become cheaper to hold.
 7. **Unit quality** — mobility, mounted, siege, naval and defensive lines.
 8. **War or peace** — cards that pay differently at war and at peace, so a military empire can choose to stay peaceful.
-unit logistics: moving units around large empires/ mobility and ability to field large armies.
-great generals + citadels: bonuses, access, yields to your empire.
+9. **Unit logistics** — moving units around a large empire, mobility, and the ability to field large armies.
+10. **Great generals and citadels** — bonuses, access and yields for your empire.
+11. **War reparations** — a peace after a won war pays gold or culture, so a war can end in a reward rather than simply stop.
 
 **Where the sheet stands.** The reference deck. It has more self-development than the gap above suggests, but nearly all of it runs through military buildings and garrisons, which is consistent with "the army is the economy".
 
@@ -98,9 +125,10 @@ great generals + citadels: bonuses, access, yields to your empire.
 3. **Tended land** — the managed wild. See below.
 4. **Authority from developed land.** How the deck grows wide: towns that work their land, or connect to the capital, cost less to hold.
 5. **Happiness from land and food.** How the deck grows tall: well-fed, well-watered cities are content. *(proposal)* Wild land as a commons — wild land inside your borders makes your cities content.
-6. **Claiming land** — getting ground without waiting for borders to grow.
+6. **Territory gain and management** — getting ground without waiting for borders to grow, and getting the most out of the ground you hold, through improvements and tending. Magisterial shares this theme from a different direction (great-person works), which makes territory one of the places the two decks meet.
 7. **Population as a resource** — growth pays, and citizens can be spent (levies) for production or units.
 8. **Settlement** — founding and connecting towns, with established towns supporting new ones.
+9. **Engineers and public works** *(proposal)* — the engineer and its manufactory, as the great-person family this deck owns: aqueducts, irrigation and terraces.
 
 ### Tended land
 
@@ -164,13 +192,33 @@ great generals + citadels: bonuses, access, yields to your empire.
 - **Culture:** foreign trade routes, trading posts, and purchases.
 
 **Bonus themes.**
-1. **Resource wealth** — mines, luxuries and strategic resources pay gold; rewards for holding many different kinds and for extra copies.
-2. **Domestic trade routes** — routes move food and production between your own towns.
-3. **Foreign and sea trade routes** — science and culture from abroad; range and distance.
-4. **Trading posts** — a lasting presence in a town, at home or abroad.
-5. **Purchasing** — discounts, and new things that can be bought: units, buildings, tiles, wonders, great people, draft rerolls.
-6. **Gold converted** — gold turned into production, science or culture.
-7. **Reserves** — the treasury as an asset in its own right.
+
+*Making gold*
+1. **The gold engine** — mines, luxuries and strategic resources pay gold; rewards for holding many different kinds and for extra copies.
+2. **Luxury resource yields** — luxuries paying more than their base.
+3. **Improvements** — main family: mines, quarries, plantations and fishing boats (extraction and cash crops).
+4. **Monopolies** — a reward for holding most of the copies of a luxury.
+5. **Gold buildings as institutions** — markets and banks pay the way Dominion's military buildings do.
+
+*Trade*
+
+6. **Domestic trade routes** — routes move food and production between your own towns.
+7. **Foreign and sea trade routes** — science and culture from abroad; range and distance.
+8. **Trading posts and roads** — a lasting presence in a town, at home or abroad, and the roads between.
+9. **Caravanserais.**
+10. **Tolls** — income from foreign trade routes that cross your land.
+11. **Exploration and discovery** — finding new lands, peoples and ruins. This theme belongs to Commerce. Other decks may share it for cross-deck synergy, but it should not be strong in Scientific.
+
+*Spending*
+
+12. **Purchasing and gold's flexibility** — discounts, and new things that can be bought: units, buildings, tiles, wonders, great people, draft rerolls.
+13. **Gold converted** — gold turned into production, science or culture.
+14. **Reserves** — the treasury as an asset in its own right.
+
+*People and partners*
+
+15. **Great merchants and customs houses.**
+16. **Diplomacy and mutual bonuses** — deals and partnerships that pay both sides.
 
 **Where the sheet stands.** The reference deck, and the user's hand-edited sheet is the design of record for its cards.
 
@@ -188,13 +236,19 @@ great generals + citadels: bonuses, access, yields to your empire.
 - **Technology:** religious learning (a Temple beside a Library), and knowledge paid by cities that follow your religion.
 
 **Bonus themes.**
-1. **Faith income** — from pastures, holy sites, shrines and observances.
+1. **The faith engine** — from pastures, holy sites, shrines and observances.
 2. **Spending faith** — faith purchases and miracles. This is the production workaround and should be the core of the deck.
 3. **Rites as decisions** — rites with real trade-offs, rather than an on-switch that turns on city bonuses.
 4. **Spreading belief** — pressure, proclamations and missionaries; rewards for foreign cities that follow you.
 5. **Sacred places** — holy sites, relics and cathedrals as centres.
 6. **Pilgrimage** — trade routes to holy places.
 7. **Holy war** — an optional military strand that fights best in its religion's territory.
+8. **Beliefs amplified** — bonuses per belief held, and cards that strengthen your religion's own beliefs.
+9. **Early investment, ramping bonuses** — faith put in early pays back more as the game goes on.
+10. **Improvements** — main family: pastures and camps (herds and hunting grounds), plus holy sites. Mines, quarries and plantations are Commerce's main family; which of them Devotion shares is settled in the pairs pass.
+11. **Happiness from faith** — religion keeps people content.
+12. **Religious units** — prophets, apostles and inquisitors, and their charges.
+13. **Defending your faith** — resisting conversion, and the inquisition.
 
 **Avoid.** Many flat "+production in cities keeping a rite" bonuses. They cover the gap directly instead of playing around it, and they turn rites into a switch rather than a choice.
 
@@ -211,47 +265,72 @@ great generals + citadels: bonuses, access, yields to your empire.
 
 **Gap and workaround.** Weak at tempo and raw bonuses. What it fields is a step ahead of what anyone else can field.
 
-**Balance note from the user.** Science is probably the strongest yield, because technology already carries military power and economic bonuses. Direct research boosts should be a small part of this deck. The "fewer bonuses, lower tempo" cost has to be real, or this becomes the best deck.
+**Balance note from the user.** Science is probably the strongest yield, because technology already carries military power and economic bonuses. The "fewer bonuses, lower tempo" cost has to be real, or this becomes the best deck.
+
+**How science is tapered: charter technologies.** Scientific has a few science bonuses — enough to be a science engine — and the taper is that its powerful bonuses sit behind **charter technologies**, which cost more research than ordinary technologies. A Scientific game has to invest its science in charters to reach the strongest cards in its pool. So the science the deck generates is spent on access, not simply on getting through the ordinary tree faster.
+
+**How charters work.** Agreed, and a change to the current rule:
+- **A charter technology can only be researched while its charter card is seated in your government.** Once the technology is unlocked, the card no longer needs to stay seated and can be swapped out.
+- This replaces the current rule that a charter is drafted, never sits in a chair, and grants its unlock the moment it is picked.
+- Charter technologies cost more research than ordinary technologies at the same point in the tree.
+- **Charter technologies get their own section in the tech tree.** The interface work for that is scoped for later; this is the plan it builds toward.
 
 **Reaching the three essentials.**
-- **Technology:** native, but through access rather than large research bonuses.
+- **Technology:** native, through a few science bonuses and through charters.
 - **Production:** from what it unlocks early — better buildings and units sooner — and from institutions.
 - **Culture:** from being first to discoveries, and from institutions that mature.
 
 **Bonus themes.**
-1. **Charters** — research paths other empires cannot take.
-2. **Early access** — units, buildings or improvements available before their normal age, or versions nobody else can build.
-3. **Being first** — rewards for reaching a technology before any other empire.
-4. **Institutions that mature** — science buildings and empire buildings that pay more the longer they stand. This is where the low tempo is paid for.
-5. **Strategic capability** — access to and use of strategic resources.
-6. **Applied knowledge** — discoveries turned into production and construction.
+1. **The science engine** — a few science bonuses, kept small because charters are where the science goes.
+2. **Charter technologies, improvements, units and buildings** — research paths other empires cannot take, and what those paths unlock.
+3. **Early access** — units, buildings or improvements available before their normal age, or versions nobody else can build.
+4. **Being first** — rewards for reaching a technology before any other empire.
+5. **Institutions that mature** — science buildings and empire buildings that pay more the longer they stand. This is where the low tempo is paid for.
+6. **Strategic resources** — access to, use of, and bonuses for strategic resources.
+7. **Applied knowledge** — discoveries turned into production and construction.
+8. **Scholars and academies** — the great-person family this deck owns.
+9. **Scaling from buildings and population.**
+10. **Happiness synergies.**
+11. **Libraries and universities** — synergies between the deck's core science buildings.
 
-**Avoid.** Large flat science bonuses, and heavy overlap with Magisterial on great people (see open questions).
+**Avoid.**
+- More than a few direct science bonuses; charters are where the deck's strength should come from.
+- Exploration and discovery as a strong theme. It belongs to Commerce; a light version here is fine for cross-deck synergy.
+- Great-person cards beyond scholars and academies. Other families belong to other decks, and to Magisterial's any-family bonuses.
 
 **Where the sheet stands.**
 - **The "access" identity is almost entirely unbuilt.** All five research charters are deferred because the technologies they open do not exist yet, and The Second Seat (an extra copy of an empire building) is deferred.
-- **The live cards lean on great-person works and maturity.** Maturity fits the design well (The Long Study, The Old Academy, Enduring Institutions, The Long Inheritance). The great-person works cards (Working Estates, The Endowed Provinces, Master Artificers, The Quiet Faculties) overlap heavily with Magisterial.
-- Exploration and discovery cards (Field Notebooks, Natural Philosophy, Practical Astronomy) sit outside the themes above; whether they stay here is open.
+- **Charters now work differently.** The charter rows are written to the old rule (drafted, never seated, granted on pick); they need rewriting to the new one.
+- **The live cards lean on great-person works and maturity.** Maturity fits the design well (The Long Study, The Old Academy, Enduring Institutions, The Long Inheritance). The great-person works cards (Working Estates, The Endowed Provinces, Master Artificers, The Quiet Faculties) cover families other than scholars and should narrow to academies or move.
+- **Exploration and discovery cards** (Field Notebooks, Natural Philosophy, Practical Astronomy) belong to Commerce. A light version can stay here for cross-deck synergy.
 
 ---
 
 ## Magisterial
 
-**The way to play.** Adapt and redirect. Flexible, interesting bonuses: turning one thing into another, and bending the card system to what you need this game. If Expansionist plays the board, Magisterial plays the card game.
+**The way to play.** Play the draft. Magisterial is meant to be the most unusual of the six decks: it leans into the drafting side of the game, and its flexibility comes through drafting rather than through yields. If Expansionist plays the board, Magisterial plays the card game.
 
-**Gap and workaround.** No single engine is especially deep. It plays around that by converting and redirecting.
+**Two things that set it apart.**
+- **Its power comes from combinations of cards.** More than any other deck, its strongest effects need several specific cards held together. A single Magisterial card is modest; the right set of them is strong.
+- **It has more boons than any other deck.** Cards that pay something when drafted ("on draft, gain…"). Boons give the deck value while it gathers its combinations.
+
+**Gap and workaround.** No single engine is especially deep, and it is weak until its combinations come together. Boons carry it while it gathers them, and conversion turns its culture into whatever it needs.
 
 **Reaching the three essentials.**
 - **Culture:** native. Culture is also the draft currency, so this deck sees more cards.
 - **Production and technology:** by converting culture, through great people of any family, and through wonders.
 
 **Bonus themes.**
-1. **Conversion** — culture turned into production, science, gold or food. This is the core of the deck's flexibility.
-2. **Bending the card system** *(proposal)* — moving cards between chairs freely, choosing what a card pays, more choice in a draft. Card *selection*, not card *advantage*: more say over which cards you use, not simply more cards.
-3. **Great people as wildcards** — any family, with the choice of an act, a work or a legacy; renown from many sources.
-4. **Wonders as bursts** — completing a wonder as a moment that pays out across the empire.
-5. **Culture buildings as the base** — as the deck's culture engine, not as a gate for flat bonuses.
-6. **Breadth rewards** — paying for holding many *different* things: building categories, great-person families, kinds of work.
+1. **The culture engine.**
+2. **Combinations** — effects that need several specific cards together. *The mechanics for this are still being designed; see open questions.*
+3. **Boons on draft** — paying something when a card is drafted. Including **random boons that are strong in total**: individually unpredictable, reliably valuable over a game. For example: on draft, gain a helpful card from any deck's pool (the game can already price a card a seat has not drafted, because the bot does it every draft); on draft, gain a random great person.
+4. **Bending the card system** — rerolls, expanded governments, moving cards between chairs, choosing what a card pays, more choice in a draft.
+5. **Conversion** — culture turned into production, science, gold or food.
+6. **Great people as wildcards** — bonuses that apply to any family, with the choice of an act, a work or a legacy; renown from many sources.
+7. **Great-person works and wonders** — bonuses toward building great-person improvements and wonders; completing a wonder as a moment that pays out across the empire.
+8. **Territory gain and management through great-person works** — great-person improvements claiming and shaping land, possibly through specific **arrangements** of improvements. Expansionist shares this theme through its own improvements and tending.
+9. **Culture buildings as the base** — as the deck's culture engine, not as a gate for flat bonuses.
+10. **Breadth rewards** — paying for holding many *different* things: building categories, great-person families, kinds of work.
 
 **Avoid.** Many "cities with at least two (or three) culture buildings gain flat yields" cards. That is the stacking-bonus pattern this redesign is meant to move away from.
 
@@ -259,8 +338,8 @@ great generals + citadels: bonuses, access, yields to your empire.
 - The most complete deck, but most of it is building-count conditions (a Monument, two culture buildings, three culture buildings) paying flat yields.
 - **The conversion theme already has seeds:** The Working Court, The Learned Patron, The Performers' Treasury and The Universal Court all turn culture into another yield.
 - **Breadth rewards have seeds too:** The Complete Court and The Living Canon.
-- **Nothing touches the card system yet.**
-- Its great-person improvement cards (The Groundskeepers, The Laureate, The Masters' Domain, The Sculptors' Schools) overlap with Scientific's.
+- **Nothing touches the card system yet, and no card depends on another specific card.** The deck's two defining features — combinations and boons — barely exist.
+- Its great-person improvement cards (The Groundskeepers, The Laureate, The Masters' Domain, The Sculptors' Schools) apply to every family, which fits Magisterial's any-family role.
 
 ---
 
@@ -295,7 +374,8 @@ Two examples from the conversation:
 ## Open questions
 
 1. **Expansionist's tended land.** The open proposals are listed in its section: whether tended works yield less than improvements and open no resources; whether burning is a town's season rather than a worker's action; whether fertilising is soil or a tended work; and whether "wild" replaces "unimproved" in rules text.
-2. **Who owns great people?** Both Scientific and Magisterial have a large great-person strand. One option: Magisterial treats great people as flexible wildcards (any family, any use), while Scientific uses only the works that open new capability (academies, manufactories). Another is to give great people to one deck outright.
-3. **Magisterial and the card system.** Is bending the card system (reslotting, choosing what a card pays, more choice in a draft) the right form for Magisterial's flexibility?
+2. **Great-person families.** The proposal in the rules section gives each deck one family and Magisterial the any-family bonuses. Still to confirm: the table as a whole, and whether the engineer goes to Expansionist as public works.
+3. **Magisterial's combinations.** How Magisterial cards depend on each other — the mechanics for power that needs several specific cards together. Being designed.
 4. **Devotion and Commerce share a gap.** Both are weak at production; one substitutes gold and the other faith. Is that distinct enough, or should one of them have a different gap?
 5. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this. *(proposal)* For Expansionist: **cultivate a heartland** — hold a number of tiles raised to their richest level. It grows out of what the deck already does, only this deck pursues it, and it cannot be finished quickly.
+6. **Which improvements each pair shares.** Every pair of decks should share at least some improvement types, chosen deliberately. Settled in the pairs pass.
