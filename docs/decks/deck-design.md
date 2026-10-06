@@ -363,33 +363,134 @@ All of these go into the full card list as cards; the user will cut ideas once t
 
 ## What pairs of decks should enable
 
-*To be designed together.* The principle: in a good pair, one deck's mechanic creates something the other deck's mechanic can use. Covering each other's gaps is a bonus.
+*All of this section is a proposal.* The principle: in a good pair, one deck's mechanic creates something the other deck's mechanic can use. Covering each other's gaps is a welcome side effect, not the main point. The test from the currency table: does one deck's currency feed the other deck's way of spending it?
 
-Two examples from the conversation:
-- **Devotion and Dominion:** cities converted to your religion become targets your army is strong against, and a holy war spreads the faith as it goes.
-- **Commerce and Dominion:** Commerce buys the buildings Dominion has no production to spare for, and Dominion protects the trade routes Commerce depends on.
+Each entry says what each deck gives the other, which improvements the pair shares, and which gap gets covered. A **hook** is something one deck's cards create that the partner's cards read. A deck's own sheet must create its hooks even when nobody else uses them, so that the partner's cards have something to read.
 
-| Pair | What the two mechanics do for each other | Gap covered |
+### Each deck's main improvements
+
+| Deck | Main family | Great-person work |
 |---|---|---|
-| Dominion · Expansionist | | |
-| Dominion · Commerce | | |
-| Dominion · Devotion | | |
-| Dominion · Scientific | | |
-| Dominion · Magisterial | | |
-| Expansionist · Commerce | | |
-| Expansionist · Devotion | | |
-| Expansionist · Scientific | | |
-| Expansionist · Magisterial | | |
-| Commerce · Devotion | | |
-| Commerce · Scientific | | |
-| Commerce · Magisterial | | |
-| Devotion · Scientific | | |
-| Devotion · Magisterial | | |
-| Scientific · Magisterial | | |
+| Dominion | Improvements on strategic resources, whatever the improvement *(new; Dominion had no family)* | Citadel |
+| Expansionist | Farms, terraces, floating gardens, lumber mills, and the tended works | Manufactory |
+| Commerce | Mines, quarries, plantations, fishing boats | Customs house |
+| Devotion | Pastures and camps | Holy site |
+| Scientific | None of its own; it reads its partners' improvements through its charter technologies | Academy |
+| Magisterial | None of its own; it reads great-person works of every family, and their arrangement | Landmark |
+
+### Dominion · Expansionist — a frontier
+- **Dominion gives Expansionist** cleared ground. Captured cities and burnt barbarian camps leave land to claim; the barbarian-frontier idea (clearing a camp claims the land around it) is the shared card.
+- **Expansionist gives Dominion** levies: citizens turned into soldiers, so a big empire raises an army without spending production.
+- **Hooks:** Dominion — cleared camps and captured towns. Expansionist — levies and claimed land.
+- **Shared improvements:** pastures and mines on strategic resources (horses, copper, iron). Expansionist works them for production; Dominion counts them for its army.
+- **Gap covered:** Dominion's weak development, by Expansionist's land. Expansionist's science and culture are not covered; Dominion's kills pay a little of both.
+
+### Dominion · Commerce — merchants and their guards
+- **Dominion gives Commerce** protected trade routes, plunder turned into gold, and reparations from defeated empires.
+- **Commerce gives Dominion** purchases: gold buys the buildings an army has no production to spare for, and buys units in an emergency.
+- **Hooks:** Dominion — plunder and reparations paid in gold. Commerce — gold reserves and trade routes that need guarding.
+- **Shared improvements:** mines (iron and copper are both a strategic resource and a source of gold).
+- **Gap covered:** both decks are weak at developing cities, and Commerce covers it by buying. Production stays thin for the pair; that is its price.
+
+### Dominion · Devotion — the holy war
+- **Devotion gives Dominion** targets: cities following your religion are weaker against your army, and cheaper to hold once captured.
+- **Dominion gives Devotion** spread by conquest: a holy war spreads the faith as it goes, and religious units travel with the army.
+- **Hooks:** Devotion — cities following your religion. Dominion — captured cities and battles won.
+- **Shared improvements:** camps (hunting grounds that are also barbarian country) and pastures with horses.
+- **Gap covered:** Devotion's production, partly, by Dominion taking what others built. Faith heals and supplies the army, covering Dominion's lack of buildings.
+
+### Dominion · Scientific — the military edge
+- **Scientific gives Dominion** units early, or units nobody else has: charter technologies that unlock a unit before its age.
+- **Dominion gives Scientific** science from fighting, and captured cities with their libraries and universities.
+- **Hooks:** Scientific — units ahead of their age. Dominion — science from kills and captured buildings.
+- **Shared improvements:** mines on strategic resources (niter pays science on mines; iron and copper arm the early units).
+- **Gap covered:** Scientific's tempo, by Dominion taking ground while the charter technologies come in. Dominion's development, partly, by captured libraries.
+
+### Dominion · Magisterial — the triumph
+- **Dominion gives Magisterial** great generals and the citadels they build, which Magisterial's any-family cards reward like any other work.
+- **Magisterial gives Dominion** flexibility: draft boons that fill an army's gaps (a random great person, culture turned into production) and wonders that pay out across the empire.
+- **Hooks:** Dominion — generals and citadels. Magisterial — great-person works of any family, and wonders.
+- **Shared improvements:** citadels. A citadel is both Dominion's fortress and one of Magisterial's works, and could count toward its arrangements.
+- **Gap covered:** Dominion's development, by Magisterial's conversion. Magisterial's slow start, by Dominion taking things early.
+
+### Expansionist · Commerce — the land and the market
+- **Expansionist gives Commerce** goods to sell: claimed land opens resources, and the breadbasket's surplus food can be exported.
+- **Commerce gives Expansionist** purchases: gold buys tiles, workers and settlers, so the empire grows faster than food alone allows.
+- **Hooks:** Expansionist — opened resources and surplus food. Commerce — gold, and trade routes that carry food.
+- **Shared improvements:** plantations and fishing boats. Expansionist tends the land around them; Commerce sells what they produce.
+- **Gap covered:** Commerce's production, by Expansionist's worked land. Expansionist's science, by Commerce's foreign trade routes.
+
+### Expansionist · Devotion — sacred land
+- **Expansionist gives Devotion** wild land and herds: tended land and pastures pay faith in Devotion's cards, and big cities hold more followers.
+- **Devotion gives Expansionist** happiness and miracles: faith grows cities and keeps them content.
+- **Hooks:** Expansionist — tended and wild land, and population. Devotion — faith and happiness.
+- **Shared improvements:** pastures and camps. Camps and tended land are the closest of the shared ground: both are land kept wild on purpose.
+- **Gap covered:** Expansionist's culture, partly, by faith-bought culture buildings. Devotion's production, by Expansionist's worked land.
+
+### Expansionist · Scientific — the engineers
+- **Expansionist gives Scientific** the terrain its science comes from (mountains, hills), and a large population to work libraries and universities.
+- **Scientific gives Expansionist** charter improvements and early public works: an aqueduct or a terrace before its age.
+- **Hooks:** Expansionist — raised tiles and population. Scientific — improvements ahead of their age.
+- **Shared improvements:** terraces, and mines on hills (science on hill mines is already a card).
+- **Gap covered:** Expansionist's science, directly — the clearest gap cover of the fifteen. Scientific's tempo, by Expansionist's growth.
+
+### Expansionist · Magisterial — shaping territory
+- **Expansionist gives Magisterial** room: claimed and tended land to place works on, arranged the way Magisterial's cards reward.
+- **Magisterial gives Expansionist** culture and territory: great-person works claim land around them, and boons supply what the land does not.
+- **Hooks:** Expansionist — tended works, which could count toward Magisterial's arrangements. Magisterial — great-person works that claim land.
+- **Shared improvements:** manufactories, and landmarks beside tended land.
+- **Gap covered:** Expansionist's culture, by Magisterial's engine. Magisterial's thin engines, by the land.
+
+### Commerce · Devotion — pilgrims and markets
+- **Commerce gives Devotion** trade routes that carry religion, so faith spreads along the routes.
+- **Devotion gives Commerce** pilgrims: holy sites as trade destinations, and faith that pays on routes. The route ledger already prints faith.
+- **Hooks:** Commerce — trade routes. Devotion — holy sites and followers.
+- **Shared improvements:** plantations (incense, wine, silk and the other luxuries of ritual).
+- **Gap covered:** none, deliberately: both are weak at production. The pair buys everything twice over, with gold and with faith, and builds almost nothing. If that fails in playtesting, this pair is the first place to look.
+
+### Commerce · Scientific — the patrons
+- **Commerce gives Scientific** gold that buys libraries and universities, and foreign trade routes that pay science.
+- **Scientific gives Commerce** charter technologies that open trade earlier: more routes, earlier ships, earlier trade buildings.
+- **Hooks:** Commerce — gold and foreign routes. Scientific — trade unlocks ahead of their age.
+- **Shared improvements:** mines (niter's science, and ores that pay gold).
+- **Gap covered:** Scientific's tempo, by buying its buildings. Commerce's production, partly, by technologies that make its purchases cheaper.
+
+### Commerce · Magisterial — the art market
+- **Commerce gives Magisterial** gold that buys rerolls and drafts, and merchants and customs houses for its any-family cards.
+- **Magisterial gives Commerce** culture turned into gold, and boons that save purchases.
+- **Hooks:** Commerce — gold. Magisterial — draft actions that can be bought.
+- **Shared improvements:** customs houses, and landmarks on trade routes.
+- **Gap covered:** Commerce's production, by Magisterial's conversion. Magisterial's slow start, by buying.
+
+### Devotion · Scientific — scholars of the faith
+- **Devotion gives Scientific** monasteries, and faith that buys science buildings.
+- **Scientific gives Devotion** technologies that unlock religious units and rites earlier.
+- **Hooks:** Devotion — faith. Scientific — religious unlocks ahead of their age.
+- **Shared improvements:** holy sites beside academies.
+- **Gap covered:** Devotion's production, partly, through faith-bought buildings. Scientific's tempo, by faith. This is the weakest pair on paper and needs the most card work.
+
+### Devotion · Magisterial — the cathedral
+- **Devotion gives Magisterial** faith that pays for great people and wonders, and holy sites for its any-family cards.
+- **Magisterial gives Devotion** wonders and culture, and boons on draft that include faith.
+- **Hooks:** Devotion — faith and holy sites. Magisterial — wonders and great-person works.
+- **Shared improvements:** holy sites and landmarks.
+- **Gap covered:** Devotion's production, by Magisterial's conversion and wonders. Magisterial's slow start, by faith purchases.
+
+### Scientific · Magisterial — the academy
+- **Scientific gives Magisterial** charters, which are drafted and so count as draft actions; and scholars and academies for its any-family cards.
+- **Magisterial gives Scientific** more drafts, which means more charters seen, and rerolls to find the charter it needs.
+- **Hooks:** Scientific — charters as cards. Magisterial — rerolls and extra choice in a draft.
+- **Shared improvements:** academies and landmarks.
+- **Gap covered:** Scientific's tempo, by Magisterial's boons. Magisterial's technology, by Scientific's charters. The pair is the most card-heavy in the game and the lightest on the map.
+
+### What the grid shows
+- **Expansionist · Scientific covers a gap most directly**, and **Commerce · Devotion covers none**. That is deliberate, but Commerce · Devotion is the first pair to check in playtesting.
+- **Devotion · Scientific is the weakest pair** on paper; it needs deliberate cards rather than relying on a natural fit.
+- **Dominion and Scientific had no main family of improvements.** Dominion's proposed family is the improvements on strategic resources; Scientific's is whatever its charters unlock.
 
 ---
 
 ## Open questions
 
 1. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this, and **the wager system is to be reworked in its own future pass**; commissions will not pay beads. *(proposal, for that pass)* For Expansionist: **cultivate a heartland** — hold a number of tiles raised to their richest level. It grows out of what the deck already does, only this deck pursues it, and it cannot be finished quickly.
-2. **Which improvements each pair shares.** Every pair of decks should share at least some improvement types, chosen deliberately. Settled in the pairs pass.
+2. **The pairs.** All fifteen entries in "What pairs of decks should enable" are proposals awaiting review, including the shared improvements and Dominion's proposed main family.
