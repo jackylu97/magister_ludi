@@ -39,7 +39,7 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 
 It also gives the pairs a simple test: does one deck's currency feed the other deck's way of spending it?
 
-**Each deck owns a great-person family.** *(proposal)* There are five great-person families, each with its own work, and the prophet's holy site makes a sixth — one per deck. Magisterial also keeps bonuses that apply to great people of *any* family, as its wildcard.
+**Each deck owns a great-person family.** There are five great-person families, each with its own work, and the prophet's holy site makes a sixth — one per deck. Magisterial also keeps bonuses that apply to great people of *any* family, as its wildcard.
 
 | Family | Its work | Deck |
 |---|---|---|
@@ -48,7 +48,7 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 | Scholar | Academy | Scientific |
 | Artist | Landmark | Magisterial |
 | Prophet *(a religious unit, not a great-person family)* | Holy site | Devotion |
-| Engineer | Manufactory | Expansionist *(proposal)*: public works — aqueducts, irrigation, terraces. The deck already has a hydraulic strand. |
+| Engineer | Manufactory | Expansionist: public works — aqueducts, irrigation, terraces. The deck already has a hydraulic strand. |
 
 **More chairs: three early, eleven late.** Governments seat **3 / 5 / 8 / 11** cards across the four government tiers, replacing today's 3 / 4 / 6 / 9. Magisterial can seat more than the government allows, through its own abilities.
 
@@ -116,7 +116,7 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 
 **Two consequences to accept on purpose.**
 - **It drafts slowly.** Culture is the draft currency, so this deck sees fewer cards than the others. It plays the board rather than the card game, but its early cards need to be strong for each card it gets.
-- **Authority relief should be earned.** Early settling is already among the strongest things in the game, and a deck that lifts the authority limit feeds that directly. *(proposal)* Towns should become cheaper to hold by developing — working improved or tended land, or connecting to the capital — rather than through flat extra capacity.
+- **Authority relief should be earned.** Early settling is already among the strongest things in the game, and a deck that lifts the authority limit feeds that directly. Towns become cheaper to hold by developing — working improved or tended land, or connecting to the capital — rather than through flat extra capacity.
 
 **Reaching the three essentials.**
 - **Production:** worked land — hills, mines, forests, chopping, pastures.
@@ -125,14 +125,14 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 
 **Bonus themes.**
 1. **Terrain has a job.** Each kind of land pays something specific, and this is how the deck reaches science and culture. For example: mountains give science; rivers and lakes give food and happiness; hills give production and defence; old forest and wild land give culture; desert and tundra get a reason to be settled at all.
-2. **Raising the land.** Adding yields to individual tiles is the deck's own objective: over a game an Expansionist player builds up its best tiles, and every game's best tiles are different. *(proposal)* Possible forms: **dark earth** (land gets richer the longer it is worked); **the Three Sisters** (a farm gains from particular neighbours, such as a plantation or a pasture beside it — a specific pairing, not a count of kinds); terraces and chinampas that enrich the ones beside them.
+2. **Raising the land.** Adding yields to individual tiles is the deck's own objective: over a game an Expansionist player builds up its best tiles, and every game's best tiles are different. The ways land gets richer are **draftable abilities** (cards), not base rules: **dark earth** (land gets richer the longer it is worked); **the Three Sisters** (a farm gains from particular neighbours, such as a plantation or a pasture beside it — a specific pairing, not a count of kinds); terraces and chinampas that enrich the ones beside them.
 3. **Tended land** — the managed wild. See below.
 4. **Authority from developed land.** How the deck grows wide: towns that work their land, or connect to the capital, cost less to hold.
-5. **Happiness from land and food.** How the deck grows tall: well-fed, well-watered cities are content. *(proposal)* Wild land as a commons — wild land inside your borders makes your cities content.
+5. **Happiness from land and food.** How the deck grows tall: well-fed, well-watered cities are content. Wild land as a commons — wild land inside your borders makes your cities content — is a draftable ability.
 6. **Territory gain and management** — getting ground without waiting for borders to grow, and getting the most out of the ground you hold, through improvements and tending. Magisterial shares this theme from a different direction (great-person works), which makes territory one of the places the two decks meet.
 7. **Population as a resource** — growth pays, and citizens can be spent (levies) for production or units.
 8. **Settlement** — founding and connecting towns, with established towns supporting new ones.
-9. **Engineers and public works** *(proposal)* — the engineer and its manufactory, as the great-person family this deck owns: aqueducts, irrigation and terraces.
+9. **Engineers and public works** — the engineer and its manufactory, as the great-person family this deck owns: aqueducts, irrigation and terraces.
 
 ### Tended land
 
@@ -140,8 +140,8 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 
 **Agreed.**
 - The keyword is **tended**: you *tend* a tile, and the result is *tended land*.
-- A tended tile is **not an improvement**. It still counts as wild land for the deck's wild-land bonuses (The Old Songs, the groves, the commons), so tending and the wild-land line work together.
-- **Tended land cannot be pillaged.**
+- A tended tile is **not an improvement**. **Tended land is still wild**: it counts for the deck's wild-land bonuses (The Old Songs, the groves, the commons), so tending and the wild-land line work together.
+- **All tending is permanent and survives pillage.** Fertilising included.
 - Tended works are **unlocked by Expansionist cards**, so the managed wild belongs to this deck.
 
 **The works.** From the two traditions:
@@ -150,15 +150,17 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 - **Root-crop grounds** (the murnong yam-daisy fields of south-east Australia): on grassland.
 - **Burned country** (fire-stick farming): grassland and scrub that has been burned, with more food and game.
 - **Wild orchards** (nut and fruit groves): on hills or forest; food and gold.
-- **Fertilising.**
+- **Fertilising** — permanent, like all tending. Whether a fertilised tile can also carry an ordinary improvement is settled when the cards are written.
 
-**Proposals.**
-- *(proposal)* **Tended works yield less than a proper improvement** — a farm still beats a garden on raw food — **and do not open resources**, so a luxury or strategic tile still pulls toward a proper improvement. This keeps the choice real and gives the deck **two ways to farm**: *the field* (farms, pastures, terraces) and *the managed wild* (tended land plus the wild-land bonuses). The draft decides which one a game leans into.
-- *(proposal)* **Workers decide where, once; towns decide when, on a cycle.** A worker's tending is a single action that pays forever. Anything that recurs — burning above all — is one decision per town, never one per tile: a town declares a **burning season**, burns all its scrub and grassland at once, yields less for a few turns and more for a long stretch, and cannot burn again for a while. The decision is *when* to burn, not *where*. This follows the ruling on augurs, which became a town action because a unit walked to each town was too many clicks for too little.
-- *(proposal)* **Fertilising is soil, not a work.** It sits underneath whatever is on the tile — a farm included — and survives when that work is pillaged or replaced, the way Amazonian dark earth is still fertile centuries later. Both ways of farming can then use it, and it becomes the part of the deck's investment that lasts.
-- *(proposal)* **Three words for three states:** *improved* (an ordinary improvement), *tended* (a tended work), and *wild* (no improvement — untouched or tended). The wild-land cards would say "wild" instead of "unimproved", so the rule reads *tended land is still wild* rather than *tended land counts as unimproved*. The risk: some flavour text uses "the wild" to mean barbarians. The fallback is to keep "unimproved" in rules text.
+**Also agreed.**
+- **Tended works yield less than a proper improvement** — a farm still beats a garden on raw food — **and do not open resources**, so a luxury or strategic tile still pulls toward a proper improvement. This keeps the choice real and gives the deck **two ways to farm**: *the field* (farms, pastures, terraces) and *the managed wild* (tended land plus the wild-land bonuses). The draft decides which one a game leans into.
+- **Later drafts pay off tended works.** Because tended works start weaker than improvements, the deck's later cards should reward having invested in them, so an empire that tended early is paid back as the game goes on.
+- **Workers decide where, once; towns decide when, on a cycle.** A worker's tending is a single action. Anything that recurs — burning above all — is one decision per town, never one per tile: a town declares a **burning season**, burns all its scrub and grassland at once, yields less for a few turns and more for a long stretch, and cannot burn again for a while. The decision is *when* to burn, not *where*. This follows the ruling on augurs, which became a town action because a unit walked to each town was too many clicks for too little.
+- **Three words for three states:** *improved* (an ordinary improvement), *tended* (a tended work), and *wild* (no improvement — untouched or tended). Rules text says "wild" instead of "unimproved". Some flavour text uses "the wild" to mean barbarians; that is flavour, not rules, and is accepted.
 
-### Ideas not yet chosen
+### Ideas for the card list
+
+All of these go into the full card list as cards; the user will cut ideas once they are written.
 
 - **Outposts** — a worker plants a claim that owns the land around it, with no town and no authority cost; it can later grow into a town.
 - **Prospecting** — the buried-ore system and the worker's prospect action exist, and no card touches them; Expansionist could find, and profit from, more seams.
@@ -232,7 +234,7 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 
 **The way to play.** Belief as a second economy. Faith is a currency you earn from your land and practices and spend in place of production, and your belief spreads past your borders.
 
-**Gap and workaround.** Weak at production. It spends faith where others spend production: buying units, workers, buildings and tiles with faith, and spending faith on immediate effects (miracles) such as healing units or growing a city.
+**Gap and workaround.** Weak at production. It spends faith where others spend production: buying units, workers, buildings and tiles with faith, and spending faith on immediate effects (miracles) such as healing units or growing a city. Commerce has the same gap with a different substitute (gold instead of faith). The two are expected to play differently enough; playtesting decides.
 
 **Reaching the three essentials.**
 - **Production:** faith purchases and miracles, not flat production bonuses.
@@ -389,8 +391,5 @@ Two examples from the conversation:
 
 ## Open questions
 
-1. **Expansionist's tended land.** The open proposals are listed in its section: whether tended works yield less than improvements and open no resources; whether burning is a town's season rather than a worker's action; whether fertilising is soil or a tended work; and whether "wild" replaces "unimproved" in rules text.
-2. **Great-person families.** The proposal in the rules section gives each deck one family and Magisterial the any-family bonuses. Still to confirm: the table as a whole, and whether the engineer goes to Expansionist as public works.
-3. **Devotion and Commerce share a gap.** Both are weak at production; one substitutes gold and the other faith. Is that distinct enough, or should one of them have a different gap?
-4. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this, and **the wager system is to be reworked in its own future pass**; commissions will not pay beads. *(proposal, for that pass)* For Expansionist: **cultivate a heartland** — hold a number of tiles raised to their richest level. It grows out of what the deck already does, only this deck pursues it, and it cannot be finished quickly.
-5. **Which improvements each pair shares.** Every pair of decks should share at least some improvement types, chosen deliberately. Settled in the pairs pass.
+1. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this, and **the wager system is to be reworked in its own future pass**; commissions will not pay beads. *(proposal, for that pass)* For Expansionist: **cultivate a heartland** — hold a number of tiles raised to their richest level. It grows out of what the deck already does, only this deck pursues it, and it cannot be finished quickly.
+2. **Which improvements each pair shares.** Every pair of decks should share at least some improvement types, chosen deliberately. Settled in the pairs pass.
