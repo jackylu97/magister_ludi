@@ -251,7 +251,7 @@ All of these go into the full card list as cards; the user will cut ideas once t
 7. **Holy war** — an optional military strand that fights best in its religion's territory.
 8. **Beliefs amplified** — bonuses per belief held, and cards that strengthen your religion's own beliefs.
 9. **Early investment, ramping bonuses** — faith put in early pays back more as the game goes on.
-10. **Improvements** — main family: pastures and camps (herds and hunting grounds), plus holy sites. Mines, quarries and plantations are Commerce's main family; which of them Devotion shares is settled in the pairs pass.
+10. **Improvements** — main family: pastures, camps and plantations (herds, hunting grounds, and the crops of ritual such as incense and wine), plus holy sites. The full table is in the pairs section.
 11. **Happiness from faith** — religion keeps people content.
 12. **Religious units** — prophets, apostles and inquisitors, and their charges.
 13. **Defending your faith** — resisting conversion, and the inquisition.
@@ -363,48 +363,78 @@ All of these go into the full card list as cards; the user will cut ideas once t
 
 ## What pairs of decks should enable
 
-*All of this section is a proposal.* The principle: in a good pair, one deck's mechanic creates something the other deck's mechanic can use. Covering each other's gaps is a welcome side effect, not the main point. The test from the currency table: does one deck's currency feed the other deck's way of spending it?
+The principle: in a good pair, one deck's mechanic creates something the other deck's mechanic can use. Covering each other's gaps is a welcome side effect, not the main point. The test from the currency table: does one deck's currency feed the other deck's way of spending it?
 
-Each entry says what each deck gives the other, which improvements the pair shares, and which gap gets covered. A **hook** is something one deck's cards create that the partner's cards read. A deck's own sheet must create its hooks even when nobody else uses them, so that the partner's cards have something to read.
+Each entry says what each deck gives the other, which improvements the pair shares, which gap gets covered, and the historical empires the pair plays like. A **hook** is something one deck's cards create that the partner's cards read. A deck's own sheet must create its hooks even when nobody else uses them, so that the partner's cards have something to read. Lines marked **From history** are mechanics suggested by the archetypes that the doc does not have yet; they are proposals.
 
 ### Each deck's main improvements
 
 | Deck | Main family | Great-person work |
 |---|---|---|
-| Dominion | Improvements on strategic resources, whatever the improvement *(new; Dominion had no family)* | Citadel |
-| Expansionist | Farms, terraces, floating gardens, lumber mills, and the tended works | Manufactory |
+| Dominion | Strategic resources (on mines, pastures and camps), camps, pastures | Citadel |
+| Expansionist | Farms, lumber mills, mines, quarries, and the tended works | Manufactory |
 | Commerce | Mines, quarries, plantations, fishing boats | Customs house |
-| Devotion | Pastures and camps | Holy site |
-| Scientific | None of its own; it reads its partners' improvements through its charter technologies | Academy |
+| Devotion | Pastures, camps, plantations | Holy site |
+| Scientific | Strategic resources, mines, quarries, plantations | Academy |
 | Magisterial | None of its own; it reads great-person works of every family, and their arrangement | Landmark |
 
-### Dominion · Expansionist — a frontier
+Unique improvements (terraces, floating gardens) are kept out of these families.
+
+Strategic resources sit on three improvements: **mines** (copper, iron, obsidian, niter), **pastures** (horses) and **camps** (camels, ivory).
+
+**Where the families overlap.** Every pair except Expansionist · Devotion now shares at least one improvement. Two improvements are claimed by many decks: **mines** by four (Dominion through iron, copper, obsidian and niter; Expansionist; Commerce; Scientific) and **quarries** and **plantations** by three each. The design rule warns that an improvement paid on by three or four decks stops belonging to any of them. The way to keep it is to have each deck pay something different on it: a mine is production for Expansionist, gold for Commerce, science for Scientific, and an army for Dominion.
+
+### Dominion · Expansionist — the frontier
 - **Dominion gives Expansionist** cleared ground. Captured cities and burnt barbarian camps leave land to claim; the barbarian-frontier idea (clearing a camp claims the land around it) is the shared card.
 - **Expansionist gives Dominion** levies: citizens turned into soldiers, so a big empire raises an army without spending production.
-- **Hooks:** Dominion — cleared camps and captured towns. Expansionist — levies and claimed land.
-- **Shared improvements:** pastures and mines on strategic resources (horses, copper, iron). Expansionist works them for production; Dominion counts them for its army.
+- **Also:** bonuses for cities connected to the empire, and for bringing newly founded cities up to strength quickly.
+- **Hooks:** Dominion — cleared camps and captured towns. Expansionist — levies, claimed land and newly founded cities.
+- **Shared improvements:** mines on strategic resources (copper, iron, obsidian, niter). Expansionist works them for production; Dominion counts them for its army.
 - **Gap covered:** Dominion's weak development, by Expansionist's land. Expansionist's science and culture are not covered; Dominion's kills pay a little of both.
+- **Historical archetypes:** Rome, Achaemenid Persia, the Mongols.
+- **From history:**
+  - *Veteran colonies* (Roman *coloniae*): a military unit retires to found a town or join one as citizens — the reverse of a levy.
+  - *Soldier-farmers* (the Chinese *tuntian* system): garrisons on the frontier farm the land around them in peacetime.
+  - *Satrapies* (Persia): a conquered city keeps its own governor and is cheaper to hold, but pays less.
+  - *Relay stations* (the Mongol *yam*, the Persian Royal Road): connected cities share sight, or units move faster between them.
 
 ### Dominion · Commerce — merchants and their guards
 - **Dominion gives Commerce** protected trade routes, plunder turned into gold, and reparations from defeated empires.
 - **Commerce gives Dominion** purchases: gold buys the buildings an army has no production to spare for, and buys units in an emergency.
+- **Also:** charters that make unique units purchasable with gold; unit strength financed by gold.
 - **Hooks:** Dominion — plunder and reparations paid in gold. Commerce — gold reserves and trade routes that need guarding.
-- **Shared improvements:** mines (iron and copper are both a strategic resource and a source of gold).
+- **Shared improvements:** mines on strategic resources (iron and copper are both an army's metal and a source of gold).
 - **Gap covered:** both decks are weak at developing cities, and Commerce covers it by buying. Production stays thin for the pair; that is its price.
+- **Historical archetypes:** Venice, Carthage, the Dutch and English East India Companies (chartered companies with their own armies), and any society that fought with mercenaries.
+- **From history:**
+  - *Mercenary contracts* (the Italian *condottieri*): hire units for gold for a fixed number of turns, after which they leave.
+  - *Privateers* (letters of marque): units that plunder enemy trade routes and bring the gold home.
+  - *Tribute*: a weaker neighbour pays gold every turn instead of fighting.
 
 ### Dominion · Devotion — the holy war
 - **Devotion gives Dominion** targets: cities following your religion are weaker against your army, and cheaper to hold once captured.
 - **Dominion gives Devotion** spread by conquest: a holy war spreads the faith as it goes, and religious units travel with the army.
 - **Hooks:** Devotion — cities following your religion. Dominion — captured cities and battles won.
-- **Shared improvements:** camps (hunting grounds that are also barbarian country) and pastures with horses.
+- **Shared improvements:** camps and pastures, including horses, camels and ivory.
 - **Gap covered:** Devotion's production, partly, by Dominion taking what others built. Faith heals and supplies the army, covering Dominion's lack of buildings.
+- **Historical archetypes:** Joan of Arc, the Crusades, the early Islamic conquests.
+- **From history:**
+  - *Military orders* (the Templars and Hospitallers): religious units that fight, and fortresses held by an order. A citadel beside a holy site.
+  - *A tax on other faiths* (the *jizya*): a conquered city of another religion pays gold or faith instead of converting. That makes "convert it or tax it" a real choice.
+  - *Relics carried into battle* (the True Cross at Hattin, the Oriflamme banner of France): a religious unit with the army raises its strength.
 
 ### Dominion · Scientific — the military edge
-- **Scientific gives Dominion** units early, or units nobody else has: charter technologies that unlock a unit before its age.
+- **Scientific gives Dominion** units early, or units nobody else has: charter technologies that unlock a unit before its age, or unique units.
 - **Dominion gives Scientific** science from fighting, and captured cities with their libraries and universities.
+- **Also:** developing captured cities through institutions — libraries and universities that bring a conquered city up to strength.
 - **Hooks:** Scientific — units ahead of their age. Dominion — science from kills and captured buildings.
-- **Shared improvements:** mines on strategic resources (niter pays science on mines; iron and copper arm the early units).
+- **Shared improvements:** strategic resources, all of them. Dominion builds its army on them; Scientific's charters unlock the units that use them.
 - **Gap covered:** Scientific's tempo, by Dominion taking ground while the charter technologies come in. Dominion's development, partly, by captured libraries.
+- **Historical archetypes:** the Ottomans, Assyria, Macedon.
+- **From history:**
+  - *Carried-off scholars* (Timur moving the craftsmen and scholars of conquered cities to Samarkand): capturing a city moves its science, or a great person, to your capital.
+  - *Copying the enemy* (Rome building its first war fleet by copying a captured Carthaginian ship): fighting a unit you cannot build yet pays science toward its technology.
+  - *Siege engineers for hire* (Orban, who built the Ottoman cannon for Constantinople): a great person who unlocks siege units early.
 
 ### Dominion · Magisterial — the triumph
 - **Dominion gives Magisterial** great generals and the citadels they build, which Magisterial's any-family cards reward like any other work.
@@ -412,27 +442,52 @@ Each entry says what each deck gives the other, which improvements the pair shar
 - **Hooks:** Dominion — generals and citadels. Magisterial — great-person works of any family, and wonders.
 - **Shared improvements:** citadels. A citadel is both Dominion's fortress and one of Magisterial's works, and could count toward its arrangements.
 - **Gap covered:** Dominion's development, by Magisterial's conversion. Magisterial's slow start, by Dominion taking things early.
+- **Historical archetypes:** Napoleonic France, Rome of the triumphs.
+- **From history:**
+  - *Looted art* (Napoleon filling the Louvre; Rome carrying off Greek statues): capturing a city takes its great works and landmarks with it.
+  - *Triumphal arches*: a victory raises a monument that pays culture.
+  - *A new law code* (the Napoleonic Code): a conquest lets you draft, or redraw your government.
 
 ### Expansionist · Commerce — the land and the market
 - **Expansionist gives Commerce** goods to sell: claimed land opens resources, and the breadbasket's surplus food can be exported.
 - **Commerce gives Expansionist** purchases: gold buys tiles, workers and settlers, so the empire grows faster than food alone allows.
+- **Also:** developing the land through trade routes and roads — the tiles a route passes through grow richer.
 - **Hooks:** Expansionist — opened resources and surplus food. Commerce — gold, and trade routes that carry food.
-- **Shared improvements:** plantations and fishing boats. Expansionist tends the land around them; Commerce sells what they produce.
+- **Shared improvements:** mines and quarries. Expansionist works them for production; Commerce sells what they produce.
 - **Gap covered:** Commerce's production, by Expansionist's worked land. Expansionist's science, by Commerce's foreign trade routes.
+- **Historical archetypes:** the Dutch Republic, Song China.
+- **From history:**
+  - *Canals* (China's Grand Canal, carrying southern rice north): a worked waterway that lets a trade route, and food, cross land.
+  - *Market towns and fairs* (the Champagne fairs): a town where several routes meet grows faster and pays more.
+  - *The grain supply* (Egyptian grain shipped to feed Rome): a route that carries food rather than gold, so one region feeds another's cities.
+  - *Land reclaimed from the sea* (the Dutch polders): already on the idea list as reshaping the land.
 
 ### Expansionist · Devotion — sacred land
-- **Expansionist gives Devotion** wild land and herds: tended land and pastures pay faith in Devotion's cards, and big cities hold more followers.
+- **Expansionist gives Devotion** wild land and herds: tended land pays faith in Devotion's cards, and big cities hold more followers.
 - **Devotion gives Expansionist** happiness and miracles: faith grows cities and keeps them content.
 - **Hooks:** Expansionist — tended and wild land, and population. Devotion — faith and happiness.
-- **Shared improvements:** pastures and camps. Camps and tended land are the closest of the shared ground: both are land kept wild on purpose.
+- **Shared improvements:** none on the family lists. The two meet on **wild land** instead: Devotion's camps and Expansionist's tended works are both land kept wild on purpose. If the pair needs a literal overlap, pastures are the natural one to share.
 - **Gap covered:** Expansionist's culture, partly, by faith-bought culture buildings. Devotion's production, by Expansionist's worked land.
+- **Historical archetypes:** Ancient Egypt, the Inca, the Aboriginal peoples of Australia.
+- **From history:**
+  - *Temple estates* (Egypt's temples owned fields and granaries): a holy site works and raises the land around it.
+  - *Sacred groves* (the shrine forests of Japan, the groves of the Celts and Greeks): wild land kept for a god pays faith while it stays wild.
+  - *Monks who cleared the frontier* (the Cistercians, who drained marshes and farmed empty land): religious units that tend or claim land.
+  - *Songlines*: sacred sites joined across the land, paying more the more of them are connected.
+  - *The flood festival* (the Nile's yearly flood, greeted with rites): a town's burning season or harvest doubles as a festival that pays faith.
 
 ### Expansionist · Scientific — the engineers
 - **Expansionist gives Scientific** the terrain its science comes from (mountains, hills), and a large population to work libraries and universities.
-- **Scientific gives Expansionist** charter improvements and early public works: an aqueduct or a terrace before its age.
+- **Scientific gives Expansionist** charter improvements and early public works: an aqueduct or an irrigation work before its age.
 - **Hooks:** Expansionist — raised tiles and population. Scientific — improvements ahead of their age.
-- **Shared improvements:** terraces, and mines on hills (science on hill mines is already a card).
+- **Shared improvements:** mines and quarries (science on hill mines and quarries is already a card).
 - **Gap covered:** Expansionist's science, directly — the clearest gap cover of the fifteen. Scientific's tempo, by Expansionist's growth.
+- **Historical archetypes:** the Abbasid Caliphate, Sumer.
+- **From history:**
+  - *New crops* (the Abbasid spread of rice, cotton and citrus across their lands): a technology that raises the yield of a kind of tile everywhere.
+  - *Underground channels* (the Persian *qanat*): irrigation that does not need a river. A public work for the engineer.
+  - *Surveying* (Egypt re-measuring its fields after each flood, the start of geometry): science from working and re-dividing land.
+  - *Writing for grain* (Sumer's first writing was grain accounts): science from stored food.
 
 ### Expansionist · Magisterial — shaping territory
 - **Expansionist gives Magisterial** room: claimed and tended land to place works on, arranged the way Magisterial's cards reward.
@@ -440,6 +495,11 @@ Each entry says what each deck gives the other, which improvements the pair shar
 - **Hooks:** Expansionist — tended works, which could count toward Magisterial's arrangements. Magisterial — great-person works that claim land.
 - **Shared improvements:** manufactories, and landmarks beside tended land.
 - **Gap covered:** Expansionist's culture, by Magisterial's engine. Magisterial's thin engines, by the land.
+- **Historical archetypes:** the Mughal Empire, Achaemenid Persia's gardens.
+- **From history:**
+  - *The four-part garden* (the Persian and Mughal *charbagh*, a garden laid out in four quarters around water): the clearest model for an **arrangement** — works laid out in a pattern pay more than the same works scattered. The English word "paradise" comes from the Persian word for these walled gardens.
+  - *Landscape gardens* (the English landscape garden, land shaped to look wild): tended land that also pays culture — "tended land is still wild" taken as an art.
+  - *Siting by the land* (Chinese *feng shui*): a work pays more for what surrounds it — water, hills, forest.
 
 ### Commerce · Devotion — pilgrims and markets
 - **Commerce gives Devotion** trade routes that carry religion, so faith spreads along the routes.
@@ -447,13 +507,23 @@ Each entry says what each deck gives the other, which improvements the pair shar
 - **Hooks:** Commerce — trade routes. Devotion — holy sites and followers.
 - **Shared improvements:** plantations (incense, wine, silk and the other luxuries of ritual).
 - **Gap covered:** none, deliberately: both are weak at production. The pair buys everything twice over, with gold and with faith, and builds almost nothing. If that fails in playtesting, this pair is the first place to look.
+- **Historical archetypes:** Mali under Mansa Musa, the Kushan Empire on the Silk Road.
+- **From history:**
+  - *Endowments* (the Islamic *waqf*): gold given once to a religious trust pays faith every turn after. A permanent way to turn gold into faith.
+  - *Pilgrim roads* (the hajj caravans, the road to Santiago): a route to a holy city pays both gold and faith.
+  - *Merchant missionaries* (Buddhism carried along the Silk Road by traders, with cave monasteries paid for by merchants): a route that spreads religion builds something at its far end.
 
 ### Commerce · Scientific — the patrons
 - **Commerce gives Scientific** gold that buys libraries and universities, and foreign trade routes that pay science.
 - **Scientific gives Commerce** charter technologies that open trade earlier: more routes, earlier ships, earlier trade buildings.
 - **Hooks:** Commerce — gold and foreign routes. Scientific — trade unlocks ahead of their age.
-- **Shared improvements:** mines (niter's science, and ores that pay gold).
+- **Shared improvements:** mines, quarries and plantations — the most overlap of any pair. The split is in what each pays: gold for Commerce, science for Scientific.
 - **Gap covered:** Scientific's tempo, by buying its buildings. Commerce's production, partly, by technologies that make its purchases cheaper.
+- **Historical archetypes:** Ptolemaic Alexandria, the Dutch Golden Age.
+- **From history:**
+  - *Books from the ships* (Alexandria copied every book found on ships entering its harbour): a foreign trade route pays science for each technology the partner has that you lack.
+  - *A school of navigation* (Henry the Navigator's Portugal): exploration funded by trade that pays science. Exploration is Commerce's theme; this is where Scientific touches it, lightly.
+  - *Printing* (the presses of Venice and Amsterdam): gold buys science directly.
 
 ### Commerce · Magisterial — the art market
 - **Commerce gives Magisterial** gold that buys rerolls and drafts, and merchants and customs houses for its any-family cards.
@@ -461,13 +531,23 @@ Each entry says what each deck gives the other, which improvements the pair shar
 - **Hooks:** Commerce — gold. Magisterial — draft actions that can be bought.
 - **Shared improvements:** customs houses, and landmarks on trade routes.
 - **Gap covered:** Commerce's production, by Magisterial's conversion. Magisterial's slow start, by buying.
+- **Historical archetypes:** Medici Florence, Edo Japan (the merchant class that paid for woodblock prints and kabuki).
+- **From history:**
+  - *Patronage* (the Medici paying artists): gold spent to call a great person of your choice, rather than waiting for renown.
+  - *The art market* (the Dutch Golden Age sold paintings like any other good): great works bought and sold for gold.
+  - *Guild commissions*: a guild pays for a specific work, which is close to the commission cards every deck now has.
 
 ### Devotion · Scientific — scholars of the faith
 - **Devotion gives Scientific** monasteries, and faith that buys science buildings.
 - **Scientific gives Devotion** technologies that unlock religious units and rites earlier.
 - **Hooks:** Devotion — faith. Scientific — religious unlocks ahead of their age.
-- **Shared improvements:** holy sites beside academies.
-- **Gap covered:** Devotion's production, partly, through faith-bought buildings. Scientific's tempo, by faith. This is the weakest pair on paper and needs the most card work.
+- **Shared improvements:** plantations, and holy sites beside academies.
+- **Gap covered:** Devotion's production, partly, through faith-bought buildings. Scientific's tempo, by faith. The weakest pair on paper; the history below gives it more to work with.
+- **Historical archetypes:** the Maya, Nalanda (the Buddhist monastic university), the monasteries of early medieval Ireland.
+- **From history:**
+  - *Priest-astronomers* (the Maya and Babylonian calendars): an observatory or rite that pays faith and science together.
+  - *Scriptoria* (monks copying books through the early Middle Ages): faith spent to keep science — for example, science from technologies other empires already know.
+  - *Religious universities* (Nalanda, al-Qarawiyyin in Fez): a holy site that also teaches, counting as both a holy site and an academy.
 
 ### Devotion · Magisterial — the cathedral
 - **Devotion gives Magisterial** faith that pays for great people and wonders, and holy sites for its any-family cards.
@@ -475,6 +555,11 @@ Each entry says what each deck gives the other, which improvements the pair shar
 - **Hooks:** Devotion — faith and holy sites. Magisterial — wonders and great-person works.
 - **Shared improvements:** holy sites and landmarks.
 - **Gap covered:** Devotion's production, by Magisterial's conversion and wonders. Magisterial's slow start, by faith purchases.
+- **Historical archetypes:** Byzantium, the Khmer Empire of Angkor.
+- **From history:**
+  - *Cathedrals built over generations* (Cologne Cathedral took six centuries): a wonder that pays as it rises, not only when finished.
+  - *Relics and icons as great works*: holy objects that count as great works, and draw pilgrims.
+  - *Temple cities* (Angkor's temples and reservoirs): a wonder that waters and raises the land around it, which also reaches toward Expansionist.
 
 ### Scientific · Magisterial — the academy
 - **Scientific gives Magisterial** charters, which are drafted and so count as draft actions; and scholars and academies for its any-family cards.
@@ -482,15 +567,35 @@ Each entry says what each deck gives the other, which improvements the pair shar
 - **Hooks:** Scientific — charters as cards. Magisterial — rerolls and extra choice in a draft.
 - **Shared improvements:** academies and landmarks.
 - **Gap covered:** Scientific's tempo, by Magisterial's boons. Magisterial's technology, by Scientific's charters. The pair is the most card-heavy in the game and the lightest on the map.
+- **Historical archetypes:** Classical Athens, Tang and Song China.
+- **From history:**
+  - *The imperial examinations* (China chose its officials by examination for over a thousand years): the closest real-world model of drafting your government. A card that lets you see more cards and choose officials on merit.
+  - *The encyclopedia* (Diderot's *Encyclopédie*): science for the breadth of cards you hold, seated or not — Magisterial's unseated-card synergies meeting Scientific.
+  - *The Museum of Alexandria*: scholars and artists housed together; a work that counts as both an academy and a landmark.
 
 ### What the grid shows
 - **Expansionist · Scientific covers a gap most directly**, and **Commerce · Devotion covers none**. That is deliberate, but Commerce · Devotion is the first pair to check in playtesting.
-- **Devotion · Scientific is the weakest pair** on paper; it needs deliberate cards rather than relying on a natural fit.
-- **Dominion and Scientific had no main family of improvements.** Dominion's proposed family is the improvements on strategic resources; Scientific's is whatever its charters unlock.
+- **Devotion · Scientific was the weakest pair**; it now shares plantations, and the priest-astronomers, scriptoria and religious universities give it mechanics of its own.
+- **Expansionist · Devotion is the only pair with no shared improvement.** It meets on wild land instead, which may be enough; pastures are the fallback.
+- **Mines, quarries and plantations are shared widely.** They stay meaningful only if each deck pays something different on them.
+
+### Mechanics from history worth adding to the deck lists
+
+The strongest of the "From history" lines above, as candidates for the card-list pass:
+- **Convert it or tax it** — a conquered city of another faith pays instead of converting (the *jizya*). Dominion · Devotion.
+- **Endowments** — gold given once pays faith forever (the *waqf*). Commerce · Devotion.
+- **Veteran colonies** — a unit retires into a town (Roman *coloniae*). Dominion · Expansionist.
+- **Mercenary contracts** — units hired for gold for a fixed number of turns. Dominion · Commerce.
+- **Copying the enemy** — science from fighting a unit you cannot build. Dominion · Scientific.
+- **Looted art** — capturing a city takes its great works. Dominion · Magisterial.
+- **The four-part garden** — works in a pattern pay more. Expansionist · Magisterial, and the model for arrangements.
+- **Books from the ships** — foreign routes pay science for what the partner knows that you do not. Commerce · Scientific.
+- **Cathedrals that pay as they rise.** Devotion · Magisterial.
+- **The imperial examinations** — seeing more cards and choosing officials. Scientific · Magisterial.
 
 ---
 
 ## Open questions
 
 1. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this, and **the wager system is to be reworked in its own future pass**; commissions will not pay beads. *(proposal, for that pass)* For Expansionist: **cultivate a heartland** — hold a number of tiles raised to their richest level. It grows out of what the deck already does, only this deck pursues it, and it cannot be finished quickly.
-2. **The pairs.** All fifteen entries in "What pairs of decks should enable" are proposals awaiting review, including the shared improvements and Dominion's proposed main family.
+2. **The "From history" mechanics** in the pairs section are proposals; they go into the card lists for the user to cut.
