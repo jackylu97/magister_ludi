@@ -50,6 +50,10 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 | Prophet *(a religious unit, not a great-person family)* | Holy site | Devotion |
 | Engineer | Manufactory | Expansionist *(proposal)*: public works — aqueducts, irrigation, terraces. The deck already has a hydraulic strand. |
 
+**More chairs: three early, eleven late.** Governments seat **3** cards early in the game and **11** late. The steps between are still to set; today's ladder is 3 / 4 / 6 / 9. Magisterial can seat more than the government allows, through its own abilities.
+
+**Commissions, in every deck.** A commission is a goal card. You seat it, reach its goal using your deck's own mechanic, and it pays a large reward and leaves its chair. Each deck's commissions follow its mechanic: a Dominion commission might be to capture a city, an Expansionist one to tend a number of tiles. Commissions give the draft a target and the game some big moments. They are not a return of the retired feats, quests and endeavours: those were a separate hand dealt to you that earned beads, while a commission is a card you choose to draft and seat.
+
 **Improvements: each deck has a main family, and every pair of decks shares some.** Overlap is how two decks find each other on the map, so some is needed: every pair of decks should share at least some improvement types. But when three or four decks all pay something on the same improvement, it stops belonging to any of them and those cards become generic. Each deck has a main family of its own, and the shared ones are chosen deliberately, pair by pair.
 
 ### Two facts about the essentials worth designing around
@@ -269,10 +273,9 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 
 **How science is tapered: charter technologies.** Scientific has a few science bonuses — enough to be a science engine — and the taper is that its powerful bonuses sit behind **charter technologies**, which cost more research than ordinary technologies. A Scientific game has to invest its science in charters to reach the strongest cards in its pool. So the science the deck generates is spent on access, not simply on getting through the ordinary tree faster.
 
-**How charters work.** Agreed, and a change to the current rule:
-- **A charter technology can only be researched while its charter card is seated in your government.** Once the technology is unlocked, the card no longer needs to stay seated and can be swapped out.
-- This replaces the current rule that a charter is drafted, never sits in a chair, and grants its unlock the moment it is picked.
-- Charter technologies cost more research than ordinary technologies at the same point in the tree.
+**How charters work.**
+- **Charters keep their current behaviour:** a charter is drafted, never sits in a chair, and grants its unlock the moment it is picked. The user (2026-10-06), reversing a proposal to require the charter to be seated while its technology is researched: *"keep the old behavior for charters, i want to make the game as fluid/not tedious as possible."*
+- Charter technologies cost more research than ordinary technologies at the same point in the tree. This is the taper.
 - **Charter technologies get their own section in the tech tree.** The interface work for that is scoped for later; this is the plan it builds toward.
 
 **Reaching the three essentials.**
@@ -300,7 +303,6 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 
 **Where the sheet stands.**
 - **The "access" identity is almost entirely unbuilt.** All five research charters are deferred because the technologies they open do not exist yet, and The Second Seat (an extra copy of an empire building) is deferred.
-- **Charters now work differently.** The charter rows are written to the old rule (drafted, never seated, granted on pick); they need rewriting to the new one.
 - **The live cards lean on great-person works and maturity.** Maturity fits the design well (The Long Study, The Old Academy, Enduring Institutions, The Long Inheritance). The great-person works cards (Working Estates, The Endowed Provinces, Master Artificers, The Quiet Faculties) cover families other than scholars and should narrow to academies or move.
 - **Exploration and discovery cards** (Field Notebooks, Natural Philosophy, Practical Astronomy) belong to Commerce. A light version can stay here for cross-deck synergy.
 
@@ -311,8 +313,22 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 **The way to play.** Play the draft. Magisterial is meant to be the most unusual of the six decks: it leans into the drafting side of the game, and its flexibility comes through drafting rather than through yields. If Expansionist plays the board, Magisterial plays the card game.
 
 **Two things that set it apart.**
-- **Its power comes from combinations of cards.** More than any other deck, its strongest effects need several specific cards held together. A single Magisterial card is modest; the right set of them is strong.
+- **Its power comes from combinations of cards.** More than any other deck, its strongest effects need several cards working together. A single Magisterial card is modest; the right combination of them is strong.
 - **It has more boons than any other deck.** Cards that pay something when drafted ("on draft, gain…"). Boons give the deck value while it gathers its combinations.
+
+### How its combinations work
+
+**Colours are the sets.** Magisterial cards carry a colour, and a colour is a set: holding several cards of one colour is what unlocks their stronger effects. Sets are kept small, because a small set is one a player can read and track. *Still open:* how many colours, how many cards each, whether colours appear only on Magisterial cards or across all decks, and how a colour shows on the card face (see open questions).
+
+**Draft actions: cards that let you act, and cards that pay you for acting.** Combinations form around the things a player *does* in the draft — drafting, passing, rerolling, seating and unseating — rather than around cards that name each other. One card lets you take an action more often or more cheaply; another pays you each time you take it. The user's example, not yet a decision: *"gain 1 free re-roll on every draft"* beside *"gives +1 science and +1 culture for each time you've re-rolled."* These combine without either card naming the other, and the action they share is visible to the player.
+
+**Cards outside the government count.** Magisterial has synergies for cards that are **not seated** — the rest of your collection — and for **cards you passed**. So its combinations do not all have to fit in the government, and passing on a hand becomes a real Magisterial play rather than only a fallback.
+
+**The archive is a card ability:** a card that lets you keep one card from a hand you pass.
+
+**Magisterial can seat more cards** than its government allows, through its own abilities.
+
+**Rejected for this deck:** cards that name a specific partner card; cards that affect their neighbours in the government; two cards fusing into one; cards that copy another card's effect.
 
 **Gap and workaround.** No single engine is especially deep, and it is weak until its combinations come together. Boons carry it while it gathers them, and conversion turns its culture into whatever it needs.
 
@@ -322,7 +338,7 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 
 **Bonus themes.**
 1. **The culture engine.**
-2. **Combinations** — effects that need several specific cards together. *The mechanics for this are still being designed; see open questions.*
+2. **Colour sets and draft actions** — see "How its combinations work" above.
 3. **Boons on draft** — paying something when a card is drafted. Including **random boons that are strong in total**: individually unpredictable, reliably valuable over a game. For example: on draft, gain a helpful card from any deck's pool (the game can already price a card a seat has not drafted, because the bot does it every draft); on draft, gain a random great person.
 4. **Bending the card system** — rerolls, expanded governments, moving cards between chairs, choosing what a card pays, more choice in a draft.
 5. **Conversion** — culture turned into production, science, gold or food.
@@ -375,7 +391,7 @@ Two examples from the conversation:
 
 1. **Expansionist's tended land.** The open proposals are listed in its section: whether tended works yield less than improvements and open no resources; whether burning is a town's season rather than a worker's action; whether fertilising is soil or a tended work; and whether "wild" replaces "unimproved" in rules text.
 2. **Great-person families.** The proposal in the rules section gives each deck one family and Magisterial the any-family bonuses. Still to confirm: the table as a whole, and whether the engineer goes to Expansionist as public works.
-3. **Magisterial's combinations.** How Magisterial cards depend on each other — the mechanics for power that needs several specific cards together. Being designed.
+3. **Magisterial's colours.** How many colours, and how many cards in each; whether colours appear only on Magisterial cards or on every deck's cards; and how a colour shows on the card face, since the frame and emblem already carry the deck's own colour.
 4. **Devotion and Commerce share a gap.** Both are weak at production; one substitutes gold and the other faith. Is that distinct enough, or should one of them have a different gap?
 5. **Victory conditions.** Each deck must be able to win. Expansionist and Devotion currently have no wager family of their own to earn beads from. Victory conditions are open to change to fix this. *(proposal)* For Expansionist: **cultivate a heartland** — hold a number of tiles raised to their richest level. It grows out of what the deck already does, only this deck pursues it, and it cannot be finished quickly.
 6. **Which improvements each pair shares.** Every pair of decks should share at least some improvement types, chosen deliberately. Settled in the pairs pass.
