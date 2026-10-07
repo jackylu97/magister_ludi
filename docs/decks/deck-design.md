@@ -56,6 +56,11 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 
 **Improvements: each deck has a main family, and every pair of decks shares some.** Overlap is how two decks find each other on the map, so some is needed: every pair of decks should share at least some improvement types. But when three or four decks all pay something on the same improvement, it stops belonging to any of them and those cards become generic. Each deck has a main family of its own, and the shared ones are chosen deliberately, pair by pair.
 
+**Rulings from the Commerce pass (the user, 2026-10-07).**
+- **Every deck has access to some early faith.** A small Tier 0 faith source belongs in each deck, so no seat is shut out of a pantheon and the first rites. (The Merchant Shrines is Commerce's.)
+- **Authority is not Expansionist's alone.** Expansionist has the deep, earned relief; other decks may have some access. Commerce's is The Market Writ.
+- **Charters can unlock units.** Charter units come into the game: a charter may open a unique unit (Numidian Cavalry, the shared The Chartered Company). This is new engine work.
+
 ### Two facts about the essentials worth designing around
 
 - **Production is the easiest essential to substitute.** It can be bought with gold, bought with faith, taken by conquest, or hurried by rites. Technology and culture mostly cannot be bought or taken. So production is the natural place for a gap, and a deck that is weak at technology or culture needs a deliberately designed workaround.
