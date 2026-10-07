@@ -20,6 +20,11 @@
  * instance matrix — the world-space x component of the translation column. That
  * is exact for any matrix built by `Matrix4.compose`, which is all of them.
  *
+ * The unit layer is the exception (`CollectorOptions.copyMeshes`). Its pieces
+ * are a thousand-odd triangles each, so drawing every one three times a frame
+ * was most of its cost. It keeps one instance per piece and draws the copies
+ * as three mesh objects over the same buffers, each culled on its own.
+ *
  * WHY AN INSTANCE IS OFF: the three-bit state machine
  * ---------------------------------------------------
  * There are three entirely separate reasons a board instance is not drawn, they
@@ -76,12 +81,13 @@
  */
 
 import {
-  type BufferGeometry,
+  BufferGeometry,
   type Material,
   Group,
   InstancedBufferAttribute,
   InstancedMesh,
   Matrix4,
+  type Sphere,
 } from 'three';
 
 import { type MaterialLibrary, computeHullNormals } from './toon';
@@ -233,6 +239,16 @@ interface Bucket {
   shell: InstancedMesh | null;
   ghost: InstancedMesh | null;
   /**
+   * Every mesh object that draws the body pass, `mesh` first.
+   *
+   * One entry for an ordinary collector. With `copyMeshes` it holds one object
+   * per wrap copy, all sharing `mesh`'s instance buffers, so the unit pick can
+   * offer each copy as a target. Writes always go through `mesh`, `shell` and
+   * `ghost`: the copies read the same attribute objects, so one write moves
+   * every copy.
+   */
+  bodies: InstancedMesh[];
+  /**
    * Copies of the matrix and colour buffers exactly as they were uploaded, kept
    * only when the collector was built with `snapshot`.
    *
@@ -320,7 +336,8 @@ const SUPPRESS_BIT = 2;
 const VEIL_BIT = 4;
 
 /**
- * A claim on the instance slots one `add` call produced — one per wrap copy.
+ * A claim on the instance slots one `add` call produced — one per wrap copy,
+ * or a single slot when the collector draws its copies as separate objects.
  * Handed back so a caller that needs to move or hide a thing later (only units
  * do) can write to exactly its own slots without rebuilding the buffer.
  */
@@ -365,6 +382,24 @@ export interface CollectorOptions {
    * the one thing on the board that had not heard about the fog.
    */
   forceTint?: boolean;
+  /**
+   * Draw each wrap copy as its own mesh object, offset by its `position.x`,
+   * instead of baking the copies into the instance buffer.
+   *
+   * The unit layer's option. A bucket whose instances hold all three copies
+   * has a bounding sphere spanning three map widths, so frustum culling cannot
+   * help it and every piece was submitted three times every frame. With this
+   * on, a bucket keeps one canonical instance per `add` and gets one object per
+   * offset; the objects share the geometry, the materials and the
+   * `instanceMatrix`/`instanceColor` attributes, so the GPU holds one buffer
+   * and a hide, wash or hover write is still a single write. Each object has
+   * an honest bounding sphere and culling turned on, so a copy that is off
+   * screen (or outside a shadow camera) is skipped by three.
+   *
+   * The board does not use it: its buckets span the whole map anyway, and
+   * three objects per bucket would triple its draw calls for nothing.
+   */
+  copyMeshes?: boolean;
 }
 
 /**
@@ -382,6 +417,7 @@ export class InstanceCollector {
   private readonly keepMatrices: boolean;
   private readonly snapshot: boolean;
   private readonly forceTint: boolean;
+  private readonly copyMeshes: boolean;
   /**
    * Which instance slots belong to which tile, for callers that said so.
    *
@@ -398,6 +434,7 @@ export class InstanceCollector {
     this.keepMatrices = options.keepMatrices ?? false;
     this.snapshot = options.snapshot ?? false;
     this.forceTint = options.forceTint ?? false;
+    this.copyMeshes = options.copyMeshes ?? false;
   }
 
   /**
@@ -531,6 +568,7 @@ export class InstanceCollector {
         mesh: null,
         shell: null,
         ghost: null,
+        bodies: [],
         baseMatrix: null,
         baseColor: null,
         washes: new Map(),
@@ -544,7 +582,10 @@ export class InstanceCollector {
     if (tint !== NO_TINT) bucket.tinted = true;
 
     const start = bucket.matrices.length;
-    for (const dx of this.copyOffsets) {
+    // With `copyMeshes` the offsets live on the mesh objects, so the buffer
+    // holds the one canonical instance.
+    const offsets = this.copyMeshes ? [0] : this.copyOffsets;
+    for (const dx of offsets) {
       const copy = matrix.clone();
       copy.elements[12] += dx;
       bucket.matrices.push(copy);
@@ -553,7 +594,7 @@ export class InstanceCollector {
     const handle: HandleImpl = {
       bucket,
       start,
-      count: this.copyOffsets.length,
+      count: offsets.length,
       suppressible: options.suppressible ?? SUPPRESS.never,
       flags: 0,
     };
@@ -563,6 +604,56 @@ export class InstanceCollector {
       else this.byTile.set(options.tile, [handle]);
     }
     return handle;
+  }
+
+  /**
+   * Adds one pass's mesh to the group: as it is, or — with `copyMeshes` — as
+   * one object per wrap offset over the same buffers. Returns every object it
+   * added, the given mesh first.
+   *
+   * A copy shares the geometry, the material and both instance attributes by
+   * reference, so three uploads each buffer once and a write through `primary`
+   * moves every copy. Each object carries `sphere` (the canonical instances'
+   * bounds in the bucket's own space; `matrixWorld` adds the offset when three
+   * tests it) and has culling on, so three skips a copy wholly outside the
+   * camera — the main view and the moving-unit shadow camera alike. The sphere
+   * is measured once at build time over the as-built matrices. A later hide
+   * only shrinks what is drawn, and a restore puts back matrices it already
+   * covers, so the sphere stays a true bound without being recomputed.
+   */
+  private placeCopies(group: Group, primary: InstancedMesh, sphere: Sphere | null): InstancedMesh[] {
+    if (!this.copyMeshes || !sphere) {
+      group.add(primary);
+      return [primary];
+    }
+    const objects: InstancedMesh[] = [];
+    // The primary takes the in-place copy when there is one, so its own
+    // instance matrices read as world positions; group order is then the
+    // in-place copy first and the others after it.
+    const offsets = [...this.copyOffsets].sort((a, b) => Number(b === 0) - Number(a === 0));
+    offsets.forEach((dx, i) => {
+      let object = primary;
+      if (i > 0) {
+        // Built with no instances so the constructor allocates no buffer of
+        // its own, then pointed at the primary's.
+        object = new InstancedMesh(primary.geometry, primary.material, 0);
+        object.instanceMatrix = primary.instanceMatrix;
+        object.instanceColor = primary.instanceColor;
+        object.count = primary.count;
+        object.castShadow = primary.castShadow;
+        object.receiveShadow = primary.receiveShadow;
+        object.renderOrder = primary.renderOrder;
+      }
+      object.position.x = dx;
+      object.boundingSphere = sphere.clone();
+      object.frustumCulled = true;
+      // The offset reaches `matrixWorld` at the next render, and the unit pick
+      // refreshes the world matrix itself (`unitModelPicking.ts`), so nothing
+      // needs it settled here.
+      group.add(object);
+      objects.push(object);
+    });
+    return objects;
   }
 
   /** A stable small integer per material identity, for the bucket key. */
@@ -575,7 +666,11 @@ export class InstanceCollector {
     return id;
   }
 
-  /** Builds the meshes and adds them to `group`. Returns the draw-call count. */
+  /**
+   * Builds the meshes and adds them to `group`. Returns the number of mesh
+   * objects added, which is the draw-call count before culling (with
+   * `copyMeshes`, three per pass, of which a frame usually draws one).
+   */
   flush(group: Group, materials: MaterialLibrary, shadows: boolean): number {
     let draws = 0;
     for (const bucket of this.buckets.values()) {
@@ -635,19 +730,25 @@ export class InstanceCollector {
         mesh.instanceColor = new InstancedBufferAttribute(values, 3);
         mesh.instanceColor.needsUpdate = true;
       }
+      // Without `copyMeshes` the buffer holds all three wrap copies, so the
+      // mesh's bounding sphere would span three map widths: culling is off
+      // because it could never skip anything.
       mesh.frustumCulled = false;
-      group.add(mesh);
       bucket.mesh = mesh;
-      draws++;
+      // The body's bounds, measured once over the canonical instances, shared by
+      // the ghost (same geometry, same matrices) and padded for the shell.
+      const bodySphere = this.copyMeshes ? instanceSphere(mesh) : null;
+      bucket.bodies = this.placeCopies(group, mesh, bodySphere);
+      draws += bucket.bodies.length;
 
       if (bucket.outlined) {
         computeHullNormals(bucket.geometry);
         // The width attribute belongs to this bucket, never the shared sculpt:
         // two owners can batch the same asset with different hovered instances.
-        const shellGeometry = bucket.unitOutline ? bucket.geometry.clone() : bucket.geometry;
-        if (bucket.unitOutline) shellGeometry.userData.unitOutlineSource = bucket.geometry.uuid;
-        if (bucket.unitOutline) shellGeometry.setAttribute('unitOutlineWidth',
-          new InstancedBufferAttribute(new Float32Array(count).fill(VIEW3D.units.outlineWidth), 1));
+        // A view that borrows the sculpt's attributes rather than a clone of
+        // them, so a rebuild uploads only the width buffer and not the whole
+        // sculpt again (see `outlineView`).
+        const shellGeometry = bucket.unitOutline ? outlineView(bucket.geometry, count) : bucket.geometry;
         const shell = new InstancedMesh(shellGeometry, bucket.unitOutline ? materials.unitOutline : materials.outline, count);
         shell.userData.ownsGeometry = bucket.unitOutline;
         if (bucket.unitOutline) shell.renderOrder = RENDER_ORDER.unitBody;
@@ -668,9 +769,18 @@ export class InstanceCollector {
           shell.instanceColor = new InstancedBufferAttribute(ones, 3);
           shell.instanceColor.needsUpdate = true;
         }
-        group.add(shell);
         bucket.shell = shell;
-        draws++;
+        // The shell is pushed out along its hull normals in the vertex shader,
+        // which the geometry's own bounds know nothing about, so its sphere is
+        // the body's grown by the widest rim it can be drawn with.
+        const shellSphere = bodySphere?.clone() ?? null;
+        if (shellSphere) {
+          const width = bucket.unitOutline
+            ? Math.max(VIEW3D.units.outlineWidth, VIEW3D.units.hoverOutlineWidth)
+            : materials.outlineWidth.value;
+          shellSphere.radius += width * maxInstanceScale(bucket.matrices, count);
+        }
+        draws += this.placeCopies(group, shell, shellSphere).length;
       }
 
       if (bucket.ghostMaterial) {
@@ -685,9 +795,8 @@ export class InstanceCollector {
         ghost.renderOrder = bucket.ghostOrder ?? RENDER_ORDER.silhouette;
         for (let i = 0; i < count; i++) ghost.setMatrixAt(i, bucket.matrices[i]!);
         ghost.instanceMatrix.needsUpdate = true;
-        group.add(ghost);
         bucket.ghost = ghost;
-        draws++;
+        draws += this.placeCopies(group, ghost, bodySphere).length;
       }
 
       if (this.snapshot) {
@@ -906,8 +1015,69 @@ export class InstanceCollector {
   static bodyInstances(handle: InstanceHandle): { object: InstancedMesh; instanceId: number }[] {
     const impl = handle as HandleImpl;
     if (impl.flags || !impl.bucket.mesh) return [];
-    return Array.from({ length: handle.count }, (_, i) => ({object: impl.bucket.mesh!, instanceId: handle.start + i}));
+    // One target per wrap copy either way: baked copies are `count` slots in
+    // one mesh, and `copyMeshes` copies are one slot in each body object.
+    return impl.bucket.bodies.flatMap(object =>
+      Array.from({ length: handle.count }, (_, i) => ({object, instanceId: handle.start + i})));
   }
+}
+
+/** The bounding sphere of an instanced mesh's built instances, in its own space. */
+function instanceSphere(mesh: InstancedMesh): Sphere {
+  mesh.computeBoundingSphere();
+  return mesh.boundingSphere!.clone();
+}
+
+/** The largest axis scale among a bucket's instance matrices. */
+function maxInstanceScale(matrices: readonly Matrix4[], count: number): number {
+  let scale = 0;
+  for (let i = 0; i < count; i++) scale = Math.max(scale, matrices[i]!.getMaxScaleOnAxis());
+  return scale;
+}
+
+/**
+ * A unit outline shell's geometry: a new `BufferGeometry` that borrows every
+ * attribute and the index of `source` by reference, plus its own per-instance
+ * `unitOutlineWidth`.
+ *
+ * Not `source.clone()`. three keeps one GPU buffer per attribute *object*, so a
+ * clone's copied arrays were uploaded again on every unit rebuild — every step
+ * of every march — and a painted sculpt is about 100 KB. The view's borrowed
+ * attributes are the very objects the body pass already drew, so only the
+ * width buffer is new. The same pattern as `propMeshes` in `paintedBoard.js`.
+ *
+ * Releasing it needs care, because three's geometry disposal frees the GPU
+ * buffer of every attribute the geometry names. `disposeInstancedGroup` hands a
+ * view to `releaseOutlineView`, which detaches the borrowed attributes first.
+ */
+function outlineView(source: BufferGeometry, count: number): BufferGeometry {
+  const view = new BufferGeometry();
+  view.name = source.name;
+  for (const [name, attribute] of Object.entries(source.attributes)) view.setAttribute(name, attribute);
+  view.setIndex(source.index);
+  for (const { start, count: length, materialIndex } of source.groups) view.addGroup(start, length, materialIndex);
+  view.setDrawRange(source.drawRange.start, source.drawRange.count);
+  view.boundingBox = source.boundingBox?.clone() ?? null;
+  view.boundingSphere = source.boundingSphere?.clone() ?? null;
+  // A shallow copy, so the shell still answers to the sculpt's own tags (the
+  // painted asset name) without writing its own onto the shared sculpt.
+  view.userData = { ...source.userData, unitOutlineSource: source.uuid, borrowsAttributes: true };
+  view.setAttribute('unitOutlineWidth',
+    new InstancedBufferAttribute(new Float32Array(count).fill(VIEW3D.units.outlineWidth), 1));
+  return view;
+}
+
+/**
+ * Disposes an `outlineView` without freeing the sculpt it borrows from: the
+ * borrowed attributes and index are detached first, so three's disposal frees
+ * only the view's own width buffer and its vertex-array state.
+ */
+function releaseOutlineView(view: BufferGeometry): void {
+  for (const name of Object.keys(view.attributes)) {
+    if (name !== 'unitOutlineWidth') view.deleteAttribute(name);
+  }
+  view.setIndex(null);
+  view.dispose();
 }
 
 /** `0xRRGGBB` split into three 0..1 channels. */
@@ -1064,7 +1234,12 @@ function markUpdated(bucket: Bucket): void {
 export function disposeInstancedGroup(group: Group): void {
   for (const child of group.children) {
     if (child instanceof InstancedMesh) {
-      if (child.userData.ownsGeometry) child.geometry.dispose();
+      // Only the primary shell owns its view; the wrap copies merely point
+      // at it (see `placeCopies`).
+      if (child.userData.ownsGeometry) {
+        if (child.geometry.userData.borrowsAttributes) releaseOutlineView(child.geometry);
+        else child.geometry.dispose();
+      }
       child.dispose();
     }
   }

@@ -39,6 +39,7 @@ import { walkedPrefix } from '../../src/render/animation';
 import { hpBarY } from '../../src/render3d/badges3d';
 import { BoardGeometry, pieceHeightFor } from '../../src/render3d/board3d';
 import { RENDER_ORDER } from '../../src/render3d/instances';
+import { cellCenter, wrapWidth } from '../../src/render3d/layout';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { buildHpBar, hpBarFill, hpBarFillWidth } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
@@ -57,6 +58,7 @@ import {
   barMeshes,
   flatState,
 } from './unitBarHelpers';
+import { culledWhileInView, frustumOver, wrapCopiesOf } from './unitLayerHelpers';
 
 const HP = VIEW3D.hpBar;
 const ANIM = VIEW3D.animation;
@@ -480,7 +482,7 @@ describe('the ways a bar can come up empty', () => {
     board.dispose();
   });
 
-  it('never culls a bar bucket, so a fill cannot vanish while its backing stays', () => {
+  it('culls a bar only with its whole wrap copy, so a fill cannot vanish while its backing stays', () => {
     const board = new BoardGeometry();
     const state = flatState();
     const near = createUnit(state, 0, 'warrior', 1, 1);
@@ -490,17 +492,30 @@ describe('the ways a bar can come up empty', () => {
     const beat = new RendererBeat(state, board, materials());
 
     // The backing bucket and the fill buckets hold *different* instances in
-    // different places, so their bounding spheres differ — and a bucket that
-    // could be culled at all is a bucket that can be culled on its own. Both
-    // halves of every bar are exempt, exactly as the pieces are.
+    // different places, so their bounding spheres differ and each wrap copy is
+    // culled on its own. That is safe only if no copy is ever culled while
+    // something it draws is in view, so that is what is held, for a camera over
+    // each bar, one over the seam, and one over empty ground.
     const meshes = barMeshes(beat.units, board);
     expect(meshes.length).toBeGreaterThan(1);
-    for (const mesh of meshes) expect(mesh.frustumCulled).toBe(false);
+    for (const mesh of meshes) {
+      const copies = wrapCopiesOf(beat.units.group, mesh);
+      expect(copies).toHaveLength(WRAP_COPIES);
+      for (const copy of copies) expect(copy.frustumCulled).toBe(true);
+    }
+    const period = wrapWidth(state.map);
+    const views = [cellCenter(1, 1), cellCenter(14, 6), { x: 0, z: cellCenter(0, 3).z }, { x: period / 2, z: -40 }];
+    const check = (): void => {
+      for (const at of views) {
+        expect(culledWhileInView(beat.units.group, frustumOver(at.x, at.z))).toEqual([]);
+      }
+    };
+    check();
 
     // Still true after a rebuild the camera was nowhere near.
     far.hp = 30;
     beat.frame(10);
-    for (const mesh of barMeshes(beat.units, board)) expect(mesh.frustumCulled).toBe(false);
+    check();
     expect(barComplaints(state, beat.units, board, allUnits(state))).toEqual([]);
 
     beat.dispose();

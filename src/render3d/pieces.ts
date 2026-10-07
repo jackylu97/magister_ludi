@@ -1057,6 +1057,10 @@ export class UnitLayer {
     const period = wrapWidth(map);
     const collector = new InstanceCollector({
       copyOffsets: [-period, 0, period],
+      // Each wrap copy is its own culled object over one shared buffer, so a
+      // piece is submitted only for the copies the camera can see (see
+      // `CollectorOptions.copyMeshes`).
+      copyMeshes: true,
       keepMatrices: true,
       // A routed caravan's outline shell needs its own per-instance wash
       // (`InstanceCollector.setShellWash`, applied below once the buffers

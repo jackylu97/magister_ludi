@@ -19,7 +19,7 @@
  * honest.
  */
 
-import { InstancedMesh, Matrix4, Quaternion, Vector3 } from 'three';
+import { InstancedMesh, Quaternion, Vector3 } from 'three';
 
 import { MoveAnimations3D } from '../../src/render3d/animation3d';
 import { hpBarY } from '../../src/render3d/badges3d';
@@ -40,6 +40,7 @@ import { type GameState, newGame } from '../../src/sim/state';
 import { unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { openEveryWar } from '../sim/warHelpers';
+import { WRAP_COPIES, layerMeshes, worldMatrices } from './unitLayerHelpers';
 
 const HP = VIEW3D.hpBar;
 
@@ -239,22 +240,16 @@ export interface BarInstance {
  * same complaint — a bar with nothing in it.
  */
 export function barMeshes(layer: UnitLayer, board: BoardGeometry): InstancedMesh[] {
-  return layer.group.children.filter(
-    (child): child is InstancedMesh =>
-      child instanceof InstancedMesh && child.geometry === board.bar,
-  );
+  return layerMeshes(layer.group).filter((child) => child.geometry === board.bar);
 }
 
 /** Every bar instance still drawn — zero-scaled (hidden) ones excluded. */
 export function barInstances(layer: UnitLayer, board: BoardGeometry): BarInstance[] {
   const out: BarInstance[] = [];
-  const matrix = new Matrix4();
   const scale = new Vector3();
   const position = new Vector3();
-  for (const child of layer.group.children) {
-    if (!(child instanceof InstancedMesh) || child.geometry !== board.bar) continue;
-    for (let i = 0; i < child.count; i++) {
-      child.getMatrixAt(i, matrix);
+  for (const child of barMeshes(layer, board)) {
+    for (const matrix of worldMatrices(layer.group, child)) {
       position.setFromMatrixPosition(matrix);
       scale.setFromMatrixScale(matrix);
       if (scale.x < 1e-9) continue;
@@ -264,8 +259,8 @@ export function barInstances(layer: UnitLayer, board: BoardGeometry): BarInstanc
   return out;
 }
 
-/** The wrap copies every instanced visual is emitted in. See `copyOffsets`. */
-export const WRAP_COPIES = 3;
+/** The wrap copies every instanced visual is drawn in. See `copyOffsets`. */
+export { WRAP_COPIES };
 
 /**
  * Every complaint the board can make about its bars.

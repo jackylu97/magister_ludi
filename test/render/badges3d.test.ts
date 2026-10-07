@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { InstancedMesh, Matrix4, MeshBasicMaterial, Quaternion, Vector3 } from 'three';
+import { InstancedMesh, Matrix4, MeshBasicMaterial, type Object3D, Quaternion, Vector3 } from 'three';
 
 import {
   BADGE_CELLS,
@@ -66,6 +66,7 @@ import {
 } from '../../src/sim/state';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
+import { layerMeshes, worldMatrices, wrapCopiesOf, WRAP_COPIES } from './unitLayerHelpers';
 
 /**
  * The floating unit badges.
@@ -832,9 +833,7 @@ describe('badges in the units layer', () => {
       fakeBadges(),
       selected,
     );
-    const meshes = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh,
-    );
+    const meshes = layerMeshes(layer.group);
     return { board, layer, meshes };
   }
 
@@ -861,9 +860,12 @@ describe('badges in the units layer', () => {
     const rims = meshes.filter((m) => m.geometry === board.badgeRim);
     expect(discs).toHaveLength(3);
     expect(rims).toHaveLength(1);
-    // Three wrap copies per unit, everywhere.
-    expect(rims[0]!.count).toBe(5 * 3);
-    expect(discs.reduce((sum, m) => sum + m.count, 0)).toBe(5 * 3);
+    // One instance per unit in the buffer, drawn by three wrap-copy objects.
+    expect(rims[0]!.count).toBe(5);
+    expect(discs.reduce((sum, m) => sum + m.count, 0)).toBe(5);
+    for (const mesh of [...rims, ...discs]) {
+      expect(wrapCopiesOf(layer.group, mesh)).toHaveLength(WRAP_COPIES);
+    }
     layer.dispose();
     board.dispose();
   });
@@ -951,7 +953,7 @@ describe('badges in the units layer', () => {
     const rims = meshes.filter((m) => m.geometry === board.badgeRim);
     // One bucket for the selection's lifted ink, one for everybody else.
     expect(rims).toHaveLength(2);
-    expect(rims.map((m) => m.count).sort()).toEqual([3, 3]);
+    expect(rims.map((m) => worldMatrices(layer.group, m).length).sort()).toEqual([3, 3]);
     layer.dispose();
     board.dispose();
   });
@@ -1009,9 +1011,7 @@ describe('badges in the units layer', () => {
       null,
       badges,
     );
-    const meshes = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh,
-    );
+    const meshes = layerMeshes(layer.group);
 
     // Two warriors, one class, and *two* disc buckets — because the two seats
     // print off two different atlases. One bucket would mean the wild was
@@ -1081,9 +1081,7 @@ describe('badges in the units layer', () => {
       { materialFor: () => new MeshBasicMaterial(), any: true } as never,
       fakeBadges(),
     );
-    const meshes = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh,
-    );
+    const meshes = layerMeshes(layer.group);
     const disc = meshes.find((m) => m.geometry === board.badgeIcons.warrior);
     expect(disc, 'a billboard unit lost its badge').toBeDefined();
     // No sculpt in the buffer at all — only the badge and its rim.
@@ -1102,9 +1100,7 @@ describe('badges in the units layer', () => {
       new Quaternion(),
       false,
     );
-    const meshes = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh,
-    );
+    const meshes = layerMeshes(layer.group);
     expect(meshes.some((m) => m.geometry === board.badgeRim)).toBe(false);
     // The sculpt, its outline shell and its x-ray ghost — and no badge.
     expect(meshes).toHaveLength(3);
@@ -1132,13 +1128,11 @@ describe('badges in the units layer', () => {
    */
   describe('the click targets', () => {
     /** Every badge instance the layer drew, as world positions. */
-    function drawnBadges(board: BoardGeometry, meshes: InstancedMesh[]): Vector3[] {
-      const matrix = new Matrix4();
+    function drawnBadges(board: BoardGeometry, meshes: InstancedMesh[], group: Object3D): Vector3[] {
       const positions: Vector3[] = [];
       for (const mesh of meshes) {
         if (!BADGE_CELLS.some((id) => board.badgeIcons[id] === mesh.geometry)) continue;
-        for (let i = 0; i < mesh.count; i++) {
-          mesh.getMatrixAt(i, matrix);
+        for (const matrix of worldMatrices(group, mesh)) {
           positions.push(new Vector3().setFromMatrixPosition(matrix));
         }
       }
@@ -1188,14 +1182,12 @@ describe('badges in the units layer', () => {
         null,
         fakeBadges(),
       );
-      const meshes = layer.group.children.filter(
-        (c): c is InstancedMesh => c instanceof InstancedMesh,
-      );
+      const meshes = layerMeshes(layer.group);
 
       const anchors = badgeAnchors(game, 0, heights);
       // Three units, three copies of the cylinder apiece.
       expect(anchors).toHaveLength(9);
-      expectSamePoints(anchors, drawnBadges(board, meshes));
+      expectSamePoints(anchors, drawnBadges(board, meshes, layer.group));
       layer.dispose();
       board.dispose();
     });
@@ -1219,12 +1211,10 @@ describe('badges in the units layer', () => {
         null,
         fakeBadges(),
       );
-      const meshes = layer.group.children.filter(
-        (c): c is InstancedMesh => c instanceof InstancedMesh,
-      );
+      const meshes = layerMeshes(layer.group);
 
       const anchors = badgeAnchors(game, 0, heights);
-      expectSamePoints(anchors, drawnBadges(board, meshes));
+      expectSamePoints(anchors, drawnBadges(board, meshes, layer.group));
       // And they really are two different targets: a stack whose badges landed
       // on one point would be a stack with one clickable unit.
       const first = anchors.filter((a) => a.unitId === 1);
@@ -1322,9 +1312,7 @@ describe('the piece standing in a town wears no roundel', () => {
       null,
       seat,
     );
-    const meshes = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh,
-    );
+    const meshes = layerMeshes(layer.group);
     return {
       geometry,
       layer,

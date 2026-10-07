@@ -15,6 +15,7 @@ import { createMap, tileIndex } from '../../src/sim/map';
 import { newGame, type GameState, type Unit } from '../../src/sim/state';
 import { unitDef, type UnitTypeId } from '../../src/sim/unitData';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
+import { layerMeshes, worldMatrices, wrapCopiesOf } from './unitLayerHelpers';
 
 const cleanup: (() => void)[] = [];
 afterEach(() => { for (const dispose of cleanup.splice(0).reverse()) dispose(); vi.restoreAllMocks(); });
@@ -41,11 +42,12 @@ function fixture(types: UnitTypeId[]) {
 }
 
 function meshes(layer: UnitLayer): InstancedMesh[] {
-  return layer.group.children.filter((child): child is InstancedMesh => child instanceof InstancedMesh);
+  return layerMeshes(layer.group);
 }
 
+/** Every drawn instance of a pass, wrap copies included, west to east per instance. */
 function matrices(mesh: InstancedMesh): Matrix4[] {
-  return Array.from({ length: mesh.count }, (_, i) => { const matrix = new Matrix4(); mesh.getMatrixAt(i, matrix); return matrix; });
+  return worldMatrices(mesh.parent!, mesh);
 }
 
 /** A real sloped surface, independent of the production support calculation. */
@@ -90,16 +92,17 @@ describe('painted units through the production unit layer', () => {
     const shell = before.find(mesh => mesh.material === library.unitOutline)!;
     const widths = shell.geometry.getAttribute('unitOutlineWidth');
     const positions = [...body.instanceMatrix.array], inks = [...shell.instanceColor!.array];
-    expect([...widths.array]).toEqual(new Array(6).fill(Math.fround(VIEW3D.units.outlineWidth)));
+    // One width per piece: the three wrap copies draw the same buffer, so a
+    // hover widens the rim in every copy at once.
+    expect(wrapCopiesOf(layer.group, shell).every(copy => copy.geometry === shell.geometry)).toBe(true);
+    expect([...widths.array]).toEqual(new Array(2).fill(Math.fround(VIEW3D.units.outlineWidth)));
     layer.setHoveredUnitId(state.units[0]!.id);
     expect([...widths.array]).toEqual([
-      ...new Array(3).fill(Math.fround(VIEW3D.units.hoverOutlineWidth)),
-      ...new Array(3).fill(Math.fround(VIEW3D.units.outlineWidth)),
+      Math.fround(VIEW3D.units.hoverOutlineWidth), Math.fround(VIEW3D.units.outlineWidth),
     ]);
     layer.setHoveredUnitId(state.units[1]!.id);
     expect([...widths.array]).toEqual([
-      ...new Array(3).fill(Math.fround(VIEW3D.units.outlineWidth)),
-      ...new Array(3).fill(Math.fround(VIEW3D.units.hoverOutlineWidth)),
+      Math.fround(VIEW3D.units.outlineWidth), Math.fround(VIEW3D.units.hoverOutlineWidth),
     ]);
     expect(meshes(layer)).toEqual(before);
     expect([...body.instanceMatrix.array]).toEqual(positions);
@@ -111,7 +114,7 @@ describe('painted units through the production unit layer', () => {
     layer.restore(state.units[1]!.id);
     expect(layer.modelCandidates()).toEqual(candidates);
     layer.setHoveredUnitId(null);
-    expect([...widths.array]).toEqual(new Array(6).fill(Math.fround(VIEW3D.units.outlineWidth)));
+    expect([...widths.array]).toEqual(new Array(2).fill(Math.fround(VIEW3D.units.outlineWidth)));
   });
 
   it('keeps opaque painted faces out of the self-intersecting x-ray pass', () => {
@@ -172,7 +175,7 @@ describe('painted units through the production unit layer', () => {
     const model = kit.resolve(state.units[0]!)!, all = meshes(layer);
     const body = all.find(mesh => mesh.material instanceof MeshStandardMaterial)!;
     const shell = all.find(mesh => mesh.material === library.unitOutline)!;
-    expect([...body.instanceColor!.array]).toEqual(new Array(9).fill(1));
+    expect([...body.instanceColor!.array]).toEqual(new Array(3).fill(1));
     expect(body.instanceColor).not.toBe(shell.instanceColor);
     for (let i = 0; i < shell.count; i++) {
       expect(shell.instanceColor!.getX(i)).toBeCloseTo(2, 6);
