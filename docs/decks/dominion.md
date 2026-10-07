@@ -11,6 +11,8 @@
 - **Military buildings as institutions:** Drill Manuals, then The War Hall Schools, War Foundries and The General Staff, then Armoury Guilds and The Citadel Works, then Arsenals and the shared The Holy Army. Barracks, War Halls, Armouries and citadels pay science, culture, gold and production.
 - **Raid and conquer:** the barbarian frontier (Blooded Spears, Blood Brothers, Commission: Clear the Frontier), then The Pacified Marches and Songs of the Fallen, then siege, Triumphs, Hegemony and War Reparations, then Total War and Commission: A Victor's Peace, then Imperium and Commission: Hold the Capitals.
 
+**Tier 0 and Tier IV pass (2026-10-07):** added 3 Tier 0 and 13 Tier IV cards.
+
 > Light-touch pass. Dominion is one of the two reference decks, so built cards are kept unless they clearly fight the spec. The pass adds the three themes the spec added (unit logistics; great generals and citadels; war reparations), commissions, Dominion's improvement family (strategic resources, camps and pastures), and cards for the history lines in the pair entries.
 
 ## What stands
@@ -19,24 +21,24 @@ Counts cover the exclusive Dominion cards below; shared cards are listed separat
 
 | Tier | Cards | Built | Revised | New | Deferred |
 |---|---|---|---|---|---|
-| Tier 0 | 8 | 6 | 1 | 1 | 0 |
+| Tier 0 | 11 | 6 | 1 | 4 | 0 |
 | Tier I | 12 | 8 | 2 | 2 | 0 |
 | Tier II | 14 | 8 | 1 | 4 | 1 |
 | Tier III | 8 | 7 | 0 | 1 | 0 |
-| Tier IV | 2 | 0 | 1 | 1 | 0 |
-| **All** | **44** | **29** | **5** | **9** | **1** |
+| Tier IV | 15 | 0 | 1 | 14 | 0 |
+| **All** | **60** | **29** | **5** | **25** | **1** |
 
-The shelf is deep enough for eleven chairs: 34 live cards and 44 in all, before the 22 shared ones.
+The shelf is deep enough for eleven chairs: 34 live cards and 60 in all, before the 22 shared ones.
 
 ### How the shelf is weighted
 
 | Tier | Common | Uncommon | Rare |
 |---|---|---|---|
-| Tier 0 | 5 | 0 | 3 |
+| Tier 0 | 8 | 0 | 3 |
 | Tier I | 6 | 3 | 3 |
 | Tier II | 6 | 6 | 2 |
 | Tier III | 2 | 4 | 2 |
-| Tier IV | 0 | 0 | 2 |
+| Tier IV | 0 | 3 | 12 |
 
 ## Tier 0
 
@@ -50,6 +52,9 @@ The shelf is deep enough for eleven chairs: 34 live cards and 44 in all, before 
 | **The Standing Army** | rare | built | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | all units cost no gold in maintenance while standing in one of your cities · +30% production toward military units, in every city with a Barracks |
 | **Blood Brothers** | rare | built | A barbarian unit you kill joins your side. | a barbarian you kill joins you at full health instead of dying |
 | **The King's Levy** | rare | built | Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep. | every 15 turns, the best melee unit you can build musters in your capital |
+| **The Horse Herds** | common | new | Worked pastures and camps give +1 production. +20% production toward mounted units. | Fits existing effects: a hex line on Pasture and Camp, and a production line toward one unit class (Siege Works has one for siege units). The opener for Dominion's own improvement family: the first pasture or camp becomes a reason to field riders early, and it leads into The Quartermasters and Horse Lords. |
+| **Battle Honours** | common | new | Your first kill each turn grants 6 renown, and clearing a barbarian camp grants 12 renown, both favouring great generals. | Fits existing effects: a card already pays renown on a capture, and a kill once a turn (Field Academies) and a cleared camp (Blooded Spears) are both moments cards pay on today. The opener for the great generals and citadels theme, which had no card before Tier I. It gives an early choice: hunt barbarians for a first general, or leave them for yields. |
+| **Sword and Plough** | common | new | While at peace, each city with a garrison gains +2 culture. While at war, each gains +2 production instead. | Fits existing effects: the at-peace and at-war conditions (Reserve Officers) and the garrisoned-city condition (Martial Law) both exist. The war-or-peace theme's opener, so a Dominion seat's first choice includes staying at peace. The culture half also helps a deck that drafts slowly in the first age. |
 
 ## Tier I
 
@@ -106,6 +111,19 @@ The shelf is deep enough for eleven chairs: 34 live cards and 44 in all, before 
 |---|---|---|---|---|
 | **Imperium** | rare | revised | Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%. | Was: Tier III, and +5% per captured city. Moved to Tier IV beside the other decks' Magnum Opus cards (Commerce's The World's Exchange sits here). Live today: +5% production toward The Magnum Opus per captured city you hold (at most +40%). Balance pass: every other Opus card reaches its ceiling at four of something, and this one needed eight captured towns. |
 | **Commission: Hold the Capitals** | rare | new | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. | Needs: commissions, and a reading of which original capitals an empire holds (a capital changing hands is already announced). Pays production rather than a bead, so it feeds the Opus without touching the wager system. |
+| **Spolia** | rare | new | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. | Needs: the capture to read the town's Opus progress before it is cleared, and a store on the player for production waiting for an Opus to begin. Capturing a city already wipes its queue and stored progress (`handOverCity`), so taking a rival's Opus city already ends their Opus; this card makes that progress yours. A lump payment, so it sits outside the pending +60% cap on Opus bonuses. Half rather than all, because the full figure could end the game on one capture. Named for the Roman reuse of older monuments' stone. Finisher. |
+| **The Legions' Labour** | rare | new | Disbanding a military unit in a city building a wonder or the Magnum Opus adds half the unit's production cost toward it. Units raised for free add nothing. | Needs: a payout on the disband command (it pays nothing today) into the city's current wonder, and a test for free units (`Unit.freeUpkeep`, written at the free-unit seams). Half, because training bonuses (The Standing Army, War Foundries, Reserve Officers) can stack close to +100% toward units; at half, a unit never carries more production into a wonder than went into it. The free-unit clause keeps The King's Levy and The Nation in Arms out of it. Limited to wonders and the Opus so it does not cover the deck's development gap. From Roman legions building Hadrian's Wall and their own roads. Finisher. |
+| **The Praetorian Guard** | rare | new | The city raising your Magnum Opus gains +5 defence for each unit garrisoned there. Your military units within two hexes of it gain +6 strength. | Needs: a city scope for "the city raising your Opus" (shared with Circumvallation and The Grand Coalition), and a strength line counted within two hexes of one city (Defensive Lines' line reads one hex). Because a captured city loses its queue, an Opus city taken is an Opus lost; this card is the defence against Dominion's own pressure cards in a rival's hands. Finisher. |
+| **The Grand Army** | rare | new | Your capital gains +1 science and +1 culture for every military unit you have, at most +30 of each. | Fits existing effects: the units-in-the-field count with a unit-class filter, paid in the capital. Scales with the army the deck has spent the game building, and pays the two essentials the deck reaches through its army. From Napoleon's Grande Armée. Late engine. |
+| **The Annexed Provinces** | rare | new | Each captured city you hold gives +5% science and +5% culture in every city, at most +25%. | Fits existing effects: the captured-city count Imperium reads, carrying an empire-stage percentage. The cities other empires built pay the whole empire, which is how the deck plays around its gap. Late engine. |
+| **The Marshalate** | rare | new | Each great general you have called gives your military units +1 strength, at most +5. Citadels give +3 culture and +3 production. | Needs: the great-people count filtered to one family (it counts every family today). The citadel half fits existing effects (The Citadel Works' hex line). Pays the deck's great-person family twice: in the field for the generals, and in the towns for their citadels. From Napoleon's marshals. Late engine. |
+| **The Military Frontier** | rare | new | Each unit garrisoned in a city gives it +3 science and +3 culture, at most three units per city. | Fits existing effects: the per-city garrison count with a ceiling. The garrison state at its strongest: a city holding three units gains +9 of each. From the Habsburg Military Frontier, where every household owed service and the garrison was the town. Late signature. |
+| **The Nation in Arms** | rare | new | Every ten turns, each city with an Armoury raises the best melee unit you can build. They count as trained and cost no upkeep. | Needs: The King's Levy's timed muster to run in every city with an Armoury rather than in the capital alone. Counting as trained, the units pay Muster Rites, The Art of War and the other training cards. A different card from the government The Levée en Masse. Late signature. |
+| **Circumvallation** | uncommon | new | While a rival city is under siege with at least one of your units beside it, it adds no production toward a Magnum Opus. You can see which rival cities are raising one. | Needs: the Opus city scope (shared with The Praetorian Guard), a production line the siege reading (`underSiege`) turns off for one item, and sight of rival Opus cities. A siege already means every hex around the city is held or denied, so this takes an army in place, not a raid. Uncommon because it does nothing unless a rival begins an Opus. From Caesar's siege lines at Alesia. Pressure. |
+| **The Grand Coalition** | rare | new | While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster. | Needs: a war condition naming the rival raising an Opus (the same city scope), and a strength line against one empire's units and cities. Lets a Dominion seat that is behind in the race join it by force. From the coalitions against Napoleon. Pressure. |
+| **The Proconsuls** | uncommon | new | Captured cities with a garrison cost no authority and gain +10 defence. | Needs: an authority line that sets a captured city's cost to zero (Hegemony lowers it by one). The defence line on a garrisoned city exists (Defensive Lines). Holding what the deck conquered, late, so the cities a war took stay taken. Authority is not Expansionist's alone (Commerce-pass ruling); this is Dominion's late access, earned by garrisons. Pressure. |
+| **Commission: The Grand Campaign** | uncommon | new | Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair. | Needs: commissions. Captures are already counted and announced (Triumphs, `citiesCaptured`). Reachable as long as any rival holds a city. Big moment. |
+| **Commission: The Captured Marvel** | rare | new | Commission. Capture a city that holds a world wonder. Then gain science and culture each equal to half that wonder's production cost. The card leaves its chair. | Needs: commissions, and a capture payout that reads the wonders in the captured town (the same reading Looted Art needs). A wonder pays whoever holds its city, so the capture already brings the wonder's effect; this card adds the moment. A game with no rival wonder left would strand it (pending ruling 6 on reachable commissions); any wonder counts, which keeps that rare. Big moment. |
 
 ## Cards Dominion shares with another deck
 
@@ -156,20 +174,20 @@ Dominion's currency is units, spent on garrisons, raids and conquest. Its hooks 
 ### Dominion · Devotion (the holy war)
 - **Dominion gives** spread by conquest: captured cities and battles won, with religious units travelling beside the army. **It gets back** targets (cities following Devotion's religion) and faith that buys and supplies the army.
 - **Hooks Dominion creates:** captured cities and battles won (every capture card on the sheet). **Hooks it reads:** cities following your religion (Convert It or Tax It, The Crusader Orders), religious units (The Oriflamme), holy sites beside citadels (The Holy Army) and faith purchases (The Sacred Host).
-- **Shared improvements:** camps and pastures, including horses, camels and ivory (The Soldier-Farmers, The Quartermasters).
+- **Shared improvements:** camps and pastures, including horses, camels and ivory (The Soldier-Farmers, The Quartermasters, The Horse Herds).
 - **Cards serving the pair:** The Oriflamme, Convert It or Tax It and The Holy Army (all three shared since the balance pass), Muster Rites, The Sacred Host, The Crusader Orders.
 
 ### Dominion · Scientific (the military edge)
 - **Dominion gives** science from fighting, and captured cities with their libraries and universities. **It gets back** units ahead of their age from Scientific's charters.
 - **Hooks Dominion creates:** science from kills and training (Songs of the Fallen, The Art of War, Field Academies) and captured cities that keep paying science (Conquered Archives). The shared Copying the Enemy and Carried-Off Scholars read these kills and captures.
 - **Shared improvements:** strategic resources, all of them. Dominion builds its army on them (The Quartermasters); Scientific's charters unlock the units that use them.
-- **Cards serving the pair:** Field Academies, The Engineer Corps, Copying the Enemy, Carried-Off Scholars, Drill Manuals, The War Hall Schools, Armoury Guilds, Conquered Archives, Songs of the Fallen, The Art of War, Siege Works. The "siege engineers for hire" line is carded on Scientific's sheet.
+- **Cards serving the pair:** Field Academies, The Engineer Corps, Copying the Enemy, Carried-Off Scholars, Drill Manuals, The War Hall Schools, Armoury Guilds, Conquered Archives, Songs of the Fallen, The Art of War, Siege Works, The Annexed Provinces. The "siege engineers for hire" line is carded on Scientific's sheet.
 
 ### Dominion · Magisterial (the triumph)
 - **Dominion gives** great generals and the citadels they build, which Magisterial's any-family cards reward like any other work, and conquests that are moments worth marking. **It gets back** draft boons that fill an army's gaps and wonders that pay out across the empire.
-- **Hooks Dominion creates:** generals (The General Staff, The Citadel Works, Commission: Hold the Capitals), citadels (The Citadel Works), and captures, which the shared The New Code and Looted Art read. **Hooks it reads:** garrisoned towns with a Monument (Examinations of State).
+- **Hooks Dominion creates:** generals (Battle Honours, The General Staff, The Citadel Works, The Marshalate, Commission: Hold the Capitals, Commission: The Grand Campaign), citadels (The Citadel Works, The Marshalate), and captures, which the shared The New Code and Looted Art read. **Hooks it reads:** garrisoned towns with a Monument (Examinations of State).
 - **Shared improvements:** citadels, which are Dominion's fortress and one of Magisterial's works.
-- **Cards serving the pair:** The General Staff, The Citadel Works, The New Code, Looted Art, Examinations of State, Triumphs, Commission: Hold the Capitals.
+- **Cards serving the pair:** The General Staff, The Citadel Works, The New Code, Looted Art, Examinations of State, Triumphs, Commission: Hold the Capitals, The Marshalate, Commission: The Captured Marvel (captured wonders, the same reading Looted Art needs).
 
 ## Proposed cuts
 

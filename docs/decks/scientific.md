@@ -10,6 +10,8 @@
 - **The military edge:** The Prospectors' Notes, The Assay and The Ordnance Rolls on strategic resources, then the Metallurgists', Mechanists' and Alchemists' charters and the cards behind them.
 - **Being first** is a fourth, thin line: The Prize Essay, The Prize Question, The Great Instrument.
 
+**Tier 0 and Tier IV pass (2026-10-07):** added 4 Tier 0 and 16 Tier IV cards (3 of them charters). Tier 0 gains openers for the charter arc (The Commonplace Book), early access (The Palace Archive), a first commission (The Tablet House) and a small faith source (The Sky Watchers). Tier IV makes reaching Alchemy and the Opus first the deck's finish: three late charters (Hermeticism, Experimental Philosophy, Gunfounding) and the cards they open, plus late versions of each arc (The Register of Priority, The Invisible College, The Proving Ground, The Lynx-Eyed Academy, The Patent Office).
+
 **How the two steps work.** A charter is drafted, never sits in a chair, and opens its technology for research the moment it is picked (unchanged behaviour). The technology costs more research than an ordinary one of its age and will sit in its own section of the tree. A card marked **Needs <technology>** in the card column is dealt only to a seat that knows that technology. That gate is a new mechanic for every such card (*needs: a draft gate on a known technology*), on top of whatever the card itself needs. A gated card may sit in a later tier than its charter when it is too strong to arrive early.
 
 ## What stands
@@ -18,24 +20,24 @@ Counts cover the exclusive Scientific cards below; shared cards are listed separ
 
 | Tier | Cards | Built | Revised | New | Deferred |
 |---|---|---|---|---|---|
-| Tier 0 | 6 | 4 | 0 | 2 | 0 |
+| Tier 0 | 10 | 4 | 0 | 6 | 0 |
 | Tier I | 11 | 1 | 3 | 6 | 1 |
 | Tier II | 13 | 1 | 2 | 7 | 3 |
 | Tier III | 9 | 0 | 1 | 6 | 2 |
-| Tier IV | 2 | 0 | 0 | 2 | 0 |
-| **All** | **41** | **6** | **6** | **23** | **6** |
+| Tier IV | 18 | 0 | 0 | 18 | 0 |
+| **All** | **61** | **6** | **6** | **43** | **6** |
 
-Eight of the 41 are charters, which never take a chair. That leaves 33 seatable cards (6 / 8 / 9 / 8 / 2 across Tiers 0–IV), of which 11 are gated behind a charter technology and 22 are open to any Scientific seat. Four are commissions. With the fourteen shared cards, a Scientific seat can draw 47 seatable cards, enough for eleven chairs, but the exclusive count is below the 45–55 target.
+Eleven of the 61 are charters, which never take a chair. That leaves 50 seatable cards (10 / 8 / 9 / 8 / 15 across Tiers 0–IV), of which 16 are gated behind a charter technology and 34 are open to any Scientific seat. Seven are commissions. With the fourteen shared cards, a Scientific seat can draw 64 seatable cards, enough for eleven chairs, and the exclusive count is within the 45–55 target.
 
 ### How the shelf is weighted
 
 | Tier | Common | Uncommon | Rare |
 |---|---|---|---|
-| Tier 0 | 4 | 2 | 0 |
+| Tier 0 | 7 | 3 | 0 |
 | Tier I | 4 | 6 | 1 |
 | Tier II | 1 | 6 | 6 |
 | Tier III | 1 | 2 | 6 |
-| Tier IV | 0 | 0 | 2 |
+| Tier IV | 0 | 6 | 12 |
 
 ### Charter technologies
 
@@ -51,8 +53,11 @@ Each charter opens one technology. The technology gives early access by itself, 
 | The Mechanists' Charter (II) | Mechanics | The Trebuchet and the Crossbowman before their technologies | The Siege College (II), The Engine Works (III) |
 | The Printers' Charter (II) | Printing | The Printing House before Movable Type; +1 trade route | The Presses (III), The Charter Rolls (III) |
 | The Alchemists' Charter (III) | Chemistry | The Fire Lance before Alchemy (Chemistry does not open the Magnum Opus) | The Saltpetre Works (III) |
+| The Hermetic Charter (IV) | Hermeticism | Research Alchemy while missing one of its five parent technologies | The Foundation Stone (IV), The Closed Book (IV) |
+| The Experimenters' Charter (IV) | Experimental Philosophy | The Laboratory, a building only empires knowing it can build | The Great Experiment (IV), The Prototype Works (IV) |
+| The Gunfounders' Charter (IV) | Gunfounding | The Great Gun, a siege unit only empires knowing it can train | The Breaching Batteries (IV) |
 
-None of these technologies exist in `data/techs.json` yet. A technology can already unlock units and buildings and carry card effects (Steel and Machinery do), so a charter does not need to unlock a unit itself. What is new: the technologies, a second way into an existing row (the Aqueduct, the Observatory and the others opened early), and the Qanat and Crucible Guard rows.
+None of these technologies exist in `data/techs.json` yet. A technology can already unlock units and buildings and carry card effects (Steel and Machinery do), so a charter does not need to unlock a unit itself. What is new: the technologies, a second way into an existing row (the Aqueduct, the Observatory and the others opened early), and the Qanat, Crucible Guard, Laboratory and Great Gun rows. Hermeticism also needs a waiver of one of Alchemy's parents for the seat that knows it.
 
 **Is each charter worth its extra research?** (review)
 - **Glassmakers':** yes, on its own. An Observatory an age early is the deck's best science, and The Spectacle Makers speeds up every maturity card.
@@ -63,6 +68,9 @@ None of these technologies exist in `data/techs.json` yet. A technology can alre
 - **Mechanists':** yes. Siege a full age early, and two cards behind it.
 - **Printers':** yes. An extra trade route, and The Presses, one of the strongest cards behind any charter.
 - **Alchemists':** yes for the Fire Lance alone. Its one card (The Saltpetre Works) is thin; The Apothecaries was cut from behind it as weak.
+- **Hermetic:** yes, for any seat racing to Alchemy. Skipping one of Alchemy's five parents saves more research than the charter costs, and The Foundation Stone and The Closed Book behind it are the deck's strongest finish. It arrives at Tier IV, so the race is tight: drafted late, it may land after the seat already holds all five parents.
+- **Experimenters':** yes. The Laboratory alone is modest, but The Great Experiment is the deck's use for science once the tree is finished, and The Prototype Works is early access to anything.
+- **Gunfounders':** only for a seat at war or facing a rival's Opus. The Great Gun and The Breaching Batteries are the deck's way to slow a rival's Opus; a peaceful seat skips it.
 
 ## Tier 0
 
@@ -74,6 +82,10 @@ None of these technologies exist in `data/techs.json` yet. A technology can alre
 | **The Long Study** | uncommon | built | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. | +2 culture in every city with a Library that has stood at least 20 turns · +1 renown per turn in every city with a Library that has stood at least 20 turns · +2 culture in every city with a Library that has stood at least 40 turns · +1 renown per turn in every city with a Library that has stood at least 40 turns |
 | **The Prize Essay** | common | new | Completing a technology before any other empire grants 15 culture and 15 production in your capital. Charter technologies do not count. | Being first, at Tier 0. The culture is the deck's route to its culture essential, and the production helps its slow tempo. Fits existing effects (the same narrowed technology windfall the built Patent Rolls used). The Patent Rolls was cut in review as the same job at Tier II. Balance pass: only a charter holder can research a charter technology, so it would always be first; charter technologies are excluded. |
 | **The Prospectors' Notes** | uncommon | new | Finding a buried seam grants 30 science and 15 production. | Strategic access at Tier 0, through the worker's existing prospect action. Prospecting is on the Expansionist idea list, so this is a deliberate light overlap. Fits existing effects (the vein-found windfall). |
+| **The Palace Archive** | uncommon | new | You may build a Library in your capital before you know Writing. | Early access in the first hand: the deck's signature at Tier 0, and a real choice between an early Library and one of three chairs. Needs: a card that opens an ordinary building before its technology, limited by a city test (the same need as The Forward Plans). |
+| **The Commonplace Book** | common | new | Charter technologies cost you 15% less research. | The charter arc's opener. Seated in the first hand, it pays nothing until a charter is drafted at Tier I, so taking it is a bet on the deck's plan. From history: the commonplace books in which scholars copied out and indexed what they read. Needs: the charter premium (pending ruling 10) read through a card; The Patent Office reads the same price. |
+| **The Sky Watchers** | common | new | Shrines give +1 faith and +1 science. | The deck's small early faith source (the Commerce-pass ruling), from the Babylonian priest-astronomers. Divination opens the Shrine and leads to Writing, so the card sits on the deck's own road to the Library. Fits existing effects (building yields). |
+| **The Tablet House** | common | new | Commission. Have a Library in two cities while this is seated. Reward: 40 culture and 40 production in your capital. Then it leaves its chair. | From history: the Sumerian *edubba*, the "tablet house", the first schools. The deck's first commission: a target for the first hand, paid in tempo, which is the deck's gap. Pairs with The Palace Archive. Needs: commissions. |
 
 ## Tier I
 
@@ -129,6 +141,22 @@ None of these technologies exist in `data/techs.json` yet. A technology can alre
 |---|---|---|---|---|
 | **The Great Instrument** | rare | new | Commission. Complete Alchemy while this is seated. Reward: production toward the Magnum Opus equal to a tenth of its cost, or a quarter if no other empire knew Alchemy. Then it leaves its chair. Not dealt to a seat that knows Alchemy. | Being first, at the end of the game. Needs: commissions, a production windfall aimed at one queue row, and a draft gate that refuses a seat knowing Alchemy. Was: "Be the first empire to complete Alchemy while this is seated. Reward: production in your capital toward the Magnum Opus equal to a quarter of its cost." Balance pass: the card was dead if a rival won the race or the seat already knew Alchemy; being first now pays more instead of being required. |
 | **The Great Catalogue** | rare | new | +10% production toward the Magnum Opus for each charter technology you know, at most +40%. | The deck's Opus card, paid by its charters. Needs: a count of charter technologies known. |
+| **The Hermetic Charter *(charter)*** | rare | new | Charter. Drafting this opens Hermeticism for research. Hermeticism belongs to the last age and costs more than an ordinary technology there. Knowing it lets you begin researching Alchemy while missing one of its five parent technologies. It opens The Foundation Stone and The Closed Book. | From history: the Hermetic writings the alchemists worked from. The deck's late charter for reaching Alchemy first: a research path no other empire can take, which skips one of the five lines Alchemy waits on. Needs: the technology Hermeticism, and a waiver of one Alchemy parent for a seat that knows it. Late version of the deck's signature. |
+| **The Experimenters' Charter *(charter)*** | uncommon | new | Charter. Drafting this opens Experimental Philosophy for research. Knowing it lets you build the Laboratory, a building only empires knowing Experimental Philosophy can build: +3 science and +3 production in a city with a University. It opens The Great Experiment and The Prototype Works. | From history: the experimental philosophy of Boyle and the early Royal Society. Needs: the technology Experimental Philosophy, and a Laboratory building row. Late version of the deck's signature. |
+| **The Gunfounders' Charter *(charter)*** | uncommon | new | Charter. Drafting this opens Gunfounding for research. Knowing it lets you train the Great Gun, a siege unit that needs niter, that only empires knowing Gunfounding can train, and that is the strongest siege unit in the game. It opens The Breaching Batteries. | From history: Orban, who cast the guns that broke the walls of Constantinople. The deck's late war tool, for the Dominion pair. Needs: the technology Gunfounding, and a Great Gun unit row (charters may open units, ruled in the Commerce pass). Pressure and interaction. |
+| **The Foundation Stone** | rare | new | **Needs Hermeticism.** You may begin the Magnum Opus before any empire knows Alchemy, once you have put half of Alchemy's cost into researching it. It cannot be finished until you know Alchemy, and your rod of beads must still be full to begin it. | The deck's early access at its largest: its own Opus rises while every other empire waits for Alchemy to open the door. It does not open the Opus for anyone else, and it adds no production. Needs: an Opus door that opens for one seat on a research test, and a completion that waits on a technology. Finisher. |
+| **The Great Experiment** | rare | new | **Needs Experimental Philosophy.** You may pour science into the Magnum Opus as gold and faith can be poured, at 2 science for each point of production. | Once Alchemy is known there is nothing left to research, and this card turns the deck's engine into the win. It is a conversion, not another percentage, so it does not stack with the cards the pending +60% cap would limit. It is one of the three Tier IV cards that touch the Opus's production, with The Great Instrument and The Great Catalogue. Needs: science as a contribution currency on rows that accept contributions. Finisher. |
+| **The Sum of Knowledge** | rare | new | Your capital gains +1 production and +1 culture for each technology you know. | Where the deck's gap closes: by the last age a capital knows forty or more technologies, so the seat furthest ahead in the tree gets the most. It helps the capital that usually builds the Opus without naming the Opus. Needs: a count of technologies known. Late engine. |
+| **The Invisible College** | rare | new | Each city with a University at least thirty turns old gains +1 production and +1 culture for each other such city you hold, at most +8. | From history: the circle of correspondents that became the Royal Society. The end of the institutions arc: universities that have stood a long time, paying each other. Needs: a count of your cities passing a building-age test (the age test itself is live). Late engine. |
+| **The Proving Ground** | uncommon | new | Your land units gain +1 strength for each charter technology you know, at most +6. | The military edge, scaling with the charters the deck has paid for. For the Dominion pair. Needs: a count of charter technologies known (the count The Great Catalogue reads). Late engine. |
+| **The Register of Priority** | uncommon | new | Every city gains +1 culture for each technology you completed before any other empire, at most +8. Charter technologies do not count. | From history: the Royal Society's register book, kept to settle who discovered a thing first. The end of the being-first arc, and the spec's route to culture ("from being first to discoveries"). Charter technologies are excluded for the reason given on The Prize Essay. Needs: a count of technologies the seat completed first. Late engine. |
+| **The Closed Book** | rare | new | **Needs Hermeticism.** If you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns. | Today the first empire to reach Alchemy opens the Opus for everybody; this card keeps the head start for the empire that earned it. Kept as an absolute turn, never a countdown. Needs: a per-seat delay on the Opus door. Pressure and interaction. |
+| **The Breaching Batteries** | uncommon | new | **Needs Gunfounding.** Your siege units gain +5 strength against cities. Each hit they land on a city building the Magnum Opus removes 5% of the production banked toward it. | The late war against a rival's Opus, with the Great Gun as its tool. Needs: a test for "a city building the Magnum Opus" (The Walls of Learning reads the same test), and a hit that removes banked production. Pressure and interaction. |
+| **The Walls of Learning** | uncommon | new | Cities with a University gain +6 strength, and the city building your Magnum Opus gains +12 more. | Defends the deck's own Opus against the late wars it draws. City strength is flat lines on one ledger, so this fits the combat plan. Needs: the test for "a city building the Magnum Opus" (shared with The Breaching Batteries); the University half fits existing effects if a card can add a city strength line. Pressure and interaction. |
+| **The Longitude Prize** | rare | new | Commission. Complete three technologies of the last age while this is seated. Reward: a free technology of your choice from those you can research, other than Alchemy. Then it leaves its chair. | From history: the British prize for finding longitude at sea. A late turn that skips a step on the road to Alchemy. Charter technologies count, so a seat paying for the late charters completes it sooner. Needs: commissions, and a grant of a chosen technology. Big moment. |
+| **The Lynx-Eyed Academy** | rare | new | Commission. Hold four Academies while this is seated. Reward: a great scholar, and 300 production in each city with an Academy toward what it is building. Then it leaves its chair. | From history: Galileo's Accademia dei Lincei. The scholars-and-academies arc at Tier IV. Needs: commissions, a grant of a great person from a named family, and a production windfall into each such city's queue. Big moment. |
+| **The Patent Office** | rare | new | Charter technologies cost you no more research than ordinary technologies at the same point in the tree. | The charter arc at its most powerful: the taper is lifted once the deck has paid it all game. Strongest with the three late charters, the most expensive technologies in the tree. Needs: the charter premium (pending ruling 10) read through a card, as The Commonplace Book reads it. Late version of the deck's signature. |
+| **The Prototype Works** | rare | new | **Needs Experimental Philosophy.** You may build the buildings and train the units of the technology you are researching, at double their production cost. Wonders are excepted. | Early access to anything in the tree, paid for in production, which is the deck's gap. Needs: early access to whatever the current research opens, and a cost line that doubles it. Late version of the deck's signature. |
 
 ## Cards Scientific shares with another deck
 
@@ -154,11 +182,11 @@ A Scientific seat may draw every one of these, and so may a seat holding the dec
 ## Synergies with other decks
 
 ### Dominion — the military edge
-- **Scientific gives Dominion** units early, or units nobody else has: the Crucible Guard (Alloys), the Trebuchet and Crossbowman a full age early (Mechanics), and the Fire Lance before Alchemy (Chemistry).
+- **Scientific gives Dominion** units early, or units nobody else has: the Crucible Guard (Alloys), the Trebuchet and Crossbowman a full age early (Mechanics), the Fire Lance before Alchemy (Chemistry), and the Great Gun (Gunfounding) for the late wars over the Opus.
 - **Dominion gives Scientific** science from fighting and captured cities with their libraries and universities. Dominion takes ground while the expensive charter technologies come in, which covers Scientific's slow tempo. Science from captured cities is the shared Carried-Off Scholars.
 - **Hooks this sheet creates:** units ahead of their age; extra strategic copies (The Ordnance Rolls). **Hooks this sheet reads:** kills (Field Academies, Copying the Enemy) and captured cities (Carried-Off Scholars).
 - **Shared improvements:** strategic resources on mines, pastures and camps. Scientific pays science and extra copies on them; Dominion builds its army on them.
-- **Cards that serve the pair:** The Metallurgists' Charter, Crucible Steel, The Mechanists' Charter, The Siege College, The Alchemists' Charter, The Saltpetre Works, The Ordnance Rolls, The Assay, Copying the Enemy, Carried-Off Scholars, Field Academies, The Engineer Corps.
+- **Cards that serve the pair:** The Metallurgists' Charter, Crucible Steel, The Mechanists' Charter, The Siege College, The Alchemists' Charter, The Saltpetre Works, The Gunfounders' Charter, The Breaching Batteries, The Proving Ground, The Ordnance Rolls, The Assay, Copying the Enemy, Carried-Off Scholars, Field Academies, The Engineer Corps.
 
 ### Expansionist — the engineers
 - **Scientific gives Expansionist** improvements and public works ahead of their age: the Aqueduct and the Qanat (Surveying), and more food on plantations and pastures (Taxonomy).
@@ -180,14 +208,14 @@ A Scientific seat may draw every one of these, and so may a seat holding the dec
 - **Devotion gives Scientific** faith that buys science buildings and keeps research moving (Devotion's The Copying Houses), and temples that teach.
 - **Hooks this sheet creates:** early religious buildings and units. **Hooks this sheet reads:** faith (The Cloister), Temples (The Temple Observatory, The Monastery Libraries), Holy Sites (The Religious University).
 - **Shared improvements:** holy sites beside academies. The Religious University makes one Holy Site in each University city count as an Academy, so Scientific's academy cards pay on Devotion's work. Plantations (New Crops) are now shared only behind the Naturalists' Charter.
-- **Cards that serve the pair:** The Schoolmen's Charter, The Religious University, The Glassmakers' Charter, The Temple Observatory, Cloister Schools, The Cloister, The Monastery Libraries.
+- **Cards that serve the pair:** The Schoolmen's Charter, The Religious University, The Glassmakers' Charter, The Temple Observatory, The Sky Watchers, Cloister Schools, The Cloister, The Monastery Libraries.
 
 ### Magisterial — the academy
 - **Scientific gives Magisterial** charters, which are drafted and never take a chair, so they count as draft actions; and scholars and academies for Magisterial's any-family cards.
 - **Magisterial gives Scientific** more drafts and rerolls, which means more charters seen and a better chance of finding the charter it needs.
-- **Hooks this sheet creates:** charters drafted (counted by The Charter Rolls) and charter technologies known (The Great Catalogue); scholars (The Royal Charter Commission, The Collegium). **Hooks this sheet reads:** none of Magisterial's directly; more drafts simply show more charters. Larger hands live on Magisterial's sheet (Officials by Merit).
+- **Hooks this sheet creates:** charters drafted (counted by The Charter Rolls) and charter technologies known (The Great Catalogue, The Proving Ground); scholars (The Royal Charter Commission, The Collegium, The Lynx-Eyed Academy). **Hooks this sheet reads:** none of Magisterial's directly; more drafts simply show more charters. Larger hands live on Magisterial's sheet (Officials by Merit).
 - **Shared improvements:** academies and landmarks (the shared The House of Wisdom).
-- **Cards that serve the pair:** The Charter Rolls, The Great Catalogue, The Royal Charter Commission, Discoveries through Scholars, The House of Wisdom, Illuminated Treatises, and every charter.
+- **Cards that serve the pair:** The Charter Rolls, The Great Catalogue, The Commonplace Book, The Patent Office, The Royal Charter Commission, The Lynx-Eyed Academy, Discoveries through Scholars, The House of Wisdom, Illuminated Treatises, and every charter.
 
 ## Proposed cuts
 
