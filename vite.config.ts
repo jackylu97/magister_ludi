@@ -39,6 +39,15 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  // Every `data/*.json` import is a default import, so nothing needs the named
+  // exports this turns off. Emitting each table as `JSON.parse("...")` rather
+  // than as a JavaScript object literal lets the engine use its fast JSON
+  // parser for the 650 KB of balance data that the game page, the game worker
+  // and the board worker each evaluate at load. The values and key order are
+  // the same either way.
+  json: {
+    stringify: true,
+  },
   build: {
     rollupOptions: {
       // Dev serves any root HTML file, but the build only walks the entry

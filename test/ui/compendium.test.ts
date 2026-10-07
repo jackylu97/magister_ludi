@@ -1212,6 +1212,35 @@ describe('a building carries its own later gifts', () => {
     expect(said).toContain('water hex');
   });
 
+  // The later-gift clauses come from an index built once per page rather than
+  // from a walk of the whole tree per building (browser audit 2026-10-06,
+  // finding 5). The index must keep the walk's answer: one clause per gift,
+  // named by its technology, in the tree's own order.
+  it('lists the technologies that later improve a building in tree order, once each', () => {
+    for (const id of BUILDING_IDS) {
+      if (buildingDef(id).retired === true) continue;
+      const expected: string[] = [];
+      for (const tech of TECH_IDS) {
+        for (const gift of techGifts(tech)) {
+          if (gift.kind === 'buildingTileYield' && gift.id === id) {
+            expected.push(`${techDef(tech).name}: `);
+          }
+        }
+      }
+      const entry = everyEntry().find(
+        (row) => row.id === compendiumId(isWonder(id) ? 'wonder' : 'building', id),
+      );
+      const listed = entry!.clauses
+        .map((clause) => expected.find((prefix) => clause.text.startsWith(prefix)))
+        .filter((prefix) => prefix !== undefined);
+      expect(listed, id).toEqual(expected);
+    }
+  });
+
+  it('gives the same book on a second generation', () => {
+    expect(compendiumSections()).toEqual(BOOK);
+  });
+
   /**
    * **The shelf and the card face read one describer** (the playthrough note of
    * 2026-09-05). A charter's own face now prints the description of the building

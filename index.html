@@ -7,13 +7,31 @@
     <!-- The interface's three voices (see docs/design-specimen.html): Instrument
          Serif announces, Fraunces names, Instrument Sans works, IBM Plex Mono
          counts. Every stack in style.css has a real local fallback, so a blocked
-         font request costs polish and nothing else. -->
+         font request costs polish and nothing else.
+
+         The font stylesheet is preloaded and switched to a stylesheet when it
+         arrives, rather than linked as a plain stylesheet, so it does not hold
+         up the first paint. A plain cross-origin stylesheet blocks rendering
+         until Google answers: about 100-135 ms on a good connection, and the
+         whole page stays blank for as long as a slow or blocked request hangs.
+         The page now paints in the fallback faces and swaps to these when the
+         stylesheet lands (`display=swap` already did the same for the font
+         files themselves). The noscript copy keeps the faces for a reader with
+         scripts off. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      rel="stylesheet"
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      onload="this.onload = null; this.rel = 'stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      />
+    </noscript>
   </head>
   <body>
     <div id="viewport">

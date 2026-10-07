@@ -65,9 +65,6 @@ import { techDef } from './sim/techData';
 import { unitDef, unitHp, unitMaxHp } from './sim/unitData';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from './sim/resourceEffects';
-import { Renderer } from './render/renderer';
-import { loadSprites } from './render/sprites';
-import { createFlatTileArtist, createTileArtist } from './render/tileVisuals';
 import { heraldryFor, heraldryMarkDataUri } from './art/heraldryMarks';
 import { playerPieceColor } from './render3d/lookData';
 import { Renderer3D } from './render3d/renderer3d';
@@ -217,7 +214,9 @@ import {
 import { orderBadges, orderFace, orderPayoff } from './ui/deckBadges';
 import { type RewardSheet, createRewardSheet } from './ui/rewardSheet';
 import { createTurnSplash } from './ui/turnSplash';
-import { type Compendium, createCompendium } from './ui/compendium';
+// A type only: the Compendium's code is imported on first open (see below).
+import type { Compendium } from './ui/compendium';
+import { type LazyOverlay, lazyOverlay, whenIdle } from './ui/lazyScreen';
 import { setKeywordOpener } from './ui/keywords';
 import { createStaleDeployNotice } from './ui/staleDeploy';
 import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
@@ -453,8 +452,8 @@ const diplomacyOverlayEl = requireElement<HTMLElement>('diplomacy-overlay');
 const diplomacyBodyEl = requireElement<HTMLElement>('diplomacy-body');
 /* The Compendium: the bar's book button, the overlay, and the body the same
    module the standalone `compendium.html` page mounts is rendered into. It is
-   the one screen with no game behind it — see `src/ui/compendium.ts` — so it is
-   built at boot beside the rest and reads nothing about a seat. */
+   the one screen with no game behind it — see `src/ui/compendium.ts` — so it
+   belongs to the page rather than to a game and reads nothing about a seat. */
 const compendiumButton = requireElement<HTMLButtonElement>('compendium-button');
 const compendiumOverlayEl = requireElement<HTMLElement>('compendium-overlay');
 const compendiumBodyEl = requireElement<HTMLElement>('compendium-body');
@@ -1053,27 +1052,40 @@ const confirmCard: ConfirmCard = createConfirmCard(confirmOverlayEl);
  * same with no game behind it — which is the whole claim `compendium.html`
  * rests on — and it must be reachable from the controls card, which is up before
  * anything has been started.
+ *
+ * Its code (about 95 KB) and its generation are not part of the page's load:
+ * the module is fetched when the browser is idle after the landing is up, and
+ * the book is built on the first open (`lazyScreen.ts`; browser audit
+ * 2026-10-06, findings 5 and 9). The first open waits for that build, about
+ * 50 ms in a browser on top of whatever of the download is still left.
  */
-const compendium: Compendium = createCompendium({
-  overlay: compendiumOverlayEl,
-  body: compendiumBodyEl,
-  closeButton: requireElement('compendium-close'),
-  trigger: compendiumButton,
-  onOpen: () => {
-    menu.close();
-    help.close();
-    lens.close();
-    notifications?.close();
-    meterCards?.close();
-    techTree?.close();
-    abacus?.close();
-    beads?.close();
-    statecraft?.close();
-    religion?.close();
-    trade?.close();
-    diplomacy?.close();
-  },
+const compendium: LazyOverlay<Compendium> = lazyOverlay({
+  prefetch: () => import('./ui/compendium'),
+  load: () =>
+    import('./ui/compendium').then(({ createCompendium }) =>
+      createCompendium({
+        overlay: compendiumOverlayEl,
+        body: compendiumBodyEl,
+        closeButton: requireElement('compendium-close'),
+        trigger: compendiumButton,
+        onOpen: () => {
+          menu.close();
+          help.close();
+          lens.close();
+          notifications?.close();
+          meterCards?.close();
+          techTree?.close();
+          abacus?.close();
+          beads?.close();
+          statecraft?.close();
+          religion?.close();
+          trade?.close();
+          diplomacy?.close();
+        },
+      }),
+    ),
 });
+whenIdle(() => compendium.prefetch());
 /* **Where every keyword in the interface goes** (`src/ui/keywords.ts`). Handed
    over once rather than threaded through the dozen builders that draw a
    descriptor: a bold name in a clause is not a screen's business, and the
@@ -2293,6 +2305,14 @@ async function createRenderer(
   }
 
   keepCanvases('canvas2d');
+  // The frozen 2D pipelines are imported only when `?art=` asks for one, so the
+  // 3D game page does not load them (browser audit 2026-10-06, finding 9).
+  const [{ Renderer }, { loadSprites }, { createFlatTileArtist, createTileArtist }] =
+    await Promise.all([
+      import('./render/renderer'),
+      import('./render/sprites'),
+      import('./render/tileVisuals'),
+    ]);
   const artist =
     mode === 'flat' ? createFlatTileArtist() : createTileArtist(await loadSprites());
   bootEl.remove();
