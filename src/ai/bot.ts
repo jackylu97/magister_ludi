@@ -648,6 +648,14 @@ export interface BotSitting {
    * settings pretending to be a number.
    */
   reasked: Map<number, number>;
+  /**
+   * The dug-in pieces `wakeTheCampaign` has already called back this turn.
+   *
+   * A march that cannot take its first step leaves the trench standing, so
+   * without this the arm would give the same piece the same order again on
+   * the next ask, for ever. Membership only; nothing iterates it.
+   */
+  called: Set<number>;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
@@ -658,6 +666,7 @@ export function botSitting(playerId: number): BotSitting {
     reaims: 0,
     focused: new Set<number>(),
     reasked: new Map<number, number>(),
+    called: new Set<number>(),
   };
 }
 
@@ -1437,7 +1446,7 @@ function housekeeping(
 
   // **The campaign wakes its own army** — the trench's sibling of the arm above,
   // and the finding W1 could not have been built without. See `wakeTheCampaign`.
-  const called = wakeTheCampaign(state, player);
+  const called = wakeTheCampaign(state, player, sitting);
   if (called !== null) return called;
 
   // **The march, re-asked** — the third arm of the same family (X7), and the
@@ -2035,13 +2044,20 @@ function wakeIdleSettler(
  * (the two callers above), so this function cannot answer twice about the same
  * piece. A dug-in piece the soldier arm would only stand down again — the hurt
  * one mending, the one already at its muster — is left exactly where it is.
+ * The argument holds only for a march that takes a step, so each piece is
+ * called at most once a turn (`BotSitting.called`; see the clause in the body).
  *
  * Gated on a war because it is the campaign's arm and nothing else's: a seat at
  * peace with a fortified line has no business shuffling it, and the cost of the
  * sweep is paid only by seats that are fighting.
  */
-function wakeTheCampaign(state: GameState, player: Player): BotDecision | null {
+function wakeTheCampaign(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision | null {
   if (!atWarWithAnybody(state, player.id)) return null;
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
   for (const unit of state.units) {
     if (unit.ownerId !== player.id) continue;
     // **The two ways a soldier stops asking**, and neither of them is a decision
@@ -2051,9 +2067,27 @@ function wakeTheCampaign(state: GameState, player: Player): BotDecision | null {
     if (unit.fortifiedTurns === undefined && !marchIsStalled(state, unit)) continue;
     if (unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
     if (!isFieldSoldier(unitDef(unit.type))) continue;
+    // **One call a piece a turn.** A march that takes no step does not break the
+    // trench (`breakFortify` runs only when a piece changes hex), so a dug-in
+    // piece that cannot take its first step (the hex it would have to stop on
+    // is full of its own side's pieces) stays dug in after the order is
+    // accepted, and this arm asked again gives the same order. Before this bound the driver sent that one `moveUnit` until its
+    // command budget ran out: about 390 copies a turn (the browser performance
+    // audit of 2026-10-06, finding 1). The first call is kept because a piece
+    // that *can* step should walk now, not at the end of the turn.
+    if (own !== null && own.called.has(unit.id)) continue;
     const choice = soldierCommand(state, player, unit);
     if (choice === null) continue;
     if (choice.command.type !== 'moveUnit' && choice.command.type !== 'attack') continue;
+    // A caller with no sitting cannot remember the call, so it gets the
+    // narrower rule `reaskTheMarch` uses: an order to the hex the stored route
+    // already ends on is the same march, and is not sent.
+    if (own === null && choice.command.type === 'moveUnit') {
+      const was = marchEnd(unit);
+      const to = choice.command.target;
+      if (was !== null && was.col === to.col && was.row === to.row) continue;
+    }
+    own?.called.add(unit.id);
     return {
       kind: 'unitOrder',
       command: choice.command,

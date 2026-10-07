@@ -347,10 +347,30 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * from a different shelf, so the two runs are not the same experiment. Nothing
  * stalled and no command was refused, which the assertion above this one checks
  * before the hash does. Measured twice, same bytes both runs.
+ *
+ * ---
+ *
+ * **The repeated unit order (browser performance audit, 2026-10-06, finding
+ * 1).** Duel `71abc180:274152` → `af2c51e6:276083`, standard
+ * `7a2d0e11:937239` → `bc49a8a5:962094`.
+ *
+ * Two causes, measured separately. First, both literals were already stale on
+ * the unmodified `decks` head (05b177a): that tree prints duel
+ * `af2c51e6:276083` and standard `fc238dc8:951127`, so some commit after C2
+ * moved both without a re-cut. Second, this fix: `wakeTheCampaign` now calls a
+ * dug-in piece back at most once a turn, and the driver and the stepper no
+ * longer send an accepted unit order again to a piece the previous copy left
+ * unchanged. Before it, a seat at war could send one `moveUnit` to a jammed,
+ * dug-in soldier about 390 times in a turn and lose the rest of its turn to
+ * the command budget. The duel game never hit that loop, so its print is the
+ * same with and without the fix. The standard game did, so from the first
+ * loop turn its seats spend those turns on other orders instead, and the print
+ * moves from `fc238dc8:951127` to `bc49a8a5:962094`. Nothing stalled and no
+ * command was refused or repeated.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '71abc180:274152',
-  standard: '7a2d0e11:937239',
+  duel: 'af2c51e6:276083',
+  standard: 'bc49a8a5:962094',
 };
 
 /**

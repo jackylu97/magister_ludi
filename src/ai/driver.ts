@@ -57,7 +57,7 @@ import { answerPeaceOffer, answerProposal } from './diplomacy';
 import type { Command, CommandResult } from '../sim/commands';
 import { proposalById } from '../sim/deals';
 import { type Game, dispatch } from '../sim/game';
-import { hasEndedTurn, playerById, realPlayers } from '../sim/state';
+import { type GameState, hasEndedTurn, playerById, realPlayers, unitById } from '../sim/state';
 import { hasPeaceOffer } from '../sim/wars';
 
 /**
@@ -105,6 +105,12 @@ export interface SeatDriveReport {
   accepted: number;
   /** Commands the reducer refused. Any number above zero is a bug. */
   refused: number;
+  /**
+   * Unit orders the bot asked for again, identical, while the piece was still
+   * exactly as the accepted copy left it (`repeatsAnOrder`). The driver does not
+   * send them. Any number above zero is a bug in an arm of the policy.
+   */
+  repeated: number;
   /** True when the seat ended its turn. False is a stall the caller must see. */
   ended: boolean;
 }
@@ -219,10 +225,15 @@ export function answerAudience(game: Game, options: AudienceOptions): BotDecisio
  *     owes the turn something, so a refusal is answered by running the bot again
  *     to clear whatever it names — a few times, and then the seat is left open
  *     with a warning rather than spun on.
+ *   · **An accepted unit order is not sent again to an unchanged piece.** The
+ *     reducer accepts a march that cannot take its first step and changes
+ *     nothing, so an arm that keeps naming it is a loop the refused-command memo
+ *     cannot see. The repeat is treated like a refusal: not sent, warned about,
+ *     and the asking stops (`repeatsAnOrder`).
  */
 export function driveSeat(game: Game, playerId: number, options: DriveOptions = {}): SeatDriveReport {
   const warn = options.warn ?? ((message: string, detail?: unknown) => console.warn(message, detail));
-  const report: SeatDriveReport = { playerId, accepted: 0, refused: 0, ended: false };
+  const report: SeatDriveReport = { playerId, accepted: 0, refused: 0, repeated: 0, ended: false };
   // **The seat's own sheet**, not a module global: a persona is a sparse
   // override of the whole configuration, the `driver` block included, so two
   // seats may be allowed different budgets in the same pass.
@@ -232,6 +243,9 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
   // two `moveUnit`s to different hexes are two commands, and the same one twice
   // is the loop this closes. Membership only — nothing iterates it.
   const refusedCommands = new Set<string>();
+  // The unit orders accepted this turn, by the same key, each with its piece as
+  // the order left it. See `repeatsAnOrder`.
+  const sentOrders: SentOrders = new Map();
   let redraws = 0;
   // **One sitting for the seat's whole turn** (batch 6 of
   // `docs/bot-priorities.md`). The appraisal context — the empire's books, the
@@ -254,6 +268,16 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
         // seat is stuck.
         break;
       }
+      if (repeatsAnOrder(sentOrders, game.state, command, key)) {
+        // The same order to the same piece, already accepted this turn, and the
+        // piece has not changed since. The policy is a pure function of the
+        // state, so it would keep asking; sending it again changes nothing and
+        // used to run the seat to its command budget. Stop asking, exactly as
+        // for a refusal, and say so.
+        report.repeated += 1;
+        warn(`[ai] seat ${playerId}: asked again for the same ${command.type} — ${key}`, command);
+        break;
+      }
       // **The paper remembers** (X4). Read while the paper is still on the
       // table — the decline takes the row off the register — and banked only if
       // the reducer took the answer. The stepper does exactly this at its own
@@ -262,6 +286,7 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
       const result = dispatch(game, command);
       if (result.ok) {
         if (refusal !== null) rememberDealRefusal(game.state, refusal);
+        noteSentOrder(sentOrders, game.state, command, key);
         report.accepted += 1;
         options.report?.(command, result);
         continue;
@@ -291,4 +316,52 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
     }
   }
   return report;
+}
+
+/**
+ * The unit orders a seat has had accepted this turn: the command's JSON, mapped
+ * to its piece's JSON as the order left it. One per seat per turn, held by
+ * `driveSeat` on its stack and by the stepper on its `SeatRun`.
+ */
+export type SentOrders = Map<string, string>;
+
+/**
+ * Whether a command is an order to one piece. Only those are held to
+ * `repeatsAnOrder`, because other commands repeat legitimately: two belief
+ * drafts in one turn are both answered with option nought, and a town can be
+ * handed the same queue again after its last item finished.
+ */
+export function sentToAPiece(command: Command): boolean {
+  return 'unitId' in command || 'settlerUnitId' in command;
+}
+
+/**
+ * Whether sending this order now would repeat one already accepted this turn:
+ * the identical command, to a piece that is still exactly as that copy left it.
+ *
+ * The piece is part of the test because the same order can be a new decision
+ * once the piece has changed: a worker pushed off its route by a swap and
+ * re-sent to the same hex, or a soldier whose march was cut short. What cannot
+ * be a new decision is the same order to the same piece in the same state.
+ * That is the loop the browser performance audit of 2026-10-06 found (finding
+ * 1): a dug-in warrior, jammed behind a friend, was sent the march it already
+ * held about 390 times in one turn, and every copy was accepted and changed
+ * nothing.
+ */
+export function repeatsAnOrder(sent: SentOrders, state: GameState, command: Command, key: string): boolean {
+  const stamp = sent.get(key);
+  return stamp !== undefined && stamp === pieceStamp(state, command);
+}
+
+/** Remembers an accepted order to a piece, with the piece as it now stands. */
+export function noteSentOrder(sent: SentOrders, state: GameState, command: Command, key: string): void {
+  if (sentToAPiece(command)) sent.set(key, pieceStamp(state, command));
+}
+
+/** The named piece, printed; `null` once it is gone (founded, spent, killed). */
+function pieceStamp(state: GameState, command: Command): string {
+  let id: number | undefined;
+  if ('unitId' in command) id = command.unitId;
+  else if ('settlerUnitId' in command) id = command.settlerUnitId;
+  return JSON.stringify(id === undefined ? null : (unitById(state, id) ?? null));
 }

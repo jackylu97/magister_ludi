@@ -13,13 +13,21 @@
  * say is here, and both are **bot-regression** claims rather than measurements:
  * the re-ask arm fires on boards nobody arranged and never doubles up, and the
  * policy is still a pure function of the state at sixty turns.
+ *
+ * A third claim was added on 2026-10-06: no seat sends the same unit order
+ * again to a piece the previous copy left unchanged. Its core coverage, with a
+ * stubbed policy, is `aiDriverRepeat.test.ts`; the game here is one that
+ * looped before the fix.
  */
 
 import { describe, expect, it } from 'vitest';
 
+import { driveBots, sentToAPiece } from '../../src/ai/driver';
 import { createBotStepper } from '../../src/ai/stepper';
 import { createGame, snapshotState } from '../../src/sim/game';
+import { rosterFor } from '../../src/ui/gameSetup';
 import { aiConfigFor } from '../../src/ai/aiConfig';
+import type { Command } from '../../src/sim/commands';
 import { CONFIG, PATIENCE, playOut } from './aiBotHelpers';
 
 describe('the march is re-asked on a played board (X7)', () => {
@@ -89,6 +97,55 @@ describe('the driver is a pure function of the state', () => {
       const second = playOut(60);
       expect(JSON.stringify(second.game.log)).toBe(JSON.stringify(first.game.log));
       expect(snapshotState(second.game.state)).toBe(snapshotState(first.game.state));
+    },
+    PATIENCE,
+  );
+});
+
+/** Past the turn this game first looped on before the fix. */
+const TURNS_TO_LOOP = 60;
+
+describe('no seat sends the same unit order twice to an unchanged piece', () => {
+  it(
+    'plays the six-seat game that used to loop, with no repeated order and no guard firing',
+    () => {
+      // Seed 3, six bot seats on the standard board, the landing screen's own
+      // roster. Before the fix a seat in a game like this one sent one
+      // `moveUnit` hundreds of times in a turn: a dug-in warrior jammed behind a
+      // friend, called back by `wakeTheCampaign` with the march it already held
+      // (browser performance audit, 2026-10-06, finding 1). Two readings,
+      // because they fail for different reasons. The log is asked whether an
+      // identical order to a piece went out again in one seat's turn and left
+      // the piece exactly as the copy before it had (the driver's guard). The
+      // driver's report is asked whether the guard ever had to stop a seat (an
+      // arm of the policy asking again).
+      const players = rosterFor(6).map((spec) => ({ ...spec, isHuman: false }));
+      const game = createGame({ seed: 3, sizeName: 'standard', players, barbarians: true });
+      const pieceOf = (command: Command): string => {
+        const id = 'unitId' in command ? command.unitId : (command as { settlerUnitId: number }).settlerUnitId;
+        return JSON.stringify(game.state.units.find((unit) => unit.id === id) ?? null);
+      };
+      const idle: string[] = [];
+      let repeated = 0;
+      while (game.state.turn <= TURNS_TO_LOOP && game.state.winnerId === null) {
+        const turn = game.state.turn;
+        const after = new Map<string, string>();
+        const reports = driveBots(game, {
+          warn: () => undefined,
+          report: (command) => {
+            if (!sentToAPiece(command)) return;
+            const key = `${command.playerId}|${JSON.stringify(command)}`;
+            const piece = pieceOf(command);
+            if (after.get(key) === piece) idle.push(`turn ${turn}: ${key}`);
+            after.set(key, piece);
+          },
+        });
+        for (const report of reports) repeated += report.repeated;
+        if (game.state.turn === turn) break;
+      }
+      expect(game.state.turn).toBeGreaterThan(TURNS_TO_LOOP);
+      expect(idle.slice(0, 5)).toEqual([]);
+      expect(repeated).toBe(0);
     },
     PATIENCE,
   );
