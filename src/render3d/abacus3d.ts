@@ -68,7 +68,7 @@ import {
   HemisphereLight,
   Mesh,
   OrthographicCamera,
-  PCFSoftShadowMap,
+  PCFShadowMap,
   PlaneGeometry,
   Scene,
   Vector3,
@@ -329,7 +329,8 @@ export class AbacusStage {
     this.renderer = new WebGLRenderer({ canvas, antialias: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.shadowMap.enabled = LOOK.shadows;
-    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    // `PCFSoftShadowMap` is deprecated in three r185, which warns and uses this.
+    this.renderer.shadowMap.type = PCFShadowMap;
     this.scene.background = new Color(VIEW3D.table.color);
 
     this.materials = new MaterialLibrary(LOOK.rampSteps, VIEW3D.palette.ink!);

@@ -1067,6 +1067,7 @@
     }
   },
   "painted": {
+    "canvas": { "maxPixelRatio": 1.5, "pixelBudget": 4500000 },
     "shadows": {
       "staticMapSize": 4096,
       "staticMapTiers": { "low": 2048, "high": 8192 },

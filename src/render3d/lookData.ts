@@ -1874,31 +1874,44 @@ export interface SiteLookSpec {
 /**
  * The painted look's two shadow maps.
  *
- * The world bakes once into `staticMapSize` and is re-baked only when the board
- * itself changes; the moving counters have their own small `counterMapSize` map
- * fitted around whatever the camera is looking at (see `separatePaintedShadows`
- * for why the two are submitted apart). `counterCoverage` is the **ceiling** on
- * the slack in that small map: the pan target may drift this fraction of the
- * map's half-extent before the counter camera is re-fitted and its depth
- * re-rendered. Nothing on layer 2 moved while the camera merely panned, so the
- * previous depth map is still true — until the view walks far enough that the
- * box no longer covers what is on screen.
+ * - **Static map.** The world bakes once into it and is re-baked only when the
+ *   board itself changes. Its size is a device tier (`staticShadowSize` in
+ *   `paintedShadows.js`): `staticMapSize` is the standard tier,
+ *   `staticMapTiers.low` goes to a coarse-pointer device or one reporting
+ *   `lowMemoryGiB` or less, and `staticMapTiers.high` only when the page asks
+ *   for it with `?shadows=high`. `periodFit` fits the bake to one map period
+ *   plus `periodMargin` world units each side.
+ * - **Counter map.** The moving counters have their own `counterMapSize` map,
+ *   fitted around whatever the camera is looking at (see
+ *   `separatePaintedShadows` for why the two are submitted apart).
  *
- * It is a ceiling and not the figure itself, because how much a box has spare
- * depends on the window. The box is cut at 1.8× the frustum's half-height,
- * while the ground the frustum covers reaches `DioramaCamera.groundReach` —
- * 1.6× on the reference 16:10 viewport, 1.78× at 16:9, more on anything wider.
- * The gate allows the *lesser* of this fraction and that real difference, so a
- * counter standing at the very edge of the screen is never outside a box fitted
- * a moment ago, at any aspect ratio. A tenth is therefore the whole of the
- * slack at 16:10 and almost none of it at 16:9, where the rig re-fits on nearly
- * every frame the view moves — as it did before the gate — and still leaves the
- * map alone on every frame it does not. **Zero** asks for that everywhere.
+ * `counterCoverage` is how far the pan target may drift, as a fraction of the
+ * counter box's half-extent, before the box is re-fitted and its depth
+ * re-rendered. A pan moves nothing on layer 2, so the old depth map stays
+ * true until the view walks off the box. The box's half-extent is the larger
+ * of 1.8 frustum half-heights and `viewReach / (1 − counterCoverage)`, where
+ * `viewReach` is `DioramaCamera.groundReach`, so the box always has the whole
+ * `counterCoverage` share to spare at any window shape (`createCounterShadows`).
+ * Zero re-fits on every frame the view moves.
  */
 export interface PaintedShadowSpec {
   staticMapSize: number;
   counterMapSize: number;
   counterCoverage: number;
+}
+
+/**
+ * The size of the painted game's drawing buffer.
+ *
+ * `maxPixelRatio` caps the device pixel ratio (a Retina laptop draws at 1.5,
+ * not 2). `pixelBudget` caps the buffer's total pixels, so a 4K monitor at
+ * 100% scaling, which has a ratio of 1, does not ask for 8.3 million pixels:
+ * the ratio is lowered until width × height × ratio² fits. See
+ * `drawingBufferRatio` in `canvasSetup.ts`.
+ */
+export interface PaintedCanvasSpec {
+  maxPixelRatio: number;
+  pixelBudget: number;
 }
 
 /**
@@ -1997,6 +2010,7 @@ export interface PaintedFogSpec {
 }
 
 export interface PaintedSpec {
+  canvas: PaintedCanvasSpec;
   shadows: PaintedShadowSpec;
   lod: PaintedLodSpec;
   contact: PaintedContactSpec;

@@ -92,7 +92,11 @@ describe('the painted performance knobs', () => {
     // became a device tier after the WebGL audit of 2026-10-06 (finding 1):
     // `staticMapSize` is now the standard tier at 4096, down from the single
     // 8192 figure, with `staticMapTiers` and `lowMemoryGiB` beside it.
+    // `canvas` arrived with the same audit (finding 8): `maxPixelRatio` is the
+    // 1.5 cap the renderer used to hold as a literal, and `pixelBudget` is new,
+    // the most drawing-buffer pixels the painted game asks for.
     expect(SHEET).toEqual({
+      canvas: { maxPixelRatio: 1.5, pixelBudget: 4500000 },
       shadows: {
         staticMapSize: 4096, staticMapTiers: { low: 2048, high: 8192 }, lowMemoryGiB: 4,
         counterMapSize: 2048, counterCoverage: 0.1, periodFit: true, periodMargin: 3,

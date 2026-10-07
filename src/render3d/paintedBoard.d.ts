@@ -72,3 +72,5 @@ export interface PaintedBoard extends BuiltBoard {
   unsuppressTile(cell: number): boolean;
 }
 export function buildPaintedBoard(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows?: boolean, prepared?: PaintedBoardBatch[] | null, progress?: (done: number, total: number) => void, preparedMap?: GameMap | null): PaintedBoard;
+/** The surface attributes whose arrays are dropped after their first upload. */
+export const RELEASED_AFTER_UPLOAD: readonly string[];

@@ -56,9 +56,11 @@ describe('the scene layers and their names', () => {
       /^this\.painted\w+\.group(, this\.painted\w+\.group)*$/.test(argument) ||
       argument === 'layer' || argument === 'group' || argument === 'this.fog.group';
     for (const argument of adds) expect(excused(argument), argument).toBe(true);
-    // The three transient groups the marches build are all named `group`, and
-    // each one has to have been named before it is added.
-    expect(adds.filter(argument => argument === 'group')).toHaveLength(3);
+    // The two transient groups, a walking piece and a falling one, are both
+    // named `group` and named ('walker', 'faller') before they are added. The
+    // walker's two branches (sprite and sculpt) now return from `buildWalker`
+    // and share one `scene.add` in `spawnWalker`.
+    expect(adds.filter(argument => argument === 'group')).toHaveLength(2);
   });
 
   it('lets the painted layers name their own groups', () => {

@@ -23,6 +23,28 @@ function hash(a, b, n = 0) {
   return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
 }
 
+/**
+ * The surface attributes nothing reads after the GPU has them.
+ *
+ * A merged surface batch keeps its vertex colours and its turf weights only for
+ * the shader. The ground pick and surface sampling read positions and the
+ * index, the hill relief reads `paintedRelief` and `paintedCell`, the fog and
+ * the clearing sweep write `paintedSuppress`; none of them touches these two.
+ * Keeping them after the upload held about 60 MiB of the heap twice over, once
+ * on the GPU and once in JavaScript (WebGL audit 2026-10-06, finding 12).
+ *
+ * Released only because a lost context no longer depends on them: three's own
+ * restore would re-upload from these arrays, but the renderer rebuilds the
+ * board from the game state instead (`Renderer3D.recoverContext`). Instanced
+ * prop batches are left alone, since their vertex attributes are the shared
+ * asset sculpt's. Exported so the register test can name the list.
+ */
+export const RELEASED_AFTER_UPLOAD = ['color', 'turfWeight'];
+function releaseArray() { this.array = null; }
+function releaseAfterUpload(geometry) {
+  for (const name of RELEASED_AFTER_UPLOAD) geometry.getAttribute(name)?.onUpload(releaseArray);
+}
+
 /** Build only from a real map and ready assets. No study plans, DOM or loaders. */
 export function buildPaintedBoard(map, assets, materials, shadows = true, prepared = null, progress = () => {}, preparedMap = null) {
   const renderMap = preparedMap || prepareTerrainMap(map, { wrap: true });
@@ -217,6 +239,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     if (source !== materials.mergedLand) { geometry.deleteAttribute('turfWeight'); geometry.deleteAttribute('paintedRelief'); }
     if (source !== materials.mergedWater) geometry.deleteAttribute('paintedOther');
     indexGeometry(geometry); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); ownedGeometry.add(geometry);
+    releaseAfterUpload(geometry);
     const mesh = new T.Mesh(geometry, materialFor(source));
     mesh.userData.paintedFamily = familyName(source, null);
     decorateMesh(mesh, source, source === materials.earth || source === materials.mergedLand || source === features.stone || source === features.shrub);
@@ -264,6 +287,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       const mesh = matrix ? new T.InstancedMesh(geometry, materialFor(source), count) : new T.Mesh(geometry, materialFor(source));
       mesh.userData.paintedFamily = familyName(source, base);
       if (matrix) { mesh.instanceMatrix = matrix; mesh.instanceColor = color; mesh.computeBoundingSphere(); }
+      else releaseAfterUpload(geometry);
       decorateMesh(mesh, source, castShadow);
       if (mountainPick) mesh.userData.paintedPickOnly = true;
       const placed = []; addCopies(mesh, placed, surface, detail, batch.cells);
