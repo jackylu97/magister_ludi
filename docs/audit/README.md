@@ -23,3 +23,4 @@ docs pass's fence. Read one only when a comment sends you to it.
 | `orchestrator.md` | the fix queue the audits fed |
 | `bot-pass-2.md` | the second bot pass |
 | `wager-worksheet.md` | the cut/keep list and bench behind `docs/wager.md`; a docblock citing "`docs/wager.md` §1–§11" means **this file's** numbered sections |
+| `webgl-audit-2026-10-06.md` | the 3D renderer's GPU memory, per-frame work, shadow rig and context-loss handling, after the September painted-performance passes |
