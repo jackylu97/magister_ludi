@@ -307,9 +307,12 @@ briefs, agent reports, test names, and any new player-facing prose.
 - **No levels**: an Order is what its row prints, held once (schema 63). A draft
   is take one or **pass** — `skipOrderOffer` spends the hand and raises
   `PlayerStatecraft.orderSkips`, an absolute count zeroed by a pick. The draw is
-  weighted by `OrderDef.rarity` (`rarityWeights` 4/2/1) **inside** each sub-bag
-  of the guaranteed M/E/W spread; each banked skip adds `skipPity` to the
-  uncommon and rare weights. The doc's ● ◆ ○ column IS the field (sync test).
+  rarity first: a rarity is rolled at `rarityOdds` (60 / 30 / 10 in
+  `data/statecraft.json`, renormalised over the rarities the bag holds), then a
+  card is picked evenly within it, so a lone card of one rarity gets that whole
+  share. Each banked skip moves `skipPity` points from common to uncommon and
+  rare (`rarityOdds()` in `statecraft/draft.ts`). The doc's ● ◆ ○ column IS the
+  field (sync test).
   `retired: true` rows leave every pool, keep the row for saves. Governments:
   tiers ride `tierLadder`; pools via `poolOfGovernment` (current + previous only).
 - **Religion**: `bankPressure` has exactly two callers — `spreadReligion` (the
@@ -453,9 +456,13 @@ briefs, agent reports, test names, and any new player-facing prose.
   re-derive via `tileIconRect`; never persist an index.
 - Marginalia: `marginaliaWater` (map fact, once) × `FogView.serpentFits` (fog
   fact, per repaint) — two rules, never merged; every instance carries `tile:`.
-- A unit piece is three `InstancedMesh`es over one buffer (sculpt, outline,
-  x-ray ghost); tests use `MESHES_PER_PIECE_BUCKET`; hide/restore moves all
-  three.
+- A unit piece is three passes (sculpt, outline, x-ray ghost). Each pass is
+  drawn as one `InstancedMesh` per wrap copy (x = −W, 0, +W) over one shared
+  instance buffer, with a bounding sphere and frustum culling on; the outline
+  borrows the sculpt's attributes by reference. Tests count passes with
+  `MESHES_PER_PIECE_BUCKET` and read the copies through
+  `test/render/unitLayerHelpers.ts`; hide/restore is one buffer write that
+  moves all three passes in every copy.
 - End Turn is three beats (marches → turn card → camera), timed by the
   renderer's `pendingAnimationMs()` (0 collapses to synchronous).
   `onTurnResolved` (autosave) and `onTurnHandedOver` (card) stay two moments.
