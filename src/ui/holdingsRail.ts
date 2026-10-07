@@ -80,6 +80,7 @@
  */
 
 import type { Game } from '../sim/game';
+import type { GameState } from '../sim/state';
 import { type CopyCount, copiesFigureNode, strategicHoldings } from './resourceCopies';
 import { resourceMarkNode } from './resourceMark';
 import { element } from './dom';
@@ -130,6 +131,7 @@ export function createHoldingsRail(options: HoldingsRailOptions): HoldingsRail {
   // What was last drawn, so a pointer move over the board costs two integer
   // comparisons rather than a walk of the army. `-1` is "nothing drawn yet",
   // which no real revision can be.
+  let drawnState: GameState | null = null;
   let drawnRevision = -1;
   let drawnSeat = -1;
   let drawnRows = '';
@@ -150,7 +152,10 @@ export function createHoldingsRail(options: HoldingsRailOptions): HoldingsRail {
   function render(): void {
     const { state } = getGame();
     const seat = localPlayerId();
-    if (state.revision === drawnRevision && seat === drawnSeat) return;
+    // The state object too: a loaded or restarted game is a new object whose
+    // revision can equal the old game's by chance.
+    if (state === drawnState && state.revision === drawnRevision && seat === drawnSeat) return;
+    drawnState = state;
     drawnRevision = state.revision;
     drawnSeat = seat;
 

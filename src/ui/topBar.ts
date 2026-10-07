@@ -1427,6 +1427,18 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   let fittedText = '';
 
   /**
+   * What the strip last printed for: the state object, its revision and the
+   * seat. Every figure below is a reading of the state for that seat, and
+   * `updatePanel` calls this after selections and other refreshes that move
+   * neither, so a repeat is skipped (about 2 ms a call on a turn-100 Standard
+   * game). The two meter cards fill themselves when opened (`onOpen`), so a
+   * skipped render never leaves one empty. `-1` is "nothing drawn yet".
+   */
+  let drawnState: GameState | null = null;
+  let drawnRevision = -1;
+  let drawnSeat = -1;
+
+  /**
    * The width half. A `ResizeObserver` on the strip itself rather than a window
    * `resize` listener, because the strip's width moves for reasons the window's
    * does not: a seat joining the bar's seat strip, the tools growing a button,
@@ -1447,6 +1459,10 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     render(): void {
       const { state } = getGame();
       const playerId = localPlayerId();
+      if (state === drawnState && state.revision === drawnRevision && playerId === drawnSeat) return;
+      drawnState = state;
+      drawnRevision = state.revision;
+      drawnSeat = playerId;
       const totals = readEmpire(state, playerId).totals;
       const player = playerById(state, playerId);
       for (const key of YIELDS) {

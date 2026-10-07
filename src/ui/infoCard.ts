@@ -342,13 +342,27 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
     hide();
   }
 
+  /** The card's content node and the size it measured at, from the last fill. */
+  let measured: { node: Node; width: number; height: number } | null = null;
+
   /**
    * Fill, measure, place. The one implementation both `show` and `showAt` use,
    * so a card raised by the board is measured exactly as a card raised by a
    * panel row — see the module docblock's "Measurement, then placement".
    */
   function showBox(anchor: AnchorBox, build: () => Node): void {
-    card.replaceChildren(build());
+    const content = build();
+    // The same node already on show: only the anchor moved. The faith lens's
+    // card is re-shown this way on every drawn frame of a pan, and refilling
+    // and measuring it each time forced a layout per frame. The content has not
+    // changed, so its size has not either; reuse the last measurement and move
+    // the card.
+    if (!card.hidden && measured !== null && measured.node === content &&
+        card.firstChild === content && card.childNodes.length === 1) {
+      placeAt(anchor, measured);
+      return;
+    }
+    card.replaceChildren(content);
     // Laid out but not yet seen: the card must be measurable before it can be
     // placed, and placing it after it is visible is what makes it jump.
     card.style.visibility = 'hidden';
@@ -356,16 +370,24 @@ export function createInfoCard(options: InfoCardOptions): InfoCard {
     card.style.top = '0px';
     card.hidden = false;
     const box = card.getBoundingClientRect();
+    measured = { node: content, width: box.width, height: box.height };
+    placeAt(anchor, measured);
+    card.style.visibility = '';
+  }
+
+  /** Writes the card's position, and only when it differs from what is there. */
+  function placeAt(anchor: AnchorBox, size: { width: number; height: number }): void {
     const place = placement === 'below' ? placeCardBelow : placeCard;
     const at = place(
       anchor,
-      { width: box.width, height: box.height },
+      size,
       { width: window.innerWidth, height: window.innerHeight },
       gap,
     );
-    card.style.left = `${Math.round(at.left)}px`;
-    card.style.top = `${Math.round(at.top)}px`;
-    card.style.visibility = '';
+    const left = `${Math.round(at.left)}px`;
+    const top = `${Math.round(at.top)}px`;
+    if (card.style.left !== left) card.style.left = left;
+    if (card.style.top !== top) card.style.top = top;
   }
 
   function show(anchor: HTMLElement, build: () => Node): void {
