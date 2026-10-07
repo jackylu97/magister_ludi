@@ -5,7 +5,7 @@ import {loadVegetation} from '../terrainStudy/vegetation.js';
 import {createLighting} from '../terrainStudy/lighting.js';
 import {createPainterlyStyle} from '../terrainStudy/painterly.js';
 import {daylightPresets} from '../terrainStudy/daylightPresets.js';
-import {separatePaintedShadows,createCounterShadows} from './paintedShadows.js';
+import {separatePaintedShadows,createCounterShadows,staticShadowSize,installShadowTarget} from './paintedShadows.js';
 import {createShadowWrap} from './paintedShadowWrap.js';
 import {PAINTED_WORK_ASSET_NAMES} from './paintedWorks';
 import {PAINTED_SITE_ASSET_NAMES} from './paintedSites';
@@ -106,11 +106,15 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
  // Terrain shadows bake only on world/visibility changes. Moving counters use
  // a separate small map, so panning or a walk never re-renders the whole world.
  dynamicSun=new T.DirectionalLight('#ffffff',.00001);
- dynamicSun.castShadow=true;dynamicSun.shadow.mapSize.set(shadowKnobs.counterMapSize,shadowKnobs.counterMapSize);
+ // Both maps get a depth target with a one-byte colour attachment instead of
+ // three's RGBA8 one, which nothing samples. See `installShadowTarget`.
+ dynamicSun.castShadow=true;installShadowTarget(renderer,dynamicSun,Math.min(shadowKnobs.counterMapSize,renderer.capabilities.maxTextureSize));
  dynamicSun.shadow.camera.layers.set(2);dynamicSun.shadow.bias=-.0001;dynamicSun.shadow.normalBias=.012;
  sun.shadow.autoUpdate=false;sun.shadow.needsUpdate=true;
- const staticMapSize=Math.min(shadowKnobs.staticMapSize,renderer.capabilities.maxTextureSize);
- sun.castShadow=true;sun.shadow.mapSize.set(staticMapSize,staticMapSize);
+ // The static map's size is a device tier, not one figure. See `staticShadowSize`.
+ const staticMap=staticShadowSize({low:shadowKnobs.staticMapTiers.low,standard:shadowKnobs.staticMapSize,high:shadowKnobs.staticMapTiers.high},
+  shadowKnobs.lowMemoryGiB,readShadowDevice(),renderer.capabilities.maxTextureSize);
+ sun.castShadow=true;installShadowTarget(renderer,sun,staticMap.size);
  sun.shadow.bias=-.000055;sun.shadow.normalBias=.012;
  scene.add(sun,sun.target,sky,dynamicSun,dynamicSun.target);camera.layers.enable(2);
  renderer.shadowMap.type=T.PCFShadowMap;
@@ -185,6 +189,8 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
   // the colour pass draws. Null while no board is up.
   setBakeDetail(fn){bakeDetail=fn},
   get shadowBakes(){return separatedShadows.bakes},
+  // Which static shadow tier this device got, and at what size.
+  shadowTier:staticMap,
   // Running totals, not per-frame figures: a probe differences them across the
   // frames it cares about. Kept apart from `shadowBakes` so the stats line, which
   // only ever wanted the count, reads the same as it always did.
@@ -196,4 +202,17 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
   dispose,
  };
  }catch(error){dispose();throw error}
+}
+
+/**
+ * The device facts `staticShadowSize` chooses a tier from. Each read is guarded:
+ * `navigator.deviceMemory` exists only in Chromium browsers, and a headless or
+ * test context may have no `location` or `matchMedia` at all.
+ */
+function readShadowDevice(){
+ const device={};
+ try{const value=new URLSearchParams(globalThis.location?.search??'').get('shadows');if(value)device.requested=value}catch{}
+ try{device.coarsePointer=globalThis.matchMedia?.('(pointer: coarse)').matches===true}catch{}
+ try{const memory=globalThis.navigator?.deviceMemory;if(typeof memory==='number')device.memoryGiB=memory}catch{}
+ return device;
 }

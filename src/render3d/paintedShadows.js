@@ -88,19 +88,25 @@ function now() {
  * case and is read off the offset handed in, so an hour change re-fits without
  * being told.
  *
- * "Walks off it" is measured against what the box actually has to give, not
- * against a fixed fraction, because how much is spare depends on the window.
- * The box is cut at 1.8 half-heights; the ground the frustum covers reaches
- * `viewReach` (the wider of its two axes — `DioramaCamera.groundReach`), and
- * the difference is the whole of the slack. The allowance is the lesser of that
- * slack and `coverage` of the box's half-extent, so a counter standing at the
- * very edge of the screen is **never** outside a box fitted a moment ago,
- * whatever the aspect ratio. A wide window simply has less to give and re-fits
- * more often — at 16:9 on nearly every frame the view moves, which is what it
- * did before this gate existed — and a window wider than the box's own cut has
- * nothing to give and re-fits on any movement at all. Widening the cut would
- * buy slack at the price of a coarser map, and the map's figures are not this
- * batch's to change.
+ * "Walks off it" is measured against what the box actually has to give. The
+ * ground the frustum covers reaches `viewReach` (the wider of its two axes —
+ * `DioramaCamera.groundReach`), and the box's half-extent minus that reach is
+ * the whole of the slack. The allowance is the lesser of that slack and
+ * `coverage` of the box's half-extent, so a counter standing at the very edge
+ * of the screen is **never** outside a box fitted a moment ago.
+ *
+ * The box is sized from the reach as well as from the frustum height, so the
+ * allowance is always the full `coverage` share. It used to be cut at a fixed
+ * 1.8 half-heights, which left 0.02 of a half-height spare at 16:9 and none at
+ * all on a window wider than 1.8:1 (most browser windows once the tab bar is
+ * subtracted): the map was re-fitted and re-rendered on nearly every pan frame,
+ * and on the wider windows the box did not even reach the screen's side edges.
+ * Now the half-extent is the larger of 1.8 half-heights and
+ * `viewReach / (1 − coverage)`, the smallest box that keeps the whole allowance.
+ * At 16:10 and narrower the first term still wins and nothing changes; wider
+ * windows get a box that grows with them, so the counters' shadow texels are
+ * somewhat larger there (about 9% at 16:9) in exchange for the map being left
+ * alone through ordinary pans.
  *
  * `coverage` is `painted.shadows.counterCoverage` in `data/view3d.json`. The
  * rest of the numbers here are the rig's geometry rather than tuning: how far
@@ -136,7 +142,9 @@ export function createCounterShadows(renderer, light, coverage) {
      * box to every frame the view moves.
      */
     update(target, radius, sunOffset, viewReach = Infinity) {
-      const wanted = Math.max(6, radius * 1.8);
+      // An unknown reach cannot size the box; it falls back to the frustum cut.
+      const reachCut = Number.isFinite(viewReach) && coverage < 1 ? viewReach / (1 - coverage) : 0;
+      const wanted = Math.max(6, radius * 1.8, reachCut);
       // The drift the box can absorb without uncovering the edge of the screen.
       const allowed = Math.min(wanted * coverage, Math.max(0, wanted - viewReach));
       const turned = !facing || facing.some((value, i) => value !== sunOffset[i]);
@@ -149,4 +157,86 @@ export function createCounterShadows(renderer, light, coverage) {
       return true;
     },
   };
+}
+
+/**
+ * The static sun's shadow resolution for this device.
+ *
+ * One fixed 8192² map cost every device 512 MiB of GPU memory, phones and 4 GB
+ * laptops included, and after the bake was fitted to one map period it bought
+ * about 95 shadow texels per hex width — nearly three times the density the game
+ * shipped with before. The sizes are rows of `painted.shadows` in
+ * `data/view3d.json`: `staticMapSize` is the standard tier, `staticMapTiers`
+ * holds the low and high ones; `paintedLook.js` reads the rows and hands them in.
+ *
+ * How the tier is chosen, in order:
+ *  - `requested` (the page's `?shadows=low|standard|high`) wins, so the high
+ *    tier is opt-in and any tier can be forced for a side-by-side check;
+ *  - otherwise a device whose primary pointer is coarse (a phone or a tablet),
+ *    or that reports `navigator.deviceMemory` at or below `lowMemoryGiB`, gets
+ *    the low tier;
+ *  - everything else gets the standard tier.
+ * The result is clamped to the GPU's largest texture.
+ *
+ * Pure, so the rule can be tested without a browser; `paintedLook.js` reads the
+ * device facts.
+ */
+export function staticShadowSize(sizes, lowMemoryGiB, device = {}, maxTextureSize = Infinity) {
+  let tier = 'standard';
+  if (typeof device.requested === 'string' && Object.hasOwn(sizes, device.requested)) tier = device.requested;
+  else if (device.coarsePointer || (typeof device.memoryGiB === 'number' && device.memoryGiB <= lowMemoryGiB)) tier = 'low';
+  return { tier, size: Math.min(sizes[tier], maxTextureSize) };
+}
+
+/**
+ * Gives a shadow-casting light its depth target before three allocates one.
+ *
+ * Three's PCF shadow map is a full RGBA8 colour texture plus a 32-bit depth
+ * texture, and the PCF lookup samples only the depth texture: the colour half
+ * (256 MiB at 8192², 64 MiB at 4096²) is never read. Three's render targets
+ * always carry at least one colour attachment, so this one is the smallest
+ * colour-renderable format, one byte a texel, and the depth texture is set up exactly as
+ * three's own `WebGLShadowMap` sets it up for `PCFShadowMap` (the depth format,
+ * 32-bit unsigned texels, a less-or-equal compare, linear filtering for the
+ * hardware's 2×2 filter). Three only allocates when `shadow.map` is null, so it
+ * keeps this one; if the shadow type ever changes, three replaces it with its
+ * own, which is the old behaviour rather than a broken one.
+ *
+ * Depends on three's shadow-map internals (r185, `WebGLShadowMap.js`): re-check
+ * the depth-texture setup on every three upgrade.
+ */
+export function installShadowTarget(renderer, light, size) {
+  const shadow = light.shadow;
+  if (shadow.map) { shadow.map.dispose(); shadow.map = null; }
+  const target = new T.WebGLRenderTarget(size, size, {
+    format: T.RedFormat, type: T.UnsignedByteType, generateMipmaps: false,
+    minFilter: T.NearestFilter, magFilter: T.NearestFilter,
+  });
+  target.texture.name = `${light.name}.shadowMapColour`;
+  const depth = new T.DepthTexture(size, size, T.UnsignedIntType);
+  depth.name = `${light.name}.shadowMap`;
+  depth.format = T.DepthFormat;
+  const reversed = renderer.state?.buffers?.depth?.getReversed?.() === true;
+  depth.compareFunction = reversed ? T.GreaterEqualCompare : T.LessEqualCompare;
+  depth.minFilter = T.LinearFilter; depth.magFilter = T.LinearFilter;
+  target.depthTexture = depth;
+  shadow.mapSize.set(size, size);
+  shadow.map = target;
+  return target;
+}
+
+const CHANNELS = { [T.RedFormat]: 1, [T.RGFormat]: 2, [T.RGBAFormat]: 4 };
+const TYPE_BYTES = { [T.UnsignedByteType]: 1, [T.HalfFloatType]: 2, [T.FloatType]: 4 };
+
+/**
+ * GPU bytes a light's shadow target takes, computed from its size and formats
+ * (resident memory is not something a browser will report). A light with no
+ * target yet is priced as three would allocate it: RGBA8 colour plus 32-bit depth.
+ */
+export function shadowTargetBytes(light) {
+  const map = light.shadow?.map ?? null;
+  const width = map?.width ?? light.shadow.mapSize.x, height = map?.height ?? light.shadow.mapSize.y;
+  const colour = map ? (CHANNELS[map.texture.format] ?? 4) * (TYPE_BYTES[map.texture.type] ?? 1) : 4;
+  // The depth half is 32 bits a texel whether it is three's texture or ours.
+  return width * height * (colour + 4);
 }

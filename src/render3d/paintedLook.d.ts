@@ -12,6 +12,8 @@ export interface PaintedLook {
  sun: DirectionalLight;
  sky: HemisphereLight;
  readonly shadowBakes: number;
+ /** The static shadow tier this device got and its size in texels. See `staticShadowSize` in `paintedShadows.js`. */
+ readonly shadowTier: {tier:'low'|'standard'|'high';size:number};
  readonly shadowStats: {bakes:number;staticMs:number;staticDraws:number;staticTris:number;counterMs:number;counterDraws:number;counterTris:number};
  render(): void;
  resize(width:number,height:number):void;

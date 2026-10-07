@@ -259,22 +259,32 @@ describe('the moving counters’ depth map', () => {
     expect(f.light.shadow.camera.right).toBeCloseTo(19.8);
   });
 
-  it('spends only the slack the window actually leaves it', () => {
-    // The same pan, the same knob, two windows. At 16:10 the box is 18 wide
-    // against a 16-unit reach, and the tenth it is allowed — 1.8 — fits inside
-    // that 2 units of spare. At 16:9 the reach is 17.78 and there is a fifth of
-    // a unit to give, so the same drift has to move the box.
-    const wide = counters(), reference = counters();
+  it('sizes the box from the window, so every aspect keeps the full allowance', () => {
+    // The same one-unit drift at three windows. The box used to be cut at 1.8
+    // half-heights whatever the window, which left a fifth of a unit spare at
+    // 16:9 and nothing at all at 2:1, so this drift re-rendered the map on both.
+    // Now the box grows with the reach and keeps the whole tenth: 1.8 at 16:10,
+    // 1.98 at 16:9 and 2.22 at 2:1.
+    for (const aspect of [REFERENCE, WIDE, 2]) {
+      const f = counters();
+      f.frame(0, 0, 10, GOLDEN, aspect);
+      expect(f.gate.boxExtent - reachOf(10, aspect)).toBeGreaterThanOrEqual(f.gate.boxExtent * .1 - 1e-9);
+      expect(f.frame(1, 0, 10, GOLDEN, aspect), `aspect ${aspect}`).toBe(false);
+    }
+  });
+
+  it('keeps the 1.8 half-height box wherever that already covers the window', () => {
+    // 16:10 and narrower: the reach term never wins, so the map's texel density
+    // is what it was before the box learned about the window.
+    for (const aspect of [SQUARE, REFERENCE]) {
+      const f = counters();
+      f.frame(0, 0, 10, GOLDEN, aspect);
+      expect(f.gate.boxExtent).toBe(18);
+    }
+    // Wider windows get a wider box: the reach divided by the share kept spare.
+    const wide = counters();
     wide.frame(0, 0, 10, GOLDEN, WIDE);
-    reference.frame(0, 0, 10, GOLDEN, REFERENCE);
-    expect(wide.frame(1, 0, 10, GOLDEN, WIDE)).toBe(true);
-    expect(reference.frame(1, 0, 10, GOLDEN, REFERENCE)).toBe(false);
-    // And a window wider than the box's own cut has nothing to give at all: it
-    // fits on any movement, which is what the rig did before the gate.
-    const wider = counters();
-    wider.frame(0, 0, 10, GOLDEN, 2);
-    expect(wider.frame(0, 0, 10, GOLDEN, 2)).toBe(false);
-    expect(wider.frame(.01, 0, 10, GOLDEN, 2)).toBe(true);
+    expect(wide.gate.boxExtent).toBeCloseTo(reachOf(10, WIDE) / .9);
   });
 
   it('never leaves the screen’s edge outside the box, at any aspect', () => {
@@ -289,14 +299,27 @@ describe('the moving counters’ depth map', () => {
       for (let i = 0; i < 60; i++) {
         if (f.frame(Math.sin(i * .17) * 9, Math.cos(i * .11) * 5, 10, GOLDEN, aspect)) fitted++;
       }
+      // The box reaches past the screen's edge, whatever the window.
+      expect(f.gate.boxExtent).toBeGreaterThan(reachOf(10, aspect));
       return fitted;
     });
-    // Containment held at all four (the fixture asserted it 240 times), and the
-    // price of it rises with the window: the narrower the view, the more of the
-    // box is spare and the more frames keep the depth they already had.
+    // Containment held at all four (the fixture asserted it 240 times), and a
+    // wide window no longer pays for it with a re-render on every moving frame.
     expect(fits[0]!).toBeGreaterThan(0);
-    expect(fits.map((count, i) => i === 0 || count >= fits[i - 1]!)).not.toContain(false);
-    expect(fits[0]!).toBeLessThan(fits[3]!);
+    for (const count of fits) expect(count).toBeLessThan(60);
+    expect(fits[3]!).toBeLessThanOrEqual(fits[0]!);
+  });
+
+  it('re-renders on a small share of a steady pan at 16:9 and 21:9', () => {
+    // A 600-frame pan at a fifth of a unit a frame with the default zoom and no
+    // piece moving. Before the box was sized from the window this re-rendered
+    // on 299 of the frames at 16:9 and on all 600 at 21:9.
+    for (const [aspect, most] of [[16 / 9, 60], [21 / 9, 60]] as const) {
+      const f = counters();
+      let renders = 0;
+      for (let i = 0; i < 600; i++) if (f.frame(i * .2, 0, 14, GOLDEN, aspect)) renders++;
+      expect(renders, `aspect ${aspect.toFixed(2)}`).toBeLessThanOrEqual(most);
+    }
   });
 
   it('fits frame-exactly at zero coverage, and still skips a still frame', () => {
