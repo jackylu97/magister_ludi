@@ -330,7 +330,7 @@ import {
 import { unitUpkeep, buildingUpkeep, unitUpkeepOf } from '../sim/upkeep';
 import {
   type RouteMode,
-  bestRouteMode,
+  ROUTE_MODES,
   routeIsInternational,
   routeStartable,
   startRouteError,
@@ -8306,7 +8306,7 @@ const HOLY_SITE: ImprovementId | null = workForFamily('prophet');
  * teleports into its gates), so every ordered pair of a town of this empire's
  * and a town anywhere is a candidate, gated by `startRouteError`.
  *
- * **The mode is named too** (`bestRouteMode`, the ruling of 2026-09-03): land
+ * **The mode is named too** (`bestRouteMode`'s walk, `firstRouteMode`; the ruling of 2026-09-03): land
  * wherever a land route is legal, sea otherwise. Naming it rather than leaving
  * it out is what lets the bot reach a partner across a bay at all — the absent
  * field's default is a fact about the *path* and would take the land answer
@@ -8348,13 +8348,11 @@ function traderCommand(
         to.ownerId === player.id
           ? `${from.name} → ${to.name}`
           : `${from.name} → ${to.name} (${seatName(state, to.ownerId)})`;
-      const mode = bestRouteMode(state, player.id, unit.id, from.id, to.id);
+      const { mode, landRefusal } = firstRouteMode(state, player.id, unit.id, from.id, to.id);
       if (mode === null) {
-        // Land's own sentence, which `bestRouteMode` has just proved is a
-        // refusal — the feed says why the ordinary road was no good rather
-        // than reporting the sea to an empire with no coast.
-        const refusal = startRouteError(state, player.id, unit.id, from.id, to.id, 'land');
-        tried.push(refused(label, refusal ?? 'No route a caravan could take.'));
+        // Land's own sentence — the feed says why the ordinary road was no
+        // good rather than reporting the sea to an empire with no coast.
+        tried.push(refused(label, landRefusal ?? 'No route a caravan could take.'));
         continue;
       }
       // Priced in the mode it would actually run in (batch R1): a sea leg pays
@@ -8388,6 +8386,33 @@ function traderCommand(
     candidates: tried,
     focus: { col: best.to.col, row: best.to.row },
   };
+}
+
+/**
+ * `bestRouteMode`'s answer, plus the land mode's refusal it met on the way.
+ *
+ * The same walk as `bestRouteMode` (`ROUTE_MODES` in order, the first mode
+ * `startRouteError` accepts), written out so the land sentence is kept rather
+ * than asked for again: `traderCommand` printed it for every refused pair by
+ * calling `startRouteError` a second time, and each call surveys the route with
+ * a path search. That repeat was about four per cent of a late bot turn
+ * (browser performance audit 2026-10-06, finding 2b). The answers are the same
+ * calls' answers, so nothing a bot decides changes.
+ */
+function firstRouteMode(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+  fromCityId: number,
+  toCityId: number,
+): { mode: RouteMode | null; landRefusal: string | null } {
+  let landRefusal: string | null = null;
+  for (const mode of ROUTE_MODES) {
+    const refusal = startRouteError(state, playerId, unitId, fromCityId, toCityId, mode);
+    if (refusal === null) return { mode, landRefusal };
+    if (mode === 'land') landRefusal = refusal;
+  }
+  return { mode: null, landRefusal };
 }
 
 // --- naming a decision ------------------------------------------------------

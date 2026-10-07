@@ -131,3 +131,23 @@ function movedByThisWar(city: City, declaredTurn: number): boolean {
 export function warLedgerSize(state: GameState): number {
   return LEDGERS.get(state)?.size ?? 0;
 }
+
+/** One war window, as it is carried to another copy of the same game: its key and baseline. */
+export type WarLedgerEntry = [string, Baseline];
+
+/**
+ * A copy of this game's war windows, in the order they were opened.
+ *
+ * The ledger lives on the state object and is written by reading, so a second
+ * copy of the game (the bot worker's) starts with none and would open its
+ * windows on a later turn than this one did. This and `adoptWarLedger` carry
+ * it across. See `harnessMemory.ts`.
+ */
+export function copyWarLedger(state: GameState): WarLedgerEntry[] {
+  return [...(LEDGERS.get(state) ?? new Map<string, Baseline>())].map(([at, baseline]) => [at, { ...baseline }]);
+}
+
+/** Replaces this state's war windows with a copy of `entries`. */
+export function adoptWarLedger(state: GameState, entries: readonly WarLedgerEntry[]): void {
+  LEDGERS.set(state, new Map(entries.map(([at, baseline]) => [at, { ...baseline }])));
+}

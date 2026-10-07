@@ -84,7 +84,7 @@ describe('the End Turn press yields a frame before the bots think', () => {
     const body = press();
     const raf = body.indexOf('window.requestAnimationFrame(');
     const timer = body.indexOf('window.setTimeout(');
-    const drive = body.indexOf('controls.endTurn(force)', timer);
+    const drive = body.indexOf('await endTurnBehindTheBots(force)', timer);
     expect(raf).toBeGreaterThan(-1);
     // The order is the claim: a frame is requested, the timeout is set inside
     // it, and only inside the timeout does the simulation take the thread.
@@ -108,7 +108,7 @@ describe('the End Turn press yields a frame before the bots think', () => {
 
   it('clears the working state in a finally, so a throw cannot kill the corner', () => {
     const body = press();
-    const drive = body.indexOf('controls.endTurn(force)');
+    const drive = body.indexOf('await endTurnBehindTheBots(force)');
     const cleared = body.indexOf('endTurnWorking = false');
     expect(cleared).toBeGreaterThan(drive);
     expect(body.slice(drive - 40, cleared)).toContain('finally');
@@ -237,5 +237,62 @@ describe('the key and the button are one gesture', () => {
     );
     expect(turn.indexOf('onTurnResolved?.(')).toBeLessThan(turn.indexOf('scheduleHandOver('));
     expect(controls).toContain('renderer.pendingAnimationMs?.() ?? 0');
+  });
+});
+
+/** `endTurnBehindTheBots`' body: the half of the press that waits for the bot worker. */
+function behind(): string {
+  const main = source('main.ts');
+  const at = main.indexOf('async function endTurnBehindTheBots(');
+  expect(at).toBeGreaterThan(-1);
+  return main.slice(at, main.indexOf('\n  }', at));
+}
+
+describe('the bots think in a worker while the press waits', () => {
+  it('reads the gates first, and only then sends the bots away', () => {
+    const body = behind();
+    const raise = body.indexOf('botsToTheWorker = true');
+    const gates = body.indexOf('controls.endTurn(force)');
+    const caught = body.indexOf('error !== BOTS_TO_THE_WORKER');
+    const lower = body.indexOf('botsToTheWorker = false');
+    const drive = body.indexOf('await botTwin.drive(');
+    expect(raise).toBeGreaterThan(-1);
+    expect(gates).toBeGreaterThan(raise);
+    expect(caught).toBeGreaterThan(gates);
+    // Lowered in a finally, so a gate that throws for real cannot leave the
+    // hook deferring every later press.
+    expect(body.slice(caught, lower)).toContain('finally');
+    expect(drive).toBeGreaterThan(lower);
+  });
+
+  it('ends the turn with force only when the worker’s orders were applied', () => {
+    const body = behind();
+    const drive = body.indexOf('await botTwin.drive(');
+    const end = body.indexOf("controls.endTurn(outcome === 'applied' ? true : force)");
+    expect(end).toBeGreaterThan(drive);
+    // A game torn down while the bots thought is left alone.
+    expect(body.slice(drive, end)).toContain('generation !== endTurnGeneration');
+  });
+
+  it('defers in the hook only while the press asks it to, and otherwise drives here', () => {
+    const main = source('main.ts');
+    const at = main.indexOf('onBeforeEndTurn: () => {');
+    const hook = main.slice(at, main.indexOf('\n    },', at));
+    const defer = hook.indexOf('throw BOTS_TO_THE_WORKER');
+    expect(hook.slice(0, defer)).toContain('botsToTheWorker && botTwin.available && botSeatsToDrive(game.state).length > 0');
+    expect(hook.indexOf('driveBots(game,')).toBeGreaterThan(defer);
+  });
+
+  it('takes no orders on the board while the others move', () => {
+    const main = source('main.ts');
+    const at = main.indexOf('function isInputBlocked(');
+    expect(main.slice(at, at + 400)).toContain('endTurnWorking ||');
+  });
+
+  it('drops a reply that arrives after a teardown', () => {
+    const main = source('main.ts');
+    const at = main.indexOf('function cancelPendingEndTurn(');
+    expect(main.slice(at, main.indexOf('\n  }', at))).toContain('endTurnGeneration += 1');
+    expect(main).toContain('gameDisposers.push(() => botTwin.dispose());');
   });
 });

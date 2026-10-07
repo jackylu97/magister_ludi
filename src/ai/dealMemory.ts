@@ -268,3 +268,23 @@ export function readDealRefusal(
 export function dealMemorySize(state: GameState): number {
   return MEMORIES.get(state)?.length ?? 0;
 }
+
+/** One remembered refusal, as it is carried to another copy of the same game. */
+export type DealRefusalRecord = RefusalRecord;
+
+/**
+ * A copy of this game's refusal memory, in the order it was written.
+ *
+ * The memory lives on the state object, so a second copy of the game (the bot
+ * worker's, `src/ui/bot.worker.ts`) starts with none. This and
+ * `adoptDealMemory` carry it across, so a seat driven on the copy reads exactly
+ * what it would have read here. See `harnessMemory.ts`.
+ */
+export function copyDealMemory(state: GameState): DealRefusalRecord[] {
+  return (MEMORIES.get(state) ?? []).map((record) => ({ ...record }));
+}
+
+/** Replaces this state's refusal memory with a copy of `records`. */
+export function adoptDealMemory(state: GameState, records: readonly DealRefusalRecord[]): void {
+  MEMORIES.set(state, records.map((record) => ({ ...record })));
+}
