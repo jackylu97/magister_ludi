@@ -67,7 +67,8 @@ import { unitDef, unitHp, unitMaxHp } from './sim/unitData';
 import { unitHealthBonus } from './sim/resourceEffects';
 import { heraldryFor, heraldryMarkDataUri } from './art/heraldryMarks';
 import { playerPieceColor } from './render3d/lookData';
-import { Renderer3D } from './render3d/renderer3d';
+import type { Renderer3D } from './render3d/renderer3d';
+import { probeGraphics } from './render3d/canvasSetup';
 import {
   describeImprovement,
   describeOccupant,
@@ -2260,17 +2261,57 @@ function build3DPanel(renderer: Renderer3D): () => void {
   };
 }
 
+/**
+ * True while the board is being rebuilt after a lost WebGL context. Read by
+ * `isInputBlocked`: the board underneath is not drawn, so it takes no input.
+ */
+let graphicsResetting = false;
+
+/**
+ * Why the page chose a plainer renderer than the one asked for, or null. Set by
+ * `createRenderer`, said by `boot` once the board is up.
+ */
+let graphicsFallbackNotice: string | null = null;
+
+// The 3D renderer (and the painted look's asset code behind it) is a dynamic
+// import in `createRenderer`, so the landing does not wait for it. Fetched here
+// once the landing is idle, so Begin usually finds it already downloaded.
+const artAsked = artMode();
+if (artAsked === 'painted' || artAsked === 'toon3d') {
+  whenIdle(() => { import('./render3d/renderer3d').catch(() => undefined); });
+}
+
 async function createRenderer(
   mode: ArtMode,
   game: Game,
 ): Promise<{ view: MapView; report: () => void }> {
+  // Asked before a 3D renderer is built, on a throwaway canvas. three.js r185
+  // needs WebGL2, and the painted look renders into half-float targets: without
+  // WebGL2 three threw and the landing printed its raw error, and without
+  // half-float targets the painted board drew nothing at all, with no message
+  // (WebGL audit 2026-10-06, finding 11). The toon look draws to the canvas and
+  // needs no half-float targets, so it is the fallback for the second case.
+  // There is no fallback for the first: the frozen 2D map has no fog of war and
+  // would show the player the whole world, so the landing says why instead.
+  if (mode === 'toon3d' || mode === 'painted') {
+    const support = probeGraphics();
+    if (!support.webgl2) {
+      throw new Error('This browser cannot draw the game board. Turn on hardware acceleration in the browser settings, or try another browser.');
+    } else if (mode === 'painted' && !support.floatTargets) {
+      mode = 'toon3d';
+      graphicsFallbackNotice = 'This graphics card cannot draw the painted board, so the game is showing the simpler 3D board.';
+    }
+  }
   if (mode === 'toon3d' || mode === 'painted') {
     keepCanvases('toon3d');
     bootEl.remove();
     // The controls sheet is written for every renderer at once; the lines that
     // only apply to the 2D pipelines go away when they are not the one running.
     for (const el of helpOverlayEl.querySelectorAll('[data-only="2d"]')) el.remove();
-    const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'));
+    // Loaded here rather than at the top of the file, so the landing page does
+    // not wait for three.js and the renderer before it can show the title.
+    const { Renderer3D } = await import('./render3d/renderer3d');
+    const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'), { painted: mode === 'painted' });
     try {
       if (mode === 'painted') {
         await renderer.enablePaintedLook(daylightChoice());
@@ -2348,6 +2389,24 @@ async function boot(initial: Game | null): Promise<void> {
   disposeGameScreens();
   let game: Game = initial ?? (await createGameAsync(currentConfig()));
   const { view: renderer, report } = await createRenderer(artMode(), game);
+  // A lost WebGL context (a GPU switch, a driver update, memory pressure) does
+  // not touch the game, so the renderer rebuilds the board from the state. The
+  // loading sheet covers the board meanwhile and `isInputBlocked` holds the
+  // controls. See `Renderer3D.recoverContext`.
+  if ('setContextListener' in renderer) (renderer as Renderer3D).setContextListener({
+    lost: () => { graphicsResetting = true; loading.begin('new'); },
+    progress: (percent) => loading.painted(percent),
+    restored: () => { graphicsResetting = false; loading.finish(); },
+    failed: (error) => {
+      graphicsResetting = false;
+      loading.finish();
+      console.error('[magister-ludi 3d] the board could not be rebuilt after a graphics reset', error);
+      toasts?.show({
+        turn: game.state.turn,
+        text: 'The graphics could not be restored. Reload the page to keep playing; the game is saved every turn.',
+      });
+    },
+  });
 
   /**
    * `Turn N — <you>` while the local seat still has moves to make, and
@@ -3727,6 +3786,7 @@ async function boot(initial: Game | null): Promise<void> {
   function isInputBlocked(): boolean {
     return (
       !landingEl.hidden ||
+      graphicsResetting ||
       (diplomacy?.isOpen ?? false) ||
       (religion?.isOpen ?? false) ||
       (warDispatch?.isOpen ?? false) ||
@@ -5624,7 +5684,7 @@ async function boot(initial: Game | null): Promise<void> {
     // Keep the current game intact if background construction fails. The
     // landing remains busy until the replacement board is ready to adopt.
     const replacement = next ?? (await createGameAsync(currentConfig()));
-    if (renderer instanceof Renderer3D) await renderer.preparePaintedMap(replacement.state.map, terrainBuildProgress);
+    if ('preparePaintedMap' in renderer) await (renderer as Renderer3D).preparePaintedMap(replacement.state.map, terrainBuildProgress);
     // A direct load need not visit the landing. Finish any staged arrangement
     // against the old game and clear its delayed work before swapping state.
     closePopovers();
@@ -5906,6 +5966,8 @@ async function boot(initial: Game | null): Promise<void> {
   // `resumeSeat`). Everything above this line was built the same way either way.
   controls.refresh(initial === null ? 0 : resumeSeat(game.state));
   if (initial !== null) controls.announce(`Resumed at turn ${game.state.turn}.`);
+  // Said once the board is up, so the player knows why the game looks plainer.
+  if (graphicsFallbackNotice !== null) controls.announce(graphicsFallbackNotice);
   // A brand-new game only: the refresh above already panned to the local
   // seat's units (see `GameControls.refresh`), and this replaces that framing
   // with a close-in start on the founder — a loaded save keeps what the

@@ -25,18 +25,23 @@ import type { TerrainId } from '../sim/terrainData';
 
 import {
   AmbientLight,
+  BackSide,
   Color,
   DirectionalLight,
+  DoubleSide,
+  FrontSide,
   Group,
   HemisphereLight,
   Mesh,
   type MeshBasicMaterial,
+  MeshDepthMaterial,
   type Object3D,
-  PCFSoftShadowMap,
+  PCFShadowMap,
   Scene,
   type Texture,
   Vector3,
   WebGLRenderer,
+  WebGLRenderTarget,
 } from 'three';
 
 import { type GameMap, getTileAt, offsetToAxial, tileIndex } from '../sim/map';
@@ -44,10 +49,11 @@ import { type GameMap, getTileAt, offsetToAxial, tileIndex } from '../sim/map';
 // vignette's hole is the ground the open city can actually work, so the number
 // has to be that one rather than a look-alike in `view3d.json`.
 import { RULES } from '../sim/rulesData';
-import type { GameState } from '../sim/state';
+import type { GameState, Unit } from '../sim/state';
 import { HIDDEN, isVisibleTo } from '../sim/visibility';
 import { seatSeesSleepingVein } from '../sim/improvements';
 import { layerVisibility, type LayerVisibility } from './layerVisibility';
+import { canvasAttributes, drawingBufferRatio, watchPixelRatio } from './canvasSetup';
 import type {
   CellRef,
   FallenUnit,
@@ -120,6 +126,8 @@ import { type TileTint, TintLayer } from './tint3d';
 import { MaterialLibrary, computeHullNormals } from './toon';
 import { createPaintedLook, type PaintedLook } from './paintedLook.js';
 import { buildPaintedBoard, type PaintedBoard } from './paintedBoard.js';
+// @ts-expect-error The browser helper is JavaScript, with no standalone declaration.
+import { shadowTargetBytes as untypedShadowTargetBytes } from './paintedShadows.js';
 import { PAINTED_CHART } from './paintedFogLook';
 import { buildPaintedBoardAsync, type PaintedBuildMetrics } from './paintedBoardAsync.js';
 import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks, type PaintedWorksEntry } from './paintedWorks';
@@ -229,6 +237,26 @@ export const SCENE_LAYER_NAMES = [
   'units', 'cities', 'tints', 'territory', 'roads', 'improvements', 'sites',
   'lens', 'overlays', 'vignette', 'fog', 'walker', 'faller',
 ] as const;
+
+/** GPU bytes a light's shadow target takes, from its real formats. See `paintedShadows.js`. */
+const shadowTargetBytes: (light: DirectionalLight) => number = untypedShadowTargetBytes;
+
+/**
+ * What the page is told when the browser takes the WebGL context away and gives
+ * it back. A lost context is ordinary on laptops that switch GPUs, after a
+ * driver update and under memory pressure; the game state is untouched by it,
+ * so the renderer rebuilds the board from that state. See `recoverContext`.
+ */
+export interface GraphicsResetListener {
+  /** The context is gone. Nothing draws until `restored` or `failed`. */
+  lost(): void;
+  /** The rebuild's progress, 0 to 100, while the board is rebuilt off-thread. */
+  progress(percent: number): void;
+  /** The board is back and drawing. */
+  restored(): void;
+  /** The rebuild failed; the board stays blank until the page is reloaded. */
+  failed(error: unknown): void;
+}
 
 export interface BoardStats {
   tiles: number;
@@ -404,7 +432,7 @@ export class Renderer3D implements MapView {
    * are the textures themselves, and a disposed atlas must not be kept alive by
    * the register that says it was uploaded.
    */
-  private readonly warmedTextures = new WeakSet<Texture>();
+  private warmedTextures = new WeakSet<Texture>();
   /** Fingerprint of the units the layer was last built from. See `loop`. */
   private visibilitySignatures: LayerVisibility | null = null;
   private unitsSignature = 0;
@@ -456,22 +484,74 @@ export class Renderer3D implements MapView {
   private frameListener: (() => void) | null = null;
   /** Set when a board is framed against a viewport that was not laid out yet. */
   private needsFit = false;
-  private dirty = true;
+  /**
+   * Two reasons to draw, kept apart because only one of them is expensive.
+   *
+   * `stateDirty` means the game state may have changed, so the next frame runs
+   * `syncStateLayers` (every fingerprint, the fog and the reveal pass: 1.4 to
+   * 1.8 ms on an M4 at turn 101) before it draws. `frameDirty` means only the
+   * picture is stale: the camera moved, the hover moved, an overlay or the
+   * lens was rebuilt directly, the canvas was resized. A pan used to set the
+   * one shared flag and so paid the whole sweep on every frame to learn that
+   * nothing had changed (WebGL audit 2026-10-06, finding 4).
+   *
+   * `invalidate()` (the public `MapView` verb, called after every command)
+   * sets the state flag; `redraw()` sets the frame flag.
+   */
+  private stateDirty = true;
+  private frameDirty = true;
+  /** The canvas was created for the painted look. See the constructor. */
+  private readonly paintedCanvas: boolean;
+  /** Removes the device-pixel-ratio listener `resize` last armed. */
+  private unwatchPixelRatio: () => void = () => undefined;
+  /**
+   * True from a `webglcontextlost` until the board has been rebuilt after the
+   * context came back. The loop draws nothing while it is set: during the loss
+   * there is nothing to draw with, and after the restore the old board's
+   * vertex colours are gone from memory (`RELEASED_AFTER_UPLOAD` in `paintedBoard.js`) and must not
+   * be uploaded again. See `recoverContext`.
+   */
+  private contextLost = false;
+  /** Who hears about a context loss and the rebuild after it. See `setContextListener`. */
+  private contextListener: GraphicsResetListener | null = null;
+  /** Counts restores, so a rebuild overtaken by a second loss stops. */
+  private recoveries = 0;
+  /** The daylight the painted look was last given, for the rebuild after a restore. */
+  private daylight = 'golden';
+  /** `warmLatePrograms` has been asked for on this context. */
+  private lateProgramsScheduled = false;
+  /**
+   * Prototype materials from `warmLatePrograms`, kept so their programs stay
+   * linked: the falling piece's clones and the walking body's depth stand-in.
+   */
+  private fallerProgramKeep: Mesh['material'][] = [];
   private running = true;
   private buildMs = 0;
   private lastDrawCalls = 0;
   /** What the last fog repaint cost. See `FogStats`. */
   private lastFogStats: FogStats | null = null;
 
-  constructor(canvas: HTMLCanvasElement, options: { minFrustum?: number } = {}) {
+  /**
+   * `painted` says the page will call `enablePaintedLook`, which has to be
+   * known now: the canvas's context attributes are fixed when it is created,
+   * and the painted look needs none of the multisampling, depth or stencil the
+   * toon look draws with. See `canvasAttributes`.
+   */
+  constructor(canvas: HTMLCanvasElement, options: { minFrustum?: number; painted?: boolean } = {}) {
     this.canvas = canvas;
+    this.paintedCanvas = options.painted === true;
     this.view = new DioramaCamera(options.minFrustum);
-    this.renderer = new WebGLRenderer({ canvas, antialias: true, stencil: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer = new WebGLRenderer({ canvas, ...canvasAttributes(this.paintedCanvas) });
+    // After three's own listeners, which are added in its constructor: by the
+    // time `onContextRestored` runs, three has rebuilt its internal state.
+    canvas.addEventListener('webglcontextlost', this.onContextLost);
+    canvas.addEventListener('webglcontextrestored', this.onContextRestored);
     // No tone mapping: the palette is already muted, and a filmic curve would
     // pull the highlights grey and undo the work.
     this.renderer.shadowMap.enabled = this.shadows;
-    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    // `PCFSoftShadowMap` is deprecated in three r185, which prints a warning
+    // and draws with `PCFShadowMap` anyway.
+    this.renderer.shadowMap.type = PCFShadowMap;
 
     // The table's own lit tone, so anything beyond the surface itself — the far
     // corners at full zoom-out — is the same material rather than a sky the
@@ -531,9 +611,23 @@ export class Renderer3D implements MapView {
   /** Opt-in terrain presentation; the gameplay host and its layers stay live. */
   async enablePaintedLook(daylight = 'golden'): Promise<void> {
     if (this.paintedLook) return;
+    if (!await this.installPaintedLook(daylight)) return;
+    if (this.state) { this.rebuildBoard(this.state.map); this.setGameState(this.state); }
+    this.invalidate();
+  }
+
+  /**
+   * Creates the painted look and its layers, without building a board. The
+   * first half of `enablePaintedLook`, and the step `recoverContext` repeats
+   * after a restore. False when the renderer was disposed while the assets
+   * loaded.
+   */
+  private async installPaintedLook(daylight: string): Promise<boolean> {
+    this.daylight = daylight;
     const oldLights = this.scene.children.filter(object => 'isLight' in object);
-    this.paintedLook = await createPaintedLook(this.renderer, this.scene, this.view.camera, daylight);
-    if (!this.running) { this.paintedLook.dispose(); this.paintedLook = null; return; }
+    const look = await createPaintedLook(this.renderer, this.scene, this.view.camera, daylight);
+    if (!this.running) { look.dispose(); return false; }
+    this.paintedLook = look;
     this.paintedCities = new PaintedCityLayer(this.paintedLook.cityAssets, this.paintedLook.registerMaterial);
     this.scene.add(this.paintedCities.group);
     this.paintedWorks = new PaintedWorksLayer(this.paintedLook.workAssets, this.paintedLook.registerMaterial);
@@ -546,8 +640,7 @@ export class Renderer3D implements MapView {
     for (const light of oldLights) this.scene.remove(light);
     this.scene.remove(this.key.target);
     this.resize();
-    if (this.state) { this.rebuildBoard(this.state.map); this.setGameState(this.state); }
-    this.invalidate();
+    return true;
   }
 
   /** Prepare off-thread before handing a new game to the synchronous layers. */
@@ -654,7 +747,92 @@ export class Renderer3D implements MapView {
     if (!this.running) return;
     const board = this.preparedBoard?.board.group ?? this.paintedBoard?.group;
     if (!board) return;
-    await this.renderer.compileAsync(board, this.view.camera, this.scene);
+    await this.compileForFrame(board);
+  }
+
+  /**
+   * `compileAsync` with the program variant the frame will really use.
+   *
+   * three keys a program on where it draws: into the canvas it bakes in the
+   * renderer's output colour space and tone mapping; into a render target, the
+   * working colour space and none. The painted look draws the scene into the
+   * composer's target, so a compile issued with no target bound links the
+   * canvas variant, which the frame then never uses, and the frame links its
+   * own anyway. A 1×1 target is bound for the compile alone. The toon look
+   * draws to the canvas, so it compiles with none.
+   */
+  private compileForFrame(root: Object3D): Promise<unknown> {
+    if (!this.paintedLook) return this.renderer.compileAsync(root, this.view.camera, this.scene);
+    const previous = this.renderer.getRenderTarget();
+    const target = new WebGLRenderTarget(1, 1);
+    try {
+      this.renderer.setRenderTarget(target);
+      return this.renderer.compileAsync(root, this.view.camera, this.scene);
+    } finally {
+      this.renderer.setRenderTarget(previous);
+      target.dispose();
+    }
+  }
+
+  /**
+   * The programs a player's first gestures need, compiled in idle time after
+   * the first board frame instead of inside the frame of the gesture.
+   *
+   * Measured on an M4 under ANGLE's Metal backend with a cold shader cache
+   * (WebGL audit finding 10): the first city screen's wash linked one program
+   * in a 298 ms frame, the first walk seven in a 455 ms frame, the first death
+   * one in a 251 ms frame. `warmPrograms` covers the board only, by design, so
+   * these are the three gestures it leaves: the vignette, a walking piece (its
+   * body, outline, ghost, badge and bar are standalone meshes, not the
+   * instanced ones the resting units use) and a falling piece (a transparent
+   * clone). One prototype of each is built from a unit of the seat's and
+   * compiled with `compileAsync`, which waits off the main thread where
+   * `KHR_parallel_shader_compile` exists.
+   *
+   * The falling piece's prototype materials are kept, not disposed: every
+   * fall disposes its own clones when it lands, and with nothing else using
+   * the program three would release it and link it again on the next death.
+   */
+  private warmLatePrograms(): void {
+    if (!this.running || this.contextLost || !this.state || !this.map) return;
+    const roots: Object3D[] = [this.vignette.mesh];
+    const unit = this.state.units.find(piece => piece.ownerId === this.fogSeat) ?? this.state.units[0];
+    if (unit) {
+      const walker = this.buildWalker(unit);
+      if (walker) {
+        roots.push(walker.group);
+        // A walking body casts into the counter shadow map, through three's
+        // own depth material, which `compile` never reaches. A stand-in with
+        // the same material settings (three's default depth material, on the
+        // side three flips a front face to) asks for the same program.
+        walker.group.traverse(object => {
+          if (!(object instanceof Mesh) || !object.userData.unitBody || Array.isArray(object.material)) return;
+          const side = object.material.shadowSide ?? (object.material.side === FrontSide ? BackSide : object.material.side === BackSide ? FrontSide : DoubleSide);
+          const depth = new MeshDepthMaterial({ side });
+          roots.push(new Mesh(object.geometry, depth));
+          this.fallerProgramKeep.push(depth);
+        });
+      }
+      const faller = this.buildFaller({ id: unit.id, type: unit.type, ownerId: unit.ownerId, col: unit.col, row: unit.row });
+      if (faller) {
+        roots.push(faller);
+        faller.traverse(object => {
+          if (!(object instanceof Mesh)) return;
+          for (const material of Array.isArray(object.material) ? object.material : [object.material]) this.fallerProgramKeep.push(material);
+        });
+      }
+    }
+    for (const root of roots) {
+      this.compileForFrame(root).catch(() => { /* a lost context: the restore warms again */ });
+    }
+  }
+
+  /** Asks for `warmLatePrograms` once, when the browser is next idle. */
+  private scheduleLatePrograms(): void {
+    this.lateProgramsScheduled = true;
+    const run = (): void => this.warmLatePrograms();
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 2000 });
+    else setTimeout(run, 500);
   }
 
   get paintedEnabled(): boolean { return this.paintedLook !== null; }
@@ -691,7 +869,7 @@ export class Renderer3D implements MapView {
     } finally { this.setGameState(original); this.benchmarking = false; this.invalidate(); }
   }
 
-  setDaylight(key: string): void { this.paintedLook?.setDaylight(key); this.invalidate(); }
+  setDaylight(key: string): void { this.daylight = key; this.paintedLook?.setDaylight(key); this.redraw(); }
 
   /** Opt-in art review; never adds a building or changes the command log. */
   setCityWallPreview(enabled: boolean): void {
@@ -748,7 +926,7 @@ export class Renderer3D implements MapView {
     });
     try {
       for (let i = 0; i < frames; i++) {
-        this.invalidate();
+        this.redraw();
         await new Promise<number>(resolve => requestAnimationFrame(resolve));
       }
     } finally { for (const undo of restore) undo(); }
@@ -1041,20 +1219,32 @@ export class Renderer3D implements MapView {
     const memory = (performance as {memory?: {usedJSHeapSize: number; totalJSHeapSize: number}}).memory;
     const targets: {name: string; width: number; height: number; bytesPerTexel: number; allocated: boolean}[] = [];
     this.scene.traverse(object => {
-      const light = object as unknown as {isDirectionalLight?: boolean; castShadow?: boolean; name?: string;
-        shadow?: {mapSize: {x: number; y: number}; map?: {width: number; height: number} | null}};
+      const light = object as DirectionalLight;
       if (!light.isDirectionalLight || !light.castShadow || !light.shadow) return;
       const map = light.shadow.map ?? null;
+      const width = map?.width ?? light.shadow.mapSize.x, height = map?.height ?? light.shadow.mapSize.y;
       targets.push({
-        name: light.shadow.mapSize.x >= 4096 ? 'static sun shadow map' : 'counter shadow map',
-        width: map?.width ?? light.shadow.mapSize.x,
-        height: map?.height ?? light.shadow.mapSize.y,
-        // Three allocates a colour attachment beside the depth texture.
-        bytesPerTexel: 8,
+        // Named by which light it is, not by its size: the static map's size
+        // is a device tier now, and the low tier is the counter map's size.
+        name: light === this.paintedLook?.sun ? 'static sun shadow map'
+          : light === this.key ? 'toon key light shadow map' : 'counter shadow map',
+        width, height,
+        // The formats the target really has: the painted lights carry a
+        // one-byte colour attachment (`installShadowTarget`), three's own an RGBA8 one.
+        bytesPerTexel: shadowTargetBytes(light) / (width * height),
         allocated: map !== null,
       });
     });
     const width = gl.drawingBufferWidth, height = gl.drawingBufferHeight;
+    // The canvas's own buffers, from the attributes it was created with: a
+    // colour buffer, a depth-stencil buffer if asked for, both multisampled
+    // (taken as 4 samples) when anti-aliased, plus the single-sample colour the
+    // samples resolve into. An estimate; drivers round and pad.
+    const attributes = gl.getContextAttributes();
+    const samples = attributes?.antialias ? 4 : 1;
+    const depthBytes = attributes?.depth || attributes?.stencil ? 4 : 0;
+    targets.push({name: `canvas drawing buffer (${attributes?.antialias ? '4× MSAA' : 'no MSAA'}, ${depthBytes ? 'with' : 'no'} depth-stencil)`,
+      width, height, bytesPerTexel: (4 + depthBytes) * samples + (samples > 1 ? 4 : 0), allocated: true});
     targets.push({name: 'composer colour targets (×2, RGBA8 + depth)', width, height, bytesPerTexel: 16, allocated: true});
     targets.push({name: 'contact pass targets (half resolution, ×3)', width: Math.ceil(width / 2), height: Math.ceil(height / 2), bytesPerTexel: 12, allocated: true});
     const targetMiB = targets.reduce((sum, target) => sum + target.width * target.height * target.bytesPerTexel, 0) / 1048576;
@@ -1131,7 +1321,7 @@ export class Renderer3D implements MapView {
       await settle(4);
       if (wanted('still')) {
         phase('still (play zoom)', 'camera parked; a redraw forced every frame');
-        for (let i = 0; i < frames; i++) { this.invalidate(); await probe.sample(); }
+        for (let i = 0; i < frames; i++) { this.redraw(); await probe.sample(); }
       }
 
       // --- a real march into unexplored ground -----------------------------
@@ -1222,7 +1412,7 @@ export class Renderer3D implements MapView {
       phase('overview reveal (charted → omniscient)', 'the seat is dropped at overview zoom; every hidden batch enters the pass');
       const revealBakes = look.shadowBakes;
       this.setFogSeat(null);
-      for (let i = 0; i < frames; i++) { this.invalidate(); await probe.sample(); }
+      for (let i = 0; i < frames; i++) { this.redraw(); await probe.sample(); }
       report.overviewReveal = {terrainShadowRebakes: look.shadowBakes - revealBakes};
       this.setFogSeat(seat);
       await settle(3);
@@ -1234,7 +1424,7 @@ export class Renderer3D implements MapView {
       await settle(3);
       phase('LOD zoom crossing (overview → play)', 'one zoom step per frame across the near/far detail band');
       const factor = Math.pow(this.view.radius / playRadius, 1 / frames);
-      for (let i = 0; i < frames; i++) { this.view.zoomByFactor(factor, cx, cy); this.invalidate(); await probe.sample(); }
+      for (let i = 0; i < frames; i++) { this.view.zoomByFactor(factor, cx, cy); this.redraw(); await probe.sample(); }
       zoomTo(playRadius);
       await settle(3);
       }
@@ -1263,7 +1453,7 @@ export class Renderer3D implements MapView {
         this.setGameState(future);
         const updateMs = Math.round((performance.now() - start) * 100) / 100;
         const bakes = look.shadowBakes;
-        for (let i = 0; i < frames; i++) { this.invalidate(); await probe.sample(); }
+        for (let i = 0; i < frames; i++) { this.redraw(); await probe.sample(); }
         report.endTurn = {
           measured: true,
           turnBefore: original.turn,
@@ -1425,7 +1615,7 @@ export class Renderer3D implements MapView {
         this.view.panTo(map.width*Math.sqrt(3)*.5, map.height*.75, false, performance.now());
         probe.phase('parked omniscient overview', 'camera parked on the whole board with the seat dropped; a redraw forced every frame');
         for (let i = 0; i < options.frames; i++) {
-          this.invalidate();
+          this.redraw();
           if (i === options.warmUp) probe.count(true);
           await probe.sample();
         }
@@ -1442,7 +1632,7 @@ export class Renderer3D implements MapView {
         probe.phase(scenario, 'panning');
         for(let i=0;i<options.frames;i++) {
           this.view.panTo(origin.x+Math.sin(i*.028)*4,origin.z+Math.cos(i*.024)*1.5,false,performance.now());
-          this.invalidate();
+          this.redraw();
           if (i === options.warmUp) probe.count(true);
           await probe.sample();
         }
@@ -1623,7 +1813,7 @@ export class Renderer3D implements MapView {
     this.syncStateLayers(force);
     this.rebuildOverlays();
     this.rebuildLens();
-    this.invalidate();
+    this.redraw();
   }
 
   getGameState(): GameState | null {
@@ -1664,7 +1854,7 @@ export class Renderer3D implements MapView {
     // out yet the framing is a guess, so it is redone on the first real resize.
     this.view.frameBoard(this.board!.bounds);
     this.needsFit = this.canvas.clientWidth <= 1;
-    this.invalidate();
+    this.redraw();
   }
 
   /**
@@ -1733,7 +1923,7 @@ export class Renderer3D implements MapView {
     this.clearedCitiesSignature = signCityCells(state);
     this.clearedImprovementsSignature = signImprovedCells(state);
     this.clearedFeaturesSignature = signFeatureCells(map);
-    this.invalidate();
+    this.redraw();
   }
 
   /** One tile, moved up the suppression scale but never down. */
@@ -2221,7 +2411,7 @@ export class Renderer3D implements MapView {
       // the lens does. Rebuilt when the atlas arrives (see `loadTileIcons`).
       this.icons,
     );
-    this.invalidate();
+    this.redraw();
   }
 
   /**
@@ -2242,7 +2432,7 @@ export class Renderer3D implements MapView {
       this.view.facing.clone(),
       this.fogLevels(),
     );
-    this.invalidate();
+    this.redraw();
   }
 
   // --- MapView: selection and overlays -------------------------------------
@@ -2254,7 +2444,7 @@ export class Renderer3D implements MapView {
     this.skipAnimations();
     this.unitBadgesVisible = visible;
     this.rebuildUnits();
-    this.invalidate();
+    this.redraw();
   }
 
   setSelectedUnitId(id: number | null): void {
@@ -2380,7 +2570,7 @@ export class Renderer3D implements MapView {
       this.invalidate();
     }
     this.vignette.setFocus(cell, animate, performance.now());
-    if (this.vignette.focus() !== before) this.invalidate();
+    if (this.vignette.focus() !== before) this.redraw();
   }
 
   /**
@@ -2487,7 +2677,7 @@ export class Renderer3D implements MapView {
   private rebuildTints(): void {
     if (!this.map) return;
     this.tints.build(this.map, this.tintList, this.geometry, this.materials);
-    this.invalidate();
+    this.redraw();
   }
 
   setHover(hover: HoverInfo | null): void {
@@ -2513,7 +2703,7 @@ export class Renderer3D implements MapView {
       const unit = this.state.units.find(piece => piece.id === id);
       if (unit) object.material = this.unitOutline(unitShellWash(this.state, unit, this.fogSeat), id === unitId);
     });
-    this.invalidate();
+    this.redraw();
   }
 
   // --- MapView: picking and camera -----------------------------------------
@@ -2732,13 +2922,13 @@ export class Renderer3D implements MapView {
   panByScreen(dx: number, dy: number): void {
     this.setHoveredUnitId(null);
     this.view.pan(dx, dy);
-    this.invalidate();
+    this.redraw();
   }
 
   zoomBy(factor: number, screenX: number, screenY: number): void {
     this.setHoveredUnitId(null);
     this.view.zoomByFactor(factor, screenX, screenY);
-    this.invalidate();
+    this.redraw();
   }
 
   /**
@@ -2771,7 +2961,7 @@ export class Renderer3D implements MapView {
     }
 
     this.view.panTo(sumX / cells.length, sumZ / cells.length, animate, performance.now());
-    this.invalidate();
+    this.redraw();
   }
 
   /**
@@ -2784,7 +2974,7 @@ export class Renderer3D implements MapView {
     this.setHoveredUnitId(null);
     const { x, z } = cellCenter(cell.col, cell.row);
     this.view.openAt(x, z);
-    this.invalidate();
+    this.redraw();
   }
 
   /**
@@ -2820,7 +3010,7 @@ export class Renderer3D implements MapView {
     }
 
     this.view.frameCells({ minX, maxX, minZ, maxZ }, animate, performance.now());
-    this.invalidate();
+    this.redraw();
   }
 
   /**
@@ -2836,7 +3026,7 @@ export class Renderer3D implements MapView {
   resetZoom(): void {
     this.setHoveredUnitId(null);
     this.view.resetZoom();
-    this.invalidate();
+    this.redraw();
   }
 
   /** Re-frames the whole board, as a fresh map does. */
@@ -2844,14 +3034,24 @@ export class Renderer3D implements MapView {
     this.setHoveredUnitId(null);
     if (!this.board) return;
     this.view.frameBoard(this.board.bounds);
-    this.invalidate();
+    this.redraw();
   }
 
   resize(): void {
     this.setHoveredUnitId(null);
     const width = Math.max(1, this.canvas.clientWidth);
     const height = Math.max(1, this.canvas.clientHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.paintedLook ? 1.5 : 2));
+    const deviceRatio = window.devicePixelRatio || 1;
+    // The toon look's cap of 2 is the frozen fallback's own; the painted game's
+    // cap and pixel budget are rows of `data/view3d.json`.
+    this.renderer.setPixelRatio(drawingBufferRatio(width, height, deviceRatio,
+      this.paintedCanvas || this.paintedLook ? VIEW3D.painted.canvas.maxPixelRatio : 2,
+      VIEW3D.painted.canvas.pixelBudget));
+    // Heard again if the window moves to a screen with another scale, which
+    // does not always fire a `resize`. Re-armed here, so it tracks the ratio
+    // this resize just read.
+    this.unwatchPixelRatio();
+    this.unwatchPixelRatio = watchPixelRatio(deviceRatio, () => this.resize());
     // `false`: the canvas is sized by CSS (`inset: 0`), and letting three write
     // inline styles would fight the stylesheet on every resize.
     this.renderer.setSize(width, height, false);
@@ -2861,7 +3061,7 @@ export class Renderer3D implements MapView {
       this.view.frameBoard(this.board.bounds);
       this.needsFit = false;
     }
-    this.invalidate();
+    this.redraw();
   }
 
   // --- MapView: animation ---------------------------------------------------
@@ -2951,6 +3151,22 @@ export class Renderer3D implements MapView {
     if (!unit) return;
 
     this.removeWalker(unitId);
+    const built = this.buildWalker(unit, terrain);
+    if (!built) return;
+    const { group, painted } = built;
+    if (painted) this.walkerModels.set(unitId, painted);
+    this.scene.add(group);
+    this.addWalker(unitId, group);
+  }
+
+  /**
+   * The meshes of one walking piece, not yet in the scene. Shared by
+   * `spawnWalker` and by `warmLatePrograms`, which compiles a prototype so the
+   * first walk of a session does not link its programs mid-frame.
+   */
+  private buildWalker(unit: Unit, terrain?: TerrainId): { group: Group; painted: ReturnType<PaintedUnitKit['resolve']> | undefined } | null {
+    if (!this.state || !this.map) return null;
+    const unitId = unit.id;
     const faceCamera = this.view.facing.clone();
     const color = unitColor(this.state, unit);
     const period = wrapWidth(this.map);
@@ -2959,7 +3175,6 @@ export class Renderer3D implements MapView {
     group.name = 'walker';
     group.userData.unitVisual = true;
     const visualHeight = painted?.height ?? unitVisualHeight(unit.type, this.sprites);
-    if (painted) this.walkerModels.set(unitId, painted);
 
     /**
      * The walker's own badge, or null while the atlas is still rasterising.
@@ -3022,9 +3237,7 @@ export class Renderer3D implements MapView {
         if (bar) copy.add(bar);
         group.add(copy);
       }
-      this.scene.add(group);
-      this.addWalker(unitId, group);
-      return;
+      return { group, painted };
     }
 
     // Painted walkers use the sampled terrain and exchange cached geometry
@@ -3081,8 +3294,7 @@ export class Renderer3D implements MapView {
     }
     // The whole group is moved each frame; the per-copy offset lives on the
     // children, so one position write drives all three.
-    this.scene.add(group);
-    this.addWalker(unitId, group);
+    return { group, painted };
   }
 
   /**
@@ -3116,6 +3328,22 @@ export class Renderer3D implements MapView {
   private spawnFaller(fallen: FallenUnit): void {
     if (!this.map || !this.state) return;
     this.removeFaller(fallen.id);
+    const group = this.buildFaller(fallen);
+    if (!group) return;
+    this.scene.add(group);
+    // Layer 2 once, for `addWalker`'s reason: a toppling piece is a counter, not
+    // scenery, and must stay out of the world's cached bake.
+    if (this.paintedLook) group.traverse(object => object.layers.set(2));
+    this.fallers.set(fallen.id, group);
+    this.paintedLook?.invalidateDynamicShadows();
+  }
+
+  /**
+   * The meshes of one falling piece, not yet in the scene, with private
+   * transparent material clones. Shared by `spawnFaller` and `warmLatePrograms`.
+   */
+  private buildFaller(fallen: FallenUnit): Group | null {
+    if (!this.map || !this.state) return null;
 
     // A corpse is a description rather than a unit — the state removed it before
     // this was called — so it topples in its type's own body. A plundered caravan
@@ -3164,13 +3392,7 @@ export class Renderer3D implements MapView {
       anchor.add(mesh);
       group.add(anchor);
     }
-
-    this.scene.add(group);
-    // Layer 2 once, for `addWalker`'s reason: a toppling piece is a counter, not
-    // scenery, and must stay out of the world's cached bake.
-    if (this.paintedLook) group.traverse(object => object.layers.set(2));
-    this.fallers.set(fallen.id, group);
-    this.paintedLook?.invalidateDynamicShadows();
+    return group;
   }
 
   /**
@@ -3363,8 +3585,21 @@ export class Renderer3D implements MapView {
 
   // --- frame ---------------------------------------------------------------
 
+  /**
+   * The game state may have changed: re-read every fingerprint on the next
+   * frame, then draw. What the UI calls after a command. See `stateDirty`.
+   */
   invalidate(): void {
-    this.dirty = true;
+    this.stateDirty = true;
+  }
+
+  /**
+   * Only the picture is stale: draw the next frame without re-reading the
+   * state. For camera moves, hover, overlays, the lens and anything else that
+   * rebuilt its own layer directly. See `stateDirty`.
+   */
+  private redraw(): void {
+    this.frameDirty = true;
   }
 
   private applyLight(): void {
@@ -3553,6 +3788,10 @@ export class Renderer3D implements MapView {
   private loop(): void {
     if (!this.running) return;
     requestAnimationFrame(this.loop);
+    // Nothing to draw with, or a board that must not be drawn until it has been
+    // rebuilt. The dirty flags are kept, so the first frame after the rebuild
+    // draws. See `recoverContext`.
+    if (this.contextLost) return;
 
     const now = performance.now();
     // A frame that had a walker in it always draws, even if that walker just
@@ -3584,11 +3823,14 @@ export class Renderer3D implements MapView {
     // what is left over would throw that frame away.
     const revealing = (this.paintedBoard?.revealing ?? 0) > 0;
     if (revealing) this.paintedBoard!.advanceReveal(now);
-    if (!this.dirty && !hadWalkers && !hadFallers && !panned && !fading && !revealing) return;
+    if (!this.stateDirty && !this.frameDirty && !hadWalkers && !hadFallers && !panned && !fading && !revealing) return;
 
-    const refreshState = this.dirty;
-    this.dirty = false;
+    const refreshState = this.stateDirty;
+    this.stateDirty = false;
     if (refreshState) this.syncStateLayers();
+    // Cleared after the sync, because the sync's own rebuilds (the lens, the
+    // overlays) ask for a redraw, and this frame is that redraw.
+    this.frameDirty = false;
     // The light rig follows the pan target, so it must be recomputed on any
     // frame the camera could have moved — which is every frame we draw.
     this.applyLight();
@@ -3625,18 +3867,131 @@ export class Renderer3D implements MapView {
     this.lastDrawCalls = this.renderer.info.render.calls;
     this.lastTriangles = this.renderer.info.render.triangles;
     this.lastRenderMs = performance.now() - renderStarted;
+    // Once a board has been drawn, the gestures' programs in idle time.
+    if (!this.lateProgramsScheduled && this.board && this.state) this.scheduleLatePrograms();
     // After the draw, so anything the listener projects sees the camera the
     // frame was rendered with rather than the one before it.
     this.frameListener?.();
   }
 
+  // --- context loss ----------------------------------------------------------
+
+  /** Who hears about a lost context and the rebuild after it. One listener. */
+  setContextListener(listener: GraphicsResetListener | null): void {
+    this.contextListener = listener;
+  }
+
+  /**
+   * The browser took the WebGL context away. three's own listener has already
+   * called `preventDefault`, which is what lets the browser offer it back.
+   * Nothing is torn down here: there is nothing to draw with until the
+   * restore, and the rebuild happens then.
+   */
+  private readonly onContextLost = (): void => { this.contextWasLost(); };
+  private readonly onContextRestored = (): void => { void this.recoverContext(); };
+
+  private contextWasLost(): void {
+    this.contextLost = true;
+    this.recoveries++;
+    this.contextListener?.lost();
+  }
+
+  /**
+   * Rebuilds the painted look and the board after the context comes back.
+   *
+   * three's restore re-creates its own internals, including a new
+   * `renderer.shadowMap`. Patching those new objects is not enough, and not
+   * safe: the painted shadow rig wrapped the old shadow map's `render`
+   * (`separatePaintedShadows`), so after a plain restore the static sun and the
+   * counter light would render together; the sky light (a PMREM render target)
+   * comes back empty; and the board's vertex colours were released from memory
+   * after their first upload (`RELEASED_AFTER_UPLOAD` in `paintedBoard.js`), so three could not
+   * re-upload the board even if it tried.
+   *
+   * So the renderer goes through the same steps a new game takes in
+   * `main.ts`'s `createRenderer` — the painted look, the board built off-thread,
+   * the state handed to the layers — on the same `Renderer3D`, because the
+   * interface holds this object in a hundred places. The game state is
+   * untouched by a context loss, so this costs one board build and nothing
+   * else. Every other layer keeps its arrays, and three uploads them again on
+   * the first frame. The toon look keeps its arrays too, so it only redraws.
+   */
+  private async recoverContext(): Promise<void> {
+    const generation = this.recoveries;
+    this.warmedTextures = new WeakSet();
+    // Every program went with the old context.
+    this.lateProgramsScheduled = false;
+    this.fallerProgramKeep = [];
+    this.skipAnimations();
+    const finish = (): void => {
+      this.contextLost = false;
+      this.invalidate();
+      this.contextListener?.restored();
+    };
+    if (!this.paintedLook) { finish(); return; }
+    try {
+      this.tearDownPaintedLook();
+      if (!await this.installPaintedLook(this.daylight)) return;
+      if (generation !== this.recoveries) return;
+      const map = this.state?.map ?? null;
+      if (map) {
+        await this.preparePaintedMap(map, percent => this.contextListener?.progress(percent));
+        if (generation !== this.recoveries || !this.running) return;
+        // Whatever map is current now: a different one (a load that landed
+        // during the rebuild) is built on the main thread by `rebuildBoard`.
+        const current = this.state;
+        if (current) {
+          this.rebuildBoard(current.map);
+          // Handed over as a different state, so every layer is rebuilt
+          // whatever its fingerprint says: the painted layers are new and empty.
+          this.state = null;
+          this.setGameState(current);
+        }
+      }
+      finish();
+    } catch (error) {
+      if (generation !== this.recoveries || !this.running) return;
+      this.contextListener?.failed(error);
+    }
+  }
+
+  /**
+   * Takes down everything that belongs to the painted look: the board, the fog
+   * and reveal passes that hold handles into it, the painted layers, and the
+   * look itself. The non-painted layers stay; their arrays are intact.
+   */
+  private tearDownPaintedLook(): void {
+    this.boardBuild?.abort(); this.boardBuild = null;
+    this.preparedBoard?.board.dispose(); this.preparedBoard = null;
+    if (this.map) uninstallPaintedSurface(this.map);
+    if (this.board) { this.scene.remove(this.board.group); this.board.dispose(); }
+    this.board = null; this.paintedBoard = null;
+    if (this.fog) { this.scene.remove(this.fog.group); this.fog.dispose(); this.fog = null; }
+    this.reveal?.dispose(); this.reveal = null;
+    for (const layer of [this.paintedCities, this.paintedWorks, this.paintedSites, this.paintedRoads, this.paintedTerritory]) {
+      if (!layer) continue;
+      this.scene.remove(layer.group);
+      layer.dispose();
+    }
+    this.paintedCities = null; this.paintedWorks = null; this.paintedSites = null;
+    this.paintedRoads = null; this.paintedTerritory = null;
+    this.paintedUnits?.dispose(); this.paintedUnits = null;
+    this.paintedLook?.setBakeDetail(null);
+    this.paintedLook?.dispose(); this.paintedLook = null;
+  }
+
   dispose(): void {
     this.running = false;
+    this.canvas.removeEventListener('webglcontextlost', this.onContextLost);
+    this.canvas.removeEventListener('webglcontextrestored', this.onContextRestored);
+    this.unwatchPixelRatio();
     this.boardBuild?.abort(); this.boardBuild = null;
     this.preparedBoard?.board.dispose(); this.preparedBoard = null;
     this.frameListener = null;
     this.clearWalkers();
     this.clearFallers();
+    for (const material of this.fallerProgramKeep) for (const one of Array.isArray(material) ? material : [material]) one.dispose();
+    this.fallerProgramKeep = [];
     this.sprites?.dispose();
     this.badges?.dispose();
     this.icons?.dispose();
