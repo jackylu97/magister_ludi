@@ -790,8 +790,12 @@ export interface DiplomacyScreenOptions {
    *
    * `dealId` names a standing bargain; absent means the peace paper, which has
    * no id of its own (it rides on the war row).
+   *
+   * May answer later, as a promise: the game page asks the bot in a worker so
+   * the click does not freeze the page while the bot thinks. The sheet then
+   * shows the envoy considering until the answer arrives.
    */
-  askAudience?: (targetId: number, dealId?: number) => EnvoyAnswer | null;
+  askAudience?: (targetId: number, dealId?: number) => EnvoyAnswer | null | Promise<EnvoyAnswer | null>;
   /**
    * *"What would make this work?"* and its mirror — a **pure read**, and
    * nothing is sent: the terms come back and are written into the draft, where
@@ -875,6 +879,10 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
    * that has quietly become false.
    */
   let envoy: { seatId: number; answer: EnvoyAnswer } | null = null;
+  /** The seat whose answer is on its way from the bot worker, or `null`. */
+  let considering: number | null = null;
+  /** Counts audiences asked, so an answer that arrives after a newer question is dropped. */
+  let audiencesAsked = 0;
   /** The counter last brought back, and which question brought it. */
   let counter: { seatId: number; question: CounterQuestion; answer: CounterAnswer } | null = null;
 
@@ -1098,7 +1106,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     let quote=model.peace?'You have my attention. Speak.':'Let us put something useful on the table.';
     let detail=model.peace?'You may include towns in the terms. Nothing changes hands until peace is agreed.':'Choose a luxury on either side to add one copy to the offer.';
     let label='In audience';
-    if(envoy?.seatId===row.playerId) {
+    if(considering===row.playerId) {
+      quote='One moment. Let me consider it.';detail='Their answer will appear here.';
+    } else if(envoy?.seatId===row.playerId) {
       ({quote,detail}=audienceCopy(envoy.answer));label=envoy.answer.accepted?'Agreement reached':'Offer declined';
     } else if(counter?.seatId===row.playerId) {
       label='Their answer';quote=counter.answer.terms?'These are terms I could agree to.':model.peace?'I am not ready to offer terms.':'There is no exchange I can offer you today.';
@@ -1245,6 +1255,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     if (model.blocked !== null) {
       send.disabled = true;
       send.title = model.blocked;
+    } else if (considering === row.playerId) {
+      send.disabled = true;
+      send.title = 'Waiting for their answer';
     } else if (empty && !model.peace) {
       send.disabled = true;
       send.title = 'Put something on the table first';
@@ -1257,8 +1270,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         // empire it was put to is asked before anything else happens — which is
         // the whole of the audience: a player who proposes gets an answer while
         // they are still standing at the table.
-        if(model.peace || options.getState().dealProposals.some(p=>p.by===options.getPlayerId()&&p.to===row.playerId&&!prior.has(p.id)))askAudienceFor(row.playerId, model.peace);
-        if(envoy?.answer.accepted) {draft.give={};draft.take={};}
+        if(model.peace || options.getState().dealProposals.some(p=>p.by===options.getPlayerId()&&p.to===row.playerId&&!prior.has(p.id)))askAudienceFor(row.playerId, model.peace, true);
         draw();
       });
     }
@@ -1360,14 +1372,15 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
    * back is the one way this file can be sure it is naming the paper that
    * actually landed.
    */
-  function askAudienceFor(targetId: number, peace: boolean): void {
+  function askAudienceFor(targetId: number, peace: boolean, clearOnYes = false): void {
     envoy = null;
     counter = null;
+    considering = null;
+    audiencesAsked += 1;
     const ask = options.askAudience;
     if (ask === undefined) return;
     if (peace) {
-      const answer = ask(targetId);
-      if (answer !== null) envoy = { seatId: targetId, answer: {...answer,peace:true} };
+      hear(targetId, ask(targetId), (answer) => ({ ...answer, peace: true }), clearOnYes);
       return;
     }
     const seat = options.getPlayerId();
@@ -1377,8 +1390,48 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const paper = papers[papers.length - 1];
     if (!paper) return;
     const lastCopy=(paper.take.luxuries??[]).find(id=>resourceCopies(options.getState(),targetId,id)===1);
-    const answer = ask(targetId, paper.id);
-    if (answer !== null) envoy = { seatId: targetId, answer: {...answer,...(lastCopy?{lastCopy:resourceDef(lastCopy).name}:{})} };
+    hear(
+      targetId,
+      ask(targetId, paper.id),
+      (answer) => ({ ...answer, ...(lastCopy ? { lastCopy: resourceDef(lastCopy).name } : {}) }),
+      clearOnYes,
+    );
+  }
+
+  /**
+   * Takes the envoy's answer, now or when it arrives. A later answer redraws the
+   * sheet, unless a newer question has been asked since or the sheet is down.
+   * `clearOnYes` empties that seat's draft on a yes, as the send button does.
+   */
+  function hear(
+    targetId: number,
+    reply: EnvoyAnswer | null | Promise<EnvoyAnswer | null>,
+    dress: (answer: EnvoyAnswer) => EnvoyAnswer,
+    clearOnYes: boolean,
+  ): void {
+    const settle = (answer: EnvoyAnswer | null): void => {
+      if (answer === null) return;
+      envoy = { seatId: targetId, answer: dress(answer) };
+      if (clearOnYes && answer.accepted) {
+        const draft = drafts.get(targetId);
+        if (draft) {
+          draft.give = {};
+          draft.take = {};
+        }
+      }
+    };
+    if (!(reply instanceof Promise)) {
+      settle(reply);
+      return;
+    }
+    const asked = audiencesAsked;
+    considering = targetId;
+    void reply.then((answer) => {
+      if (asked !== audiencesAsked) return;
+      considering = null;
+      settle(answer);
+      if (shell.isOpen) draw();
+    });
   }
 
   /**
@@ -1621,7 +1674,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     // shows first), and every gesture below only exists while it is up.
     const state = options.getState();
     const seat = options.getPlayerId();
-    if(draftGame!==state||draftSeat!==seat) {drafts.clear();envoy=null;counter=null;selectedId=null;activeView='audience';draftGame=state;draftSeat=seat;}
+    if(draftGame!==state||draftSeat!==seat) {drafts.clear();envoy=null;considering=null;audiencesAsked+=1;counter=null;selectedId=null;activeView='audience';draftGame=state;draftSeat=seat;}
     const activeElement=document.activeElement;
     const focusIndex=activeElement instanceof HTMLElement && body.contains(activeElement)?Array.from(body.querySelectorAll('button,input')).indexOf(activeElement):-1;
     const scroll=body.querySelector('.diplo-table')?.scrollTop??0;

@@ -1189,6 +1189,11 @@ describe('the bot module', () => {
     // arm of `diplomacy.ts` for the reason every leaf here is one: the memory
     // has to be the *game's* rather than either loop's, and the file that holds
     // it says once, in one place, what it can and cannot see.
+    //
+    // Eighteen since the bot worker (2026-10-06, browser performance audit
+    // findings 2 and 8): `harnessMemory.ts` lists those two memories as one
+    // value, so the worker's copy of the game can be handed both and hand them
+    // back. A third memory beside the state joins that list.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
@@ -1200,6 +1205,7 @@ describe('the bot module', () => {
       'diplomacy.ts',
       'driver.ts',
       'ground.ts',
+      'harnessMemory.ts',
       'plan.ts',
       'routes.ts',
       'stepper.ts',

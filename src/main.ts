@@ -43,7 +43,7 @@ import { MAPGEN_CONFIG, MAP_SIZE_NAMES, getMapSize } from './sim/mapgen';
 import { hashSeed } from './sim/rng';
 import { type Game, dispatch } from './sim/game';
 import type { Command, CommandResult } from './sim/commands';
-import { answerAudience, driveBots } from './ai/driver';
+import { answerAudience, botSeatsToDrive, driveBots } from './ai/driver';
 import { valueContext } from './ai/bot';
 import { counterRefusal, counterTerms } from './ai/diplomacy';
 import type { BotDecision } from './ai/decision';
@@ -99,6 +99,7 @@ import {
 // `newGame` and a save's log walk, off the main thread. See its docblock for
 // why a deterministic simulation is allowed to cross a worker seam at all.
 import { createGameAsync, loadSlotAsync, warmGameWorker } from './ui/gameLoader';
+import { createBotTwin } from './ui/botTwin';
 import { createLoadingSheet } from './ui/loadingSheet';
 import { openingFocus } from './ui/openingFocus';
 import {
@@ -153,7 +154,7 @@ import { type HudDock, createHudDock } from './ui/hudDock';
 import { type HoldingsRail, createHoldingsRail } from './ui/holdingsRail';
 import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
-import { type DiplomacyScreen, createDiplomacyScreen } from './ui/diplomacyScreen';
+import { type DiplomacyScreen, type EnvoyAnswer, createDiplomacyScreen } from './ui/diplomacyScreen';
 import { type WarDispatch, createWarDispatch } from './ui/warDispatch';
 import { createDiplomacyOffers } from './ui/diplomacyOffers';
 import { type ReligionScreen, createReligionScreen } from './ui/religionScreen';
@@ -2091,6 +2092,17 @@ let endTurnWorking = false;
 /** The two hops `pressEndTurn` yields through, held so a teardown can cancel. */
 let endTurnRaf = 0;
 let endTurnTimer = 0;
+/**
+ * Counts teardowns. An End Turn waiting on the bot worker remembers the value
+ * it started under and does nothing when the reply arrives under another: the
+ * game it was ending has gone.
+ */
+let endTurnGeneration = 0;
+/**
+ * Thrown by `onBeforeEndTurn` to stop the first, gate-reading call of
+ * `controls.endTurn` just before the bots would play. See `endTurnBehindTheBots`.
+ */
+const BOTS_TO_THE_WORKER = Symbol('the bots play in the worker');
 
 function showEndTurnState(blocker: TurnBlocker | null, pause: StatecraftPause | null): void {
   // **The working state outranks both.** A blocker read while the resolution is
@@ -3726,6 +3738,10 @@ async function boot(initial: Game | null): Promise<void> {
    */
   function isInputBlocked(): boolean {
     return (
+      // While the other empires take their turns in the bot worker the page
+      // keeps drawing, but the board takes no orders: the turn has been
+      // pressed, and an order now would land after the gates were read.
+      endTurnWorking ||
       !landingEl.hidden ||
       (diplomacy?.isOpen ?? false) ||
       (religion?.isOpen ?? false) ||
@@ -3858,6 +3874,17 @@ async function boot(initial: Game | null): Promise<void> {
     }
   }
 
+  /**
+   * **The bots think in a worker** (`src/ui/botTwin.ts`; browser performance
+   * audit 2026-10-06, findings 2 and 8). Started with the game so the worker
+   * has loaded the rules before the first End Turn. Where there is no worker
+   * the bots play on this thread exactly as before.
+   */
+  const botTwin = createBotTwin();
+  gameDisposers.push(() => botTwin.dispose());
+  /** True only during the first call of `controls.endTurn` in `endTurnBehindTheBots`. */
+  let botsToTheWorker = false;
+
   const controls = createGameControls({
     viewport: viewportEl,
     renderer,
@@ -3938,6 +3965,13 @@ async function boot(initial: Game | null): Promise<void> {
      * to the player.
      */
     onBeforeEndTurn: () => {
+      // The End Turn press asks the gates first and sends the bots to the
+      // worker only once they have passed: this throw is how the gates say so.
+      // It stops `controls.endTurn` here, after the gates and before anything
+      // of this seat's own `endTurn` has run. See `endTurnBehindTheBots`.
+      if (botsToTheWorker && botTwin.available && botSeatsToDrive(game.state).length > 0) {
+        throw BOTS_TO_THE_WORKER;
+      }
       driveBots(game, { report: (command, result) => controls.reportCommand(command, result) });
     },
     // ⏎ pressed on the board is the same press as a click on the button, and
@@ -5041,19 +5075,30 @@ async function boot(initial: Game | null): Promise<void> {
      * it has always done.
      */
     askAudience: (targetId, dealId) => {
-      const decision = answerAudience(game, {
+      const options = {
         seatId: targetId,
         askerId: controls.localPlayerId(),
         ...(dealId === undefined ? {} : { dealId }),
-        report: (command, result) => controls.reportCommand(command, result),
-      });
-      if (decision === null) return null;
-      controls.repaint();
-      return {
-        accepted: decision.command.type === 'acceptDeal' || decision.command.type === 'proposePeace',
-        sentence: decision.summary,
-        reasons: chosenReasons(decision),
+        report: (command: Command, result: CommandResult) => controls.reportCommand(command, result),
       };
+      const answer = (decision: BotDecision | null): EnvoyAnswer | null => {
+        if (decision === null) return null;
+        controls.repaint();
+        return {
+          accepted: decision.command.type === 'acceptDeal' || decision.command.type === 'proposePeace',
+          sentence: decision.summary,
+          reasons: chosenReasons(decision),
+        };
+      };
+      // The bot builds its whole appraisal to answer, which took 66 to 636 ms
+      // on this thread (audit finding 8). In the worker the sheet stays live
+      // and says the envoy is considering; the answer is applied here when it
+      // comes. A human seat, or a paper no longer on the table, is still `null`.
+      if (!botTwin.available) return answer(answerAudience(game, options));
+      const asked = game;
+      return botTwin.audience(() => game, options).then((decision) =>
+        decision === undefined || game !== asked ? null : answer(decision),
+      );
     },
     /**
      * *"What would make this work?"* and its mirror — a pure read of the empire
@@ -5848,22 +5893,70 @@ async function boot(initial: Game | null): Promise<void> {
     showEndTurnState(null, null);
     endTurnRaf = window.requestAnimationFrame(() => {
       endTurnRaf = 0;
-      endTurnTimer = window.setTimeout(() => {
+      endTurnTimer = window.setTimeout(async () => {
         endTurnTimer = 0;
+        const generation = endTurnGeneration;
         try {
-          controls.endTurn(force);
+          await endTurnBehindTheBots(force);
         } finally {
           // In a `finally` because a button stuck at "The others are moving…" is
           // a game the player cannot go on playing: whatever the resolution did,
-          // the corner comes back.
-          endTurnWorking = false;
+          // the corner comes back. Unless the game was torn down while the bots
+          // thought, in which case the teardown has already put it back.
+          if (generation === endTurnGeneration) endTurnWorking = false;
         }
         // The repaint that ends the wait, and the same one the click always did:
         // `updatePanel` is where the button's state is recomputed, so the label
         // returns to "End Turn" (or to whatever the new turn owes) here.
-        updatePanel(null, renderer.getHover());
+        if (generation === endTurnGeneration) updatePanel(null, renderer.getHover());
       }, 0);
     });
+  }
+
+  /**
+   * Ends this seat's turn with the other empires thinking in the bot worker.
+   *
+   * `controls.endTurn` runs the gates (puppet picks, blockers, the soft pause),
+   * then the bots (`onBeforeEndTurn`), then this seat's own `endTurn`. The
+   * bots now have to wait for a worker, and `controls.endTurn` cannot wait, so
+   * it is called twice:
+   *
+   *   1. with `botsToTheWorker` up. If a gate stops the press it returns as it
+   *      always did. If the gates pass and a bot still owes its turn, the hook
+   *      throws `BOTS_TO_THE_WORKER` before anything else runs;
+   *   2. after the worker's commands have been applied here, with `force`,
+   *      because the gates were passed in step 1 and nothing has been ordered
+   *      since (the board takes no orders while `endTurnWorking` is up, and the
+   *      twin checks the log did not move). The hook finds every bot finished
+   *      and the turn goes in, so the resolution and its three beats (marches,
+   *      turn card, camera) run exactly as before.
+   *
+   * If the worker's commands could not be used (no worker, an error, the log
+   * moved), step 2 is the ordinary press, gates and all, and the bots play on
+   * this thread as they did before the worker existed.
+   *
+   * While the worker thinks the page keeps drawing: the button says "The others
+   * are moving…", panels scroll, hovers read out, and the board takes no
+   * orders (`isInputBlocked`). What is left on this thread is applying the
+   * bots' commands and the turn's resolution.
+   */
+  async function endTurnBehindTheBots(force: boolean): Promise<void> {
+    const generation = endTurnGeneration;
+    botsToTheWorker = true;
+    try {
+      controls.endTurn(force);
+      return;
+    } catch (error) {
+      if (error !== BOTS_TO_THE_WORKER) throw error;
+    } finally {
+      botsToTheWorker = false;
+    }
+    const outcome = await botTwin.drive(
+      () => game,
+      (command, result) => controls.reportCommand(command, result),
+    );
+    if (generation !== endTurnGeneration || outcome === 'cancelled') return;
+    controls.endTurn(outcome === 'applied' ? true : force);
   }
 
   // Shift is the override, on the button as well as on the key it wears: a
@@ -5882,6 +5975,8 @@ async function boot(initial: Game | null): Promise<void> {
     endTurnRaf = 0;
     endTurnTimer = 0;
     endTurnWorking = false;
+    // An End Turn waiting on the bot worker drops its reply when it arrives.
+    endTurnGeneration += 1;
   }
   gameDisposers.push(cancelPendingEndTurn);
   suspendGame = () => {

@@ -71,6 +71,15 @@ import { hasPeaceOffer } from '../sim/wars';
 export type BotReporter = (command: Command, result: CommandResult) => void;
 
 export interface DriveOptions {
+  /**
+   * Called after **every** command the driver puts to the reducer, accepted or
+   * refused, in order. The bot worker records these so the page can put the
+   * same commands to its own copy of the game (`replayBotAttempts`). Refusals
+   * are included because one refusal changes the state: a great-person pick
+   * whose name was taken redraws the hand (`applyChooseGreatPerson`), and the
+   * log, which holds accepted commands only, does not record it.
+   */
+  attempt?: (command: Command, result: CommandResult) => void;
   /** Called after every accepted bot command. `controls.reportCommand`. */
   report?: BotReporter;
   /** Where a refusal is said out loud. Defaults to `console.warn`. */
@@ -136,13 +145,58 @@ export interface SeatDriveReport {
  */
 export function driveBots(game: Game, options: DriveOptions = {}): SeatDriveReport[] {
   const reports: SeatDriveReport[] = [];
-  for (const player of realPlayers(game.state)) {
-    if (player.isHuman) continue;
-    if (player.eliminated) continue;
-    if (hasEndedTurn(game.state, player.id)) continue;
-    reports.push(driveSeat(game, player.id, options));
+  for (const playerId of botSeatsToDrive(game.state)) {
+    reports.push(driveSeat(game, playerId, options));
   }
   return reports;
+}
+
+/**
+ * The seats `driveBots` would play now, in the order it would play them. The
+ * page asks this before it sends the bots to the worker: with none to play
+ * there is nothing to wait for.
+ */
+export function botSeatsToDrive(state: GameState): number[] {
+  const seats: number[] = [];
+  for (const player of realPlayers(state)) {
+    if (player.isHuman) continue;
+    if (player.eliminated) continue;
+    if (hasEndedTurn(state, player.id)) continue;
+    seats.push(player.id);
+  }
+  return seats;
+}
+
+/** One command a bot driver put to the reducer, and whether it was accepted. */
+export interface BotAttempt {
+  command: Command;
+  ok: boolean;
+}
+
+/**
+ * Puts to this game, in order, the commands a bot driver put to another copy of
+ * it (`DriveOptions.attempt`), with the same bookkeeping the driver does at its
+ * own dispatch: the refusal memory is read before and banked after, and every
+ * accepted command is reported.
+ *
+ * Returns false, and stops, at the first command whose outcome differs from
+ * the recorded one. That means the two copies were not the same game, and the
+ * caller must not trust the rest of the list.
+ */
+export function replayBotAttempts(
+  game: Game,
+  attempts: readonly BotAttempt[],
+  options: Pick<DriveOptions, 'report'> = {},
+): boolean {
+  for (const { command, ok } of attempts) {
+    const refusal = pendingDealRefusal(game.state, command);
+    const result = dispatch(game, command);
+    if (result.ok !== ok) return false;
+    if (!result.ok) continue;
+    if (refusal !== null) rememberDealRefusal(game.state, refusal);
+    options.report?.(command, result);
+  }
+  return true;
 }
 
 /**
@@ -202,6 +256,7 @@ export function answerAudience(game: Game, options: AudienceOptions): BotDecisio
   // reads one memory wherever the answer was given.
   const refusal = pendingDealRefusal(state, decision.command);
   const result = dispatch(game, decision.command);
+  options.attempt?.(decision.command, result);
   if (result.ok) {
     if (refusal !== null) rememberDealRefusal(state, refusal);
     options.report?.(decision.command, result);
@@ -291,6 +346,7 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
       // dispatch, which is what keeps the two loops one game.
       const refusal = pendingDealRefusal(game.state, command);
       const result = dispatch(game, command);
+      options.attempt?.(command, result);
       if (result.ok) {
         if (refusal !== null) rememberDealRefusal(game.state, refusal);
         noteSentOrder(sentOrders, game.state, command, key);
@@ -310,6 +366,7 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
     }
 
     const ended = dispatch(game, { type: 'endTurn', playerId });
+    options.attempt?.({ type: 'endTurn', playerId }, ended);
     if (ended.ok) {
       report.accepted += 1;
       report.ended = true;

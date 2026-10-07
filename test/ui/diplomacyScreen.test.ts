@@ -422,7 +422,10 @@ describe('the wiring that spans files', () => {
     expect(screen).toContain('askAudience');
     expect(screen).toContain('askCounter');
     const main = source('main.ts');
-    expect(main).toContain('answerAudience(game, {');
+    // On this thread when there is no bot worker, and through the worker's
+    // client otherwise, which falls back to the same call (`botTwin.ts`).
+    expect(main).toContain('answerAudience(game, options)');
+    expect(main).toContain('botTwin.audience(() => game, options)');
     expect(main).toContain('counterTerms(game.state, targetId, asker, give, take, ctx)');
   });
 
