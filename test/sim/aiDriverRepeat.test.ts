@@ -12,48 +12,42 @@
  * next arm with the same fault costs one warning instead of a turn.
  *
  * The policy is replaced with a stub that always asks for the same march. That
- * is the fault exactly, with nothing else in the way, and it is why this file
- * is separate: `vi.mock` replaces the module for the whole file.
+ * is the fault exactly, with nothing else in the way. The stub goes in through
+ * the loops' own `decide` option rather than `vi.mock`: the suite shares one
+ * module graph per worker (`isolate: false` in vite.config.ts), so a mocked
+ * module would be ignored whenever another file had already loaded the bot.
  */
 
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { BotDecision } from '../../src/ai/decision';
-import type { Command, MoveUnitCommand } from '../../src/sim/commands';
+import { driveSeat, sentToAPiece } from '../../src/ai/driver';
+import { createBotStepper } from '../../src/ai/stepper';
+import { applyCommand, type Command, type MoveUnitCommand } from '../../src/sim/commands';
+import { createGame, restoreState, snapshotState } from '../../src/sim/game';
+import { getTileAt, mapRange, tileHex } from '../../src/sim/map';
 
-const stub = vi.hoisted(() => ({
+const stub = {
   command: null as Command | null,
   asks: 0,
   /** Called on every ask before the stub answers; lets a test change the piece. */
   onAsk: null as ((asks: number) => void) | null,
-}));
+};
 
-vi.mock('../../src/ai/bot', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../src/ai/bot')>();
-  const decide = (): BotDecision | null => {
-    stub.asks += 1;
-    stub.onAsk?.(stub.asks);
-    if (stub.command === null) return null;
-    return {
-      kind: 'unitOrder',
-      command: stub.command,
-      subject: 'the stub',
-      summary: 'Always asks for the same march.',
-      candidates: [],
-    };
-  };
+/** The stub policy: always the same march, counted. */
+function decide(): BotDecision | null {
+  stub.asks += 1;
+  stub.onAsk?.(stub.asks);
+  if (stub.command === null) return null;
   return {
-    ...actual,
-    nextBotDecision: decide,
-    nextBotCommand: () => decide()?.command ?? null,
+    kind: 'unitOrder',
+    command: stub.command,
+    subject: 'the stub',
+    summary: 'Always asks for the same march.',
+    candidates: [],
   };
-});
-
-const { driveSeat } = await import('../../src/ai/driver');
-const { createBotStepper } = await import('../../src/ai/stepper');
-const { applyCommand } = await import('../../src/sim/commands');
-const { createGame, restoreState, snapshotState } = await import('../../src/sim/game');
-const { getTileAt, mapRange, tileHex } = await import('../../src/sim/map');
+}
+const decideCommand = (): Command | null => decide()?.command ?? null;
 
 type Game = ReturnType<typeof createGame>;
 
@@ -110,7 +104,7 @@ describe('an accepted unit order is not sent again to an unchanged piece', () =>
     const { game, command } = stuckMarch();
     stub.command = command;
     const warnings: string[] = [];
-    const report = driveSeat(game, 0, { warn: (message) => warnings.push(message) });
+    const report = driveSeat(game, 0, { warn: (message) => warnings.push(message), decide: decideCommand });
     const sent = game.log.filter((entry) => JSON.stringify(entry) === JSON.stringify(command));
     expect(sent.length).toBe(1);
     expect(report.repeated).toBeGreaterThanOrEqual(1);
@@ -124,7 +118,7 @@ describe('an accepted unit order is not sent again to an unchanged piece', () =>
     const { game, command } = stuckMarch();
     stub.command = command;
     const warnings: string[] = [];
-    const stepper = createBotStepper(game, { warn: (message) => warnings.push(message) });
+    const stepper = createBotStepper(game, { warn: (message) => warnings.push(message), decide });
     const sent: Command[] = [];
     for (let guard = 0; guard < 20; guard++) {
       const step = stepper.step();
@@ -148,7 +142,7 @@ describe('an accepted unit order is not sent again to an unchanged piece', () =>
       const unit = game.state.units.find((piece) => piece.id === command.unitId)!;
       unit.hp -= 1;
     };
-    const report = driveSeat(game, 0, { warn: () => undefined });
+    const report = driveSeat(game, 0, { warn: () => undefined, decide: decideCommand });
     const sent = game.log.filter((entry) => JSON.stringify(entry) === JSON.stringify(command));
     expect(sent.length).toBe(2);
     expect(report.repeated).toBeGreaterThanOrEqual(1);
@@ -157,7 +151,6 @@ describe('an accepted unit order is not sent again to an unchanged piece', () =>
   it('does not hold commands that are not orders to a piece to the rule', async () => {
     // Two belief drafts in one turn are both answered with option nought, and
     // both are real decisions; only an order to a piece is held to "once".
-    const { sentToAPiece } = await import('../../src/ai/driver');
     expect(sentToAPiece({ type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command)).toBe(false);
     expect(sentToAPiece({ type: 'endTurn', playerId: 0 })).toBe(false);
     expect(

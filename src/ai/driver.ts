@@ -75,6 +75,13 @@ export interface DriveOptions {
   report?: BotReporter;
   /** Where a refusal is said out loud. Defaults to `console.warn`. */
   warn?: (message: string, detail?: unknown) => void;
+  /**
+   * The policy asked for each command. Defaults to `nextBotCommand`. It is an
+   * option so a test can drive the loop with a fixed policy: the test suite
+   * shares one module graph per worker (`isolate: false` in vite.config.ts),
+   * so replacing the bot module with `vi.mock` does not work there.
+   */
+  decide?: typeof nextBotCommand;
 }
 
 /**
@@ -259,7 +266,7 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
 
   for (let attempt = 0; attempt < Math.max(1, ai.driver.endTurnAttempts); attempt++) {
     while (report.accepted + report.refused < ai.driver.commandsPerSeat) {
-      const command = nextBotCommand(game.state, playerId, sitting);
+      const command = (options.decide ?? nextBotCommand)(game.state, playerId, sitting);
       if (command === null) break;
       const key = JSON.stringify(command);
       if (refusedCommands.has(key)) {

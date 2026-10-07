@@ -72,6 +72,8 @@ export interface BotStep {
 export interface StepperOptions {
   /** Where a refusal is said out loud. Defaults to `console.warn`, as the driver's does. */
   warn?: (message: string, detail?: unknown) => void;
+  /** The policy asked for each decision. Defaults to `nextBotDecision`; see `DriveOptions.decide`. */
+  decide?: typeof nextBotDecision;
 }
 
 export interface BotStepper {
@@ -142,7 +144,7 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
     const ai = aiConfigFor(playerById(game.state, seat.playerId)?.persona, seat.playerId);
     if (seat.asking) {
       if (seat.accepted + seat.refused < ai.driver.commandsPerSeat) {
-        const decision = nextBotDecision(game.state, seat.playerId, seat.sitting);
+        const decision = (options.decide ?? nextBotDecision)(game.state, seat.playerId, seat.sitting);
         if (decision !== null) {
           const key = JSON.stringify(decision.command);
           if (seat.refusedCommands.has(key)) {
