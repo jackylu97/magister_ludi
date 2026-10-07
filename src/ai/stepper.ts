@@ -13,7 +13,7 @@
  * through this, and compares the two states byte for byte. If a guard here ever
  * drifts from a guard there, that test says so.
  *
- * The three guards being unrolled are `driveSeat`'s own, and each is a piece of
+ * The four guards being unrolled are `driveSeat`'s own, and each is a piece of
  * per-seat memory that a per-command API has to carry explicitly rather than
  * hold on a stack:
  *
@@ -23,7 +23,10 @@
  *     the loop re-proposing something the rules said no to;
  *   · the **bounded End Turn attempts**, because `endTurn` is refused while the
  *     seat still owes the turn something and the answer is to run the policy
- *     again — a few times, and then leave the seat open with a warning.
+ *     again — a few times, and then leave the seat open with a warning;
+ *   · the **sent-orders memo**, which refuses to send an accepted unit order
+ *     again to a piece that has not changed since (`repeatsAnOrder` in
+ *     `driver.ts`).
  *
  * Determinism is unchanged: seats are walked in `realPlayers` order, every
  * command comes out of a pure function of the state, and every accepted one is
@@ -35,6 +38,7 @@ import { aiConfigFor } from './aiConfig';
 import { type BotSitting, botSitting, nextBotDecision } from './bot';
 import { pendingDealRefusal, rememberDealRefusal } from './dealMemory';
 import type { BotDecision } from './decision';
+import { type SentOrders, noteSentOrder, repeatsAnOrder } from './driver';
 import type { CommandResult } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { hasEndedTurn, playerById, realPlayers } from '../sim/state';
@@ -92,6 +96,8 @@ interface SeatRun {
   redraws: number;
   /** Keyed by the command's own JSON — "the identical command", membership only. */
   refusedCommands: Set<string>;
+  /** The unit orders accepted this turn, with their pieces (`repeatsAnOrder`). */
+  sentOrders: SentOrders;
   /** True while the seat is still being asked for ordinary commands. */
   asking: boolean;
   finished: boolean;
@@ -138,7 +144,19 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
       if (seat.accepted + seat.refused < ai.driver.commandsPerSeat) {
         const decision = nextBotDecision(game.state, seat.playerId, seat.sitting);
         if (decision !== null) {
-          if (!seat.refusedCommands.has(JSON.stringify(decision.command))) return decision;
+          const key = JSON.stringify(decision.command);
+          if (seat.refusedCommands.has(key)) {
+            // Still asking for something refused: stop asking, as `driveSeat` does.
+          } else if (repeatsAnOrder(seat.sentOrders, game.state, decision.command, key)) {
+            // `driveSeat`'s fourth guard: an accepted unit order is not sent
+            // again to a piece that has not changed since.
+            warn(
+              `[ai] seat ${seat.playerId}: asked again for the same ${decision.command.type} — ${key}`,
+              decision.command,
+            );
+          } else {
+            return decision;
+          }
         }
       }
       seat.asking = false;
@@ -158,6 +176,7 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
         attempt: 0,
         redraws: 0,
         refusedCommands: new Set<string>(),
+        sentOrders: new Map(),
         asking: true,
         finished: false,
         sitting: botSitting(playerId),
@@ -194,6 +213,7 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
       }
     } else if (result.ok) {
       seat.accepted += 1;
+      noteSentOrder(seat.sentOrders, game.state, decision.command, JSON.stringify(decision.command));
     } else if (decision.command.type === 'chooseGreatPerson' && seat.redraws < ai.driver.greatPersonRedraws) {
       // The one refusal that is not a bug: a hand another seat has emptied is
       // refused *and redrawn*, so asking again asks about a new hand.
