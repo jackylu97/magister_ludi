@@ -12,6 +12,13 @@ if (review === 'banners') {
   const root = section(document.getElementById('sheet')!, 'leader-banners', 'Leader banners',
     'Historical references, simplified for the map.').root;
   void import('./leaderBanners').then(module => module.drawLeaderBanners(root));
+} else if (review === 'elephants') {
+  document.body.classList.add('focused-works-review');
+  const nav = document.getElementById('index')!;
+  nav.append(element('h1', undefined, 'Elephant pieces'));
+  const root = section(document.getElementById('sheet')!, 'elephants', 'Elephant comparison',
+    'The accepted war elephant and its siege variant.').root;
+  void import('./elephants').then(module => module.drawElephants(root));
 } else if (review === 'diplomacy-game') {
   void import('./diplomacyGameReview').then(module => module.drawDiplomacyGameReview(document.getElementById('sheet')!));
 } else if (review === 'diplomacy') {

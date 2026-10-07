@@ -14,7 +14,7 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
  const mounted=mountedVariants.includes(type);
  const infantry=['swordsman','legionary','longswordsman','fireLance','khopesh','eagleWarrior'].includes(type);
  const equipment=polearmVariants.includes(type)||rangedVariants.includes(type);
- if(type!=='embarked'&&!faithVariants.includes(type)&&type!=='rihlaCaravan'&&!navalVariants.includes(type)&&!siegeVariants.includes(type)&&!mounted&&!infantry&&!equipment&&!['warrior','spearman','horseman','archer','horseArcher','worker','prophet','scout','settler','trader','greatPerson','warElephant'].includes(type))throw new Error(`Unknown primitive unit ${type}`);
+ if(type!=='embarked'&&!faithVariants.includes(type)&&type!=='rihlaCaravan'&&!navalVariants.includes(type)&&!siegeVariants.includes(type)&&!mounted&&!infantry&&!equipment&&!['warrior','spearman','horseman','archer','horseArcher','worker','prophet','scout','settler','trader','greatPerson','warElephant','siegeElephant'].includes(type))throw new Error(`Unknown primitive unit ${type}`);
  const group=new T.Group();group.name=`Primitive chess ${type}`;group.scale.setScalar(.72);
  const material=(name,color)=>{const m=new T.MeshStandardMaterial({color,roughness:.8,metalness:0});m.name=name;return m};
  const owner=material('Owner enamel','#ffffff'),ownerShade=material('Owner turned recess','#c3c5c6');
@@ -75,7 +75,7 @@ export function createPrimitiveUnitScene(type,{family='scholar'}={}){
  else if(siegeVariants.includes(type))addSiege(kit,type);
  else if(chariotVariants.includes(type))addChariot(kit,type);
  else if(type==='greatPerson')addGreatPerson(kit,family);
- else if(type==='warElephant')addWarElephant(kit);
+ else if(type==='warElephant'||type==='siegeElephant')addWarElephant(kit,{siege:type==='siegeElephant'});
  else if(type==='scout'){
   // A full-sized military pawn in one carved hooded mantle. The open front
   // preserves the ivory face and turned body without adding human limbs.

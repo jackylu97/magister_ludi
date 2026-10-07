@@ -32,16 +32,17 @@ interface PackedUnitAsset {
   contacts: [number, number, number][];
 }
 
-type UnitArtState = Pick<Unit, 'type' | 'person' | 'trade'>;
+// The siege sculpt can be reviewed before its gameplay data row lands.
+type UnitArtState = Pick<Unit, 'person' | 'trade'> & { type: Unit['type'] | 'siegeElephant' };
 type RegisterMaterial = (material: MeshStandardMaterial) => void;
-const implementedTypes = new Set<string>(paintedUnitTypes);
+const implementedTypes = new Set<string>([...paintedUnitTypes, 'siegeElephant']);
 
 /** The accepted study poses; equipment variants share the infantry's facing. */
-function studyYaw(type: Unit['type']): number {
+function studyYaw(type: UnitArtState['type']): number {
   if (type === 'horseman' || type === 'horseArcher' || mountedVariants.includes(type)) return -.35;
   if (navalVariants.includes(type)) return -.65;
   if (type === 'catapult' || type === 'trebuchet') return -.60;
-  if (type === 'warElephant') return -.58;
+  if (type === 'warElephant' || type === 'siegeElephant') return -.58;
   if (type === 'trader' || type === 'rihlaCaravan') return -.62;
   if (type === 'settler') return 2.92;
   return type === 'warrior' || unitReviewVariants.includes(type) ? -.16 : .12;

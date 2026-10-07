@@ -145,6 +145,27 @@ def animal(kind):
  for s in [-1,1]:leaf(((.46 if stocky else .44),s*(.119 if stocky else .14 if elephant else .055),leg+(.19 if stocky else .28 if elephant else .105 if beaver else .565)),(.011,.007,.011),MANE)
  export(kind)
 
+def camel():
+ reset()
+ coat=pigment('Camel sand coat','ba8c58');light=pigment('Camel sunlit coat','cfaa75')
+ # Long legs and a single broad hump keep the herd legible at map scale.
+ loft([(-.39,.51,.055,.075),(-.27,.54,.145,.16),(.03,.54,.17,.18),(.25,.55,.13,.15),(.34,.57,.065,.08)],coat,8)
+ loft([(-.26,.65,.12,.09),(-.13,.78,.135,.19),(-.02,.80,.11,.21),(.14,.67,.11,.09)],light,8)
+ for x in [-.27,.22]:
+  for side in [-1,1]:
+   y=side*.108;step=.045 if side==1 else -.02
+   tube([(x,y,.55),(x+step,y*1.12,.29),(x+step-.025,y*1.15,.045)],[.037,.024,.018],coat,6)
+   block((x+step+.005,y*1.15,.025),(.08,.058,.045),MANE,.01)
+ # The neck curves down from the shoulder before rising to a blunt muzzle.
+ tube([(.22,0,.60),(.38,0,.54),(.49,0,.69),(.47,0,.90),(.48,0,1.03)],[.085,.08,.065,.05,.047],coat,8)
+ loft([(.43,1.055,.045,.06),(.52,1.065,.065,.076),(.65,1.005,.048,.045),(.69,1.002,.028,.026)],light,8)
+ for side in [-1,1]:
+  leaf((.46,side*.075,1.105),(.025,.034,.055),coat)
+  leaf((.555,side*.06,1.077),(.009,.006,.009),MANE)
+ tube([(-.36,0,.58),(-.46,.015,.38),(-.47,.025,.22)],[.019,.013,.008],coat,6)
+ leaf((-.47,.025,.20),(.025,.023,.05),MANE)
+ export('camel')
+
 def city_assets():
  runpy.run_path(str(Path(__file__).with_name('build_city_assets.py')),init_globals=globals())
 
@@ -160,8 +181,11 @@ if '--sites-only' in sys.argv:
  site_assets();sys.exit(0)
 if '--units-only' in sys.argv:
  unit_assets();sys.exit(0)
+if '--camel-only' in sys.argv:
+ camel();sys.exit(0)
 
 for name in ['horse','cattle','bison','deer','elephant','beaver']:animal(name)
+camel()
 reset();house();export('house')
 reset();temple();export('temple')
 reset()

@@ -8,6 +8,7 @@ import {indexGeometry} from './indexGeometry.js';
 import {farmPaint,farmLayout} from './farmPaint.js';
 import {createLumbermillGeometry} from './lumbermillGeometry.js';
 import {createSpecialWorkGeometry} from './specialWorkGeometry.js';
+import {createObsidianGeometry} from './obsidianGeometry.js';
 
 function colored(g,color){
  const c=new T.Color(color),p=g.attributes.position,colors=new Float32Array(p.count*3);
@@ -47,6 +48,7 @@ export function createSettlementArt(assets,paintedStyle){
  const foundation=box(1,1,1,'#b7b49d'),grain=colored(new T.ConeGeometry(.018,.12,5),'#cab166');grain.translate(0,.06,0);
  const cropStem=colored(new T.CylinderGeometry(.004,.006,.10,4),'#a4a36b');cropStem.translate(0,.05,0);
  const oreModels=Object.fromEntries(Object.entries(resourceColors).filter(([id])=>resourceFamilies[id]==='ore').map(([id,color],k)=>{
+  if(id==='obsidian')return [id,createObsidianGeometry()];
   const g=colored(crag(k),color),p=g.attributes.position,c=g.attributes.color;
   const dark=new T.Color(color).multiplyScalar(.58),vein=new T.Color(color).lerp(new T.Color('#e5dbb0'),.32);
   for(let i=0;i<p.count;i+=3){const band=(i/3+k)%9,v=band===0?vein:band===2?dark:new T.Color(color);for(let j=0;j<3;j++)c.setXYZ(i+j,v.r,v.g,v.b)}

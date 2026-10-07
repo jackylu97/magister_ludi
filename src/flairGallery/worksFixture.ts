@@ -5,6 +5,8 @@ import { createUnit, newGame } from '../sim/state';
 import { resetVisibility, VISIBLE } from '../sim/visibility';
 
 export const WORKS_VIEWS = {
+  camels: { col: 4, row: 4, label: 'Camp · camels', note: 'Small sand-coloured camels with long legs, curved necks and broad humps.' },
+  obsidian: { col: 7, row: 2, label: 'Mine · obsidian', note: 'Dark fractured glass with broad faces and cool blue-grey edges.' },
   terraces: { col: 7, row: 6, label: 'Pachacuti · Terraces', note: 'The approved cultivated hillside in the game renderer. Five planting shelves, stone retaining walls and a tiny summit farmhouse.' },
   plantation: { col: 4, row: 6, label: 'Plantation · wine', note: 'Cultivated shrubs, painted beds and a small farmhouse.' },
   plantationHills: { col: 5, row: 8, label: 'Plantation · tea hills', note: 'Rows follow the hill faces; the farmhouse has a fitted foundation.' },
@@ -44,6 +46,8 @@ export function createWorksFixture() {
     }
   }
   Object.assign(tile(7, 6), { hills: true, feature: 'none', improvement: 'terraces' });
+  Object.assign(tile(4, 4), { resource: 'camels', terrain: 'desert', feature: 'none' });
+  Object.assign(tile(7, 2), { resource: 'obsidian', terrain: 'desert', hills: true, feature: 'none' });
   tile(7, 5).hills = true; tile(6, 6).hills = true;
   tile(4, 6).resource = 'wine';
   Object.assign(tile(5, 8), { resource: 'tea', hills: true });
@@ -60,8 +64,9 @@ export function createWorksFixture() {
   const town = foundCityAt(state, 0, tile(8, 10));
   town.population = 4;
   state.tileOwner.fill(town.id);
-  state.players[0]!.techsResearched.push('calendar', 'siegecraft', 'sailing', 'agriculture', 'bronzePanoply', 'husbandry');
+  state.players[0]!.techsResearched.push('calendar', 'siegecraft', 'sailing', 'agriculture', 'bronzePanoply', 'husbandry', 'mining', 'fletching');
   for (const [col, row, id] of [
+    [4, 4, 'camp'], [7, 2, 'mine'],
     [4, 6, 'plantation'], [5, 8, 'plantation'], [4, 10, 'plantation'],
     [9, 6, 'lumbermill'], [10, 8, 'lumbermill'],
     [13, 6, 'fishingBoats'], [13, 8, 'fishingBoats'], [15, 7, 'fishingBoats'], [6, 10, 'farm'],

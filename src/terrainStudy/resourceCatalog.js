@@ -11,10 +11,7 @@ const groups={
  marine:['fish','crabs','pearls','coral','whales','tyrian'],
 };
 export const resourceFamilies=Object.fromEntries(Object.entries(groups).flatMap(([family,ids])=>ids.map(id=>[id,family])));
-// Camels borrow the horse sculpt: there is no camel model yet, and a mount
-// drawn as a mount is a better placeholder than an undrawn hex. Everything
-// visual here is a placeholder to be dialed later.
-export const animalAsset={cattle:'cattle',horses:'horse',bison:'bison',deer:'deer',furs:'beaver',ivory:'elephant',camels:'horse'};
+export const animalAsset={cattle:'cattle',horses:'horse',bison:'bison',deer:'deer',furs:'beaver',ivory:'elephant',camels:'camel'};
 export const resourceColors={
  stone:'#bcc1b6',copper:'#bd8958',tin:'#a2b5bc',clay:'#c48458',iron:'#706e78',niter:'#c5c3a5',obsidian:'#3b3846',gems:'#718ea2',salt:'#dbd2b6',jade:'#649d83',marble:'#d2ccc0',amber:'#b17b3a',lapis:'#4f6baf',silver:'#bacad1',gold:'#c2a055',richOre:'#8c939c',
  wheat:'#c4ac5b',rice:'#94a55c',maize:'#b7ab5a',reeds:'#91a165',

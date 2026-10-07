@@ -25,7 +25,7 @@ import { surfaceHeight } from '../terrainStudy/surface.js';
 import { terrainMesh } from '../terrainStudy/terrainMesh.js';
 
 export const PAINTED_WORK_ASSET_NAMES = [
-  'horse', 'cattle', 'bison', 'deer', 'elephant', 'beaver',
+  'horse', 'cattle', 'bison', 'deer', 'elephant', 'beaver', 'camel',
   'house', 'mine', 'camp', 'quarry', 'resource-shrub', 'fishing-boat',
 ] as const;
 /** The rows this layer has a recipe drawn for. One name, one composition. */

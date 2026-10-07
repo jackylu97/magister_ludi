@@ -3,7 +3,7 @@ import * as T from 'three';
 // A carved elephant finial, on the same enamel socket as the chess knights.
 // The forehead, chest and curled trunk share one silhouette. Its broad ears
 // and paired tusks distinguish it without requiring a miniature rider.
-export function addWarElephant(kit){
+export function addWarElephant(kit,{siege=false}={}){
  const {group,mesh,cylinder,ring,rod,box,owner,ownerShade,ivory,gold,dark}=kit;
  const seat=[[.26,.23],[.27,.29],[.265,.33],[.295,.38],[.315,.40],[.315,.43]];
  mesh('Elephant low enamel socket',new T.LatheGeometry(seat.map(p=>new T.Vector2(...p)),16),owner);
@@ -122,6 +122,29 @@ export function addWarElephant(kit){
  }
  const sealPoint=foreheadPoint(0,1.218);
  const insignia=box('Elephant small gilt brow diamond',[.047,.047,.010],gold,sealPoint[0],sealPoint[1],sealPoint[2]+.005);insignia.rotation.z=Math.PI/4;
+
+ if(siege){
+  // A small fortified howdah sits behind the forehead; the original head,
+  // ears and trunk stay exposed and keep the two pieces in the same family.
+  box('Siege elephant saddle support',[.36,.16,.28],ownerShade,0,1.18,-.235);
+  box('Siege elephant howdah deck',[.46,.045,.38],gold,0,1.285,-.235);
+  for(const side of [-1,1]){
+   box(`Siege elephant tower wall ${side}`,[.045,.18,.34],owner,side*.205,1.395,-.235);
+   box(`Siege elephant side armour ${side}`,[.026,.25,.23],owner,side*.22,.72,-.15);
+   rod(`Siege elephant saddle strap ${side}`,[side*.21,.84,-.27],[side*.21,1.28,-.27],.012,gold);
+   for(const z of [-.38,-.10])box(`Siege elephant battlement ${side} ${z}`,[.074,.06,.075],ivory,side*.205,1.51,z);
+  }
+  box('Siege elephant rear parapet',[.39,.18,.04],owner,0,1.395,-.405);
+  // An oversized bolt and transverse bow give the siege role a clear outline.
+  box('Siege elephant ballista mount',[.07,.18,.07],ivory,0,1.40,-.21);
+  box('Siege elephant ballista stock',[.05,.045,.42],dark,0,1.51,-.12);
+  rod('Siege elephant left bow limb',[0,1.51,.02],[-.25,1.51,.095],.025,gold);
+  rod('Siege elephant right bow limb',[0,1.51,.02],[.25,1.51,.095],.025,gold);
+  rod('Siege elephant left bowstring',[-.25,1.51,.095],[0,1.51,-.23],.005,ivory,4);
+  rod('Siege elephant right bowstring',[.25,1.51,.095],[0,1.51,-.23],.005,ivory,4);
+  rod('Siege elephant loaded bolt',[0,1.545,-.23],[0,1.545,.20],.01,ivory);
+  const tip=mesh('Siege elephant bolt head',new T.ConeGeometry(.026,.08,4),gold,0,1.545,.225);tip.rotation.x=Math.PI/2;
+ }
 
  const parts=group.children.slice(firstSculpturePart),bust=new T.Group();
  bust.name='Carved chess war elephant';bust.rotation.y=-.46;group.add(bust);

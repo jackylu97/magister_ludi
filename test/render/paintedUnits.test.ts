@@ -22,6 +22,22 @@ const make = (register: (material: MeshStandardMaterial) => void = () => {}): Pa
   const kit = new PaintedUnitKit(register); kits.push(kit); return kit;
 };
 const personFor = (family: Family) => GREAT_PERSON_IDS.find(id => greatPersonDef(id).family === family)!;
+
+it('packs the siege elephant as a distinct cached model with the same supported base', () => {
+  const kit = make(), original = kit.resolve({ type: 'warElephant' })!, siege = kit.resolve({ type: 'siegeElephant' })!;
+  expect(siege).toBe(kit.resolve({ type: 'siegeElephant' }));
+  expect(siege).not.toBe(original);
+  expect(siege.contacts).toEqual(original.contacts);
+  expect(siege.yaw).toBe(original.yaw);
+  expect(siege.height).toBeGreaterThan(original.height);
+  expect(siege.height).toBeLessThan(original.height * 1.25);
+  expect(siege.radius).toBeLessThan(.7);
+  for (const attribute of Object.values(siege.geometry.attributes)) {
+    expect([...attribute.array].every(Number.isFinite)).toBe(true);
+  }
+  const mask = siege.geometry.getAttribute('paintedOwner');
+  expect(new Set(mask.array)).toEqual(new Set([0, 1]));
+});
 const compile = (material: MeshStandardMaterial): Parameters<MeshStandardMaterial['onBeforeCompile']>[0] => {
   const shader = {
     uniforms: {}, vertexShader: ShaderLib.standard.vertexShader, fragmentShader: ShaderLib.standard.fragmentShader,

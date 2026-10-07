@@ -13,7 +13,7 @@ import {indexGeometry} from './indexGeometry.js';
 // and the renderer downloads what it is going to use. The authored files are
 // still shipped and this module still knows how to prepare them, which is what a
 // missing or out-of-date bundle falls back to.
-export const SETTLEMENT_ASSET_NAMES=['horse','cattle','bison','deer','elephant','beaver','house','temple','bell-tower',
+export const SETTLEMENT_ASSET_NAMES=['horse','cattle','bison','deer','elephant','beaver','camel','house','temple','bell-tower',
  'mine','camp','quarry','fishing-boat','resource-shrub','city-house','city-loggia','civic-sanctum','city-spire','city-dome',
  'site-ruin-arch','site-ruin-column','site-ruin-fragment','site-hut','site-longhouse','site-antiquity','site-wreck',
  'site-raider-tent','site-watchtower'];

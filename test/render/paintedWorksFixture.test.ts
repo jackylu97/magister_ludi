@@ -12,6 +12,7 @@ import { EXPLORED, HIDDEN, VISIBLE, visibilityAt } from '../../src/sim/visibilit
 import { prepareTerrainMap } from '../../src/terrainStudy/surface.js';
 
 const expectedWorks = [
+  [4, 4, 'camp', 'camels'], [7, 2, 'mine', 'obsidian'],
   [7, 6, 'terraces', null],
   [4, 6, 'plantation', 'wine'], [5, 8, 'plantation', 'tea'], [4, 10, 'plantation', 'reeds'],
   [9, 6, 'lumbermill', null], [10, 8, 'lumbermill', null],
@@ -42,6 +43,8 @@ describe('painted improvement review fixture', () => {
   it('keeps each camera target on the named work and ground variant', () => {
     const state = createWorksFixture();
     const targets = {
+      camels: { improvement: 'camp', resource: 'camels', terrain: 'desert', hills: false },
+      obsidian: { improvement: 'mine', resource: 'obsidian', hills: true },
       terraces: { improvement: 'terraces', hills: true, feature: 'none' },
       plantation: { improvement: 'plantation', resource: 'wine', hills: false },
       plantationHills: { improvement: 'plantation', resource: 'tea', hills: true },
@@ -72,7 +75,7 @@ describe('painted improvement review fixture', () => {
     const works = state.map.tiles.filter(tile => tile.improvement)
       .map(tile => [tile.col, tile.row, tile.improvement, tile.resource ?? null]);
     expect(works).toEqual([...expectedWorks].sort((a, b) => a[1] - b[1] || a[0] - b[0]));
-    expect(state.map.tiles.filter(tile => tile.resource)).toHaveLength(10);
+    expect(state.map.tiles.filter(tile => tile.resource)).toHaveLength(12);
     for (const [index, tile] of state.map.tiles.entries()) {
       expect(tileIndex(state.map, tile.col, tile.row)).toBe(index);
       expect(tile.discovery).toBeUndefined(); expect(tile.vein).toBeUndefined(); expect(tile.surveyed).toBeUndefined();
