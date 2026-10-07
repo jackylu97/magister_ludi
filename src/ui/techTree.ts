@@ -1838,16 +1838,30 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // is one it could not clear a card out of, and the sign says which way round
     // the card is.
     const bows = new Map((layout?.bowed ?? []).map((edge) => [`${edge.from}>${edge.to}`, edge.bow]));
+    // Every card's box is read before any path is added. Appending a path
+    // changes the document, so a geometry read after it forces the browser to
+    // lay the page out again; with reads and appends interleaved that was up
+    // to one layout per connector. The paths go in together at the end.
+    const boxes = new Map<TechId, { left: number; top: number; width: number; height: number }>();
+    for (const [id, card] of cards) {
+      boxes.set(id, {
+        left: card.offsetLeft,
+        top: card.offsetTop,
+        width: card.offsetWidth,
+        height: card.offsetHeight,
+      });
+    }
+    const drawnPaths = document.createDocumentFragment();
     for (const id of TECH_IDS) {
-      const to = cards.get(id);
+      const to = boxes.get(id);
       if (!to) continue;
-      const x2 = to.offsetLeft;
-      const y2 = to.offsetTop + to.offsetHeight / 2;
+      const x2 = to.left;
+      const y2 = to.top + to.height / 2;
       for (const prereq of techDef(id).prereqs) {
-        const from = cards.get(prereq);
+        const from = boxes.get(prereq);
         if (!from) continue;
-        const x1 = from.offsetLeft + from.offsetWidth;
-        const y1 = from.offsetTop + from.offsetHeight / 2;
+        const x1 = from.left + from.width;
+        const y1 = from.top + from.height / 2;
         const reach = Math.max(24, Math.min(90, (x2 - x1) * 0.45));
         const bow = bows.get(`${prereq}>${id}`) ?? 0;
         const path = document.createElementNS(SVG_NS, 'path');
@@ -1862,10 +1876,11 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         // is the faint chart under it.
         const held = player?.techsResearched.includes(prereq) ?? false;
         path.setAttribute('class', held ? 'tech-line is-held' : 'tech-line');
-        svg.append(path);
+        drawnPaths.append(path);
         connectors.push({ path, from: prereq, to: id });
       }
     }
+    svg.append(drawnPaths);
   }
 
   // --- travelling along it -------------------------------------------------
@@ -2152,6 +2167,15 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     );
   }
 
+  /** What the last render drew for. See `render`. */
+  let drawn: {
+    state: GameState;
+    revision: number;
+    seat: number;
+    open: boolean;
+    field: HTMLElement | null;
+  } | null = null;
+
   /**
    * The one entry point, and the one place a render begins.
    *
@@ -2163,13 +2187,32 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * once per visit and no click ever lays one out again.
    */
   function render(): void {
-    beginPass();
-    renderStatus();
-    if (!open) return;
-    if (field === null) {
-      renderChart();
+    // Nothing the screen prints has changed since the last render: skip it. A
+    // click on a star used to repaint the whole chart twice, once here and once
+    // more from the host's refresh (`onChanged` → `updatePanel`), and the
+    // host's refresh also runs after every selection and command while the
+    // chart is closed. Everything below reads the state for one seat, so the
+    // state object, its revision and the seat decide it, plus whether the chart
+    // is up and which chart is built (`field` is cleared on close, so a reopen
+    // always builds).
+    const { state } = getGame();
+    const seat = localPlayerId();
+    if (drawn !== null && drawn.state === state && drawn.revision === state.revision &&
+        drawn.seat === seat && drawn.open === open && drawn.field === field && (!open || field !== null)) {
       return;
     }
+    beginPass();
+    renderStatus();
+    if (!open) {
+      drawn = { state, revision: state.revision, seat, open, field };
+      return;
+    }
+    if (field === null) {
+      renderChart();
+      drawn = { state, revision: state.revision, seat, open, field };
+      return;
+    }
+    drawn = { state, revision: state.revision, seat, open, field };
     // Before anything is measured — the strip is a flex sibling of the stage, so
     // it appearing or going takes real height off `chart.clientHeight`, which is
     // the height `refreshNodes` then spends on the lanes.

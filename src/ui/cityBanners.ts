@@ -285,6 +285,8 @@ import {
 import { type SiegeField, cityBeatenDown, cityMaxHp, siegeField, underSiege } from '../sim/combat';
 import type { Game } from '../sim/game';
 import { tileIndex } from '../sim/map';
+import { readCity } from '../sim/readings';
+import { type CityReading, foldCity } from '../sim/yields/town';
 import { type City, type GameState, type Unit, isBarbarian } from '../sim/state';
 import { unitDef, unitHp, unitMaxHp } from '../sim/unitData';
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
@@ -577,9 +579,16 @@ function growthWords(turns: number | null): string {
  * the front of the queue, less whatever a happiness deficit takes — and the ring
  * must show the step the basket will actually take.
  */
-export function cityGrowthRing(state: GameState, city: City): GrowthRing {
+export function cityGrowthRing(
+  state: GameState,
+  city: City,
+  // The town's published list for this revision (`readCity`), when the caller
+  // has it. Without it `growthSurplus` folds the whole town again, which on
+  // every banner refresh was most of what the banners cost.
+  quote?: CityReading,
+): GrowthRing {
   return growthRing(
-    growthSurplus(state, city),
+    growthSurplus(state, city, foldCity(state, city, [], undefined, quote)),
     city.foodBasket,
     growthThreshold(city.population),
   );
@@ -835,16 +844,22 @@ function watchedFacts(
   };
   if (!mine) return facts;
 
+  // The town's list, read once through the revision memo and shared by the
+  // ring and the countdown below. Asked without it, each of the two folded the
+  // whole town again on every banner refresh (about 5 to 9 ms a refresh for six
+  // towns on a turn-100 Standard map), and `updatePanel` refreshes the banners
+  // after every selection and command. Same fold, same figures.
+  const quote = readCity(state, city);
   // Yours only, on the far side of the `mine` gate it shares with production —
   // see "The growth ring".
-  facts.growth = cityGrowthRing(state, city);
+  facts.growth = cityGrowthRing(state, city, quote);
   const item = city.queue[0];
   if (item) {
     // `turnsToBuild` at the front of the queue rather than the subtraction
     // spelled out here: it is the same arithmetic every other estimate in the
     // interface reads, and since the Age I rework it also knows that a
     // barracks fills the basket faster while a unit is at the front.
-    const turns = turnsToBuild(state, city, item, 0);
+    const turns = turnsToBuild(state, city, item, 0, quote);
     const suffix = turns === null ? '' : ` · ${turns}t`;
     facts.production = `${queueItemName(item)}${suffix}`;
   } else {

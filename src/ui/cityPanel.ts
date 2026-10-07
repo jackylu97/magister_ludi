@@ -1529,6 +1529,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
   // --- sections ------------------------------------------------------------
 
+  /** The build list's previews, kept while the world stands still. See `createBuildingPreviewMemo`. */
+  const buildingPreview = createBuildingPreviewMemo();
+  /** The state object and `panelRenderKey` of the last full render. */
+  let drawnState: GameState | null = null;
+  let drawnKey: string | null = null;
+
+
   /**
    * **One line of the town's list, as figures** — `+3🌾 +1⚒`.
    *
@@ -2708,9 +2715,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
           // Oath pays all six voices at once — and inside the price column it
           // was setting the column's width, which is the name's width, which is
           // what the list is read by. On its own line it truncates instead.
-          const foldedPreview = foldBuildingPreview(
-            explainBuildingPreview(state, city, id, quote),
-          );
+          const foldedPreview = foldBuildingPreview(buildingPreview(state, city, id, quote));
           button.append(
             element('span', 'city-buildable-preview', previewFigures(foldedPreview) || '—'),
           );
@@ -3475,6 +3480,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
   function render(): void {
     const city = getCity();
+    // Nothing the panel prints has changed since the last render: skip the
+    // rebuild. `updatePanel` in `main.ts` runs after every selection, hover-free
+    // refresh and dispatch, often two or three times in a row, and a large
+    // town's panel took tens of milliseconds to rebuild each time. See
+    // `panelRenderKey` for what counts as a change.
+    const { state: drawing } = getGame();
+    const key = city === null ? null : panelRenderKey(drawing, city, localPlayerId(), isBuyMode(), isTutorialActive());
+    if (key !== null && drawing === drawnState && key === drawnKey) return;
+    drawnState = drawing;
+    drawnKey = key;
     // Every anchor in this panel is about to stop existing, and an open card
     // would be left pointing at a row that has gone. See `infoCard.ts`.
     info.hide();
@@ -3535,4 +3550,68 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   return { render };
+}
+
+/**
+ * The build list's "what if" previews, kept for as long as the world has not
+ * moved: same state object, same `state.revision`, same town.
+ *
+ * Each preview folds the town twice (with and without the building), and the
+ * list asks for one per building row, so a render of a large town spent about a
+ * third of its time here. The panel renders again on tab and buy-mode clicks,
+ * none of which change the state. `explainBuildingPreview` is a pure function
+ * of the state, and the revision moves on every accepted command and every
+ * end-of-turn phase, so a kept list is the list the sim would return. The
+ * figures printed are still the fold of that list (rule 5).
+ *
+ * Exported so the core tests can check, without a document, that a kept list
+ * equals a fresh one and that a new revision drops it.
+ */
+export function createBuildingPreviewMemo(): (
+  state: GameState,
+  city: City,
+  id: BuildingId,
+  quote: CityReading,
+) => BuildingPreviewLine[] {
+  let stamp: { state: GameState; revision: number; cityId: number } | null = null;
+  const kept = new Map<BuildingId, BuildingPreviewLine[]>();
+  return (state, city, id, quote) => {
+    if (stamp === null || stamp.state !== state || stamp.revision !== state.revision ||
+        stamp.cityId !== city.id) {
+      kept.clear();
+      stamp = { state, revision: state.revision, cityId: city.id };
+    }
+    let lines = kept.get(id);
+    if (lines === undefined) {
+      lines = explainBuildingPreview(state, city, id, quote);
+      kept.set(id, lines);
+    }
+    return lines;
+  };
+}
+
+/**
+ * Everything the city panel's render reads besides the state object, as one
+ * string. Two renders with the same key on the same state draw the same panel,
+ * so the second is skipped.
+ *
+ * - `state.revision`: moves on every accepted command and every end-of-turn
+ *   phase, so it covers the town, the empire, the treasury and the turn
+ *   (including whether the seat has ended it, which locks the panel);
+ * - the town, the seat looking at it, the build-list tab (`addTab`), buy mode
+ *   and whether the guide is up (the board caption reads the last two).
+ *
+ * Open disclosures are not in the key: the browser toggles a `<details>` in
+ * place, so the drawn panel already shows them. A new input to the panel must
+ * be added here, or the panel stays stale until the next command.
+ * `test/ui/cityPanelRefresh.test.ts` pins the terms.
+ */
+export function panelRenderKey(
+  state: GameState,
+  city: City,
+  seat: number,
+  buyMode: boolean,
+  tutorialActive: boolean,
+): string {
+  return [state.revision, city.id, seat, addTab, buyMode ? 'buy' : '', tutorialActive ? 'guide' : ''].join('|');
 }
