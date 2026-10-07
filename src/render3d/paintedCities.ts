@@ -6,7 +6,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { type GameMap, type Tile, getTileAt, tileIndex } from '../sim/map';
 import type { City, GameState } from '../sim/state';
 import { type CityLook, capitalIds, cityLook } from './cities3d';
-import { type FogLevels, seesCell } from './fog3d';
+import { type FogLevels, knowsCell, seesCell } from './fog3d';
 import { createTileSurfaceSampler } from './paintedTileSurface';
 import { VIEW3D } from './lookData';
 import { paintedCityGeometry } from './paintedCityGeometry';
@@ -130,6 +130,22 @@ export class PaintedCityLayer {
   private readonly batches = new Map<string, CityBatch>();
   private preparedMap: GameMap | undefined;
   private disposed = false;
+  private casters = '';
+
+  /**
+   * What the static sun's bake needs to know about this layer, as one string:
+   * every town the seat has charted that has been cut, with the key it was cut
+   * with. The renderer re-bakes the static shadows when this changes, instead
+   * of whenever any town anywhere changes.
+   *
+   * A town the seat cannot see is never re-cut, so a rival's town growing out
+   * of sight leaves this alone. A town that drops from sight to memory keeps its
+   * cut and so keeps its place here: the flip between seen and remembered is
+   * deliberately not a bake (it happens on most unit steps near a border), as it
+   * was before this key existed. A town seen again after it changed is re-cut on
+   * that build, and the key moves then.
+   */
+  get shadowKey(): string { return this.casters; }
 
   constructor(private readonly assets: PaintedCityAssets, registerMaterial: RegisterMaterial) {
     this.group.name = 'painted-cities';
@@ -193,6 +209,12 @@ export class PaintedCityLayer {
     // A town razed takes its cut with it; a town merely out of sight keeps it,
     // because the fog will hand it back and nothing about the stones moved.
     for (const id of [...this.recipes.keys()]) if (!living.has(id)) this.deleteRecipe(id);
+    // In the order of `state.cities`, so the key does not move when the recipe
+    // map's insertion order does.
+    this.casters = state.cities.map(city => {
+      const recipe = this.recipes.get(city.id);
+      return recipe && knowsCell(levels, state.map, city.col, city.row) ? `${city.id}:${recipe.key}` : '';
+    }).join(',');
     const retained = new Set<string>();
     const reuse = (id: string, inputs: readonly unknown[]): boolean => {
       retained.add(id);

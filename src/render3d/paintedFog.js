@@ -160,8 +160,12 @@ export function paintedFogMaterial(source, fog, shared = false) {
   return installFogShader(material, fog, false, shared);
 }
 
+// `colorWrite: false` because the shadow lookup reads only the depth texture;
+// the packed depth this material would write into the colour attachment is
+// never sampled, so writing it is wasted bandwidth on every bake. The fog's
+// discard still runs, and a discarded fragment still writes no depth.
 export function paintedFogDepth(fog, side = T.FrontSide, shared = false) {
-  return installFogShader(new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking, side }), fog, true, shared);
+  return installFogShader(new T.MeshDepthMaterial({ depthPacking: T.RGBADepthPacking, side, colorWrite: false }), fog, true, shared);
 }
 
 /**

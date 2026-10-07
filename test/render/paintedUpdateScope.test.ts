@@ -67,10 +67,13 @@ describe('incremental renderer updates', () => {
     for (const call of Object.values(f.calls)) expect(call).not.toHaveBeenCalled();
     f.state.visibility[0]![f.unit.row * 12 + f.unit.col] = 0; f.runtime.setGameState(f.state);
     expect(f.calls.units).toHaveBeenCalledOnce(); expect(f.calls.cities).not.toHaveBeenCalled();
+    // The argument is only "force a bake"; whether a fog move re-bakes the static
+    // shadows is decided inside the rebuild from what the layer drew, and is
+    // pinned in `paintedShadowBakes.test.ts`.
     f.state.visibility[0]![5 * 12 + 8] = 1; f.runtime.setGameState(f.state);
     expect(f.calls.cities).toHaveBeenCalledOnce(); expect(f.calls.cities).toHaveBeenCalledWith(false); expect(f.calls.territory).toHaveBeenCalledOnce();
     f.state.visibility[0]![5 * 12 + 8] = 0; f.runtime.setGameState(f.state);
-    expect(f.calls.cities).toHaveBeenLastCalledWith(true);
+    expect(f.calls.cities).toHaveBeenCalledTimes(2); expect(f.calls.cities).toHaveBeenLastCalledWith(false);
   });
   it('forces presentation refresh for a different state on the same map', () => {
     const f = fixture(), loaded: GameState = {...f.state, players: structuredClone(f.state.players)};

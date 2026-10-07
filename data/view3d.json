@@ -1068,7 +1068,9 @@
   },
   "painted": {
     "shadows": {
-      "staticMapSize": 8192,
+      "staticMapSize": 4096,
+      "staticMapTiers": { "low": 2048, "high": 8192 },
+      "lowMemoryGiB": 4,
       "counterMapSize": 2048,
       "counterCoverage": 0.1,
       "periodFit": true,

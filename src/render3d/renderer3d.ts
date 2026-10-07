@@ -45,7 +45,8 @@ import { type GameMap, getTileAt, offsetToAxial, tileIndex } from '../sim/map';
 // has to be that one rather than a look-alike in `view3d.json`.
 import { RULES } from '../sim/rulesData';
 import type { GameState } from '../sim/state';
-import { isVisibleTo } from '../sim/visibility';
+import { HIDDEN, isVisibleTo } from '../sim/visibility';
+import { seatSeesSleepingVein } from '../sim/improvements';
 import { layerVisibility, type LayerVisibility } from './layerVisibility';
 import type {
   CellRef,
@@ -95,7 +96,7 @@ import {
   focusAnchor,
   workRadiusWorld,
 } from './vignette3d';
-import { SiteLayer, signSites } from './sites3d';
+import { SiteLayer, seatSeesKind, signSites } from './sites3d';
 import {
   UnitLayer,
   badgeAnchors,
@@ -121,7 +122,7 @@ import { createPaintedLook, type PaintedLook } from './paintedLook.js';
 import { buildPaintedBoard, type PaintedBoard } from './paintedBoard.js';
 import { PAINTED_CHART } from './paintedFogLook';
 import { buildPaintedBoardAsync, type PaintedBuildMetrics } from './paintedBoardAsync.js';
-import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks } from './paintedWorks';
+import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks, type PaintedWorksEntry } from './paintedWorks';
 import type { ImprovementId } from '../sim/improvementData';
 import { PaintedCityLayer } from './paintedCities';
 import { PaintedSiteLayer } from './paintedSites';
@@ -134,6 +135,78 @@ const DEG = Math.PI / 180;
 const LOOK = VIEW3D.look;
 const LIGHTS = VIEW3D.lights;
 const PAINTED_IMPROVEMENTS = new Set<ImprovementId>(PAINTED_WORK_IMPROVEMENTS);
+
+/** A 32-bit FNV-1a step over a string, for the shadow signatures below. */
+function hashText(hash: number, text: string): number {
+  for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
+  return Math.imul(hash ^ 0xff, 16777619);
+}
+
+/**
+ * The props a painted works or sites layer drew, for the static bake: each
+ * entry's cell and what stands on it, but not its fog level. A prop that stays
+ * on the board while its hex flips between seen and remembered casts the same
+ * shadow, so that flip is not a bake.
+ */
+export function signDrawnProps(entries: readonly PaintedWorksEntry[]): number {
+  let hash = 2166136261 ^ entries.length;
+  for (const entry of entries) {
+    hash = Math.imul(hash ^ entry.cell, 16777619);
+    hash = hashText(hash, entry.resource ?? '');
+    hash = hashText(hash, entry.improvement ?? '');
+    hash = hashText(hash, entry.site ?? '');
+  }
+  return hash >>> 0;
+}
+
+/**
+ * The sites drawn, for the static bake. With the painted look up these are the
+ * painted site props (`entries`); without it, the plain layer's own props. Either
+ * way a discovery or camp on uncharted ground is not drawn, and neither is a
+ * discovery whose kind the seat cannot name. The plain layer's pins stand over
+ * the same discoveries, plus the survey notes over sleeping seams, and exist
+ * only once the icon atlas has loaded (`markers`).
+ */
+export function signDrawnSites(
+  state: GameState, levels: FogLevels, seat: number | null,
+  entries: readonly PaintedWorksEntry[] | null, markers: boolean,
+): number {
+  const charted = (cell: number): boolean => levels === null || (levels[cell] ?? HIDDEN) !== HIDDEN;
+  let hash = entries ? signDrawnProps(entries) : 2166136261;
+  if (!entries) {
+    state.map.tiles.forEach((tile, cell) => {
+      if (tile.discovery === undefined || !charted(cell) || !seatSeesKind(state, seat, tile.discovery)) return;
+      hash = hashText(Math.imul(hash ^ cell, 16777619), tile.discovery);
+    });
+    for (const camp of state.camps) {
+      const cell = tileIndex(state.map, camp.col, camp.row);
+      if (charted(cell)) hash = hashText(Math.imul(hash ^ cell, 16777619), 'camp');
+    }
+  }
+  hash = Math.imul(hash ^ (markers ? 1 : 0), 16777619);
+  if (markers && seat !== null) state.map.tiles.forEach((tile, cell) => {
+    if (charted(cell) && seatSeesSleepingVein(state, seat, tile)) hash = hashText(Math.imul(hash ^ cell, 16777619), 'note');
+  });
+  return hash >>> 0;
+}
+
+/**
+ * The improvements the plain improvement layer draws (`improvements3d.ts`):
+ * every one on charted ground, minus the rows the painted works draw instead.
+ * Used only to decide the static bake; `signImprovements` still decides the
+ * rebuild.
+ */
+export function signDrawnImprovements(state: GameState, levels: FogLevels, replaced: ReadonlySet<ImprovementId> | null): number {
+  let hash = 2166136261;
+  const tiles = state.map.tiles;
+  for (let cell = 0; cell < tiles.length; cell++) {
+    const id = tiles[cell]!.improvement;
+    if (id === undefined || replaced?.has(id)) continue;
+    if (levels !== null && (levels[cell] ?? HIDDEN) === HIDDEN) continue;
+    hash = hashText(Math.imul(hash ^ cell, 16777619), id);
+  }
+  return hash >>> 0;
+}
 
 /**
  * Every layer this file puts in the scene, by the name it puts there.
@@ -236,7 +309,16 @@ export class Renderer3D implements MapView {
   private hoveredUnitId: number | null = null;
   private paintedWorksSignature: number | null = null;
   private paintedWorksFogSignature: number | null = null;
+  /**
+   * What each caster layer last drew, as far as the static sun is concerned. A
+   * static bake follows a change in one of these, not a change in a map-wide
+   * fingerprint: a rival's town growing or a farm going up where this seat has
+   * never looked used to re-bake the whole static map. See `rebuildCities`.
+   */
   private paintedWorksShadowSignature: number | null = null;
+  private citiesShadowKey: string | null = null;
+  private improvementsShadowSignature: number | null = null;
+  private sitesShadowSignature: number | null = null;
   private omniscientLevels: number[] = [];
   private lastTriangles = 0;
   private lastRenderMs = 0;
@@ -325,7 +407,6 @@ export class Renderer3D implements MapView {
   private readonly warmedTextures = new WeakSet<Texture>();
   /** Fingerprint of the units the layer was last built from. See `loop`. */
   private visibilitySignatures: LayerVisibility | null = null;
-  private shadowVisibilitySignatures: LayerVisibility | null = null;
   private unitsSignature = 0;
   /** The same for the towns and for the borders. See `loop`. */
   private citiesSignature = 0;
@@ -1918,7 +1999,13 @@ export class Renderer3D implements MapView {
       this.paintedCities ? {towns: false, flagAnchors: this.paintedCities.flagAnchors} : undefined,
     );
     this.citiesSignature = signCities(this.state);
-    if (shadowChanged) this.paintedLook?.invalidateShadows();
+    // The stones only. `signCities` also moves for a town the seat cannot see
+    // and for a banner (religion, owner), which casts nothing new; the layer's
+    // own key moves only when a charted town's cut does. See
+    // `PaintedCityLayer.shadowKey`.
+    const casters = this.paintedCities?.shadowKey ?? null;
+    if (shadowChanged || casters !== this.citiesShadowKey) this.paintedLook?.invalidateShadows();
+    this.citiesShadowKey = casters;
   }
 
   private rebuildTerritory(): void {
@@ -1951,7 +2038,12 @@ export class Renderer3D implements MapView {
     );
     this.rebuildPaintedWorks();
     this.improvementsSignature = signImprovements(this.state);
-    if (shadowChanged) this.paintedLook?.invalidateShadows();
+    // Only what this layer drew: the painted works decide their own bake in
+    // `rebuildPaintedWorks`, and an improvement on ground the seat has never
+    // charted is not drawn at all.
+    const drawn = signDrawnImprovements(this.state, this.fogLevels(), this.paintedWorks ? PAINTED_IMPROVEMENTS : null);
+    if (shadowChanged || drawn !== this.improvementsShadowSignature) this.paintedLook?.invalidateShadows();
+    this.improvementsShadowSignature = drawn;
   }
 
   /** Resource reveal and painted fields update independently of the terrain bake. */
@@ -1961,19 +2053,17 @@ export class Renderer3D implements MapView {
     if (!this.state || !this.paintedWorks || !this.paintedBoard) return false;
     const signature = signPaintedWorks(this.state, this.fogSeat);
     const levels = this.fogLevels();
-    let fogSignature = 0, shadowSignature = 0;
+    let fogSignature = 0;
     if (levels) for (let cell = 0; cell < levels.length; cell++) {
       const tile = this.state.map.tiles[cell];
       if (tile?.resource || tile?.improvement) {
         fogSignature = (Math.imul(fogSignature ^ cell, 31) + (levels[cell] ?? 0)) | 0;
-        shadowSignature = (Math.imul(shadowSignature ^ cell, 31) + ((levels[cell] ?? 0) > 0 ? 1 : 0)) | 0;
       }
     }
     // Include monotone scenery clearing, which survives pillage and is not
     // necessarily represented by the tile's current improvement alone.
     for (const [cell, scope] of this.cleared) {
       fogSignature = (Math.imul(fogSignature, 31) + cell * 3 + scope) | 0;
-      shadowSignature = (Math.imul(shadowSignature, 31) + cell * 3 + scope) | 0;
     }
     if (signature === this.paintedWorksSignature && fogSignature === this.paintedWorksFogSignature) return false;
     const cities = new Set(this.state.cities.map(city => city.row * this.state!.map.width + city.col));
@@ -1983,9 +2073,16 @@ export class Renderer3D implements MapView {
     });
     const terrainChanged = this.paintedBoard.replaceHillRelief(terraces);
     if (terrainChanged) this.paintedTerrainRevision++;
-    const shadowChanged = signature !== this.paintedWorksSignature || shadowSignature !== this.paintedWorksShadowSignature;
     this.paintedWorks.group.visible = true;
     this.paintedWorks.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat, this.shadows, {suppressed: this.cleared});
+    // Bake when the set of drawn props changed, read off the entries the layer
+    // just drew (which already leave out uncharted ground, town hexes, cleared
+    // scenery and resources this seat cannot name). `signPaintedWorks` moves
+    // for every tile on the map, seen or not, so it decides only whether to
+    // rebuild. A seen/remembered flip changes an entry's fog level and nothing
+    // else, and is not a bake, as before.
+    const shadowSignature = signDrawnProps(this.paintedWorks.entries);
+    const shadowChanged = terrainChanged || shadowSignature !== this.paintedWorksShadowSignature;
     this.reservePaintedProps();
     if (terrainChanged || terraces.size) {
       // Rebind after fog changes too: works batches contain only charted cells.
@@ -2065,7 +2162,12 @@ export class Renderer3D implements MapView {
       this.paintedSites ? { props: false } : undefined,
     );
     this.sitesSignature = signSites(this.state, this.fogSeat);
-    if (shadowChanged) this.paintedLook?.invalidateShadows();
+    // What the two site layers drew, as with the works: `signSites` moves for a
+    // camp raised or a ruin claimed anywhere on the map, seen or not.
+    const drawn = signDrawnSites(this.state, this.fogLevels(), this.fogSeat,
+      this.paintedSites?.entries ?? null, this.icons !== null);
+    if (shadowChanged || drawn !== this.sitesShadowSignature) this.paintedLook?.invalidateShadows();
+    this.sitesShadowSignature = drawn;
   }
 
   private rebuildOverlays(): void {
@@ -3323,8 +3425,6 @@ export class Renderer3D implements MapView {
     const facingTurned = this.facingTurned;
     this.facingTurned = false;
     const visibility = this.state ? layerVisibility(this.state, this.fogLevels(), this.fogSeat) : null;
-    const shadowVisibility = this.state ? layerVisibility(this.state, this.fogLevels(), this.fogSeat, true) : null;
-    const shadowChanged = (layer: keyof LayerVisibility): boolean => force || shadowVisibility?.[layer] !== this.shadowVisibilitySignatures?.[layer];
     const fogChanged = (layer: keyof LayerVisibility): boolean => force ||
       visibility?.[layer] !== this.visibilitySignatures?.[layer];
     const terrainRevision = this.paintedTerrainRevision;
@@ -3372,14 +3472,16 @@ export class Renderer3D implements MapView {
     // A turned pitch reaches the flags and the town marks, which are billboards,
     // and stops there: the painted stones are geometry and do not face anybody,
     // so the boolean stays false and their batches are left where they stand.
+    // Whether the static shadows re-bake is decided inside, from what the layer
+    // drew; a load or a new seat (`force`) always re-bakes.
     if (this.state && (facingTurned || fogChanged('cities') || signCities(this.state) !== this.citiesSignature)) {
-      this.rebuildCities(shadowChanged('cities') || signCities(this.state) !== this.citiesSignature);
+      this.rebuildCities(force);
     }
     // Improvements are terrain-ish, so they follow the fog on explored ground
     // rather than disappearing with it — which means a fog move has to reach
     // this layer too, exactly as it reaches the towns and the borders.
     if (this.state && (fogChanged('improvements') || signImprovements(this.state) !== this.improvementsSignature)) {
-      this.rebuildImprovements(shadowChanged('improvements') || signImprovements(this.state) !== this.improvementsSignature);
+      this.rebuildImprovements(force);
       // A holy site raised or pillaged is the strongest term in the tide and the
       // one thing this lens rings — see `addFaithWash`.
       if (this.lensView.mode === 'faith') this.rebuildLens();
@@ -3403,7 +3505,7 @@ export class Renderer3D implements MapView {
     // own answer is inside the fingerprint, so the turn Geomancy lands the marks
     // appear on the very next frame. See `sites3d.ts`.
     if (this.state && (facingTurned || fogChanged('sites') || signSites(this.state, this.fogSeat) !== this.sitesSignature)) {
-      this.rebuildSites(shadowChanged('sites') || signSites(this.state, this.fogSeat) !== this.sitesSignature);
+      this.rebuildSites(force);
       // The explorer lens is a picture of exactly what that fingerprint counts —
       // the unclaimed sites and the camps — so a ruin claimed or a camp burnt
       // out since the last frame has to reach it too, or the board keeps ringing
@@ -3446,7 +3548,6 @@ export class Renderer3D implements MapView {
       this.rebuildLens();
     }
     this.visibilitySignatures = visibility;
-    this.shadowVisibilitySignatures = shadowVisibility;
   }
 
   private loop(): void {
