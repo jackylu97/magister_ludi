@@ -47,7 +47,7 @@ import {
   warriorMini,
 } from '../../src/render3d/geometry';
 import { RENDER_ORDER } from '../../src/render3d/instances';
-import { wrapWidth } from '../../src/render3d/layout';
+import { cellCenter, wrapWidth } from '../../src/render3d/layout';
 import { VIEW3D, contrastRatio, playerPieceColor } from '../../src/render3d/lookData';
 import {
   UnitLayer,
@@ -65,6 +65,7 @@ import {
   washedInk,
 } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
+import { pickUnitModel } from '../../src/render3d/unitModelPicking';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 import { createMap, tileIndex } from '../../src/sim/map';
 import { type GameState, barbarianPlayer, newGame } from '../../src/sim/state';
@@ -79,6 +80,7 @@ import {
 } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { closeWar, openWar } from '../../src/sim/wars';
+import { culledWhileInView, frustumOver, layerMeshes, worldMatrices, wrapCopiesOf } from './unitLayerHelpers';
 
 /**
  * The sculpted miniatures: one board model per *class* of unit, all standing on
@@ -112,11 +114,14 @@ function boundsOf(board: BoardGeometry, id: ModelClass): Box3 {
 }
 
 /**
- * How many `InstancedMesh`es one *piece* bucket puts on the board.
+ * How many instanced passes one *piece* bucket puts on the board.
  *
  * Three passes over one sculpt drawing and matching instance buffers. The
- * shell owns a geometry view for its per-instance hover widths. Naming the number
- * is the point: it is the draw-call price of a unit class, and the tests that
+ * shell owns a geometry view for its per-instance hover widths. Each pass is
+ * drawn as one object per wrap copy over its one buffer (see
+ * `unitLayerHelpers.ts`); the tests count buffers through `layerMeshes`, so a
+ * pass is one here however many copies draw it. Naming the number is the
+ * point: it is the draw-call price of a unit class in view, and the tests that
  * count meshes should fail loudly the day a fourth pass is added rather than
  * quietly absorbing it.
  *
@@ -1038,7 +1043,7 @@ describe('the units layer in pieces style', () => {
     const types: UnitTypeId[] = ['warrior', 'knight', 'trebuchet'];
     layer.build(state(types), board, new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000), new Quaternion(), false, null);
 
-    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    const meshes = layerMeshes(layer.group);
     const drawn = new Set(meshes.map((m) => m.geometry));
     for (const type of types) {
       expect(drawn.has(board.pieces[modelClassFor(type)].geometry), type).toBe(true);
@@ -1078,8 +1083,7 @@ describe('the units layer in pieces style', () => {
       null,
     );
     const drawn = new Set(
-      layer.group.children
-        .filter((c): c is InstancedMesh => c instanceof InstancedMesh)
+      layerMeshes(layer.group)
         .map((m) => m.geometry),
     );
     expect(drawn.has(board.pieces.boat.geometry)).toBe(true);
@@ -1101,11 +1105,12 @@ describe('the units layer in pieces style', () => {
       false,
       null,
     );
-    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    const meshes = layerMeshes(layer.group);
     expect(meshes).toHaveLength(MESHES_PER_PIECE_BUCKET);
     expect(meshes[0]!.geometry).toBe(board.pieces.siege.geometry);
-    // Three wrap copies apiece, in one buffer.
-    expect(meshes[0]!.count).toBe(6);
+    // One instance apiece in one buffer, drawn by three wrap-copy objects.
+    expect(meshes[0]!.count).toBe(2);
+    expect(wrapCopiesOf(layer.group, meshes[0]!)).toHaveLength(3);
     layer.dispose();
     board.dispose();
   });
@@ -1124,9 +1129,7 @@ describe('the units layer in pieces style', () => {
     const layer = new UnitLayer();
     layer.build(game, board, new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000), new Quaternion(), false, null);
 
-    const bars = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh && c.geometry === board.bar,
-    );
+    const bars = layerMeshes(layer.group).filter((c) => c.geometry === board.bar);
     expect(bars.length).toBeGreaterThan(0);
     const tops = bars.flatMap((mesh) => {
       const out: number[] = [];
@@ -1161,10 +1164,169 @@ describe('the units layer in pieces style', () => {
       false,
       { materialFor: () => null, any: false } as never,
     );
-    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    const meshes = layerMeshes(layer.group);
     // The shell owns hover widths while all three passes keep the same drawing.
     expect(piecePasses(meshes, board.pieces.melee.geometry)).toHaveLength(MESHES_PER_PIECE_BUCKET);
     layer.dispose();
+    board.dispose();
+  });
+});
+
+// --- wrap copies and culling --------------------------------------------------
+
+/**
+ * Each pass of the unit layer is drawn as one object per wrap copy over one
+ * shared buffer, each with its own bounds and culling on (WebGL audit
+ * 2026-10-06, finding 3), and the outline shell borrows the sculpt's buffers
+ * rather than cloning them on every rebuild (finding 9). These pin both.
+ */
+describe("the units layer's wrap copies", () => {
+  const WIDTH = 20;
+  function state(): GameState {
+    const game = newGame({
+      seed: 7,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#d4502e', isHuman: true }],
+    });
+    game.map = createMap({ width: WIDTH, height: 8, terrain: 'grassland' });
+    resetVisibility(game);
+    game.tileOwner = new Array<number | null>(WIDTH * 8).fill(null);
+    game.cities = [];
+    // Pieces at both edges of the map, so their copies straddle the seam, plus a
+    // hurt one (bars) and a worker (the charge boss).
+    const specs: { type: UnitTypeId; col: number; row: number; hp?: number }[] = [
+      { type: 'warrior', col: 0, row: 3, hp: 40 },
+      { type: 'warrior', col: WIDTH - 1, row: 4 },
+      { type: 'worker', col: 7, row: 2 },
+      { type: 'catapult', col: 12, row: 6, hp: 80 },
+    ];
+    game.units = specs.map(({ type, col, row, hp }, i) => ({
+      id: i + 1, type, ownerId: 0, col, row,
+      hp: hp ?? unitDef(type).maxHp, movesLeft: 2, hasAttacked: false,
+      ...(type === 'worker' ? { chargesLeft: 3 } : {}),
+    }));
+    return game;
+  }
+
+  const badgeMaterial = new MeshBasicMaterial();
+  const badges = {
+    material: badgeMaterial, wildMaterial: badgeMaterial, materialFor: () => badgeMaterial,
+  } as unknown as UnitBadges;
+
+  function build(game: GameState) {
+    const board = geometry();
+    const library = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    const layer = new UnitLayer();
+    layer.build(game, board, library, new Quaternion(), true, null, badges, null, null, fakeIcons);
+    return { board, library, layer };
+  }
+
+  it('draws every pass as one culled object per wrap copy over one shared buffer', () => {
+    const game = state();
+    const { board, layer } = build(game);
+    const period = wrapWidth(game.map);
+    const passes = layerMeshes(layer.group);
+    // Sculpts, shells, ghosts, discs, rims, the charge boss and both bar halves.
+    expect(passes.length).toBeGreaterThan(9);
+    expect(layer.group.children).toHaveLength(passes.length * 3);
+    for (const pass of passes) {
+      const copies = wrapCopiesOf(layer.group, pass);
+      expect(copies.map((copy) => copy.position.x)).toEqual([-period, 0, period]);
+      for (const copy of copies) {
+        // The same drawing, the same buffers: one upload, and one write moves
+        // every copy.
+        expect(copy.geometry).toBe(pass.geometry);
+        expect(copy.material).toBe(pass.material);
+        expect(copy.instanceMatrix).toBe(pass.instanceMatrix);
+        expect(copy.instanceColor).toBe(pass.instanceColor);
+        expect(copy.count).toBe(pass.count);
+        expect(copy.renderOrder).toBe(pass.renderOrder);
+        expect(copy.castShadow).toBe(pass.castShadow);
+        expect(copy.frustumCulled).toBe(true);
+        expect(copy.boundingSphere).not.toBeNull();
+      }
+    }
+    // One canonical instance per piece: the warrior at the west edge sits in
+    // place in its buffer, and only the copy objects carry the period.
+    const sculpt = passes.find((m) => m.geometry === board.pieces.melee.geometry && Array.isArray(m.material))!;
+    expect(sculpt.count).toBe(2);
+    const xs = worldMatrices(layer.group, sculpt).map((m) => new Vector3().setFromMatrixPosition(m).x);
+    expect(xs[1]! - xs[0]!).toBeCloseTo(period, 9);
+    expect(xs[2]! - xs[1]!).toBeCloseTo(period, 9);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('never culls a copy while anything it draws is in view, at the seam or anywhere else', () => {
+    const game = state();
+    const { board, layer } = build(game);
+    const period = wrapWidth(game.map);
+    // A hovered piece has the widest rim, which the shell's bounds must cover.
+    layer.setHoveredUnitId(1);
+    const z = cellCenter(0, 4).z;
+    const views: [number, number][] = [];
+    for (let x = -period * 0.6; x <= period * 1.6; x += period / 16) views.push([x, z]);
+    views.push([0, cellCenter(0, 0).z], [period, cellCenter(0, 7).z]);
+    for (const [x, zz] of views) {
+      expect(culledWhileInView(layer.group, frustumOver(x, zz)), `camera at x ${x.toFixed(1)}`).toEqual([]);
+    }
+    // And the culling is real: at the default zoom, away from the seam, a
+    // camera skips at least one whole copy.
+    const middle = frustumOver(period / 2, z);
+    const drawn = layer.group.children.filter((c) => middle.intersectsObject(c as InstancedMesh));
+    expect(drawn.length).toBeLessThan(layer.group.children.length);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it('picks a piece through any of its wrap copies', () => {
+    const game = state();
+    const { board, layer } = build(game);
+    const period = wrapWidth(game.map);
+    const unit = game.units[2]!;
+    const placement = placePiece(game.map, unit, unitStackIndices(game).get(unit.id) ?? 0);
+    const candidates = layer.modelCandidates().filter((candidate) => candidate.unitId === unit.id);
+    expect(candidates).toHaveLength(3);
+    for (const dx of [-period, 0, period]) {
+      const origin = new Vector3(placement.position.x + dx, 20, placement.position.z);
+      expect(pickUnitModel({ origin, direction: new Vector3(0, -1, 0) }, candidates), `copy at ${dx}`).toBe(unit.id);
+    }
+    // A walk hides every copy at once, so none of them can be clicked.
+    layer.hide(unit.id);
+    expect(layer.modelCandidates().filter((candidate) => candidate.unitId === unit.id)).toEqual([]);
+    layer.dispose();
+    board.dispose();
+  });
+
+  it("gives the shell a view of the sculpt's own buffers, and frees only its width buffer", () => {
+    const game = state();
+    const { board, library, layer } = build(game);
+    const sculpt = board.pieces.melee.geometry;
+    const shell = layerMeshes(layer.group).find(
+      (m) => m.material === library.unitOutline && m.geometry.userData.unitOutlineSource === sculpt.uuid,
+    )!;
+    // Borrowed by reference, never copied: three keeps one GPU buffer per
+    // attribute object, so a rebuild uploads no sculpt data again.
+    for (const name of Object.keys(sculpt.attributes)) {
+      expect(shell.geometry.getAttribute(name), name).toBe(sculpt.getAttribute(name));
+    }
+    expect(shell.geometry.index).toBe(sculpt.index);
+    expect(sculpt.hasAttribute('unitOutlineWidth')).toBe(false);
+    // three's geometry disposal frees the buffer of every attribute the
+    // geometry names at that moment, so the view must name only its own.
+    let named: string[] | null = null;
+    let indexed: unknown = undefined;
+    shell.geometry.addEventListener('dispose', (event) => {
+      named = Object.keys(event.target.attributes);
+      indexed = event.target.index;
+    });
+    const before = Object.keys(sculpt.attributes).sort();
+    const index = sculpt.index;
+    layer.dispose();
+    expect(named).toEqual(['unitOutlineWidth']);
+    expect(indexed).toBeNull();
+    expect(Object.keys(sculpt.attributes).sort()).toEqual(before);
+    expect(sculpt.index).toBe(index);
     board.dispose();
   });
 });
@@ -1247,7 +1409,7 @@ describe('the routed wash', () => {
     const routedInk = unitColor(game, routed!);
     expect(routedInk).not.toBe(idleInk);
 
-    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    const meshes = layerMeshes(layer.group);
     // The idle unit keeps the plain body; the routed one stands in the laden
     // twin — `unitSculpt`'s own rule, unrelated to and unaffected by the wash.
     const idleMeshes = piecePasses(meshes, board.pieces.trader.geometry);
@@ -1286,7 +1448,7 @@ describe('the routed wash', () => {
 
     const idleInk = unitColor(game, idle!);
     const routedInk = unitColor(game, routed!);
-    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    const meshes = layerMeshes(layer.group);
 
     // The rim: plain ink, and one bucket per ink, so idle and routed each get
     // their own.
@@ -1315,7 +1477,7 @@ describe('the routed wash', () => {
     const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
     layer.build(game, board, materialsLib, new Quaternion(), false, null);
 
-    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    const meshes = layerMeshes(layer.group);
     const idleShell = meshes.find(
       (m) => m.material === materialsLib.unitOutline && sameSculptDrawing(m.geometry, board.pieces.trader.geometry),
     )!;
@@ -1350,18 +1512,16 @@ describe('the routed wash', () => {
     const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
     layer.build(game, board, materialsLib, new Quaternion(), false, null);
 
-    const bars = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh && c.geometry === board.bar,
-    );
+    const bars = layerMeshes(layer.group).filter((c) => c.geometry === board.bar);
     expect(bars.length).toBeGreaterThan(0);
-    const wrap = 3;
     for (const mesh of bars) {
-      expect(mesh.count).toBe(wrap * 2);
+      // One instance per unit; the wrap copies draw the same colour buffer.
+      expect(mesh.count).toBe(2);
       const tint = mesh.instanceColor!.array as Float32Array;
       // Unit order is idle, then routed (`state`'s own build order), and every
       // instanced `add` this layer makes preserves that order into the buffer.
-      const idleSlice = [...tint.slice(0, wrap * 3)];
-      const routedSlice = [...tint.slice(wrap * 3, wrap * 3 * 2)];
+      const idleSlice = [...tint.slice(0, 3)];
+      const routedSlice = [...tint.slice(3, 6)];
       expect(idleSlice.every((c) => c === 1)).toBe(true);
       expect(routedSlice.every((c) => c === 1)).toBe(false);
     }
@@ -1406,8 +1566,7 @@ describe('the routed wash', () => {
     const trueInk = playerPieceColor(game.players[0]!.color, 0);
 
     layer.build(game, board, materialsLib, new Quaternion(), false, null);
-    const routedSculpt = layer.group.children
-      .filter((c): c is InstancedMesh => c instanceof InstancedMesh)
+    const routedSculpt = layerMeshes(layer.group)
       .find((m) => m.geometry === board.pieces.traderLaden.geometry && Array.isArray(m.material))!;
     const bodyIndex = board.pieces.traderLaden.parts.indexOf('body');
     expect((routedSculpt.material as MeshToonMaterial[])[bodyIndex]!.color.getHex()).not.toBe(
@@ -1416,8 +1575,7 @@ describe('the routed wash', () => {
 
     game.units[0]!.trade = undefined;
     layer.build(game, board, materialsLib, new Quaternion(), false, null);
-    const idleSculpt = layer.group.children
-      .filter((c): c is InstancedMesh => c instanceof InstancedMesh)
+    const idleSculpt = layerMeshes(layer.group)
       .find((m) => m.geometry === board.pieces.trader.geometry && Array.isArray(m.material))!;
     const idleBodyIndex = board.pieces.trader.parts.indexOf('body');
     expect((idleSculpt.material as MeshToonMaterial[])[idleBodyIndex]!.color.getHex()).toBe(
@@ -1512,7 +1670,7 @@ describe('the worker charge badge', () => {
       null,
       fakeIcons,
     );
-    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    const meshes = layerMeshes(layer.group);
     expect(meshes.some((mesh) => board.numeralMarkers.includes(mesh.geometry))).toBe(false);
     layer.dispose();
     board.dispose();
@@ -1533,7 +1691,7 @@ describe('the worker charge badge', () => {
       // there is nothing to draw it with — matching the badges themselves, which
       // stay off the board without their own atlas.
     );
-    const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
+    const meshes = layerMeshes(layer.group);
     expect(meshes.some((mesh) => board.numeralMarkers.includes(mesh.geometry))).toBe(false);
     layer.dispose();
     board.dispose();
@@ -1868,9 +2026,7 @@ describe('the x-ray silhouette', () => {
     const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
     const layer = new UnitLayer();
     layer.build(game, board, materials, new Quaternion(), false, null, null, null, levels);
-    const meshes = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh,
-    );
+    const meshes = layerMeshes(layer.group);
     return { board, materials, layer, meshes };
   }
 
@@ -1942,12 +2098,14 @@ describe('the x-ray silhouette', () => {
     expect(meshes.length - ghosted.length).toBe(classes.size * (MESHES_PER_PIECE_BUCKET - 1));
 
     for (const ghost of ghosted) {
-      // All three drawings carry the same placements and buffer length:
-      // three wrap copies of three units, including the shell's geometry view.
+      // All three drawings carry the same placements and buffer length: one
+      // instance for each of the three units, each pass drawn by three
+      // wrap-copy objects over that one buffer.
       const passes = piecePasses(meshes, ghost.geometry);
       expect(passes).toHaveLength(MESHES_PER_PIECE_BUCKET);
       for (const pass of passes) {
-        expect(pass.count).toBe(9);
+        expect(pass.count).toBe(3);
+        expect(wrapCopiesOf(layer.group, pass)).toHaveLength(WRAP_COPIES);
         expect(pass.instanceMatrix.array).toEqual(ghost.instanceMatrix.array);
       }
     }
@@ -1978,9 +2136,7 @@ describe('the x-ray silhouette', () => {
     const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
     const layer = new UnitLayer();
     layer.build(game, board, materials, new Quaternion(), false, null, null, null, null, null, 0);
-    const meshes = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh,
-    );
+    const meshes = layerMeshes(layer.group);
     const inks = ghosts(meshes).map((mesh) => (mesh.material as MeshBasicMaterial).color.getHex());
     // Two ghost buckets: the seat's own piece in its own ink, the enemy's in the
     // war red — which is deliberately no seat's colour.
@@ -2010,9 +2166,7 @@ describe('the x-ray silhouette', () => {
     const materials = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
     const layer = new UnitLayer();
     layer.build(game, board, materials, new Quaternion(), false, null, null, null, null, null, 0);
-    const meshes = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh,
-    );
+    const meshes = layerMeshes(layer.group);
     const inks = ghosts(meshes).map((mesh) => (mesh.material as MeshBasicMaterial).color.getHex());
     expect(inks).not.toContain(VIEW3D.units.hostileGlow);
     layer.dispose();
@@ -2042,9 +2196,7 @@ describe('the x-ray silhouette', () => {
       // Every seat sees the whole board here: the fog grid is deliberately null,
       // so the only thing that differs between the two builds is who is looking.
       layer.build(game, board, materials, new Quaternion(), false, null, null, null, null, null, seat);
-      const meshes = layer.group.children.filter(
-        (c): c is InstancedMesh => c instanceof InstancedMesh,
-      );
+      const meshes = layerMeshes(layer.group);
       const inks = ghosts(meshes).map(
         (mesh) => (mesh.material as MeshBasicMaterial).color.getHex(),
       );
@@ -2227,13 +2379,11 @@ describe('the HP bar belongs to its own unit', () => {
   /** Every bar instance the layer drew, as `{ x, y, width }`. */
   function bars(layer: UnitLayer, board: ReturnType<typeof geometry>) {
     const out: { x: number; y: number; width: number }[] = [];
-    const matrix = new Matrix4();
     const scale = new Vector3();
     const position = new Vector3();
-    for (const child of layer.group.children) {
-      if (!(child instanceof InstancedMesh) || child.geometry !== board.bar) continue;
-      for (let i = 0; i < child.count; i++) {
-        child.getMatrixAt(i, matrix);
+    for (const child of layerMeshes(layer.group)) {
+      if (child.geometry !== board.bar) continue;
+      for (const matrix of worldMatrices(layer.group, child)) {
         position.setFromMatrixPosition(matrix);
         scale.setFromMatrixScale(matrix);
         out.push({ x: position.x, y: position.y, width: scale.x });
@@ -2383,13 +2533,11 @@ describe('what a health bar says', () => {
   /** Every bar instance still on the board, hidden ones excluded. */
   function barInstances(layer: UnitLayer, board: BoardGeometry): BarInstance[] {
     const out: BarInstance[] = [];
-    const matrix = new Matrix4();
     const scale = new Vector3();
     const position = new Vector3();
-    for (const child of layer.group.children) {
-      if (!(child instanceof InstancedMesh) || child.geometry !== board.bar) continue;
-      for (let i = 0; i < child.count; i++) {
-        child.getMatrixAt(i, matrix);
+    for (const child of layerMeshes(layer.group)) {
+      if (child.geometry !== board.bar) continue;
+      for (const matrix of worldMatrices(layer.group, child)) {
         position.setFromMatrixPosition(matrix);
         scale.setFromMatrixScale(matrix);
         if (scale.x < 1e-9) continue;
@@ -2617,10 +2765,7 @@ describe('what a health bar says', () => {
     game.units[1]!.hp = 20;
     layer.build(game, board, materials(), new Quaternion(), false, null);
 
-    const meshes = layer.group.children.filter(
-      (child): child is InstancedMesh =>
-        child instanceof InstancedMesh && child.geometry === board.bar,
-    );
+    const meshes = layerMeshes(layer.group).filter((child) => child.geometry === board.bar);
     expect(meshes).toHaveLength(3); // one backing, two fills
     const scale = new Vector3();
     const matrix = new Matrix4();
@@ -2785,9 +2930,7 @@ describe("the wild's red", () => {
     const materials = new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
     const layer = new UnitLayer();
     layer.build(game, board, materials, new Quaternion(), false, null, null, null, null, null, seat);
-    const meshes = layer.group.children.filter(
-      (c): c is InstancedMesh => c instanceof InstancedMesh,
-    );
+    const meshes = layerMeshes(layer.group);
     return { board, materials, layer, meshes };
   }
 
@@ -3054,9 +3197,7 @@ describe("the caravan's own body", () => {
     const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
     layer.build(game, board, materialsLib, new Quaternion(), false, null);
 
-    const meshes = layer.group.children.filter(
-      (child): child is InstancedMesh => child instanceof InstancedMesh,
-    );
+    const meshes = layerMeshes(layer.group);
     const idle = sculptFor(type);
     const laden = MINI_SCULPTS[idle].laden!;
     for (const id of [idle, laden] as const) {
@@ -3225,10 +3366,7 @@ describe('the caravan under somebody’s boots', () => {
     const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
     layer.build(game, geo, materialsLib, new Quaternion(), false, null);
     const wanted = geo.pieces[sculpt].geometry;
-    const count = layer.group.children.filter(
-      (child): child is InstancedMesh =>
-        child instanceof InstancedMesh && child.geometry === wanted,
-    ).length;
+    const count = layerMeshes(layer.group).filter((child) => child.geometry === wanted).length;
     layer.dispose();
     geo.dispose();
     materialsLib.dispose();
