@@ -10,6 +10,11 @@
  * `{config, log}`. `test/ui/gameLoader.test.ts` pins that against the
  * synchronous path rather than trusting the argument.
  *
+ * The replay goes through `tryReplayResuming`, which is `tryReplay` unless the
+ * request carries a load checkpoint the main thread has matched to the log; then
+ * it walks only the commands after the checkpoint, and falls back to the full
+ * walk if any of them is refused (`src/ui/saveCheckpoints.ts`).
+ *
  * Why it is worth a worker: a hundred-turn save is a thousand commands and the
  * turn resolutions inside them, and walking that log measured **3.9 seconds of
  * blocked main thread** in the browser (P7, `docs/plans/painted-performance-audit.md`
@@ -22,13 +27,19 @@
  */
 
 import type { Command } from '../sim/commands';
-import { tryReplay } from '../sim/game';
+import { type ReplayResume, tryReplayResuming } from '../sim/game';
 import { type GameConfig, newGame } from '../sim/state';
 
-/** Main thread → worker. One message, one reply, then the worker is terminated. */
+/**
+ * Main thread → worker. One message, one reply, then the worker is terminated.
+ *
+ * `resume` is a load checkpoint the main thread has already matched to this
+ * log (`saveCheckpoints.ts`): the walk starts from its state at its index
+ * instead of from `newGame`. Absent, the walk is the full replay.
+ */
 export type GameWorkerRequest =
   | { kind: 'create'; config: GameConfig }
-  | { kind: 'replay'; config: GameConfig; log: Command[] };
+  | { kind: 'replay'; config: GameConfig; log: Command[]; resume?: ReplayResume };
 
 /**
  * Worker → main thread.
@@ -39,7 +50,7 @@ export type GameWorkerRequest =
  * as `tryReplay` reported it.
  */
 export type GameWorkerReply =
-  | { kind: 'state'; state: unknown; walkMs: number }
+  | { kind: 'state'; state: unknown; walkMs: number; resumedFrom?: number | null }
   | { kind: 'refused'; index: number; type: string; error: string; walkMs: number }
   | { kind: 'unbuildable'; message: string };
 
@@ -76,12 +87,22 @@ export function answerGameWorker(
       // world has no log, so there is nothing to report the progress of.
       return { kind: 'state', state: newGame(request.config), walkMs: performance.now() - started };
     }
-    const replayed = tryReplay(request.config, request.log, (turn) => onTurn?.(turn));
+    const replayed = tryReplayResuming(
+      request.config,
+      request.log,
+      request.resume ?? null,
+      (turn) => onTurn?.(turn),
+    );
     if (!replayed.ok) {
       const { index, type, error } = replayed.failure;
       return { kind: 'refused', index, type, error, walkMs: performance.now() - started };
     }
-    return { kind: 'state', state: replayed.state, walkMs: performance.now() - started };
+    return {
+      kind: 'state',
+      state: replayed.state,
+      walkMs: performance.now() - started,
+      resumedFrom: replayed.resumedFrom,
+    };
   } catch (error) {
     return { kind: 'unbuildable', message: error instanceof Error ? error.message : String(error) };
   }

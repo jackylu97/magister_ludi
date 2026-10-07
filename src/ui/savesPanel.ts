@@ -37,6 +37,7 @@ import {
   exportFilename,
   listSaves,
   memorySaveStorage,
+  readSaveText,
   slotSummary,
   storageKey,
 } from './saves';
@@ -161,11 +162,9 @@ export function relativeWhen(savedAt: number, now: number = Date.now()): string 
  * One row of the title screen's shelf: a world, named by who is playing it.
  *
  * **The figure, the seed, the turn and when** — the four things that tell one
- * saved world from another at a glance. A `SaveSlot` carries three of them; the
- * fourth is in the payload's config, on seat 0, so the file is read a second
- * time for it. That is deliberate and it is cheap: a shelf is never more than a
- * handful of rows, and the alternative is a field on `SaveSlot` that every save
- * written before leaders existed would not have.
+ * saved world from another at a glance. All four are on the slot's label: the
+ * figure is seat 0's leader id (`SaveSlot.leader`), absent on a save from before
+ * leaders existed.
  *
  * A seat under no figure falls back to the save's own name, which is what the
  * player called it (or "Autosave") — never an invented one.
@@ -179,20 +178,17 @@ export interface RecentWorld {
 export function recentWorlds(storage: SaveStorage, limit = 4): RecentWorld[] {
   return listSaves(storage)
     .slice(0, limit)
-    .map((slot) => ({ slot, figure: figureOf(storage, slot) }));
+    .map((slot) => ({ slot, figure: figureOf(slot) }));
 }
 
-/** Who seat 0 is in a stored save, in the roster's own words. */
-function figureOf(storage: SaveStorage, slot: SaveSlot): string {
-  const json = storage.getItem(storageKey(slot.id));
-  if (json === null) return slot.name;
-  try {
-    const payload = JSON.parse(json) as Partial<SavePayload>;
-    const leader = payload.config?.players?.[0]?.leader;
-    return isLeaderId(leader) ? leaderDef(leader).name : slot.name;
-  } catch {
-    return slot.name;
-  }
+/**
+ * Who seat 0 is in a stored save, in the roster's own words. Read off the
+ * slot's label (`SaveSlot.leader`), so the landing never opens a save to print
+ * a name: it used to parse each of the newest four saves whole, a second time.
+ */
+function figureOf(slot: SaveSlot): string {
+  if (isLeaderId(slot.leader)) return leaderDef(slot.leader).name;
+  return slot.name;
 }
 
 /** Hands the player a file the browser saves wherever it saves things. */
@@ -396,23 +392,29 @@ export function createSavesPanel(options: SavesPanelOptions): SavesPanel {
     save.textContent = '↓';
     save.addEventListener('click', () => {
       clearError();
-      const json = storage.getItem(storageKey(slot.id));
-      if (json === null) {
-        fail('That save is no longer there.');
-        refresh();
-        return;
-      }
-      // The filename wants the payload's own name and turn, and the file on the
-      // shelf is the payload — so it is read from the file rather than rebuilt
-      // out of the row, which is a label and could disagree with it.
-      let payload: SavePayload;
-      try {
-        payload = JSON.parse(json) as SavePayload;
-      } catch {
-        fail('That save could not be read.');
-        return;
-      }
-      downloadJson(exportFilename(payload), json);
+      // A stored slot is packed (`saves.ts`); the exported file is always the
+      // plain JSON payload, so it is unpacked first.
+      void readSaveText(storage, slot.id)
+        .catch(() => undefined)
+        .then((json) => {
+          if (json === null) {
+            fail('That save is no longer there.');
+            refresh();
+            return;
+          }
+          // The filename wants the payload's own name and turn, and the file on
+          // the shelf is the payload — so it is read from the file rather than
+          // rebuilt out of the row, which is a label and could disagree with it.
+          let payload: SavePayload;
+          try {
+            if (json === undefined) throw new Error('unreadable');
+            payload = JSON.parse(json) as SavePayload;
+          } catch {
+            fail('That save could not be read.');
+            return;
+          }
+          downloadJson(exportFilename(payload), json);
+        });
     });
 
     const remove = document.createElement('button');

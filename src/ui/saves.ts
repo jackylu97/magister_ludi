@@ -49,10 +49,36 @@
  * what a valid file is and of every sentence a bad one gets back**, whichever
  * thread did the walking; a second copy living in the worker's wrapper is
  * exactly the drift this split exists to prevent.
+ *
+ * How a slot is stored
+ * --------------------
+ * The payload is the same JSON it always was, but a slot stores it gzipped and
+ * base64-encoded behind the `SAVE_PACK_PREFIX` marker (`packSave`). Command
+ * JSON repeats itself heavily, so a late-game save shrinks about ten times
+ * even after base64 (a six-seat bot game at turn 200: 651,561 characters of
+ * JSON, 64,923 stored). That keeps long games far under `MAX_SAVE_CHARS` and
+ * leaves room in the origin's few megabytes of `localStorage` for many slots. A slot written as
+ * plain JSON by an older build still reads (`unpackSave` passes it through),
+ * and an exported file is always the plain JSON.
+ *
+ * Packing is asynchronous (`CompressionStream`), so `writeSave` returns a
+ * promise. The JSON text is taken before the first await, so the save is the
+ * game as it was when `writeSave` was called.
+ *
+ * Each slot also has a small label record under `SAVE_META_PREFIX`, written
+ * with it. The load list and the landing screen read only those (`readSlot`),
+ * so showing the shelf never parses or unpacks a whole save. A slot from an
+ * older build that has no label record is read the old way, by parsing it.
  */
 
 import type { Command } from '../sim/commands';
-import { type Game, type ReplayFailure, type ReplayWatcher, tryReplay } from '../sim/game';
+import {
+  type Game,
+  type ReplayFailure,
+  type ReplayResume,
+  type ReplayWatcher,
+  tryReplayResuming,
+} from '../sim/game';
 import {
   type GameConfig,
   type GameState,
@@ -61,6 +87,7 @@ import {
   normalizeConfig,
   realPlayers,
 } from '../sim/state';
+import { type SaveCheckpoints, browserCheckpoints, writeCheckpoint } from './saveCheckpoints';
 
 /**
  * This envelope's version. Bumped when the *wrapper* changes shape — a new
@@ -72,6 +99,16 @@ export const SAVE_FORMAT_VERSION = 1;
 /** Every key this module owns starts here. Namespaced, so nothing else collides. */
 export const SAVE_KEY_PREFIX = 'magisterludi:save:';
 
+/**
+ * The label record beside each slot (`SaveMeta`). It does not start with
+ * `SAVE_KEY_PREFIX`, so the slot scan in `listSaves` never mistakes one for a
+ * slot.
+ */
+export const SAVE_META_PREFIX = 'magisterludi:save-meta:';
+
+/** Marks a slot stored gzipped and base64-encoded. JSON can never start with it. */
+export const SAVE_PACK_PREFIX = 'ml-gz1:';
+
 /** The rolling slot the end of every turn overwrites. */
 export const AUTOSAVE_SLOT = 'autosave';
 
@@ -79,13 +116,15 @@ export const AUTOSAVE_SLOT = 'autosave';
 export const QUICKSAVE_SLOT = 'quicksave';
 
 /**
- * The cap on one serialized payload, in characters.
+ * The cap on one stored slot, in characters, measured after packing.
  *
  * `localStorage` is a handful of megabytes for the whole origin and this module
  * keeps several slots in it, so a single file is not allowed to eat the shelf.
- * A log is a few thousand small objects even in a long game — the map, which is
- * the big thing, is nowhere in the file — so this is a guard against a runaway,
- * not a budget anybody plays into.
+ * Measured on a six-seat standard bot game: the JSON grew by about 5,700
+ * characters a turn late in the game and was 651,561 characters at turn 200
+ * (before the bots stopped repeating moves it was 1.6 million, close to this
+ * cap). Packed, the turn-200 save is 64,923 characters. So this is a guard
+ * against a runaway, not a budget anybody plays into.
  */
 export const MAX_SAVE_CHARS = 2 * 1024 * 1024;
 
@@ -154,12 +193,41 @@ export interface SaveSlot {
   sizeName: string;
   /** How many seats the game was set up with. Solo games say 1. */
   seats: number;
+  /**
+   * Seat 0's leader id off the config, when it has one: the landing screen
+   * names a world by its figure. Carried on the label so the landing does not
+   * have to read the save itself for it.
+   */
+  leader?: string;
+}
+
+/**
+ * The label record stored beside a slot under `SAVE_META_PREFIX`: everything a
+ * `SaveSlot` needs, so listing the shelf reads a few hundred characters per
+ * slot instead of parsing whole saves. Display only, like every label field.
+ */
+export interface SaveMeta {
+  formatVersion: number;
+  schemaVersion: number;
+  name: string;
+  turn: number;
+  savedAt: number;
+  seed: number;
+  sizeName: string;
+  seats: number;
+  leader?: string;
+  /** Length of the stored slot text, packed. */
+  chars: number;
 }
 
 // --- keys and names ---------------------------------------------------------
 
 export function storageKey(slotId: string): string {
   return SAVE_KEY_PREFIX + slotId;
+}
+
+export function metaKey(slotId: string): string {
+  return SAVE_META_PREFIX + slotId;
 }
 
 /**
@@ -229,7 +297,73 @@ export function makeSavePayload(game: Game, name: string, savedAt: number): Save
   };
 }
 
-export type WriteResult = { ok: true; bytes: number } | { ok: false; error: string };
+export type WriteResult =
+  | { ok: true; bytes: number }
+  /**
+   * `reason` lets the autosaver tell a save that will never fit (`size`: logs
+   * only grow, so it stops trying) from one the browser refused this time
+   * (`storage`: the player may free space, so it keeps trying).
+   */
+  | { ok: false; error: string; reason: 'serialize' | 'size' | 'storage' };
+
+// --- packing ------------------------------------------------------------------
+
+/** Base64 of bytes, in chunks so `fromCharCode` never sees a huge argument list. */
+function toBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
+function fromBase64(text: string): Uint8Array<ArrayBuffer> {
+  const binary = atob(text);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/**
+ * The stored form of a save's JSON: gzipped, base64-encoded, marked with
+ * `SAVE_PACK_PREFIX`. Where the platform has no `CompressionStream` the JSON is
+ * stored as it is, which every reader still understands.
+ */
+export async function packSave(json: string): Promise<string> {
+  if (typeof CompressionStream === 'undefined') return json;
+  const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));
+  const bytes = new Uint8Array(await new Response(stream).arrayBuffer());
+  return SAVE_PACK_PREFIX + toBase64(bytes);
+}
+
+/**
+ * A slot's stored text back to the save's JSON. Plain JSON (an older slot, an
+ * imported file) comes back unchanged. Throws if a packed text is damaged.
+ */
+export async function unpackSave(text: string): Promise<string> {
+  if (!text.startsWith(SAVE_PACK_PREFIX)) return text;
+  const bytes = fromBase64(text.slice(SAVE_PACK_PREFIX.length));
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return new Response(stream).text();
+}
+
+/** The label record for a payload: the fields `readSlot` used to parse out of the save. */
+function metaOf(payload: SavePayload, chars: number): SaveMeta {
+  const config = payload.config;
+  const leader = config.players?.[0]?.leader;
+  return {
+    formatVersion: payload.formatVersion,
+    schemaVersion: payload.schemaVersion,
+    name: payload.name,
+    turn: payload.turn,
+    savedAt: payload.savedAt,
+    seed: config.seed,
+    sizeName: config.sizeName,
+    seats: config.players.length,
+    ...(typeof leader === 'string' ? { leader } : {}),
+    chars,
+  };
+}
 
 /**
  * Puts a payload in a slot, or says why it could not.
@@ -237,49 +371,85 @@ export type WriteResult = { ok: true; bytes: number } | { ok: false; error: stri
  * Every way this fails is a way it fails *in the browser the player is actually
  * using* — a full quota, a private window that refuses to persist anything, a
  * game long enough to trip the cap — and none of them is a reason to take the
- * game down. So it returns a sentence instead of throwing, and the caller
+ * game down. So it resolves to a sentence instead of throwing, and the caller
  * decides how loudly to say it (the autosaver says it once; a menu press says it
  * every time, because the player pressed the button).
+ *
+ * The payload is turned into JSON before the first await, so a game that keeps
+ * playing while the text is packed does not change what is saved. The slot and
+ * its label record are written together; if the label cannot be written the
+ * slot is removed too, because a packed slot with no label cannot be listed.
  */
-export function writeSave(
+export async function writeSave(
   storage: SaveStorage,
   slotId: string,
   payload: SavePayload,
-): WriteResult {
+): Promise<WriteResult> {
   let json: string;
   try {
     json = JSON.stringify(payload);
   } catch {
-    return { ok: false, error: 'This game could not be turned into a save file.' };
-  }
-  if (json.length > MAX_SAVE_CHARS) {
     return {
       ok: false,
-      error: `This game is too large to save in the browser (${Math.round(json.length / 1024)} kB).`,
+      reason: 'serialize',
+      error: 'This game could not be turned into a save file.',
+    };
+  }
+  let stored: string;
+  try {
+    stored = await packSave(json);
+  } catch {
+    stored = json;
+  }
+  if (stored.length > MAX_SAVE_CHARS) {
+    return {
+      ok: false,
+      reason: 'size',
+      error: `This game is too large to save in the browser (${Math.round(stored.length / 1024)} kB).`,
     };
   }
   try {
-    storage.setItem(storageKey(slotId), json);
+    storage.setItem(storageKey(slotId), stored);
+    try {
+      storage.setItem(metaKey(slotId), JSON.stringify(metaOf(payload, stored.length)));
+    } catch (error) {
+      storage.removeItem(storageKey(slotId));
+      storage.removeItem(metaKey(slotId));
+      throw error;
+    }
   } catch {
     // Quota, or a browser that refuses storage outright. Both arrive as a throw
     // and neither is distinguishable from the other portably, so one sentence
     // covers them and it names the two things a player can do about it.
     return {
       ok: false,
+      reason: 'storage',
       error: 'The browser would not store this save — its storage may be full or blocked.',
     };
   }
-  return { ok: true, bytes: json.length };
+  return { ok: true, bytes: stored.length };
 }
 
 export function deleteSave(storage: SaveStorage, slotId: string): void {
   storage.removeItem(storageKey(slotId));
+  storage.removeItem(metaKey(slotId));
+}
+
+/** A slot's save as JSON text, unpacked; `null` when the slot is not there. */
+export async function readSaveText(storage: SaveStorage, slotId: string): Promise<string | null> {
+  const stored = storage.getItem(storageKey(slotId));
+  return stored === null ? null : unpackSave(stored);
 }
 
 // --- reading the shelf ------------------------------------------------------
 
 /**
- * Reads a slot's label without replaying it.
+ * Reads a slot's label without replaying it, and without reading the save.
+ *
+ * The label comes from the slot's `SaveMeta` record. A slot written before
+ * label records existed has none, and is read the old way, by parsing its JSON
+ * whole. A packed slot with no label cannot be described without unpacking it,
+ * and is left off the list (`writeSave` never leaves one behind).
  *
  * Returns `null` for anything it cannot describe — absent, unparseable, or from
  * another version — because this feeds a *list*, and a list is not the place to
@@ -288,8 +458,10 @@ export function deleteSave(storage: SaveStorage, slotId: string): void {
  * broken to describe is simply not offered.
  */
 export function readSlot(storage: SaveStorage, slotId: string): SaveSlot | null {
+  const meta = storage.getItem(metaKey(slotId));
+  if (meta !== null) return slotFromMeta(slotId, meta);
   const json = storage.getItem(storageKey(slotId));
-  if (json === null) return null;
+  if (json === null || json.startsWith(SAVE_PACK_PREFIX)) return null;
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
@@ -302,6 +474,7 @@ export function readSlot(storage: SaveStorage, slotId: string): SaveSlot | null 
   if (payload.schemaVersion !== SCHEMA_VERSION) return null;
   const config = payload.config;
   if (typeof config !== 'object' || config === null) return null;
+  const leader = Array.isArray(config.players) ? config.players[0]?.leader : undefined;
   return {
     id: slotId,
     kind: slotKind(slotId),
@@ -311,6 +484,32 @@ export function readSlot(storage: SaveStorage, slotId: string): SaveSlot | null 
     seed: typeof config.seed === 'number' ? config.seed : 0,
     sizeName: typeof config.sizeName === 'string' ? config.sizeName : '—',
     seats: Array.isArray(config.players) ? config.players.length : 0,
+    ...(typeof leader === 'string' ? { leader } : {}),
+  };
+}
+
+/** A label record to a list row, with the same defaults and refusals as a parsed save. */
+function slotFromMeta(slotId: string, text: string): SaveSlot | null {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (typeof parsed !== 'object' || parsed === null) return null;
+  const meta = parsed as Partial<SaveMeta>;
+  if (meta.formatVersion !== SAVE_FORMAT_VERSION) return null;
+  if (meta.schemaVersion !== SCHEMA_VERSION) return null;
+  return {
+    id: slotId,
+    kind: slotKind(slotId),
+    name: typeof meta.name === 'string' && meta.name !== '' ? meta.name : slotId,
+    turn: typeof meta.turn === 'number' ? meta.turn : 0,
+    savedAt: typeof meta.savedAt === 'number' ? meta.savedAt : 0,
+    seed: typeof meta.seed === 'number' ? meta.seed : 0,
+    sizeName: typeof meta.sizeName === 'string' ? meta.sizeName : '—',
+    seats: typeof meta.seats === 'number' ? meta.seats : 0,
+    ...(typeof meta.leader === 'string' ? { leader: meta.leader } : {}),
   };
 }
 
@@ -321,6 +520,8 @@ export function readSlot(storage: SaveStorage, slotId: string): SaveSlot | null 
  * so a save written by another tab — or left behind by a build that has since
  * been reloaded — is found rather than orphaned. Ties on the clock break by slot
  * id, so the list is stable rather than dependent on the store's own order.
+ * Only slot keys are collected, so a label record whose slot has gone is never
+ * listed.
  */
 export function listSaves(storage: SaveStorage): SaveSlot[] {
   const ids: string[] = [];
@@ -509,10 +710,19 @@ export function loadSave(json: string): LoadResult {
   return finishLoad(read.envelope, walkHere(read.envelope));
 }
 
-/** The synchronous walk: `tryReplay`, with `newGame`'s throw carried as data. */
-export function walkHere(envelope: SaveEnvelope, onTurn?: ReplayWatcher): LoadWalk {
+/**
+ * The synchronous walk: the full replay, with `newGame`'s throw carried as data.
+ * Given a load checkpoint that matches the log (`resume`), it walks only the
+ * commands after it, and falls back to the full walk on any refusal
+ * (`tryReplayResuming`, the same function the worker runs).
+ */
+export function walkHere(
+  envelope: SaveEnvelope,
+  onTurn?: ReplayWatcher,
+  resume: ReplayResume | null = null,
+): LoadWalk {
   try {
-    return tryReplay(envelope.config, envelope.log, onTurn);
+    return tryReplayResuming(envelope.config, envelope.log, resume, onTurn);
   } catch (error) {
     return {
       ok: false,
@@ -521,12 +731,24 @@ export function walkHere(envelope: SaveEnvelope, onTurn?: ReplayWatcher): LoadWa
   }
 }
 
-/** Reads a slot and loads it. `null` when the slot is simply not there. */
-export function loadSlot(storage: SaveStorage, slotId: string): LoadResult | null {
-  const json = storage.getItem(storageKey(slotId));
+/**
+ * Reads a slot and loads it, here. `null` when the slot is simply not there.
+ * Asynchronous only because a stored slot is packed; the walk itself runs on
+ * this thread. The game page uses `loadSlotAsync` (`gameLoader.ts`) instead.
+ */
+export async function loadSlot(storage: SaveStorage, slotId: string): Promise<LoadResult | null> {
+  let json: string | null;
+  try {
+    json = await readSaveText(storage, slotId);
+  } catch {
+    return { ok: false, error: UNREADABLE };
+  }
   if (json === null) return null;
   return loadSave(json);
 }
+
+/** What a packed slot that will not unpack is told. */
+export const UNREADABLE = 'That save could not be read: the stored file is damaged.';
 
 // --- which seat a loaded game sits down at ----------------------------------
 
@@ -561,46 +783,117 @@ export function resumeSeat(state: GameState): number {
 // --- the autosave -----------------------------------------------------------
 
 export interface Autosaver {
-  /** Writes the rolling slot, unless this turn has already been written. */
+  /**
+   * Takes the rolling save of this turn, unless this turn has already been
+   * taken. Returns at once: the writing happens later (see `createAutosaver`).
+   */
   save(game: Game, now: number): void;
-  /** Forgets which turn was last written. Called when the game is replaced. */
+  /**
+   * Forgets which turn was last written, and lifts the stop after a save that
+   * was too large. Called when the game is replaced.
+   */
   reset(): void;
+  /** Resolves when every save already asked for has been written or has failed. */
+  flush(): Promise<void>;
 }
 
 export interface AutosaverOptions {
   storage: SaveStorage;
   /** Said once per session, however many times the write fails after that. */
   onWarn: (message: string) => void;
+  /** Called after each autosave that was written, so the shelf can show it. */
+  onSaved?: () => void;
   /** The name the rolling slot wears in the list. */
   name?: string;
+  /**
+   * Where the load checkpoint goes. Defaults to the browser's IndexedDB
+   * (`browserCheckpoints`); `null` turns checkpoints off.
+   */
+  checkpoints?: SaveCheckpoints | null;
+  /**
+   * Runs the write later. Defaults to `requestIdleCallback` (with a one-second
+   * limit) where the platform has it, and a zero timeout otherwise.
+   */
+  defer?: (task: () => void) => void;
+}
+
+function idleDefer(task: () => void): void {
+  const idle = (globalThis as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number })
+    .requestIdleCallback;
+  if (typeof idle === 'function') idle(task, { timeout: 1000 });
+  else setTimeout(task, 0);
 }
 
 /**
  * The rolling autosave: one slot, overwritten after every turn resolution.
  *
- * Two guards, and both are about a browser rather than about the game. The
- * *turn* guard is the debounce — the hook it hangs off fires once per resolved
- * turn, but a caller is not required to be careful and rewriting the same turn's
- * save is pure cost. The *failure* guard is the one that matters: a full quota
- * fails on every turn for the rest of the session, and a warning that reappeared
- * every turn would be the crash loop the storage error was not.
+ * Off the critical path. `save` is called inside the End Turn task, and used to
+ * stringify the whole log and write it to `localStorage` there and then. Now it
+ * only takes a copy of the log array (the commands themselves are never
+ * mutated, so a shallow copy fixes the save at this turn) and the turn number,
+ * and queues the rest: the load checkpoint (`writeCheckpoint`), the JSON, the
+ * packing and the write all run in a later idle task, one save at a time and in
+ * order, so a slow write is never overtaken by the next turn's.
+ *
+ * The checkpoint is only taken if the game has not moved since `save` was
+ * called (same game, same log length), because it has to be the state of
+ * exactly the log being saved. If the player has already acted, that turn's
+ * checkpoint is skipped and the next turn's autosave takes one.
+ *
+ * Three guards, all about a browser rather than about the game. The *turn*
+ * guard is the debounce: the hook fires once per resolved turn, but rewriting
+ * the same turn's save is pure cost. The *warning* guard: a full quota fails on
+ * every turn for the rest of the session, and a warning every turn would be the
+ * crash loop the storage error was not. The *size* guard: a save too large to
+ * store will only grow, so after one size refusal the autosaver stops building
+ * saves until `reset`.
  */
 export function createAutosaver(options: AutosaverOptions): Autosaver {
-  const { storage, onWarn, name = 'Autosave' } = options;
+  const { storage, onWarn, onSaved, name = 'Autosave', defer = idleDefer } = options;
+  const checkpoints = options.checkpoints === undefined ? browserCheckpoints() : options.checkpoints;
   let lastTurn: number | null = null;
   let warned = false;
+  let tooLarge = false;
+  /** Bumped by `reset`, so a write queued for the old game cannot stop the new one. */
+  let generation = 0;
+  let queue: Promise<void> = Promise.resolve();
 
   return {
     save(game, now) {
-      if (lastTurn === game.state.turn) return;
+      if (tooLarge || lastTurn === game.state.turn) return;
       lastTurn = game.state.turn;
-      const result = writeSave(storage, AUTOSAVE_SLOT, makeSavePayload(game, name, now));
-      if (result.ok || warned) return;
-      warned = true;
-      onWarn(`Autosave failed. ${result.error}`);
+      const asked = generation;
+      const logLength = game.log.length;
+      const payload: SavePayload = { ...makeSavePayload(game, name, now), log: game.log.slice() };
+      queue = queue
+        .then(() => new Promise<void>((resolve) => defer(resolve)))
+        .then(async () => {
+          // Synchronous up to its first await: the state is copied here, before
+          // anything else can run.
+          const checkpointed =
+            checkpoints !== null && game.log.length === logLength && game.state.turn === payload.turn
+              ? writeCheckpoint(checkpoints, game)
+              : null;
+          const result = await writeSave(storage, AUTOSAVE_SLOT, payload);
+          await checkpointed;
+          if (result.ok) {
+            onSaved?.();
+            return;
+          }
+          if (result.reason === 'size' && asked === generation) tooLarge = true;
+          if (warned) return;
+          warned = true;
+          onWarn(`Autosave failed. ${result.error}`);
+        })
+        .catch((error: unknown) => console.warn('[magister-ludi] autosave failed', error));
     },
     reset() {
       lastTurn = null;
+      tooLarge = false;
+      generation++;
+    },
+    flush() {
+      return queue;
     },
   };
 }

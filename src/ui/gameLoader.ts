@@ -28,7 +28,10 @@
  * validation is weakened, the rejected command's index and the reducer's own
  * sentence come back exactly as `tryReplay` produced them, and a load is still
  * all-or-nothing — the caller gets a whole `Game` or a sentence and no game.
- * The save format is untouched; nothing is snapshotted or cached.
+ * The save format is untouched. The one cache is the load checkpoint
+ * (`saveCheckpoints.ts`), a copy of the state at the last autosave that lets
+ * the walk start part-way; it is used only when it provably matches the log and
+ * the build, and any miss or error falls back to the full walk.
  *
  * Why it may be a worker at all
  * -----------------------------
@@ -59,11 +62,14 @@ import {
   type LoadWalk,
   type SaveEnvelope,
   type SaveStorage,
+  UNREADABLE,
   finishLoad,
   readSaveEnvelope,
   storageKey,
+  unpackSave,
   walkHere,
 } from './saves';
+import { type CheckpointHit, type SaveCheckpoints, browserCheckpoints, findCheckpoint } from './saveCheckpoints';
 import type { GameWorkerMessage, GameWorkerReply, GameWorkerRequest } from './game.worker';
 
 export interface LoaderOptions {
@@ -78,15 +84,27 @@ export interface LoaderOptions {
    * never calls it, because a new world has no log.
    */
   onReplayTurn?: (turn: number, expected: number) => void;
+  /**
+   * The load checkpoint to try before walking the whole log
+   * (`saveCheckpoints.ts`). Defaults to the browser's IndexedDB; `null` turns
+   * it off. Tests pass a memory store.
+   */
+  checkpoints?: SaveCheckpoints | null;
 }
 
 /** Which way a build actually went, for the profile panel and for tests. */
 export interface LoaderMetrics {
-  mode: 'worker' | 'synchronous';
+  /**
+   * `checkpoint` means the stored checkpoint covered the whole log and no
+   * command was walked at all.
+   */
+  mode: 'worker' | 'synchronous' | 'checkpoint';
   /** Wall time of the whole call, main thread included. */
   totalMs: number;
   /** What the walk itself cost, wherever it ran. */
   walkMs: number;
+  /** The log index the walk started from: 0 for a full replay. */
+  resumedFrom?: number;
 }
 
 /**
@@ -229,52 +247,100 @@ export async function createGameAsync(
 async function walkThere(
   envelope: SaveEnvelope,
   options: LoaderOptions,
-): Promise<{ walk: LoadWalk; walkMs: number } | null> {
-  const reply = await ask(
-    { kind: 'replay', config: envelope.config, log: envelope.log as Command[] },
-    options,
-    (turn) => options.onReplayTurn?.(turn, envelope.turn),
-  );
+  hit: CheckpointHit | null,
+): Promise<{ walk: LoadWalk; walkMs: number; resumedFrom: number } | null> {
+  const request: GameWorkerRequest = {
+    kind: 'replay',
+    config: envelope.config,
+    log: envelope.log as Command[],
+    ...(hit !== null ? { resume: hit } : {}),
+  };
+  const reply = await ask(request, options, (turn) => options.onReplayTurn?.(turn, envelope.turn));
   if (reply === null) return null;
   if (reply.kind === 'unbuildable') {
-    return { walk: { ok: false, unbuildable: reply.message }, walkMs: 0 };
+    return { walk: { ok: false, unbuildable: reply.message }, walkMs: 0, resumedFrom: 0 };
   }
   if (reply.kind === 'refused') {
     return {
       walk: { ok: false, failure: { index: reply.index, type: reply.type, error: reply.error } },
       walkMs: reply.walkMs,
+      resumedFrom: 0,
     };
   }
-  return { walk: { ok: true, state: reply.state as GameState }, walkMs: reply.walkMs };
+  return {
+    walk: { ok: true, state: reply.state as GameState },
+    walkMs: reply.walkMs,
+    resumedFrom: reply.resumedFrom ?? 0,
+  };
 }
 
 /**
  * `loadSave`, with the walk off-thread. Same gate, same sentences, same
  * all-or-nothing: `readSaveEnvelope` and `finishLoad` are `saves.ts`'s own, so
  * there is nothing here for the two paths to drift apart on.
+ *
+ * Before walking, it asks for a load checkpoint that matches this config and
+ * log (`findCheckpoint`; every kind of mismatch is a miss). A checkpoint that
+ * covers the whole log is the game, and no walk runs at all. One that covers a
+ * prefix goes to the worker, which walks only the commands after it. Without
+ * one, the walk is the full replay, exactly as before checkpoints existed.
+ *
+ * The text may be a packed slot (`saves.ts`); it is unpacked first.
  */
 export async function loadSaveAsync(
-  json: string,
+  text: string,
   options: LoaderOptions = {},
 ): Promise<LoadResult> {
   const started = performance.now();
+  let json: string;
+  try {
+    json = await unpackSave(text);
+  } catch {
+    return { ok: false, error: UNREADABLE };
+  }
   const read = readSaveEnvelope(json);
   if (!read.ok) return { ok: false, error: read.error };
   const envelope = read.envelope;
-  const there = workersExist(options) ? await walkThere(envelope, options) : null;
+  const checkpoints = options.checkpoints === undefined ? browserCheckpoints() : options.checkpoints;
+  const hit = await findCheckpoint(checkpoints, envelope.config, envelope.log);
+  if (options.signal?.aborted) throw aborted();
+  if (hit !== null && hit.from === envelope.log.length) {
+    // Nothing to walk. The sheet still hears the turn, so its second stage
+    // reads as finished rather than skipped.
+    options.onReplayTurn?.(hit.state.turn, envelope.turn);
+    lastMetrics = {
+      mode: 'checkpoint',
+      totalMs: performance.now() - started,
+      walkMs: 0,
+      resumedFrom: hit.from,
+    };
+    return finishLoad(envelope, { ok: true, state: hit.state });
+  }
+  const there = workersExist(options) ? await walkThere(envelope, options, hit) : null;
   if (options.signal?.aborted) throw aborted();
   if (there === null) {
     // The thread is about to be blocked, so nothing will repaint between these
     // calls — but the stage list is the same list either way, and a sheet that
     // never heard of the walk would be stuck on "Opening the save".
-    return note('synchronous', started, () =>
-      finishLoad(
+    let resumedFrom = 0;
+    const result = note('synchronous', started, () => {
+      const walk = walkHere(
         envelope,
-        walkHere(envelope, (turn: number) => options.onReplayTurn?.(turn, envelope.turn)),
-      ),
-    );
+        (turn: number) => options.onReplayTurn?.(turn, envelope.turn),
+        hit,
+      );
+      resumedFrom = (walk as { resumedFrom?: number | null }).resumedFrom ?? 0;
+      return finishLoad(envelope, walk);
+    });
+    if (lastMetrics !== null) lastMetrics.resumedFrom = resumedFrom;
+    return result;
   }
-  lastMetrics = { mode: 'worker', totalMs: performance.now() - started, walkMs: there.walkMs };
+  lastMetrics = {
+    mode: 'worker',
+    totalMs: performance.now() - started,
+    walkMs: there.walkMs,
+    resumedFrom: there.resumedFrom,
+  };
   return finishLoad(envelope, there.walk);
 }
 

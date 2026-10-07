@@ -129,12 +129,30 @@ export function tryReplay(
   log: readonly Command[],
   onTurn?: ReplayWatcher,
 ): ReplayResult {
-  const state = newGame(config);
+  return tryReplayFrom(newGame(config), log, 0, onTurn);
+}
+
+/**
+ * The same walk, started part of the way through the log: `state` must be the
+ * state that `log[0..from)` replays to, and it is mutated in place.
+ *
+ * This exists for the load checkpoint (`src/ui/saveCheckpoints.ts`), which keeps
+ * a copy of the state at the last autosave so that a load only walks the
+ * commands after it. It is the same loop as a full replay, not a second one, so
+ * a refusal reports the same absolute index either way. Whether `state` really
+ * matches the prefix is the caller's to prove; this function cannot check it.
+ */
+export function tryReplayFrom(
+  state: GameState,
+  log: readonly Command[],
+  from: number,
+  onTurn?: ReplayWatcher,
+): ReplayResult {
   // The turn the walk is standing on. Reported when it changes, and once at the
   // start so a caller has a number to print before the first end of turn.
   let turn = state.turn;
-  onTurn?.(turn, -1);
-  for (let i = 0; i < log.length; i++) {
+  onTurn?.(turn, from - 1);
+  for (let i = from; i < log.length; i++) {
     const command = log[i]!;
     const result = applyCommand(state, command);
     if (!result.ok) {
@@ -149,6 +167,35 @@ export function tryReplay(
     }
   }
   return { ok: true, state };
+}
+
+/** A state known to be what `log[0..from)` replays to. See `tryReplayResuming`. */
+export interface ReplayResume {
+  state: GameState;
+  from: number;
+}
+
+/**
+ * Replays from a resume point when one is given, and from the start otherwise.
+ *
+ * A refusal met on the way from the resume point is not taken as the answer:
+ * the walk is run again from the start, and that walk's result is returned.
+ * If the resume point was good the second walk refuses at the same index (the
+ * reducer is deterministic), so nothing is lost but time on a save that was
+ * broken anyway; if the resume point was somehow wrong, the full walk is the
+ * truth. `resumedFrom` says which walk produced the result.
+ */
+export function tryReplayResuming(
+  config: GameConfig,
+  log: readonly Command[],
+  resume: ReplayResume | null,
+  onTurn?: ReplayWatcher,
+): ReplayResult & { resumedFrom: number | null } {
+  if (resume !== null) {
+    const resumed = tryReplayFrom(resume.state, log, resume.from, onTurn);
+    if (resumed.ok) return { ...resumed, resumedFrom: resume.from };
+  }
+  return { ...tryReplay(config, log, onTurn), resumedFrom: null };
 }
 
 /**
