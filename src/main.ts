@@ -3715,6 +3715,9 @@ async function boot(initial: Game | null): Promise<void> {
       controls.announce(message);
       refreshResumeRow();
     },
+    // The write now happens in an idle task after the turn, so a landing shown
+    // in between is brought up to date when it lands.
+    onSaved: () => refreshResumeRow(),
   });
 
   /**
@@ -5808,17 +5811,22 @@ async function boot(initial: Game | null): Promise<void> {
   /**
    * Writes a slot and says so. The one place a save is taken from the menu, so
    * the shelf-dependent surfaces are refreshed in exactly one place too.
+   *
+   * `writeSave` packs the save asynchronously, but it takes the JSON before its
+   * first await, so the save is the game as it is now; the turn is read now too.
    */
   function saveTo(slotId: string, name: string): void {
-    const result = writeSave(saveStorage, slotId, makeSavePayload(game, name, Date.now()));
-    if (!result.ok) {
-      saveNote(result.error, true);
-      return;
-    }
-    currentSaveName = name;
-    saveNote(`Saved “${name}” at turn ${game.state.turn}.`, false);
-    savesPanel.refresh();
-    refreshResumeRow();
+    const turn = game.state.turn;
+    void writeSave(saveStorage, slotId, makeSavePayload(game, name, Date.now())).then((result) => {
+      if (!result.ok) {
+        saveNote(result.error, true);
+        return;
+      }
+      currentSaveName = name;
+      saveNote(`Saved “${name}” at turn ${turn}.`, false);
+      savesPanel.refresh();
+      refreshResumeRow();
+    });
   }
 
   menuSaveButton.addEventListener('click', () => {

@@ -9,7 +9,7 @@
  * anywhere in four thousand tiles fails.
  *
  * The worker is modelled, not launched. Vitest runs in node, where there is no
- * `Worker` — so the fake below does exactly what the real seam does and nothing
+ * `Worker` — so the fake (`gameLoaderHelpers.ts`) does exactly what the real seam does and nothing
  * else: it calls `answerGameWorker` (the real worker's real body, exported for
  * this) and puts the reply through `structuredClone`, which is the seam. What is
  * left untested here is the browser's `postMessage` itself, and that is the
@@ -21,8 +21,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { driveBots } from '../../src/ai/driver';
 import { type Game, createGame, snapshotState, tryReplay } from '../../src/sim/game';
 import { type GameConfig, normalizeConfig } from '../../src/sim/state';
-import { answerGameWorker } from '../../src/ui/game.worker';
-import type { GameWorkerMessage, GameWorkerRequest } from '../../src/ui/game.worker';
 import { createGameAsync, loadSaveAsync, loadSlotAsync } from '../../src/ui/gameLoader';
 import {
   QUICKSAVE_SLOT,
@@ -31,6 +29,7 @@ import {
   memorySaveStorage,
   writeSave,
 } from '../../src/ui/saves';
+import { fakeWorkerFactory } from './gameLoaderHelpers';
 import { uiSource } from './sourceHelpers';
 
 const CONFIG: GameConfig = {
@@ -43,46 +42,6 @@ const CONFIG: GameConfig = {
   barbarians: true,
 };
 
-/**
- * The seam, standing in for a browser's.
- *
- * `structuredClone` on the way out is the point: it is the same algorithm
- * `postMessage` uses, so a state that would not survive the crossing does not
- * survive this either. `queueMicrotask` keeps the reply asynchronous, so a
- * caller that accidentally depended on the old synchronous timing fails here.
- */
-function fakeWorkerFactory(behaviour: 'answer' | 'error' | 'throw-on-construct' = 'answer') {
-  return (): Worker => {
-    if (behaviour === 'throw-on-construct') throw new Error('no worker here');
-    const worker = {
-      onmessage: null as ((event: MessageEvent<GameWorkerMessage>) => void) | null,
-      onerror: null as ((event: Event & { message?: string }) => void) | null,
-      onmessageerror: null as (() => void) | null,
-      terminated: false,
-      terminate(): void {
-        this.terminated = true;
-      },
-      postMessage(request: GameWorkerRequest): void {
-        queueMicrotask(() => {
-          if (this.terminated) return;
-          if (behaviour === 'error') {
-            this.onerror?.({ type: 'error', message: 'worker died' } as Event & { message: string });
-            return;
-          }
-          // Progress first, then the answer — the order the real worker sends
-          // them in, and the order the loader has to survive.
-          const reply = structuredClone(
-            answerGameWorker(request, (turn) =>
-              this.onmessage?.({ data: { kind: 'progress', turn } } as MessageEvent<GameWorkerMessage>),
-            ),
-          );
-          this.onmessage?.({ data: reply } as MessageEvent<GameWorkerMessage>);
-        });
-      },
-    };
-    return worker as unknown as Worker;
-  };
-}
 
 /** A save with enough game behind it that the walk is a real walk. */
 function developedSave(turns: number): { json: string; game: Game } {
@@ -240,7 +199,7 @@ describe('loadSlotAsync', () => {
     const storage = memorySaveStorage();
     expect(await loadSlotAsync(storage, QUICKSAVE_SLOT)).toBeNull();
     const { json } = developedSave(3);
-    writeSave(storage, QUICKSAVE_SLOT, JSON.parse(json) as never);
+    await writeSave(storage, QUICKSAVE_SLOT, JSON.parse(json) as never);
     const result = await loadSlotAsync(storage, QUICKSAVE_SLOT, {
       workerFactory: fakeWorkerFactory(),
     });
@@ -280,11 +239,14 @@ describe('the surfaces that build a game', () => {
 
   it('the worker body is the simulation’s own two entry points and nothing else', () => {
     const worker = uiSource('game.worker.ts');
-    expect(worker).toContain("import { tryReplay } from '../sim/game'");
+    expect(worker).toContain("import { type ReplayResume, tryReplayResuming } from '../sim/game'");
     expect(worker).toContain('newGame(request.config)');
     // One walk, with an observer hung on it — never a second loop of its own.
-    expect(worker).toContain('tryReplay(request.config, request.log, (turn) => onTurn?.(turn))');
+    // `tryReplayResuming` is `tryReplay` unless a load checkpoint was sent, and
+    // then the same loop started part-way (`tryReplayFrom`).
+    expect(worker).toContain('tryReplayResuming(\n      request.config,\n      request.log,');
     expect(worker).not.toContain('applyCommand');
+    expect(worker).not.toContain('tryReplayFrom');
   });
 });
 
