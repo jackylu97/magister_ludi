@@ -3249,6 +3249,24 @@ export interface City {
    * follows the stones, which is the wonders framework's rule one scale down.
    */
   consecration?: ConsecrationId;
+  /**
+   * When this town last spent a citizen on a levy, or the key is **absent** on a
+   * town that never has (batch L, `levies.ts`).
+   *
+   * Absolute turns compared against `state.turn`, never countdowns. `turn` is
+   * the last levy of any kind, which is what the shared waiting period reads.
+   * `after` holds, per card, the turn that card last hung its effects on this
+   * town (Seasonal Levies' "at most once every twenty turns"). Written only by
+   * `levyAt`. A captured town keeps it, like everything else that happened to
+   * the place.
+   */
+  levy?: CityLevyRecord;
+}
+
+/** See `City.levy`. */
+export interface CityLevyRecord {
+  turn: number;
+  after?: Partial<Record<CardId, number>>;
 }
 
 /**

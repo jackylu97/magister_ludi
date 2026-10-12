@@ -147,6 +147,7 @@ import {
 } from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { cityDisplayName } from './cityDisplay';
+import { levyMenuModel, renderLevyMenu } from './levyMenu';
 import {
   type YieldKey,
   HAMMER,
@@ -925,6 +926,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   const askConfirm =
     options.askConfirm ?? ((_request: ConfirmRequest, run: () => void): void => run());
   const setBuyMode = options.setBuyMode ?? ((): void => {});
+  // The town whose levy menu is open, if any. See `renderLevy`.
+  let levyMenuOpenFor: number | null = null;
 
   /**
    * Every dispatch this panel makes leaves through here.
@@ -2072,6 +2075,42 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // player wants and the one a beginner never has to see.
     row.title = guildBarText(getGame().state, city);
     return row;
+  }
+
+  /**
+   * The levy button and its menu (batch L, `levyMenu.ts`). Absent when the
+   * player's cards grant no levy. Which town's menu is open is kept here, so a
+   * repaint keeps it open; choosing a line sends `levyCitizen` and closes it.
+   */
+  function renderLevy(city: City): HTMLElement | null {
+    const { state } = getGame();
+    const model = levyMenuModel(state, localPlayerId(), city);
+    if (model === null) return null;
+    return renderLevyMenu(
+      model,
+      levyMenuOpenFor === city.id,
+      () => {
+        levyMenuOpenFor = levyMenuOpenFor === city.id ? null : city.id;
+        // Nothing in the state moved, so the render key would skip the rebuild.
+        drawnKey = null;
+        render();
+      },
+      (use) => {
+        levyMenuOpenFor = null;
+        const command: Command = {
+          type: 'levyCitizen',
+          playerId: localPlayerId(),
+          cityId: city.id,
+          use,
+        };
+        if (!report(command, dispatch(getGame(), command)).ok) {
+          drawnKey = null;
+          render();
+          return;
+        }
+        onChanged();
+      },
+    );
   }
 
   /** The quiet Dismiss beside one trade. See `renderSpecialists`. */
@@ -3321,6 +3360,14 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     if (guilds) {
       const card = element('div', 'city-card');
       card.append(guilds);
+      rail.append(card);
+    }
+
+    // Spending a citizen (batch L) — absent unless a held card grants a levy.
+    const levy = renderLevy(city);
+    if (levy) {
+      const card = element('div', 'city-card');
+      card.append(levy);
       rail.append(card);
     }
 

@@ -2234,6 +2234,12 @@ function chooseCitizens(
  *      it belongs to the player who asked for it. Entry 5's argument with the
  *      ownership turned round.
  *
+ *  23. **A levy** (`levyAt`, `levies.ts`, batch L) — a town gives up a citizen,
+ *      so one fewer person is working a hex and the town must be re-seated now,
+ *      not at the end of the turn. The hammers a levy pays go through
+ *      `settleProductionWindfall` (entry 3), into the levying town or into the
+ *      town building the Magnum Opus.
+ *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
  * asserts that, because it is the one property a new mutation can break while
@@ -3285,40 +3291,16 @@ export function growCities(state: GameState, report?: TurnReport): void {
   for (const city of state.cities) {
     if (settleGrowth(state, city) !== null) continue;
     if (city.foodBasket <= CITIES.starvationShrinksAt) {
-      const before = city.population;
-      city.population = Math.max(1, city.population - 1);
       city.foodBasket = 0;
-      const shrank = city.population < before;
-      // **A famine is a write the meters fold** (batch M3, `slate.ts`): one
-      // fewer mouth to charge, and one fewer follower below — and `cityReligion`
-      // is a majority of the population, so a town can change faith on this
-      // line. Announced here rather than at the phase's end, because the sweep
-      // prices the towns after this one.
-      if (shrank) bumpEconomy(state);
-      // **A famine takes a believer too.** The congregations are counts of
-      // citizens (`City.followers`), so a town that loses a mouth and kept every
-      // count would end up with more followers than people — and `cityReligion`
-      // reads a *majority of the population*, so it would fly a banner the town
-      // no longer earns. Taken from the largest congregation, which is
-      // `shrinkFollowers`' rule and the mirror of a conversion's.
-      //
-      // Growth needs no such line, and that is the design rather than an
-      // omission: a citizen is **born unconverted**, so a town that grows simply
-      // has one more person the tide has not reached — which is why a big city
-      // is harder to convert than a small one.
-      if (shrank) shrinkFollowers(city, religionOrder(state));
-      // **A shrunk city may no longer be able to build the front of its own
-      // queue** (the user's addendum of 2026-08-29): a settler queued at size
-      // 2 is not a settler a size-1 city may finish. `ejectUnbuildableQueue`
-      // sets those rows aside; see it for why the hammers need no rescue.
-      const ejected = shrank ? ejectUnbuildableQueue(city) : [];
+      // A famine takes its citizen through the same routine a levy does.
+      const ejected = loseCitizen(state, city);
       // The other half of `StarvationReport`: `collectYields`, earlier in this
       // same resolution, already logged the deficit that got the town here —
       // this only corrects what the deficit turned into. A city whose basket
       // was already empty on a healthy surplus (impossible today, but the
       // entry is found-or-nothing on purpose) writes nothing, because
       // `collectYields` wrote no entry for it to correct.
-      if (shrank) {
+      if (ejected !== null) {
         const entry = report?.starved.find((s) => s.cityId === city.id);
         if (entry) {
           entry.shrank = true;
@@ -3328,6 +3310,36 @@ export function growCities(state: GameState, report?: TurnReport): void {
       }
     }
   }
+}
+
+/**
+ * Takes one citizen out of a town: the one routine for a town getting smaller,
+ * used by famine (`growCities`) and by a levy (`levyAt`, `levies.ts`).
+ *
+ * Returns the names of the queue rows the smaller town can no longer build, or
+ * `null` when the town is already at one citizen and nothing changed.
+ *
+ *   · **The meters are told** (batch M3, `slate.ts`): one fewer mouth to charge,
+ *     and `cityReligion` is a majority of the population, so the town's faith
+ *     can change on this line.
+ *   · **A believer goes too.** The congregations are counts of citizens
+ *     (`City.followers`), so a town that lost a person and kept every count
+ *     could have more followers than people. Taken from the largest
+ *     congregation (`shrinkFollowers`). Growth needs no such line: a citizen is
+ *     born following nothing.
+ *   · **The queue is checked** (the user's addendum of 2026-08-29): a settler
+ *     queued at size 2 is not one a size-1 town may finish, so
+ *     `ejectUnbuildableQueue` sets those rows aside.
+ *
+ * The citizens are not re-seated here. A mid-turn caller does that through
+ * `refreshCityDerived`; the famine phase leaves it to the next `collectYields`.
+ */
+export function loseCitizen(state: GameState, city: City): string[] | null {
+  if (city.population <= 1) return null;
+  city.population -= 1;
+  bumpEconomy(state);
+  shrinkFollowers(city, religionOrder(state));
+  return ejectUnbuildableQueue(city);
 }
 
 /**
@@ -4050,6 +4062,14 @@ export interface RealiseOptions {
    * grounds that only a piece carried a mark.
    */
   bought?: 'gold' | 'faith';
+  /**
+   * The piece was raised from a citizen and **not trained** — The General
+   * Levy's soldier (batch L, `levies.ts`). It goes on the payroll like a built
+   * piece, but it does not count toward the trained tally, does not climb the
+   * escalation ladder, and the riders that pay for a unit completed (Muster
+   * Rites, The Art of War) do not pay for it. Ignored for a building.
+   */
+  untrained?: boolean;
 }
 
 export interface RealisedItem {
@@ -4280,7 +4300,7 @@ export function realiseItem(
   // key in `Player.unitsBuilt`, not a shared counter (schema 31). A free grant
   // does not climb it: `options.free` already marks this unit as never having
   // been paid for, and a habit nobody paid into is not a habit.
-  if (unitDef(item.id).escalation !== undefined && !options.free) {
+  if (unitDef(item.id).escalation !== undefined && !options.free && options.untrained !== true) {
     const player = playerById(state, city.ownerId);
     if (player) player.unitsBuilt[item.id] = (player.unitsBuilt[item.id] ?? 0) + 1;
   }
@@ -4299,9 +4319,12 @@ export function realiseItem(
   // not *trained*, which is the same clause the escalation ladder reads ten
   // lines up; a moment later a bought spearman and a hammered one are one
   // spearman. See `TallyOccasion`'s `unitTrained`.
-  if (options.bought === undefined && options.free !== true) {
+  if (options.bought === undefined && options.free !== true && options.untrained !== true) {
     recordScalingOccasion(state, city.ownerId, 'unitTrained');
   }
+  // A levied conscript was not trained, so nothing that pays for training
+  // pays for it (`RealiseOptions.untrained`).
+  if (options.untrained === true) return { unitId: unit.id };
   payCompletionRiders(state, city, 'unit', {
     // The roster's own figure plus whatever the stamp was worth, which is the
     // reading `planCombat` opens its ledger with — The Art of War is paid for

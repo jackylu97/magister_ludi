@@ -5664,6 +5664,56 @@ export interface CardPeriodicMusterEffect {
 }
 
 /**
+ * What a levy can buy. A levy is the `levyCitizen` command: a town gives up one
+ * citizen and gets something for it. Which of these a town may choose depends
+ * on the cards its owner holds.
+ *
+ *   · `production` — hammers in the town itself, one for each point of food it
+ *     took to grow the citizen (Levy of the Land);
+ *   · `muster` — the best melee unit the empire can build, counted as trained:
+ *     it goes on the payroll and the cards that pay for training pay for it (The
+ *     Muster of the Fields);
+ *   · `opus` — the same hammers as `production`, sent to the empire's town that
+ *     has the Magnum Opus at the front of its queue (The Corvée);
+ *   · `conscript` — the best melee unit, not counted as trained (The General
+ *     Levy).
+ */
+export type LevyUse = 'production' | 'muster' | 'opus' | 'conscript';
+
+/** Every levy use, in the order the city panel lists them. */
+export const LEVY_USES: readonly LevyUse[] = ['production', 'muster', 'opus', 'conscript'];
+
+/**
+ * **A card that lets a town spend a citizen** (batch L), or reacts when one
+ * does.
+ *
+ * Read in `statecraft/evaluator.ts` (`cardLevyGrants`, `cardLevyAftermaths`)
+ * and acted on by the levy verb in `levies.ts`. A row says one or both halves:
+ *
+ *   · `use` — something a levy may buy while the card is held. Two cards that
+ *     grant the same use give one menu line; the first card in the law's order
+ *     names it.
+ *   · `after` — effects hung on the town that just levied, for `turns` turns, at
+ *     most once every `every` turns per town (Seasonal Levies). Stored on
+ *     `City.timed` like a rite's, so the ordinary readers fold them.
+ *
+ * Every levy shares one waiting period per town, `rules.cities.levy.everyTurns`.
+ * `everyAtWar` shortens it for this use while the empire is at war with another
+ * empire (The General Levy: every turn). `minPopulation` raises the town size a
+ * levy under this use needs (The Corvée: ten).
+ */
+export interface CardLevyEffect {
+  kind: 'levy';
+  use?: LevyUse;
+  /** Smallest town that may levy for this use. Never below the rule's minimum. */
+  minPopulation?: number;
+  /** Turns between levies for this use while the empire is at war. */
+  everyAtWar?: number;
+  /** What a levy leaves on the town that raised it. */
+  after?: { turns: number; every: number; effects: CardEffect[] };
+}
+
+/**
  * **What an empire's law hangs on a piece the moment it wades ashore** —
  * Admiralty's three turns of fighting strength for the men off the boats.
  *
@@ -6713,6 +6763,8 @@ export type CardEffect =
   | CardRuleEffect
   | CardPeriodicOfferEffect
   | CardPeriodicMusterEffect
+  // Batch L: a town may spend one citizen on what the card names.
+  | CardLevyEffect
   // E4b's one new shape: a moment in a piece's life that is not its birth.
   | CardLandfallEffect
   | CardUnlocksBuildingEffect

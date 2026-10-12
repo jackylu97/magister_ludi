@@ -142,6 +142,8 @@ import {
   type CardHappinessEffect,
   type CardId,
   type CardLandfallEffect,
+  type CardLevyEffect,
+  type LevyUse,
   type CardPaysEffect,
   type CardRenownEffect,
   type PayBasis,
@@ -1186,7 +1188,12 @@ function timedLive(
     // great person's parting gift both hang on a town or a piece by exactly the
     // same mechanism, and the only thing that differs is what to call it. One
     // question, in the one place the label is written.
-    const kind = isGreatPersonId(entry.card) ? CLASS_WORD.legacy : CLASS_WORD.rite;
+    // A levy's aftermath (Seasonal Levies) is hung by an Order, and says so.
+    const kind = isGreatPersonId(entry.card)
+      ? CLASS_WORD.legacy
+      : isOrderId(entry.card)
+        ? CLASS_WORD.order
+        : CLASS_WORD.rite;
     const word = `${kind} · ${anyCardDef(entry.card).name} (${timedTurnsLeft(
       state,
       entry,
@@ -6602,6 +6609,54 @@ export function musterPeriodicUnits(state: GameState): void {
       );
     }
   }
+}
+
+/** One thing this empire's cards let a levy buy. See `cardLevyGrants`. */
+export interface LevyGrant {
+  use: LevyUse;
+  card: CardId;
+  source: string;
+  /** The row's own town-size floor, if it has one (The Corvée's ten). */
+  minPopulation?: number;
+  /** The row's waiting period while at war, if it has one (The General Levy). */
+  everyAtWar?: number;
+}
+
+/**
+ * **What a levy may buy for this empire** — one entry per use, in the law's own
+ * order (batch L). Two cards granting the same use give one entry, named after
+ * the first, so the city panel never lists one choice twice. An empire holding
+ * no levy card answers the empty list, and the panel shows no button.
+ */
+export function cardLevyGrants(state: GameState, playerId: number): LevyGrant[] {
+  const grants: LevyGrant[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'levy')) {
+    const use = effect.use;
+    if (use === undefined) continue;
+    if (grants.some((grant) => grant.use === use)) continue;
+    const grant: LevyGrant = { use, card, source };
+    if (effect.minPopulation !== undefined) grant.minPopulation = effect.minPopulation;
+    if (effect.everyAtWar !== undefined) grant.everyAtWar = effect.everyAtWar;
+    grants.push(grant);
+  }
+  return grants;
+}
+
+/**
+ * **What a levy leaves on the town that raised it** — Seasonal Levies' season
+ * of plenty. One entry per row that carries an `after`, in the law's order;
+ * `levyAt` hangs each on the town as ordinary timed effects.
+ */
+export function cardLevyAftermaths(
+  state: GameState,
+  playerId: number,
+): { card: CardId; after: NonNullable<CardLevyEffect['after']> }[] {
+  const list: { card: CardId; after: NonNullable<CardLevyEffect['after']> }[] = [];
+  for (const { card, effect } of effectsOfKind(state, playerId, 'levy')) {
+    if (effect.after === undefined || effect.after.effects.length === 0) continue;
+    list.push({ card, after: effect.after });
+  }
+  return list;
 }
 
 /** The shortest a periodic clock can ever be. See `CardPeriodShortenEffect`. */

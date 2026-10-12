@@ -129,6 +129,18 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   windfall. A project-headed town never re-decides (a known edge the bot works
   around).
 - Buildings' non-yield facts are read in one place, `buildingEffects.ts`.
+- **Levies** (`levies.ts`, batch L): `levyCitizen {cityId, use}` spends one of a
+  town's citizens. What it buys comes only from held cards (the `levy` effect
+  kind, read in `evaluator.ts`): `production` (hammers equal to the food the
+  citizen took to grow), `muster` (best melee unit, trained), `opus` (the same
+  hammers sent to the town with the Magnum Opus at the front of its queue),
+  `conscript` (best melee unit, not trained). A card's `after` hangs timed
+  effects on the town (Seasonal Levies). One levy per town per
+  `rules.cities.levy.everyTurns`, shared by every use, from the absolute stamp
+  `City.levy.turn`; a card may shorten it for its own use at war. The citizen
+  leaves through `loseCitizen` (the famine's routine). Refusals are
+  `levyError`; the city panel's "Levy a citizen" menu is `src/ui/levyMenu.ts`.
+  Bots do not levy yet.
 
 ## Units, movement, combat, siege
 

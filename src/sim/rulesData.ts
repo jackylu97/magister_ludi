@@ -932,6 +932,20 @@ export interface GuildRules {
   renownPerSpecialist: number;
 }
 
+/**
+ * The levy's two limits (batch L, `levies.ts`). What a levy buys comes from the
+ * cards; these say when a town may levy at all.
+ */
+export interface LevyRules {
+  /**
+   * Turns a town waits between levies. All levies in a town share it, and a
+   * card may shorten it for one use (`CardLevyEffect.everyAtWar`).
+   */
+  everyTurns: number;
+  /** The fewest citizens a town must have to give one up. */
+  minPopulation: number;
+}
+
 export interface CityRules {
   /** How far from its centre a city may assign citizens, in hexes. */
   workRadius: number;
@@ -1079,6 +1093,8 @@ export interface CityRules {
   borderCostExponent: number;
   /** What gold asks for a tile culture has not reached yet. */
   tilePurchase: TilePurchaseRules;
+  /** When a town may spend a citizen on a levy. See `LevyRules`. */
+  levy: LevyRules;
   /** How a town's people leave the fields for the trades. See `GuildRules`. */
   guilds: GuildRules;
   /** Weights the citizen assigner and the border chooser both score tiles with. */

@@ -205,11 +205,16 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Tinkers' Guild | 1 | ● | S | Workers you produce or purchase gain +1 charge. |
 | The Old Songs | 1 | ● | S | Worked unimproved land gains +1 culture. |
 | Charcoal Burners | 1 | ● | S | Chopping forest or jungle also grants faith and culture each equal to 20% of its chop production. |
+| Levy of the Land | 1 | ◆ | S | Cities may spend one citizen to gain production equal to the food it took to grow that citizen. A city may levy once every five turns. |
+| The Muster of the Fields | 1 | ◆ | S | Cities may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. |
 | The Highlands | 2 | ● | S | mines and quarries on hills gain +2 science and +1 production. |
 | The Steppe | 2 | ● | S | pastures gain +2 production. Horse-dependent military units cost 25% less production. |
 | The Coast | 2 | ● | S | Worked fishing boats gain +2 food and +2 culture. |
 | The Grain Dole | 2 | ● | S | Cities of at least ten population gain +4 happiness and retain an additional 20% of food spent on growth. |
 | The Woodwrights | 3 | ○ | S | Forest and jungle chops grant 100% more production. Chop percentages add together before Charcoal Burners reads the payout. |
+| Seasonal Levies | 3 | ◆ | S | After a city spends a citizen on a levy, it gains +40% food for ten turns. A city can gain this at most once every twenty turns. |
+| The Corvée | 4 | ○ | S | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. |
+| The General Levy | 4 | ○ | S | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. |
 
 ### Commerce
 

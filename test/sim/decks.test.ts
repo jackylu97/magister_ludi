@@ -302,8 +302,13 @@ describe('the schema, as landed', () => {
     // beside the turn it went up. Four more live rows — Pilgrim Markets and The
     // Grain Exchange in the shared file, The Endowment freed in Commerce, and
     // Royal Assays written there for the first time.
-    expect(live).toBe(274);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(274);
+    //
+    // **And batch L** (levies): a town may spend a citizen on what a card
+    // names. Five more live rows, all Expansionist — Levy of the Land, The
+    // Muster of the Fields and Seasonal Levies freed, The Corvée and The
+    // General Levy written for the first time.
+    expect(live).toBe(279);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(279);
   });
 
   /**
@@ -614,7 +619,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // (a card is never consulted about a road that arrives, and the sender is
       // a third kind of payee) and The Warehouses (the doubling names one good,
       // where every dial turns a class).
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(148);
+      //
+      // **Batch L took three more**, all Expansionist: Levy of the Land, The
+      // Muster of the Fields and Seasonal Levies, freed by the levy command.
+      // The Corvée and The General Levy are new live rows and move nothing here.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(145);
     }
   });
 

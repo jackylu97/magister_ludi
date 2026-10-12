@@ -3366,6 +3366,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // at `weights.bead`, the same coin the endgame chain prices the Opus and
       // the Observatory's great works in.
       return ctx.ai.weights.bead / Math.max(1, Math.floor(effect.every ?? 1));
+    case 'levy':
+      // Bots do not levy yet (batch L), so a levy card does nothing for one and
+      // is worth nothing to it.
+      return 0;
     default:
       return unreadEffect(kind, ctx);
   }

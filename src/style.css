@@ -5587,6 +5587,65 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-soft);
 }
 
+/* --- the levy (batch L) -----------------------------------------------------
+   A quiet button and the short menu it opens, set like the rites above: each
+   line is a choice on the left, its exact figure in tabular mono on the right,
+   and the granting card's name under it in the copy face. The cost line closes
+   the menu in the meter's small mono. */
+.city-levy-button {
+  width: 100%;
+}
+.city-levy-menu {
+  margin-top: 6px;
+}
+.city-levy-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.city-levy-choice {
+  justify-self: start;
+  font: inherit;
+  font-family: var(--face-display);
+  font-size: 14px;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  padding: 0 0 1px;
+  cursor: pointer;
+  text-align: left;
+}
+.city-levy-choice:disabled {
+  color: var(--ink-faint);
+  border-bottom-color: transparent;
+  cursor: default;
+}
+.city-levy-figure {
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.city-levy-source {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+.city-levy-cost {
+  margin: 5px 0 0;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
 /* The list of what the city has already built: prose, so it reads as prose.
    Upright, not italic — the city screen carries no italics at all since
    2026-09-08 (the user: "they're a bit hard to parse"); the quiet voice is

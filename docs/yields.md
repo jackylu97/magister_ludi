@@ -297,12 +297,15 @@ lists — the sync test reads both and refuses a kind that is in neither.
 
 `windfallRider` · `periodic` · `foundingRider` · `offerRider` · `projectRider` ·
 `purchaseRider` · `routeRider` · `upkeepRebate` · `upkeepSurcharge` ·
-`beadPerOccasion` · `renown` · `cityRenownPercent`
+`beadPerOccasion` · `renown` · `cityRenownPercent` · `levy`
 
 The first ten pay through `windfallPayout` or through a cost fold — a one-time
 grant is modifier-immune and composed once (Entry XVIII.5), and a keep is a bill
-rather than a yield. The last two pay **renown**, which is not one of the six
-voices and banks through `settleRenownWindfall`.
+rather than a yield. `renown` and `cityRenownPercent` pay **renown**, which is
+not one of the six voices and banks through `settleRenownWindfall`. `levy`
+(batch L) pays hammers once, through `settleProductionWindfall`, when a town
+spends a citizen; the effects it hangs on the town afterwards are ordinary card
+effects that land in the sequence above.
 
 Every other `CardEffect` kind moves no voice at all: it is a rule, a stat, a
 meter, a stamp, an unlock or an offer.

@@ -107,9 +107,10 @@ describe('the Expansionist deck, as entered', () => {
     expect(new Set(ROWS).size).toBe(ROWS.length);
   });
 
-  it('spreads the rows across the four bands the design doc’s tiers name', () => {
+  it('spreads the rows across the five bands the design doc’s tiers name', () => {
     const bands = new Set(ROWS.map((id) => orderDef(id).band));
-    expect([...bands].sort()).toEqual([0, 1, 2, 3]);
+    // Band 4 is Tier IV (batch F); The Corvée and The General Levy sit there.
+    expect([...bands].sort()).toEqual([0, 1, 2, 3, 4]);
   });
 });
 
@@ -179,6 +180,7 @@ describe('the live rows', () => {
       'cityRenownPercent',
       'beadPerOccasion',
       'grantsAbility',
+      'levy',
     ]);
     const walk = (effects: readonly CardEffect[], id: OrderId): void => {
       for (const effect of effects) {

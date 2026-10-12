@@ -22,6 +22,7 @@ import {
 import {
   type BuildingId,
   type CompletionGrant,
+  BUILDING_IDS,
   buildingDef,
   buildingPlural,
   isBuildingId,
@@ -39,6 +40,7 @@ import { improvementDef, isGreatPersonWork, workForFamily } from '../improvement
 import { projectDef } from '../projectData';
 import { beliefPoolOf, isBeliefId, isConsecrationId, isRiteId } from '../religionData';
 import { type CityYieldKey, resourceDef } from '../resourceData';
+import { RULES } from '../rulesData';
 import {
   type AmplifierTarget,
   type PressureRuleId,
@@ -48,6 +50,7 @@ import {
   type CardDefBase,
   type CardEffect,
   type CardFlagRuleId,
+  type CardLevyEffect,
   type CardId,
   type CardRule,
   type CityScope,
@@ -2267,10 +2270,57 @@ function describeEffect(
       out.push({ text: `${rhythm}${deed}, a glass bead of your own — ${ref('bead', effect.bead, name)}` });
       return;
     }
+    case 'levy':
+      describeLevy(effect, out);
+      return;
     default: {
       const unhandled: never = kind;
       void unhandled;
       return;
+    }
+  }
+}
+
+/**
+ * A levy card's words (batch L): what a town may spend a citizen on, and what
+ * a levy leaves behind. The shared waiting period is said on the use clause,
+ * because it is the half of the rule a player plans around.
+ */
+function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
+  const levy = RULES.cities.levy;
+  const size = Math.max(levy.minPopulation, Math.floor(effect.minPopulation ?? 0));
+  const town = size > levy.minPopulation ? `a town of at least ${size} citizens` : 'a town';
+  const food = 'production equal to the food it took to grow that citizen';
+  const opusId = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true);
+  const opus = opusId === undefined ? 'the Magnum Opus' : theBuilding(opusId);
+  const melee = 'the best melee unit you can build';
+  const use = effect.use;
+  if (use !== undefined) {
+    let what: string;
+    if (use === 'production') what = `${food}`;
+    else if (use === 'muster') what = `${melee}, which counts as trained`;
+    else if (use === 'opus') what = `${food}, paid to your other town building ${opus}`;
+    else what = `${melee}, which does not count as trained`;
+    const wait =
+      effect.everyAtWar === undefined
+        ? `once every ${levy.everyTurns} turns`
+        : `once every ${levy.everyTurns} turns, or every ${
+            effect.everyAtWar === 1 ? 'turn' : `${effect.everyAtWar} turns`
+          } while you are at war`;
+    out.push({ text: `${town} may spend one citizen for ${what} (${wait})` });
+  }
+  const after = effect.after;
+  if (after !== undefined) {
+    // The effects land on the levying town alone, so they are read as "here".
+    const inner = describeEffects(after.effects, 'here')
+      .filter((clause) => clause.deferred !== true)
+      .map((clause) => clause.text);
+    if (inner.length > 0) {
+      out.push({
+        text: `after a town spends a citizen on a levy, it gains ${listWords(inner)} for ${
+          after.turns
+        } turns, at most once every ${after.every} turns`,
+      });
     }
   }
 }

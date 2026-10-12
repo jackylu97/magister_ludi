@@ -295,6 +295,8 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     'beadPerOccasion',
     'renown',
     'cityRenownPercent',
+    // Batch L: a levy pays a town hammers once, through the production windfall.
+    'levy',
   ];
 
   const SILENT = [

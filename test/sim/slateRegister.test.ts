@@ -228,7 +228,10 @@ const ANNOUNCING = new Set([
   'cities.ts#assignCitizens',
   'cities.ts#claimTile',
   'cities.ts#foundCityAt',
-  'cities.ts#growCities',
+  // Batch L: famine and a levy both take a citizen through `loseCitizen`.
+  'cities.ts#loseCitizen',
+  // Batch L: Seasonal Levies hangs timed effects on the town that levied.
+  'levies.ts#hangAftermaths',
   'cities.ts#realiseItem',
   'cities.ts#settleGrowth',
   'cities.ts#settlePopulationWindfall',
@@ -379,8 +382,12 @@ const EXCUSED = new Map<string, string>([
     'free of the state, as above; `purgeAt` announces on the citizens it unmakes',
   ],
   [
+    'cities.ts#growCities',
+    'writes the famine report entry’s `population`, not a town’s; the town gets smaller in `loseCitizen`, which announces (batch L)',
+  ],
+  [
     'state.ts#shrinkFollowers',
-    'free of the state, as above; `growCities` announces on the famine that called it',
+    'free of the state, as above; `loseCitizen` announces on the famine or the levy that called it',
   ],
   [
     'draft.ts#unslotOrderAt',

@@ -143,6 +143,10 @@
       "roundTo": 5,
       "perPriorPurchase": 4
     },
+    "levy": {
+      "everyTurns": 5,
+      "minPopulation": 2
+    },
     "guilds": {
       "base": 60,
       "linear": 6,

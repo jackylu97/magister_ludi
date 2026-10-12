@@ -201,7 +201,13 @@ import {
   unslotOrderAt,
   unslotOrderError,
 } from './statecraft';
-import { type OrderId, type OrderSlotGrant, doctrineDef } from './statecraftData';
+import {
+  type LevyUse,
+  type OrderId,
+  type OrderSlotGrant,
+  LEVY_USES,
+  doctrineDef,
+} from './statecraftData';
 import {
   type ResearchQueueMode,
   buildError,
@@ -256,6 +262,7 @@ import {
 import { type DealEndReport, type DealTerms, proposalById } from './deals';
 import type { CampBounty } from './camps';
 import { type GuildReport, dismissSpecialistAt, dismissSpecialistError } from './guilds';
+import { levyAt, levyError } from './levies';
 import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
 import { type UnitTypeId, isCivilian, isCombatant, isUnitTypeId, unitDef } from './unitData';
 import { caravanTypeFor } from './routes';
@@ -465,6 +472,19 @@ export interface DismissSpecialistCommand extends PlayerCommand {
   type: 'dismissSpecialist';
   cityId: number;
   family: SpecialistFamily;
+}
+
+/**
+ * Spends one of a town's citizens on a levy (batch L, `levies.ts`). `use` names
+ * what the citizen buys, and the player must hold a card that grants it. The
+ * town needs at least two citizens and must not have levied within its waiting
+ * period. Refusals come from `levyError`, the same function the city panel
+ * greys its menu with.
+ */
+export interface LevyCitizenCommand extends PlayerCommand {
+  type: 'levyCitizen';
+  cityId: number;
+  use: LevyUse;
 }
 
 /**
@@ -1748,6 +1768,7 @@ export type Command =
   | SetLockedTilesCommand
   | SetCitizenFocusCommand
   | DismissSpecialistCommand
+  | LevyCitizenCommand
   | ChooseResearchCommand
   | DequeueResearchCommand
   | AttackCommand
@@ -2823,6 +2844,31 @@ function applyDismissSpecialist(
   if (blocker !== null) return fail(blocker);
 
   dismissSpecialistAt(state, city, family);
+  return ok();
+}
+
+/**
+ * Spends one citizen on a levy. See `LevyCitizenCommand`.
+ *
+ * Validated in full before anything moves: the use must be a word the game
+ * knows (a command may come from a save or a socket), and everything else is
+ * `levyError`, the panel's own refusal. Only then does `levyAt` mutate.
+ */
+function applyLevyCitizen(state: GameState, command: LevyCitizenCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+
+  const city = cityById(state, command.cityId);
+  if (!city) return fail(`No city with id ${String(command.cityId)}`);
+  const use: unknown = command.use;
+  if (!LEVY_USES.includes(use as LevyUse)) {
+    return fail(`"${String(use)}" is not something a levy can buy`);
+  }
+
+  const blocker = levyError(state, actor.id, city, use as LevyUse);
+  if (blocker !== null) return fail(blocker);
+
+  levyAt(state, city, use as LevyUse);
   return ok();
 }
 
@@ -4775,6 +4821,9 @@ function orderedUnitId(command: Command): number | undefined {
     // is no piece on the board to wake — a specialist is a citizen, and this
     // game has never drawn one.
     case 'dismissSpecialist':
+    // A levy names a town and what its citizen buys. The piece it may raise
+    // does not exist yet, so there is nothing to wake.
+    case 'levyCitizen':
     case 'chooseResearch':
     // Research is about the empire's schedule, not about a piece: neither
     // aiming the beakers nor dropping a node off the plan is an order to
@@ -4899,6 +4948,7 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
   setLockedTiles: 'economy',
   setCitizenFocus: 'economy',
   dismissSpecialist: 'economy',
+  levyCitizen: 'economy',
   chooseResearch: 'economy',
   dequeueResearch: 'economy',
   attack: 'economy',
@@ -5103,6 +5153,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applySetCitizenFocus(state, command);
     case 'dismissSpecialist':
       return applyDismissSpecialist(state, command);
+    case 'levyCitizen':
+      return applyLevyCitizen(state, command);
     case 'chooseResearch':
       return applyChooseResearch(state, command);
     case 'dequeueResearch':

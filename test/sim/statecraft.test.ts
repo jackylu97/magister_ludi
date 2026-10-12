@@ -533,6 +533,9 @@ describe("the card table", () => {
       // moment it wades ashore (Admiralty). A moment in a piece's life that is
       // not its birth, which is the one thing `unitStamp` could not say.
       "landfall",
+      // Batch L: a town spends a citizen on what the card names (Levy of the
+      // Land and the other Expansionist levy cards).
+      "levy",
     ];
     for (const kind of expected) expect(used.has(kind), kind).toBe(true);
   });
