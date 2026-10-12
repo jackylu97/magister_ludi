@@ -261,7 +261,10 @@ describe('the Magisterial deck', () => {
   it('is the design doc’s four tier tables, card for card', () => {
     const byBand = new Map<Band, OrderId[]>(BANDS.map((band) => [band, []]));
     for (const id of MAGISTERIAL) byBand.get(orderDef(id).band)!.push(id);
-    for (const band of BANDS) {
+    // The doc has tables for Tier 0 to Tier III only. Band 4 (Tier IV) was
+    // added in the foundation batch and holds no Magisterial row yet.
+    expect(byBand.get(4), 'no Magisterial row in band 4 yet').toEqual([]);
+    for (const band of BANDS.filter((b) => b < 4)) {
       const rows = tierRows(band);
       const ids = byBand.get(band)!;
       expect(ids.length, `tier ${band} holds as many rows as the doc`).toBe(rows.length);

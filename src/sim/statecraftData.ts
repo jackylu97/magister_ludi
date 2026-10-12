@@ -246,16 +246,22 @@ export function isDeckId(value: unknown): value is DeckId {
 }
 
 /**
- * **The four content bands** (the design doc's "Four content bands"): Early ·
- * Middle · Late · Final, numbered as the ladder's rungs are so that a band is
- * drawable exactly when the seat's draft count has reached rung `band` of
- * `tierLadder` **and** its research age has reached `band + 1` — both, per the
- * age check of 2026-09-16 (`bandOpen`, `statecraft/draft.ts`).
+ * **The five content bands**: the deck sheets' Tier 0 to Tier IV. A band is
+ * drawable when the seat's draft count has reached rung `band` of `tierLadder`
+ * **and** its research age has reached `band + 1` (the age check of
+ * 2026-09-16; `bandOpen`, `statecraft/draft.ts`).
+ *
+ * Band 4 (Tier IV) was added in the deck implementation's foundation batch.
+ * There is no fifth research age, so band 4's age gate is the last age, the
+ * same as band 3's; what separates the two is the ladder rung.
  */
-export type Band = 0 | 1 | 2 | 3;
+export type Band = 0 | 1 | 2 | 3 | 4;
 
-/** The four bands in order. `tierLadder` has one rung per member. */
-export const BANDS: readonly Band[] = [0, 1, 2, 3];
+/** The five bands in order. `tierLadder` has one rung per member. */
+export const BANDS: readonly Band[] = [0, 1, 2, 3, 4];
+
+/** The highest band. `bandTierAt` never answers more than this. */
+export const LAST_BAND: Band = BANDS[BANDS.length - 1]!;
 
 /**
  * **What a charter hands over when it is drafted** (the design doc's "The
@@ -6766,10 +6772,10 @@ export interface GovernmentDef extends CardDefBase {
   /**
    * **How many chairs this government supplies** — the whole of what a
    * government says about seating since the decks rework (D1a: *"chairs are
-   * universal"*). The number is its tier's rung on `tierLadder` (3 / 4 / 6 / 9
-   * at draft counts 0 / 4 / 18 / 29; a tier between rungs takes the rung below
-   * it), written on the row so that the sixteen governments stay rows with a
-   * signature each and the count is a field somebody can retune.
+   * universal"*). The number is its tier's rung on `tierLadder` (3 / 5 / 8 /
+   * 11 / 11 at draft counts 0 / 4 / 18 / 29 / 45; a tier between rungs takes
+   * the rung below it), written on the row so that the sixteen governments
+   * stay rows with a signature each and the count is a field somebody can retune.
    *
    * A leader's extra chair and a card's (`CardSlotRiderEffect`) are added on
    * top by `chairCount`, exactly as they were added on top of the spread.
@@ -6910,7 +6916,7 @@ export interface OrderDef extends CardDefBase {
   decks: DeckId[];
   /**
    * **When this card may first be dealt** — the content band (`Band`; the
-   * design doc's Early / Middle / Late / Final). A card is drawable when the
+   * deck sheets' Tier 0 to Tier IV). A card is drawable when the
    * seat has reached the band's rung of the draft ladder **and** its research
    * age (`bandOpen`, `statecraft/draft.ts`), and stays drawable ever after: no
    * pool rotates away. Required on every row, retired ones included.
@@ -7057,14 +7063,15 @@ export interface StatecraftConfig {
    * here rather than beside the faith ladder because the ladder is a rule of the
    * draft and this is a card's price — a game with no such card never reads it.
    *
-   * **Why the starting figure is six.** The game already prices its two banks
-   * against each other in one place: `rules.purchase.goldPerHammer` is four and
-   * `faithPerHammer` is one, so four gold buys what one faith buys at every
-   * counter in the game. Four would therefore be the break-even multiple and no
-   * premium at all. Six is half again on top of it, which is the ruling's "gold
-   * at a premium": gold can always redraw, and an empire that banks faith for it
-   * gets a third more hands for the same purchasing power. One number, and
-   * turning it is the whole of retuning the card.
+   * **Why the figure is twelve.** It started at six, when a hammer cost four
+   * gold or one faith: break-even was four and six put gold at a premium. The
+   * user's ruling (`docs/flags.md` item (qqqqqq) 3) doubled the faith price of
+   * a hammer to two and kept the faith price of a reroll as it was, and asked
+   * that the gold price of a reroll rise in line with that change. So the
+   * multiple doubled with the faith rate, six to twelve. Note that this is the
+   * literal reading of the ruling: measured against hammers alone, one faith is
+   * now worth two gold, so twelve is six times break-even rather than one and a
+   * half times. One number, and turning it is the whole of retuning the card.
    */
   redraw: {
     /** The faith price times this, floored once, is the gold price. */
@@ -7077,10 +7084,14 @@ export interface StatecraftConfig {
   // sat here were dead the day that landed, and a dead number in a data file is
   // a dial a designer will one day turn expecting something to happen.
   /**
-   * **The four rungs of the decks rework** (`docs/six-decks-first-cut.md`
-   * "Four content bands": Chiefdom · Government I · II · III at regular draft
-   * counts 0 · 4 · 18 · 29, with 3 · 4 · 6 · 9 chairs), and — unlike the five
-   * numbers this replaced — **read by the simulation in three places**:
+   * **The five rungs of the draft ladder**, one per band: Chiefdom and
+   * Government I to IV at regular draft counts 0 · 4 · 18 · 29 · 45, with
+   * 3 · 5 · 8 · 11 · 11 chairs (`docs/six-decks-first-cut.md` "Content bands";
+   * the chairs are the user's ruling in `docs/decks/deck-design.md` "More
+   * chairs"). The fifth rung, for band 4, sits at 45 because that is where the
+   * last governments are offered, and keeps eleven chairs because the ruling
+   * gives the last government tier eleven. The ladder is **read by the
+   * simulation in three places**:
    *
    *   · a **band** opens at its rung's draft count (`bandTierAt`, the tier
    *     half of `bandOpen`);
@@ -7092,8 +7103,8 @@ export interface StatecraftConfig {
    * The governments are still *offered* at the rows' own tiers
    * (`GOVERNMENT_TIERS`, read off the rows: 4 · 10 · 18 · 29 · 45), which is a
    * different question — a tier between two rungs keeps the rung below it, so
-   * the tier-10 rows supply four chairs and the tier-45 rows nine. The ladder
-   * is the design doc's table and a sync test holds the two together.
+   * the tier-10 rows supply five chairs. The ladder is the design doc's table
+   * and a sync test holds the two together.
    */
   tierLadder: TierRung[];
   governments: Record<GovernmentId, GovernmentDef>;
@@ -7382,7 +7393,7 @@ export const TIER_LADDER: readonly TierRung[] = [...STATECRAFT.tierLadder]
 /**
  * **The band tier a draft count has reached** — the index of the highest rung
  * whose draft count is at or below `drafts`, which is what the design doc
- * calls the seat's government tier in the four-stage sense.
+ * calls the seat's government tier in the five-stage sense.
  *
  * Read off the **draft count** and never off the adopted government, and that
  * is a decision worth stating: adoption is bankable (Entry XV), so a seat may
@@ -7398,7 +7409,7 @@ export function bandTierAt(drafts: number): Band {
   for (let index = 0; index < TIER_LADDER.length; index++) {
     if (TIER_LADDER[index]!.drafts <= drafts) tier = index;
   }
-  return Math.min(3, tier) as Band;
+  return Math.min(LAST_BAND, tier) as Band;
 }
 
 /** The chairs the ladder supplies at a government's tier: the rung at or below it. */
@@ -7408,8 +7419,8 @@ export function chairsAtTier(tier: number): number {
 
 /**
  * **The regular draft counts at which a reward hand is banked** — every rung of
- * the ladder but the first (the design doc's "Doctrine reward hands": *"at
- * proposed reform milestones 4, 18 and 29"*). Read by `settleDraft`.
+ * the ladder but the first (the design doc's "Doctrine reward hands": 4, 18,
+ * 29 and, since band 4 was added, 45). Read by `settleDraft`.
  */
 export const REWARD_DRAFTS: readonly number[] = TIER_LADDER.slice(1).map((rung) => rung.drafts);
 

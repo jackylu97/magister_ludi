@@ -234,7 +234,7 @@ Pressure sources (`explainPressure`, rule-5 list; numbers in
     `rosterBank`'s rule for a unit read of a building: *a row that names its own
     bank is sold out of that bank and no other*, so gold is refused in
     `purchaseError`'s own sentence. The price is the ordinary one converted at
-    `production.faithPerHammer` (117🕯 today), a line of `explainPurchaseCost`'s
+    `production.faithPerHammer` (234🕯 today), a line of `explainPurchaseCost`'s
     list, so the age band and the column ride in for free.
   - **Only in a city that follows.** `BuildingDef.followingOnly`, read in
     `purchaseError` and nowhere else, answered by `cityBeliefUnlocksBuilding` —

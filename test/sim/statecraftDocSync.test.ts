@@ -231,7 +231,7 @@ describe('the orders and doctrines doc mirrors the data', () => {
     for (const id of ORDER_IDS) {
       const def = orderDef(id);
       expect(Object.values(MARKS), id).toContain(def.rarity);
-      expect([0, 1, 2, 3] as Band[], id).toContain(def.band);
+      expect([0, 1, 2, 3, 4] as Band[], id).toContain(def.band);
       expect(Array.isArray(def.decks), id).toBe(true);
       for (const deck of def.decks) expect(DECK_IDS, `${id}: ${deck}`).toContain(deck);
     }

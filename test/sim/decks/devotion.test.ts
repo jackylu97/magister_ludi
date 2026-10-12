@@ -113,7 +113,8 @@ describe('the Devotion deck folds', () => {
   it('carries the design doc’s forty-four rows, ten · twelve · fourteen · eight', () => {
     expect(DEVOTION).toHaveLength(44);
     const perBand = BANDS.map((band) => DEVOTION.filter((id) => orderDef(id).band === band).length);
-    expect(perBand).toEqual([10, 12, 14, 8]);
+    // The last entry is band 4 (Tier IV), which holds no Devotion row yet.
+    expect(perBand).toEqual([10, 12, 14, 8, 0]);
   });
 
   it('names its own deck on every row, with a band and a rarity', () => {

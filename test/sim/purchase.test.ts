@@ -291,9 +291,10 @@ describe('what gold costs', () => {
    * riders — stays where it was. Faith is pinned beside it as the control: the
    * ruling was about gold's flexibility and touched no other bank.
    */
-  it('charges the doubled treasury rate the 9/3 ruling named, and leaves faith alone', () => {
+  it('charges the doubled treasury rate the 9/3 ruling named', () => {
     expect(RULES.production.goldPerHammer).toBe(4);
-    expect(RULES.production.faithPerHammer).toBe(1);
+    // Faith was 1 until ruling (qqqqqq) 3 (docs/flags.md) set it to 2.
+    expect(RULES.production.faithPerHammer).toBe(2);
 
     const g = game();
     const city = found(g.state, 0);

@@ -2,7 +2,7 @@
  * **The reward sheet** — the second sheet the decks rework adds (D1a,
  * `docs/plans/decks-rework.md`: *"a reward hand opens as a second sheet with
  * the same controls"*), for the rare-only hands banked at regular draft counts
- * 4, 18 and 29 (`docs/six-decks-first-cut.md` "Doctrine reward hands").
+ * 4, 18, 29 and 45 (`docs/six-decks-first-cut.md` "Doctrine reward hands").
  *
  * It builds on `modalShell.ts` (CLAUDE.md: a full-screen sheet builds on the
  * shell — `hidden` is the whole of its state, ×/Escape/a press on the ground

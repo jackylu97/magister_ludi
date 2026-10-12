@@ -60,7 +60,7 @@ import {
 } from '../statecraftData';
 import { awardOrderBeads } from '../beads';
 import { awardOccasion } from '../triumphs';
-import { type TechAge, highestAge } from '../techData';
+import { type TechAge, LAST_TECH_AGE, highestAge } from '../techData';
 import { sealTurnsFor } from './evaluator';
 import {
   cardExtraChairs,
@@ -903,9 +903,14 @@ export function researchAgeOf(player: Player): TechAge {
  * from age two, and so on — so that *"reaching Government I through culture
  * alone cannot offer an age-2 Market card while the empire is still in age
  * 1"*. Earlier bands stay open: nothing rotates away.
+ *
+ * The age a band needs is capped at the last research age. There are five
+ * bands and four ages, so band 4 (Tier IV) asks for the last age, the same as
+ * band 3, and is held back only by its rung on the ladder. Bands 0 to 3 are
+ * unaffected by the cap.
  */
 export function bandOpen(band: Band, tier: Band, age: TechAge): boolean {
-  return band <= tier && band + 1 <= age;
+  return band <= tier && Math.min(band + 1, LAST_TECH_AGE) <= age;
 }
 
 /** The band tier this seat's draft count has reached. See `bandTierAt`. */
@@ -1614,7 +1619,7 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
   const offer = drawOrderOffer(state, player);
   sc.pendingOrder = offer;
   // **A reward hand is banked at the ladder's rungs** (the design doc's
-  // "Doctrine reward hands": 4, 18 and 29) — a count, never a hand, and never a
+  // "Doctrine reward hands": 4, 18, 29 and 45) — a count, never a hand, and never a
   // blocker. See `PlayerStatecraft.rewardHands` for why the deal waits for the
   // open.
   if (REWARD_DRAFTS.includes(plan.tier)) sc.rewardHands.push(plan.tier);
@@ -1853,7 +1858,7 @@ export function settleOrderSkip(state: GameState, player: Player): OrderSkip | n
 
 /**
  * **The reward hand** (`docs/six-decks-first-cut.md` "Doctrine reward hands";
- * the decks rework, D1a): at regular draft counts 4, 18 and 29 an empire is
+ * the decks rework, D1a): at regular draft counts 4, 18, 29 and 45 an empire is
  * owed *"three distinct unowned rare cards from the same currently unlocked,
  * leader-eligible catalogue"* — a bonus draw of rares, and what the Doctrine
  * draft became. The Doctrine rows are retired; the rare-only hand is dealt

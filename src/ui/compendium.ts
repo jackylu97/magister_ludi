@@ -1800,18 +1800,20 @@ function rarityFigure(rarity: OrderRarity): string {
 }
 
 /**
- * **The four bands in the design's own names** (`Band`, `statecraftData.ts`;
- * the design doc's "Four content bands").
+ * **The five bands in plain words** (`Band`, `statecraftData.ts`; the deck
+ * sheets' Tier 0 to Tier IV). Band 3 was "final" until band 4 was added in the
+ * deck implementation's foundation batch; it is "advanced" now, and "final"
+ * names the new last band.
  *
  * `rarityFigure`'s argument, one field over. A band is a rung of the draft
  * ladder crossed with an age, and the row printed the rung's *number* — which
  * is an index into a table the player has never seen, and a digit on a card
- * that claims nothing. The four names are plain English and the Orders shelf's
+ * that claims nothing. The five names are plain English and the Orders shelf's
  * lead page defines them once; nothing here restates the rule, because the two
  * halves of it (how many drafts, which age) are live data and a sentence that
  * named either would go stale on the next pass.
  */
-const BAND_WORDS: readonly string[] = ['early', 'middle', 'late', 'final'];
+const BAND_WORDS: readonly string[] = ['early', 'middle', 'late', 'advanced', 'final'];
 
 /**
  * **What a charter hands over, in one sentence with the thing named.**

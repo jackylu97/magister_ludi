@@ -101,8 +101,8 @@ The **four faith houses** a follower belief opens (batch B3 — the Mosque, the
 Wat, the Gurdwara, the Dar-e Mehr) take the column of the **Temple's** node,
 `theHighTemple`'s 5: a belief has no tier to read a column off, and the faith
 house of that age is exactly what the Temple costs. They are `medium` like the
-Temple, so all four price at 117⚙ — which is 117🕯 through the faith bank, the
-only one that sells them (`BuildingDef.purchase`, `faithPerHammer` 1).
+Temple, so all four price at 117⚙ — which is 234🕯 through the faith bank, the
+only one that sells them (`BuildingDef.purchase`, `faithPerHammer` 2).
 
 ## 4. The fold
 
