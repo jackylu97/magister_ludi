@@ -8,7 +8,8 @@ The audits and drawings behind these decisions are artifacts (private to the use
 - Iterations on B (B1 to B4): https://claude.ai/artifact/PeTtBeRtf2Q2Y6r5pvL6KK
 - Compact B4 (B4a, B4b, B4c): https://claude.ai/artifact/Ai3VR7bTf1qMswc8EHM1Q4
 - The empire panel (E1, E2, E3): https://claude.ai/artifact/J17JPskARuBt3PreyLzMTF
-- Final E2 and the city screen audit: in progress (links added when published)
+- **Final E2, the agreed design:** https://claude.ai/artifact/FMZ5C4xQh9jRe2FUyRdZ76 — its written spec is `docs/plans/hud-empire-panel-spec.md` (every element, its states, sizes, keys, and the code each part replaces)
+- The city screen audit: in progress (link added when published)
 
 The written versions are in the session scratchpad (`ux-audit/`); copy them into `docs/plans/` when this work starts.
 
@@ -17,19 +18,23 @@ The written versions are in the session scratchpad (`ux-audit/`); copy them into
 ### The top bar
 - **Lean, about 13 items:** the six yields; happiness and authority as one chip; turn and age in the middle; **Diplomacy, Trade and Standings as labelled tabs at the right end** (the other empires' screens, carrying the trade-route, renown and bead figures); then **?** and **☰**. The Compendium moves into ☰ and the ? card. (Layout B4, the user, 2026-10-12: *"B4 seems to make the most logical sense to me."*)
 - The aim is that nothing scrolls out of sight at 1024 px wide, as happiness, authority and the age clock do today.
+- **Space covered at rest** (final E2, 1440 × 900): about 23,000 px² (1.9% of the board) with no commission seated, about 38,000 px² (3.1%) with two; today's HUD covers 70,101 px² (5.7%).
 
 ### The empire panel (top-left): version E2
 The user, 2026-10-12: *"ok E2 is my favorite."* One drawer at the top-left, in two depths:
 - **At rest:** abbreviated, small: the seat's banner and two thin progress bars, research and culture (the draft meter, which is this game's "civic" progress).
 - **Depth one, on hover** (and on focus, and on a tap for touch): the drawer expands to full research and culture sections: the technology's name, turns left and progress; the draft meter, and the government line ("next government at …").
 - **The research and culture sections are themselves clickable** and look it (cursor, hover and focus states, an affordance on the title): research opens the star chart, culture opens Statecraft. **No separate "Tech tree" or "Statecraft" buttons.** (The user, 2026-10-12.)
-- **Depth two, on click:** the drawer extends to the rest of the empire's screens: Religion, Leader, Supply and the like, and stays open until dismissed.
+- **Depth two, on click** (or tap, Enter or Q): the drawer extends to the rest of the empire's screens and stays open until dismissed: Religion (H), Leader (L, a new key), an Age wager row (the wager sheet's first standing way in), and the Supply counts.
+- **The drawer opens to the right of the panel,** not downward, so it never covers the commission chips and nothing moves when it opens.
+- **The at-rest bars are not separate click targets;** the whole closed panel is one target (6 px bars are far below a usable target size). T and C still go straight to the star chart and Statecraft.
+- **A draft waiting** shows at rest: the culture section's edge and "a card awaits".
 - Keys stay: T opens the star chart, C opens Statecraft; the empire menu gets a free key (Q was proposed).
 - Hover opens after a short delay and never while dragging the map or aiming a move.
 
 ### Commissions
 - **Card face:** the goal and a counter (pips for small counts, a bar for larger ones); an unseated commission shows its kept progress as paused. **Built** (batch C).
-- **Chips on the left side of the screen, outside the empire panel and its menu,** one per seated commission: a see-through background, a solid left edge in the deck's colour, a ring that fills, the name and the count in words; hover for the full goal and reward; click opens the government sheet at that card; "Fulfilled · reward paid" for one turn, then gone. (The user, 2026-10-12: *"Let's have commissions appear on the left side outside of the empire menu."*) **Built** under today's dock; it moves to sit below the empire panel when the panel is built.
+- **Chips on the left side of the screen, under the empire panel and outside its drawer,** one per seated commission, at most four and then "+N more": a see-through background, a solid left edge in the deck's colour, a ring that fills, the name and the count in words; hover for the full goal and reward; click opens the government sheet at that card; "Fulfilled · reward paid" for one turn, then gone. (The user, 2026-10-12: *"Let's have commissions appear on the left side outside of the empire menu."*) **Built** under today's dock; it moves to sit below the empire panel when the panel is built.
 - Nothing about commissions goes in the top bar.
 
 ### Levies
@@ -44,7 +49,6 @@ The user, 2026-10-12: *"ok E2 is my favorite."* One drawer at the top-left, in t
 
 ## Open
 - **Supply off the map.** In every layout the resources table stops being always visible: it becomes a Supply entry in the empire menu, with a warning chip only while a resource has none spare. That reverses the rule recorded in `src/ui/holdingsRail.ts` (lines 20 to 45: the counts must be readable without a click). Needs the user's ruling.
-- **The final E2 drawing:** where the commission chips sit relative to the drawer when it expands, and whether the at-rest bars are click targets themselves. In progress.
 - **The city screen:** an audit in the same style is in progress; its decisions go here.
 - **Small decisions inside the build:** the empire menu's key; whether Leader and Standings get keys (L and S were proposed); the "screen registry" in `src/main.ts` that the audit recommends building first, since `main.ts` holds 19 hand-written lists of which screens to close.
 
