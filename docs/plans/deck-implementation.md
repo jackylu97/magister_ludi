@@ -16,7 +16,9 @@ For every row on an approved sheet:
 | **new** or **deferred**, "needs: …" | Use the **cheapest version that captures the idea**: existing shapes, or at most one small new effect shape or rule, local to the evaluator and the data. If that is not possible without a significant change (below), add the row as `deferred` with a plain one-line reason, so it appears in the Compendium but is not dealt. |
 | **Proposed cuts** | Mark the data row `retired: true` (kept for saves, out of every pool). Rows that never reached the data need nothing. |
 
-**A significant change, which every batch skips and defers:** reworking an existing mechanic; a change spread across many files; or a new interface (a new screen, panel, button or counter on a card face). Examples on these sheets: commissions (goal tracking, leaving the chair, progress on the card), levies (spending a citizen), miracle-style faith orders, moving citizens between towns, tiles changing owner without a capture, a tile holding two works, reward hands, new unit or building rows that need art.
+**A significant change, which every batch skips and defers:** reworking an existing mechanic; a change spread across many files; or a new interface (a new screen, panel, button or counter on a card face). Examples on these sheets: moving citizens between towns, tiles changing owner without a capture, a tile holding two works, reward hands.
+
+**Moved into scope by the user (2026-10-12):** *"commissions, levies, use existing art as placeholders for new units or buildings."* Commissions and levies are built once each, as shared mechanics (batches C and L below), and every deck batch then uses them. New unit and building rows are added with an existing model as placeholder art. Faith-spending effects are rites a card unlocks (the user: a miracle is a rite).
 
 **Cheap mechanics worth building when several cards share them** (one batch builds each, others reuse): a "city building the Magnum Opus" scope; a capture payout that reads the captured city; a card that unlocks an improvement row (for tended works, added as ordinary improvement rows marked as tended: they count as unimproved for wild-land cards and cannot be pillaged). Each batch says which it built.
 
@@ -35,7 +37,11 @@ For every row on an approved sheet:
 - `faithPerHammer` 1 → 2.
 - Done-gate: narrow tests on the draft and the bands, plus the registers that pin the ladder.
 
-**Batches D1–D4 — one per deck, in parallel after F** (Commerce, Dominion, Expansionist, Devotion). Each owns `data/decks/<deck>.json` and its own sheet; new effect shapes go in the evaluator and types; tests under `test/sim/decks/`.
+**Batch C — commissions (after F, in parallel with L).** One commission mechanic every deck uses: a card marked as a commission carries a goal (an existing count read by the evaluator, counted only while the card is seated, ruling (qqqqqq) 5) and a reward (existing grant and windfall shapes). When the goal is met the reward pays and the card leaves its chair. The card shows its progress on its face (a plain line, ruling 15). Goals are private and never races (ruling 6). Batch C builds the mechanic and two or three example commissions from the sheets to prove it; the deck batches write the rest.
+
+**Batch L — levies (after F, in parallel with C).** A city command that spends one citizen, with a button in the city panel. What the citizen buys comes from the cards held: production in the city (Levy of the Land), a unit (The Muster of the Fields), production sent to the city building the Magnum Opus (The Corvée), a melee unit while at war (The General Levy). One levy per city per five turns unless a card says otherwise. Citizens lost to a levy and regained do not count as growth (ruling 7). Batch L builds the command, its button and the Expansionist levy cards that define it.
+
+**Batches D1–D4 — one per deck, in parallel after C and L** (Commerce, Dominion, Expansionist, Devotion). Each owns `data/decks/<deck>.json` and its own sheet; new effect shapes go in the evaluator and types; tests under `test/sim/decks/`.
 
 **Batch S — shared cards, after D1–D4.** Shared rows live in `data/decks/common.json`. Implement the shared cards whose **both** decks are approved (pairs among Commerce, Dominion, Expansionist and Devotion). Shared cards that involve Scientific or Magisterial wait for the user's review of those sheets.
 
@@ -44,4 +50,4 @@ For every row on an approved sheet:
 - Orchestrator, per merged batch: `npm run typecheck`, the core tier, `npm run build`. Bot-game digests will move (new and retired cards change what bots draft); re-cut once after the last batch, before the push-gate.
 
 ## Not in scope
-Common, Scientific and Magisterial cards; rulings 5–9 and 13; the interface for commissions, counts and maturity (ruling 15); balance tuning, which is the user's playtest.
+Common, Scientific and Magisterial cards; rulings 7–9 and 13 (except what batches C and L need); the interface for counts and maturity beyond a commission's progress line (ruling 15); balance tuning, which is the user's playtest.
