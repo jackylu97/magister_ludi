@@ -7063,15 +7063,11 @@ export interface StatecraftConfig {
    * here rather than beside the faith ladder because the ladder is a rule of the
    * draft and this is a card's price — a game with no such card never reads it.
    *
-   * **Why the figure is twelve.** It started at six, when a hammer cost four
-   * gold or one faith: break-even was four and six put gold at a premium. The
-   * user's ruling (`docs/flags.md` item (qqqqqq) 3) doubled the faith price of
-   * a hammer to two and kept the faith price of a reroll as it was, and asked
-   * that the gold price of a reroll rise in line with that change. So the
-   * multiple doubled with the faith rate, six to twelve. Note that this is the
-   * literal reading of the ruling: measured against hammers alone, one faith is
-   * now worth two gold, so twelve is six times break-even rather than one and a
-   * half times. One number, and turning it is the whole of retuning the card.
+   * **Why the figure is three.** A hammer costs four gold or two faith
+   * (`docs/flags.md` item (qqqqqq) 3), so one faith is worth two gold. Three
+   * keeps gold at the same premium over that break-even (one and a half times)
+   * that six gave when a hammer cost one faith. The user chose three on
+   * 2026-10-12. One number, and turning it is the whole of retuning the card.
    */
   redraw: {
     /** The faith price times this, floored once, is the gold price. */

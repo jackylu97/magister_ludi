@@ -188,7 +188,9 @@ describe('the seating', () => {
     const player = seat(state);
     govern(state, player, 'theSultanate');
     const layout = slotTypesOf(player.statecraft);
-    expect(layout).toHaveLength(9);
+    // The Sultanate is a tier-29 government, which seats 11 since the ladder
+    // became 3 / 5 / 8 / 11 (batch F, 2026-10-12).
+    expect(layout).toHaveLength(11);
     const last = layout.length - 1;
     const sitting = slotByHand(state, player, last);
     const safe = slotByHand(state, player, 0);
