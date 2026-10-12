@@ -61,6 +61,15 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 - **Authority is not Expansionist's alone.** Expansionist has the deep, earned relief; other decks may have some access. Commerce's is The Market Writ.
 - **Charters can unlock units.** Charter units come into the game: a charter may open a unique unit (Numidian Cavalry, the shared The Chartered Company). This is new engine work.
 
+**Rulings from the balance review (the user, 2026-10-12; `docs/flags.md` item (qqqqqq)).**
+- **Late-game engines may be uncapped.** Cards that let a player "break the game" late are part of the power fantasy. No cap on card bonuses toward the Magnum Opus.
+- **Commissions are private and never races.** A commission belongs to the seat that drafted it and asks nothing about other empires finishing first.
+- **Drafted cards stay in the collection.** Every card drafted — charters and commissions included — stays in the player's collection, unseated, and counts as held. Every card that enters the collection counts as drafted.
+- **Adopting a government keeps the seated cards,** and a card's progress stays with the card.
+- **One draft pool per seat:** the common cards plus every card of the seat's two decks, including every shared card that names either deck.
+- **Every pair of decks keeps a shared card at Tier I or earlier.**
+- **Faith buys production at 2 faith per hammer.**
+
 ### Two facts about the essentials worth designing around
 
 - **Production is the easiest essential to substitute.** It can be bought with gold, bought with faith, taken by conquest, or hurried by rites. Technology and culture mostly cannot be bought or taken. So production is the natural place for a gap, and a deck that is weak at technology or culture needs a deliberately designed workaround.

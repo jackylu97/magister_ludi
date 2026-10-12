@@ -19,6 +19,64 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(qqqqqq) The deck balance review's rule questions — RULED, 2026-10-12** (the
+user, answering `docs/decks/review/summary.md` items 1–15, and in chat). The
+reasoning behind each question is in that file and the four lens reports
+beside it.
+
+1. **Stacked purchase discounts.** Discount cards stop discounting the price.
+   The user: *"modify bonuses to +25% of the yield instead of a discount on
+   the total cost."* Read as: each card that took a percentage off a purchase
+   price instead raises the yield that pays for purchases by 25% (gold for the
+   gold cards, faith for the faith ones), so stacking adds income and can never
+   make a purchase free. *To confirm with the user before it is built.*
+2. **A discount or bonus names its currency** and applies to that currency
+   only.
+3. **Faith buys production at 2 faith per hammer** (gold stays at 4). Reroll
+   prices in faith are unchanged; the gold price of a reroll rises in line
+   with this ruling (*"should increase commensurately"*).
+4. **No cap on card bonuses toward the Magnum Opus.** *"This seems like a fun
+   way to play the game."*
+5. **Adopting a government no longer unseats every card.** A card's progress
+   (a commission's count, a counter) stays with the card through unseating
+   and adoption; only events while it is seated count.
+6. **Commissions are not races.** A commission belongs to the seat that drafted
+   it, is visible only to that seat, and asks nothing about other empires
+   finishing first.
+7. **Only a citizen gained by filling the food basket counts as growth.**
+   Levies, migration, retired units, faith and founding add citizens that do
+   not.
+8. **Every card that enters your collection counts as drafted**, however it
+   arrived: it fires its on-draft boon, and a charter grants its technology.
+9. **All drafted cards stay in the player's collection**, unseated, and count
+   as held. That includes charters and commissions. The interface must show
+   that a charter is active while unseated; what that looks like is deferred.
+10. **A charter technology costs its column's price × 1.5**, one figure in
+    `data/rules.json`.
+11. **A charter's benefit is the technology.** Researching it grants what the
+    technology unlocks, guaranteed. (The question of how the "Needs
+    <technology>" cards on the Scientific sheet reach a seat is open; see C
+    below.)
+12. *Open — the user asked what chairs mean for the draft meter; answered in
+    chat 2026-10-12.*
+13. **One draft pool per seat.** A hand is drawn from one pool: the common
+    cards plus every card of the seat's two decks, including every shared card
+    that names either deck (a Commerce and Devotion seat can draw Commerce and
+    Magisterial shared cards). This replaces the current one-card-per-deck
+    hand with a common or shared third card.
+14. **Every pair of decks keeps a shared card at Tier I or earlier.** Garden
+    Cities, Illuminated Treatises and Hydraulic Schools stay; the pairs that
+    lack one get one.
+15. **Counts and maturity show in the interface.** A card that counts
+    something shows its count; a tile or building crossing a card's age
+    threshold is announced.
+
+Also ruled in chat the same day: **uncapped late-game engines are wanted.**
+*"I think the game is more fun with uncapped orders, these are the late game
+engines and orders that allow players to 'break the game' which plays into
+the power fantasy of the game."* Items 16 and 17 (caps on The Money Lenders
+and The Strongroom) are therefore declined.
+
 **(pppppp) Four Commerce cards that lift a rule — RULED, C3, 2026-09-19** (the
 user, 2026-09-19, answering four questions). Each of these was cheap to build
 and expensive to decide; the decisions are below, with what each rule was
