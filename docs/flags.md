@@ -34,8 +34,11 @@ beside it.
 2. **A discount or bonus names its currency** and applies to that currency
    only.
 3. **Faith buys production at 2 faith per hammer** (gold stays at 4). Reroll
-   prices in faith are unchanged; the gold price of a reroll rises in line
-   with this ruling (*"should increase commensurately"*).
+   prices in faith are unchanged. The gold price of a reroll keeps the same
+   premium over faith's worth: `redraw.goldMultiple` is **3** (the user,
+   2026-10-12: *"multiplier to 3 is what i meant"*; one faith is now worth two
+   gold, so 3 is 1.5 times break-even, as 6 was before). The reward hand the
+   new fifth rung banks at draft 45 stays until after playtesting.
 4. **No cap on card bonuses toward the Magnum Opus.** *"This seems like a fun
    way to play the game."*
 5. **Adopting a government no longer unseats every card.** A card's progress
