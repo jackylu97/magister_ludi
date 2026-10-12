@@ -29,7 +29,8 @@ beside it.
    the total cost."* Read as: each card that took a percentage off a purchase
    price instead raises the yield that pays for purchases by 25% (gold for the
    gold cards, faith for the faith ones), so stacking adds income and can never
-   make a purchase free. *To confirm with the user before it is built.*
+   make a purchase free. Confirmed by the user, 2026-10-12. The scope and
+   any downside of each card stay as they are.
 2. **A discount or bonus names its currency** and applies to that currency
    only.
 3. **Faith buys production at 2 faith per hammer** (gold stays at 4). Reroll
@@ -54,9 +55,10 @@ beside it.
 10. **A charter technology costs its column's price × 1.5**, one figure in
     `data/rules.json`.
 11. **A charter's benefit is the technology.** Researching it grants what the
-    technology unlocks, guaranteed. (The question of how the "Needs
-    <technology>" cards on the Scientific sheet reach a seat is open; see C
-    below.)
+    technology unlocks, guaranteed. **No card depends on a charter
+    technology:** the "Needs <technology>" gates on the Scientific sheet are
+    removed, and those cards are ordinary cards in the pool (the user,
+    2026-10-12: *"we should remove the dependencies"*).
 12. *Open — the user asked what chairs mean for the draft meter; answered in
     chat 2026-10-12.*
 13. **One draft pool per seat.** A hand is drawn from one pool: the common

@@ -33,7 +33,7 @@ Items marked *(proposal)* are suggestions that have not been agreed yet. Everyth
 | Dominion | Units | Garrisons, raids and conquest |
 | Expansionist | Food and land | Citizens (levies) and claimed land |
 | Commerce | Gold | Purchases |
-| Devotion | Faith | Faith purchases and miracles |
+| Devotion | Faith | Faith purchases and rites |
 | Scientific | Science | Charter technologies, which unlock the deck's powerful cards |
 | Magisterial | Culture | Drafts |
 
@@ -84,7 +84,7 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 | **Dominion** | Your army is your economy | Units: training, garrisons, raids, conquest | Developing its own cities, because its production goes into the army | Takes what others built, and its military buildings double as civic ones |
 | **Expansionist** | The map is your engine | Raising, tending and claiming land: workers, improvements, tended land, settling, population | **Science and culture** | Gets them only from particular terrain (science from mountains, culture from old forest and wild land), so how much it gets depends on the map; in return it raises authority and happiness, the two limits on growth |
 | **Commerce** | Wealth from connection | Trade routes, trading posts, resources, purchasing | Production | Buys what others build, and turns gold into production |
-| **Devotion** | Belief as a second economy | Religion: founding, spreading, rites, holy sites, religious units | Production | Spends faith where others spend production: faith purchases and miracles |
+| **Devotion** | Belief as a second economy | Religion: founding, spreading, rites, holy sites, religious units | Production | Spends faith where others spend production: faith purchases and rites |
 | **Scientific** | Reach it first | The tech tree: charter technologies and earlier access | Tempo and raw bonuses | A few science bonuses fund expensive charter technologies, and those unlock the deck's powerful cards |
 | **Magisterial** | Play the draft | The card system itself: combinations of specific cards, boons on draft; culture, great people and wonders | Depth in any single engine, and weak until its combinations come together | Boons give it value while it gathers its combinations; conversion turns culture into whatever it needs |
 
@@ -248,16 +248,16 @@ All of these go into the full card list as cards; the user will cut ideas once t
 
 **The way to play.** Belief as a second economy. Faith is a currency you earn from your land and practices and spend in place of production, and your belief spreads past your borders.
 
-**Gap and workaround.** Weak at production. It spends faith where others spend production: buying units, workers, buildings and tiles with faith, and spending faith on immediate effects (miracles) such as healing units or growing a city. Commerce has the same gap with a different substitute (gold instead of faith). The two are expected to play differently enough; playtesting decides.
+**Gap and workaround.** Weak at production. It spends faith where others spend production: buying units, workers, buildings and tiles with faith, and spending faith on rites. **Rites are Devotion's way to spend faith on an effect** (the user, 2026-10-12): the game's existing city rites, plus new rites that cards unlock, including rites that pay out at once (heal the army, hurry a build). There is no separate "miracle" action. Commerce has the same gap with a different substitute (gold instead of faith). The two are expected to play differently enough; playtesting decides.
 
 **Reaching the three essentials.**
-- **Production:** faith purchases and miracles, not flat production bonuses.
+- **Production:** faith purchases and rites, not flat production bonuses.
 - **Culture:** religious buildings, holy sites and festivals.
 - **Technology:** religious learning (a Temple beside a Library), and knowledge paid by cities that follow your religion.
 
 **Bonus themes.**
 1. **The faith engine** — from pastures, holy sites, shrines and observances.
-2. **Spending faith** — faith purchases and miracles. This is the production workaround and should be the core of the deck.
+2. **Spending faith** — faith purchases and rites. This is the production workaround and should be the core of the deck.
 3. **Rites as decisions** — rites with real trade-offs, rather than an on-switch that turns on city bonuses.
 4. **Spreading belief** — pressure, proclamations and missionaries; rewards for foreign cities that follow you.
 5. **Sacred places** — holy sites, relics and cathedrals as centres.
@@ -478,7 +478,7 @@ Strategic resources sit on three improvements: **mines** (copper, iron, obsidian
 
 ### Expansionist · Devotion — sacred land
 - **Expansionist gives Devotion** wild land and herds: tended land pays faith in Devotion's cards, and big cities hold more followers.
-- **Devotion gives Expansionist** happiness and miracles: faith grows cities and keeps them content.
+- **Devotion gives Expansionist** happiness and rites: faith grows cities and keeps them content.
 - **Hooks:** Expansionist — tended and wild land, and population. Devotion — faith and happiness.
 - **Shared improvements:** none on the family lists. The two meet on **wild land** instead: Devotion's camps and Expansionist's tended works are both land kept wild on purpose. If the pair needs a literal overlap, pastures are the natural one to share.
 - **Gap covered:** Expansionist's culture, partly, by faith-bought culture buildings. Devotion's production, by Expansionist's worked land.
