@@ -2201,6 +2201,36 @@
           "per": "city"
         }
       ]
+    },
+    "dominionClearTheFrontier": {
+      "name": "Commission: Clear the Frontier",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A young state wins its first war against the camps at its edge.",
+      "text": "Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "campCleared",
+            "count": 2
+          }
+        ],
+        "reward": [
+          {
+            "yield": "production",
+            "amount": 60
+          },
+          {
+            "unit": "bestMelee"
+          }
+        ]
+      }
     }
   }
 }

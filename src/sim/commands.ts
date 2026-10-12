@@ -261,6 +261,7 @@ import {
 } from './diplomacy';
 import { type DealEndReport, type DealTerms, proposalById } from './deals';
 import type { CampBounty } from './camps';
+import type { CommissionReport } from './commissions';
 import { type GuildReport, dismissSpecialistAt, dismissSpecialistError } from './guilds';
 import { levyAt, levyError } from './levies';
 import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
@@ -1979,6 +1980,12 @@ export type CommandResult =
        * `endTurn`, whose broom sweeps the ones that have run out.
        */
       dealsEnded?: DealEndReport[];
+      /**
+       * Commissions fulfilled during an `endTurn` resolution, with what each
+       * paid (`CommissionReport`, batch C). Private: the interface shows a
+       * seat only its own.
+       */
+      commissions?: CommissionReport[];
     }
   | { ok: false; error: string };
 
@@ -2262,6 +2269,8 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   // The bargains the broom swept out — `peaces`' sibling, and reported for its
   // reason: a moment later there is simply no row to ask.
   if (result.ok && report.dealsEnded.length > 0) result.dealsEnded = [...report.dealsEnded];
+  // The commissions the resolution fulfilled — `peaces`' reason again.
+  if (result.ok && report.commissions.length > 0) result.commissions = [...report.commissions];
   return result;
 }
 

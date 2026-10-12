@@ -1898,6 +1898,67 @@
         }
       ],
       "note": "The share is taken of everything the realm earns in renown each turn, and never of a lump a triumph pays. The narrowing is a strong nudge and not a lock: when every great merchant in the world has been called, the draft goes back to showing the whole roster, so a court that has run out of merchants still deals a hand. A draft somebody bought narrowed to another family is dealt as what it was bought as."
+    },
+    "cornerTheMarket": {
+      "name": "Corner the Market",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Whoever holds most of the silk sets its price.",
+      "text": "Commission. Goal: control four copies of one luxury, counting copies you receive in deals. Reward: a great merchant and 150 gold. The card then leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "luxuryCopies",
+            "count": 4
+          }
+        ],
+        "reward": [
+          {
+            "greatPerson": "merchant"
+          },
+          {
+            "yield": "gold",
+            "amount": 150
+          }
+        ]
+      }
+    },
+    "theStrongroom": {
+      "name": "The Strongroom",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "A full vault is a reputation as much as a reserve.",
+      "text": "Commission. Goal: end a turn with at least 2,000 gold in your treasury. Reward: culture equal to a fifth of your treasury at that moment, and a great merchant. The card then leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "treasury",
+            "count": 2000
+          }
+        ],
+        "reward": [
+          {
+            "yield": "culture",
+            "amount": 0.2,
+            "fromFigure": "treasury"
+          },
+          {
+            "greatPerson": "merchant"
+          }
+        ]
+      }
     }
   }
 }

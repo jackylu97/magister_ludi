@@ -441,10 +441,15 @@ describe("the card table", () => {
       const granted = ORDER_IDS.includes(id as never)
         ? (orderDef(id as never).onSlot ?? [])
         : [];
+      // A commission (batch C) speaks through its goal and reward.
+      const commission = ORDER_IDS.includes(id as never)
+        ? orderDef(id as never).commission
+        : undefined;
       const hasSomething =
         def.effects.length > 0 ||
         (def.deferred ?? []).length > 0 ||
-        granted.length > 0;
+        granted.length > 0 ||
+        commission !== undefined;
       expect(hasSomething, id).toBe(true);
     }
   });

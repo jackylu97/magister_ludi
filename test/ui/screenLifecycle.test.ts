@@ -78,6 +78,10 @@ describe('the game-screen disposal register', () => {
       // game that is over.
       'leaderSheet?.dispose()',
       'abacus?.dispose()',
+      // The commission chips (batch C). Mounted once like the holdings card,
+      // and disposed through the register so a new game starts with an empty
+      // rail and the holdings card back in its place.
+      'commissionRail?.dispose()',
     ]) {
       expect(main, call).toContain(`gameDisposers.push(() => ${call});`);
     }

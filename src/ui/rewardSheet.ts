@@ -29,6 +29,7 @@
  * nothing here decides what a hand holds.
  */
 
+import { commissionGoalNode } from './commissionGoal';
 import type { Command } from '../sim/commands';
 import { type GameState, playerById } from '../sim/state';
 import { type PlayerStatecraft, describeCard } from '../sim/statecraft';
@@ -215,6 +216,9 @@ export function createRewardSheet(options: RewardSheetOptions): RewardSheet {
         list.append(item);
       }
       button.append(list);
+      // A commission's counter, as on every other face of the card (batch C).
+      const goal = commissionGoalNode(options.getState(), seat, id);
+      if (goal) button.append(goal);
       // **Labelled, not merely italic** — the standing rule wherever a flavour
       // field is printed. Without it the line at the foot of a card reads as
       // one more rule, which is the one thing a card's foot may never do.

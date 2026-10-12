@@ -212,6 +212,9 @@ const ANNOUNCING = new Set([
   // Order's lines come and go with the chair it sits in, which is the third
   // source of the walk, so the write announces on the line it happens.
   'draft.ts#refitSlots',
+  // Batch C: a met commission leaves its chair, which is the third source of
+  // the walk, so the phase announces on the line it empties the chair.
+  'commissions.ts#runCommissions',
   'discoveries.ts#payDiscovery',
   'diplomacy.ts#payLump',
   'cities.ts#refundBeatenWonders',
@@ -311,6 +314,10 @@ const EXCUSED = new Map<string, string>([
   [
     'evaluator.ts#windfallPayout',
     'builds a payout descriptor; `payWindfallGrants` is what hangs it on the realm',
+  ],
+  [
+    'commissions.ts#payCommission',
+    'builds a payout descriptor for a commission’s reward; `payWindfallGrants` is what hangs it on the realm, and it announces',
   ],
   [
     'evaluator.ts#cardFoundingRider',

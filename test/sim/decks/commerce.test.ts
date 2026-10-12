@@ -132,10 +132,13 @@ const COMMERCE: readonly OrderId[] = DECK_FILE_ORDERS.commerce;
 const RARITIES = ['common', 'uncommon', 'rare'] as const;
 
 /** The rows that pay something — the live half of the deck. */
-const live = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).effects.length > 0);
+// A commission (batch C) is live with no effects: its goal and reward are the card.
+const isLive = (id: OrderId): boolean =>
+  orderDef(id).effects.length > 0 || orderDef(id).commission !== undefined;
+const live = (): OrderId[] => COMMERCE.filter(isLive);
 
 /** The rows that only say what they would have said. */
-const deferred = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).effects.length === 0);
+const deferred = (): OrderId[] => COMMERCE.filter((id) => !isLive(id));
 
 describe('the Commerce deck is one deck', () => {
   it('carries seventy-one rows, every one of them a Commerce card', () => {
@@ -153,7 +156,9 @@ describe('the Commerce deck is one deck', () => {
     // deposits may now supply an extra copy where a mine stands on them, which
     // is the same seam Strategic Exports opened one kind over. Spy Networks and
     // The Masters' Guild are still unwritten.
-    expect(COMMERCE.length).toBe(72);
+    // Batch C adds two commissions, Corner the Market (Tier II) and The
+    // Strongroom (Tier IV).
+    expect(COMMERCE.length).toBe(74);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -191,7 +196,8 @@ describe('the Commerce deck is one deck', () => {
     // C6 adds Entrenched Interests in Tier III, where the sheet puts it — a row
     // the user's sheet has always listed and the data had never carried.
     // C8 adds Royal Assays in Tier II, where the sheet puts it.
-    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 26, 13]);
+    // Batch C adds Corner the Market in Tier II.
+    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 27, 13]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
 
@@ -292,7 +298,10 @@ describe('a live Commerce row is a card', () => {
     // same path Strategic Exports took, a law applied to what the ground
     // supplies on the way out of the memo, with a flat step per deposit instead
     // of a share of the total.
-    expect(live().length).toBe(60);
+    // **And two more with batch C**: Corner the Market and The Strongroom, the
+    // first two commissions, which are live with a goal and a reward and no
+    // effects.
+    expect(live().length).toBe(62);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -364,6 +373,7 @@ describe('a live Commerce row is a card', () => {
     const kinds = new Set<string>();
     for (const id of live()) {
       const effects = orderDef(id).effects;
+      if (orderDef(id).commission !== undefined) continue;
       expect(effects.length, id).toBeGreaterThan(0);
       for (const effect of effects) {
         kinds.add(effect.kind);
@@ -534,7 +544,9 @@ describe('a seeded draft for a Commerce figure', () => {
 
     const dealt = new Set<OrderId>();
     for (let n = 1; n <= 30; n++) {
-      musa.statecraft.drafts = n === 1 ? 0 : 29;
+      // 45 is the fifth rung since batch F, which opens band 4 — where The
+      // Strongroom, the deck's first live Tier IV row, sits.
+      musa.statecraft.drafts = n === 1 ? 0 : 45;
       delete musa.statecraft.pendingOrder;
       const offer = drawOrderOffer(g.state, musa);
       for (const id of offer.options ?? []) {
@@ -548,7 +560,10 @@ describe('a seeded draft for a Commerce figure', () => {
         ).toBe(true);
         expect(orderIsDealt(id), id).toBe(true);
         // Never a deferred row, never a charter waiting on its building.
-        expect(def.effects.length > 0 || def.charter !== undefined, id).toBe(true);
+        expect(
+          def.effects.length > 0 || def.charter !== undefined || def.commission !== undefined,
+          id,
+        ).toBe(true);
       }
     }
     // Every live row of the deck is reachable, and nothing outside the seat's

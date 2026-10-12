@@ -153,6 +153,8 @@ import { type NotificationsPanel, createNotificationsPanel } from './ui/notifica
 import { createPopover } from './ui/popover';
 import { type HudDock, createHudDock } from './ui/hudDock';
 import { type HoldingsRail, createHoldingsRail } from './ui/holdingsRail';
+import { type CommissionRail, createCommissionRail } from './ui/commissionRail';
+import { commissionCounters } from './ui/commissionGoal';
 import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
 import { type DiplomacyScreen, type EnvoyAnswer, createDiplomacyScreen } from './ui/diplomacyScreen';
@@ -979,6 +981,14 @@ let hudDock: HudDock | null = null;
  * `#hud-dock` does, and each new rail replaces the last one's rows.
  */
 let holdings: HoldingsRail | null = null;
+
+/**
+ * The commission chips (batch C), between the dock and the holdings card. A
+ * holder for `holdings`' reason: it reads a game, and `updatePanel` is
+ * declared before there is one. Built and mounted the same way, and its
+ * `dispose` is in `gameDisposers`.
+ */
+let commissionRail: CommissionRail | null = null;
 
 /**
  * Every notice the seats have been shown, and the two surfaces that show them.
@@ -2797,6 +2807,8 @@ async function boot(initial: Game | null): Promise<void> {
     // them land here. It watches `state.revision` and the seat itself, so the
     // pointer moves that also reach this function cost two comparisons.
     holdings?.render();
+    // The commission chips, on the same beat and the same fingerprint.
+    commissionRail?.render();
     // The research card changes with the seat, with the science rate and with
     // every completed tech, so it refreshes wherever the rest of the HUD does.
     techTree?.render();
@@ -3202,6 +3214,8 @@ async function boot(initial: Game | null): Promise<void> {
         badges: orderBadges(id),
         note: describeCard(id).map((clause) => clause.text).join(' · '),
         flavor: orderDef(id).flavor,
+        // A commission's counter, so the hand shows where its goal starts.
+        progress: commissionCounters(game.state, seat, id),
         ...orderFace(orderDef(id)),
         ...cardStamp(seat, { kind: 'order', id }),
       }));
@@ -5085,6 +5099,22 @@ async function boot(initial: Game | null): Promise<void> {
   });
   if (previousHoldings) previousHoldings.root.replaceWith(holdings.root);
   else hudDockEl.after(holdings.root);
+
+  /**
+   * The commission chips (batch C): one per seated commission, directly under
+   * the dock and above the holdings card, which moves down by the chips'
+   * height (`--hud-commission-count`, written by the rail). A click opens the
+   * government sheet at the card.
+   */
+  const previousCommissions = commissionRail;
+  commissionRail = createCommissionRail({
+    getGame: () => game,
+    localPlayerId: () => controls.localPlayerId(),
+    openAt: (card) => statecraft?.openAt(card),
+  });
+  if (previousCommissions) previousCommissions.root.replaceWith(commissionRail.root);
+  else hudDockEl.after(commissionRail.root);
+  gameDisposers.push(() => commissionRail?.dispose());
   diplomacy = createDiplomacyScreen({
     overlay: diplomacyOverlayEl,
     body: diplomacyBodyEl,

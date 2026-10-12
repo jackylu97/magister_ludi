@@ -3090,6 +3090,20 @@
     "text": "-3 happiness in every city"
    }
   ],
+  "dominionClearTheFrontier": [
+   {
+    "raw": "Commission. Goal: clear 2 barbarian camps, while this card is seated",
+    "text": "Commission. Goal: clear 2 barbarian camps, while this card is seated"
+   },
+   {
+    "raw": "Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
+    "text": "Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
   "smallholdings": [
    {
     "raw": "+1 food, +1 gold on every hex with a [[improvement:farm|Farm]] or [[improvement:terraces|Terraces]] or [[improvement:pasture|Pasture]]",
@@ -3168,14 +3182,8 @@
   ],
   "levyOfTheLand": [
    {
-    "raw": "a city spends one of its people and is paid in labour for it — not built yet",
-    "text": "a city spends one of its people and is paid in labour for it — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "a city may do this only now and then — not built yet",
-    "text": "a city may do this only now and then — not built yet",
-    "deferred": true
+    "raw": "a town may spend one citizen for production equal to the food it took to grow that citizen (once every 5 turns)",
+    "text": "a town may spend one citizen for production equal to the food it took to grow that citizen (once every 5 turns)"
    }
   ],
   "plantedForests": [
@@ -3268,14 +3276,8 @@
   ],
   "theMusterOfTheFields": [
    {
-    "raw": "a city spends one of its people and stands up the best soldier it could raise — not built yet",
-    "text": "a city spends one of its people and stands up the best soldier it could raise — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "a city may do this only now and then, and not while it is levying for labour — not built yet",
-    "text": "a city may do this only now and then, and not while it is levying for labour — not built yet",
-    "deferred": true
+    "raw": "a town may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)",
+    "text": "a town may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)"
    }
   ],
   "theLandShapesUs": [
@@ -3544,14 +3546,8 @@
   ],
   "seasonalLevies": [
    {
-    "raw": "a town that has spent one of its people is fed better for a while afterwards — not built yet",
-    "text": "a town that has spent one of its people is fed better for a while afterwards — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "spending another refreshes the season rather than lengthening it — not built yet",
-    "text": "spending another refreshes the season rather than lengthening it — not built yet",
-    "deferred": true
+    "raw": "after a town spends a citizen on a levy, it gains +40% food in this city for 10 turns, at most once every 20 turns",
+    "text": "after a town spends a citizen on a levy, it gains +40% food in this city for 10 turns, at most once every 20 turns"
    }
   ],
   "theHarvestTithe": [
@@ -3583,6 +3579,18 @@
     "raw": "a town raising a great building turns a share of the grain its people do not eat into labour — not built yet",
     "text": "a town raising a great building turns a share of the grain its people do not eat into labour — not built yet",
     "deferred": true
+   }
+  ],
+  "theCorvee": [
+   {
+    "raw": "a town of at least 10 citizens may spend one citizen for production equal to the food it took to grow that citizen, paid to your other town building [[building:theMagnumOpus|The Magnum Opus]] (once every 5 turns)",
+    "text": "a town of at least 10 citizens may spend one citizen for production equal to the food it took to grow that citizen, paid to your other town building The Magnum Opus (once every 5 turns)"
+   }
+  ],
+  "theGeneralLevy": [
+   {
+    "raw": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)",
+    "text": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)"
    }
   ],
   "commerceSaltTithes": [
@@ -4229,6 +4237,34 @@
    {
     "raw": "every great-person offer shows only great merchants, until there are none left to call",
     "text": "every great-person offer shows only great merchants, until there are none left to call"
+   }
+  ],
+  "cornerTheMarket": [
+   {
+    "raw": "Commission. Goal: hold 4 copies of one luxury, counting copies you receive in deals, while this card is seated",
+    "text": "Commission. Goal: hold 4 copies of one luxury, counting copies you receive in deals, while this card is seated"
+   },
+   {
+    "raw": "Reward: a great merchant to call, and +150 gold",
+    "text": "Reward: a great merchant to call, and +150 gold"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theStrongroom": [
+   {
+    "raw": "Commission. Goal: end a turn with at least 2000 gold in your treasury, while this card is seated",
+    "text": "Commission. Goal: end a turn with at least 2000 gold in your treasury, while this card is seated"
+   },
+   {
+    "raw": "Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call",
+    "text": "Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
    }
   ],
   "devotionFirstRites": [

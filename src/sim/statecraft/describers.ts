@@ -45,6 +45,10 @@ import {
   type AmplifierTarget,
   type PressureRuleId,
   type CardBuildingYieldPercentEffect,
+  type CommissionFigure,
+  type CommissionGoal,
+  type CommissionReward,
+  type CommissionSpec,
   type CardPaysEffect,
   type CardPeriodicEffect,
   type CardDefBase,
@@ -688,6 +692,12 @@ export function describeCard(id: CardId): CardClause[] {
         });
       }
     }
+  }
+  // **A commission is not an effect either** (batch C): its goal and reward
+  // are a field on the row, met once, and they are the whole of the card.
+  if (isOrderId(id)) {
+    const spec = orderDef(id).commission;
+    if (spec !== undefined) clauses.push(...describeCommission(spec));
   }
   // **A revocation is not an effect, and it still has to be printed** — the
   // completion grant's and the slot grant's argument a third time. It is a
@@ -4564,3 +4574,128 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   atPeace: 'while you are at peace',
   keepingRite: 'while a rite is being kept anywhere in your empire',
 };
+
+// --- commissions ------------------------------------------------------------
+
+/**
+ * The words for a counted goal: the verb, the thing counted in the singular and
+ * plural, and the short label the counter on a card face and a HUD chip prints
+ * beside its figure ("1 / 2 camps cleared").
+ */
+const COMMISSION_COUNTED_WORDS: Record<
+  TallyOccasion,
+  { verb: string; one: string; many: string; counter: string }
+> = {
+  barbarianKill: { verb: 'kill', one: 'barbarian unit', many: 'barbarian units', counter: 'barbarians killed' },
+  wonderAnywhere: {
+    verb: 'see',
+    one: 'wonder finished anywhere in the world',
+    many: 'wonders finished anywhere in the world',
+    counter: 'wonders finished',
+  },
+  greatPersonSpent: { verb: 'spend', one: 'great person', many: 'great people', counter: 'great people spent' },
+  unitLost: { verb: 'lose', one: 'unit in battle', many: 'units in battle', counter: 'units lost' },
+  goldSpent: { verb: 'spend', one: 'gold buying', many: 'gold buying', counter: 'gold spent buying' },
+  unitKilled: { verb: 'kill', one: 'enemy unit', many: 'enemy units', counter: 'enemy units killed' },
+  unitTrained: { verb: 'train', one: 'unit', many: 'units', counter: 'units trained' },
+  campCleared: { verb: 'clear', one: 'barbarian camp', many: 'barbarian camps', counter: 'camps cleared' },
+};
+
+/**
+ * The words for a reached goal: the goal as a phrase about a figure, the
+ * counter's label, and the figure as a noun for a reward scaled by it.
+ */
+const COMMISSION_FIGURE_WORDS: Record<
+  CommissionFigure,
+  { goal: (count: number) => string; counter: string; noun: string }
+> = {
+  treasury: {
+    goal: (count) => `end a turn with at least ${count} gold in your treasury`,
+    counter: 'gold in the treasury',
+    noun: 'the gold in your treasury',
+  },
+  luxuryCopies: {
+    goal: (count) => `hold ${count} copies of one luxury, counting copies you receive in deals`,
+    counter: 'copies of one luxury',
+    noun: 'the copies you hold of your most-held luxury',
+  },
+  tradeRoutes: {
+    goal: (count) => `have ${count} trade routes running at the same time`,
+    counter: 'trade routes running',
+    noun: 'your trade routes',
+  },
+  hexesOwned: {
+    goal: (count) => `own ${count} hexes`,
+    counter: 'hexes owned',
+    noun: 'the hexes you own',
+  },
+  improvedTilesWorked: {
+    goal: (count) => `work ${count} improved tiles at the same time`,
+    counter: 'improved tiles worked',
+    noun: 'the improved tiles you work',
+  },
+};
+
+/** One part of a commission's goal as a phrase: "clear 2 barbarian camps". */
+export function commissionGoalWords(goal: CommissionGoal): string {
+  if (goal.kind === 'counted') {
+    const words = COMMISSION_COUNTED_WORDS[goal.occasion];
+    return `${words.verb} ${goal.count} ${goal.count === 1 ? words.one : words.many}`;
+  }
+  return COMMISSION_FIGURE_WORDS[goal.figure].goal(goal.count);
+}
+
+/** The short label a counter prints beside its figure: "camps cleared". */
+export function commissionCounterWords(goal: CommissionGoal): string {
+  return goal.kind === 'counted'
+    ? COMMISSION_COUNTED_WORDS[goal.occasion].counter
+    : COMMISSION_FIGURE_WORDS[goal.figure].counter;
+}
+
+/** One reward line as phrases: "+60 production in your capital". */
+export function commissionRewardWords(reward: CommissionReward): string[] {
+  const out: string[] = [];
+  if (reward.yield !== undefined && reward.amount !== undefined) {
+    const where = reward.yield === 'food' || reward.yield === 'production' ? ' in your capital' : '';
+    if (reward.fromFigure === undefined) {
+      out.push(`${signed(reward.amount)} ${reward.yield}${where}`);
+    } else {
+      const noun = COMMISSION_FIGURE_WORDS[reward.fromFigure].noun;
+      const share =
+        reward.amount < 1 ? `${Math.round(reward.amount * 100)}% of` : `${reward.amount} times`;
+      out.push(`${reward.yield}${where} equal to ${share} ${noun} at that moment`);
+    }
+  }
+  if (reward.greatPerson !== undefined) {
+    out.push(
+      reward.greatPerson === 'any' ? 'a great person to call' : `a great ${reward.greatPerson} to call`,
+    );
+  }
+  if (reward.unit !== undefined) {
+    const what =
+      reward.unit === 'bestMelee'
+        ? 'the best melee unit you can build'
+        : `${indefinite(unitDef(reward.unit).name)} ${ref('unit', reward.unit, unitDef(reward.unit).name)}`;
+    out.push(`${what}, trained in your capital free of upkeep`);
+  }
+  if (reward.timed !== undefined) {
+    const said = describeEffects(reward.timed.effects, 'empire').map((clause) => clause.text);
+    out.push(`for ${reward.timed.turns} turns, ${said.join(' and ')}`);
+  }
+  return out;
+}
+
+/**
+ * A commission's three clauses: the goal, the reward, and what happens to the
+ * card. Printed by `describeCard`, so the collection, the draft and the
+ * Compendium all say the same words.
+ */
+export function describeCommission(spec: CommissionSpec): CardClause[] {
+  const goal = spec.goals.map(commissionGoalWords).join(' and ');
+  const reward = spec.reward.flatMap(commissionRewardWords).join(', and ');
+  return [
+    { text: `Commission. Goal: ${goal}, while this card is seated` },
+    { text: `Reward: ${reward}` },
+    { text: 'then this card leaves its chair and is never seated again' },
+  ];
+}
