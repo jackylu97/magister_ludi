@@ -8,16 +8,18 @@ These belong to no deck. Every seat may draw them whatever its two decks are, so
 
 **User pass (2026-10-12):** the user's raw notes for Tier 0 and Tier I are now card rows: eleven Tier 0 cards (two rare) and twelve Tier I cards (three rare), all new. The generated Tier 0 and Tier I rows the notes replaced (Hearth Stores, Watchmen, Public Wells, Civic Peace and the rest) are no longer on the sheet. 18 → 29 cards.
 
+**Common pass (2026-10-12):** Tiers II–IV filled in the style of the user's Tier 0 and I.
+
 ## What stands
 
 | Tier | Cards | Built | New | Deferred |
 |---|---|---|---|---|
 | Tier 0 | 11 | 0 | 11 | 0 |
 | Tier I | 12 | 0 | 12 | 0 |
-| Tier II | 3 | 1 | 0 | 2 |
-| Tier III | 3 | 2 | 0 | 1 |
-| Tier IV | 0 | 0 | 0 | 0 |
-| **All** | **29** | **3** | **23** | **3** |
+| Tier II | 12 | 1 | 9 | 2 |
+| Tier III | 12 | 2 | 9 | 1 |
+| Tier IV | 10 | 0 | 10 | 0 |
+| **All** | **57** | **3** | **51** | **3** |
 
 ## Tier 0
 
@@ -59,6 +61,15 @@ These belong to no deck. Every seat may draw them whatever its two decks are, so
 | **Road Maintenance** | common | deferred | Road upkeep is reduced by 20%, saving at most 4 gold per turn. | *no blocker recorded on the row* |
 | **Emergency Stores** | common | deferred | Cities of at most four population gain +1 food and +1 production toward buildings. | *no blocker recorded on the row* |
 | **Local Clerks** | common | built | Gain +1 authority capacity. | +1 authority capacity |
+| **The Stonecutters** | common | new | +25% production toward defensive buildings. Cities with Stone Walls gain +1 culture. | Fits existing effects. |
+| **Pleasure Gardens** | common | new | Cities with a Garden gain +1 food and +1 culture. | Fits existing effects. |
+| **Harbour Towns** | common | new | Coastal cities gain +1 food and +1 gold. | Fits existing effects. |
+| **Public Theatres** | common | new | Cities with an Amphitheater gain +2 happiness. | Fits existing effects. |
+| **The Smiths' Guild** | common | new | Cities with a Smithy gain +15% production toward buildings. | Fits existing effects. |
+| **The Borough Councils** | uncommon | new | Cities of at least six population gain +1 production and +1 culture. | Fits existing effects. |
+| **The Town Registers** | uncommon | new | +1 culture for every five citizens in your empire. | Fits existing effects. |
+| **The Summer Palace** | rare | new | Cards that pay your capital also pay your largest other city. | Needs: a second city for capital card lines. |
+| **The Old Foundations** | rare | new | Buildings of the first age cost no gold upkeep. | Needs: building upkeep relief by age. |
 
 ## Tier III
 
@@ -67,8 +78,27 @@ These belong to no deck. Every seat may draw them whatever its two decks are, so
 | **Public Hospitals** | common | built | Cities of at least eight population gain +1 happiness. | +1 happiness in every city of 8 or more citizens |
 | **Common Ledgers** | common | built | Cities with a Market gain +1 science; cities with a Library gain +1 gold. | +1 science in every city with a Market · +1 gold in every city with a Library |
 | **City Watches** | common | deferred | Your cities gain +4 defence. Garrisoned units heal an additional 5 health when otherwise eligible to heal. | *no blocker recorded on the row* |
+| **The Bathhouses** | common | new | Cities with a Public Bath gain +1 happiness and +1 culture. | Fits existing effects. |
+| **Workshop Towns** | common | new | Cities with a Workshop gain +2 production. | Fits existing effects. |
+| **Mill Races** | common | new | Cities with a Watermill gain +1 food and +1 production. | Fits existing effects. |
+| **The State Builders** | common | new | +20% production toward empire buildings. | Needs: a production line toward empire buildings. |
+| **The Great Towns** | common | new | Cities of at least ten population gain +2 science and +2 culture. | Fits existing effects. |
+| **The Imperial Works** | uncommon | new | Every city gains +1 production for each empire building you hold, at most +4. | Needs: a count of empire buildings. |
+| **Close Neighbours** | uncommon | new | Each city gains +1 production for each of your other cities within four tiles, at most +3. | Needs: a count of nearby cities. |
+| **The Old Patterns** | rare | new | Buildings from an earlier age than your own cost 40% less production. | Needs: an age filter on the production line toward buildings. |
+| **The Good Years** | rare | new | While none of your cities is unhappy, every city gains +10% to every yield. | Needs: a condition on every city's happiness. |
 
 ## Tier IV
 
 | Card | Rarity | Status | The card | What the game does, or why not |
 |---|---|---|---|---|
+| **The Great Workshops** | common | new | +20% production toward the Magnum Opus. | Fits existing effects. |
+| **The Common Schools** | common | new | +2 science and +2 culture in all cities. | Fits existing effects. |
+| **The Royal Quarter** | common | new | Your capital gains +5 production, +5 science and +5 culture. | Fits existing effects. |
+| **The Settled Realm** | common | new | +2 happiness in all cities. | Fits existing effects. |
+| **The Forgemasters** | common | new | Cities with a Forge gain +3 production. | Fits existing effects. |
+| **The Last Walls** | common | new | Your cities gain +4 defence and +25 hit points. | Needs: a city hit-point line on cards. |
+| **The Public Lectures** | uncommon | new | Completing a technology grants 50 culture. | Fits existing effects. |
+| **The Grand Design** | uncommon | new | The city building your Magnum Opus gains +1 production for every two citizens in your empire. | Needs: a line paid to the city building the Opus. |
+| **The Full Cabinet** | rare | new | Every city gains +1 science and +1 culture for each card seated in your government. | Fits existing effects. |
+| **The Town Masons** | rare | new | Every city gains +1 production for each building in it. | Fits existing effects. |
