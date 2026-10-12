@@ -2850,6 +2850,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportDisbands(command, result);
       reportStarvation(result);
       reportGuilds(result);
+      reportCommissions(result);
       reportTriumphs(result);
       reportAgeOpened(result);
       reportCensus(result);
@@ -3387,6 +3388,22 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const city = cityById(state, report.cityId);
       if (!city) continue;
       announce(guildSentence(report.family, cityDisplayName(state, city)));
+    }
+  }
+
+  /**
+   * **A commission was fulfilled.** One line in this seat's chronicle per
+   * commission the resolution paid, naming the reward (batch C). Read off the
+   * reducer's own report (`CommandResult.commissions`, `endTurn` alone) and
+   * filtered to this seat, because commissions are private. The line opens the
+   * government sheet, where the card now sits unseated and marked fulfilled.
+   */
+  function reportCommissions(result: CommandResult): void {
+    if (!result.ok || !result.commissions) return;
+    for (const report of result.commissions) {
+      if (report.playerId !== localPlayerId) continue;
+      const paid = report.lines.length > 0 ? `: ${report.lines.join(', ')}` : '';
+      announce(`✓ ${report.name} fulfilled${paid}`, { openStatecraft: true });
     }
   }
 

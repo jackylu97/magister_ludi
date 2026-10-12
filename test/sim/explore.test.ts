@@ -656,10 +656,15 @@ describe('determinism', () => {
    * seeds again. The batch added a record of which bank paid for a building,
    * and nobody in this sweep founds a town, let alone buys anything to put in
    * one — so the field is absent everywhere and only the version moved.
+   *
+   * **Batch C (commissions) moved the hash and not the length** as well. It
+   * adds one end-of-turn phase, and every phase raises `GameState.revision`
+   * once, so after twenty turns the recorded revision is twenty higher with
+   * the same number of digits. Nobody here holds a card, so nothing else moved.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '9e9fd810:188968',
-    2026: '3f99f836:188539',
+    11: 'd12daf76:188968',
+    2026: '158ab390:188539',
   };
 
   for (const seed of [11, 2026]) {

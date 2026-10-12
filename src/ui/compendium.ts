@@ -1888,7 +1888,8 @@ function orderStanding(def: ReturnType<typeof orderDef>): CompendiumClause[] {
       },
     ];
   }
-  if (def.effects.length === 0 && def.charter === undefined) {
+  // A commission (batch C) is dealt for its goal and reward, with no effects.
+  if (def.effects.length === 0 && def.charter === undefined && def.commission === undefined) {
     return [
       {
         text: 'Not dealt yet: everything this card asks for has been agreed, and the game cannot do all of it yet. It is printed here so you can read it; it is in no deck until the rule underneath it is built.',

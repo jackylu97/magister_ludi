@@ -92,6 +92,7 @@
 
 import { STAMP_TIMING, type StampReading, cardStampNode, playCardStamp, stampIsEmpty } from './cardStamp';
 import { cardLineMarkUrl } from './cardLine';
+import { type GoalCounter, goalCounterNode } from './goalCounter';
 import { setDescriptorText } from './keywords';
 import { yieldElement as element } from './yieldMark';
 import { wantsMotion } from './motion';
@@ -197,6 +198,12 @@ export interface OfferOption {
    * uses both today.
    */
   notes?: readonly { text: string; deferred?: boolean }[];
+  /**
+   * A commission's counter, one entry per part of its goal (batch C, ruling
+   * (qqqqqq) 15). Plain numbers and words, drawn by `goalCounter.ts`, which
+   * imports nothing from the simulation; absent on every other card.
+   */
+  progress?: readonly GoalCounter[];
   /**
    * Why this payoff would be wasted, or absent. An empire with no cities has
    * nowhere to put a lump of food, and a card that quietly paid it nowhere
@@ -1079,6 +1086,9 @@ export function createOfferCard(
           list.append(line);
         }
         button.append(list);
+      }
+      if (option.progress !== undefined && option.progress.length > 0) {
+        button.append(goalCounterNode(option.progress));
       }
       if (option.warning !== undefined) {
         button.append(element('span', 'offer-warning', option.warning));

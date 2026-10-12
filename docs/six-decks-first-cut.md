@@ -196,6 +196,7 @@ Garrison lines read **per garrisoned unit** throughout (the ruling of 2026-09-15
 | Paymasters | C | Barracks give +3 gold. Each garrisoned unit costs 1 less upkeep, minimum zero. |
 | Muster Rites | C | Training a unit grants 5 faith and 5 food. |
 | The War Chronicle | C | While slotted, pays +3 science and +3 culture, and gains +3 of each for every enemy unit you kill. |
+| Commission: Clear the Frontier | C | Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
 | Conscription | U | +20% production toward units. Cities producing a unit lose 2 gold. |
 | Pathfinders | U | Scouts gain +1 movement and +8 strength. |
 | Drill Manuals | U | Barracks and Stables give +2 science. +20% production toward Barracks and Stables. |

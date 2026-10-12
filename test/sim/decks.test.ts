@@ -201,7 +201,8 @@ describe('the schema, as landed', () => {
       expect(def.retired, id).toBeUndefined();
       // Live or deferred, never both ways round: a row with effects is dealt, a
       // row with a `deferred` sentence and nothing to slot is not.
-      const dealt = def.effects.length > 0;
+      // A commission (batch C) is dealt for its goal and reward, with no effects.
+      const dealt = def.effects.length > 0 || def.commission !== undefined;
       expect(orderIsDealt(id), id).toBe(dealt);
       if (dealt) expect(def.deferred, `${id} is dealt`).toBeUndefined();
       else expect(def.deferred, `${id} is in no pool`).toBeDefined();
@@ -302,8 +303,12 @@ describe('the schema, as landed', () => {
     // beside the turn it went up. Four more live rows — Pilgrim Markets and The
     // Grain Exchange in the shared file, The Endowment freed in Commerce, and
     // Royal Assays written there for the first time.
-    expect(live).toBe(274);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(274);
+    //
+    // **And batch C** (commissions): three rows live with a goal and a reward
+    // and no effects — Commission: Clear the Frontier in Dominion, Corner the
+    // Market and The Strongroom in Commerce.
+    expect(live).toBe(277);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(277);
   });
 
   /**

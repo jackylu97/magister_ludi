@@ -151,6 +151,7 @@ import { type GuildReport, runGuilds } from "./guilds";
 import { type BeadAward, beadMarks, beadsSince, runWorldClock } from "./beads";
 import { runWagers } from "./wagers";
 import { runCensus } from "./census";
+import { type CommissionReport, runCommissions } from "./commissions";
 import type { BeadAge } from "./beadData";
 import { runRenown, settleRenownWindfall } from "./renown";
 import { advanceResearch } from "./tech";
@@ -477,6 +478,14 @@ export interface TurnReport {
    * hears.
    */
   dealsEnded: DealEndReport[];
+  /**
+   * Every commission fulfilled during the resolution, in seat and chair order
+   * (`CommissionReport`, `commissions.ts`), with what each one paid. A
+   * difference for `peaces`' reason: a moment later the card is simply out of
+   * its chair, and only the owner hears about it, since commissions are
+   * private.
+   */
+  commissions: CommissionReport[];
 }
 
 /**
@@ -520,6 +529,7 @@ export function emptyTurnReport(): TurnReport {
     beads: [],
     peaces: [],
     dealsEnded: [],
+    commissions: [],
   };
 }
 
@@ -649,6 +659,18 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
       runPeriodicBoons(state, (game, player, amount) => {
         settleRenownWindfall(game, player, [{ family: null, amount }]);
       }),
+  },
+  {
+    name: "commissions",
+    // A seated commission whose goal is met pays its reward, leaves its chair
+    // and is marked fulfilled (batch C, `docs/plans/deck-implementation.md`).
+    // **Directly after `periodicBoons`**, for that phase's reason: the treasury,
+    // the routes and the baskets are settled for the turn, so "end a turn with
+    // two thousand gold" reads the turn's own gold; culture paid here reaches
+    // the draft below and renown reaches `renown`. See `runCommissions`.
+    run: (state, report) => {
+      report.commissions.push(...runCommissions(state));
+    },
   },
   {
     name: "statecraft",

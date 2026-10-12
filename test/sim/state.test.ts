@@ -503,6 +503,10 @@ describe("end-of-turn pipeline", () => {
       // filled, before the draft that might spend one, so a boon paid in culture
       // opens the draft it fills on the spot. See `runPeriodicBoons`.
       "periodicBoons",
+      // A seated commission whose goal is met pays its reward and leaves its
+      // chair (batch C) — after the turn's banks are settled, so a treasury goal
+      // reads this turn's gold, and before the draft its culture may fill.
+      "commissions",
       // Culture buys a draft, beside the phase that spends the other pool a
       // resolution filled — and before `expandBorders`, whose channel it never
       // touches. See `runStatecraft`.

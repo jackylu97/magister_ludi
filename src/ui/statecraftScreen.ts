@@ -133,6 +133,7 @@
  * every number a card prints is `describeCard` at the level the empire holds it.
  */
 
+import { commissionGoalNode } from './commissionGoal';
 import { roundYield } from '../sim/yieldFormat';
 import {
   type CardClause,
@@ -292,6 +293,11 @@ export function slotPositionWord(layout: readonly SlotType[], index: number): st
 export interface StatecraftScreen {
   readonly isOpen: boolean;
   open(): void;
+  /**
+   * Opens the sheet and brings this card into view in the collection, marked
+   * for a moment. The commission chips' door (batch C).
+   */
+  openAt(card: OrderId): void;
   close(): void;
   toggle(): void;
   /** The state changed. Redraws if the screen is up; cheap enough to call always. */
@@ -1216,6 +1222,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
           decks: def.decks,
           chips: orderChipsNode(id),
         });
+        // A commission carries its goal's counter on its face (batch C), and an
+        // unseated one says its progress is kept.
+        const goal = commissionGoalNode(state, seat, id);
+        if (goal) button.append(goal);
         // The stamp's seat, always built and mostly wearing the flourish — see
         // `stampFor`. The element is the same one whichever face it shows, so a
         // card slotted and unslotted does not change height.
@@ -1388,6 +1398,14 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       return shell.isOpen;
     },
     open: shell.open,
+    openAt(card: OrderId): void {
+      shell.open();
+      if (!shell.isOpen) return;
+      const face = body.querySelector<HTMLElement>(`.sc-card[data-card="${card}"]`);
+      if (!face) return;
+      face.scrollIntoView({ block: 'center' });
+      face.classList.add('sc-card-focus');
+    },
     close: shell.close,
     toggle: shell.toggle,
     refresh: shell.refresh,

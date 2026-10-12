@@ -3090,6 +3090,20 @@
     "text": "-3 happiness in every city"
    }
   ],
+  "dominionClearTheFrontier": [
+   {
+    "raw": "Commission. Goal: clear 2 barbarian camps, while this card is seated",
+    "text": "Commission. Goal: clear 2 barbarian camps, while this card is seated"
+   },
+   {
+    "raw": "Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
+    "text": "Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
   "smallholdings": [
    {
     "raw": "+1 food, +1 gold on every hex with a [[improvement:farm|Farm]] or [[improvement:terraces|Terraces]] or [[improvement:pasture|Pasture]]",
@@ -4229,6 +4243,34 @@
    {
     "raw": "every great-person offer shows only great merchants, until there are none left to call",
     "text": "every great-person offer shows only great merchants, until there are none left to call"
+   }
+  ],
+  "cornerTheMarket": [
+   {
+    "raw": "Commission. Goal: hold 4 copies of one luxury, counting copies you receive in deals, while this card is seated",
+    "text": "Commission. Goal: hold 4 copies of one luxury, counting copies you receive in deals, while this card is seated"
+   },
+   {
+    "raw": "Reward: a great merchant to call, and +150 gold",
+    "text": "Reward: a great merchant to call, and +150 gold"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theStrongroom": [
+   {
+    "raw": "Commission. Goal: end a turn with at least 2000 gold in your treasury, while this card is seated",
+    "text": "Commission. Goal: end a turn with at least 2000 gold in your treasury, while this card is seated"
+   },
+   {
+    "raw": "Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call",
+    "text": "Reward: culture equal to 20% of the gold in your treasury at that moment, and a great merchant to call"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
    }
   ],
   "devotionFirstRites": [

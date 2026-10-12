@@ -6887,6 +6887,95 @@ export interface OrderSlotGrant {
   grant: 'greatPerson';
 }
 
+// --- commissions ------------------------------------------------------------
+
+/**
+ * A figure about the empire's own state that a commission's goal can ask for
+ * (batch C of `docs/plans/deck-implementation.md`). Each one reads only the
+ * seat's own empire, because commissions are private and never races (ruling
+ * (qqqqqq) 6). `commissionFigure` in `commissions.ts` is the one place each is
+ * measured.
+ */
+export type CommissionFigure =
+  /** Gold in the treasury. The Strongroom. */
+  | 'treasury'
+  /** Copies held of the one luxury this empire holds most of, deals included. */
+  | 'luxuryCopies'
+  /** This empire's trade routes running at once. */
+  | 'tradeRoutes'
+  /** Hexes inside this empire's borders. */
+  | 'hexesOwned'
+  /** Tiles worked by this empire's towns that carry an improvement. */
+  | 'improvedTilesWorked';
+
+/** Every figure, for validation and the register test. */
+export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
+  'treasury',
+  'luxuryCopies',
+  'tradeRoutes',
+  'hexesOwned',
+  'improvedTilesWorked',
+];
+
+/**
+ * One part of a commission's goal. There are two kinds:
+ *
+ *   · `counted` — a count of an occasion that only grows while the card sits in
+ *     a chair. The count is the card's own tally (`PlayerStatecraft.tallies`,
+ *     keyed by card), which is the existing store for "counted while seated":
+ *     it survives unseating and adoption, and only seated cards add to it.
+ *   · `reached` — a figure about the empire, checked at the end of each turn
+ *     while the card is seated. Nothing is stored for it.
+ *
+ * A goal is met when every part of it is met. A card may carry at most one
+ * `counted` part, because the tally holds one number per card.
+ */
+export type CommissionGoal =
+  | { kind: 'counted'; occasion: TallyOccasion; count: number }
+  | { kind: 'reached'; figure: CommissionFigure; count: number };
+
+/**
+ * One line of what a commission pays when its goal is met. Paid through the
+ * existing windfall delivery (`payWindfallGrants`), the great-person draw and
+ * the renown ladder; nothing here is a new way to pay.
+ */
+export interface CommissionReward {
+  /**
+   * A bank or a basket. Gold, science, culture and faith go to the empire's
+   * pools; food and production land in the capital's baskets.
+   */
+  yield?: CityYieldKey;
+  /**
+   * The figure. With `fromFigure` it is a multiplier on that figure instead
+   * (The Strongroom's culture is `0.2` of the treasury).
+   */
+  amount?: number;
+  /** Scale `amount` by this figure, read the moment the goal is met. */
+  fromFigure?: CommissionFigure;
+  /**
+   * A great person. A family narrows the offer to that family (a great
+   * merchant); `'any'` deals the ordinary offer.
+   */
+  greatPerson?: Family | 'any';
+  /** A unit trained in the capital, free of upkeep. `'bestMelee'` is The King's Levy's reading. */
+  unit?: UnitTypeId | 'bestMelee';
+  /** Effects held on the empire until an absolute turn (`Player.timed`). */
+  timed?: { turns: number; effects: CardEffect[] };
+}
+
+/**
+ * **What makes an Order row a commission**: a goal, and what meeting it pays.
+ *
+ * A field on the row rather than a `CardEffect`, for `OrderSlotGrant`'s reason:
+ * every effect shape is a standing reading of the board, and a commission is
+ * met once, pays once and then leaves its chair. A commission row usually
+ * carries no effects at all, which `orderIsDealt` allows for.
+ */
+export interface CommissionSpec {
+  goals: CommissionGoal[];
+  reward: CommissionReward[];
+}
+
 export interface OrderDef extends CardDefBase {
   /**
    * The government pool this row was dealt from **before the decks rework**,
@@ -6952,6 +7041,11 @@ export interface OrderDef extends CardDefBase {
   neutral?: boolean;
   /** What slotting this hands over, once per game. See `OrderSlotGrant`. */
   onSlot?: OrderSlotGrant[];
+  /**
+   * Present on a commission: a goal that only counts while the card is seated,
+   * and a reward paid once when it is met. See `CommissionSpec`.
+   */
+  commission?: CommissionSpec;
   /**
    * **Withdrawn from the pool**: never dealt, and still fully readable.
    *
@@ -7429,6 +7523,11 @@ export function isCharter(id: OrderId): boolean {
   return orderDef(id).charter !== undefined;
 }
 
+/** Is this row a commission — a goal and a reward? See `CommissionSpec`. */
+export function isCommission(id: OrderId): boolean {
+  return orderDef(id).commission !== undefined;
+}
+
 /**
  * **Is this row on any shelf at all?** The one reading of what keeps a row out
  * of every pool, so the three reasons are stated once:
@@ -7456,6 +7555,8 @@ export function isCharter(id: OrderId): boolean {
 export function orderIsDealt(id: OrderId): boolean {
   const def = orderDef(id);
   if (def.retired === true) return false;
+  // A commission's goal and reward are the whole card, as a charter's grant is.
+  if (def.commission !== undefined) return def.deferred === undefined;
   if (def.effects.length === 0 && def.charter === undefined) return false;
   if (def.effects.length === 0 && def.deferred !== undefined) return false;
   return true;

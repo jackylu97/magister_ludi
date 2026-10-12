@@ -578,6 +578,17 @@ export interface PlayerStatecraft {
    * ticked by nothing. Always present, never optional.
    */
   rewardHands: number[];
+  /**
+   * **The commissions this empire has fulfilled**, in the order they were
+   * fulfilled, with the turn each goal was met on (batch C,
+   * `docs/plans/deck-implementation.md`). Written in exactly one place,
+   * `runCommissions` (`commissions.ts`), and never removed: a fulfilled
+   * commission stays in the collection and can never be seated or paid again.
+   * A list rather than a map for `tallies`' reason. Absent until the first
+   * commission is fulfilled, so a seat that has fulfilled none serialises as
+   * it did before the field existed.
+   */
+  commissionsFulfilled?: { card: OrderId; turn: number }[];
   /** A draft awaiting a pick, or the key is absent. Blocks End Turn. */
   pendingOrder?: OrderOffer;
   /** A Doctrine draft awaiting a pick, or absent. Blocks End Turn. */
@@ -718,7 +729,25 @@ function orderWatches(id: OrderId, occasion: TallyOccasion): boolean {
     if (effect.count !== 'tally') continue;
     if (effect.tally === occasion) return true;
   }
+  // A commission's counted goal uses the same per-card tally, so its progress
+  // follows the same rules: it grows only while the card is seated and it is
+  // kept when the card is unseated (ruling (qqqqqq) 5). A fulfilled commission
+  // cannot be seated again, so it never counts again.
+  for (const goal of orderDef(id).commission?.goals ?? []) {
+    if (goal.kind === 'counted' && goal.occasion === occasion) return true;
+  }
   return false;
+}
+
+/**
+ * The turn this commission was fulfilled on, or `undefined` while it has not
+ * been. Read off `PlayerStatecraft.commissionsFulfilled`.
+ */
+export function commissionFulfilledTurn(sc: PlayerStatecraft, id: OrderId): number | undefined {
+  for (const row of sc.commissionsFulfilled ?? []) {
+    if (row.card === id) return row.turn;
+  }
+  return undefined;
 }
 
 /**
@@ -2057,6 +2086,10 @@ export function slotOrderError(
   // **A charter is never seated** (D1a, `CharterSpec`): its grant was written
   // on the pick, and a chair spent on it would be a chair spent on nothing.
   if (isCharter(cardId)) return `${orderDef(cardId).name} is a charter and never sits in a chair`;
+  // A fulfilled commission has paid its reward and has nothing left to do.
+  if (commissionFulfilledTurn(sc, cardId) !== undefined) {
+    return `${orderDef(cardId).name} is fulfilled and never sits in a chair again`;
+  }
   if (!Number.isInteger(slotIndex)) {
     return `slotOrder needs an integer slotIndex, got ${String(slotIndex)}`;
   }

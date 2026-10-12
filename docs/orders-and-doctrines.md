@@ -143,6 +143,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Blood Brothers | 0 | ○ | S | A barbarian unit you kill joins your side. |
 | The King's Levy | 0 | ○ | S | Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep. |
 | The War Chronicle | 0 | ● | P | While slotted, pays +3 science and +3 culture, and gains +3 of each for every enemy unit you kill. |
+| Commission: Clear the Frontier | 0 | ● | S | Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
 | March Discipline | 1 | ● | S | Military units gain +1 movement when starting their turn in your territory. |
 | Field Surgeons | 1 | ● | S | Military units heal an extra 10 health while fortified. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +2 food and +2 production. |
@@ -275,6 +276,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Merchant Princes | 3 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
 | The World's Exchange | 3 | ○ | S | Each different foreign empire currently served by your routes grants +10% production toward the Opus, at most +40%. Existing construction and victory requirements remain. |
 | The Merchant Works | 3 | ○ | P | Cities building an empire building, world wonder or the Opus gain production equal to 25% of their base city gold, but lose 20% of their gold income while doing so. Foreign-route empire gold and conversion outputs are excluded from the production basis. |
+| Corner the Market | 2 | ◆ | S | Commission. Goal: control four copies of one luxury, counting copies you receive in deals. Reward: a great merchant and 150 gold. The card then leaves its chair. |
+| The Strongroom | 4 | ○ | S | Commission. Goal: end a turn with at least 2,000 gold in your treasury. Reward: culture equal to a fifth of your treasury at that moment, and a great merchant. The card then leaves its chair. |
 
 ### Devotion
 

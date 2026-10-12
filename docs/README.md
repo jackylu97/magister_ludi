@@ -231,6 +231,18 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   are **one `pays` kind** with `where` (city · capital · hex · empire · route) ×
   `basis` (flat · count · mirror · share · rate). The four flag-rule kinds are one
   `rule` kind.
+- **Commissions** (`src/sim/commissions.ts`, batch C of
+  `docs/plans/deck-implementation.md`): an Order row with a `commission` field —
+  a goal and a reward, usually no effects. A goal part is `counted` (a
+  `TallyOccasion`, counted in the card's own `tallies` entry, so it grows only
+  while seated and survives unseating and adoption) or `reached` (a
+  `CommissionFigure` about the seat's own empire). The `commissions` phase, right
+  after `periodicBoons`, pays a met seated commission through
+  `payWindfallGrants` / the great-person draw, unseats it and records it in
+  `PlayerStatecraft.commissionsFulfilled`; a fulfilled card stays held and can
+  never be seated again. Private: nothing reads another empire. UI: the counter
+  on the card face (`ui/goalCounter.ts`) and the chips under the dock
+  (`ui/commissionRail.ts`).
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
   legacies, wonders and leaders.

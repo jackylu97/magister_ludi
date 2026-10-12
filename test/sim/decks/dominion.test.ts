@@ -105,7 +105,9 @@ function docCards(): DocCard[] {
 /** The rows of `data/decks/dominion.json`, in file order. */
 const ROWS: readonly OrderId[] = DECK_FILE_ORDERS.dominion;
 
-const isLive = (id: OrderId): boolean => orderDef(id).effects.length > 0;
+// A commission (batch C) is live with no effects: its goal and reward are the card.
+const isLive = (id: OrderId): boolean =>
+  orderDef(id).effects.length > 0 || orderDef(id).commission !== undefined;
 
 describe('the Dominion deck — the file', () => {
   it('names one deck, a band and a rarity on every row, and nothing but Dominion', () => {
