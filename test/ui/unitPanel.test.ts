@@ -325,9 +325,14 @@ describe('the worker offers every improvement the table names', () => {
     expect(body).toContain(
       'if (improvementLeaderError(state, unit.ownerId, id) !== null) continue;',
     );
-    // Exactly three `continue`s — the works, the figure, and the ground. A
-    // fourth is a rule the sheet invented for itself.
-    expect((body.match(/continue;/g) ?? []).length).toBe(3);
+    // The fourth (batch D3): a tended work whose card this seat has not
+    // drafted, hidden for the figure's reason and asked of the sim's own gate.
+    expect(body).toContain(
+      'if (improvementCardError(state, unit.ownerId, id) !== null) continue;',
+    );
+    // Exactly four `continue`s — the works, the figure, the card and the
+    // ground. A fifth is a rule the sheet invented for itself.
+    expect((body.match(/continue;/g) ?? []).length).toBe(4);
   });
 
   it('names a technology only when the tree is what refused', () => {

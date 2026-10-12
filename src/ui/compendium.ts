@@ -139,6 +139,7 @@ import {
   ORDER_IDS,
   type OrderId,
   type OrderRarity,
+  charterThatOpensImprovement,
   doctrineDef,
   orderDef,
   orderIsDealt,
@@ -740,6 +741,14 @@ function queueOpening(kind: 'unit' | 'building', id: UnitTypeId | BuildingId): C
 function improvementOpening(id: ImprovementId): CompendiumClause {
   const def = improvementDef(id);
   if (def.unlockedByLeader === true) return openedByLeader('improvement', id);
+  if (def.tended === true) {
+    // A tended work opens with the card that names it, and counts as wild land.
+    const card = charterThatOpensImprovement(id);
+    const by = card === null ? 'a card' : `the Order ${ref('order', card, orderDef(card).name)}`;
+    return {
+      text: `Unlocked by drafting ${by}, not by any technology. A tended work: it counts as wild land for every card, cannot be pillaged, and opens no resource.`,
+    };
+  }
   if (def.greatPerson !== undefined) {
     // **`greatPerson` names the family, and the family is not always a great
     // person's** — the hand is read off the row, as `plantingHandOf` reads it.
@@ -1853,6 +1862,8 @@ function charterClause(def: ReturnType<typeof orderDef>): CompendiumClause[] {
   for (const rite of spec.unlocks.rites ?? []) {
     if (RITE_IDS.includes(rite)) opened.push(ref('rite', rite, riteDef(rite).name));
   }
+  const work = spec.unlocks.improvement;
+  if (work !== undefined) opened.push(ref('improvement', work, improvementDef(work).name));
   const named =
     opened.length === 0 ? '' : ` It opens ${opened.join(', ')}, which still costs what it costs.`;
   return [

@@ -3116,20 +3116,477 @@
     "text": "a city growing grants +15 production"
    }
   ],
+  "theNaturalists": [
+   {
+    "raw": "+1 science in every city per 2 hill or mountain hexes there (at most +3 science)",
+    "text": "+1 science in every city per 2 hill or mountain hexes there (at most +3 science)"
+   }
+  ],
+  "thePatientHarvest": [
+   {
+    "raw": "+30% of the stored food kept when a city grows",
+    "text": "+30% of the stored food kept when a city grows"
+   },
+   {
+    "raw": "-15% production toward military units",
+    "text": "-15% production toward military units"
+   }
+  ],
+  "theForestGardens": [
+   {
+    "raw": "once drafted, opens the [[improvement:forestGarden|Forest Garden]] for your workers to build; this card takes no chair",
+    "text": "once drafted, opens the Forest Garden for your workers to build; this card takes no chair"
+   }
+  ],
+  "theFishTraps": [
+   {
+    "raw": "once drafted, opens the [[improvement:fishTraps|Fish Traps]] for your workers to build; this card takes no chair",
+    "text": "once drafted, opens the Fish Traps for your workers to build; this card takes no chair"
+   }
+  ],
+  "sweetWater": [
+   {
+    "raw": "+1 happiness in every city on fresh water",
+    "text": "+1 happiness in every city on fresh water"
+   },
+   {
+    "raw": "+1 food on every hex beside fresh water",
+    "text": "+1 food on every hex beside fresh water"
+   }
+  ],
+  "theSeedGrain": [
+   {
+    "raw": "new cities start 1 citizen larger",
+    "text": "new cities start 1 citizen larger"
+   }
+  ],
+  "theSpiritsOfPlace": [
+   {
+    "raw": "+1 faith in your capital",
+    "text": "+1 faith in your capital"
+   },
+   {
+    "raw": "+1 faith in every city per 2 unimproved hexes worked there (at most +1 faith)",
+    "text": "+1 faith in every city per 2 unimproved hexes worked there (at most +1 faith)"
+   }
+  ],
+  "theRopeStretchers": [
+   {
+    "raw": "a town is paid in labour when a worker finishes a mine, a quarry or a lumber mill on its ground — not built yet",
+    "text": "a town is paid in labour when a worker finishes a mine, a quarry or a lumber mill on its ground — not built yet",
+    "deferred": true
+   }
+  ],
+  "theBeatingOfTheBounds": [
+   {
+    "raw": "new cities claim 1 more hex beside their borders at once",
+    "text": "new cities claim 1 more hex beside their borders at once"
+   }
+  ],
+  "levyOfTheLand": [
+   {
+    "raw": "a town may spend one citizen for production equal to the food it took to grow that citizen (once every 5 turns)",
+    "text": "a town may spend one citizen for production equal to the food it took to grow that citizen (once every 5 turns)"
+   }
+  ],
+  "expansionistTinkersGuild": [
+   {
+    "raw": "newly created workers gain +1 charge",
+    "text": "newly created workers gain +1 charge"
+   }
+  ],
+  "theMusterOfTheFields": [
+   {
+    "raw": "a town may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)",
+    "text": "a town may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)"
+   }
+  ],
+  "theOldSongs": [
+   {
+    "raw": "+1 culture on every unimproved hex",
+    "text": "+1 culture on every unimproved hex"
+   }
+  ],
+  "theLocalCensus": [
+   {
+    "raw": "the authority a city working 4 or more improved or tended hexes costs falls by 1",
+    "text": "the authority a city working 4 or more improved or tended hexes costs falls by 1"
+   }
+  ],
+  "theWildOrchards": [
+   {
+    "raw": "once drafted, opens the [[improvement:wildOrchard|Wild Orchard]] for your workers to build; this card takes no chair",
+    "text": "once drafted, opens the Wild Orchard for your workers to build; this card takes no chair"
+   }
+  ],
+  "theBurningSeason": [
+   {
+    "raw": "once drafted, opens the [[improvement:burnedCountry|Burned Country]] for your workers to build; this card takes no chair",
+    "text": "once drafted, opens the Burned Country for your workers to build; this card takes no chair"
+   }
+  ],
+  "darkEarth": [
+   {
+    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] that has stood at least 20 turns",
+    "text": "+1 food on every hex with a Farm that has stood at least 20 turns"
+   },
+   {
+    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] that has stood at least 50 turns",
+    "text": "+1 food on every hex with a Farm that has stood at least 50 turns"
+   }
+  ],
+  "theThreeSisters": [
+   {
+    "raw": "+1 food, +1 production on every hex with a [[improvement:farm|Farm]] beside a [[improvement:plantation|Plantation]] or [[improvement:pasture|Pasture]]",
+    "text": "+1 food, +1 production on every hex with a Farm beside a Plantation or Pasture"
+   }
+  ],
+  "theCommons": [
+   {
+    "raw": "+1 happiness in every city per 2 unimproved hexes worked there (at most +3 happiness)",
+    "text": "+1 happiness in every city per 2 unimproved hexes worked there (at most +3 happiness)"
+   }
+  ],
+  "theHardCountry": [
+   {
+    "raw": "+1 food, +1 production on every desert hex",
+    "text": "+1 food, +1 production on every desert hex"
+   },
+   {
+    "raw": "+1 food, +1 production on every tundra hex",
+    "text": "+1 food, +1 production on every tundra hex"
+   }
+  ],
+  "expansionistTheMasterBuilders": [
+   {
+    "raw": "+1 renown per turn in every city working 3 or more hexes with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]], favouring engineers",
+    "text": "+1 renown per turn in every city working 3 or more hexes with a Mine or Quarry or Lumbermill, favouring engineers"
+   }
+  ],
+  "outposts": [
+   {
+    "raw": "a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town — not built yet",
+    "text": "a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town — not built yet",
+    "deferred": true
+   }
+  ],
+  "theProspectors": [
+   {
+    "raw": "+2 production on every surveyed hex with a [[improvement:mine|Mine]] carrying a resource",
+    "text": "+2 production on every surveyed hex with a Mine carrying a resource"
+   }
+  ],
+  "daughterTowns": [
+   {
+    "raw": "+2 food in every city of 4 or fewer citizens",
+    "text": "+2 food in every city of 4 or fewer citizens"
+   }
+  ],
+  "sixGardens": [
+   {
+    "raw": "Commission. Goal: have 6 tended tiles inside your borders, while this card is seated",
+    "text": "Commission. Goal: have 6 tended tiles inside your borders, while this card is seated"
+   },
+   {
+    "raw": "Reward: for 10 turns, +3 food in every city, and a [[unit:worker|Worker]], trained in your capital free of upkeep",
+    "text": "Reward: for 10 turns, +3 food in every city, and a Worker, trained in your capital free of upkeep"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theWatercourses": [
+   {
+    "raw": "+1 production on every hex with a [[improvement:farm|Farm]] that is beside fresh water or beside a [[improvement:farm|Farm]] and beside fresh water",
+    "text": "+1 production on every hex with a Farm that is beside fresh water or beside a Farm and beside fresh water"
+   }
+  ],
+  "theHighlands": [
+   {
+    "raw": "+1 production, +2 science on every hill hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]]",
+    "text": "+1 production, +2 science on every hill hex with a Mine or Quarry"
+   }
+  ],
+  "theCoast": [
+   {
+    "raw": "+2 food, +2 culture on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
+    "text": "+2 food, +2 culture on every hex with a Fishing Boat"
+   }
+  ],
+  "provincialCouncils": [
+   {
+    "raw": "the authority a city joined to your capital by road costs falls by 1",
+    "text": "the authority a city joined to your capital by road costs falls by 1"
+   },
+   {
+    "raw": "+1 happiness in every city joined to your capital by road",
+    "text": "+1 happiness in every city joined to your capital by road"
+   }
+  ],
+  "expansionistTheGrainDole": [
+   {
+    "raw": "+4 happiness in every city of 10 or more citizens",
+    "text": "+4 happiness in every city of 10 or more citizens"
+   },
+   {
+    "raw": "+20% of the stored food kept when a city grows, in every city of 10 or more citizens",
+    "text": "+20% of the stored food kept when a city grows, in every city of 10 or more citizens"
+   }
+  ],
+  "expansionistTheWaterworks": [
+   {
+    "raw": "+33% production toward [[building:aqueduct|Aqueducts]]",
+    "text": "+33% production toward Aqueducts"
+   },
+   {
+    "raw": "+1 happiness in every city with an [[building:aqueduct|Aqueduct]] per 4 citizens there (at most +3 happiness)",
+    "text": "+1 happiness in every city with an Aqueduct per 4 citizens there (at most +3 happiness)"
+   }
+  ],
+  "expansionistTheBreadbasket": [
+   {
+    "raw": "a town that has stopped growing turns its spare grain into contentment and into settlers — not built yet",
+    "text": "a town that has stopped growing turns its spare grain into contentment and into settlers — not built yet",
+    "deferred": true
+   }
+  ],
+  "migration": [
+   {
+    "raw": "a crowded town sends a citizen to a small town joined to it — not built yet",
+    "text": "a crowded town sends a citizen to a small town joined to it — not built yet",
+    "deferred": true
+   }
+  ],
+  "veteranColonies": [
+   {
+    "raw": "a soldier standing in one of your towns may retire there, and the town gains food for it — not built yet",
+    "text": "a soldier standing in one of your towns may retire there, and the town gains food for it — not built yet",
+    "deferred": true
+   }
+  ],
+  "theLandscapeGarden": [
+   {
+    "raw": "+2 culture on every tended hex beside a great person's work",
+    "text": "+2 culture on every tended hex beside a great person's work"
+   }
+  ],
+  "theEngineersYards": [
+   {
+    "raw": "+2 production on every hex with a [[improvement:manufactory|Manufactory]]",
+    "text": "+2 production on every hex with a Manufactory"
+   },
+   {
+    "raw": "+1 production on every hex with a [[improvement:farm|Farm]] or [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]] beside a [[improvement:manufactory|Manufactory]]",
+    "text": "+1 production on every hex with a Farm or Mine or Quarry or Lumbermill beside a Manufactory"
+   }
+  ],
+  "theTendedCountry": [
+   {
+    "raw": "+1 production on every tended hex",
+    "text": "+1 production on every tended hex"
+   },
+   {
+    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] beside a tended hex",
+    "text": "+1 food on every hex with a Farm beside a tended hex"
+   }
+  ],
+  "theWoodwrights": [
+   {
+    "raw": "clearing a forest or jungle pays +100%",
+    "text": "clearing a forest or jungle pays +100%"
+   }
+  ],
+  "theCommonDomain": [
+   {
+    "raw": "large towns work their own ground one step further out than other towns do — not built yet",
+    "text": "large towns work their own ground one step further out than other towns do — not built yet",
+    "deferred": true
+   }
+  ],
+  "seasonalLevies": [
+   {
+    "raw": "after a town spends a citizen on a levy, it gains +40% food in this city for 10 turns, at most once every 20 turns",
+    "text": "after a town spends a citizen on a levy, it gains +40% food in this city for 10 turns, at most once every 20 turns"
+   }
+  ],
+  "theLongTending": [
+   {
+    "raw": "+1 food on every tended hex that has stood at least 25 turns",
+    "text": "+1 food on every tended hex that has stood at least 25 turns"
+   },
+   {
+    "raw": "+1 food on every tended hex that has stood at least 50 turns",
+    "text": "+1 food on every tended hex that has stood at least 50 turns"
+   },
+   {
+    "raw": "+1 food on every tended hex that has stood at least 75 turns",
+    "text": "+1 food on every tended hex that has stood at least 75 turns"
+   }
+  ],
+  "theMountainSchools": [
+   {
+    "raw": "+10% science in every city beside a mountain",
+    "text": "+10% science in every city beside a mountain"
+   },
+   {
+    "raw": "+1 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] beside a mountain",
+    "text": "+1 science on every hex with a Mine or Quarry beside a mountain"
+   }
+  ],
+  "thePolders": [
+   {
+    "raw": "a worker turns shallow sea beside your land into grassland — not built yet",
+    "text": "a worker turns shallow sea beside your land into grassland — not built yet",
+    "deferred": true
+   }
+  ],
+  "publicWorks": [
+   {
+    "raw": "a great engineer may finish an aqueduct in a town, or raise terraces on its worked hills — not built yet",
+    "text": "a great engineer may finish an aqueduct in a town, or raise terraces on its worked hills — not built yet",
+    "deferred": true
+   }
+  ],
+  "aCourtOfEngineers": [
+   {
+    "raw": "+50% renown",
+    "text": "+50% renown"
+   },
+   {
+    "raw": "every great-person offer shows only great engineers, until there are none left to call",
+    "text": "every great-person offer shows only great engineers, until there are none left to call"
+   }
+  ],
+  "theWideCountry": [
+   {
+    "raw": "Commission. Goal: buy 12 hexes, while this card is seated",
+    "text": "Commission. Goal: buy 12 hexes, while this card is seated"
+   },
+   {
+    "raw": "Reward: for 30 turns, +2 happiness in every city and +50% food in every city of 5 or fewer citizens",
+    "text": "Reward: for 30 turns, +2 happiness in every city and +50% food in every city of 5 or fewer citizens"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theLandsGreatWork": [
+   {
+    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per 8 citizens (at most +40%)",
+    "text": "+5% production toward The Magnum Opus per 8 citizens (at most +40%)"
+   }
+  ],
+  "theGardenOfTheWorld": [
+   {
+    "raw": "+2 food, +1 production, +1 culture on every tended hex",
+    "text": "+2 food, +1 production, +1 culture on every tended hex"
+   },
+   {
+    "raw": "+3 happiness in every city working 6 or more tended hexes",
+    "text": "+3 happiness in every city working 6 or more tended hexes"
+   }
+  ],
+  "theHeartland": [
+   {
+    "raw": "one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good — not built yet",
+    "text": "one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good — not built yet",
+    "deferred": true
+   }
+  ],
+  "theCorvee": [
+   {
+    "raw": "a town of at least 10 citizens may spend one citizen for production equal to the food it took to grow that citizen, paid to your other town building [[building:theMagnumOpus|The Magnum Opus]] (once every 5 turns)",
+    "text": "a town of at least 10 citizens may spend one citizen for production equal to the food it took to grow that citizen, paid to your other town building The Magnum Opus (once every 5 turns)"
+   }
+  ],
+  "theMasterOfWorks": [
+   {
+    "raw": "a great engineer's act pays +50%",
+    "text": "a great engineer's act pays +50%"
+   }
+  ],
+  "thePhilosophersPeaks": [
+   {
+    "raw": "+2 science in every city per mountain hex there (at most +6 science)",
+    "text": "+2 science in every city per mountain hex there (at most +6 science)"
+   }
+  ],
+  "theInheritanceOfFields": [
+   {
+    "raw": "+1 production on every hex that has stood at least 60 turns",
+    "text": "+1 production on every hex that has stood at least 60 turns"
+   },
+   {
+    "raw": "+1 culture on every tended hex that has stood at least 60 turns",
+    "text": "+1 culture on every tended hex that has stood at least 60 turns"
+   }
+  ],
+  "theMeasureOfTheLand": [
+   {
+    "raw": "+1 production in every city per 25 hexes in your borders (at most +6 production)",
+    "text": "+1 production in every city per 25 hexes in your borders (at most +6 production)"
+   }
+  ],
+  "theMotherCity": [
+   {
+    "raw": "+1 production in your capital per citizen there",
+    "text": "+1 production in your capital per citizen there"
+   }
+  ],
+  "theGeneralLevy": [
+   {
+    "raw": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)",
+    "text": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)"
+   }
+  ],
+  "theGreatMigration": [
+   {
+    "raw": "unhappy foreign towns near your border lose citizens to your happier towns — not built yet",
+    "text": "unhappy foreign towns near your border lose citizens to your happier towns — not built yet",
+    "deferred": true
+   }
+  ],
+  "theEncroachingFields": [
+   {
+    "raw": "large towns take unworked hexes from the borders of smaller foreign towns beside them — not built yet",
+    "text": "large towns take unworked hexes from the borders of smaller foreign towns beside them — not built yet",
+    "deferred": true
+   }
+  ],
+  "theDomesdaySurvey": [
+   {
+    "raw": "Commission. Goal: own 150 hexes and work 50 improved tiles at the same time, while this card is seated",
+    "text": "Commission. Goal: own 150 hexes and work 50 improved tiles at the same time, while this card is seated"
+   },
+   {
+    "raw": "Reward: production in your capital equal to 5 times the improved tiles you work at that moment, and a great engineer to call",
+    "text": "Reward: production in your capital equal to 5 times the improved tiles you work at that moment, and a great engineer to call"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theRaisingOfTheLand": [
+   {
+    "raw": "a great engineer raises every worked hex in one town for good — not built yet",
+    "text": "a great engineer raises every worked hex in one town for good — not built yet",
+    "deferred": true
+   }
+  ],
+  "theTwoHarvests": [
+   {
+    "raw": "an improved hex may also be tended, and counts as both — not built yet",
+    "text": "an improved hex may also be tended, and counts as both — not built yet",
+    "deferred": true
+   }
+  ],
   "theGrovesAndTheStones": [
    {
     "raw": "+1 faith on every unimproved forest hex, in every city with a [[building:shrine|Shrine]]",
     "text": "+1 faith on every unimproved forest hex, in every city with a Shrine"
-   }
-  ],
-  "theNaturalists": [
-   {
-    "raw": "+1 science in every city per kind of wild ground worked there",
-    "text": "+1 science in every city per kind of wild ground worked there"
-   },
-   {
-    "raw": "+1 science in your capital",
-    "text": "+1 science in your capital"
    }
   ],
   "claimByTheSpade": [
@@ -3151,16 +3608,6 @@
     "deferred": true
    }
   ],
-  "thePatientHarvest": [
-   {
-    "raw": "+30% of the stored food kept when a city grows",
-    "text": "+30% of the stored food kept when a city grows"
-   },
-   {
-    "raw": "-15% production toward military units",
-    "text": "-15% production toward military units"
-   }
-  ],
   "thePioneersPortion": [
    {
     "raw": "a town founded beside a resource asks less of your writ than any other — not built yet",
@@ -3180,12 +3627,6 @@
     "deferred": true
    }
   ],
-  "levyOfTheLand": [
-   {
-    "raw": "a town may spend one citizen for production equal to the food it took to grow that citizen (once every 5 turns)",
-    "text": "a town may spend one citizen for production equal to the food it took to grow that citizen (once every 5 turns)"
-   }
-  ],
   "plantedForests": [
    {
     "raw": "a worker plants a wood on open ground of your own — not built yet",
@@ -3196,12 +3637,6 @@
     "raw": "a planted wood is young for a long while, and cannot be felled for timber until it is grown — not built yet",
     "text": "a planted wood is young for a long while, and cannot be felled for timber until it is grown — not built yet",
     "deferred": true
-   }
-  ],
-  "expansionistTinkersGuild": [
-   {
-    "raw": "newly created workers gain +1 charge",
-    "text": "newly created workers gain +1 charge"
    }
   ],
   "thePrizeRolls": [
@@ -3257,29 +3692,6 @@
     "deferred": true
    }
   ],
-  "theWatercourses": [
-   {
-    "raw": "a field on the river waters the fields beside it — not built yet",
-    "text": "a field on the river waters the fields beside it — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "a watered field builds better — not built yet",
-    "text": "a watered field builds better — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "the water goes no further than one field over — not built yet",
-    "text": "the water goes no further than one field over — not built yet",
-    "deferred": true
-   }
-  ],
-  "theMusterOfTheFields": [
-   {
-    "raw": "a town may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)",
-    "text": "a town may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)"
-   }
-  ],
   "theLandShapesUs": [
    {
     "raw": "every town remembers the one kind of place it was founded on — not built yet",
@@ -3289,19 +3701,6 @@
    {
     "raw": "each kind of place pays its town its own reward, and only ever one of them — not built yet",
     "text": "each kind of place pays its town its own reward, and only ever one of them — not built yet",
-    "deferred": true
-   }
-  ],
-  "theOldSongs": [
-   {
-    "raw": "+1 culture on every unimproved hex",
-    "text": "+1 culture on every unimproved hex"
-   }
-  ],
-  "theLocalCensus": [
-   {
-    "raw": "your writ is widened by every second town that works a real stretch of country — not built yet",
-    "text": "your writ is widened by every second town that works a real stretch of country — not built yet",
     "deferred": true
    }
   ],
@@ -3425,12 +3824,6 @@
     "deferred": true
    }
   ],
-  "theHighlands": [
-   {
-    "raw": "+1 production, +2 science on every hill hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]]",
-    "text": "+1 production, +2 science on every hill hex with a Mine or Quarry"
-   }
-  ],
   "theSteppe": [
    {
     "raw": "+2 production on every hex with a [[improvement:pasture|Pasture]]",
@@ -3446,29 +3839,6 @@
     "raw": "a field on the floodplain is paid again in grain for the grain its ground already gives — not built yet",
     "text": "a field on the floodplain is paid again in grain for the grain its ground already gives — not built yet",
     "deferred": true
-   }
-  ],
-  "theCoast": [
-   {
-    "raw": "+2 food, +2 culture on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
-    "text": "+2 food, +2 culture on every hex with a Fishing Boat"
-   }
-  ],
-  "provincialCouncils": [
-   {
-    "raw": "only the towns whose people work a real stretch of country are counted — not built yet",
-    "text": "only the towns whose people work a real stretch of country are counted — not built yet",
-    "deferred": true
-   }
-  ],
-  "expansionistTheGrainDole": [
-   {
-    "raw": "+4 happiness in every city of 10 or more citizens",
-    "text": "+4 happiness in every city of 10 or more citizens"
-   },
-   {
-    "raw": "+20% of the stored food kept when a city grows, in every city of 10 or more citizens",
-    "text": "+20% of the stored food kept when a city grows, in every city of 10 or more citizens"
    }
   ],
   "theStandingPatronage": [
@@ -3512,12 +3882,6 @@
     "deferred": true
    }
   ],
-  "theWoodwrights": [
-   {
-    "raw": "clearing a forest or jungle pays +100%",
-    "text": "clearing a forest or jungle pays +100%"
-   }
-  ],
   "theComplementaryProvinces": [
    {
     "raw": "your joined towns build and sing better for every different kind of place your realm was founded on — not built yet",
@@ -3530,24 +3894,6 @@
     "raw": "a town whose people work many different kinds of country prospers in every voice at once — not built yet",
     "text": "a town whose people work many different kinds of country prospers in every voice at once — not built yet",
     "deferred": true
-   }
-  ],
-  "theCommonDomain": [
-   {
-    "raw": "your towns work their own ground one step further out than other towns do — not built yet",
-    "text": "your towns work their own ground one step further out than other towns do — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "your governors may hold aside more hexes than other governors may — not built yet",
-    "text": "your governors may hold aside more hexes than other governors may — not built yet",
-    "deferred": true
-   }
-  ],
-  "seasonalLevies": [
-   {
-    "raw": "after a town spends a citizen on a levy, it gains +40% food in this city for 10 turns, at most once every 20 turns",
-    "text": "after a town spends a citizen on a levy, it gains +40% food in this city for 10 turns, at most once every 20 turns"
    }
   ],
   "theHarvestTithe": [
@@ -3572,25 +3918,6 @@
     "raw": "a town working several of them asks less of your peace — not built yet",
     "text": "a town working several of them asks less of your peace — not built yet",
     "deferred": true
-   }
-  ],
-  "theLandsGreatWork": [
-   {
-    "raw": "a town raising a great building turns a share of the grain its people do not eat into labour — not built yet",
-    "text": "a town raising a great building turns a share of the grain its people do not eat into labour — not built yet",
-    "deferred": true
-   }
-  ],
-  "theCorvee": [
-   {
-    "raw": "a town of at least 10 citizens may spend one citizen for production equal to the food it took to grow that citizen, paid to your other town building [[building:theMagnumOpus|The Magnum Opus]] (once every 5 turns)",
-    "text": "a town of at least 10 citizens may spend one citizen for production equal to the food it took to grow that citizen, paid to your other town building The Magnum Opus (once every 5 turns)"
-   }
-  ],
-  "theGeneralLevy": [
-   {
-    "raw": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)",
-    "text": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)"
    }
   ],
   "commerceSaltTithes": [

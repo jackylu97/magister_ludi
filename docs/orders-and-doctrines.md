@@ -200,22 +200,54 @@ across the seven files. Ids are internal; the names in these tables are the card
 |---|---|---|---|---|
 | Smallholdings | 0 | ● | S | Worked farms and pastures gain +1 food and +1 gold. |
 | Granary Levies | 0 | ● | S | When a city grows in population, gain 15 production |
-| The Groves and the Stones | 0 | ● | S | Unimproved forests gain +1 faith, in a city with a Shrine. |
-| The Naturalists | 0 | ◆ | P | Each city gains +1 science for each distinct feature type it works. Your capital gains +1 science. |
+| The Naturalists | 0 | ◆ | P | Each city gains +1 science for every two hills or mountains in its borders, at most +3. |
 | The Patient Harvest | 0 | ○ | S | Cities retain 30% of the food spent on growth, but produce military units 15% more slowly. |
-| Tinkers' Guild | 1 | ● | S | Workers you produce or purchase gain +1 charge. |
-| The Old Songs | 1 | ● | S | Worked unimproved land gains +1 culture. |
-| Charcoal Burners | 1 | ● | S | Chopping forest or jungle also grants faith and culture each equal to 20% of its chop production. |
+| The Forest Gardens | 0 | ● | S | Once drafted, workers may tend a forest or jungle into a forest garden for one charge: +1 food. The forest stays standing and can still be chopped, which removes the garden. No chair required. |
+| The Fish Traps | 0 | ● | S | Once drafted, workers may tend a lake or coastal tile into fish traps for one charge: +1 food and +1 production. No chair required. |
+| Sweet Water | 0 | ● | S | Towns beside a river or lake gain +1 happiness. Worked freshwater tiles gain +1 food. |
+| The Seed Grain | 0 | ◆ | S | Towns you found start with one extra citizen. |
+| The Spirits of Place | 0 | ● | P | Your capital gains +1 faith. Towns working at least two wild tiles gain +1 faith. |
+| The Beating of the Bounds | 0 | ● | S | Each town you found claims one extra wild hex of your choice next to its borders. |
 | Levy of the Land | 1 | ◆ | S | Cities may spend one citizen to gain production equal to the food it took to grow that citizen. A city may levy once every five turns. |
+| Tinkers' Guild | 1 | ● | S | Workers you produce or purchase gain +1 charge. |
 | The Muster of the Fields | 1 | ◆ | S | Cities may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. |
+| The Old Songs | 1 | ● | S | Worked unimproved land gains +1 culture. |
+| The Local Census | 1 | ● | S | A town working at least four improved or tended tiles costs one less authority, minimum one. |
+| The Wild Orchards | 1 | ● | S | Once drafted, workers may tend a forest or jungle tile into a wild orchard for one charge: +1 food and +1 gold. No chair required. |
+| The Burning Season | 1 | ◆ | S | Once drafted, each town may burn its wild grassland and plains once every 30 turns. They become burned country, a tended work worth +1 food. After each burning they yield 1 less food for 3 turns, then +1 food and +1 production for 20 turns. No chair required. |
+| Dark Earth | 1 | ◆ | S | Worked farms gain +1 food once they have stood for 20 turns, and another +1 food once they have stood for 50 turns. |
+| The Three Sisters | 1 | ● | S | Worked farms beside a plantation or a pasture gain +1 food and +1 production, once per farm. |
+| The Commons | 1 | ◆ | P | Each town gains +1 happiness for every two wild tiles it works, at most +3. |
+| The Hard Country | 1 | ● | S | Worked desert and tundra tiles gain +1 food and +1 production. |
+| The Master Builders | 1 | ● | S | Towns working at least three mines, quarries or lumber mills give +1 renown a turn, favouring great engineers. |
+| The Prospectors | 1 | ● | S | Prospecting costs workers and explorers no charge. Worked mines on a seam you surfaced gain +2 production. |
+| Daughter Towns | 1 | ◆ | P | While a town you found has fewer than five citizens, the town that trained its settler gains +2 food. |
+| Six Gardens | 1 | ◆ | S | Needs tended land. Goal: have six tended tiles. Reward: every town gains 30 food, your capital gains a free worker, and a free Order hand. The card then leaves its chair. |
+| The Watercourses | 2 | ◆ | S | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +1 production. Water does not relay beyond that first step. |
 | The Highlands | 2 | ● | S | mines and quarries on hills gain +2 science and +1 production. |
-| The Steppe | 2 | ● | S | pastures gain +2 production. Horse-dependent military units cost 25% less production. |
 | The Coast | 2 | ● | S | Worked fishing boats gain +2 food and +2 culture. |
+| Provincial Councils | 2 | ◆ | S | Connected towns other than the capital cost one less authority, minimum one, and gain +1 happiness. |
 | The Grain Dole | 2 | ● | S | Cities of at least ten population gain +4 happiness and retain an additional 20% of food spent on growth. |
-| The Woodwrights | 3 | ○ | S | Forest and jungle chops grant 100% more production. Chop percentages add together before Charcoal Burners reads the payout. |
+| The Waterworks | 2 | ◆ | P | Aqueducts cost 25% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3. |
+| The Landscape Garden | 2 | ◆ | S | Needs tended land. Tended tiles beside a great-person work or a wonder gain +2 culture. |
+| The Engineers' Yards | 2 | ● | S | Manufactories gain +2 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +1 production. |
+| The Tended Country | 2 | ◆ | S | Needs tended land. Tended tiles gain +1 production. Each worked farm gains +1 food if a tended tile stands beside it, once per farm. |
+| The Woodwrights | 3 | ○ | S | Forest and jungle chops grant 100% more production. |
 | Seasonal Levies | 3 | ◆ | S | After a city spends a citizen on a levy, it gains +40% food for ten turns. A city can gain this at most once every twenty turns. |
+| The Long Tending | 3 | ○ | S | Needs tended land. Tended tiles gain +1 food for every 25 turns since they were tended, at most +3. |
+| The Mountain Schools | 3 | ◆ | P | Towns beside a mountain gain +10% science. Worked mines and quarries beside a mountain gain +1 science. |
+| A Court of Engineers | 3 | ○ | S | Gain +50% renown, but great-person offers contain only great engineers. |
+| The Wide Country | 3 | ◆ | S | Goal: while this card is seated, claim twelve hexes by outposts, cleared camps or buying. Reward: your three smallest towns each gain two citizens, and every town gains +2 happiness for 30 turns. The card then leaves its chair. |
+| The Land's Great Work | 4 | ○ | S | The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%. |
+| The Garden of the World | 4 | ○ | S | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. |
 | The Corvée | 4 | ○ | S | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. |
+| The Master of Works | 4 | ○ | P | When a great engineer rushes the works in the city building the Magnum Opus, each of your towns with a manufactory also sends that city one turn of its own production. |
+| The Philosophers' Peaks | 4 | ◆ | P | Each town gains +2 science for every mountain in its borders, at most +6. |
+| The Inheritance of Fields | 4 | ◆ | S | Worked improvements and tended works that have stood for at least 60 turns gain +1 production. Tended ones also gain +1 culture. |
+| The Measure of the Land | 4 | ○ | P | Every town gains +1 production for every 25 hexes your empire owns, at most +6. |
+| The Mother City | 4 | ○ | P | Your capital gains +1 production for every citizen it has. |
 | The General Levy | 4 | ○ | S | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. |
+| The Domesday Survey | 4 | ○ | S | Goal: own at least 150 hexes and work at least 50 improved or tended tiles at the same time. Reward: each town gains production equal to five times the improved or tended tiles it works, toward what it is building, and you gain a great engineer. The card then leaves its chair. |
 
 ### Commerce
 
@@ -483,44 +515,34 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Veterans' Grant** — † every military unit you have ever trained pays your capital hammers and beakers, up to a limit
 - **Blitz** — Not built, all three halves: the once-a-turn stamp is kept per card and this one is per piece; an occasion hands over coin, renown, a soldier or a blessing and never movement; and nothing forbids an army to dig in. † a unit that kills gets a couple of movement points back, once a turn, and still may not strike again; your military units may not dig in
 - **Casus Belli** — † taking an empire’s first city hands you a bead of the great work
-- **Claim by the Spade** — A worker cannot yet build outside your borders, and nothing takes ground in for the town that reaches it. † works raised on open ground beside your border take that ground for the nearest town; the first claim of each place pays that town in grain and coin
-- **The Growing Annals** — Not built: the design pays only for growth past the largest a town has ever been, and a town remembers how many people live in it and not how many ever did — so a counter of plain growth would write the annals twice for one citizen a levy took and the fields gave back. † the card keeps count of every citizen born and pays a little more each turn for it
-- **The Pioneers' Portion** — A provisional name for a line the worksheet has not finished. Nothing yet prices a town by what its ground carries. † a town founded beside a resource asks less of your writ than any other; the name, the rarity and the wording are the designer's to settle
-- **The Field Altars** — A provisional name for a line the worksheet has not finished. The rule itself is ready; the card is not. † the name, the rarity and the wording are the designer's to settle
-- **Levy of the Land** — A city cannot yet spend a citizen on anything. The verb, its waiting period and its payment are all still to be built. † a city spends one of its people and is paid in labour for it; a city may do this only now and then
-- **Planted Forests** — Nothing may plant a wood, and no wood in the game is young or old — the ground remembers neither. † a worker plants a wood on open ground of your own; a planted wood is young for a long while, and cannot be felled for timber until it is grown
-- **The Prize Rolls** — A provisional name for a line the worksheet has not finished. The rule itself is ready; the card is not. † the name, the rarity and the wording are the designer's to settle
-- **Old Growth** — No wood in the game is young or old, so neither half can tell which trees it means. † a grown wood your people work feeds and builds better than a young one; felling a grown wood yields more timber than felling a young one
-- **The Woodland Edge** — Held whole. A hex can be paid a helping for every wood in its ring now, but the works this card pays are the ordinary ones — and an improvement that is not a great person's work is a thing no ground condition can name. † works pay more for every wild wood standing next to them; a wild wood beside a field feeds better for it
-- **The High Pastures** — No law can yet put a citizen on a mountain: what a town may work is a fact about the ground alone. † your people may work the mountains inside your borders; a worked mountain gives stone and devotion
-- **The Watercourses** — A field either stands on fresh water or it does not; no field can yet pass water to the next one. † a field on the river waters the fields beside it; a watered field builds better; the water goes no further than one field over
-- **The Muster of the Fields** — A city cannot yet spend a citizen on anything. A card may raise a soldier on the calendar, but never in exchange for a person. † a city spends one of its people and stands up the best soldier it could raise; a city may do this only now and then, and not while it is levying for labour
-- **The Land Shapes Us** — Nothing writes down what kind of place a town was founded on, so nothing can give it one reward and refuse it the rest. † every town remembers the one kind of place it was founded on; each kind of place pays its town its own reward, and only ever one of them
+- **The Fish Traps** — The traps go on coastal water, which a worker reaches by boat. A lake cannot be reached yet, so traps on a lake wait.
+- **The Rope Stretchers** — The game does not yet announce the moment a worker finishes a work, so no card can pay for it. † a town is paid in labour when a worker finishes a mine, a quarry or a lumber mill on its ground
+- **The Beating of the Bounds** — For now the town takes the hex its borders would have grown into next, rather than one you choose.
 - **The Old Songs** — Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.
-- **The Local Census** — A card may count your towns, but not yet only the ones whose people work a stated amount of ground. † your writ is widened by every second town that works a real stretch of country
-- **The Work's Shadow** — A provisional name for a line the worksheet has not finished. The rule itself is ready; the card is not. † ground beside a great one's work sings for it; the name, the rarity and the wording are the designer's to settle
-- **The Open Furlongs** — A provisional name for a line the worksheet has not finished, and marked uncertain there. A hex is paid a helping for every field beside it now, but not for every second one of them. † a field builds better for every second field beside it; the name, the rarity and the wording are the designer's to settle
-- **The Provincial Schools** — A provisional name for a line the worksheet has not finished. The rule itself is ready — the realm's single great houses can be named now — and the card is not. † worked seams teach and sing in a town that has raised an empire building; the name, the rarity and the wording are the designer's to settle
-- **The Curators' Roll** — A provisional name for a line the worksheet has not finished. The kinds of great one's work a town puts to use can be counted now, but a standing trickle counts the realm's towns and not the ground inside one. † your standing grows with every great one's work your towns put to use; the name, the rarity and the wording are the designer's to settle
-- **The Common Treasury** — A city cannot yet spend a citizen on anything, so there is no levy for this to follow. † a levy of labour pays every other town joined to your capital a share of what it raised; what is shared out cannot be shared again
-- **Irrigation Works** — There is no such works to build, and no field can yet pass water to the next one. † a worker raises a waterworks on open ground of your own; fields beside it count as watered and feed better; the waterworks itself feeds and teaches
-- **Reclamation** — The ground under a wood never changes in this game. The worksheet is reworking this card besides. † clearing a jungle leaves open plain behind it; clearing a jungle fills the granary as well as the woodpile
-- **The Coppice** — Nothing may plant a wood, and no wood in the game is young or old. † felling a wood you planted leaves a young wood standing where it was; the young wood grows back in time, and gives no timber until it has
-- **The Hermitages** — No card can change what another card's ground condition admits. † a great one's work counts as wild ground for your other laws; ground beside a great one's work shares in whatever that work provides
-- **The Old Ways** — A law may take from a hex, but nothing yet stops the taking at nothing, so ground with no labour in it would fall below nothing. † works lose a little labour, and never fall below nothing for it
-- **The Steppe** — The horse-dependent soldiers are the mounted ones the roster draws, ridden and shooting alike.
-- **The Floodplains** — A share of what a hex's own ground provides reaches every voice it speaks in at once, and this card means the grain alone. The worksheet is reworking the figure besides. † a field on the floodplain is paid again in grain for the grain its ground already gives
-- **Provincial Councils** — A card may ask whether a town is joined to the capital and whether it is the capital, but not yet whether its people work a stated amount of ground. † only the towns whose people work a real stretch of country are counted
-- **The Standing Patronage** — A provisional name for a line the worksheet has not finished. A card may keep a running count of battles, of wonders and of coin spent, but not yet of the great ones' works. † the card keeps count of every great one's work raised while it sits, and widens your writ for each; the name, the rarity and the wording are the designer's to settle
-- **The Woodsmen's March** — A provisional name for a line the worksheet has not finished. A strength line may be paid for hills and not for woods, and nothing excuses a column the cost of rough ground. † your soldiers fight harder in the woods and on the hills, and never for both at once; your soldiers walk into woods and hills for what open ground would cost; the name, the rarity and the wording are the designer's to settle
-- **The Quarter of Masters** — A provisional name for a line the worksheet has not finished. The rule itself is ready; the card is not. † a great one's work standing beside another pays twice over, however many stand there; the name, the rarity and the wording are the designer's to settle
-- **The Complementary Provinces** — Nothing writes down what kind of place a town was founded on, so nothing can tell how many different kinds your realm holds. † your joined towns build and sing better for every different kind of place your realm was founded on
-- **The Varied Country** — Nothing counts how many different kinds of country a town works. † a town whose people work many different kinds of country prospers in every voice at once
-- **The Common Domain** — How far a town may reach, and how many hexes its governor may hold aside, are both fixed and cannot yet be widened by a law. † your towns work their own ground one step further out than other towns do; your governors may hold aside more hexes than other governors may
-- **Seasonal Levies** — A city cannot yet spend a citizen on anything, so there is no levy for this to follow. † a town that has spent one of its people is fed better for a while afterwards; spending another refreshes the season rather than lengthening it
-- **The Harvest Tithe** — No wood in the game is young or old, so the second half cannot tell which trees it means. † a field beside wild ground is worth coin for it; a field beside a grown wild wood builds better besides
-- **Forest Sanctuaries** — No wood in the game is young or old, and nothing counts how many a town's people work. † a grown wild wood your people work sings and prays for you; a town working several of them asks less of your peace
-- **The Land's Great Work** — A share of a town's grain is read off everything it grows, not off what is left after its people have eaten, and the game keeps no shelf of empire buildings to ask about. † a town raising a great building turns a share of the grain its people do not eat into labour
+- **The Burning Season** — For now a worker burns one grassland or plains hex at a time into burned country, and the season of lean and rich years after a burning is not built.
+- **Outposts** — No work can yet be raised outside your borders, and only a town or a great general can claim ground. † a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town
+- **The Prospectors** — Prospecting already costs no charge. The mine bonus is paid on any surveyed hill that carries a resource, whoever surveyed it.
+- **Daughter Towns** — For now the small town itself gains the food, because the game does not remember which town trained a settler.
+- **Six Gardens** — For now the food arrives over several turns rather than all at once, and the free Order hand is not built.
+- **The Watercourses** — For now any fresh water counts as a river, and a farm standing on fresh water counts as irrigated too.
+- **The Waterworks** — The saving on the aqueduct is paid as extra production toward it, which comes to the same price.
+- **The Breadbasket** — A town told to stop growing moves its people off food, so it has no spare grain for this card to read. † a town that has stopped growing turns its spare grain into contentment and into settlers
+- **Migration** — No rule yet moves a citizen from one town to another. † a crowded town sends a citizen to a small town joined to it
+- **Veteran Colonies** — Units have no way to retire yet; it needs a new order and a new button. † a soldier standing in one of your towns may retire there, and the town gains food for it
+- **The Landscape Garden** — For now only a great person's work counts. A wonder stands inside its town, not on the hex beside the tended tile.
+- **The Common Domain** — How far a town may reach is fixed and cannot yet be widened by a law. † large towns work their own ground one step further out than other towns do
+- **The Polders** — The ground under a hex never changes during a game, by a deliberate rule, and the board would have to redraw the hex. † a worker turns shallow sea beside your land into grassland
+- **Public Works** — A great engineer has no such act yet, and terraces belong to one leader alone. † a great engineer may finish an aqueduct in a town, or raise terraces on its worked hills
+- **The Wide Country** — For now only hexes bought with gold count toward the goal, and instead of citizens in the smallest towns, small towns grow faster for the same span.
+- **The Land's Great Work** — For now the bonus counts the citizens of your whole empire rather than its large towns.
+- **The Heartland** — A reward cannot yet mark one town for the rest of the game. † one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good
+- **The Master of Works** — For now a great engineer's act simply pays half as much again, wherever it is spent.
+- **The General Levy** — Not built yet: soldiers raised this way pay upkeep like any other, inside your borders or out.
+- **The Great Migration** — No rule yet moves a citizen from one town to another, let alone between empires. † unhappy foreign towns near your border lose citizens to your happier towns
+- **The Encroaching Fields** — A hex never changes hands between empires except when its town is captured. † large towns take unworked hexes from the borders of smaller foreign towns beside them
+- **The Domesday Survey** — For now the whole production reward lands in your capital rather than in each town.
+- **The Raising of the Land** — A great engineer has no such act yet, and a hex cannot carry a lasting mark. † a great engineer raises every worked hex in one town for good
+- **The Two Harvests** — A hex can hold only one work at a time. † an improved hex may also be tended, and counts as both
 - **Travellers' Letters** — Half built, and so held whole. Nothing in this game counts the empires you have met, so the letters have nobody to be addressed to. † your capital learns and sings a little more for every foreign empire you have met
 - **Letters of Introduction** — Held whole. The world does not announce a first meeting, and no law of yours can put coin in another realm's treasury. † meeting an empire for the first time pays you, and pays them; claiming a discovery pays gold
 - **Private Patronage** — Held whole. A discount here would reach the great national houses as well, and the card says it must not. † buying an ordinary building costs less, and raising one the slow way costs more

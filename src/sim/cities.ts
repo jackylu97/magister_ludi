@@ -1453,6 +1453,12 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // two citizens to place, and a refresh run first would seat one.
   const rider = cardFoundingRider(state, ownerId);
   if (rider.population > 0) city.population += rider.population;
+  // The Beating of the Bounds: extra hexes beyond the first ring, each the one
+  // the town's borders would grow into next. A town hemmed in claims fewer.
+  for (let extra = 0; extra < rider.claims; extra++) {
+    const next = bestExpansionTile(state, city);
+    if (!next || !claimTile(state, city, next)) break;
+  }
   // Through the one seam, so the free Monument is stamped with the turn the town
   // was founded — which is the turn it went up (`addBuilding`, `state.ts`).
   for (const building of rider.buildings) addBuilding(state, city, building);
@@ -5564,6 +5570,8 @@ export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
   // `spendGold` (`state.ts`) also announces the banks to the meters (batch M3).
   spendGold(state, player, price);
   player.tilesPurchased += 1;
+  // The Wide Country's goal counts each hex bought while it is seated.
+  recordScalingOccasion(state, player.id, 'hexBought');
   // Chartered Companies' survey. A rider on an occasion that has no figure of
   // its own, so the base is zero and only the grants are read.
   const payout = windfallPayout(state, player.id, 'tilePurchase');

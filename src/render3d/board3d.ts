@@ -786,6 +786,14 @@ const DRAWN_IMPROVEMENT_PROPS: Partial<
   // pass said so out loud — and has its own sculpt now: a ring of six leaning
   // monoliths about an altar. See `standingStones`.
   holySite: standingStones,
+  // **The tended works** (the Expansionist deck): placeholder art, each the
+  // nearest existing sculpt, until the art pass draws their own. A garden and
+  // an orchard are the plantation's rows under the trees, the traps are the
+  // fishing boat, and burned country is the farm's furrows in a darker shade.
+  forestGarden: trellisRows,
+  fishTraps: fishingBoat,
+  wildOrchard: trellisRows,
+  burnedCountry: furrowRows,
 };
 
 /**

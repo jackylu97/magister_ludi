@@ -445,11 +445,16 @@ describe("the card table", () => {
       const commission = ORDER_IDS.includes(id as never)
         ? orderDef(id as never).commission
         : undefined;
+      // A charter speaks through its grant (the Expansionist tended works).
+      const charter = ORDER_IDS.includes(id as never)
+        ? orderDef(id as never).charter
+        : undefined;
       const hasSomething =
         def.effects.length > 0 ||
         (def.deferred ?? []).length > 0 ||
         granted.length > 0 ||
-        commission !== undefined;
+        commission !== undefined ||
+        charter !== undefined;
       expect(hasSomething, id).toBe(true);
     }
   });
@@ -1504,6 +1509,7 @@ describe("every hook family, end to end", () => {
       population: 1,
       buildings: [],
       roads: false,
+      claims: 0,
     });
     const city = found(g.state, 0);
     expect(city.population).toBe(2);
@@ -4180,6 +4186,7 @@ describe("the Orders pass of 2026-08-29", () => {
       population: 0,
       buildings: ["granary"],
       roads: false,
+      claims: 0,
     });
     const unit =
       g.state.units.find((u) => u.ownerId === 0 && u.type === "settler") ??
@@ -8500,6 +8507,9 @@ describe("the engine shapes", () => {
     // Tambo's case, below).
     "armyContracts · routeYield",
     "armyContracts · routeYield",
+    // D3 (the Expansionist sheet): A Court of Engineers is Commerce's A Court
+    // of Merchants for the engineers, the same renown share.
+    "aCourtOfEngineers · cityRenownPercent",
     "provisioningContracts · routeYield",
     // C6: The Common Road is two rows of the same shape and not one read twice
     // — one paid to the empire that sent the caravan, one paid to the town it
@@ -11255,7 +11265,9 @@ describe("D2b — counts and reach", () => {
       "capturedCities",
       "empireBuildings",
       "uniqueStrategicResources",
-      "distinctWorkedFeatures",
+      // `distinctWorkedFeatures` has no live row since batch D3 revised The
+      // Naturalists to count hills and mountains; the count's own behaviour is
+      // still pinned above.
       "distinctWorkedGreatWorks",
       "legacyFamilies",
     ]) {

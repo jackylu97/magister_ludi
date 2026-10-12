@@ -30,6 +30,7 @@
 import { bestMeleeFor, resourceCopies, settleGrowthWindfall } from './cities';
 import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
+import { isTendedWork } from './improvementData';
 import { getTileAt } from './map';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { resourcesOfKind } from './resourceData';
@@ -108,6 +109,19 @@ export function commissionFigure(
         }
       }
       return worked;
+    }
+    case 'tendedTiles': {
+      // Owned, not worked: Six Gardens asks for tended land the empire holds.
+      // The map's tile list and the owner field share one index.
+      const owners = tileOwnerField(state);
+      const tiles = state.map.tiles;
+      let tended = 0;
+      for (let index = 0; index < tiles.length; index++) {
+        const work = tiles[index]!.improvement;
+        if (work === undefined || !isTendedWork(work)) continue;
+        if (owners.at(index) === playerId) tended += 1;
+      }
+      return tended;
     }
   }
 }

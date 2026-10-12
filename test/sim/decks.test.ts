@@ -198,11 +198,22 @@ describe('the schema, as landed', () => {
     let live = 0;
     for (const id of DECK_ROWS) {
       const def = orderDef(id);
-      expect(def.retired, id).toBeUndefined();
+      // A deck row is retired only when its sheet cut it (the deck
+      // implementation batches, `docs/plans/deck-implementation.md`): kept for
+      // saves and the Compendium, and dealt to nobody.
+      if (def.retired === true) {
+        expect(orderIsDealt(id), `${id} is retired and dealt`).toBe(false);
+        continue;
+      }
       // Live or deferred, never both ways round: a row with effects is dealt, a
       // row with a `deferred` sentence and nothing to slot is not.
-      // A commission (batch C) is dealt for its goal and reward, with no effects.
-      const dealt = def.effects.length > 0 || def.commission !== undefined;
+      // A commission (batch C) is dealt for its goal and reward, with no effects,
+      // and a charter whose grant exists (the Expansionist tended-work unlocks)
+      // is dealt for the grant.
+      const dealt =
+        def.effects.length > 0 ||
+        def.commission !== undefined ||
+        (def.charter !== undefined && def.deferred === undefined);
       expect(orderIsDealt(id), id).toBe(dealt);
       if (dealt) expect(def.deferred, `${id} is dealt`).toBeUndefined();
       else expect(def.deferred, `${id} is in no pool`).toBeDefined();
@@ -311,8 +322,13 @@ describe('the schema, as landed', () => {
     // **And batch C** (commissions): three rows live with a goal and a reward
     // and no effects — Commission: Clear the Frontier in Dominion, Corner the
     // Market and The Strongroom in Commerce.
-    expect(live).toBe(282);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(282);
+    // **And batch D3** (the Expansionist sheet): 32 more dealt rows. Thirty-five
+    // rows came live or were written (the four tended-work charters, three
+    // commissions and twenty-eight cards with effects), and three live rows were
+    // retired as the sheet's proposed cuts (The Groves and the Stones, Charcoal
+    // Burners, The Steppe).
+    expect(live).toBe(314);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(314);
   });
 
   /**
@@ -326,7 +342,16 @@ describe('the schema, as landed', () => {
    * clause in `orderIsDealt` is the fix, and this is its register.
    */
   it('deals no charter whose grant names a thing that does not exist yet', () => {
-    const charters = [...DECK_ROWS].filter((id) => orderDef(id).charter !== undefined);
+    // A charter whose grant exists is dealt like any card (the Expansionist
+    // tended-work unlocks, whose improvement rows are drawn up); the rest wait.
+    for (const id of DECK_ROWS) {
+      const def = orderDef(id);
+      if (def.charter === undefined || def.deferred !== undefined || def.retired === true) continue;
+      expect(orderIsDealt(id), `${id} is a live charter`).toBe(true);
+    }
+    const charters = [...DECK_ROWS].filter(
+      (id) => orderDef(id).charter !== undefined && orderDef(id).deferred !== undefined,
+    );
     expect(charters.length).toBeGreaterThan(0);
     for (const id of charters) {
       const def = orderDef(id);
@@ -627,7 +652,12 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Batch L took three more**, all Expansionist: Levy of the Land, The
       // Muster of the Fields and Seasonal Levies, freed by the levy command.
       // The Corvée and The General Levy are new live rows and move nothing here.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(145);
+      //
+      // **Batch D3 added eleven**, all Expansionist: three live rows were
+      // retired as the sheet's proposed cuts (the other twenty-eight cuts were
+      // already deferred), four deferred rows came live, and twelve newly
+      // written rows are deferred.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(156);
     }
   });
 
