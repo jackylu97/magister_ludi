@@ -134,65 +134,60 @@ across the seven files. Ids are internal; the names in these tables are the card
 |---|---|---|---|---|
 | Blooded Spears | 0 | ● | S | +4 strength against barbarians. Clearing a camp grants 25 production and 25 food to your nearest city. |
 | Martial Law | 0 | ● | P | Each garrisoned unit grants its city +1 happiness and +2 food. |
-| Paymasters | 0 | ● | P | Barracks give +3 gold. Each garrisoned unit costs 1 less upkeep, minimum zero. |
-| Muster Rites | 0 | ● | S | Training a unit grants 5 faith and 5 food. |
-| Conscription | 0 | ◆ | P | +20% production toward units. Cities producing a unit lose 2 gold. |
-| Pathfinders | 0 | ◆ | S | Scouts gain +1 movement and +8 strength. |
-| Drill Manuals | 0 | ◆ | P | Barracks and Stables give +2 science. +20% production toward Barracks and Stables. |
+| Muster Rites | 0 | ● | S | Training a unit grants 6 faith and 6 food. |
 | The Standing Army | 0 | ○ | S | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
 | Blood Brothers | 0 | ○ | S | A barbarian unit you kill joins your side. |
 | The King's Levy | 0 | ○ | S | Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep. |
-| The War Chronicle | 0 | ● | P | While slotted, pays +3 science and +3 culture, and gains +3 of each for every enemy unit you kill. |
 | Commission: Clear the Frontier | 0 | ● | S | Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
+| The Horse Herds | 0 | ● | S | Worked pastures and camps give +1 production. +20% production toward mounted units. |
+| Battle Honours | 0 | ● | S | Your first kill each turn grants 6 renown, and clearing a barbarian camp grants 12 renown, both favouring great generals. |
+| Sword and Plough | 0 | ● | S | While at peace, each city with a garrison gains +2 culture. While at war, each gains +2 production instead. |
+| The Camp Chaplains | 0 | ● | P | +1 faith for every unit you control. |
+| Drill Manuals | 1 | ● | P | Barracks and Stables give +2 science. +20% production toward Barracks and Stables. |
 | March Discipline | 1 | ● | S | Military units gain +1 movement when starting their turn in your territory. |
-| Field Surgeons | 1 | ● | S | Military units heal an extra 10 health while fortified. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +2 food and +2 production. |
-| Victory Steles | 1 | ● | P | Gain +1 authority capacity for every two Monuments you hold. Monuments give +2 production. |
-| Hunters' Offerings | 1 | ● | S | Worked fishing boats, camps and pastures gain +1 production and +1 faith. |
-| Quarry Levies | 1 | ● | S | Worked mines and quarries gain +1 production and +1 gold. |
-| Rites of Arms | 1 | ● | P | Cities keeping a rite gain +2 production and +20% production toward units. |
 | The Soldiers' Purse | 1 | ● | S | Military units cost 1 less upkeep. |
 | The War Hall Schools | 1 | ● | P | War Halls give +3 science and +3 culture. |
-| Shore Patrols | 1 | ● | S | Worked fishing boats gain +1 production. Coastal cities with a Harbour gain +1 happiness. |
 | The Marshals | 1 | ◆ | S | +2 strength per adjacent friendly combat unit, at most +6. |
-| Army Contracts | 1 | ◆ | S | Routes from a city with a Barracks or a Stable gain +2 gold and +1 production; +4 gold and +2 production with both. |
-| The Iron Hand | 1 | ◆ | S | +6 authority capacity. |
-| War Foundries | 1 | ○ | P | Cities with a Barracks gain gold equal to 20% of their base production and +25% production toward military units. |
-| Horse Lords | 1 | ○ | S | Mounted units gain +3 strength and +1 movement. |
-| The Muster Rolls | 1 | ◆ | P | While slotted, gains +1 science and +1 culture each time you train a unit. Purchases do not count. |
-| The Pacified Marches | 1 | ◆ | P | While slotted, gains +1 authority capacity and +3 culture for every barbarian camp cleared. |
+| The Pacified Marches | 1 | ◆ | P | While slotted, gains +1 authority capacity and +3 culture for every barbarian camp cleared, at most +8 authority and +24 culture. |
 | The Art of War | 1 | ◆ | S | Training a unit grants science equal to half its strength. |
-| Songs of the Fallen | 1 | ○ | S | Killing or losing a unit grants science and culture equal to that unit's strength. |
+| War Foundries | 1 | ○ | P | Cities with a Barracks gain gold equal to 20% of their base production and +25% production toward military units. |
+| Songs of the Fallen | 1 | ○ | S | Killing a unit grants science and culture equal to its strength. Losing a unit while it defends grants the same. |
+| Horse Lords | 1 | ○ | S | Mounted units gain +3 strength and +1 movement. |
+| The General Staff | 1 | ● | S | Cities with a Barracks give +2 renown a turn, favouring great generals. |
+| The Soldier-Farmers | 1 | ● | S | While at peace, garrisoned cities gain +1 food and +1 production on each worked pasture and camp. |
 | Siege Works | 2 | ● | S | +25% production toward siege units. Siege units gain +4 strength against cities. |
-| The War Chest | 2 | ● | P | Military units cost 1 less upkeep, minimum zero. Barracks give +3 gold. |
 | Armoury Guilds | 2 | ● | P | Armouries give +3 science and +3 culture. Cities with one gain +10% production toward buildings. |
-| Veterans' Boroughs | 2 | ● | P | Cities of at least ten population with an Armoury gain +3 happiness and +20% science. |
-| Conquered Archives | 2 | ● | P | Captured cities gain +10 science and +10 culture. |
+| Conquered Archives | 2 | ● | P | Captured cities gain +4 science and +4 culture. |
 | Stockpiles | 2 | ● | P | Cities gain +5 food per defensive building. |
-| The Post Roads | 2 | ● | P | Cities connected by road gain +1 happiness and +2 production. |
-| Camp Followers | 2 | ● | P | Cities with an Armoury gain +3 food and +3 gold. |
-| Naval Yards | 2 | ● | P | Cities with a Shipyard gain +10% production and +2 culture. Ships trained there gain +10 health. |
+| Triumphs | 2 | ● | S | Capturing a city grants culture equal to ten times its population. |
 | Marine Drill | 2 | ◆ | S | Naval melee units gain +4 strength. Land units attacking on the turn they disembark gain +3 strength. |
 | Riders of the Steppe | 2 | ◆ | S | Mounted units ignore enemy zone of control. Pillaging costs them one less movement point, minimum zero. |
-| The Long March | 2 | ◆ | S | Melee units gain +1 strength and +1 movement. |
-| Mercenary Companies | 2 | ◆ | S | Military units cost 25% less gold to purchase in cities with a Barracks. A purchased unit arrives with +10 health. |
-| Levies of the Provinces | 2 | ◆ | P | Captured cities produce units 30% faster and gain +2 food. |
-| The Admiralty | 2 | ◆ | S | +1 trade-route capacity per two Shipyards, at most +2. Naval units gain +1 sight. |
+| Spoils of War | 2 | ◆ | S | Pillaging grants 10 production to your city nearest the pillaged hex. The first pillage each turn also grants 20 culture. |
 | Hegemony | 2 | ○ | S | Captured cities you hold cost one less authority. Capturing a city grants +20% production in every city for ten turns. |
-| Triumphal Return | 2 | ○ | S | Capturing a city that holds a wonder heals all your units. |
 | Master Bowyers | 2 | ○ | S | Ranged and siege units gain +1 range. |
-| Triumphs | 2 | ● | S | Capturing a city grants culture equal to ten times its population. |
+| The Citadel Works | 2 | ● | S | Citadels gain +3 science. Each citadel inside your borders gives +1 renown a turn, favouring great generals. |
+| Commission: Take the City | 2 | ◆ | S | Commission. Capture a city with at least five citizens. Then gain culture and science equal to fifteen times its population, and a free Barracks in that city. The card leaves its chair. |
 | Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +8% production and +8% culture. |
-| Spoils of Empire | 3 | ● | P | Captured cities gain +25% gold and +25% science. Cities with a Courthouse gain +4 happiness. |
 | Arsenals | 3 | ● | P | Cities with an Armoury gain +20% production and produce ships 50% faster. |
 | The Siege Train | 3 | ◆ | S | Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities. |
 | Reserve Officers | 3 | ◆ | S | While at war, cities with a Barracks produce military units 40% faster; while at peace, those cities gain +20% production toward buildings. |
 | Defensive Lines | 3 | ◆ | S | Land combat units gain +3 strength beside a friendly city. Cities with walls gain +3 defence per garrisoned unit. |
-| The Grand Levy | 3 | ◆ | P | Cities with a Barracks produce units 50% faster and gain +1 production per two citizens. |
 | Naval Supremacy | 3 | ◆ | P | Naval units gain +1 sight and +1 range. Coastal cities gain +20% gold; coastal captured cities +40%. |
-| The Long Peace | 3 | ◆ | S | While at peace, garrisoned units cost no upkeep and cities with a Barracks gain +25% culture. |
-| Imperium | 3 | ○ | S | Each captured city you hold gives +5% production toward the Magnum Opus, at most +40%. |
 | Total War | 3 | ○ | S | All your military units gain +8 strength and +1 movement. Every city demands +3 more happiness. |
+| Imperium | 4 | ○ | S | Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%. |
+| Commission: Hold the Capitals | 4 | ○ | S | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. |
+| Spolia | 4 | ○ | S | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. |
+| The Praetorian Guard | 4 | ○ | S | The city raising your Magnum Opus gains +5 defence for each unit garrisoned there. Your military units within two hexes of it gain +6 strength. |
+| The Grand Army | 4 | ○ | P | Your capital gains +1 science and +1 culture for every military unit you have, at most +30 of each. |
+| The Annexed Provinces | 4 | ○ | P | Each captured city you hold gives +5% science and +5% culture in every city, at most +25%. |
+| The Marshalate | 4 | ○ | S | Each great general you have called gives your military units +1 strength, at most +5. Citadels give +3 culture and +3 production. |
+| The Military Frontier | 4 | ○ | P | Each unit garrisoned in a city gives it +3 science and +3 culture, at most three units per city. |
+| The Nation in Arms | 4 | ○ | S | Every ten turns, each city with an Armoury raises the best melee unit you can build. They count as trained and cost no upkeep. |
+| The Grand Coalition | 4 | ○ | S | While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster. |
+| The Proconsuls | 4 | ◆ | S | Captured cities with a garrison cost no authority and gain +10 defence. |
+| Commission: The Grand Campaign | 4 | ◆ | S | Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair. |
+| Commission: The Captured Marvel | 4 | ○ | S | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair. |
 
 ### Expansionist
 
@@ -454,35 +449,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 - **Muster Rites** — A unit bought outright counts as trained, and pays this once.
 - **The King's Levy** — The levy is raised, not bought: it goes on no payroll, and everything that rewards a unit finished rewards this one.
-- **Veterans' Rest** — † a town with a barracks or a war hall is gladder, and gladder still for each unit standing in it
-- **Foragers' Right** — † every unit standing in a town makes that town’s worked resource tiles pay more grain and more hammers
-- **The Warlord's Call** — † the first time this is seated a great general answers the call, once and never again; citadels pay more grain and more hammers while it sits in a chair
-- **Army Contracts** — Two lines, one for each hall: a town that keeps both sends its caravans out under both.
-- **Soldier-Settlers** — † a town you found comes with a melee unit already standing in it; a melee unit you train can do a worker’s job once, building an improvement or felling a wood
-- **The Sea Levy** — Half built and therefore not built: training a hull may now pay for how strong it is, but a payroll is discounted as a share of the whole army and cannot be forgiven a coin at a time for one kind of piece. † ships are cheaper to keep; training a ship pays culture in proportion to how strong that ship is
-- **Universal Conscription** — † your cities put much more production behind units; once this has been seated you may never buy a unit again for the rest of the game, even after it leaves the chair
-- **Provincial Garrisons** — † every unit standing in a town puts more of that town’s production behind its buildings
-- **Scorched Earth** — † the unit that burns a tile mends; the coin that tile would have paid is paid to you again as faith
 - **Marine Drill** — The blessing is hung on the piece the moment it wades ashore, and lasts the turn it landed.
 - **Riders of the Steppe** — A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.
-- **Fortifications** — † your workers may throw up a fort on open ground; a fort pays grain and hammers, and a unit dug in on one fights harder
-- **Beachheads** — † taking to the water costs your units no movement, and so does coming ashore
-- **The Iron Levy** — † each strategic resource you hold puts a little more production behind every unit, up to a limit; while you hold iron, units are cheaper to keep
-- **Undermining** — † your units fight harder against a city that has walls; siege engines walk past an enemy picket for nothing
-- **Spoils of War** — † burning a tile pays production to every city you hold, not only the nearest; the first tile you burn each turn pays culture as well
-- **Warlords** — Held whole. Hammers behind a thing can be counted off what the realm holds now, but the great people it holds are not among the things it can count. † every great general you have earned puts more production behind your units; citadels pay hammers and culture
-- **Prize Courts** — Half built and therefore not built: a capture may now pay for the people who lived in the town, but nothing tells a coastal town from an inland one at that moment, and a payout mends the whole army or none of it — never the hulls standing beside the gate. † taking a coastal city pays gold in proportion to how many people lived in it; your ships beside a city you take are mended completely
-- **Blockade** — † one of your ships beside an enemy coastal city puts that city under siege; a caravan bound for it is plundered where your ship sits
-- **The Blood Ledger** — Not built: a card may scale what an occasion pays out of itself, and a kill pays nothing out of itself — everything it hands over is another card's grant. Doubling one card's gifts from a second card is a reading nothing in the vocabulary makes, and the standing counters the text also names are not payouts at all. † everything you are paid for killing a unit, or for losing one, is paid twice over — the one-off rewards and the standing ones alike
-- **Pax Imperia** — † while you are at peace every city makes more and is gladder; declaring war silences this card for a long stretch of turns
-- **The Sea Treasury** — † every unit standing in a coastal town turns part of that town’s coin into hammers
-- **The Military Roads** — † your military units walk your own roads for nothing inside your borders; a town joined to your capital makes more
-- **Blockade Admirals** — † your warships move further and fight harder when they are close to an enemy coastal city
-- **War Colleges** — † a unit raised in a town with an armoury is born quicker and hardier, and stays so for life
+- **The Relay Stations** — † Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet.
+- **War Reparations** — † The game does not yet pay anything when a peace is signed, or remember which cities each side took during a war.
 - **Naval Supremacy** — The second share is paid only where both are true, so a coastal town taken in war keeps both lines.
-- **The Veterans' Grant** — † every military unit you have ever trained pays your capital hammers and beakers, up to a limit
-- **Blitz** — Not built, all three halves: the once-a-turn stamp is kept per card and this one is per piece; an occasion hands over coin, renown, a soldier or a blessing and never movement; and nothing forbids an army to dig in. † a unit that kills gets a couple of movement points back, once a turn, and still may not strike again; your military units may not dig in
-- **Casus Belli** — † taking an empire’s first city hands you a bead of the great work
+- **Commission: A Victor's Peace** — † The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war.
+- **The Legions' Labour** — † Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder.
+- **Circumvallation** — † Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet.
 - **Claim by the Spade** — A worker cannot yet build outside your borders, and nothing takes ground in for the town that reaches it. † works raised on open ground beside your border take that ground for the nearest town; the first claim of each place pays that town in grain and coin
 - **The Growing Annals** — Not built: the design pays only for growth past the largest a town has ever been, and a town remembers how many people live in it and not how many ever did — so a counter of plain growth would write the annals twice for one citizen a levy took and the fields gave back. † the card keeps count of every citizen born and pays a little more each turn for it
 - **The Pioneers' Portion** — A provisional name for a line the worksheet has not finished. Nothing yet prices a town by what its ground carries. † a town founded beside a resource asks less of your writ than any other; the name, the rarity and the wording are the designer's to settle

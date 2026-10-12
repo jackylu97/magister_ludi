@@ -2312,12 +2312,12 @@
   ],
   "musterRites": [
    {
-    "raw": "completing a unit grants +5 faith",
-    "text": "completing a unit grants +5 faith"
+    "raw": "completing a unit grants +6 faith",
+    "text": "completing a unit grants +6 faith"
    },
    {
-    "raw": "completing a unit grants +5 food",
-    "text": "completing a unit grants +5 food"
+    "raw": "completing a unit grants +6 food",
+    "text": "completing a unit grants +6 food"
    }
   ],
   "theWarChronicle": [
@@ -2354,24 +2354,6 @@
     "text": "+8 combat strength for scout units"
    }
   ],
-  "drillManuals": [
-   {
-    "raw": "+2 science in every city with a [[building:barracks|Barracks]]",
-    "text": "+2 science in every city with a Barracks"
-   },
-   {
-    "raw": "+2 science in every city with a [[building:stable|Stable]]",
-    "text": "+2 science in every city with a Stable"
-   },
-   {
-    "raw": "+20% production toward [[building:barracks|Barrackses]]",
-    "text": "+20% production toward Barrackses"
-   },
-   {
-    "raw": "+20% production toward [[building:stable|Stables]]",
-    "text": "+20% production toward Stables"
-   }
-  ],
   "dominionTheStandingArmy": [
    {
     "raw": "all units cost no gold in maintenance while standing in one of your cities",
@@ -2392,6 +2374,74 @@
    {
     "raw": "every 15 turns, the best melee unit you can build musters in your capital",
     "text": "every 15 turns, the best melee unit you can build musters in your capital"
+   }
+  ],
+  "dominionClearTheFrontier": [
+   {
+    "raw": "Commission. Goal: clear 2 barbarian camps, while this card is seated",
+    "text": "Commission. Goal: clear 2 barbarian camps, while this card is seated"
+   },
+   {
+    "raw": "Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
+    "text": "Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "dominionTheHorseHerds": [
+   {
+    "raw": "+1 production on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]]",
+    "text": "+1 production on every hex with a Pasture or Camp"
+   },
+   {
+    "raw": "+20% production toward mounted units",
+    "text": "+20% production toward mounted units"
+   }
+  ],
+  "dominionBattleHonours": [
+   {
+    "raw": "killing a unit (at most once a turn) grants +6 renown, favouring a great general",
+    "text": "killing a unit (at most once a turn) grants +6 renown, favouring a great general"
+   },
+   {
+    "raw": "clearing a barbarian camp grants +12 renown, favouring a great general",
+    "text": "clearing a barbarian camp grants +12 renown, favouring a great general"
+   }
+  ],
+  "dominionSwordAndPlough": [
+   {
+    "raw": "while you are at peace: +2 culture in every city with a unit standing in it",
+    "text": "while you are at peace: +2 culture in every city with a unit standing in it"
+   },
+   {
+    "raw": "while you are at war: +2 production in every city with a unit standing in it",
+    "text": "while you are at war: +2 production in every city with a unit standing in it"
+   }
+  ],
+  "dominionTheCampChaplains": [
+   {
+    "raw": "+1 faith per unit in the field",
+    "text": "+1 faith per unit in the field"
+   }
+  ],
+  "drillManuals": [
+   {
+    "raw": "+2 science in every city with a [[building:barracks|Barracks]]",
+    "text": "+2 science in every city with a Barracks"
+   },
+   {
+    "raw": "+2 science in every city with a [[building:stable|Stable]]",
+    "text": "+2 science in every city with a Stable"
+   },
+   {
+    "raw": "+20% production toward [[building:barracks|Barrackses]]",
+    "text": "+20% production toward Barrackses"
+   },
+   {
+    "raw": "+20% production toward [[building:stable|Stables]]",
+    "text": "+20% production toward Stables"
    }
   ],
   "dominionMarchDiscipline": [
@@ -2520,12 +2570,12 @@
   ],
   "thePacifiedMarches": [
    {
-    "raw": "+1 authority capacity per barbarian camp you have cleared, counted while this Order stands in a slot",
-    "text": "+1 authority capacity per barbarian camp you have cleared, counted while this Order stands in a slot"
+    "raw": "+1 authority capacity per barbarian camp you have cleared (at most +8 authority capacity), counted while this Order stands in a slot",
+    "text": "+1 authority capacity per barbarian camp you have cleared (at most +8 authority capacity), counted while this Order stands in a slot"
    },
    {
-    "raw": "+3 culture per barbarian camp you have cleared, counted while this Order stands in a slot",
-    "text": "+3 culture per barbarian camp you have cleared, counted while this Order stands in a slot"
+    "raw": "+3 culture per barbarian camp you have cleared (at most +24 culture), counted while this Order stands in a slot",
+    "text": "+3 culture per barbarian camp you have cleared (at most +24 culture), counted while this Order stands in a slot"
    }
   ],
   "theArtOfWar": [
@@ -2584,12 +2634,12 @@
     "text": "killing a unit grants culture equal to its strength"
    },
    {
-    "raw": "losing a unit grants science equal to its strength",
-    "text": "losing a unit grants science equal to its strength"
+    "raw": "losing a unit (only while it defends) grants science equal to its strength",
+    "text": "losing a unit (only while it defends) grants science equal to its strength"
    },
    {
-    "raw": "losing a unit grants culture equal to its strength",
-    "text": "losing a unit grants culture equal to its strength"
+    "raw": "losing a unit (only while it defends) grants culture equal to its strength",
+    "text": "losing a unit (only while it defends) grants culture equal to its strength"
    }
   ],
   "universalConscription": [
@@ -2612,6 +2662,18 @@
    {
     "raw": "mounted units: +1 movement",
     "text": "mounted units: +1 movement"
+   }
+  ],
+  "dominionTheGeneralStaff": [
+   {
+    "raw": "+2 renown per turn in every city with a [[building:barracks|Barracks]], favouring generals",
+    "text": "+2 renown per turn in every city with a Barracks, favouring generals"
+   }
+  ],
+  "dominionTheSoldierFarmers": [
+   {
+    "raw": "while you are at peace: +1 food, +1 production on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]], in every city with a unit standing in it",
+    "text": "while you are at peace: +1 food, +1 production on every hex with a Pasture or Camp, in every city with a unit standing in it"
    }
   ],
   "siegeWorks": [
@@ -2656,8 +2718,8 @@
   ],
   "conqueredArchives": [
    {
-    "raw": "+10 science, +10 culture in every captured city",
-    "text": "+10 science, +10 culture in every captured city"
+    "raw": "+4 science, +4 culture in every captured city",
+    "text": "+4 science, +4 culture in every captured city"
    }
   ],
   "stockpiles": [
@@ -2816,14 +2878,12 @@
   ],
   "spoilsOfWar": [
    {
-    "raw": "burning a tile pays production to every city you hold, not only the nearest — not built yet",
-    "text": "burning a tile pays production to every city you hold, not only the nearest — not built yet",
-    "deferred": true
+    "raw": "pillaging grants +10 production",
+    "text": "pillaging grants +10 production"
    },
    {
-    "raw": "the first tile you burn each turn pays culture as well — not built yet",
-    "text": "the first tile you burn each turn pays culture as well — not built yet",
-    "deferred": true
+    "raw": "pillaging (at most once a turn) grants +20 culture",
+    "text": "pillaging (at most once a turn) grants +20 culture"
    }
   ],
   "warlords": [
@@ -2918,6 +2978,44 @@
     "raw": "every unit standing in a coastal town turns part of that town’s coin into hammers — not built yet",
     "text": "every unit standing in a coastal town turns part of that town’s coin into hammers — not built yet",
     "deferred": true
+   }
+  ],
+  "dominionTheCitadelWorks": [
+   {
+    "raw": "+3 science on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "+3 science on every hex with a Citadel"
+   },
+   {
+    "raw": "+1 renown per turn per hex with a [[improvement:citadel|Citadel]] in your borders, favouring generals",
+    "text": "+1 renown per turn per hex with a Citadel in your borders, favouring generals"
+   }
+  ],
+  "dominionTheRelayStations": [
+   {
+    "raw": "Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet. — not built yet",
+    "text": "Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet. — not built yet",
+    "deferred": true
+   }
+  ],
+  "dominionWarReparations": [
+   {
+    "raw": "The game does not yet pay anything when a peace is signed, or remember which cities each side took during a war. — not built yet",
+    "text": "The game does not yet pay anything when a peace is signed, or remember which cities each side took during a war. — not built yet",
+    "deferred": true
+   }
+  ],
+  "dominionTakeTheCity": [
+   {
+    "raw": "Commission. Goal: capture 1 city, while this card is seated",
+    "text": "Commission. Goal: capture 1 city, while this card is seated"
+   },
+   {
+    "raw": "Reward: culture equal to 15 times the citizens of the cities you captured that turn at that moment, and science equal to 15 times the citizens of the cities you captured that turn at that moment",
+    "text": "Reward: culture equal to 15 times the citizens of the cities you captured that turn at that moment, and science equal to 15 times the citizens of the cities you captured that turn at that moment"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
    }
   ],
   "standingGarrisons": [
@@ -3063,12 +3161,6 @@
     "deferred": true
    }
   ],
-  "dominionImperium": [
-   {
-    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per captured city you hold (at most +40%)",
-    "text": "+5% production toward The Magnum Opus per captured city you hold (at most +40%)"
-   }
-  ],
   "casusBelli": [
    {
     "raw": "taking an empire’s first city hands you a bead of the great work — not built yet",
@@ -3090,14 +3182,151 @@
     "text": "-3 happiness in every city"
    }
   ],
-  "dominionClearTheFrontier": [
+  "dominionAVictorsPeace": [
    {
-    "raw": "Commission. Goal: clear 2 barbarian camps, while this card is seated",
-    "text": "Commission. Goal: clear 2 barbarian camps, while this card is seated"
+    "raw": "The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war. — not built yet",
+    "text": "The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war. — not built yet",
+    "deferred": true
+   }
+  ],
+  "dominionImperium": [
+   {
+    "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per captured city you hold (at most +40%)",
+    "text": "+10% production toward The Magnum Opus per captured city you hold (at most +40%)"
+   }
+  ],
+  "dominionHoldTheCapitals": [
+   {
+    "raw": "Commission. Goal: hold 2 original capitals other than your own at the same time, while this card is seated",
+    "text": "Commission. Goal: hold 2 original capitals other than your own at the same time, while this card is seated"
    },
    {
-    "raw": "Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
-    "text": "Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
+    "raw": "Reward: for 20 turns, +25% production in every city, and a great general to call",
+    "text": "Reward: for 20 turns, +25% production in every city, and a great general to call"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "dominionSpolia": [
+   {
+    "raw": "capturing a city grants production equal to 50% of the production it had put into the Magnum Opus to your city raising the Magnum Opus, or your capital if none is",
+    "text": "capturing a city grants production equal to 50% of the production it had put into the Magnum Opus to your city raising the Magnum Opus, or your capital if none is"
+   }
+  ],
+  "dominionTheLegionsLabour": [
+   {
+    "raw": "Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder. — not built yet",
+    "text": "Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder. — not built yet",
+    "deferred": true
+   }
+  ],
+  "dominionThePraetorianGuard": [
+   {
+    "raw": "every city raising the Magnum Opus: +5 city defence per combat unit standing in the city",
+    "text": "every city raising the Magnum Opus: +5 city defence per combat unit standing in the city"
+   },
+   {
+    "raw": "+6 combat strength for military units within 2 hexes of your city raising the Magnum Opus",
+    "text": "+6 combat strength for military units within 2 hexes of your city raising the Magnum Opus"
+   }
+  ],
+  "dominionTheGrandArmy": [
+   {
+    "raw": "+1 science in your capital per military unit in the field (at most +30 science)",
+    "text": "+1 science in your capital per military unit in the field (at most +30 science)"
+   },
+   {
+    "raw": "+1 culture in your capital per military unit in the field (at most +30 culture)",
+    "text": "+1 culture in your capital per military unit in the field (at most +30 culture)"
+   }
+  ],
+  "dominionTheAnnexedProvinces": [
+   {
+    "raw": "+5% science per captured city you hold (at most +25% science)",
+    "text": "+5% science per captured city you hold (at most +25% science)"
+   },
+   {
+    "raw": "+5% culture per captured city you hold (at most +25% culture)",
+    "text": "+5% culture per captured city you hold (at most +25% culture)"
+   }
+  ],
+  "dominionTheMarshalate": [
+   {
+    "raw": "+1 combat strength for military units per great general earned this game (at most +5)",
+    "text": "+1 combat strength for military units per great general earned this game (at most +5)"
+   },
+   {
+    "raw": "+3 production, +3 culture on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "+3 production, +3 culture on every hex with a Citadel"
+   }
+  ],
+  "dominionTheMilitaryFrontier": [
+   {
+    "raw": "+3 science in every city per combat unit standing there (at most +9 science)",
+    "text": "+3 science in every city per combat unit standing there (at most +9 science)"
+   },
+   {
+    "raw": "+3 culture in every city per combat unit standing there (at most +9 culture)",
+    "text": "+3 culture in every city per combat unit standing there (at most +9 culture)"
+   }
+  ],
+  "dominionTheNationInArms": [
+   {
+    "raw": "every 10 turns, the best melee unit you can build musters in every city with an [[building:armoury|Armoury]]",
+    "text": "every 10 turns, the best melee unit you can build musters in every city with an Armoury"
+   }
+  ],
+  "dominionCircumvallation": [
+   {
+    "raw": "Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet. — not built yet",
+    "text": "Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet. — not built yet",
+    "deferred": true
+   }
+  ],
+  "dominionTheGrandCoalition": [
+   {
+    "raw": "+6 combat strength for military units against an empire raising the Magnum Opus",
+    "text": "+6 combat strength for military units against an empire raising the Magnum Opus"
+   },
+   {
+    "raw": "while you are at war with an empire raising the Magnum Opus: +30% production toward military units, in every city with a [[building:barracks|Barracks]]",
+    "text": "while you are at war with an empire raising the Magnum Opus: +30% production toward military units, in every city with a Barracks"
+   }
+  ],
+  "dominionTheProconsuls": [
+   {
+    "raw": "+4 authority capacity per captured city with a unit standing in it",
+    "text": "+4 authority capacity per captured city with a unit standing in it"
+   },
+   {
+    "raw": "every captured city with a unit standing in it: +10 city defence",
+    "text": "every captured city with a unit standing in it: +10 city defence"
+   }
+  ],
+  "dominionTheGrandCampaign": [
+   {
+    "raw": "Commission. Goal: capture 3 cities, while this card is seated",
+    "text": "Commission. Goal: capture 3 cities, while this card is seated"
+   },
+   {
+    "raw": "Reward: a great general to call, and science equal to 10 times the citizens of every captured city you hold at that moment, and culture equal to 10 times the citizens of every captured city you hold at that moment",
+    "text": "Reward: a great general to call, and science equal to 10 times the citizens of every captured city you hold at that moment, and culture equal to 10 times the citizens of every captured city you hold at that moment"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "dominionTheCapturedMarvel": [
+   {
+    "raw": "Commission. Goal: capture 1 city that holds a world wonder or was another empire's original capital, while this card is seated",
+    "text": "Commission. Goal: capture 1 city that holds a world wonder or was another empire's original capital, while this card is seated"
+   },
+   {
+    "raw": "Reward: science equal to 20 times the citizens of the cities you captured that turn at that moment, and culture equal to 20 times the citizens of the cities you captured that turn at that moment, and science equal to 200 times the world wonders in the cities you captured that turn at that moment, and culture equal to 200 times the world wonders in the cities you captured that turn at that moment",
+    "text": "Reward: science equal to 20 times the citizens of the cities you captured that turn at that moment, and culture equal to 20 times the citizens of the cities you captured that turn at that moment, and science equal to 200 times the world wonders in the cities you captured that turn at that moment, and culture equal to 200 times the world wonders in the cities you captured that turn at that moment"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",

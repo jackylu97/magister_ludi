@@ -166,8 +166,8 @@ describe('The Muster of the Fields — a trained melee unit', () => {
     expect(raised.type).toBe(type);
     expect(raised.ownerId).toBe(0);
     expect(raised.freeUpkeep).toBeUndefined();
-    // Muster Rites: "training a unit grants 5 faith".
-    expect(playerById(g.state, 0)!.faithPool).toBe(faith + 5);
+    // Muster Rites: "training a unit grants 6 faith" (the Dominion sheet raised it from 5).
+    expect(playerById(g.state, 0)!.faithPool).toBe(faith + 6);
     expect(city.population).toBe(5);
   });
 

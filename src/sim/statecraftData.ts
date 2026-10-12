@@ -1115,7 +1115,16 @@ export type CityScope =
    * An empty list admits nothing, which is the honest reading of "any of
    * none" and the same answer `all` of none would give inverted.
    */
-  | { test: 'any'; of: CityScope[] };
+  | { test: 'any'; of: CityScope[] }
+  /**
+   * **This town has the Magnum Opus at the front of its queue** (the Dominion
+   * deck's Tier IV: The Praetorian Guard). Found by the row's own marker
+   * (`BuildingDef.endsTheGame`), never by name, through `isRaisingOpus` in the
+   * evaluator. Front of the queue only, because that is the row the town's
+   * hammers are paying for. Other decks that need "the city building the
+   * Magnum Opus" should use this scope.
+   */
+  | { test: 'raisingOpus' };
 
 /**
  * A fact about the empire that gates a whole clause. `conditionRule`'s subject.
@@ -1206,7 +1215,13 @@ export type EmpireCondition =
    * the one stated cut), which costs nothing here: a rite is stamped on a city
    * and no card can grant one by being read.
    */
-  | { test: 'keepingRite' };
+  | { test: 'keepingRite' }
+  /**
+   * At war with an empire that has a town raising the Magnum Opus — The Grand
+   * Coalition. Read through the same `isRaisingOpus` as `CityScope`'s
+   * `raisingOpus`.
+   */
+  | { test: 'atWarWithOpusBuilder' };
 
 /**
  * When a strength line applies. The whole of `combatCardLine`'s generality.
@@ -1313,7 +1328,16 @@ export type CombatCondition =
    * stops short of a colony's third ring. Measured by `wrappedDistance` off the
    * contested tile, exactly as every other radius in the game is.
    */
-  | { test: 'withinOfCity'; hexes: number }
+  | {
+      test: 'withinOfCity';
+      hexes: number;
+      /**
+       * Only towns this scope admits count — The Praetorian Guard's "within two
+       * hexes of the city raising your Magnum Opus". Absent counts every town
+       * of yours, which is what the rows written before it meant.
+       */
+      scope?: CityScope;
+    }
   /**
    * The piece on the **other** side is stronger than this one — Spartacus, and
    * the vocabulary's first comparison rather than a lookup.
@@ -1386,7 +1410,14 @@ export type CombatCondition =
    * follow your religion"). Absent counts your own towns too, because a card
    * that meant the whole congregation should be able to say so.
    */
-  | { test: 'followingTerritory'; foreign?: boolean };
+  | { test: 'followingTerritory'; foreign?: boolean }
+  /**
+   * The other side belongs to an empire with a town raising the Magnum Opus —
+   * The Grand Coalition's strength against the empire racing to finish.
+   * Asked of `CombatSituation.vsOwnerId`, so it holds against that empire's
+   * units and its cities alike.
+   */
+  | { test: 'vsOpusBuilder' };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
@@ -2766,7 +2797,19 @@ export type TallyOccasion =
    * exactly — one deed, two counters, because a card in a chair and a record on
    * the player answer different questions.
    */
-  | 'campCleared';
+  | 'campCleared'
+  /**
+   * A city **taken by force** — Commission: Take the City and Commission: The
+   * Grand Campaign. Written in `captureCity` (`combat.ts`), the one seam a
+   * town is taken in battle, so a town handed over in a treaty is not counted.
+   */
+  | 'cityCaptured'
+  /**
+   * A city taken by force that held a world wonder or was another empire's
+   * original capital — Commission: The Captured Marvel. Written beside
+   * `cityCaptured`, from facts read before the town changed hands.
+   */
+  | 'wonderOrCapitalCaptured';
 // **There is deliberately no `cityGrew`**, and the audit asked for one: every
 // growth card in the six decks is bound by the design doc's standing clause
 // that natural-growth rewards *count only growth beyond the town's historical
@@ -2787,6 +2830,8 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'unitKilled',
   'unitTrained',
   'campCleared',
+  'cityCaptured',
+  'wonderOrCapitalCaptured',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -3815,7 +3860,13 @@ export type OccasionMeasure =
    * bargain. Entry XVII's "sum within a stage, apply once" at this scale, and
    * still one printed figure composed before anything is banked.
    */
-  | 'payout';
+  | 'payout'
+  /**
+   * The hammers the captured town had put into the Magnum Opus, read before
+   * the capture wiped its queue — Spolia. Filled only on the `capture`
+   * occasion (`WindfallOccasionFacts.opusProgress`).
+   */
+  | 'opusProgress';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -3896,6 +3947,19 @@ export interface WindfallGrantSpec {
    * buildings, and the draw's bias is a fact about what an empire keeps.
    */
   renown?: number;
+  /**
+   * The family `renown` favours — Battle Honours' great generals. The one
+   * exception to the rule above, and it is the card's own words: the renown
+   * still lands through `settleRenownWindfall`, which already takes a family.
+   * Absent feeds no family.
+   */
+  renownFamily?: Family;
+  /**
+   * Production from this grant goes to the town raising the Magnum Opus, or to
+   * the capital when no town is — Spolia. Absent sends it where every other
+   * production grant goes (the nearest town, or the capital).
+   */
+  toOpus?: true;
   /**
    * A **piece**, gifted outright — Camp Followers' "and gift a random military
    * unit".
@@ -5223,6 +5287,13 @@ export interface CardWindfallRiderEffect {
    * sentence, and Blitz — which says it — is still deferred.
    */
   oncePerTurn?: boolean;
+  /**
+   * The rider fires only when the unit lost was **defending** — Songs of the
+   * Fallen's losing half. Read off `WindfallOccasionFacts.defending`, which
+   * the `death` occasion carries for the piece that was attacked and not for
+   * an attacker killed by the counter-blow.
+   */
+  defending?: boolean;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -5642,8 +5713,13 @@ export interface CardPeriodicMusterEffect {
   every: number;
   /** Which piece. `'bestMelee'` asks the roster what this empire can raise. */
   unit: UnitTypeId | 'bestMelee';
-  /** Where it appears. The seat of government, and nowhere else today. */
-  where: 'capital';
+  /**
+   * Where it appears: the seat of government, or (`'city'`) every town of the
+   * empire that `scope` admits — The Nation in Arms' towns with an Armoury.
+   */
+  where: 'capital' | 'city';
+  /** Which towns muster, for `where: 'city'`. Absent admits every town. */
+  scope?: CityScope;
   /**
    * What the levy is **born carrying** — The Levée en Masse's point of movement,
    * kept for the rest of that piece's life.
@@ -6958,7 +7034,15 @@ export type CommissionFigure =
   /** Hexes inside this empire's borders. */
   | 'hexesOwned'
   /** Tiles worked by this empire's towns that carry an improvement. */
-  | 'improvedTilesWorked';
+  | 'improvedTilesWorked'
+  /** Other empires' original capitals this empire holds. Commission: Hold the Capitals. */
+  | 'originalCapitalsHeld'
+  /** Citizens in the captured towns this empire holds. Commission: The Grand Campaign. */
+  | 'capturedPopulation'
+  /** Citizens in the towns this empire took this turn. Commission: Take the City. */
+  | 'capturedThisTurnPopulation'
+  /** World wonders in the towns this empire took this turn. Commission: The Captured Marvel. */
+  | 'capturedThisTurnWonders';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -6967,6 +7051,10 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'tradeRoutes',
   'hexesOwned',
   'improvedTilesWorked',
+  'originalCapitalsHeld',
+  'capturedPopulation',
+  'capturedThisTurnPopulation',
+  'capturedThisTurnWonders',
 ];
 
 /**

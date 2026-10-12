@@ -34,7 +34,8 @@ import { getTileAt } from './map';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { resourcesOfKind } from './resourceData';
 import { bumpEconomy } from './slate';
-import { type GameState, type Player, capitalCityOf, realPlayers, tileOwnerField } from './state';
+import { type GameState, type Player, capitalCityOf, citiesOf, realPlayers, tileOwnerField } from './state';
+import { isWonder } from './buildingData';
 import {
   type PlayerStatecraft,
   type WindfallPayout,
@@ -108,6 +109,41 @@ export function commissionFigure(
         }
       }
       return worked;
+    }
+    case 'originalCapitalsHeld': {
+      // A town founded first by an empire (`City.originalCapital`) that this
+      // empire now holds by capture. The board keeps no founder, so an
+      // empire's own first town, lost and taken back, also counts here.
+      let held = 0;
+      for (const city of citiesOf(state, playerId)) {
+        if (city.originalCapital === true && city.captured) held += 1;
+      }
+      return held;
+    }
+    case 'capturedPopulation': {
+      let people = 0;
+      for (const city of citiesOf(state, playerId)) {
+        if (city.captured) people += city.population;
+      }
+      return people;
+    }
+    case 'capturedThisTurnPopulation': {
+      // `City.capturedOn` is written only for a town taken by force. The phase
+      // runs before the turn number moves on, so "this turn" is the turn the
+      // goal was met.
+      let people = 0;
+      for (const city of citiesOf(state, playerId)) {
+        if (city.capturedOn === state.turn) people += city.population;
+      }
+      return people;
+    }
+    case 'capturedThisTurnWonders': {
+      let wonders = 0;
+      for (const city of citiesOf(state, playerId)) {
+        if (city.capturedOn !== state.turn) continue;
+        for (const id of city.buildings) if (isWonder(id)) wonders += 1;
+      }
+      return wonders;
     }
   }
 }

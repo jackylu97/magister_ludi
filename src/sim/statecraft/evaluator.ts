@@ -1506,12 +1506,44 @@ function empireConditionHolds(
       }
       return false;
     }
+    case 'atWarWithOpusBuilder':
+      // The war register, narrowed to the rivals with a town raising the Opus.
+      for (const war of state.wars) {
+        if (war.a !== playerId && war.b !== playerId) continue;
+        const rival = war.a === playerId ? war.b : war.a;
+        if (opusCityOf(state, rival) !== null) return true;
+      }
+      return false;
     default: {
       const unhandled: never = test;
       void unhandled;
       return false;
     }
   }
+}
+
+/**
+ * Does this town have the Magnum Opus at the front of its queue? Found by the
+ * row's marker (`BuildingDef.endsTheGame`), never by name. The one reading
+ * behind `CityScope`'s `raisingOpus`, `EmpireCondition`'s
+ * `atWarWithOpusBuilder`, `CombatCondition`'s `vsOpusBuilder` and a grant's
+ * `toOpus`.
+ */
+export function isRaisingOpus(city: City): boolean {
+  const front = city.queue[0];
+  if (front === undefined || front.kind !== 'building' || !isBuildingId(front.id)) return false;
+  return buildingDef(front.id).endsTheGame === true;
+}
+
+/**
+ * This empire's town raising the Magnum Opus, or `null`. The first in
+ * founding order (`citiesOf`), so a replay finds the same one.
+ */
+export function opusCityOf(state: GameState, playerId: number): City | null {
+  for (const city of citiesOf(state, playerId)) {
+    if (isRaisingOpus(city)) return city;
+  }
+  return null;
 }
 
 /**
@@ -2121,6 +2153,8 @@ export function cityScopeAdmits(
       // `cityPostPays` rather than `cityHoldsPost`, so war and a blockade
       // suspend every line written on the scope at once. See the scope.
       return cityPostPays(state, city, viewerId ?? city.ownerId);
+    case 'raisingOpus':
+      return isRaisingOpus(city);
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -2264,6 +2298,8 @@ function scopeNote(scope?: CityScope): string | null {
       // The composite's own word, so a label reads "pasture or camp" where the
       // conjunction reads "pasture + camp".
       return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' or ');
+    case 'raisingOpus':
+      return 'raising the Magnum Opus';
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -5176,6 +5212,7 @@ function combatConditionHolds(
       const reach = Math.max(0, Math.floor(when.hexes));
       for (const city of state.cities) {
         if (city.ownerId !== situation.unit.ownerId) continue;
+        if (when.scope !== undefined && !cityScopeAdmits(state, city, when.scope)) continue;
         const seat = getTileAt(state.map, city.col, city.row);
         if (!seat) continue;
         if (wrappedDistance(state.map, eye, tileHex(seat)) <= reach) return true;
@@ -5219,6 +5256,11 @@ function combatConditionHolds(
       const them = situation.vsOwnerId;
       if (them === undefined || them === situation.unit.ownerId) return false;
       return cityCount(state, them) > cityCount(state, situation.unit.ownerId);
+    }
+    case 'vsOpusBuilder': {
+      const them = situation.vsOwnerId;
+      if (them === undefined || them === situation.unit.ownerId) return false;
+      return opusCityOf(state, them) !== null;
     }
     case 'beside':
       // The ring of six off this piece's own hex, through the sweep that already
@@ -5810,7 +5852,7 @@ export interface WindfallPayout {
   /** The occasion's own figure with every percentage rider folded in. */
   amount: number;
   /** Extra voices the riders add outright, keyed by yield. */
-  grants: { card: CardId; source: string; yield: CityYieldKey; amount: number }[];
+  grants: { card: CardId; source: string; yield: CityYieldKey; amount: number; toOpus?: true }[];
   /** Hit points a rider restores to the acting unit. */
   heal: number;
   /**
@@ -5852,7 +5894,7 @@ export interface WindfallPayout {
    * place renown is ever added. Composed here with every other figure so the
    * era and the slotted count reach it exactly as they reach a yield grant.
    */
-  renown: { card: CardId; source: string; amount: number }[];
+  renown: { card: CardId; source: string; amount: number; family?: Family }[];
   /**
    * **Lumps of faith a rider presses** where the occasion happened — The
    * Crusade's, pressed wherever its soldiers kill.
@@ -5996,6 +6038,17 @@ export interface WindfallOccasionFacts {
    * rule, and the shape of the loop is what the next reader copies.
    */
   firsts?: FirstKind[];
+  /**
+   * The hammers a captured town had put into the Magnum Opus, read before the
+   * capture wiped its queue (Spolia). Filled by the two capture seams in
+   * `combat.ts`.
+   */
+  opusProgress?: number;
+  /**
+   * True on a `death` when the piece lost was the one attacked, not an
+   * attacker killed by the counter-blow (Songs of the Fallen).
+   */
+  defending?: boolean;
 }
 
 
@@ -6150,6 +6203,8 @@ export function windfallPayout(
     // writes: composing is not spending, and the stamp is `payWindfallGrants`'
     // to make (see `CardWindfallRiderEffect.oncePerTurn`).
     if (effect.oncePerTurn === true && riderRodeThisTurn(state, playerId, card)) return false;
+    // Songs of the Fallen: a loss counts only when the piece was defending.
+    if (effect.defending === true && facts.defending !== true) return false;
     return true;
   };
   // **The occasion's own figure, folded first.** The percentages sum and apply
@@ -6226,7 +6281,12 @@ export function windfallPayout(
         (effect.perAge === true ? era : 1) *
         (effect.perSlottedOrder === true ? slotted : 1);
       if (amount !== 0) {
-        payout.renown.push({ card, source, amount });
+        payout.renown.push({
+          card,
+          source,
+          amount,
+          ...(grant.renownFamily !== undefined ? { family: grant.renownFamily } : {}),
+        });
         payout.lines.push({ card, source, note: `${signed(amount)} renown` });
       }
     }
@@ -6306,7 +6366,13 @@ export function windfallPayout(
           (effect.perAge === true ? era : 1) *
           (effect.perSlottedOrder === true ? slotted : 1);
         if (amount !== 0) {
-          payout.grants.push({ card, source, yield: grant.yield, amount });
+          payout.grants.push({
+            card,
+            source,
+            yield: grant.yield,
+            amount,
+            ...(grant.toOpus === true ? { toOpus: true as const } : {}),
+          });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
         }
         continue;
@@ -6375,6 +6441,8 @@ function occasionMeasure(
       // real nought and the grant it scales is dropped for being zero, one line
       // down.
       return paid;
+    case 'opusProgress':
+      return facts.opusProgress;
     default: {
       const unhandled: never = measure;
       void unhandled;
@@ -6591,22 +6659,34 @@ export function musterPeriodicUnits(state: GameState): void {
     for (const { effect } of effectsOfKind(state, player.id, 'periodicMuster')) {
       const every = Math.floor(effect.every);
       if (every <= 0 || state.turn % every !== 0) continue;
-      const seat = capitalCityOf(state, player.id);
-      if (!seat) continue;
-      const type = effect.unit === 'bestMelee' ? bestMeleeFor(state, player.id) : effect.unit;
-      if (type === null) continue;
-      const tile = spawnTileFor(state, seat, type);
-      if (!tile) continue;
-      // The row's own mark on the levy it raises — The Levée en Masse's point of
-      // movement, kept for the rest of that piece's life. Handed to `realiseItem`
-      // beside `free` and written by `createUnit`, the one writer of a stamp, so
-      // a mustered conscript is stamped exactly where a completed warrior is.
-      realiseItem(
-        state,
-        seat,
-        { kind: 'unit', id: type, tile },
-        { free: true, stamp: effect.stamp },
-      );
+      // The capital, or (The Nation in Arms) every town the scope admits, in
+      // founding order. The list is taken before anything is raised.
+      const capital = capitalCityOf(state, player.id);
+      const seats =
+        effect.where === 'city'
+          ? citiesOf(state, player.id).filter(
+              (city) => effect.scope === undefined || cityScopeAdmits(state, city, effect.scope),
+            )
+          : capital
+            ? [capital]
+            : [];
+      for (const seat of seats) {
+        const type = effect.unit === 'bestMelee' ? bestMeleeFor(state, player.id) : effect.unit;
+        if (type === null) continue;
+        const tile = spawnTileFor(state, seat, type);
+        if (!tile) continue;
+        // The row's own mark on the levy it raises — The Levée en Masse's point
+        // of movement, kept for the rest of that piece's life. Handed to
+        // `realiseItem` beside `free` and written by `createUnit`, the one
+        // writer of a stamp, so a mustered conscript is stamped exactly where a
+        // completed warrior is.
+        realiseItem(
+          state,
+          seat,
+          { kind: 'unit', id: type, tile },
+          { free: true, stamp: effect.stamp },
+        );
+      }
     }
   }
 }
@@ -6882,7 +6962,13 @@ export function payWindfallGrants(
     // The banks are a line of the meters too — see `collectYields` (batch M3).
     else if (grant.yield === 'faith') player.faithPool += grant.amount;
     else {
-      const city = at ? nearestOwnedCity(state, player.id, at) : capitalCityOf(state, player.id) ?? null;
+      // Spolia's hammers go to the town raising the Opus, or to the capital.
+      const city =
+        grant.toOpus === true
+          ? (opusCityOf(state, player.id) ?? capitalCityOf(state, player.id) ?? null)
+          : at
+            ? nearestOwnedCity(state, player.id, at)
+            : (capitalCityOf(state, player.id) ?? null);
       if (!city) continue;
       if (grant.yield === 'food') city.foodBasket += grant.amount;
       else city.hammerBasket += grant.amount;
@@ -6946,7 +7032,7 @@ export function payWindfallGrants(
     settleRenownWindfall(
       state,
       player,
-      payout.renown.map((line) => ({ family: null, amount: line.amount })),
+      payout.renown.map((line) => ({ family: line.family ?? null, amount: line.amount })),
     );
   }
   return touched;

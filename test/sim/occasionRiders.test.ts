@@ -261,13 +261,17 @@ describe('a windfall grant scaled by the occasion’s own facts', () => {
     // What the shape promises is the *printed figure*, and this is it.
     const g = game();
     slot(g.state, 0, 'songsOfTheFallen');
+    // A death pays only for the piece that was defending (the Dominion sheet's
+    // revision of Songs of the Fallen), so the death is asked as a defence.
     for (const occasion of ['kill', 'death'] as const) {
-      const payout = windfallPayout(g.state, 0, occasion, 0, 0, { strength: 11 });
+      const payout = windfallPayout(g.state, 0, occasion, 0, 0, { strength: 11, defending: true });
       expect(payout.grants.map((line) => [line.yield, line.amount])).toEqual([
         ['science', 11],
         ['culture', 11],
       ]);
     }
+    // An attacker killed by the counter-blow pays nothing.
+    expect(windfallPayout(g.state, 0, 'death', 0, 0, { strength: 11 }).grants).toEqual([]);
     // A strength of nought is a real nought and pays nothing — the zero line
     // every fold in this file drops rather than printing.
     expect(windfallPayout(g.state, 0, 'kill', 0, 0, { strength: 0 }).grants).toEqual([]);
@@ -518,7 +522,9 @@ describe('the member register', () => {
         if (effect.grant?.max !== undefined) ceiling = true;
       }
     }
-    expect([...measures].sort()).toEqual(['gold', 'payout', 'population', 'strength']);
+    // `opusProgress` is Spolia's (the Dominion batch): the hammers a captured
+    // town had put into the Magnum Opus.
+    expect([...measures].sort()).toEqual(['gold', 'opusProgress', 'payout', 'population', 'strength']);
     expect(limiter, 'oncePerTurn').toBe(true);
     expect(shelf, 'buildingCategory').toBe(true);
     expect(greatHouse, 'empireBuilding').toBe(true);

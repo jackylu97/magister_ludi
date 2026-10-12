@@ -158,6 +158,8 @@ A deck should support compatible approaches and a reliable mixed route. Across i
 
 ### Dominion
 
+*The tier tables below are history. Since the Dominion batch (2026-10-12) the deck sheet `docs/decks/dominion.md` is the spec of record, and `test/sim/decks/dominion.test.ts` checks the data against it.*
+
 #### Playstyle goals — independent of the card draft
 
 **Power fantasy:** “My armed forces make my civilization powerful.” Training, maintaining and deploying an army should sustain a functioning state: productive towns, military knowledge, legitimacy and the capacity to win. Peace, defence, raiding and conquest are different uses of that strength.

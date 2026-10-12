@@ -215,7 +215,9 @@
       "goldSpent": 2000,
       "unitKilled": 10,
       "unitTrained": 20,
-      "campCleared": 5
+      "campCleared": 5,
+      "cityCaptured": 2,
+      "wonderOrCapitalCaptured": 1
     }
   },
   "threat": {

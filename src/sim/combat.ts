@@ -288,7 +288,7 @@
 
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { blockadedWaterAround, blockades } from './blockade';
-import { isWonder } from './buildingData';
+import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from './buildingData';
 import { buildingCityHp, buildingCityStat } from './buildingEffects';
 import { assignCitizens, cityAt, settleProductionWindfall } from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
@@ -328,12 +328,14 @@ import {
 import {
   type City,
   type GameState,
+  type QueueItem,
   type Unit,
   breakFortify,
   capitalCityOf,
   captureUnit,
   isBarbarian,
   playerById,
+  queueItemKey,
   realPlayers,
   removeUnit,
   unitById,
@@ -2566,11 +2568,14 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         // `captureCity` charges the sack against the town's people, so the
         // figure Triumphs is paid for is the town as the defender kept it.
         const sackedPopulation = target.city.population;
+        // Spolia's figure, read before the capture wipes the queue.
+        const opusProgress = opusHammersIn(target.city);
         captureCity(state, target.city, attacker.ownerId);
         outcome.capturedCityId = target.city.id;
         defenderDied = true;
         payBattleRiders(state, attacker.ownerId, 'capture', tile, {
           capturedWonder: heldWonder,
+          opusProgress,
           actor: attacker.type,
           // **The town as it stood a moment before it changed hands** —
           // Triumphs' culture for the people who lived in it. Read beside the
@@ -2647,6 +2652,8 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           payBattleRiders(state, fallenOwner, 'death', tile, {
             actor: defender.type,
             strength: fallenStrength(defender),
+            // The piece that was attacked: Songs of the Fallen's losing half.
+            defending: true,
           });
         }
       }
@@ -2784,11 +2791,13 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         // it: a moment later nothing can tell a captured wonder from a built one.
         const heldWonder = town.buildings.some((id) => isWonder(id));
         const sacked = town.population;
+        const opusProgress = opusHammersIn(town);
         townOwnerBefore = town.ownerId;
         captureCity(state, town, attacker.ownerId);
         outcome.capturedCityId = town.id;
         payBattleRiders(state, attacker.ownerId, 'capture', tile, {
           capturedWonder: heldWonder,
+          opusProgress,
           actor: attacker.type,
           // Read before the stones change hands, exactly as the wonder is.
           population: sacked,
@@ -3101,12 +3110,35 @@ export function handOverCity(state: GameState, city: City, ownerId: number): voi
   assignCitizens(state, city);
 }
 
+/**
+ * The hammers this town has put into the Magnum Opus: the front row's basket
+ * when the Opus is at the front, plus any bucket parked behind the queue under
+ * its key. Found by the row's marker, never by name. Read by the two capture
+ * seams before `handOverCity` wipes both (Spolia).
+ */
+function opusHammersIn(city: City): number {
+  let hammers = 0;
+  for (const id of OPUS_IDS) {
+    const item: QueueItem = { kind: 'building', id };
+    const front = city.queue[0];
+    if (front !== undefined && front.kind === 'building' && front.id === id) hammers += city.hammerBasket;
+    hammers += city.itemProgress?.[queueItemKey(item)] ?? 0;
+  }
+  return hammers;
+}
+
+/** The rows that end the game when finished: the Magnum Opus, by its marker. */
+const OPUS_IDS: readonly BuildingId[] = BUILDING_IDS.filter((id) => buildingDef(id).endsTheGame === true);
+
 function captureCity(state: GameState, city: City, ownerId: number): void {
   // Read **before** the flag changes hands, because "was this the seat of their
   // government" is a question about the empire that is losing it — and the
   // handover below is about to move it.
   const loser = city.ownerId;
   const wasCapital = capitalCityOf(state, loser)?.id === city.id;
+  // The commissions' capture counts (Take the City, The Grand Campaign, The
+  // Captured Marvel), read before the town changes hands for the same reason.
+  const marked = city.originalCapital === true || city.buildings.some((id) => isWonder(id));
   handOverCity(state, city, ownerId);
   // A fraction of the **new** maximum, which is the same maximum as the old one
   // — buildings survive a capture, so the walls a conqueror inherits are the
@@ -3132,6 +3164,8 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // card anybody could buy.
   city.capturedOn = state.turn;
   if (wasCapital && loser !== ownerId) awardBeadOccasion(state, ownerId, 'capitalCaptured');
+  recordScalingOccasion(state, ownerId, 'cityCaptured');
+  if (marked) recordScalingOccasion(state, ownerId, 'wonderOrCapitalCaptured');
 }
 
 /**

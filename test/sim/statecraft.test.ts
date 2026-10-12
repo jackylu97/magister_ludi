@@ -10769,12 +10769,13 @@ describe("D2b — counts and reach", () => {
     // Nothing taken, nothing paid: a count of nought buys no helping at all, and
     // the line is absent from the list rather than sitting in it at zero.
     expect(share()).toBe(0);
-    // Three seized towns, three helpings of five.
+    // Three seized towns, three helpings of ten (the Dominion sheet raised the
+    // helping from five to ten and the ceiling stayed at forty).
     for (let seized = 0; seized < 3; seized++) found(g.state, 0).captured = true;
     bumpRevision(g.state);
-    expect(share()).toBe(15);
+    expect(share()).toBe(30);
     // And the ceiling is in helpings, printed as the figure the card prints: ten
-    // captured towns are eight helpings, which is the forty percent it says.
+    // captured towns are four helpings, which is the forty percent it says.
     for (let seized = 0; seized < 7; seized++) found(g.state, 0).captured = true;
     bumpRevision(g.state);
     expect(share()).toBe(40);
@@ -10782,7 +10783,7 @@ describe("D2b — counts and reach", () => {
     // narrowing on the row being built.
     expect(cardProduction(g.state, city, "building", undefined, "monument" as never)).toEqual([]);
     expect(stripRefs(describeCard("dominionImperium" as never)[0]!.text)).toBe(
-      "+5% production toward The Magnum Opus per captured city you hold (at most +40%)",
+      "+10% production toward The Magnum Opus per captured city you hold (at most +40%)",
     );
   });
 

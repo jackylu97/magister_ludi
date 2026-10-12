@@ -3,16 +3,16 @@
  * cards"; the design of record is `docs/six-decks-first-cut.md`, its
  * "Dominion" section and the "Card-reading conventions" above it).
  *
- * The deck's eighty-five rows live in `data/decks/dominion.json`, and this file
- * is the register for them. What it pins, in the order the brief asks it:
+ * The deck's rows live in `data/decks/dominion.json`, and this file is the
+ * register for them. What it pins:
  *
- *   · **the doc is the table** — the four tier tables of the design doc's
- *     Dominion section are read here, card for card, and every one of them has
- *     a row of that name, that rarity and that band. A card the user adds to
- *     the doc and nobody enters fails here, and so does a row nobody wrote into
- *     the doc. The design doc is edited live, so this is the sync of record
- *     for the deck's *contents*; `statecraftDocSync.test.ts` is the sync for the
- *     live rows' printed words against `docs/orders-and-doctrines.md`;
+ *   · **the sheet is the table** — since the deck implementation batch the
+ *     spec of record is the deck sheet, `docs/decks/dominion.md`. Its five tier
+ *     tables are read here, card for card: every card has a row of that name,
+ *     rarity, band and text, and every row that is not retired is on the sheet.
+ *     The sheet's Proposed cuts table names exactly the retired rows.
+ *     `statecraftDocSync.test.ts` is the sync for the live rows' printed words
+ *     against `docs/orders-and-doctrines.md`;
  *   · **one deck, one band, one rarity** on every row of the file;
  *   · **live or deferred, never half** — a row carries effects and is dealt, or
  *     it carries a stated deferral, no effects, and is in no pool
@@ -46,23 +46,24 @@ import {
   orderIsDealt,
 } from '../../../src/sim/statecraftData';
 
-// --- the design doc, read ------------------------------------------------------
+// --- the deck sheet, read ----------------------------------------------------
 
-const docFiles = import.meta.glob('../../../docs/six-decks-first-cut.md', {
+/**
+ * **The deck sheet** (`docs/decks/dominion.md`) is the spec of record since the
+ * deck implementation batch (`docs/plans/deck-implementation.md`); it replaced
+ * the Dominion section of `docs/six-decks-first-cut.md`, which is now history.
+ */
+const docFiles = import.meta.glob('../../../docs/decks/dominion.md', {
   eager: true,
   query: '?raw',
   import: 'default',
 });
 const DOC = Object.values(docFiles)[0] as string;
 
-/** The Rarity marks the design doc's tier tables print. */
-const MARKS: Record<string, OrderRarity> = {
-  C: 'common',
-  U: 'uncommon',
-  R: 'rare',
-};
+/** The sheet's tier headings, which are the bands. */
+const TIERS: Record<string, Band> = { '0': 0, I: 1, II: 2, III: 3, IV: 4 };
 
-/** One card the doc's Dominion section lists: its name, its rarity, its band. */
+/** One card the sheet's tier tables list: its name, its rarity, its band, its text. */
 interface DocCard {
   name: string;
   rarity: OrderRarity;
@@ -70,36 +71,56 @@ interface DocCard {
   text: string;
 }
 
+/** A table row's cells, or `null` for a header, a rule or a line that is not a row. */
+function cellsOf(line: string): string[] | null {
+  if (!line.startsWith('|')) return null;
+  const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+  if (cells[0] === 'Card' || cells.every((cell) => /^-+$/.test(cell))) return null;
+  return cells;
+}
+
+/** A card's name as the sheet prints it, with the bold and any "(built)" note removed. */
+function nameOf(cell: string): string {
+  return cell.replace(/\*\*/g, '').replace(/\s*\((built|new)\)$/, '').trim();
+}
+
 /**
- * **The four tier tables of the doc's Dominion section**, in the doc's own
- * order.
- *
- * Sliced between the section's heading and the next deck's, so the tier
- * headings inside it are the only ones read — the doc numbers its tiers the
- * way the ladder numbers its rungs (`#### Tier 0 — Early`), which is the band.
+ * **The five tier tables of the sheet**, in the sheet's own order. Read from
+ * the first tier heading to the shared cards' heading, so the shared table
+ * (whose rows live in `common.json`) is not read here.
  */
 function docCards(): DocCard[] {
-  const start = DOC.indexOf('### Dominion');
-  expect(start, 'the design doc has a Dominion section').toBeGreaterThanOrEqual(0);
-  const end = DOC.indexOf('\n### Expansionist', start);
+  const start = DOC.indexOf('\n## Tier 0');
+  expect(start, 'the sheet has a Tier 0 table').toBeGreaterThanOrEqual(0);
+  const end = DOC.indexOf('\n## Cards Dominion shares', start);
   const section = DOC.slice(start, end === -1 ? undefined : end);
   const cards: DocCard[] = [];
   let band: Band | null = null;
   for (const line of section.split('\n')) {
-    const heading = /^#### Tier (\d) /.exec(line);
+    const heading = /^## Tier (0|I|II|III|IV)$/.exec(line);
     if (heading) {
-      band = Number(heading[1]) as Band;
+      band = TIERS[heading[1]!]!;
       continue;
     }
-    if (!line.startsWith('|') || band === null) continue;
-    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
-    if (cells.length < 3) continue;
-    if (cells[0] === 'Card' || cells.every((cell) => /^-+$/.test(cell))) continue;
-    const rarity = MARKS[cells[1] ?? ''];
-    if (rarity === undefined) continue;
-    cards.push({ name: cells[0]!, rarity, band, text: cells[2]! });
+    const cells = cellsOf(line);
+    if (cells === null || band === null || cells.length < 4) continue;
+    cards.push({ name: nameOf(cells[0]!), rarity: cells[1] as OrderRarity, band, text: cells[3]! });
   }
   return cards;
+}
+
+/** The names in the sheet's Proposed cuts table. */
+function cutNames(): Set<string> {
+  const start = DOC.indexOf('\n## Proposed cuts');
+  expect(start, 'the sheet has a Proposed cuts table').toBeGreaterThanOrEqual(0);
+  const end = DOC.indexOf('\n## ', start + 1);
+  const section = DOC.slice(start, end === -1 ? undefined : end);
+  const names = new Set<string>();
+  for (const line of section.split('\n')) {
+    const cells = cellsOf(line);
+    if (cells !== null) names.add(nameOf(cells[0]!));
+  }
+  return names;
 }
 
 /** The rows of `data/decks/dominion.json`, in file order. */
@@ -107,7 +128,14 @@ const ROWS: readonly OrderId[] = DECK_FILE_ORDERS.dominion;
 
 // A commission (batch C) is live with no effects: its goal and reward are the card.
 const isLive = (id: OrderId): boolean =>
-  orderDef(id).effects.length > 0 || orderDef(id).commission !== undefined;
+  orderDef(id).retired !== true &&
+  (orderDef(id).effects.length > 0 || orderDef(id).commission !== undefined);
+
+/** The rows the sheet's cuts retired: kept for saves, dealt by nobody. */
+const isRetired = (id: OrderId): boolean => orderDef(id).retired === true;
+
+/** The rows the sheet's tier tables list: every row that is not retired. */
+const SHEET_ROWS: readonly OrderId[] = ROWS.filter((id) => !isRetired(id));
 
 describe('the Dominion deck — the file', () => {
   it('names one deck, a band and a rarity on every row, and nothing but Dominion', () => {
@@ -120,10 +148,8 @@ describe('the Dominion deck — the file', () => {
       expect(def.name, id).toBeTruthy();
       expect(def.flavor, id).toBeTruthy();
       expect(def.text, `${id} carries no ratified text`).toBeTruthy();
-      // D1b enters a deck; nothing in it is withdrawn and nothing in it is a
-      // charter (the ten access rows are Scientific's, Commerce's and
-      // Devotion's).
-      expect(def.retired, id).toBeUndefined();
+      // Nothing in it is a charter (the ten access rows are Scientific's,
+      // Commerce's and Devotion's). Retired rows are the sheet's cuts.
       expect(def.charter, id).toBeUndefined();
     }
     // Ids are unique across the eight files (`decks.test.ts`); within this one,
@@ -133,10 +159,10 @@ describe('the Dominion deck — the file', () => {
     expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('mirrors the design doc’s four tier tables, card for card', () => {
+  it('mirrors the deck sheet’s five tier tables, card for card', () => {
     const doc = docCards();
     expect(doc.length, 'the doc lists cards under every tier heading').toBeGreaterThan(0);
-    const byName = new Map(ROWS.map((id) => [orderDef(id).name, id] as const));
+    const byName = new Map(SHEET_ROWS.map((id) => [orderDef(id).name, id] as const));
     for (const card of doc) {
       const id = byName.get(card.name);
       expect(id, `the deck file has no row for "${card.name}"`).toBeDefined();
@@ -149,7 +175,19 @@ describe('the Dominion deck — the file', () => {
     for (const name of byName.keys()) {
       expect(listed.has(name), `"${name}" is a row the doc's Dominion tables do not list`).toBe(true);
     }
-    expect(ROWS.length).toBe(doc.length);
+    expect(SHEET_ROWS.length).toBe(doc.length);
+  });
+
+  it('retires exactly the rows the sheet’s Proposed cuts name, and deals none of them', () => {
+    const cuts = cutNames();
+    for (const id of ROWS) {
+      if (!isRetired(id)) {
+        expect(cuts.has(orderDef(id).name), `${id} is cut on the sheet and not retired`).toBe(false);
+        continue;
+      }
+      expect(cuts.has(orderDef(id).name), `${id} is retired and not on the sheet's cuts`).toBe(true);
+      expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
+    }
   });
 
   /**
@@ -160,7 +198,7 @@ describe('the Dominion deck — the file', () => {
    * into a near-fit (CLAUDE.md: always defer, never bend).
    */
   it('is every row either live with effects or deferred with a stated sentence', () => {
-    for (const id of ROWS) {
+    for (const id of SHEET_ROWS) {
       const def = orderDef(id);
       if (isLive(id)) {
         expect(def.deferred, `${id} is live and still carries a deferral`).toBeUndefined();
@@ -177,7 +215,7 @@ describe('the Dominion deck — the file', () => {
       expect(orderIsDealt(id), `${id} is deferred and still dealt`).toBe(false);
     }
     // The deck is not all deferral: the shapes that exist carry most of it.
-    expect(ROWS.filter(isLive).length).toBeGreaterThan(ROWS.length / 3);
+    expect(SHEET_ROWS.filter(isLive).length).toBeGreaterThan(SHEET_ROWS.length / 3);
   });
 
   it('describes every live row in words, with no raw keyword left on a surface', () => {
@@ -253,7 +291,7 @@ describe('the Dominion deck — the draw', () => {
     const eligible = new Set(eligibleFor(g.state, ada));
     for (const id of ROWS) {
       if (isLive(id)) continue;
-      expect(eligible.has(id), `${id} is deferred and on the shelf`).toBe(false);
+      expect(eligible.has(id), `${id} is deferred or retired and on the shelf`).toBe(false);
     }
   });
 

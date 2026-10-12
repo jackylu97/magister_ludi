@@ -150,6 +150,7 @@ import {
   buildingMatchesYieldPercent,
   cityScopeAdmits,
   countOf,
+  opusCityOf,
   orderAtSlotPosition,
   periodicProbe,
   slotTypesOf,
@@ -4177,6 +4178,15 @@ function conditionIsLive(
       for (const city of ctx.state.cities) {
         if (city.ownerId !== ctx.playerId) continue;
         if (cityRite(ctx.state, city) !== null) return true;
+      }
+      return false;
+    }
+    case 'atWarWithOpusBuilder': {
+      // The simulation's own reading of who is raising the Opus.
+      for (const war of ctx.state.wars) {
+        if (war.a !== ctx.playerId && war.b !== ctx.playerId) continue;
+        const rival = war.a === ctx.playerId ? war.b : war.a;
+        if (opusCityOf(ctx.state, rival) !== null) return true;
       }
       return false;
     }

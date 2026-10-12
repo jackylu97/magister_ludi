@@ -91,7 +91,8 @@
           "amount": 1,
           "where": "garrison"
         }
-      ]
+      ],
+      "retired": true
     },
     "musterRites": {
       "name": "Muster Rites",
@@ -102,7 +103,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "A sword blessed, a bowl filled, a name on the roll.",
-      "text": "Training a unit grants 5 faith and 5 food.",
+      "text": "Training a unit grants 6 faith and 6 food.",
       "note": "A unit bought outright counts as trained, and pays this once.",
       "effects": [
         {
@@ -110,7 +111,7 @@
           "occasion": "unitCompletion",
           "grant": {
             "yield": "faith",
-            "amount": 5
+            "amount": 6
           }
         },
         {
@@ -118,7 +119,7 @@
           "occasion": "unitCompletion",
           "grant": {
             "yield": "food",
-            "amount": 5
+            "amount": 6
           }
         }
       ]
@@ -134,7 +135,12 @@
       "flavor": "Every victory is written down, and the writing is worth something.",
       "text": "While slotted, pays +3 science and +3 culture, and gains +3 of each for every enemy unit you kill.",
       "effects": [
-        { "kind": "pays", "where": "empire", "science": 3, "culture": 3 },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "science": 3,
+          "culture": 3
+        },
         {
           "kind": "pays",
           "where": "empire",
@@ -153,7 +159,8 @@
           "count": "tally",
           "tally": "unitKilled"
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionConscription": {
       "name": "Conscription",
@@ -180,7 +187,8 @@
             "category": "unit"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "pathfinders": {
       "name": "Pathfinders",
@@ -212,50 +220,8 @@
             "modelClass": "scout"
           }
         }
-      ]
-    },
-    "drillManuals": {
-      "name": "Drill Manuals",
-      "decks": [
-        "dominion"
       ],
-      "band": 0,
-      "line": "none",
-      "rarity": "uncommon",
-      "flavor": "Written by men who were tired of explaining it twice.",
-      "text": "Barracks and Stables give +2 science. +20% production toward Barracks and Stables.",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "science": 2,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "barracks"
-          }
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "science": 2,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "stable"
-          }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "building": "barracks",
-          "percent": 20
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "building": "stable",
-          "percent": 20
-        }
-      ]
+      "retired": true
     },
     "dominionTheStandingArmy": {
       "name": "The Standing Army",
@@ -324,6 +290,206 @@
         }
       ]
     },
+    "dominionClearTheFrontier": {
+      "name": "Commission: Clear the Frontier",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A young state wins its first war against the camps at its edge.",
+      "text": "Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "campCleared",
+            "count": 2
+          }
+        ],
+        "reward": [
+          {
+            "yield": "production",
+            "amount": 60
+          },
+          {
+            "unit": "bestMelee"
+          }
+        ]
+      }
+    },
+    "dominionTheHorseHerds": {
+      "name": "The Horse Herds",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The herd is counted before the harvest.",
+      "text": "Worked pastures and camps give +1 production. +20% production toward mounted units.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "on": {
+            "test": "anyImprovement",
+            "improvements": [
+              "pasture",
+              "camp"
+            ]
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 20,
+          "modelClass": "mounted"
+        }
+      ]
+    },
+    "dominionBattleHonours": {
+      "name": "Battle Honours",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The names go on the standard, one by one.",
+      "text": "Your first kill each turn grants 6 renown, and clearing a barbarian camp grants 12 renown, both favouring great generals.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "oncePerTurn": true,
+          "grant": {
+            "renown": 6,
+            "renownFamily": "general"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": {
+            "renown": 12,
+            "renownFamily": "general"
+          }
+        }
+      ]
+    },
+    "dominionSwordAndPlough": {
+      "name": "Sword and Plough",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The same hands hold both, one season at a time.",
+      "text": "While at peace, each city with a garrison gains +2 culture. While at war, each gains +2 production instead.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atPeace"
+          },
+          "then": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "culture": 2,
+              "scope": {
+                "test": "garrisoned"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atWar"
+          },
+          "then": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "production": 2,
+              "scope": {
+                "test": "garrisoned"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "dominionTheCampChaplains": {
+      "name": "The Camp Chaplains",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Every tent has a prayer said over it.",
+      "text": "+1 faith for every unit you control.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "unitsInField"
+        }
+      ]
+    },
+    "drillManuals": {
+      "name": "Drill Manuals",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Written by men who were tired of explaining it twice.",
+      "text": "Barracks and Stables give +2 science. +20% production toward Barracks and Stables.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "stable"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "barracks",
+          "percent": 20
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "stable",
+          "percent": 20
+        }
+      ]
+    },
     "dominionMarchDiscipline": {
       "name": "March Discipline",
       "decks": [
@@ -366,7 +532,8 @@
           },
           "where": "fortified"
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTheQuartermasters": {
       "name": "The Quartermasters",
@@ -421,7 +588,8 @@
             "building": "monument"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "huntersOfferings": {
       "name": "Hunters' Offerings",
@@ -448,7 +616,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "quarryLevies": {
       "name": "Quarry Levies",
@@ -474,7 +643,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "ritesOfArms": {
       "name": "Rites of Arms",
@@ -503,7 +673,8 @@
             "test": "keepingRite"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theSoldiersPurse": {
       "name": "The Soldiers' Purse",
@@ -538,7 +709,8 @@
       "deferred": [
         "a town with a barracks or a war hall is gladder, and gladder still for each unit standing in it"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theWarHallSchools": {
       "name": "The War Hall Schools",
@@ -600,7 +772,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTheMarshals": {
       "name": "The Marshals",
@@ -641,7 +814,8 @@
       "deferred": [
         "every unit standing in a town makes that town’s worked resource tiles pay more grain and more hammers"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theWarlordsCall": {
       "name": "The Warlord's Call",
@@ -657,7 +831,8 @@
         "the first time this is seated a great general answers the call, once and never again",
         "citadels pay more grain and more hammers while it sits in a chair"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "armyContracts": {
       "name": "Army Contracts",
@@ -691,7 +866,8 @@
             "building": "stable"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTheMusterRolls": {
       "name": "The Muster Rolls",
@@ -722,7 +898,8 @@
           "count": "tally",
           "tally": "unitTrained"
         }
-      ]
+      ],
+      "retired": true
     },
     "thePacifiedMarches": {
       "name": "The Pacified Marches",
@@ -733,7 +910,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A burnt camp is a quiet border.",
-      "text": "While slotted, gains +1 authority capacity and +3 culture for every barbarian camp cleared.",
+      "text": "While slotted, gains +1 authority capacity and +3 culture for every barbarian camp cleared, at most +8 authority and +24 culture.",
       "effects": [
         {
           "kind": "pays",
@@ -742,7 +919,8 @@
           "to": "authority",
           "amount": 1,
           "count": "tally",
-          "tally": "campCleared"
+          "tally": "campCleared",
+          "max": 8
         },
         {
           "kind": "pays",
@@ -751,7 +929,8 @@
           "to": "culture",
           "amount": 3,
           "count": "tally",
-          "tally": "campCleared"
+          "tally": "campCleared",
+          "max": 8
         }
       ]
     },
@@ -769,7 +948,11 @@
         {
           "kind": "windfallRider",
           "occasion": "unitCompletion",
-          "grant": { "yield": "science", "amount": 0.5, "fromOccasion": "strength" }
+          "grant": {
+            "yield": "science",
+            "amount": 0.5,
+            "fromOccasion": "strength"
+          }
         }
       ]
     },
@@ -787,7 +970,8 @@
         "a town you found comes with a melee unit already standing in it",
         "a melee unit you train can do a worker’s job once, building an improvement or felling a wood"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theIronHand": {
       "name": "The Iron Hand",
@@ -804,7 +988,8 @@
           "kind": "authority",
           "amount": 6
         }
-      ]
+      ],
+      "retired": true
     },
     "theSeaLevy": {
       "name": "The Sea Levy",
@@ -821,7 +1006,8 @@
         "training a ship pays culture in proportion to how strong that ship is"
       ],
       "effects": [],
-      "note": "Half built and therefore not built: training a hull may now pay for how strong it is, but a payroll is discounted as a share of the whole army and cannot be forgiven a coin at a time for one kind of piece."
+      "note": "Half built and therefore not built: training a hull may now pay for how strong it is, but a payroll is discounted as a share of the whole army and cannot be forgiven a coin at a time for one kind of piece.",
+      "retired": true
     },
     "warFoundries": {
       "name": "War Foundries",
@@ -869,27 +1055,45 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "We lose them twice: once in the field, once in the song.",
-      "text": "Killing or losing a unit grants science and culture equal to that unit's strength.",
+      "text": "Killing a unit grants science and culture equal to its strength. Losing a unit while it defends grants the same.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "kill",
-          "grant": { "yield": "science", "amount": 1, "fromOccasion": "strength" }
+          "grant": {
+            "yield": "science",
+            "amount": 1,
+            "fromOccasion": "strength"
+          }
         },
         {
           "kind": "windfallRider",
           "occasion": "kill",
-          "grant": { "yield": "culture", "amount": 1, "fromOccasion": "strength" }
+          "grant": {
+            "yield": "culture",
+            "amount": 1,
+            "fromOccasion": "strength"
+          }
         },
         {
           "kind": "windfallRider",
           "occasion": "death",
-          "grant": { "yield": "science", "amount": 1, "fromOccasion": "strength" }
+          "grant": {
+            "yield": "science",
+            "amount": 1,
+            "fromOccasion": "strength"
+          },
+          "defending": true
         },
         {
           "kind": "windfallRider",
           "occasion": "death",
-          "grant": { "yield": "culture", "amount": 1, "fromOccasion": "strength" }
+          "grant": {
+            "yield": "culture",
+            "amount": 1,
+            "fromOccasion": "strength"
+          },
+          "defending": true
         }
       ]
     },
@@ -907,7 +1111,8 @@
         "your cities put much more production behind units",
         "once this has been seated you may never buy a unit again for the rest of the game, even after it leaves the chair"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "dominionHorseLords": {
       "name": "Horse Lords",
@@ -938,6 +1143,66 @@
           "class": {
             "modelClass": "mounted"
           }
+        }
+      ]
+    },
+    "dominionTheGeneralStaff": {
+      "name": "The General Staff",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The maps are kept here, and so are the men who read them.",
+      "text": "Cities with a Barracks give +2 renown a turn, favouring great generals.",
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 2,
+          "per": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          },
+          "family": "general"
+        }
+      ]
+    },
+    "dominionTheSoldierFarmers": {
+      "name": "The Soldier-Farmers",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "In spring they drill, in summer they reap.",
+      "text": "While at peace, garrisoned cities gain +1 food and +1 production on each worked pasture and camp.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atPeace"
+          },
+          "then": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "food": 1,
+              "production": 1,
+              "on": {
+                "test": "anyImprovement",
+                "improvements": [
+                  "pasture",
+                  "camp"
+                ]
+              },
+              "scope": {
+                "test": "garrisoned"
+              }
+            }
+          ]
         }
       ]
     },
@@ -998,7 +1263,8 @@
             "building": "barracks"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "armouryGuilds": {
       "name": "Armoury Guilds",
@@ -1079,7 +1345,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "conqueredArchives": {
       "name": "Conquered Archives",
@@ -1090,13 +1357,13 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Their records are ours now, and they were good records.",
-      "text": "Captured cities gain +10 science and +10 culture.",
+      "text": "Captured cities gain +4 science and +4 culture.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "science": 10,
-          "culture": 10,
+          "science": 4,
+          "culture": 4,
           "scope": {
             "test": "captured"
           }
@@ -1151,7 +1418,8 @@
             "test": "connected"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "provincialGarrisons": {
       "name": "Provincial Garrisons",
@@ -1166,7 +1434,8 @@
       "deferred": [
         "every unit standing in a town puts more of that town’s production behind its buildings"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "dominionTriumphs": {
       "name": "Triumphs",
@@ -1182,7 +1451,11 @@
         {
           "kind": "windfallRider",
           "occasion": "capture",
-          "grant": { "yield": "culture", "amount": 10, "fromOccasion": "population" }
+          "grant": {
+            "yield": "culture",
+            "amount": 10,
+            "fromOccasion": "population"
+          }
         }
       ]
     },
@@ -1207,7 +1480,8 @@
             "building": "armoury"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "navalYards": {
       "name": "Naval Yards",
@@ -1249,7 +1523,8 @@
             "building": "shipyard"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionScorchedEarth": {
       "name": "Scorched Earth",
@@ -1265,7 +1540,8 @@
         "the unit that burns a tile mends",
         "the coin that tile would have paid is paid to you again as faith"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "marineDrill": {
       "name": "Marine Drill",
@@ -1351,7 +1627,8 @@
         "your workers may throw up a fort on open ground",
         "a fort pays grain and hammers, and a unit dug in on one fights harder"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "beachheads": {
       "name": "Beachheads",
@@ -1366,7 +1643,8 @@
       "deferred": [
         "taking to the water costs your units no movement, and so does coming ashore"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theLongMarch": {
       "name": "The Long March",
@@ -1398,7 +1676,8 @@
             "modelClass": "melee"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theIronLevy": {
       "name": "The Iron Levy",
@@ -1414,7 +1693,8 @@
         "each strategic resource you hold puts a little more production behind every unit, up to a limit",
         "while you hold iron, units are cheaper to keep"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "undermining": {
       "name": "Undermining",
@@ -1430,7 +1710,8 @@
         "your units fight harder against a city that has walls",
         "siege engines walk past an enemy picket for nothing"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "mercenaryCompanies": {
       "name": "Mercenary Companies",
@@ -1462,7 +1743,8 @@
             "category": "military"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "leviesOfTheProvinces": {
       "name": "Levies of the Provinces",
@@ -1491,7 +1773,8 @@
             "test": "captured"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "spoilsOfWar": {
       "name": "Spoils of War",
@@ -1502,12 +1785,26 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The wagons come home heavier than they went.",
-      "text": "Pillaging grants 10 production to every city. The first pillage each turn also grants 20 culture.",
-      "deferred": [
-        "burning a tile pays production to every city you hold, not only the nearest",
-        "the first tile you burn each turn pays culture as well"
-      ],
-      "effects": []
+      "text": "Pillaging grants 10 production to your city nearest the pillaged hex. The first pillage each turn also grants 20 culture.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "yield": "production",
+            "amount": 10
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "oncePerTurn": true,
+          "grant": {
+            "yield": "culture",
+            "amount": 20
+          }
+        }
+      ]
     },
     "warlords": {
       "name": "Warlords",
@@ -1524,7 +1821,8 @@
         "citadels pay hammers and culture"
       ],
       "note": "Held whole. Hammers behind a thing can be counted off what the realm holds now, but the great people it holds are not among the things it can count.",
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "prizeCourts": {
       "name": "Prize Courts",
@@ -1541,7 +1839,8 @@
         "your ships beside a city you take are mended completely"
       ],
       "effects": [],
-      "note": "Half built and therefore not built: a capture may now pay for the people who lived in the town, but nothing tells a coastal town from an inland one at that moment, and a payout mends the whole army or none of it — never the hulls standing beside the gate."
+      "note": "Half built and therefore not built: a capture may now pay for the people who lived in the town, but nothing tells a coastal town from an inland one at that moment, and a payout mends the whole army or none of it — never the hulls standing beside the gate.",
+      "retired": true
     },
     "theAdmiralty": {
       "name": "The Admiralty",
@@ -1570,7 +1869,8 @@
             "category": "naval"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "blockade": {
       "name": "Blockade",
@@ -1586,7 +1886,8 @@
         "one of your ships beside an enemy coastal city puts that city under siege",
         "a caravan bound for it is plundered where your ship sits"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "dominionHegemony": {
       "name": "Hegemony",
@@ -1641,7 +1942,8 @@
             "healAll": true
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theBloodLedger": {
       "name": "The Blood Ledger",
@@ -1657,7 +1959,8 @@
         "everything you are paid for killing a unit, or for losing one, is paid twice over — the one-off rewards and the standing ones alike"
       ],
       "effects": [],
-      "note": "Not built: a card may scale what an occasion pays out of itself, and a kill pays nothing out of itself — everything it hands over is another card's grant. Doubling one card's gifts from a second card is a reading nothing in the vocabulary makes, and the standing counters the text also names are not payouts at all."
+      "note": "Not built: a card may scale what an occasion pays out of itself, and a kill pays nothing out of itself — everything it hands over is another card's grant. Doubling one card's gifts from a second card is a reading nothing in the vocabulary makes, and the standing counters the text also names are not payouts at all.",
+      "retired": true
     },
     "masterBowyers": {
       "name": "Master Bowyers",
@@ -1699,7 +2002,8 @@
         "while you are at peace every city makes more and is gladder",
         "declaring war silences this card for a long stretch of turns"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theSeaTreasury": {
       "name": "The Sea Treasury",
@@ -1714,7 +2018,103 @@
       "deferred": [
         "every unit standing in a coastal town turns part of that town’s coin into hammers"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
+    },
+    "dominionTheCitadelWorks": {
+      "name": "The Citadel Works",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Each fortress keeps a library of its own sieges.",
+      "text": "Citadels gain +3 science. Each citadel inside your borders gives +1 renown a turn, favouring great generals.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "science": 3,
+          "on": {
+            "test": "improvement",
+            "improvement": "citadel"
+          }
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "count": "tilesInBorders",
+          "tile": {
+            "test": "improvement",
+            "improvement": "citadel"
+          },
+          "family": "general"
+        }
+      ]
+    },
+    "dominionTheRelayStations": {
+      "name": "The Relay Stations",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Fresh horses wait at every post.",
+      "text": "Once a turn, a military unit that starts its turn in a city connected to your capital may move to any other connected city, ending its move there.",
+      "effects": [],
+      "deferred": [
+        "Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet."
+      ]
+    },
+    "dominionWarReparations": {
+      "name": "War Reparations",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The loser pays, and the winner counts it twice.",
+      "text": "Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture.",
+      "effects": [],
+      "deferred": [
+        "The game does not yet pay anything when a peace is signed, or remember which cities each side took during a war."
+      ]
+    },
+    "dominionTakeTheCity": {
+      "name": "Commission: Take the City",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "One city taken is a lesson for the rest.",
+      "text": "Commission. Capture a city with at least five citizens. Then gain culture and science equal to fifteen times its population, and a free Barracks in that city. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "cityCaptured",
+            "count": 1
+          }
+        ],
+        "reward": [
+          {
+            "yield": "culture",
+            "amount": 15,
+            "fromFigure": "capturedThisTurnPopulation"
+          },
+          {
+            "yield": "science",
+            "amount": 15,
+            "fromFigure": "capturedThisTurnPopulation"
+          }
+        ]
+      }
     },
     "standingGarrisons": {
       "name": "Standing Garrisons",
@@ -1783,7 +2183,8 @@
             "building": "courthouse"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theMilitaryRoads": {
       "name": "The Military Roads",
@@ -1799,7 +2200,8 @@
         "your military units walk your own roads for nothing inside your borders",
         "a town joined to your capital makes more"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "arsenals": {
       "name": "Arsenals",
@@ -1891,28 +2293,40 @@
       "effects": [
         {
           "kind": "conditionRule",
-          "when": { "test": "atWar" },
+          "when": {
+            "test": "atWar"
+          },
           "then": [
-                    {
-                      "kind": "productionBonus",
-                      "category": "unit",
-                      "class": { "category": "military" },
-                      "percent": 40,
-                      "scope": { "test": "hasBuilding", "building": "barracks" }
-                    }
-                  ]
+            {
+              "kind": "productionBonus",
+              "category": "unit",
+              "class": {
+                "category": "military"
+              },
+              "percent": 40,
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              }
+            }
+          ]
         },
         {
           "kind": "conditionRule",
-          "when": { "test": "atPeace" },
+          "when": {
+            "test": "atPeace"
+          },
           "then": [
-                    {
-                      "kind": "productionBonus",
-                      "category": "building",
-                      "percent": 20,
-                      "scope": { "test": "hasBuilding", "building": "barracks" }
-                    }
-                  ]
+            {
+              "kind": "productionBonus",
+              "category": "building",
+              "percent": 20,
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              }
+            }
+          ]
         }
       ]
     },
@@ -1929,7 +2343,8 @@
       "deferred": [
         "your warships move further and fight harder when they are close to an enemy coastal city"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "defensiveLines": {
       "name": "Defensive Lines",
@@ -1979,7 +2394,8 @@
       "deferred": [
         "a unit raised in a town with an armoury is born quicker and hardier, and stays so for life"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theGrandLevy": {
       "name": "The Grand Levy",
@@ -2015,7 +2431,8 @@
             "building": "barracks"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "navalSupremacy": {
       "name": "Naval Supremacy",
@@ -2084,18 +2501,28 @@
       "effects": [
         {
           "kind": "conditionRule",
-          "when": { "test": "atPeace" },
+          "when": {
+            "test": "atPeace"
+          },
           "then": [
-                    { "kind": "upkeepRebate", "free": true, "where": "garrison" },
-                    {
-                      "kind": "percentYields",
-                      "yield": "culture",
-                      "percent": 25,
-                      "scope": { "test": "hasBuilding", "building": "barracks" }
-                    }
-                  ]
+            {
+              "kind": "upkeepRebate",
+              "free": true,
+              "where": "garrison"
+            },
+            {
+              "kind": "percentYields",
+              "yield": "culture",
+              "percent": 25,
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              }
+            }
+          ]
         }
-      ]
+      ],
+      "retired": true
     },
     "theVeteransGrant": {
       "name": "The Veterans' Grant",
@@ -2110,7 +2537,8 @@
       "deferred": [
         "every military unit you have ever trained pays your capital hammers and beakers, up to a limit"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "dominionBlitz": {
       "name": "Blitz",
@@ -2127,28 +2555,8 @@
         "your military units may not dig in"
       ],
       "effects": [],
-      "note": "Not built, all three halves: the once-a-turn stamp is kept per card and this one is per piece; an occasion hands over coin, renown, a soldier or a blessing and never movement; and nothing forbids an army to dig in."
-    },
-    "dominionImperium": {
-      "name": "Imperium",
-      "decks": [
-        "dominion"
-      ],
-      "band": 3,
-      "line": "none",
-      "rarity": "rare",
-      "flavor": "The provinces pay for the great work.",
-      "text": "Each captured city you hold gives +5% production toward the Magnum Opus, at most +40%.",
-      "effects": [
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "building": "theMagnumOpus",
-          "percent": 5,
-          "count": "capturedCities",
-          "max": 8
-        }
-      ]
+      "note": "Not built, all three halves: the once-a-turn stamp is kept per card and this one is per piece; an occasion hands over coin, renown, a soldier or a blessing and never movement; and nothing forbids an army to dig in.",
+      "retired": true
     },
     "casusBelli": {
       "name": "Casus Belli",
@@ -2163,7 +2571,8 @@
       "deferred": [
         "taking an empire’s first city hands you a bead of the great work"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "totalWar": {
       "name": "Total War",
@@ -2202,32 +2611,498 @@
         }
       ]
     },
-    "dominionClearTheFrontier": {
-      "name": "Commission: Clear the Frontier",
+    "dominionAVictorsPeace": {
+      "name": "Commission: A Victor's Peace",
       "decks": [
         "dominion"
       ],
-      "band": 0,
+      "band": 3,
       "line": "none",
-      "rarity": "common",
-      "flavor": "A young state wins its first war against the camps at its edge.",
-      "text": "Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
+      "rarity": "rare",
+      "flavor": "A war is won at the table, after it is won in the field.",
+      "text": "Commission. Make peace with an empire, or destroy it, after taking at least two of its cities in that war. Then gain 300 gold and 300 culture, and every city gains +2 happiness for twenty turns. The card leaves its chair.",
+      "effects": [],
+      "deferred": [
+        "The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war."
+      ]
+    },
+    "dominionImperium": {
+      "name": "Imperium",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The provinces pay for the great work.",
+      "text": "Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 10,
+          "count": "capturedCities",
+          "max": 4
+        }
+      ]
+    },
+    "dominionHoldTheCapitals": {
+      "name": "Commission: Hold the Capitals",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Two thrones, and neither of them yours by birth.",
+      "text": "Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
           {
-            "kind": "counted",
-            "occasion": "campCleared",
+            "kind": "reached",
+            "figure": "originalCapitalsHeld",
             "count": 2
           }
         ],
         "reward": [
           {
-            "yield": "production",
-            "amount": 60
+            "timed": {
+              "turns": 20,
+              "effects": [
+                {
+                  "kind": "percentYields",
+                  "yield": "production",
+                  "percent": 25
+                }
+              ]
+            }
           },
           {
-            "unit": "bestMelee"
+            "greatPerson": "general"
+          }
+        ]
+      }
+    },
+    "dominionSpolia": {
+      "name": "Spolia",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Their columns hold up our roof now.",
+      "text": "Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "yield": "production",
+            "amount": 0.5,
+            "fromOccasion": "opusProgress",
+            "toOpus": true
+          }
+        }
+      ]
+    },
+    "dominionTheLegionsLabour": {
+      "name": "The Legions' Labour",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Between wars, the legions build walls and roads.",
+      "text": "Disbanding a military unit in a city building a wonder or the Magnum Opus adds half the unit's production cost toward it. Units raised for free add nothing.",
+      "effects": [],
+      "deferred": [
+        "Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder."
+      ]
+    },
+    "dominionThePraetorianGuard": {
+      "name": "The Praetorian Guard",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The great work has its own guard, and the guard has its own walls.",
+      "text": "The city raising your Magnum Opus gains +5 defence for each unit garrisoned there. Your military units within two hexes of it gain +6 strength.",
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 5,
+          "count": "garrison",
+          "scope": {
+            "test": "raisingOpus"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 6,
+          "side": "both",
+          "class": {
+            "category": "military"
+          },
+          "when": {
+            "test": "withinOfCity",
+            "hexes": 2,
+            "scope": {
+              "test": "raisingOpus"
+            }
+          }
+        }
+      ]
+    },
+    "dominionTheGrandArmy": {
+      "name": "The Grand Army",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Every regiment sends its reports to the capital.",
+      "text": "Your capital gains +1 science and +1 culture for every military unit you have, at most +30 of each.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "unitsInField",
+          "class": {
+            "category": "military"
+          },
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "unitsInField",
+          "class": {
+            "category": "military"
+          },
+          "max": 30
+        }
+      ]
+    },
+    "dominionTheAnnexedProvinces": {
+      "name": "The Annexed Provinces",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "What they built, the whole empire now uses.",
+      "text": "Each captured city you hold gives +5% science and +5% culture in every city, at most +25%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "percent": 5,
+          "stage": "empire",
+          "count": "capturedCities",
+          "max": 5
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "percent": 5,
+          "stage": "empire",
+          "count": "capturedCities",
+          "max": 5
+        }
+      ]
+    },
+    "dominionTheMarshalate": {
+      "name": "The Marshalate",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Each baton was earned on a field with a name.",
+      "text": "Each great general you have called gives your military units +1 strength, at most +5. Citadels give +3 culture and +3 production.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "category": "military"
+          },
+          "scaled": {
+            "count": "greatPeopleOfFamily",
+            "family": "general",
+            "per": 1,
+            "max": 5
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 3,
+          "production": 3,
+          "on": {
+            "test": "improvement",
+            "improvement": "citadel"
+          }
+        }
+      ]
+    },
+    "dominionTheMilitaryFrontier": {
+      "name": "The Military Frontier",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Every household keeps a musket over the door.",
+      "text": "Each unit garrisoned in a city gives it +3 science and +3 culture, at most three units per city.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 3,
+          "count": "garrison",
+          "max": 3
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
+          "count": "garrison",
+          "max": 3
+        }
+      ]
+    },
+    "dominionTheNationInArms": {
+      "name": "The Nation in Arms",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Every armoury opens its doors on the same morning.",
+      "text": "Every ten turns, each city with an Armoury raises the best melee unit you can build. They count as trained and cost no upkeep.",
+      "effects": [
+        {
+          "kind": "periodicMuster",
+          "every": 10,
+          "unit": "bestMelee",
+          "where": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "armoury"
+          }
+        }
+      ]
+    },
+    "dominionCircumvallation": {
+      "name": "Circumvallation",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A wall facing in, and a wall facing out.",
+      "text": "While a rival city is under siege with at least one of your units beside it, it adds no production toward a Magnum Opus. You can see which rival cities are raising one.",
+      "effects": [],
+      "deferred": [
+        "Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet."
+      ]
+    },
+    "dominionTheGrandCoalition": {
+      "name": "The Grand Coalition",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Old enemies march together against the one who would end the age.",
+      "text": "While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 6,
+          "side": "both",
+          "class": {
+            "category": "military"
+          },
+          "when": {
+            "test": "vsOpusBuilder"
+          }
+        },
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atWarWithOpusBuilder"
+          },
+          "then": [
+            {
+              "kind": "productionBonus",
+              "category": "unit",
+              "percent": 30,
+              "class": {
+                "category": "military"
+              },
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "dominionTheProconsuls": {
+      "name": "The Proconsuls",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A governor with a legion behind him needs no other argument.",
+      "text": "Captured cities with a garrison cost no authority and gain +10 defence.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": 4,
+          "per": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "captured"
+              },
+              {
+                "test": "garrisoned"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 10,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "captured"
+              },
+              {
+                "test": "garrisoned"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "dominionTheGrandCampaign": {
+      "name": "Commission: The Grand Campaign",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Three cities, one season, one name on every banner.",
+      "text": "Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "cityCaptured",
+            "count": 3
+          }
+        ],
+        "reward": [
+          {
+            "greatPerson": "general"
+          },
+          {
+            "yield": "science",
+            "amount": 10,
+            "fromFigure": "capturedPopulation"
+          },
+          {
+            "yield": "culture",
+            "amount": 10,
+            "fromFigure": "capturedPopulation"
+          }
+        ]
+      }
+    },
+    "dominionTheCapturedMarvel": {
+      "name": "Commission: The Captured Marvel",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The marvel was theirs to build and ours to keep.",
+      "text": "Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "wonderOrCapitalCaptured",
+            "count": 1
+          }
+        ],
+        "reward": [
+          {
+            "yield": "science",
+            "amount": 20,
+            "fromFigure": "capturedThisTurnPopulation"
+          },
+          {
+            "yield": "culture",
+            "amount": 20,
+            "fromFigure": "capturedThisTurnPopulation"
+          },
+          {
+            "yield": "science",
+            "amount": 200,
+            "fromFigure": "capturedThisTurnWonders"
+          },
+          {
+            "yield": "culture",
+            "amount": 200,
+            "fromFigure": "capturedThisTurnWonders"
           }
         ]
       }

@@ -1555,6 +1555,7 @@ function describeEffect(
       if (effect.empireBuilding === false) narrowings.push('not an empire building');
       if (effect.first !== undefined) narrowings.push(FIRST_WORDS[effect.first]);
       if (effect.oncePerTurn === true) narrowings.push('at most once a turn');
+      if (effect.defending === true) narrowings.push('only while it defends');
       // **"A building" narrows the moment from the inside** (batch C3), the way
       // the family does and for the family's stated reason: "buying anything (a
       // building)" is a parenthesis undoing the word in front of it, where
@@ -1623,7 +1624,12 @@ function describeEffect(
           // *how much at most* second — the duration clause's own order, one
           // grant shape over.
           const cap = grant.max === undefined ? '' : `, at most ${Math.abs(grant.max)}`;
-          out.push({ text: `${occasion} grants ${figure}${cap}${per}` });
+          // Spolia's hammers go to the Opus town rather than the nearest one.
+          const where =
+            grant.toOpus === true
+              ? ' to your city raising the Magnum Opus, or your capital if none is'
+              : '';
+          out.push({ text: `${occasion} grants ${figure}${where}${cap}${per}` });
         } else {
           out.push({
             text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${per}`,
@@ -1634,7 +1640,9 @@ function describeEffect(
         // Renown reads as renown and never as a voice: it is the bucket a great
         // person comes out of, and a player who has read the Reliquary knows
         // exactly what the word buys.
-        out.push({ text: `${occasion} grants ${signed(grant.renown)} renown${per}` });
+        const favours =
+          grant.renownFamily === undefined ? '' : `, favouring a great ${grant.renownFamily}`;
+        out.push({ text: `${occasion} grants ${signed(grant.renown)} renown${favours}${per}` });
       }
       if (grant?.heal !== undefined) {
         // "**a further**" only where the occasion already pays a heal of its
@@ -1953,8 +1961,11 @@ function describeEffect(
       if (stamp?.hp !== undefined) marks.push(`${signed(stamp.hp)} health`);
       const kept =
         marks.length === 0 ? '' : `, and keeps ${listWords(marks)} for the rest of the game`;
+      // The Nation in Arms musters in every town its scope admits.
+      const where =
+        effect.where === 'city' ? `in ${cityScopeWords(effect.scope)}` : 'in your capital';
       out.push({
-        text: `every ${effect.every} turns, ${what} musters in your capital${kept}`,
+        text: `every ${effect.every} turns, ${what} musters ${where}${kept}`,
       });
       return;
     }
@@ -3089,6 +3100,9 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // form does not.
       into.qualifiers.push('that holds your trading post');
       return;
+    case 'raisingOpus':
+      into.qualifiers.push('raising the Magnum Opus');
+      return;
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -3752,6 +3766,7 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   beside: 'while standing beside',
   // The composite's own words are its members', joined — see `combatWhenWords`.
   all: '',
+  vsOpusBuilder: 'against an empire raising the Magnum Opus',
 };
 
 /** The `followingTerritory` line narrowed to somebody else's towns. */
@@ -3774,7 +3789,10 @@ export function combatWhenWords(when: CombatCondition): string {
     case 'withinOfCity':
       return (
         `${COMBAT_WORDS.withinOfCity} ${when.hexes} ` +
-        `${when.hexes === 1 ? 'hex' : 'hexes'} of one of your cities`
+        `${when.hexes === 1 ? 'hex' : 'hexes'} of ` +
+        (when.scope === undefined
+          ? 'one of your cities'
+          : cityScopeWords(when.scope).replace(/^every /, 'your '))
       );
     case 'followingTerritory':
       return when.foreign === true ? FOREIGN_FOLLOWING_WORDS : COMBAT_WORDS.followingTerritory;
@@ -4256,6 +4274,11 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     one: 'barbarian camp you have cleared',
     many: 'barbarian camps you have cleared',
   },
+  cityCaptured: { one: 'city you have captured', many: 'cities you have captured' },
+  wonderOrCapitalCaptured: {
+    one: 'city you have captured that held a wonder or was a capital',
+    many: 'cities you have captured that held a wonder or were capitals',
+  },
 };
 
 /**
@@ -4272,6 +4295,7 @@ const MEASURE_WORDS: Record<OccasionMeasure, string> = {
   population: 'its population',
   gold: 'the gold paid',
   payout: 'what it already paid',
+  opusProgress: 'the production it had put into the Magnum Opus',
 };
 
 const RATE_WORDS: Record<RateSource, PluralWords> = {
@@ -4573,6 +4597,7 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   // around, and "while you are not at war" is the same fact spelled as algebra.
   atPeace: 'while you are at peace',
   keepingRite: 'while a rite is being kept anywhere in your empire',
+  atWarWithOpusBuilder: 'while you are at war with an empire raising the Magnum Opus',
 };
 
 // --- commissions ------------------------------------------------------------
@@ -4599,6 +4624,13 @@ const COMMISSION_COUNTED_WORDS: Record<
   unitKilled: { verb: 'kill', one: 'enemy unit', many: 'enemy units', counter: 'enemy units killed' },
   unitTrained: { verb: 'train', one: 'unit', many: 'units', counter: 'units trained' },
   campCleared: { verb: 'clear', one: 'barbarian camp', many: 'barbarian camps', counter: 'camps cleared' },
+  cityCaptured: { verb: 'capture', one: 'city', many: 'cities', counter: 'cities captured' },
+  wonderOrCapitalCaptured: {
+    verb: 'capture',
+    one: "city that holds a world wonder or was another empire's original capital",
+    many: "cities that hold a world wonder or were another empire's original capital",
+    counter: 'such cities captured',
+  },
 };
 
 /**
@@ -4633,6 +4665,26 @@ const COMMISSION_FIGURE_WORDS: Record<
     goal: (count) => `work ${count} improved tiles at the same time`,
     counter: 'improved tiles worked',
     noun: 'the improved tiles you work',
+  },
+  originalCapitalsHeld: {
+    goal: (count) => `hold ${count} original capitals other than your own at the same time`,
+    counter: 'original capitals held',
+    noun: 'the original capitals you hold',
+  },
+  capturedPopulation: {
+    goal: (count) => `hold captured cities with ${count} citizens in all`,
+    counter: 'citizens in captured cities',
+    noun: 'the citizens of every captured city you hold',
+  },
+  capturedThisTurnPopulation: {
+    goal: (count) => `capture cities with ${count} citizens in one turn`,
+    counter: 'citizens captured this turn',
+    noun: 'the citizens of the cities you captured that turn',
+  },
+  capturedThisTurnWonders: {
+    goal: (count) => `capture ${count} world wonders in one turn`,
+    counter: 'world wonders captured this turn',
+    noun: 'the world wonders in the cities you captured that turn',
   },
 };
 

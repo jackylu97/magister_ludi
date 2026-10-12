@@ -198,7 +198,13 @@ describe('the schema, as landed', () => {
     let live = 0;
     for (const id of DECK_ROWS) {
       const def = orderDef(id);
-      expect(def.retired, id).toBeUndefined();
+      // A deck may retire its own cuts (the deck implementation batches,
+      // `docs/plans/deck-implementation.md`): a retired deck row is dealt by
+      // nobody, exactly like a shelf row.
+      if (def.retired === true) {
+        expect(orderIsDealt(id), id).toBe(false);
+        continue;
+      }
       // Live or deferred, never both ways round: a row with effects is dealt, a
       // row with a `deferred` sentence and nothing to slot is not.
       // A commission (batch C) is dealt for its goal and reward, with no effects.
@@ -311,8 +317,12 @@ describe('the schema, as landed', () => {
     // **And batch C** (commissions): three rows live with a goal and a reward
     // and no effects — Commission: Clear the Frontier in Dominion, Corner the
     // Market and The Strongroom in Commerce.
-    expect(live).toBe(282);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(282);
+    // **The Dominion batch** (D2 of the deck implementation plan) moved it by
+    // minus five: fifty cut rows retired (twenty-six of them had been live), the
+    // sheet's twenty-five new rows written (twenty of them live), and Spoils of
+    // War freed by the pillage occasion: 61 live Dominion rows before, 56 after.
+    expect(live).toBe(277);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(277);
   });
 
   /**
@@ -627,7 +637,15 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Batch L took three more**, all Expansionist: Levy of the Land, The
       // Muster of the Fields and Seasonal Levies, freed by the levy command.
       // The Corvée and The General Levy are new live rows and move nothing here.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(145);
+      //
+      // **The Dominion batch** retired fifty rows (the sheet's cuts) and left
+      // five deferred: of its twenty-five deferred rows before, twenty-four were
+      // cuts and Spoils of War came live; five new rows wait. So the deferred
+      // half is 145 − 25 + 5 = 125, and the retired deck rows are counted apart.
+      expect(
+        [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
+      ).toHaveLength(125);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(50);
     }
   });
 
