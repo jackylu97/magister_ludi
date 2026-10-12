@@ -6,37 +6,51 @@ These belong to no deck. Every seat may draw them whatever its two decks are, so
 
 > Existing card placement is retained. Tier IV is blank for manual authoring; the source game still uses the existing four tiers.
 
+**User pass (2026-10-12):** the user's raw notes for Tier 0 and Tier I are now card rows: eleven Tier 0 cards (two rare) and twelve Tier I cards (three rare), all new. The generated Tier 0 and Tier I rows the notes replaced (Hearth Stores, Watchmen, Public Wells, Civic Peace and the rest) are no longer on the sheet. 18 → 29 cards.
+
 ## What stands
 
-| Tier | Cards | Built | Deferred |
-|---|---|---|---|
-| Tier 0 | 9 | 8 | 1 |
-| Tier I | 3 | 2 | 1 |
-| Tier II | 3 | 1 | 2 |
-| Tier III | 3 | 2 | 1 |
-| Tier IV | 0 | 0 | 0 |
-| **All** | **18** | **13** | **5** |
+| Tier | Cards | Built | New | Deferred |
+|---|---|---|---|---|
+| Tier 0 | 11 | 0 | 11 | 0 |
+| Tier I | 12 | 0 | 12 | 0 |
+| Tier II | 3 | 1 | 0 | 2 |
+| Tier III | 3 | 2 | 0 | 1 |
+| Tier IV | 0 | 0 | 0 | 0 |
+| **All** | **29** | **3** | **23** | **3** |
 
 ## Tier 0
 
 | Card | Rarity | Status | The card | What the game does, or why not |
 |---|---|---|---|---|
-+3 combat strength against barbarians
-Far Runners | All your units gain +1 sight. Claiming a ruin grants +10 culture. |
-+1 food on resource tiles in your capital
-+1 faith for each card slotted in your government
-Train settlers 20% faster, settlers gain +1 movement
-Gain +5 culture after improving a resource tile
+| **The Marchmen** | common | new | +3 combat strength against barbarians. | Added by the user (2026-10-12). Fits existing effects: the strength line against barbarians that Dominion's Blooded Spears uses. |
+| **Far Runners** | common | new | All your units gain +1 sight. Claiming a ruin grants +10 culture. | Added and named by the user (2026-10-12). Revives the retired Order Far Runners (`farRunners`), which has the same text; fits existing effects (that row's sight line and ruin-claim culture rider). |
+| **The Home Fields** | common | new | Resource tiles in your capital gain +1 food. | Added by the user (2026-10-12). Probably fits existing effects: a hex line on resource tiles, narrowed to the capital's tiles. If the hex line cannot take the capital scope, it needs it. |
+| **Oaths of Office** | common | new | +1 faith for each card slotted in your government. | Added by the user (2026-10-12). Fits existing effects: the `slottedOrders` count. The economy review proposed capping it at +5 or moving it to Devotion; pending. |
+| **The Wagon Trains** | common | new | Train settlers 20% faster. Settlers gain +1 movement. | Added by the user (2026-10-12). Fits existing effects: a production line toward one unit class and a movement line narrowed to settlers. |
+| **First Fruits Feasts** | common | new | Gain +5 culture after improving a resource tile. | Added by the user (2026-10-12). Needs: a windfall on finishing an improvement on a resource tile (no such occasion exists; the windfall occasions cover chops, camps, growth, founding and completions, not improvements). |
+| **The Palace School** | common | new | Your capital gains +2 science and +2 culture. | Added by the user (2026-10-12). Fits existing effects: a capital line. |
+| **The Tool Sheds** | rare | new | Builders you produce gain +1 charge. | Added by the user (2026-10-12). Fits existing effects: the charges stat narrowed to workers, as Devotion's The Second Prophet uses for prophets. |
+| **Light Kit** | rare | new | All your units gain +1 movement and +1 sight, and −2 combat strength. | Added by the user (2026-10-12). Probably fits existing effects: movement and sight lines on every unit, and a combat strength line set negative. If a strength line cannot be negative, it needs that. |
+| **The Royal Household** | common | new | Your capital gains +3 culture and +2 happiness. | Added by the user (2026-10-12). Fits existing effects: a capital line and a capital happiness line. |
+| **Village Workshops** | common | new | +1 production in all cities. | Added by the user (2026-10-12). Fits existing effects: a city line in every city. |
 
 ## Tier I
 
 | Card | Rarity | Status | The card | What the game does, or why not |
 |---|---|---|---|---|
-cistern works: allows building a cistern (+2 food +2 faith, city is treated as being on freshwater and supplies freshwater to adjacent tiles)
-+15% production towards age 1/2 wonders
-every tile with at least 1 faith gains 1 more
-every tile with at least 1 gold gains 1 more
-
+| **Cistern Works** | common | new | Unlocks the Cistern: +2 food and +2 faith. A city with one counts as standing on fresh water and gives fresh water to the tiles beside it. | Added by the user (2026-10-12). Needs: a new Cistern building row (+2 food, +2 faith, the city counts as on fresh water and waters adjacent tiles). The name belonged to a retired Order (`cisternWorks`, "Every city of yours counts as standing on fresh water"); this redesigns it around a building. Watering the tiles beside the city is new: today only a river or lake waters a field. |
+| **The Ancient Masons** | common | new | +15% production toward wonders of the first two ages. | Added by the user (2026-10-12). Needs: an age filter on the production line toward wonders (the line toward wonders exists; Magisterial's Sacred Commissions uses it). |
+| **Holy Ground** | common | new | Every tile that makes at least 1 faith gains 1 more. | Added by the user (2026-10-12). Needs: a hex line that tests the tile's own yield (no hex line reads what a tile already makes). |
+| **The Gilded Country** | common | new | Every tile that makes at least 1 gold gains 1 more. | Added by the user (2026-10-12). Needs: the same hex line as Holy Ground, testing gold. |
+| **The Hall of Fame** | common | new | +30% renown in your capital. | Added by the user (2026-10-12). Fits existing effects: the city renown share (`cityRenownPercent`) narrowed to the capital. |
+| **The Capital's Example** | common | new | +15% production toward buildings your capital already has. | Added by the user (2026-10-12). Read: in your other cities, toward buildings your capital already has. Needs: a production line narrowed to buildings present in the capital. |
+| **Common Festivals** | common | new | +1 happiness in all cities. | Added by the user (2026-10-12). Fits existing effects: a happiness line in every city. |
+| **Rich Lodes** | common | new | Every strategic resource tile supplies one extra copy. | Added by the user (2026-10-12). Probably fits existing effects: the strategic-copies rule (`strategicCopies`). The suggested name Deep Seams is too close to the live Order The Deep Seams, so it is renamed. |
+| **Kitchen Gardens** | common | new | Tiles beside a city centre gain +1 food. | Added by the user (2026-10-12). Needs: a hex line narrowed to the ring around a city centre, unless an existing hex scope already reads it. |
+| **The First Minister** | rare | new | While slotted, the first card slotted in your government pays double. | Added by the user (2026-10-12). Fits existing effects: the slot-position doubler (`slotPosition`, position 1, factor 2). Flag: it copies another card's effect, the pattern rejected for Magisterial. It is the user's own common card, so it is kept; the user should confirm. |
+| **The Builders' Charter** | rare | new | Orders that add yields to buildings pay double. | Added by the user (2026-10-12). Needs: a doubler on card lines narrowed to lines paid through buildings (the card-line amplifier, `cardYieldAmplifier`, has no building narrowing). |
+| **The Founders' Rights** | rare | new | +3 authority. Cities you found start with one extra citizen. | Added by the user (2026-10-12). Fits existing effects: an authority line and the founding rider's population (Expansionist's The Seed Grain uses it). |
 
 ## Tier II
 

@@ -8,10 +8,12 @@
 
 **Review (2026-10-06).** A second pass that tested every card against the deck's themes and asked whether it changes a decision. Target: about 45 to 55 exclusive cards, shaped about 9 / 14 / 14 / 10 / 3 across Tiers 0 to IV. Before: 107 cards (12 / 28 / 41 / 24 / 2). After: 47 (8 / 13 / 15 / 9 / 2). The reconciliation of the six sheets (2026-10-06) made Mercenary Contracts, War Bonds and The New Code cards shared with their partners, cut this sheet's Copying the Enemy in favour of Scientific's version (now shared), and restored The Chartered Company and Carried-Off Scholars as shared cards. The balance pass (2026-10-06) made The Oriflamme, Convert It or Tax It and The Holy Army cards shared with Devotion, cut The Military Orders (the same placement as The Holy Army), restored Looted Art as a card shared with Magisterial, and changed the numbers on several cards. That leaves 44 exclusive cards (8 / 12 / 14 / 8 / 2) and 22 shared ones. The deck now has three arcs:
 - **The garrison state:** Martial Law and The Standing Army, then The Soldier-Farmers and Stockpiles, then Standing Garrisons, Defensive Lines and Reserve Officers. Units kept at home pay their towns, whether the empire is at peace or on guard.
-- **Military buildings as institutions:** Drill Manuals, then The War Hall Schools, War Foundries and The General Staff, then Armoury Guilds and The Citadel Works, then Arsenals and the shared The Holy Army. Barracks, War Halls, Armouries and citadels pay science, culture, gold and production.
+- **Military buildings as institutions:** Drill Manuals, The War Hall Schools, War Foundries and The General Staff, then Armoury Guilds and The Citadel Works, then Arsenals and the shared The Holy Army. Barracks, War Halls, Armouries and citadels pay science, culture, gold and production.
 - **Raid and conquer:** the barbarian frontier (Blooded Spears, Blood Brothers, Commission: Clear the Frontier), then The Pacified Marches and Songs of the Fallen, then siege, Triumphs, Hegemony and War Reparations, then Total War and Commission: A Victor's Peace, then Imperium and Commission: Hold the Capitals.
 
 **Tier 0 and Tier IV pass (2026-10-07):** added 3 Tier 0 and 13 Tier IV cards.
+
+**User pass (2026-10-12):** Muster Rites raised to 6 faith and 6 food (now revised); The General Staff raised to +2 renown; Commission: Clear the Frontier's reward reworded; Drill Manuals moved from Tier 0 to Tier I; The Camp Chaplains added at Tier 0 as the deck's early faith. Shared: Frontier Garrisons cut (with Expansionist) and The Road Garrisons added at Tier II in its place; Rites of Passage kept; The Sacred Host loses its upkeep clause. 60 → 61 exclusive cards; 23 shared, unchanged (the sheet said 22 before this pass, but Professional Soldiers had already made it 23).
 
 > Light-touch pass. Dominion is one of the two reference decks, so built cards are kept unless they clearly fight the spec. The pass adds the three themes the spec added (unit logistics; great generals and citadels; war reparations), commissions, Dominion's improvement family (strategic resources, camps and pastures), and cards for the history lines in the pair entries.
 
@@ -21,21 +23,21 @@ Counts cover the exclusive Dominion cards below; shared cards are listed separat
 
 | Tier | Cards | Built | Revised | New | Deferred |
 |---|---|---|---|---|---|
-| Tier 0 | 11 | 6 | 1 | 4 | 0 |
-| Tier I | 12 | 8 | 2 | 2 | 0 |
+| Tier 0 | 11 | 5 | 1 | 5 | 0 |
+| Tier I | 13 | 8 | 3 | 2 | 0 |
 | Tier II | 14 | 8 | 1 | 4 | 1 |
 | Tier III | 8 | 7 | 0 | 1 | 0 |
 | Tier IV | 15 | 0 | 1 | 14 | 0 |
-| **All** | **60** | **29** | **5** | **25** | **1** |
+| **All** | **61** | **28** | **6** | **26** | **1** |
 
-The shelf is deep enough for eleven chairs: 34 live cards and 60 in all, before the 22 shared ones.
+The shelf is deep enough for eleven chairs: 34 live cards and 61 in all, before the 23 shared ones.
 
 ### How the shelf is weighted
 
 | Tier | Common | Uncommon | Rare |
 |---|---|---|---|
 | Tier 0 | 8 | 0 | 3 |
-| Tier I | 6 | 3 | 3 |
+| Tier I | 7 | 3 | 3 |
 | Tier II | 6 | 6 | 2 |
 | Tier III | 2 | 4 | 2 |
 | Tier IV | 0 | 3 | 12 |
@@ -46,15 +48,15 @@ The shelf is deep enough for eleven chairs: 34 live cards and 60 in all, before 
 |---|---|---|---|---|
 | **Blooded Spears** | common | built | +4 strength against barbarians. Clearing a camp grants 25 production and 25 food to your nearest city. | +4 combat strength against barbarians · clearing a barbarian camp grants +25 production · clearing a barbarian camp grants +25 food |
 | **Martial Law** | common | built | Each garrisoned unit grants its city +1 happiness and +2 food. | +1 happiness per combat unit standing in your cities · +2 food in every city per combat unit standing there |
-| **Muster Rites** | common | built | Training a unit grants 5 faith and 5 food. | completing a unit grants +5 faith · completing a unit grants +5 food |
-| **Commission: Clear the Frontier** | common | new | Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build, free of upkeep. The card leaves its chair. | Needs: commissions. Camp clearing is already counted (The Pacified Marches reads it), so the goal itself is a count the game keeps. Gives an early government a reason to march before it has a war. |
-| **Drill Manuals** | common | revised | Barracks and Stables give +2 science. +20% production toward Barracks and Stables. | +2 science in every city with a Barracks · +2 science in every city with a Stable · +20% production toward Barrackses · +20% production toward Stables. Was: uncommon. Balance pass: as the only Tier 0 uncommon it was dealt about 30% of the time, and it needs a Barracks the player usually has not built yet, so it becomes common. |
+| **Muster Rites** | common | revised | Training a unit grants 6 faith and 6 food. | completing a unit grants +6 faith · completing a unit grants +6 food. Was: 5 faith and 5 food. User, 2026-10-12: raised to 6 and 6. |
+| **Commission: Clear the Frontier** | common | new | Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. | Needs: commissions. Camp clearing is already counted (The Pacified Marches reads it), so the goal itself is a count the game keeps. Gives an early government a reason to march before it has a war. User, 2026-10-12: reward reworded so the free unit is trained in your capital. |
 | **The Standing Army** | rare | built | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | all units cost no gold in maintenance while standing in one of your cities · +30% production toward military units, in every city with a Barracks |
 | **Blood Brothers** | rare | built | A barbarian unit you kill joins your side. | a barbarian you kill joins you at full health instead of dying |
 | **The King's Levy** | rare | built | Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep. | every 15 turns, the best melee unit you can build musters in your capital |
 | **The Horse Herds** | common | new | Worked pastures and camps give +1 production. +20% production toward mounted units. | Fits existing effects: a hex line on Pasture and Camp, and a production line toward one unit class (Siege Works has one for siege units). The opener for Dominion's own improvement family: the first pasture or camp becomes a reason to field riders early, and it leads into The Quartermasters and Horse Lords. |
 | **Battle Honours** | common | new | Your first kill each turn grants 6 renown, and clearing a barbarian camp grants 12 renown, both favouring great generals. | Fits existing effects: a card already pays renown on a capture, and a kill once a turn (Field Academies) and a cleared camp (Blooded Spears) are both moments cards pay on today. The opener for the great generals and citadels theme, which had no card before Tier I. It gives an early choice: hunt barbarians for a first general, or leave them for yields. |
 | **Sword and Plough** | common | new | While at peace, each city with a garrison gains +2 culture. While at war, each gains +2 production instead. | Fits existing effects: the at-peace and at-war conditions (Reserve Officers) and the garrisoned-city condition (Martial Law) both exist. The war-or-peace theme's opener, so a Dominion seat's first choice includes staying at peace. The culture half also helps a deck that drafts slowly in the first age. |
+| **The Camp Chaplains** | common | new | +1 faith for every unit you control. | Added by the user (2026-10-12) as Dominion's early faith. Fits existing effects: a units-you-control count (The Grand Army reads one) paying faith empire-wide. |
 
 ## Tier I
 
@@ -64,7 +66,8 @@ The shelf is deep enough for eleven chairs: 34 live cards and 60 in all, before 
 | **The Quartermasters** | common | built | Worked strategic resources gain +2 food and +2 production. | +2 food, +2 production on every hex carrying a strategic resource |
 | **The Soldiers' Purse** | common | built | Military units cost 1 less upkeep. | military units cost 1 less gold in maintenance |
 | **The War Hall Schools** | common | built | War Halls give +3 science and +3 culture. | +3 science, +3 culture in every city with a War Hall |
-| **The General Staff** | common | new | Cities with a Barracks give +1 renown a turn, favouring great generals. | Fits existing effects: the same per-city renown trickle The Imperial Examinations uses for scholars, pointed at generals. The first card that brings Dominion's own great-person family to the table early. |
+| **Drill Manuals** | common | revised | Barracks and Stables give +2 science. +20% production toward Barracks and Stables. | +2 science in every city with a Barracks · +2 science in every city with a Stable · +20% production toward Barrackses · +20% production toward Stables. Was: uncommon. Balance pass: as the only Tier 0 uncommon it was dealt about 30% of the time, and it needs a Barracks the player usually has not built yet, so it becomes common Moved from Tier 0 by the user (2026-10-12). |
+| **The General Staff** | common | new | Cities with a Barracks give +2 renown a turn, favouring great generals. | Fits existing effects: the same per-city renown trickle The Imperial Examinations uses for scholars, pointed at generals. The first card that brings Dominion's own great-person family to the table early. User, 2026-10-12: renown raised from +1 to +2. |
 | **The Soldier-Farmers** | common | new | While at peace, garrisoned cities gain +1 food and +1 production on each worked pasture and camp. | Fits existing effects: an at-peace condition, a garrisoned-city condition and a hex line on Pasture and Camp all exist. From the Chinese *tuntian* system, where frontier garrisons farmed in peacetime. Serves the war-or-peace theme and Dominion's improvement family at once. Review: shortened; the first pass also gave garrisoned cities +2 food, which is Martial Law's job. |
 | **The Marshals** | uncommon | built | +2 strength per adjacent friendly combat unit, at most +6. | +2 combat strength per adjacent friendly combat unit (at most +6) |
 | **The Pacified Marches** | uncommon | revised | While slotted, gains +1 authority capacity and +3 culture for every barbarian camp cleared, at most +8 authority and +24 culture. | +1 authority capacity per barbarian camp you have cleared, counted while this Order stands in a slot · +3 culture per barbarian camp you have cleared, counted while this Order stands in a slot. Was: no ceiling. Balance pass: camps respawn, so an uncapped count kept paying culture and authority for as long as the player kept clearing them. |
@@ -131,17 +134,17 @@ A Dominion seat may draw every one of these, and so may a seat holding the deck 
 
 | Card | Rarity | Also in | Status | The card | What the game does, or why not | Tier | Review |
 |---|---|---|---|---|---|---|---|
-| **Frontier Garrisons** | common | Expansionist | built | Garrisoned cities of at most five population gain +2 food. | +2 food in every city with a unit standing in it of 5 or fewer citizens | 0 | Recommend cut: the same job as Martial Law (food for a garrison), smaller and with a population cap added. |
-| **Rites of Passage** | common | Devotion | deferred | Completing a military unit grants 12 faith. | *no blocker recorded on the row* | 0 | Recommend cut: the same job as Muster Rites (faith for training a unit), which is built. |
+| **Rites of Passage** | common | Devotion | deferred | Completing a military unit grants 12 faith. | *no blocker recorded on the row* | 0 | Keep (user, 2026-10-12). This sheet had recommended cutting it as the same job as Muster Rites (faith for training a unit); Devotion keeps it as the holy-war strand's only early card. |
 | **Military Colonies** | uncommon | Expansionist | built | Cities with a Barracks gain +30% production toward settlers and workers. | +30% production toward settler and worker units, in every city with a Barracks | I | Keep: a Barracks paying toward Expansionist's settlers is the frontier pair in one line. |
 | **The Escorted Roads** | uncommon | Commerce | built | Routes whose origin has a garrison gain +3 gold. Naval units gain +2 strength while adjacent to one of your traders. | +3 gold on every trade route sent from every city with a unit standing in it · +2 combat strength for ships while standing beside trader units | I | Keep: the guarded-route hook of the Commerce pair. |
-| **The Sacred Host** | rare | Devotion | deferred | Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 10 faith. Each military unit costs +1 gold upkeep while this card is active. | *no blocker recorded on the row* | I | Keep, but recommend shortening: faith-bought units are the heart of the Devotion pair, and the upkeep clause makes a three-clause card. |
+| **The Sacred Host** | rare | Devotion | deferred | Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 10 faith. | *no blocker recorded on the row.* Was: a third clause, "Each military unit costs +1 gold upkeep while this card is active." User, 2026-10-12: the upkeep clause is dropped. | I | Keep: faith-bought units are the heart of the Devotion pair. |
 | **Field Academies** | uncommon | Scientific | built | Your first combat kill each turn grants 15 science. Cities with a Library produce siege units 25% faster. | killing a unit (at most once a turn) grants +15 science · +25% production toward siege units, in every city with a Library | I | Keep: the Scientific pair's kill hook. |
 | **Copying the Enemy** | uncommon | Scientific | new | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. | From history: Rome built its first war fleet by copying a captured Carthaginian ship. Reads Dominion's kills. Needs: a kill windfall that reads the defeated unit's row and pays toward a named technology. Reconciliation (2026-10-06): one shared card with Scientific's wording; this sheet's own Copying the Enemy is cut. | I | Keep. |
 | **The Barbarian Frontier** | uncommon | Expansionist | new | Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes. | Needs: a claim on clearing a camp. The citadel already claims a hex and its ring, so the claiming half exists; what is missing is a camp-cleared payout that claims land rather than paying a yield. The spec names this as the Dominion · Expansionist shared card. Was: "Clearing a barbarian camp claims the hex it stood on and the ring around it for your nearest city." Balance pass: both sheets now carry Expansionist's wording, which takes only unowned hexes and needs a town within five hexes. | I | Keep: the spec's named shared card for the frontier pair. |
 | **The Oriflamme** | uncommon | Devotion | new | Military units beside one of your religious units gain +4 strength. | Fits existing effects: the same "standing beside a unit class" strength line The Convoy uses for traders, pointed at prophets, apostles and inquisitors. From relics carried into battle (the True Cross at Hattin, the French royal banner). Gives Devotion's religious units a reason to march with the army. Balance pass: now one shared Dominion · Devotion card. Devotion's The Relic Bearers gave the same +4 beside an apostle and is cut; a seat holding both decks would have stacked the two to +8. | I | Keep. |
 | **Carried-Off Scholars** | common | Scientific | new | Capturing a city grants science equal to ten times its population. | Fits existing effects: the science twin of Triumphs, using the same capture payout counted on the town's population. From Timur moving the scholars and craftsmen of conquered cities to Samarkand. Reconciliation (2026-10-06): both sheets had cut their copy (this one, and Scientific's The Carried-Off Scholars), each expecting the other to keep it, so it is restored as one shared card. | II | Keep. |
 | **Examinations of State** | rare | Magisterial | built | Cities with a Monument and a garrison gain +1 science and +1 culture per three citizens. Ungarrisoned cities receive no bonus. | +1 science in every city with a Monument with a unit standing in it per 3 citizens there · +1 culture in every city with a Monument with a unit standing in it per 3 citizens there | II | Keep. This sheet recommended cutting it as a duplicate of The Imperial Examinations, and Magisterial recommended the reverse; the reconciliation kept this one and cut The Imperial Examinations on both sheets. |
+| **The Road Garrisons** | uncommon | Expansionist | new | Garrisoned cities with a road to your capital gain +3 food and +5 defence. | Added by the user (2026-10-12) as a shared Dominion · Expansionist card, in place of the cut Frontier Garrisons. Fits existing effects: the garrisoned-city test (Martial Law), the joined-to-the-capital-by-road test (Garden Provinces) and a city defence line (Marcher Lords). | II | Keep. |
 | **Marcher Lords** | uncommon | Expansionist | built | Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one. | every city near another empire's territory: +3 city defence · +2 production in every city near another empire's territory · the authority a city near another empire's territory costs falls by 1 | II | Keep. |
 | **The Crusader Orders** | uncommon | Devotion | deferred | Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it. | *no blocker recorded on the row* | II | Keep: the holy-war hook of the Devotion pair. |
 | **Convert It or Tax It** | uncommon | Devotion | new | Captured cities that do not follow your religion gain +3 gold and +2 faith. Captured cities that follow it cost one less authority, minimum one. | Fits existing effects: the captured-city and follows-your-religion tests both exist, and the authority discount is the one The League of Cities uses. From the *jizya*: a conquered city of another faith pays instead of converting, which makes converting it a real choice rather than the default. Balance pass: now one shared Dominion · Devotion card. Devotion's The Jizya paid the same +3 gold and +2 faith for a city that keeps another faith and is cut. | II | Keep. |
@@ -161,9 +164,9 @@ Dominion's currency is units, spent on garrisons, raids and conquest. Its hooks 
 
 ### Dominion · Expansionist (the frontier)
 - **Dominion gives** cleared ground: burnt barbarian camps and captured towns leave land to claim. **It gets back** levies (citizens turned into soldiers) and newly founded towns that need garrisons.
-- **Hooks Dominion creates:** cleared camps (Blooded Spears, Blood Brothers, The Pacified Marches, Commission: Clear the Frontier, The Barbarian Frontier) and captured towns (Triumphs, Hegemony). **Hooks it reads:** towns founded near a border (Marcher Lords) and settlers trained at a Barracks (Military Colonies). Veteran colonies (a unit retiring into a town) is left to Expansionist's own Veteran Colonies, since it pays the town in food, Expansionist's currency.
+- **Hooks Dominion creates:** cleared camps (Blooded Spears, Blood Brothers, The Pacified Marches, Commission: Clear the Frontier, The Barbarian Frontier) and captured towns (Triumphs, Hegemony). **Hooks it reads:** towns founded near a border (Marcher Lords), settlers trained at a Barracks (Military Colonies) and garrisoned towns on a road to the capital (The Road Garrisons). Veteran colonies (a unit retiring into a town) is left to Expansionist's own Veteran Colonies, since it pays the town in food, Expansionist's currency.
 - **Shared improvements:** mines on strategic resources. Expansionist works them for production; Dominion counts them for its army (The Quartermasters). Pastures and camps sit on both families' edges through The Soldier-Farmers.
-- **Cards serving the pair:** The Barbarian Frontier (shared, new), Military Colonies, Marcher Lords, The Soldier-Farmers, The Relay Stations, The Pacified Marches, The Quartermasters.
+- **Cards serving the pair:** The Barbarian Frontier (shared, new), The Road Garrisons (shared, new), Military Colonies, Marcher Lords, The Soldier-Farmers, The Relay Stations, The Pacified Marches, The Quartermasters.
 
 ### Dominion · Commerce (merchants and their guards)
 - **Dominion gives** protected trade routes, gold from naval raids, and reparations from defeated empires. **It gets back** purchases: gold buys the buildings an army has no production to spare for, and units in an emergency.
@@ -175,7 +178,7 @@ Dominion's currency is units, spent on garrisons, raids and conquest. Its hooks 
 - **Dominion gives** spread by conquest: captured cities and battles won, with religious units travelling beside the army. **It gets back** targets (cities following Devotion's religion) and faith that buys and supplies the army.
 - **Hooks Dominion creates:** captured cities and battles won (every capture card on the sheet). **Hooks it reads:** cities following your religion (Convert It or Tax It, The Crusader Orders), religious units (The Oriflamme), holy sites beside citadels (The Holy Army) and faith purchases (The Sacred Host).
 - **Shared improvements:** camps and pastures, including horses, camels and ivory (The Soldier-Farmers, The Quartermasters, The Horse Herds).
-- **Cards serving the pair:** The Oriflamme, Convert It or Tax It and The Holy Army (all three shared since the balance pass), Muster Rites, The Sacred Host, The Crusader Orders.
+- **Cards serving the pair:** The Oriflamme, Convert It or Tax It and The Holy Army (all three shared since the balance pass), Muster Rites, The Camp Chaplains, The Sacred Host, Rites of Passage, The Crusader Orders.
 
 ### Dominion · Scientific (the military edge)
 - **Dominion gives** science from fighting, and captured cities with their libraries and universities. **It gets back** units ahead of their age from Scientific's charters.
@@ -191,10 +194,11 @@ Dominion's currency is units, spent on garrisons, raids and conquest. Its hooks 
 
 ## Proposed cuts
 
-Pass `reconcile` marks a card cut when the six deck sheets were reconciled (2026-10-06), because a twin on another sheet became the shared card or kept the idea. Pass `balance` marks a card cut in the balance pass (2026-10-06).
+Pass `reconcile` marks a card cut when the six deck sheets were reconciled (2026-10-06), because a twin on another sheet became the shared card or kept the idea. Pass `balance` marks a card cut in the balance pass (2026-10-06). Pass `user` marks a card the user cut (2026-10-12).
 
 | Card | Tier | Rarity | Pass | Why cut |
 |---|---|---|---|---|
+| **Frontier Garrisons** (built) | 0 | common | user | Was shared with Expansionist. Cut by the user (2026-10-12). This sheet's review had called it a smaller copy of Martial Law (food for a garrison) with a population cap added. The shared The Road Garrisons (Tier II) takes its place. |
 | **The Military Orders** | III | uncommon | balance | Merged into the shared card The Holy Army, which pays on the same placement (a citadel beside a holy site). |
 | **Copying the Enemy** | II | uncommon | reconcile | Merged into the shared card Copying the Enemy. |
 | **The Imperial Examinations** | I | uncommon | review | Was shared with Magisterial. Both sheets called it a duplicate of Examinations of State (a garrison and a Monument); the reconciliation keeps Examinations of State and cuts this one, which has the smaller payoff. |
@@ -259,7 +263,4 @@ Pass `reconcile` marks a card cut when the six deck sheets were reconciled (2026
 ## Shared cards for the user to rule on
 
 Only one of the two sheets recommends a change to these, so each stays on both shelves until the user rules.
-- **Frontier Garrisons** (with Expansionist): Dominion recommends cutting it, because it does Martial Law's job (food for a garrison) at a smaller size with a population cap added. Expansionist does not comment.
-- **Rites of Passage** (with Devotion): Dominion recommends cutting it, because it does the built Muster Rites' job (faith for training a unit). Devotion keeps it as the holy-war strand's only early card.
-- **The Sacred Host** (with Devotion): Dominion recommends keeping it but shortening it, because the upkeep clause makes a three-clause card. Devotion does not comment.
 - **The Engineer Corps** (with Scientific): Scientific recommends cutting it, or cutting it to its first clause, because its three clauses are unrelated and its faster siege production repeats Field Academies. Dominion keeps it.
