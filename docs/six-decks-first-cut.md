@@ -11,7 +11,7 @@ Sources: [live Orders, doctrines and governments](orders-and-doctrines.md), [ear
 - **Leader:** two fixed decks, plus shared commons and eligible cross-type cards. Ibn Battuta has access to all six decks plus the same shared commons.
 - **Cards:** C common, U uncommon, R rare. All enter one owned collection. Ordinary Orders occupy **one normal chair** when active and follow the same entry seals and replacement rules. Five Scientific research Charters and three Commerce building Charters instead unlock their named content once drafted and never occupy a chair. Rarity alone creates no passive effect.
 - **Doctrines:** a **rare-only reward draft**, not a permanent card class. Take one rare into the collection: an ordinary Order must be seated for ongoing effects; a rare Charter grants its named research or building access immediately; the technology or building still needs investment. The same rare can appear in normal drafts and cannot be owned twice.
-- **Government:** supplies **3 / 4 / 6 / 9** baseline chairs and a small proposed administrative tradeoff. Extra-chair leader abilities remain additive.
+- **Government:** supplies **3 / 5 / 8 / 11** baseline chairs (was 3 / 4 / 6 / 9; see "Five content bands") and a small proposed administrative tradeoff. Extra-chair leader abilities remain additive.
 - **Cross-type:** one card definition with two deck memberships. Either membership grants access; matching both does not double chance or effect.
 - **Generic:** common rarity, no deck membership, accessible to everyone. A safety net of modest fundamentals rather than the best route to every yield.
 
@@ -52,16 +52,19 @@ Shared pairs are intentional. Modu and Joan should use the same pool differently
 
 ## Availability and offer rules
 
-### Four content bands, independent of government form
+### Five content bands, independent of government form
 
 **User timing direction (2026-09-16):** cumulative scaling cards belong mainly in the first two ages; every deck needs faith by age 1–2; age 3 is the main tall/wide, authority and happiness step. For this worksheet, that means early scaling and faith in tier 0 / Government I, with empire-building choices concentrated in Government II. These are balance-stage correspondences, not a change that synchronizes the live technology and government clocks.
 
 | Band | Government tier | Proposed unlock | Baseline chairs | Purpose |
 |---|---|---|---|---|
-| Early | Chiefdom / tier 0 | Start | 3 | Establish a direction; accessible foundations, including early rares where available. |
-| Middle | Government I | Regular draft count 4 | 4 | Add infrastructure, cross-type connections and tactical alternatives. |
-| Late | Government II | Regular draft count 18 | 6 | Add conversion engines, developed-city rewards and specialization. |
-| Final | Government III | Regular draft count 29 | 9 | Complete larger combinations; new uses for established assets. |
+| Early (Tier 0) | Chiefdom / tier 0 | Start | 3 | Establish a direction; accessible foundations, including early rares where available. |
+| Middle (Tier I) | Government I | Regular draft count 4 | 5 | Add infrastructure, cross-type connections and tactical alternatives. |
+| Late (Tier II) | Government II | Regular draft count 18 | 8 | Add conversion engines, developed-city rewards and specialization. |
+| Advanced (Tier III) | Government III | Regular draft count 29 | 11 | Complete larger combinations; new uses for established assets. |
+| Final (Tier IV) | Government IV | Regular draft count 45 | 11 | Endgame cards: finishers, late engines and the decks' signatures at full size. |
+
+**Band 4 and the chairs (deck implementation, foundation batch, 2026-10-12).** The deck sheets' Tier IV is band 4. Its rung sits at draft count 45, where the last governments are offered. There is no fifth research age, so band 4 asks for age 4, the same as band 3, and only the ladder rung separates them. The chairs are the user's ruling in `docs/decks/deck-design.md` "More chairs" (3 / 5 / 8 / 11, replacing 3 / 4 / 6 / 9); the fifth rung keeps eleven.
 
 Government tiers here refer to this proposal's four-stage progression, not the live game's five government promotions. They mark the earliest unlock; cards remain available in later tiers. Government form (Council, Crown or League) does not restrict access.
 
@@ -85,7 +88,7 @@ All draw rules are authoring proposals, not implemented behavior. They deliberat
 
 ### Doctrine reward hands
 
-- At proposed reform milestones **4, 18 and 29**, offer three distinct unowned **R** cards from the same currently unlocked, leader-eligible catalogue. These are bonus rare-only opportunities; rares remain available in normal hands before and after them.
+- At proposed reform milestones **4, 18, 29 and 45**, offer three distinct unowned **R** cards from the same currently unlocked, leader-eligible catalogue. These are bonus rare-only opportunities; rares remain available in normal hands before and after them.
 - Prefer a single-type rare from each leader deck, then another eligible rare, including cross-types. Exclude duplicates and use union-pool fallback if a source is empty. Rainbow samples different available types for its first two positions, then an eligible third rare. Extra-offer effects and legal redraw abilities apply to these hands too.
 - Taking a card adds it to the collection. Ordinary Orders do not activate automatically, add chairs or evade seals. A Charter instead grants its named research or construction access once on selection, with no chair or seal; it grants neither a free technology nor a free building. Taking any rare in a normal draft removes that same ID from future doctrine hands, and vice versa.
 - The player may bank or pass the reward; a banked reward does not block End Turn. Passing forfeits that opportunity. If all eligible rares are owned, resolve the reward as exhausted with no cost. No automatic compensation or new currency.

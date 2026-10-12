@@ -368,25 +368,31 @@ describe('the schema, as landed', () => {
     expect(draft).not.toMatch(/poolOfGovernment\(/);
   });
 
-  it('is a four-rung ladder with universal chairs, and every government carries its rung’s count', () => {
-    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29]);
-    expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 4, 6, 9]);
-    expect(REWARD_DRAFTS).toEqual([4, 18, 29]);
+  it('is a five-rung ladder with universal chairs, and every government carries its rung’s count', () => {
+    // Chairs 3 / 5 / 8 / 11 are the user's ruling (docs/decks/deck-design.md
+    // "More chairs"); the fifth rung (band 4) sits where the tier-45
+    // governments are offered and keeps eleven.
+    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29, 45]);
+    expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 8, 11, 11]);
+    expect(TIER_LADDER).toHaveLength(BANDS.length);
+    expect(REWARD_DRAFTS).toEqual([4, 18, 29, 45]);
     for (const id of GOVERNMENT_IDS) {
       const def = governmentDef(id);
       expect(def.chairs, id).toBe(chairsAtTier(def.tier));
       expect(slotCount(id), id).toBe(def.chairs);
     }
     // A tier between two rungs keeps the rung below it.
-    expect(chairsAtTier(10)).toBe(4);
-    expect(chairsAtTier(45)).toBe(9);
+    expect(chairsAtTier(10)).toBe(5);
+    expect(chairsAtTier(45)).toBe(11);
     expect(bandTierAt(0)).toBe(0);
     expect(bandTierAt(3)).toBe(0);
     expect(bandTierAt(4)).toBe(1);
     expect(bandTierAt(17)).toBe(1);
     expect(bandTierAt(18)).toBe(2);
     expect(bandTierAt(29)).toBe(3);
-    expect(bandTierAt(400)).toBe(3);
+    expect(bandTierAt(44)).toBe(3);
+    expect(bandTierAt(45)).toBe(4);
+    expect(bandTierAt(400)).toBe(4);
   });
 
   it('draws rarity first at 60 / 30 / 10, and a pass moves points out of common', () => {
@@ -500,8 +506,8 @@ describe('the leader pools', () => {
 });
 
 describe('the design doc’s numbers', () => {
-  it('bands: the four rungs, their draft counts and their chairs are the ladder', () => {
-    const rows = docTable('### Four content bands, independent of government form');
+  it('bands: the five rungs, their draft counts and their chairs are the ladder', () => {
+    const rows = docTable('### Five content bands, independent of government form');
     expect(rows.length).toBe(TIER_LADDER.length);
     rows.forEach((row, index) => {
       const unlock = row[2]!;
@@ -523,9 +529,9 @@ describe('the design doc’s numbers', () => {
 
   it('reward hands: the milestones of "Doctrine reward hands" are the ladder’s later rungs', () => {
     const section = DOC.slice(DOC.indexOf('### Doctrine reward hands'));
-    const match = /milestones \*\*(\d+), (\d+) and (\d+)\*\*/.exec(section);
+    const match = /milestones \*\*(\d+), (\d+), (\d+) and (\d+)\*\*/.exec(section);
     expect(match).not.toBeNull();
-    expect(REWARD_DRAFTS).toEqual([Number(match![1]), Number(match![2]), Number(match![3])]);
+    expect(REWARD_DRAFTS).toEqual([Number(match![1]), Number(match![2]), Number(match![3]), Number(match![4])]);
   });
 
   it('the cadence of rule 2 — generic, cross-type, generic, single-type — is the third position’s', () => {
@@ -694,6 +700,12 @@ describe('with the shelf stocked', () => {
     expect(bandOpen(3, 3, 3)).toBe(false);
     expect(bandOpen(3, 3, 4)).toBe(true);
     expect(bandOpen(0, 3, 4)).toBe(true);
+    // Band 4 (Tier IV): there is no fifth age, so it asks for the last age and
+    // waits on its rung of the ladder.
+    expect(bandOpen(4, 3, 4)).toBe(false);
+    expect(bandOpen(4, 4, 3)).toBe(false);
+    expect(bandOpen(4, 4, 4)).toBe(true);
+    expect(bandOpen(3, 4, 4)).toBe(true);
 
     const g = seated();
     const ada = playerById(g.state, 0)!;
@@ -969,7 +981,8 @@ describe('with the shelf stocked', () => {
     }
     sc.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     adoptGovernmentAt(g.state, ada, 0);
-    expect(sc.slots).toHaveLength(4);
+    expect(sc.slots).toHaveLength(chairsAtTier(4));
+    expect(sc.slots).toHaveLength(5);
     expect(slotTypesOf(sc).every((type) => type === 'wildcard')).toBe(true);
   });
 

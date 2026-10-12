@@ -1425,12 +1425,13 @@ export interface ProductionRules {
    * job: it says what a candle is worth against a coin when a congregation is
    * hurrying its cathedral.
    *
-   * **1 against gold's 2**, and the halving is the point: faith is the scarcer
-   * bank by a wide margin (nothing but a shrine, a temple and a signature pays
-   * it, and an augur is forty of it), so a rate equal to gold's would make the
-   * faith button the one nobody ever presses. At 1 a devout empire converts its
-   * whole pool into a cathedral roughly twice as efficiently as a rich one
-   * converts its treasury, which is what "funded every posture's own way" means.
+   * **2 against gold's 4** (the user's ruling, `docs/flags.md` item (qqqqqq)
+   * 3, 2026-10-12; it was 1). Faith still buys a hammer at half gold's price,
+   * because faith is the scarcer bank and a rate equal to gold's would make the
+   * faith button the one nobody presses. The earlier 1 against 4 made faith
+   * the cheapest way to buy production by a wide margin, which the deck review
+   * found too strong once several cards let faith buy buildings. The faith
+   * price of a draft reroll is not tied to this number and did not change.
    */
   faithPerHammer: number;
   /**

@@ -15,7 +15,7 @@
     "rare": 5
   },
   "redraw": {
-    "goldMultiple": 6
+    "goldMultiple": 12
   },
   "governments": {
     "chiefdom": {
@@ -35,7 +35,7 @@
     "councilOfElders": {
       "name": "Council of Elders",
       "tier": 4,
-      "chairs": 4,
+      "chairs": 5,
       "flavor": "Slow counsel, and no one hanged for it.",
       "slots": {
         "military": 0,
@@ -58,7 +58,7 @@
     "warChief": {
       "name": "War Chief",
       "tier": 4,
-      "chairs": 4,
+      "chairs": 5,
       "flavor": "The spear chooses; the rest agree.",
       "slots": {
         "military": 3,
@@ -102,7 +102,7 @@
     "priestKing": {
       "name": "Priest-King",
       "tier": 4,
-      "chairs": 4,
+      "chairs": 5,
       "flavor": "The gods speak. He translates.",
       "slots": {
         "military": 1,
@@ -121,7 +121,7 @@
     "republic": {
       "name": "Republic",
       "tier": 10,
-      "chairs": 4,
+      "chairs": 5,
       "flavor": "A crowd that learned to sign its name.",
       "slots": {
         "military": 1,
@@ -150,7 +150,7 @@
     "tyranny": {
       "name": "Tyranny",
       "tier": 10,
-      "chairs": 4,
+      "chairs": 5,
       "flavor": "One will, and the roads run straight.",
       "slots": {
         "military": 3,
@@ -190,7 +190,7 @@
     "theocracy": {
       "name": "Theocracy",
       "tier": 10,
-      "chairs": 4,
+      "chairs": 5,
       "flavor": "Law is what the altar remembers.",
       "slots": {
         "military": 1,
@@ -227,7 +227,7 @@
     "merchantLeague": {
       "name": "Merchant League",
       "tier": 18,
-      "chairs": 6,
+      "chairs": 8,
       "flavor": "Every treaty has a ledger underneath.",
       "slots": {
         "military": 1,
@@ -259,7 +259,7 @@
     "imperium": {
       "name": "Imperium",
       "tier": 18,
-      "chairs": 6,
+      "chairs": 8,
       "flavor": "The map is a claim; the legion is the proof.",
       "slots": {
         "military": 4,
@@ -296,7 +296,7 @@
     "divineMandate": {
       "name": "Divine Mandate",
       "tier": 18,
-      "chairs": 6,
+      "chairs": 8,
       "flavor": "Heaven approves. It was asked.",
       "slots": {
         "military": 2,
@@ -338,7 +338,7 @@
     "theEstates": {
       "name": "The Estates",
       "tier": 29,
-      "chairs": 9,
+      "chairs": 11,
       "flavor": "Three orders, one hall, and the hall keeps the minutes.",
       "slots": {
         "military": 2,
@@ -366,7 +366,7 @@
     "theSultanate": {
       "name": "The Sultanate",
       "tier": 29,
-      "chairs": 9,
+      "chairs": 11,
       "flavor": "The road is short for those the Sultan sends.",
       "slots": {
         "military": 5,
@@ -406,7 +406,7 @@
     "theCuria": {
       "name": "The Curia",
       "tier": 29,
-      "chairs": 9,
+      "chairs": 11,
       "flavor": "What is written in the register is what heaven remembers.",
       "slots": {
         "military": 3,
@@ -437,7 +437,7 @@
     "theCommonwealth": {
       "name": "The Commonwealth",
       "tier": 45,
-      "chairs": 9,
+      "chairs": 11,
       "flavor": "The estate is common; the ledger is not.",
       "slots": {
         "military": 2,
@@ -463,7 +463,7 @@
     "theEmpire": {
       "name": "The Empire",
       "tier": 45,
-      "chairs": 9,
+      "chairs": 11,
       "flavor": "One frontier, and it is wherever the last courier stopped.",
       "slots": {
         "military": 5,
@@ -502,7 +502,7 @@
     "theMagisterium": {
       "name": "The Magisterium",
       "tier": 45,
-      "chairs": 9,
+      "chairs": 11,
       "flavor": "The Magister does not rule. He sets the rules.",
       "slots": {
         "military": 3,
@@ -7440,15 +7440,19 @@
     },
     {
       "drafts": 4,
-      "chairs": 4
+      "chairs": 5
     },
     {
       "drafts": 18,
-      "chairs": 6
+      "chairs": 8
     },
     {
       "drafts": 29,
-      "chairs": 9
+      "chairs": 11
+    },
+    {
+      "drafts": 45,
+      "chairs": 11
     }
   ]
 }

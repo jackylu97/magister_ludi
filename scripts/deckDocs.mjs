@@ -76,13 +76,11 @@ const DECKS = [
  * how commerce is structured, with a tier 0, tier 1, etc. instead of early,
  * middle late."*).
  *
- * There are **four** of these because `band` has four values. The Commerce
- * sheet is hand-written and uses five, splitting its last band into a Tier III
- * and a Tier IV by design rather than by the field — so a generated sheet stops
- * at Tier III, and a real fifth tier would be a new `band` value in the data
- * before it was ever a heading here.
+ * There are **five** of these because `band` has five values: band 4 (Tier
+ * IV) was added in the deck implementation's foundation batch. The loops below
+ * walk this list, so a sixth band needs only a sixth word here.
  */
-const BAND_WORDS = ['Tier 0', 'Tier I', 'Tier II', 'Tier III'];
+const BAND_WORDS = ['Tier 0', 'Tier I', 'Tier II', 'Tier III', 'Tier IV'];
 
 const RARITY_WORDS = { common: 'common', uncommon: 'uncommon', rare: 'rare' };
 
@@ -139,7 +137,7 @@ function tableFor(list, partnerOf) {
 
 function countTable(list) {
   const out = ['| Tier | Cards | Built | Deferred |', '|---|---|---|---|'];
-  for (let band = 0; band < 4; band++) {
+  for (let band = 0; band < BAND_WORDS.length; band++) {
     const inBand = list.filter((r) => r.band === band);
     if (inBand.length === 0) continue;
     const built = inBand.filter(isBuilt).length;
@@ -160,7 +158,7 @@ function countTable(list) {
  */
 function raritySpread(list) {
   const out = ['| Tier | Common | Uncommon | Rare |', '|---|---|---|---|'];
-  for (let band = 0; band < 4; band++) {
+  for (let band = 0; band < BAND_WORDS.length; band++) {
     const inBand = list.filter((r) => r.band === band);
     if (inBand.length === 0) continue;
     const n = (k) => inBand.filter((r) => r.rarity === k).length;
@@ -192,7 +190,7 @@ for (const [deck, title, reward, directions] of DECKS) {
     raritySpread(own),
     '',
   ];
-  for (let band = 0; band < 4; band++) {
+  for (let band = 0; band < BAND_WORDS.length; band++) {
     const inBand = own.filter((r) => r.band === band);
     if (inBand.length === 0) continue;
     parts.push(`## ${BAND_WORDS[band]}\n`, tableFor(inBand), '');
@@ -223,7 +221,7 @@ These belong to no deck. Every seat may draw them whatever its two decks are, so
   countTable(generic),
   '',
 ];
-for (let band = 0; band < 4; band++) {
+for (let band = 0; band < BAND_WORDS.length; band++) {
   const inBand = generic.filter((r) => r.band === band);
   if (inBand.length === 0) continue;
   genericParts.push(`## ${BAND_WORDS[band]}\n`, tableFor(inBand), '');

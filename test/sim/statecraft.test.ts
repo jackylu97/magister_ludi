@@ -306,11 +306,12 @@ describe("the card table", () => {
     // Gov IV and Gov V were written on 2026-08-28, so the live ladder is now the
     // whole ratified one and the two lists agree end to end.
     expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 29, 45]);
-    // **The decks rework** (D1a): `tierLadder` is the four-rung ladder of bands
-    // and chairs now — 0 / 4 / 18 / 29 — read by the sim, and the governments
-    // are still offered at their rows' own tiers. The two lists are different
-    // questions (`StatecraftConfig.tierLadder`).
-    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29]);
+    // `tierLadder` is the ladder of bands and chairs, read by the sim: four
+    // rungs since the decks rework (D1a), and a fifth at 45 for band 4 since
+    // the deck implementation's foundation batch. The governments are still
+    // offered at their rows' own tiers. The two lists are different questions
+    // (`StatecraftConfig.tierLadder`).
+    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29, 45]);
     for (const tier of GOVERNMENT_TIERS) {
       expect(governmentsAtTier(tier), `tier ${tier}`).toHaveLength(3);
     }
@@ -6415,7 +6416,8 @@ describe("the cards pass of 2026-09-05", () => {
   it("keeps the seat pool through the late governments — no shelf turns over (D1a)", () => {
     // **Re-cut for the decks rework**: the two late rungs used to open shelves
     // of their own; a seat draws from its decks under every government now,
-    // and the late governments supply nine chairs.
+    // and the late governments supply eleven chairs (the 3 / 5 / 8 / 11
+    // ruling in docs/decks/deck-design.md "More chairs").
     const g = game(781);
     const player = playerById(g.state, 0)!;
     const sc = player.statecraft;
@@ -6423,11 +6425,11 @@ describe("the cards pass of 2026-09-05", () => {
     sc.government = "theCuria";
     bumpRevision(g.state);
     expect(deckPoolOf(g.state, player)).toEqual(before);
-    expect(slotCount("theCuria")).toBe(9);
+    expect(slotCount("theCuria")).toBe(11);
     sc.government = "theEmpire";
     bumpRevision(g.state);
     expect(deckPoolOf(g.state, player)).toEqual(before);
-    expect(slotCount("theEmpire")).toBe(9);
+    expect(slotCount("theEmpire")).toBe(11);
   });
 
   it("takes the eight cuts out of every pool and leaves them readable", () => {
