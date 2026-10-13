@@ -522,6 +522,7 @@
       "knight": "knight",
       "knightsTemplar": "knight",
       "numidianCavalry": "mounted",
+      "companyGuard": "longswordsman",
       "chariotArcher": "mountedRanged",
       "catapult": "siege",
       "trebuchet": "trebuchet",

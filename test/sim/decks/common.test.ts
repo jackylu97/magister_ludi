@@ -54,8 +54,18 @@ function isDeferred(id: OrderId): boolean {
   return (orderDef(id).deferred?.length ?? 0) > 0;
 }
 
-const LIVE = COMMON.filter((id) => !isDeferred(id));
-const DEFERRED = COMMON.filter((id) => isDeferred(id));
+/**
+ * A shared card both its decks cut (batch S: Frontier Garrisons, Harvest
+ * Offerings). Kept for saves and the Compendium, dealt by nobody, and counted
+ * as neither live nor deferred here.
+ */
+function isRetired(id: OrderId): boolean {
+  return orderDef(id).retired === true;
+}
+
+const LIVE = COMMON.filter((id) => !isDeferred(id) && !isRetired(id));
+const DEFERRED = COMMON.filter((id) => isDeferred(id) && !isRetired(id));
+const RETIRED = COMMON.filter((id) => isRetired(id));
 
 const RARITIES = ['common', 'uncommon', 'rare'];
 
@@ -107,7 +117,15 @@ describe('the shared shelf is two kinds of row and no third', () => {
       // after the rework carries neither.
       expect(def.pool, `${id} carries a pre-rework pool`).toBeUndefined();
       expect(def.slot, `${id} carries a pre-rework office`).toBeUndefined();
-      expect(def.retired, `${id} is retired`).toBeUndefined();
+    }
+  });
+
+  it('keeps a retired shared row out of every pool', () => {
+    // Batch S retired the two shared cards both their sheets cut.
+    expect([...RETIRED].sort()).toEqual(['frontierGarrisons', 'harvestOfferings']);
+    for (const id of RETIRED) {
+      expect(orderIsDealt(id), `${id} is retired and dealt`).toBe(false);
+      expect(orderDef(id).decks.length, `${id} names ${orderDef(id).decks.length} deck(s)`).toBe(2);
     }
   });
 
@@ -120,7 +138,10 @@ describe('the shared shelf is two kinds of row and no third', () => {
 describe('a live row', () => {
   it('carries effects, and is dealt', () => {
     for (const id of LIVE) {
-      expect(orderDef(id).effects.length, `${id} is live and pays nothing`).toBeGreaterThan(0);
+      // A charter's grant is the whole of the card (The Chartered Company).
+      if (orderDef(id).charter === undefined) {
+        expect(orderDef(id).effects.length, `${id} is live and pays nothing`).toBeGreaterThan(0);
+      }
       expect(orderDef(id).deferred, id).toBeUndefined();
       expect(orderIsDealt(id), `${id} is live and in no pool`).toBe(true);
     }
@@ -143,6 +164,9 @@ describe('a live row', () => {
 
   it('prints through the describers, in whole sentences, with no raw keyword ref', () => {
     for (const id of LIVE) {
+      // A charter that opens a unit prints its grant through the Compendium,
+      // not the describers — the Commerce deck test's rule.
+      if (orderDef(id).charter !== undefined) continue;
       const clauses = describeCard(id);
       expect(clauses.length, `${id} describes as nothing`).toBeGreaterThan(0);
       for (const clause of clauses) {
@@ -301,11 +325,12 @@ describe('C2 — the two shared rows', () => {
     expect(def.decks).toEqual(['dominion', 'commerce']);
     expect(def.deferred).toBeUndefined();
     expect(orderIsDealt('lettersOfMarque' as OrderId)).toBe(true);
-    // A kill by one of this empire's ships, a discount at a harbour town's
-    // counter, and a penalty on that same town's yards.
+    // A kill by one of this empire's ships, more gold in a harbour town (the
+    // purchase discount until ruling (qqqqqq) 1, batch S), and a penalty on
+    // that same town's yards.
     expect(def.effects.map((effect) => effect.kind)).toEqual([
       'windfallRider',
-      'purchaseRider',
+      'percentYields',
       'productionBonus',
     ]);
     for (const effect of def.effects) {
@@ -313,7 +338,7 @@ describe('C2 — the two shared rows', () => {
         expect(effect.occasion).toBe('kill');
         expect(effect.class).toEqual({ category: 'naval' });
       }
-      if (effect.kind === 'purchaseRider' || effect.kind === 'productionBonus') {
+      if (effect.kind === 'percentYields' || effect.kind === 'productionBonus') {
         expect(effect.scope).toEqual({ test: 'hasBuilding', building: 'harbour' });
       }
     }

@@ -789,6 +789,20 @@ export type CityScope =
    */
   | { test: 'follows' }
   /**
+   * The town **does** (`keeps: true`) or **does not** (`keeps: false`) follow a
+   * religion its **owner** is paid by (`heldReligions`, the holy city's).
+   * Convert It or Tax It (shared Dominion and Devotion card, batch S).
+   *
+   * `follows` asks about the card's reader when one is named and about "any
+   * faith at all" otherwise, and most readers name none, so it cannot say
+   * "your religion" in a town's own yields or authority. This member always
+   * asks the town's owner, which is the empire whose card is being read for
+   * its own towns. One member with a flag rather than a `not`, because the
+   * scope union has no negation. A town that keeps no faith, or an owner that
+   * holds no religion, does not follow.
+   */
+  | { test: 'ownersFaith'; keeps: boolean }
+  /**
    * The town is **joined to its empire's capital by road** — Empire-Building's
    * contented provinces, and Movable Type's second helping of the same.
    *
@@ -1473,6 +1487,17 @@ export type CombatCondition =
    */
   | { test: 'followingTerritory'; foreign?: boolean }
   /**
+   * The contested hex belongs to a city that does **not** follow this empire's
+   * religion. The Crusader Orders (shared Dominion and Devotion card, batch S).
+   *
+   * The mirror of `followingTerritory`, as its own member because this union has
+   * no negation. Any town's ground counts, your own included, and a town that
+   * keeps no faith at all counts too. Ground nobody owns is not territory and
+   * never counts. An empire that holds no religion finds every town's ground
+   * unbelieving, which is what the sentence says.
+   */
+  | { test: 'notFollowingTerritory' }
+  /**
    * The other side belongs to an empire with a town raising the Magnum Opus —
    * The Grand Coalition's strength against the empire racing to finish.
    * Asked of `CombatSituation.vsOwnerId`, so it holds against that empire's
@@ -1539,7 +1564,13 @@ export type CombatScaleCount =
    * reading as `CountKind`'s `uniqueLuxuries` (`controlledResources`), asked of
    * a fight.
    */
-  | 'uniqueLuxuries';
+  | 'uniqueLuxuries'
+  /**
+   * **Gold in the treasury** — War Bonds (shared Commerce and Dominion card,
+   * batch S): strength paid for by the reserve. The same reading as
+   * `CountKind`'s `bankedGold`, asked of a fight.
+   */
+  | 'bankedGold';
 
 /** A strength line that scales with a count, capped where the design caps it. */
 export interface CombatScale {
@@ -1634,6 +1665,18 @@ export interface UnitFilter {
    * bot that decides it has one cannot disagree about what a soldier is.
    */
   fieldSoldier?: boolean;
+  /**
+   * True: only **religious units** — prophets, apostles, inquisitors and any
+   * other piece whose row carries one of the religious markers (`prophesies`,
+   * `proclaims`, `purges`, `consecrates`). False: everything else.
+   *
+   * The Oriflamme (shared Dominion and Devotion card, batch S) needed "beside
+   * one of your religious units", and no single marker covers all three
+   * pieces: `consecrates` is the retired augur's alone. Reading the markers
+   * rather than the type names means a new religious piece is covered when its
+   * row carries one of them.
+   */
+  religious?: boolean;
   /**
    * One **named** roster row, and nothing else — State Workforce's cheaper
    * worker (tree revision 4, 2026-09-02).
@@ -3442,6 +3485,15 @@ export type ActionRuleId =
    */
   | 'boughtUnitsCountAsTrained'
   /**
+   * **Clearing a barbarian camp claims ground** — The Barbarian Frontier
+   * (shared Dominion and Expansionist card, batch S). Read in
+   * `settleCampBounty` (`camps.ts`): the camp's hex and every unowned hex
+   * beside it go to this empire's nearest town, if that town stands within
+   * `rules.barbarians.frontierClaimTownRange` hexes of the camp. Hexes that
+   * another town already owns are never taken.
+   */
+  | 'campClaimsGround'
+  /**
    * Faith may buy the **units** the row's `class` names, in the towns its
    * `scope` admits — Consecrated Labor's workers. Read in `faithBankOpen`.
    */
@@ -3882,6 +3934,14 @@ export type WindfallOccasion =
   | 'kill'
   /** An improvement pillaged (`pillageAt`). */
   | 'pillage'
+  /**
+   * A worker **laid down an improvement** (`buildImprovementAt`) — The Flood
+   * Festival's faith for each hex of burned country (shared Expansionist and
+   * Devotion card, batch S). The improvement travels as
+   * `WindfallOccasionFacts.improvement`, and a rider names the one it pays for
+   * with `CardWindfallRiderEffect.improvement`.
+   */
+  | 'improvementBuilt'
   /**
    * A **vein surfaced** (`prospectAt`, on a strike and only on a strike) — the
    * Geomancy pass of 2026-09-05.
@@ -5437,6 +5497,13 @@ export interface CardWindfallRiderEffect {
    * single great houses — a narrowing the rework removed.
    */
   anyBuilding?: true;
+  /**
+   * The rider fires only when the improvement just laid down is this one — The
+   * Flood Festival's burned country. Read off
+   * `WindfallOccasionFacts.improvement`, which only the `improvementBuilt`
+   * occasion carries, so a rider written onto any other occasion never pays.
+   */
+  improvement?: ImprovementId;
   /**
    * The rider fires only when this occasion was a **first of its kind** — Master
    * Masons' guild, Civic Receipts' roof, The Patent Rolls' patent.

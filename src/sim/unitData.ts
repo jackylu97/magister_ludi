@@ -33,6 +33,9 @@
 
 import unitsJson from '../../data/units.json';
 
+// Type-only both ways, as `buildingData.ts` already imports `UnitTypeId` from
+// here: a purchase may name the building a town must hold (batch S).
+import type { BuildingId } from './buildingData';
 import type { ResourceId } from './resourceData';
 // Type-only, so the roster stays a leaf: a row's rules are written in the cards'
 // own vocabulary and read by the cards' own evaluator.
@@ -102,6 +105,10 @@ export type UnitTypeId =
   // batch): no technology opens it and a charter in the collection does
   // (`CharterSpec.unlocks.unit`), from its column on.
   | 'numidianCavalry'
+  // The Chartered Company's soldiers (shared Commerce and Dominion card, batch
+  // S): opened by a charter in the collection from its column on, bought only
+  // with gold and only in a city with a Barracks (`UnitPurchaseSpec.building`).
+  | 'companyGuard'
   // The leaders' ten uniques (batch L2a, `docs/leaders.md`): rows no node names
   // and no queue takes until the figure that owns them has taken the card that
   // hands them over (`unlockedByLeader`). Each carries a `column` of its own,
@@ -281,6 +288,13 @@ export interface UnitPurchaseSpec {
    * a type's name. Absent falls back to "Buy a ⟨name⟩".
    */
   verb?: string;
+  /**
+   * A building the town must hold before this row is sold there — the Company
+   * Guard's Barracks (The Chartered Company, shared Commerce and Dominion card,
+   * batch S). Read in one place, `purchaseError`'s branch for rows that name
+   * their own bank, which every surface that offers a purchase asks.
+   */
+  building?: BuildingId;
 }
 
 /**

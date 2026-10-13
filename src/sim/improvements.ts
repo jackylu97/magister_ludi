@@ -106,6 +106,7 @@ import {
   payWindfallGrants,
   settleCultureWindfall,
   windfallPayout,
+  windfallPayoutIsEmpty,
 } from './statecraft';
 import {
   type City,
@@ -756,6 +757,23 @@ export function buildImprovementAt(
   // town's own panel.
   bumpEconomy(state);
   refreshTileDerived(state, tile);
+  // **A rider on laying the work down** (batch S): The Flood Festival pays faith
+  // for each hex of burned country. The improvement is handed down as a fact so
+  // a rider can name the one it pays for. A grant of hammers goes through
+  // `settleProductionWindfall`, the register's entry 3, exactly as the
+  // prospect's payout above does.
+  const builder = playerById(state, unit.ownerId);
+  if (builder && builder.barbarian !== true) {
+    const payout = windfallPayout(state, builder.id, 'improvementBuilt', 0, 0, {
+      improvement: improvementId,
+    });
+    if (!windfallPayoutIsEmpty(payout)) {
+      const touched = payWindfallGrants(state, builder, payout, { col: tile.col, row: tile.row });
+      for (const town of touched) settleProductionWindfall(state, town);
+      settleCultureWindfall(state, builder);
+      settleResearchWindfall(state, builder);
+    }
+  }
   unit.movesLeft = 0;
   const left = chargesLeft(unit) - improvementDef(improvementId).chargeCost;
   if (left <= 0) {

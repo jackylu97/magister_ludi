@@ -2189,6 +2189,15 @@ export function cityScopeAdmits(
       return state.wars.some((war) => war.a === city.ownerId || war.b === city.ownerId);
     case 'holyCity':
       return isHolyCityOf(state, city, viewerId ?? city.ownerId);
+    case 'ownersFaith': {
+      // Always the town's owner, never the reader: see the scope. A town that
+      // keeps no faith does not follow, and neither does one whose owner holds
+      // no religion.
+      const kept = cityReligion(city);
+      const follows =
+        kept !== null && heldReligions(state, city.ownerId).some((religion) => religion.id === kept);
+      return follows === scope.keeps;
+    }
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -2358,6 +2367,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'raising the Magnum Opus';
     case 'ownerAtWar':
       return 'owner at war';
+    case 'ownersFaith':
+      return scope.keeps ? 'follows your religion' : 'does not follow your religion';
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -5386,11 +5397,30 @@ function combatConditionHolds(
       if (them === undefined || them === situation.unit.ownerId) return false;
       return opusCityOf(state, them) !== null;
     }
+    case 'notFollowingTerritory': {
+      // The Crusader Orders. `followingTerritory`'s reading, answered the other
+      // way: ground some town owns, where that town does not keep one of the
+      // faiths this empire is paid by. Unowned ground is not territory.
+      const cityId = tileOwnerCityId(state, situation.tile.col, situation.tile.row);
+      if (cityId === null) return false;
+      const town = state.cities.find((entry) => entry.id === cityId);
+      if (!town) return false;
+      const kept = cityReligion(town);
+      if (kept === null) return true;
+      return !heldReligions(state, situation.unit.ownerId).some((faith) => faith.id === kept);
+    }
     case 'beside':
-      // The ring of six off this piece's own hex, through the sweep that already
-      // answers "who is standing next to me" (`adjacentFriendlies`), narrowed by
-      // the ordinary filter. A *question*, so three engines pay once.
-      return adjacentFriendlies(state, situation.unit, when.class) > 0;
+      // The ring of six off this piece's own hex, narrowed by the ordinary
+      // filter. A *question*, so three engines pay once.
+      //
+      // **Any piece the filter names counts, fighting or not** (batch S). The
+      // count scale `adjacentFriendlies` keeps its combatants-only rule, but a
+      // `beside` condition always names a class, and the classes rows name here
+      // include pieces that do not fight: The Oriflamme's religious units and
+      // The Escorted Roads' traders. Counting combatants only made both lines
+      // pay nothing. A class of fighting pieces (The Siege Train's engines)
+      // reads the same either way.
+      return besideMatching(state, situation.unit, when.class);
     case 'all': {
       // Recursion into the same evaluator, which is the whole reason the
       // composite is a condition rather than a second field on `combatLine` —
@@ -5409,13 +5439,35 @@ function combatConditionHolds(
 }
 
 /**
+ * Is one of this empire's pieces matching `filter` standing next to this one?
+ * The `beside` combat condition. Unlike `adjacentFriendlies` it does not ask
+ * whether the neighbour fights, because the condition names its class and some
+ * classes it names (religious units, traders) never fight. See the condition's
+ * arm in `combatConditionHolds`.
+ */
+function besideMatching(state: GameState, unit: Unit, filter: UnitFilter): boolean {
+  const from = getTileAt(state.map, unit.col, unit.row);
+  if (!from) return false;
+  for (const neighbour of neighborTiles(state.map, tileHex(from))) {
+    for (const other of state.units) {
+      if (other.id === unit.id) continue;
+      if (other.ownerId !== unit.ownerId) continue;
+      if (other.col !== neighbour.col || other.row !== neighbour.row) continue;
+      if (unitMatches(other.type, filter)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * How many friendly combat units stand next to this one.
  *
- * `filter` narrows them to a silhouette — The Siege Train's engines — through
- * the same `unitMatches` predicate every other "which units" question in the
- * vocabulary asks. Absent counts every combatant, which is what the count's
- * first reader (`adjacentFriendlies` as a `CombatScale`) has always meant, so
- * one sweep answers the count and the `beside` condition alike.
+ * `filter` narrows them to a silhouette through the same `unitMatches`
+ * predicate every other "which units" question in the vocabulary asks. Absent
+ * counts every combatant, which is what the count's first reader
+ * (`adjacentFriendlies` as a `CombatScale`) has always meant. The `beside`
+ * condition asks `besideMatching` instead, which also counts pieces that do not
+ * fight.
  */
 function adjacentFriendlies(state: GameState, unit: Unit, filter?: UnitFilter): number {
   const from = getTileAt(state.map, unit.col, unit.row);
@@ -5551,6 +5603,9 @@ function combatScaleCount(
     case 'uniqueLuxuries':
       // The ledger count's own reading, asked of a fight (Numidian Cavalry).
       return controlledResources(state, playerId, 'luxury').length;
+    case 'bankedGold':
+      // War Bonds. The ledger count's own reading, asked of a fight.
+      return Math.max(0, Math.floor(playerById(state, playerId)?.gold ?? 0));
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -5693,6 +5748,13 @@ export function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   // and a bot deciding whether it has a garrison count one thing.
   if (filter.fieldSoldier !== undefined && isFieldSoldier(def) !== filter.fieldSoldier) {
     return false;
+  }
+  // "Religious units" (The Oriflamme), asked of the roster's religious
+  // markers rather than of names — see `UnitFilter.religious`.
+  if (filter.religious !== undefined) {
+    const religious =
+      def.prophesies === true || def.proclaims === true || def.purges === true || def.consecrates === true;
+    if (religious !== filter.religious) return false;
   }
   // The named row, asked last because it is the narrowest thing the filter can
   // say — see `UnitFilter.type`. The *data* names a type here; no rule in
@@ -6078,6 +6140,11 @@ export interface WindfallOccasionFacts {
    */
   actor?: UnitTypeId;
   /**
+   * The improvement a worker just laid down — carried only by the
+   * `improvementBuilt` occasion and read by `CardWindfallRiderEffect.improvement`.
+   */
+  improvement?: ImprovementId;
+  /**
    * True when the town just taken held a wonder — The Empire's clause.
    *
    * `vsBarbarians`' sibling, passed for its reason exactly: the caller is the
@@ -6320,6 +6387,10 @@ export function windfallPayout(
     // rather than a no-op because the purchase occasion covers both, and it
     // carries no `building` on the unit half.
     if (effect.anyBuilding === true && facts.building === undefined) return false;
+    // The Flood Festival pays for burned country and not for a farm. Only the
+    // `improvementBuilt` occasion carries the fact, so the filter is silent
+    // everywhere else.
+    if (effect.improvement !== undefined && facts.improvement !== effect.improvement) return false;
     // And the eighth, asked of the **world's ledger** rather than of a fact: the
     // seam has already written down what was first (`markFirst`) and handed the
     // answer down, so this is the card asking and never the card deciding.

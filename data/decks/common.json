@@ -2,7 +2,10 @@
   "orders": {
     "frontierGarrisons": {
       "name": "Frontier Garrisons",
-      "decks": ["dominion", "expansionist"],
+      "decks": [
+        "dominion",
+        "expansionist"
+      ],
       "band": 0,
       "line": "none",
       "rarity": "common",
@@ -15,10 +18,19 @@
           "food": 2,
           "scope": {
             "test": "all",
-            "of": [{ "test": "garrisoned" }, { "test": "populationAtMost", "value": 5 }]
+            "of": [
+              {
+                "test": "garrisoned"
+              },
+              {
+                "test": "populationAtMost",
+                "value": 5
+              }
+            ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "militaryColonies": {
       "name": "Military Colonies",
@@ -68,57 +80,110 @@
     },
     "lettersOfMarque": {
       "name": "Letters of Marque",
-      "decks": ["dominion", "commerce"],
+      "decks": [
+        "dominion",
+        "commerce"
+      ],
       "band": 3,
       "line": "none",
       "rarity": "rare",
       "flavor": "A signature turns a pirate into a patriot.",
-      "text": "Naval combat kills grant 40 gold. Cities with a Harbour purchase naval combat units for 25% less gold, but produce those units 20% more slowly.",
+      "text": "Naval combat kills grant 40 gold. Cities with a Harbour gain +25% gold, but produce naval combat units 20% more slowly.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "kill",
-          "class": { "category": "naval" },
-          "grant": { "yield": "gold", "amount": 40 }
+          "class": {
+            "category": "naval"
+          },
+          "grant": {
+            "yield": "gold",
+            "amount": 40
+          }
         },
         {
-          "kind": "purchaseRider",
-          "class": { "category": "naval" },
-          "on": "unit",
-          "percent": -25,
-          "scope": { "test": "hasBuilding", "building": "harbour" }
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "harbour"
+          }
         },
         {
           "kind": "productionBonus",
           "category": "unit",
-          "class": { "category": "naval" },
+          "class": {
+            "category": "naval"
+          },
           "percent": -20,
-          "scope": { "test": "hasBuilding", "building": "harbour" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "harbour"
+          }
         }
       ],
-      "note": "The coin is for a kill made by one of your ships, wherever it happens. The discount and the slower yards are asked of the town at the counter and of the town at the forge, which is the same town either way."
+      "note": "The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour."
     },
     "commonRitesOfPassage": {
       "name": "Rites of Passage",
-      "decks": ["dominion", "devotion"],
+      "decks": [
+        "dominion",
+        "devotion"
+      ],
       "band": 0,
       "line": "none",
       "rarity": "common",
       "flavor": "The boy kneels, the soldier stands.",
       "text": "Completing a military unit grants 12 faith.",
-      "deferred": ["completing a soldier — and no other kind of unit — pays faith"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "unitCompletion",
+          "class": {
+            "category": "military"
+          },
+          "grant": {
+            "yield": "faith",
+            "amount": 12
+          }
+        }
+      ],
+      "note": "A soldier you buy counts as completed, so it pays too."
     },
     "theSacredHost": {
       "name": "The Sacred Host",
-      "decks": ["dominion", "devotion"],
+      "decks": [
+        "dominion",
+        "devotion"
+      ],
       "band": 1,
       "line": "none",
       "rarity": "rare",
       "flavor": "An army that prays is an army twice fed.",
-      "text": "Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 10 faith. Each military unit costs +1 gold upkeep while this card is active.",
-      "deferred": ["soldiers may be bought with faith, in the cities that keep a temple"],
-      "effects": []
+      "text": "Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 10 faith.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "faithBuysUnits",
+          "class": {
+            "category": "military"
+          },
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "yield": "faith",
+            "amount": 10
+          }
+        }
+      ],
+      "note": "A soldier bought with faith costs what it would cost to build, converted at the faith rate."
     },
     "fieldAcademies": {
       "name": "Field Academies",
@@ -359,14 +424,20 @@
     },
     "harvestOfferings": {
       "name": "Harvest Offerings",
-      "decks": ["expansionist", "devotion"],
+      "decks": [
+        "expansionist",
+        "devotion"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The first sheaf is never eaten.",
       "text": "Farms gain +1 faith in cities following your religion. When those cities grow, they gain 10 production.",
-      "deferred": ["a town of your faith that grows is given a day's labour with it"],
-      "effects": []
+      "deferred": [
+        "a town of your faith that grows is given a day's labour with it"
+      ],
+      "effects": [],
+      "retired": true
     },
     "hydraulicSchools": {
       "name": "Hydraulic Schools",
@@ -464,12 +535,15 @@
     },
     "commonTheTithe": {
       "name": "The Tithe",
-      "decks": ["commerce", "devotion"],
+      "decks": [
+        "commerce",
+        "devotion"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "rare",
       "flavor": "A tenth of everything, counted twice.",
-      "text": "Cities with a Temple gain gold equal to 25% of their base faith. Gold purchases of religious buildings there cost 30% less.",
+      "text": "Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold.",
       "effects": [
         {
           "kind": "pays",
@@ -484,15 +558,13 @@
           }
         },
         {
-          "kind": "purchaseRider",
-          "class": {},
-          "on": "building",
-          "buildingCategory": "faith",
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25,
           "scope": {
             "test": "hasBuilding",
             "building": "temple"
-          },
-          "percent": -30
+          }
         }
       ]
     },
@@ -818,14 +890,39 @@
     },
     "theCrusaderOrders": {
       "name": "The Crusader Orders",
-      "decks": ["dominion", "devotion"],
+      "decks": [
+        "dominion",
+        "devotion"
+      ],
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
       "flavor": "They took vows, and then they took the coast.",
       "text": "Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it.",
-      "deferred": ["taking a town preaches your faith into it, and the unbelieving ground is the harder fought"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "notFollowingTerritory"
+          },
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "pressure": {
+              "amount": 30,
+              "range": 0
+            }
+          }
+        }
+      ],
+      "note": "Taking a city presses your religion on it once, as a prophet would; whether it converts depends on the faith already there. An empire with no religion presses nothing."
     },
     "theGrainExchange": {
       "name": "The Grain Exchange",
@@ -1148,6 +1245,320 @@
       "text": "Your cities gain +4 defence. Garrisoned units heal an additional 5 health when otherwise eligible to heal.",
       "deferred": ["a soldier standing inside one of your towns mends faster there"],
       "effects": []
+    },
+    "theHolyArmy": {
+      "name": "The Holy Army",
+      "decks": [
+        "dominion",
+        "devotion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The relic goes at the head of the column and the column keeps up.",
+      "text": "Worked Holy Sites and citadels that stand beside each other each gain +2 faith and +2 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "faith": 2,
+          "culture": 2,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "holySite"
+              },
+              {
+                "test": "beside",
+                "of": {
+                  "test": "improvement",
+                  "improvement": "citadel"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "faith": 2,
+          "culture": 2,
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "citadel"
+              },
+              {
+                "test": "beside",
+                "of": {
+                  "test": "improvement",
+                  "improvement": "holySite"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "theBarbarianFrontier": {
+      "name": "The Barbarian Frontier",
+      "decks": [
+        "dominion",
+        "expansionist"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Where the raiders camped, the farmers follow.",
+      "text": "Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "campClaimsGround"
+        }
+      ]
+    },
+    "theOriflamme": {
+      "name": "The Oriflamme",
+      "decks": [
+        "dominion",
+        "devotion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The banner goes where the priest goes, and the army goes with both.",
+      "text": "Military units beside one of your religious units gain +4 strength.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "beside",
+            "class": {
+              "religious": true
+            }
+          },
+          "class": {
+            "category": "military"
+          }
+        }
+      ]
+    },
+    "theFloodFestival": {
+      "name": "The Flood Festival",
+      "decks": [
+        "expansionist",
+        "devotion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The fields are burned, and the smoke is an offering.",
+      "text": "Each tile your workers turn into burned country grants 5 faith.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "improvementBuilt",
+          "improvement": "burnedCountry",
+          "grant": {
+            "yield": "faith",
+            "amount": 5
+          }
+        }
+      ],
+      "note": "Burned country is laid down one tile at a time by a worker, so the faith is paid tile by tile as each one is burned."
+    },
+    "theRoadGarrisons": {
+      "name": "The Road Garrisons",
+      "decks": [
+        "dominion",
+        "expansionist"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A soldier at every gate, and a road home from each.",
+      "text": "Garrisoned cities with a road to your capital gain +3 food and +5 defence.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 3,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "garrisoned"
+              },
+              {
+                "test": "connected"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 5,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "garrisoned"
+              },
+              {
+                "test": "connected"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "convertItOrTaxIt": {
+      "name": "Convert It or Tax It",
+      "decks": [
+        "dominion",
+        "devotion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Pray as we pray, or pay as we ask.",
+      "text": "Captured cities that do not follow your religion gain +3 gold and +2 faith. Captured cities that follow it cost one less authority, minimum one.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": 3,
+          "faith": 2,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "captured"
+              },
+              {
+                "test": "ownersFaith",
+                "keeps": false
+              }
+            ]
+          }
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "delta": -1,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "captured"
+              },
+              {
+                "test": "ownersFaith",
+                "keeps": true
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "warBonds": {
+      "name": "War Bonds",
+      "decks": [
+        "dominion",
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The treasury is the army that has not yet been hired.",
+      "text": "Military units gain +1 strength for every 150 gold in your treasury, at most +5.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "category": "military"
+          },
+          "scaled": {
+            "count": "bankedGold",
+            "per": 150,
+            "max": 5
+          }
+        }
+      ]
+    },
+    "professionalSoldiers": {
+      "name": "Professional Soldiers",
+      "decks": [
+        "dominion",
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A man paid to fight has practised.",
+      "text": "Units you purchase gain +3 combat strength.",
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "strength": 3,
+          "bought": "gold"
+        },
+        {
+          "kind": "unitStamp",
+          "strength": 3,
+          "bought": "faith"
+        }
+      ],
+      "note": "The strength is given when the unit is bought while this card is held, and the unit keeps it for life."
+    },
+    "theCharteredCompany": {
+      "name": "The Chartered Company",
+      "decks": [
+        "dominion",
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "A company with a charter, a flag and its own soldiers.",
+      "text": "Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required.",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "unit": "companyGuard"
+        }
+      },
+      "note": "Once the charter is drafted, the Company Guard can be hired from late in the last age of the technology tree."
+    },
+    "mercenaryContracts": {
+      "name": "Mercenary Contracts",
+      "decks": [
+        "dominion",
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The captain signs for fifteen turns, and not one more.",
+      "text": "Cities with a Barracks may hire the best melee or mounted unit you can build for half its gold price. A hired unit costs no upkeep and leaves after fifteen turns.",
+      "deferred": [
+        "hired soldiers who serve for a set time and then leave"
+      ],
+      "effects": [],
+      "note": "Not built yet: a unit that leaves the game on its own after a set time is a new kind of unit, and this card needs one."
     }
   }
 }

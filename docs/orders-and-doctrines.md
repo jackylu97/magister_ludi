@@ -371,7 +371,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Conversion of Kings | 4 | ○ | S | Commission. Have a rival's capital follow your religion while this is seated. Reward: a free Prophet in your capital and 300 culture. Then this card leaves its chair. |
 | The Pious Masons | 4 | ○ | S | In cities with a Cathedral, a world wonder that is at least half built may be bought with faith. Not the Magnum Opus. |
 | The Host Restored | 4 | ○ | S | While this is seated, your cities know the Restoring of the Host: a city spends the rite's faith to heal every unit of yours standing in territory that follows your religion to full health. A city may say it once every five turns. |
-| The Holy Army | 3 | ◆ | S | Your military units gain +5 strength in territory following your religion. Cities holding a relic train military units 30% faster. |
 
 ### Scientific
 
@@ -469,7 +468,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Decks | Band | Rarity | Role | Effect |
 |---|---|---|---|---|---|
-| Frontier Garrisons | Dominion · Expansionist | 0 | ● | P | Garrisoned cities of at most five population gain +2 food. |
 | Military Colonies | Dominion · Expansionist | 1 | ◆ | S | Cities with a Barracks gain +30% production toward settlers and workers. |
 | The Escorted Roads | Dominion · Commerce | 1 | ◆ | S | Routes whose origin has a garrison gain +3 gold. Naval units gain +2 strength while adjacent to one of your traders. |
 | Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first combat kill each turn grants 15 science. Cities with a Library produce siege units 25% faster. |
@@ -481,7 +479,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Sacred Groves | Expansionist · Devotion | 0 | ◆ | S | Worked, unimproved forests gain +1 food and +1 faith. |
 | Hydraulic Schools | Expansionist · Scientific | 1 | ● | P | Cities with an Aqueduct gain +1 science per three citizens and +20% production toward science buildings. |
 | The Sculpted Landscape | Expansionist · Magisterial | 3 | ◆ | S | Farms beside a great-person improvement gain +1 food and +1 culture. Each farm receives this once regardless of the number of adjacent works. |
-| The Tithe | Commerce · Devotion | 2 | ○ | P | Cities with a Temple gain gold equal to 25% of their base faith. Gold purchases of religious buildings there cost 30% less. |
+| The Tithe | Commerce · Devotion | 2 | ○ | P | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. |
 | Merchant Scholars | Commerce · Scientific | 1 | ◆ | S | Foreign routes from a city with a Library gain +3 science. |
 | Travelling Players | Commerce · Magisterial | 0 | ◆ | S | Foreign routes from a city with a Monument gain +2 culture. |
 | Cloister Schools | Devotion · Scientific | 1 | ◆ | P | Cities with both a Temple and a Library gain +3 food and +3 science. |
@@ -491,12 +489,24 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The House of Wisdom | Scientific · Magisterial | 3 | ◆ | S | Worked Academies gain +2 culture. Cities working an Academy gain +1 renown and +20% production toward wonders. Each city receives the city bonus once. |
 | Marcher Lords | Dominion · Expansionist | 2 | ◆ | P | Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one. |
 | The Merchant Navigators | Commerce · Scientific | 2 | ● | S | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +3 science. |
-| Letters of Marque | Dominion · Commerce | 3 | ○ | S | Naval combat kills grant 40 gold. Cities with a Harbour purchase naval combat units for 25% less gold, but produce those units 20% more slowly. |
+| Letters of Marque | Dominion · Commerce | 3 | ○ | P | Naval combat kills grant 40 gold. Cities with a Harbour gain +25% gold, but produce naval combat units 20% more slowly. |
 | The Exchange of Discoveries | Commerce · Scientific | 3 | ◆ | S | +1 science on mines and quarries on a resource. Additional +1 if the city has a market. |
 | Garden Provinces | Expansionist · Magisterial | 2 | ● | P | Connected cities with a Monument gain +2 food and +2 culture. |
 | Pilgrim Markets | Commerce · Devotion | 1 | ◆ | S | Routes gain +2 gold and +2 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. |
 | The Grain Exchange | Expansionist · Commerce | 1 | ◆ | S | Domestic routes from a city with a Granary give +3 food to their destination. Cities receiving one gain +1 happiness. |
 | The Cosmopolitan Court | Commerce · Magisterial | 3 | ○ | S | Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +2 gold. |
+| Rites of Passage | Dominion · Devotion | 0 | ● | S | Completing a military unit grants 12 faith. |
+| The Sacred Host | Dominion · Devotion | 1 | ○ | S | Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 10 faith. |
+| The Crusader Orders | Dominion · Devotion | 2 | ◆ | S | Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it. |
+| The Holy Army | Dominion · Devotion | 3 | ◆ | S | Worked Holy Sites and citadels that stand beside each other each gain +2 faith and +2 culture. |
+| The Barbarian Frontier | Dominion · Expansionist | 1 | ◆ | S | Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes. |
+| The Oriflamme | Dominion · Devotion | 1 | ◆ | S | Military units beside one of your religious units gain +4 strength. |
+| The Flood Festival | Expansionist · Devotion | 1 | ◆ | S | Each tile your workers turn into burned country grants 5 faith. |
+| The Road Garrisons | Dominion · Expansionist | 2 | ◆ | P | Garrisoned cities with a road to your capital gain +3 food and +5 defence. |
+| Convert It or Tax It | Dominion · Devotion | 2 | ◆ | P | Captured cities that do not follow your religion gain +3 gold and +2 faith. Captured cities that follow it cost one less authority, minimum one. |
+| War Bonds | Dominion · Commerce | 3 | ◆ | S | Military units gain +1 strength for every 150 gold in your treasury, at most +5. |
+| Professional Soldiers | Dominion · Commerce | 3 | ◆ | S | Units you purchase gain +3 combat strength. |
+| The Chartered Company | Dominion · Commerce | 3 | ◆ | S | Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required. |
 
 ### Generic
 
@@ -653,17 +663,20 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Magister's Court** — † Towns holding a wonder press on faster with the Great Work and with cathedrals. A bonus on building can name one row or one category, never two rows at once.
 - **The Imperial Pageant** — † Soldiers defending near your marvels and your great people's works fight harder. A strength line can be told whose ground the fight is on, but not what stands two hexes away from it.; Towns that keep several culture buildings raise soldiers faster.
 - **The Last Commission** — † Spending a great person pours production into whichever town is building the Great Work. A windfall's supplies go to the nearest town to where the deed happened, and cannot be sent to the town that is building a named thing.
-- **Letters of Marque** — † cities with a harbour buy warships more cheaply, and build them more slowly
-- **Rites of Passage** — † completing a soldier — and no other kind of unit — pays faith
-- **The Sacred Host** — † soldiers may be bought with faith, in the cities that keep a temple
-- **Harvest Offerings** — † a town of your faith that grows is given a day's labour with it
+- **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
+- **Rites of Passage** — A soldier you buy counts as completed, so it pays too.
+- **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **The Hydraulic Commonwealth** — † a share of the grain a town has left over is gained again as learning
 - **Garden Cities** — † the farms a town actually works are counted, and paid in song
 - **Pilgrim Markets** — † a road pays when either of its two ends keeps a holy site
 - **The Exchange of Discoveries** — † a town counts the distinct realms its own caravans reach
 - **Sacred Patronage** — Half built and therefore not built: a gift may now be held to once a turn, but the moment the world announces is a great one spending themselves on their boon — so a card written on the spending would pay for one of the ways a person may be spent and stay silent for the others. † spending a great person pays faith, but never more than once in a turn
 - **Triumphal Arches** — † taking a town raises the name of a general in particular. A town that holds a wonder can be told from one that does not now, but the renown an occasion pays favours nobody in particular — a deed is not a shelf of buildings, and the draw's bias is a fact about what an empire keeps.
-- **The Crusader Orders** — † taking a town preaches your faith into it, and the unbelieving ground is the harder fought
+- **The Crusader Orders** — Taking a city presses your religion on it once, as a prophet would; whether it converts depends on the faith already there. An empire with no religion presses nothing.
+- **The Flood Festival** — Burned country is laid down one tile at a time by a worker, so the faith is paid tile by tile as each one is burned.
+- **Professional Soldiers** — The strength is given when the unit is bought while this card is held, and the unit keeps it for life.
+- **The Chartered Company** — Once the charter is drafted, the Company Guard can be hired from late in the last age of the technology tree.
+- **Mercenary Contracts** — Not built yet: a unit that leaves the game on its own after a set time is a new kind of unit, and this card needs one. † hired soldiers who serve for a set time and then leave
 - **The Grain Exchange** — † the town at the far end of one of these particular roads is the gladder for it
 - **The Monastery Libraries** — Held whole. One half of this asks for a house the realm no longer raises, so that half can never pay — and a card is never bent to fit the half that can. † a house of quiet study teaches as well as prays, and a library prays as well as teaches
 - **Common Tools** — † the hammers are for workers and buildings, and for nothing else

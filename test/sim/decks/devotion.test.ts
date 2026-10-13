@@ -72,11 +72,9 @@ import type { RiteId } from '../../../src/sim/religionData';
 /** The deck's own ids, in file order — the shelf everything below is asked of. */
 const DEVOTION: readonly OrderId[] = DECK_FILE_ORDERS.devotion;
 
-/** The Holy Army is shared with Dominion now and waits for the shared-cards batch. */
-const SHARED_IN_FILE = new Set<string>(['theHolyArmy']);
-
 const RETIRED = DEVOTION.filter((id) => orderDef(id).retired === true);
-const STANDING = DEVOTION.filter((id) => orderDef(id).retired !== true && !SHARED_IN_FILE.has(id));
+// The Holy Army, shared with Dominion, moved to the shared file in batch S.
+const STANDING = DEVOTION.filter((id) => orderDef(id).retired !== true);
 const LIVE = STANDING.filter((id) => orderIsDealt(id));
 const DEFERRED = STANDING.filter((id) => !orderIsDealt(id));
 

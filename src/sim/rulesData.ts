@@ -764,6 +764,12 @@ export interface BarbarianRules {
   campClearGold: number;
   /** Food the clearing empire's nearest owned city banks for taking a camp. */
   campClearFood: number;
+  /**
+   * How far, in hexes, a cleared camp may be from the town that claims its
+   * ground under the `campClaimsGround` rule (The Barbarian Frontier). A camp
+   * further from every town of the clearing empire claims nothing.
+   */
+  frontierClaimTownRange: number;
 }
 
 /** Relative desirability of each yield when a citizen picks a tile to work. */

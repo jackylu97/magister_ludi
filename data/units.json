@@ -957,6 +957,30 @@
       "glyph": "N",
       "note": "Light horse paid for by trade. It fights harder for every kind of luxury its empire controls."
     },
+    "companyGuard": {
+      "name": "Company Guard",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 120,
+      "combatStrength": 66,
+      "size": "heavy",
+      "column": 11,
+      "unlockedByCard": true,
+      "purchase": {
+        "currency": "gold",
+        "cost": 1600,
+        "exclusive": true,
+        "verb": "Hire a Company Guard",
+        "building": "barracks"
+      },
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "melee",
+      "glyph": "G",
+      "note": "A trading company's own soldiers. Hired with gold in a city with a Barracks, and never trained."
+    },
     "slinger": {
       "name": "Slinger",
       "category": "military",

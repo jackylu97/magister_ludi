@@ -2246,6 +2246,12 @@ function chooseCitizens(
  *      `settleProductionWindfall` (entry 3), into the levying town or into the
  *      town building the Magnum Opus.
  *
+ *  24. **A cleared camp's ground** (`claimClearedCampGround`, `camps.ts`, batch
+ *      S) — The Barbarian Frontier claims the camp's hex and its unowned
+ *      neighbours for the nearest town, so that town has new hexes to work
+ *      before the turn ends. Entry 2's reason, with a camp in place of a
+ *      purchase.
+ *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
  * asserts that, because it is the one property a new mutation can break while
@@ -4344,6 +4350,10 @@ export function realiseItem(
     // reading `planCombat` opens its ledger with — The Art of War is paid for
     // the sword the town actually turned out.
     strength: Math.max(0, unitDef(item.id).combatStrength + unitStampStrength(unit)),
+    // **What was finished** (batch S): a rider's `class` is asked of the actor,
+    // so Rites of Passage pays for a soldier and not for a settler. No live
+    // completion rider carried a class before this, so nothing else moves.
+    actor: item.id,
   });
   return { unitId: unit.id };
 }
