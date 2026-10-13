@@ -80,6 +80,8 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 - **Short, simple text.** About three lines at most, readable at a glance. An idea that takes longer to say is usually too narrow to combine with anything.
 - **A theme that fits the name and the effect.**
 
+The existing deck mechanics stay (the user, 2026-10-13): *"the levies tended works, commissions and charters are interesting and fun, we just need more cards that have synergy."* The no-mechanic-creep principle applies to new cards; the fix for these four is more cards that read them, until each is a keyword many cards share.
+
 Considered and declined in the same conversation (`docs/plans/card-synergy-research.md`): **tags** on cards with tag-counting pay-offs (forced synergy, against the second principle) and **a smaller pool per game** (a seat's two decks already narrow the pool, as tribes do in Hearthstone Battlegrounds).
 
 ### Two facts about the essentials worth designing around
