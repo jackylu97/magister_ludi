@@ -86,6 +86,7 @@ import {
   improvementDef,
   improvementForResource,
   isImprovementId,
+  isTendedWork,
   prospectDef,
 } from './improvementData';
 // The figure's half of a unique row's gate. A leaf over the roster and the
@@ -95,11 +96,13 @@ import { leaderOpensImprovement, leaderThatOpensImprovement } from './leaderData
 import { type Tile, getTileAt, raiseImprovement, razeImprovement, tileNeighbors } from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
+import { charterThatOpensImprovement, orderDef } from './statecraftData';
 import { type FeatureId } from './terrainData';
 import {
   type WindfallPayout,
   cardActionRule,
   cardBehaviorRule,
+  cardUnlocksImprovement,
   payWindfallGrants,
   settleCultureWindfall,
   windfallPayout,
@@ -428,6 +431,7 @@ export function improvementErrorAt(
     // could go and learn for a row they will never be allowed to lay would be
     // the false sentence `buildError` refuses to print about a soldier.
     improvementLeaderError(state, ownerId, improvementId) ??
+    improvementCardError(state, ownerId, improvementId) ??
     improvementTechError(state, ownerId, improvementId)
   );
 }
@@ -448,6 +452,7 @@ export function improvementOpenTo(
 ): boolean {
   return (
     improvementLeaderError(state, ownerId, improvementId) === null &&
+    improvementCardError(state, ownerId, improvementId) === null &&
     improvementTechError(state, ownerId, improvementId) === null
   );
 }
@@ -576,6 +581,27 @@ export function improvementLeaderError(
   return figure === null
     ? `${ARow(def)} ${rowNeeds(def)} a leader no realm plays`
     : `Only ${figure}'s realm may build ${def.name.toLowerCase()}`;
+}
+
+/**
+ * Why the **cards** refuse this improvement to this player, or `null` when they
+ * do not. Only a tended work is gated this way: it opens once the seat has
+ * drafted the charter that names it (`cardUnlocksImprovement`).
+ */
+export function improvementCardError(
+  state: GameState,
+  ownerId: number,
+  improvementId: ImprovementId,
+): string | null {
+  // A tended work waits on its charter (`ImprovementDef.tended`,
+  // `CharterSpec.unlocks.improvement`). Every other row answers here as open.
+  if (!isTendedWork(improvementId)) return null;
+  if (cardUnlocksImprovement(state, ownerId, improvementId)) return null;
+  const def = improvementDef(improvementId);
+  const card = charterThatOpensImprovement(improvementId);
+  return card === null
+    ? `${ARow(def)} ${rowNeeds(def)} a card no deck deals`
+    : `${ARow(def)} ${rowNeeds(def)} the card ${orderDef(card).name}`;
 }
 
 /**
@@ -1136,6 +1162,12 @@ export function chopFeatureAt(state: GameState, unit: Unit, tile: Tile): boolean
   }
 
   tile.feature = 'none';
+  // A tended work that needs the wood (a forest garden, a wild orchard) goes
+  // with the wood: felling the trees removes the garden.
+  if (tile.improvement !== undefined && isTendedWork(tile.improvement)) {
+    const needs = improvementDef(tile.improvement).validFeatures;
+    if (needs !== undefined && !needs.includes('none')) razeImprovement(tile);
+  }
   refreshTileDerived(state, tile);
   unit.movesLeft = 0;
   const left = chargesLeft(unit) - cost;
@@ -1444,7 +1476,10 @@ export function pillageError(state: GameState, unitId: number): string | null {
   // A hex carrying a road and no improvement is a legal target: tearing up a
   // highway is the only thing anybody can do about somebody else's roads, and
   // roads are otherwise permanent (the user's ruling).
-  if (tile.improvement === undefined && tile.road === undefined) {
+  // A tended work cannot be pillaged (`ImprovementDef.tended`), so a tended
+  // hex with no road under it offers nothing to burn.
+  const works = tile.improvement !== undefined && !isTendedWork(tile.improvement);
+  if (!works && tile.road === undefined) {
     return `There is nothing to pillage on (${tile.col}, ${tile.row})`;
   }
 
@@ -1558,7 +1593,6 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     fromOwnerId: tileOwnerPlayerId(state, tile.col, tile.row),
     col: tile.col,
     row: tile.row,
-    improvement: tile.improvement,
     road: tile.road !== undefined,
     gold: 0,
     heal: 0,
@@ -1566,8 +1600,12 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   };
   // The work and its age together (`razeImprovement`), for the very reason the
   // free-road mark below goes with its road: a stamp left on burnt ground is an
-  // age the next farm would inherit.
-  razeImprovement(tile);
+  // age the next farm would inherit. A tended work survives (it cannot be
+  // pillaged), so only the road goes on such a hex.
+  if (tile.improvement !== undefined && !isTendedWork(tile.improvement)) {
+    report.improvement = tile.improvement;
+    razeImprovement(tile);
+  }
   delete tile.road;
   // The free-road mark goes with the road it is a fact *about*. Left behind it
   // would be a maintenance exemption sitting on bare ground, waiting for the

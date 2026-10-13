@@ -454,6 +454,76 @@
       },
       "clearsClutter": true,
       "claimsNeighbours": false
+    },
+    "forestGarden": {
+      "name": "Forest Garden",
+      "emoji": "🌳",
+      "chargeCost": 1,
+      "tended": true,
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 0
+      },
+      "validFeatures": [
+        "forest",
+        "jungle"
+      ],
+      "clearsClutter": false
+    },
+    "fishTraps": {
+      "name": "Fish Traps",
+      "emoji": "🐟",
+      "chargeCost": 1,
+      "tended": true,
+      "yields": {
+        "food": 1,
+        "production": 1,
+        "gold": 0
+      },
+      "validTerrain": [
+        "coast",
+        "lake"
+      ],
+      "clearsClutter": false,
+      "deferred": [
+        "Traps on a lake wait for a way to reach the lake: no worker can stand on its water yet."
+      ]
+    },
+    "wildOrchard": {
+      "name": "Wild Orchard",
+      "emoji": "🍎",
+      "chargeCost": 1,
+      "tended": true,
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 1
+      },
+      "validFeatures": [
+        "forest",
+        "jungle"
+      ],
+      "clearsClutter": false
+    },
+    "burnedCountry": {
+      "name": "Burned Country",
+      "emoji": "🔥",
+      "chargeCost": 1,
+      "tended": true,
+      "yields": {
+        "food": 1,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains"
+      ],
+      "validFeatures": [
+        "none"
+      ],
+      "clearsClutter": true
     }
   }
 }

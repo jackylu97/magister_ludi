@@ -291,6 +291,14 @@ export interface CharterSpec {
     tech?: TechId;
     building?: BuildingId;
     rites?: RiteId[];
+    /**
+     * An improvement row that workers may build once this charter is drafted —
+     * the Expansionist deck's tended works (The Forest Gardens and its three
+     * siblings). Nothing is written on the seat: the improvement gate asks
+     * whether the seat holds a charter naming the row (`cardUnlocksImprovement`,
+     * `statecraft/evaluator.ts`), and a held card never leaves the collection.
+     */
+    improvement?: ImprovementId;
   };
 }
 
@@ -1124,7 +1132,15 @@ export type CityScope =
    * hammers are paying for. Other decks that need "the city building the
    * Magnum Opus" should use this scope.
    */
-  | { test: 'raisingOpus' };
+  | { test: 'raisingOpus' }
+  /**
+   * The town's citizens work at least `atLeast` hexes (default one) that meet a
+   * hex condition — The Local Census's "four improved or tended tiles" and The
+   * Garden of the World's "six tended tiles". `workingImprovement` with any
+   * hex condition in place of a list of improvement rows; counted through the
+   * same walk of the worked hexes.
+   */
+  | { test: 'workingTiles'; on: TileCondition; atLeast?: number };
 
 /**
  * A fact about the empire that gates a whole clause. `conditionRule`'s subject.
@@ -1817,7 +1833,26 @@ export type TileCondition =
    * for its reason: a wooded tundra and a mine standing on a luxury are single
    * conditions in the ratified text and two questions about one hex.
    */
-  | { test: 'all'; of: TileCondition[] };
+  | { test: 'all'; of: TileCondition[] }
+  /**
+   * The hex carries a **tended work** (`ImprovementDef.tended`): a forest
+   * garden, fish traps, a wild orchard or burned country. The Expansionist
+   * deck's tended-land cards pay on it. A tended hex also answers yes to
+   * `unimproved` and no to `improved`, because tended land counts as wild.
+   */
+  | { test: 'tended' }
+  /**
+   * At least one of these holds — `CityScope`'s `any`, one scale down. Used
+   * where a card names two kinds of ground in one clause ("hills or
+   * mountains", "improved or tended"). An empty list admits nothing.
+   */
+  | { test: 'any'; of: TileCondition[] }
+  /**
+   * The hill has been **surveyed** by a prospecting worker or explorer
+   * (`Tile.surveyed`). The Prospectors pays on mines standing on a seam
+   * surfaced this way.
+   */
+  | { test: 'surveyed' };
 
 // --- the counts -------------------------------------------------------------
 
@@ -2809,7 +2844,12 @@ export type TallyOccasion =
    * original capital — Commission: The Captured Marvel. Written beside
    * `cityCaptured`, from facts read before the town changed hands.
    */
-  | 'wonderOrCapitalCaptured';
+  | 'wonderOrCapitalCaptured'
+  /**
+   * A hex **bought with gold** (`purchaseTileAt`) — The Wide Country's goal.
+   * Fired once per hex bought.
+   */
+  | 'hexBought';
 // **There is deliberately no `cityGrew`**, and the audit asked for one: every
 // growth card in the six decks is bound by the design doc's standing clause
 // that natural-growth rewards *count only growth beyond the town's historical
@@ -2832,6 +2872,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'campCleared',
   'cityCaptured',
   'wonderOrCapitalCaptured',
+  'hexBought',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -5322,6 +5363,12 @@ export interface CardFoundingRiderEffect {
    * it was, so a card that counts an empire's first towns again is a JSON row.
    */
   maxCities?: number;
+  /**
+   * Extra hexes the new town claims at once, beyond its first ring — The
+   * Beating of the Bounds. Each is the hex the town's borders would grow into
+   * next (`bestExpansionTile`), claimed in `foundCityAt`.
+   */
+  claims?: number;
 }
 
 /** A payout scaled by a count. See `CountKind` and `CardPayout`. */
@@ -7042,7 +7089,9 @@ export type CommissionFigure =
   /** Citizens in the towns this empire took this turn. Commission: Take the City. */
   | 'capturedThisTurnPopulation'
   /** World wonders in the towns this empire took this turn. Commission: The Captured Marvel. */
-  | 'capturedThisTurnWonders';
+  | 'capturedThisTurnWonders'
+  /** Hexes inside this empire's borders that carry a tended work. Six Gardens. */
+  | 'tendedTiles';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -7055,6 +7104,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'capturedPopulation',
   'capturedThisTurnPopulation',
   'capturedThisTurnWonders',
+  'tendedTiles',
 ];
 
 /**
@@ -7221,6 +7271,14 @@ export interface OrderDef extends CardDefBase {
    * government's whole shelf, stays ungated.
    */
   fromAge?: TechAge;
+  /**
+   * **Dealt only to a seat that holds a tended-work unlock** — the Expansionist
+   * payoff cards marked "Needs tended land" on the deck's sheet. A tended-work
+   * unlock is a charter naming an improvement row marked `tended`. Read in
+   * `eligibleFor` (`statecraft/draft.ts`), so the gate is on the deal only: a
+   * card already held keeps its chair.
+   */
+  needsTendedWork?: true;
 }
 
 /** The escalating meter, and the seal. Every number the ladder is made of. */
@@ -7662,6 +7720,21 @@ export function isCharter(id: OrderId): boolean {
 /** Is this row a commission — a goal and a reward? See `CommissionSpec`. */
 export function isCommission(id: OrderId): boolean {
   return orderDef(id).commission !== undefined;
+}
+
+/**
+ * The charter that opens this improvement row, or `null` when no card does.
+ * Retired rows are skipped. The Compendium reads it to say which card opens a
+ * tended work; the simulation's gate asks the seat's own collection instead
+ * (`cardUnlocksImprovement`).
+ */
+export function charterThatOpensImprovement(improvement: ImprovementId): OrderId | null {
+  for (const id of ORDER_IDS) {
+    const def = orderDef(id);
+    if (def.retired === true) continue;
+    if (def.charter?.unlocks.improvement === improvement) return id;
+  }
+  return null;
 }
 
 /**

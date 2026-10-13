@@ -207,8 +207,13 @@ describe('the schema, as landed', () => {
       }
       // Live or deferred, never both ways round: a row with effects is dealt, a
       // row with a `deferred` sentence and nothing to slot is not.
-      // A commission (batch C) is dealt for its goal and reward, with no effects.
-      const dealt = def.effects.length > 0 || def.commission !== undefined;
+      // A commission (batch C) is dealt for its goal and reward, with no effects,
+      // and a charter whose grant exists (the Expansionist tended-work unlocks)
+      // is dealt for the grant.
+      const dealt =
+        def.effects.length > 0 ||
+        def.commission !== undefined ||
+        (def.charter !== undefined && def.deferred === undefined);
       expect(orderIsDealt(id), id).toBe(dealt);
       if (dealt) expect(def.deferred, `${id} is dealt`).toBeUndefined();
       else expect(def.deferred, `${id} is in no pool`).toBeDefined();
@@ -318,11 +323,12 @@ describe('the schema, as landed', () => {
     // and no effects — Commission: Clear the Frontier in Dominion, Corner the
     // Market and The Strongroom in Commerce.
     // **The Dominion batch** (D2 of the deck implementation plan) moved it by
-    // minus five: fifty cut rows retired (twenty-six of them had been live), the
-    // sheet's twenty-five new rows written (twenty of them live), and Spoils of
-    // War freed by the pillage occasion: 61 live Dominion rows before, 56 after.
-    expect(live).toBe(277);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(277);
+    // minus five (61 live Dominion rows before, 56 after), and **batch D3** (the
+    // Expansionist sheet) by plus 32: thirty-five rows came live or were written
+    // (the four tended-work charters, three commissions and twenty-eight cards
+    // with effects), and three live rows were retired as its proposed cuts.
+    expect(live).toBe(309);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(309);
   });
 
   /**
@@ -336,7 +342,16 @@ describe('the schema, as landed', () => {
    * clause in `orderIsDealt` is the fix, and this is its register.
    */
   it('deals no charter whose grant names a thing that does not exist yet', () => {
-    const charters = [...DECK_ROWS].filter((id) => orderDef(id).charter !== undefined);
+    // A charter whose grant exists is dealt like any card (the Expansionist
+    // tended-work unlocks, whose improvement rows are drawn up); the rest wait.
+    for (const id of DECK_ROWS) {
+      const def = orderDef(id);
+      if (def.charter === undefined || def.deferred !== undefined || def.retired === true) continue;
+      expect(orderIsDealt(id), `${id} is a live charter`).toBe(true);
+    }
+    const charters = [...DECK_ROWS].filter(
+      (id) => orderDef(id).charter !== undefined && orderDef(id).deferred !== undefined,
+    );
     expect(charters.length).toBeGreaterThan(0);
     for (const id of charters) {
       const def = orderDef(id);
@@ -639,13 +654,14 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // The Corvée and The General Levy are new live rows and move nothing here.
       //
       // **The Dominion batch** retired fifty rows (the sheet's cuts) and left
-      // five deferred: of its twenty-five deferred rows before, twenty-four were
-      // cuts and Spoils of War came live; five new rows wait. So the deferred
-      // half is 145 − 25 + 5 = 125, and the retired deck rows are counted apart.
+      // five deferred (145 − 25 + 5); **batch D3** retired thirty-one more
+      // (twenty-eight of them deferred), brought four deferred rows live and
+      // wrote twelve new deferred ones (− 28 − 4 + 12). The retired deck rows
+      // are counted apart.
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(125);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(50);
+      ).toHaveLength(105);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(81);
     }
   });
 

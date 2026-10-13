@@ -47,6 +47,7 @@ import {
   improvementError,
   improvementErrorAt,
   improvementGroundError,
+  improvementCardError,
   improvementLeaderError,
   improvementTechError,
   improvementYieldDelta,
@@ -148,7 +149,7 @@ function build(playerId: number, unitId: number, improvement: ImprovementId): Co
 // --- the table --------------------------------------------------------------
 
 describe('the improvement table', () => {
-  it('names ten worker improvements, six works, and recognises its own ids', () => {
+  it('names ten worker improvements, six works, four tended works, and recognises its own ids', () => {
     // Two halves of one table, and the split is `ImprovementDef.greatPerson`:
     // the first ten are what a worker's charge buys, the last six are what a
     // *work's* hand plants (`docs/great-people.md`, and the holy site the
@@ -181,6 +182,12 @@ describe('the improvement table', () => {
       'customsHouse',
       'citadel',
       'holySite',
+      // The four tended works (the Expansionist deck): worker rows marked
+      // `tended`, each opened by its own charter rather than by the tree.
+      'forestGarden',
+      'fishTraps',
+      'wildOrchard',
+      'burnedCountry',
     ]);
     expect(isImprovementId('farm')).toBe(true);
     expect(isImprovementId('orchard')).toBe(false);
@@ -996,8 +1003,9 @@ describe('buildImprovement', () => {
   describe('the ground reading', () => {
     it('is the full gate with the figure and the tree taken off the end', () => {
       // The composition, asserted rather than assumed: on every hex and every
-      // row the two readings differ by exactly the empire's own two questions —
-      // whose row this is (batch L8) and whether its technology has come —
+      // row the two readings differ by exactly the empire's own questions —
+      // whose row this is (batch L8), whether the card that opens a tended
+      // work has been drafted, and whether its technology has come —
       // which is what makes "the ground said yes" a comparison the sheet can
       // trust.
       const { state } = workerState();
@@ -1010,7 +1018,9 @@ describe('buildImprovement', () => {
           const ground = improvementGroundError(state, 0, tile, id);
           const whole = improvementErrorAt(state, 0, tile, id);
           const empire =
-            improvementLeaderError(state, 0, id) ?? improvementTechError(state, 0, id);
+            improvementLeaderError(state, 0, id) ??
+            improvementCardError(state, 0, id) ??
+            improvementTechError(state, 0, id);
           expect(`${id}@${tile.col},${tile.row}: ${whole}`).toBe(
             `${id}@${tile.col},${tile.row}: ${ground ?? empire}`,
           );
@@ -1141,6 +1151,9 @@ describe('buildImprovement', () => {
         // is planted by a piece a renown bucket had to fill to produce, which is
         // a steeper gate than any technology and one no worker can reach.
         if (improvementDef(id).greatPerson !== undefined) continue;
+        // A tended work is gated by the card that names it, not by the tree
+        // (`improvementCardError`).
+        if (improvementDef(id).tended === true) continue;
         const gate = improvementDef(id).requiresTech;
         expect(gate, id).toBeDefined();
         expect(TECH_IDS, id).toContain(gate!);
@@ -1160,6 +1173,7 @@ describe('buildImprovement', () => {
       bumpRevision(state);
       for (const id of IMPROVEMENT_IDS) {
         if (improvementDef(id).greatPerson !== undefined) continue;
+        if (improvementDef(id).tended === true) continue;
         const gate = improvementDef(id).requiresTech!;
         expect(improvementTechError(state, 0, id)).toContain(techDef(gate).name);
       }

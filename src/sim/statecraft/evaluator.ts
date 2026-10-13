@@ -59,6 +59,7 @@ import {
   improvementCountsAs,
   improvementDef,
   isGreatPersonWork,
+  isTendedWork,
   workForFamily,
 } from '../improvementData';
 import { type ProjectId, type ProjectPayout } from '../projectData';
@@ -1973,6 +1974,10 @@ export function cityScopeAdmits(
           improvements: scope.improvements,
         }) >= (scope.atLeast ?? 1)
       );
+    case 'workingTiles':
+      // `workingImprovement` with any hex condition: the same walk of the
+      // worked hexes, asked through the hex's own predicate.
+      return worksHolding(state, city, scope.on) >= (scope.atLeast ?? 1);
     case 'workingGreatWork': {
       // The family rather than the rows, off the improvement table's own marker
       // — so the sixth work joins for free. See the scope.
@@ -2164,6 +2169,24 @@ export function cityScopeAdmits(
 }
 
 /** What a scope says about where a line landed, for the label. */
+/** A hex condition in a word or two, for `scopeNote`'s short labels. */
+function shortTileNote(on: TileCondition): string {
+  switch (on.test) {
+    case 'tended':
+      return 'tended';
+    case 'improved':
+      return 'improved';
+    case 'unimproved':
+      return 'wild';
+    case 'any':
+      return on.of.map(shortTileNote).join(' or ');
+    case 'all':
+      return on.of.map(shortTileNote).join(' ');
+    default:
+      return on.test;
+  }
+}
+
 function scopeNote(scope?: CityScope): string | null {
   if (!scope) return null;
   const test = scope.test;
@@ -2235,6 +2258,8 @@ function scopeNote(scope?: CityScope): string | null {
         ? `working ${scope.atLeast} ${named}`
         : `working a ${named}`;
     }
+    case 'workingTiles':
+      return `working ${scope.atLeast ?? 1}+ ${shortTileNote(scope.on)} hexes`;
     case 'workingGreatWork': {
       const works =
         scope.atLeast !== undefined && scope.atLeast > 1
@@ -4031,12 +4056,24 @@ export function tileConditionHolds(
       // reading one field over, asked of `Tile.feature`.
       return on.features.includes(tile.feature);
     case 'improved':
-      return tile.improvement !== undefined;
+      // A tended work is not an improvement for the cards: tended land counts
+      // as wild (`ImprovementDef.tended`), so it answers `unimproved` instead.
+      return tile.improvement !== undefined && !isTendedWork(tile.improvement);
     case 'unimproved':
       // `improved`'s mirror, asked of the same field: **presence is the state**,
       // so ground whose works were pillaged away is unimproved again — which is
-      // the reading the 🌿 ladder's cards want.
-      return tile.improvement === undefined;
+      // the reading the 🌿 ladder's cards want. Tended land is wild too.
+      return tile.improvement === undefined || isTendedWork(tile.improvement);
+    case 'tended':
+      return tile.improvement !== undefined && isTendedWork(tile.improvement);
+    case 'surveyed':
+      return tile.surveyed === true;
+    case 'any': {
+      for (const inner of on.of) {
+        if (tileConditionHolds(tile, inner, paid, beside, turn)) return true;
+      }
+      return false;
+    }
     case 'water':
       return isWaterTerrain(tile.terrain);
     case 'improvement':
@@ -4142,7 +4179,9 @@ export function tileConditionHolds(
 export function tileConditionReadsFold(on: TileCondition | undefined): boolean {
   if (on === undefined) return false;
   if (on.test === 'yields') return true;
-  if (on.test === 'all') return on.of.some((inner) => tileConditionReadsFold(inner));
+  if (on.test === 'all' || on.test === 'any') {
+    return on.of.some((inner) => tileConditionReadsFold(inner));
+  }
   return false;
 }
 
@@ -7332,6 +7371,45 @@ export function cardUnlocksBuilding(
 }
 
 /**
+ * Does one of this seat's cards open this **improvement row** for its workers?
+ * The tended works' gate (`ImprovementDef.tended`), asked by
+ * `improvementCardError` (`improvements.ts`). `cardUnlocksBuilding`'s sibling
+ * for the improvement table: the answer is a charter the seat has drafted
+ * (`CharterSpec.unlocks.improvement`).
+ */
+export function cardUnlocksImprovement(
+  state: GameState,
+  playerId: number,
+  improvement: ImprovementId,
+): boolean {
+  // A charter is never seated, so the seat's whole collection is asked rather
+  // than its live effects: a drafted card stays in `orders` for good.
+  const seat = playerById(state, playerId);
+  if (seat === undefined) return false;
+  for (const id of seat.statecraft.orders) {
+    if (!isOrderId(id)) continue;
+    if (orderDef(id).charter?.unlocks.improvement === improvement) return true;
+  }
+  return false;
+}
+
+/**
+ * Does this seat hold a charter that opens a **tended work**? The draft gate
+ * for the Expansionist cards marked "Needs tended land"
+ * (`OrderDef.needsTendedWork`, read in `eligibleFor`).
+ */
+export function holdsTendedUnlock(state: GameState, playerId: number): boolean {
+  const seat = playerById(state, playerId);
+  if (seat === undefined) return false;
+  for (const id of seat.statecraft.orders) {
+    if (!isOrderId(id)) continue;
+    const improvement = orderDef(id).charter?.unlocks.improvement;
+    if (improvement !== undefined && isTendedWork(improvement)) return true;
+  }
+  return false;
+}
+
+/**
  * Does the faith **this town keeps** open this building row?
  *
  * `cardUnlocksBuilding`'s town-scale half, and the one reading of "only in a
@@ -8179,6 +8257,8 @@ export interface FoundingRider {
   buildings: BuildingId[];
   /** True when the new town is joined to the realm by road. See the shape. */
   roads: boolean;
+  /** Extra hexes claimed at once beyond the first ring. See the shape's `claims`. */
+  claims: number;
 }
 
 /**
@@ -8190,7 +8270,7 @@ export interface FoundingRider {
  * while four stand, and a sixth is not.
  */
 export function cardFoundingRider(state: GameState, playerId: number): FoundingRider {
-  const rider: FoundingRider = { population: 0, buildings: [], roads: false };
+  const rider: FoundingRider = { population: 0, buildings: [], roads: false, claims: 0 };
   const held = cityCount(state, playerId);
   for (const { effect } of effectsOfKind(state, playerId, 'foundingRider')) {
     if (effect.maxCities !== undefined && held >= effect.maxCities) continue;
@@ -8199,6 +8279,7 @@ export function cardFoundingRider(state: GameState, playerId: number): FoundingR
       rider.buildings.push(effect.building);
     }
     if (effect.roads === true) rider.roads = true;
+    if (effect.claims !== undefined) rider.claims += effect.claims;
   }
   return rider;
 }

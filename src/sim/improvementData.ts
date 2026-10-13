@@ -209,7 +209,15 @@ export type ImprovementId =
   // planted by a prophet rather than by a great person — which is what
   // `WorkFamily` is for. The strongest source of religious pressure there is,
   // and the one thing a rival can pillage to hurt a religion.
-  | 'holySite';
+  | 'holySite'
+  // The four **tended works** of the Expansionist deck (`docs/decks/
+  // expansionist.md`, "Tended land"). Ordinary worker rows marked `tended`:
+  // each is opened by its own charter, counts as wild land for the cards,
+  // cannot be pillaged and opens no resource. See `ImprovementDef.tended`.
+  | 'forestGarden'
+  | 'fishTraps'
+  | 'wildOrchard'
+  | 'burnedCountry';
 
 /**
  * Who plants a work: one of the five **great-person families**, or the
@@ -476,6 +484,21 @@ export interface ImprovementDef {
    */
   claimsNeighbours?: boolean;
   /**
+   * True for a **tended work** — land a worker tends and leaves wild (the
+   * Expansionist deck's forest gardens, fish traps, wild orchards and burned
+   * country). Four rules follow from the marker, each read where its question
+   * is already asked:
+   *
+   *   · a worker may build it only once the seat holds the charter naming it
+   *     (`improvementCardError`, `improvements.ts`);
+   *   · card conditions treat the hex as wild: `unimproved` holds and
+   *     `improved` does not (`tileConditionHolds`), and `tended` holds;
+   *   · it cannot be pillaged (`pillageError` / `pillageAt`), and felling the
+   *     wood it stands in removes it (`chopFeatureAt`);
+   *   · it opens no resource, because the row names none in `improvesResource`.
+   */
+  tended?: boolean;
+  /**
    * Halves of this row's ratified design that the game **cannot do yet**, in a
    * first-time player's words and with no identifier in them.
    *
@@ -655,6 +678,11 @@ export function workForFamily(family: WorkFamily): ImprovementId | null {
 /** Is this a great person's work — the one thing a worker may never build? */
 export function isGreatPersonWork(id: ImprovementId): boolean {
   return improvementDef(id).greatPerson !== undefined;
+}
+
+/** Is this row a tended work? See `ImprovementDef.tended`. */
+export function isTendedWork(id: ImprovementId): boolean {
+  return improvementDef(id).tended === true;
 }
 
 /**

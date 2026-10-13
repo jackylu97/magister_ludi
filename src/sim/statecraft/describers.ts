@@ -698,6 +698,15 @@ export function describeCard(id: CardId): CardClause[] {
   if (isOrderId(id)) {
     const spec = orderDef(id).commission;
     if (spec !== undefined) clauses.push(...describeCommission(spec));
+    // **A charter that opens an improvement** (the Expansionist tended works):
+    // the grant is the whole card, so it is printed as its clause.
+    const work = orderDef(id).charter?.unlocks.improvement;
+    if (work !== undefined) {
+      const name = improvementDef(work).name;
+      clauses.push({
+        text: `once drafted, opens the ${ref('improvement', work, name)} for your workers to build; this card takes no chair`,
+      });
+    }
   }
   // **A revocation is not an effect, and it still has to be printed** — the
   // completion grant's and the slot grant's argument a third time. It is a
@@ -1766,6 +1775,12 @@ function describeEffect(
       }
       if (effect.roads === true) {
         out.push({ text: `new cities are joined to your nearest city by road${limit}` });
+      }
+      if (effect.claims !== undefined && effect.claims > 0) {
+        const hexes = effect.claims === 1 ? 'hex' : 'hexes';
+        out.push({
+          text: `new cities claim ${effect.claims} more ${hexes} beside their borders at once${limit}`,
+        });
       }
       return;
     }
@@ -3028,6 +3043,15 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       );
       return;
     }
+    case 'workingTiles': {
+      // `workingImprovement`'s words with the hex condition's own phrase:
+      // "working 4 or more improved or tended hexes".
+      const n = scope.atLeast ?? 1;
+      const kind = tileConditionWords(scope.on);
+      const plural = kind.replace(/^(.*?)\bhex\b/, '$1hexes');
+      into.qualifiers.push(n > 1 ? `working ${n} or more ${plural}` : `working ${indefinite(kind)} ${kind}`);
+      return;
+    }
     case 'workingGreatWork': {
       const works =
         scope.atLeast !== undefined && scope.atLeast > 1
@@ -3610,11 +3634,39 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       into.qualifiers.push('with a road');
       return;
     case 'beside':
-      into.qualifiers.push(`beside ${besideWords(on.of)}`);
+      // "Tended" is an adjective with no noun of its own, so the ring names the
+      // hex: "beside a tended hex" rather than "beside a tended".
+      into.qualifiers.push(
+        `beside ${on.of.test === 'tended' ? 'a tended hex' : besideWords(on.of)}`,
+      );
       return;
     case 'all':
       for (const inner of on.of) tilePhrase(inner, into);
       return;
+    case 'tended':
+      into.adjectives.push('tended');
+      return;
+    case 'surveyed':
+      into.adjectives.push('surveyed');
+      return;
+    case 'any': {
+      // Each part phrased on its own and joined with the "or" it means: "hill
+      // or mountain", "improved or tended". A part that is only adjectives
+      // stays an adjective; a part with a qualifier makes the whole a
+      // qualifier ("that is improved or beside fresh water").
+      const parts = on.of.map((inner) => {
+        const part: TilePhrase = { adjectives: [], qualifiers: [] };
+        tilePhrase(inner, part);
+        return part;
+      });
+      const words = parts.map((part) => [...part.adjectives, ...part.qualifiers].join(' '));
+      if (parts.every((part) => part.qualifiers.length === 0)) {
+        into.adjectives.push(words.join(' or '));
+      } else {
+        into.qualifiers.push(`that is ${words.join(' or ')}`);
+      }
+      return;
+    }
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -4279,6 +4331,7 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     one: 'city you have captured that held a wonder or was a capital',
     many: 'cities you have captured that held a wonder or were capitals',
   },
+  hexBought: { one: 'hex you have bought', many: 'hexes you have bought' },
 };
 
 /**
@@ -4631,6 +4684,7 @@ const COMMISSION_COUNTED_WORDS: Record<
     many: "cities that hold a world wonder or were another empire's original capital",
     counter: 'such cities captured',
   },
+  hexBought: { verb: 'buy', one: 'hex', many: 'hexes', counter: 'hexes bought' },
 };
 
 /**
@@ -4685,6 +4739,11 @@ const COMMISSION_FIGURE_WORDS: Record<
     goal: (count) => `capture ${count} world wonders in one turn`,
     counter: 'world wonders captured this turn',
     noun: 'the world wonders in the cities you captured that turn',
+  },
+  tendedTiles: {
+    goal: (count) => `have ${count} tended tiles inside your borders`,
+    counter: 'tended tiles',
+    noun: 'your tended tiles',
   },
 };
 

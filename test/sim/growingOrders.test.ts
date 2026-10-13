@@ -117,11 +117,10 @@ describe('the growing-card vocabulary', () => {
         expect(effect.tally, `${id} names no tally occasion`).toBeDefined();
         watched.add(effect.tally!);
       }
-      // A commission's counted goal (batch C) is the same per-card tally, so
-      // it watches an occasion too. The capture counts are watched only by the
-      // Dominion commissions.
+      // A commission's counted goal watches an occasion too (batch C), and The
+      // Wide Country's bought hexes are watched by nothing else.
       for (const goal of orderDef(id).commission?.goals ?? []) {
-        if (goal.kind === 'counted') watched.add(goal.occasion);
+        if (goal.kind === 'counted' && orderDef(id).retired !== true) watched.add(goal.occasion);
       }
     }
     for (const occasion of TALLY_OCCASIONS) {

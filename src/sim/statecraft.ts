@@ -130,6 +130,8 @@ export {
   cardUnitStamp,
   cardUnitStat,
   cardUnlocksBuilding,
+  cardUnlocksImprovement,
+  holdsTendedUnlock,
   cardUnlocksUnit,
   cardUpkeepRebateLines,
   cardUpkeepSurchargeLines,

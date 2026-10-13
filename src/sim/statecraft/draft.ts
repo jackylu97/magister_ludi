@@ -69,6 +69,7 @@ import {
   effectsOfKind,
   forgetTheLaw,
   helpings,
+  holdsTendedUnlock,
 } from './evaluator';
 import { bumpEconomy } from '../slate';
 
@@ -963,10 +964,14 @@ export function eligibleFor(state: GameState, player: Player): OrderId[] {
   const tier = bandTierOf(sc);
   const age = researchAgeOf(player);
   const held = new Set(sc.orders);
+  // Asked once: whether the seat holds a tended-work unlock decides every card
+  // marked "Needs tended land" (`OrderDef.needsTendedWork`) at once.
+  const tends = holdsTendedUnlock(state, player.id);
   return deckPoolOf(state, player).filter((id) => {
     if (held.has(id)) return false;
     const def = orderDef(id);
     if (!bandOpen(def.band, tier, age)) return false;
+    if (def.needsTendedWork === true && !tends) return false;
     return def.fromAge === undefined || age >= def.fromAge;
   });
 }

@@ -217,7 +217,8 @@
       "unitTrained": 20,
       "campCleared": 5,
       "cityCaptured": 2,
-      "wonderOrCapitalCaptured": 1
+      "wonderOrCapitalCaptured": 1,
+      "hexBought": 6
     }
   },
   "threat": {

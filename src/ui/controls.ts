@@ -232,6 +232,7 @@ import {
   chopCity,
   chopError,
   chopTechError,
+  improvementCardError,
   improvementError,
   improvementGroundError,
   improvementLeaderError,
@@ -5668,6 +5669,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // Asked of the sim's own gate (`improvementLeaderError`) rather than by
       // reading the marker here, so the menu and the reducer cannot disagree.
       if (improvementLeaderError(state, unit.ownerId, id) !== null) continue;
+      // A tended work stays off the sheet until its card is drafted, for the
+      // same reason: the seat cannot learn it by playing on.
+      if (improvementCardError(state, unit.ownerId, id) !== null) continue;
       const tech = improvementTechError(state, unit.ownerId, id);
       const gate = def.requiresTech;
       options.push({

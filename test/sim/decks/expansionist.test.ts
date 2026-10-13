@@ -1,46 +1,69 @@
 /**
- * **The Expansionist deck, entered** (the decks rework, D1b —
- * `docs/plans/decks-rework.md` "D1b — the cards"; the design of record is the
- * "Rebuilt card pool — citizens, woodland and the working frontier" section of
- * `docs/six-decks-first-cut.md`, with its four tier tables and its "Shared
- * readings").
+ * The Expansionist deck's own file, `data/decks/expansionist.json`, checked
+ * against its sheet (`docs/decks/expansionist.md`).
  *
- * What is pinned here is the deck's own file and nothing else: every row in
- * `data/decks/expansionist.json` names this deck and carries the band, the
- * rarity, the name, the flavour and the ratified words a draft and a Compendium
- * entry are made of; every **live** row's effects describe in words with no
- * reference left raw; every **deferred** row carries a stated sentence, no
- * effects, and is dealt to nobody; and a seeded draft under Pachacuti — the
- * Expansionist figure — deals only rows this seat may actually be offered.
+ * What is pinned here:
+ *   · every row names this deck and carries a band, rarity, name, flavour and
+ *     text; the only charters are the four tended-work unlocks;
+ *   · the sheet's proposed cuts are retired and dealt to nobody;
+ *   · every dealt row describes itself in words with no raw reference, and
+ *     every deferred row carries a plain sentence and a note;
+ *   · a seeded draft under Pachacuti (the Expansionist leader) deals only rows
+ *     this seat may be offered;
+ *   · the tended works: the card gate, counting as wild land, no pillage, the
+ *     felled wood taking its garden with it, and Six Gardens' count;
+ *   · the other shapes the deck added: the "Needs tended land" draft gate, the
+ *     bought-hex tally, the founding claim, the worked-hex scope and the
+ *     surveyed-hill test.
  *
- * **The deck is mostly deferred, and that is the honest state of it.** The five
- * lines the design doc names are population payments, planting and maturity,
- * worker-led claims, farm-water adjacency and founding traits — five systems
- * D2 has yet to build (the plan's "D2 — the shapes") — so a card whose text
- * needs one of them is a row with a `deferred` sentence and no effects, in the
- * data and the Compendium and in no pool, exactly as the house rule says: never
- * bend a card to a near-fit.
- *
- * **The doc table is `statecraftDocSync.test.ts`' job, not this file's.** That
- * test mirrors `docs/orders-and-doctrines.md`'s "### Expansionist" table against
- * this deck's file, and the table is empty as D1a left it; what this file pins
- * instead is that every live row carries the four cells such a table is written
- * from, so the mirror has something exact to be written against.
+ * The doc table in `docs/orders-and-doctrines.md` is checked by
+ * `statecraftDocSync.test.ts`, not here.
  */
 
 import { describe, expect, it } from 'vitest';
 
 import { type Game, createGame } from '../../../src/sim/game';
-import { type Player, playerById } from '../../../src/sim/state';
-import { describeCard, drawOrderOffer, eligibleFor, stripRefs } from '../../../src/sim/statecraft';
+import {
+  type GameState,
+  type Player,
+  bumpRevision,
+  createUnit,
+  playerById,
+} from '../../../src/sim/state';
+import {
+  cardUnlocksImprovement,
+  cityScopeAdmits,
+  describeCard,
+  drawOrderOffer,
+  eligibleFor,
+  slotOrderAt,
+  slotOrderError,
+  stripRefs,
+  tallyOf,
+  tileConditionHolds,
+} from '../../../src/sim/statecraft';
+import {
+  buildImprovementAt,
+  chopFeatureAt,
+  improvementErrorAt,
+  pillageAt,
+  pillageError,
+} from '../../../src/sim/improvements';
+import { foundCityAt, ownedTiles, purchaseTileAt } from '../../../src/sim/cities';
+import { commissionFigure } from '../../../src/sim/commissions';
+import { raiseImprovement } from '../../../src/sim/map';
+import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
+import { at, bareState, woodedWorker } from '../improvementHelpers';
 import {
   type Band,
+  type CityScope,
   type CardEffect,
   type CardEffectKind,
   type OrderId,
   type OrderRarity,
   BANDS,
   DECK_FILE_ORDERS,
+  TIER_LADDER,
   ORDER_IDS,
   orderDef,
   orderIsDealt,
@@ -51,13 +74,27 @@ import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
 /** The deck's own rows, in file order — what every draw and every screen walks. */
 const ROWS: readonly OrderId[] = DECK_FILE_ORDERS.expansionist;
 
-/** A row with something to slot; the deferred ones are the rest. */
+/**
+ * A row the draft deals: one with effects, a commission (a goal and a reward)
+ * or a charter (the tended-work unlocks). Since the deck implementation batch
+ * (`docs/plans/deck-implementation.md`) this is `orderIsDealt`'s own answer.
+ */
 function isLive(id: OrderId): boolean {
-  return orderDef(id).effects.length > 0;
+  return orderIsDealt(id);
 }
 
+/** The sheet's Proposed cuts: kept for saves, out of every pool. */
+const RETIRED = ROWS.filter((id) => orderDef(id).retired === true);
 const LIVE = ROWS.filter(isLive);
-const DEFERRED = ROWS.filter((id) => !isLive(id));
+const DEFERRED = ROWS.filter((id) => !isLive(id) && orderDef(id).retired !== true);
+
+/** The four tended-work unlocks, the only charters this deck carries. */
+const TENDED_UNLOCKS: Readonly<Record<string, string>> = {
+  theForestGardens: 'forestGarden',
+  theFishTraps: 'fishTraps',
+  theWildOrchards: 'wildOrchard',
+  theBurningSeason: 'burnedCountry',
+};
 
 const RARITIES: readonly OrderRarity[] = ['common', 'uncommon', 'rare'];
 
@@ -84,12 +121,21 @@ describe('the Expansionist deck, as entered', () => {
       expect(def.text, id).toBeTruthy();
       // The rows are written after the rework, so neither old field is on them
       // (`OrderDef.pool` / `.slot`: "a row written after the rework carries
-      // neither"), and none of them is a charter — the design doc gives the
-      // eight charters to Scientific, Commerce and Devotion.
+      // neither"). The only charters are the four tended-work unlocks, each
+      // naming its own improvement row.
       expect(def.pool, id).toBeUndefined();
       expect(def.slot, id).toBeUndefined();
-      expect(def.charter, id).toBeUndefined();
-      expect(def.retired, id).toBeUndefined();
+      const work = TENDED_UNLOCKS[id];
+      if (work === undefined) expect(def.charter, id).toBeUndefined();
+      else expect(def.charter, id).toEqual({ unlocks: { improvement: work } });
+    }
+  });
+
+  it('retires the sheet\'s proposed cuts and deals none of them', () => {
+    expect(RETIRED.length).toBe(31);
+    for (const id of RETIRED) {
+      expect(orderIsDealt(id), id).toBe(false);
+      expect(ordersForDecks(['expansionist']), id).not.toContain(id);
     }
   });
 
@@ -249,7 +295,8 @@ function seated(seed = 11): Game {
 
 /** Opens every band for this seat: the ladder's last rung and the last age. */
 function openEveryBand(player: Player): void {
-  player.statecraft.drafts = 29;
+  // The last rung of the ladder, which opens band 4 (Tier IV).
+  player.statecraft.drafts = TIER_LADDER[TIER_LADDER.length - 1]!.drafts;
   for (const tech of TECH_IDS) {
     if (techDef(tech).age === 4 && !player.techsResearched.includes(tech)) {
       player.techsResearched.push(tech as TechId);
@@ -301,5 +348,155 @@ describe('a seeded draft under Pachacuti', () => {
     expect(drawOrderOffer(a.state, playerById(a.state, 0)!).options).toEqual(
       drawOrderOffer(b.state, playerById(b.state, 0)!).options,
     );
+  });
+});
+
+// --- the tended works and the shapes the deck added ----------------------------
+
+/** Puts a card in seat 0's collection, the way a draft would. */
+function hold(state: GameState, id: OrderId): void {
+  const sc = playerById(state, 0)!.statecraft;
+  if (!sc.orders.includes(id)) sc.orders.push(id);
+  bumpRevision(state);
+}
+
+/** Seats a card for seat 0 in the first empty chair, through the slot verb. */
+function seatCard(state: GameState, id: OrderId): void {
+  hold(state, id);
+  const player = playerById(state, 0)!;
+  const index = player.statecraft.slots.findIndex((slot) => slot === null);
+  expect(slotOrderError(state, 0, id, index)).toBeNull();
+  slotOrderAt(state, player, id, index);
+  bumpRevision(state);
+}
+
+describe('the tended works', () => {
+  it('opens a tended work only to a seat holding its charter, and names the card when it refuses', () => {
+    const { state, worker, tile } = woodedWorker();
+    expect(improvementErrorAt(state, 0, tile, 'forestGarden')).toBe(
+      'A forest garden needs the card The Forest Gardens',
+    );
+    hold(state, 'theForestGardens' as OrderId);
+    expect(cardUnlocksImprovement(state, 0, 'forestGarden')).toBe(true);
+    expect(improvementErrorAt(state, 0, tile, 'forestGarden')).toBeNull();
+    // The charter names one row; its siblings stay shut.
+    expect(improvementErrorAt(state, 0, tile, 'wildOrchard')).not.toBeNull();
+    buildImprovementAt(state, worker, tile, 'forestGarden');
+    expect(tile.improvement).toBe('forestGarden');
+    expect(tile.feature).toBe('forest');
+  });
+
+  it('counts a tended hex as wild: unimproved, tended, and not improved', () => {
+    const { state, tile } = woodedWorker();
+    raiseImprovement(tile, 'forestGarden', state.turn);
+    expect(tileConditionHolds(tile, { test: 'unimproved' })).toBe(true);
+    expect(tileConditionHolds(tile, { test: 'improved' })).toBe(false);
+    expect(tileConditionHolds(tile, { test: 'tended' })).toBe(true);
+    raiseImprovement(tile, 'lumbermill', state.turn);
+    expect(tileConditionHolds(tile, { test: 'unimproved' })).toBe(false);
+    expect(tileConditionHolds(tile, { test: 'improved' })).toBe(true);
+    expect(tileConditionHolds(tile, { test: 'tended' })).toBe(false);
+    // `any` holds when one part does.
+    expect(tileConditionHolds(tile, { test: 'any', of: [{ test: 'tended' }, { test: 'improved' }] })).toBe(true);
+    expect(tileConditionHolds(tile, { test: 'any', of: [] })).toBe(false);
+  });
+
+  it('cannot be pillaged, though a road on the same hex can', () => {
+    const { state, tile } = woodedWorker();
+    raiseImprovement(tile, 'forestGarden', state.turn);
+    const raider = createUnit(state, 1, 'warrior', tile.col, tile.row);
+    bumpRevision(state);
+    expect(pillageError(state, raider.id)).toBe(`There is nothing to pillage on (${tile.col}, ${tile.row})`);
+    tile.road = 0;
+    expect(pillageError(state, raider.id)).toBeNull();
+    const report = pillageAt(state, raider, tile);
+    expect(report.road).toBe(true);
+    expect(report.improvement).toBeUndefined();
+    expect(tile.improvement).toBe('forestGarden');
+    expect(tile.road).toBeUndefined();
+  });
+
+  it('goes with the wood when the forest is felled', () => {
+    const { state, worker, tile } = woodedWorker();
+    raiseImprovement(tile, 'forestGarden', state.turn);
+    chopFeatureAt(state, worker, tile);
+    expect(tile.feature).toBe('none');
+    expect(tile.improvement).toBeUndefined();
+  });
+
+  it('counts the tended hexes inside the borders for Six Gardens', () => {
+    const { state, tile } = woodedWorker();
+    expect(commissionFigure(state, 0, 'tendedTiles')).toBe(0);
+    raiseImprovement(tile, 'forestGarden', state.turn);
+    expect(commissionFigure(state, 0, 'tendedTiles')).toBe(1);
+    expect(commissionFigure(state, 1, 'tendedTiles')).toBe(0);
+  });
+});
+
+describe('the deck’s other shapes', () => {
+  it('deals the cards marked "Needs tended land" only to a seat holding an unlock', () => {
+    const g = seated();
+    const seat = playerById(g.state, 0)!;
+    openEveryBand(seat);
+    const gated = ROWS.filter((id) => orderDef(id).needsTendedWork === true && orderIsDealt(id));
+    expect(gated.length).toBeGreaterThan(0);
+    for (const id of gated) expect(eligibleFor(g.state, seat), id).not.toContain(id);
+    seat.statecraft.orders.push('theFishTraps' as OrderId);
+    const open = eligibleFor(g.state, seat);
+    for (const id of gated) expect(open, id).toContain(id);
+  });
+
+  it('counts a bought hex toward The Wide Country while it is seated', () => {
+    const state = bareState();
+    const city = foundCityAt(state, 0, at(state, 5, 5));
+    bumpRevision(state);
+    seatCard(state, 'theWideCountry' as OrderId);
+    const sc = playerById(state, 0)!.statecraft;
+    expect(tallyOf(sc, 'theWideCountry' as OrderId)).toBe(0);
+    playerById(state, 0)!.gold = 5000;
+    purchaseTileAt(state, city, at(state, 7, 5));
+    expect(tallyOf(sc, 'theWideCountry' as OrderId)).toBe(1);
+  });
+
+  it('claims one more hex at founding under The Beating of the Bounds', () => {
+    const plain = bareState();
+    const before = ownedTiles(plain, foundCityAt(plain, 0, at(plain, 5, 5))).length;
+    const state = bareState();
+    seatCard(state, 'theBeatingOfTheBounds' as OrderId);
+    const after = ownedTiles(state, foundCityAt(state, 0, at(state, 5, 5))).length;
+    expect(after).toBe(before + 1);
+  });
+
+  it('admits a town by the hexes its citizens work, through any hex condition', () => {
+    const { state, city, tile } = woodedWorker();
+    const scope: CityScope = { test: 'workingTiles', on: { test: 'tended' } };
+    raiseImprovement(tile, 'forestGarden', state.turn);
+    city.workedTiles = city.workedTiles.filter((cell) => !(cell.col === tile.col && cell.row === tile.row));
+    bumpRevision(state);
+    expect(cityScopeAdmits(state, city, scope)).toBe(false);
+    city.workedTiles.push({ col: tile.col, row: tile.row });
+    bumpRevision(state);
+    expect(cityScopeAdmits(state, city, scope)).toBe(true);
+    expect(cityScopeAdmits(state, city, { ...scope, atLeast: 2 })).toBe(false);
+  });
+
+  it('pays The Prospectors only on a mine standing on a surveyed hill', () => {
+    const { state, tile } = woodedWorker();
+    seatCard(state, 'theProspectors' as OrderId);
+    tile.feature = 'none';
+    tile.hills = true;
+    tile.resource = 'iron';
+    raiseImprovement(tile, 'mine', state.turn);
+    bumpRevision(state);
+    const paid = (): number =>
+      explainTileYield(tile, yieldContextFor(state, 0))
+        .filter((line) => line.source === 'Order · The Prospectors')
+        .reduce((sum, line) => sum + (line.production ?? 0), 0);
+    expect(tileConditionHolds(tile, { test: 'surveyed' })).toBe(false);
+    expect(paid()).toBe(0);
+    tile.surveyed = true;
+    bumpRevision(state);
+    expect(tileConditionHolds(tile, { test: 'surveyed' })).toBe(true);
+    expect(paid()).toBe(2);
   });
 });
