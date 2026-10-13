@@ -18,12 +18,12 @@ Ideas under discussion that are not yet part of the deck (the 2026-10-13 proposa
 
 | Tier | Cards | Live | Changing | Deferred | New |
 |---|---|---|---|---|---|
-| Tier 0 | 16 | 5 | 6 | 0 | 5 |
-| Tier I | 13 | 11 | 2 | 0 | 0 |
+| Tier 0 | 19 | 5 | 6 | 0 | 8 |
+| Tier I | 16 | 11 | 2 | 0 | 3 |
 | Tier II | 14 | 12 | 0 | 2 | 0 |
 | Tier III | 8 | 7 | 0 | 1 | 0 |
 | Tier IV | 15 | 13 | 0 | 2 | 0 |
-| **All** | **66** | **48** | **8** | **5** | **5** |
+| **All** | **72** | **48** | **8** | **5** | **11** |
 
 Plus 24 cards shared with another deck (below): 17 live, 1 changing, 1 deferred, 5 new.
 
@@ -124,15 +124,21 @@ Plus 24 cards shared with another deck (below): 17 live, 1 changing, 1 deferred,
 | **Commission: The Captured Marvel** | rare | live | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair. | Built as: the population and wonders are those of the cities captured on the turn the goal is met; your own first city retaken also counts as an original capital. |
 ## New cards, not yet in the game
 
-The user's ideas (2026-10-13), not named yet. None is in the data.
+The user's ideas and picks (2026-10-13). None is in the data. Unnamed rows are the user's own ideas; named rows were suggested in conversation and picked by the user, with the user's changes. Rarities on picked rows are suggestions.
 
-| Card | Tier | Text | Notes |
-|---|---|---|---|
-| *unnamed* | 0 | +1 authority for each garrisoned unit. | |
-| *unnamed* | 0 | Scouts gain +1 sight. Discoveries grant +8 production to every city. | Two effects as written. |
-| *unnamed* | 0 | +30% production toward first- and second-age military units. | Fades as the army moves on to later ages' units. |
-| *unnamed* | 0 | While slotted, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture. | A card that grows while seated. Reads every unit gained, under the "gained" ruling (2026-10-13). |
-| *unnamed* | 0 | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture. | Two effects as written. |
+| Card | Tier | Rarity | Text | Notes |
+|---|---|---|---|---|
+| *unnamed* | 0 | — | +1 authority for each garrisoned unit. | |
+| *unnamed* | 0 | — | Scouts gain +1 sight. Discoveries grant +8 production to every city. | Two effects as written. |
+| *unnamed* | 0 | — | +30% production toward first- and second-age military units. | Fades as the army moves on to later ages' units. |
+| *unnamed* | 0 | — | While slotted, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture. | A card that grows while seated. Reads every unit gained, under the "gained" ruling (2026-10-13). |
+| *unnamed* | 0 | — | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture. | Two effects as written. |
+| *unnamed* | 0 | — | Gaining a unit grants science equal to its strength. | The user wrote "training"; written as "gaining" under the "gained" ruling. The same job as The Art of War (Tier I, three quarters of strength): one of the two should change. |
+| *unnamed* | 0 | — | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. | Two effects as written: more camps to clear near home, and the strength to meet their raids. Needs a new rule (camps spawn on a fixed clock today, `rules.barbarians.campEveryTurns`). Camp payouts with no cap (the culture card above) become farmable with it; caps or once-a-turn limits may be needed. |
+| **The Farming Garrisons** | 0 | common | Hexes with a fortified military unit gain +1 food and +1 production. | Changed by the user from "units work the hex like a citizen". Open: whether a garrison fortified in a town counts (its centre hex). Needs a hex test for "a fortified unit of yours stands here". |
+| **The Call to the Spear** | I | uncommon | Towns of at least five citizens may spend a citizen to raise the best melee unit you can build. | A levy: Dominion's own, so the levy keyword appears without Expansionist. Moved to Tier I and raised to five citizens by the user. The same job as Expansionist's The Muster of the Fields (Tier I: spend a citizen, gain the best melee unit), which a Dominion + Expansionist seat is also dealt at Tier I: one of the two should change. |
+| **Walled Towns** | I | common | Towns with walls gain +15% food. | Moved to Tier I by the user (walls unlock later). Needs a town scope for "has walls". |
+| **The Swift Riders** | I | uncommon | Mounted units may move after attacking. | Moved to Tier I by the user. Needs a new unit rule. |
 
 ## Cards Dominion shares with another deck
 
