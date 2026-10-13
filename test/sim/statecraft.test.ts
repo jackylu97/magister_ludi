@@ -11117,17 +11117,19 @@ describe("D2b — counts and reach", () => {
         .total;
     // The discount is the barracks town's and nobody else's.
     expect(priced(barracks)).toBeLessThan(priced(bare));
-    // And the shelf: The Tithe's thirty percent is off a religious house and off
-    // nothing else, in the town that keeps the temple.
-    const temple = found(g.state, 0);
-    temple.buildings.push("temple" as never);
-    slot(g.state, 0, "commonTheTithe" as never);
+    // And the shelf: The Great Patrons' twenty percent is off a culture building
+    // and off nothing else, in a town that holds a wonder. (This pin read The
+    // Tithe until batch S turned that card's discount into gold, ruling
+    // (qqqqqq) 1.)
+    const marvel = found(g.state, 0);
+    marvel.buildings.push("pyramids" as never);
+    slot(g.state, 0, "theGreatPatrons" as never);
     bumpRevision(g.state);
     const building = (city: City, id: string): number =>
       explainPurchaseCost(g.state, 0, city.id, { kind: "building", id: id as never }, "gold")!
         .total;
-    expect(building(temple, "shrine")).toBeLessThan(building(bare, "shrine"));
-    expect(building(temple, "library")).toBe(building(bare, "library"));
+    expect(building(marvel, "amphitheater")).toBeLessThan(building(bare, "amphitheater"));
+    expect(building(marvel, "library")).toBe(building(bare, "library"));
   });
 
   it("pays a hex a helping for every neighbour that answers, up to the cap", () => {

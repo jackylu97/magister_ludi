@@ -107,7 +107,8 @@
     "horsemanFromTurn": 30,
     "combatBonus": 2,
     "campClearGold": 25,
-    "campClearFood": 25
+    "campClearFood": 25,
+    "frontierClaimTownRange": 5
   },
   "cities": {
     "workRadius": 3,

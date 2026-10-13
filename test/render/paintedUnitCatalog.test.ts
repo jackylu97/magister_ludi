@@ -33,9 +33,9 @@ const lines = unitLines as Record<string, { label: string; types: string[] }>;
 const additions = leaderUnitArtSpecs as Record<string, Omit<Art, 'ready' | 'implemented'>>;
 
 describe('painted unit inventory after leader integration', () => {
-  it('covers all 62 roster IDs exactly once and preserves every original rank and example', () => {
+  it('covers all 63 roster IDs exactly once and preserves every original rank and example', () => {
     const ids = Object.values(lines).flatMap(line => line.types);
-    expect(ids).toHaveLength(62); expect(new Set(ids).size).toBe(62);
+    expect(ids).toHaveLength(63); expect(new Set(ids).size).toBe(63);
     expect([...ids].sort()).toEqual(Object.keys(units.units).sort());
     expect(Object.keys(art).sort()).toEqual([...ids].sort());
     expect(Object.values(original).flat()).toHaveLength(44);
@@ -49,11 +49,12 @@ describe('painted unit inventory after leader integration', () => {
     expect(Object.keys(art).filter(id => art[id]!.ready).sort()).toEqual([...unitExamples].sort());
   });
 
-  it('assigns all 18 new IDs explicitly without approving models or inventing later ranks', () => {
-    // Seventeen leader units and one deck charter's unit (Numidian Cavalry).
+  it('assigns all 19 new IDs explicitly without approving models or inventing later ranks', () => {
+    // Seventeen leader units and two deck charters' units (Numidian Cavalry,
+    // and the shared Chartered Company's Company Guard).
     const originalIds = new Set(Object.values(original).flat());
     const extra = Object.keys(units.units).filter(id => !originalIds.has(id));
-    expect(Object.keys(additions).sort()).toEqual(extra.sort()); expect(extra).toHaveLength(18);
+    expect(Object.keys(additions).sort()).toEqual(extra.sort()); expect(extra).toHaveLength(19);
     for (const id of extra) {
       const spec = additions[id]!;
       expect(art[id]).toEqual({ ...spec, ready: false, implemented: paintedUnitTypes.includes(id) });
@@ -82,7 +83,9 @@ describe('painted unit inventory after leader integration', () => {
     expect(new Set(paintedUnitTypes).size).toBe(61);
     expect(Object.keys(art).filter(id => art[id]!.implemented).sort()).toEqual([...paintedUnitTypes].sort());
     for (const id of variants) expect(art[id]).toMatchObject({ line: 'infantry', ready: false, implemented: true });
-    expect([...lines.infantry!.types].sort()).toEqual(['warrior', ...variants].sort());
+    // The Company Guard (a shared deck charter's unit, batch S) stands in the
+    // infantry line as placeholder art and is not painted.
+    expect([...lines.infantry!.types].sort()).toEqual(['warrior', ...variants, 'companyGuard'].sort());
   });
 
   it('keeps the documented mapping synchronized with the thirteen active and four parked alternatives', () => {
@@ -96,7 +99,7 @@ describe('painted unit inventory after leader integration', () => {
     expect(parked.sort()).toEqual(['chanyuGuard', 'fubing', 'scythedChariot', 'whistlingArrow']);
     const doc = readFileSync(new URL('../../docs/plans/terrain-study-units.md', import.meta.url), 'utf8');
     const rows = [...doc.matchAll(/^\| `([^`]+)` \| `([^`]+)` \| (\d+) \| `([^`]+)` \| (active|parked|charter) \|$/gm)];
-    expect(rows).toHaveLength(18); expect(rows.map(row => row[1]).sort()).toEqual(Object.keys(additions).sort());
+    expect(rows).toHaveLength(19); expect(rows.map(row => row[1]).sort()).toEqual(Object.keys(additions).sort());
     for (const [, id, line, rank, variant, status] of rows) {
       expect(additions[id!]).toEqual({ line, rank: Number(rank), variant });
       expect(status).toBe(active.has(id!) ? 'active' : chartered(id!) ? 'charter' : 'parked');

@@ -1607,9 +1607,21 @@ function describeEffect(
         effect.wonder === true,
         effect.family,
       );
+      // The Flood Festival names the improvement it pays for, inside the
+      // occasion's own phrase, the way "a building" narrows "anything" above.
+      const named =
+        effect.improvement === undefined
+          ? said
+          : said.replace(
+              'an improvement',
+              (() => {
+                const name = improvementDef(effect.improvement).name;
+                return `${indefinite(name)} ${ref('improvement', effect.improvement, name)}`;
+              })(),
+            );
       const occasion =
         only +
-        (effect.anyBuilding === true ? said.replace('anything', 'a building') : said) +
+        (effect.anyBuilding === true ? named.replace('anything', 'a building') : named) +
         (narrowings.length > 0 ? ` (${narrowings.join(', ')})` : '');
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
@@ -1760,10 +1772,14 @@ function describeEffect(
         // it, and what a player sees is their faith spreading to the towns near
         // where it happened. The range is said in hexes because it is the half a
         // player plans around — how close the fighting has to be.
+        // A range of nought reaches only the city on the hex itself — The
+        // Crusader Orders' captured town (batch S) — so it says that.
         out.push({
           text:
-            `${occasion} spreads your religion to every city within ` +
-            `${grant.pressure.range} hexes${per}`,
+            grant.pressure.range <= 0
+              ? `${occasion} spreads your religion to the city where it happens${per}`
+              : `${occasion} spreads your religion to every city within ` +
+                `${grant.pressure.range} hexes${per}`,
         });
       }
       if (effect.percent !== undefined) {
@@ -3212,6 +3228,11 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'ownerAtWar':
       into.qualifiers.push('whose owner is at war with another empire');
       return;
+    case 'ownersFaith':
+      into.qualifiers.push(
+        scope.keeps ? 'that follows your religion' : 'that does not follow your religion',
+      );
+      return;
     case 'holyCity':
       into.adjectives.push('holy');
       return;
@@ -3513,6 +3534,8 @@ export function filterWords(filter: UnitFilter): string {
   // the wrong thing to call one. The Pyramids' half of the same pair reads the
   // other way round — "workers", the ones that are not religious.
   if (filter.consecrates === true) return 'religious units';
+  if (filter.religious === true) return 'religious units';
+  if (filter.religious === false) return 'units other than religious units';
   if (filter.consecrates === false && filter.modelClass === 'worker') return 'workers';
   // "Scouts", and asked before the silhouette for `consecrates`' reason: an
   // explorer is a *vocation*, and its `modelClass` is whatever the roster
@@ -3921,6 +3944,7 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // The composite's own words are its members', joined — see `combatWhenWords`.
   all: '',
   vsOpusBuilder: 'against an empire raising the Magnum Opus',
+  notFollowingTerritory: 'inside cities that do not follow your religion',
 };
 
 /** The `followingTerritory` line narrowed to somebody else's towns. */
@@ -3990,6 +4014,7 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
     many: 'great people’s works in your capital',
   },
   uniqueLuxuries: { one: 'kind of luxury you control', many: 'kinds of luxury you control' },
+  bankedGold: { one: 'gold in your treasury', many: 'gold in your treasury' },
 };
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
@@ -4065,6 +4090,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   declareWar: 'declaring war',
   periodic: 'a boon coming round',
   greatPersonAct: 'a great person spending themselves on their boon',
+  improvementBuilt: 'building an improvement',
 };
 
 /**
@@ -4673,6 +4699,8 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   wonderTownBuysWithoutLimit:
     'a city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn',
   boughtUnitsCountAsTrained: 'units you buy count as trained',
+  campClaimsGround:
+    'clearing a barbarian camp claims its hex and the unclaimed hexes around it for your nearest city, if that city is close by',
   // The three faith-purchase rules. Each is said with the towns its row names
   // (`CardRuleEffect.scope`) appended by the describer.
   faithBuysUnits: 'units may be bought with faith',

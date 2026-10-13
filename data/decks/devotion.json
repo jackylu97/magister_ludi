@@ -1533,42 +1533,6 @@
         }
       ]
     },
-    "theHolyArmy": {
-      "name": "The Holy Army",
-      "decks": [
-        "devotion"
-      ],
-      "band": 3,
-      "line": "none",
-      "rarity": "uncommon",
-      "flavor": "The relic goes at the head of the column and the column keeps up.",
-      "text": "Your military units gain +5 strength in territory following your religion. Cities holding a relic train military units 30% faster.",
-      "effects": [
-        {
-          "kind": "combatLine",
-          "amount": 5,
-          "side": "both",
-          "when": {
-            "test": "followingTerritory"
-          },
-          "class": {
-            "category": "military"
-          }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "unit",
-          "percent": 30,
-          "class": {
-            "category": "military"
-          },
-          "scope": {
-            "test": "hasBuilding",
-            "building": "relic"
-          }
-        }
-      ]
-    },
     "theMonasticTable": {
       "name": "The Monastic Table",
       "decks": [

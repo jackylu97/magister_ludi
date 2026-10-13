@@ -35,8 +35,16 @@
  * hundred turns.
  */
 
-import { nearestOwnedCity, settleGrowthWindfall } from './cities';
 import {
+  claimTile,
+  cityTile,
+  nearestOwnedCity,
+  refreshCityDerived,
+  settleGrowthWindfall,
+} from './cities';
+import { getTileAt, mapRange, tileHex, wrappedDistance } from './map';
+import {
+  cardActionRule,
   payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
@@ -45,9 +53,10 @@ import {
 } from './statecraft';
 import type { Cell } from './pathfind';
 import { RULES } from './rulesData';
-import { type BarbarianCamp, type GameState, playerById } from './state';
+import { type BarbarianCamp, type City, type GameState, playerById } from './state';
 import type { UnitTypeId } from './unitData';
 import { bumpEconomy } from './slate';
+import { recomputeVisibility } from './visibility';
 
 const BARB = RULES.barbarians;
 
@@ -112,6 +121,44 @@ export interface CampBounty {
 }
 
 /**
+ * **The Barbarian Frontier** (shared Dominion and Expansionist card, batch S,
+ * the `campClaimsGround` rule): the cleared camp's hex and every unowned hex
+ * beside it go to this empire's nearest town, if that town stands within
+ * `frontierClaimTownRange` hexes of the camp.
+ *
+ * Only unowned hexes are taken (`claimTile` refuses an owned one), so this never
+ * moves a border another town already drew. Like the citadel's claim, a hex may
+ * end up further from its town than culture alone would reach. The town is
+ * re-seated through `refreshCityDerived` (the register's entry 24) and the
+ * empire's map redrawn, because ground it now owns is ground it can see.
+ *
+ * Returns the town that gained ground, or `null` when nothing was claimed.
+ */
+export function claimClearedCampGround(
+  state: GameState,
+  playerId: number,
+  at: Cell,
+): City | null {
+  if (!cardActionRule(state, playerId, 'campClaimsGround')) return null;
+  const centre = getTileAt(state.map, at.col, at.row);
+  if (!centre) return null;
+  const seat = nearestOwnedCity(state, playerId, at);
+  if (!seat) return null;
+  const reach = wrappedDistance(state.map, tileHex(centre), tileHex(cityTile(state.map, seat)));
+  if (reach > BARB.frontierClaimTownRange) return null;
+  let claimed = 0;
+  // `mapRange` walks in map order, so two hexes are always claimed in the same
+  // order for every replay.
+  for (const tile of mapRange(state.map, tileHex(centre), 1)) {
+    if (claimTile(state, seat, tile)) claimed += 1;
+  }
+  if (claimed === 0) return null;
+  recomputeVisibility(state, playerId);
+  refreshCityDerived(state, seat);
+  return seat;
+}
+
+/**
  * Pays the bounty for a camp `playerId` has just taken. Validates nothing — the
  * caller has already established that a camp stood here and that this unit is
  * standing on it; this is the mechanism.
@@ -155,6 +202,9 @@ export function settleCampBounty(
   player.gold += bounty.gold;
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
+  // The Barbarian Frontier's claim, before the provisions are paid, so a town
+  // that gains a hex here is re-seated before it is fed.
+  claimClearedCampGround(state, playerId, at);
 
   const city = nearestOwnedCity(state, playerId, at);
   if (!city) {

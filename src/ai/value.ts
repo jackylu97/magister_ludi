@@ -3563,6 +3563,12 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       }
       return rate;
     }
+    case 'improvementBuilt':
+      // The Flood Festival's burned country (batch S). A rider here names one
+      // improvement, and the bot has no tempo for laying a particular one, so
+      // it is priced at a modest one a town over the horizon rather than
+      // guessed per improvement.
+      return ctx.cities / horizon;
     case 'veinFound':
     case 'prospect':
       // The Geomancy layer is shelved (`docs/flags.md`, 2026-09-06): `veins.share`

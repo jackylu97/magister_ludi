@@ -111,6 +111,7 @@ import {
   cardPurchaseRiders,
   cardRulePercent,
   cityBeliefUnlocksBuilding,
+  indefinite,
   payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
@@ -1116,6 +1117,14 @@ export function purchaseError(
     const gate = gatingTech(bought.kind, bought.id);
     if (gate !== null && !hasTech(state, playerId, gate)) {
       return `${name}s need ${techDef(gate).name}`;
+    }
+    // **A row may name the building its town must hold** (batch S): the
+    // Company Guard is hired only where a Barracks stands. One read, here, so
+    // the panel and the reducer refuse with the same sentence.
+    const needs = bought.kind === 'unit' ? unitDef(bought.id).purchase?.building : undefined;
+    if (needs !== undefined && !city.buildings.includes(needs)) {
+      const building = buildingDef(needs).name;
+      return `A ${name} is hired only in a city with ${indefinite(building)} ${building}`;
     }
   }
 

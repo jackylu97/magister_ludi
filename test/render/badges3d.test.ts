@@ -105,7 +105,7 @@ const BADGES_SOURCE = (() => {
 
 describe('every named badge cell exists (the trireme bug of 2026-08-30)', () => {
   it('resolves the full leader-expanded roster to existing atlas cells', () => {
-    expect(UNIT_TYPE_IDS).toHaveLength(62);
+    expect(UNIT_TYPE_IDS).toHaveLength(63);
     for (const type of UNIT_TYPE_IDS) {
       expect(BADGE_CELLS, `${type} has no badge in the atlas`).toContain(badgeClassFor(type));
     }

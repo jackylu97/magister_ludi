@@ -305,6 +305,7 @@ table, with no second figure anywhere. See `docs/trade.md`.
 | `fireLance` | The Fire Lance | heavy | 12 | 583 |
 | `knightsTemplar` | Knights Templar | heavy | 11 | 445 |
 | `numidianCavalry` | Numidian Cavalry | heavy | 7 | 151 |
+| `companyGuard` | Company Guard | heavy | 11 | 445 |
 | `slinger` | Slinger | line | 5 | 61 |
 | `fubing` | Fubing | light | 2 | 19 |
 | `tangCavalry` | Tang Heavy Cavalry | heavy | 7 | 151 |

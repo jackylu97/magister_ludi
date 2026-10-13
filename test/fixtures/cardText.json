@@ -5496,16 +5496,6 @@
     "text": "a city may spend faith to heal every unit of yours standing in land that follows your religion"
    }
   ],
-  "theHolyArmy": [
-   {
-    "raw": "+5 combat strength for military units inside cities that follow your religion",
-    "text": "+5 combat strength for military units inside cities that follow your religion"
-   },
-   {
-    "raw": "+30% production toward military units, in every city with a [[building:relic|Relic]]",
-    "text": "+30% production toward military units, in every city with a Relic"
-   }
-  ],
   "theMonasticTable": [
    {
     "raw": "+2 food, +2 production in every city while it is keeping a rite",
@@ -6840,8 +6830,8 @@
     "text": "for ships alone, killing a unit grants +40 gold"
    },
    {
-    "raw": "ships cost −25% to buy, in every city with a [[building:harbour|Harbour]]",
-    "text": "ships cost −25% to buy, in every city with a Harbour"
+    "raw": "+25% gold in every city with a [[building:harbour|Harbour]]",
+    "text": "+25% gold in every city with a Harbour"
    },
    {
     "raw": "-20% production toward ships, in every city with a [[building:harbour|Harbour]]",
@@ -6850,16 +6840,18 @@
   ],
   "commonRitesOfPassage": [
    {
-    "raw": "completing a soldier — and no other kind of unit — pays faith — not built yet",
-    "text": "completing a soldier — and no other kind of unit — pays faith — not built yet",
-    "deferred": true
+    "raw": "for military units alone, completing a unit grants +12 faith",
+    "text": "for military units alone, completing a unit grants +12 faith"
    }
   ],
   "theSacredHost": [
    {
-    "raw": "soldiers may be bought with faith, in the cities that keep a temple — not built yet",
-    "text": "soldiers may be bought with faith, in the cities that keep a temple — not built yet",
-    "deferred": true
+    "raw": "military units may be bought with faith in every city with a [[building:temple|Temple]]",
+    "text": "military units may be bought with faith in every city with a Temple"
+   },
+   {
+    "raw": "killing a unit grants +10 faith",
+    "text": "killing a unit grants +10 faith"
    }
   ],
   "fieldAcademies": [
@@ -6981,8 +6973,8 @@
     "text": "25% of the faith in every city with a Temple is gained again as gold"
    },
    {
-    "raw": "faith buildings cost −30% to buy, in every city with a [[building:temple|Temple]]",
-    "text": "faith buildings cost −30% to buy, in every city with a Temple"
+    "raw": "+25% gold in every city with a [[building:temple|Temple]]",
+    "text": "+25% gold in every city with a Temple"
    }
   ],
   "merchantScholars": [
@@ -7097,9 +7089,12 @@
   ],
   "theCrusaderOrders": [
    {
-    "raw": "taking a town preaches your faith into it, and the unbelieving ground is the harder fought — not built yet",
-    "text": "taking a town preaches your faith into it, and the unbelieving ground is the harder fought — not built yet",
-    "deferred": true
+    "raw": "+3 combat strength for military units inside cities that do not follow your religion",
+    "text": "+3 combat strength for military units inside cities that do not follow your religion"
+   },
+   {
+    "raw": "capturing a city spreads your religion to the city where it happens",
+    "text": "capturing a city spreads your religion to the city where it happens"
    }
   ],
   "theGrainExchange": [
@@ -7249,6 +7244,78 @@
    {
     "raw": "a soldier standing inside one of your towns mends faster there — not built yet",
     "text": "a soldier standing inside one of your towns mends faster there — not built yet",
+    "deferred": true
+   }
+  ],
+  "theHolyArmy": [
+   {
+    "raw": "+2 culture, +2 faith on every hex with a [[improvement:holySite|Holy Site]] beside a [[improvement:citadel|Citadel]]",
+    "text": "+2 culture, +2 faith on every hex with a Holy Site beside a Citadel"
+   },
+   {
+    "raw": "+2 culture, +2 faith on every hex with a [[improvement:citadel|Citadel]] beside a [[improvement:holySite|Holy Site]]",
+    "text": "+2 culture, +2 faith on every hex with a Citadel beside a Holy Site"
+   }
+  ],
+  "theBarbarianFrontier": [
+   {
+    "raw": "clearing a barbarian camp claims its hex and the unclaimed hexes around it for your nearest city, if that city is close by",
+    "text": "clearing a barbarian camp claims its hex and the unclaimed hexes around it for your nearest city, if that city is close by"
+   }
+  ],
+  "theOriflamme": [
+   {
+    "raw": "+4 combat strength for military units while standing beside religious units",
+    "text": "+4 combat strength for military units while standing beside religious units"
+   }
+  ],
+  "theFloodFestival": [
+   {
+    "raw": "building a [[improvement:burnedCountry|Burned Country]] grants +5 faith",
+    "text": "building a Burned Country grants +5 faith"
+   }
+  ],
+  "theRoadGarrisons": [
+   {
+    "raw": "+3 food in every city with a unit standing in it joined to your capital by road",
+    "text": "+3 food in every city with a unit standing in it joined to your capital by road"
+   },
+   {
+    "raw": "every city with a unit standing in it joined to your capital by road: +5 city defence",
+    "text": "every city with a unit standing in it joined to your capital by road: +5 city defence"
+   }
+  ],
+  "convertItOrTaxIt": [
+   {
+    "raw": "+3 gold, +2 faith in every captured city that does not follow your religion",
+    "text": "+3 gold, +2 faith in every captured city that does not follow your religion"
+   },
+   {
+    "raw": "the authority a captured city that follows your religion costs falls by 1",
+    "text": "the authority a captured city that follows your religion costs falls by 1"
+   }
+  ],
+  "warBonds": [
+   {
+    "raw": "+1 combat strength for military units per 150 gold in your treasury (at most +5)",
+    "text": "+1 combat strength for military units per 150 gold in your treasury (at most +5)"
+   }
+  ],
+  "professionalSoldiers": [
+   {
+    "raw": "newly created units bought with gold gain +3 combat strength",
+    "text": "newly created units bought with gold gain +3 combat strength"
+   },
+   {
+    "raw": "newly created units bought with faith gain +3 combat strength",
+    "text": "newly created units bought with faith gain +3 combat strength"
+   }
+  ],
+  "theCharteredCompany": [],
+  "mercenaryContracts": [
+   {
+    "raw": "hired soldiers who serve for a set time and then leave — not built yet",
+    "text": "hired soldiers who serve for a set time and then leave — not built yet",
     "deferred": true
    }
   ]
