@@ -124,6 +124,14 @@ describe('the growing-card vocabulary', () => {
         if (goal.kind === 'counted' && orderDef(id).retired !== true) watched.add(goal.occasion);
       }
     }
+    // A commission's counted goal reads the same per-card tally (batch C), and
+    // two occasions are watched by a commission alone (the Devotion deck's
+    // rites started and foreign cities converted), so they count as watched.
+    for (const id of ORDER_IDS) {
+      for (const goal of orderDef(id).commission?.goals ?? []) {
+        if (goal.kind === 'counted') watched.add(goal.occasion);
+      }
+    }
     for (const occasion of TALLY_OCCASIONS) {
       expect(watched.has(occasion), occasion).toBe(true);
     }

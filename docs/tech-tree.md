@@ -342,3 +342,5 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 | The Long Count | Chronology | empire | The next age’s beads are revealed a turn early, and an Order draft may be redrawn for faith. |
 | Open Ocean | The Astrolabe | empire | Ships and embarked units may cross deep ocean. |
 | Open Borders | Writing | empire | Open-borders treaties; both empires must know Writing. |
+| Votive Offering | — | city | A city may give faith to whatever it is building: the faith the rite costs becomes production. |
+| Restoring of the Host | — | city | A city may spend faith to heal every unit of yours standing in land that follows your religion. |

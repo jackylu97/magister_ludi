@@ -107,7 +107,9 @@ import {
 import { RULES } from './rulesData';
 import {
   cardActionRule,
+  cardActionRuleAt,
   cardPurchaseRiders,
+  cardRulePercent,
   cityBeliefUnlocksBuilding,
   payWindfallGrants,
   recordScalingOccasion,
@@ -593,11 +595,24 @@ function faithBankOpen(
      * The rate is the ordinary `faithPerHammer`: which bank may pay is what a
      * shelf decides, never what a thing costs.
      */
-    if (isWonder(item.id)) return cityBuysWondersWithFaith(city);
+    if (isWonder(item.id)) {
+      return cityBuysWondersWithFaith(city) || faithFinishesWonder(state, city, item.id);
+    }
+    // **The Devotion deck's laws** (`faithBuysBuildings`, scoped to the towns
+    // the card names): every ordinary building, never the row that ends the game.
+    if (
+      buildingDef(item.id).endsTheGame !== true &&
+      cardActionRuleAt(state, city, 'faithBuysBuildings')
+    ) {
+      return true;
+    }
     if (!buildingPaysVoice(item.id, 'science')) return false;
     return cardActionRule(state, city.ownerId, 'faithBuysScienceBuildings');
   }
   if (item.kind !== 'unit') return false;
+  // Consecrated Labor's workers in its Shrine towns (`faithBuysUnits`, with the
+  // row's class asked of this piece).
+  if (cardActionRuleAt(state, city, 'faithBuysUnits', item.id)) return true;
   // **A fourth narrowing since the charters** (2026-09-04): the marker is a word
   // now, and the Almshouse's word is `'civilian'` — settlers, workers, caravans
   // and nothing that fights. Asked of `isCivilian`, the same predicate
@@ -618,6 +633,21 @@ function faithBankOpen(
     return true;
   }
   return false;
+}
+
+/**
+ * **May faith finish this wonder here?** The Pious Masons (`faithBuysWonders`):
+ * in the towns the card names, a world wonder at the front of the queue whose
+ * basket already holds at least half its cost. The price is the ordinary one,
+ * and the hammers already in the basket come back as the usual refund.
+ */
+function faithFinishesWonder(state: GameState, city: City, id: BuildingId): boolean {
+  if (!cardActionRuleAt(state, city, 'faithBuysWonders')) return false;
+  const front = city.queue[0];
+  if (front === undefined || front.kind !== 'building' || front.id !== id) return false;
+  const cost = queueItemCost(state, city.ownerId, front);
+  if (cost === null || cost <= 0) return false;
+  return city.hammerBasket * 2 >= cost;
 }
 
 /**
@@ -930,7 +960,10 @@ export function purchaseError(
   if (
     bought.kind === 'building' &&
     isWonder(bought.id) &&
-    !(currency === 'faith' && cityBuysWondersWithFaith(city)) &&
+    !(
+      currency === 'faith' &&
+      (cityBuysWondersWithFaith(city) || faithFinishesWonder(state, city, bought.id))
+    ) &&
     !(currency === 'gold' && cardActionRule(state, playerId, 'goldBuysWonders'))
   ) {
     return `${name} is a wonder — it must be built, not bought`;
@@ -1372,6 +1405,23 @@ export function acceptsContributions(item: QueueItem): boolean {
     : false;
 }
 
+/**
+ * What one bank buys a hammer for **in this town**: `hammerRate`, with the
+ * faith rate eased by `faithContribution` cards whose scope admits the town
+ * (The Last Offering's holy city, building the Magnum Opus). +50 buys half as
+ * many hammers again for the same faith.
+ */
+function contributionRate(state: GameState, city: City, currency: PurchaseCurrency): number {
+  const base = hammerRate(currency);
+  if (currency !== 'faith') return base;
+  let percent = 0;
+  for (const line of cardRulePercent(state, city.ownerId, 'faithContribution', city)) {
+    percent += line.percent;
+  }
+  if (percent === 0) return base;
+  return (base * 100) / Math.max(1, 100 + percent);
+}
+
 /** What one bank buys a hammer for. `goldPerHammer`'s sibling. */
 function hammerRate(currency: PurchaseCurrency): number {
   return currency === 'faith'
@@ -1433,7 +1483,7 @@ export function explainContribution(
   // not leave a completion one tenth of a hammer short.
   const remaining = Math.ceil(cost - city.hammerBasket);
   if (remaining <= 0) return null;
-  const rate = hammerRate(currency);
+  const rate = contributionRate(state, city, currency);
   if (!(rate > 0)) return null;
   const affordable = Math.floor(Math.max(0, bankOf(player, currency)) / rate);
   const hammers = Math.min(remaining, affordable);
@@ -1445,7 +1495,9 @@ export function explainContribution(
     name: queueItemName(item),
     remaining,
     hammers,
-    spend: hammers * rate,
+    // Ceiled, so a rate a card has made fractional never charges less than the
+    // hammers are worth; the ordinary rates are whole and this changes nothing.
+    spend: Math.ceil(hammers * rate),
     completes: productionSettledBy(state, city, hammers),
   };
 }
@@ -1507,7 +1559,7 @@ export function contributeError(
   if (cost === null) return `${queueItemName(item)} has no price`;
   const remaining = cost - city.hammerBasket;
   if (remaining <= 0) return `${city.name} has already paid for ${queueItemName(item)}`;
-  const rate = hammerRate(currency);
+  const rate = contributionRate(state, city, currency);
   const held = Math.max(0, bankOf(player, currency));
   if (rate <= 0 || held < rate) {
     return `${player.name} has too little ${currency} to give`;

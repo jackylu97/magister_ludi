@@ -1162,7 +1162,13 @@ export type CityScope =
    * trade routes between them, so on a trade route's destination this admits
    * only a war with a third empire.
    */
-  | { test: 'ownerAtWar' };
+  | { test: 'ownerAtWar' }
+  /**
+   * The town that holds the **holy site of a religion this empire is paid by**
+   * (`heldReligions`) — the Devotion deck's holy-city cards. The same reading
+   * `religionFounder` takes, so a conquered holy city moves the clause with it.
+   */
+  | { test: 'holyCity' };
 
 /**
  * A fact about the empire that gates a whole clause. `conditionRule`'s subject.
@@ -1201,7 +1207,18 @@ export type EmpireCondition =
    * sorted into a category — so a project, a wonder and a building are told
    * apart here by exactly the rule production tells them apart by.
    */
-  | { test: 'queueHolds'; category: ProductionCategory; where?: 'any' | 'capital' }
+  | {
+      test: 'queueHolds';
+      category: ProductionCategory;
+      where?: 'any' | 'capital';
+      /**
+       * And the row is this one building — The Tithe of Nations' "while one of
+       * your cities is building the Magnum Opus". Absent admits any row
+       * of the category. A single town raising the Opus is `CityScope`'s
+       * `raisingOpus`.
+       */
+      building?: BuildingId;
+    }
   /**
    * **There is a war on** — The Arsenal Law's forges, which only run while
    * somebody is being shot at.
@@ -1259,7 +1276,13 @@ export type EmpireCondition =
    * Coalition. Read through the same `isRaisingOpus` as `CityScope`'s
    * `raisingOpus`.
    */
-  | { test: 'atWarWithOpusBuilder' };
+  | { test: 'atWarWithOpusBuilder' }
+  /**
+   * This empire **has not founded a religion yet** — The Calling. Asked of
+   * `foundedReligion`, the history, so a founder who lost the holy city has
+   * still founded one.
+   */
+  | { test: 'noReligionFounded' };
 
 /**
  * When a strength line applies. The whole of `combatCardLine`'s generality.
@@ -2712,7 +2735,19 @@ export type CountKind =
    * of. The one count that reads other empires' holdings, and it reads only
    * whether each holds the good at all.
    */
-  | 'monopolyLuxuries';
+  | 'monopolyLuxuries'
+  /** This empire's towns **keeping a rite** right now — The Priest-Astronomers. */
+  | 'citiesKeepingRite'
+  /**
+   * The beliefs of the religions this empire is paid by (`heldReligions`):
+   * pantheon, follower and enhancer together — The Creed.
+   */
+  | 'beliefsHeld'
+  /**
+   * Turns since the oldest religion this empire is paid by was founded —
+   * The Apostolic Succession. Zero for an empire paid by none.
+   */
+  | 'turnsSinceFounded';
 
 /**
  * **The ledgers of what an empire did first.** Each is one `GameState.firsts`
@@ -2893,7 +2928,14 @@ export type TallyOccasion =
    * leaves, beside `goldSpent`, and only for a building: a unit bought at the
    * same counter is not one.
    */
-  | 'buildingBoughtWithGold';
+  | 'buildingBoughtWithGold'
+  /** A rite started in one of this empire's towns — The Founding Vows. */
+  | 'riteStarted'
+  /**
+   * A foreign town turned to a religion this empire is paid by — The Mission.
+   * Written where the first-conversion record is written, on every conversion.
+   */
+  | 'foreignCityConverted';
 // **There is deliberately no `cityGrew`**, and the audit asked for one: every
 // growth card in the six decks is bound by the design doc's standing clause
 // that natural-growth rewards *count only growth beyond the town's historical
@@ -2918,6 +2960,8 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'wonderOrCapitalCaptured',
   'hexBought',
   'buildingBoughtWithGold',
+  'riteStarted',
+  'foreignCityConverted',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -3080,7 +3124,14 @@ export type CardRule =
    * read in `routeRange` beside it, as a percentage on the same base figure,
    * for every medium.
    */
-  | 'routeRange';
+  | 'routeRange'
+  /** The faith price of rerolling an Order hand — The Penitents' Roll. Read in `explainRerollCost`. */
+  | 'rerollCost'
+  /**
+   * How far faith poured into a row goes: +50 buys half as many hammers again
+   * — The Last Offering. Read in `explainContribution`, with the town in hand.
+   */
+  | 'faithContribution';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -3389,7 +3440,22 @@ export type ActionRuleId =
    * `unitTrained` tally is written, so a card counting trained units counts
    * bought ones too while this is held.
    */
-  | 'boughtUnitsCountAsTrained';
+  | 'boughtUnitsCountAsTrained'
+  /**
+   * Faith may buy the **units** the row's `class` names, in the towns its
+   * `scope` admits — Consecrated Labor's workers. Read in `faithBankOpen`.
+   */
+  | 'faithBuysUnits'
+  /**
+   * Faith may buy **ordinary buildings** (never a wonder), in the towns the
+   * row's `scope` admits — The Lay Brothers, The Offered Stones.
+   */
+  | 'faithBuysBuildings'
+  /**
+   * Faith may buy a **world wonder at least half built**, in the towns the row's
+   * `scope` admits — The Pious Masons. Never the Magnum Opus.
+   */
+  | 'faithBuysWonders';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -5731,6 +5797,14 @@ export interface CardRuleEffect {
    * Meaningless on every other member and simply never consulted there.
    */
   building?: BuildingId;
+  /**
+   * **Which towns the rule is true in** — The Lay Brothers' Temple towns and
+   * Consecrated Labor's Shrine towns. Read only by `cardActionRuleAt`, which
+   * the three faith-purchase rules (`faithBuysUnits`, `faithBuysBuildings`,
+   * `faithBuysWonders`) are asked through with the town in hand. Absent means
+   * every town.
+   */
+  scope?: CityScope;
 }
 
 /**
@@ -6349,13 +6423,26 @@ export type PressureRuleId =
   | 'templeForeignPercent'
   | 'bombRange'
   | 'bombLump'
-  | 'routeBothWays';
+  | 'routeBothWays'
+  /**
+   * A percentage on **rival** pressure entering this empire's own towns, read
+   * for the town's owner in `templeShare` (tide and proclamation alike). −40 is
+   * The Holy Inquisition; −100 shuts it out (The Peace of God). Not a key of
+   * `rules.religion`: its base is nought.
+   */
+  | 'rivalPressurePercent';
 
 /** A signed shift on one number of the tide. See `PressureRuleId`. */
 export interface CardPressureRuleEffect {
   kind: 'pressureRule';
   rule: PressureRuleId;
   delta: number;
+  /**
+   * Which of this empire's towns the shift applies in. Read only for
+   * `rivalPressurePercent`, the one rule asked with a town in hand (The Peace
+   * of God's city building the Magnum Opus). Absent means every town.
+   */
+  scope?: CityScope;
 }
 
 /**
@@ -6540,6 +6627,13 @@ export interface CardYieldAmplifierEffect {
   percent?: number;
   /** Which towns the amplified line must land in. Absent means everywhere. */
   scope?: CityScope;
+  /**
+   * **Whose lines are raised.** Absent reads your Orders' lines, which is what
+   * every row before The Doctors of the Church meant. `'followerBeliefs'` reads
+   * the follower beliefs' town lines instead (never their hex lines), in your
+   * own towns only, since that is the only place their lines reach your fold.
+   */
+  reads?: 'followerBeliefs';
 }
 
 /**
@@ -7172,10 +7266,18 @@ export type CommissionFigure =
   /** Hexes inside this empire's borders that carry a tended work. Six Gardens. */
   | 'tendedTiles'
   /**
-   * This empire's gold per turn, as the top bar shows it (`readEmpire`'s
-   * total). The Great Loan's goal (at least one) and the size of its loan.
+   * This empire's gold per turn, as the top bar shows it (the same sum the
+   * empire reading makes). The Great Loan's goal (at least one) and the size
+   * of its loan.
    */
-  | 'goldIncome';
+  | 'goldIncome'
+  /**
+   * Percent of the world's cities that follow a religion this empire is paid by,
+   * rounded down — The Great Commission.
+   */
+  | 'followingCityShare'
+  /** Rival original capitals that follow a religion this empire is paid by — The Conversion of Kings. */
+  | 'rivalCapitalsFollowing';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -7190,6 +7292,8 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'capturedThisTurnWonders',
   'tendedTiles',
   'goldIncome',
+  'followingCityShare',
+  'rivalCapitalsFollowing',
 ];
 
 /**

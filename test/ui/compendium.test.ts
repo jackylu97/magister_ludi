@@ -1376,6 +1376,12 @@ describe('what opens a thing', () => {
         expect(line, id).toMatch(/^Withdrawn: /);
         continue;
       }
+      // A card-taught rite names its Order and no node.
+      if (riteDef(id).byCard === true) {
+        expect(techsNamed(line), id).toEqual([]);
+        expect(line, id).toMatch(/^Unlocked by the Order \[\[order:/);
+        continue;
+      }
       const gate = (isAbilityId(id) ? ABILITY_TECH.get(id) : undefined) ?? riteDef(id).tech;
       expect(techsNamed(line), id).toEqual([gate]);
     }

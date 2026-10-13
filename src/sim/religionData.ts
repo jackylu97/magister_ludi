@@ -179,6 +179,28 @@ export interface RiteDef extends CardDefBase {
    * deals.
    */
   retired?: boolean;
+  /**
+   * **Taught by a card, not by the tree** — the Devotion deck's rites (The
+   * Fast's charter, The Votive Gifts, The Host Restored). The row's `tech` then
+   * only dates it for the Compendium's shelf and is not in any node's
+   * `unlocks.abilities`; the verb is known through a charter
+   * (`Player.charteredRites`) or a seated card's `grantsAbility`.
+   */
+  byCard?: true;
+  /**
+   * **What the rite does the moment it is performed**, beside or instead of its
+   * lasting effects (the user, 2026-10-12: a miracle is a rite). Read in one
+   * place, `performRiteAt`, and refused in `riteError`. A rite with an instant
+   * and no lasting effects still marks its town as keeping it for `duration`
+   * turns, which is the lock between two performances.
+   *
+   *   · `hammersFromFaith` — the faith the rite cost goes into the town's
+   *     current build as production, at `faithPerHammer`. Refused while the town
+   *     is building a wonder or nothing (The Votive Gifts);
+   *   · `healFollowing` — every unit of this empire standing in territory that
+   *     follows a religion it is paid by is healed to full (The Host Restored).
+   */
+  atOnce?: { hammersFromFaith?: true; healFollowing?: true };
 }
 
 // --- what a player holds ----------------------------------------------------
@@ -730,7 +752,7 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
     if (!knownTechs.includes(def.tech)) {
       problems.push(`rite "${id}" is taught by "${def.tech}", which is not a technology`);
     }
-    if (def.duration !== undefined && def.effects.length === 0) {
+    if (def.duration !== undefined && def.effects.length === 0 && def.atOnce === undefined) {
       problems.push(`rite "${id}" lasts ${def.duration} turns and has nothing to last`);
     }
     if (def.duration === undefined && def.effects.length > 0) {
@@ -740,7 +762,7 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
     // instant half is gone, so a live row that stamps nothing on its town is a
     // city verb that costs faith and does nothing at all. The belief guard's
     // sentence one table over, and it fails for that guard's reason.
-    if (def.duration === undefined || def.effects.length === 0) {
+    if (def.duration === undefined || (def.effects.length === 0 && def.atOnce === undefined)) {
       problems.push(`rite "${id}" hangs nothing on the town that performs it`);
     }
   }

@@ -445,8 +445,9 @@ describe("the card table", () => {
       const commission = ORDER_IDS.includes(id as never)
         ? orderDef(id as never).commission
         : undefined;
-      // A charter speaks through its grant (the Expansionist tended works, and
-      // the Commerce batch's Planters' Charter and Numidian Cavalry).
+      // A charter speaks through its grant (the Expansionist tended works, the
+      // Commerce batch's Planters' Charter and Numidian Cavalry, and The Fast's
+      // rite).
       const charter = ORDER_IDS.includes(id as never)
         ? orderDef(id as never).charter
         : undefined;
@@ -8556,6 +8557,15 @@ describe("the engine shapes", () => {
     "theCustomsService · routeYield",
     "theBourse · buildingYieldPercent",
     "theNeutralFlag · routeYield",
+    // The Devotion deck batch: The Alms Roads' faith on roads out of Temple
+    // towns (a route flat), The Penitents' Roll's pay per Order hand rerolled
+    // while it is seated (the chair's counter, two voices), and The Doctors of
+    // the Church, the first amplifier that reads follower beliefs' lines
+    // instead of the Orders' (`CardYieldAmplifierEffect.reads`).
+    "theAlmsRoads · routeYield",
+    "thePenitentsRoll · rerollsWhileSlotted",
+    "thePenitentsRoll · rerollsWhileSlotted",
+    "theDoctorsOfTheChurch · cardYieldAmplifier",
     "thePatronsRoad · routeYield",
     // D2a: The Muses' Call's *"+20% renown"*, un-deferred with the worked-work
     // scope its other half wanted.

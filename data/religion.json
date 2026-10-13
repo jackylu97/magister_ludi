@@ -1314,6 +1314,49 @@
       "flavor": "The bones fell badly. They were gathered up, and they fell again.",
       "note": "Withdrawn. A hand of gods may be asked again for faith instead.",
       "effects": []
+    },
+    "riteOfFasting": {
+      "name": "Rite of Fasting",
+      "tech": "divination",
+      "byCard": true,
+      "flavor": "The table is set and left bare, and the faithful count what they did not eat.",
+      "text": "This city does not grow and gains faith for every citizen, while the rite runs.",
+      "note": "Opened by the Order The Fast. The town stores no food toward growth while it fasts; food already stored stays where it is.",
+      "duration": 10,
+      "effects": [
+        { "kind": "rulePercent", "rule": "growthSurplus", "percent": -100 },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "population",
+          "within": "city"
+        }
+      ]
+    },
+    "votiveOffering": {
+      "name": "Votive Offering",
+      "tech": "theHighTemple",
+      "byCard": true,
+      "flavor": "A candle, a coin and a name, left at the foot of the scaffold.",
+      "text": "The faith this rite costs is given to whatever this city is building, as production at the faith rate. Not toward a wonder.",
+      "note": "Opened while the Order The Votive Gifts is seated. The town keeps it until the next turn, so each city may offer it once a turn.",
+      "duration": 1,
+      "atOnce": { "hammersFromFaith": true },
+      "effects": []
+    },
+    "restoringOfTheHost": {
+      "name": "Restoring of the Host",
+      "tech": "theHolyOffice",
+      "byCard": true,
+      "flavor": "They came in carried and went out marching.",
+      "text": "Every unit of yours standing in land that follows your religion is healed to full health.",
+      "note": "Opened while the Order The Host Restored is seated. The town keeps it for a while before it may say it again.",
+      "duration": 5,
+      "atOnce": { "healFollowing": true },
+      "effects": []
     }
   },
   "consecrations": {

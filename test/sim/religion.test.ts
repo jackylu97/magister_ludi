@@ -324,6 +324,12 @@ describe("the religion table", () => {
     // with them, which is what `LIVE_RITE_IDS` is for.
     for (const id of LIVE_RITE_IDS) {
       const tech = riteDef(id).tech;
+      // A card-taught rite (the Devotion deck's) is opened by a charter or a
+      // seated card and by no node; its `tech` only dates it.
+      if (riteDef(id).byCard === true) {
+        expect(techDef(tech).unlocks.abilities ?? [], id).not.toContain(riteAbility(id));
+        continue;
+      }
       expect(techDef(tech).unlocks.abilities ?? [], id).toContain(
         riteAbility(id),
       );
@@ -1383,7 +1389,8 @@ describe("the panel’s reading", () => {
       const preview = ritePreview(id);
       expect(preview, id).not.toBeNull();
       expect(preview!.length, id).toBeGreaterThan(0);
-      expect(preview!, id).toContain("lasts 10 turns");
+      const d = riteDef(id).duration;
+      expect(preview!, id).toContain(`lasts ${d} ${d === 1 ? "turn" : "turns"}`);
     }
   });
 

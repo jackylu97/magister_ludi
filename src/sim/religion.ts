@@ -93,8 +93,10 @@ import {
   refreshCityDerived,
   refreshTileDerived,
   settleProductionWindfall,
+  tileOwnerCityId,
   tileOwnerField,
 } from './cities';
+import { isBuildingId, isWonder } from './buildingData';
 import { drawDiscoveryOffer } from './discoveries';
 import {
   type Tile,
@@ -132,11 +134,15 @@ import {
   cardPeriodicOffers,
   cardPressureRule,
   cardPressureSources,
+  cardRulePercent,
+  cardRivalPressurePercent,
   drawDoctrineOffer,
   drawOrderOffer,
   drawWithoutReplacement,
+  heldReligions,
   offerSize,
   payWindfallGrants,
+  recordScalingOccasion,
   religionFounder,
   settleCultureWindfall,
   timedEffectIsLive,
@@ -150,7 +156,7 @@ import {
   buildingRitePay,
   cityKeepsRelics,
 } from './buildingEffects';
-import { type PressureRuleId, STATECRAFT, governmentDef } from './statecraftData';
+import { type CardEffect, type PressureRuleId, STATECRAFT, governmentDef } from './statecraftData';
 // The great-person dealer, for the heavy hand `settleReroll` redeals. A
 // function-level import (the documented exception): `greatPeople.ts` reaches
 // `cities.ts`, which reaches this module — the cycle `cities.ts` and this file
@@ -791,6 +797,18 @@ export function explainRerollCost(
   if (isHeavyKind(kind)) {
     const heavy = Math.floor(full * Math.max(0, spec.heavyMultiple));
     if (heavy !== full) lines.push({ source: HEAVY_WORD[kind], amount: heavy - full });
+  }
+  // **A card's discount on the faith price** (`rerollCost`, The Penitents'
+  // Roll), a line of its own carrying the difference, floored once. Faith only:
+  // the card's words are "cost less faith", and the coin's premium is its own.
+  if (currency === 'faith' && player) {
+    let percent = 0;
+    for (const line of cardRulePercent(state, player.id, 'rerollCost')) percent += line.percent;
+    if (percent !== 0) {
+      const before = foldUnitCost(lines);
+      const after = Math.max(0, Math.floor((before * (100 + percent)) / 100));
+      if (after !== before) lines.push({ source: 'Order cards', amount: after - before });
+    }
   }
   // **The gold premium, last and printed** (The Brokers' Redraw, batch C3). The
   // ladder above is unchanged — gold climbs the same rungs the faith bank does —
@@ -1439,6 +1457,15 @@ export function riteError(
   }
   const held = cityRite(state, city);
   if (held !== null) return `${city.name} is already keeping ${riteDef(held).name}`;
+  // **An offering needs something to be given to** (`RiteDef.atOnce`): the
+  // faith becomes hammers for the front row, and a wonder is not hurried this way.
+  if (def.atOnce?.hammersFromFaith === true) {
+    const front = city.queue[0];
+    if (front === undefined) return `${city.name} is building nothing`;
+    if (front.kind === 'building' && isBuildingId(front.id) && isWonder(front.id)) {
+      return `${def.name} is not given toward a wonder`;
+    }
+  }
   const cost = riteCostFor(state, playerId);
   if (player.faithPool < cost) {
     return `${def.name} asks ${cost} faith and ${player.name} has ${Math.floor(player.faithPool)}`;
@@ -1519,6 +1546,9 @@ export function performRiteAt(
   bumpEconomy(state);
 
   const expiresTurn = stampRite(state, player.id, rite, def, city) ?? state.turn;
+  // The Founding Vows counts rites started while it is seated.
+  recordScalingOccasion(state, player.id, 'riteStarted');
+  payRiteAtOnce(state, player, city, def, cost);
   const wonders = payRiteRiders(state, player, city);
   const chapelCulture = payRiteBuildings(state, player, city);
   refreshCityDerived(state, city);
@@ -1533,6 +1563,49 @@ export function performRiteAt(
     chapelCulture,
     wonders,
   };
+}
+
+/**
+ * **What a rite does the moment it is said** (`RiteDef.atOnce`): the Devotion
+ * deck's two card-taught rites. Validated by `riteError`.
+ *
+ *   · the offering puts the faith it cost into the town's basket at
+ *     `faithPerHammer`, then settles the basket through
+ *     `settleProductionWindfall`, the one completion routine (the register's
+ *     production-windfall entry);
+ *   · the restoring heals every unit of this empire standing on a hex whose
+ *     owning town follows a religion this empire is paid by — the same reading
+ *     the `followingTerritory` strength line takes. `state.units` order.
+ */
+function payRiteAtOnce(
+  state: GameState,
+  player: Player,
+  city: City,
+  def: RiteDef,
+  cost: number,
+): void {
+  const now = def.atOnce;
+  if (now === undefined) return;
+  if (now.hammersFromFaith === true) {
+    const rate = RULES.production.faithPerHammer;
+    const hammers = rate > 0 ? Math.floor(cost / rate) : 0;
+    if (hammers > 0) {
+      city.hammerBasket += hammers;
+      settleProductionWindfall(state, city);
+    }
+  }
+  if (now.healFollowing === true) {
+    const held = heldReligions(state, player.id).map((religion) => religion.id);
+    for (const unit of state.units) {
+      if (unit.ownerId !== player.id) continue;
+      const owner = tileOwnerCityId(state, unit.col, unit.row);
+      if (owner === null) continue;
+      const town = state.cities.find((entry) => entry.id === owner);
+      const kept = town ? cityReligion(town) : null;
+      if (kept === null || !held.includes(kept)) continue;
+      unit.hp = unitMaxHp(unit, unitHealthBonus(state, player.id));
+    }
+  }
 }
 
 /**
@@ -1577,6 +1650,9 @@ function payRiteBuildings(state: GameState, player: Player, city: City): number 
  * lengthen a blessing or shorten it, but a rite that expired the instant it was
  * performed would be faith spent on nothing.
  */
+/** The mark an instant rite leaves on its town. See `stampRite`. */
+const RITE_MARK: CardEffect = { kind: 'pays', where: 'city' };
+
 function stampRite(
   state: GameState,
   playerId: number,
@@ -1584,12 +1660,19 @@ function stampRite(
   def: RiteDef,
   city: City,
 ): number | null {
-  if (def.duration === undefined || def.effects.length === 0) return null;
+  if (def.duration === undefined) return null;
+  // **A rite that only acts at once** (`RiteDef.atOnce`) still marks its town
+  // for its duration, which is the lock between two performances. The mark is
+  // a `pays` line that pays nothing, so every reader of the town's timed list
+  // reads it and adds nothing; `cityRite` sees the rite's id on it.
+  const effects: readonly CardEffect[] =
+    def.effects.length > 0 ? def.effects : def.atOnce !== undefined ? [RITE_MARK] : [];
+  if (effects.length === 0) return null;
   const percent = cardAmplifier(state, playerId, 'riteDuration');
   const turns = Math.floor((Math.max(1, Math.floor(def.duration)) * (100 + percent)) / 100);
   const expiresTurn = state.turn + Math.max(1, turns);
   const list = city.timed ?? [];
-  for (const effect of def.effects) list.push({ card: rite, effect, expiresTurn });
+  for (const effect of effects) list.push({ card: rite, effect, expiresTurn });
   city.timed = list;
   // A rite reaches `cityLocalEffects`, which `cardBuildingHappiness` folds into
   // the empire's contentment — announced at the stamp (batch M3, `slate.ts`).
@@ -1663,7 +1746,7 @@ function payRiteRiders(state: GameState, player: Player, city: City): WonderComp
 export function ritePreview(rite: RiteId): string | null {
   const def = riteDef(rite);
   if (def.duration === undefined) return def.text ?? null;
-  const turns = `lasts ${def.duration} turns`;
+  const turns = `lasts ${def.duration} ${def.duration === 1 ? 'turn' : 'turns'}`;
   return def.text ? `${def.text} · ${turns}` : turns;
 }
 
@@ -1705,6 +1788,9 @@ export function empireRiteError(
   if (!hasAbility(state, playerId, riteAbility(rite))) {
     return `${def.name} is not known to ${player.name}`;
   }
+  // A rite that acts at once is said by one town for its own reason, never over
+  // the whole realm for one price.
+  if (def.atOnce !== undefined) return `${def.name} is said by one city, not over the realm`;
   if (!state.cities.some((city) => city.ownerId === playerId)) {
     return `${player.name} has no city to bless`;
   }
@@ -3564,6 +3650,9 @@ function noteFirstConversion(
   if (cityReligion(city) !== religion.id) return;
   const founder = religionFounder(state, religion);
   if (city.ownerId === founder) return;
+  // Every conversion, not only the first: The Mission counts towns turned while
+  // it is seated, and a town won back counts again.
+  recordScalingOccasion(state, founder, 'foreignCityConverted');
   markFirst(state, founder, 'conversion', firstKey(city.id));
 }
 
@@ -3697,13 +3786,27 @@ export function templeShare(
   amount: number,
   founder: number = religionFounder(state, religion),
 ): number {
-  if (!city.buildings.includes(TEMPLE)) return amount;
+  const shielded = rivalShare(state, city, religion, amount);
+  if (!city.buildings.includes(TEMPLE)) return shielded;
   const rules = RULES.religion;
   const percent =
     cityReligion(city) === religion.id
       ? rules.templeOwnPercent + cardPressureRule(state, founder, 'templeOwnPercent')
       : rules.templeForeignPercent + cardPressureRule(state, founder, 'templeForeignPercent');
-  return Math.max(0, Math.floor((amount * Math.max(0, percent)) / 100));
+  return Math.max(0, Math.floor((shielded * Math.max(0, percent)) / 100));
+}
+
+/**
+ * What the town's **owner's** cards let through of a rival religion's pressure
+ * (`rivalPressurePercent`: The Holy Inquisition, The Peace of God). A religion
+ * the owner is paid by is not a rival and passes untouched; so does everything
+ * when no card speaks. Applied before the temple, so the two multiply.
+ */
+function rivalShare(state: GameState, city: City, religion: Religion, amount: number): number {
+  const percent = cardRivalPressurePercent(state, city);
+  if (percent === 0) return amount;
+  if (heldReligions(state, city.ownerId).some((held) => held.id === religion.id)) return amount;
+  return Math.max(0, Math.floor((amount * Math.max(0, 100 + percent)) / 100));
 }
 
 /** One town a proclamation reaches, and the figure it will actually bank there. */

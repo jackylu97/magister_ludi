@@ -190,7 +190,7 @@ describe('the schema, as landed', () => {
    * exactly when `orderIsDealt` says — live (effects) or deferred (a sentence
    * and nothing to slot).
    */
-  it('retires the whole shelf and none of the decks, and deals each by its own rule', () => {
+  it('retires the whole shelf and only the decks’ own cuts, and deals each by its own rule', () => {
     expect(SHELF_ROWS.length).toBeGreaterThan(200);
     for (const id of SHELF_ROWS) {
       const def = orderDef(id);
@@ -211,8 +211,8 @@ describe('the schema, as landed', () => {
       // row with a `deferred` sentence and nothing to slot is not.
       // A commission (batch C) is dealt for its goal and reward, with no effects,
       // and a charter whose grant exists (the Expansionist tended-work unlocks,
-      // the Commerce batch's Plantation House and Numidian Cavalry) is dealt for
-      // the grant.
+      // the Commerce batch's Plantation House and Numidian Cavalry, The Fast's
+      // rite) is dealt for the grant.
       const dealt =
         def.effects.length > 0 ||
         def.commission !== undefined ||
@@ -331,8 +331,12 @@ describe('the schema, as landed', () => {
     // commissions and twenty-eight cards with effects, less three live rows
     // retired); and **the Commerce batch** by plus six (twenty-four in, eighteen
     // live rows retired as its proposed cuts).
-    expect(live).toBe(315);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(315);
+    // **And the Devotion deck batch**: thirty-three more. The sheet's
+    // fifty-two cards stand at fifty live (The Interdict and Consecrated
+    // Ground wait), against eighteen live rows before, The Holy Army included
+    // in both counts; the twenty-five cuts are retired.
+    expect(live).toBe(348);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(348);
   });
 
   /**
@@ -348,13 +352,14 @@ describe('the schema, as landed', () => {
   it('deals no charter whose grant names a thing that does not exist yet', () => {
     // A charter whose grant exists is dealt like any card (the Expansionist
     // tended-work unlocks; the Commerce batch's Plantation House and Numidian
-    // Cavalry); its grant must name a real row. The rest wait.
+    // Cavalry; The Fast's rite); its grant must name a real row. The rest wait.
     for (const id of DECK_ROWS) {
       const def = orderDef(id);
       if (def.charter === undefined || def.deferred !== undefined || def.retired === true) continue;
       const unlocks = def.charter.unlocks;
       if (unlocks.building !== undefined) expect(BUILDING_IDS, id).toContain(unlocks.building);
       if (unlocks.unit !== undefined) expect(UNIT_TYPE_IDS, id).toContain(unlocks.unit);
+      for (const rite of unlocks.rites ?? []) expect(RITE_IDS, id).toContain(rite);
       expect(orderIsDealt(id), `${id} is a live charter`).toBe(true);
     }
     // A retired charter (a sheet's Proposed cut, such as The Purple Works) is
@@ -671,12 +676,13 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // (twenty-eight of them deferred), brought four deferred rows live and
       // wrote twelve new deferred ones (− 28 − 4 + 12); **the Commerce batch**
       // retired twenty-three (five of them deferred), wrote The Embargo deferred
-      // and brought two deferred rows live (− 5 + 1 − 2). The retired deck rows
-      // are counted apart.
+      // and brought two deferred rows live (− 5 + 1 − 2); **the Devotion batch**
+      // retired its twenty-five cuts and left two rows waiting. The retired deck
+      // rows are counted apart.
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(99);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(104);
+      ).toHaveLength(75);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(129);
     }
   });
 

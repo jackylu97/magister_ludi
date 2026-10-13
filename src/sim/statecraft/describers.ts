@@ -38,7 +38,7 @@ import {
 } from '../greatPeopleData';
 import { improvementDef, isGreatPersonWork, workForFamily } from '../improvementData';
 import { projectDef } from '../projectData';
-import { beliefPoolOf, isBeliefId, isConsecrationId, isRiteId } from '../religionData';
+import { beliefPoolOf, isBeliefId, isConsecrationId, isRiteId, riteDef } from '../religionData';
 import { type CityYieldKey, resourceDef } from '../resourceData';
 import { RULES } from '../rulesData';
 import {
@@ -705,6 +705,29 @@ export function describeCard(id: CardId): CardClause[] {
       const name = improvementDef(work).name;
       clauses.push({
         text: `once drafted, opens the ${ref('improvement', work, name)} for your workers to build; this card takes no chair`,
+      });
+    }
+    // **A charter's rites are the whole of the card** (The Fast): taking it
+    // teaches the rite, said with the rite's own sentence.
+    for (const rite of orderDef(id).charter?.unlocks.rites ?? []) {
+      const row = riteDef(rite);
+      clauses.push({
+        text: `once drafted, your cities may keep ${ref('rite', rite, row.name)}${row.text ? `: ${row.text.charAt(0).toLowerCase()}${row.text.slice(1).replace(/\.$/, '')}` : ''}`,
+      });
+    }
+  }
+  // **What a rite does the moment it is said** (`RiteDef.atOnce`) — the
+  // Devotion deck's offering and restoring, whose whole face is the instant.
+  if (isRiteId(id)) {
+    const now = riteDef(id).atOnce;
+    if (now?.hammersFromFaith === true) {
+      clauses.push({
+        text: 'the faith this rite costs goes into what the city is building, as production at the faith rate, never toward a wonder',
+      });
+    }
+    if (now?.healFollowing === true) {
+      clauses.push({
+        text: 'every unit of yours standing in land that follows your religion is healed to full',
       });
     }
   }
@@ -1522,13 +1545,18 @@ function describeEffect(
       // soldiers is said **of that line**, because "mounted units: pillaging
       // costs your units no movement" is the plumbing showing through a sentence
       // that ought to be about horsemen. See `FLAG_RULE_CLASS_WORDS`.
+      // A rule narrowed to some towns says which, at the end ("in every city
+      // with a Temple"). Only the faith-purchase rules carry a scope.
+      const inTowns = effect.scope === undefined ? '' : ` in ${scopeWordsFor(subject, effect.scope)}`;
       if (effect.class === undefined) {
-        out.push({ text: FLAG_RULE_WORDS[effect.rule] });
+        out.push({ text: `${FLAG_RULE_WORDS[effect.rule]}${inTowns}` });
         return;
       }
       const who = filterWords(effect.class);
       const narrowed = FLAG_RULE_CLASS_WORDS[effect.rule];
-      out.push({ text: narrowed ? narrowed(who) : `${who}: ${FLAG_RULE_WORDS[effect.rule]}` });
+      out.push({
+        text: `${narrowed ? narrowed(who) : `${who}: ${FLAG_RULE_WORDS[effect.rule]}`}${inTowns}`,
+      });
       return;
     }
     case 'windfallRider': {
@@ -2179,7 +2207,20 @@ function describeEffect(
     }
     case 'pressureRule': {
       const delta = effect.delta;
-      out.push({ text: PRESSURE_RULE_WORDS[effect.rule](delta) });
+      // A scoped shift names the towns it shields in place of "your cities"
+      // (The Peace of God: the city building the Magnum Opus).
+      if (effect.rule === 'rivalPressurePercent' && effect.scope !== undefined) {
+        const whom = scopeWordsFor(subject, effect.scope);
+        out.push({
+          text:
+            delta <= -100
+              ? `rival religions cannot press ${whom}`
+              : `rival religions press ${whom} ${Math.abs(delta)}% ${delta < 0 ? 'less' : 'more'}`,
+        });
+        return;
+      }
+      const where = effect.scope === undefined ? '' : ` in ${scopeWordsFor(subject, effect.scope)}`;
+      out.push({ text: `${PRESSURE_RULE_WORDS[effect.rule](delta)}${where}` });
       return;
     }
     case 'pressure': {
@@ -2223,6 +2264,15 @@ function describeEffect(
       // half again". A row carrying both prints both, in that order.
       const voice = effect.yield === 'all' ? 'a yield' : effect.yield;
       const where = effect.scope === undefined ? '' : ` in ${scopeWordsFor(subject, effect.scope)}`;
+      if (effect.reads === 'followerBeliefs') {
+        // The Doctors of the Church: what follower beliefs pay a town of yours.
+        out.push({
+          text:
+            `what follower beliefs pay ${effect.yield === 'all' ? '' : `in ${voice} `}` +
+            `in your own cities is ${signed(effect.percent ?? 0)}% more${where}`,
+        });
+        return;
+      }
       if ((effect.amount ?? 0) !== 0) {
         out.push({
           text:
@@ -2479,9 +2529,18 @@ const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
       ? `a Temple turns away ${-delta}% more of a foreign faith`
       : `a Temple turns away ${delta}% less of a foreign faith`,
   bombRange: (delta) => `a proclamation reaches ${signed(delta)} hexes further`,
-  bombLump: (delta) => `a proclamation presses ${signed(delta)} faith harder`,
+  bombLump: (delta) =>
+    delta < 0
+      ? `a proclamation presses ${-delta} faith less`
+      : `a proclamation presses ${signed(delta)} faith harder`,
   routeBothWays: (delta) =>
     delta > 0 ? 'a caravan carries your faith both ways along its route' : 'a caravan carries your faith one way',
+  rivalPressurePercent: (delta) =>
+    delta <= -100
+      ? 'rival religions cannot press your cities'
+      : delta < 0
+        ? `rival religions press your cities ${-delta}% less`
+        : `rival religions press your cities ${delta}% more`,
 };
 
 /**
@@ -2528,6 +2587,10 @@ function conditionValue(when: EmpireCondition): string {
   // — one entry for both readings, `onFeature`'s bargain a third time.
   if (when.test === 'queueHolds') {
     const where = when.where === 'capital' ? 'your capital is' : 'any city is';
+    if (when.building !== undefined) {
+      const which = when.where === 'capital' ? where : 'one of your cities is';
+      return ` ${which} building ${buildingWords(when.building)}`;
+    }
     return ` ${where} building ${when.category === 'unit' ? 'a unit' : `a ${when.category}`}`;
   }
   return '';
@@ -2608,6 +2671,13 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   if (place !== '' && place !== 'in this city' && effect.count !== undefined) {
     const town = TOWN_COUNT_WORDS[effect.count];
     if (town !== undefined) return town(place);
+  }
+  // **Which bank paid** (The Offered Stones' faith), where the row narrows it.
+  if (effect.count === 'purchasedBuildings' && effect.bank !== undefined) {
+    return {
+      one: `building bought with ${effect.bank}`,
+      many: `buildings bought with ${effect.bank}`,
+    };
   }
   // The capital's own people, said once. `where: 'capital'` already names the
   // town the figure lands in, and "in your capital per 2 citizens in your
@@ -3142,6 +3212,9 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'ownerAtWar':
       into.qualifiers.push('whose owner is at war with another empire');
       return;
+    case 'holyCity':
+      into.adjectives.push('holy');
+      return;
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -3374,6 +3447,8 @@ export function cityScopeWords(scope?: CityScope): string {
   // The second scope that admits exactly one town, and the second that can say
   // "your". See `CityScope`'s `newest`.
   if (scope.test === 'newest') return 'your newest city';
+  // The third: a religion has one holy city.
+  if (scope.test === 'holyCity') return 'your holy city';
   const phrase: ScopePhrase = { adjectives: [], qualifiers: [] };
   scopePhrase(scope, phrase);
   return ['every', ...phrase.adjectives, 'city', ...phrase.qualifiers].join(' ');
@@ -3797,6 +3872,14 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `your trade routes reach ${-percent}% less far`
       : `your trade routes reach ${percent}% further`,
+  rerollCost: (percent) =>
+    percent < 0
+      ? `rerolling an Order hand costs ${-percent}% less faith`
+      : `rerolling an Order hand costs ${percent}% more faith`,
+  faithContribution: (percent) =>
+    percent < 0
+      ? `faith you give to a build buys ${-percent}% less production`
+      : `faith you give to a build buys ${percent}% more production`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -4207,6 +4290,12 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'luxury you hold three or more copies of that no other empire holds',
     many: 'luxuries you hold three or more copies of that no other empire holds',
   },
+  citiesKeepingRite: { one: 'city of yours keeping a rite', many: 'cities of yours keeping a rite' },
+  beliefsHeld: { one: 'belief your religion holds', many: 'beliefs your religion holds' },
+  turnsSinceFounded: {
+    one: 'turn since your religion was founded',
+    many: 'turns since your religion was founded',
+  },
   defensiveBuildings: {
     one: 'fortification in this city',
     many: 'fortifications in this city',
@@ -4360,6 +4449,11 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   buildingBoughtWithGold: {
     one: 'building you have bought with gold',
     many: 'buildings you have bought with gold',
+  },
+  riteStarted: { one: 'rite you have started', many: 'rites you have started' },
+  foreignCityConverted: {
+    one: 'foreign city you have converted',
+    many: 'foreign cities you have converted',
   },
 };
 
@@ -4579,6 +4673,11 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   wonderTownBuysWithoutLimit:
     'a city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn',
   boughtUnitsCountAsTrained: 'units you buy count as trained',
+  // The three faith-purchase rules. Each is said with the towns its row names
+  // (`CardRuleEffect.scope`) appended by the describer.
+  faithBuysUnits: 'units may be bought with faith',
+  faithBuysBuildings: 'buildings other than wonders may be bought with faith',
+  faithBuysWonders: 'a world wonder at least half built may be bought with faith',
   // Said as what the distance stops mattering for, and it names the two
   // conditions the rule carries in its own id — a player told only "your sea
   // routes ignore range" would try it between a pair of towns that has never
@@ -4643,6 +4742,7 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
 const FLAG_RULE_CLASS_WORDS: Partial<Record<CardFlagRuleId, (who: string) => string>> = {
   freePillage: (who) => `${who} pillage without spending movement`,
   ignored: (who) => `${who} ignore enemy zone of control`,
+  faithBuysUnits: (who) => `${who} may be bought with faith`,
 };
 
 /**
@@ -4683,6 +4783,7 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   atPeace: 'while you are at peace',
   keepingRite: 'while a rite is being kept anywhere in your empire',
   atWarWithOpusBuilder: 'while you are at war with an empire raising the Magnum Opus',
+  noReligionFounded: 'until you have founded a religion',
 };
 
 // --- commissions ------------------------------------------------------------
@@ -4722,6 +4823,13 @@ const COMMISSION_COUNTED_WORDS: Record<
     one: 'building with gold',
     many: 'buildings with gold',
     counter: 'buildings bought',
+  },
+  riteStarted: { verb: 'start', one: 'rite in your cities', many: 'rites in your cities', counter: 'rites started' },
+  foreignCityConverted: {
+    verb: 'convert',
+    one: 'foreign city to your religion',
+    many: 'foreign cities to your religion',
+    counter: 'foreign cities converted',
   },
 };
 
@@ -4787,6 +4895,19 @@ const COMMISSION_FIGURE_WORDS: Record<
     goal: (count) => `earn at least ${count} gold per turn`,
     counter: 'gold per turn',
     noun: 'your gold per turn',
+  },
+  followingCityShare: {
+    goal: (count) => `have at least ${count}% of the world's cities follow your religion`,
+    counter: "% of the world's cities following",
+    noun: "the share of the world's cities following your religion",
+  },
+  rivalCapitalsFollowing: {
+    goal: (count) =>
+      count === 1
+        ? "have a rival's capital follow your religion"
+        : `have ${count} rival capitals follow your religion`,
+    counter: 'rival capitals following',
+    noun: 'the rival capitals following your religion',
   },
 };
 

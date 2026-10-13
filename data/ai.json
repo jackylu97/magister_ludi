@@ -219,7 +219,9 @@
       "cityCaptured": 2,
       "wonderOrCapitalCaptured": 1,
       "hexBought": 6,
-      "buildingBoughtWithGold": 6
+      "buildingBoughtWithGold": 6,
+      "riteStarted": 3,
+      "foreignCityConverted": 3
     }
   },
   "threat": {

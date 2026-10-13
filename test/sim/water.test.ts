@@ -46,6 +46,7 @@ import { hasAbility } from '../../src/sim/tech';
 import {
   ABILITY_IDS,
   ABILITY_TECH,
+  abilityDef,
   type AbilityId,
   TECH_IDS,
   techsGrant,
@@ -162,7 +163,10 @@ describe('the embark ability', () => {
     // The register: every ability the type declares is handed over by some node,
     // and the *rule* asks the table rather than spelling "sailing" into
     // `pathfind.ts`. Moving embarkation to a different node is a data edit.
+    // A card-taught verb (the Devotion deck's two rites) is the one exception,
+    // and says so on its row.
     for (const ability of ABILITY_IDS) {
+      if (abilityDef(ability).byCard === true) continue;
       expect(ABILITY_TECH.has(ability), ability).toBe(true);
     }
     expect(ABILITY_TECH.get('embark')).toBe('sailing');
