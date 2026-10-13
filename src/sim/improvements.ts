@@ -1594,6 +1594,9 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     col: tile.col,
     row: tile.row,
     road: tile.road !== undefined,
+    // Present and empty unless a work is razed below, so a bare road's report
+    // says plainly that no improvement went with it.
+    improvement: undefined,
     gold: 0,
     heal: 0,
     warning: null,

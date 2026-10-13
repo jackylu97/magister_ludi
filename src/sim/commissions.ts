@@ -32,12 +32,13 @@ import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { isTendedWork } from './improvementData';
 import { getTileAt } from './map';
-import { readEmpire } from './readings';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { resourcesOfKind } from './resourceData';
 import { bumpEconomy } from './slate';
 import { type GameState, type Player, capitalCityOf, citiesOf, realPlayers, tileOwnerField } from './state';
 import { isWonder } from './buildingData';
+import { explainEmpireLines, foldEmpireLines } from './yields/empire';
+import { foldCity } from './yields/town';
 import {
   type PlayerStatecraft,
   type WindfallPayout,
@@ -160,9 +161,17 @@ export function commissionFigure(
       }
       return tended;
     }
-    case 'goldIncome':
-      // The headline the top bar shows, floored: the fold the turn banks with.
-      return Math.floor(readEmpire(state, playerId).totals.gold);
+    case 'goldIncome': {
+      // The headline the top bar shows, floored: every town's fold plus the
+      // empire's own lines, the same sum the empire reading makes. Folded here
+      // rather than read through `readEmpire`, because this runs inside an
+      // end-of-turn phase and the readings stay out of reach of the reducer
+      // (test/sim/slateRegister.test.ts).
+      let gold = 0;
+      for (const city of citiesOf(state, playerId)) gold += foldCity(state, city, [], city.queue[0]).gold;
+      gold += foldEmpireLines(explainEmpireLines(state, playerId)).gold;
+      return Math.floor(gold);
+    }
   }
 }
 
