@@ -1108,9 +1108,10 @@ describe("adoption", () => {
       choiceIndex: 0,
     } as Command);
     // **Re-cut for the decks rework** (D1a): a pool used to turn over whole on
-    // adoption; a deck never does ("no pool rotates away"). What an adoption
-    // buys now is chairs — the tier's rung — and the seat pool is the same
-    // shelf before and after.
+    // adoption, but a seat's decks never change. What an adoption buys now is
+    // chairs (the tier's rung), and the seat pool is the same shelf before and
+    // after. Which band of that shelf is dealt is a separate question, answered
+    // by the draft count and the age (`currentBand`).
     expect(poolOfGovernment(player.statecraft.government)).toBe("governmentI");
     expect(new Set(deckPoolOf(g.state, player))).toEqual(new Set(before));
     expect(player.statecraft.slots).toHaveLength(chairsAtTier(FIRST_RUNG));
@@ -1773,7 +1774,9 @@ describe("determinism", () => {
     // bank paid for each of its buildings, so a v122 log answers "nobody bought
     // this" to The Endowment for ever — a bump within the branch, which
     // migrates nothing either way.
-    expect(SCHEMA_VERSION).toBe(123);
+    // 124 since the current-band ruling of 2026-10-13: a hand is dealt only from
+    // the seat's current band, so a v123 log would pick from different hands.
+    expect(SCHEMA_VERSION).toBe(124);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -10864,12 +10867,12 @@ describe("D2b — counts and reach", () => {
       })
         .filter((line) => line.card === "theLearnedPatron")
         .reduce((sum, line) => sum + line.science, 0);
-    expect(beakers(50)).toBe(5);
+    expect(beakers(40)).toBe(6);
     // **The ceiling is on the figure, not on the fold**: a town worth a hundred
-    // and twenty culture earns twelve, and a town worth four hundred earns
-    // twelve — never the share of a capped culture, which is a different number.
-    expect(beakers(120)).toBe(12);
-    expect(beakers(400)).toBe(12);
+    // and twenty culture earns eighteen, and a town worth four hundred earns
+    // eighteen — never the share of a capped culture, which is a different number.
+    expect(beakers(120)).toBe(18);
+    expect(beakers(400)).toBe(18);
     // And the scope is still what admits the town at all.
     city.buildings.length = 0;
     bumpRevision(g.state);

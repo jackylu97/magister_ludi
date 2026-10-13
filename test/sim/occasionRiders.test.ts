@@ -213,10 +213,10 @@ describe('the moments a growing card may now count', () => {
     const city = found(g.state, 0);
     settleCampBounty(g.state, 0, { col: city.col, row: city.row });
     expect(tallyOf(sc, 'thePacifiedMarches')).toBe(1);
-    // Three culture a camp, and the writ the same counter widens — one tally
+    // Five culture a camp, and the writ the same counter widens — one tally
     // feeding two folds, which is what made this the first growing card to
     // reach a meter.
-    expect(empirePays(g.state, 0, 'culture')).toBe(3);
+    expect(empirePays(g.state, 0, 'culture')).toBe(5);
     expect(cardAuthority(g.state, 0).reduce((sum, line) => sum + line.amount, 0)).toBe(1);
   });
 
@@ -237,21 +237,21 @@ describe('the moments a growing card may now count', () => {
 // --- a grant that is a share of the moment ----------------------------------
 
 describe('a windfall grant scaled by the occasion’s own facts', () => {
-  it('strength — the sword teaches the smith half of what it is worth', () => {
+  it('strength — the sword teaches the smith three quarters of what it is worth', () => {
     const g = game();
     slot(g.state, 0, 'theArtOfWar');
     const player = playerById(g.state, 0)!;
     const city = found(g.state, 0);
     marchOut(g.state, city);
     const tile = getTileAt(g.state.map, city.col, city.row)!;
-    // Half the roster's own figure, composed once before anything is banked —
-    // read off `unitDef` rather than typed here, so a retune of the warrior
-    // moves the claim with it.
-    const half = unitDef('warrior').combatStrength / 2;
-    expect(half).toBeGreaterThan(0);
+    // Three quarters of the roster's own figure, composed once before anything
+    // is banked — read off `unitDef` rather than typed here, so a retune of the
+    // warrior moves the claim with it.
+    const share = unitDef('warrior').combatStrength * 0.75;
+    expect(share).toBeGreaterThan(0);
     const before = player.sciencePool;
     realiseItem(g.state, city, { kind: 'unit', id: 'warrior', tile });
-    expect(player.sciencePool - before).toBeCloseTo(half, 10);
+    expect(player.sciencePool - before).toBeCloseTo(share, 10);
   });
 
   it('strength — a kill and a death are each paid for the piece that fell', () => {
@@ -266,8 +266,8 @@ describe('a windfall grant scaled by the occasion’s own facts', () => {
     for (const occasion of ['kill', 'death'] as const) {
       const payout = windfallPayout(g.state, 0, occasion, 0, 0, { strength: 11, defending: true });
       expect(payout.grants.map((line) => [line.yield, line.amount])).toEqual([
-        ['science', 11],
-        ['culture', 11],
+        ['science', 22],
+        ['culture', 22],
       ]);
     }
     // An attacker killed by the counter-blow pays nothing.
@@ -301,9 +301,9 @@ describe('a windfall grant scaled by the occasion’s own facts', () => {
     expect(faith.amount).toBeCloseTo(4, 10);
 
     slot(g.state, 0, 'theWoodwrights');
-    const doubled = windfallPayout(g.state, 0, 'chop', 20);
-    expect(doubled.amount).toBe(40);
-    expect(doubled.grants.find((line) => line.yield === 'faith')!.amount).toBeCloseTo(8, 10);
+    const raised = windfallPayout(g.state, 0, 'chop', 20);
+    expect(raised.amount).toBe(50);
+    expect(raised.grants.find((line) => line.yield === 'faith')!.amount).toBeCloseTo(10, 10);
   });
 
   it('gold and the ceiling — the receipts take a tenth, and never more than thirty', () => {
@@ -412,7 +412,7 @@ describe('a once-a-turn rider', () => {
     const player = playerById(g.state, 0)!;
     const before = player.sciencePool;
     expect(killARaider(g)).toBe(true);
-    expect(player.sciencePool - before).toBe(15);
+    expect(player.sciencePool - before).toBe(23);
 
     // The second kill of the same turn pays nothing at all.
     const after = player.sciencePool;
@@ -424,7 +424,7 @@ describe('a once-a-turn rider', () => {
     expect(sc.riderTurns).toEqual([{ card: 'fieldAcademies', turn: g.state.turn }]);
     g.state.turn += 1;
     const third = player.sciencePool;
-    if (killARaider(g)) expect(player.sciencePool - third).toBe(15);
+    if (killARaider(g)) expect(player.sciencePool - third).toBe(23);
   });
 
   it('charges nothing for the asking — composing a payout is not spending one', () => {

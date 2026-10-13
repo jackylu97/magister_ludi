@@ -242,25 +242,25 @@ describe('the four cards the tally opened', () => {
     const said = (id: string): string[] =>
       describeCard(id as OrderId).map((clause) => stripRefs(clause.text));
     expect(said('theHomeMarket')).toEqual([
-      '+20% food in every city 2 or more trade routes of your own end at',
-      '+20% production in every city 2 or more trade routes of your own end at',
+      '+30% food in every city 2 or more trade routes of your own end at',
+      '+30% production in every city 2 or more trade routes of your own end at',
       '+2 happiness in every city 2 or more trade routes of your own end at',
     ]);
     expect(said('theLeagueOfCities')).toEqual([
-      '+15% production in every city a trade route sets out from',
+      '+23% production in every city a trade route sets out from',
       'the authority a city a trade route sets out from costs falls by 1',
       '-10% gold in every city no trade route sets out from',
     ]);
     expect(said('theCharteredMetropolis')).toEqual([
-      '+25% food in every city 3 or more trade routes set out from',
-      '+25% production in every city 3 or more trade routes set out from',
-      '+25% culture in every city 3 or more trade routes set out from',
+      '+38% food in every city 3 or more trade routes set out from',
+      '+38% production in every city 3 or more trade routes set out from',
+      '+38% culture in every city 3 or more trade routes set out from',
       'the authority a city 3 or more trade routes set out from costs rises by 4',
     ]);
     expect(said('theCosmopolitanCourt')).toEqual([
       '+1 renown per turn in every city with 1 or more culture buildings, ' +
         'per trade route to another empire leaving it, at most 3 per city',
-      "+2 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings",
+      "+3 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings",
     ]);
     // The three sentences the scope could already say are printed exactly as
     // they were, so no live card's words moved when the tally arrived.

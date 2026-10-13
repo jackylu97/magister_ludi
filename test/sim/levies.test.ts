@@ -244,7 +244,7 @@ describe('The Corvée — hammers sent to the Magnum Opus', () => {
 });
 
 describe('Seasonal Levies — what a levy leaves behind', () => {
-  it('hangs +40% food for ten turns, at most once every twenty turns', () => {
+  it('hangs +60% food for ten turns, at most once every twenty turns', () => {
     const { g, city } = bench(12);
     seat(g, 'levyOfTheLand');
     seat(g, 'seasonalLevies');
@@ -253,7 +253,7 @@ describe('Seasonal Levies — what a levy leaves behind', () => {
     const hung = (city.timed ?? []).filter((entry) => entry.card === 'seasonalLevies');
     expect(hung).toHaveLength(1);
     expect(hung[0]!.expiresTurn).toBe(start + 10);
-    expect(hung[0]!.effect).toEqual({ kind: 'percentYields', yield: 'food', percent: 40 });
+    expect(hung[0]!.effect).toEqual({ kind: 'percentYields', yield: 'food', percent: 60 });
     expect(city.levy?.after?.seasonalLevies).toBe(start);
 
     // A second levy inside twenty turns hangs nothing new.

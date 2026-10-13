@@ -245,13 +245,13 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Unploughed ground keeps the older tunes.",
-      "text": "Worked unimproved land gains +1 culture.",
+      "text": "Worked unimproved land gains +2 culture.",
       "note": "Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "culture": 1,
+          "culture": 2,
           "on": { "test": "unimproved" }
         }
       ]
@@ -317,12 +317,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Every year of ash and bone makes the soil a little blacker.",
-      "text": "Worked farms gain +1 food once they have stood for 20 turns, and another +1 food once they have stood for 50 turns.",
+      "text": "Worked farms gain +2 food once they have stood for 20 turns, and another +2 food once they have stood for 50 turns.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
+          "food": 2,
           "on": {
             "test": "all",
             "of": [
@@ -334,7 +334,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
+          "food": 2,
           "on": {
             "test": "all",
             "of": [
@@ -352,13 +352,13 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Corn to climb, beans to bind, squash to shade the ground.",
-      "text": "Worked farms beside a plantation or a pasture gain +1 food and +1 production, once per farm.",
+      "text": "Worked farms beside a plantation or a pasture gain +2 food and +2 production, once per farm.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
-          "production": 1,
+          "food": 2,
+          "production": 2,
           "on": {
             "test": "all",
             "of": [
@@ -461,12 +461,12 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Follow the colour in the stream up to the hill it came from.",
-      "text": "Prospecting costs workers and explorers no charge. Worked mines on a seam you surfaced gain +2 production.",
+      "text": "Prospecting costs workers and explorers no charge. Worked mines on a seam you surfaced gain +3 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "production": 2,
+          "production": 3,
           "on": {
             "test": "all",
             "of": [
@@ -486,13 +486,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The mother town sends bread until the daughter can bake her own.",
-      "text": "While a town you found has fewer than five citizens, the town that trained its settler gains +2 food.",
+      "text": "While a town you found has fewer than five citizens, the town that trained its settler gains +3 food.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "scope": { "test": "populationAtMost", "value": 4 },
-          "food": 2
+          "food": 3
         }
       ],
       "note": "For now the small town itself gains the food, because the game does not remember which town trained a settler."
@@ -504,7 +504,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "One garden is a hobby; six are a way of life.",
-      "text": "Needs tended land. Goal: have six tended tiles. Reward: every town gains 30 food, your capital gains a free worker, and a free Order hand. The card then leaves its chair.",
+      "text": "Needs tended land. Goal: have six tended tiles. Reward: every town gains 50 food, your capital gains a free worker, and a free Order hand. The card then leaves its chair.",
       "needsTendedWork": true,
       "commission": {
         "goals": [
@@ -515,7 +515,7 @@
             "timed": {
               "turns": 10,
               "effects": [
-                { "kind": "pays", "where": "city", "food": 3 }
+                { "kind": "pays", "where": "city", "food": 5 }
               ]
             }
           },
@@ -532,13 +532,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The river is only lent; the ditch is owned.",
-      "text": "Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +1 production. Water does not relay beyond that first step.",
+      "text": "Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step.",
       "note": "For now any fresh water counts as a river, and a farm standing on fresh water counts as irrigated too.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "production": 1,
+          "production": 2,
           "on": {
             "test": "all",
             "of": [
@@ -595,13 +595,13 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The sea is a field nobody has to plough.",
-      "text": "Worked fishing boats gain +2 food and +2 culture.",
+      "text": "Worked fishing boats gain +3 food and +3 culture.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 2,
-          "culture": 2,
+          "food": 3,
+          "culture": 3,
           "on": { "test": "improvement", "improvement": "fishingBoats" }
         }
       ]
@@ -659,13 +659,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A fountain in the square, and nobody leaves.",
-      "text": "Aqueducts cost 25% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3.",
+      "text": "Aqueducts cost 33% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
           "building": "aqueduct",
-          "percent": 33
+          "percent": 50
         },
         {
           "kind": "pays",
@@ -729,13 +729,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A garden made to look as if nobody made it.",
-      "text": "Needs tended land. Tended tiles beside a great-person work or a wonder gain +2 culture.",
+      "text": "Needs tended land. Tended tiles beside a great-person work or a wonder gain +3 culture.",
       "needsTendedWork": true,
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "culture": 2,
+          "culture": 3,
           "on": {
             "test": "all",
             "of": [
@@ -757,18 +757,18 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The yard is where the plans meet the timber.",
-      "text": "Manufactories gain +2 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +1 production.",
+      "text": "Manufactories gain +3 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +2 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "production": 2,
+          "production": 3,
           "on": { "test": "improvement", "improvement": "manufactory" }
         },
         {
           "kind": "pays",
           "where": "hex",
-          "production": 1,
+          "production": 2,
           "on": {
             "test": "all",
             "of": [
@@ -792,19 +792,19 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The field and the wood have always helped each other.",
-      "text": "Needs tended land. Tended tiles gain +1 production. Each worked farm gains +1 food if a tended tile stands beside it, once per farm.",
+      "text": "Needs tended land. Tended tiles gain +2 production. Each worked farm gains +2 food if a tended tile stands beside it, once per farm.",
       "needsTendedWork": true,
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "production": 1,
+          "production": 2,
           "on": { "test": "tended" }
         },
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
+          "food": 2,
           "on": {
             "test": "all",
             "of": [
@@ -825,9 +825,9 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Timber is patience, taken all at once.",
-      "text": "Forest and jungle chops grant 100% more production.",
+      "text": "Forest and jungle chops grant 150% more production.",
       "effects": [
-        { "kind": "windfallRider", "occasion": "chop", "percent": 100 }
+        { "kind": "windfallRider", "occasion": "chop", "percent": 150 }
       ]
     },
     "theCommonDomain": {
@@ -849,7 +849,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Take them in the winter and give the spring back.",
-      "text": "After a city spends a citizen on a levy, it gains +40% food for ten turns. A city can gain this at most once every twenty turns.",
+      "text": "After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns.",
       "effects": [
         {
           "kind": "levy",
@@ -857,7 +857,7 @@
             "turns": 10,
             "every": 20,
             "effects": [
-              { "kind": "percentYields", "yield": "food", "percent": 40 }
+              { "kind": "percentYields", "yield": "food", "percent": 60 }
             ]
           }
         }
@@ -870,13 +870,13 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "A grandmother's garden feeds her grandchildren best.",
-      "text": "Needs tended land. Tended tiles gain +1 food for every 25 turns since they were tended, at most +3.",
+      "text": "Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6.",
       "needsTendedWork": true,
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
+          "food": 2,
           "on": {
             "test": "all",
             "of": [
@@ -888,7 +888,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
+          "food": 2,
           "on": {
             "test": "all",
             "of": [
@@ -900,7 +900,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
+          "food": 2,
           "on": {
             "test": "all",
             "of": [
@@ -918,18 +918,18 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Thin air and long views make for clear thinking.",
-      "text": "Towns beside a mountain gain +10% science. Worked mines and quarries beside a mountain gain +1 science.",
+      "text": "Towns beside a mountain gain +15% science. Worked mines and quarries beside a mountain gain +2 science.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "science",
-          "percent": 10,
+          "percent": 15,
           "scope": { "test": "mountainAdjacent" }
         },
         {
           "kind": "pays",
           "where": "hex",
-          "science": 1,
+          "science": 2,
           "on": {
             "test": "all",
             "of": [
@@ -1000,7 +1000,7 @@
                 {
                   "kind": "percentYields",
                   "yield": "food",
-                  "percent": 50,
+                  "percent": 75,
                   "scope": { "test": "populationAtMost", "value": 5 }
                 }
               ]

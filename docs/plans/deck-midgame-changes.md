@@ -31,5 +31,6 @@ The playtest (2026-10-13, Dominion + Expansionist under Mithridates) found the m
 2. Long-term scaling belongs here and in the other non-Dominion decks.
 
 ## E. Bugs to check
-- The Tithe paid nothing over 27 samples.
-- Established Routes paid nothing over 30 samples.
+Checked 2026-10-13: neither card has a rules bug. Both pay, and `explainCardImpact` sees it, once their conditions are met. The bots never meet them.
+- **The Tithe** paid nothing over 27 samples. Bots rarely build temples: in a 200-turn bot game, 60 towns held 8 shrines and 1 temple. The bot seats the card on the promise of a temple its build plan never raises (`scopePromisesABuilding` in `src/ai/value.ts`).
+- **Established Routes** paid nothing over 30 samples. The bot never turns on a caravan's renewal (`setAutoResend`), so its routes end after one term (about 20 turns) and never reach 30. The bot's route valuation also ignores `standingTurns`, so it seats a card it cannot trigger. Possible fixes, not applied: a bot housekeeping arm that renews routes, or pricing a `standingTurns` share at zero while no route renews. Even when it qualifies the card is weak, since a 50% share of a 1-point route yield floors to 0.

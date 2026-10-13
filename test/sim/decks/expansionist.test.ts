@@ -440,9 +440,14 @@ describe('the deck’s other shapes', () => {
     openEveryBand(seat);
     const gated = ROWS.filter((id) => orderDef(id).needsTendedWork === true && orderIsDealt(id));
     expect(gated.length).toBeGreaterThan(0);
-    for (const id of gated) expect(eligibleFor(g.state, seat), id).not.toContain(id);
+    // A seat is dealt only its current band (the ruling of 2026-10-13), so the
+    // bag is read at every rung of the ladder and the bands are put together.
+    const everyBand = (): OrderId[] =>
+      TIER_LADDER.flatMap((rung) => eligibleFor(g.state, seat, rung.drafts));
+    const shut = everyBand();
+    for (const id of gated) expect(shut, id).not.toContain(id);
     seat.statecraft.orders.push('theFishTraps' as OrderId);
-    const open = eligibleFor(g.state, seat);
+    const open = everyBand();
     for (const id of gated) expect(open, id).toContain(id);
   });
 
@@ -497,6 +502,6 @@ describe('the deck’s other shapes', () => {
     tile.surveyed = true;
     bumpRevision(state);
     expect(tileConditionHolds(tile, { test: 'surveyed' })).toBe(true);
-    expect(paid()).toBe(2);
+    expect(paid()).toBe(3);
   });
 });

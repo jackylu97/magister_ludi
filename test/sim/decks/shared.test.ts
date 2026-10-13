@@ -296,7 +296,7 @@ describe('Convert It or Tax It: the owner’s religion, asked of a captured town
     };
     taken.followers = {};
     bumpRevision(g.state);
-    expect(paid()).toEqual([3, 2]);
+    expect(paid()).toEqual([5, 3]);
     expect(cardCityCostDelta(g.state, taken)).toBe(0);
     taken.followers = { [religion]: taken.population };
     bumpRevision(g.state);
@@ -326,7 +326,7 @@ describe('The Road Garrisons', () => {
     expect([food(), walls()]).toEqual([0, 0]);
     createUnit(g.state, 0, 'warrior' as never, town.col, town.row);
     bumpRevision(g.state);
-    expect([food(), walls()]).toEqual([3, 5]);
+    expect([food(), walls()]).toEqual([5, 5]);
   });
 });
 
@@ -352,8 +352,8 @@ describe('The Holy Army: a holy site and a citadel side by side', () => {
     expect(pays(site)).toEqual([0, 0]);
     fort.improvement = 'citadel' as never;
     bumpRevision(g.state);
-    expect(pays(site)).toEqual([2, 2]);
-    expect(pays(fort)).toEqual([2, 2]);
+    expect(pays(site)).toEqual([3, 3]);
+    expect(pays(fort)).toEqual([3, 3]);
   });
 });
 
@@ -391,7 +391,7 @@ describe('Rites of Passage and The Sacred Host', () => {
     bumpRevision(g.state);
     expect(ask()).toBeNull();
     expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([
-      expect.objectContaining({ yield: 'faith', amount: 10 }),
+      expect.objectContaining({ yield: 'faith', amount: 15 }),
     ]);
   });
 });
@@ -407,10 +407,10 @@ describe('The Flood Festival: faith for each hex of burned country', () => {
     const before = player.faithPool;
     const worker = createUnit(g.state, 0, 'worker' as never, first!.col, first!.row);
     buildImprovementAt(g.state, worker, first!, 'burnedCountry' as never);
-    expect(player.faithPool - before).toBe(5);
+    expect(player.faithPool - before).toBe(8);
     const other = createUnit(g.state, 0, 'worker' as never, second!.col, second!.row);
     buildImprovementAt(g.state, other, second!, 'farm' as never);
-    expect(player.faithPool - before).toBe(5);
+    expect(player.faithPool - before).toBe(8);
   });
 });
 

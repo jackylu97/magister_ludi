@@ -661,10 +661,15 @@ describe('determinism', () => {
    * adds one end-of-turn phase, and every phase raises `GameState.revision`
    * once, so after twenty turns the recorded revision is twenty higher with
    * the same number of digits. Nobody here holds a card, so nothing else moved.
+   *
+   * **The current-band ruling (2026-10-13) moved the hash and not the length**
+   * at both seeds: 123 became 124. Nobody here drafts a card, so the rule that
+   * deals only the current band changes nothing on this board; only the
+   * recorded schema version moved.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'd12daf76:188968',
-    2026: '158ab390:188539',
+    11: '2719e10b:188968',
+    2026: 'c26df06f:188539',
   };
 
   for (const seed of [11, 2026]) {

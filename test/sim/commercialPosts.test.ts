@@ -186,7 +186,7 @@ describe('a card may pay another empire', () => {
     const hostLines = cityRouteYields(state, partner);
     const named = hostLines.filter((line) => line.source.includes('The Common Road'));
     expect(named).toHaveLength(1);
-    expect(named[0]!.gold).toBe(2);
+    expect(named[0]!.gold).toBe(3);
     // And it really reaches the town's fold rather than sitting in a list
     // nobody adds up.
     const sheet = explainCity(state, partner);
@@ -196,13 +196,13 @@ describe('a card may pay another empire', () => {
     // the host's coin is not in it.
     const mine = explainRouteSenderYield(state, trader);
     const totals = foldRouteYield(mine);
-    expect(totals.gold).toBeGreaterThanOrEqual(2);
-    expect(totals.science).toBeGreaterThanOrEqual(2);
-    expect(totals.culture).toBeGreaterThanOrEqual(2);
+    expect(totals.gold).toBeGreaterThanOrEqual(3);
+    expect(totals.science).toBeGreaterThanOrEqual(3);
+    expect(totals.culture).toBeGreaterThanOrEqual(3);
 
     // The host gets exactly the flat grant and no share of the crossing: a
     // premium on the sender's goods is not a premium on a gift.
-    expect(foldRouteYield(named).gold).toBe(2);
+    expect(foldRouteYield(named).gold).toBe(3);
   });
 
   it('pays nobody else’s town on a road that never leaves home', () => {
@@ -233,7 +233,7 @@ describe('a card may pay another empire', () => {
     const hostLines = explainCardCityYields(state, partner);
     const grant = hostLines.filter((line) => line.source.includes('The Foreign Factor'));
     expect(grant).toHaveLength(1);
-    expect(grant[0]!.gold).toBe(1);
+    expect(grant[0]!.gold).toBe(2);
     expect(grant[0]!.source).toContain(playerById(state, 0)!.name);
 
     // And the payer's own town is untouched by it: the row is foreign-only, so
@@ -281,8 +281,8 @@ describe('a card may pay another empire', () => {
     );
     expect(toThem).toHaveLength(1);
     expect(toUs).toHaveLength(1);
-    expect(toThem[0]!.gold).toBe(2);
-    expect(toUs[0]!.gold).toBe(2);
+    expect(toThem[0]!.gold).toBe(3);
+    expect(toUs[0]!.gold).toBe(3);
 
     // Read twice with the units walked to the other order: the same two lines.
     const first = JSON.stringify([toThem, toUs]);

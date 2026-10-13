@@ -2249,7 +2249,9 @@ describe('trade in the log', () => {
     // bank paid for each of its buildings, so a v122 log answers "nobody bought
     // this" to The Endowment for ever — a bump within the branch, which
     // migrates nothing either way.
-    expect(SCHEMA_VERSION).toBe(123);
+    // 124 since the current-band ruling of 2026-10-13: a hand is dealt only from
+    // the seat's current band, so a v123 log would pick from different hands.
+    expect(SCHEMA_VERSION).toBe(124);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

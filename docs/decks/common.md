@@ -76,7 +76,7 @@ These belong to no deck. Every seat may draw them whatever its two decks are, so
 | Card | Rarity | Status | The card | What the game does, or why not |
 |---|---|---|---|---|
 | **Public Hospitals** | common | built | Cities of at least eight population gain +1 happiness. | +1 happiness in every city of 8 or more citizens |
-| **Common Ledgers** | common | built | Cities with a Market gain +1 science; cities with a Library gain +1 gold. | +1 science in every city with a Market · +1 gold in every city with a Library |
+| **Common Ledgers** | common | built | Cities with a Market gain +2 science; cities with a Library gain +2 gold. | +2 science in every city with a Market · +2 gold in every city with a Library |
 | **City Watches** | common | deferred | Your cities gain +4 defence. Garrisoned units heal an additional 5 health when otherwise eligible to heal. | *no blocker recorded on the row* |
 | **The Bathhouses** | common | new | Cities with a Public Bath gain +1 happiness and +1 culture. | Fits existing effects. |
 | **Workshop Towns** | common | new | Cities with a Workshop gain +2 production. | Fits existing effects. |

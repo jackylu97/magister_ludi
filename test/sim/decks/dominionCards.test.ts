@@ -121,7 +121,7 @@ describe('the Dominion batch — taking a city', () => {
     const reports = runCommissions(state);
     const people = theirs.population;
     const take = reports.find((report) => report.card === 'dominionTakeTheCity')!;
-    expect(take.lines).toEqual(expect.arrayContaining([`+${15 * people} culture`, `+${15 * people} science`]));
+    expect(take.lines).toEqual(expect.arrayContaining([`+${23 * people} culture`, `+${23 * people} science`]));
     const marvel = reports.find((report) => report.card === 'dominionTheCapturedMarvel')!;
     expect(marvel.lines).toEqual(expect.arrayContaining([`+${20 * people} culture`]));
     // Three captures are needed, so The Grand Campaign is still waiting.

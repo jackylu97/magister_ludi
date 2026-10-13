@@ -247,9 +247,11 @@ export function isDeckId(value: unknown): value is DeckId {
 
 /**
  * **The five content bands**: the deck sheets' Tier 0 to Tier IV. A band is
- * drawable when the seat's draft count has reached rung `band` of `tierLadder`
+ * open to a seat when its draft count has reached rung `band` of `tierLadder`
  * **and** its research age has reached `band + 1` (the age check of
- * 2026-09-16; `bandOpen`, `statecraft/draft.ts`).
+ * 2026-09-16; `bandOpen`, `statecraft/draft.ts`). Only the highest open band
+ * is dealt (`currentBand`, the user's ruling of 2026-10-13): earlier bands
+ * stop being drawn from once a later one opens.
  *
  * Band 4 (Tier IV) was added in the deck implementation's foundation batch.
  * There is no fifth research age, so band 4's age gate is the last age, the
@@ -7450,11 +7452,13 @@ export interface OrderDef extends CardDefBase {
    */
   decks: DeckId[];
   /**
-   * **When this card may first be dealt** — the content band (`Band`; the
-   * deck sheets' Tier 0 to Tier IV). A card is drawable when the
-   * seat has reached the band's rung of the draft ladder **and** its research
-   * age (`bandOpen`, `statecraft/draft.ts`), and stays drawable ever after: no
-   * pool rotates away. Required on every row, retired ones included.
+   * **When this card is dealt** — the content band (`Band`; the deck sheets'
+   * Tier 0 to Tier IV). A card is dealt only while its band is the seat's
+   * current band: the highest band whose rung of the draft ladder **and**
+   * research age the seat has reached (`currentBand`, `statecraft/draft.ts`).
+   * Once a later band opens, this card is no longer dealt to that seat (the
+   * user's ruling of 2026-10-13, `docs/decks/deck-design.md`), but a seat that
+   * already holds it keeps it. Required on every row, retired ones included.
    */
   band: Band;
   /**

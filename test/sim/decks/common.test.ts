@@ -352,7 +352,7 @@ describe('C2 — the two shared rows', () => {
     // The user's sheet rewrote this card: the old text counted the courts a
     // town's caravans reach, and the new one pays the seams themselves.
     expect(def.text).toBe(
-      '+1 science on mines and quarries on a resource. Additional +1 if the city has a market.',
+      '+2 science on mines and quarries on a resource. Additional +2 if the city has a market.',
     );
     const lines = def.effects.filter(
       (effect): effect is Extract<CardEffect, { kind: 'pays' }> => effect.kind === 'pays',
@@ -360,7 +360,7 @@ describe('C2 — the two shared rows', () => {
     expect(lines.length).toBe(2);
     for (const line of lines) {
       expect(line.where).toBe('hex');
-      expect(line.science).toBe(1);
+      expect(line.science).toBe(2);
       expect(line.on).toEqual({
         test: 'all',
         of: [
@@ -369,7 +369,7 @@ describe('C2 — the two shared rows', () => {
         ],
       });
     }
-    // Only the second names the town that owns the ground — "additional +1 if
+    // Only the second names the town that owns the ground — "additional +2 if
     // the city has a market" is one clause about where, not about which hex.
     expect(lines[0]!.scope).toBeUndefined();
     expect(lines[1]!.scope).toEqual({ test: 'hasBuilding', building: 'market' });

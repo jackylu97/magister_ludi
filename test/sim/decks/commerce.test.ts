@@ -117,6 +117,8 @@ import {
   DECK_FILE_ORDERS,
   ORDER_IDS,
   STATECRAFT,
+  TIER_LADDER,
+  bandTierAt,
   orderDef,
   orderIsDealt,
   ordersForDecks,
@@ -625,7 +627,18 @@ describe('a seeded draft for a Commerce figure', () => {
     // dealt row be a *Commerce* row, which was true only while Devotion's file
     // and the commons were empty of live rows. Musa holds both decks, so what
     // is claimed is the pool — and this deck's own share of it is still reached.
-    const eligible = new Set(eligibleFor(g.state, musa));
+    // A seat is dealt only its current band (the ruling of 2026-10-13), so the
+    // pool is read one rung at a time and the bands are put together: each
+    // rung deals its own band and nothing else, and together they reach every
+    // live row of the deck.
+    const eligible = new Set<OrderId>();
+    for (const rung of TIER_LADDER) {
+      const band = bandTierAt(rung.drafts);
+      for (const id of eligibleFor(g.state, musa, rung.drafts)) {
+        expect(orderDef(id).band, `${id} dealt at the band ${band} rung`).toBe(band);
+        eligible.add(id);
+      }
+    }
     for (const id of live()) expect(eligible.has(id), id).toBe(true);
     for (const id of deferred()) expect(eligible.has(id), id).toBe(false);
     const pool = new Set(ordersForDecks(musa.decks));
@@ -992,13 +1005,13 @@ describe('C2 — the counts, the ring and the two counter rules', () => {
     expect(paid()).toBe(0);
     raiseImprovement(ring[1]!, 'mine', g.state.turn);
     bumpRevision(g.state);
-    expect(paid()).toBe(1);
+    expect(paid()).toBe(2);
     raiseImprovement(ring[2]!, 'mine', g.state.turn);
     bumpRevision(g.state);
-    expect(paid()).toBe(1);
+    expect(paid()).toBe(2);
     raiseImprovement(ring[3]!, 'mine', g.state.turn);
     bumpRevision(g.state);
-    expect(paid()).toBe(2);
+    expect(paid()).toBe(4);
   });
 
   it('lifts the one-a-turn limit in the capital alone', () => {
@@ -1649,7 +1662,7 @@ describe('C4 — the great-house marker, read from both sides', () => {
         stripRefs(clause.text),
       );
       expect(words.filter((clause) => clause.includes('ordinary buildings'))).toHaveLength(1);
-      expect(words.some((clause) => clause.includes('+25% gold'))).toBe(true);
+      expect(words.some((clause) => clause.includes('+38% gold'))).toBe(true);
     });
   });
 
@@ -2177,8 +2190,8 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
       // A site in the town the cart left.
       shrine(g, from);
       const sent = foldRouteYield(named(g, from, to));
-      expect(sent.gold).toBe(2);
-      expect(sent.faith).toBe(2);
+      expect(sent.gold).toBe(3);
+      expect(sent.faith).toBe(3);
 
       // And a site in the town it walks to, with none where it started: the
       // clause is a disjunction, so either end on its own is enough.
@@ -2187,8 +2200,8 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
       const end = town(other, 4);
       shrine(other, end);
       const arrived = foldRouteYield(named(other, start, end));
-      expect(arrived.gold).toBe(2);
-      expect(arrived.faith).toBe(2);
+      expect(arrived.gold).toBe(3);
+      expect(arrived.faith).toBe(3);
     });
 
     it('pays once and not twice when both ends keep a site', () => {
@@ -2199,7 +2212,7 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
       shrine(g, to);
       const lines = named(g, from, to);
       expect(lines.length).toBe(1);
-      expect(foldRouteYield(lines).faith).toBe(2);
+      expect(foldRouteYield(lines).faith).toBe(3);
     });
 
     it('promises a preview nothing while the far end is unchosen', () => {
@@ -2226,7 +2239,7 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
      * is why the two are pinned together.
      *
      * A shrine at the origin therefore pays twice over on this bench — the
-     * card's two and the leader's two — and `foldRouteYield` is the one sum of
+     * card's three and the leader's two — and `foldRouteYield` is the one sum of
      * both.
      */
     it('carries the faith through the fold, the leader’s promise included', () => {
@@ -2236,10 +2249,10 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
       shrine(g, from);
       const lines = explainRouteYieldBetween(g.state, from, to);
       expect(foldRouteYield(lines.filter((l) => l.source.includes('Pilgrim Markets'))).faith).toBe(
-        2,
+        3,
       );
       expect(foldRouteYield(lines.filter((l) => l.source.includes('Hajj'))).faith).toBe(2);
-      expect(foldRouteYield(lines).faith).toBe(4);
+      expect(foldRouteYield(lines).faith).toBe(5);
     });
   });
 
@@ -2261,7 +2274,7 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
       expect(named()).toEqual([]);
       addBuilding(g.state, from, 'granary');
       bumpRevision(g.state);
-      expect(foldRouteYield(named()).food).toBe(3);
+      expect(foldRouteYield(named()).food).toBe(5);
     });
 
     it('gladdens a town only while one of those particular roads ends in it', () => {
@@ -2310,7 +2323,7 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
       expect(buildingBank(city, 'library')).toBeUndefined();
     });
 
-    it('pays a beaker a bought roof, and nothing for one that was built', () => {
+    it('pays two beakers a bought roof, and nothing for one that was built', () => {
       const g = bench(['theEndowment']);
       const city = town(g);
       const named = () =>
@@ -2323,19 +2336,19 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
 
       addBuilding(g.state, city, 'granary', 'gold');
       bumpRevision(g.state);
-      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(1);
+      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(2);
 
       // **Either bank counts.** A library bought with faith is as bought as one
       // bought with gold, which is what the card's "purchased" says.
       addBuilding(g.state, city, 'library', 'faith');
       bumpRevision(g.state);
-      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(2);
+      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(4);
 
-      // And the sheet's ceiling: at most three a town.
+      // And the sheet's ceiling: at most three roofs a town, so six beakers.
       addBuilding(g.state, city, 'shrine', 'gold');
       addBuilding(g.state, city, 'barracks', 'gold');
       bumpRevision(g.state);
-      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(3);
+      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(6);
     });
 
     it('goes through the purchase counter, which is the only seam that rings', () => {

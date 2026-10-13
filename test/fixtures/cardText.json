@@ -2428,20 +2428,20 @@
   ],
   "drillManuals": [
    {
-    "raw": "+2 science in every city with a [[building:barracks|Barracks]]",
-    "text": "+2 science in every city with a Barracks"
+    "raw": "+3 science in every city with a [[building:barracks|Barracks]]",
+    "text": "+3 science in every city with a Barracks"
    },
    {
-    "raw": "+2 science in every city with a [[building:stable|Stable]]",
-    "text": "+2 science in every city with a Stable"
+    "raw": "+3 science in every city with a [[building:stable|Stable]]",
+    "text": "+3 science in every city with a Stable"
    },
    {
-    "raw": "+20% production toward [[building:barracks|Barrackses]]",
-    "text": "+20% production toward Barrackses"
+    "raw": "+30% production toward [[building:barracks|Barrackses]]",
+    "text": "+30% production toward Barrackses"
    },
    {
-    "raw": "+20% production toward [[building:stable|Stables]]",
-    "text": "+20% production toward Stables"
+    "raw": "+30% production toward [[building:stable|Stables]]",
+    "text": "+30% production toward Stables"
    }
   ],
   "dominionMarchDiscipline": [
@@ -2458,8 +2458,8 @@
   ],
   "dominionTheQuartermasters": [
    {
-    "raw": "+2 food, +2 production on every hex carrying a strategic resource",
-    "text": "+2 food, +2 production on every hex carrying a strategic resource"
+    "raw": "+3 food, +3 production on every hex carrying a strategic resource",
+    "text": "+3 food, +3 production on every hex carrying a strategic resource"
    }
   ],
   "victorySteles": [
@@ -2509,8 +2509,8 @@
   ],
   "theWarHallSchools": [
    {
-    "raw": "+3 science, +3 culture in every city with a [[building:warHall|War Hall]]",
-    "text": "+3 science, +3 culture in every city with a War Hall"
+    "raw": "+5 science, +5 culture in every city with a [[building:warHall|War Hall]]",
+    "text": "+5 science, +5 culture in every city with a War Hall"
    }
   ],
   "shorePatrols": [
@@ -2574,14 +2574,14 @@
     "text": "+1 authority capacity per barbarian camp you have cleared (at most +8 authority capacity), counted while this Order stands in a slot"
    },
    {
-    "raw": "+3 culture per barbarian camp you have cleared (at most +24 culture), counted while this Order stands in a slot",
-    "text": "+3 culture per barbarian camp you have cleared (at most +24 culture), counted while this Order stands in a slot"
+    "raw": "+5 culture per barbarian camp you have cleared (at most +40 culture), counted while this Order stands in a slot",
+    "text": "+5 culture per barbarian camp you have cleared (at most +40 culture), counted while this Order stands in a slot"
    }
   ],
   "theArtOfWar": [
    {
-    "raw": "completing a unit grants science equal to 50% of its strength",
-    "text": "completing a unit grants science equal to 50% of its strength"
+    "raw": "completing a unit grants science equal to 75% of its strength",
+    "text": "completing a unit grants science equal to 75% of its strength"
    }
   ],
   "soldierSettlers": [
@@ -2616,30 +2616,30 @@
   ],
   "warFoundries": [
    {
-    "raw": "20% of the production in every city with a [[building:barracks|Barracks]] is gained again as gold",
-    "text": "20% of the production in every city with a Barracks is gained again as gold"
+    "raw": "30% of the production in every city with a [[building:barracks|Barracks]] is gained again as gold",
+    "text": "30% of the production in every city with a Barracks is gained again as gold"
    },
    {
-    "raw": "+25% production toward military units, in every city with a [[building:barracks|Barracks]]",
-    "text": "+25% production toward military units, in every city with a Barracks"
+    "raw": "+38% production toward military units, in every city with a [[building:barracks|Barracks]]",
+    "text": "+38% production toward military units, in every city with a Barracks"
    }
   ],
   "songsOfTheFallen": [
    {
-    "raw": "killing a unit grants science equal to its strength",
-    "text": "killing a unit grants science equal to its strength"
+    "raw": "killing a unit grants science equal to 2 times its strength",
+    "text": "killing a unit grants science equal to 2 times its strength"
    },
    {
-    "raw": "killing a unit grants culture equal to its strength",
-    "text": "killing a unit grants culture equal to its strength"
+    "raw": "killing a unit grants culture equal to 2 times its strength",
+    "text": "killing a unit grants culture equal to 2 times its strength"
    },
    {
-    "raw": "losing a unit (only while it defends) grants science equal to its strength",
-    "text": "losing a unit (only while it defends) grants science equal to its strength"
+    "raw": "losing a unit (only while it defends) grants science equal to 2 times its strength",
+    "text": "losing a unit (only while it defends) grants science equal to 2 times its strength"
    },
    {
-    "raw": "losing a unit (only while it defends) grants culture equal to its strength",
-    "text": "losing a unit (only while it defends) grants culture equal to its strength"
+    "raw": "losing a unit (only while it defends) grants culture equal to 2 times its strength",
+    "text": "losing a unit (only while it defends) grants culture equal to 2 times its strength"
    }
   ],
   "universalConscription": [
@@ -2672,14 +2672,14 @@
   ],
   "dominionTheSoldierFarmers": [
    {
-    "raw": "while you are at peace: +1 food, +1 production on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]], in every city with a unit standing in it",
-    "text": "while you are at peace: +1 food, +1 production on every hex with a Pasture or Camp, in every city with a unit standing in it"
+    "raw": "while you are at peace: +2 food, +2 production on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]], in every city with a unit standing in it",
+    "text": "while you are at peace: +2 food, +2 production on every hex with a Pasture or Camp, in every city with a unit standing in it"
    }
   ],
   "siegeWorks": [
    {
-    "raw": "+25% production toward siege units",
-    "text": "+25% production toward siege units"
+    "raw": "+38% production toward siege units",
+    "text": "+38% production toward siege units"
    },
    {
     "raw": "+4 combat strength for siege units against cities",
@@ -2698,12 +2698,12 @@
   ],
   "armouryGuilds": [
    {
-    "raw": "+3 science, +3 culture in every city with an [[building:armoury|Armoury]]",
-    "text": "+3 science, +3 culture in every city with an Armoury"
+    "raw": "+5 science, +5 culture in every city with an [[building:armoury|Armoury]]",
+    "text": "+5 science, +5 culture in every city with an Armoury"
    },
    {
-    "raw": "+10% production toward buildings, in every city with an [[building:armoury|Armoury]]",
-    "text": "+10% production toward buildings, in every city with an Armoury"
+    "raw": "+15% production toward buildings, in every city with an [[building:armoury|Armoury]]",
+    "text": "+15% production toward buildings, in every city with an Armoury"
    }
   ],
   "veteransBoroughs": [
@@ -2718,14 +2718,14 @@
   ],
   "conqueredArchives": [
    {
-    "raw": "+4 science, +4 culture in every captured city",
-    "text": "+4 science, +4 culture in every captured city"
+    "raw": "+6 science, +6 culture in every captured city",
+    "text": "+6 science, +6 culture in every captured city"
    }
   ],
   "stockpiles": [
    {
-    "raw": "+5 food in every city per fortification there",
-    "text": "+5 food in every city per fortification there"
+    "raw": "+8 food in every city per fortification there",
+    "text": "+8 food in every city per fortification there"
    }
   ],
   "thePostRoads": [
@@ -2747,8 +2747,8 @@
   ],
   "dominionTriumphs": [
    {
-    "raw": "capturing a city grants culture equal to 10 times its population",
-    "text": "capturing a city grants culture equal to 10 times its population"
+    "raw": "capturing a city grants culture equal to 15 times its population",
+    "text": "capturing a city grants culture equal to 15 times its population"
    }
   ],
   "dominionCampFollowers": [
@@ -2878,12 +2878,12 @@
   ],
   "spoilsOfWar": [
    {
-    "raw": "pillaging grants +10 production",
-    "text": "pillaging grants +10 production"
+    "raw": "pillaging grants +15 production",
+    "text": "pillaging grants +15 production"
    },
    {
-    "raw": "pillaging (at most once a turn) grants +20 culture",
-    "text": "pillaging (at most once a turn) grants +20 culture"
+    "raw": "pillaging (at most once a turn) grants +30 culture",
+    "text": "pillaging (at most once a turn) grants +30 culture"
    }
   ],
   "warlords": [
@@ -2938,8 +2938,8 @@
     "text": "the authority a captured city costs falls by 1"
    },
    {
-    "raw": "capturing a city grants +20% production in every city for 10 turns",
-    "text": "capturing a city grants +20% production in every city for 10 turns"
+    "raw": "capturing a city grants +30% production in every city for 10 turns",
+    "text": "capturing a city grants +30% production in every city for 10 turns"
    }
   ],
   "triumphalReturn": [
@@ -2982,8 +2982,8 @@
   ],
   "dominionTheCitadelWorks": [
    {
-    "raw": "+3 science on every hex with a [[improvement:citadel|Citadel]]",
-    "text": "+3 science on every hex with a Citadel"
+    "raw": "+5 science on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "+5 science on every hex with a Citadel"
    },
    {
     "raw": "+1 renown per turn per hex with a [[improvement:citadel|Citadel]] in your borders, favouring generals",
@@ -3010,8 +3010,8 @@
     "text": "Commission. Goal: capture 1 city, while this card is seated"
    },
    {
-    "raw": "Reward: culture equal to 15 times the citizens of the cities you captured that turn at that moment, and science equal to 15 times the citizens of the cities you captured that turn at that moment",
-    "text": "Reward: culture equal to 15 times the citizens of the cities you captured that turn at that moment, and science equal to 15 times the citizens of the cities you captured that turn at that moment"
+    "raw": "Reward: culture equal to 23 times the citizens of the cities you captured that turn at that moment, and science equal to 23 times the citizens of the cities you captured that turn at that moment",
+    "text": "Reward: culture equal to 23 times the citizens of the cities you captured that turn at that moment, and science equal to 23 times the citizens of the cities you captured that turn at that moment"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -3020,12 +3020,12 @@
   ],
   "standingGarrisons": [
    {
-    "raw": "+8% production in every city per combat unit standing there",
-    "text": "+8% production in every city per combat unit standing there"
+    "raw": "+12% production in every city per combat unit standing there",
+    "text": "+12% production in every city per combat unit standing there"
    },
    {
-    "raw": "+8% culture in every city per combat unit standing there",
-    "text": "+8% culture in every city per combat unit standing there"
+    "raw": "+12% culture in every city per combat unit standing there",
+    "text": "+12% culture in every city per combat unit standing there"
    }
   ],
   "spoilsOfEmpire": [
@@ -3056,12 +3056,12 @@
   ],
   "arsenals": [
    {
-    "raw": "+20% production in every city with an [[building:armoury|Armoury]]",
-    "text": "+20% production in every city with an Armoury"
+    "raw": "+30% production in every city with an [[building:armoury|Armoury]]",
+    "text": "+30% production in every city with an Armoury"
    },
    {
-    "raw": "+50% production toward ships, in every city with an [[building:armoury|Armoury]]",
-    "text": "+50% production toward ships, in every city with an Armoury"
+    "raw": "+75% production toward ships, in every city with an [[building:armoury|Armoury]]",
+    "text": "+75% production toward ships, in every city with an Armoury"
    }
   ],
   "dominionTheSiegeTrain": [
@@ -3076,12 +3076,12 @@
   ],
   "reserveOfficers": [
    {
-    "raw": "while you are at war: +40% production toward military units, in every city with a [[building:barracks|Barracks]]",
-    "text": "while you are at war: +40% production toward military units, in every city with a Barracks"
+    "raw": "while you are at war: +60% production toward military units, in every city with a [[building:barracks|Barracks]]",
+    "text": "while you are at war: +60% production toward military units, in every city with a Barracks"
    },
    {
-    "raw": "while you are at peace: +20% production toward buildings, in every city with a [[building:barracks|Barracks]]",
-    "text": "while you are at peace: +20% production toward buildings, in every city with a Barracks"
+    "raw": "while you are at peace: +30% production toward buildings, in every city with a [[building:barracks|Barracks]]",
+    "text": "while you are at peace: +30% production toward buildings, in every city with a Barracks"
    }
   ],
   "blockadeAdmirals": [
@@ -3128,12 +3128,12 @@
     "text": "ships: +1 range"
    },
    {
-    "raw": "+20% gold in every coastal city",
-    "text": "+20% gold in every coastal city"
+    "raw": "+30% gold in every coastal city",
+    "text": "+30% gold in every coastal city"
    },
    {
-    "raw": "+20% gold in every coastal captured city",
-    "text": "+20% gold in every coastal captured city"
+    "raw": "+30% gold in every coastal captured city",
+    "text": "+30% gold in every coastal captured city"
    }
   ],
   "theLongPeace": [
@@ -3432,8 +3432,8 @@
   ],
   "theOldSongs": [
    {
-    "raw": "+1 culture on every unimproved hex",
-    "text": "+1 culture on every unimproved hex"
+    "raw": "+2 culture on every unimproved hex",
+    "text": "+2 culture on every unimproved hex"
    }
   ],
   "theLocalCensus": [
@@ -3456,18 +3456,18 @@
   ],
   "darkEarth": [
    {
-    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] that has stood at least 20 turns",
-    "text": "+1 food on every hex with a Farm that has stood at least 20 turns"
+    "raw": "+2 food on every hex with a [[improvement:farm|Farm]] that has stood at least 20 turns",
+    "text": "+2 food on every hex with a Farm that has stood at least 20 turns"
    },
    {
-    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] that has stood at least 50 turns",
-    "text": "+1 food on every hex with a Farm that has stood at least 50 turns"
+    "raw": "+2 food on every hex with a [[improvement:farm|Farm]] that has stood at least 50 turns",
+    "text": "+2 food on every hex with a Farm that has stood at least 50 turns"
    }
   ],
   "theThreeSisters": [
    {
-    "raw": "+1 food, +1 production on every hex with a [[improvement:farm|Farm]] beside a [[improvement:plantation|Plantation]] or [[improvement:pasture|Pasture]]",
-    "text": "+1 food, +1 production on every hex with a Farm beside a Plantation or Pasture"
+    "raw": "+2 food, +2 production on every hex with a [[improvement:farm|Farm]] beside a [[improvement:plantation|Plantation]] or [[improvement:pasture|Pasture]]",
+    "text": "+2 food, +2 production on every hex with a Farm beside a Plantation or Pasture"
    }
   ],
   "theCommons": [
@@ -3501,14 +3501,14 @@
   ],
   "theProspectors": [
    {
-    "raw": "+2 production on every surveyed hex with a [[improvement:mine|Mine]] carrying a resource",
-    "text": "+2 production on every surveyed hex with a Mine carrying a resource"
+    "raw": "+3 production on every surveyed hex with a [[improvement:mine|Mine]] carrying a resource",
+    "text": "+3 production on every surveyed hex with a Mine carrying a resource"
    }
   ],
   "daughterTowns": [
    {
-    "raw": "+2 food in every city of 4 or fewer citizens",
-    "text": "+2 food in every city of 4 or fewer citizens"
+    "raw": "+3 food in every city of 4 or fewer citizens",
+    "text": "+3 food in every city of 4 or fewer citizens"
    }
   ],
   "sixGardens": [
@@ -3517,8 +3517,8 @@
     "text": "Commission. Goal: have 6 tended tiles inside your borders, while this card is seated"
    },
    {
-    "raw": "Reward: for 10 turns, +3 food in every city, and a [[unit:worker|Worker]], trained in your capital free of upkeep",
-    "text": "Reward: for 10 turns, +3 food in every city, and a Worker, trained in your capital free of upkeep"
+    "raw": "Reward: for 10 turns, +5 food in every city, and a [[unit:worker|Worker]], trained in your capital free of upkeep",
+    "text": "Reward: for 10 turns, +5 food in every city, and a Worker, trained in your capital free of upkeep"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -3527,8 +3527,8 @@
   ],
   "theWatercourses": [
    {
-    "raw": "+1 production on every hex with a [[improvement:farm|Farm]] that is beside fresh water or beside a [[improvement:farm|Farm]] and beside fresh water",
-    "text": "+1 production on every hex with a Farm that is beside fresh water or beside a Farm and beside fresh water"
+    "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside fresh water or beside a [[improvement:farm|Farm]] and beside fresh water",
+    "text": "+2 production on every hex with a Farm that is beside fresh water or beside a Farm and beside fresh water"
    }
   ],
   "theHighlands": [
@@ -3539,8 +3539,8 @@
   ],
   "theCoast": [
    {
-    "raw": "+2 food, +2 culture on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
-    "text": "+2 food, +2 culture on every hex with a Fishing Boat"
+    "raw": "+3 food, +3 culture on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
+    "text": "+3 food, +3 culture on every hex with a Fishing Boat"
    }
   ],
   "provincialCouncils": [
@@ -3565,8 +3565,8 @@
   ],
   "expansionistTheWaterworks": [
    {
-    "raw": "+33% production toward [[building:aqueduct|Aqueducts]]",
-    "text": "+33% production toward Aqueducts"
+    "raw": "+50% production toward [[building:aqueduct|Aqueducts]]",
+    "text": "+50% production toward Aqueducts"
    },
    {
     "raw": "+1 happiness in every city with an [[building:aqueduct|Aqueduct]] per 4 citizens there (at most +3 happiness)",
@@ -3596,34 +3596,34 @@
   ],
   "theLandscapeGarden": [
    {
-    "raw": "+2 culture on every tended hex beside a great person's work",
-    "text": "+2 culture on every tended hex beside a great person's work"
+    "raw": "+3 culture on every tended hex beside a great person's work",
+    "text": "+3 culture on every tended hex beside a great person's work"
    }
   ],
   "theEngineersYards": [
    {
-    "raw": "+2 production on every hex with a [[improvement:manufactory|Manufactory]]",
-    "text": "+2 production on every hex with a Manufactory"
+    "raw": "+3 production on every hex with a [[improvement:manufactory|Manufactory]]",
+    "text": "+3 production on every hex with a Manufactory"
    },
    {
-    "raw": "+1 production on every hex with a [[improvement:farm|Farm]] or [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]] beside a [[improvement:manufactory|Manufactory]]",
-    "text": "+1 production on every hex with a Farm or Mine or Quarry or Lumbermill beside a Manufactory"
+    "raw": "+2 production on every hex with a [[improvement:farm|Farm]] or [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]] beside a [[improvement:manufactory|Manufactory]]",
+    "text": "+2 production on every hex with a Farm or Mine or Quarry or Lumbermill beside a Manufactory"
    }
   ],
   "theTendedCountry": [
    {
-    "raw": "+1 production on every tended hex",
-    "text": "+1 production on every tended hex"
+    "raw": "+2 production on every tended hex",
+    "text": "+2 production on every tended hex"
    },
    {
-    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] beside a tended hex",
-    "text": "+1 food on every hex with a Farm beside a tended hex"
+    "raw": "+2 food on every hex with a [[improvement:farm|Farm]] beside a tended hex",
+    "text": "+2 food on every hex with a Farm beside a tended hex"
    }
   ],
   "theWoodwrights": [
    {
-    "raw": "clearing a forest or jungle pays +100%",
-    "text": "clearing a forest or jungle pays +100%"
+    "raw": "clearing a forest or jungle pays +150%",
+    "text": "clearing a forest or jungle pays +150%"
    }
   ],
   "theCommonDomain": [
@@ -3635,32 +3635,32 @@
   ],
   "seasonalLevies": [
    {
-    "raw": "after a town spends a citizen on a levy, it gains +40% food in this city for 10 turns, at most once every 20 turns",
-    "text": "after a town spends a citizen on a levy, it gains +40% food in this city for 10 turns, at most once every 20 turns"
+    "raw": "after a town spends a citizen on a levy, it gains +60% food in this city for 10 turns, at most once every 20 turns",
+    "text": "after a town spends a citizen on a levy, it gains +60% food in this city for 10 turns, at most once every 20 turns"
    }
   ],
   "theLongTending": [
    {
-    "raw": "+1 food on every tended hex that has stood at least 25 turns",
-    "text": "+1 food on every tended hex that has stood at least 25 turns"
+    "raw": "+2 food on every tended hex that has stood at least 25 turns",
+    "text": "+2 food on every tended hex that has stood at least 25 turns"
    },
    {
-    "raw": "+1 food on every tended hex that has stood at least 50 turns",
-    "text": "+1 food on every tended hex that has stood at least 50 turns"
+    "raw": "+2 food on every tended hex that has stood at least 50 turns",
+    "text": "+2 food on every tended hex that has stood at least 50 turns"
    },
    {
-    "raw": "+1 food on every tended hex that has stood at least 75 turns",
-    "text": "+1 food on every tended hex that has stood at least 75 turns"
+    "raw": "+2 food on every tended hex that has stood at least 75 turns",
+    "text": "+2 food on every tended hex that has stood at least 75 turns"
    }
   ],
   "theMountainSchools": [
    {
-    "raw": "+10% science in every city beside a mountain",
-    "text": "+10% science in every city beside a mountain"
+    "raw": "+15% science in every city beside a mountain",
+    "text": "+15% science in every city beside a mountain"
    },
    {
-    "raw": "+1 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] beside a mountain",
-    "text": "+1 science on every hex with a Mine or Quarry beside a mountain"
+    "raw": "+2 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] beside a mountain",
+    "text": "+2 science on every hex with a Mine or Quarry beside a mountain"
    }
   ],
   "thePolders": [
@@ -3693,8 +3693,8 @@
     "text": "Commission. Goal: buy 12 hexes, while this card is seated"
    },
    {
-    "raw": "Reward: for 30 turns, +2 happiness in every city and +50% food in every city of 5 or fewer citizens",
-    "text": "Reward: for 30 turns, +2 happiness in every city and +50% food in every city of 5 or fewer citizens"
+    "raw": "Reward: for 30 turns, +2 happiness in every city and +75% food in every city of 5 or fewer citizens",
+    "text": "Reward: for 30 turns, +2 happiness in every city and +75% food in every city of 5 or fewer citizens"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -4265,8 +4265,8 @@
   ],
   "privatePatronage": [
    {
-    "raw": "+25% gold in every city",
-    "text": "+25% gold in every city"
+    "raw": "+38% gold in every city",
+    "text": "+38% gold in every city"
    },
    {
     "raw": "-20% production toward ordinary buildings",
@@ -4275,24 +4275,24 @@
   ],
   "civicReceipts": [
    {
-    "raw": "buying a building grants culture equal to 10% of the gold paid",
-    "text": "buying a building grants culture equal to 10% of the gold paid"
+    "raw": "buying a building grants culture equal to 15% of the gold paid",
+    "text": "buying a building grants culture equal to 15% of the gold paid"
    }
   ],
   "provisioningContracts": [
    {
-    "raw": "+2 food, +2 production on every trade route between two of your own cities",
-    "text": "+2 food, +2 production on every trade route between two of your own cities"
+    "raw": "+3 food, +3 production on every trade route between two of your own cities",
+    "text": "+3 food, +3 production on every trade route between two of your own cities"
    }
   ],
   "theCommonRoad": [
    {
-    "raw": "+2 gold, +2 science, +2 culture on every trade route that ends in another empire’s city",
-    "text": "+2 gold, +2 science, +2 culture on every trade route that ends in another empire’s city"
+    "raw": "+3 gold, +3 science, +3 culture on every trade route that ends in another empire’s city",
+    "text": "+3 gold, +3 science, +3 culture on every trade route that ends in another empire’s city"
    },
    {
-    "raw": "+2 gold on every trade route that ends in another empire’s city, paid to the city it reaches",
-    "text": "+2 gold on every trade route that ends in another empire’s city, paid to the city it reaches"
+    "raw": "+3 gold on every trade route that ends in another empire’s city, paid to the city it reaches",
+    "text": "+3 gold on every trade route that ends in another empire’s city, paid to the city it reaches"
    }
   ],
   "theReturnLeg": [
@@ -4337,8 +4337,8 @@
   "thePlantersCharter": [],
   "boughtSwords": [
    {
-    "raw": "+25% gold in every city",
-    "text": "+25% gold in every city"
+    "raw": "+38% gold in every city",
+    "text": "+38% gold in every city"
    },
    {
     "raw": "-10% production toward military units",
@@ -4389,14 +4389,14 @@
     "text": "+1 authority capacity per 2 Markets"
    },
    {
-    "raw": "+25% gold in every city",
-    "text": "+25% gold in every city"
+    "raw": "+38% gold in every city",
+    "text": "+38% gold in every city"
    }
   ],
   "commercialEducation": [
    {
-    "raw": "+2 science in every city per gold building there",
-    "text": "+2 science in every city per gold building there"
+    "raw": "+3 science in every city per gold building there",
+    "text": "+3 science in every city per gold building there"
    }
   ],
   "strategicReserves": [
@@ -4433,8 +4433,8 @@
   ],
   "financedIndustry": [
    {
-    "raw": "20% of the gold in every city is gained again as production",
-    "text": "20% of the gold in every city is gained again as production"
+    "raw": "30% of the gold in every city is gained again as production",
+    "text": "30% of the gold in every city is gained again as production"
    },
    {
     "raw": "-3 food in every city",
@@ -4443,12 +4443,12 @@
   ],
   "theHomeMarket": [
    {
-    "raw": "+20% food in every city 2 or more trade routes of your own end at",
-    "text": "+20% food in every city 2 or more trade routes of your own end at"
+    "raw": "+30% food in every city 2 or more trade routes of your own end at",
+    "text": "+30% food in every city 2 or more trade routes of your own end at"
    },
    {
-    "raw": "+20% production in every city 2 or more trade routes of your own end at",
-    "text": "+20% production in every city 2 or more trade routes of your own end at"
+    "raw": "+30% production in every city 2 or more trade routes of your own end at",
+    "text": "+30% production in every city 2 or more trade routes of your own end at"
    },
    {
     "raw": "+2 happiness in every city 2 or more trade routes of your own end at",
@@ -4461,18 +4461,18 @@
     "text": "+2 happiness in every city one of your own trade routes ends at"
    },
    {
-    "raw": "+1 production, +1 gold on every trade route between two of your own cities",
-    "text": "+1 production, +1 gold on every trade route between two of your own cities"
+    "raw": "+2 production, +2 gold on every trade route between two of your own cities",
+    "text": "+2 production, +2 gold on every trade route between two of your own cities"
    }
   ],
   "theForeignFactor": [
    {
-    "raw": "+3 gold per foreign city holding your trading post",
-    "text": "+3 gold per foreign city holding your trading post"
+    "raw": "+5 gold per foreign city holding your trading post",
+    "text": "+5 gold per foreign city holding your trading post"
    },
    {
-    "raw": "+1 gold in every foreign city holding your trading post",
-    "text": "+1 gold in every foreign city holding your trading post"
+    "raw": "+2 gold in every foreign city holding your trading post",
+    "text": "+2 gold in every foreign city holding your trading post"
    }
   ],
   "theConsulate": [
@@ -4498,8 +4498,8 @@
   ],
   "theMoneyLenders": [
    {
-    "raw": "+1 gold per 50 gold in the treasury",
-    "text": "+1 gold per 50 gold in the treasury"
+    "raw": "+2 gold per 50 gold in the treasury",
+    "text": "+2 gold per 50 gold in the treasury"
    }
   ],
   "theCharteredArsenal": [
@@ -4516,8 +4516,8 @@
   ],
   "miningDistricts": [
    {
-    "raw": "+1 gold, +1 science on every hex with a [[improvement:mine|Mine]], once for every 2 adjacent hexes with a [[improvement:mine|Mine]]",
-    "text": "+1 gold, +1 science on every hex with a Mine, once for every 2 adjacent hexes with a Mine"
+    "raw": "+2 gold, +2 science on every hex with a [[improvement:mine|Mine]], once for every 2 adjacent hexes with a [[improvement:mine|Mine]]",
+    "text": "+2 gold, +2 science on every hex with a Mine, once for every 2 adjacent hexes with a Mine"
    }
   ],
   "royalAssays": [
@@ -4558,8 +4558,8 @@
   ],
   "theLeagueOfCities": [
    {
-    "raw": "+15% production in every city a trade route sets out from",
-    "text": "+15% production in every city a trade route sets out from"
+    "raw": "+23% production in every city a trade route sets out from",
+    "text": "+23% production in every city a trade route sets out from"
    },
    {
     "raw": "the authority a city a trade route sets out from costs falls by 1",
@@ -4631,22 +4631,22 @@
   ],
   "theCustomsHouses": [
    {
-    "raw": "+3 gold on every hex with a [[improvement:customsHouse|Customs House]]",
-    "text": "+3 gold on every hex with a Customs House"
+    "raw": "+5 gold on every hex with a [[improvement:customsHouse|Customs House]]",
+    "text": "+5 gold on every hex with a Customs House"
    },
    {
     "raw": "+1 renown per turn per hex with a [[improvement:customsHouse|Customs House]] in your borders",
     "text": "+1 renown per turn per hex with a Customs House in your borders"
    },
    {
-    "raw": "+25% gold in every city with a [[improvement:customsHouse|Customs House]]",
-    "text": "+25% gold in every city with a Customs House"
+    "raw": "+38% gold in every city with a [[improvement:customsHouse|Customs House]]",
+    "text": "+38% gold in every city with a Customs House"
    }
   ],
   "strategicExports": [
    {
-    "raw": "+1 science per improved strategic resource there",
-    "text": "+1 science per improved strategic resource there"
+    "raw": "+2 science per improved strategic resource there",
+    "text": "+2 science per improved strategic resource there"
    },
    {
     "raw": "your strategic resource deposits supply twice as many copies",
@@ -4695,8 +4695,8 @@
     "text": "you may build a Caravanserai in every city"
    },
    {
-    "raw": "+20% gold in every city with a [[building:caravanserai|Caravanserai]]",
-    "text": "+20% gold in every city with a Caravanserai"
+    "raw": "+30% gold in every city with a [[building:caravanserai|Caravanserai]]",
+    "text": "+30% gold in every city with a Caravanserai"
    }
   ],
   "theDyeVats": [
@@ -4708,8 +4708,8 @@
   ],
   "theEndowment": [
    {
-    "raw": "+1 science in every city per purchased building there (at most +3 science)",
-    "text": "+1 science in every city per purchased building there (at most +3 science)"
+    "raw": "+2 science in every city per purchased building there (at most +6 science)",
+    "text": "+2 science in every city per purchased building there (at most +6 science)"
    }
   ],
   "thePaidArmy": [
@@ -4736,16 +4736,16 @@
   ],
   "theCharteredMetropolis": [
    {
-    "raw": "+25% food in every city 3 or more trade routes set out from",
-    "text": "+25% food in every city 3 or more trade routes set out from"
+    "raw": "+38% food in every city 3 or more trade routes set out from",
+    "text": "+38% food in every city 3 or more trade routes set out from"
    },
    {
-    "raw": "+25% production in every city 3 or more trade routes set out from",
-    "text": "+25% production in every city 3 or more trade routes set out from"
+    "raw": "+38% production in every city 3 or more trade routes set out from",
+    "text": "+38% production in every city 3 or more trade routes set out from"
    },
    {
-    "raw": "+25% culture in every city 3 or more trade routes set out from",
-    "text": "+25% culture in every city 3 or more trade routes set out from"
+    "raw": "+38% culture in every city 3 or more trade routes set out from",
+    "text": "+38% culture in every city 3 or more trade routes set out from"
    },
    {
     "raw": "the authority a city 3 or more trade routes set out from costs rises by 4",
@@ -4810,8 +4810,8 @@
     "text": "Commission. Goal: hold 4 copies of one luxury, counting copies you receive in deals, while this card is seated"
    },
    {
-    "raw": "Reward: a great merchant to call, and +150 gold",
-    "text": "Reward: a great merchant to call, and +150 gold"
+    "raw": "Reward: a great merchant to call, and +225 gold",
+    "text": "Reward: a great merchant to call, and +225 gold"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -4856,22 +4856,22 @@
   ],
   "theStapleRight": [
    {
-    "raw": "+2 gold per luxury you hold two or more copies of",
-    "text": "+2 gold per luxury you hold two or more copies of"
+    "raw": "+3 gold per luxury you hold two or more copies of",
+    "text": "+3 gold per luxury you hold two or more copies of"
    },
    {
-    "raw": "+1 culture per luxury you hold two or more copies of",
-    "text": "+1 culture per luxury you hold two or more copies of"
+    "raw": "+2 culture per luxury you hold two or more copies of",
+    "text": "+2 culture per luxury you hold two or more copies of"
    }
   ],
   "theWaqf": [
    {
-    "raw": "+2 faith in every city per building bought with gold there",
-    "text": "+2 faith in every city per building bought with gold there"
+    "raw": "+3 faith in every city per building bought with gold there",
+    "text": "+3 faith in every city per building bought with gold there"
    },
    {
-    "raw": "+1 culture in every city per building bought with gold there",
-    "text": "+1 culture in every city per building bought with gold there"
+    "raw": "+2 culture in every city per building bought with gold there",
+    "text": "+2 culture in every city per building bought with gold there"
    }
   ],
   "theSilkRoadMonks": [
@@ -4880,8 +4880,8 @@
     "text": "caravans carry +3 faith"
    },
    {
-    "raw": "+2 gold, +2 culture on every trade route that ends in a city that follows the religion",
-    "text": "+2 gold, +2 culture on every trade route that ends in a city that follows the religion"
+    "raw": "+3 gold, +3 culture on every trade route that ends in a city that follows the religion",
+    "text": "+3 gold, +3 culture on every trade route that ends in a city that follows the religion"
    }
   ],
   "numidianCavalryCharter": [],
@@ -4911,12 +4911,12 @@
   ],
   "theMonopoly": [
    {
-    "raw": "+5 gold in every city per luxury you hold three or more copies of that no other empire holds",
-    "text": "+5 gold in every city per luxury you hold three or more copies of that no other empire holds"
+    "raw": "+8 gold in every city per luxury you hold three or more copies of that no other empire holds",
+    "text": "+8 gold in every city per luxury you hold three or more copies of that no other empire holds"
    },
    {
-    "raw": "+3 culture in every city per luxury you hold three or more copies of that no other empire holds",
-    "text": "+3 culture in every city per luxury you hold three or more copies of that no other empire holds"
+    "raw": "+5 culture in every city per luxury you hold three or more copies of that no other empire holds",
+    "text": "+5 culture in every city per luxury you hold three or more copies of that no other empire holds"
    },
    {
     "raw": "+1 happiness per luxury you hold three or more copies of that no other empire holds",
@@ -4925,14 +4925,14 @@
   ],
   "theCustomsService": [
    {
-    "raw": "+2 gold, +2 culture on every trade route sent from every city with a [[improvement:customsHouse|Customs House]]",
-    "text": "+2 gold, +2 culture on every trade route sent from every city with a Customs House"
+    "raw": "+3 gold, +3 culture on every trade route sent from every city with a [[improvement:customsHouse|Customs House]]",
+    "text": "+3 gold, +3 culture on every trade route sent from every city with a Customs House"
    }
   ],
   "theBourse": [
    {
-    "raw": "your gold buildings pay +50%",
-    "text": "your gold buildings pay +50%"
+    "raw": "your gold buildings pay +75%",
+    "text": "your gold buildings pay +75%"
    }
   ],
   "patronsAbroad": [
@@ -5114,12 +5114,12 @@
   ],
   "thePriestAstronomers": [
    {
-    "raw": "+1 science in your capital per city of yours keeping a rite (at most +8 science)",
-    "text": "+1 science in your capital per city of yours keeping a rite (at most +8 science)"
+    "raw": "+2 science in your capital per city of yours keeping a rite (at most +16 science)",
+    "text": "+2 science in your capital per city of yours keeping a rite (at most +16 science)"
    },
    {
-    "raw": "+1 faith in your capital per city of yours keeping a rite (at most +8 faith)",
-    "text": "+1 faith in your capital per city of yours keeping a rite (at most +8 faith)"
+    "raw": "+2 faith in your capital per city of yours keeping a rite (at most +16 faith)",
+    "text": "+2 faith in your capital per city of yours keeping a rite (at most +16 faith)"
    }
   ],
   "consecratedLabor": [
@@ -5142,18 +5142,18 @@
   ],
   "theLivingHymnal": [
    {
-    "raw": "+2 science in your capital per city that follows you",
-    "text": "+2 science in your capital per city that follows you"
+    "raw": "+3 science in your capital per city that follows you",
+    "text": "+3 science in your capital per city that follows you"
    },
    {
-    "raw": "+2 culture in your capital per city that follows you",
-    "text": "+2 culture in your capital per city that follows you"
+    "raw": "+3 culture in your capital per city that follows you",
+    "text": "+3 culture in your capital per city that follows you"
    }
   ],
   "theAlmsRoads": [
    {
-    "raw": "+3 faith on every trade route sent from every city with a [[building:temple|Temple]]",
-    "text": "+3 faith on every trade route sent from every city with a Temple"
+    "raw": "+5 faith on every trade route sent from every city with a [[building:temple|Temple]]",
+    "text": "+5 faith on every trade route sent from every city with a Temple"
    }
   ],
   "theMission": [
@@ -5162,8 +5162,8 @@
     "text": "Commission. Goal: convert 2 foreign cities to your religion, while this card is seated"
    },
    {
-    "raw": "Reward: an [[unit:apostle|Apostle]], trained in your capital free of upkeep, and +100 culture",
-    "text": "Reward: an Apostle, trained in your capital free of upkeep, and +100 culture"
+    "raw": "Reward: an [[unit:apostle|Apostle]], trained in your capital free of upkeep, and +150 culture",
+    "text": "Reward: an Apostle, trained in your capital free of upkeep, and +150 culture"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -5195,18 +5195,18 @@
   ],
   "theCreed": [
    {
-    "raw": "+2 faith in your capital per belief your religion holds",
-    "text": "+2 faith in your capital per belief your religion holds"
+    "raw": "+3 faith in your capital per belief your religion holds",
+    "text": "+3 faith in your capital per belief your religion holds"
    },
    {
-    "raw": "+2 culture in your capital per belief your religion holds",
-    "text": "+2 culture in your capital per belief your religion holds"
+    "raw": "+3 culture in your capital per belief your religion holds",
+    "text": "+3 culture in your capital per belief your religion holds"
    }
   ],
   "thePaintedChapels": [
    {
-    "raw": "+2 culture in every city per faith building there",
-    "text": "+2 culture in every city per faith building there"
+    "raw": "+3 culture in every city per faith building there",
+    "text": "+3 culture in every city per faith building there"
    }
   ],
   "theRitesCommonwealth": [
@@ -5221,8 +5221,8 @@
   ],
   "devotionTheSaintsFields": [
    {
-    "raw": "+3 food, +5 gold on every hex with a [[improvement:holySite|Holy Site]]",
-    "text": "+3 food, +5 gold on every hex with a Holy Site"
+    "raw": "+5 food, +8 gold on every hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+5 food, +8 gold on every hex with a Holy Site"
    },
    {
     "raw": "+2 happiness in every city working a [[improvement:holySite|Holy Site]]",
@@ -5231,12 +5231,12 @@
   ],
   "theCathedralWorks": [
    {
-    "raw": "+30% production toward [[building:cathedral|Cathedrals]]",
-    "text": "+30% production toward Cathedrals"
+    "raw": "+45% production toward [[building:cathedral|Cathedrals]]",
+    "text": "+45% production toward Cathedrals"
    },
    {
-    "raw": "+5 science in every city with a [[building:cathedral|Cathedral]]",
-    "text": "+5 science in every city with a Cathedral"
+    "raw": "+8 science in every city with a [[building:cathedral|Cathedral]]",
+    "text": "+8 science in every city with a Cathedral"
    },
    {
     "raw": "+2 happiness in every city with a [[building:cathedral|Cathedral]]",
@@ -5245,18 +5245,18 @@
   ],
   "theOldHolyPlaces": [
    {
-    "raw": "+2 faith on every hex with a [[improvement:holySite|Holy Site]] that has stood at least 20 turns",
-    "text": "+2 faith on every hex with a Holy Site that has stood at least 20 turns"
+    "raw": "+3 faith on every hex with a [[improvement:holySite|Holy Site]] that has stood at least 20 turns",
+    "text": "+3 faith on every hex with a Holy Site that has stood at least 20 turns"
    },
    {
-    "raw": "+2 culture, +2 faith on every hex with a [[improvement:holySite|Holy Site]] that has stood at least 40 turns",
-    "text": "+2 culture, +2 faith on every hex with a Holy Site that has stood at least 40 turns"
+    "raw": "+3 culture, +3 faith on every hex with a [[improvement:holySite|Holy Site]] that has stood at least 40 turns",
+    "text": "+3 culture, +3 faith on every hex with a Holy Site that has stood at least 40 turns"
    }
   ],
   "templeEstates": [
    {
-    "raw": "+1 food, +1 faith on every hex beside a [[improvement:holySite|Holy Site]]",
-    "text": "+1 food, +1 faith on every hex beside a Holy Site"
+    "raw": "+2 food, +2 faith on every hex beside a [[improvement:holySite|Holy Site]]",
+    "text": "+2 food, +2 faith on every hex beside a Holy Site"
    }
   ],
   "theVotiveGifts": [
@@ -5287,22 +5287,22 @@
   ],
   "theFestivalCalendar": [
    {
-    "raw": "+20% food in every city while it is keeping a rite",
-    "text": "+20% food in every city while it is keeping a rite"
+    "raw": "+30% food in every city while it is keeping a rite",
+    "text": "+30% food in every city while it is keeping a rite"
    },
    {
-    "raw": "+20% culture in every city while it is keeping a rite",
-    "text": "+20% culture in every city while it is keeping a rite"
+    "raw": "+30% culture in every city while it is keeping a rite",
+    "text": "+30% culture in every city while it is keeping a rite"
    }
   ],
   "thePenitentsRoll": [
    {
-    "raw": "+4 science per draft you have rerolled while this stood",
-    "text": "+4 science per draft you have rerolled while this stood"
+    "raw": "+6 science per draft you have rerolled while this stood",
+    "text": "+6 science per draft you have rerolled while this stood"
    },
    {
-    "raw": "+4 culture per draft you have rerolled while this stood",
-    "text": "+4 culture per draft you have rerolled while this stood"
+    "raw": "+6 culture per draft you have rerolled while this stood",
+    "text": "+6 culture per draft you have rerolled while this stood"
    },
    {
     "raw": "rerolling an Order hand costs 30% less faith",
@@ -5317,8 +5317,8 @@
   ],
   "theSettledFaith": [
    {
-    "raw": "+20% science in every city with a [[building:temple|Temple]] while it is keeping a rite",
-    "text": "+20% science in every city with a Temple while it is keeping a rite"
+    "raw": "+30% science in every city with a [[building:temple|Temple]] while it is keeping a rite",
+    "text": "+30% science in every city with a Temple while it is keeping a rite"
    },
    {
     "raw": "+2 happiness in every city with a [[building:temple|Temple]] while it is keeping a rite",
@@ -5335,24 +5335,24 @@
     "text": "rival religions press your cities 40% less"
    },
    {
-    "raw": "+25% faith in every city",
-    "text": "+25% faith in every city"
+    "raw": "+38% faith in every city",
+    "text": "+38% faith in every city"
    }
   ],
   "theLearnedClergy": [
    {
-    "raw": "+1 science per 10 faith gained per turn",
-    "text": "+1 science per 10 faith gained per turn"
+    "raw": "+2 science per 10 faith gained per turn",
+    "text": "+2 science per 10 faith gained per turn"
    },
    {
-    "raw": "+1 culture per 10 faith gained per turn",
-    "text": "+1 culture per 10 faith gained per turn"
+    "raw": "+2 culture per 10 faith gained per turn",
+    "text": "+2 culture per 10 faith gained per turn"
    }
   ],
   "theOfferedStones": [
    {
-    "raw": "+1 culture in every city per building bought with faith there (at most +3 culture)",
-    "text": "+1 culture in every city per building bought with faith there (at most +3 culture)"
+    "raw": "+2 culture in every city per building bought with faith there (at most +6 culture)",
+    "text": "+2 culture in every city per building bought with faith there (at most +6 culture)"
    },
    {
     "raw": "buildings other than wonders may be bought with faith",
@@ -5361,18 +5361,18 @@
   ],
   "theDoctorsOfTheChurch": [
    {
-    "raw": "what follower beliefs pay in your own cities is +100% more",
-    "text": "what follower beliefs pay in your own cities is +100% more"
+    "raw": "what follower beliefs pay in your own cities is +150% more",
+    "text": "what follower beliefs pay in your own cities is +150% more"
    }
   ],
   "theMonasticUniversity": [
    {
-    "raw": "+3 science, +2 faith on every hex with a [[improvement:holySite|Holy Site]] beside an [[improvement:academy|Academy]]",
-    "text": "+3 science, +2 faith on every hex with a Holy Site beside an Academy"
+    "raw": "+5 science, +3 faith on every hex with a [[improvement:holySite|Holy Site]] beside an [[improvement:academy|Academy]]",
+    "text": "+5 science, +3 faith on every hex with a Holy Site beside an Academy"
    },
    {
-    "raw": "+3 science, +2 faith on every hex with an [[improvement:academy|Academy]] beside a [[improvement:holySite|Holy Site]]",
-    "text": "+3 science, +2 faith on every hex with an Academy beside a Holy Site"
+    "raw": "+5 science, +3 faith on every hex with an [[improvement:academy|Academy]] beside a [[improvement:holySite|Holy Site]]",
+    "text": "+5 science, +3 faith on every hex with an Academy beside a Holy Site"
    }
   ],
   "theGreatConsecration": [
@@ -5823,42 +5823,42 @@
   ],
   "workingEstates": [
    {
-    "raw": "+3 food, +2 gold on every hex with an [[improvement:academy|Academy]] or [[improvement:landmark|Landmark]] or [[improvement:manufactory|Manufactory]] or [[improvement:customsHouse|Customs House]] or [[improvement:citadel|Citadel]]",
-    "text": "+3 food, +2 gold on every hex with an Academy or Landmark or Manufactory or Customs House or Citadel"
+    "raw": "+5 food, +3 gold on every hex with an [[improvement:academy|Academy]] or [[improvement:landmark|Landmark]] or [[improvement:manufactory|Manufactory]] or [[improvement:customsHouse|Customs House]] or [[improvement:citadel|Citadel]]",
+    "text": "+5 food, +3 gold on every hex with an Academy or Landmark or Manufactory or Customs House or Citadel"
    }
   ],
   "theOldAcademy": [
    {
-    "raw": "+2 food, +2 production on every hex with an [[improvement:academy|Academy]] that has stood at least 20 turns",
-    "text": "+2 food, +2 production on every hex with an Academy that has stood at least 20 turns"
+    "raw": "+3 food, +3 production on every hex with an [[improvement:academy|Academy]] that has stood at least 20 turns",
+    "text": "+3 food, +3 production on every hex with an Academy that has stood at least 20 turns"
    },
    {
-    "raw": "+2 food, +2 production on every hex with an [[improvement:academy|Academy]] that has stood at least 40 turns",
-    "text": "+2 food, +2 production on every hex with an Academy that has stood at least 40 turns"
+    "raw": "+3 food, +3 production on every hex with an [[improvement:academy|Academy]] that has stood at least 40 turns",
+    "text": "+3 food, +3 production on every hex with an Academy that has stood at least 40 turns"
    }
   ],
   "learnedCommissions": [
    {
-    "raw": "+25% production toward empire buildings, in every city with a [[building:library|Library]]",
-    "text": "+25% production toward empire buildings, in every city with a Library"
+    "raw": "+38% production toward empire buildings, in every city with a [[building:library|Library]]",
+    "text": "+38% production toward empire buildings, in every city with a Library"
    },
    {
-    "raw": "completing a building (an empire building, the first of that kind your realm has finished) grants +40 culture",
-    "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +40 culture"
+    "raw": "completing a building (an empire building, the first of that kind your realm has finished) grants +60 culture",
+    "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +60 culture"
    },
    {
-    "raw": "completing a building (an empire building, the first of that kind your realm has finished) grants +20 faith",
-    "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +20 faith"
+    "raw": "completing a building (an empire building, the first of that kind your realm has finished) grants +30 faith",
+    "text": "completing a building (an empire building, the first of that kind your realm has finished) grants +30 faith"
    }
   ],
   "scientificTheAssay": [
    {
-    "raw": "+2 science per kind of strategic resource you can reach",
-    "text": "+2 science per kind of strategic resource you can reach"
+    "raw": "+3 science per kind of strategic resource you can reach",
+    "text": "+3 science per kind of strategic resource you can reach"
    },
    {
-    "raw": "+2 gold per kind of strategic resource you can reach",
-    "text": "+2 gold per kind of strategic resource you can reach"
+    "raw": "+3 gold per kind of strategic resource you can reach",
+    "text": "+3 gold per kind of strategic resource you can reach"
    }
   ],
   "theStrategicReserves": [
@@ -5884,8 +5884,8 @@
   ],
   "theEndowedProvinces": [
    {
-    "raw": "+4 food, +3 production in every city working a great person's work",
-    "text": "+4 food, +3 production in every city working a great person's work"
+    "raw": "+6 food, +5 production in every city working a great person's work",
+    "text": "+6 food, +5 production in every city working a great person's work"
    }
   ],
   "theMetallurgistsCharter": [
@@ -5924,12 +5924,12 @@
   ],
   "theAcademyQuarter": [
    {
-    "raw": "+3 production in every city holding an empire building per kind of great person's work worked there (at most +15 production)",
-    "text": "+3 production in every city holding an empire building per kind of great person's work worked there (at most +15 production)"
+    "raw": "+5 production in every city holding an empire building per kind of great person's work worked there (at most +25 production)",
+    "text": "+5 production in every city holding an empire building per kind of great person's work worked there (at most +25 production)"
    },
    {
-    "raw": "+3 gold in every city holding an empire building per kind of great person's work worked there (at most +15 gold)",
-    "text": "+3 gold in every city holding an empire building per kind of great person's work worked there (at most +15 gold)"
+    "raw": "+5 gold in every city holding an empire building per kind of great person's work worked there (at most +25 gold)",
+    "text": "+5 gold in every city holding an empire building per kind of great person's work worked there (at most +25 gold)"
    }
   ],
   "theInheritedSchool": [
@@ -5959,14 +5959,14 @@
     "text": "+2 happiness in every city holding an empire building that has stood at least 20 turns"
    },
    {
-    "raw": "+15% production in every city holding an empire building that has stood at least 20 turns",
-    "text": "+15% production in every city holding an empire building that has stood at least 20 turns"
+    "raw": "+23% production in every city holding an empire building that has stood at least 20 turns",
+    "text": "+23% production in every city holding an empire building that has stood at least 20 turns"
    }
   ],
   "thePatentRolls": [
    {
-    "raw": "completing a technology (before any other empire) grants +20 culture",
-    "text": "completing a technology (before any other empire) grants +20 culture"
+    "raw": "completing a technology (before any other empire) grants +30 culture",
+    "text": "completing a technology (before any other empire) grants +30 culture"
    },
    {
     "raw": "completing a technology (before any other empire) grants +10 renown",
@@ -5982,12 +5982,12 @@
   ],
   "theQuietFaculties": [
    {
-    "raw": "+25% food in every city working a great person's work",
-    "text": "+25% food in every city working a great person's work"
+    "raw": "+38% food in every city working a great person's work",
+    "text": "+38% food in every city working a great person's work"
    },
    {
-    "raw": "+20% production in every city working a great person's work",
-    "text": "+20% production in every city working a great person's work"
+    "raw": "+30% production in every city working a great person's work",
+    "text": "+30% production in every city working a great person's work"
    },
    {
     "raw": "-25% production toward military units, in every city working a great person's work",
@@ -6017,26 +6017,26 @@
   ],
   "theLongInheritance": [
    {
-    "raw": "+30% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns",
-    "text": "+30% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns"
+    "raw": "+45% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns",
+    "text": "+45% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns"
    },
    {
-    "raw": "+30% production toward wonders, in every city working a great person's work that has stood at least 20 turns",
-    "text": "+30% production toward wonders, in every city working a great person's work that has stood at least 20 turns"
+    "raw": "+45% production toward wonders, in every city working a great person's work that has stood at least 20 turns",
+    "text": "+45% production toward wonders, in every city working a great person's work that has stood at least 20 turns"
    },
    {
-    "raw": "+15% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns",
-    "text": "+15% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns"
+    "raw": "+23% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns",
+    "text": "+23% production toward empire buildings, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns"
    },
    {
-    "raw": "+15% production toward wonders, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns",
-    "text": "+15% production toward wonders, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns"
+    "raw": "+23% production toward wonders, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns",
+    "text": "+23% production toward wonders, in every city working a great person's work that has stood at least 20 turns holding an empire building that has stood at least 20 turns"
    }
   ],
   "masterArtificers": [
    {
-    "raw": "+6 production, +6 gold on every hex with an [[improvement:academy|Academy]] or [[improvement:manufactory|Manufactory]]",
-    "text": "+6 production, +6 gold on every hex with an Academy or Manufactory"
+    "raw": "+9 production, +9 gold on every hex with an [[improvement:academy|Academy]] or [[improvement:manufactory|Manufactory]]",
+    "text": "+9 production, +9 gold on every hex with an Academy or Manufactory"
    }
   ],
   "theDistantColleges": [
@@ -6048,12 +6048,12 @@
   ],
   "theSocietyOfArtificers": [
    {
-    "raw": "20% of the production in every city holding an empire building working an [[improvement:academy|Academy]] or [[improvement:manufactory|Manufactory]] is gained again as food",
-    "text": "20% of the production in every city holding an empire building working an Academy or Manufactory is gained again as food"
+    "raw": "30% of the production in every city holding an empire building working an [[improvement:academy|Academy]] or [[improvement:manufactory|Manufactory]] is gained again as food",
+    "text": "30% of the production in every city holding an empire building working an Academy or Manufactory is gained again as food"
    },
    {
-    "raw": "20% of the production in every city holding an empire building working an [[improvement:academy|Academy]] or [[improvement:manufactory|Manufactory]] is gained again as culture",
-    "text": "20% of the production in every city holding an empire building working an Academy or Manufactory is gained again as culture"
+    "raw": "30% of the production in every city holding an empire building working an [[improvement:academy|Academy]] or [[improvement:manufactory|Manufactory]] is gained again as culture",
+    "text": "30% of the production in every city holding an empire building working an Academy or Manufactory is gained again as culture"
    }
   ],
   "theLearnedRealm": [
@@ -6241,14 +6241,14 @@
     "text": "+1 authority capacity per 2 Monuments (at most +3 authority capacity)"
    },
    {
-    "raw": "+2 gold in every city with 2 or more culture buildings",
-    "text": "+2 gold in every city with 2 or more culture buildings"
+    "raw": "+3 gold in every city with 2 or more culture buildings",
+    "text": "+3 gold in every city with 2 or more culture buildings"
    }
   ],
   "theCivicStage": [
    {
-    "raw": "+3 food in every city with 2 or more culture buildings",
-    "text": "+3 food in every city with 2 or more culture buildings"
+    "raw": "+5 food in every city with 2 or more culture buildings",
+    "text": "+5 food in every city with 2 or more culture buildings"
    },
    {
     "raw": "+2 happiness in every city with 2 or more culture buildings",
@@ -6257,8 +6257,8 @@
   ],
   "thePublicCopyists": [
    {
-    "raw": "+3 science, +2 culture in every city with a [[building:monument|Monument]] with a [[building:library|Library]]",
-    "text": "+3 science, +2 culture in every city with a Monument with a Library"
+    "raw": "+5 science, +3 culture in every city with a [[building:monument|Monument]] with a [[building:library|Library]]",
+    "text": "+5 science, +3 culture in every city with a Monument with a Library"
    }
   ],
   "theArtisanWages": [
@@ -6277,14 +6277,14 @@
     "text": "+1 renown per turn in every city but your capital with 2 or more culture buildings"
    },
    {
-    "raw": "+2 culture in every city but your capital with 2 or more culture buildings",
-    "text": "+2 culture in every city but your capital with 2 or more culture buildings"
+    "raw": "+3 culture in every city but your capital with 2 or more culture buildings",
+    "text": "+3 culture in every city but your capital with 2 or more culture buildings"
    }
   ],
   "theCitizensWatch": [
    {
-    "raw": "+20% production toward military units, in every city with 2 or more culture buildings",
-    "text": "+20% production toward military units, in every city with 2 or more culture buildings"
+    "raw": "+30% production toward military units, in every city with 2 or more culture buildings",
+    "text": "+30% production toward military units, in every city with 2 or more culture buildings"
    },
    {
     "raw": "every city with 2 or more culture buildings: +3 city defence",
@@ -6293,12 +6293,12 @@
   ],
   "theHarbourFestival": [
    {
-    "raw": "+2 culture in every city per [[building:harbour|Harbour]] there",
-    "text": "+2 culture in every city per Harbour there"
+    "raw": "+3 culture in every city per [[building:harbour|Harbour]] there",
+    "text": "+3 culture in every city per Harbour there"
    },
    {
-    "raw": "+2 food in every city per [[building:harbour|Harbour]] there",
-    "text": "+2 food in every city per Harbour there"
+    "raw": "+3 food in every city per [[building:harbour|Harbour]] there",
+    "text": "+3 food in every city per Harbour there"
    },
    {
     "raw": "+1 happiness in every coastal city with a [[building:monument|Monument]]",
@@ -6307,26 +6307,26 @@
   ],
   "thePageantSchools": [
    {
-    "raw": "+2 science, +2 faith in every city with a [[building:monument|Monument]] with a [[building:temple|Temple]]",
-    "text": "+2 science, +2 faith in every city with a Monument with a Temple"
+    "raw": "+3 science, +3 faith in every city with a [[building:monument|Monument]] with a [[building:temple|Temple]]",
+    "text": "+3 science, +3 faith in every city with a Monument with a Temple"
    }
   ],
   "theGrandFairs": [
    {
-    "raw": "+3 gold, +3 culture in every city with a [[building:market|Market]] with a [[building:monument|Monument]]",
-    "text": "+3 gold, +3 culture in every city with a Market with a Monument"
+    "raw": "+5 gold, +5 culture in every city with a [[building:market|Market]] with a [[building:monument|Monument]]",
+    "text": "+5 gold, +5 culture in every city with a Market with a Monument"
    }
   ],
   "magisterialTheGroundskeepers": [
    {
-    "raw": "+3 food, +3 production on every hex with an [[improvement:academy|Academy]] or [[improvement:landmark|Landmark]] or [[improvement:manufactory|Manufactory]] or [[improvement:customsHouse|Customs House]] or [[improvement:citadel|Citadel]]",
-    "text": "+3 food, +3 production on every hex with an Academy or Landmark or Manufactory or Customs House or Citadel"
+    "raw": "+5 food, +5 production on every hex with an [[improvement:academy|Academy]] or [[improvement:landmark|Landmark]] or [[improvement:manufactory|Manufactory]] or [[improvement:customsHouse|Customs House]] or [[improvement:citadel|Citadel]]",
+    "text": "+5 food, +5 production on every hex with an Academy or Landmark or Manufactory or Customs House or Citadel"
    }
   ],
   "magisterialTheLaureate": [
    {
-    "raw": "+2 science, +3 culture in every city working a great person's work",
-    "text": "+2 science, +3 culture in every city working a great person's work"
+    "raw": "+3 science, +5 culture in every city working a great person's work",
+    "text": "+3 science, +5 culture in every city working a great person's work"
    },
    {
     "raw": "+1 renown per turn in every city working a great person's work",
@@ -6335,8 +6335,8 @@
   ],
   "magisterialTheGuildOfMasons": [
    {
-    "raw": "+25% production toward wonders",
-    "text": "+25% production toward wonders"
+    "raw": "+38% production toward wonders",
+    "text": "+38% production toward wonders"
    },
    {
     "raw": "-2 gold in every city while it is building a wonder",
@@ -6355,22 +6355,22 @@
   ],
   "thePatronsRoad": [
    {
-    "raw": "+2 production, +3 gold in every city joined to your capital by road but your capital with a [[building:monument|Monument]]",
-    "text": "+2 production, +3 gold in every city joined to your capital by road but your capital with a Monument"
+    "raw": "+3 production, +5 gold in every city joined to your capital by road but your capital with a [[building:monument|Monument]]",
+    "text": "+3 production, +5 gold in every city joined to your capital by road but your capital with a Monument"
    },
    {
-    "raw": "+2 culture on every trade route sent from every city joined to your capital by road but your capital with a [[building:monument|Monument]]",
-    "text": "+2 culture on every trade route sent from every city joined to your capital by road but your capital with a Monument"
+    "raw": "+3 culture on every trade route sent from every city joined to your capital by road but your capital with a [[building:monument|Monument]]",
+    "text": "+3 culture on every trade route sent from every city joined to your capital by road but your capital with a Monument"
    }
   ],
   "theMasterWorkshops": [
    {
-    "raw": "completing a building (a culture building, the first of that kind in that city) grants +25 production",
-    "text": "completing a building (a culture building, the first of that kind in that city) grants +25 production"
+    "raw": "completing a building (a culture building, the first of that kind in that city) grants +38 production",
+    "text": "completing a building (a culture building, the first of that kind in that city) grants +38 production"
    },
    {
-    "raw": "completing a building (a culture building, the first of that kind in that city) grants +20 gold",
-    "text": "completing a building (a culture building, the first of that kind in that city) grants +20 gold"
+    "raw": "completing a building (a culture building, the first of that kind in that city) grants +30 gold",
+    "text": "completing a building (a culture building, the first of that kind in that city) grants +30 gold"
    }
   ],
   "theCommemorativeFeast": [
@@ -6410,8 +6410,8 @@
     "text": "+20% renown"
    },
    {
-    "raw": "+3 food, +3 production in every city working a great person's work",
-    "text": "+3 food, +3 production in every city working a great person's work"
+    "raw": "+5 food, +5 production in every city working a great person's work",
+    "text": "+5 food, +5 production in every city working a great person's work"
    }
   ],
   "theArtisanCourt": [
@@ -6426,18 +6426,18 @@
   ],
   "theWorkingCourt": [
    {
-    "raw": "20% of the culture in every city with a [[building:monument|Monument]] is gained again as production",
-    "text": "20% of the culture in every city with a Monument is gained again as production"
+    "raw": "30% of the culture in every city with a [[building:monument|Monument]] is gained again as production",
+    "text": "30% of the culture in every city with a Monument is gained again as production"
    }
   ],
   "theFestivalSeason": [
    {
-    "raw": "+20% food in every city with a [[building:garden|Garden]] with an [[building:amphitheater|Amphitheater]]",
-    "text": "+20% food in every city with a Garden with an Amphitheater"
+    "raw": "+30% food in every city with a [[building:garden|Garden]] with an [[building:amphitheater|Amphitheater]]",
+    "text": "+30% food in every city with a Garden with an Amphitheater"
    },
    {
-    "raw": "+20% gold in every city with a [[building:garden|Garden]] with an [[building:amphitheater|Amphitheater]]",
-    "text": "+20% gold in every city with a Garden with an Amphitheater"
+    "raw": "+30% gold in every city with a [[building:garden|Garden]] with an [[building:amphitheater|Amphitheater]]",
+    "text": "+30% gold in every city with a Garden with an Amphitheater"
    },
    {
     "raw": "-2 gold in every city with a [[building:garden|Garden]] with an [[building:amphitheater|Amphitheater]]",
@@ -6446,18 +6446,18 @@
   ],
   "theCourtArchives": [
    {
-    "raw": "+2 science in every city per culture building there",
-    "text": "+2 science in every city per culture building there"
+    "raw": "+3 science in every city per culture building there",
+    "text": "+3 science in every city per culture building there"
    },
    {
-    "raw": "+5 gold in every city with 2 or more culture buildings",
-    "text": "+5 gold in every city with 2 or more culture buildings"
+    "raw": "+8 gold in every city with 2 or more culture buildings",
+    "text": "+8 gold in every city with 2 or more culture buildings"
    }
   ],
   "thePublicGallery": [
    {
-    "raw": "+6 food in every city with 3 or more culture buildings",
-    "text": "+6 food in every city with 3 or more culture buildings"
+    "raw": "+9 food in every city with 3 or more culture buildings",
+    "text": "+9 food in every city with 3 or more culture buildings"
    },
    {
     "raw": "+3 happiness in every city with 3 or more culture buildings",
@@ -6466,14 +6466,14 @@
   ],
   "theMonumentalProvinces": [
    {
-    "raw": "+5 production, +3 culture in every city joined to your capital by road but your capital with a [[building:monument|Monument]]",
-    "text": "+5 production, +3 culture in every city joined to your capital by road but your capital with a Monument"
+    "raw": "+8 production, +5 culture in every city joined to your capital by road but your capital with a [[building:monument|Monument]]",
+    "text": "+8 production, +5 culture in every city joined to your capital by road but your capital with a Monument"
    }
   ],
   "theCivicFaith": [
    {
-    "raw": "+3 faith in every city per culture building there",
-    "text": "+3 faith in every city per culture building there"
+    "raw": "+5 faith in every city per culture building there",
+    "text": "+5 faith in every city per culture building there"
    },
    {
     "raw": "+3 happiness in every city containing a wonder",
@@ -6486,8 +6486,8 @@
     "text": "+1 authority capacity per city but your capital with 2 or more culture buildings (at most +8)"
    },
    {
-    "raw": "+3 science in every city but your capital with 2 or more culture buildings",
-    "text": "+3 science in every city but your capital with 2 or more culture buildings"
+    "raw": "+5 science in every city but your capital with 2 or more culture buildings",
+    "text": "+5 science in every city but your capital with 2 or more culture buildings"
    }
   ],
   "thePalaceGuard": [
@@ -6499,12 +6499,12 @@
   ],
   "theMaritimeGalleries": [
    {
-    "raw": "+5 culture in every city per [[building:harbour|Harbour]] there",
-    "text": "+5 culture in every city per Harbour there"
+    "raw": "+8 culture in every city per [[building:harbour|Harbour]] there",
+    "text": "+8 culture in every city per Harbour there"
    },
    {
-    "raw": "+3 science in every city per [[building:harbour|Harbour]] there",
-    "text": "+3 science in every city per Harbour there"
+    "raw": "+5 science in every city per [[building:harbour|Harbour]] there",
+    "text": "+5 science in every city per Harbour there"
    },
    {
     "raw": "newly created ships in every city with 2 or more culture buildings gain +3 combat strength",
@@ -6517,24 +6517,24 @@
     "text": "+2 renown per turn in every city but your capital with 2 or more culture buildings"
    },
    {
-    "raw": "+3 food in every city but your capital with 2 or more culture buildings",
-    "text": "+3 food in every city but your capital with 2 or more culture buildings"
+    "raw": "+5 food in every city but your capital with 2 or more culture buildings",
+    "text": "+5 food in every city but your capital with 2 or more culture buildings"
    }
   ],
   "magisterialTheMastersPresence": [
    {
-    "raw": "+20% production toward buildings, in every city working a great person's work",
-    "text": "+20% production toward buildings, in every city working a great person's work"
+    "raw": "+30% production toward buildings, in every city working a great person's work",
+    "text": "+30% production toward buildings, in every city working a great person's work"
    },
    {
-    "raw": "+15% gold in every city working a great person's work",
-    "text": "+15% gold in every city working a great person's work"
+    "raw": "+23% gold in every city working a great person's work",
+    "text": "+23% gold in every city working a great person's work"
    }
   ],
   "theGrandTour": [
    {
-    "raw": "+5 science, +5 culture in every city containing a wonder",
-    "text": "+5 science, +5 culture in every city containing a wonder"
+    "raw": "+8 science, +8 culture in every city containing a wonder",
+    "text": "+8 science, +8 culture in every city containing a wonder"
    },
    {
     "raw": "+2 happiness in every city working a great person's work",
@@ -6543,20 +6543,20 @@
   ],
   "theLearnedPatron": [
    {
-    "raw": "10% of the culture in every city with 2 or more culture buildings is gained again as science",
-    "text": "10% of the culture in every city with 2 or more culture buildings is gained again as science"
+    "raw": "15% of the culture in every city with 2 or more culture buildings is gained again as science",
+    "text": "15% of the culture in every city with 2 or more culture buildings is gained again as science"
    }
   ],
   "thePerformersTreasury": [
    {
-    "raw": "20% of the culture in every city with 2 or more culture buildings is gained again as gold",
-    "text": "20% of the culture in every city with 2 or more culture buildings is gained again as gold"
+    "raw": "30% of the culture in every city with 2 or more culture buildings is gained again as gold",
+    "text": "30% of the culture in every city with 2 or more culture buildings is gained again as gold"
    }
   ],
   "theCivicHarvest": [
    {
-    "raw": "+25% food in every city of 10 or more citizens with 2 or more culture buildings",
-    "text": "+25% food in every city of 10 or more citizens with 2 or more culture buildings"
+    "raw": "+38% food in every city of 10 or more citizens with 2 or more culture buildings",
+    "text": "+38% food in every city of 10 or more citizens with 2 or more culture buildings"
    },
    {
     "raw": "+3 happiness in every city of 10 or more citizens with 2 or more culture buildings",
@@ -6577,14 +6577,14 @@
     "text": "+3 happiness in every city with an Assembly Hall"
    },
    {
-    "raw": "+20% production toward buildings, in every city with an [[building:assemblyHall|Assembly Hall]]",
-    "text": "+20% production toward buildings, in every city with an Assembly Hall"
+    "raw": "+30% production toward buildings, in every city with an [[building:assemblyHall|Assembly Hall]]",
+    "text": "+30% production toward buildings, in every city with an Assembly Hall"
    }
   ],
   "theSculptorsSchools": [
    {
-    "raw": "+3 gold, +3 science on every hex carrying a great person's work",
-    "text": "+3 gold, +3 science on every hex carrying a great person's work"
+    "raw": "+5 gold, +5 science on every hex carrying a great person's work",
+    "text": "+5 gold, +5 science on every hex carrying a great person's work"
    },
    {
     "raw": "+1 renown per turn in every city working a great person's work",
@@ -6593,8 +6593,8 @@
   ],
   "thePatronsFleet": [
    {
-    "raw": "+35% production toward ships, in every city with a [[building:harbour|Harbour]] with 2 or more culture buildings",
-    "text": "+35% production toward ships, in every city with a Harbour with 2 or more culture buildings"
+    "raw": "+53% production toward ships, in every city with a [[building:harbour|Harbour]] with 2 or more culture buildings",
+    "text": "+53% production toward ships, in every city with a Harbour with 2 or more culture buildings"
    },
    {
     "raw": "ships: +1 movement",
@@ -6614,12 +6614,12 @@
     "text": "+3 renown per turn in every city containing a wonder"
    },
    {
-    "raw": "+25% production toward culture buildings, in every city containing a wonder",
-    "text": "+25% production toward culture buildings, in every city containing a wonder"
+    "raw": "+38% production toward culture buildings, in every city containing a wonder",
+    "text": "+38% production toward culture buildings, in every city containing a wonder"
    },
    {
-    "raw": "+25% production toward wonders, in every city containing a wonder",
-    "text": "+25% production toward wonders, in every city containing a wonder"
+    "raw": "+38% production toward wonders, in every city containing a wonder",
+    "text": "+38% production toward wonders, in every city containing a wonder"
    }
   ],
   "theCivicCommonwealth": [
@@ -6653,12 +6653,12 @@
   ],
   "theLaureateCities": [
    {
-    "raw": "+25% culture in every city of 12 or more citizens with 2 or more culture buildings",
-    "text": "+25% culture in every city of 12 or more citizens with 2 or more culture buildings"
+    "raw": "+38% culture in every city of 12 or more citizens with 2 or more culture buildings",
+    "text": "+38% culture in every city of 12 or more citizens with 2 or more culture buildings"
    },
    {
-    "raw": "+10% science in every city of 12 or more citizens with 2 or more culture buildings",
-    "text": "+10% science in every city of 12 or more citizens with 2 or more culture buildings"
+    "raw": "+15% science in every city of 12 or more citizens with 2 or more culture buildings",
+    "text": "+15% science in every city of 12 or more citizens with 2 or more culture buildings"
    }
   ],
   "theNationalGalleries": [
@@ -6677,12 +6677,12 @@
   ],
   "theProvincialAcademies": [
    {
-    "raw": "+20% production in every city joined to your capital by road but your capital with a [[building:library|Library]] with 2 or more culture buildings",
-    "text": "+20% production in every city joined to your capital by road but your capital with a Library with 2 or more culture buildings"
+    "raw": "+30% production in every city joined to your capital by road but your capital with a [[building:library|Library]] with 2 or more culture buildings",
+    "text": "+30% production in every city joined to your capital by road but your capital with a Library with 2 or more culture buildings"
    },
    {
-    "raw": "+10% science in every city joined to your capital by road but your capital with a [[building:library|Library]] with 2 or more culture buildings",
-    "text": "+10% science in every city joined to your capital by road but your capital with a Library with 2 or more culture buildings"
+    "raw": "+15% science in every city joined to your capital by road but your capital with a [[building:library|Library]] with 2 or more culture buildings",
+    "text": "+15% science in every city joined to your capital by road but your capital with a Library with 2 or more culture buildings"
    }
   ],
   "theCivicPantheon": [
@@ -6715,12 +6715,12 @@
   ],
   "theMastersDomain": [
    {
-    "raw": "+8 food, +8 production on every hex carrying a great person's work",
-    "text": "+8 food, +8 production on every hex carrying a great person's work"
+    "raw": "+12 food, +12 production on every hex carrying a great person's work",
+    "text": "+12 food, +12 production on every hex carrying a great person's work"
    },
    {
-    "raw": "+20% gold in every city working a great person's work",
-    "text": "+20% gold in every city working a great person's work"
+    "raw": "+30% gold in every city working a great person's work",
+    "text": "+30% gold in every city working a great person's work"
    }
   ],
   "theGreatChancery": [
@@ -6729,8 +6729,8 @@
     "text": "+2 authority capacity per city with 3 or more culture buildings (at most +12)"
    },
    {
-    "raw": "+20% culture in every city with 3 or more culture buildings",
-    "text": "+20% culture in every city with 3 or more culture buildings"
+    "raw": "+30% culture in every city with 3 or more culture buildings",
+    "text": "+30% culture in every city with 3 or more culture buildings"
    }
   ],
   "theImperialPageant": [
@@ -6747,38 +6747,38 @@
   ],
   "theHonouredDead": [
    {
-    "raw": "+4 science in your capital per great person you have spent (at most +60 science), counted while this Order stands in a slot",
-    "text": "+4 science in your capital per great person you have spent (at most +60 science), counted while this Order stands in a slot"
+    "raw": "+6 science in your capital per great person you have spent (at most +90 science), counted while this Order stands in a slot",
+    "text": "+6 science in your capital per great person you have spent (at most +90 science), counted while this Order stands in a slot"
    },
    {
-    "raw": "+8 production in your capital per great person you have spent (at most +120 production), counted while this Order stands in a slot",
-    "text": "+8 production in your capital per great person you have spent (at most +120 production), counted while this Order stands in a slot"
+    "raw": "+12 production in your capital per great person you have spent (at most +180 production), counted while this Order stands in a slot",
+    "text": "+12 production in your capital per great person you have spent (at most +180 production), counted while this Order stands in a slot"
    }
   ],
   "thePageantsOfPeace": [
    {
-    "raw": "while you are at peace: +20% culture in every city with 2 or more culture buildings; +2 happiness in every city with 2 or more culture buildings",
-    "text": "while you are at peace: +20% culture in every city with 2 or more culture buildings; +2 happiness in every city with 2 or more culture buildings"
+    "raw": "while you are at peace: +30% culture in every city with 2 or more culture buildings; +2 happiness in every city with 2 or more culture buildings",
+    "text": "while you are at peace: +30% culture in every city with 2 or more culture buildings; +2 happiness in every city with 2 or more culture buildings"
    }
   ],
   "theLivingCanon": [
    {
-    "raw": "+5% food in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +25% food)",
-    "text": "+5% food in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +25% food)"
+    "raw": "+8% food in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +40% food)",
+    "text": "+8% food in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +40% food)"
    },
    {
-    "raw": "+5% production in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +25% production)",
-    "text": "+5% production in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +25% production)"
+    "raw": "+8% production in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +40% production)",
+    "text": "+8% production in every city with 3 or more culture buildings per kind of great person whose legacy you hold (at most +40% production)"
    }
   ],
   "theUniversalCourt": [
    {
-    "raw": "25% of the culture in every city with 3 or more culture buildings is gained again as food",
-    "text": "25% of the culture in every city with 3 or more culture buildings is gained again as food"
+    "raw": "38% of the culture in every city with 3 or more culture buildings is gained again as food",
+    "text": "38% of the culture in every city with 3 or more culture buildings is gained again as food"
    },
    {
-    "raw": "25% of the culture in every city with 3 or more culture buildings is gained again as gold",
-    "text": "25% of the culture in every city with 3 or more culture buildings is gained again as gold"
+    "raw": "38% of the culture in every city with 3 or more culture buildings is gained again as gold",
+    "text": "38% of the culture in every city with 3 or more culture buildings is gained again as gold"
    }
   ],
   "theLastCommission": [
@@ -6790,16 +6790,16 @@
   ],
   "theWonderCommonwealth": [
    {
-    "raw": "+25% production in every city containing a wonder",
-    "text": "+25% production in every city containing a wonder"
+    "raw": "+38% production in every city containing a wonder",
+    "text": "+38% production in every city containing a wonder"
    },
    {
-    "raw": "+25% food in every city containing a wonder",
-    "text": "+25% food in every city containing a wonder"
+    "raw": "+38% food in every city containing a wonder",
+    "text": "+38% food in every city containing a wonder"
    },
    {
-    "raw": "+10% culture in every city containing no wonder",
-    "text": "+10% culture in every city containing no wonder"
+    "raw": "+15% culture in every city containing no wonder",
+    "text": "+15% culture in every city containing no wonder"
    }
   ],
   "frontierGarrisons": [
@@ -6810,14 +6810,14 @@
   ],
   "militaryColonies": [
    {
-    "raw": "+30% production toward settler and worker units, in every city with a [[building:barracks|Barracks]]",
-    "text": "+30% production toward settler and worker units, in every city with a Barracks"
+    "raw": "+45% production toward settler and worker units, in every city with a [[building:barracks|Barracks]]",
+    "text": "+45% production toward settler and worker units, in every city with a Barracks"
    }
   ],
   "commonTheEscortedRoads": [
    {
-    "raw": "+3 gold on every trade route sent from every city with a unit standing in it",
-    "text": "+3 gold on every trade route sent from every city with a unit standing in it"
+    "raw": "+5 gold on every trade route sent from every city with a unit standing in it",
+    "text": "+5 gold on every trade route sent from every city with a unit standing in it"
    },
    {
     "raw": "+2 combat strength for ships while standing beside trader units",
@@ -6826,12 +6826,12 @@
   ],
   "lettersOfMarque": [
    {
-    "raw": "for ships alone, killing a unit grants +40 gold",
-    "text": "for ships alone, killing a unit grants +40 gold"
+    "raw": "for ships alone, killing a unit grants +60 gold",
+    "text": "for ships alone, killing a unit grants +60 gold"
    },
    {
-    "raw": "+25% gold in every city with a [[building:harbour|Harbour]]",
-    "text": "+25% gold in every city with a Harbour"
+    "raw": "+38% gold in every city with a [[building:harbour|Harbour]]",
+    "text": "+38% gold in every city with a Harbour"
    },
    {
     "raw": "-20% production toward ships, in every city with a [[building:harbour|Harbour]]",
@@ -6850,18 +6850,18 @@
     "text": "military units may be bought with faith in every city with a Temple"
    },
    {
-    "raw": "killing a unit grants +10 faith",
-    "text": "killing a unit grants +10 faith"
+    "raw": "killing a unit grants +15 faith",
+    "text": "killing a unit grants +15 faith"
    }
   ],
   "fieldAcademies": [
    {
-    "raw": "killing a unit (at most once a turn) grants +15 science",
-    "text": "killing a unit (at most once a turn) grants +15 science"
+    "raw": "killing a unit (at most once a turn) grants +23 science",
+    "text": "killing a unit (at most once a turn) grants +23 science"
    },
    {
-    "raw": "+25% production toward siege units, in every city with a [[building:library|Library]]",
-    "text": "+25% production toward siege units, in every city with a Library"
+    "raw": "+38% production toward siege units, in every city with a [[building:library|Library]]",
+    "text": "+38% production toward siege units, in every city with a Library"
    }
   ],
   "theEngineerCorps": [
@@ -6870,18 +6870,18 @@
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+20% production toward siege units, in every city with a [[building:workshop|Workshop]]",
-    "text": "+20% production toward siege units, in every city with a Workshop"
+    "raw": "+30% production toward siege units, in every city with a [[building:workshop|Workshop]]",
+    "text": "+30% production toward siege units, in every city with a Workshop"
    },
    {
-    "raw": "while you are at war: +2 science in every city with a [[building:workshop|Workshop]]",
-    "text": "while you are at war: +2 science in every city with a Workshop"
+    "raw": "while you are at war: +3 science in every city with a [[building:workshop|Workshop]]",
+    "text": "while you are at war: +3 science in every city with a Workshop"
    }
   ],
   "theImperialExaminations": [
    {
-    "raw": "+2 culture in every city with a unit standing in it with a [[building:monument|Monument]]",
-    "text": "+2 culture in every city with a unit standing in it with a Monument"
+    "raw": "+3 culture in every city with a unit standing in it with a [[building:monument|Monument]]",
+    "text": "+3 culture in every city with a unit standing in it with a Monument"
    },
    {
     "raw": "+1 renown per turn in every city with a unit standing in it with a [[building:monument|Monument]], favouring scholars",
@@ -6890,12 +6890,12 @@
   ],
   "examinationsOfState": [
    {
-    "raw": "+1 science in every city with a [[building:monument|Monument]] with a unit standing in it per 3 citizens there",
-    "text": "+1 science in every city with a Monument with a unit standing in it per 3 citizens there"
+    "raw": "+2 science in every city with a [[building:monument|Monument]] with a unit standing in it per 3 citizens there",
+    "text": "+2 science in every city with a Monument with a unit standing in it per 3 citizens there"
    },
    {
-    "raw": "+1 culture in every city with a [[building:monument|Monument]] with a unit standing in it per 3 citizens there",
-    "text": "+1 culture in every city with a Monument with a unit standing in it per 3 citizens there"
+    "raw": "+2 culture in every city with a [[building:monument|Monument]] with a unit standing in it per 3 citizens there",
+    "text": "+2 culture in every city with a Monument with a unit standing in it per 3 citizens there"
    }
   ],
   "marketGardens": [
@@ -6910,12 +6910,12 @@
   ],
   "theProvincialFair": [
    {
-    "raw": "+2 food in every city joined to your capital by road but your capital with a [[building:market|Market]]",
-    "text": "+2 food in every city joined to your capital by road but your capital with a Market"
+    "raw": "+3 food in every city joined to your capital by road but your capital with a [[building:market|Market]]",
+    "text": "+3 food in every city joined to your capital by road but your capital with a Market"
    },
    {
-    "raw": "+1 gold on every hex with a [[improvement:plantation|Plantation]] or [[improvement:camp|Camp]] or [[improvement:pasture|Pasture]], in every city joined to your capital by road but your capital with a [[building:market|Market]]",
-    "text": "+1 gold on every hex with a Plantation or Camp or Pasture, in every city joined to your capital by road but your capital with a Market"
+    "raw": "+2 gold on every hex with a [[improvement:plantation|Plantation]] or [[improvement:camp|Camp]] or [[improvement:pasture|Pasture]], in every city joined to your capital by road but your capital with a [[building:market|Market]]",
+    "text": "+2 gold on every hex with a Plantation or Camp or Pasture, in every city joined to your capital by road but your capital with a Market"
    }
   ],
   "sacredGroves": [
@@ -6933,12 +6933,12 @@
   ],
   "hydraulicSchools": [
    {
-    "raw": "+1 science in every city with an [[building:aqueduct|Aqueduct]] per 3 citizens there",
-    "text": "+1 science in every city with an Aqueduct per 3 citizens there"
+    "raw": "+2 science in every city with an [[building:aqueduct|Aqueduct]] per 3 citizens there",
+    "text": "+2 science in every city with an Aqueduct per 3 citizens there"
    },
    {
-    "raw": "+20% production toward science buildings, in every city with an [[building:aqueduct|Aqueduct]]",
-    "text": "+20% production toward science buildings, in every city with an Aqueduct"
+    "raw": "+30% production toward science buildings, in every city with an [[building:aqueduct|Aqueduct]]",
+    "text": "+30% production toward science buildings, in every city with an Aqueduct"
    }
   ],
   "theHydraulicCommonwealth": [
@@ -6957,14 +6957,14 @@
   ],
   "theSculptedLandscape": [
    {
-    "raw": "+1 food, +1 culture on every hex with a [[improvement:farm|Farm]] beside a great person's work",
-    "text": "+1 food, +1 culture on every hex with a Farm beside a great person's work"
+    "raw": "+2 food, +2 culture on every hex with a [[improvement:farm|Farm]] beside a great person's work",
+    "text": "+2 food, +2 culture on every hex with a Farm beside a great person's work"
    }
   ],
   "pilgrimMarkets": [
    {
-    "raw": "+2 gold, +2 faith on every trade route with either end in a city with a [[improvement:holySite|Holy Site]]",
-    "text": "+2 gold, +2 faith on every trade route with either end in a city with a Holy Site"
+    "raw": "+3 gold, +3 faith on every trade route with either end in a city with a [[improvement:holySite|Holy Site]]",
+    "text": "+3 gold, +3 faith on every trade route with either end in a city with a Holy Site"
    }
   ],
   "commonTheTithe": [
@@ -6979,18 +6979,18 @@
   ],
   "merchantScholars": [
    {
-    "raw": "+3 science on every trade route sent from every city with a [[building:library|Library]] and that ends in another empire’s city",
-    "text": "+3 science on every trade route sent from every city with a Library and that ends in another empire’s city"
+    "raw": "+5 science on every trade route sent from every city with a [[building:library|Library]] and that ends in another empire’s city",
+    "text": "+5 science on every trade route sent from every city with a Library and that ends in another empire’s city"
    }
   ],
   "theExchangeOfDiscoveries": [
    {
-    "raw": "+1 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] carrying a resource",
-    "text": "+1 science on every hex with a Mine or Quarry carrying a resource"
+    "raw": "+2 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] carrying a resource",
+    "text": "+2 science on every hex with a Mine or Quarry carrying a resource"
    },
    {
-    "raw": "+1 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] carrying a resource, in every city with a [[building:market|Market]]",
-    "text": "+1 science on every hex with a Mine or Quarry carrying a resource, in every city with a Market"
+    "raw": "+2 science on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] carrying a resource, in every city with a [[building:market|Market]]",
+    "text": "+2 science on every hex with a Mine or Quarry carrying a resource, in every city with a Market"
    }
   ],
   "travellingPlayers": [
@@ -7005,38 +7005,38 @@
     "text": "+1 renown per turn in every city with 1 or more culture buildings, per trade route to another empire leaving it, at most 3 per city"
    },
    {
-    "raw": "+2 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings",
-    "text": "+2 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings"
+    "raw": "+3 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings",
+    "text": "+3 gold on every hex carrying a great person's work, in every city with 1 or more culture buildings"
    }
   ],
   "cloisterSchools": [
    {
-    "raw": "+3 food, +3 science in every city with a [[building:temple|Temple]] with a [[building:library|Library]]",
-    "text": "+3 food, +3 science in every city with a Temple with a Library"
+    "raw": "+5 food, +5 science in every city with a [[building:temple|Temple]] with a [[building:library|Library]]",
+    "text": "+5 food, +5 science in every city with a Temple with a Library"
    }
   ],
   "theCloister": [
    {
-    "raw": "20% of the faith in every city with a [[building:temple|Temple]] is gained again as science",
-    "text": "20% of the faith in every city with a Temple is gained again as science"
+    "raw": "30% of the faith in every city with a [[building:temple|Temple]] is gained again as science",
+    "text": "30% of the faith in every city with a Temple is gained again as science"
    },
    {
-    "raw": "+2 food in every city with a [[building:temple|Temple]] with a [[building:library|Library]]",
-    "text": "+2 food in every city with a Temple with a Library"
+    "raw": "+3 food in every city with a [[building:temple|Temple]] with a [[building:library|Library]]",
+    "text": "+3 food in every city with a Temple with a Library"
    },
    {
-    "raw": "+2 food in every city with a [[building:temple|Temple]] with a [[building:university|University]]",
-    "text": "+2 food in every city with a Temple with a University"
+    "raw": "+3 food in every city with a [[building:temple|Temple]] with a [[building:university|University]]",
+    "text": "+3 food in every city with a Temple with a University"
    }
   ],
   "sacredCommissions": [
    {
-    "raw": "+25% production toward wonders, in every city with a [[improvement:holySite|Holy Site]]",
-    "text": "+25% production toward wonders, in every city with a Holy Site"
+    "raw": "+38% production toward wonders, in every city with a [[improvement:holySite|Holy Site]]",
+    "text": "+38% production toward wonders, in every city with a Holy Site"
    },
    {
-    "raw": "completing a wonder grants +40 faith",
-    "text": "completing a wonder grants +40 faith"
+    "raw": "completing a wonder grants +60 faith",
+    "text": "completing a wonder grants +60 faith"
    }
   ],
   "sacredPatronage": [
@@ -7054,16 +7054,16 @@
   ],
   "commonTheHouseOfWisdom": [
    {
-    "raw": "+2 culture on every hex with an [[improvement:academy|Academy]]",
-    "text": "+2 culture on every hex with an Academy"
+    "raw": "+3 culture on every hex with an [[improvement:academy|Academy]]",
+    "text": "+3 culture on every hex with an Academy"
    },
    {
     "raw": "+1 renown per turn in every city working an [[improvement:academy|Academy]]",
     "text": "+1 renown per turn in every city working an Academy"
    },
    {
-    "raw": "+20% production toward wonders, in every city working an [[improvement:academy|Academy]]",
-    "text": "+20% production toward wonders, in every city working an Academy"
+    "raw": "+30% production toward wonders, in every city working an [[improvement:academy|Academy]]",
+    "text": "+30% production toward wonders, in every city working an Academy"
    }
   ],
   "commonMarcherLords": [
@@ -7099,8 +7099,8 @@
   ],
   "theGrainExchange": [
    {
-    "raw": "+3 food on every trade route sent from every city with a [[building:granary|Granary]] and between two of your own cities",
-    "text": "+3 food on every trade route sent from every city with a Granary and between two of your own cities"
+    "raw": "+5 food on every trade route sent from every city with a [[building:granary|Granary]] and between two of your own cities",
+    "text": "+5 food on every trade route sent from every city with a Granary and between two of your own cities"
    },
    {
     "raw": "+1 happiness in every city one of your own trade routes from a city with a [[building:granary|Granary]] ends at",
@@ -7120,14 +7120,14 @@
     "text": "ships: +1 movement"
    },
    {
-    "raw": "+3 science on every trade route sent from every city with a [[building:harbour|Harbour]] with a [[building:library|Library]]",
-    "text": "+3 science on every trade route sent from every city with a Harbour with a Library"
+    "raw": "+5 science on every trade route sent from every city with a [[building:harbour|Harbour]] with a [[building:library|Library]]",
+    "text": "+5 science on every trade route sent from every city with a Harbour with a Library"
    }
   ],
   "gardenProvinces": [
    {
-    "raw": "+2 food, +2 culture in every city joined to your capital by road with a [[building:monument|Monument]]",
-    "text": "+2 food, +2 culture in every city joined to your capital by road with a Monument"
+    "raw": "+3 food, +3 culture in every city joined to your capital by road with a [[building:monument|Monument]]",
+    "text": "+3 food, +3 culture in every city joined to your capital by road with a Monument"
    }
   ],
   "hearthStores": [
@@ -7187,8 +7187,8 @@
   ],
   "publicWells": [
    {
-    "raw": "+1 food in every city without fresh water",
-    "text": "+1 food in every city without fresh water"
+    "raw": "+2 food in every city without fresh water",
+    "text": "+2 food in every city without fresh water"
    }
   ],
   "civicPeace": [
@@ -7232,12 +7232,12 @@
   ],
   "commonLedgers": [
    {
-    "raw": "+1 science in every city with a [[building:market|Market]]",
-    "text": "+1 science in every city with a Market"
+    "raw": "+2 science in every city with a [[building:market|Market]]",
+    "text": "+2 science in every city with a Market"
    },
    {
-    "raw": "+1 gold in every city with a [[building:library|Library]]",
-    "text": "+1 gold in every city with a Library"
+    "raw": "+2 gold in every city with a [[building:library|Library]]",
+    "text": "+2 gold in every city with a Library"
    }
   ],
   "cityWatches": [
@@ -7249,12 +7249,12 @@
   ],
   "theHolyArmy": [
    {
-    "raw": "+2 culture, +2 faith on every hex with a [[improvement:holySite|Holy Site]] beside a [[improvement:citadel|Citadel]]",
-    "text": "+2 culture, +2 faith on every hex with a Holy Site beside a Citadel"
+    "raw": "+3 culture, +3 faith on every hex with a [[improvement:holySite|Holy Site]] beside a [[improvement:citadel|Citadel]]",
+    "text": "+3 culture, +3 faith on every hex with a Holy Site beside a Citadel"
    },
    {
-    "raw": "+2 culture, +2 faith on every hex with a [[improvement:citadel|Citadel]] beside a [[improvement:holySite|Holy Site]]",
-    "text": "+2 culture, +2 faith on every hex with a Citadel beside a Holy Site"
+    "raw": "+3 culture, +3 faith on every hex with a [[improvement:citadel|Citadel]] beside a [[improvement:holySite|Holy Site]]",
+    "text": "+3 culture, +3 faith on every hex with a Citadel beside a Holy Site"
    }
   ],
   "theBarbarianFrontier": [
@@ -7271,14 +7271,14 @@
   ],
   "theFloodFestival": [
    {
-    "raw": "building a [[improvement:burnedCountry|Burned Country]] grants +5 faith",
-    "text": "building a Burned Country grants +5 faith"
+    "raw": "building a [[improvement:burnedCountry|Burned Country]] grants +8 faith",
+    "text": "building a Burned Country grants +8 faith"
    }
   ],
   "theRoadGarrisons": [
    {
-    "raw": "+3 food in every city with a unit standing in it joined to your capital by road",
-    "text": "+3 food in every city with a unit standing in it joined to your capital by road"
+    "raw": "+5 food in every city with a unit standing in it joined to your capital by road",
+    "text": "+5 food in every city with a unit standing in it joined to your capital by road"
    },
    {
     "raw": "every city with a unit standing in it joined to your capital by road: +5 city defence",
@@ -7287,8 +7287,8 @@
   ],
   "convertItOrTaxIt": [
    {
-    "raw": "+3 gold, +2 faith in every captured city that does not follow your religion",
-    "text": "+3 gold, +2 faith in every captured city that does not follow your religion"
+    "raw": "+5 gold, +3 faith in every captured city that does not follow your religion",
+    "text": "+5 gold, +3 faith in every captured city that does not follow your religion"
    },
    {
     "raw": "the authority a captured city that follows your religion costs falls by 1",

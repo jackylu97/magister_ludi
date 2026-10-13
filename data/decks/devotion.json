@@ -256,14 +256,14 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The calendar is a promise that the feast will come again.",
-      "text": "Your capital gains +1 science and +1 faith for every city of yours keeping a rite, at most +8 of each.",
+      "text": "Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 1,
+          "amount": 2,
           "count": "citiesKeepingRite",
           "max": 8,
           "scope": {
@@ -275,7 +275,7 @@
           "where": "city",
           "basis": "count",
           "to": "faith",
-          "amount": 1,
+          "amount": 2,
           "count": "citiesKeepingRite",
           "max": 8,
           "scope": {
@@ -354,14 +354,14 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Every verse was somebody's first morning in the faith.",
-      "text": "Your capital gains +2 science and +2 culture for every city following your religion, with no cap.",
+      "text": "Your capital gains +3 science and +3 culture for every city following your religion, with no cap.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 2,
+          "amount": 3,
           "count": "followingCities",
           "scope": {
             "test": "capital"
@@ -372,7 +372,7 @@
           "where": "city",
           "basis": "count",
           "to": "culture",
-          "amount": 2,
+          "amount": 3,
           "count": "followingCities",
           "scope": {
             "test": "capital"
@@ -389,12 +389,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The road out of a temple town is never empty and never only cargo.",
-      "text": "Your trade routes from Temple cities gain +3 faith.",
+      "text": "Your trade routes from Temple cities gain +5 faith.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
-          "faith": 3,
+          "faith": 5,
           "origin": {
             "test": "hasBuilding",
             "building": "temple"
@@ -411,7 +411,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Two towns, two letters home, and a road between them.",
-      "text": "Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 100 culture. Then this card leaves its chair.",
+      "text": "Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 150 culture. Then this card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -427,7 +427,7 @@
           },
           {
             "yield": "culture",
-            "amount": 100
+            "amount": 150
           }
         ]
       }
@@ -503,14 +503,14 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Every line of it was an argument once.",
-      "text": "Your capital gains +2 faith and +2 culture for every belief your religion holds.",
+      "text": "Your capital gains +3 faith and +3 culture for every belief your religion holds.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "faith",
-          "amount": 2,
+          "amount": 3,
           "count": "beliefsHeld",
           "scope": {
             "test": "capital"
@@ -521,7 +521,7 @@
           "where": "city",
           "basis": "count",
           "to": "culture",
-          "amount": 2,
+          "amount": 3,
           "count": "beliefsHeld",
           "scope": {
             "test": "capital"
@@ -538,14 +538,14 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The walls tell the story to the ones who cannot read it.",
-      "text": "Religious buildings give +2 culture each.",
+      "text": "Religious buildings give +3 culture each.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "culture",
-          "amount": 2,
+          "amount": 3,
           "count": "buildingsOfCategory",
           "category": "faith",
           "within": "city"
@@ -590,13 +590,13 @@
       "line": "none",
       "rarity": "common",
       "flavor": "They buried him at the edge of the barley and the barley never forgot.",
-      "text": "Worked Holy Sites give +3 food and +5 gold. A city working one gains +2 happiness, once per city.",
+      "text": "Worked Holy Sites give +5 food and +8 gold. A city working one gains +2 happiness, once per city.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 3,
-          "gold": 5,
+          "food": 5,
+          "gold": 8,
           "on": {
             "test": "improvement",
             "improvement": "holySite"
@@ -624,13 +624,13 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Three generations of masons and one drawing.",
-      "text": "Gain +30% production toward Cathedrals. Cities with one gain +5 science and +2 happiness.",
+      "text": "Gain +45% production toward Cathedrals. Cities with one gain +8 science and +2 happiness.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
           "building": "cathedral",
-          "percent": 30
+          "percent": 45
         },
         {
           "kind": "pays",
@@ -639,7 +639,7 @@
             "test": "hasBuilding",
             "building": "cathedral"
           },
-          "science": 5
+          "science": 8
         },
         {
           "kind": "happiness",
@@ -661,12 +661,12 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Nobody remembers who first prayed here, which is the point.",
-      "text": "Holy Sites that have stood for 20 turns gain +2 faith. Those that have stood for 40 turns gain +2 faith and +2 culture more.",
+      "text": "Holy Sites that have stood for 20 turns gain +3 faith. Those that have stood for 40 turns gain +3 faith and +3 culture more.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "faith": 2,
+          "faith": 3,
           "on": {
             "test": "all",
             "of": [
@@ -684,8 +684,8 @@
         {
           "kind": "pays",
           "where": "hex",
-          "faith": 2,
-          "culture": 2,
+          "faith": 3,
+          "culture": 3,
           "on": {
             "test": "all",
             "of": [
@@ -711,13 +711,13 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The god owned the fields, and the priests kept the books.",
-      "text": "Hexes beside a Holy Site gain +1 food and +1 faith.",
+      "text": "Hexes beside a Holy Site gain +2 food and +2 faith.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
-          "faith": 1,
+          "food": 2,
+          "faith": 2,
           "on": {
             "test": "beside",
             "of": {
@@ -821,12 +821,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Mark the days first. The year arranges itself around them.",
-      "text": "Cities keeping a rite gain +20% food and +20% culture.",
+      "text": "Cities keeping a rite gain +30% food and +30% culture.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "food",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "keepingRite"
           }
@@ -834,7 +834,7 @@
         {
           "kind": "percentYields",
           "yield": "culture",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "keepingRite"
           }
@@ -850,14 +850,14 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Every name on it asked again, and was answered.",
-      "text": "+4 science and +4 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated.",
+      "text": "+6 science and +6 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated.",
       "effects": [
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
           "to": "science",
-          "amount": 4,
+          "amount": 6,
           "count": "rerollsWhileSlotted"
         },
         {
@@ -865,7 +865,7 @@
           "where": "empire",
           "basis": "count",
           "to": "culture",
-          "amount": 4,
+          "amount": 6,
           "count": "rerollsWhileSlotted"
         },
         {
@@ -905,12 +905,12 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "A faith that has stopped travelling has time to read.",
-      "text": "Temple cities keeping a rite gain +20% science and +2 happiness. Your proclamations apply 25% less pressure.",
+      "text": "Temple cities keeping a rite gain +30% science and +2 happiness. Your proclamations apply 25% less pressure.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "science",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "all",
             "of": [
@@ -957,7 +957,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A quiet office, a long memory, and a very short list.",
-      "text": "Rival religions press your cities 40% less. +25% faith.",
+      "text": "Rival religions press your cities 40% less. +38% faith.",
       "effects": [
         {
           "kind": "pressureRule",
@@ -967,7 +967,7 @@
         {
           "kind": "percentYields",
           "yield": "faith",
-          "percent": 25
+          "percent": 38
         }
       ]
     },
@@ -980,7 +980,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The ones who kept the calendar also kept the accounts.",
-      "text": "+1 science and +1 culture for every 10 faith your empire makes each turn.",
+      "text": "+2 science and +2 culture for every 10 faith your empire makes each turn.",
       "effects": [
         {
           "kind": "pays",
@@ -989,7 +989,7 @@
           "fromRate": "faithPerTurn",
           "per": 10,
           "to": "science",
-          "amount": 1
+          "amount": 2
         },
         {
           "kind": "pays",
@@ -998,7 +998,7 @@
           "fromRate": "faithPerTurn",
           "per": 10,
           "to": "culture",
-          "amount": 1
+          "amount": 2
         }
       ]
     },
@@ -1011,14 +1011,14 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Every stone in it was paid for by somebody's prayer.",
-      "text": "Buildings you bought with faith give +1 culture each, at most +3 per town. You can purchase buildings with faith.",
+      "text": "Buildings you bought with faith give +2 culture each, at most +6 per town. You can purchase buildings with faith.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "culture",
-          "amount": 1,
+          "amount": 2,
           "count": "purchasedBuildings",
           "within": "city",
           "bank": "faith",
@@ -1039,12 +1039,12 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "They wrote down what everyone already believed, and then it was true twice.",
-      "text": "Follower beliefs pay 100% more in your own cities.",
+      "text": "Follower beliefs pay 150% more in your own cities.",
       "effects": [
         {
           "kind": "cardYieldAmplifier",
           "yield": "all",
-          "percent": 100,
+          "percent": 150,
           "reads": "followerBeliefs"
         }
       ]
@@ -1058,13 +1058,13 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "The library was in the cloister, and the cloister was in the library.",
-      "text": "A Holy Site and an academy standing beside each other each gain +3 science and +2 faith.",
+      "text": "A Holy Site and an academy standing beside each other each gain +5 science and +3 faith.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "science": 3,
-          "faith": 2,
+          "science": 5,
+          "faith": 3,
           "on": {
             "test": "all",
             "of": [
@@ -1085,8 +1085,8 @@
         {
           "kind": "pays",
           "where": "hex",
-          "science": 3,
-          "faith": 2,
+          "science": 5,
+          "faith": 3,
           "on": {
             "test": "all",
             "of": [

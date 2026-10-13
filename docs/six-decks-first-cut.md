@@ -937,52 +937,52 @@ Chronicle of Works rewards early civic construction with science/gold; Civic Ann
 
 | Card | Rarity | Proposed text |
 |---|---|---|
-| The Chancery | C | Gain +1 authority capacity per two Monuments, at most +3. Cities with at least two culture buildings gain +2 gold. |
-| The Civic Stage | C | Cities with at least two culture buildings gain +2 happiness and +3 food. |
-| The Public Copyists | C | Cities with a Monument and Library gain +3 science and +2 culture. |
+| The Chancery | C | Gain +1 authority capacity per two Monuments, at most +3. Cities with at least two culture buildings gain +3 gold. |
+| The Civic Stage | C | Cities with at least two culture buildings gain +2 happiness and +5 food. |
+| The Public Copyists | C | Cities with a Monument and Library gain +5 science and +3 culture. |
 | The Artisan Wages | C | Culture buildings give +2 gold and +1 production each. |
-| Provincial Patrons | C | Noncapital cities with at least two culture buildings gain +1 renown and +2 culture. |
-| The Citizens' Watch | C | Cities with at least two culture buildings train military units 20% faster and gain +3 defence. |
-| The Harbour Festival | C | Harbours give +2 culture and +2 food. Coastal cities with a Monument gain +1 happiness. |
-| The Pageant Schools | C | Cities with a Monument and Temple gain +2 science and +2 faith. |
-| The Grand Fairs | C | Cities with a Market and Monument gain +3 culture and +3 gold. |
-| The Groundskeepers | U | Worked great-person improvements give +3 food and +3 production. |
-| The Laureate | U | Cities working a great-person improvement gain +3 culture, +2 science and +1 renown, once per city. |
-| The Guild of Masons | U | Gain +25% production toward wonders. Cities producing a wonder lose 2 gold per turn. |
+| Provincial Patrons | C | Noncapital cities with at least two culture buildings gain +1 renown and +3 culture. |
+| The Citizens' Watch | C | Cities with at least two culture buildings train military units 30% faster and gain +3 defence. |
+| The Harbour Festival | C | Harbours give +3 culture and +3 food. Coastal cities with a Monument gain +1 happiness. |
+| The Pageant Schools | C | Cities with a Monument and Temple gain +3 science and +3 faith. |
+| The Grand Fairs | C | Cities with a Market and Monument gain +5 culture and +5 gold. |
+| The Groundskeepers | U | Worked great-person improvements give +5 food and +5 production. |
+| The Laureate | U | Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city. |
+| The Guild of Masons | U | Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn. |
 | The Civic Assemblies | U | Gain +1 authority capacity per two culture buildings, at most +4. Culture buildings cost 20% less production in noncapital cities. |
-| The Patrons' Road | U | Connected noncapital cities with a Monument gain +3 gold and +2 production. Domestic routes from such cities give their destination +2 culture; your foreign routes from them give you +2 culture. |
-| The Master Workshops | U | Completing a culture building for the first time in a city grants 25 production there and 20 gold. |
+| The Patrons' Road | U | Connected noncapital cities with a Monument gain +5 gold and +3 production. Domestic routes from such cities give their destination +3 culture; your foreign routes from them give you +3 culture. |
+| The Master Workshops | U | Completing a culture building for the first time in a city grants 38 production there and 30 gold. |
 | The Commemorative Feast | U | Spending a great person grants 30 food and 30 production to your nearest city. Each person pays once. |
 | The Living Chronicle | U | While active, gains +2 production and +2 culture per turn in your capital for each wonder you complete or great person you spend, at most +30 of each. |
 | The Complete Court | U | Your capital gains +3% food and +3% production per distinct non-culture building category it holds, at most +18% each. |
 | The Great Patrons | U | Each wonder you hold gives +2 family-neutral renown. Cities containing a wonder purchase culture buildings for 20% less gold. |
-| The Muses' Call | R | Gain +20% renown. Cities working a great-person improvement gain +3 food and +3 production, once per city. |
+| The Muses' Call | R | Gain +20% renown. Cities working a great-person improvement gain +5 food and +5 production, once per city. |
 | The Artisan Court | R | Cities working a great-person improvement gain +2 renown and purchase culture buildings for 25% less gold. |
-| The Working Court | R | Cities with a Monument gain production equal to 20% of their base culture, excluding conversion outputs. |
-| The Festival Season | R | Cities with a Garden and Amphitheater gain +20% food and +20% gold. Each qualifying city costs +2 gold upkeep. |
+| The Working Court | R | Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs. |
+| The Festival Season | R | Cities with a Garden and Amphitheater gain +30% food and +30% gold. Each qualifying city costs +2 gold upkeep. |
 
 #### Tier 2 — Late (Government II · age 3+)
 
 | Card | Rarity | Proposed text |
 |---|---|---|
-| The Court Archives | C | Culture buildings give +2 science each. Cities with at least two gain +5 gold. |
-| The Public Gallery | C | Cities with at least three culture buildings gain +6 food and +3 happiness. |
-| The Monumental Provinces | C | Connected noncapital cities with a Monument gain +5 production and +3 culture. |
-| The Civic Faith | C | Culture buildings give +3 faith each. Cities containing a wonder gain +3 happiness. |
-| The Provincial Chancery | C | Gain +1 authority capacity per noncapital city with at least two culture buildings, at most +8. Such cities gain +3 science. |
+| The Court Archives | C | Culture buildings give +3 science each. Cities with at least two gain +8 gold. |
+| The Public Gallery | C | Cities with at least three culture buildings gain +9 food and +3 happiness. |
+| The Monumental Provinces | C | Connected noncapital cities with a Monument gain +8 production and +5 culture. |
+| The Civic Faith | C | Culture buildings give +5 faith each. Cities containing a wonder gain +3 happiness. |
+| The Provincial Chancery | C | Gain +1 authority capacity per noncapital city with at least two culture buildings, at most +8. Such cities gain +5 science. |
 | The Palace Guard | C | Cities with at least three culture buildings train military units 30% faster. Your military units defending those cities gain +4 strength. |
-| The Maritime Galleries | C | Harbours give +5 culture and +3 science. Ships trained in a city with at least two culture buildings gain +3 strength on creation. |
-| The Provincial Stages | C | Noncapital cities with at least two culture buildings gain +2 renown and +3 food. |
-| The Master's Presence | U | Cities working a great-person improvement gain +20% production toward buildings and +15% gold. |
-| The Grand Tour | U | Cities containing a wonder gain +5 culture and +5 science. Cities working a great-person improvement gain +2 happiness. |
-| The Learned Patron | U | Cities with at least two culture buildings gain science equal to 10% of their base culture, at most +12 science per city. Conversion outputs are excluded. |
-| The Performers' Treasury | U | Cities with at least two culture buildings gain gold equal to 20% of their base culture, excluding conversion outputs. |
-| The Civic Harvest | U | Cities of at least ten population with at least two culture buildings gain +25% food and +3 happiness, and retain an additional 20% of food spent on growth. |
-| The Senate Charter | U | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +20% production toward buildings. |
-| The Sculptors' Schools | U | Worked great-person improvements give +3 science and +3 gold. Their cities gain +1 renown, once per city. |
-| The Patrons' Fleet | U | Cities with a Harbour and at least two culture buildings train ships 35% faster. Your ships gain +1 movement. |
+| The Maritime Galleries | C | Harbours give +8 culture and +5 science. Ships trained in a city with at least two culture buildings gain +3 strength on creation. |
+| The Provincial Stages | C | Noncapital cities with at least two culture buildings gain +2 renown and +5 food. |
+| The Master's Presence | U | Cities working a great-person improvement gain +30% production toward buildings and +23% gold. |
+| The Grand Tour | U | Cities containing a wonder gain +8 culture and +8 science. Cities working a great-person improvement gain +2 happiness. |
+| The Learned Patron | U | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. |
+| The Performers' Treasury | U | Cities with at least two culture buildings gain gold equal to 30% of their base culture, excluding conversion outputs. |
+| The Civic Harvest | U | Cities of at least ten population with at least two culture buildings gain +38% food and +3 happiness, and retain an additional 20% of food spent on growth. |
+| The Senate Charter | U | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
+| The Sculptors' Schools | U | Worked great-person improvements give +5 science and +5 gold. Their cities gain +1 renown, once per city. |
+| The Patrons' Fleet | U | Cities with a Harbour and at least two culture buildings train ships 53% faster. Your ships gain +1 movement. |
 | The Cultural Embassies | U | Each foreign empire you have met and are at peace with gives your capital +3 gold and +2 culture, at most +12 gold and +8 culture. Gain +1 family-neutral renown per two such partners, at most +2. |
-| The Monumental Court | R | Cities containing a wonder gain +3 renown and +25% production toward culture buildings and wonders, once per city. |
+| The Monumental Court | R | Cities containing a wonder gain +3 renown and +38% production toward culture buildings and wonders, once per city. |
 | The Civic Commonwealth | R | Cities with at least three culture buildings demand 20% less population happiness and cost one less authority, minimum one. |
 | The Great Exhibition | R | Worked great-person improvements gain +25% of their native yield. Cities working at least two different types gain +20% gold. |
 | The Golden Age | R | Completing a wonder grants your cities +20% food, production, gold and culture for ten turns while this card remains active. Duration refreshes; magnitude does not stack. |
@@ -991,21 +991,21 @@ Chronicle of Works rewards early civic construction with science/gold; Civic Ann
 
 | Card | Rarity | Proposed text |
 |---|---|---|
-| The Laureate Cities | C | Cities of at least twelve population with at least two culture buildings gain +25% culture and +10% science. |
+| The Laureate Cities | C | Cities of at least twelve population with at least two culture buildings gain +38% culture and +15% science. |
 | The National Galleries | C | Culture buildings give +5 food and +5 gold each. Cities with at least three gain +4 happiness. |
-| The Provincial Academies | C | Connected noncapital cities with a Library and at least two culture buildings gain +20% production and +10% science. |
+| The Provincial Academies | C | Connected noncapital cities with a Library and at least two culture buildings gain +30% production and +15% science. |
 | The Civic Pantheon | C | Cities containing a wonder gain +25% faith and +20% gold. Wonders give +10 culture each. |
 | The Salon | U | Culture buildings give +2 renown each in cities working a great-person improvement, at most +6 per city. |
 | The Magister's Court | U | Cities containing a wonder gain +25% production toward the Magnum Opus and Cathedrals, once per city. |
-| The Masters' Domain | U | Worked great-person improvements give +8 production and +8 food. Their cities gain +20% gold, once per city. |
-| The Great Chancery | U | Gain +2 authority capacity per city with at least three culture buildings, at most +12. Such cities gain +20% culture. |
+| The Masters' Domain | U | Worked great-person improvements give +12 production and +12 food. Their cities gain +30% gold, once per city. |
+| The Great Chancery | U | Gain +2 authority capacity per city with at least three culture buildings, at most +12. Such cities gain +30% culture. |
 | The Imperial Pageant | U | Your military units gain +5 strength when defending within two hexes of your wonder or great-person work. Cities with at least three culture buildings train military units 35% faster. |
-| The Honoured Dead | U | Your capital gains +4 science and +8 production per distinct great person you have spent this game, at most +60 science and +120 production. |
-| The Pageants of Peace | U | While at peace with every foreign empire, cities with at least two culture buildings gain +20% culture and +2 happiness. |
-| The Living Canon | R | Cities with at least three culture buildings gain +5% food and +5% production per distinct great-person family whose legacy you currently hold, at most +25% each. |
-| The Universal Court | R | Cities with at least three culture buildings gain food and gold each equal to 25% of their base culture. Conversion outputs are excluded. |
+| The Honoured Dead | U | Your capital gains +6 science and +12 production per distinct great person you have spent this game, at most +90 science and +180 production. |
+| The Pageants of Peace | U | While at peace with every foreign empire, cities with at least two culture buildings gain +30% culture and +2 happiness. |
+| The Living Canon | R | Cities with at least three culture buildings gain +8% food and +8% production per distinct great-person family whose legacy you currently hold, at most +40% each. |
+| The Universal Court | R | Cities with at least three culture buildings gain food and gold each equal to 38% of their base culture. Conversion outputs are excluded. |
 | The Last Commission | R | Spending a great person grants the city building your Magnum Opus 150 production, at most once per turn. No Opus under construction means no payout. Each person can pay once. |
-| The Wonder Commonwealth | R | Cities containing a wonder gain +25% production and +25% food. Your cities without a wonder gain +10% culture instead. |
+| The Wonder Commonwealth | R | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
 
 #### Intended packages and checks
 

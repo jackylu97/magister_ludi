@@ -51,6 +51,7 @@ import {
   DECK_FILES,
   DECK_FILE_ORDERS,
   ORDER_IDS,
+  TIER_LADDER,
   orderDef,
   orderIsDealt,
 } from '../../../src/sim/statecraftData';
@@ -396,7 +397,7 @@ describe('the fold', () => {
       explainCity(g.state, city).lines.filter((line) => line.card === card);
     expect(of('hearthCeremonies').reduce((sum, line) => sum + line.faith, 0)).toBe(2);
     // The Grand Fairs wants a Market beside the Monument, and this town has one.
-    expect(of('theGrandFairs').reduce((sum, line) => sum + line.gold, 0)).toBe(3);
+    expect(of('theGrandFairs').reduce((sum, line) => sum + line.gold, 0)).toBe(5);
     // Take the Market away and the line goes with it.
     city.buildings.splice(city.buildings.indexOf('market' as BuildingId), 1);
     bumpRevision(g.state);
@@ -449,7 +450,11 @@ describe('the draft', () => {
     const g = seated(5);
     const seat = playerById(g.state, 0)!;
     openEveryBand(g.state, seat);
-    const bag = new Set<string>(eligibleFor(g.state, seat));
+    // A seat is dealt only its current band (the ruling of 2026-10-13), so the
+    // bag is read at every rung of the ladder and the bands are put together.
+    const bag = new Set<string>(
+      TIER_LADDER.flatMap((rung) => eligibleFor(g.state, seat, rung.drafts)),
+    );
     for (const id of MAGISTERIAL.filter(deferred)) expect(bag.has(id), id).toBe(false);
     for (const id of MAGISTERIAL.filter(live)) expect(bag.has(id), id).toBe(true);
   });

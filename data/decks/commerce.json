@@ -357,12 +357,12 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "The purse builds faster than the quarry, and asks for its name on the door.",
-      "text": "Your cities gain +25% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected.",
+      "text": "Your cities gain +38% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 25
+          "percent": 38
         },
         {
           "kind": "productionBonus",
@@ -382,7 +382,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The town remembers who paid for the roof.",
-      "text": "Buying any building grants culture equal to 10% of the gold paid, with no cap.",
+      "text": "Buying any building grants culture equal to 15% of the gold paid, with no cap.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -390,7 +390,7 @@
           "anyBuilding": true,
           "grant": {
             "yield": "culture",
-            "amount": 0.1,
+            "amount": 0.15,
             "fromOccasion": "gold"
           }
         }
@@ -406,14 +406,14 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Grain moves on paper long before it moves on a cart.",
-      "text": "Domestic routes grant their destination +2 food and +2 production.",
+      "text": "Domestic routes grant their destination +3 food and +3 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
           "crossing": "domestic",
-          "food": 2,
-          "production": 2
+          "food": 3,
+          "production": 3
         }
       ]
     },
@@ -426,22 +426,22 @@
       "line": "none",
       "rarity": "common",
       "flavor": "A road belongs to whoever is standing on it.",
-      "text": "Your foreign routes grant you +2 gold, +2 science and +2 culture. Each also grants its host city +2 gold.",
+      "text": "Your foreign routes grant you +3 gold, +3 science and +3 culture. Each also grants its host city +3 gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
           "crossing": "international",
-          "gold": 2,
-          "science": 2,
-          "culture": 2
+          "gold": 3,
+          "science": 3,
+          "culture": 3
         },
         {
           "kind": "pays",
           "where": "route",
           "crossing": "international",
           "payee": "host",
-          "gold": 2
+          "gold": 3
         }
       ],
       "note": "The host's two gold are paid to the foreign city the caravan reaches, and appear on that city's own sheet under this card's name. They are a flat grant: the sea premium and any percentage of yours raise what the trade route pays you, never what it pays your host. A blockade at either end stops both halves, as it stops everything a caravan carries."
@@ -568,12 +568,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A hired sword is dearer to raise and cheaper to buy.",
-      "text": "Your cities gain +25% gold. Military units take 10% more production to train. Purchased units count as trained.",
+      "text": "Your cities gain +38% gold. Military units take 10% more production to train. Purchased units count as trained.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 25
+          "percent": 38
         },
         {
           "kind": "productionBonus",
@@ -705,7 +705,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Where the stalls stand, the writ runs.",
-      "text": "+1 authority for every two Markets in your empire. Your cities gain +25% gold.",
+      "text": "+1 authority for every two Markets in your empire. Your cities gain +38% gold.",
       "effects": [
         {
           "kind": "pays",
@@ -720,7 +720,7 @@
         {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 25
+          "percent": 38
         }
       ]
     },
@@ -733,14 +733,14 @@
       "line": "none",
       "rarity": "common",
       "flavor": "A boy who can keep a ledger can keep anything.",
-      "text": "Gold buildings provide +2 science.",
+      "text": "Gold buildings provide +3 science.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 2,
+          "amount": 3,
           "count": "buildingsOfCategory",
           "category": "gold",
           "within": "city"
@@ -869,7 +869,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Coin buys the tools, and the men who used to eat go and use them.",
-      "text": "Cities gain production equal to 20% of their gold yield. Every city loses 3 food.",
+      "text": "Cities gain production equal to 30% of their gold yield. Every city loses 3 food.",
       "effects": [
         {
           "kind": "pays",
@@ -877,7 +877,7 @@
           "basis": "share",
           "from": "gold",
           "to": "production",
-          "percent": 20
+          "percent": 30
         },
         {
           "kind": "pays",
@@ -896,12 +896,12 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Every road that ends here was built for here.",
-      "text": "Cities receiving at least two of your domestic routes gain +20% food, +20% production and +2 happiness, once per city.",
+      "text": "Cities receiving at least two of your domestic routes gain +30% food, +30% production and +2 happiness, once per city.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "food",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "routeEndsHere",
             "crossing": "domestic",
@@ -911,7 +911,7 @@
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "routeEndsHere",
             "crossing": "domestic",
@@ -940,7 +940,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Spread the halts and the desert shrinks.",
-      "text": "Each city receiving a domestic trade route grants +2 happiness (once per city); +1 production and +1 gold on domestic trade routes.",
+      "text": "Each city receiving a domestic trade route grants +2 happiness (once per city); +2 production and +2 gold on domestic trade routes.",
       "effects": [
         {
           "kind": "happiness",
@@ -955,8 +955,8 @@
           "kind": "pays",
           "where": "route",
           "crossing": "domestic",
-          "production": 1,
-          "gold": 1
+          "production": 2,
+          "gold": 2
         }
       ]
     },
@@ -969,21 +969,21 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Our man in their market, and their man in ours.",
-      "text": "Each foreign city holding your trading post grants you +3 gold and its host city +1 gold per turn while you are at peace and the host is not blockaded.",
+      "text": "Each foreign city holding your trading post grants you +5 gold and its host city +2 gold per turn while you are at peace and the host is not blockaded.",
       "effects": [
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
           "to": "gold",
-          "amount": 3,
+          "amount": 5,
           "count": "postCities"
         },
         {
           "kind": "pays",
           "where": "city",
           "payee": "host",
-          "gold": 1
+          "gold": 2
         }
       ],
       "note": "A trading post is established after a full route term of unbroken trading with a town, and it is yours from then on. The two provisos the card prints are the rule every post follows and not this card's own: a post pays nobody while its holder and the host are at war, or while the host city is blockaded. Both halves count the same posts, so the coin you take and the coin the host takes always match."
@@ -1052,14 +1052,14 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Money left alone is the only servant that never sleeps.",
-      "text": "Earn interest equal to 2% of your treasury each turn, with no cap.",
+      "text": "Earn interest equal to 4% of your treasury each turn, with no cap.",
       "effects": [
         {
           "kind": "pays",
           "where": "empire",
           "basis": "count",
           "to": "gold",
-          "amount": 1,
+          "amount": 2,
           "count": "bankedGold",
           "per": 50
         }
@@ -1124,7 +1124,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "One shaft is a hole. Six is an industry.",
-      "text": "Worked mines gain +1 gold and +1 science for every two adjacent mines.",
+      "text": "Worked mines gain +2 gold and +2 science for every two adjacent mines.",
       "effects": [
         {
           "kind": "pays",
@@ -1138,8 +1138,8 @@
             "improvement": "mine"
           },
           "per": 2,
-          "gold": 1,
-          "science": 1
+          "gold": 2,
+          "science": 2
         }
       ],
       "note": "The neighbours need not be worked and need not be yours; the mine being paid does have to be worked, which is true of every line that lands on a hex. Odd numbers round down, so a mine with three beside it is paid once."
@@ -1252,12 +1252,12 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "The league is a promise between markets, not between kings.",
-      "text": "Cities with one of your paying outgoing routes gain +15% production and cost one less authority, minimum one. Cities without one lose 10% gold.",
+      "text": "Cities with one of your paying outgoing routes gain +23% production and cost one less authority, minimum one. Cities without one lose 10% gold.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 15,
+          "percent": 23,
           "scope": {
             "test": "routeEndsHere",
             "direction": "departing"
@@ -1448,7 +1448,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The gate that counts you is the gate that knows you.",
-      "text": "Customs houses gain +3 gold and +1 renown. Cities with a customs house gain +25% gold.",
+      "text": "Customs houses gain +5 gold and +1 renown. Cities with a customs house gain +38% gold.",
       "effects": [
         {
           "kind": "pays",
@@ -1457,7 +1457,7 @@
             "test": "improvement",
             "improvement": "customsHouse"
           },
-          "gold": 3
+          "gold": 5
         },
         {
           "kind": "renown",
@@ -1471,7 +1471,7 @@
         {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 25,
+          "percent": 38,
           "scope": {
             "test": "hasImprovement",
             "improvement": "customsHouse"
@@ -1489,7 +1489,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "What the forge needs, somebody else needs more.",
-      "text": "Trade routes gain +1 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity.",
+      "text": "Trade routes gain +2 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity.",
       "effects": [
         {
           "kind": "pays",
@@ -1497,7 +1497,7 @@
           "basis": "count",
           "count": "improvedStrategicResources",
           "within": "city",
-          "science": 1
+          "science": 2
         },
         {
           "kind": "effectAmplifier",
@@ -1631,7 +1631,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "One yard in the realm was never enough yards.",
-      "text": "Caravanserais can be built in every city. Cities with a Caravanserai gain +20% gold.",
+      "text": "Caravanserais can be built in every city. Cities with a Caravanserai gain +30% gold.",
       "effects": [
         {
           "kind": "rule",
@@ -1641,7 +1641,7 @@
         {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "hasBuilding",
             "building": "caravanserai"
@@ -1681,7 +1681,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Buy the roof, and endow the men under it.",
-      "text": "Purchased buildings provide +1 science each, at most +3 per town.",
+      "text": "Purchased buildings provide +2 science each, at most +6 per town.",
       "effects": [
         {
           "kind": "pays",
@@ -1690,7 +1690,7 @@
           "count": "purchasedBuildings",
           "within": "city",
           "to": "science",
-          "amount": 1,
+          "amount": 2,
           "max": 3
         }
       ],
@@ -1773,12 +1773,12 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "One city, and every road in the world leading to it.",
-      "text": "Cities with at least three of your paying outgoing routes gain +25% food, production and culture, but each costs +4 authority while qualified.",
+      "text": "Cities with at least three of your paying outgoing routes gain +38% food, production and culture, but each costs +4 authority while qualified.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "food",
-          "percent": 25,
+          "percent": 38,
           "scope": {
             "test": "routeEndsHere",
             "direction": "departing",
@@ -1788,7 +1788,7 @@
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 25,
+          "percent": 38,
           "scope": {
             "test": "routeEndsHere",
             "direction": "departing",
@@ -1798,7 +1798,7 @@
         {
           "kind": "percentYields",
           "yield": "culture",
-          "percent": 25,
+          "percent": 38,
           "scope": {
             "test": "routeEndsHere",
             "direction": "departing",
@@ -2019,7 +2019,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Whoever holds most of the silk sets its price.",
-      "text": "Commission. Goal: control four copies of one luxury, counting copies you receive in deals. Reward: a great merchant and 150 gold. The card then leaves its chair.",
+      "text": "Commission. Goal: control four copies of one luxury, counting copies you receive in deals. Reward: a great merchant and 225 gold. The card then leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -2035,7 +2035,7 @@
           },
           {
             "yield": "gold",
-            "amount": 150
+            "amount": 225
           }
         ]
       }
@@ -2166,7 +2166,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Every bale passing through must stop here first and be sold.",
-      "text": "Gain +2 gold and +1 culture for each luxury you hold two or more copies of.",
+      "text": "Gain +3 gold and +2 culture for each luxury you hold two or more copies of.",
       "effects": [
         {
           "kind": "pays",
@@ -2174,7 +2174,7 @@
           "basis": "count",
           "count": "duplicateLuxuries",
           "to": "gold",
-          "amount": 2
+          "amount": 3
         },
         {
           "kind": "pays",
@@ -2182,7 +2182,7 @@
           "basis": "count",
           "count": "duplicateLuxuries",
           "to": "culture",
-          "amount": 1
+          "amount": 2
         }
       ]
     },
@@ -2195,7 +2195,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Given once, and given for ever.",
-      "text": "Faith buildings you bought with gold provide +2 faith and +1 culture.",
+      "text": "Faith buildings you bought with gold provide +3 faith and +2 culture.",
       "effects": [
         {
           "kind": "pays",
@@ -2206,7 +2206,7 @@
           "bank": "gold",
           "category": "faith",
           "to": "faith",
-          "amount": 2
+          "amount": 3
         },
         {
           "kind": "pays",
@@ -2217,7 +2217,7 @@
           "bank": "gold",
           "category": "faith",
           "to": "culture",
-          "amount": 1
+          "amount": 2
         }
       ]
     },
@@ -2230,7 +2230,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "They travelled with the silk, and left more than they sold.",
-      "text": "Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +2 gold and +2 culture.",
+      "text": "Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture.",
       "effects": [
         {
           "kind": "pressureRule",
@@ -2240,8 +2240,8 @@
         {
           "kind": "pays",
           "where": "route",
-          "gold": 2,
-          "culture": 2,
+          "gold": 3,
+          "culture": 3,
           "destination": {
             "test": "follows"
           }
@@ -2330,7 +2330,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "There is no price but the one we name.",
-      "text": "For each luxury you hold three or more copies of and no other empire holds, gain +5 gold, +3 culture and +1 happiness in every city.",
+      "text": "For each luxury you hold three or more copies of and no other empire holds, gain +8 gold, +5 culture and +1 happiness in every city.",
       "effects": [
         {
           "kind": "pays",
@@ -2338,7 +2338,7 @@
           "basis": "count",
           "count": "monopolyLuxuries",
           "to": "gold",
-          "amount": 5
+          "amount": 8
         },
         {
           "kind": "pays",
@@ -2346,7 +2346,7 @@
           "basis": "count",
           "count": "monopolyLuxuries",
           "to": "culture",
-          "amount": 3
+          "amount": 5
         },
         {
           "kind": "pays",
@@ -2368,13 +2368,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Everything that leaves is counted, and everything counted is taxed.",
-      "text": "Trade routes leaving a city whose borders hold a customs house gain +2 gold and +2 culture.",
+      "text": "Trade routes leaving a city whose borders hold a customs house gain +3 gold and +3 culture.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
-          "gold": 2,
-          "culture": 2,
+          "gold": 3,
+          "culture": 3,
           "origin": {
             "test": "hasImprovement",
             "improvement": "customsHouse"
@@ -2391,12 +2391,12 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Money changes hands here so often it forgets whose it was.",
-      "text": "Gold buildings produce 50% more of their own yields.",
+      "text": "Gold buildings produce 75% more of their own yields.",
       "effects": [
         {
           "kind": "buildingYieldPercent",
           "category": "gold",
-          "percent": 50
+          "percent": 75
         }
       ]
     },

@@ -242,6 +242,8 @@ export {
   cardRouteSlots,
   chairCount,
   commissionFulfilledTurn,
+  currentBand,
+  currentBandOf,
   deckPoolOf,
   doctrineChoiceError,
   draftCost,

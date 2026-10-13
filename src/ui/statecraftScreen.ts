@@ -811,8 +811,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       element(
         'p',
         'sc-banner-body',
-        'The culture meter is full, but your decks hold no card you do not already have — or none your ' +
-          'government and age have yet opened. No draft is charged; the culture stays banked until there is something to deal.',
+        'The culture meter is full, but you already hold every card your decks can offer at your current band. ' +
+          'No draft is charged; the culture stays banked until your government and age open the next band.',
       ),
     );
     return banner;

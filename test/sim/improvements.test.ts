@@ -2548,7 +2548,9 @@ describe('improvements in the log', () => {
     // written on an age — a bump within the branch, which migrates nothing
     // either way.
     // 123 since C8: a town records which bank paid for each of its buildings.
-    expect(SCHEMA_VERSION).toBe(123);
+    // 124 since the current-band ruling of 2026-10-13: a hand is dealt only from
+    // the seat's current band, so a v123 log would pick from different hands.
+    expect(SCHEMA_VERSION).toBe(124);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

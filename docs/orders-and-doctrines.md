@@ -18,12 +18,18 @@ structure paragraphs are sync-tested where they state a number):
   generic card that belongs to every seat — and a `band`. A leader's row carries its two
   decks; Ibn Battuta's says `rainbow`; a seat under nobody holds all six. A seat's pool is
   its decks' single-type rows, the cross-types naming either, and the commons
-  (`deckPoolOf`). No pool rotates away.
-- **Five bands, two gates.** A card is dealt once the seat's regular draft count has reached
-  its band's rung of the ladder **and** its research age (the highest age among its own
+  (`deckPoolOf`).
+- **Five bands, two gates.** A band is open to a seat once the seat's regular draft count has
+  reached its band's rung of the ladder **and** its research age (the highest age among its own
   technologies, floored at one) has reached the band's — both (`bandOpen`). Band 4 (the deck
   sheets' Tier IV) asks for the last age, the same as band 3, since there is no fifth age.
   The ladder is the table below.
+- **Only the current band is dealt** (the user, 2026-10-13; `docs/decks/deck-design.md`). A
+  hand is dealt only from the seat's current band, the highest band open to it on both gates
+  (`currentBand`, `eligibleFor`). When a new band opens, the earlier bands are no longer
+  dealt. Cards already held keep their chairs. If the seat already holds every card of its
+  current band, the draft is not charged and waits for the next band; it is never dealt from
+  an earlier band instead (`draftExhausted`).
 - **Universal chairs.** A government supplies a chair count and no layout: 3 / 5 / 8 / 11 by
   its tier's rung (the user's ruling, `docs/decks/deck-design.md` "More chairs"), written on each row as `chairs`; the sixteen governments keep their
   signatures. A leader's extra chair and a card's are additive.
@@ -143,37 +149,37 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Battle Honours | 0 | ● | S | Your first kill each turn grants 6 renown, and clearing a barbarian camp grants 12 renown, both favouring great generals. |
 | Sword and Plough | 0 | ● | S | While at peace, each city with a garrison gains +2 culture. While at war, each gains +2 production instead. |
 | The Camp Chaplains | 0 | ● | P | +1 faith for every unit you control. |
-| Drill Manuals | 1 | ● | P | Barracks and Stables give +2 science. +20% production toward Barracks and Stables. |
+| Drill Manuals | 1 | ● | P | Barracks and Stables give +3 science. +30% production toward Barracks and Stables. |
 | March Discipline | 1 | ● | S | Military units gain +1 movement when starting their turn in your territory. |
-| The Quartermasters | 1 | ● | S | Worked strategic resources gain +2 food and +2 production. |
+| The Quartermasters | 1 | ● | S | Worked strategic resources gain +3 food and +3 production. |
 | The Soldiers' Purse | 1 | ● | S | Military units cost 1 less upkeep. |
-| The War Hall Schools | 1 | ● | P | War Halls give +3 science and +3 culture. |
+| The War Hall Schools | 1 | ● | P | War Halls give +5 science and +5 culture. |
 | The Marshals | 1 | ◆ | S | +2 strength per adjacent friendly combat unit, at most +6. |
-| The Pacified Marches | 1 | ◆ | P | While slotted, gains +1 authority capacity and +3 culture for every barbarian camp cleared, at most +8 authority and +24 culture. |
-| The Art of War | 1 | ◆ | S | Training a unit grants science equal to half its strength. |
-| War Foundries | 1 | ○ | P | Cities with a Barracks gain gold equal to 20% of their base production and +25% production toward military units. |
-| Songs of the Fallen | 1 | ○ | S | Killing a unit grants science and culture equal to its strength. Losing a unit while it defends grants the same. |
+| The Pacified Marches | 1 | ◆ | P | While slotted, gains +1 authority capacity and +5 culture for every barbarian camp cleared, at most +8 authority and +40 culture. |
+| The Art of War | 1 | ◆ | S | Training a unit grants science equal to three quarters of its strength. |
+| War Foundries | 1 | ○ | P | Cities with a Barracks gain gold equal to 30% of their base production and +38% production toward military units. |
+| Songs of the Fallen | 1 | ○ | S | Killing a unit grants science and culture equal to twice its strength. Losing a unit while it defends grants the same. |
 | Horse Lords | 1 | ○ | S | Mounted units gain +3 strength and +1 movement. |
 | The General Staff | 1 | ● | S | Cities with a Barracks give +2 renown a turn, favouring great generals. |
-| The Soldier-Farmers | 1 | ● | S | While at peace, garrisoned cities gain +1 food and +1 production on each worked pasture and camp. |
-| Siege Works | 2 | ● | S | +25% production toward siege units. Siege units gain +4 strength against cities. |
-| Armoury Guilds | 2 | ● | P | Armouries give +3 science and +3 culture. Cities with one gain +10% production toward buildings. |
-| Conquered Archives | 2 | ● | P | Captured cities gain +4 science and +4 culture. |
-| Stockpiles | 2 | ● | P | Cities gain +5 food per defensive building. |
-| Triumphs | 2 | ● | S | Capturing a city grants culture equal to ten times its population. |
+| The Soldier-Farmers | 1 | ● | S | While at peace, garrisoned cities gain +2 food and +2 production on each worked pasture and camp. |
+| Siege Works | 2 | ● | S | +38% production toward siege units. Siege units gain +4 strength against cities. |
+| Armoury Guilds | 2 | ● | P | Armouries give +5 science and +5 culture. Cities with one gain +15% production toward buildings. |
+| Conquered Archives | 2 | ● | P | Captured cities gain +6 science and +6 culture. |
+| Stockpiles | 2 | ● | P | Cities gain +8 food per defensive building. |
+| Triumphs | 2 | ● | S | Capturing a city grants culture equal to fifteen times its population. |
 | Marine Drill | 2 | ◆ | S | Naval melee units gain +4 strength. Land units attacking on the turn they disembark gain +3 strength. |
 | Riders of the Steppe | 2 | ◆ | S | Mounted units ignore enemy zone of control. Pillaging costs them one less movement point, minimum zero. |
-| Spoils of War | 2 | ◆ | S | Pillaging grants 10 production to your city nearest the pillaged hex. The first pillage each turn also grants 20 culture. |
-| Hegemony | 2 | ○ | S | Captured cities you hold cost one less authority. Capturing a city grants +20% production in every city for ten turns. |
+| Spoils of War | 2 | ◆ | S | Pillaging grants 15 production to your city nearest the pillaged hex. The first pillage each turn also grants 30 culture. |
+| Hegemony | 2 | ○ | S | Captured cities you hold cost one less authority. Capturing a city grants +30% production in every city for ten turns. |
 | Master Bowyers | 2 | ○ | S | Ranged and siege units gain +1 range. |
-| The Citadel Works | 2 | ● | S | Citadels gain +3 science. Each citadel inside your borders gives +1 renown a turn, favouring great generals. |
-| Commission: Take the City | 2 | ◆ | S | Commission. Capture a city with at least five citizens. Then gain culture and science equal to fifteen times its population, and a free Barracks in that city. The card leaves its chair. |
-| Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +8% production and +8% culture. |
-| Arsenals | 3 | ● | P | Cities with an Armoury gain +20% production and produce ships 50% faster. |
+| The Citadel Works | 2 | ● | S | Citadels gain +5 science. Each citadel inside your borders gives +1 renown a turn, favouring great generals. |
+| Commission: Take the City | 2 | ◆ | S | Commission. Capture a city with at least five citizens. Then gain culture and science equal to twenty-three times its population, and a free Barracks in that city. The card leaves its chair. |
+| Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +12% production and +12% culture. |
+| Arsenals | 3 | ● | P | Cities with an Armoury gain +30% production and produce ships 75% faster. |
 | The Siege Train | 3 | ◆ | S | Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities. |
-| Reserve Officers | 3 | ◆ | S | While at war, cities with a Barracks produce military units 40% faster; while at peace, those cities gain +20% production toward buildings. |
+| Reserve Officers | 3 | ◆ | S | While at war, cities with a Barracks produce military units 60% faster; while at peace, those cities gain +30% production toward buildings. |
 | Defensive Lines | 3 | ◆ | S | Land combat units gain +3 strength beside a friendly city. Cities with walls gain +3 defence per garrisoned unit. |
-| Naval Supremacy | 3 | ◆ | P | Naval units gain +1 sight and +1 range. Coastal cities gain +20% gold; coastal captured cities +40%. |
+| Naval Supremacy | 3 | ◆ | P | Naval units gain +1 sight and +1 range. Coastal cities gain +30% gold; coastal captured cities +60%. |
 | Total War | 3 | ○ | S | All your military units gain +8 strength and +1 movement. Every city demands +3 more happiness. |
 | Imperium | 4 | ○ | S | Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%. |
 | Commission: Hold the Capitals | 4 | ○ | S | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. |
@@ -206,31 +212,31 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Levy of the Land | 1 | ◆ | S | Cities may spend one citizen to gain production equal to the food it took to grow that citizen. A city may levy once every five turns. |
 | Tinkers' Guild | 1 | ● | S | Workers you produce or purchase gain +1 charge. |
 | The Muster of the Fields | 1 | ◆ | S | Cities may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. |
-| The Old Songs | 1 | ● | S | Worked unimproved land gains +1 culture. |
+| The Old Songs | 1 | ● | S | Worked unimproved land gains +2 culture. |
 | The Local Census | 1 | ● | S | A town working at least four improved or tended tiles costs one less authority, minimum one. |
 | The Wild Orchards | 1 | ● | S | Once drafted, workers may tend a forest or jungle tile into a wild orchard for one charge: +1 food and +1 gold. No chair required. |
 | The Burning Season | 1 | ◆ | S | Once drafted, each town may burn its wild grassland and plains once every 30 turns. They become burned country, a tended work worth +1 food. After each burning they yield 1 less food for 3 turns, then +1 food and +1 production for 20 turns. No chair required. |
-| Dark Earth | 1 | ◆ | S | Worked farms gain +1 food once they have stood for 20 turns, and another +1 food once they have stood for 50 turns. |
-| The Three Sisters | 1 | ● | S | Worked farms beside a plantation or a pasture gain +1 food and +1 production, once per farm. |
+| Dark Earth | 1 | ◆ | S | Worked farms gain +2 food once they have stood for 20 turns, and another +2 food once they have stood for 50 turns. |
+| The Three Sisters | 1 | ● | S | Worked farms beside a plantation or a pasture gain +2 food and +2 production, once per farm. |
 | The Commons | 1 | ◆ | P | Each town gains +1 happiness for every two wild tiles it works, at most +3. |
 | The Hard Country | 1 | ● | S | Worked desert and tundra tiles gain +1 food and +1 production. |
 | The Master Builders | 1 | ● | S | Towns working at least three mines, quarries or lumber mills give +1 renown a turn, favouring great engineers. |
-| The Prospectors | 1 | ● | S | Prospecting costs workers and explorers no charge. Worked mines on a seam you surfaced gain +2 production. |
-| Daughter Towns | 1 | ◆ | P | While a town you found has fewer than five citizens, the town that trained its settler gains +2 food. |
-| Six Gardens | 1 | ◆ | S | Needs tended land. Goal: have six tended tiles. Reward: every town gains 30 food, your capital gains a free worker, and a free Order hand. The card then leaves its chair. |
-| The Watercourses | 2 | ◆ | S | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +1 production. Water does not relay beyond that first step. |
+| The Prospectors | 1 | ● | S | Prospecting costs workers and explorers no charge. Worked mines on a seam you surfaced gain +3 production. |
+| Daughter Towns | 1 | ◆ | P | While a town you found has fewer than five citizens, the town that trained its settler gains +3 food. |
+| Six Gardens | 1 | ◆ | S | Needs tended land. Goal: have six tended tiles. Reward: every town gains 50 food, your capital gains a free worker, and a free Order hand. The card then leaves its chair. |
+| The Watercourses | 2 | ◆ | S | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step. |
 | The Highlands | 2 | ● | S | mines and quarries on hills gain +2 science and +1 production. |
-| The Coast | 2 | ● | S | Worked fishing boats gain +2 food and +2 culture. |
+| The Coast | 2 | ● | S | Worked fishing boats gain +3 food and +3 culture. |
 | Provincial Councils | 2 | ◆ | S | Connected towns other than the capital cost one less authority, minimum one, and gain +1 happiness. |
 | The Grain Dole | 2 | ● | S | Cities of at least ten population gain +4 happiness and retain an additional 20% of food spent on growth. |
-| The Waterworks | 2 | ◆ | P | Aqueducts cost 25% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3. |
-| The Landscape Garden | 2 | ◆ | S | Needs tended land. Tended tiles beside a great-person work or a wonder gain +2 culture. |
-| The Engineers' Yards | 2 | ● | S | Manufactories gain +2 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +1 production. |
-| The Tended Country | 2 | ◆ | S | Needs tended land. Tended tiles gain +1 production. Each worked farm gains +1 food if a tended tile stands beside it, once per farm. |
-| The Woodwrights | 3 | ○ | S | Forest and jungle chops grant 100% more production. |
-| Seasonal Levies | 3 | ◆ | S | After a city spends a citizen on a levy, it gains +40% food for ten turns. A city can gain this at most once every twenty turns. |
-| The Long Tending | 3 | ○ | S | Needs tended land. Tended tiles gain +1 food for every 25 turns since they were tended, at most +3. |
-| The Mountain Schools | 3 | ◆ | P | Towns beside a mountain gain +10% science. Worked mines and quarries beside a mountain gain +1 science. |
+| The Waterworks | 2 | ◆ | P | Aqueducts cost 33% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3. |
+| The Landscape Garden | 2 | ◆ | S | Needs tended land. Tended tiles beside a great-person work or a wonder gain +3 culture. |
+| The Engineers' Yards | 2 | ● | S | Manufactories gain +3 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +2 production. |
+| The Tended Country | 2 | ◆ | S | Needs tended land. Tended tiles gain +2 production. Each worked farm gains +2 food if a tended tile stands beside it, once per farm. |
+| The Woodwrights | 3 | ○ | S | Forest and jungle chops grant 150% more production. |
+| Seasonal Levies | 3 | ◆ | S | After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. |
+| The Long Tending | 3 | ○ | S | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. |
+| The Mountain Schools | 3 | ◆ | P | Towns beside a mountain gain +15% science. Worked mines and quarries beside a mountain gain +2 science. |
 | A Court of Engineers | 3 | ○ | S | Gain +50% renown, but great-person offers contain only great engineers. |
 | The Wide Country | 3 | ◆ | S | Goal: while this card is seated, claim twelve hexes by outposts, cleared camps or buying. Reward: your three smallest towns each gain two citizens, and every town gains +2 happiness for 30 turns. The card then leaves its chair. |
 | The Land's Great Work | 4 | ○ | S | The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%. |
@@ -256,56 +262,56 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Mineral Trade | 0 | ● | S | Worked mines and quarries gain +2 gold but lose 1 production. |
 | Coastal Estates | 0 | ● | S | Worked plantations and fishing boats gain +1 food and +1 gold. |
 | Land Speculation | 0 | ◆ | P | Your cities gain +25% gold. Your capital loses 2 happiness. |
-| Private Patronage | 1 | ○ | P | Your cities gain +25% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected. |
-| Civic Receipts | 1 | ◆ | S | Buying any building grants culture equal to 10% of the gold paid, with no cap. |
-| Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +2 food and +2 production. |
-| The Common Road | 1 | ● | S | Your foreign routes grant you +2 gold, +2 science and +2 culture. Each also grants its host city +2 gold. |
+| Private Patronage | 1 | ○ | P | Your cities gain +38% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected. |
+| Civic Receipts | 1 | ◆ | S | Buying any building grants culture equal to 15% of the gold paid, with no cap. |
+| Provisioning Contracts | 1 | ● | S | Domestic routes grant their destination +3 food and +3 production. |
+| The Common Road | 1 | ● | S | Your foreign routes grant you +3 gold, +3 science and +3 culture. Each also grants its host city +3 gold. |
 | Venture Routes | 1 | ◆ | P | Your trade routes gain two turns of range. Trade routes between cities at least fifteen hexes apart gain +100% gold. |
 | The Factors' Houses | 1 | ● | P | Your cities holding your trading post gain +2 gold and +4 culture, and +25% gold. |
 | The Planters' Charter | 1 | ◆ | S | Once drafted, unlock the Plantation House for construction. No chair required. The building is purchased with gold; its payload is specified below. |
-| Bought Swords | 1 | ◆ | P | Your cities gain +25% gold. Military units take 10% more production to train. Purchased units count as trained. |
+| Bought Swords | 1 | ◆ | P | Your cities gain +38% gold. Military units take 10% more production to train. Purchased units count as trained. |
 | Established Routes | 1 | ◆ | P | A trade route you have kept up for at least thirty turns pays 50% more. A route that lapses, is cancelled or is plundered begins its term again. |
-| The Market Writ | 1 | ◆ | P | +1 authority for every two Markets in your empire. Your cities gain +25% gold. |
-| Commercial Education | 1 | ● | P | Gold buildings provide +2 science. |
+| The Market Writ | 1 | ◆ | P | +1 authority for every two Markets in your empire. Your cities gain +38% gold. |
+| Commercial Education | 1 | ● | P | Gold buildings provide +3 science. |
 | Ore Caravans | 1 | ● | P | Trade routes gain +1 gold for every mine in their origin city. |
 | Frontier Investment | 1 | ◆ | P | In your cities of 5 population or fewer, domestic trade routes pay double, and those cities gain +25% gold. |
-| Financed Industry | 1 | ○ | P | Cities gain production equal to 20% of their gold yield. Every city loses 3 food. |
-| The Home Market | 2 | ● | P | Cities receiving at least two of your domestic routes gain +20% food, +20% production and +2 happiness, once per city. |
-| The Caravanserai Network | 2 | ● | S | Each city receiving a domestic trade route grants +2 happiness (once per city); +1 production and +1 gold on domestic trade routes. |
-| The Foreign Factor | 2 | ● | P | Each foreign city holding your trading post grants you +3 gold and its host city +1 gold per turn while you are at peace and the host is not blockaded. |
-| The Money Lenders | 3 | ○ | P | Earn interest equal to 2% of your treasury each turn, with no cap. |
-| Mining Districts | 2 | ◆ | S | Worked mines gain +1 gold and +1 science for every two adjacent mines. |
+| Financed Industry | 1 | ○ | P | Cities gain production equal to 30% of their gold yield. Every city loses 3 food. |
+| The Home Market | 2 | ● | P | Cities receiving at least two of your domestic routes gain +30% food, +30% production and +2 happiness, once per city. |
+| The Caravanserai Network | 2 | ● | S | Each city receiving a domestic trade route grants +2 happiness (once per city); +2 production and +2 gold on domestic trade routes. |
+| The Foreign Factor | 2 | ● | P | Each foreign city holding your trading post grants you +5 gold and its host city +2 gold per turn while you are at peace and the host is not blockaded. |
+| The Money Lenders | 3 | ○ | P | Earn interest equal to 4% of your treasury each turn, with no cap. |
+| Mining Districts | 2 | ◆ | S | Worked mines gain +2 gold and +2 science for every two adjacent mines. |
 | Royal Assays | 2 | ◆ | P | Each improved luxury resource deposit with a mine provides one additional copy of that luxury. |
 | Foreign Procurement | 2 | ◆ | S | Ignore strategic resource requirements when purchasing units. All units cost 20% more. |
-| The League of Cities | 2 | ○ | P | Cities with one of your paying outgoing routes gain +15% production and cost one less authority, minimum one. Cities without one lose 10% gold. |
+| The League of Cities | 2 | ○ | P | Cities with one of your paying outgoing routes gain +23% production and cost one less authority, minimum one. Cities without one lose 10% gold. |
 | The Exchange | 2 | ◆ | P | Each different foreign empire your routes currently serve grants +5% science and culture empire-wide. Foreign routes to your cities grant +2 science and +2 culture to both you and the sender. |
 | The Brokers' Redraw | 2 | ○ | S | You may reroll a draft with gold instead of faith. All other purchasing is 10% more expensive. |
 | The Scholars' Roads | 2 | ○ | P | Lose 4 route capacity. Your routes gain +2 science and +2 culture, and gain +50% science and culture. |
-| The Customs Houses | 2 | ◆ | P | Customs houses gain +3 gold and +1 renown. Cities with a customs house gain +25% gold. |
-| Strategic Exports | 2 | ◆ | P | Trade routes gain +1 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity. |
-| Caravanserai Cities | 3 | ◆ | P | Caravanserais can be built in every city. Cities with a Caravanserai gain +20% gold. |
-| The Endowment | 3 | ◆ | P | Purchased buildings provide +1 science each, at most +3 per town. |
+| The Customs Houses | 2 | ◆ | P | Customs houses gain +5 gold and +1 renown. Cities with a customs house gain +38% gold. |
+| Strategic Exports | 2 | ◆ | P | Trade routes gain +2 science per improved strategic resource deposit in their origin city. Your strategic resource deposits provide twice their normal quantity. |
+| Caravanserai Cities | 3 | ◆ | P | Caravanserais can be built in every city. Cities with a Caravanserai gain +30% gold. |
+| The Endowment | 3 | ◆ | P | Purchased buildings provide +2 science each, at most +6 per town. |
 | Merchant Princes | 4 | ○ | S | Gold may purchase great-person drafts at the existing escalating offer price, with normal availability and purchase limits. |
 | The World's Exchange | 4 | ○ | S | +10% production toward the Opus for each foreign empire your trade routes reach, at most +40%. |
-| The Chartered Metropolis | 3 | ○ | P | Cities with at least three of your paying outgoing routes gain +25% food, production and culture, but each costs +4 authority while qualified. |
+| The Chartered Metropolis | 3 | ○ | P | Cities with at least three of your paying outgoing routes gain +38% food, production and culture, but each costs +4 authority while qualified. |
 | The Admiralty of Trade | 3 | ○ | S | A sea trade route between two cities that both hold your trading post has no range limit. |
 | The Merchant Works | 4 | ○ | P | Cities building a world wonder, an empire building or the Opus gain production equal to 25% of their gold, and lose 20% of their gold. |
 | The Gilded Scaffold | 3 | ○ | P | You may purchase world wonders. All your cities lose 15% production. |
 | A Court of Merchants | 3 | ○ | S | Gain +50% renown, but great-person offers contain only Great Merchants. |
-| Corner the Market | 2 | ◆ | S | Commission. Goal: control four copies of one luxury, counting copies you receive in deals. Reward: a great merchant and 150 gold. The card then leaves its chair. |
+| Corner the Market | 2 | ◆ | S | Commission. Goal: control four copies of one luxury, counting copies you receive in deals. Reward: a great merchant and 225 gold. The card then leaves its chair. |
 | The Strongroom | 4 | ○ | S | Commission. Goal: end a turn with at least 2,000 gold in your treasury. Reward: culture equal to a fifth of your treasury at that moment, and a great merchant. The card then leaves its chair. |
 | The Map Sellers | 0 | ● | P | Your capital gains +1 gold and +1 culture for every 40 hexes you have revealed, at most +8 of each. |
 | The Carters' Guild | 0 | ● | P | Your cities connected to your capital by road, other than the capital, gain +1 food and +2 gold. |
 | The Nest Egg | 0 | ● | P | Your capital gains +1 culture for every 50 gold in your treasury, at most +4. |
-| The Staple Right | 1 | ● | P | Gain +2 gold and +1 culture for each luxury you hold two or more copies of. |
-| The Waqf | 2 | ● | P | Faith buildings you bought with gold provide +2 faith and +1 culture. |
-| The Silk Road Monks | 2 | ◆ | S | Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +2 gold and +2 culture. |
+| The Staple Right | 1 | ● | P | Gain +3 gold and +2 culture for each luxury you hold two or more copies of. |
+| The Waqf | 2 | ● | P | Faith buildings you bought with gold provide +3 faith and +2 culture. |
+| The Silk Road Monks | 2 | ◆ | S | Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +3 gold and +3 culture. |
 | Numidian Cavalry | 2 | ◆ | S | Once drafted, unlock Numidian Cavalry, a Horseman replacement. No chair required. Gains +1 combat strength per distinct luxury you control; luxuries obtained only through the Silk Road contribute +0.5 instead. Normal technology requirements apply. |
 | Houses of Account | 2 | ● | P | Gold buildings provide +2 happiness and +1 renown. |
 | A Guild Commission | 3 | ◆ | S | Commission. Goal: buy five buildings with gold while seated. Reward: a free great-person draft, the same offer Merchant Princes sells for gold. The card then leaves its chair. |
-| The Monopoly | 3 | ○ | P | For each luxury you hold three or more copies of and no other empire holds, gain +5 gold, +3 culture and +1 happiness in every city. |
-| The Customs Service | 3 | ◆ | S | Trade routes leaving a city whose borders hold a customs house gain +2 gold and +2 culture. |
-| The Bourse | 3 | ○ | E | Gold buildings produce 50% more of their own yields. |
+| The Monopoly | 3 | ○ | P | For each luxury you hold three or more copies of and no other empire holds, gain +8 gold, +5 culture and +1 happiness in every city. |
+| The Customs Service | 3 | ◆ | S | Trade routes leaving a city whose borders hold a customs house gain +3 gold and +3 culture. |
+| The Bourse | 3 | ○ | E | Gold buildings produce 75% more of their own yields. |
 | Patrons Abroad | 4 | ○ | P | Your city building the Magnum Opus gains +3 production for each foreign city holding your trading post. |
 | The Merchant Dynasties | 4 | ◆ | P | Each customs house inside your borders gives its city +3 science and +3 culture, whether or not it is worked. |
 | The Spice Exchange | 4 | ○ | P | Every city gains +5% science and +5% culture for each luxury you hold two or more copies of, at most +30%. |
@@ -330,34 +336,34 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Holy Spring | 0 | ● | P | Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture. |
 | The Wayside Shrines | 0 | ● | P | Cities with a Shrine gain +2 food and +1 happiness. |
 | The Consolation | 1 | ● | S | Cities keeping a rite gain +3 happiness. |
-| The Priest-Astronomers | 1 | ● | P | Your capital gains +1 science and +1 faith for every city of yours keeping a rite, at most +8 of each. |
+| The Priest-Astronomers | 1 | ● | P | Your capital gains +2 science and +2 faith for every city of yours keeping a rite, at most +16 of each. |
 | Consecrated Labor | 1 | ● | S | Cities with a Shrine may buy workers with faith. |
 | The Octave | 1 | ◆ | P | Rites you start while this is seated last 50% longer. |
 | The Fast | 1 | ◆ | S | Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains faith equal to its population each turn. No chair required. |
-| The Living Hymnal | 1 | ◆ | P | Your capital gains +2 science and +2 culture for every city following your religion, with no cap. |
-| The Alms Roads | 1 | ◆ | S | Your trade routes from Temple cities gain +3 faith. |
-| The Mission | 1 | ◆ | S | Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 100 culture. Then this card leaves its chair. |
+| The Living Hymnal | 1 | ◆ | P | Your capital gains +3 science and +3 culture for every city following your religion, with no cap. |
+| The Alms Roads | 1 | ◆ | S | Your trade routes from Temple cities gain +5 faith. |
+| The Mission | 1 | ◆ | S | Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 150 culture. Then this card leaves its chair. |
 | The Second Prophet | 1 | ◆ | S | Prophets and apostles you buy start with one extra charge. |
 | The Monastic Builders | 1 | ◆ | S | Science buildings may be bought with faith. |
-| The Creed | 1 | ◆ | P | Your capital gains +2 faith and +2 culture for every belief your religion holds. |
-| The Painted Chapels | 1 | ◆ | P | Religious buildings give +2 culture each. |
+| The Creed | 1 | ◆ | P | Your capital gains +3 faith and +3 culture for every belief your religion holds. |
+| The Painted Chapels | 1 | ◆ | P | Religious buildings give +3 culture each. |
 | The Rites Commonwealth | 1 | ○ | S | Cities keeping a rite demand 25% less population happiness. Your cities without a rite gain −1 happiness. |
-| The Saints' Fields | 2 | ● | S | Worked Holy Sites give +3 food and +5 gold. A city working one gains +2 happiness, once per city. |
-| The Cathedral Works | 2 | ● | P | Gain +30% production toward Cathedrals. Cities with one gain +5 science and +2 happiness. |
-| The Old Holy Places | 2 | ● | S | Holy Sites that have stood for 20 turns gain +2 faith. Those that have stood for 40 turns gain +2 faith and +2 culture more. |
-| Temple Estates | 2 | ● | S | Hexes beside a Holy Site gain +1 food and +1 faith. |
+| The Saints' Fields | 2 | ● | S | Worked Holy Sites give +5 food and +8 gold. A city working one gains +2 happiness, once per city. |
+| The Cathedral Works | 2 | ● | P | Gain +45% production toward Cathedrals. Cities with one gain +8 science and +2 happiness. |
+| The Old Holy Places | 2 | ● | S | Holy Sites that have stood for 20 turns gain +3 faith. Those that have stood for 40 turns gain +3 faith and +3 culture more. |
+| Temple Estates | 2 | ● | S | Hexes beside a Holy Site gain +2 food and +2 faith. |
 | The Votive Gifts | 2 | ● | S | While this is seated, your cities know the Votive Offering: a city spends the rite's faith to add that much production, at the faith rate, to whatever it is building. Not toward wonders. Once per city per turn. |
 | The Spiritual Host | 2 | ◆ | S | Your military units gain +4 strength in territory following your religion. Temple cities gain +2 happiness while you are at war. |
 | Mission Houses | 2 | ◆ | S | Your proclamations apply 30% more pressure. Apostles gain +1 movement. |
-| The Festival Calendar | 2 | ◆ | P | Cities keeping a rite gain +20% food and +20% culture. |
-| The Penitents' Roll | 2 | ◆ | E | +4 science and +4 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated. |
+| The Festival Calendar | 2 | ◆ | P | Cities keeping a rite gain +30% food and +30% culture. |
+| The Penitents' Roll | 2 | ◆ | E | +6 science and +6 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated. |
 | The Lay Brothers | 2 | ○ | S | Cities with a Temple may buy ordinary buildings with faith, at the faith rate. |
-| The Settled Faith | 2 | ○ | P | Temple cities keeping a rite gain +20% science and +2 happiness. Your proclamations apply 25% less pressure. |
-| The Holy Inquisition | 3 | ◆ | P | Rival religions press your cities 40% less. +25% faith. |
-| The Learned Clergy | 3 | ◆ | P | +1 science and +1 culture for every 10 faith your empire makes each turn. |
-| The Offered Stones | 3 | ◆ | P | Buildings you bought with faith give +1 culture each, at most +3 per town. You can purchase buildings with faith. |
-| The Doctors of the Church | 3 | ○ | E | Follower beliefs pay 100% more in your own cities. |
-| The Monastic University | 3 | ○ | S | A Holy Site and an academy standing beside each other each gain +3 science and +2 faith. |
+| The Settled Faith | 2 | ○ | P | Temple cities keeping a rite gain +30% science and +2 happiness. Your proclamations apply 25% less pressure. |
+| The Holy Inquisition | 3 | ◆ | P | Rival religions press your cities 40% less. +38% faith. |
+| The Learned Clergy | 3 | ◆ | P | +2 science and +2 culture for every 10 faith your empire makes each turn. |
+| The Offered Stones | 3 | ◆ | P | Buildings you bought with faith give +2 culture each, at most +6 per town. You can purchase buildings with faith. |
+| The Doctors of the Church | 3 | ○ | E | Follower beliefs pay 150% more in your own cities. |
+| The Monastic University | 3 | ○ | S | A Holy Site and an academy standing beside each other each gain +5 science and +3 faith. |
 | The Great Consecration | 4 | ○ | S | Each foreign city following your religion grants +5% production toward the Magnum Opus, at most +40%. |
 | The Last Offering | 4 | ○ | S | In your holy city, faith you pour into the Magnum Opus buys 50% more production. |
 | The Great Commission | 4 | ○ | S | Commission. Have more than half of the world's cities follow your religion. Reward: 500 faith, and for 30 turns every city that follows your religion gains +3 faith and +3 culture. Then this card leaves its chair. |
@@ -381,20 +387,20 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Field Notebooks | 0 | ● | S | Claiming a ruin grants 15 science, 20 culture and 20 gold. |
 | Practical Astronomy | 0 | ◆ | P | Scouts and ships gain +1 sight. Coastal cities with a Library gain +3 food. |
 | The Long Study | 0 | ◆ | P | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. |
-| Working Estates | 1 | ● | S | Worked great-person improvements gain +3 food and +2 gold. |
-| The Assay | 1 | ● | P | Gain +2 science and +2 gold for each distinct strategic resource type you can access. |
-| The Endowed Provinces | 1 | ◆ | P | Each city working at least one great-person improvement gains +4 food and +3 production, once per city. |
-| Learned Commissions | 1 | ● | S | Library cities gain +25% production toward empire buildings. Completing each institution type for the first time grants 40 culture and 20 faith. |
-| The Old Academy | 1 | ◆ | S | An Academy at least twenty turns old gains +2 food and +2 production. At forty turns these bonuses become +4 of each. |
+| Working Estates | 1 | ● | S | Worked great-person improvements gain +5 food and +3 gold. |
+| The Assay | 1 | ● | P | Gain +3 science and +3 gold for each distinct strategic resource type you can access. |
+| The Endowed Provinces | 1 | ◆ | P | Each city working at least one great-person improvement gains +6 food and +5 production, once per city. |
+| Learned Commissions | 1 | ● | S | Library cities gain +38% production toward empire buildings. Completing each institution type for the first time grants 60 culture and 30 faith. |
+| The Old Academy | 1 | ◆ | S | An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each. |
 | The Royal Society | 2 | ● | S | Each empire building grants +2 renown. Its city gains +2 happiness, once per city. |
 | The Learned Chancery | 2 | ● | S | Cities with an empire building cost one less authority, minimum one, and gain +50% border growth. |
-| The Academy Quarter | 2 | ◆ | P | A city with an empire building gains +3 production and +3 gold per different great-person work type it works, at most +15 of each. Multiple institutions do not multiply this benefit. |
-| The Quiet Faculties | 2 | ○ | P | Cities working a great-person improvement gain +25% food and +20% production, but produce military units 25% more slowly. |
-| The Patent Rolls | 2 | ◆ | S | Completing a technology before any other empire grants 20 culture and 10 renown. |
-| Enduring Institutions | 2 | ◆ | P | A city with an empire building at least twenty turns old gains +2 happiness and +15% production, once per city. |
-| Master Artificers | 3 | ◆ | S | Worked Academies and Manufactories gain +6 production and +6 gold. |
-| The Society of Artificers | 3 | ○ | P | A city with an empire building working an Academy or Manufactory gains food and culture each equal to 20% of its base production, excluding conversion outputs. |
-| The Long Inheritance | 3 | ○ | S | Cities working a great-person improvement at least twenty turns old gain +30% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +15%. |
+| The Academy Quarter | 2 | ◆ | P | A city with an empire building gains +5 production and +5 gold per different great-person work type it works, at most +25 of each. Multiple institutions do not multiply this benefit. |
+| The Quiet Faculties | 2 | ○ | P | Cities working a great-person improvement gain +38% food and +30% production, but produce military units 25% more slowly. |
+| The Patent Rolls | 2 | ◆ | S | Completing a technology before any other empire grants 30 culture and 10 renown. |
+| Enduring Institutions | 2 | ◆ | P | A city with an empire building at least twenty turns old gains +2 happiness and +23% production, once per city. |
+| Master Artificers | 3 | ◆ | S | Worked Academies and Manufactories gain +9 production and +9 gold. |
+| The Society of Artificers | 3 | ○ | P | A city with an empire building working an Academy or Manufactory gains food and culture each equal to 30% of its base production, excluding conversion outputs. |
+| The Long Inheritance | 3 | ○ | S | Cities working a great-person improvement at least twenty turns old gain +45% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +23%. |
 | The Learned Realm | 3 | ◆ | S | Each city working a great-person improvement grants +1 authority capacity, at most +8. Cities with a Library at least twenty turns old gain +2 happiness. |
 
 ### Magisterial
@@ -415,95 +421,95 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Capital of Letters | 0 | ○ | P | Your capital gains +20% food and +20% gold while it has a Monument and Granary, but trains military units 15% more slowly. |
 | Master Masons | 0 | ● | S | Gain +25% production toward Monuments. Completing a culture building for the first time in a city grants 20 production there. |
 | The Chronicle of Works | 0 | ◆ | P | While active, gains +1 science and +1 gold per turn for each culture building you complete for the first time in a city, at most +30 of each. |
-| The Chancery | 1 | ● | P | Gain +1 authority capacity per two Monuments, at most +3. Cities with at least two culture buildings gain +2 gold. |
-| The Civic Stage | 1 | ● | P | Cities with at least two culture buildings gain +2 happiness and +3 food. |
-| The Public Copyists | 1 | ● | P | Cities with a Monument and Library gain +3 science and +2 culture. |
+| The Chancery | 1 | ● | P | Gain +1 authority capacity per two Monuments, at most +3. Cities with at least two culture buildings gain +3 gold. |
+| The Civic Stage | 1 | ● | P | Cities with at least two culture buildings gain +2 happiness and +5 food. |
+| The Public Copyists | 1 | ● | P | Cities with a Monument and Library gain +5 science and +3 culture. |
 | The Artisan Wages | 1 | ● | P | Culture buildings give +2 gold and +1 production each. |
-| Provincial Patrons | 1 | ● | P | Noncapital cities with at least two culture buildings gain +1 renown and +2 culture. |
-| The Citizens' Watch | 1 | ● | S | Cities with at least two culture buildings train military units 20% faster and gain +3 defence. |
-| The Harbour Festival | 1 | ● | P | Harbours give +2 culture and +2 food. Coastal cities with a Monument gain +1 happiness. |
-| The Pageant Schools | 1 | ● | P | Cities with a Monument and Temple gain +2 science and +2 faith. |
-| The Grand Fairs | 1 | ● | P | Cities with a Market and Monument gain +3 culture and +3 gold. |
-| The Groundskeepers | 1 | ◆ | S | Worked great-person improvements give +3 food and +3 production. |
-| The Laureate | 1 | ◆ | P | Cities working a great-person improvement gain +3 culture, +2 science and +1 renown, once per city. |
-| The Guild of Masons | 1 | ◆ | P | Gain +25% production toward wonders. Cities producing a wonder lose 2 gold per turn. |
+| Provincial Patrons | 1 | ● | P | Noncapital cities with at least two culture buildings gain +1 renown and +3 culture. |
+| The Citizens' Watch | 1 | ● | S | Cities with at least two culture buildings train military units 30% faster and gain +3 defence. |
+| The Harbour Festival | 1 | ● | P | Harbours give +3 culture and +3 food. Coastal cities with a Monument gain +1 happiness. |
+| The Pageant Schools | 1 | ● | P | Cities with a Monument and Temple gain +3 science and +3 faith. |
+| The Grand Fairs | 1 | ● | P | Cities with a Market and Monument gain +5 culture and +5 gold. |
+| The Groundskeepers | 1 | ◆ | S | Worked great-person improvements give +5 food and +5 production. |
+| The Laureate | 1 | ◆ | P | Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city. |
+| The Guild of Masons | 1 | ◆ | P | Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn. |
 | The Civic Assemblies | 1 | ◆ | P | Gain +1 authority capacity per two culture buildings, at most +4. Culture buildings cost 20% less production in noncapital cities. |
-| The Patrons' Road | 1 | ◆ | P | Connected noncapital cities with a Monument gain +3 gold and +2 production. Domestic routes from such cities give their destination +2 culture; your foreign routes from them give you +2 culture. |
+| The Patrons' Road | 1 | ◆ | P | Connected noncapital cities with a Monument gain +5 gold and +3 production. Domestic routes from such cities give their destination +3 culture; your foreign routes from them give you +3 culture. |
 | The Great Patrons | 1 | ◆ | S | Each wonder you hold gives +2 family-neutral renown. Cities containing a wonder purchase culture buildings for 20% less gold. |
-| The Muses' Call | 1 | ○ | P | Gain +20% renown. Cities working a great-person improvement gain +3 food and +3 production, once per city. |
+| The Muses' Call | 1 | ○ | P | Gain +20% renown. Cities working a great-person improvement gain +5 food and +5 production, once per city. |
 | The Artisan Court | 1 | ○ | S | Cities working a great-person improvement gain +2 renown and purchase culture buildings for 25% less gold. |
-| The Working Court | 1 | ○ | P | Cities with a Monument gain production equal to 20% of their base culture, excluding conversion outputs. |
-| The Festival Season | 1 | ○ | P | Cities with a Garden and Amphitheater gain +20% food and +20% gold. Each qualifying city costs +2 gold upkeep. |
-| The Master Workshops | 1 | ◆ | S | Completing a culture building for the first time in a city grants 25 production there and 20 gold. |
-| The Court Archives | 2 | ● | P | Culture buildings give +2 science each. Cities with at least two gain +5 gold. |
-| The Public Gallery | 2 | ● | P | Cities with at least three culture buildings gain +6 food and +3 happiness. |
-| The Monumental Provinces | 2 | ● | P | Connected noncapital cities with a Monument gain +5 production and +3 culture. |
-| The Civic Faith | 2 | ● | P | Culture buildings give +3 faith each. Cities containing a wonder gain +3 happiness. |
-| The Provincial Chancery | 2 | ● | P | Gain +1 authority capacity per noncapital city with at least two culture buildings, at most +8. Such cities gain +3 science. |
-| The Maritime Galleries | 2 | ● | P | Harbours give +5 culture and +3 science. Ships trained in a city with at least two culture buildings gain +3 strength on creation. |
-| The Provincial Stages | 2 | ● | P | Noncapital cities with at least two culture buildings gain +2 renown and +3 food. |
-| The Master's Presence | 2 | ◆ | P | Cities working a great-person improvement gain +20% production toward buildings and +15% gold. |
-| The Grand Tour | 2 | ◆ | P | Cities containing a wonder gain +5 culture and +5 science. Cities working a great-person improvement gain +2 happiness. |
-| The Learned Patron | 2 | ◆ | P | Cities with at least two culture buildings gain science equal to 10% of their base culture, at most +12 science per city. Conversion outputs are excluded. |
-| The Performers' Treasury | 2 | ◆ | P | Cities with at least two culture buildings gain gold equal to 20% of their base culture, excluding conversion outputs. |
-| The Civic Harvest | 2 | ◆ | P | Cities of at least ten population with at least two culture buildings gain +25% food and +3 happiness, and retain an additional 20% of food spent on growth. |
-| The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +20% production toward buildings. |
-| The Sculptors' Schools | 2 | ◆ | S | Worked great-person improvements give +3 science and +3 gold. Their cities gain +1 renown, once per city. |
-| The Patrons' Fleet | 2 | ◆ | S | Cities with a Harbour and at least two culture buildings train ships 35% faster. Your ships gain +1 movement. |
-| The Monumental Court | 2 | ○ | S | Cities containing a wonder gain +3 renown and +25% production toward culture buildings and wonders, once per city. |
+| The Working Court | 1 | ○ | P | Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs. |
+| The Festival Season | 1 | ○ | P | Cities with a Garden and Amphitheater gain +30% food and +30% gold. Each qualifying city costs +2 gold upkeep. |
+| The Master Workshops | 1 | ◆ | S | Completing a culture building for the first time in a city grants 38 production there and 30 gold. |
+| The Court Archives | 2 | ● | P | Culture buildings give +3 science each. Cities with at least two gain +8 gold. |
+| The Public Gallery | 2 | ● | P | Cities with at least three culture buildings gain +9 food and +3 happiness. |
+| The Monumental Provinces | 2 | ● | P | Connected noncapital cities with a Monument gain +8 production and +5 culture. |
+| The Civic Faith | 2 | ● | P | Culture buildings give +5 faith each. Cities containing a wonder gain +3 happiness. |
+| The Provincial Chancery | 2 | ● | P | Gain +1 authority capacity per noncapital city with at least two culture buildings, at most +8. Such cities gain +5 science. |
+| The Maritime Galleries | 2 | ● | P | Harbours give +8 culture and +5 science. Ships trained in a city with at least two culture buildings gain +3 strength on creation. |
+| The Provincial Stages | 2 | ● | P | Noncapital cities with at least two culture buildings gain +2 renown and +5 food. |
+| The Master's Presence | 2 | ◆ | P | Cities working a great-person improvement gain +30% production toward buildings and +23% gold. |
+| The Grand Tour | 2 | ◆ | P | Cities containing a wonder gain +8 culture and +8 science. Cities working a great-person improvement gain +2 happiness. |
+| The Learned Patron | 2 | ◆ | P | Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded. |
+| The Performers' Treasury | 2 | ◆ | P | Cities with at least two culture buildings gain gold equal to 30% of their base culture, excluding conversion outputs. |
+| The Civic Harvest | 2 | ◆ | P | Cities of at least ten population with at least two culture buildings gain +38% food and +3 happiness, and retain an additional 20% of food spent on growth. |
+| The Senate Charter | 2 | ◆ | S | Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings. |
+| The Sculptors' Schools | 2 | ◆ | S | Worked great-person improvements give +5 science and +5 gold. Their cities gain +1 renown, once per city. |
+| The Patrons' Fleet | 2 | ◆ | S | Cities with a Harbour and at least two culture buildings train ships 53% faster. Your ships gain +1 movement. |
+| The Monumental Court | 2 | ○ | S | Cities containing a wonder gain +3 renown and +38% production toward culture buildings and wonders, once per city. |
 | The Civic Commonwealth | 2 | ○ | S | Cities with at least three culture buildings demand 20% less population happiness and cost one less authority, minimum one. |
-| The Laureate Cities | 3 | ● | P | Cities of at least twelve population with at least two culture buildings gain +25% culture and +10% science. |
+| The Laureate Cities | 3 | ● | P | Cities of at least twelve population with at least two culture buildings gain +38% culture and +15% science. |
 | The National Galleries | 3 | ● | P | Culture buildings give +5 food and +5 gold each. Cities with at least three gain +4 happiness. |
-| The Provincial Academies | 3 | ● | P | Connected noncapital cities with a Library and at least two culture buildings gain +20% production and +10% science. |
+| The Provincial Academies | 3 | ● | P | Connected noncapital cities with a Library and at least two culture buildings gain +30% production and +15% science. |
 | The Civic Pantheon | 3 | ● | P | Cities containing a wonder gain +25% faith and +20% gold. Wonders give +10 culture each. |
-| The Masters' Domain | 3 | ◆ | P | Worked great-person improvements give +8 production and +8 food. Their cities gain +20% gold, once per city. |
-| The Great Chancery | 3 | ◆ | P | Gain +2 authority capacity per city with at least three culture buildings, at most +12. Such cities gain +20% culture. |
-| The Honoured Dead | 3 | ◆ | P | Your capital gains +4 science and +8 production per distinct great person you have spent this game, at most +60 science and +120 production. |
-| The Pageants of Peace | 3 | ◆ | S | While at peace with every foreign empire, cities with at least two culture buildings gain +20% culture and +2 happiness. |
-| The Living Canon | 3 | ○ | P | Cities with at least three culture buildings gain +5% food and +5% production per distinct great-person family whose legacy you currently hold, at most +25% each. |
-| The Universal Court | 3 | ○ | P | Cities with at least three culture buildings gain food and gold each equal to 25% of their base culture. Conversion outputs are excluded. |
-| The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +25% production and +25% food. Your cities without a wonder gain +10% culture instead. |
+| The Masters' Domain | 3 | ◆ | P | Worked great-person improvements give +12 production and +12 food. Their cities gain +30% gold, once per city. |
+| The Great Chancery | 3 | ◆ | P | Gain +2 authority capacity per city with at least three culture buildings, at most +12. Such cities gain +30% culture. |
+| The Honoured Dead | 3 | ◆ | P | Your capital gains +6 science and +12 production per distinct great person you have spent this game, at most +90 science and +180 production. |
+| The Pageants of Peace | 3 | ◆ | S | While at peace with every foreign empire, cities with at least two culture buildings gain +30% culture and +2 happiness. |
+| The Living Canon | 3 | ○ | P | Cities with at least three culture buildings gain +8% food and +8% production per distinct great-person family whose legacy you currently hold, at most +40% each. |
+| The Universal Court | 3 | ○ | P | Cities with at least three culture buildings gain food and gold each equal to 38% of their base culture. Conversion outputs are excluded. |
+| The Wonder Commonwealth | 3 | ○ | P | Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead. |
 
 ### Cross-type
 
 | Order | Decks | Band | Rarity | Role | Effect |
 |---|---|---|---|---|---|
-| Military Colonies | Dominion · Expansionist | 1 | ◆ | S | Cities with a Barracks gain +30% production toward settlers and workers. |
-| The Escorted Roads | Dominion · Commerce | 1 | ◆ | S | Routes whose origin has a garrison gain +3 gold. Naval units gain +2 strength while adjacent to one of your traders. |
-| Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first combat kill each turn grants 15 science. Cities with a Library produce siege units 25% faster. |
-| The Engineer Corps | Dominion · Scientific | 3 | ◆ | S | Siege units gain +1 movement. Cities with a Workshop gain +20% production toward siege units and +2 science while at war. |
-| The Imperial Examinations | Dominion · Magisterial | 1 | ◆ | P | Garrisoned cities with a Monument gain +2 culture and +1 scholar renown. |
-| Examinations of State | Dominion · Magisterial | 2 | ○ | P | Cities with a Monument and a garrison gain +1 science and +1 culture per three citizens. Ungarrisoned cities receive no bonus. |
+| Military Colonies | Dominion · Expansionist | 1 | ◆ | S | Cities with a Barracks gain +45% production toward settlers and workers. |
+| The Escorted Roads | Dominion · Commerce | 1 | ◆ | S | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. |
+| Field Academies | Dominion · Scientific | 1 | ◆ | S | Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster. |
+| The Engineer Corps | Dominion · Scientific | 3 | ◆ | S | Siege units gain +1 movement. Cities with a Workshop gain +30% production toward siege units and +3 science while at war. |
+| The Imperial Examinations | Dominion · Magisterial | 1 | ◆ | P | Garrisoned cities with a Monument gain +3 culture and +1 scholar renown. |
+| Examinations of State | Dominion · Magisterial | 2 | ○ | P | Cities with a Monument and a garrison gain +2 science and +2 culture per three citizens. Ungarrisoned cities receive no bonus. |
 | Market Gardens | Expansionist · Commerce | 0 | ● | S | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. |
-| The Provincial Fair | Expansionist · Commerce | 2 | ◆ | P | Connected noncapital cities with a Market gain +2 food. Their worked plantations, camps and pastures gain +1 gold. |
+| The Provincial Fair | Expansionist · Commerce | 2 | ◆ | P | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. |
 | Sacred Groves | Expansionist · Devotion | 0 | ◆ | S | Worked, unimproved forests gain +1 food and +1 faith. |
-| Hydraulic Schools | Expansionist · Scientific | 1 | ● | P | Cities with an Aqueduct gain +1 science per three citizens and +20% production toward science buildings. |
-| The Sculpted Landscape | Expansionist · Magisterial | 3 | ◆ | S | Farms beside a great-person improvement gain +1 food and +1 culture. Each farm receives this once regardless of the number of adjacent works. |
+| Hydraulic Schools | Expansionist · Scientific | 1 | ● | P | Cities with an Aqueduct gain +2 science per three citizens and +30% production toward science buildings. |
+| The Sculpted Landscape | Expansionist · Magisterial | 3 | ◆ | S | Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works. |
 | The Tithe | Commerce · Devotion | 2 | ○ | P | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. |
-| Merchant Scholars | Commerce · Scientific | 1 | ◆ | S | Foreign routes from a city with a Library gain +3 science. |
+| Merchant Scholars | Commerce · Scientific | 1 | ◆ | S | Foreign routes from a city with a Library gain +5 science. |
 | Travelling Players | Commerce · Magisterial | 0 | ◆ | S | Foreign routes from a city with a Monument gain +2 culture. |
-| Cloister Schools | Devotion · Scientific | 1 | ◆ | P | Cities with both a Temple and a Library gain +3 food and +3 science. |
-| The Cloister | Devotion · Scientific | 2 | ○ | P | Cities with a Temple gain science equal to 20% of their base faith. Their Libraries and Universities each gain +2 food. |
-| Sacred Commissions | Devotion · Magisterial | 1 | ◆ | S | Cities with a Holy Site gain +25% production toward wonders. Completing a wonder grants 40 faith. |
+| Cloister Schools | Devotion · Scientific | 1 | ◆ | P | Cities with both a Temple and a Library gain +5 food and +5 science. |
+| The Cloister | Devotion · Scientific | 2 | ○ | P | Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food. |
+| Sacred Commissions | Devotion · Magisterial | 1 | ◆ | S | Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith. |
 | Illuminated Treatises | Scientific · Magisterial | 0 | ● | P | Cities with both a Library and a Monument gain +1 science and +1 culture. |
-| The House of Wisdom | Scientific · Magisterial | 3 | ◆ | S | Worked Academies gain +2 culture. Cities working an Academy gain +1 renown and +20% production toward wonders. Each city receives the city bonus once. |
+| The House of Wisdom | Scientific · Magisterial | 3 | ◆ | S | Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once. |
 | Marcher Lords | Dominion · Expansionist | 2 | ◆ | P | Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one. |
-| The Merchant Navigators | Commerce · Scientific | 2 | ● | S | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +3 science. |
-| Letters of Marque | Dominion · Commerce | 3 | ○ | P | Naval combat kills grant 40 gold. Cities with a Harbour gain +25% gold, but produce naval combat units 20% more slowly. |
-| The Exchange of Discoveries | Commerce · Scientific | 3 | ◆ | S | +1 science on mines and quarries on a resource. Additional +1 if the city has a market. |
-| Garden Provinces | Expansionist · Magisterial | 2 | ● | P | Connected cities with a Monument gain +2 food and +2 culture. |
-| Pilgrim Markets | Commerce · Devotion | 1 | ◆ | S | Routes gain +2 gold and +2 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. |
-| The Grain Exchange | Expansionist · Commerce | 1 | ◆ | S | Domestic routes from a city with a Granary give +3 food to their destination. Cities receiving one gain +1 happiness. |
-| The Cosmopolitan Court | Commerce · Magisterial | 3 | ○ | S | Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +2 gold. |
+| The Merchant Navigators | Commerce · Scientific | 2 | ● | S | Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science. |
+| Letters of Marque | Dominion · Commerce | 3 | ○ | P | Naval combat kills grant 60 gold. Cities with a Harbour gain +38% gold, but produce naval combat units 20% more slowly. |
+| The Exchange of Discoveries | Commerce · Scientific | 3 | ◆ | S | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. |
+| Garden Provinces | Expansionist · Magisterial | 2 | ● | P | Connected cities with a Monument gain +3 food and +3 culture. |
+| Pilgrim Markets | Commerce · Devotion | 1 | ◆ | S | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. |
+| The Grain Exchange | Expansionist · Commerce | 1 | ◆ | S | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. |
+| The Cosmopolitan Court | Commerce · Magisterial | 3 | ○ | S | Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +3 gold. |
 | Rites of Passage | Dominion · Devotion | 0 | ● | S | Completing a military unit grants 12 faith. |
-| The Sacred Host | Dominion · Devotion | 1 | ○ | S | Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 10 faith. |
+| The Sacred Host | Dominion · Devotion | 1 | ○ | S | Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 15 faith. |
 | The Crusader Orders | Dominion · Devotion | 2 | ◆ | S | Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it. |
-| The Holy Army | Dominion · Devotion | 3 | ◆ | S | Worked Holy Sites and citadels that stand beside each other each gain +2 faith and +2 culture. |
+| The Holy Army | Dominion · Devotion | 3 | ◆ | S | Worked Holy Sites and citadels that stand beside each other each gain +3 faith and +3 culture. |
 | The Barbarian Frontier | Dominion · Expansionist | 1 | ◆ | S | Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes. |
 | The Oriflamme | Dominion · Devotion | 1 | ◆ | S | Military units beside one of your religious units gain +4 strength. |
-| The Flood Festival | Expansionist · Devotion | 1 | ◆ | S | Each tile your workers turn into burned country grants 5 faith. |
-| The Road Garrisons | Dominion · Expansionist | 2 | ◆ | P | Garrisoned cities with a road to your capital gain +3 food and +5 defence. |
-| Convert It or Tax It | Dominion · Devotion | 2 | ◆ | P | Captured cities that do not follow your religion gain +3 gold and +2 faith. Captured cities that follow it cost one less authority, minimum one. |
+| The Flood Festival | Expansionist · Devotion | 1 | ◆ | S | Each tile your workers turn into burned country grants 8 faith. |
+| The Road Garrisons | Dominion · Expansionist | 2 | ◆ | P | Garrisoned cities with a road to your capital gain +5 food and +5 defence. |
+| Convert It or Tax It | Dominion · Devotion | 2 | ◆ | P | Captured cities that do not follow your religion gain +5 gold and +3 faith. Captured cities that follow it cost one less authority, minimum one. |
 | War Bonds | Dominion · Commerce | 3 | ◆ | S | Military units gain +1 strength for every 150 gold in your treasury, at most +5. |
 | Professional Soldiers | Dominion · Commerce | 3 | ◆ | S | Units you purchase gain +3 combat strength. |
 | The Chartered Company | Dominion · Commerce | 3 | ◆ | S | Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required. |
@@ -520,11 +526,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Public Gatherings | 0 | ● | S | Your capital gains +1 culture. |
 | Household Altars | 0 | ● | S | Your capital gains +1 faith. |
 | Boundary Stones | 0 | ● | S | Cities with a Monument expand their borders 20% faster. This does not increase draft culture. |
-| Public Wells | 1 | ● | P | Cities without freshwater gain +1 food. |
+| Public Wells | 1 | ● | P | Cities without freshwater gain +2 food. |
 | Civic Peace | 1 | ● | S | Gain +1 empire happiness. |
 | Local Clerks | 2 | ● | S | Gain +1 authority capacity. |
 | Public Hospitals | 3 | ● | S | Cities of at least eight population gain +1 happiness. |
-| Common Ledgers | 3 | ● | P | Cities with a Market gain +1 science; cities with a Library gain +1 gold. |
+| Common Ledgers | 3 | ● | P | Cities with a Market gain +2 science; cities with a Library gain +2 gold. |
 
 ### Notes and deferred halves (from the data rows)
 

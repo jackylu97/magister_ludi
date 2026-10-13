@@ -215,7 +215,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "A great mind leaves a field behind it.",
-      "text": "Worked great-person improvements gain +3 food and +2 gold.",
+      "text": "Worked great-person improvements gain +5 food and +3 gold.",
       "effects": [
         {
           "kind": "pays",
@@ -224,8 +224,8 @@
             "test": "anyImprovement",
             "improvements": ["academy", "landmark", "manufactory", "customsHouse", "citadel"]
           },
-          "food": 3,
-          "gold": 2
+          "food": 5,
+          "gold": 3
         }
       ]
     },
@@ -236,13 +236,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Ivy is the proof of teaching.",
-      "text": "An Academy at least twenty turns old gains +2 food and +2 production. At forty turns these bonuses become +4 of each.",
+      "text": "An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 2,
-          "production": 2,
+          "food": 3,
+          "production": 3,
           "on": {
             "test": "all",
             "of": [
@@ -254,8 +254,8 @@
         {
           "kind": "pays",
           "where": "hex",
-          "food": 2,
-          "production": 2,
+          "food": 3,
+          "production": 3,
           "on": {
             "test": "all",
             "of": [
@@ -273,13 +273,13 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Commission the hall before you commission the statue.",
-      "text": "Library cities gain +25% production toward empire buildings. Completing each institution type for the first time grants 40 culture and 20 faith.",
+      "text": "Library cities gain +38% production toward empire buildings. Completing each institution type for the first time grants 60 culture and 30 faith.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
           "empireBuilding": true,
-          "percent": 25,
+          "percent": 38,
           "scope": { "test": "hasBuilding", "building": "library" }
         },
         {
@@ -287,14 +287,14 @@
           "occasion": "buildingCompletion",
           "empireBuilding": true,
           "first": "buildingKind",
-          "grant": { "yield": "culture", "amount": 40 }
+          "grant": { "yield": "culture", "amount": 60 }
         },
         {
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
           "empireBuilding": true,
           "first": "buildingKind",
-          "grant": { "yield": "faith", "amount": 20 }
+          "grant": { "yield": "faith", "amount": 30 }
         }
       ]
     },
@@ -305,7 +305,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Weigh it, burn it, then believe it.",
-      "text": "Gain +2 science and +2 gold for each distinct strategic resource type you can access.",
+      "text": "Gain +3 science and +3 gold for each distinct strategic resource type you can access.",
       "effects": [
         {
           "kind": "pays",
@@ -313,7 +313,7 @@
           "basis": "count",
           "count": "uniqueStrategicResources",
           "to": "science",
-          "amount": 2
+          "amount": 3
         },
         {
           "kind": "pays",
@@ -321,7 +321,7 @@
           "basis": "count",
           "count": "uniqueStrategicResources",
           "to": "gold",
-          "amount": 2
+          "amount": 3
         }
       ]
     },
@@ -368,13 +368,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A gift of learning keeps giving grain.",
-      "text": "Each city working at least one great-person improvement gains +4 food and +3 production, once per city.",
+      "text": "Each city working at least one great-person improvement gains +6 food and +5 production, once per city.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "food": 4,
-          "production": 3,
+          "food": 6,
+          "production": 5,
           "scope": { "test": "workingGreatWork" }
         }
       ]
@@ -449,7 +449,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Put the schools on one street and listen.",
-      "text": "A city with an empire building gains +3 production and +3 gold per different great-person work type it works, at most +15 of each. Multiple institutions do not multiply this benefit.",
+      "text": "A city with an empire building gains +5 production and +5 gold per different great-person work type it works, at most +25 of each. Multiple institutions do not multiply this benefit.",
       "effects": [
         {
           "kind": "pays",
@@ -457,7 +457,7 @@
           "basis": "count",
           "count": "distinctWorkedGreatWorks",
           "to": "production",
-          "amount": 3,
+          "amount": 5,
           "max": 5,
           "scope": { "test": "hasEmpireBuilding" }
         },
@@ -467,7 +467,7 @@
           "basis": "count",
           "count": "distinctWorkedGreatWorks",
           "to": "gold",
-          "amount": 3,
+          "amount": 5,
           "max": 5,
           "scope": { "test": "hasEmpireBuilding" }
         }
@@ -518,7 +518,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "What is old enough to be trusted is old enough to be useful.",
-      "text": "A city with an empire building at least twenty turns old gains +2 happiness and +15% production, once per city.",
+      "text": "A city with an empire building at least twenty turns old gains +2 happiness and +23% production, once per city.",
       "effects": [
         {
           "kind": "happiness",
@@ -529,7 +529,7 @@
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 15,
+          "percent": 23,
           "scope": { "test": "hasEmpireBuilding", "standingTurns": 20 }
         }
       ]
@@ -541,13 +541,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "First is a fact, and facts are worth recording.",
-      "text": "Completing a technology before any other empire grants 20 culture and 10 renown.",
+      "text": "Completing a technology before any other empire grants 30 culture and 10 renown.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "tech",
           "first": "techWorld",
-          "grant": { "yield": "culture", "amount": 20 }
+          "grant": { "yield": "culture", "amount": 30 }
         },
         {
           "kind": "windfallRider",
@@ -576,18 +576,18 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Quiet halls, full barns, and very few drums.",
-      "text": "Cities working a great-person improvement gain +25% food and +20% production, but produce military units 25% more slowly.",
+      "text": "Cities working a great-person improvement gain +38% food and +30% production, but produce military units 25% more slowly.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "food",
-          "percent": 25,
+          "percent": 38,
           "scope": { "test": "workingGreatWork" }
         },
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 20,
+          "percent": 30,
           "scope": { "test": "workingGreatWork" }
         },
         {
@@ -640,26 +640,26 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Old works build the new ones.",
-      "text": "Cities working a great-person improvement at least twenty turns old gain +30% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +15%.",
+      "text": "Cities working a great-person improvement at least twenty turns old gain +45% production toward empire buildings, wonders and the Opus. A mature empire building there adds another +23%.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
           "empireBuilding": true,
-          "percent": 30,
+          "percent": 45,
           "scope": { "test": "workingGreatWork", "standingTurns": 20 }
         },
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 30,
+          "percent": 45,
           "scope": { "test": "workingGreatWork", "standingTurns": 20 }
         },
         {
           "kind": "productionBonus",
           "category": "building",
           "empireBuilding": true,
-          "percent": 15,
+          "percent": 23,
           "scope": {
             "test": "all",
             "of": [
@@ -671,7 +671,7 @@
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 15,
+          "percent": 23,
           "scope": {
             "test": "all",
             "of": [
@@ -689,14 +689,14 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The hands that made the tools now make everything else.",
-      "text": "Worked Academies and Manufactories gain +6 production and +6 gold.",
+      "text": "Worked Academies and Manufactories gain +9 production and +9 gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
           "on": { "test": "anyImprovement", "improvements": ["academy", "manufactory"] },
-          "production": 6,
-          "gold": 6
+          "production": 9,
+          "gold": 9
         }
       ]
     },
@@ -719,7 +719,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Bread and song out of a workshop.",
-      "text": "A city with an empire building working an Academy or Manufactory gains food and culture each equal to 20% of its base production, excluding conversion outputs.",
+      "text": "A city with an empire building working an Academy or Manufactory gains food and culture each equal to 30% of its base production, excluding conversion outputs.",
       "effects": [
         {
           "kind": "pays",
@@ -727,7 +727,7 @@
           "basis": "share",
           "from": "production",
           "to": "food",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "all",
             "of": [
@@ -742,7 +742,7 @@
           "basis": "share",
           "from": "production",
           "to": "culture",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "all",
             "of": [

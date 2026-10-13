@@ -452,7 +452,7 @@
       "rarity": "common",
       "line": "none",
       "flavor": "Every seal is a small argument that somebody has already won.",
-      "text": "Gain +1 authority capacity per two Monuments, at most +3. Cities with at least two culture buildings gain +2 gold.",
+      "text": "Gain +1 authority capacity per two Monuments, at most +3. Cities with at least two culture buildings gain +3 gold.",
       "effects": [
         {
           "kind": "pays",
@@ -468,7 +468,7 @@
         {
           "kind": "pays",
           "where": "city",
-          "gold": 2,
+          "gold": 3,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         }
       ]
@@ -480,12 +480,12 @@
       "rarity": "common",
       "line": "none",
       "flavor": "The play is old; the audience is not.",
-      "text": "Cities with at least two culture buildings gain +2 happiness and +3 food.",
+      "text": "Cities with at least two culture buildings gain +2 happiness and +5 food.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "food": 3,
+          "food": 5,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         },
         {
@@ -503,13 +503,13 @@
       "rarity": "common",
       "line": "none",
       "flavor": "Twenty hands make twenty books, and twenty-one mistakes.",
-      "text": "Cities with a Monument and Library gain +3 science and +2 culture.",
+      "text": "Cities with a Monument and Library gain +5 science and +3 culture.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "science": 3,
-          "culture": 2,
+          "science": 5,
+          "culture": 3,
           "scope": {
             "test": "all",
             "of": [
@@ -558,7 +558,7 @@
       "rarity": "common",
       "line": "none",
       "flavor": "The province keeps its own poets, and reads them.",
-      "text": "Noncapital cities with at least two culture buildings gain +1 renown and +2 culture.",
+      "text": "Noncapital cities with at least two culture buildings gain +1 renown and +3 culture.",
       "effects": [
         {
           "kind": "renown",
@@ -594,7 +594,7 @@
               }
             ]
           },
-          "culture": 2
+          "culture": 3
         }
       ]
     },
@@ -605,13 +605,13 @@
       "rarity": "common",
       "line": "none",
       "flavor": "A militia is a town that has decided to stay.",
-      "text": "Cities with at least two culture buildings train military units 20% faster and gain +3 defence.",
+      "text": "Cities with at least two culture buildings train military units 30% faster and gain +3 defence.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "unit",
           "class": { "category": "military" },
-          "percent": 20,
+          "percent": 30,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         },
         {
@@ -629,14 +629,14 @@
       "rarity": "common",
       "line": "none",
       "flavor": "Boats dressed in flags catch no fish and sell every seat.",
-      "text": "Harbours give +2 culture and +2 food. Coastal cities with a Monument gain +1 happiness.",
+      "text": "Harbours give +3 culture and +3 food. Coastal cities with a Monument gain +1 happiness.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "culture",
-          "amount": 2,
+          "amount": 3,
           "count": "buildingsOfKind",
           "building": "harbour",
           "within": "city"
@@ -646,7 +646,7 @@
           "where": "city",
           "basis": "count",
           "to": "food",
-          "amount": 2,
+          "amount": 3,
           "count": "buildingsOfKind",
           "building": "harbour",
           "within": "city"
@@ -672,13 +672,13 @@
       "rarity": "common",
       "line": "none",
       "flavor": "Children taught the procession will teach it again.",
-      "text": "Cities with a Monument and Temple gain +2 science and +2 faith.",
+      "text": "Cities with a Monument and Temple gain +3 science and +3 faith.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "science": 2,
-          "faith": 2,
+          "science": 3,
+          "faith": 3,
           "scope": {
             "test": "all",
             "of": [
@@ -696,13 +696,13 @@
       "rarity": "common",
       "line": "none",
       "flavor": "A fair is a festival that remembered to charge for the stalls.",
-      "text": "Cities with a Market and Monument gain +3 culture and +3 gold.",
+      "text": "Cities with a Market and Monument gain +5 culture and +5 gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "culture": 3,
-          "gold": 3,
+          "culture": 5,
+          "gold": 5,
           "scope": {
             "test": "all",
             "of": [
@@ -720,13 +720,13 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "The gardener outlasts the genius and keeps the hedges square.",
-      "text": "Worked great-person improvements give +3 food and +3 production.",
+      "text": "Worked great-person improvements give +5 food and +5 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 3,
-          "production": 3,
+          "food": 5,
+          "production": 5,
           "on": {
             "test": "anyImprovement",
             "improvements": ["academy", "landmark", "manufactory", "customsHouse", "citadel"]
@@ -741,7 +741,7 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "A wreath is cheap, and nobody has found anything better.",
-      "text": "Cities working a great-person improvement gain +3 culture, +2 science and +1 renown, once per city.",
+      "text": "Cities working a great-person improvement gain +5 culture, +3 science and +1 renown, once per city.",
       "effects": [
         {
           "kind": "pays",
@@ -749,8 +749,8 @@
           "scope": {
             "test": "workingGreatWork"
           },
-          "culture": 3,
-          "science": 2
+          "culture": 5,
+          "science": 3
         },
         {
           "kind": "renown",
@@ -769,9 +769,9 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "They will raise anything, and they will be paid on Fridays.",
-      "text": "Gain +25% production toward wonders. Cities producing a wonder lose 2 gold per turn.",
+      "text": "Gain +38% production toward wonders. Cities producing a wonder lose 2 gold per turn.",
       "effects": [
-        { "kind": "productionBonus", "category": "wonder", "percent": 25 },
+        { "kind": "productionBonus", "category": "wonder", "percent": 38 },
         {
           "kind": "pays",
           "where": "city",
@@ -816,13 +816,13 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "Money travels to the provinces; taste travels back.",
-      "text": "Connected noncapital cities with a Monument gain +3 gold and +2 production. Domestic routes from such cities give their destination +2 culture; your foreign routes from them give you +2 culture.",
+      "text": "Connected noncapital cities with a Monument gain +5 gold and +3 production. Domestic routes from such cities give their destination +3 culture; your foreign routes from them give you +3 culture.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "gold": 3,
-          "production": 2,
+          "gold": 5,
+          "production": 3,
           "scope": {
             "test": "all",
             "of": [
@@ -835,7 +835,7 @@
         {
           "kind": "pays",
           "where": "route",
-          "culture": 2,
+          "culture": 3,
           "origin": {
             "test": "all",
             "of": [
@@ -854,21 +854,21 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "The workshop is finished last and used first.",
-      "text": "Completing a culture building for the first time in a city grants 25 production there and 20 gold.",
+      "text": "Completing a culture building for the first time in a city grants 38 production there and 30 gold.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
           "buildingCategory": "culture",
           "first": "buildingInCity",
-          "grant": { "yield": "production", "amount": 25 }
+          "grant": { "yield": "production", "amount": 38 }
         },
         {
           "kind": "windfallRider",
           "occasion": "buildingCompletion",
           "buildingCategory": "culture",
           "first": "buildingInCity",
-          "grant": { "yield": "gold", "amount": 20 }
+          "grant": { "yield": "gold", "amount": 30 }
         }
       ]
     },
@@ -945,14 +945,14 @@
       "rarity": "rare",
       "line": "none",
       "flavor": "They do not come when called; they come when there is somewhere to sit.",
-      "text": "Gain +20% renown. Cities working a great-person improvement gain +3 food and +3 production, once per city.",
+      "text": "Gain +20% renown. Cities working a great-person improvement gain +5 food and +5 production, once per city.",
       "effects": [
         { "kind": "cityRenownPercent", "percent": 20, "where": "empire" },
         {
           "kind": "pays",
           "where": "city",
-          "food": 3,
-          "production": 3,
+          "food": 5,
+          "production": 5,
           "scope": { "test": "workingGreatWork" }
         }
       ]
@@ -993,7 +993,7 @@
       "rarity": "rare",
       "line": "none",
       "flavor": "Applause is pleasant; the scaffolding it pays for is better.",
-      "text": "Cities with a Monument gain production equal to 20% of their base culture, excluding conversion outputs.",
+      "text": "Cities with a Monument gain production equal to 30% of their base culture, excluding conversion outputs.",
       "effects": [
         {
           "kind": "pays",
@@ -1001,7 +1001,7 @@
           "basis": "share",
           "from": "culture",
           "to": "production",
-          "percent": 20,
+          "percent": 30,
           "scope": { "test": "hasBuilding", "building": "monument" }
         }
       ]
@@ -1013,12 +1013,12 @@
       "rarity": "rare",
       "line": "none",
       "flavor": "Four months of holidays, and the accounts to show for it.",
-      "text": "Cities with a Garden and Amphitheater gain +20% food and +20% gold. Each qualifying city costs +2 gold upkeep.",
+      "text": "Cities with a Garden and Amphitheater gain +30% food and +30% gold. Each qualifying city costs +2 gold upkeep.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "food",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "all",
             "of": [
@@ -1030,7 +1030,7 @@
         {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "all",
             "of": [
@@ -1061,14 +1061,14 @@
       "rarity": "common",
       "line": "none",
       "flavor": "Nothing is thrown away, and nothing is ever found.",
-      "text": "Culture buildings give +2 science each. Cities with at least two gain +5 gold.",
+      "text": "Culture buildings give +3 science each. Cities with at least two gain +8 gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 2,
+          "amount": 3,
           "count": "buildingsOfCategory",
           "category": "culture",
           "within": "city"
@@ -1076,7 +1076,7 @@
         {
           "kind": "pays",
           "where": "city",
-          "gold": 5,
+          "gold": 8,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         }
       ]
@@ -1088,12 +1088,12 @@
       "rarity": "common",
       "line": "none",
       "flavor": "Admission free; opinions extra.",
-      "text": "Cities with at least three culture buildings gain +6 food and +3 happiness.",
+      "text": "Cities with at least three culture buildings gain +9 food and +3 happiness.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "food": 6,
+          "food": 9,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 3 }
         },
         {
@@ -1111,13 +1111,13 @@
       "rarity": "common",
       "line": "none",
       "flavor": "The road arrives, and the province discovers it had ambitions.",
-      "text": "Connected noncapital cities with a Monument gain +5 production and +3 culture.",
+      "text": "Connected noncapital cities with a Monument gain +8 production and +5 culture.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "production": 5,
-          "culture": 3,
+          "production": 8,
+          "culture": 5,
           "scope": {
             "test": "all",
             "of": [
@@ -1136,14 +1136,14 @@
       "rarity": "common",
       "line": "none",
       "flavor": "The city is the congregation and the square is the nave.",
-      "text": "Culture buildings give +3 faith each. Cities containing a wonder gain +3 happiness.",
+      "text": "Culture buildings give +5 faith each. Cities containing a wonder gain +3 happiness.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "faith",
-          "amount": 3,
+          "amount": 5,
           "count": "buildingsOfCategory",
           "category": "culture",
           "within": "city"
@@ -1158,7 +1158,7 @@
       "rarity": "common",
       "line": "none",
       "flavor": "Two clerks in a border town outrank a duke.",
-      "text": "Gain +1 authority capacity per noncapital city with at least two culture buildings, at most +8. Such cities gain +3 science.",
+      "text": "Gain +1 authority capacity per noncapital city with at least two culture buildings, at most +8. Such cities gain +5 science.",
       "effects": [
         {
           "kind": "authority",
@@ -1195,7 +1195,7 @@
               }
             ]
           },
-          "science": 3
+          "science": 5
         }
       ]
     },
@@ -1219,14 +1219,14 @@
       "rarity": "common",
       "line": "none",
       "flavor": "Every captain's portrait faces the sea he did not drown in.",
-      "text": "Harbours give +5 culture and +3 science. Ships trained in a city with at least two culture buildings gain +3 strength on creation.",
+      "text": "Harbours give +8 culture and +5 science. Ships trained in a city with at least two culture buildings gain +3 strength on creation.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "culture",
-          "amount": 5,
+          "amount": 8,
           "count": "buildingsOfKind",
           "building": "harbour",
           "within": "city"
@@ -1236,7 +1236,7 @@
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 3,
+          "amount": 5,
           "count": "buildingsOfKind",
           "building": "harbour",
           "within": "city"
@@ -1256,7 +1256,7 @@
       "rarity": "common",
       "line": "none",
       "flavor": "The company tours because the capital is cruel.",
-      "text": "Noncapital cities with at least two culture buildings gain +2 renown and +3 food.",
+      "text": "Noncapital cities with at least two culture buildings gain +2 renown and +5 food.",
       "effects": [
         {
           "kind": "renown",
@@ -1292,7 +1292,7 @@
               }
             ]
           },
-          "food": 3
+          "food": 5
         }
       ]
     },
@@ -1303,18 +1303,18 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "He is difficult, and the work is better while he is difficult here.",
-      "text": "Cities working a great-person improvement gain +20% production toward buildings and +15% gold.",
+      "text": "Cities working a great-person improvement gain +30% production toward buildings and +23% gold.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
-          "percent": 20,
+          "percent": 30,
           "scope": { "test": "workingGreatWork" }
         },
         {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 15,
+          "percent": 23,
           "scope": { "test": "workingGreatWork" }
         }
       ]
@@ -1326,13 +1326,13 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "Young men are sent abroad to come home with opinions.",
-      "text": "Cities containing a wonder gain +5 culture and +5 science. Cities working a great-person improvement gain +2 happiness.",
+      "text": "Cities containing a wonder gain +8 culture and +8 science. Cities working a great-person improvement gain +2 happiness.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "culture": 5,
-          "science": 5,
+          "culture": 8,
+          "science": 8,
           "scope": { "test": "hasWonder" }
         },
         { "kind": "happiness", "amount": 2, "per": "city", "scope": { "test": "workingGreatWork" } }
@@ -1345,7 +1345,7 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "He funds the study and reads only the dedication.",
-      "text": "Cities with at least two culture buildings gain science equal to 10% of their base culture, at most +12 science per city. Conversion outputs are excluded.",
+      "text": "Cities with at least two culture buildings gain science equal to 15% of their base culture, at most +18 science per city. Conversion outputs are excluded.",
       "effects": [
         {
           "kind": "pays",
@@ -1353,8 +1353,8 @@
           "basis": "share",
           "from": "culture",
           "to": "science",
-          "percent": 10,
-          "max": 12,
+          "percent": 15,
+          "max": 18,
           "scope": {
             "test": "buildingsOfCategory",
             "category": "culture",
@@ -1370,7 +1370,7 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "The troupe keeps a strongbox and a grudge.",
-      "text": "Cities with at least two culture buildings gain gold equal to 20% of their base culture, excluding conversion outputs.",
+      "text": "Cities with at least two culture buildings gain gold equal to 30% of their base culture, excluding conversion outputs.",
       "effects": [
         {
           "kind": "pays",
@@ -1378,7 +1378,7 @@
           "basis": "share",
           "from": "culture",
           "to": "gold",
-          "percent": 20,
+          "percent": 30,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 2 }
         }
       ]
@@ -1390,12 +1390,12 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "A great town eats like a province and says grace like a village.",
-      "text": "Cities of at least ten population with at least two culture buildings gain +25% food and +3 happiness, and retain an additional 20% of food spent on growth.",
+      "text": "Cities of at least ten population with at least two culture buildings gain +38% food and +3 happiness, and retain an additional 20% of food spent on growth.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "food",
-          "percent": 25,
+          "percent": 38,
           "scope": {
                      "test": "all",
                      "of": [
@@ -1437,7 +1437,7 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "They meet where the government sits, and nowhere else will do.",
-      "text": "Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +20% production toward buildings.",
+      "text": "Unlocks the capital-only Assembly Hall. A city with one gains +3 happiness and +30% production toward buildings.",
       "effects": [
         { "kind": "unlocksBuilding", "building": "assemblyHall" },
         {
@@ -1449,7 +1449,7 @@
         {
           "kind": "productionBonus",
           "category": "building",
-          "percent": 20,
+          "percent": 30,
           "scope": { "test": "hasBuilding", "building": "assemblyHall" }
         }
       ]
@@ -1461,7 +1461,7 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "The pupil copies the master until the copy is wanted instead.",
-      "text": "Worked great-person improvements give +3 science and +3 gold. Their cities gain +1 renown, once per city.",
+      "text": "Worked great-person improvements give +5 science and +5 gold. Their cities gain +1 renown, once per city.",
       "effects": [
         {
           "kind": "pays",
@@ -1469,8 +1469,8 @@
           "on": {
             "test": "greatWork"
           },
-          "science": 3,
-          "gold": 3
+          "science": 5,
+          "gold": 5
         },
         {
           "kind": "renown",
@@ -1489,13 +1489,13 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "A hull with a poet aboard sails no faster and is remembered longer.",
-      "text": "Cities with a Harbour and at least two culture buildings train ships 35% faster. Your ships gain +1 movement.",
+      "text": "Cities with a Harbour and at least two culture buildings train ships 53% faster. Your ships gain +1 movement.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "unit",
           "class": { "category": "naval" },
-          "percent": 35,
+          "percent": 53,
           "scope": {
                      "test": "all",
                      "of": [
@@ -1527,7 +1527,7 @@
       "rarity": "rare",
       "line": "none",
       "flavor": "One marvel makes a town; two make a capital of something.",
-      "text": "Cities containing a wonder gain +3 renown and +25% production toward culture buildings and wonders, once per city.",
+      "text": "Cities containing a wonder gain +3 renown and +38% production toward culture buildings and wonders, once per city.",
       "effects": [
         {
           "kind": "renown",
@@ -1541,7 +1541,7 @@
           "kind": "productionBonus",
           "category": "building",
           "buildingCategory": "culture",
-          "percent": 25,
+          "percent": 38,
           "scope": {
             "test": "hasWonder"
           }
@@ -1549,7 +1549,7 @@
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 25,
+          "percent": 38,
           "scope": {
             "test": "hasWonder"
           }
@@ -1622,12 +1622,12 @@
       "rarity": "common",
       "line": "none",
       "flavor": "Big enough to argue about itself in public.",
-      "text": "Cities of at least twelve population with at least two culture buildings gain +25% culture and +10% science.",
+      "text": "Cities of at least twelve population with at least two culture buildings gain +38% culture and +15% science.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "culture",
-          "percent": 25,
+          "percent": 38,
           "scope": {
                      "test": "all",
                      "of": [
@@ -1639,7 +1639,7 @@
         {
           "kind": "percentYields",
           "yield": "science",
-          "percent": 10,
+          "percent": 15,
           "scope": {
                      "test": "all",
                      "of": [
@@ -1694,12 +1694,12 @@
       "rarity": "common",
       "line": "none",
       "flavor": "The best lecture halls are three weeks from the court.",
-      "text": "Connected noncapital cities with a Library and at least two culture buildings gain +20% production and +10% science.",
+      "text": "Connected noncapital cities with a Library and at least two culture buildings gain +30% production and +15% science.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 20,
+          "percent": 30,
           "scope": {
                      "test": "all",
                      "of": [
@@ -1713,7 +1713,7 @@
         {
           "kind": "percentYields",
           "yield": "science",
-          "percent": 10,
+          "percent": 15,
           "scope": {
                      "test": "all",
                      "of": [
@@ -1791,19 +1791,19 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "The estate outlived the man and kept his standards.",
-      "text": "Worked great-person improvements give +8 production and +8 food. Their cities gain +20% gold, once per city.",
+      "text": "Worked great-person improvements give +12 production and +12 food. Their cities gain +30% gold, once per city.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 8,
-          "production": 8,
+          "food": 12,
+          "production": 12,
           "on": { "test": "greatWork" }
         },
         {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 20,
+          "percent": 30,
           "scope": { "test": "workingGreatWork" }
         }
       ]
@@ -1815,7 +1815,7 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "An empire is whatever its clerks can keep track of.",
-      "text": "Gain +2 authority capacity per city with at least three culture buildings, at most +12. Such cities gain +20% culture.",
+      "text": "Gain +2 authority capacity per city with at least three culture buildings, at most +12. Such cities gain +30% culture.",
       "effects": [
         {
           "kind": "authority",
@@ -1831,7 +1831,7 @@
         {
           "kind": "percentYields",
           "yield": "culture",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "buildingsOfCategory",
             "category": "culture",
@@ -1861,14 +1861,14 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "The tombs are in the capital because the capital insisted.",
-      "text": "Your capital gains +4 science and +8 production per distinct great person you have spent this game, at most +60 science and +120 production.",
+      "text": "Your capital gains +6 science and +12 production per distinct great person you have spent this game, at most +90 science and +180 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "basis": "count",
           "to": "science",
-          "amount": 4,
+          "amount": 6,
           "count": "tally",
           "tally": "greatPersonSpent",
           "max": 15,
@@ -1879,7 +1879,7 @@
           "where": "city",
           "basis": "count",
           "to": "production",
-          "amount": 8,
+          "amount": 12,
           "count": "tally",
           "tally": "greatPersonSpent",
           "max": 15,
@@ -1894,7 +1894,7 @@
       "rarity": "uncommon",
       "line": "none",
       "flavor": "A quiet border is the most expensive thing a realm can own.",
-      "text": "While at peace with every foreign empire, cities with at least two culture buildings gain +20% culture and +2 happiness.",
+      "text": "While at peace with every foreign empire, cities with at least two culture buildings gain +30% culture and +2 happiness.",
       "effects": [
         {
           "kind": "conditionRule",
@@ -1903,7 +1903,7 @@
                     {
                       "kind": "percentYields",
                       "yield": "culture",
-                      "percent": 20,
+                      "percent": 30,
                       "scope": {
                                  "test": "buildingsOfCategory",
                                  "category": "culture",
@@ -1931,7 +1931,7 @@
       "rarity": "rare",
       "line": "none",
       "flavor": "The list of masters is revised by people who are not on it.",
-      "text": "Cities with at least three culture buildings gain +5% food and +5% production per distinct great-person family whose legacy you currently hold, at most +25% each.",
+      "text": "Cities with at least three culture buildings gain +8% food and +8% production per distinct great-person family whose legacy you currently hold, at most +40% each.",
       "effects": [
         {
           "kind": "pays",
@@ -1939,7 +1939,7 @@
           "basis": "count",
           "count": "legacyFamilies",
           "to": "food",
-          "percent": 5,
+          "percent": 8,
           "max": 5,
           "stage": "city",
           "scope": {
@@ -1954,7 +1954,7 @@
           "basis": "count",
           "count": "legacyFamilies",
           "to": "production",
-          "percent": 5,
+          "percent": 8,
           "max": 5,
           "stage": "city",
           "scope": {
@@ -1972,7 +1972,7 @@
       "rarity": "rare",
       "line": "none",
       "flavor": "Everything the realm believes, arranged for visitors.",
-      "text": "Cities with at least three culture buildings gain food and gold each equal to 25% of their base culture. Conversion outputs are excluded.",
+      "text": "Cities with at least three culture buildings gain food and gold each equal to 38% of their base culture. Conversion outputs are excluded.",
       "effects": [
         {
           "kind": "pays",
@@ -1980,7 +1980,7 @@
           "basis": "share",
           "from": "culture",
           "to": "food",
-          "percent": 25,
+          "percent": 38,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 3 }
         },
         {
@@ -1989,7 +1989,7 @@
           "basis": "share",
           "from": "culture",
           "to": "gold",
-          "percent": 25,
+          "percent": 38,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 3 }
         }
       ]
@@ -2014,24 +2014,24 @@
       "rarity": "rare",
       "line": "none",
       "flavor": "Some towns keep the marvels; the rest keep the memory.",
-      "text": "Cities containing a wonder gain +25% production and +25% food. Your cities without a wonder gain +10% culture instead.",
+      "text": "Cities containing a wonder gain +38% production and +38% food. Your cities without a wonder gain +15% culture instead.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "production",
-          "percent": 25,
+          "percent": 38,
           "scope": { "test": "hasWonder" }
         },
         {
           "kind": "percentYields",
           "yield": "food",
-          "percent": 25,
+          "percent": 38,
           "scope": { "test": "hasWonder" }
         },
         {
           "kind": "percentYields",
           "yield": "culture",
-          "percent": 10,
+          "percent": 15,
           "scope": { "test": "notHasWonder" }
         }
       ]

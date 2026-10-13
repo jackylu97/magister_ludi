@@ -39,12 +39,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The drill yard empties into the furrow.",
-      "text": "Cities with a Barracks gain +30% production toward settlers and workers.",
+      "text": "Cities with a Barracks gain +45% production toward settlers and workers.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "unit",
-          "percent": 30,
+          "percent": 45,
           "class": {
             "modelClasses": ["settler", "worker"],
             "category": "civilian",
@@ -61,12 +61,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Where the guard walks, the merchant does not hurry.",
-      "text": "Routes whose origin has a garrison gain +3 gold. Naval units gain +2 strength while adjacent to one of your traders.",
+      "text": "Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
-          "gold": 3,
+          "gold": 5,
           "origin": { "test": "garrisoned" }
         },
         {
@@ -88,7 +88,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "A signature turns a pirate into a patriot.",
-      "text": "Naval combat kills grant 40 gold. Cities with a Harbour gain +25% gold, but produce naval combat units 20% more slowly.",
+      "text": "Naval combat kills grant 60 gold. Cities with a Harbour gain +38% gold, but produce naval combat units 20% more slowly.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -98,13 +98,13 @@
           },
           "grant": {
             "yield": "gold",
-            "amount": 40
+            "amount": 60
           }
         },
         {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 25,
+          "percent": 38,
           "scope": {
             "test": "hasBuilding",
             "building": "harbour"
@@ -161,7 +161,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "An army that prays is an army twice fed.",
-      "text": "Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 10 faith.",
+      "text": "Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 15 faith.",
       "effects": [
         {
           "kind": "rule",
@@ -179,7 +179,7 @@
           "occasion": "kill",
           "grant": {
             "yield": "faith",
-            "amount": 10
+            "amount": 15
           }
         }
       ],
@@ -192,18 +192,18 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Every campaign is a lecture somebody survived.",
-      "text": "Your first combat kill each turn grants 15 science. Cities with a Library produce siege units 25% faster.",
+      "text": "Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "kill",
           "oncePerTurn": true,
-          "grant": { "yield": "science", "amount": 15 }
+          "grant": { "yield": "science", "amount": 23 }
         },
         {
           "kind": "productionBonus",
           "category": "unit",
-          "percent": 25,
+          "percent": 38,
           "class": { "modelClass": "siege" },
           "scope": { "test": "hasBuilding", "building": "library" }
         }
@@ -216,7 +216,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The wall falls to arithmetic before it falls to stone.",
-      "text": "Siege units gain +1 movement. Cities with a Workshop gain +20% production toward siege units and +2 science while at war.",
+      "text": "Siege units gain +1 movement. Cities with a Workshop gain +30% production toward siege units and +3 science while at war.",
       "effects": [
         {
           "kind": "unitStat",
@@ -227,7 +227,7 @@
         {
           "kind": "productionBonus",
           "category": "unit",
-          "percent": 20,
+          "percent": 30,
           "class": { "modelClass": "siege" },
           "scope": { "test": "hasBuilding", "building": "workshop" }
         },
@@ -238,7 +238,7 @@
             {
               "kind": "pays",
               "where": "city",
-              "science": 2,
+              "science": 3,
               "scope": { "test": "hasBuilding", "building": "workshop" }
             }
           ]
@@ -252,7 +252,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The sword guards the hall; the hall decides who holds the sword.",
-      "text": "Garrisoned cities with a Monument gain +2 culture and +1 scholar renown.",
+      "text": "Garrisoned cities with a Monument gain +3 culture and +1 scholar renown.",
       "effects": [
         {
           "kind": "pays",
@@ -269,7 +269,7 @@
               }
             ]
           },
-          "culture": 2
+          "culture": 3
         },
         {
           "kind": "renown",
@@ -298,7 +298,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "The realm asks its questions in writing, and keeps the answers.",
-      "text": "Cities with a Monument and a garrison gain +1 science and +1 culture per three citizens. Ungarrisoned cities receive no bonus.",
+      "text": "Cities with a Monument and a garrison gain +2 science and +2 culture per three citizens. Ungarrisoned cities receive no bonus.",
       "effects": [
         {
           "kind": "pays",
@@ -308,7 +308,7 @@
           "within": "city",
           "per": 3,
           "to": "science",
-          "amount": 1,
+          "amount": 2,
           "scope": {
             "test": "all",
             "of": [
@@ -325,7 +325,7 @@
           "within": "city",
           "per": 3,
           "to": "culture",
-          "amount": 1,
+          "amount": 2,
           "scope": {
             "test": "all",
             "of": [
@@ -367,12 +367,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Once a year the province remembers it is one.",
-      "text": "Connected noncapital cities with a Market gain +2 food. Their worked plantations, camps and pastures gain +1 gold.",
+      "text": "Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "food": 2,
+          "food": 3,
           "scope": {
             "test": "all",
             "of": [
@@ -385,7 +385,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "gold": 1,
+          "gold": 2,
           "on": {
             "test": "anyImprovement",
             "improvements": ["plantation", "camp", "pasture"]
@@ -446,7 +446,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Water taught us the level, and the level taught us everything.",
-      "text": "Cities with an Aqueduct gain +1 science per three citizens and +20% production toward science buildings.",
+      "text": "Cities with an Aqueduct gain +2 science per three citizens and +30% production toward science buildings.",
       "effects": [
         {
           "kind": "pays",
@@ -456,14 +456,14 @@
           "within": "city",
           "per": 3,
           "to": "science",
-          "amount": 1,
+          "amount": 2,
           "scope": { "test": "hasBuilding", "building": "aqueduct" }
         },
         {
           "kind": "productionBonus",
           "category": "building",
           "buildingCategory": "science",
-          "percent": 20,
+          "percent": 30,
           "scope": { "test": "hasBuilding", "building": "aqueduct" }
         }
       ]
@@ -497,13 +497,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The master left, and the valley kept the habit.",
-      "text": "Farms beside a great-person improvement gain +1 food and +1 culture. Each farm receives this once regardless of the number of adjacent works.",
+      "text": "Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
-          "culture": 1,
+          "food": 2,
+          "culture": 2,
           "on": {
                   "test": "all",
                   "of": [
@@ -521,14 +521,14 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Every shrine grows a street of stalls.",
-      "text": "Routes gain +2 gold and +2 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify.",
+      "text": "Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
           "eitherEnd": { "test": "hasImprovement", "improvement": "holySite" },
-          "gold": 2,
-          "faith": 2
+          "gold": 3,
+          "faith": 3
         }
       ],
       "note": "The first card to pay a trade route in faith; nothing carried it before this one asked. The test is a disjunction, so one shrine is enough and two are not more — a road with a holy site at each end is paid once, which is the card's second sentence. The site is the prophet's work on the ground, anywhere inside either town's borders, and nobody has to be working the hex."
@@ -575,12 +575,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "He went for pepper and came back with a grammar.",
-      "text": "Foreign routes from a city with a Library gain +3 science.",
+      "text": "Foreign routes from a city with a Library gain +5 science.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
-          "science": 3,
+          "science": 5,
           "origin": { "test": "hasBuilding", "building": "library" },
           "crossing": "international"
         }
@@ -593,7 +593,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Two ports, two answers, and neither one wrong.",
-      "text": "+1 science on mines and quarries on a resource. Additional +1 if the city has a market.",
+      "text": "+2 science on mines and quarries on a resource. Additional +2 if the city has a market.",
       "effects": [
         {
           "kind": "pays",
@@ -605,7 +605,7 @@
               { "test": "hasResource" }
             ]
           },
-          "science": 1
+          "science": 2
         },
         {
           "kind": "pays",
@@ -618,7 +618,7 @@
             ]
           },
           "scope": { "test": "hasBuilding", "building": "market" },
-          "science": 1
+          "science": 2
         }
       ],
       "note": "Both lines land on the same hexes; the second is asked of the town that owns the ground, so a seam whose city has raised its stalls is worth two beakers rather than one."
@@ -648,7 +648,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "Six languages at one table, and the wine does the translating.",
-      "text": "Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +2 gold.",
+      "text": "Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +3 gold.",
       "effects": [
         {
           "kind": "renown",
@@ -662,7 +662,7 @@
           "kind": "pays",
           "where": "hex",
           "on": { "test": "greatWork" },
-          "gold": 2,
+          "gold": 3,
           "scope": { "test": "buildingsOfCategory", "category": "culture", "atLeast": 1 }
         }
       ],
@@ -675,13 +675,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Bread in the morning, letters in the afternoon.",
-      "text": "Cities with both a Temple and a Library gain +3 food and +3 science.",
+      "text": "Cities with both a Temple and a Library gain +5 food and +5 science.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "food": 3,
-          "science": 3,
+          "food": 5,
+          "science": 5,
           "scope": {
             "test": "all",
             "of": [
@@ -699,7 +699,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "The walls keep the world out and the argument in.",
-      "text": "Cities with a Temple gain science equal to 20% of their base faith. Their Libraries and Universities each gain +2 food.",
+      "text": "Cities with a Temple gain science equal to 30% of their base faith. Their Libraries and Universities each gain +3 food.",
       "effects": [
         {
           "kind": "pays",
@@ -707,13 +707,13 @@
           "basis": "share",
           "from": "faith",
           "to": "science",
-          "percent": 20,
+          "percent": 30,
           "scope": { "test": "hasBuilding", "building": "temple" }
         },
         {
           "kind": "pays",
           "where": "city",
-          "food": 2,
+          "food": 3,
           "scope": {
             "test": "all",
             "of": [
@@ -725,7 +725,7 @@
         {
           "kind": "pays",
           "where": "city",
-          "food": 2,
+          "food": 3,
           "scope": {
             "test": "all",
             "of": [
@@ -743,19 +743,19 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The masons were paid in indulgence and stone.",
-      "text": "Cities with a Holy Site gain +25% production toward wonders. Completing a wonder grants 40 faith.",
+      "text": "Cities with a Holy Site gain +38% production toward wonders. Completing a wonder grants 60 faith.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 25,
+          "percent": 38,
           "scope": { "test": "hasImprovement", "improvement": "holySite" }
         },
         {
           "kind": "windfallRider",
           "occasion": "completion",
           "wonder": true,
-          "grant": { "yield": "faith", "amount": 40 }
+          "grant": { "yield": "faith", "amount": 60 }
         }
       ]
     },
@@ -802,7 +802,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Translate everything, and argue afterwards.",
-      "text": "Worked Academies gain +2 culture. Cities working an Academy gain +1 renown and +20% production toward wonders. Each city receives the city bonus once.",
+      "text": "Worked Academies gain +3 culture. Cities working an Academy gain +1 renown and +30% production toward wonders. Each city receives the city bonus once.",
       "effects": [
         {
           "kind": "pays",
@@ -811,7 +811,7 @@
             "test": "improvement",
             "improvement": "academy"
           },
-          "culture": 2
+          "culture": 3
         },
         {
           "kind": "renown",
@@ -827,7 +827,7 @@
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 20,
+          "percent": 30,
           "scope": {
             "test": "workingImprovement",
             "improvements": [
@@ -931,14 +931,14 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A full granary is a promise other towns can eat.",
-      "text": "Domestic routes from a city with a Granary give +3 food to their destination. Cities receiving one gain +1 happiness.",
+      "text": "Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness.",
       "effects": [
         {
           "kind": "pays",
           "where": "route",
           "crossing": "domestic",
           "origin": { "test": "hasBuilding", "building": "granary" },
-          "food": 3
+          "food": 5
         },
         {
           "kind": "happiness",
@@ -973,7 +973,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The chart was drawn to find a market, and found a world.",
-      "text": "Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +3 science.",
+      "text": "Ships gain +1 movement. Routes from a city with a Harbour and a Library gain +5 science.",
       "effects": [
         {
           "kind": "unitStat",
@@ -984,7 +984,7 @@
         {
           "kind": "pays",
           "where": "route",
-          "science": 3,
+          "science": 5,
           "origin": {
             "test": "all",
             "of": [
@@ -1002,13 +1002,13 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The road brought the seed, and the square brought the song.",
-      "text": "Connected cities with a Monument gain +2 food and +2 culture.",
+      "text": "Connected cities with a Monument gain +3 food and +3 culture.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "food": 2,
-          "culture": 2,
+          "food": 3,
+          "culture": 3,
           "scope": {
             "test": "all",
             "of": [
@@ -1132,12 +1132,12 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Dig deep enough and the dry town forgets it was dry.",
-      "text": "Cities without freshwater gain +1 food.",
+      "text": "Cities without freshwater gain +2 food.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "food": 1,
+          "food": 2,
           "scope": { "test": "notFreshwater" }
         }
       ]
@@ -1219,18 +1219,18 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Everything counted twice, by two people who dislike each other.",
-      "text": "Cities with a Market gain +1 science; cities with a Library gain +1 gold.",
+      "text": "Cities with a Market gain +2 science; cities with a Library gain +2 gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "science": 1,
+          "science": 2,
           "scope": { "test": "hasBuilding", "building": "market" }
         },
         {
           "kind": "pays",
           "where": "city",
-          "gold": 1,
+          "gold": 2,
           "scope": { "test": "hasBuilding", "building": "library" }
         }
       ]
@@ -1256,13 +1256,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The relic goes at the head of the column and the column keeps up.",
-      "text": "Worked Holy Sites and citadels that stand beside each other each gain +2 faith and +2 culture.",
+      "text": "Worked Holy Sites and citadels that stand beside each other each gain +3 faith and +3 culture.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "faith": 2,
-          "culture": 2,
+          "faith": 3,
+          "culture": 3,
           "on": {
             "test": "all",
             "of": [
@@ -1283,8 +1283,8 @@
         {
           "kind": "pays",
           "where": "hex",
-          "faith": 2,
-          "culture": 2,
+          "faith": 3,
+          "culture": 3,
           "on": {
             "test": "all",
             "of": [
@@ -1360,7 +1360,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The fields are burned, and the smoke is an offering.",
-      "text": "Each tile your workers turn into burned country grants 5 faith.",
+      "text": "Each tile your workers turn into burned country grants 8 faith.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1368,7 +1368,7 @@
           "improvement": "burnedCountry",
           "grant": {
             "yield": "faith",
-            "amount": 5
+            "amount": 8
           }
         }
       ],
@@ -1384,12 +1384,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A soldier at every gate, and a road home from each.",
-      "text": "Garrisoned cities with a road to your capital gain +3 food and +5 defence.",
+      "text": "Garrisoned cities with a road to your capital gain +5 food and +5 defence.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "food": 3,
+          "food": 5,
           "scope": {
             "test": "all",
             "of": [
@@ -1430,13 +1430,13 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Pray as we pray, or pay as we ask.",
-      "text": "Captured cities that do not follow your religion gain +3 gold and +2 faith. Captured cities that follow it cost one less authority, minimum one.",
+      "text": "Captured cities that do not follow your religion gain +5 gold and +3 faith. Captured cities that follow it cost one less authority, minimum one.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
-          "gold": 3,
-          "faith": 2,
+          "gold": 5,
+          "faith": 3,
           "scope": {
             "test": "all",
             "of": [

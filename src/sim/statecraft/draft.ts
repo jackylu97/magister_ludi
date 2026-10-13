@@ -38,6 +38,7 @@ import {
   type SlotType,
   type TallyOccasion,
   GOVERNMENT_TIERS,
+  LAST_BAND,
   REWARD_DRAFTS,
   STARTING_GOVERNMENT,
   STATECRAFT,
@@ -893,12 +894,13 @@ export function orderAtSlotPosition(
  * and its pool is the whole dealt table.
  *
  * **The draw's source, replacing `poolOfGovernment`** (kept in
- * `statecraftData.ts` for the retired shelves, read by nothing live). A pool
- * used to turn over whole on adoption; a deck never does — *"no pool rotates
- * away"* — so what an adoption buys now is chairs, and what a draft count buys
- * is a band (`bandOpen`). Held cards are **not** taken out here: this is the
- * shelf's shape, which the bot's margin and the Compendium ask about; the bag
- * a hand is dealt from is `eligibleFor`.
+ * `statecraftData.ts` for the retired shelves, read by nothing live). A
+ * government's pool used to be replaced whole on adoption. A seat's decks never
+ * change, so an adoption now buys chairs, and the draft count and the research
+ * age together choose which band of these decks is dealt (`currentBand`). This
+ * list is every band at once and does **not** take out held cards: it is the
+ * shape of the seat's shelf, which the bot's margin and the Compendium ask
+ * about. The bag a hand is actually dealt from is `eligibleFor`.
  */
 export function deckPoolOf(state: GameState, player: Player): OrderId[] {
   void state;
@@ -932,7 +934,12 @@ export function researchAgeOf(player: Player): TechAge {
  * ladder **and** its age reached in the tree — band 0 from age one, band 1
  * from age two, and so on — so that *"reaching Government I through culture
  * alone cannot offer an age-2 Market card while the empire is still in age
- * 1"*. Earlier bands stay open: nothing rotates away.
+ * 1"*.
+ *
+ * "Open" means the seat has reached the band, not that the band is dealt. Only
+ * the highest open band is dealt (`currentBand`, the user's ruling of
+ * 2026-10-13 in `docs/decks/deck-design.md`): once a later band opens, the
+ * earlier ones are still open by this test but are no longer drawn from.
  *
  * The age a band needs is capped at the last research age. There are five
  * bands and four ages, so band 4 (Tier IV) asks for the last age, the same as
@@ -943,26 +950,67 @@ export function bandOpen(band: Band, tier: Band, age: TechAge): boolean {
   return band <= tier && Math.min(band + 1, LAST_TECH_AGE) <= age;
 }
 
+/**
+ * **The one band a seat at this ladder tier and age is dealt from**: the
+ * highest band that `bandOpen` admits. The user's ruling of 2026-10-13
+ * (`docs/decks/deck-design.md`, "Only the current band is dealt"): a hand comes
+ * only from the seat's current band, and when a new band opens the earlier
+ * bands leave the draw for good. Band 0 is open to every seat from the start,
+ * so there is always an answer.
+ *
+ * The answer is never widened when the band has nothing left to deal. An empty
+ * current band is a real state, and `draftExhausted` reads it: the draft is
+ * not charged, and the next draft happens once a later band opens.
+ */
+export function currentBand(tier: Band, age: TechAge): Band {
+  for (let band = LAST_BAND; band > 0; band--) {
+    if (bandOpen(band as Band, tier, age)) return band as Band;
+  }
+  return 0;
+}
+
+/**
+ * **The band this seat's hands are dealt from** — `currentBand` over the seat's
+ * ladder tier and research age. `drafts` defaults to the seat's own count; a
+ * caller asking about the *next* draft passes that draft's number, because the
+ * count is raised before the next hand is dealt (`settleDraft`) and the draft
+ * that reaches a new rung is already dealt from the new band.
+ */
+export function currentBandOf(player: Player, drafts: number = player.statecraft.drafts): Band {
+  return currentBand(bandTierAt(drafts), researchAgeOf(player));
+}
+
 /** The band tier this seat's draft count has reached. See `bandTierAt`. */
 export function bandTierOf(sc: PlayerStatecraft): Band {
   return bandTierAt(sc.drafts);
 }
 
 /**
- * **The bag a hand is dealt from**: the seat pool with the bands gated on the
- * seat's tier and age, minus everything already held (the minus-held half is
- * Entry XV's), in file order. The old `fromAge` gate rides along for any
- * retired row that still carries one — a row already held keeps its chair
- * whatever the age says; the gate is on the deal, never on the holding.
+ * **The bag a hand is dealt from**: the seat pool narrowed to the seat's
+ * current band (`currentBandOf`), minus everything already held (the
+ * minus-held half is Entry XV's), in file order. Cards of earlier bands are
+ * not dealt once a later band has opened (the user's ruling of 2026-10-13),
+ * but a card already held keeps its chair: every gate here is on the deal,
+ * never on holding. The old `fromAge` gate rides along for any retired row
+ * that still carries one, under the same rule.
+ *
+ * `drafts` defaults to the seat's own count. The exhaustion check and the
+ * bot's reading of the next hand pass the next draft's number, so that they
+ * ask about the same band that draft will be dealt from.
  *
  * Empty is a real answer and the one the exhausted-pool rule reads
- * (`draftExhausted`): a seat that holds everything its decks and bands can
- * deal it is charged nothing for a draft that would deal nothing.
+ * (`draftExhausted`): a seat that holds everything its current band can deal
+ * it is charged nothing for a draft that would deal nothing. The bag is never
+ * refilled from an earlier band.
  */
-export function eligibleFor(state: GameState, player: Player): OrderId[] {
+export function eligibleFor(
+  state: GameState,
+  player: Player,
+  drafts: number = player.statecraft.drafts,
+): OrderId[] {
   const sc = player.statecraft;
-  const tier = bandTierOf(sc);
   const age = researchAgeOf(player);
+  const band = currentBandOf(player, drafts);
   const held = new Set(sc.orders);
   // Asked once: whether the seat holds a tended-work unlock decides every card
   // marked "Needs tended land" (`OrderDef.needsTendedWork`) at once.
@@ -970,7 +1018,7 @@ export function eligibleFor(state: GameState, player: Player): OrderId[] {
   return deckPoolOf(state, player).filter((id) => {
     if (held.has(id)) return false;
     const def = orderDef(id);
-    if (!bandOpen(def.band, tier, age)) return false;
+    if (def.band !== band) return false;
     if (def.needsTendedWork === true && !tends) return false;
     return def.fromAge === undefined || age >= def.fromAge;
   });
@@ -1461,15 +1509,16 @@ export function drawOrderOptions(
  * written down: the estimate reads a rainbow hand as slightly better than any
  * one pair of decks would deal. The count read is the *next* draft's when no
  * hand is on the table (`sc.drafts + 1`), and the standing hand's positions
- * when one is — the same rule the deal keeps.
+ * when one is — the same rule the deal keeps. The count chooses the band as
+ * well as the positions, since only the current band is dealt.
  */
 export function expectedHandBags(state: GameState, player: Player): OrderId[][] {
   const sc = player.statecraft;
-  const eligible = eligibleFor(state, player);
+  const standing = sc.pendingOrder?.positions;
+  const eligible = eligibleFor(state, player, standing ? sc.drafts : sc.drafts + 1);
   if (eligible.length === 0) return [];
   const size = offerSize(state, player.id, 'order');
   const bags: OrderId[][] = [];
-  const standing = sc.pendingOrder?.positions;
   const third = thirdPositionOf(sc.drafts + 1);
   const rainbow = isRainbowSeat(player);
   const anyDeck = eligible.filter((id) => {
@@ -1538,13 +1587,21 @@ export function drawOrderOffer(state: GameState, player: Player): OrderOffer {
  * `settleDraft` reads it to charge nothing; the statecraft screen reads it to
  * say so. Derived, never stored: the culture stays in the pool and the day a
  * band opens or a card is added the draft simply happens.
+ *
+ * The bag asked about is the one the waiting draft would be dealt from, at
+ * that draft's own count (`plan.tier`). The count is raised before the hand is
+ * dealt, so a draft that reaches a new rung of the ladder is dealt from the new
+ * band. Asking at the old count would read the old band, and since only the
+ * current band is dealt, a seat that had emptied the old band just below a rung
+ * would never reach the rung at all.
  */
 export function draftExhausted(state: GameState, player: Player): boolean {
   if (player.barbarian) return false;
   const sc = player.statecraft;
   if (sc.pendingOrder !== undefined || sc.pendingDoctrine !== undefined) return false;
-  if (planDraft(player) === null) return false;
-  return eligibleFor(state, player).length === 0;
+  const plan = planDraft(player);
+  if (plan === null) return false;
+  return eligibleFor(state, player, plan.tier).length === 0;
 }
 
 /**
@@ -1643,8 +1700,10 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
   // count stays where it is — a draft that dealt nothing was not a regular
   // draft, so it advances neither the cadence nor the ladder — and the screen
   // says why through `draftExhausted`. Nothing is written, so a seat whose
-  // decks have run dry serialises exactly as it did the turn before.
-  if (eligibleFor(state, player).length === 0) return null;
+  // decks have run dry serialises exactly as it did the turn before. The bag is
+  // read at this draft's own count, the one the hand below is dealt at; see
+  // `draftExhausted` for why the old count would be the wrong question.
+  if (eligibleFor(state, player, plan.tier).length === 0) return null;
 
   player.culturePool = plan.overflow;
   // The banks are a line of the meters too — see `collectYields` (batch M3).
@@ -1932,7 +1991,7 @@ export function rewardOpenError(state: GameState, playerId: number): string | nu
 
 /**
  * **The rares this seat may be dealt in a reward hand**: the eligible bag
- * (bands gated, held excluded) narrowed to the rare rung. The same one bag the
+ * (the current band only, held excluded) narrowed to the rare rung. The same one bag the
  * normal draft deals from, which is what makes *"the same rare can appear in
  * normal drafts and cannot be owned twice"* true without a second register.
  */

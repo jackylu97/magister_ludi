@@ -73,21 +73,34 @@ function percentLines(g: ReturnType<typeof bench>, city: ReturnType<typeof town>
 }
 
 describe('ruling (qqqqqq) 1 — a discount becomes +25% gold', () => {
-  const RULED: Record<string, { scope?: string; downside?: (effect: CardEffect) => boolean }> = {
-    landSpeculation: { downside: (e) => e.kind === 'happiness' && e.amount === -2 },
-    privatePatronage: { downside: (e) => e.kind === 'productionBonus' && e.percent === -20 },
-    boughtSwords: { downside: (e) => e.kind === 'productionBonus' && e.percent === -10 },
-    frontierInvestment: { scope: 'populationAtMost' },
-    theCustomsHouses: { scope: 'hasImprovement' },
-    theFactorsHouses: { scope: 'holdsPost' },
-    theMarketWrit: {},
+  // `percent` is the ruled +25%, raised to +38% on the band 1 to 3 cards the
+  // buff pass of 2026-10-13 reached (`docs/plans/deck-midgame-changes.md`, A3).
+  // Land Speculation is band 0, and Frontier Investment and The Factors' Houses
+  // are among the top earners the pass left alone.
+  const RULED: Record<
+    string,
+    { percent: number; scope?: string; downside?: (effect: CardEffect) => boolean }
+  > = {
+    landSpeculation: { percent: 25, downside: (e) => e.kind === 'happiness' && e.amount === -2 },
+    privatePatronage: {
+      percent: 38,
+      downside: (e) => e.kind === 'productionBonus' && e.percent === -20,
+    },
+    boughtSwords: {
+      percent: 38,
+      downside: (e) => e.kind === 'productionBonus' && e.percent === -10,
+    },
+    frontierInvestment: { percent: 25, scope: 'populationAtMost' },
+    theCustomsHouses: { percent: 38, scope: 'hasImprovement' },
+    theFactorsHouses: { percent: 25, scope: 'holdsPost' },
+    theMarketWrit: { percent: 38 },
   };
 
   it('gives each card +25% gold in the same scope, and nothing at the counter', () => {
     for (const [id, want] of Object.entries(RULED)) {
       const effects = orderDef(id as OrderId).effects;
       const gold = effects.filter(
-        (e) => e.kind === 'percentYields' && e.yield === 'gold' && e.percent === 25,
+        (e) => e.kind === 'percentYields' && e.yield === 'gold' && e.percent === want.percent,
       );
       expect(gold, id).toHaveLength(1);
       const scope = (gold[0] as { scope?: { test: string } }).scope?.test;
@@ -99,7 +112,7 @@ describe('ruling (qqqqqq) 1 — a discount becomes +25% gold', () => {
         id,
       ).toBe(false);
       if (want.downside) expect(effects.some(want.downside), `${id} keeps its downside`).toBe(true);
-      expect(orderDef(id as OrderId).text, id).toContain('+25% gold');
+      expect(orderDef(id as OrderId).text, id).toContain(`+${want.percent}% gold`);
     }
   });
 

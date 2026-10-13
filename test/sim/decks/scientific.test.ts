@@ -406,10 +406,10 @@ describe('what the live rows do on a board', () => {
       'Order · Working Estates',
       'Order · Master Artificers',
     ]);
-    expect(added[0]!.food).toBe(3);
-    expect(added[0]!.gold).toBe(2);
-    expect(added[1]!.production).toBe(6);
-    expect(added[1]!.gold).toBe(6);
+    expect(added[0]!.food).toBe(5);
+    expect(added[0]!.gold).toBe(3);
+    expect(added[1]!.production).toBe(9);
+    expect(added[1]!.gold).toBe(9);
     // A holy site is a great person's work and is deliberately not one of these
     // five: the design doc's rule names the Academy, the Landmark, the
     // Manufactory, the Customs House and the Citadel, and nothing else.
@@ -481,18 +481,18 @@ describe('what the live rows do on a board', () => {
 
     g.state.turn = 26;
     expect(paid()).toHaveLength(1);
-    expect(paid()[0]!.food).toBe(2);
-    expect(paid()[0]!.production).toBe(2);
+    expect(paid()[0]!.food).toBe(3);
+    expect(paid()[0]!.production).toBe(3);
 
     // At forty the second clause joins the first. The two are one *labelled*
     // line, because `explainTileYield` folds rows of one source together — so
-    // the card's printed "+4 of each" reads as one entry on the hover and is
+    // the card's printed "+6 of each" reads as one entry on the hover and is
     // still the sum of the two clauses rather than a figure computed beside
     // them (rule 5).
     g.state.turn = 46;
     const old = paid();
-    expect(old.reduce((sum, line) => sum + line.food, 0)).toBe(4);
-    expect(old.reduce((sum, line) => sum + line.production, 0)).toBe(4);
+    expect(old.reduce((sum, line) => sum + line.food, 0)).toBe(6);
+    expect(old.reduce((sum, line) => sum + line.production, 0)).toBe(6);
 
     // An academy raised again on the same ground is a new academy: the stamp
     // goes with the work it is a fact about.
@@ -543,16 +543,16 @@ describe('what the live rows do on a board', () => {
     g.state.turn = 22;
     bumpRevision(g.state);
     expect(behind()).toHaveLength(1);
-    expect(behind()[0]!.percent).toBe(30);
+    expect(behind()[0]!.percent).toBe(45);
 
     // And an old empire building standing in the same town adds the second
-    // helping — the card's "another +15%" as a second labelled line.
+    // helping — the card's "another +23%" as a second labelled line.
     addBuilding(g.state, city, 'forum');
     g.state.turn = 42;
     bumpRevision(g.state);
     const both = behind();
     expect(both).toHaveLength(2);
-    expect(both.reduce((sum, line) => sum + line.percent, 0)).toBe(45);
+    expect(both.reduce((sum, line) => sum + line.percent, 0)).toBe(68);
     // An ordinary building is not one of the realm's great houses and takes
     // nothing from either clause.
     expect(

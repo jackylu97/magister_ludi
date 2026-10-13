@@ -1096,8 +1096,23 @@ import {
  * **A v122 save is refused and does not replay**, for the same reason as every
  * bump on this branch: a v122 log carries no banks, so a card written on one
  * would answer "nothing here was bought" forever. The branch migrates nothing.
+ *
+ * v124 (branch `decks`; the user's ruling of 2026-10-13 in
+ * `docs/decks/deck-design.md`, "Only the current band is dealt"): **a draft
+ * hand is dealt only from the seat's current band**, the highest band open to
+ * it on both the ladder tier and the research age (`currentBand`,
+ * `statecraft/draft.ts`). Earlier bands are no longer dealt once a later one
+ * opens; cards already held keep their chairs. The exhaustion check now reads
+ * the bag at the waiting draft's own count, the count the hand is dealt at. No
+ * field joined or left the state.
+ *
+ * **A v123 save is refused and does not replay.** From the first hand dealt
+ * after a seat's second band opens, the bag is smaller, so the same roll picks
+ * a different card and a v123 log's `chooseOrder` index would name a card this
+ * build never dealt. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 123;
+export const SCHEMA_VERSION = 124;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
