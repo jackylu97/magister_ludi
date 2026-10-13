@@ -731,6 +731,12 @@ export type CityScope =
        * quietly widening.
        */
       empireBuilding?: true;
+      /**
+       * And the row at the front is **this one building** — the Devotion deck's
+       * cards about the city building the Magnum Opus. Absent admits any row of
+       * the category.
+       */
+      building?: BuildingId;
     }
   /**
    * The town has **at least this many things lined up to build** — The Vizier's
@@ -1115,7 +1121,13 @@ export type CityScope =
    * An empty list admits nothing, which is the honest reading of "any of
    * none" and the same answer `all` of none would give inverted.
    */
-  | { test: 'any'; of: CityScope[] };
+  | { test: 'any'; of: CityScope[] }
+  /**
+   * The town that holds the **holy site of a religion this empire is paid by**
+   * (`heldReligions`) — the Devotion deck's holy-city cards. The same reading
+   * `religionFounder` takes, so a conquered holy city moves the clause with it.
+   */
+  | { test: 'holyCity' };
 
 /**
  * A fact about the empire that gates a whole clause. `conditionRule`'s subject.
@@ -1154,7 +1166,13 @@ export type EmpireCondition =
    * sorted into a category — so a project, a wonder and a building are told
    * apart here by exactly the rule production tells them apart by.
    */
-  | { test: 'queueHolds'; category: ProductionCategory; where?: 'any' | 'capital' }
+  | {
+      test: 'queueHolds';
+      category: ProductionCategory;
+      where?: 'any' | 'capital';
+      /** And the row is this one building (the Magnum Opus). Absent admits any row of the category. */
+      building?: BuildingId;
+    }
   /**
    * **There is a war on** — The Arsenal Law's forges, which only run while
    * somebody is being shot at.
@@ -1206,7 +1224,13 @@ export type EmpireCondition =
    * the one stated cut), which costs nothing here: a rite is stamped on a city
    * and no card can grant one by being read.
    */
-  | { test: 'keepingRite' };
+  | { test: 'keepingRite' }
+  /**
+   * This empire **has not founded a religion yet** — The Calling. Asked of
+   * `foundedReligion`, the history, so a founder who lost the holy city has
+   * still founded one.
+   */
+  | { test: 'noReligionFounded' };
 
 /**
  * When a strength line applies. The whole of `combatCardLine`'s generality.
@@ -1386,7 +1410,13 @@ export type CombatCondition =
    * follow your religion"). Absent counts your own towns too, because a card
    * that meant the whole congregation should be able to say so.
    */
-  | { test: 'followingTerritory'; foreign?: boolean };
+  | { test: 'followingTerritory'; foreign?: boolean }
+  /**
+   * The other side's empire has **this building in one of its city queues** —
+   * The Last Crusade's "an empire that is building the Magnum Opus". The wild
+   * builds nothing and never satisfies it.
+   */
+  | { test: 'vsBuilding'; building: BuildingId };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
@@ -2609,7 +2639,19 @@ export type CountKind =
    * an empire you met and then destroyed is still an empire you met — which is
    * what makes the card's "no cap" safe to write.
    */
-  | 'empiresMet';
+  | 'empiresMet'
+  /** This empire's towns **keeping a rite** right now — The Priest-Astronomers. */
+  | 'citiesKeepingRite'
+  /**
+   * The beliefs of the religions this empire is paid by (`heldReligions`):
+   * pantheon, follower and enhancer together — The Creed.
+   */
+  | 'beliefsHeld'
+  /**
+   * Turns since the oldest religion this empire is paid by was founded —
+   * The Apostolic Succession. Zero for an empire paid by none.
+   */
+  | 'turnsSinceFounded';
 
 /**
  * **The ledgers of what an empire did first.** Each is one `GameState.firsts`
@@ -2766,7 +2808,14 @@ export type TallyOccasion =
    * exactly — one deed, two counters, because a card in a chair and a record on
    * the player answer different questions.
    */
-  | 'campCleared';
+  | 'campCleared'
+  /** A rite started in one of this empire's towns — The Founding Vows. */
+  | 'riteStarted'
+  /**
+   * A foreign town turned to a religion this empire is paid by — The Mission.
+   * Written where the first-conversion record is written, on every conversion.
+   */
+  | 'foreignCityConverted';
 // **There is deliberately no `cityGrew`**, and the audit asked for one: every
 // growth card in the six decks is bound by the design doc's standing clause
 // that natural-growth rewards *count only growth beyond the town's historical
@@ -2787,6 +2836,8 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'unitKilled',
   'unitTrained',
   'campCleared',
+  'riteStarted',
+  'foreignCityConverted',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -2942,7 +2993,14 @@ export type CardRule =
    * are added after it, so a card reading "+3 range" adds exactly three however
    * many posts the pair holds. `routeRange`'s docblock says why.
    */
-  | 'seaRouteRange';
+  | 'seaRouteRange'
+  /** The faith price of rerolling an Order hand — The Penitents' Roll. Read in `explainRerollCost`. */
+  | 'rerollCost'
+  /**
+   * How far faith poured into a row goes: +50 buys half as many hammers again
+   * — The Last Offering. Read in `explainContribution`, with the town in hand.
+   */
+  | 'faithContribution';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -3232,7 +3290,22 @@ export type ActionRuleId =
    * `goldBuysWonders`' shape: every other clause of the gate still runs, so the
    * technology, the site and the town's own duplicate check all still refuse.
    */
-  | 'buildsEverywhere';
+  | 'buildsEverywhere'
+  /**
+   * Faith may buy the **units** the row's `class` names, in the towns its
+   * `scope` admits — Consecrated Labor's workers. Read in `faithBankOpen`.
+   */
+  | 'faithBuysUnits'
+  /**
+   * Faith may buy **ordinary buildings** (never a wonder), in the towns the
+   * row's `scope` admits — The Lay Brothers, The Offered Stones.
+   */
+  | 'faithBuysBuildings'
+  /**
+   * Faith may buy a **world wonder at least half built**, in the towns the row's
+   * `scope` admits — The Pious Masons. Never the Magnum Opus.
+   */
+  | 'faithBuysWonders';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -4285,6 +4358,11 @@ export interface CardPaysEffect extends CardYieldBag {
    * the rest) already answer per town and ignore this.
    */
   within?: 'city';
+  /**
+   * Which bank `purchasedBuildings` counts: The Offered Stones' faith. Absent
+   * counts either bank, which is what every row before it meant.
+   */
+  bank?: 'faith' | 'gold';
 
   // --- where it lands -------------------------------------------------------
 
@@ -5534,6 +5612,14 @@ export interface CardRuleEffect {
    * Meaningless on every other member and simply never consulted there.
    */
   building?: BuildingId;
+  /**
+   * **Which towns the rule is true in** — The Lay Brothers' Temple towns and
+   * Consecrated Labor's Shrine towns. Read only by `cardActionRuleAt`, which
+   * the three faith-purchase rules (`faithBuysUnits`, `faithBuysBuildings`,
+   * `faithBuysWonders`) are asked through with the town in hand. Absent means
+   * every town.
+   */
+  scope?: CityScope;
 }
 
 /**
@@ -6147,13 +6233,26 @@ export type PressureRuleId =
   | 'templeForeignPercent'
   | 'bombRange'
   | 'bombLump'
-  | 'routeBothWays';
+  | 'routeBothWays'
+  /**
+   * A percentage on **rival** pressure entering this empire's own towns, read
+   * for the town's owner in `templeShare` (tide and proclamation alike). −40 is
+   * The Holy Inquisition; −100 shuts it out (The Peace of God). Not a key of
+   * `rules.religion`: its base is nought.
+   */
+  | 'rivalPressurePercent';
 
 /** A signed shift on one number of the tide. See `PressureRuleId`. */
 export interface CardPressureRuleEffect {
   kind: 'pressureRule';
   rule: PressureRuleId;
   delta: number;
+  /**
+   * Which of this empire's towns the shift applies in. Read only for
+   * `rivalPressurePercent`, the one rule asked with a town in hand (The Peace
+   * of God's city building the Magnum Opus). Absent means every town.
+   */
+  scope?: CityScope;
 }
 
 /**
@@ -6338,6 +6437,13 @@ export interface CardYieldAmplifierEffect {
   percent?: number;
   /** Which towns the amplified line must land in. Absent means everywhere. */
   scope?: CityScope;
+  /**
+   * **Whose lines are raised.** Absent reads your Orders' lines, which is what
+   * every row before The Doctors of the Church meant. `'followerBeliefs'` reads
+   * the follower beliefs' town lines instead (never their hex lines), in your
+   * own towns only, since that is the only place their lines reach your fold.
+   */
+  reads?: 'followerBeliefs';
 }
 
 /**
@@ -6958,7 +7064,14 @@ export type CommissionFigure =
   /** Hexes inside this empire's borders. */
   | 'hexesOwned'
   /** Tiles worked by this empire's towns that carry an improvement. */
-  | 'improvedTilesWorked';
+  | 'improvedTilesWorked'
+  /**
+   * Percent of the world's cities that follow a religion this empire is paid by,
+   * rounded down — The Great Commission.
+   */
+  | 'followingCityShare'
+  /** Rival original capitals that follow a religion this empire is paid by — The Conversion of Kings. */
+  | 'rivalCapitalsFollowing';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -6967,6 +7080,8 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'tradeRoutes',
   'hexesOwned',
   'improvedTilesWorked',
+  'followingCityShare',
+  'rivalCapitalsFollowing',
 ];
 
 /**

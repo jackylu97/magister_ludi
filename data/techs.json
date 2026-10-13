@@ -1304,6 +1304,20 @@
       "glyph": "🛣",
       "bearer": "empire",
       "summary": "Open-borders treaties; both empires must know Writing."
+    },
+    "votiveOffering": {
+      "byCard": true,
+      "name": "Votive Offering",
+      "glyph": "✦",
+      "bearer": "city",
+      "summary": "A city may give faith to whatever it is building: the faith the rite costs becomes production."
+    },
+    "restoringOfTheHost": {
+      "byCard": true,
+      "name": "Restoring of the Host",
+      "glyph": "✚",
+      "bearer": "city",
+      "summary": "A city may spend faith to heal every unit of yours standing in land that follows your religion."
     }
   }
 }

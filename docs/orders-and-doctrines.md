@@ -288,24 +288,57 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
-| First Rites | 0 | ● | P | Shrines cost 25% less production and give +2 faith. |
-| Lay Offerings | 0 | ● | P | Worked mines and camps gain +1 faith. A city working at least two gains +3 gold, once per city. |
-| The Monastic Table | 0 | ● | P | Cities keeping a rite gain +2 food and +2 production. |
-| The Votive Fields | 0 | ● | S | Worked farms and plantations in cities keeping a rite gain +1 food and +1 faith. |
-| The Omen Schools | 0 | ● | P | Cities keeping a rite gain +2 science and +1 culture. |
-| Rites of Labor | 0 | ◆ | P | Cities keeping a rite gain +20% production toward buildings and +2 gold. |
-| The Rites Commonwealth | 0 | ○ | P | Cities keeping a rite gain +3 production and demand 15% less population happiness. Your cities without a rite gain −1 happiness. |
-| Monastic Copyists | 1 | ● | P | Cities with a Temple and Library gain +3 science and +3 culture. |
-| The Living Hymnal | 1 | ◆ | P | While active, gains +2 science and +2 culture per turn in your capital for each foreign city first converted to your religion, at most +24 of each. |
-| The Saints' Fields | 2 | ● | S | Worked Holy Sites give +3 food and +3 production. A city working one gains +2 happiness, once per city. |
-| The Cathedral Works | 2 | ● | P | Gain +30% production toward Cathedrals. Cities with one gain +5 production and +5 science. |
+| First Rites | 0 | ● | P | +25% production toward Shrines. Shrines give +2 faith. |
+| Pastoral Shrines | 0 | ● | S | Worked pastures gain +1 faith and +1 food. A city working at least two pastures gains +1 happiness. |
+| Lay Offerings | 0 | ● | S | Camps and plantations gain +1 faith and +1 food. |
+| The Old Gods Remain | 0 | ◆ | S | Gain one more pantheon belief. |
+| The Founding Vows | 0 | ◆ | S | Commission. Start two rites in your cities while this is seated. Reward: 100 faith and 40 food in your capital. Then this card leaves its chair. |
+| The Calling | 0 | ● | S | +25% faith until you have founded a religion. |
+| The Holy Spring | 0 | ● | P | Cities whose centre stands beside a mountain or a lake gain +2 faith and +1 culture. |
+| The Wayside Shrines | 0 | ● | P | Cities with a Shrine gain +2 food and +1 happiness. |
+| The Consolation | 1 | ● | S | Cities keeping a rite gain +3 happiness. |
+| The Priest-Astronomers | 1 | ● | P | Your capital gains +1 science and +1 faith for every city of yours keeping a rite, at most +8 of each. |
+| Consecrated Labor | 1 | ● | S | Cities with a Shrine may buy workers with faith. |
+| The Octave | 1 | ◆ | P | Rites you start while this is seated last 50% longer. |
+| The Fast | 1 | ◆ | S | Once drafted, unlock the Rite of Fasting. A city keeping it stores no food toward growth for ten turns and gains faith equal to its population each turn. No chair required. |
+| The Living Hymnal | 1 | ◆ | P | Your capital gains +2 science and +2 culture for every city following your religion, with no cap. |
+| The Alms Roads | 1 | ◆ | S | Your trade routes from Temple cities gain +3 faith. |
+| The Mission | 1 | ◆ | S | Commission. Convert two foreign cities to your religion while this is seated. Reward: a free Apostle in your capital and 100 culture. Then this card leaves its chair. |
+| The Second Prophet | 1 | ◆ | S | Prophets and apostles you buy start with one extra charge. |
+| The Monastic Builders | 1 | ◆ | S | Science buildings may be bought with faith. |
+| The Creed | 1 | ◆ | P | Your capital gains +2 faith and +2 culture for every belief your religion holds. |
+| The Painted Chapels | 1 | ◆ | P | Religious buildings give +2 culture each. |
+| The Rites Commonwealth | 1 | ○ | S | Cities keeping a rite demand 25% less population happiness. Your cities without a rite gain −1 happiness. |
+| The Saints' Fields | 2 | ● | S | Worked Holy Sites give +3 food and +5 gold. A city working one gains +2 happiness, once per city. |
+| The Cathedral Works | 2 | ● | P | Gain +30% production toward Cathedrals. Cities with one gain +5 science and +2 happiness. |
+| The Old Holy Places | 2 | ● | S | Holy Sites that have stood for 20 turns gain +2 faith. Those that have stood for 40 turns gain +2 faith and +2 culture more. |
+| Temple Estates | 2 | ● | S | Hexes beside a Holy Site gain +1 food and +1 faith. |
+| The Votive Gifts | 2 | ● | S | While this is seated, your cities know the Votive Offering: a city spends the rite's faith to add that much production, at the faith rate, to whatever it is building. Not toward wonders. Once per city per turn. |
 | The Spiritual Host | 2 | ◆ | S | Your military units gain +4 strength in territory following your religion. Temple cities gain +2 happiness while you are at war. |
-| The Congregation Rolls | 2 | ◆ | P | Each foreign city following your religion gives your capital +2 gold and +2 science, at most +24 of each. |
-| The Second Prophet | 2 | ◆ | S | Prophets purchased while this is seated begin with one additional charge. Existing faith prices and charge costs remain. |
+| Mission Houses | 2 | ◆ | S | Your proclamations apply 30% more pressure. Apostles gain +1 movement. |
 | The Festival Calendar | 2 | ◆ | P | Cities keeping a rite gain +20% food and +20% culture. |
-| The Consecrated Workshops | 3 | ● | P | Cities keeping a rite gain +20% production. Their Cathedrals give an additional +4 production. |
+| The Penitents' Roll | 2 | ◆ | E | +4 science and +4 culture for every Order hand you reroll while this is seated. Rerolls cost 30% less faith while this is seated. |
+| The Lay Brothers | 2 | ○ | S | Cities with a Temple may buy ordinary buildings with faith, at the faith rate. |
+| The Settled Faith | 2 | ○ | P | Temple cities keeping a rite gain +20% science and +2 happiness. Your proclamations apply 25% less pressure. |
+| The Holy Inquisition | 3 | ◆ | P | Rival religions press your cities 40% less. +25% faith. |
+| The Learned Clergy | 3 | ◆ | P | +1 science and +1 culture for every 10 faith your empire makes each turn. |
+| The Offered Stones | 3 | ◆ | P | Buildings you bought with faith give +1 culture each, at most +3 per town. You can purchase buildings with faith. |
+| The Doctors of the Church | 3 | ○ | E | Follower beliefs pay 100% more in your own cities. |
+| The Monastic University | 3 | ○ | S | A Holy Site and an academy standing beside each other each gain +3 science and +2 faith. |
+| The Great Consecration | 4 | ○ | S | Each foreign city following your religion grants +5% production toward the Magnum Opus, at most +40%. |
+| The Last Offering | 4 | ○ | S | In your holy city, faith you pour into the Magnum Opus buys 50% more production. |
+| The Great Commission | 4 | ○ | S | Commission. Have more than half of the world's cities follow your religion. Reward: 500 faith, and for 30 turns every city that follows your religion gains +3 faith and +3 culture. Then this card leaves its chair. |
+| The Tithe of Nations | 4 | ○ | S | While one of your cities is building the Magnum Opus, gain 1 faith each turn for every citizen in the world who follows your religion, at home or abroad. |
+| The Treasury of Merit | 4 | ○ | P | Each turn, gain science equal to 2% of the faith you hold and culture equal to 2% of it, no cap. |
+| The Apostolic Succession | 4 | ○ | P | Your holy city gains +3 science and +3 culture for every ten turns since your religion was founded, at most +24 of each. |
+| The Chapter Houses | 4 | ○ | P | Every city with a Cathedral gains +2 science and +2 culture for each Cathedral you hold, at most +12 of each. |
+| The Seven Pilgrimages | 4 | ◆ | P | A city working a Holy Site gains +1 science and +1 culture for every Holy Site you hold, at most +5 of each. |
+| The Peace of God | 4 | ◆ | S | The city building your Magnum Opus cannot be pressed by rival religions, and gains +2 strength for each city that follows your religion, at most +30. |
+| The Last Crusade | 4 | ◆ | S | Your military units gain +8 strength against an empire that is building the Magnum Opus, while fighting in territory that follows your religion. |
+| The Conversion of Kings | 4 | ○ | S | Commission. Have a rival's capital follow your religion while this is seated. Reward: a free Prophet in your capital and 300 culture. Then this card leaves its chair. |
+| The Pious Masons | 4 | ○ | S | In cities with a Cathedral, a world wonder that is at least half built may be bought with faith. Not the Magnum Opus. |
+| The Host Restored | 4 | ○ | S | While this is seated, your cities know the Restoring of the Host: a city spends the rite's faith to heal every unit of yours standing in territory that follows your religion to full health. A city may say it once every five turns. |
 | The Holy Army | 3 | ◆ | S | Your military units gain +5 strength in territory following your religion. Cities holding a relic train military units 30% faster. |
-| The Great Consecration | 3 | ○ | S | Each foreign city following your religion grants +5% production toward the Magnum Opus, at most +40%. |
 
 ### Scientific
 

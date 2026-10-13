@@ -73,6 +73,7 @@ import {
 import { authorityOf, happinessOf } from '../meters';
 import type { ModifierStage } from '../yields/stages';
 import {
+  FOLLOWER_BELIEF_IDS,
   RELIGION,
   beliefDef,
   consecrationDef,
@@ -121,6 +122,7 @@ import {
   countFirsts,
   firstKeyTail,
   followerCount,
+  foundedReligion,
   playerById,
   realPlayers,
   slottedOrderCount,
@@ -1030,6 +1032,21 @@ export function heldReligions(state: GameState, playerId: number): Religion[] {
 }
 
 /**
+ * Is this town the holy city of a religion this empire is paid by? The holy
+ * city is the town whose ground holds the religion's first holy site, the same
+ * reading `religionFounder` takes. The `holyCity` scope's one reading.
+ */
+export function isHolyCityOf(state: GameState, city: City, playerId: number): boolean {
+  if (city.ownerId !== playerId) return false;
+  for (const religion of heldReligions(state, playerId)) {
+    const seat = religion.holySite;
+    if (seat === undefined) continue;
+    if (tileOwnerCityId(state, seat.col, seat.row) === city.id) return true;
+  }
+  return false;
+}
+
+/**
  * The founder's trickle with Apostles folded in — **before anything is banked**,
  * which is `windfallPayout`'s discipline applied to a standing payment.
  *
@@ -1477,7 +1494,9 @@ function empireConditionHolds(
         if (city.ownerId !== playerId) continue;
         if (only !== undefined && city.id !== only) continue;
         for (const row of city.queue) {
-          if (queueCategory(row) === when.category) return true;
+          if (queueCategory(row) !== when.category) continue;
+          if (when.building !== undefined && row.id !== when.building) continue;
+          return true;
         }
       }
       return false;
@@ -1506,6 +1525,10 @@ function empireConditionHolds(
       }
       return false;
     }
+    case 'noReligionFounded':
+      // The history, not the holy city: a founder who lost the seat has still
+      // founded one, and The Calling's job was done the day it was.
+      return foundedReligion(state, playerId) === undefined;
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -1853,6 +1876,7 @@ export function cityScopeAdmits(
       // it is, exactly as `EmpireCondition`'s arm does it one scale out.
       const front = city.queue[0];
       if (front === undefined || queueCategory(front) !== scope.category) return false;
+      if (scope.building !== undefined && front.id !== scope.building) return false;
       // And the narrowing to a single great house, read off the marker the rows
       // already carry rather than off `oneOfAKind`: a wonder is a class of its
       // own and `category: 'wonder'` is how a card names it. A row that is not a
@@ -2121,6 +2145,8 @@ export function cityScopeAdmits(
       // `cityPostPays` rather than `cityHoldsPost`, so war and a blockade
       // suspend every line written on the scope at once. See the scope.
       return cityPostPays(state, city, viewerId ?? city.ownerId);
+    case 'holyCity':
+      return isHolyCityOf(state, city, viewerId ?? city.ownerId);
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -2155,6 +2181,7 @@ function scopeNote(scope?: CityScope): string | null {
     case 'onResourceKind':
       return `settled on ${scope.kind}`;
     case 'queueHolds':
+      if (scope.building !== undefined) return `building ${buildingDef(scope.building).name}`;
       return scope.empireBuilding === true
         ? 'building an empire building'
         : `building a ${scope.category}`;
@@ -2258,6 +2285,8 @@ function scopeNote(scope?: CityScope): string | null {
     }
     case 'holdsPost':
       return 'your trading post stands here';
+    case 'holyCity':
+      return 'holy city';
     case 'all':
       return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' + ');
     case 'any':
@@ -2582,7 +2611,10 @@ export function countOf(
       const here = (town: City): number => {
         let found = 0;
         for (const id of town.buildings) {
-          if (buildingBank(town, id) !== undefined) found += 1;
+          const bank = buildingBank(town, id);
+          if (bank === undefined) continue;
+          if (effect.bank !== undefined && bank !== effect.bank) continue;
+          found += 1;
         }
         return found;
       };
@@ -3018,6 +3050,28 @@ export function countOf(
       // somebody else's and taken a decade later is still a verse the hymnal
       // wrote first.
       return countFirsts(state, playerId, 'conversion');
+    case 'citiesKeepingRite': {
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId !== playerId) continue;
+        if (cityRite(state, town) !== null) total += 1;
+      }
+      return total;
+    }
+    case 'beliefsHeld': {
+      let total = 0;
+      for (const religion of heldReligions(state, playerId)) {
+        total += religion.pantheon.length + religion.follower.length + religion.enhancer.length;
+      }
+      return total;
+    }
+    case 'turnsSinceFounded': {
+      let longest = 0;
+      for (const religion of heldReligions(state, playerId)) {
+        longest = Math.max(longest, state.turn - religion.foundedTurn);
+      }
+      return longest;
+    }
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -3537,8 +3591,16 @@ function deckModifierLines(
     }
     const line = emptyLine(card, source);
     let instances = 0;
+    // **Whose lines** (`CardYieldAmplifierEffect.reads`): the Orders', or the
+    // follower beliefs' (The Doctors of the Church) — and those only reach a
+    // town's fold, so the empire's books are never read for them.
+    const readsBeliefs = effect.reads === 'followerBeliefs';
+    if (readsBeliefs && !city) continue;
     for (const paid of base) {
-      if (paid.card === card || !isOrderId(paid.card)) continue;
+      if (paid.card === card) continue;
+      if (readsBeliefs ? !FOLLOWER_BELIEF_IDS.includes(paid.card as never) : !isOrderId(paid.card)) {
+        continue;
+      }
       let touched = false;
       for (const voice of VOICES) {
         if (effect.yield !== 'all' && effect.yield !== voice) continue;
@@ -4167,6 +4229,8 @@ function tileAmplifierLines(
   const out: CardTileLine[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'cardYieldAmplifier')) {
     if (effect.scope !== undefined) continue;
+    // The follower beliefs' reader reaches town lines only.
+    if (effect.reads !== undefined) continue;
     for (const dressed of found) {
       if (dressed.card === card || !isOrderId(dressed.card)) continue;
       const line: CardTileLine = {
@@ -5233,6 +5297,18 @@ function combatConditionHolds(
         if (!combatConditionHolds(state, situation, inner)) return false;
       }
       return true;
+    }
+    case 'vsBuilding': {
+      // The other side's whole queue list, every town: "an empire that is
+      // building the Magnum Opus" is a fact about the realm, not about the town
+      // this fight is beside. The wild keeps no towns and never satisfies it.
+      const them = situation.vsOwnerId;
+      if (them === undefined || them === situation.unit.ownerId) return false;
+      for (const city of state.cities) {
+        if (city.ownerId !== them) continue;
+        if (city.queue.some((row) => row.id === when.building)) return true;
+      }
+      return false;
     }
     default: {
       const unhandled: never = test;
@@ -6996,6 +7072,30 @@ export function cardActionRule(state: GameState, playerId: number, rule: ActionR
 }
 
 /**
+ * **Does this action rule hold in this town?** The reader for the rules that
+ * carry a `scope` (`CardRuleEffect.scope`): the three faith-purchase rules,
+ * asked by `purchase.ts` with the town and the piece in hand. A row's `class`
+ * is asked of `type` when one is given and refuses a caller that gives none,
+ * exactly as `cardRuleHolds` does.
+ */
+export function cardActionRuleAt(
+  state: GameState,
+  city: City,
+  rule: ActionRuleId,
+  type?: UnitTypeId,
+): boolean {
+  for (const { effect } of effectsOfKind(state, city.ownerId, 'rule')) {
+    if (effect.rule !== rule) continue;
+    if (effect.class !== undefined) {
+      if (type === undefined || !unitMatches(type, effect.class)) continue;
+    }
+    if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope)) continue;
+    return true;
+  }
+  return false;
+}
+
+/**
  * **May this empire raise this building in more than one town?** Caravanserai
  * Cities' one question (batch C7, `ActionRuleId`'s `buildsEverywhere`).
  *
@@ -7353,6 +7453,26 @@ export function cardPressureRule(
   let total = 0;
   for (const entry of effectsOfKind(state, playerId, 'pressureRule')) {
     if (entry.effect.rule !== rule) continue;
+    // A scoped row is a fact about one town and is read only with the town in
+    // hand (`cardRivalPressurePercent`).
+    if (entry.effect.scope !== undefined) continue;
+    total += entry.effect.delta;
+  }
+  return total;
+}
+
+/**
+ * The percentage this town's owner's cards put on **rival** pressure entering
+ * it — The Holy Inquisition's −40, The Peace of God's −100 in the city building
+ * the Magnum Opus. Summed, floored at −100 by the caller. Read in `templeShare`.
+ */
+export function cardRivalPressurePercent(state: GameState, city: City): number {
+  let total = 0;
+  for (const entry of effectsOfKind(state, city.ownerId, 'pressureRule')) {
+    if (entry.effect.rule !== 'rivalPressurePercent') continue;
+    if (entry.effect.scope !== undefined && !cityScopeAdmits(state, city, entry.effect.scope)) {
+      continue;
+    }
     total += entry.effect.delta;
   }
   return total;

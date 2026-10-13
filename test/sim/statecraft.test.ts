@@ -445,11 +445,16 @@ describe("the card table", () => {
       const commission = ORDER_IDS.includes(id as never)
         ? orderDef(id as never).commission
         : undefined;
+      // And a charter speaks through its grant (The Fast's rite).
+      const charter = ORDER_IDS.includes(id as never)
+        ? orderDef(id as never).charter
+        : undefined;
       const hasSomething =
         def.effects.length > 0 ||
         (def.deferred ?? []).length > 0 ||
         granted.length > 0 ||
-        commission !== undefined;
+        commission !== undefined ||
+        charter !== undefined;
       expect(hasSomething, id).toBe(true);
     }
   });
@@ -8532,6 +8537,15 @@ describe("the engine shapes", () => {
     // trickle rather than of one town's buildings — `where: 'empire'`, the
     // second row in the game to say it.
     "aCourtOfMerchants · cityRenownPercent",
+    // The Devotion deck batch: The Alms Roads' faith on roads out of Temple
+    // towns (a route flat), The Penitents' Roll's pay per Order hand rerolled
+    // while it is seated (the chair's counter, two voices), and The Doctors of
+    // the Church, the first amplifier that reads follower beliefs' lines
+    // instead of the Orders' (`CardYieldAmplifierEffect.reads`).
+    "theAlmsRoads · routeYield",
+    "thePenitentsRoll · rerollsWhileSlotted",
+    "thePenitentsRoll · rerollsWhileSlotted",
+    "theDoctorsOfTheChurch · cardYieldAmplifier",
     "thePatronsRoad · routeYield",
     // D2a: The Muses' Call's *"+20% renown"*, un-deferred with the worked-work
     // scope its other half wanted.

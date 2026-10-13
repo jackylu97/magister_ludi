@@ -764,6 +764,18 @@ function riteOpening(id: RiteId): CompendiumClause {
   if (def.retired === true) {
     return { text: 'Withdrawn: nothing opens this any more, and no city performs it.' };
   }
+  // **A card-taught rite** (`RiteDef.byCard`, the Devotion deck): the Order
+  // whose charter or seated grant teaches it, never a node.
+  if (def.byCard === true) {
+    const card = ORDER_IDS.find((order) => {
+      const row = orderDef(order);
+      if (row.retired === true) return false;
+      if (row.charter?.unlocks.rites?.includes(id)) return true;
+      return row.effects.some((effect) => effect.kind === 'grantsAbility' && effect.ability === id);
+    });
+    const by = card === undefined ? 'a card' : `the Order ${ref('order', card, orderDef(card).name)}`;
+    return { text: `Unlocked by ${by}, not by any technology.` };
+  }
   const gate = (isAbilityId(id) ? ABILITY_TECH.get(id) : undefined) ?? def.tech;
   return openedByTech(gate);
 }

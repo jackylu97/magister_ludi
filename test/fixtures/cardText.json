@@ -4279,24 +4279,460 @@
   ],
   "pastoralShrines": [
    {
-    "raw": "worked pastures pay an offering of faith and a little more food — not built yet",
-    "text": "worked pastures pay an offering of faith and a little more food — not built yet",
-    "deferred": true
+    "raw": "+1 food, +1 faith on every hex with a [[improvement:pasture|Pasture]]",
+    "text": "+1 food, +1 faith on every hex with a Pasture"
    },
    {
-    "raw": "your capital works harder while you keep a penned herd anywhere at all — not built yet",
-    "text": "your capital works harder while you keep a penned herd anywhere at all — not built yet",
-    "deferred": true
+    "raw": "+1 happiness in every city working 2 or more hexes with a [[improvement:pasture|Pasture]]",
+    "text": "+1 happiness in every city working 2 or more hexes with a Pasture"
    }
   ],
   "layOfferings": [
    {
-    "raw": "+1 faith on every hex with a [[improvement:mine|Mine]] or [[improvement:camp|Camp]]",
-    "text": "+1 faith on every hex with a Mine or Camp"
+    "raw": "+1 food, +1 faith on every hex with a [[improvement:camp|Camp]] or [[improvement:plantation|Plantation]]",
+    "text": "+1 food, +1 faith on every hex with a Camp or Plantation"
+   }
+  ],
+  "theOldGodsRemain": [
+   {
+    "raw": "+1 pantheon slot",
+    "text": "+1 pantheon slot"
+   }
+  ],
+  "theFoundingVows": [
+   {
+    "raw": "Commission. Goal: start 2 rites in your cities, while this card is seated",
+    "text": "Commission. Goal: start 2 rites in your cities, while this card is seated"
    },
    {
-    "raw": "+3 gold in every city working 2 or more hexes with a [[improvement:mine|Mine]] or [[improvement:camp|Camp]]",
-    "text": "+3 gold in every city working 2 or more hexes with a Mine or Camp"
+    "raw": "Reward: +100 faith, and +40 food in your capital",
+    "text": "Reward: +100 faith, and +40 food in your capital"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theCalling": [
+   {
+    "raw": "until you have founded a religion: +25% faith in every city",
+    "text": "until you have founded a religion: +25% faith in every city"
+   }
+  ],
+  "theHolySpring": [
+   {
+    "raw": "+1 culture, +2 faith in every city on or beside mountain or on or beside lake",
+    "text": "+1 culture, +2 faith in every city on or beside mountain or on or beside lake"
+   }
+  ],
+  "theWaysideShrines": [
+   {
+    "raw": "+2 food in every city with a [[building:shrine|Shrine]]",
+    "text": "+2 food in every city with a Shrine"
+   },
+   {
+    "raw": "+1 happiness in every city with a [[building:shrine|Shrine]]",
+    "text": "+1 happiness in every city with a Shrine"
+   }
+  ],
+  "theConsolation": [
+   {
+    "raw": "+3 happiness in every city while it is keeping a rite",
+    "text": "+3 happiness in every city while it is keeping a rite"
+   }
+  ],
+  "thePriestAstronomers": [
+   {
+    "raw": "+1 science in your capital per city of yours keeping a rite (at most +8 science)",
+    "text": "+1 science in your capital per city of yours keeping a rite (at most +8 science)"
+   },
+   {
+    "raw": "+1 faith in your capital per city of yours keeping a rite (at most +8 faith)",
+    "text": "+1 faith in your capital per city of yours keeping a rite (at most +8 faith)"
+   }
+  ],
+  "consecratedLabor": [
+   {
+    "raw": "workers may be bought with faith in every city with a [[building:shrine|Shrine]]",
+    "text": "workers may be bought with faith in every city with a Shrine"
+   }
+  ],
+  "devotionTheQuietHours": [
+   {
+    "raw": "rites last +50% longer",
+    "text": "rites last +50% longer"
+   }
+  ],
+  "theFast": [
+   {
+    "raw": "once drafted, your cities may keep [[rite:riteOfFasting|Rite of Fasting]]: this city does not grow and gains faith for every citizen, while the rite runs",
+    "text": "once drafted, your cities may keep Rite of Fasting: this city does not grow and gains faith for every citizen, while the rite runs"
+   }
+  ],
+  "theLivingHymnal": [
+   {
+    "raw": "+2 science in your capital per city that follows you",
+    "text": "+2 science in your capital per city that follows you"
+   },
+   {
+    "raw": "+2 culture in your capital per city that follows you",
+    "text": "+2 culture in your capital per city that follows you"
+   }
+  ],
+  "theAlmsRoads": [
+   {
+    "raw": "+3 faith on every trade route sent from every city with a [[building:temple|Temple]]",
+    "text": "+3 faith on every trade route sent from every city with a Temple"
+   }
+  ],
+  "theMission": [
+   {
+    "raw": "Commission. Goal: convert 2 foreign cities to your religion, while this card is seated",
+    "text": "Commission. Goal: convert 2 foreign cities to your religion, while this card is seated"
+   },
+   {
+    "raw": "Reward: an [[unit:apostle|Apostle]], trained in your capital free of upkeep, and +100 culture",
+    "text": "Reward: an Apostle, trained in your capital free of upkeep, and +100 culture"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "consecratedGround": [
+   {
+    "raw": "hexes may be bought with faith, for half of what coin would pay — not built yet",
+    "text": "hexes may be bought with faith, for half of what coin would pay — not built yet",
+    "deferred": true
+   }
+  ],
+  "theSecondProphet": [
+   {
+    "raw": "newly created prophets gain +1 charge",
+    "text": "newly created prophets gain +1 charge"
+   },
+   {
+    "raw": "newly created apostles gain +1 charge",
+    "text": "newly created apostles gain +1 charge"
+   }
+  ],
+  "theMonasticBuilders": [
+   {
+    "raw": "you may buy buildings that supply science with faith",
+    "text": "you may buy buildings that supply science with faith"
+   }
+  ],
+  "theCreed": [
+   {
+    "raw": "+2 faith in your capital per belief your religion holds",
+    "text": "+2 faith in your capital per belief your religion holds"
+   },
+   {
+    "raw": "+2 culture in your capital per belief your religion holds",
+    "text": "+2 culture in your capital per belief your religion holds"
+   }
+  ],
+  "thePaintedChapels": [
+   {
+    "raw": "+2 culture in every city per faith building there",
+    "text": "+2 culture in every city per faith building there"
+   }
+  ],
+  "theRitesCommonwealth": [
+   {
+    "raw": "-25% happiness demanded per citizen, in every city while it is keeping a rite",
+    "text": "-25% happiness demanded per citizen, in every city while it is keeping a rite"
+   },
+   {
+    "raw": "-1 happiness in every city while it is keeping no rite",
+    "text": "-1 happiness in every city while it is keeping no rite"
+   }
+  ],
+  "devotionTheSaintsFields": [
+   {
+    "raw": "+3 food, +5 gold on every hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+3 food, +5 gold on every hex with a Holy Site"
+   },
+   {
+    "raw": "+2 happiness in every city working a [[improvement:holySite|Holy Site]]",
+    "text": "+2 happiness in every city working a Holy Site"
+   }
+  ],
+  "theCathedralWorks": [
+   {
+    "raw": "+30% production toward [[building:cathedral|Cathedrals]]",
+    "text": "+30% production toward Cathedrals"
+   },
+   {
+    "raw": "+5 science in every city with a [[building:cathedral|Cathedral]]",
+    "text": "+5 science in every city with a Cathedral"
+   },
+   {
+    "raw": "+2 happiness in every city with a [[building:cathedral|Cathedral]]",
+    "text": "+2 happiness in every city with a Cathedral"
+   }
+  ],
+  "theOldHolyPlaces": [
+   {
+    "raw": "+2 faith on every hex with a [[improvement:holySite|Holy Site]] that has stood at least 20 turns",
+    "text": "+2 faith on every hex with a Holy Site that has stood at least 20 turns"
+   },
+   {
+    "raw": "+2 culture, +2 faith on every hex with a [[improvement:holySite|Holy Site]] that has stood at least 40 turns",
+    "text": "+2 culture, +2 faith on every hex with a Holy Site that has stood at least 40 turns"
+   }
+  ],
+  "templeEstates": [
+   {
+    "raw": "+1 food, +1 faith on every hex beside a [[improvement:holySite|Holy Site]]",
+    "text": "+1 food, +1 faith on every hex beside a Holy Site"
+   }
+  ],
+  "theVotiveGifts": [
+   {
+    "raw": "a city may give faith to whatever it is building: the faith the rite costs becomes production",
+    "text": "a city may give faith to whatever it is building: the faith the rite costs becomes production"
+   }
+  ],
+  "theSpiritualHost": [
+   {
+    "raw": "+4 combat strength for military units inside cities that follow your religion",
+    "text": "+4 combat strength for military units inside cities that follow your religion"
+   },
+   {
+    "raw": "while you are at war: +2 happiness in every city with a [[building:temple|Temple]]",
+    "text": "while you are at war: +2 happiness in every city with a Temple"
+   }
+  ],
+  "missionHouses": [
+   {
+    "raw": "a proclamation presses +18 faith harder",
+    "text": "a proclamation presses +18 faith harder"
+   },
+   {
+    "raw": "apostles: +1 movement",
+    "text": "apostles: +1 movement"
+   }
+  ],
+  "theFestivalCalendar": [
+   {
+    "raw": "+20% food in every city while it is keeping a rite",
+    "text": "+20% food in every city while it is keeping a rite"
+   },
+   {
+    "raw": "+20% culture in every city while it is keeping a rite",
+    "text": "+20% culture in every city while it is keeping a rite"
+   }
+  ],
+  "thePenitentsRoll": [
+   {
+    "raw": "+4 science per draft you have rerolled while this stood",
+    "text": "+4 science per draft you have rerolled while this stood"
+   },
+   {
+    "raw": "+4 culture per draft you have rerolled while this stood",
+    "text": "+4 culture per draft you have rerolled while this stood"
+   },
+   {
+    "raw": "rerolling an Order hand costs 30% less faith",
+    "text": "rerolling an Order hand costs 30% less faith"
+   }
+  ],
+  "theLayBrothers": [
+   {
+    "raw": "buildings other than wonders may be bought with faith in every city with a [[building:temple|Temple]]",
+    "text": "buildings other than wonders may be bought with faith in every city with a Temple"
+   }
+  ],
+  "theSettledFaith": [
+   {
+    "raw": "+20% science in every city with a [[building:temple|Temple]] while it is keeping a rite",
+    "text": "+20% science in every city with a Temple while it is keeping a rite"
+   },
+   {
+    "raw": "+2 happiness in every city with a [[building:temple|Temple]] while it is keeping a rite",
+    "text": "+2 happiness in every city with a Temple while it is keeping a rite"
+   },
+   {
+    "raw": "a proclamation presses 15 faith less",
+    "text": "a proclamation presses 15 faith less"
+   }
+  ],
+  "theHolyInquisition": [
+   {
+    "raw": "rival religions press your cities 40% less",
+    "text": "rival religions press your cities 40% less"
+   },
+   {
+    "raw": "+25% faith in every city",
+    "text": "+25% faith in every city"
+   }
+  ],
+  "theLearnedClergy": [
+   {
+    "raw": "+1 science per 10 faith gained per turn",
+    "text": "+1 science per 10 faith gained per turn"
+   },
+   {
+    "raw": "+1 culture per 10 faith gained per turn",
+    "text": "+1 culture per 10 faith gained per turn"
+   }
+  ],
+  "theOfferedStones": [
+   {
+    "raw": "+1 culture in every city per building bought with faith there (at most +3 culture)",
+    "text": "+1 culture in every city per building bought with faith there (at most +3 culture)"
+   },
+   {
+    "raw": "buildings other than wonders may be bought with faith",
+    "text": "buildings other than wonders may be bought with faith"
+   }
+  ],
+  "theDoctorsOfTheChurch": [
+   {
+    "raw": "what follower beliefs pay in your own cities is +100% more",
+    "text": "what follower beliefs pay in your own cities is +100% more"
+   }
+  ],
+  "theMonasticUniversity": [
+   {
+    "raw": "+3 science, +2 faith on every hex with a [[improvement:holySite|Holy Site]] beside an [[improvement:academy|Academy]]",
+    "text": "+3 science, +2 faith on every hex with a Holy Site beside an Academy"
+   },
+   {
+    "raw": "+3 science, +2 faith on every hex with an [[improvement:academy|Academy]] beside a [[improvement:holySite|Holy Site]]",
+    "text": "+3 science, +2 faith on every hex with an Academy beside a Holy Site"
+   }
+  ],
+  "theGreatConsecration": [
+   {
+    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per foreign city that follows you (at most +40%)",
+    "text": "+5% production toward The Magnum Opus per foreign city that follows you (at most +40%)"
+   }
+  ],
+  "theLastOffering": [
+   {
+    "raw": "faith you give to a build buys 50% more production, in every holy city while it is building [[building:theMagnumOpus|The Magnum Opus]]",
+    "text": "faith you give to a build buys 50% more production, in every holy city while it is building The Magnum Opus"
+   }
+  ],
+  "theGreatCommission": [
+   {
+    "raw": "Commission. Goal: have at least 51% of the world's cities follow your religion, while this card is seated",
+    "text": "Commission. Goal: have at least 51% of the world's cities follow your religion, while this card is seated"
+   },
+   {
+    "raw": "Reward: +500 faith, and for 30 turns, +3 culture, +3 faith in every city that follows the religion",
+    "text": "Reward: +500 faith, and for 30 turns, +3 culture, +3 faith in every city that follows the religion"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theTitheOfNations": [
+   {
+    "raw": "while one of your cities is building [[building:theMagnumOpus|The Magnum Opus]]: +1 faith per citizen in the cities that follow you",
+    "text": "while one of your cities is building The Magnum Opus: +1 faith per citizen in the cities that follow you"
+   }
+  ],
+  "theTreasuryOfMerit": [
+   {
+    "raw": "+1 science per 50 banked faith",
+    "text": "+1 science per 50 banked faith"
+   },
+   {
+    "raw": "+1 culture per 50 banked faith",
+    "text": "+1 culture per 50 banked faith"
+   }
+  ],
+  "theApostolicSuccession": [
+   {
+    "raw": "+3 science in your holy city per 10 turns since your religion was founded (at most +24 science)",
+    "text": "+3 science in your holy city per 10 turns since your religion was founded (at most +24 science)"
+   },
+   {
+    "raw": "+3 culture in your holy city per 10 turns since your religion was founded (at most +24 culture)",
+    "text": "+3 culture in your holy city per 10 turns since your religion was founded (at most +24 culture)"
+   }
+  ],
+  "theChapterHouses": [
+   {
+    "raw": "+2 science in every city with a [[building:cathedral|Cathedral]] per [[building:cathedral|Cathedral]] (at most +12 science)",
+    "text": "+2 science in every city with a Cathedral per Cathedral (at most +12 science)"
+   },
+   {
+    "raw": "+2 culture in every city with a [[building:cathedral|Cathedral]] per [[building:cathedral|Cathedral]] (at most +12 culture)",
+    "text": "+2 culture in every city with a Cathedral per Cathedral (at most +12 culture)"
+   }
+  ],
+  "theSevenPilgrimages": [
+   {
+    "raw": "+1 science in every city working a [[improvement:holySite|Holy Site]] per hex with a [[improvement:holySite|Holy Site]] in your borders (at most +5 science)",
+    "text": "+1 science in every city working a Holy Site per hex with a Holy Site in your borders (at most +5 science)"
+   },
+   {
+    "raw": "+1 culture in every city working a [[improvement:holySite|Holy Site]] per hex with a [[improvement:holySite|Holy Site]] in your borders (at most +5 culture)",
+    "text": "+1 culture in every city working a Holy Site per hex with a Holy Site in your borders (at most +5 culture)"
+   }
+  ],
+  "theInterdict": [
+   {
+    "raw": "you may spend faith to lay a foreign city that keeps your religion under an interdict, and it works far less for a time — not built yet",
+    "text": "you may spend faith to lay a foreign city that keeps your religion under an interdict, and it works far less for a time — not built yet",
+    "deferred": true
+   }
+  ],
+  "thePeaceOfGod": [
+   {
+    "raw": "rival religions cannot press every city while it is building [[building:theMagnumOpus|The Magnum Opus]]",
+    "text": "rival religions cannot press every city while it is building The Magnum Opus"
+   },
+   {
+    "raw": "every city while it is building [[building:theMagnumOpus|The Magnum Opus]]: +2 city defence per city that follows you",
+    "text": "every city while it is building The Magnum Opus: +2 city defence per city that follows you"
+   }
+  ],
+  "theLastCrusade": [
+   {
+    "raw": "+8 combat strength for military units inside cities that follow your religion and against an empire building [[building:theMagnumOpus|The Magnum Opus]]",
+    "text": "+8 combat strength for military units inside cities that follow your religion and against an empire building The Magnum Opus"
+   }
+  ],
+  "theConversionOfKings": [
+   {
+    "raw": "Commission. Goal: have a rival's capital follow your religion, while this card is seated",
+    "text": "Commission. Goal: have a rival's capital follow your religion, while this card is seated"
+   },
+   {
+    "raw": "Reward: a [[unit:prophet|Prophet]], trained in your capital free of upkeep, and +300 culture",
+    "text": "Reward: a Prophet, trained in your capital free of upkeep, and +300 culture"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "thePiousMasons": [
+   {
+    "raw": "a world wonder at least half built may be bought with faith in every city with a [[building:cathedral|Cathedral]]",
+    "text": "a world wonder at least half built may be bought with faith in every city with a Cathedral"
+   }
+  ],
+  "theHostRestored": [
+   {
+    "raw": "a city may spend faith to heal every unit of yours standing in land that follows your religion",
+    "text": "a city may spend faith to heal every unit of yours standing in land that follows your religion"
+   }
+  ],
+  "theHolyArmy": [
+   {
+    "raw": "+5 combat strength for military units inside cities that follow your religion",
+    "text": "+5 combat strength for military units inside cities that follow your religion"
+   },
+   {
+    "raw": "+30% production toward military units, in every city with a [[building:relic|Relic]]",
+    "text": "+30% production toward military units, in every city with a Relic"
    }
   ],
   "theMonasticTable": [
@@ -4351,20 +4787,6 @@
     "deferred": true
    }
   ],
-  "theRitesCommonwealth": [
-   {
-    "raw": "+3 production in every city while it is keeping a rite",
-    "text": "+3 production in every city while it is keeping a rite"
-   },
-   {
-    "raw": "-15% happiness demanded per citizen, in every city while it is keeping a rite",
-    "text": "-15% happiness demanded per citizen, in every city while it is keeping a rite"
-   },
-   {
-    "raw": "-1 happiness in every city while it is keeping no rite",
-    "text": "-1 happiness in every city while it is keeping no rite"
-   }
-  ],
   "pilgrimsWelcome": [
    {
     "raw": "towns with a shrine that keep any faith at all, yours or a rival's, eat better and trade better — not built yet",
@@ -4399,13 +4821,6 @@
     "deferred": true
    }
   ],
-  "devotionTheQuietHours": [
-   {
-    "raw": "a rite granted while this stands runs five turns longer than it would — not built yet",
-    "text": "a rite granted while this stands runs five turns longer than it would — not built yet",
-    "deferred": true
-   }
-  ],
   "theRitesCharter": [
    {
     "raw": "the chapel may be raised in your towns under its ordinary rules — not built yet",
@@ -4418,16 +4833,6 @@
     "deferred": true
    }
   ],
-  "theLivingHymnal": [
-   {
-    "raw": "+2 science in your capital per foreign city you were the first to convert (at most +24 science)",
-    "text": "+2 science in your capital per foreign city you were the first to convert (at most +24 science)"
-   },
-   {
-    "raw": "+2 culture in your capital per foreign city you were the first to convert (at most +24 culture)",
-    "text": "+2 culture in your capital per foreign city you were the first to convert (at most +24 culture)"
-   }
-  ],
   "missionaryHospitality": [
    {
     "raw": "clergy cost less faith to call — not built yet",
@@ -4437,30 +4842,6 @@
    {
     "raw": "the first time each foreign town turns to your faith your capital is fed and the realm sings — not built yet",
     "text": "the first time each foreign town turns to your faith your capital is fed and the realm sings — not built yet",
-    "deferred": true
-   }
-  ],
-  "theAlmsRoads": [
-   {
-    "raw": "roads from your temple towns feed and enrich the towns they reach — not built yet",
-    "text": "roads from your temple towns feed and enrich the towns they reach — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "roads from them into another realm pay you in faith and coin, and pay your host a little too — not built yet",
-    "text": "roads from them into another realm pay you in faith and coin, and pay your host a little too — not built yet",
-    "deferred": true
-   }
-  ],
-  "consecratedLabor": [
-   {
-    "raw": "workers may be bought with faith in temple towns at the price coin would have paid — not built yet",
-    "text": "workers may be bought with faith in temple towns at the price coin would have paid — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "and those workers come with an extra charge in them — not built yet",
-    "text": "and those workers come with an extra charge in them — not built yet",
     "deferred": true
    }
   ],
@@ -4490,26 +4871,6 @@
     "deferred": true
    }
   ],
-  "devotionTheSaintsFields": [
-   {
-    "raw": "+3 food, +3 production on every hex with a [[improvement:holySite|Holy Site]]",
-    "text": "+3 food, +3 production on every hex with a Holy Site"
-   },
-   {
-    "raw": "+2 happiness in every city working a [[improvement:holySite|Holy Site]]",
-    "text": "+2 happiness in every city working a Holy Site"
-   }
-  ],
-  "theCathedralWorks": [
-   {
-    "raw": "+30% production toward [[building:cathedral|Cathedrals]]",
-    "text": "+30% production toward Cathedrals"
-   },
-   {
-    "raw": "+5 production, +5 science in every city with a [[building:cathedral|Cathedral]]",
-    "text": "+5 production, +5 science in every city with a Cathedral"
-   }
-  ],
   "sainthood": [
    {
     "raw": "spending a great person in a temple town's country leaves a relic behind in that town if it has none — not built yet",
@@ -4524,16 +4885,6 @@
     "deferred": true
    }
   ],
-  "theSpiritualHost": [
-   {
-    "raw": "+4 combat strength for military units inside cities that follow your religion",
-    "text": "+4 combat strength for military units inside cities that follow your religion"
-   },
-   {
-    "raw": "while you are at war: +2 happiness in every city with a [[building:temple|Temple]]",
-    "text": "while you are at war: +2 happiness in every city with a Temple"
-   }
-  ],
   "theCongregationRolls": [
    {
     "raw": "+2 gold in your capital per foreign city that follows you (at most +24 gold)",
@@ -4544,57 +4895,10 @@
     "text": "+2 science in your capital per foreign city that follows you (at most +24 science)"
    }
   ],
-  "theSecondProphet": [
-   {
-    "raw": "newly created prophets gain +1 charge",
-    "text": "newly created prophets gain +1 charge"
-   }
-  ],
-  "missionHouses": [
-   {
-    "raw": "your proclamations press harder on the towns that hear them — not built yet",
-    "text": "your proclamations press harder on the towns that hear them — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "clergy travel farther in a turn — not built yet",
-    "text": "clergy travel farther in a turn — not built yet",
-    "deferred": true
-   }
-  ],
-  "theFestivalCalendar": [
-   {
-    "raw": "+20% food in every city while it is keeping a rite",
-    "text": "+20% food in every city while it is keeping a rite"
-   },
-   {
-    "raw": "+20% culture in every city while it is keeping a rite",
-    "text": "+20% culture in every city while it is keeping a rite"
-   }
-  ],
-  "consecratedGround": [
-   {
-    "raw": "hexes may be bought with faith at the price coin would have paid — not built yet",
-    "text": "hexes may be bought with faith at the price coin would have paid — not built yet",
-    "deferred": true
-   }
-  ],
   "theCouncil": [
    {
     "raw": "once an age a prophet at your faith's first seat may set one follower belief aside and choose another from three — not built yet",
     "text": "once an age a prophet at your faith's first seat may set one follower belief aside and choose another from three — not built yet",
-    "deferred": true
-   }
-  ],
-  "theSettledFaith": [
-   {
-    "raw": "temple towns keeping a rite learn faster and are gladder — not built yet",
-    "text": "temple towns keeping a rite learn faster and are gladder — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "and your proclamations press more gently for it — not built yet",
-    "text": "and your proclamations press more gently for it — not built yet",
     "deferred": true
    }
   ],
@@ -4615,28 +4919,6 @@
     "deferred": true
    }
   ],
-  "theHolyInquisition": [
-   {
-    "raw": "a rival's faith presses far more weakly on your towns, over whatever defence they already keep — not built yet",
-    "text": "a rival's faith presses far more weakly on your towns, over whatever defence they already keep — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "inquisitors cost less faith to call — not built yet",
-    "text": "inquisitors cost less faith to call — not built yet",
-    "deferred": true
-   }
-  ],
-  "theHolyArmy": [
-   {
-    "raw": "+5 combat strength for military units inside cities that follow your religion",
-    "text": "+5 combat strength for military units inside cities that follow your religion"
-   },
-   {
-    "raw": "+30% production toward military units, in every city with a [[building:relic|Relic]]",
-    "text": "+30% production toward military units, in every city with a Relic"
-   }
-  ],
   "theSacredTreasury": [
    {
     "raw": "a town with a cathedral, a relic and a worked holy site grows rich, sings, and builds the great works faster — not built yet",
@@ -4649,12 +4931,6 @@
     "raw": "when you finish a cathedral you choose its consecration instead of being given one — not built yet",
     "text": "when you finish a cathedral you choose its consecration instead of being given one — not built yet",
     "deferred": true
-   }
-  ],
-  "theGreatConsecration": [
-   {
-    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per foreign city that follows you (at most +40%)",
-    "text": "+5% production toward The Magnum Opus per foreign city that follows you (at most +40%)"
    }
   ],
   "theCloisteredRealm": [
@@ -6649,7 +6925,29 @@
    }
   ],
   "thePreaching": [],
-  "recastingTheOmens": []
+  "recastingTheOmens": [],
+  "riteOfFasting": [
+   {
+    "raw": "-100% food surplus stored toward growth",
+    "text": "-100% food surplus stored toward growth"
+   },
+   {
+    "raw": "+1 faith per citizen in this city",
+    "text": "+1 faith per citizen in this city"
+   }
+  ],
+  "votiveOffering": [
+   {
+    "raw": "the faith this rite costs goes into what the city is building, as production at the faith rate, never toward a wonder",
+    "text": "the faith this rite costs goes into what the city is building, as production at the faith rate, never toward a wonder"
+   }
+  ],
+  "restoringOfTheHost": [
+   {
+    "raw": "every unit of yours standing in land that follows your religion is healed to full",
+    "text": "every unit of yours standing in land that follows your religion is healed to full"
+   }
+  ]
  },
  "consecration": {
   "scholarsCrypt": [

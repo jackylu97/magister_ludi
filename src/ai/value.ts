@@ -174,7 +174,7 @@ import {
 import { type ProjectId, projectDef } from '../sim/projectData';
 // `citiesOf` is the one town walk every evaluator uses (CLAUDE.md) and batch
 // X2's scope reading is asked over it, so the import is no longer type-only.
-import { type City, type GameState, citiesOf, playerById } from '../sim/state';
+import { type City, type GameState, citiesOf, foundedReligion, playerById } from '../sim/state';
 import { buildError } from '../sim/tech';
 import { type TechAge } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
@@ -3840,6 +3840,12 @@ function ruleRewriteValue(
       // rather than off how far it may be sent. Named so the exhaustiveness
       // check below goes on catching the next member.
       return ctx.ai.score.unknownEffect;
+    case 'rerollCost':
+    case 'faithContribution':
+      // **Not priced yet** (the Devotion deck batch, which added both): a
+      // cheaper reroll and a deeper faith contribution are worth the faith they
+      // save, and the bot prices neither verb off a rate today.
+      return ctx.ai.score.unknownEffect;
     default:
       return unreadRule(rule, ctx);
   }
@@ -4148,7 +4154,9 @@ function conditionIsLive(
         for (const row of city.queue) {
           // `queueCategory` is the one place a row is sorted into a category, so
           // this reads a wonder exactly as production does.
-          if (queueCategory(row) === when.category) return true;
+          if (queueCategory(row) !== when.category) continue;
+          if (when.building !== undefined && row.id !== when.building) continue;
+          return true;
         }
       }
       return false;
@@ -4180,6 +4188,8 @@ function conditionIsLive(
       }
       return false;
     }
+    case 'noReligionFounded':
+      return foundedReligion(ctx.state, ctx.playerId) === undefined;
     default:
       return unreadCondition(when);
   }

@@ -34,11 +34,20 @@ import { getTileAt } from './map';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { resourcesOfKind } from './resourceData';
 import { bumpEconomy } from './slate';
-import { type GameState, type Player, capitalCityOf, realPlayers, tileOwnerField } from './state';
+import {
+  type City,
+  type GameState,
+  type Player,
+  capitalCityOf,
+  cityReligion,
+  realPlayers,
+  tileOwnerField,
+} from './state';
 import {
   type PlayerStatecraft,
   type WindfallPayout,
   commissionFulfilledTurn,
+  heldReligions,
   payWindfallGrants,
   settleCultureWindfall,
   slotOf,
@@ -109,7 +118,38 @@ export function commissionFigure(
       }
       return worked;
     }
+    case 'followingCityShare': {
+      // The world's towns, every seat's, against the ones flying a faith this
+      // empire is paid by. Rounded down, so "more than half" is asked as 51.
+      const follows = followsHeldReligion(state, playerId);
+      let total = 0;
+      let following = 0;
+      for (const city of state.cities) {
+        total += 1;
+        if (follows(city)) following += 1;
+      }
+      return total === 0 ? 0 : Math.floor((following * 100) / total);
+    }
+    case 'rivalCapitalsFollowing': {
+      const follows = followsHeldReligion(state, playerId);
+      let capitals = 0;
+      for (const rival of realPlayers(state)) {
+        if (rival.id === playerId) continue;
+        const capital = capitalCityOf(state, rival.id);
+        if (capital && follows(capital)) capitals += 1;
+      }
+      return capitals;
+    }
   }
+}
+
+/** Does a town follow a religion this empire is paid by? `heldReligions`' reading. */
+function followsHeldReligion(state: GameState, playerId: number): (city: City) => boolean {
+  const held = heldReligions(state, playerId).map((religion) => religion.id);
+  return (city) => {
+    const kept = cityReligion(city);
+    return kept !== null && held.includes(kept);
+  };
 }
 
 // --- progress ---------------------------------------------------------------

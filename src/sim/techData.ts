@@ -464,7 +464,14 @@ export type AbilityId =
    * sides of the table. Read in exactly one place, `openBordersError`
    * (`diplomacy.ts`), so no rule anywhere names the technology.
    */
-  | 'openBorders';
+  | 'openBorders'
+  /**
+   * The Devotion deck's two card-taught rites (`RiteDef.byCard`): a seated
+   * The Votive Gifts or The Host Restored grants the verb through
+   * `grantsAbility`, and no node teaches it.
+   */
+  | 'votiveOffering'
+  | 'restoringOfTheHost';
 
 /**
  * **Who gains the verb** — the half of an ability that decides how the tech
@@ -521,6 +528,12 @@ export interface AbilityDef {
   bearer?: AbilityBearer;
   /** One line of what it lets an empire do. */
   summary: string;
+  /**
+   * **Handed over by a card, never by a node** — the Devotion deck's two
+   * card-taught rites (`grantsAbility` on a seated Order). Exempt from the
+   * check that some technology hands every verb over.
+   */
+  byCard?: true;
 }
 
 /** What a technology hands over. Every list is optional; at least one is not. */
@@ -1223,7 +1236,7 @@ export function techDataProblems(): string[] {
   // An ability nothing hands over is a rule that can never fire, which is
   // exactly the quiet-nothing the rest of this function refuses.
   for (const ability of ABILITY_IDS) {
-    if (!ABILITY_TECH.has(ability)) {
+    if (!ABILITY_TECH.has(ability) && abilityDef(ability).byCard !== true) {
       problems.push(`ability "${ability}" is handed over by no technology`);
     }
     const def = abilityDef(ability);

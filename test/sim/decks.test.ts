@@ -188,7 +188,7 @@ describe('the schema, as landed', () => {
    * exactly when `orderIsDealt` says — live (effects) or deferred (a sentence
    * and nothing to slot).
    */
-  it('retires the whole shelf and none of the decks, and deals each by its own rule', () => {
+  it('retires the whole shelf and only the decks’ own cuts, and deals each by its own rule', () => {
     expect(SHELF_ROWS.length).toBeGreaterThan(200);
     for (const id of SHELF_ROWS) {
       const def = orderDef(id);
@@ -198,11 +198,21 @@ describe('the schema, as landed', () => {
     let live = 0;
     for (const id of DECK_ROWS) {
       const def = orderDef(id);
-      expect(def.retired, id).toBeUndefined();
+      // **A deck's own cuts are retired in its file** (the deck batches of
+      // `docs/plans/deck-implementation.md`: a sheet's Proposed cuts keep their
+      // rows for saves and leave every pool). Dealt by nobody.
+      if (def.retired === true) {
+        expect(orderIsDealt(id), id).toBe(false);
+        continue;
+      }
       // Live or deferred, never both ways round: a row with effects is dealt, a
       // row with a `deferred` sentence and nothing to slot is not.
-      // A commission (batch C) is dealt for its goal and reward, with no effects.
-      const dealt = def.effects.length > 0 || def.commission !== undefined;
+      // A commission (batch C) is dealt for its goal and reward, with no effects,
+      // and a charter with no deferral for its grant (The Fast's rite).
+      const dealt =
+        def.effects.length > 0 ||
+        def.commission !== undefined ||
+        (def.charter !== undefined && def.deferred === undefined);
       expect(orderIsDealt(id), id).toBe(dealt);
       if (dealt) expect(def.deferred, `${id} is dealt`).toBeUndefined();
       else expect(def.deferred, `${id} is in no pool`).toBeDefined();
@@ -311,8 +321,12 @@ describe('the schema, as landed', () => {
     // **And batch C** (commissions): three rows live with a goal and a reward
     // and no effects — Commission: Clear the Frontier in Dominion, Corner the
     // Market and The Strongroom in Commerce.
-    expect(live).toBe(282);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(282);
+    // **And the Devotion deck batch**: thirty-three more. The sheet's
+    // fifty-two cards stand at fifty live (The Interdict and Consecrated
+    // Ground wait), against eighteen live rows before, The Holy Army included
+    // in both counts; the twenty-five cuts are retired.
+    expect(live).toBe(315);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(315);
   });
 
   /**
@@ -326,7 +340,12 @@ describe('the schema, as landed', () => {
    * clause in `orderIsDealt` is the fix, and this is its register.
    */
   it('deals no charter whose grant names a thing that does not exist yet', () => {
-    const charters = [...DECK_ROWS].filter((id) => orderDef(id).charter !== undefined);
+    // The Fast is the one charter whose grant exists (a rite, written by the
+    // Devotion deck batch) and is dealt; every other is waiting.
+    const charters = [...DECK_ROWS].filter(
+      (id) => orderDef(id).charter !== undefined && id !== 'theFast',
+    );
+    expect(orderIsDealt('theFast' as never)).toBe(true);
     expect(charters.length).toBeGreaterThan(0);
     for (const id of charters) {
       const def = orderDef(id);
@@ -627,7 +646,10 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Batch L took three more**, all Expansionist: Levy of the Land, The
       // Muster of the Fields and Seasonal Levies, freed by the levy command.
       // The Corvée and The General Levy are new live rows and move nothing here.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(145);
+      // **The Devotion deck batch took one more net**: twenty-five cut rows are
+      // retired in the file, two rows wait (The Interdict, Consecrated Ground),
+      // against twenty-six rows not dealt before.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(146);
     }
   });
 
