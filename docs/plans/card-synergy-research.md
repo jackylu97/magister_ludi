@@ -2,6 +2,8 @@
 
 Research for the user's question after the first deck playtest (2026-10-13): *"the midgame feels not very impactful, and the cards dont feel like they have enough synergy … how we can create interesting, flexible synergies between cards."* Games looked at: Balatro, Slay the Spire, Teamfight Tactics, Hearthstone Battlegrounds, Monster Train, Hades, Against the Storm, Vampire Survivors. This is a brainstorm, not a ruling; nothing here changes the game until the user rules on it.
 
+**User response (2026-10-13):** layers 2 (tags) and 4 (a smaller pool per game) are declined. Tags are forced synergy: cards should combine through general keywords and stats, not through labels written to make them combine. The per-game pool is unneeded because a seat's two decks already work like Battlegrounds tribes. The user adopted LocalThunk's joker design guidelines as their own card philosophy; they are recorded in `docs/decks/deck-design.md` under "Card design principles". Layers 1 and 3 stay open, read through those principles.
+
 ## The short version
 
 Synergy in these games comes from four structures, and our decks use only a weak form of the first:

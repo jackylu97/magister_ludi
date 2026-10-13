@@ -70,6 +70,18 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 - **Every pair of decks keeps a shared card at Tier I or earlier.**
 - **Faith buys production at 2 faith per hammer.**
 
+**Card design principles (the user, 2026-10-13).** After the first deck playtest the user adopted LocalThunk's guidelines for Balatro's jokers (r/balatro, "Guidelines for Joker design", May 2024) as their own philosophy for cards. Applied to Orders:
+- **One effect per card.** An effect, plus at most one condition. A second, unrelated effect on the same card is a second card.
+- **Synergy comes from general stats and keywords, never from specific cards.** A card reads things the whole game already uses: the six yields, happiness, authority, renown; citizens, towns, units by class, buildings by category, improvements, terrain; and the moments the game already announces (a unit trained, a kill, a capture, a camp cleared, a town founded, a building finished). Cards built on these combine with cards nobody designed them with, and a growing pool does not dilute them. A card that names another card, or that needs two narrow facts at once ("garrisoned towns with a Monument"), makes its synergy rare.
+- **No mechanic creep.** A card works with existing mechanics rather than introducing its own. Each new mechanic is a keyword only a few cards touch.
+- **Powerful effects carry a condition or a drawback,** so taking them is a real choice rather than the obvious one (Total War is the model: +8 strength, and every town demands more happiness).
+- **No card is always the right pick.** The draft is a series of real A-or-B choices.
+- **Most cards fit in.** Plain, reliable cards are good; only a few should be strange.
+- **Short, simple text.** About three lines at most, readable at a glance. An idea that takes longer to say is usually too narrow to combine with anything.
+- **A theme that fits the name and the effect.**
+
+Considered and declined in the same conversation (`docs/plans/card-synergy-research.md`): **tags** on cards with tag-counting pay-offs (forced synergy, against the second principle) and **a smaller pool per game** (a seat's two decks already narrow the pool, as tribes do in Hearthstone Battlegrounds).
+
 ### Two facts about the essentials worth designing around
 
 - **Production is the easiest essential to substitute.** It can be bought with gold, bought with faith, taken by conquest, or hurried by rites. Technology and culture mostly cannot be bought or taken. So production is the natural place for a gap, and a deck that is weak at technology or culture needs a deliberately designed workaround.
