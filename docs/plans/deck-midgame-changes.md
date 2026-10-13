@@ -3,10 +3,16 @@
 The playtest (2026-10-13, Dominion + Expansionist under Mithridates) found the midgame flat and the cards short of synergy. The evidence is `docs/plans/card-measurements-2026-10-13.md` (bot games) and `docs/plans/card-synergy-research.md` (other games). The rulings it rests on are in `docs/decks/deck-design.md`: "Card design principles", the levies-and-tended-works note, and "Dominion is the tempo deck". Nothing below is built yet; open numbers are marked for the user.
 
 ## A. The draft (all decks)
-1. **A chair step in the midgame.** Chairs are 3 / 5 / 8 / 11 at drafts 0 / 4 / 18 / 29, so a seat sits at 5 chairs from about turn 30 to turn 115. Add a step near draft 10. *Open: the count (6 or 7) and the draft.*
-2. **Midgame hands come from the midgame.** The first hand after a band opens is dealt from that band only; after that, the current band counts double in the draw. Nothing rotates away.
+1. **A chair step in the midgame.** Chairs are 3 / 5 / 8 / 11 at drafts 0 / 4 / 18 / 29, so a seat sits at 5 chairs from about turn 30 to turn 115. *Held off by the user, 2026-10-13.*
+2. **Midgame hands come from the midgame.** *Ruled 2026-10-13, stronger than proposed:* hands are dealt only from the current band, and earlier bands leave the draw when a new one opens (`docs/decks/deck-design.md`, "Only the current band is dealt").
 3. **Later cards beat earlier ones.** Size midgame cards so that seating one is an upgrade: today a newly seated card pays less than the cards already seated (2.9% of the seat's yield against 4.0%).
-4. *Option, not yet proposed:* something in the place of the retired Doctrines, a free card or choice when a government is adopted.
+   - **The buff pass (ruled 2026-10-13, numbers chosen from the measurements).** Per seated card, band 0 pays 3.4% of the seat's yield, band 1 2.8%, band 2 3.0%, band 3 1.5%. Every live card in bands 1, 2 and 3 has its yield amounts multiplied by 1.5:
+     - What counts: the yield figures a card pays (flat, per-count, share and rate amounts on `pays`), yield percentages, production percentages toward a build, and one-off yield grants (lumps, windfall riders, kill or capture pay).
+     - What does not: combat strength, movement, unit stats, happiness, authority, renown, rules, costs in charges, durations, thresholds and conditions.
+     - Rounding: each figure is multiplied by 1.5 and rounded up to a whole number (1 becomes 2, 2 becomes 3, 5 becomes 8, 10% becomes 15%). A per-count divisor ("per 2 citizens") stays as it is; the amount paid changes.
+     - Left alone: band 0 and band 4, retired and deferred rows, and the cards the bots measured at twice their band's mean pay or more: The Hard Country, Ore Caravans, The Artisan Wages, Frontier Investment, Venture Routes, The Factors' Houses (band 1); Marcher Lords, The Exchange, The Highlands, The Scholars' Roads (band 2); The National Galleries, The Civic Pantheon (band 3).
+     - Band 3's measured figure is low partly because many of its cards are percentages and rules a per-turn reading underrates, so it gets the same 1.5 and not more.
+4. *Later:* Doctrines and government effects need a rework (the user, 2026-10-13); not part of this pass.
 
 ## B. Card writing (all decks)
 1. New cards follow the principles: one effect, general stats and keywords, about three lines.
