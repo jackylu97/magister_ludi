@@ -283,3 +283,114 @@ Only one of the two sheets recommends a change to these, so each stays on both s
 - **Garden Provinces** (with Magisterial): Magisterial recommends cutting it, because it is a flat yield on a condition that is nearly always true. Expansionist does not comment.
 
 Hydraulic Schools (with Scientific) and Garden Cities (with Magisterial) were on this list; both were kept by the user (2026-10-12), because every pair of decks keeps a shared card at Tier I or earlier (`docs/flags.md` item (qqqqqq) 14).
+
+## Proposed revision (2026-10-13)
+
+*A proposal for the user to cut, written after the first deck playtest (Mithridates, Dominion + Expansionist). Nothing here is built. The briefs are `docs/plans/deck-midgame-changes.md` sections B and D and the rulings in `docs/decks/deck-design.md` ("Card design principles", the note that levies, tended works, commissions and charters stay, "Only the current band is dealt"). No test reads this sheet today. Even so, the section's headings say "Band", not "Tier", and its tables start with "Card name" or "Existing card", so that a future sync test written like Dominion's (which reads rows under "## Tier N" headings) will not read them as live cards.*
+
+**The direction in brief.**
+- **Expansionist gets its midgame.** The new cards sit in bands 1–3, and each pays on the deck's own currencies: citizens (per citizen in a town, when a town grows), land (per hex owned), improvements (per improved tile, per old working), tended works, and levies (when a citizen is spent).
+- **Long-term scaling lives here**, as the tempo ruling for Dominion says it should. Most new cards pay more as the empire grows: more citizens, more hexes, older fields, larger clusters of tended land.
+- **All four keywords get readers.** Levies (The Gleaners, Labour Dues), tended works (The Gatherers, The Mosaic, The Managed Wild), commissions (three new goals, and The Harvest Feast, which pays on any commission), and charters (The Charter Rolls, which counts the four tended-work unlocks and every other charter held).
+- **The gap rule holds.** No new card pays science or culture. The new pay is food, production, gold, happiness and authority, which is where the deck is meant to be strong.
+- About a third of the existing cards carry two effects. Each one gets a one-line split or trim below.
+
+### How the numbers were sized
+
+- From `docs/plans/card-measurements-2026-10-13.md`: a seated card pays about 3% of the seat's yield. A seat makes about 325 yield a turn in turns 51–100 and 1,050 in turns 101–150. Bands 1 / 2 / 3 open at about turns 30 / 70 / 114.
+- The target for a newly seated card: about 10–20 a turn at band 1, 20–40 at band 2 and 50–90 at band 3, so that seating a midgame card is an upgrade over the band 0 cards it replaces. Measured comparisons: The Hard Country (band 1) paid 137 a turn and The Highlands (band 2) 265, so the deck's own terrain cards can carry more than the average.
+- Lumps that pay on growth use `fromOccasion: population`, so they grow with the town rather than fading as Dominion's do.
+
+### 1. New midgame cards (plan section D)
+
+#### Band 0 (Tier 0), new cards
+
+| Card name | Rarity | Text | Shape | Why |
+|---|---|---|---|---|
+| **The Land Grant** | common | Your capital gains +1 production for every ten hexes your empire owns, at most +4. | `pays where:capital basis:count`, `count: tilesInBorders`, `tile: {test: all, of: []}` (every owned hex, as The Measure of the Land counts), `to: production, amount: 1, per: 10, max: 4`. | The first card that pays per hex owned. It rewards early claims (The Beating of the Bounds, The Barbarian Frontier, bought hexes) in the town that builds the most. |
+| **The Gatherers** | common | **Needs tended land.** Worked tended tiles gain +1 gold. | `pays where:hex`, `gold: 1`, `on: {test: tended}`; `needsTendedWork: true`. | An early tended reader that does not compete with The Tended Country's production. The gold buys the next hex or worker. |
+
+#### Band 1 (Tier I), new cards
+
+| Card name | Rarity | Text | Shape | Why |
+|---|---|---|---|---|
+| **The Barn-Raising** | common | When a town grows, it gains production equal to four times its new population. | `windfallRider` occasion `growth`, grant `{yield: production, amount: 4, fromOccasion: population}`. | Granary Levies, scaled: it pays 20 at size 5 and 40 at size 10. Pays on regrowth after a levy too, which is the levy loop (combinations below). |
+| **The Plough Teams** | common | Each town gains +1 food for every two improved tiles in its borders. | `pays where:city basis:count`, `count: tilesInBorders, within: city`, `tile: {test: improved}`, `to: food, amount: 1, per: 2`. | Per improvement: every farm, mine and lumber mill raised feeds the town. Half a food a tile keeps it near the band (about 12 food a turn for six towns with four improvements each). |
+| **The Gleaners** | common | After a town spends a citizen on a levy, it gains +3 food for ten turns. At most once every ten turns. | `levy after {turns: 10, every: 10, effects: [pays where:city food: 3]}` (the Seasonal Levies shape, on the levying town's `City.timed`). | **A levy reader**, early. It gives back about 30 of the food the citizen cost, so the town regrows sooner. |
+| **The Quitrents** | uncommon | +1 gold for every four hexes your empire owns. | `pays where:empire basis:count`, `count: tilesInBorders`, `tile: {test: all, of: []}`, `to: gold, amount: 1, per: 4`. | Land as income, with no ceiling: about 17 gold at 70 hexes and 37 at 150. The gold buys hexes, which raises the count: the Expansionist · Commerce pair in one card. |
+| **The Charter Rolls** | uncommon | Every town gains +1 food for each charter you hold, at most +4. | **New shape:** `CountKind` `chartersHeld` (charters in the collection; they never leave it). `pays where:city basis:count`, `count: chartersHeld`, `to: food, amount: 1, max: 4`. | **A charter reader.** The four tended-work unlocks are charters, so an Expansionist seat that tends already holds one or two. It also counts Scientific's and Commerce's charters and Dominion's proposed The Keep Charter. |
+| **Commission: Break the Sod** | common | Commission. Work twelve improved tiles at the same time. Then every town gains +3 food for twenty turns, and your capital gains a free worker. The card leaves its chair. | `commission` goal `{reached, figure: improvedTilesWorked, count: 12}`, reward `[{timed: {turns: 20, effects: [pays where:city food: 3]}}, {unit: worker}]`. | A commission on the field, in the band where the deck had none of its own besides Six Gardens. The reward feeds growth, and the worker raises the next tiles. |
+
+#### Band 2 (Tier II), new cards
+
+| Card name | Rarity | Text | Shape | Why |
+|---|---|---|---|---|
+| **The Town Rolls** | common | Each town gains +1 production for every three citizens it has. | `pays where:city basis:count`, `count: population, within: city`, `to: production, amount: 1, per: 3`. | Per citizen, the plainest form. A tall town gets more. |
+| **Old Workings** | common | Worked mines, quarries and lumber mills that have stood for twenty turns gain +1 production. | `pays where:hex`, `production: 1`, `on: {all: [anyImprovement [mine, quarry, lumbermill], standingSince 20]}`. | Dark Earth for the production family: land worked early pays more later. The Inheritance of Fields (band 4, sixty turns) is the late version. |
+| **The Mosaic** | uncommon | **Needs tended land.** Tended tiles gain +1 food for each tended tile beside them, at most +2. | `pays where:hex`, `food: 1`, `on: {test: tended}`, `perNeighbour: {test: tended}`, `max: 2`. | **A tended reader** that rewards tending in clusters (the burned-country mosaics of fire-stick farming). A cluster of seven pays about +12 food. |
+| **Labour Dues** | common | After a town spends a citizen on a levy, it gains +25% production for five turns. At most once every ten turns. | `levy after {turns: 5, every: 10, effects: [percentYields production 25]}`. | **A levy reader.** With Levy of the Land, the levied hammers arrive and the town keeps building faster for five turns. |
+| **The Open Country** | uncommon | +1 happiness for every twenty hexes your empire owns, at most +5. | `pays where:empire basis:count`, `count: tilesInBorders`, `tile: {test: all, of: []}`, `to: happiness, amount: 1, per: 20, max: 5`. | Happiness from land, the deck's second limit on growth. A wide empire can also grow tall. |
+| **The Harvest Feast** | uncommon | Completing a commission gives every town +2 happiness for twenty turns. | **New shape:** `WindfallOccasion` `commissionMet` (shared with Dominion's Victory Parades). Grant `timed {turns: 20, effects: [happiness amount 2 per city]}`. | **A commission reader.** Every commission in either deck pays twice. Happiness lets towns grow into the per-citizen cards. |
+| **Commission: The Long Furrow** | uncommon | Commission. Own a hundred hexes while this card is seated. Then every town costs one less authority, minimum one, for thirty turns. The card leaves its chair. | `commission` goal `{reached, figure: hexesOwned, count: 100}`, reward `{timed: {turns: 30, effects: [meterRule cityCost delta -1]}}`. | Authority relief, earned by claiming land, and for a time only. The threshold is set at 100 so that the goal is not already met on the turn a band 2 seat takes the card; check it against the bots' hex counts before building. |
+
+#### Band 3 (Tier III), new cards
+
+| Card name | Rarity | Text | Shape | Why |
+|---|---|---|---|---|
+| **The Great Households** | uncommon | Each town gains +2% production for every citizen it has, at most +20%. | `pays where:city basis:count`, `count: population, within: city`, `to: production, percent: 2, stage: city, max: 10`. | Per citizen, as a percentage, so it rises with the town's own buildings. About +8 production in a twelve-citizen town. |
+| **Plenty** | common | When a town grows, it gains production equal to eight times its new population. | `windfallRider` occasion `growth`, grant `{yield: production, amount: 8, fromOccasion: population}`. | The Barn-Raising for band 3: about 100 production for a twelve-citizen town. Only the current band is dealt, so it replaces The Barn-Raising in the draw. |
+| **The Managed Wild** | uncommon | **Needs tended land.** Each town gains +5% food for every tended tile in its borders, at most +25%. | `pays where:city basis:count`, `count: tilesInBorders, within: city`, `tile: {test: tended}`, `to: food, percent: 5, stage: city, max: 5`. | **A tended reader** that pays the empire which tended early (the "later drafts pay off tended works" rule), and reads tended land, not wild land in general, so it is the tended line's own. |
+| **Commission: The Granaries Full** | uncommon | **Needs tended land.** Commission. Have fifteen tended tiles. Then every town gains +20% food for thirty turns. The card leaves its chair. | `commission` goal `{reached, figure: tendedTiles, count: 15}`, reward `{timed: {turns: 30, effects: [percentYields food 20]}}`; `needsTendedWork: true`. | Six Gardens at band 3 size: a goal for the managed wild in the late midgame. |
+
+Band 4 gets no new cards: it already holds 15 of this deck's own.
+
+### 2. Keyword readers in this deck
+
+- **Levies:** The Gleaners (band 1) and Labour Dues (band 2), beside Seasonal Levies (band 3). All three react to any levy use, so they also work with Dominion's proposed The Press Gang.
+- **Tended works:** The Gatherers (band 0), The Mosaic (band 2), The Managed Wild (band 3) and Commission: The Granaries Full (band 3), beside The Commons, The Old Songs, The Tended Country, The Long Tending and The Garden of the World.
+- **Commissions:** three new goals (Break the Sod, The Long Furrow, The Granaries Full) and one reader, The Harvest Feast. The Harvest Feast pays on Dominion's commissions as well.
+- **Charters:** The Charter Rolls counts every charter held. The four tended-work unlocks are this deck's own charters.
+
+### 3. Cleanup of existing cards (plan B2)
+
+One effect per card, at most one condition. "Split" means each half becomes its own card in the same band; "trim" means one half goes.
+
+| Existing card | Band | Problem | Proposal |
+|---|---|---|---|
+| **Sweet Water** | 0 | Two effects (happiness in freshwater towns, food on freshwater tiles). | **Split:** Sweet Water keeps "Worked freshwater tiles gain +1 food"; a new band 0 card, **The Wellsprings**, takes "Towns beside a river or lake gain +1 happiness". |
+| **The Spirits of Place** | 0 | Two effects (capital faith, and faith from worked wild tiles). | **Trim** to the wild-land half, raised to "+1 faith for every two wild tiles a town works, at most +2". |
+| **Granary Levies** | 0 | One effect, but the name says "levies" and the card has nothing to do with spending a citizen. | **Rename** to **The Granary Dues**, so "levy" means one thing on every card. |
+| **The Patient Harvest** | 0 (rare) | A benefit and a drawback. | **Keep.** The drawback is the model for a powerful card. |
+| **Provincial Councils** | 2 | Two effects (authority and happiness in connected towns). | **Trim** to "Connected towns other than the capital cost one less authority, minimum one." The Open Country and The Commons carry happiness. |
+| **The Grain Dole** | 2 | Two effects (happiness, food kept on growth). | **Trim** to "Towns of at least ten citizens gain +4 happiness." |
+| **The Waterworks** | 2 | Two effects (cheaper Aqueducts, happiness in Aqueduct towns). | **Trim** to "Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3." |
+| **The Engineers' Yards** | 2 | Two effects (manufactory production, works beside a manufactory). | **Trim** to "Worked farms, mines, quarries and lumber mills beside a manufactory gain +2 production." |
+| **The Tended Country** | 2 | Two effects (tended production, farms beside tended land). | **Split:** The Tended Country keeps "Tended tiles gain +2 production"; a new band 2 card, **The Hedgerows**, takes "Worked farms beside a tended tile gain +2 food". |
+| **The Landscape Garden** | 2 | Two facts (tended, and beside a great-person work). | **Keep.** It is the Magisterial pair's hook, and the adjacency is the point of the card. |
+| **The Mountain Schools** | 3 | Two effects (a science percentage in mountain towns, science on mines beside mountains). | **Trim** to "Towns beside a mountain gain +15% science." |
+| **The Garden of the World** | 4 | Two effects (tended yields, happiness for towns working six tended tiles). | **Trim** to "Tended tiles gain +2 food, +1 production and +1 culture." |
+| **The Prospectors** | 1 | Three tests (a mine, surveyed, a resource). | **Keep.** To a player it is one fact, "a seam you surfaced". |
+| **The General Levy** | 4 | A levy use with a faster wait at war. | **Keep.** One use, with its cadence. |
+| Shared **Marcher Lords** | 2 | Three effects. | **Trim** to the authority line (also on Dominion's sheet). |
+| Shared **The Road Garrisons** | 2 | Two facts and two effects (the user's card). | **Flag:** drop the defence and keep the food (also on Dominion's sheet). |
+
+Already one effect, or one fact with thresholds, and kept as they are: Smallholdings, The Naturalists, The Seed Grain, The Beating of the Bounds, the four tended-work unlocks, Levy of the Land, Tinkers' Guild, The Muster of the Fields, The Old Songs, The Local Census, Dark Earth, The Three Sisters, The Commons, The Hard Country, The Master Builders, Daughter Towns, The Watercourses, The Highlands, The Coast, The Woodwrights, Seasonal Levies, The Long Tending, A Court of Engineers (its drawback is the model), The Land's Great Work, The Corvée, The Master of Works, The Philosophers' Peaks, The Inheritance of Fields, The Measure of the Land, The Mother City, and the commissions.
+
+### 4. Combinations this opens
+
+Each combination works through a general stat or keyword, never through one card naming another.
+- **Grow, spend, regrow.** A levy (Levy of the Land, The Muster of the Fields, or Dominion's The Press Gang) spends a citizen. The Gleaners and Labour Dues pay the town that spent it, and The Barn-Raising or Plenty pays again when the town regrows. The levy's shared five-turn wait bounds the loop. Dominion's Coming of Age adds a lump when a town regrows to four.
+- **Land pays for land.** The Quitrents turns hexes owned into gold, the gold buys hexes, and The Open Country and The Land Grant read the same count. Commission: The Long Furrow is the goal at the end of it. The shared The Barbarian Frontier raises the count from Dominion's side.
+- **The tended cluster.** The Mosaic pays for tended tiles beside each other, The Managed Wild for many in one town's borders, and The Commons and The Old Songs still count them as wild. A town ringed with forest gardens and burned country becomes the deck's food engine.
+- *Small, with happiness as fuel:* The Open Country and The Harvest Feast raise happiness, so towns grow past the point where they would stop, and The Town Rolls, The Great Households and Plenty pay per citizen. This is a side effect of the deck's happiness, not a line of its own.
+
+### 5. New shapes this section needs
+
+Two, each shared with Dominion's proposal:
+1. **`WindfallOccasion` `commissionMet`**, fired where a commission pays its reward. Used by The Harvest Feast here and by Victory Parades and The Grand Review on Dominion's sheet.
+2. **`CountKind` `chartersHeld`**: the charters in the seat's collection (`isCharter` over the held cards). Used by The Charter Rolls.
+
+Everything else uses shapes that exist today. Three points to check when building:
+- `tilesInBorders` with `within: city` and a `tended` or `improved` tile test counts hexes the town owns, not hexes it works. The text of The Plough Teams and The Managed Wild says "in its borders" for that reason.
+- The Long Furrow's reward puts a `meterRule` in `Player.timed`. `cardMeterRule` reads `effectsOfKind`, which includes the player's timed effects, so it should apply.
+- Growth riders pay on every growth, including regrowth after a levy or after starvation. That is what the levy combination relies on. The tally rule that pays only beyond a town's largest size (`TallyOccasion`'s note) applies to tallies, not to these riders.

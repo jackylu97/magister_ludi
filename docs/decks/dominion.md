@@ -269,3 +269,143 @@ Pass `reconcile` marks a card cut when the six deck sheets were reconciled (2026
 
 Only one of the two sheets recommends a change to these, so each stays on both shelves until the user rules.
 - **The Engineer Corps** (with Scientific): Scientific recommends cutting it, or cutting it to its first clause, because its three clauses are unrelated and its faster siege production repeats Field Academies. Dominion keeps it.
+
+## Proposed revision (2026-10-13)
+
+*A proposal for the user to cut, written after the first deck playtest (Mithridates, Dominion + Expansionist). Nothing here is built. The briefs are `docs/plans/deck-midgame-changes.md` sections B and C and the rulings in `docs/decks/deck-design.md` ("Card design principles", "Dominion is the tempo deck", "Only the current band is dealt"). This section must stay at the end of the sheet, after "Shared cards for the user to rule on": `test/sim/decks/dominion.test.ts` reads every table row between "## Tier 0" and "## Cards Dominion shares" as a live card, so tables placed there would fail it. Its headings say "Band", not "Tier", and its tables start with "Card name" or "Existing card", for the same reason.*
+
+**The direction in brief.**
+- Dominion's economy becomes **tempo**: one-off lumps and short bursts on moments the game already announces (a building finished, a military building finished, a unit trained, a town reaching a size, a government adopted, a war declared, a commission completed), plus two early flats that fade as the empire grows. None of the new cards pays more as the army grows or as time passes.
+- **Most new cards are live at peace.** Of the 21 new cards, 17 pay without a war; band 0 gets six peacetime cards, so an opening Dominion hand is no longer half combat cards.
+- The flat **civic riders on military buildings** (Drill Manuals, The War Hall Schools, Armoury Guilds, War Foundries, Arsenals) become faster training, faster building, or a lump when the building is finished.
+- Dominion gains **its own levy and its own charter** (The Press Gang, The Keep Charter), so the levy and charter keywords appear in a Dominion hand even without Expansionist. It also gets two levy and commission readers and two more commissions.
+- **Science and culture from fighting stay** as they are (Songs of the Fallen, The Art of War, Triumphs, Battle Honours).
+- About half the existing cards carry two effects. Each one gets a one-line split or trim below.
+
+### How the numbers were sized
+
+- From `docs/plans/card-measurements-2026-10-13.md`: a seated card pays about 3% of the seat's yield. A seat makes about 55 yield a turn in turns 1–50, 325 in turns 51–100 and 1,050 in turns 101–150. Bands open at drafts 4 / 10 / 18 / 29, at about turns 30 / 70 / 114 / 159.
+- One-off grants pay 0.39 yield per seat per turn today, too little to notice. The lumps below are sized to land at about a band's average while that band is being dealt: about 3–5 a turn for band 0, 10–30 for band 1 and 30–60 for band 2, counting how often the moment comes.
+- The lumps deliberately **do not use `perAge`**. A flat 10 production is a third of a building in the first age and a rounding error in the fourth. That decline is the tempo profile the user asked for: strong now, fading later, and replaced by the current band's cards.
+- Production costs from `data/rules.json`: an early small building costs 30–39 hammers and a medium one 40–52. An early military unit costs about 15–27 hammers after the +50% military surcharge.
+
+### 1. New tempo cards (plan section C)
+
+#### Band 0 (Tier 0), new cards
+
+| Card name | Rarity | Text | Shape | Why |
+|---|---|---|---|---|
+| **Work Details** | common | Finishing a building grants 10 production to that city. | `windfallRider` occasion `buildingCompletion`, grant `{yield: production, amount: 10}`. The grant lands at the completing city. | Reads a general moment (a building finished). Soldiers as labour: about a third of an early building back, so the next build starts sooner. Fades as buildings get dearer. Live at peace. |
+| **Muster Bounty** | common | Training a military unit grants 8 production to the city that trained it. | `windfallRider` occasion `unitCompletion`, `class: {category: military}`, grant `{yield: production, amount: 8}`. | A production refund on training: about half a warrior or a third of a spearman. Reads "a unit trained", which Muster Rites, The Art of War and Rites of Passage also read, so they stack. Prepares a war without needing one. |
+| **Raising the Standard** | common | Finishing a military building grants 20 culture. | `windfallRider` occasion `buildingCompletion`, `buildingCategory: military`, grant `{yield: culture, amount: 20}`. | Turns Barracks, walls and Stables into early drafts: the first four drafts cost 12 / 18 / 26 / 38 culture, so 20 culture is most of an early draft. Replaces "military buildings pay civic yields" with a one-off payment. Reads a building category any card can raise. |
+| **Coming of Age** | common | When a town grows to four citizens, it gains 25 production. | `windfallRider` occasion `growth`, `atPopulation: 4`, grant `{yield: production, amount: 25}`. | "A town reaching a size", paid once per town, so a new or captured town pays it again. Dominion's way to bring its towns up to strength without a long-term growth card. |
+| **The Camp Towns** | common | Towns of at most four citizens gain +2 production. | `pays where:city`, `production: 2`, scope `populationAtMost 4`. | An early flat that fades as towns grow. It returns for every newly founded or captured town, and captured towns are usually small, so it also helps conquest. Uses an existing shape for "fades". |
+| **The Old Chieftaincy** | uncommon | Every city gains +1 culture until you enter the third age. | `conditionRule` when `beforeAge 3` → `pays where:city culture: 1`. **New shape:** `EmpireCondition` `beforeAge` (true while the empire's highest age is below the figure, read off `highestAge`). | The user's "early flats that fade by era", stated plainly on the card. Early culture is early drafts. It stops paying at about the point band 2 opens, so the player has to replace it. Against Village Workshops (+1 production for good), this is a real choice. |
+
+#### Band 1 (Tier I), new cards
+
+| Card name | Rarity | Text | Shape | Why |
+|---|---|---|---|---|
+| **The Accession** | uncommon | Adopting a government gives every city +30% production for ten turns. | **New shape:** `WindfallOccasion` `governmentAdopted`, fired by `adoptGovernment` (the announced `Occasion` of that name already exists for beads; the windfall side does not). Rider grant `timed {turns: 10, effects: [percentYields production 30]}`. | Lump on a general moment the user named. A band 1 card sees about three adoptions (turns ~70, ~114, ~159), and each is a ten-turn sprint. Unlike a Doctrine's `onAdopt`, this pays on every adoption while seated. |
+| **The Call to Arms** | common | Declaring war lets every city train military units 50% faster for ten turns. Declaring again restarts the ten turns. | `windfallRider` occasion `declareWar`, grant `timed {turns: 10, renews: true, effects: [productionBonus unit class military 50]}`. | Turns the early lead into a war: the army arrives in the turns after the declaration. Does not stack (`renews`). |
+| **The Press Gang** | uncommon | Towns of at least six citizens may spend a citizen to raise their best melee unit. | `levy use: conscript`, `minPopulation: 6`. Shares the town's five-turn levy wait. The unit is not counted as trained. | **Dominion's own levy**, so the levy keyword appears in a Dominion hand without Expansionist. Turns food into an army at once. Its drawback is a citizen lost and no training pay. |
+| **The Recruiting Sergeants** | common | After a town spends a citizen on a levy, it trains military units 50% faster for five turns. At most once every ten turns. | `levy after {turns: 5, every: 10, effects: [productionBonus unit class military 50]}`, hung on the levying town's `City.timed` (the Seasonal Levies shape). | **A levy reader.** Works with every levy use (production, muster, conscript), so it pairs with The Press Gang, The Muster of the Fields and Levy of the Land. |
+| **Victory Parades** | uncommon | Completing a commission gives every city +3 culture for ten turns. | **New shape:** `WindfallOccasion` `commissionMet`, fired where a commission pays its reward (`commissions.ts`). Rider grant `timed {turns: 10, effects: [pays where:city culture: 3]}`. | **A commission reader.** Every commission in any deck pays twice. Culture, so a finished goal speeds the next draft. Live at peace through Commission: Clear the Frontier and Commission: Raise the Host. |
+| **Commission: Raise the Host** | common | Commission. Train four units while this card is seated. Then every city gains +25% production for ten turns. The card leaves its chair. | `commission` goal `{counted, occasion: unitTrained, count: 4}`, reward `{timed: {turns: 10, effects: [percentYields production 25]}}`. | A peacetime goal for a military empire. Pays in tempo, not beads. Counts any trained unit, workers and settlers included, so it is never dead. |
+| **The Keep Charter** | uncommon | Once drafted, your cities may build the Keep. No chair required. | `charter unlocks.building: keep`. The Keep row (`data/buildings.json`) is already `unlockedByCard`, and no live card opens it (the retired Vigil Charter did). | **Dominion's own charter.** It adds a military building for Raising the Standard, The Muster Ground and Stockpiles to read: the Keep gives +25 city hit points and heals units beside it. |
+
+#### Band 2 (Tier II), new cards
+
+| Card name | Rarity | Text | Shape | Why |
+|---|---|---|---|---|
+| **Engineer Cohorts** | common | Finishing a building grants 35 production to that city. | `windfallRider` occasion `buildingCompletion`, grant `{yield: production, amount: 35}`. | The band 2 version of Work Details: about a quarter of a mid-game building back, at roughly one completion a turn across eight towns. Since only the current band is dealt, it replaces Work Details in the draw. |
+| **The Muster Ground** | common | Finishing a military building lets every city train military units 50% faster for five turns. Finishing another restarts the five turns. | `windfallRider` occasion `buildingCompletion`, `buildingCategory: military`, grant `timed {turns: 5, renews: true, effects: [productionBonus unit class military 50]}`. | A burst on completion in place of a standing training bonus. Reads the same moment as Raising the Standard and the reworked Drill Manuals. |
+| **Hot Forges** | uncommon | Training a military unit gives every city +3 production for five turns. Training another restarts the five turns. | `windfallRider` occasion `unitCompletion`, `class: {category: military}`, grant `timed {turns: 5, renews: true, effects: [pays where:city production: 3]}`. | Pays for keeping the forges busy, not for the size of the army: one unit every five turns keeps it lit, and a lost army costs nothing. About 24 production a turn across eight towns. |
+| **Campaign Chests** | uncommon | Declaring war grants gold equal to ten turns of your gold income, at most 300. | `windfallRider` occasion `declareWar`, grant `{yield: gold, amount: 10, fromRate: goldPerTurn, max: 300}`. | A war-start lump that buys the units the declaration needs. **Check:** if peace and a second declaration can follow quickly, the card needs a once-every-N-turns limit (the rider has only `oncePerTurn` today). |
+| **Commission: The Border War** | common | Commission. Kill five units while this card is seated. Then gain 150 science and 150 culture. The card leaves its chair. | `commission` goal `{counted, occasion: unitKilled, count: 5}`, reward `[{yield: science, amount: 150}, {yield: culture, amount: 150}]`. | Science and culture from fighting, as one big moment. Barbarian kills count, so it can be finished at peace. |
+
+#### Band 3 (Tier III), new cards
+
+| Card name | Rarity | Text | Shape | Why |
+|---|---|---|---|---|
+| **The Victory Mint** | uncommon | Capturing a city grants gold equal to thirty times its population. | `windfallRider` occasion `capture`, grant `{yield: gold, amount: 30, fromOccasion: population}`. | The gold partner of Triumphs (culture) and Carried-Off Scholars (science): a captured town pays for the next push. |
+| **The Grand Review** | uncommon | Completing a commission grants 300 renown, favouring great generals. | **New shape:** `WindfallOccasion` `commissionMet` (as Victory Parades). Grant `{renown: 300, renownFamily: general}`. | A second commission reader, paying Dominion's great-person family. By band 3 the next great person costs about 1,000 renown (`renownThreshold`: 75 + 180 per person already taken), so this is about a third of a general. |
+
+#### Band 4 (Tier IV), new cards
+
+| Card name | Rarity | Text | Shape | Why |
+|---|---|---|---|---|
+| **Tribute of Cities** | rare | Capturing a city grants production toward your Magnum Opus equal to twenty times its population. | `windfallRider` occasion `capture`, grant `{yield: production, amount: 20, fromOccasion: population, toOpus: true}`. | A finisher that pays on any capture, not only an Opus city (Spolia's case). It is a one-off, so it sits outside the Opus percentage cap. |
+
+### 2. The military-building civic riders
+
+| Existing card | Band | Now | Proposal | Shape | Why |
+|---|---|---|---|---|---|
+| **Drill Manuals** | 1 | Barracks and Stables give +3 science; +30% production toward them. | **Rework:** "Finishing a military building grants 30 science." | `windfallRider` occasion `buildingCompletion`, `buildingCategory: military`, grant science 30. | Training teaches, once, when the school opens. A flat +3 science loses to a Library; a lump of 30 does not. |
+| **The War Hall Schools** | 1 | War Halls give +5 science and +5 culture. | **Rework:** "Cities with a War Hall train military units 40% faster." | `productionBonus unit class military 40`, scope `hasBuilding warHall`. | Faster training, as the ruling asks. The science and culture move to Drill Manuals and Raising the Standard. |
+| **Armoury Guilds** | 2 | Armouries give +5 science and +5 culture; Armoury cities +15% production toward buildings. | **Trim and raise:** "Cities with an Armoury build buildings 25% faster." | `productionBonus building 25`, scope `hasBuilding armoury`. | Keeps the tempo half, raised, and drops the flat civic rider. The Armoury becomes the army's workshop. |
+| **War Foundries** | 1 (rare) | Barracks cities: 30% of production gained again as gold, and +38% production toward military units. | **Trim:** "Cities with a Barracks train military units 50% faster." | `productionBonus unit class military 50`, scope `hasBuilding barracks`. | The gold share is a converter that grows with production for the rest of the game, which is the long-term scaling the ruling moves out of Dominion. The training half becomes the deck's one standing Barracks training card, because The Standing Army loses its own (cleanup below). |
+| **Arsenals** | 3 | Armoury cities +30% production, and ships 75% faster. | **Trim:** keep "+30% production in cities with an Armoury"; drop the ships. | `percentYields production 30`, scope `hasBuilding armoury`. | One effect. The ship clause is a separate naval card's job. |
+| **The Citadel Works** | 2 | Citadels +5 science; +1 general renown per citadel. | **Trim:** keep the renown trickle; drop the science. | `renown` count `tilesInBorders` citadel, family general. | Citadel yields are The Marshalate's job. The renown is the generals engine. |
+| **Stockpiles** | 2 | +8 food per defensive building in the city. | **Number:** back to +5. | unchanged | Measured at 187.7 a turn at +5, which is within 0.3 of the twice-the-band-mean line that kept other cards out of the 1.5× buff. At +8 it pays well above band 2. |
+| **The General Staff**, **Reserve Officers**, **The Nation in Arms**, the shared **Military Colonies** | 1 / 3 / 4 / 1 | — | **Keep.** | — | Already tempo (training speed, a muster, faster settlers) or great-person renown, not flat civic yields. |
+
+### 3. Keyword readers in this deck
+
+- **Levies:** The Press Gang (a source), The Recruiting Sergeants (a reader). With Expansionist, both also work with Levy of the Land, The Muster of the Fields, Seasonal Levies and The Corvée.
+- **Commissions:** Commission: Raise the Host and Commission: The Border War (new goals), and two readers, Victory Parades and The Grand Review. Both readers also pay on every other deck's commissions.
+- **Charters:** The Keep Charter. Dominion had no charter of its own before; the shared The Chartered Company was its only one. The charter reader proposed on Expansionist's sheet (The Charter Rolls) counts this one too.
+- **Tended works:** no Dominion reader. Tending is Expansionist's, and no Dominion card read it without becoming a two-fact condition.
+
+### 4. Cleanup of existing cards (plan B2)
+
+One effect per card, at most one condition. "Split" means each half becomes its own card in the same band; "trim" means one half goes.
+
+| Existing card | Band | Problem | Proposal |
+|---|---|---|---|
+| **Blooded Spears** | 0 | Two effects (strength against barbarians, and a camp lump). | **Trim** to the camp lump (25 production and 25 food). The common The Marchmen already gives +3 against barbarians. |
+| **The Standing Army** | 0 (rare) | Two effects (free garrison upkeep, and Barracks training). | **Trim** to "Garrisoned units cost no upkeep." War Foundries takes the Barracks training. |
+| **The Horse Herds** | 0 | Two effects (pasture and camp production, and mounted training). | **Split:** The Horse Herds keeps "+1 production on worked pastures and camps"; a new band 0 card, **The Remount Depots**, takes "+20% production toward mounted units". |
+| **Battle Honours** | 0 | Two occasions. | **Trim** to "Your first kill each turn grants 6 renown, favouring great generals." Camps already pay through Blooded Spears. |
+| **Sword and Plough**, **Reserve Officers** | 0 / 3 | Two halves, one at war and one at peace. | **Keep.** Each is one choice stated both ways; flagged so the user can rule. |
+| **The Camp Chaplains** | 0 | Pays more as the army grows (+1 faith per unit), which the tempo ruling avoids. | **Flag (the user's own card):** either cap it ("at most +6") or leave it as the deck's early faith. |
+| **The Soldier-Farmers** | 1 | Three facts (at peace, garrisoned, pasture or camp). | **Trim** to "While at peace, worked pastures and camps gain +2 food and +2 production." |
+| **The Pacified Marches** | 1 | Two effects (authority and culture per camp). | **Trim** to the culture (+5 per camp cleared while seated, at most +40). Authority relief is earned on Expansionist's side. |
+| **Horse Lords** | 1 (rare) | Two stats on one class. | **Keep** as one effect (mounted units are better); flag if the user reads it as two. |
+| **Siege Works** | 2 | Two effects (siege training, and strength against cities). | **Trim** to "+38% production toward siege units." The Siege Train carries the strength. |
+| **Marine Drill** | 2 | Two unrelated effects (naval melee strength, and units coming ashore). Measured paying nothing. | **Split** into **Marine Drill** (land units that come ashore gain +3 strength for one turn) and a naval card (naval melee +4), or cut the naval half. |
+| **Riders of the Steppe** | 2 | Two rules. | **Trim** to "Mounted units ignore enemy zone of control." Spoils of War pays the pillage. |
+| **Spoils of War** | 2 | Two effects (production per pillage, culture on the first each turn). | **Trim** to "Pillaging grants 15 production to your nearest city." |
+| **Hegemony** | 2 (rare) | Two effects (captured cities cost less authority, and a capture burst). | **Trim** to the burst: "Capturing a city grants +30% production in every city for ten turns." The Proconsuls carries holding. |
+| **The Siege Train** | 3 | Two effects (siege movement, melee beside siege). | **Trim** to the melee strength line. |
+| **Defensive Lines** | 3 | Two effects (strength near cities, wall defence per garrison). | **Trim** to "+3 strength for land units beside your cities." |
+| **Naval Supremacy** | 3 | Four lines (ship sight and range, coastal gold, captured coastal gold). | **Split** into a ship card ("Ships gain +1 range") and a coastal card ("Coastal cities gain +30% gold"). Drop the captured-coastal line. |
+| **The Praetorian Guard** | 4 | Two effects. | **Trim** to "Your military units within two hexes of the city raising your Magnum Opus gain +6 strength." |
+| **The Grand Army** | 4 | Pays more as the army grows. | **Rework:** add "while you are at war" (`conditionRule atWar`), so it pays when the army is used, not for keeping it. |
+| **The Marshalate** | 4 | Two effects (strength per general, citadel yields). | **Trim** to the strength per great general. |
+| **The Grand Coalition** | 4 | Two effects. | **Trim** to "+6 strength against the empire raising a Magnum Opus." |
+| **The Proconsuls** | 4 | Two facts (captured and garrisoned) and two effects. | **Trim** to "Captured cities with a garrison cost no authority." |
+| Shared **Marcher Lords** | 2 | Three effects. | **Trim** to "Cities within four hexes of a foreign border cost one less authority, minimum one." |
+| Shared **The Road Garrisons** | 2 | Two facts and two effects (the user's card). | **Flag:** drop the defence and keep the food. |
+
+Already one effect, or one count paying one bag, and kept as they are: Martial Law, Muster Rites, The King's Levy, Blood Brothers, The Quartermasters, The Soldiers' Purse, The Marshals, The Art of War, Songs of the Fallen, Conquered Archives, Triumphs, Master Bowyers, Standing Garrisons, Total War (its drawback is the model), Imperium, Spolia, The Annexed Provinces, The Military Frontier, and the commissions.
+
+### 5. Combinations this opens
+
+Each combination works through a general moment or keyword, never through one card naming another.
+- **The military building finished.** Raising the Standard (culture), the reworked Drill Manuals (science) and The Muster Ground (a training burst) all pay when a Barracks, wall, Stable, Armoury or Keep is finished. The Keep Charter adds one more building to finish. A seat that leans into it gets its draft, its research and its army from the same few builds.
+- **Citizens into soldiers (with Expansionist).** The Press Gang or The Muster of the Fields spends a citizen, The Recruiting Sergeants makes the town's next units come out faster, and Coming of Age pays again when the town regrows to four. Expansionist's growth cards (The Barn-Raising, The Gleaners) refill the town.
+- **The sprint into war.** The Accession, Commission: Raise the Host and The Call to Arms each hang a ten-turn production burst, and they stack. A seat that adopts a government, finishes its commission and declares in the same stretch raises an army well ahead of its neighbours, then Campaign Chests and The Victory Mint pay for the next push.
+- *Small, with happiness as fuel:* Total War's −3 happiness per city is easier to carry with Expansionist's happiness cards (The Open Country, The Commons, The Grain Dole). This is a pairing, not a line of the deck.
+
+### 6. New shapes this section needs
+
+Four, each read by more than one card across the two proposals:
+1. **`WindfallOccasion` `governmentAdopted`**, fired in `adoptGovernment` beside the existing announced occasion. Used by The Accession.
+2. **`EmpireCondition` `beforeAge`** (`value: TechAge`), true while `highestAge` is below the value. Used by The Old Chieftaincy. There is no `not` composite, and this is a named member in the same way `atPeace` is.
+3. **`WindfallOccasion` `commissionMet`**, fired where a commission pays its reward. Used by Victory Parades, The Grand Review and Expansionist's The Harvest Feast.
+4. **`CountKind` `chartersHeld`** (Expansionist's The Charter Rolls). No Dominion card uses it, but The Keep Charter adds to its count.
+
+Everything else uses shapes that exist today. Two points to check when building:
+- The Recruiting Sergeants assumes `levy.after` effects can carry a `productionBonus`. `cardProduction` reads `liveCityEffects`, which includes `City.timed`, so it should.
+- The Press Gang assumes `levy use: conscript` takes `minPopulation`, as The Corvée's `opus` use does.
