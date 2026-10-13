@@ -2,22 +2,32 @@
 
 Date: 2026-10-12. The user chose F1 (three tabs: Rites, Bonuses, Religion) and asked, verbatim: *"the rites screen feels a bit confusing, i think something like the middle column in F2 would work better. The second tab looks more like a spreadsheet, i like the information but it needs to feel more visually engaging. Maybe instead of a table it should have a similar animation as the orders screen, and have more visually appealing elements. Please do a mockup of the last tab so i can see how it looks."*
 
-The drawings are in `ux-faith-f1.html` beside this file. Figures are the same bot game (seed 4242, turn 131, seat 0, *the Children of Sky and Wild*). "Would pay" figures are illustrative until `explainRitePreview` exists; every other figure is the game's own reading. Nothing in the repo was changed.
+Second revision, the same day. The user, verbatim: *"lets axe the bonuses and list of beliefs on the religion/followers screen (tab 3), this is redundant now that we have the bonuses tab. let's slightly rework the rites screen - let's have each column be slightly narrower so more cities fit on screen. Cities with no rite active should appear at the top. Clicking a rite should re-order cities below based on yields gained, and it should be one click to activate a rite once a rite is selected. If no rite is selected, you can still start a rite as pictured in the existing mockup."* The user then confirmed the three proposals for rite mode (recorded below as settled).
+
+The drawings are in `ux-faith-f1.html` beside this file. The Rites tab there is a working prototype: clicking a rite, a Start button or a town's menu, or pressing Escape, behaves as described here. Figures are the same bot game (seed 4242, turn 131, seat 0, *the Children of Sky and Wild*). "Would add" figures are illustrative until `explainRitePreview` exists. The Rites and Religion & followers tabs add seven illustrative towns (Ashford, Brightwater, Coldspring, Dunmere, Elmstead, Fallowmere, Greyfen), marked "ill.", so the list is a realistic length; the other seven towns and every other figure are the game's own reading. Nothing in the repo was changed.
 
 ## Tab 1: Rites
 
-**What changed:** the rows are your towns, not the rites (F2's middle column).
+**Rows are your towns, narrower than before** (about 30 px each), so fourteen fit on one screen with the strip and the faith line.
 
-- **Header strip:** faith banked and a turn, the rite price and duration.
-- **Rites you know**, a strip at the top: one chip per rite with its effect in one line. Rites taught by cards you do not hold are greyed in the same strip and name the card: Rite of Fasting (The Fast, a Devotion charter), Votive Offering (while The Votive Gifts is seated), Restoring of the Host (while The Host Restored is seated). This strip is the reference. The flavour lines move to the Compendium only.
-- **Your towns**, one row each:
-  - A town keeping a rite: the rite, a turns bar, turns left, what it pays now (the town's own lines that carry the rite's id), and "free again on turn N". Aldermarch, Hollowmere and Larkspur keep Omen Reading for 7, 8 and 9 turns, paying +20, +13 and +9 science.
-  - A free town: "Start a rite". Its menu is the choice: every rite you know, what it would pay in that town, and the price; a rite you lack is greyed with the reason ("needs The Votive Gifts seated"). The menu's foot says what is left and when the next rite becomes affordable ("After this: 65 faith left. The next rite is affordable next turn (152).").
-  - Each town's follow state is on the row ("follows", "follows nothing").
-- **Faith line** at the foot: "137: enough for 1 rite now. With +87 a turn, the second is affordable next turn and the third in two." Beside it, what rites kept pay in total.
-- **Start in several…**: the same rows with a tick on each free town and the reducer's sentence where a busy town's tick would be, one rite picker at the top, and a foot with the total and the shortfall ("2 towns · 144 faith. You have 137: short 7. Start Northwatch now; Vaelport is affordable next turn.").
-- **Over the whole realm:** the prophet's rite, what it costs, and which running rites it replaces; here "You have no prophet (300 faith; you have 137)".
+- **Order:** free towns first, in founding order; then towns keeping a rite, soonest free first.
+- **Rites you know**, a one-line strip at the top: one chip per rite with its yield mark and "kept in N". Rites taught by cards you do not hold are greyed in the strip and name the card (Rite of Fasting · The Fast; Votive Offering · The Votive Gifts; Restoring of the Host · The Host Restored). They cannot be selected. The line under the strip says what the selected rite does.
+- **No rite selected:** each free town has its "Start a rite" menu, as in the first F1 drawing: every rite you know with what it would add in that town and the price, a rite you lack greyed with its reason, and at the foot what is left after this one and when the next is affordable.
+- **A rite selected (rite mode):**
+  - The chip turns teal and a banner says what the rite does and how the towns are ranked ("Free towns ranked by the food it would add, best first").
+  - The free towns re-order by what the rite would add in each, best first, numbered, and slide into place (instant with reduced motion). Ties keep founding order. Blessing of Arms adds the same +10 defence everywhere, so the banner says the rows keep founding order.
+  - Each free row has a one-click **"Start · 72"** button.
+  - Towns keeping a rite stay below, each with its rite, turns bar, what it pays and "free on turn N"; the group heading says "cannot take Rite of the Harvest until then".
+- **After a start**, for example Rite of the Harvest in Vaelport: the bank reads 65; Vaelport moves to the head of the kept group marked "started now"; every remaining Start button greys out with "short 7"; the faith line reads "65, was 137; Rite of the Harvest started in Vaelport. Short 7 for another rite. Next turn you will have 152, enough for 2."
+- **Faith line** at the foot, recomputed after each start.
+- **Over the whole realm:** the prophet's rite and which kept rites it would replace; here "You have no prophet (300 faith)".
+- **"Start in several…" is gone.** Select a rite and click down the list. Each click is one `performRite`, so no batch command is needed and that ruling is closed.
 - **Links:** a town's name opens its city screen; the city screen's Faith card opens this tab with that town's menu open.
+
+### Settled by the user (2026-10-12)
+1. **One click starts a rite, and the button carries the price** ("Start · 72"), because a command cannot be undone. There is no confirm dialog. Once the bank cannot pay for another, every remaining button greys out with "short N".
+2. **A rite that pays two kinds of thing ranks by its main yield**, with the second shown beside it (Consecration of the Bounds: "+3 culture · borders +30%").
+3. **Selecting the same rite again, or Escape, leaves rite mode.**
 
 ## Tab 2: Bonuses
 
@@ -39,17 +49,19 @@ The drawings are in `ux-faith-f1.html` beside this file. Figures are the same bo
   4. With reduced motion on, nothing moves: cards face up, figures there at once.
 - **Hover:** a card lifts with the Orders hand's shadow, and its slice of the faith bar lights while the others dim; hovering a slice lifts its card. The card's hover card lists the Ledger lines behind its figure, town by town.
 
-## Tab 3: Religion
+## Tab 3: Religion & followers
 
-**What changed:** drawn in full. Today's content is kept; four things are added.
+**The god cards, the follower belief cards, the enhancer places and every bonus figure are removed**; the Bonuses tab owns them. Nothing is chosen on this tab.
 
-- **Left column:** the pantheon wheel (22 houses in axis runs, Star Readers, Herd Gods and Lord of the Sea lit), "The pantheon is full", and the three god cards with their figures.
+- **Left column:**
+  - The religion's name (rename in place) and facts as pills: founded by you, holy city Aldermarch, 3 of 3 religions in the world.
+  - The pantheon wheel, larger (240 px): 22 houses in axis runs, the three gods held lit, "3/3" in the hub, and the rung sentence under it ("The pantheon is full…", or the progress to the next place).
+  - A panel of four counts: 13 towns follow, 6 of your 14, 7 foreign, the holy site presses +6 a turn.
+  - A link where the beliefs used to be: "What your gods and beliefs pay: Bonuses ›".
 - **Right pane:**
-  - The editable name, and facts as pills: founded by you, holy city Aldermarch, 3 of 3 religions in the world, followed in 10 towns (3 yours, 7 foreign).
-  - Follower beliefs, three across; enhancer places as two dashed ghosts.
-  - **Who follows, as two lists** (added): your towns (Aldermarch 9 of 9 +30, Larkspur 6 of 8 +20, Northwatch 3 of 3 +26, then Hollowmere, Vaelport, Crimson 1 and Crimson 2 at 0 with "no faith; no holy site or road reaches it"), and foreign towns with their owner's ink (7 towns, three by majority).
-  - **Rival faiths pressing your towns** (added): none in this game, so the empty state is shown ("The Children of Elder and Anvil (Teal) and the Children of Blood and Wolf (Gilt) reach none of your towns") with an example row marked as an example.
-  - **Clergy as three cards with the refusal on the card** (added; today a tooltip): Prophet 300 "You have 137"; Apostle 90 "Needs Theology"; Inquisitor 200 "Needs The Holy Office". The city they are called in is a select at the right.
+  - **Who follows, as two lists.** Your towns: those that follow, with citizens following and pressure a turn, then those no faith reaches, with the reason ("no holy site or road reaches it"). Foreign towns, in their owner's colour, three by majority.
+  - **Rival faiths pressing your towns**, under the foreign list: none in this game, so the empty state is shown with an example row marked as an example.
+  - **Clergy** as three cards with the refusal on the card: Prophet 300 "You have 137"; Apostle 90 "Needs Theology"; Inquisitor 200 "Needs The Holy Office"; the town they are called in as a select.
 - "Augurs & Pantheon" and the augur hint leave the header (`index.html` 1148, 1151).
 
 ## What reuses existing code
@@ -57,13 +69,13 @@ The drawings are in `ux-faith-f1.html` beside this file. Figures are the same bo
 | Part | Reuses | New |
 |---|---|---|
 | Sheet, header, tabs | `modalShell.ts`; tab pills as the city screen's add-list tabs | a remembered tab per seat; the retitle |
-| Rites rows | `cityRite`, `cityRiteTurnsLeft`, `riteCostFor`, `riteError`, `availableRites`; "pays now" from the town's lines in `readEmpire` | row and menu DOM (~250 lines); `riteTurnsFor`; `explainRitePreview` |
-| Starting rites | `performRite` via `controls.performRite`; `empireRite` | a loop that checks the running total and stops at the first refusal |
+| Rites rows | `cityRite`, `cityRiteTurnsLeft`, `riteCostFor`, `riteError`, `availableRites`; "pays now" from the town's lines in `readEmpire` | row, menu and rite-mode DOM (~320 lines): the ranking by `explainRitePreview`, the slide when rows re-order; `riteTurnsFor` |
+| Starting rites | `performRite` via `controls.performRite`, one command per click; `empireRite` | nothing: the buttons re-read the bank after each start |
 | Bonus card faces | `.sc-card` frame and inner rule, `.sc-card-head`, the emblem chip, `--line-ink` accents (`cardLine.ts`, `[data-axis]`, deck inks); `describeCard`; `drawBeliefFace` | a plaque face (the Doctrine's gilt double rule, in faith ink) and a rite face with town chips |
 | Bonus figures | `cardStampNode`, `landCardStamp`, `playCardStamp`, `STAMP_TIMING` (`cardStamp.ts`); `yieldMark.ts` | an adapter from Ledger lines to a `StampReading` (~30 lines) |
 | The deal | `card-deal` keyframes and the `--deal-delay` stagger (`offerCard.ts`, `DEAL_STAGGER_MS` 110; `style.css` 10930) | lift `.offer-option.is-dealing` to a shared class |
 | Headline | the Statecraft aggregate band (`drawAggregate`, `.sc-aggregate`); `explainLedger`; `ledgerInk.ts` | `explainReligionLedger`; the founder share's own source |
-| Religion tab | `drawPantheon`, `drawPantheonWheel`, `drawReligion`, `drawTide`, `drawClergy` | the split list, "no faith reaches" rows, rival rows (`explainPressure` for other religions), refusals on clergy cards |
+| Religion & followers tab | `drawPantheonWheel` and the rung sentence from `drawPantheon`; the name field from `drawReligion`; `drawTide`; `drawClergy` | the split list, "no faith reaches" rows, rival rows (`explainPressure` for other religions), the counts panel, refusals on clergy cards; the god and belief faces are dropped from this tab |
 
 ## Simulation pieces and size
 
@@ -75,16 +87,19 @@ The drawings are in `ux-faith-f1.html` beside this file. Figures are the same bo
 | The founder share's own source (`evaluator.ts` 931) | ½ day |
 | `MeterContribution` carries its card | ½ day |
 | Fixes: withdrawn rites, card-rite teachers, header, duration words | ½ day |
-| Interface: Rites ~1.5 days, Bonuses with animation ~1.5, Religion additions ~½, styles and tests ~½ | 4 days |
+| Interface: Rites with rite mode ~1.75 days, Bonuses with animation ~1.5, Religion & followers ~¼, styles and tests ~½ | 4 days |
 | **Total** | **about 7 days** |
 
-Two days more than the first F1 estimate, for the card shelves and animation and the Religion tab's additions. No new command.
+Unchanged by this revision: rite mode adds about a quarter day, and dropping the cards from the Religion & followers tab saves about the same. No new command, and none for starting in several towns either.
 
-## Rulings needed
+## Rulings still open
 
 1. **When the Bonuses tab animates.** The Religion sheet's rule today is "the stamp lands here, it never plays", and the Orders screen counts only on Confirm. Proposed: the deal plays every time the tab opens; a figure counts up only if it changed since you last looked, otherwise it lands.
-2. **Which figure god and belief cards wear**, on both tabs: the Ledger's attribution (proposed; sums to the Ledger; Star Readers +8) or today's ghost stamp (what removing it would cost; Star Readers +10).
-3. **Which seated cards appear:** Devotion cards and any other card paying faith (proposed; The Camp Chaplains is +49 of +87), or Devotion only.
-4. **Several towns at once:** one command per town in order (proposed) or one all-or-nothing command.
-5. **The prophet's rite on the Rites tab** (proposed) or only on the prophet's sheet.
-6. **Rival pressure rows:** towns you can see now only, or remembered towns too under the faith lens's fog rule.
+2. **Which figure the god and belief cards wear on the Bonuses tab:** the Ledger's attribution (proposed; sums to the Ledger; Star Readers +8) or today's ghost stamp (what removing it would cost; Star Readers +10).
+3. **Which seated cards appear on the Bonuses tab:** Devotion cards and any other card paying faith (proposed; The Camp Chaplains is +49 of +87), or Devotion only.
+4. **The prophet's rite on the Rites tab** (proposed) or only on the prophet's sheet.
+5. **Rival pressure rows:** towns you can see now only, or remembered towns too under the faith lens's fog rule.
+6. **The order of towns keeping a rite:** soonest free first (drawn) or founding order.
+7. **From the first round:** whether the drawer's Religion dot also lights when a town is free and a rite is affordable; whether the sheet is called "Faith" or "Religion".
+
+Closed since the last revision: starting in several towns (rite mode makes it one command per click), and the three rite-mode proposals (settled above).
