@@ -9,7 +9,7 @@ The audits and drawings behind these decisions are artifacts (private to the use
 - Compact B4 (B4a, B4b, B4c): https://claude.ai/artifact/Ai3VR7bTf1qMswc8EHM1Q4
 - The empire panel (E1, E2, E3): https://claude.ai/artifact/J17JPskARuBt3PreyLzMTF
 - **Final E2, the agreed design:** https://claude.ai/artifact/FMZ5C4xQh9jRe2FUyRdZ76 — its written spec is `docs/plans/hud-empire-panel-spec.md` (every element, its states, sizes, keys, and the code each part replaces)
-- The city screen audit: in progress (link added when published)
+- **City screen audit:** https://claude.ai/artifact/Jhzd7CgUYeizKK7ucRrsF5 — written version `docs/plans/city-screen-audit.md`
 
 The written versions are in the session scratchpad (`ux-audit/`); copy them into `docs/plans/` when this work starts.
 
@@ -49,7 +49,8 @@ The user, 2026-10-12: *"ok E2 is my favorite."* One drawer at the top-left, in t
 
 ## Open
 - **Supply off the map.** In every layout the resources table stops being always visible: it becomes a Supply entry in the empire menu, with a warning chip only while a resource has none spare. That reverses the rule recorded in `src/ui/holdingsRail.ts` (lines 20 to 45: the counts must be readable without a click). Needs the user's ruling.
-- **The city screen:** an audit in the same style is in progress; its decisions go here.
+- **The city screen** (audit done, not yet reviewed by the user). It recommends **arrangement A, "the same two rails, each with one job done well"** (about 4 days): a Buy button on the thing being built; refusals stated on screen once per reason (grey for "not here", red for "cannot afford"); rows you cannot use folded into "Not yet"; each yield chip with its own complete breakdown starting from the town centre and worked land; "short of" chips; ‹ › arrows and the `,` `.` keys to step between towns; Supply counts heading the build list; one Spend card for rites, the levy and faith purchases. Alternatives: B, one tabbed panel (7–8 days, reverses the 2026-09-03 band ruling); C, a yield table along the bottom (about 2 weeks). Rulings it raises: whether the treasury may show on the city screen; the `,` and `.` keys; whether puppets are included when stepping between towns.
+- **Two bugs the city audit found, live today:** the Trader row in the build list looks pressable but does nothing (the build is refused for `routeOnly`, `src/sim/tech.ts:1061`, and the panel never asks, `src/ui/cityPanel.ts:2544`); and the retired augur's "Call an augur" row still shows in every town (`src/ui/cityPanel.ts:2656` checks `awaitsTech`, not `retired`).
 - **Small decisions inside the build:** the empire menu's key; whether Leader and Standings get keys (L and S were proposed); the "screen registry" in `src/main.ts` that the audit recommends building first, since `main.ts` holds 19 hand-written lists of which screens to close.
 
 ## Build order (when this starts)
