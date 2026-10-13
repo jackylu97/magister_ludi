@@ -97,20 +97,47 @@ describe('a hundred and twenty turns of bots', () => {
       expect(faithSpent).toBe(true);
 
       // The treasury never runs away — the mirror of the solvency floor below,
-      // and the same kind of claim. A bot with no sink ends a game like this
-      // one nearer four figures; the bar is a loose one on purpose, because
-      // what is asserted is "something spends it", not a balance the tuning is
-      // allowed to move.
+      // and the same kind of claim. What is asserted is "something spends it",
+      // so the bar is a share of what the seat earned rather than a fixed
+      // number of coins: a seat with no sink holds about everything it ever
+      // netted, and a seat whose spend arm works holds a small part of it.
       //
-      // **The number is unchanged**: it was `4 × (spending.goldSpendAbove +
-      // spending.goldReserve)`, which was `4 × (150 + 100)`, and those two knobs
-      // are the ones the want book retired (`wants.ts`). There is no threshold
-      // left to take a multiple of, so the same figure is written out.
-      const ceiling = 1000;
+      // **Why not a fixed ceiling any more** (2026-10-13). The bar used to be
+      // 1,000 coins (once `4 × (spending.goldSpendAbove + spending.goldReserve)`,
+      // two knobs the want book retired). It failed after the midgame card buff
+      // and the current-band draft rule (c0a7536e), and the bot was not
+      // hoarding. Measured on this game, Crimson spent gold on 19 of the last
+      // 20 turns (22 routes hired and 15 gold purchases over the game) and
+      // ended at 1,038 coins. That figure is the spend arm working as designed:
+      // `bankSpend` keeps a hard cover of `solvency.reserveTurnsOfUpkeep` turns
+      // of the standing bill (3 × 221 = 663 at t120), the cheapest rows still
+      // unbought cost 468 and 1,056, and the reading is taken after the turn's
+      // income lands (+385 at t120). Cover plus one turn's income is already
+      // about 1,050. Before the change the same seat ended at 933 but stood at
+      // 1,279 on turn 119, so the fixed bar was passing on the turn it happened
+      // to be read. A fixed number grows stale as the economy grows; a share
+      // of earnings does not.
+      //
+      // Measured shares (end treasury ÷ the sum of each turn's positive net
+      // gold): Crimson 0.13 and Teal 0.18 after the change, 0.11 and 0.18
+      // before; the highest reading on any turn was 0.25. A seat with no sink
+      // would read near 1. One third leaves room for tuning and still fails a
+      // bot that stops spending.
+      const share = 1 / 3;
       for (const player of realPlayers(played.game.state)) {
-        expect({ seat: player.name, rich: player.gold < ceiling }).toEqual({
+        const earned = played.curve
+          .filter((reading) => reading.playerId === player.id)
+          .reduce((sum, reading) => sum + Math.max(0, reading.netGold), 0);
+        expect({
           seat: player.name,
-          rich: true,
+          gold: Math.round(player.gold),
+          earned: Math.round(earned),
+          spends: player.gold < share * earned,
+        }).toEqual({
+          seat: player.name,
+          gold: Math.round(player.gold),
+          earned: Math.round(earned),
+          spends: true,
         });
       }
     },

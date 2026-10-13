@@ -386,10 +386,31 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * duel print grew and the standard one shrank, which is not a finding: the
  * seats hold different decks. Nothing stalled and no command was refused,
  * which the assertion above this one checks before the hash does.
+ *
+ * ---
+ *
+ * **Only the current band is dealt, and midgame cards pay half again
+ * (c0a7536e, schema 124).** Duel `b5f6b5b8:286280` → `843c2e63:277904`,
+ * standard `8f051783:947360` → `20f927f3:966650`.
+ *
+ * Two changes, not measured apart. A hand is now dealt only from the seat's
+ * current band, so once band 1 opens a seat stops drawing band 0 cards, and
+ * every live card in bands 1 to 3 has its yield figures raised by half. The
+ * schema bump alone changes the state's bytes. Every seat in this game sits
+ * under no leader and so holds all six decks, and no seat's current band ran
+ * out of cards in either game, so the exhausted-band rule did not fire here.
+ *
+ * What moved at turn 120: the leading seat on each board finishes with more
+ * band 1 and band 2 cards and fewer band 0 cards, and the standard board's
+ * leader (seat 1, balanced) grew from 11 towns and 86 population to 13 and
+ * 108, with science per turn from 380 to 708. The duel print shrank about
+ * three per cent and the standard one grew about two. Nothing stalled and no
+ * command was refused, which the assertion above this one checks before the
+ * hash does.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'b5f6b5b8:286280',
-  standard: '8f051783:947360',
+  duel: '843c2e63:277904',
+  standard: '20f927f3:966650',
 };
 
 /**
