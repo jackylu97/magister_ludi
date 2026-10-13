@@ -18,12 +18,12 @@ Ideas under discussion that are not yet part of the deck (the 2026-10-13 proposa
 
 | Tier | Cards | Live | Changing | Deferred | New |
 |---|---|---|---|---|---|
-| Tier 0 | 19 | 5 | 6 | 0 | 8 |
-| Tier I | 16 | 11 | 2 | 0 | 3 |
-| Tier II | 14 | 12 | 0 | 2 | 0 |
+| Tier 0 | 21 | 5 | 6 | 0 | 10 |
+| Tier I | 17 | 11 | 2 | 0 | 4 |
+| Tier II | 15 | 12 | 0 | 2 | 1 |
 | Tier III | 8 | 7 | 0 | 1 | 0 |
 | Tier IV | 15 | 13 | 0 | 2 | 0 |
-| **All** | **72** | **48** | **8** | **5** | **11** |
+| **All** | **76** | **48** | **8** | **5** | **15** |
 
 Plus 24 cards shared with another deck (below): 17 live, 1 changing, 1 deferred, 5 new.
 
@@ -136,9 +136,13 @@ The user's ideas and picks (2026-10-13). None is in the data. Unnamed rows are t
 | *unnamed* | 0 | — | Gaining a unit grants science equal to its strength. | The user wrote "training"; written as "gaining" under the "gained" ruling. The same job as The Art of War (Tier I, three quarters of strength): one of the two should change. |
 | *unnamed* | 0 | — | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. | Two effects as written: more camps to clear near home, and the strength to meet their raids. Needs a new rule (camps spawn on a fixed clock today, `rules.barbarians.campEveryTurns`). Camp payouts with no cap (the culture card above) become farmable with it; caps or once-a-turn limits may be needed. |
 | **The Farming Garrisons** | 0 | common | Hexes with a fortified military unit gain +1 food and +1 production. | Changed by the user from "units work the hex like a citizen". Open: whether a garrison fortified in a town counts (its centre hex). Needs a hex test for "a fortified unit of yours stands here". |
+| **The Armourers' Secret** | 0 | uncommon | Researching a technology that unlocks a military unit grants one of that unit. | Research becomes units gained. Needs a new grant (the technology occasion exists; granting the unit it unlocks does not). |
+| **The Defiant Kingdom** | 0 | uncommon | While another empire holds more towns than you, you train military units 25% faster. | A catch-up card, and the first card on Mithridates' "against a wider empire" theme. Needs an empire condition comparing town counts (a combat version exists for his leader ability). |
 | **The Call to the Spear** | I | uncommon | Towns of at least five citizens may spend a citizen to raise the best melee unit you can build. | A levy: Dominion's own, so the levy keyword appears without Expansionist. Moved to Tier I and raised to five citizens by the user. The same job as Expansionist's The Muster of the Fields (Tier I: spend a citizen, gain the best melee unit), which a Dominion + Expansionist seat is also dealt at Tier I: one of the two should change. |
 | **Walled Towns** | I | common | Towns with walls gain +15% food. | Moved to Tier I by the user (walls unlock later). Needs a town scope for "has walls". |
 | **The Swift Riders** | I | uncommon | Mounted units may move after attacking. | Moved to Tier I by the user. Needs a new unit rule. |
+| **The Open Muster** | I | uncommon | Passing a draft hand grants the best melee unit you can build in your capital. | Moved to Tier I by the user. A dead hand becomes a soldier. Needs a moment when a hand is passed. |
+| **Living off the Land** | II | common | Military units outside your territory cost no upkeep. | Moved to Tier II and widened by the user from "in another empire's territory". To watch in playtests: an army parked just outside the borders pays no upkeep. Needs an upkeep rule with a territory test. |
 
 ## Cards Dominion shares with another deck
 
