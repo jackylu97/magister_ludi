@@ -1864,6 +1864,10 @@ function charterClause(def: ReturnType<typeof orderDef>): CompendiumClause[] {
   }
   const work = spec.unlocks.improvement;
   if (work !== undefined) opened.push(ref('improvement', work, improvementDef(work).name));
+  const unit = spec.unlocks.unit;
+  if (unit !== undefined && UNIT_TYPE_IDS.includes(unit)) {
+    opened.push(ref('unit', unit, unitDef(unit).name));
+  }
   const named =
     opened.length === 0 ? '' : ` It opens ${opened.join(', ')}, which still costs what it costs.`;
   return [

@@ -32,6 +32,7 @@ import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { isTendedWork } from './improvementData';
 import { getTileAt } from './map';
+import { readEmpire } from './readings';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { resourcesOfKind } from './resourceData';
 import { bumpEconomy } from './slate';
@@ -159,6 +160,9 @@ export function commissionFigure(
       }
       return tended;
     }
+    case 'goldIncome':
+      // The headline the top bar shows, floored: the fold the turn banks with.
+      return Math.floor(readEmpire(state, playerId).totals.gold);
   }
 }
 

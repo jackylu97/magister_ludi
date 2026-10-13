@@ -265,7 +265,7 @@ describe('the four cards the tally opened', () => {
     // The three sentences the scope could already say are printed exactly as
     // they were, so no live card's words moved when the tally arrived.
     expect(said('theCaravanseraiNetwork')[0]).toBe(
-      '+1 happiness in every city one of your own trade routes ends at',
+      '+2 happiness in every city one of your own trade routes ends at',
     );
   });
 

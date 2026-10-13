@@ -3841,6 +3841,10 @@ function ruleRewriteValue(
       // rather than off how far it may be sent. Named so the exhaustiveness
       // check below goes on catching the next member.
       return ctx.ai.score.unknownEffect;
+    case 'routeRange':
+      // Not priced, for `seaRouteRange`'s reason: the bot picks partners off
+      // what a pair pays rather than off how far it may be sent.
+      return ctx.ai.score.unknownEffect;
     default:
       return unreadRule(rule, ctx);
   }

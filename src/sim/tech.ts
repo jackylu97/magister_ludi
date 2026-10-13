@@ -445,6 +445,7 @@ import {
   cardGrantsAbility,
   cardUnlocksBuilding,
   cardUnlocksUnit,
+  charterOpensUnit,
   cityScopeAdmits,
   // The article rule, borrowed rather than rewritten: "needs **a** Library" and
   // "in **an** Amphitheater" must agree, and a second vowel test in this file is
@@ -635,6 +636,13 @@ export function isUnlocked(
   // building's is, and it falls through to the tree the same way — a card is a
   // way in **early**, never in place of a gate the tree happens to carry.
   if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).unlockedByCard === true) {
+    // **A charter's unit** (`CharterSpec.unlocks.unit`, Numidian Cavalry): the
+    // seat's collection holds the charter, and the unit then arrives when its
+    // column is reached, as a leader's unique does, so the charter opens the
+    // row without skipping the age it belongs to.
+    if (charterOpensUnit(state, playerId, id)) {
+      return columnReached(state, playerId, unitDef(id).column ?? 1);
+    }
     if (cardUnlocksUnit(state, playerId, id)) return true;
     if (gatingTech(kind, id) === null) return false;
   }

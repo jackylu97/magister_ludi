@@ -189,6 +189,7 @@ reading for a once-per-empire row.
 | `almshouse` | Almshouse | large | 6 | 231 |
 | `orrery` | Orrery | large | 6 | 231 |
 | `assizeCourt` | Assize Court | large | 6 | 231 |
+| `plantationHouse` | Plantation House | medium | 3 | 68 |
 | `relic` | Relic | free | 1 | 0 |
 | `heroicEpic` | Heroic Epic | large | 4 | 134 |
 | `imperialThrone` | Imperial Throne | large | 5 | 176 |
@@ -303,6 +304,7 @@ table, with no second figure anywhere. See `docs/trade.md`.
 | `warElephant` | War Elephant | heavy | 7 | 151 |
 | `fireLance` | The Fire Lance | heavy | 12 | 583 |
 | `knightsTemplar` | Knights Templar | heavy | 11 | 445 |
+| `numidianCavalry` | Numidian Cavalry | heavy | 7 | 151 |
 | `slinger` | Slinger | line | 5 | 61 |
 | `fubing` | Fubing | light | 2 | 19 |
 | `tangCavalry` | Tang Heavy Cavalry | heavy | 7 | 151 |

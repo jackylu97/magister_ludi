@@ -389,6 +389,9 @@ export type BuildingId =
   | 'almshouse'
   | 'orrery'
   | 'assizeCourt'
+  // The Planters' Charter's house (Commerce, the deck implementation batch):
+  // opened by the charter, bought with gold, and built nowhere else.
+  | 'plantationHouse'
   // The six rows the tree re-cut of 2026-09-02 adds (Entry LVIII), in the order
   // the ages open them: Sailing's lighthouse, the charter a chartered city is
   // founded with, Horology's clocktower, Banking's bank, Fortification's

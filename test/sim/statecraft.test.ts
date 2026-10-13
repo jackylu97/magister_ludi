@@ -445,7 +445,8 @@ describe("the card table", () => {
       const commission = ORDER_IDS.includes(id as never)
         ? orderDef(id as never).commission
         : undefined;
-      // A charter speaks through its grant (the Expansionist tended works).
+      // A charter speaks through its grant (the Expansionist tended works, and
+      // the Commerce batch's Planters' Charter and Numidian Cavalry).
       const charter = ORDER_IDS.includes(id as never)
         ? orderDef(id as never).charter
         : undefined;
@@ -8536,12 +8537,25 @@ describe("the engine shapes", () => {
     // half again of what the road already carries — a flat row and a share row,
     // which is why it registers twice.
     "theCaravanseraiNetwork · routeYield",
+    // The Commerce implementation batch: The Exchange, built as an
+    // approximation, pays your foreign trade routes and their host city in two
+    // rows of one shape (The Common Road's case).
+    "theExchange · routeYield",
+    "theExchange · routeYield",
     "theScholarsRoads · routeYield",
     "theScholarsRoads · routeYield",
     // C3: A Court of Merchants' half again, taken of the whole recurring
     // trickle rather than of one town's buildings — `where: 'empire'`, the
     // second row in the game to say it.
     "aCourtOfMerchants · cityRenownPercent",
+    // The Commerce implementation batch's new rows: three trade route lines
+    // (one narrowed by the religion the far end keeps, one by a customs house
+    // at the origin, one by the far end's owner being at war) and The Bourse,
+    // a share of what gold buildings pay.
+    "theSilkRoadMonks · routeYield",
+    "theCustomsService · routeYield",
+    "theBourse · buildingYieldPercent",
+    "theNeutralFlag · routeYield",
     "thePatronsRoad · routeYield",
     // D2a: The Muses' Call's *"+20% renown"*, un-deferred with the worked-work
     // scope its other half wanted.

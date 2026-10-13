@@ -4175,8 +4175,8 @@
     "text": "+2 faith in your capital"
    },
    {
-    "raw": "+2 faith in every city holding an improved luxury resource",
-    "text": "+2 faith in every city holding an improved luxury resource"
+    "raw": "+1 faith in every city holding an improved luxury resource",
+    "text": "+1 faith in every city holding an improved luxury resource"
    }
   ],
   "travellersLetters": [
@@ -4249,8 +4249,8 @@
   ],
   "landSpeculation": [
    {
-    "raw": "a hex costs 50% less to buy",
-    "text": "a hex costs 50% less to buy"
+    "raw": "+25% gold in every city",
+    "text": "+25% gold in every city"
    },
    {
     "raw": "-2 happiness in your capital",
@@ -4265,8 +4265,8 @@
   ],
   "privatePatronage": [
    {
-    "raw": "ordinary buildings cost −30% to buy",
-    "text": "ordinary buildings cost −30% to buy"
+    "raw": "+25% gold in every city",
+    "text": "+25% gold in every city"
    },
    {
     "raw": "-20% production toward ordinary buildings",
@@ -4330,25 +4330,23 @@
     "text": "+2 gold, +4 culture in every city that holds your trading post"
    },
    {
-    "raw": "hiring a caravan costs 15% less, in every city that holds your trading post",
-    "text": "hiring a caravan costs 15% less, in every city that holds your trading post"
+    "raw": "+25% gold in every city that holds your trading post",
+    "text": "+25% gold in every city that holds your trading post"
    }
   ],
-  "thePlantersCharter": [
-   {
-    "raw": "drafting this opens the planters' house for building — not built yet",
-    "text": "drafting this opens the planters' house for building — not built yet",
-    "deferred": true
-   }
-  ],
+  "thePlantersCharter": [],
   "boughtSwords": [
    {
-    "raw": "military units cost −20% to buy",
-    "text": "military units cost −20% to buy"
+    "raw": "+25% gold in every city",
+    "text": "+25% gold in every city"
    },
    {
     "raw": "-10% production toward military units",
     "text": "-10% production toward military units"
+   },
+   {
+    "raw": "units you buy count as trained",
+    "text": "units you buy count as trained"
    }
   ],
   "theConvoy": [
@@ -4391,8 +4389,8 @@
     "text": "+1 authority capacity per 2 Markets"
    },
    {
-    "raw": "a hex costs 30% less to buy",
-    "text": "a hex costs 30% less to buy"
+    "raw": "+25% gold in every city",
+    "text": "+25% gold in every city"
    }
   ],
   "commercialEducation": [
@@ -4419,8 +4417,8 @@
     "text": "+100% everything on every trade route between two of your own cities and that ends in a city of 5 or fewer citizens"
    },
    {
-    "raw": "all units and buildings cost −50% to buy, in every city of 5 or fewer citizens",
-    "text": "all units and buildings cost −50% to buy, in every city of 5 or fewer citizens"
+    "raw": "+25% gold in every city of 5 or fewer citizens",
+    "text": "+25% gold in every city of 5 or fewer citizens"
    }
   ],
   "marketFoundations": [
@@ -4459,8 +4457,8 @@
   ],
   "theCaravanseraiNetwork": [
    {
-    "raw": "+1 happiness in every city one of your own trade routes ends at",
-    "text": "+1 happiness in every city one of your own trade routes ends at"
+    "raw": "+2 happiness in every city one of your own trade routes ends at",
+    "text": "+2 happiness in every city one of your own trade routes ends at"
    },
    {
     "raw": "+1 production, +1 gold on every trade route between two of your own cities",
@@ -4591,9 +4589,20 @@
   ],
   "theExchange": [
    {
-    "raw": "every foreign realm your roads reach teaches your whole empire, and learns from it — not built yet",
-    "text": "every foreign realm your roads reach teaches your whole empire, and learns from it — not built yet",
-    "deferred": true
+    "raw": "+5% science in every city per other empire you trade with",
+    "text": "+5% science in every city per other empire you trade with"
+   },
+   {
+    "raw": "+5% culture in every city per other empire you trade with",
+    "text": "+5% culture in every city per other empire you trade with"
+   },
+   {
+    "raw": "+2 science, +2 culture on every trade route that ends in another empire’s city",
+    "text": "+2 science, +2 culture on every trade route that ends in another empire’s city"
+   },
+   {
+    "raw": "+2 science, +2 culture on every trade route that ends in another empire’s city, paid to the city it reaches",
+    "text": "+2 science, +2 culture on every trade route that ends in another empire’s city, paid to the city it reaches"
    }
   ],
   "theBrokersRedraw": [
@@ -4630,8 +4639,8 @@
     "text": "+1 renown per turn per hex with a Customs House in your borders"
    },
    {
-    "raw": "all units and buildings cost −15% to buy, in every city with a [[improvement:customsHouse|Customs House]]",
-    "text": "all units and buildings cost −15% to buy, in every city with a Customs House"
+    "raw": "+25% gold in every city with a [[improvement:customsHouse|Customs House]]",
+    "text": "+25% gold in every city with a Customs House"
    }
   ],
   "strategicExports": [
@@ -4699,8 +4708,8 @@
   ],
   "theEndowment": [
    {
-    "raw": "+2 science in every city per purchased building there",
-    "text": "+2 science in every city per purchased building there"
+    "raw": "+1 science in every city per purchased building there (at most +3 science)",
+    "text": "+1 science in every city per purchased building there (at most +3 science)"
    }
   ],
   "thePaidArmy": [
@@ -4821,6 +4830,212 @@
    {
     "raw": "then this card leaves its chair and is never seated again",
     "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theMapSellers": [
+   {
+    "raw": "+1 gold in your capital per 40 hexes you have revealed (at most +8 gold)",
+    "text": "+1 gold in your capital per 40 hexes you have revealed (at most +8 gold)"
+   },
+   {
+    "raw": "+1 culture in your capital per 40 hexes you have revealed (at most +8 culture)",
+    "text": "+1 culture in your capital per 40 hexes you have revealed (at most +8 culture)"
+   }
+  ],
+  "theCartersGuild": [
+   {
+    "raw": "+1 food, +2 gold in every city joined to your capital by road but your capital",
+    "text": "+1 food, +2 gold in every city joined to your capital by road but your capital"
+   }
+  ],
+  "theNestEgg": [
+   {
+    "raw": "+1 culture in your capital per 50 gold in the treasury (at most +4 culture)",
+    "text": "+1 culture in your capital per 50 gold in the treasury (at most +4 culture)"
+   }
+  ],
+  "theStapleRight": [
+   {
+    "raw": "+2 gold per luxury you hold two or more copies of",
+    "text": "+2 gold per luxury you hold two or more copies of"
+   },
+   {
+    "raw": "+1 culture per luxury you hold two or more copies of",
+    "text": "+1 culture per luxury you hold two or more copies of"
+   }
+  ],
+  "theWaqf": [
+   {
+    "raw": "+2 faith in every city per faith building bought with gold there",
+    "text": "+2 faith in every city per faith building bought with gold there"
+   },
+   {
+    "raw": "+1 culture in every city per faith building bought with gold there",
+    "text": "+1 culture in every city per faith building bought with gold there"
+   }
+  ],
+  "theSilkRoadMonks": [
+   {
+    "raw": "caravans carry +3 faith",
+    "text": "caravans carry +3 faith"
+   },
+   {
+    "raw": "+2 gold, +2 culture on every trade route that ends in a city that follows the religion",
+    "text": "+2 gold, +2 culture on every trade route that ends in a city that follows the religion"
+   }
+  ],
+  "numidianCavalryCharter": [],
+  "housesOfAccount": [
+   {
+    "raw": "+2 happiness per gold building",
+    "text": "+2 happiness per gold building"
+   },
+   {
+    "raw": "+1 renown per turn per gold building you hold",
+    "text": "+1 renown per turn per gold building you hold"
+   }
+  ],
+  "aGuildCommission": [
+   {
+    "raw": "Commission. Goal: buy 5 buildings with gold, while this card is seated",
+    "text": "Commission. Goal: buy 5 buildings with gold, while this card is seated"
+   },
+   {
+    "raw": "Reward: a great person to call",
+    "text": "Reward: a great person to call"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theMonopoly": [
+   {
+    "raw": "+5 gold in every city per luxury you hold three or more copies of that no other empire holds",
+    "text": "+5 gold in every city per luxury you hold three or more copies of that no other empire holds"
+   },
+   {
+    "raw": "+3 culture in every city per luxury you hold three or more copies of that no other empire holds",
+    "text": "+3 culture in every city per luxury you hold three or more copies of that no other empire holds"
+   },
+   {
+    "raw": "+1 happiness per luxury you hold three or more copies of that no other empire holds",
+    "text": "+1 happiness per luxury you hold three or more copies of that no other empire holds"
+   }
+  ],
+  "theCustomsService": [
+   {
+    "raw": "+2 gold, +2 culture on every trade route sent from every city with a [[improvement:customsHouse|Customs House]]",
+    "text": "+2 gold, +2 culture on every trade route sent from every city with a Customs House"
+   }
+  ],
+  "theBourse": [
+   {
+    "raw": "your gold buildings pay +50%",
+    "text": "your gold buildings pay +50%"
+   }
+  ],
+  "patronsAbroad": [
+   {
+    "raw": "+3 production in every city raising the Magnum Opus per foreign city holding your trading post",
+    "text": "+3 production in every city raising the Magnum Opus per foreign city holding your trading post"
+   }
+  ],
+  "theMerchantDynasties": [
+   {
+    "raw": "+3 science in every city per hex with a [[improvement:customsHouse|Customs House]] there",
+    "text": "+3 science in every city per hex with a Customs House there"
+   },
+   {
+    "raw": "+3 culture in every city per hex with a [[improvement:customsHouse|Customs House]] there",
+    "text": "+3 culture in every city per hex with a Customs House there"
+   }
+  ],
+  "theSpiceExchange": [
+   {
+    "raw": "+5% science in every city per luxury you hold two or more copies of (at most +30% science)",
+    "text": "+5% science in every city per luxury you hold two or more copies of (at most +30% science)"
+   },
+   {
+    "raw": "+5% culture in every city per luxury you hold two or more copies of (at most +30% culture)",
+    "text": "+5% culture in every city per luxury you hold two or more copies of (at most +30% culture)"
+   }
+  ],
+  "moneyAtWork": [
+   {
+    "raw": "+1 production in your capital per 50 gold in the treasury (at most +40 production)",
+    "text": "+1 production in your capital per 50 gold in the treasury (at most +40 production)"
+   }
+  ],
+  "boughtAndPaidFor": [
+   {
+    "raw": "+1 production in every city per building bought with gold there (at most +6 production)",
+    "text": "+1 production in every city per building bought with gold there (at most +6 production)"
+   },
+   {
+    "raw": "+2 culture in every city per building bought with gold there (at most +12 culture)",
+    "text": "+2 culture in every city per building bought with gold there (at most +12 culture)"
+   }
+  ],
+  "theEmbargo": [
+   {
+    "raw": "rival empires that do not trade with you build the great work more slowly — not built yet",
+    "text": "rival empires that do not trade with you build the great work more slowly — not built yet",
+    "deferred": true
+   }
+  ],
+  "theHiredGarrison": [
+   {
+    "raw": "a city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn",
+    "text": "a city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn"
+   }
+  ],
+  "theNeutralFlag": [
+   {
+    "raw": "+100% gold on every trade route that ends in another empire’s city and that ends in a city whose owner is at war with another empire",
+    "text": "+100% gold on every trade route that ends in another empire’s city and that ends in a city whose owner is at war with another empire"
+   },
+   {
+    "raw": "+50% science on every trade route that ends in another empire’s city and that ends in a city whose owner is at war with another empire",
+    "text": "+50% science on every trade route that ends in another empire’s city and that ends in a city whose owner is at war with another empire"
+   }
+  ],
+  "theWorldsFair": [
+   {
+    "raw": "Commission. Goal: have 6 trade routes running at the same time, while this card is seated",
+    "text": "Commission. Goal: have 6 trade routes running at the same time, while this card is seated"
+   },
+   {
+    "raw": "Reward: for 10 turns, +50% science in every city and +50% culture in every city",
+    "text": "Reward: for 10 turns, +50% science in every city and +50% culture in every city"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theGreatLoan": [
+   {
+    "raw": "Commission. Goal: earn at least 1 gold per turn, while this card is seated",
+    "text": "Commission. Goal: earn at least 1 gold per turn, while this card is seated"
+   },
+   {
+    "raw": "Reward: gold equal to 20 times your gold per turn at that moment, and for 40 turns, -25% gold in every city",
+    "text": "Reward: gold equal to 20 times your gold per turn at that moment, and for 40 turns, -25% gold in every city"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theTradeWinds": [
+   {
+    "raw": "+3 trade routes",
+    "text": "+3 trade routes"
+   },
+   {
+    "raw": "your trade routes reach 50% further",
+    "text": "your trade routes reach 50% further"
    }
   ],
   "devotionFirstRites": [
@@ -7846,6 +8061,7 @@
     "text": "+1 authority capacity"
    }
   ],
+  "plantationHouse": [],
   "relic": [],
   "heroicEpic": [
    {

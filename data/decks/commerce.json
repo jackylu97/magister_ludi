@@ -62,7 +62,8 @@
           },
           "food": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "theMerchantShrines": {
       "name": "The Merchant Shrines",
@@ -73,7 +74,7 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Every scale has a god leaning on it.",
-      "text": "Your capital gains +2 faith. Cities working an improved luxury gain +2 faith, once per city.",
+      "text": "Your capital gains +2 faith. Cities working an improved luxury gain +1 faith, once per city.",
       "effects": [
         {
           "kind": "pays",
@@ -90,7 +91,7 @@
             "test": "holdingCategory",
             "category": "luxury"
           },
-          "faith": 2
+          "faith": 1
         }
       ]
     },
@@ -148,7 +149,8 @@
         "meeting an empire for the first time pays you, and pays them",
         "claiming a discovery pays gold"
       ],
-      "note": "Held whole. The world still does not announce a first meeting. And the grant that pays another empire is a standing line on a town's sheet, where this card wants a one-off paid into a foreign treasury on a single occasion — a windfall banks onto the empire holding the card and knows nothing of a payee."
+      "note": "Held whole. The world still does not announce a first meeting. And the grant that pays another empire is a standing line on a town's sheet, where this card wants a one-off paid into a foreign treasury on a single occasion — a windfall banks onto the empire holding the card and knows nothing of a payee.",
+      "retired": true
     },
     "thePathfindersCompany": {
       "name": "The Pathfinders' Company",
@@ -213,7 +215,8 @@
           },
           "food": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "commerceTheAssayersRule": {
       "name": "The Assayer's Rule",
@@ -306,12 +309,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Buy the field before anyone knows what it is for.",
-      "text": "Buying tiles costs 50% less. Your capital loses 2 happiness.",
+      "text": "Your cities gain +25% gold. Your capital loses 2 happiness.",
       "effects": [
         {
-          "kind": "rulePercent",
-          "rule": "tilePurchase",
-          "percent": -50
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25
         },
         {
           "kind": "happiness",
@@ -342,25 +345,24 @@
             "amount": 75
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "privatePatronage": {
       "name": "Private Patronage",
       "decks": [
         "commerce"
       ],
-      "band": 0,
+      "band": 1,
       "line": "none",
       "rarity": "rare",
       "flavor": "The purse builds faster than the quarry, and asks for its name on the door.",
-      "text": "Gold purchases of ordinary buildings cost 30% less. Producing those buildings normally takes 20% more production. Empire buildings and wonders are unaffected.",
+      "text": "Your cities gain +25% gold. Producing ordinary buildings normally takes 20% more production. Empire buildings and wonders are unaffected.",
       "effects": [
         {
-          "kind": "purchaseRider",
-          "class": {},
-          "on": "building",
-          "empireBuilding": false,
-          "percent": -30
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25
         },
         {
           "kind": "productionBonus",
@@ -369,7 +371,7 @@
           "percent": -20
         }
       ],
-      "note": "An ordinary building is one the realm may raise in every city. The two clauses read the same marker from opposite sides, so the discount at the counter and the penalty in the queue reach exactly the same shelves. A wonder is refused at the counter before a price is quoted, so it is untouched by the discount, and a wonder is its own kind of queue row, so it is untouched by the penalty."
+      "note": "An ordinary building is one the realm may raise in every city. A wonder is its own kind of queue row, so the slower building does not reach it, and neither does it reach a building the realm may hold only once."
     },
     "civicReceipts": {
       "name": "Civic Receipts",
@@ -386,7 +388,11 @@
           "kind": "windfallRider",
           "occasion": "purchase",
           "anyBuilding": true,
-          "grant": { "yield": "culture", "amount": 0.1, "fromOccasion": "gold" }
+          "grant": {
+            "yield": "culture",
+            "amount": 0.1,
+            "fromOccasion": "gold"
+          }
         }
       ],
       "note": "Every building a town buys pays, however many it has bought before and whichever shelf it came off. What the card still does not pay for is a unit bought at the same counter, which is the whole of what the word building narrows. The share is taken of what actually left the treasury, so a discount at the till is a smaller rebate."
@@ -465,7 +471,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The far market pays for the risk of reaching it.",
-      "text": "Your routes gain two turns of range. Routes whose endpoints are more than fourteen hexes apart gain +100% gold, using the shortest wrapped map distance.",
+      "text": "Your trade routes gain two turns of range. Trade routes between cities at least fifteen hexes apart gain +100% gold.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -477,7 +483,10 @@
           "where": "route",
           "minHexes": 15,
           "share": [
-            { "yield": "gold", "percent": 100 }
+            {
+              "yield": "gold",
+              "percent": 100
+            }
           ]
         }
       ],
@@ -498,7 +507,8 @@
         "hiring a caravan costs less",
         "every new market your roads reach for the first time teaches and sings, for as long as you keep the ledger"
       ],
-      "note": "Held whole. No book in this game records which markets your caravans have already found."
+      "note": "Held whole. No book in this game records which markets your caravans have already found.",
+      "retired": true
     },
     "theFactorsHouses": {
       "name": "The Factors' Houses",
@@ -509,24 +519,27 @@
       "line": "none",
       "rarity": "common",
       "flavor": "The factor never leaves. That is the whole of his value.",
-      "text": "Your cities holding your established commercial post gain +2 gold and +4 culture. Hiring a caravan from such a city costs 15% less.",
+      "text": "Your cities holding your trading post gain +2 gold and +4 culture, and +25% gold.",
       "effects": [
         {
           "kind": "pays",
           "where": "city",
           "gold": 2,
           "culture": 4,
-          "scope": { "test": "holdsPost" }
+          "scope": {
+            "test": "holdsPost"
+          }
         },
         {
-          "kind": "purchaseRider",
-          "class": {},
-          "on": "route",
-          "percent": -15,
-          "scope": { "test": "holdsPost" }
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25,
+          "scope": {
+            "test": "holdsPost"
+          }
         }
       ],
-      "note": "Both halves ask the same town the same question, so the coin and the discount can never disagree about which towns they mean. The hire price took the two moves the old note named: a caravan's price is now a fold that purchase riders reach, and it is asked of the town the road sets out from — which the reducer has always handed it and simply dropped. A rider has to name the road to ride on it: the rows that say they ride on everything were written about things with a shelf and a production cost, and letting them reprice a caravan by accident would have changed three live cards without a word. Known gap: the Trade screen's headline price is still the empire's plain figure, so a seat holding this card is quoted the full price and charged the lower one."
+      "note": "Both halves ask the same town the same question, so the coin and the share can never disagree about which towns they mean."
     },
     "thePlantersCharter": {
       "name": "The Planters' Charter",
@@ -544,10 +557,7 @@
         }
       },
       "effects": [],
-      "deferred": [
-        "drafting this opens the planters' house for building"
-      ],
-      "note": "Held whole. The house it would open has not been drawn up yet, so the charter has nothing to grant."
+      "note": "The Plantation House is bought with gold and never built. Every plantation its city works gains a little food and a little gold."
     },
     "boughtSwords": {
       "name": "Bought Swords",
@@ -558,15 +568,12 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "A hired sword is dearer to raise and cheaper to buy.",
-      "text": "Military units cost 20% less gold to purchase, but 10% more production to train. Purchases still do not count as training.",
+      "text": "Your cities gain +25% gold. Military units take 10% more production to train. Purchased units count as trained.",
       "effects": [
         {
-          "kind": "purchaseRider",
-          "class": {
-            "category": "military"
-          },
-          "on": "unit",
-          "percent": -20
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25
         },
         {
           "kind": "productionBonus",
@@ -575,6 +582,10 @@
             "category": "military"
           },
           "percent": -10
+        },
+        {
+          "kind": "rule",
+          "rule": "boughtUnitsCountAsTrained"
         }
       ]
     },
@@ -626,7 +637,8 @@
           }
         }
       ],
-      "note": "\"Combat units\" is the soldiers and the ships, which are two classes on the roster and so two lines here — the escort of a land road and the escort of a sea lane are the same promise made to both. A cart, a workman and a settler are none of them a combat unit and collect nothing."
+      "note": "\"Combat units\" is the soldiers and the ships, which are two classes on the roster and so two lines here — the escort of a land road and the escort of a sea lane are the same promise made to both. A cart, a workman and a settler are none of them a combat unit and collect nothing.",
+      "retired": true
     },
     "theTreatyPorts": {
       "name": "The Treaty Ports",
@@ -675,7 +687,12 @@
           "kind": "pays",
           "where": "route",
           "standingTurns": 30,
-          "share": [{ "yield": "all", "percent": 50 }]
+          "share": [
+            {
+              "yield": "all",
+              "percent": 50
+            }
+          ]
         }
       ]
     },
@@ -688,7 +705,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Where the stalls stand, the writ runs.",
-      "text": "+1 authority for every two Markets in your empire. Buying tiles costs 30% less.",
+      "text": "+1 authority for every two Markets in your empire. Your cities gain +25% gold.",
       "effects": [
         {
           "kind": "pays",
@@ -701,9 +718,9 @@
           "per": 2
         },
         {
-          "kind": "rulePercent",
-          "rule": "tilePurchase",
-          "percent": -30
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25
         }
       ]
     },
@@ -751,7 +768,8 @@
           "science": 1,
           "gold": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "oreCaravans": {
       "name": "Ore Caravans",
@@ -788,7 +806,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Send the money where the town is still small enough to feel it.",
-      "text": "Cities of at most 5 population receive double bonuses from domestic trade routes and gain +50% gold toward purchasing.",
+      "text": "In your cities of 5 population or fewer, domestic trade routes pay double, and those cities gain +25% gold.",
       "effects": [
         {
           "kind": "pays",
@@ -806,17 +824,16 @@
           ]
         },
         {
-          "kind": "purchaseRider",
-          "class": {},
-          "on": "all",
-          "percent": -50,
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25,
           "scope": {
             "test": "populationAtMost",
             "value": 5
           }
         }
       ],
-      "note": "The doubling is taken of everything already on the cart, and it is asked of the town the road ends at — a small town grows out of it the turn it passes the mark."
+      "note": "The doubling is taken of everything already on the cart, and it is asked of the town the trade route ends at. A small town grows out of both halves the turn it passes the mark."
     },
     "marketFoundations": {
       "name": "Market Foundations",
@@ -840,7 +857,8 @@
           "amount": 1,
           "building": "market"
         }
-      ]
+      ],
+      "retired": true
     },
     "financedIndustry": {
       "name": "Financed Industry",
@@ -876,7 +894,7 @@
       ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "flavor": "Every road that ends here was built for here.",
       "text": "Cities receiving at least two of your domestic routes gain +20% food, +20% production and +2 happiness, once per city.",
       "effects": [
@@ -884,19 +902,31 @@
           "kind": "percentYields",
           "yield": "food",
           "percent": 20,
-          "scope": { "test": "routeEndsHere", "crossing": "domestic", "atLeast": 2 }
+          "scope": {
+            "test": "routeEndsHere",
+            "crossing": "domestic",
+            "atLeast": 2
+          }
         },
         {
           "kind": "percentYields",
           "yield": "production",
           "percent": 20,
-          "scope": { "test": "routeEndsHere", "crossing": "domestic", "atLeast": 2 }
+          "scope": {
+            "test": "routeEndsHere",
+            "crossing": "domestic",
+            "atLeast": 2
+          }
         },
         {
           "kind": "happiness",
           "amount": 2,
           "per": "city",
-          "scope": { "test": "routeEndsHere", "crossing": "domestic", "atLeast": 2 }
+          "scope": {
+            "test": "routeEndsHere",
+            "crossing": "domestic",
+            "atLeast": 2
+          }
         }
       ],
       "note": "A city has to be the end of two trade routes between your own cities at once, and the contentment is paid once per city however many arrive."
@@ -908,13 +938,13 @@
       ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "flavor": "Spread the halts and the desert shrinks.",
-      "text": "Each city receiving a domestic trade route grants +1 happiness, once per city. Domestic routes gain +1 production and +1 gold.",
+      "text": "Each city receiving a domestic trade route grants +2 happiness (once per city); +1 production and +1 gold on domestic trade routes.",
       "effects": [
         {
           "kind": "happiness",
-          "amount": 1,
+          "amount": 2,
           "per": "city",
           "scope": {
             "test": "routeEndsHere",
@@ -937,9 +967,9 @@
       ],
       "band": 2,
       "line": "none",
-      "rarity": "uncommon",
+      "rarity": "common",
       "flavor": "Our man in their market, and their man in ours.",
-      "text": "Each foreign city holding your established commercial post grants you +3 gold and its host city +1 gold per turn while you are at peace and the host is not blockaded.",
+      "text": "Each foreign city holding your trading post grants you +3 gold and its host city +1 gold per turn while you are at peace and the host is not blockaded.",
       "effects": [
         {
           "kind": "pays",
@@ -988,7 +1018,8 @@
       "deferred": [
         "a good you hold in real quantity pays gold and culture, and works twice as hard"
       ],
-      "note": "Held whole, and it is the doubling that holds it. Counting the goods the realm holds a shed's worth of is close now that copies are real and countable, though a card still has no way to name its own threshold — the one the game asks about duplicates is fixed. The other half aims a doubling at one named good, where every dial in the vocabulary turns a whole class at once."
+      "note": "Held whole, and it is the doubling that holds it. Counting the goods the realm holds a shed's worth of is close now that copies are real and countable, though a card still has no way to name its own threshold — the one the game asks about duplicates is fixed. The other half aims a doubling at one named good, where every dial in the vocabulary turns a whole class at once.",
+      "retired": true
     },
     "thePurpleWorks": {
       "name": "The Purple Works",
@@ -1009,14 +1040,15 @@
       "deferred": [
         "drafting this opens the purple works for building"
       ],
-      "note": "Held whole. The works it would open has not been drawn up yet, and neither has the good it would make."
+      "note": "Held whole. The works it would open has not been drawn up yet, and neither has the good it would make.",
+      "retired": true
     },
     "theMoneyLenders": {
       "name": "The Money Lenders",
       "decks": [
         "commerce"
       ],
-      "band": 2,
+      "band": 3,
       "line": "none",
       "rarity": "rare",
       "flavor": "Money left alone is the only servant that never sleeps.",
@@ -1053,7 +1085,8 @@
           },
           "bought": "gold"
         }
-      ]
+      ],
+      "retired": true
     },
     "luxuryCaravans": {
       "name": "Luxury Caravans",
@@ -1079,7 +1112,8 @@
           "gold": 1
         }
       ],
-      "note": "Every luxury hex inside the origin's borders counts, worked or not, and two seams of the same good are two — this is a count of ground rather than of the kinds your realm can name."
+      "note": "Every luxury hex inside the origin's borders counts, worked or not, and two seams of the same good are two — this is a count of ground rather than of the kinds your realm can name.",
+      "retired": true
     },
     "miningDistricts": {
       "name": "Mining Districts",
@@ -1145,7 +1179,8 @@
           "rule": "capitalBuysWithoutLimit"
         }
       ],
-      "note": "Only the capital, and only the limit: every other refusal at the counter still stands, and a unit still needs somewhere to stand when it arrives."
+      "note": "Only the capital, and only the limit: every other refusal at the counter still stands, and a unit still needs somewhere to stand when it arrives.",
+      "retired": true
     },
     "foreignProcurement": {
       "name": "Foreign Procurement",
@@ -1205,7 +1240,8 @@
           "mode": "sea"
         }
       ],
-      "note": "The road per two harbours was written for this card by name and was waiting. The other two sentences needed one word each. A route's pay may now be narrowed by the medium it takes, which is a fact about the road rather than about either of its towns — the same kind of narrowing as which side of a border it crosses, and read the same way — so the coin by the distance is paid on the water and nowhere else. And how far a caravan may be sent by sea joined the short list of figures a law may move, which is the one-line move a route's term already was. The share is taken of the table's own reach and the trading posts' turns are added after it, so the card adds exactly the three turns it prints however many posts the pair holds."
+      "note": "The road per two harbours was written for this card by name and was waiting. The other two sentences needed one word each. A route's pay may now be narrowed by the medium it takes, which is a fact about the road rather than about either of its towns — the same kind of narrowing as which side of a border it crosses, and read the same way — so the coin by the distance is paid on the water and nowhere else. And how far a caravan may be sent by sea joined the short list of figures a law may move, which is the one-line move a route's term already was. The share is taken of the table's own reach and the trading posts' turns are added after it, so the card adds exactly the three turns it prints however many posts the pair holds.",
+      "retired": true
     },
     "theLeagueOfCities": {
       "name": "The League of Cities",
@@ -1222,19 +1258,29 @@
           "kind": "percentYields",
           "yield": "production",
           "percent": 15,
-          "scope": { "test": "routeEndsHere", "direction": "departing" }
+          "scope": {
+            "test": "routeEndsHere",
+            "direction": "departing"
+          }
         },
         {
           "kind": "meterRule",
           "rule": "cityCost",
           "delta": -1,
-          "scope": { "test": "routeEndsHere", "direction": "departing" }
+          "scope": {
+            "test": "routeEndsHere",
+            "direction": "departing"
+          }
         },
         {
           "kind": "percentYields",
           "yield": "gold",
           "percent": -10,
-          "scope": { "test": "routeEndsHere", "direction": "departing", "atMost": 0 }
+          "scope": {
+            "test": "routeEndsHere",
+            "direction": "departing",
+            "atMost": 0
+          }
         }
       ],
       "note": "A paying trade route is simply an active one — a route that has lapsed, been cancelled or been plundered is not counted. The discount never takes a city below one authority and never charges a city that was already free."
@@ -1266,7 +1312,8 @@
           },
           "bought": "gold"
         }
-      ]
+      ],
+      "retired": true
     },
     "exportGuilds": {
       "name": "Export Guilds",
@@ -1294,11 +1341,42 @@
       "rarity": "uncommon",
       "flavor": "Two ledgers open on one table is the oldest university there is.",
       "text": "Each different foreign empire your routes currently serve grants +5% science and culture empire-wide. Foreign routes to your cities grant +2 science and +2 culture to both you and the sender.",
-      "effects": [],
-      "deferred": [
-        "every foreign realm your roads reach teaches your whole empire, and learns from it"
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "tradePartnerEmpires",
+          "to": "science",
+          "percent": 5,
+          "stage": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "tradePartnerEmpires",
+          "to": "culture",
+          "percent": 5,
+          "stage": "city"
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "international",
+          "science": 2,
+          "culture": 2
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "international",
+          "payee": "host",
+          "science": 2,
+          "culture": 2
+        }
       ],
-      "note": "Half built, and so held whole. The first sentence is a pair of ordinary rows and has been for some time: a live card one table over already gives a share of science for every realm your roads reach, off the very same count this card wants. The second sentence is the blocker, and the ratified wording makes it a different blocker than the old one. A law rides a road only from the end that sent the cart, and the empire holding this card is the end that receives it — so the card is never consulted about the road at all. On top of that, paying the sender means paying an empire that is neither the card holder nor the town a caravan reached, which is a third kind of payee. Both halves would have to be built."
+      "note": "The exchange runs along the trade routes you send: each pays you, and the city it reaches, the same science and culture. A trade route another empire sends to you pays you nothing from this card."
     },
     "theBrokersRedraw": {
       "name": "The Brokers' Redraw",
@@ -1349,8 +1427,14 @@
           "kind": "pays",
           "where": "route",
           "share": [
-            { "yield": "science", "percent": 50 },
-            { "yield": "culture", "percent": 50 }
+            {
+              "yield": "science",
+              "percent": 50
+            },
+            {
+              "yield": "culture",
+              "percent": 50
+            }
           ]
         }
       ]
@@ -1364,7 +1448,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The gate that counts you is the gate that knows you.",
-      "text": "Customs houses gain +3 gold and +1 renown. Cities with a customs house gain +15% gold toward purchasing.",
+      "text": "Customs houses gain +3 gold and +1 renown. Cities with a customs house gain +25% gold.",
       "effects": [
         {
           "kind": "pays",
@@ -1385,17 +1469,16 @@
           }
         },
         {
-          "kind": "purchaseRider",
-          "class": {},
-          "on": "all",
-          "percent": -15,
+          "kind": "percentYields",
+          "yield": "gold",
+          "percent": 25,
           "scope": {
             "test": "hasImprovement",
             "improvement": "customsHouse"
           }
         }
       ],
-      "note": "The coin wants a citizen standing on the works, as every hex line does. The renown and the discount do not: a customs house pays its realm for being there, and the town it stands in buys more cheaply whether or not anybody is working it."
+      "note": "The coin on the works wants a citizen standing on them, as every hex line does. The renown and the town's share of gold do not: a customs house pays for being there, whether or not anybody is working it."
     },
     "strategicExports": {
       "name": "Strategic Exports",
@@ -1457,7 +1540,8 @@
           }
         }
       ],
-      "note": "The freeze is lifted for this one counter and nothing else: a hex somebody else owns, a hex none of your towns can reach and a treasury that cannot pay are all still refused. The contentment is a window and not a bill — buying a second hex inside the five turns moves the end date rather than paying again."
+      "note": "The freeze is lifted for this one counter and nothing else: a hex somebody else owns, a hex none of your towns can reach and a treasury that cannot pay are all still refused. The contentment is a window and not a bill — buying a second hex inside the five turns moves the end date rather than paying again.",
+      "retired": true
     },
     "civicMarkets": {
       "name": "Civic Markets",
@@ -1480,7 +1564,8 @@
           "science": 2,
           "food": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "maritimeAuthority": {
       "name": "Maritime Authority",
@@ -1508,7 +1593,8 @@
             "category": "naval"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "professionalRetainers": {
       "name": "Professional Retainers",
@@ -1533,7 +1619,8 @@
           "kind": "upkeepSurcharge",
           "amount": 1
         }
-      ]
+      ],
+      "retired": true
     },
     "caravanseraiCities": {
       "name": "Caravanserai Cities",
@@ -1555,7 +1642,10 @@
           "kind": "percentYields",
           "yield": "gold",
           "percent": 20,
-          "scope": { "test": "hasBuilding", "building": "caravanserai" }
+          "scope": {
+            "test": "hasBuilding",
+            "building": "caravanserai"
+          }
         }
       ],
       "note": "Being one to a realm and being one of the realm's great houses were a single mark doing two jobs, and this card is what needed them apart. They are two marks now, and every building that carried the old one carries both, so nothing about any existing row moved. The card lifts the limit and leaves the class exactly where it was: a realm may raise a yard in every town, and every one of them is still a great house — still priced against how many towns it will serve, still admitted wherever a card asks for an empire building, still counted as one of them, and still passed over by a discount written for the ordinary shelves. The card buys many of an expensive thing rather than turning it into a cheap one. One thing had to be made safe alongside it: the walk that gathers what a realm's great houses do used to read each town's shelf in turn, which was harmless while a realm could hold only one of each, so it now reads each row once however many copies stand."
@@ -1579,7 +1669,8 @@
       "deferred": [
         "drafting this opens the dye vats for building"
       ],
-      "note": "Held whole. The vats they would open have not been drawn up yet, so the charter has nothing to grant."
+      "note": "Held whole. The vats they would open have not been drawn up yet, so the charter has nothing to grant.",
+      "retired": true
     },
     "theEndowment": {
       "name": "The Endowment",
@@ -1590,7 +1681,7 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "Buy the roof, and endow the men under it.",
-      "text": "Purchased buildings provide +2 science.",
+      "text": "Purchased buildings provide +1 science each, at most +3 per town.",
       "effects": [
         {
           "kind": "pays",
@@ -1599,7 +1690,8 @@
           "count": "purchasedBuildings",
           "within": "city",
           "to": "science",
-          "amount": 2
+          "amount": 1,
+          "max": 3
         }
       ],
       "note": "A town now writes down which bank paid for each of its roofs, beside the turn they went up. Either bank counts: a library bought with faith is as bought as one bought with gold. A roof completed in the yard, granted by a card or laid as a relic counts for nothing. A captured town brings its record with it, so a conqueror is paid for the roofs its last owner bought."
@@ -1630,14 +1722,15 @@
           "on": "unit",
           "percent": -25
         }
-      ]
+      ],
+      "retired": true
     },
     "merchantPrinces": {
       "name": "Merchant Princes",
       "decks": [
         "commerce"
       ],
-      "band": 3,
+      "band": 4,
       "line": "none",
       "rarity": "rare",
       "flavor": "Genius is expensive, and the price is quoted.",
@@ -1654,11 +1747,11 @@
       "decks": [
         "commerce"
       ],
-      "band": 3,
+      "band": 4,
       "line": "none",
       "rarity": "rare",
       "flavor": "The last work of the age is paid for by every market in it.",
-      "text": "Each different foreign empire currently served by your routes grants +10% production toward the Opus, at most +40%. Existing construction and victory requirements remain.",
+      "text": "+10% production toward the Opus for each foreign empire your trade routes reach, at most +40%.",
       "effects": [
         {
           "kind": "productionBonus",
@@ -1686,25 +1779,41 @@
           "kind": "percentYields",
           "yield": "food",
           "percent": 25,
-          "scope": { "test": "routeEndsHere", "direction": "departing", "atLeast": 3 }
+          "scope": {
+            "test": "routeEndsHere",
+            "direction": "departing",
+            "atLeast": 3
+          }
         },
         {
           "kind": "percentYields",
           "yield": "production",
           "percent": 25,
-          "scope": { "test": "routeEndsHere", "direction": "departing", "atLeast": 3 }
+          "scope": {
+            "test": "routeEndsHere",
+            "direction": "departing",
+            "atLeast": 3
+          }
         },
         {
           "kind": "percentYields",
           "yield": "culture",
           "percent": 25,
-          "scope": { "test": "routeEndsHere", "direction": "departing", "atLeast": 3 }
+          "scope": {
+            "test": "routeEndsHere",
+            "direction": "departing",
+            "atLeast": 3
+          }
         },
         {
           "kind": "meterRule",
           "rule": "cityCost",
           "delta": 4,
-          "scope": { "test": "routeEndsHere", "direction": "departing", "atLeast": 3 }
+          "scope": {
+            "test": "routeEndsHere",
+            "direction": "departing",
+            "atLeast": 3
+          }
         }
       ],
       "note": "A paying trade route is simply an active one — a route that has lapsed, been cancelled or been plundered is not counted. A city stops paying the extra authority the moment it drops below three."
@@ -1718,7 +1827,7 @@
       "line": "none",
       "rarity": "rare",
       "flavor": "The sea has no middle, only two ends.",
-      "text": "Your sea routes may connect two cities holding your established commercial posts regardless of range. A legal sea path, access, peace and route capacity are still required.",
+      "text": "A sea trade route between two cities that both hold your trading post has no range limit.",
       "effects": [
         {
           "kind": "rule",
@@ -1747,7 +1856,8 @@
           }
         }
       ],
-      "note": "Who owns the city is not asked: the line pays in your own towns and in a rival's alike, wherever your trading post stands. The card's second sentence is the rule a post already follows — a post is never removed, by war or by anything else, and war only suspends what a post pays. So this line keeps working against the very empire you established it with."
+      "note": "Who owns the city is not asked: the line pays in your own towns and in a rival's alike, wherever your trading post stands. The card's second sentence is the rule a post already follows — a post is never removed, by war or by anything else, and war only suspends what a post pays. So this line keeps working against the very empire you established it with.",
+      "retired": true
     },
     "theMerchantCommonwealth": {
       "name": "The Merchant Commonwealth",
@@ -1795,18 +1905,19 @@
           }
         }
       ],
-      "note": "Both halves ask the same two questions of the same town: your trading post stands there, and one of your own trade routes ends there. A town has to answer yes to both, this turn, so a route that lapses takes the contentment and the discount with it while the post itself stays. The discount never takes a city below one authority and never charges a city that was already free."
+      "note": "Both halves ask the same two questions of the same town: your trading post stands there, and one of your own trade routes ends there. A town has to answer yes to both, this turn, so a route that lapses takes the contentment and the discount with it while the post itself stays. The discount never takes a city below one authority and never charges a city that was already free.",
+      "retired": true
     },
     "theMerchantWorks": {
       "name": "The Merchant Works",
       "decks": [
         "commerce"
       ],
-      "band": 3,
+      "band": 4,
       "line": "none",
       "rarity": "rare",
       "flavor": "Coin becomes stone, and stone outlasts the coin.",
-      "text": "Cities building an empire building, world wonder or the Opus gain production equal to 25% of their base city gold, but lose 20% of their gold income while doing so. Foreign-route empire gold and conversion outputs are excluded from the production basis.",
+      "text": "Cities building a world wonder, an empire building or the Opus gain production equal to 25% of their gold, and lose 20% of their gold.",
       "effects": [
         {
           "kind": "pays",
@@ -1959,6 +2070,654 @@
           }
         ]
       }
+    },
+    "theMapSellers": {
+      "name": "The Map Sellers",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A good chart is worth the coast it saves you from.",
+      "text": "Your capital gains +1 gold and +1 culture for every 40 hexes you have revealed, at most +8 of each.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "revealedTiles",
+          "to": "gold",
+          "amount": 1,
+          "per": 40,
+          "max": 8
+        },
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "revealedTiles",
+          "to": "culture",
+          "amount": 1,
+          "per": 40,
+          "max": 8
+        }
+      ]
+    },
+    "theCartersGuild": {
+      "name": "The Carters' Guild",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "The road is laid for the soldiers. The carts use it every other day.",
+      "text": "Your cities connected to your capital by road, other than the capital, gain +1 food and +2 gold.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": 1,
+          "gold": 2,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "connected"
+              },
+              {
+                "test": "notCapital"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "theNestEgg": {
+      "name": "The Nest Egg",
+      "decks": [
+        "commerce"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Coin you do not spend is coin people talk about.",
+      "text": "Your capital gains +1 culture for every 50 gold in your treasury, at most +4.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "bankedGold",
+          "to": "culture",
+          "amount": 1,
+          "per": 50,
+          "max": 4
+        }
+      ]
+    },
+    "theStapleRight": {
+      "name": "The Staple Right",
+      "decks": [
+        "commerce"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Every bale passing through must stop here first and be sold.",
+      "text": "Gain +2 gold and +1 culture for each luxury you hold two or more copies of.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "duplicateLuxuries",
+          "to": "gold",
+          "amount": 2
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "duplicateLuxuries",
+          "to": "culture",
+          "amount": 1
+        }
+      ]
+    },
+    "theWaqf": {
+      "name": "The Waqf",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "Given once, and given for ever.",
+      "text": "Faith buildings you bought with gold provide +2 faith and +1 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "purchasedBuildings",
+          "within": "city",
+          "bank": "gold",
+          "category": "faith",
+          "to": "faith",
+          "amount": 2
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "purchasedBuildings",
+          "within": "city",
+          "bank": "gold",
+          "category": "faith",
+          "to": "culture",
+          "amount": 1
+        }
+      ]
+    },
+    "theSilkRoadMonks": {
+      "name": "The Silk Road Monks",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "They travelled with the silk, and left more than they sold.",
+      "text": "Your trade routes carry 100% more religious pressure. Trade routes you send to a city that follows your religion gain +2 gold and +2 culture.",
+      "effects": [
+        {
+          "kind": "pressureRule",
+          "rule": "routeStrength",
+          "delta": 3
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "gold": 2,
+          "culture": 2,
+          "destination": {
+            "test": "follows"
+          }
+        }
+      ],
+      "note": "The religious pressure a trade route carries is doubled by adding the same amount again."
+    },
+    "numidianCavalryCharter": {
+      "name": "Numidian Cavalry",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "They rode without bridles, and were paid in whatever the caravans carried.",
+      "text": "Once drafted, unlock Numidian Cavalry, a Horseman replacement. No chair required. Gains +1 combat strength per distinct luxury you control; luxuries obtained only through the Silk Road contribute +0.5 instead. Normal technology requirements apply.",
+      "effects": [],
+      "charter": {
+        "unlocks": {
+          "unit": "numidianCavalry"
+        }
+      },
+      "note": "The rider can be built beside the Horseman rather than in place of it, once you reach the age of the Horseman's technology. Every kind of luxury you control counts in full, however you came by it."
+    },
+    "housesOfAccount": {
+      "name": "Houses of Account",
+      "decks": [
+        "commerce"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "flavor": "A ledger well kept is a quiet street.",
+      "text": "Gold buildings provide +2 happiness and +1 renown.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "buildingsOfCategory",
+          "category": "gold",
+          "to": "happiness",
+          "amount": 2
+        },
+        {
+          "kind": "renown",
+          "amount": 1,
+          "per": "buildingOfCategory",
+          "category": "gold"
+        }
+      ]
+    },
+    "aGuildCommission": {
+      "name": "A Guild Commission",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The guild pays for the hall, and expects to be thanked in stone.",
+      "text": "Commission. Goal: buy five buildings with gold while seated. Reward: a free great-person draft, the same offer Merchant Princes sells for gold. The card then leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "buildingBoughtWithGold",
+            "count": 5
+          }
+        ],
+        "reward": [
+          {
+            "greatPerson": "any"
+          }
+        ]
+      }
+    },
+    "theMonopoly": {
+      "name": "The Monopoly",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "There is no price but the one we name.",
+      "text": "For each luxury you hold three or more copies of and no other empire holds, gain +5 gold, +3 culture and +1 happiness in every city.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "monopolyLuxuries",
+          "to": "gold",
+          "amount": 5
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "monopolyLuxuries",
+          "to": "culture",
+          "amount": 3
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "monopolyLuxuries",
+          "to": "happiness",
+          "amount": 1
+        }
+      ],
+      "note": "The happiness is paid once to your empire for each such luxury, not once in every city."
+    },
+    "theCustomsService": {
+      "name": "The Customs Service",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Everything that leaves is counted, and everything counted is taxed.",
+      "text": "Trade routes leaving a city whose borders hold a customs house gain +2 gold and +2 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "gold": 2,
+          "culture": 2,
+          "origin": {
+            "test": "hasImprovement",
+            "improvement": "customsHouse"
+          }
+        }
+      ]
+    },
+    "theBourse": {
+      "name": "The Bourse",
+      "decks": [
+        "commerce"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Money changes hands here so often it forgets whose it was.",
+      "text": "Gold buildings produce 50% more of their own yields.",
+      "effects": [
+        {
+          "kind": "buildingYieldPercent",
+          "category": "gold",
+          "percent": 50
+        }
+      ]
+    },
+    "patronsAbroad": {
+      "name": "Patrons Abroad",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Every house abroad sends something home for the great work.",
+      "text": "Your city building the Magnum Opus gains +3 production for each foreign city holding your trading post.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "postCities",
+          "to": "production",
+          "amount": 3,
+          "scope": { "test": "raisingOpus" }
+        }
+      ]
+    },
+    "theMerchantDynasties": {
+      "name": "The Merchant Dynasties",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The grandfather built the customs house. The grandsons built the library.",
+      "text": "Each customs house inside your borders gives its city +3 science and +3 culture, whether or not it is worked.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "within": "city",
+          "tile": {
+            "test": "improvement",
+            "improvement": "customsHouse"
+          },
+          "to": "science",
+          "amount": 3
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "tilesInBorders",
+          "within": "city",
+          "tile": {
+            "test": "improvement",
+            "improvement": "customsHouse"
+          },
+          "to": "culture",
+          "amount": 3
+        }
+      ]
+    },
+    "theSpiceExchange": {
+      "name": "The Spice Exchange",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Pepper bought the ships. The ships bought everything else.",
+      "text": "Every city gains +5% science and +5% culture for each luxury you hold two or more copies of, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "duplicateLuxuries",
+          "to": "science",
+          "percent": 5,
+          "stage": "city",
+          "max": 6
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "duplicateLuxuries",
+          "to": "culture",
+          "percent": 5,
+          "stage": "city",
+          "max": 6
+        }
+      ]
+    },
+    "moneyAtWork": {
+      "name": "Money at Work",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "A full vault builds as surely as a full quarry.",
+      "text": "Your capital gains +1 production for every 50 gold in your treasury, at most +40.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "count": "bankedGold",
+          "to": "production",
+          "amount": 1,
+          "per": 50,
+          "max": 40
+        }
+      ]
+    },
+    "boughtAndPaidFor": {
+      "name": "Bought and Paid For",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "What was bought stays bought.",
+      "text": "Buildings you bought with gold provide +1 production and +2 culture each, counting at most six per city.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "purchasedBuildings",
+          "within": "city",
+          "bank": "gold",
+          "to": "production",
+          "amount": 1,
+          "max": 6
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "purchasedBuildings",
+          "within": "city",
+          "bank": "gold",
+          "to": "culture",
+          "amount": 2,
+          "max": 6
+        }
+      ]
+    },
+    "theEmbargo": {
+      "name": "The Embargo",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Trade with us, or trade with nobody.",
+      "text": "Rival empires with no trade route to or from you build the Magnum Opus 15% slower.",
+      "effects": [],
+      "deferred": [
+        "rival empires that do not trade with you build the great work more slowly"
+      ],
+      "note": "Held whole. A card of yours cannot yet slow another empire's building, and nothing yet asks whether two empires trade with each other."
+    },
+    "theHiredGarrison": {
+      "name": "The Hired Garrison",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "The masons cost more than the guards. Hire both.",
+      "text": "A city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "wonderTownBuysWithoutLimit"
+        }
+      ]
+    },
+    "theNeutralFlag": {
+      "name": "The Neutral Flag",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "flavor": "Both sides need grain, and only one flag can sell it to them.",
+      "text": "Your trade routes to an empire that is at war with another empire gain +100% gold and +50% science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "international",
+          "destination": {
+            "test": "ownerAtWar"
+          },
+          "share": [
+            {
+              "yield": "gold",
+              "percent": 100
+            },
+            {
+              "yield": "science",
+              "percent": 50
+            }
+          ]
+        }
+      ]
+    },
+    "theWorldsFair": {
+      "name": "The World's Fair",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Bring everything you make, and see everything everyone else makes.",
+      "text": "Commission. Goal: have six trade routes running at the same time, foreign or domestic. Reward: +50% science and +50% culture in every city for ten turns. The card then leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "tradeRoutes",
+            "count": 6
+          }
+        ],
+        "reward": [
+          {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                {
+                  "kind": "percentYields",
+                  "yield": "science",
+                  "percent": 50
+                },
+                {
+                  "kind": "percentYields",
+                  "yield": "culture",
+                  "percent": 50
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "theGreatLoan": {
+      "name": "The Great Loan",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "Borrow against a future you may never have to pay for.",
+      "text": "When you seat this card, gain gold equal to twenty turns of your gold income. For the next forty turns your cities lose 25% gold. The card then leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "goldIncome",
+            "count": 1
+          }
+        ],
+        "reward": [
+          {
+            "yield": "gold",
+            "amount": 20,
+            "fromFigure": "goldIncome"
+          },
+          {
+            "timed": {
+              "turns": 40,
+              "effects": [
+                {
+                  "kind": "percentYields",
+                  "yield": "gold",
+                  "percent": -25
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "note": "The loan is paid at the end of the turn you seat the card, as long as your gold income is above nothing."
+    },
+    "theTradeWinds": {
+      "name": "The Trade Winds",
+      "decks": [
+        "commerce"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "flavor": "The wind that fills the sails empties the warehouses.",
+      "text": "Gain +3 trade route capacity. Your trade routes reach 50% farther.",
+      "effects": [
+        {
+          "kind": "routeRider",
+          "extra": 3
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "routeRange",
+          "percent": 50
+        }
+      ]
     }
   }
 }

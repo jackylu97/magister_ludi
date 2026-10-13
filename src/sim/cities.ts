@@ -4325,7 +4325,15 @@ export function realiseItem(
   // not *trained*, which is the same clause the escalation ladder reads ten
   // lines up; a moment later a bought spearman and a hammered one are one
   // spearman. See `TallyOccasion`'s `unitTrained`.
-  if (options.bought === undefined && options.free !== true && options.untrained !== true) {
+  // **Bought Swords** (`ActionRuleId`'s `boughtUnitsCountAsTrained`): while
+  // the card is held, a unit bought at the counter counts as trained too.
+  const boughtCounts =
+    options.bought !== undefined && cardActionRule(state, city.ownerId, 'boughtUnitsCountAsTrained');
+  if (
+    (options.bought === undefined || boughtCounts) &&
+    options.free !== true &&
+    options.untrained !== true
+  ) {
     recordScalingOccasion(state, city.ownerId, 'unitTrained');
   }
   // A levied conscript was not trained, so nothing that pays for training

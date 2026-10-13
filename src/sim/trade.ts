@@ -652,11 +652,14 @@ export function routeRange(
   mode: RouteMode = 'land',
 ): number {
   let base = TRADE.rangeTurns;
+  // `routeRange` (The Trade Winds) reaches every medium; `seaRouteRange` only
+  // the sea. Both are percentages on the same base and sum before it is taken.
+  let percent = 0;
+  for (const line of cardRulePercent(state, playerId, 'routeRange')) percent += line.percent;
   if (mode === 'sea') {
-    let percent = 0;
     for (const line of cardRulePercent(state, playerId, 'seaRouteRange')) percent += line.percent;
-    if (percent !== 0) base = Math.max(1, Math.floor((base * (100 + percent)) / 100));
   }
+  if (percent !== 0) base = Math.max(1, Math.floor((base * (100 + percent)) / 100));
   const posts = (from.tradingPost === true ? 1 : 0) + (to.tradingPost === true ? 1 : 0);
   return base + TRADE.postRangeTurns * posts;
 }

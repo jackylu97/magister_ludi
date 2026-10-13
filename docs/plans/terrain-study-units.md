@@ -73,6 +73,8 @@ entry below has `ready: false`, including alternatives whose base is represented
 The current leader sheet assigns thirteen units. Four earlier alternatives remain
 in unit data for saved-game coverage but are not assigned by the current sheet.
 “Parked” below describes that roster status, not a separate art approval.
+“Charter” marks a unit a deck card opens rather than a leader (Numidian Cavalry,
+the Commerce deck's charter); it borrows the horseman's rank until it has art.
 
 | ID | Line | Rank | Variant | Roster |
 | --- | --- | --- | --- | --- |
@@ -93,6 +95,7 @@ in unit data for saved-game coverage but are not assigned by the current sheet.
 | `alexandrianGalley` | `navalLight` | 2 | `lookout-galley` | active |
 | `canoness` | `faith` | 2 | `choir-book` | active |
 | `rihlaCaravan` | `trader` | 0 | `journey-wagon` | active |
+| `numidianCavalry` | `cavalry` | 1 | `light-horse` | charter |
 
 Ranks identify visual positions within a line, not technology columns or a new
 gameplay upgrade chain. The slinger shares the bowman's early ranged rank but

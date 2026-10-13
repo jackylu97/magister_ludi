@@ -165,7 +165,7 @@ const fakeIcons = {
 describe('the model-class roster', () => {
   it('gives every unit type in units.json a class model', () => {
     const board = geometry();
-    expect(UNIT_TYPE_IDS).toHaveLength(61);
+    expect(UNIT_TYPE_IDS).toHaveLength(62);
     for (const type of UNIT_TYPE_IDS) {
       const modelClass = modelClassFor(type);
       expect(MINI_SCULPTS[modelClass], `no sculpt registered for ${type}`).toBeDefined();

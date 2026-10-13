@@ -2562,6 +2562,33 @@
       "demandRelief": 15,
       "note": "A town asks less of you while the justices sit."
     },
+    "plantationHouse": {
+      "name": "Plantation House",
+      "category": "gold",
+      "size": "medium",
+      "column": 3,
+      "food": 0,
+      "production": 0,
+      "gold": 1,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "purchaseOnly": true,
+      "tileYields": [
+        {
+          "on": {
+            "test": "improvement",
+            "improvement": "plantation"
+          },
+          "add": {
+            "food": 1,
+            "gold": 1
+          }
+        }
+      ],
+      "note": "Bought with gold, never built. Every plantation this city works feeds it a little more and pays a little more."
+    },
     "relic": {
       "name": "Relic",
       "category": "faith",

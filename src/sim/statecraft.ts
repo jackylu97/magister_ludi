@@ -133,6 +133,7 @@ export {
   cardUnlocksImprovement,
   holdsTendedUnlock,
   cardUnlocksUnit,
+  charterOpensUnit,
   cardUpkeepRebateLines,
   cardUpkeepSurchargeLines,
   cardYieldConversions,

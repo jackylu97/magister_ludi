@@ -91,6 +91,8 @@ import {
 } from '../../src/sim/statecraftData';
 import { hasAbility, isUnlocked, researchError } from '../../src/sim/tech';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
+import { BUILDING_IDS } from '../../src/sim/buildingData';
+import { UNIT_TYPE_IDS } from '../../src/sim/unitData';
 import { stockDecks, stockStandardDecks, stockedShelf } from './statecraftHelpers';
 
 // --- the design doc, read ------------------------------------------------------
@@ -208,8 +210,9 @@ describe('the schema, as landed', () => {
       // Live or deferred, never both ways round: a row with effects is dealt, a
       // row with a `deferred` sentence and nothing to slot is not.
       // A commission (batch C) is dealt for its goal and reward, with no effects,
-      // and a charter whose grant exists (the Expansionist tended-work unlocks)
-      // is dealt for the grant.
+      // and a charter whose grant exists (the Expansionist tended-work unlocks,
+      // the Commerce batch's Plantation House and Numidian Cavalry) is dealt for
+      // the grant.
       const dealt =
         def.effects.length > 0 ||
         def.commission !== undefined ||
@@ -323,12 +326,13 @@ describe('the schema, as landed', () => {
     // and no effects — Commission: Clear the Frontier in Dominion, Corner the
     // Market and The Strongroom in Commerce.
     // **The Dominion batch** (D2 of the deck implementation plan) moved it by
-    // minus five (61 live Dominion rows before, 56 after), and **batch D3** (the
-    // Expansionist sheet) by plus 32: thirty-five rows came live or were written
-    // (the four tended-work charters, three commissions and twenty-eight cards
-    // with effects), and three live rows were retired as its proposed cuts.
-    expect(live).toBe(309);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(309);
+    // minus five (61 live Dominion rows before, 56 after); **batch D3** (the
+    // Expansionist sheet) by plus 32 (the four tended-work charters, three
+    // commissions and twenty-eight cards with effects, less three live rows
+    // retired); and **the Commerce batch** by plus six (twenty-four in, eighteen
+    // live rows retired as its proposed cuts).
+    expect(live).toBe(315);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(315);
   });
 
   /**
@@ -343,20 +347,29 @@ describe('the schema, as landed', () => {
    */
   it('deals no charter whose grant names a thing that does not exist yet', () => {
     // A charter whose grant exists is dealt like any card (the Expansionist
-    // tended-work unlocks, whose improvement rows are drawn up); the rest wait.
+    // tended-work unlocks; the Commerce batch's Plantation House and Numidian
+    // Cavalry); its grant must name a real row. The rest wait.
     for (const id of DECK_ROWS) {
       const def = orderDef(id);
       if (def.charter === undefined || def.deferred !== undefined || def.retired === true) continue;
+      const unlocks = def.charter.unlocks;
+      if (unlocks.building !== undefined) expect(BUILDING_IDS, id).toContain(unlocks.building);
+      if (unlocks.unit !== undefined) expect(UNIT_TYPE_IDS, id).toContain(unlocks.unit);
       expect(orderIsDealt(id), `${id} is a live charter`).toBe(true);
     }
+    // A retired charter (a sheet's Proposed cut, such as The Purple Works) is
+    // left out: it is withdrawn, not waiting.
     const charters = [...DECK_ROWS].filter(
-      (id) => orderDef(id).charter !== undefined && orderDef(id).deferred !== undefined,
+      (id) =>
+        orderDef(id).charter !== undefined &&
+        orderDef(id).deferred !== undefined &&
+        orderDef(id).retired !== true,
     );
     expect(charters.length).toBeGreaterThan(0);
     for (const id of charters) {
       const def = orderDef(id);
-      // Every one of them is a deferred half today, and none is retired: the
-      // row says "waiting", not "withdrawn".
+      // A deferred charter is never retired: the row says "waiting", not
+      // "withdrawn".
       expect(def.retired, id).toBeUndefined();
       expect(def.deferred, id).toBeDefined();
       expect(def.effects, id).toEqual([]);
@@ -656,12 +669,14 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **The Dominion batch** retired fifty rows (the sheet's cuts) and left
       // five deferred (145 − 25 + 5); **batch D3** retired thirty-one more
       // (twenty-eight of them deferred), brought four deferred rows live and
-      // wrote twelve new deferred ones (− 28 − 4 + 12). The retired deck rows
+      // wrote twelve new deferred ones (− 28 − 4 + 12); **the Commerce batch**
+      // retired twenty-three (five of them deferred), wrote The Embargo deferred
+      // and brought two deferred rows live (− 5 + 1 − 2). The retired deck rows
       // are counted apart.
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(105);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(81);
+      ).toHaveLength(99);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(104);
     }
   });
 
