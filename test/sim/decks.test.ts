@@ -91,6 +91,8 @@ import {
 } from '../../src/sim/statecraftData';
 import { hasAbility, isUnlocked, researchError } from '../../src/sim/tech';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
+import { BUILDING_IDS } from '../../src/sim/buildingData';
+import { UNIT_TYPE_IDS } from '../../src/sim/unitData';
 import { stockDecks, stockStandardDecks, stockedShelf } from './statecraftHelpers';
 
 // --- the design doc, read ------------------------------------------------------
@@ -198,11 +200,21 @@ describe('the schema, as landed', () => {
     let live = 0;
     for (const id of DECK_ROWS) {
       const def = orderDef(id);
-      expect(def.retired, id).toBeUndefined();
+      // **The deck implementation batches** (`docs/plans/deck-implementation.md`)
+      // retire a sheet's Proposed cuts in the deck's own file: the row stays for
+      // saves and the Compendium and is dealt by nobody.
+      if (def.retired === true) {
+        expect(orderIsDealt(id), `${id} is retired`).toBe(false);
+        continue;
+      }
       // Live or deferred, never both ways round: a row with effects is dealt, a
       // row with a `deferred` sentence and nothing to slot is not.
       // A commission (batch C) is dealt for its goal and reward, with no effects.
-      const dealt = def.effects.length > 0 || def.commission !== undefined;
+      // A charter whose grant exists (the Commerce batch) is dealt for its grant.
+      const dealt =
+        def.effects.length > 0 ||
+        def.commission !== undefined ||
+        (def.charter !== undefined && def.deferred === undefined);
       expect(orderIsDealt(id), id).toBe(dealt);
       if (dealt) expect(def.deferred, `${id} is dealt`).toBeUndefined();
       else expect(def.deferred, `${id} is in no pool`).toBeDefined();
@@ -311,8 +323,13 @@ describe('the schema, as landed', () => {
     // **And batch C** (commissions): three rows live with a goal and a reward
     // and no effects — Commission: Clear the Frontier in Dominion, Corner the
     // Market and The Strongroom in Commerce.
-    expect(live).toBe(282);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(282);
+    // **And the Commerce implementation batch** (`docs/decks/commerce.md`):
+    // 288, six more. Twenty-two new rows are dealt (The Embargo is the one new
+    // row left deferred), and The Planters' Charter and The Exchange came off
+    // the deferred list: twenty-four in. The sheet's Proposed cuts retired
+    // eighteen rows that were live: eighteen out.
+    expect(live).toBe(288);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(288);
   });
 
   /**
@@ -326,12 +343,27 @@ describe('the schema, as landed', () => {
    * clause in `orderIsDealt` is the fix, and this is its register.
    */
   it('deals no charter whose grant names a thing that does not exist yet', () => {
-    const charters = [...DECK_ROWS].filter((id) => orderDef(id).charter !== undefined);
+    const all = [...DECK_ROWS].filter(
+      (id) => orderDef(id).charter !== undefined && orderDef(id).retired !== true,
+    );
+    // **The Commerce batch built two** (`docs/plans/deck-implementation.md`):
+    // The Planters' Charter's Plantation House and the Numidian Cavalry
+    // charter's rider exist as rows now, so those two charters are dealt. Every
+    // other charter still waits on a grant nobody has drawn up.
+    const built = all.filter((id) => orderDef(id).deferred === undefined);
+    expect(built.sort()).toEqual(['numidianCavalryCharter', 'thePlantersCharter']);
+    for (const id of built) {
+      const unlocks = orderDef(id).charter!.unlocks;
+      if (unlocks.building !== undefined) expect(BUILDING_IDS, id).toContain(unlocks.building);
+      if (unlocks.unit !== undefined) expect(UNIT_TYPE_IDS, id).toContain(unlocks.unit);
+      expect(orderIsDealt(id), id).toBe(true);
+    }
+    const charters = all.filter((id) => orderDef(id).deferred !== undefined);
     expect(charters.length).toBeGreaterThan(0);
     for (const id of charters) {
       const def = orderDef(id);
-      // Every one of them is a deferred half today, and none is retired: the
-      // row says "waiting", not "withdrawn".
+      // A deferred charter is never retired: the row says "waiting", not
+      // "withdrawn".
       expect(def.retired, id).toBeUndefined();
       expect(def.deferred, id).toBeDefined();
       expect(def.effects, id).toEqual([]);
@@ -627,7 +659,10 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Batch L took three more**, all Expansionist: Levy of the Land, The
       // Muster of the Fields and Seasonal Levies, freed by the levy command.
       // The Corvée and The General Levy are new live rows and move nothing here.
-      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(145);
+      // **The Commerce implementation batch** added seventeen: the eighteen live
+      // rows its sheet's Proposed cuts retired and the new deferred The Embargo,
+      // less The Planters' Charter and The Exchange, which are dealt now.
+      expect([...DECK_ROWS].filter((id) => !orderIsDealt(id))).toHaveLength(162);
     }
   });
 

@@ -1112,8 +1112,14 @@ export function purchaseError(
   if (bought.kind === 'unit') {
     const bucket = unitPurchaseBucket(bought.id, currency);
     const arsenal =
-      capitalCityOf(state, playerId)?.id === city.id &&
-      cardActionRule(state, playerId, 'capitalBuysWithoutLimit');
+      (capitalCityOf(state, playerId)?.id === city.id &&
+        cardActionRule(state, playerId, 'capitalBuysWithoutLimit')) ||
+      // **The Hired Garrison** (`ActionRuleId`'s `wonderTownBuysWithoutLimit`):
+      // military units for gold, without limit, in a town whose front row is
+      // a world wonder or the Magnum Opus.
+      (bucket === 'militaryGold' &&
+        frontIsWonderOrOpus(city) &&
+        cardActionRule(state, playerId, 'wonderTownBuysWithoutLimit'));
     if (!arsenal && city.purchasedUnitTurns?.[bucket] === state.turn) {
       return `${city.name} has already bought ${bucketWords(bucket)} this turn`;
     }
@@ -1209,6 +1215,8 @@ export function purchaseItemAt(
     // and a name in the Reliquary cannot read each other's.
     spendGold(state, player, price.total);
     recordScalingOccasion(state, player.id, 'goldSpent', price.total);
+    // A Guild Commission's count: a building, bought with gold.
+    if (item.kind === 'building') recordScalingOccasion(state, player.id, 'buildingBoughtWithGold');
   }
   if (item.kind === 'unit' && unitDef(item.id).consecrates === true) {
     player.augursPurchased += 1;
@@ -1550,4 +1558,16 @@ export function contributeAt(
   }
   city.hammerBasket += offer.hammers;
   return settleProductionWindfall(state, city);
+}
+
+/**
+ * Is the row at the front of this town's queue a world wonder or the Magnum
+ * Opus? The Hired Garrison's condition, read off the rows' own markers
+ * (`BuildingDef.wonder`, `BuildingDef.endsTheGame`), never their names.
+ */
+function frontIsWonderOrOpus(city: City): boolean {
+  const front = city.queue[0];
+  if (front === undefined || front.kind !== 'building' || !isBuildingId(front.id)) return false;
+  const def = buildingDef(front.id);
+  return def.wonder === true || def.endsTheGame === true;
 }

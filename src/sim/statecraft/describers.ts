@@ -2686,6 +2686,18 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   // after whatever the condition said about the hex — so this count answers
   // `countNamesItsTown`. A road's count names the town the caravan left, which
   // is the only town a route line is ever read against.
+  // Provenance narrowed by bank and shelf — "per faith building bought with
+  // gold" (The Waqf, Bought and Paid For). Absent, the plain entry below.
+  if (
+    effect.count === 'purchasedBuildings' &&
+    (effect.bank !== undefined || effect.category !== undefined)
+  ) {
+    const shelf = effect.category === undefined ? '' : `${effect.category} `;
+    const bank = effect.bank === undefined ? 'purchased' : `bought with ${effect.bank}`;
+    return effect.bank === undefined
+      ? { one: `${bank} ${shelf}building`, many: `${bank} ${shelf}buildings` }
+      : { one: `${shelf}building ${bank}`, many: `${shelf}buildings ${bank}` };
+  }
   if (effect.count === 'tilesInBorders' && effect.tile !== undefined) {
     const words = tileConditionWords(effect.tile);
     const at =
@@ -2869,9 +2881,11 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // empire building" is the class's own name in the printed table and not a
       // kind of queue row.
       into.qualifiers.push(
-        scope.empireBuilding === true
-          ? 'while it is building an empire building'
-          : `while it is building ${indefinite(scope.category)} ${scope.category}`,
+        scope.opus === true
+          ? 'while it is building the Magnum Opus'
+          : scope.empireBuilding === true
+            ? 'while it is building an empire building'
+            : `while it is building ${indefinite(scope.category)} ${scope.category}`,
       );
       return;
     case 'queueDepth':
@@ -3088,6 +3102,9 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // routes ends at that holds your trading post" parses, and the shorter
       // form does not.
       into.qualifiers.push('that holds your trading post');
+      return;
+    case 'ownerAtWar':
+      into.qualifiers.push('whose owner is at war with another empire');
       return;
     default: {
       const unhandled: never = test;
@@ -3712,6 +3729,10 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `your sea routes reach ${-percent}% less far`
       : `your sea routes reach ${percent}% further`,
+  routeRange: (percent) =>
+    percent < 0
+      ? `your trade routes reach ${-percent}% less far`
+      : `your trade routes reach ${percent}% further`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -3817,6 +3838,7 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
     one: 'great person’s work in your capital',
     many: 'great people’s works in your capital',
   },
+  uniqueLuxuries: { one: 'kind of luxury you control', many: 'kinds of luxury you control' },
 };
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
@@ -4112,6 +4134,11 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   // "Met", the register's own word, and "other empire" because the count never
   // includes your own seat.
   empiresMet: { one: 'other empire you have met', many: 'other empires you have met' },
+  // The rule in the words: three or more copies, and nobody else holds any.
+  monopolyLuxuries: {
+    one: 'luxury you hold three or more copies of that no other empire holds',
+    many: 'luxuries you hold three or more copies of that no other empire holds',
+  },
   defensiveBuildings: {
     one: 'fortification in this city',
     many: 'fortifications in this city',
@@ -4255,6 +4282,10 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   campCleared: {
     one: 'barbarian camp you have cleared',
     many: 'barbarian camps you have cleared',
+  },
+  buildingBoughtWithGold: {
+    one: 'building you have bought with gold',
+    many: 'buildings you have bought with gold',
   },
 };
 
@@ -4470,6 +4501,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // here because the table is exhaustive over the union, and it says the plain
   // truth rather than nothing at all.
   buildsEverywhere: 'you may build more than one of a building that is normally one to a realm',
+  wonderTownBuysWithoutLimit:
+    'a city with a world wonder or the Magnum Opus at the front of its queue may buy any number of military units with gold each turn',
+  boughtUnitsCountAsTrained: 'units you buy count as trained',
   // Said as what the distance stops mattering for, and it names the two
   // conditions the rule carries in its own id — a player told only "your sea
   // routes ignore range" would try it between a pair of towns that has never
@@ -4599,6 +4633,12 @@ const COMMISSION_COUNTED_WORDS: Record<
   unitKilled: { verb: 'kill', one: 'enemy unit', many: 'enemy units', counter: 'enemy units killed' },
   unitTrained: { verb: 'train', one: 'unit', many: 'units', counter: 'units trained' },
   campCleared: { verb: 'clear', one: 'barbarian camp', many: 'barbarian camps', counter: 'camps cleared' },
+  buildingBoughtWithGold: {
+    verb: 'buy',
+    one: 'building with gold',
+    many: 'buildings with gold',
+    counter: 'buildings bought',
+  },
 };
 
 /**
@@ -4633,6 +4673,11 @@ const COMMISSION_FIGURE_WORDS: Record<
     goal: (count) => `work ${count} improved tiles at the same time`,
     counter: 'improved tiles worked',
     noun: 'the improved tiles you work',
+  },
+  goldIncome: {
+    goal: (count) => `earn at least ${count} gold per turn`,
+    counter: 'gold per turn',
+    noun: 'your gold per turn',
   },
 };
 

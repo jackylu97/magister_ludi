@@ -98,6 +98,10 @@ export type UnitTypeId =
   // (`unlockedByCard`) and the faith bank buys it, priced and armed off
   // whatever horse the empire can raise (`mirrors`).
   | 'knightsTemplar'
+  // The Numidian Cavalry charter's rider (Commerce, the deck implementation
+  // batch): no technology opens it and a charter in the collection does
+  // (`CharterSpec.unlocks.unit`), from its column on.
+  | 'numidianCavalry'
   // The leaders' ten uniques (batch L2a, `docs/leaders.md`): rows no node names
   // and no queue takes until the figure that owns them has taken the card that
   // hands them over (`unlockedByLeader`). Each carries a `column` of its own,

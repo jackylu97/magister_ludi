@@ -1853,6 +1853,10 @@ function charterClause(def: ReturnType<typeof orderDef>): CompendiumClause[] {
   for (const rite of spec.unlocks.rites ?? []) {
     if (RITE_IDS.includes(rite)) opened.push(ref('rite', rite, riteDef(rite).name));
   }
+  const unit = spec.unlocks.unit;
+  if (unit !== undefined && UNIT_TYPE_IDS.includes(unit)) {
+    opened.push(ref('unit', unit, unitDef(unit).name));
+  }
   const named =
     opened.length === 0 ? '' : ` It opens ${opened.join(', ')}, which still costs what it costs.`;
   return [

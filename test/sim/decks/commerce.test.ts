@@ -131,14 +131,20 @@ const COMMERCE: readonly OrderId[] = DECK_FILE_ORDERS.commerce;
 /** The three rarities, in the order the deck holds them back. */
 const RARITIES = ['common', 'uncommon', 'rare'] as const;
 
-/** The rows that pay something — the live half of the deck. */
-// A commission (batch C) is live with no effects: its goal and reward are the card.
-const isLive = (id: OrderId): boolean =>
-  orderDef(id).effects.length > 0 || orderDef(id).commission !== undefined;
+/**
+ * The rows that are dealt — the live half of the deck. A commission (batch C)
+ * is live with no effects, and so is a charter whose grant exists (the Commerce
+ * implementation batch).
+ */
+const isLive = (id: OrderId): boolean => orderIsDealt(id);
 const live = (): OrderId[] => COMMERCE.filter(isLive);
 
+/** The rows the sheet's Proposed cuts withdrew: kept for saves, dealt by nobody. */
+const retired = (): OrderId[] => COMMERCE.filter((id) => orderDef(id).retired === true);
+
 /** The rows that only say what they would have said. */
-const deferred = (): OrderId[] => COMMERCE.filter((id) => !isLive(id));
+const deferred = (): OrderId[] =>
+  COMMERCE.filter((id) => !isLive(id) && orderDef(id).retired !== true);
 
 describe('the Commerce deck is one deck', () => {
   it('carries seventy-one rows, every one of them a Commerce card', () => {
@@ -158,7 +164,11 @@ describe('the Commerce deck is one deck', () => {
     // The Masters' Guild are still unwritten.
     // Batch C adds two commissions, Corner the Market (Tier II) and The
     // Strongroom (Tier IV).
-    expect(COMMERCE.length).toBe(74);
+    // The Commerce implementation batch adds twenty-three, every new row on the
+    // user's sheet (`docs/decks/commerce.md`), and retires the twenty-three
+    // rows its Proposed cuts name, which stay in the file for saves.
+    expect(COMMERCE.length).toBe(97);
+    expect(retired().length).toBe(23);
     for (const id of COMMERCE) {
       expect(orderDef(id).decks, id).toEqual(['commerce']);
     }
@@ -197,7 +207,17 @@ describe('the Commerce deck is one deck', () => {
     // the user's sheet has always listed and the data had never carried.
     // C8 adds Royal Assays in Tier II, where the sheet puts it.
     // Batch C adds Corner the Market in Tier II.
-    expect([count(0), count(1), count(2), count(3)]).toEqual([13, 20, 27, 13]);
+    // The Commerce implementation batch places its twenty-three new rows and
+    // moves five by the sheet's own tiers (Private Patronage to Tier I, The
+    // Money Lenders to Tier III, Merchant Princes, The World's Exchange and The
+    // Merchant Works to Tier IV). Retired rows keep their band. Leaving them
+    // out, the deck is the sheet's 11 / 15 / 17 / 11 / 15 plus five deferred
+    // rows the sheet no longer lists (three in Tier I, two in Tier II).
+    expect([count(0), count(1), count(2), count(3), count(4)]).toEqual([15, 22, 30, 15, 15]);
+    const kept = COMMERCE.filter((id) => orderDef(id).retired !== true).map((id) => orderDef(id).band);
+    expect([0, 1, 2, 3, 4].map((band) => kept.filter((b) => b === band).length)).toEqual([
+      11, 18, 19, 11, 15,
+    ]);
     expect(orderDef('civicReceipts' as OrderId).band).toBe(1);
   });
 
@@ -301,7 +321,11 @@ describe('a live Commerce row is a card', () => {
     // **And two more with batch C**: Corner the Market and The Strongroom, the
     // first two commissions, which are live with a goal and a reward and no
     // effects.
-    expect(live().length).toBe(62);
+    // **And the Commerce implementation batch**: sixty-eight. Twenty-two new
+    // rows are dealt and two came off the deferred list (The Planters' Charter,
+    // whose house now exists, and The Exchange, built as an approximation);
+    // eighteen live rows were retired by the sheet's Proposed cuts.
+    expect(live().length).toBe(68);
     for (const id of live()) {
       expect(orderIsDealt(id), id).toBe(true);
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -374,6 +398,8 @@ describe('a live Commerce row is a card', () => {
     for (const id of live()) {
       const effects = orderDef(id).effects;
       if (orderDef(id).commission !== undefined) continue;
+      // A charter's grant is the whole of the card.
+      if (orderDef(id).charter !== undefined) continue;
       expect(effects.length, id).toBeGreaterThan(0);
       for (const effect of effects) {
         kinds.add(effect.kind);
@@ -391,32 +417,38 @@ describe('a live Commerce row is a card', () => {
     // the twentieth: an amplifier on somebody else's table, which is Strategic
     // Exports doubling what this realm's own strategic seams supply. A
     // twenty-first here would be a shape a later pass added without saying so.
+    //
+    // **The Commerce implementation batch** moved it both ways. The sheet's
+    // Proposed cuts retired every live row carrying five of them (a capacity
+    // line, a strength line, a mark on a piece at its birth, an upkeep rebate
+    // and an upkeep surcharge), and two joined: a percentage on a building's
+    // own yields (The Bourse) and a shift on a number of the religious tide
+    // (The Silk Road Monks).
     expect([...kinds].sort()).toEqual([
-      'authority',
+      'buildingYieldPercent',
       'cityRenownPercent',
-      'combatLine',
       'effectAmplifier',
       'happiness',
       'meterRule',
       'offerRider',
       'pays',
       'percentYields',
+      'pressureRule',
       'productionBonus',
       'purchaseRider',
       'renown',
       'routeRider',
       'rule',
       'rulePercent',
-      'unitStamp',
       'unitStat',
-      'upkeepRebate',
-      'upkeepSurcharge',
       'windfallRider',
     ]);
   });
 
   it('prints every live row through the describers, with no mark left raw', () => {
     for (const id of live()) {
+      // A charter prints its grant through the Compendium, not the describers.
+      if (orderDef(id).charter !== undefined) continue;
       const said = describeCard(id);
       expect(said.length, id).toBeGreaterThan(0);
       const printed = describeEffects(orderDef(id).effects);
@@ -447,7 +479,12 @@ describe('a deferred Commerce row is a promise, not a card', () => {
     // building's limit and its class, and Strategic Exports off an amplifier on
     // what a realm's own seams supply. C8 takes one more, The Endowment, off a
     // building remembering which bank paid for it.
-    expect(deferred().length).toBe(12);
+    // The Commerce implementation batch: six. The sheet's Proposed cuts
+    // retired five deferred rows, The Planters' Charter and The Exchange are
+    // dealt now, and The Embargo is a new deferred row. The other five are
+    // rows the sheet no longer lists (The Return Leg, The Treaty Ports, The
+    // Post Riders, The Consulate, Export Guilds), left as they were.
+    expect(deferred().length).toBe(6);
     for (const id of deferred()) {
       const def = orderDef(id);
       expect(def.effects, id).toEqual([]);
@@ -469,10 +506,23 @@ describe('a deferred Commerce row is a promise, not a card', () => {
 
 describe('the three building Charters', () => {
   const CHARTERS: Record<string, string> = {
-    thePlantersCharter: 'plantationHouse',
     thePurpleWorks: 'purpleWorks',
     theDyeVats: 'dyeVats',
   };
+
+  it("deals The Planters' Charter and the Numidian charter, whose grants exist", () => {
+    // The Commerce implementation batch drew up the Plantation House and the
+    // Numidian Cavalry, so both charters are dealt for their grants.
+    expect(orderDef('thePlantersCharter' as OrderId).charter).toEqual({
+      unlocks: { building: 'plantationHouse' },
+    });
+    expect(BUILDING_IDS).toContain('plantationHouse');
+    expect(orderIsDealt('thePlantersCharter' as OrderId)).toBe(true);
+    expect(orderDef('numidianCavalryCharter' as OrderId).charter).toEqual({
+      unlocks: { unit: 'numidianCavalry' },
+    });
+    expect(orderIsDealt('numidianCavalryCharter' as OrderId)).toBe(true);
+  });
 
   it('carries the grant it would make, and is dealt by nobody until its building exists', () => {
     const buildings = new Set<string>(BUILDING_IDS);
@@ -491,12 +541,16 @@ describe('the three building Charters', () => {
       // asked for reads the deferral instead, so the flag is gone and the row
       // is off the shelf for the true reason. D2 drops the `deferred` sentence
       // in the pass that draws the building, and the charter deals itself.
-      expect(def.retired, id).toBeUndefined();
+      // **Retired since the Commerce implementation batch**: the sheet's
+      // Proposed cuts withdrew both, so they are off the shelf for that reason
+      // now as well.
+      expect(def.retired, id).toBe(true);
       expect(orderIsDealt(id as OrderId), id).toBe(false);
     }
     // And no other row in the deck claims to grant anything.
+    const granting = new Set([...Object.keys(CHARTERS), 'thePlantersCharter', 'numidianCavalryCharter']);
     for (const id of COMMERCE) {
-      if (id in CHARTERS) continue;
+      if (granting.has(id)) continue;
       expect(orderDef(id).charter, id).toBeUndefined();
     }
   });
@@ -802,7 +856,7 @@ describe('C2 — the counts, the ring and the two counter rules', () => {
           (effect.kind === 'pays' && effect.count === 'tilesInBorders') ||
           (effect.kind === 'renown' && effect.count === 'tilesInBorders'),
       ),
-    ).toEqual(['oreCaravans', 'luxuryCaravans', 'theCustomsHouses']);
+    ).toEqual(['oreCaravans', 'luxuryCaravans', 'theCustomsHouses', 'theMerchantDynasties']);
     expect(writers((effect) => effect.kind === 'pays' && effect.count === 'empiresMet')).toEqual([
       'travellersLetters',
     ]);
@@ -1555,8 +1609,8 @@ describe('C4 — the great-house marker, read from both sides', () => {
 
   // --- Private Patronage -----------------------------------------------------
 
-  describe('Private Patronage — cheaper at the till, slower in the queue', () => {
-    it('discounts an ordinary roof and leaves a great house at its own price', () => {
+  describe('Private Patronage — more gold, slower in the queue', () => {
+    it('leaves every price at the till alone since ruling (qqqqqq) 1', () => {
       const bare = bench([]);
       const held = bench(['privatePatronage']);
       const bareTown = town(bare);
@@ -1571,13 +1625,9 @@ describe('C4 — the great-house marker, read from both sides', () => {
         return foldUnitCost(bank!.lines);
       };
 
-      // The ordinary shelf is 30% off, and the figure is the card's own.
-      const plainBare = price(bare, bareTown, plain);
-      expect(price(held, heldTown, plain)).toBe(
-        Math.max(0, Math.floor((plainBare * 70) / 100)),
-      );
-      // And the great house pays exactly what it always paid — which is the half
-      // the card says out loud and the half nothing could say before C4.
+      // The discount became +25% gold in every city, so both shelves pay what
+      // they always paid.
+      expect(price(held, heldTown, plain)).toBe(price(bare, bareTown, plain));
       expect(price(held, heldTown, great)).toBe(price(bare, bareTown, great));
     });
 
@@ -1594,11 +1644,12 @@ describe('C4 — the great-house marker, read from both sides', () => {
       expect(named(great)).toEqual([]);
     });
 
-    it('says "ordinary buildings" on both halves, so the card cannot lie by omission', () => {
+    it('says "ordinary buildings" on the production half, so the card cannot lie by omission', () => {
       const words = describeCard('privatePatronage' as OrderId).map((clause) =>
         stripRefs(clause.text),
       );
-      for (const clause of words) expect(clause).toContain('ordinary buildings');
+      expect(words.filter((clause) => clause.includes('ordinary buildings'))).toHaveLength(1);
+      expect(words.some((clause) => clause.includes('+25% gold'))).toBe(true);
     });
   });
 
@@ -1793,9 +1844,11 @@ describe('C4 — the great-house marker, read from both sides', () => {
       ),
     ).toEqual(['theMerchantWorks']);
 
+    // **Nobody, since ruling (qqqqqq) 1**: Private Patronage's discount became
+    // +25% gold, so the narrowing on a purchase rider has no writer today.
     expect(
       writers((effect) => effect.kind === 'purchaseRider' && effect.empireBuilding !== undefined),
-    ).toEqual(['privatePatronage']);
+    ).toEqual([]);
 
     expect(
       writers((effect) => effect.kind === 'rule' && effect.rule === 'goldBuysFrozenTiles'),
@@ -1973,10 +2026,11 @@ describe('C4 — the great-house marker, read from both sides', () => {
       'theHarbourChain',
     ]);
 
-    // A purchase rider that rides on hiring a caravan.
-    expect(writers((effect) => effect.kind === 'purchaseRider' && effect.on === 'route')).toEqual([
-      'theFactorsHouses',
-    ]);
+    // A purchase rider that rides on hiring a caravan. **Nobody, since ruling
+    // (qqqqqq) 1**: The Factors' Houses' discount became +25% gold.
+    expect(writers((effect) => effect.kind === 'purchaseRider' && effect.on === 'route')).toEqual(
+      [],
+    );
 
     // A rule narrowed to one building, which lifts a limit and not a class.
     expect(
@@ -2088,9 +2142,10 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
           effect.scope.farEnd !== undefined,
       ),
     ).toEqual(['theGrainExchange']);
+    // The Commerce implementation batch adds two that narrow the count by bank.
     expect(
       writers((effect) => effect.kind === 'pays' && effect.count === 'purchasedBuildings'),
-    ).toEqual(['theEndowment']);
+    ).toEqual(['theEndowment', 'theWaqf', 'boughtAndPaidFor']);
     expect(
       writers(
         (effect) => effect.kind === 'effectAmplifier' && effect.target === 'luxuryMineCopies',
@@ -2255,7 +2310,7 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
       expect(buildingBank(city, 'library')).toBeUndefined();
     });
 
-    it('pays two beakers a bought roof, and nothing for one that was built', () => {
+    it('pays a beaker a bought roof, and nothing for one that was built', () => {
       const g = bench(['theEndowment']);
       const city = town(g);
       const named = () =>
@@ -2268,13 +2323,19 @@ describe('C8 — faith on a road, either end, and a bought roof', () => {
 
       addBuilding(g.state, city, 'granary', 'gold');
       bumpRevision(g.state);
-      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(2);
+      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(1);
 
       // **Either bank counts.** A library bought with faith is as bought as one
       // bought with gold, which is what the card's "purchased" says.
       addBuilding(g.state, city, 'library', 'faith');
       bumpRevision(g.state);
-      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(4);
+      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(2);
+
+      // And the sheet's ceiling: at most three a town.
+      addBuilding(g.state, city, 'shrine', 'gold');
+      addBuilding(g.state, city, 'barracks', 'gold');
+      bumpRevision(g.state);
+      expect(named().reduce((sum, line) => sum + line.science, 0)).toBe(3);
     });
 
     it('goes through the purchase counter, which is the only seam that rings', () => {

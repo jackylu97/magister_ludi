@@ -291,6 +291,15 @@ export interface CharterSpec {
     tech?: TechId;
     building?: BuildingId;
     rites?: RiteId[];
+    /**
+     * **A unit the charter opens** — Numidian Cavalry (Commerce). No list on
+     * the player is written for it: the seat's collection already holds the
+     * charter, and `isUnlocked` asks the collection (`charterOpensUnit`). The
+     * unit row carries `unlockedByCard` and a `column`, and it arrives when its
+     * column is reached, as a leader's unique does. The shared The Chartered
+     * Company can use the same field.
+     */
+    unit?: UnitTypeId;
   };
 }
 
@@ -731,6 +740,14 @@ export type CityScope =
        * quietly widening.
        */
       empireBuilding?: true;
+      /**
+       * And the row at the front **is the Magnum Opus** — Patrons Abroad and
+       * The Hired Garrison (Commerce, Tier IV). Read off the row's own marker
+       * (`BuildingDef.endsTheGame`), never its name. Meaningful only with
+       * `category: 'building'`. Any other deck that wants "the city building
+       * the Magnum Opus" can use this field.
+       */
+      opus?: true;
     }
   /**
    * The town has **at least this many things lined up to build** — The Vizier's
@@ -1115,7 +1132,20 @@ export type CityScope =
    * An empty list admits nothing, which is the honest reading of "any of
    * none" and the same answer `all` of none would give inverted.
    */
-  | { test: 'any'; of: CityScope[] };
+  | { test: 'any'; of: CityScope[] }
+  /**
+   * **The town's owner is at war** with another empire — The Neutral Flag
+   * (Commerce, Tier IV), whose trade routes pay more to an empire that is
+   * fighting somebody else.
+   *
+   * Read off `state.wars`, the register itself, exactly as `EmpireCondition`'s
+   * `atWar` is: the wild is never in the register, so a town whose owner is
+   * only fighting barbarians does not admit it. Asked of the **town's owner**,
+   * as `capital` and `captured` are. A war with the card's holder cancels the
+   * trade routes between them, so on a trade route's destination this admits
+   * only a war with a third empire.
+   */
+  | { test: 'ownerAtWar' };
 
 /**
  * A fact about the empire that gates a whole clause. `conditionRule`'s subject.
@@ -1440,7 +1470,14 @@ export type CombatScaleCount =
    * count at all. A realm with no capital counts nothing, which is the honest
    * answer for an empire that has just lost its seat rather than a silence.
    */
-  | 'capitalGreatWorks';
+  | 'capitalGreatWorks'
+  /**
+   * **Distinct luxuries this empire controls** — Numidian Cavalry (Commerce),
+   * which fights harder for every kind of luxury its empire holds. The same
+   * reading as `CountKind`'s `uniqueLuxuries` (`controlledResources`), asked of
+   * a fight.
+   */
+  | 'uniqueLuxuries';
 
 /** A strength line that scales with a count, capped where the design caps it. */
 export interface CombatScale {
@@ -2609,7 +2646,15 @@ export type CountKind =
    * an empire you met and then destroyed is still an empire you met — which is
    * what makes the card's "no cap" safe to write.
    */
-  | 'empiresMet';
+  | 'empiresMet'
+  /**
+   * **Luxuries this empire holds a monopoly on** — The Monopoly (Commerce,
+   * Tier III): a luxury it holds at least three copies of (deals included, the
+   * net `resourceCopies` figure) that no other real empire holds a single copy
+   * of. The one count that reads other empires' holdings, and it reads only
+   * whether each holds the good at all.
+   */
+  | 'monopolyLuxuries';
 
 /**
  * **The ledgers of what an empire did first.** Each is one `GameState.firsts`
@@ -2766,7 +2811,14 @@ export type TallyOccasion =
    * exactly — one deed, two counters, because a card in a chair and a record on
    * the player answer different questions.
    */
-  | 'campCleared';
+  | 'campCleared'
+  /**
+   * A **building bought with gold** at the purchase counter — A Guild
+   * Commission (Commerce, Tier III). Written in `purchaseItemAt` where the gold
+   * leaves, beside `goldSpent`, and only for a building: a unit bought at the
+   * same counter is not one.
+   */
+  | 'buildingBoughtWithGold';
 // **There is deliberately no `cityGrew`**, and the audit asked for one: every
 // growth card in the six decks is bound by the design doc's standing clause
 // that natural-growth rewards *count only growth beyond the town's historical
@@ -2787,6 +2839,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'unitKilled',
   'unitTrained',
   'campCleared',
+  'buildingBoughtWithGold',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -2942,7 +2995,14 @@ export type CardRule =
    * are added after it, so a card reading "+3 range" adds exactly three however
    * many posts the pair holds. `routeRange`'s docblock says why.
    */
-  | 'seaRouteRange';
+  | 'seaRouteRange'
+  /**
+   * **How far any trade route may be sent**, by land or by sea — The Trade
+   * Winds (Commerce, Tier IV). The twelfth member `seaRouteRange` anticipated:
+   * read in `routeRange` beside it, as a percentage on the same base figure,
+   * for every medium.
+   */
+  | 'routeRange';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -3232,7 +3292,26 @@ export type ActionRuleId =
    * `goldBuysWonders`' shape: every other clause of the gate still runs, so the
    * technology, the site and the town's own duplicate check all still refuse.
    */
-  | 'buildsEverywhere';
+  | 'buildsEverywhere'
+  /**
+   * **A town with a world wonder or the Magnum Opus at the front of its queue
+   * may buy any number of military units with gold in a turn** — The Hired
+   * Garrison (Commerce, Tier IV).
+   *
+   * `capitalBuysWithoutLimit`'s sibling, read beside it at the one comparison
+   * against `City.purchasedUnitTurns` (`purchaseError`). It lifts the limit for
+   * the military gold bucket only, and only while the front row is a wonder or
+   * the Opus, so a town that finishes the wonder is back under the limit the
+   * same turn.
+   */
+  | 'wonderTownBuysWithoutLimit'
+  /**
+   * **A unit bought at the counter counts as trained** — Bought Swords
+   * (Commerce, Tier I). Read in `realiseItem`'s unit path, where the
+   * `unitTrained` tally is written, so a card counting trained units counts
+   * bought ones too while this is held.
+   */
+  | 'boughtUnitsCountAsTrained';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -4285,6 +4364,14 @@ export interface CardPaysEffect extends CardYieldBag {
    * the rest) already answer per town and ignore this.
    */
   within?: 'city';
+  /**
+   * **Which bank paid** — narrows `purchasedBuildings` to buildings bought
+   * with gold (The Waqf, Bought and Paid For) or with faith. Absent counts
+   * either bank, which is The Endowment's reading. Ignored by every other
+   * count. With `category`, `purchasedBuildings` also counts only that shelf
+   * (The Waqf's faith buildings).
+   */
+  bank?: 'gold' | 'faith';
 
   // --- where it lands -------------------------------------------------------
 
@@ -6958,7 +7045,12 @@ export type CommissionFigure =
   /** Hexes inside this empire's borders. */
   | 'hexesOwned'
   /** Tiles worked by this empire's towns that carry an improvement. */
-  | 'improvedTilesWorked';
+  | 'improvedTilesWorked'
+  /**
+   * This empire's gold per turn, as the top bar shows it (`readEmpire`'s
+   * total). The Great Loan's goal (at least one) and the size of its loan.
+   */
+  | 'goldIncome';
 
 /** Every figure, for validation and the register test. */
 export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
@@ -6967,6 +7059,7 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'tradeRoutes',
   'hexesOwned',
   'improvedTilesWorked',
+  'goldIncome',
 ];
 
 /**

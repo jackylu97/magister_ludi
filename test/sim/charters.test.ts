@@ -233,7 +233,14 @@ describe('the charters as a family', () => {
         .effects.filter((effect) => effect.kind === 'unlocksBuilding')
         .map((effect) => effect.building),
     );
-    const everyOpener = [...opened, ...byDoctrine, ...byBelief];
+    // And a dealt deck charter whose grant names a building on its own row
+    // (`CharterSpec.unlocks.building`) — The Planters' Charter's Plantation
+    // House, the Commerce implementation batch.
+    const byCharter = ORDER_IDS.filter((id) => orderIsDealt(id)).flatMap((id) => {
+      const building = orderDef(id).charter?.unlocks.building;
+      return building === undefined ? [] : [building];
+    });
+    const everyOpener = [...opened, ...byDoctrine, ...byBelief, ...byCharter];
     expect(new Set(everyOpener).size).toBe(everyOpener.length);
     for (const id of BUILDING_IDS) {
       if (buildingDef(id).unlockedByCard !== true) continue;

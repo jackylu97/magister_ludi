@@ -31,6 +31,7 @@ import { bestMeleeFor, resourceCopies, settleGrowthWindfall } from './cities';
 import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { getTileAt } from './map';
+import { readEmpire } from './readings';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { resourcesOfKind } from './resourceData';
 import { bumpEconomy } from './slate';
@@ -109,6 +110,9 @@ export function commissionFigure(
       }
       return worked;
     }
+    case 'goldIncome':
+      // The headline the top bar shows, floored: the fold the turn banks with.
+      return Math.floor(readEmpire(state, playerId).totals.gold);
   }
 }
 

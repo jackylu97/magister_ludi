@@ -521,6 +521,7 @@
       "chariot": "chariot",
       "knight": "knight",
       "knightsTemplar": "knight",
+      "numidianCavalry": "mounted",
       "chariotArcher": "mountedRanged",
       "catapult": "siege",
       "trebuchet": "trebuchet",

@@ -131,6 +131,7 @@ export {
   cardUnitStat,
   cardUnlocksBuilding,
   cardUnlocksUnit,
+  charterOpensUnit,
   cardUpkeepRebateLines,
   cardUpkeepSurchargeLines,
   cardYieldConversions,

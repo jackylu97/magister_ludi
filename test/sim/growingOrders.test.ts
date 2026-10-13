@@ -117,6 +117,12 @@ describe('the growing-card vocabulary', () => {
         expect(effect.tally, `${id} names no tally occasion`).toBeDefined();
         watched.add(effect.tally!);
       }
+      // A commission's counted goal watches an occasion too (batch C): the
+      // Commerce implementation batch's A Guild Commission is the one row
+      // watching `buildingBoughtWithGold`.
+      for (const goal of orderDef(id).commission?.goals ?? []) {
+        if (goal.kind === 'counted') watched.add(goal.occasion);
+      }
     }
     for (const occasion of TALLY_OCCASIONS) {
       expect(watched.has(occasion), occasion).toBe(true);

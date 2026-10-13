@@ -48,6 +48,9 @@ export const leaderUnitArtSpecs={
  alexandrianGalley:{line:'navalLight',rank:2,variant:'lookout-galley'},
  canoness:{line:'faith',rank:2,variant:'choir-book'},
  rihlaCaravan:{line:'trader',rank:0,variant:'journey-wagon'},
+ // A deck charter's unit (Commerce), not a leader's: placeholder art at the
+ // horseman's rank until it is drawn.
+ numidianCavalry:{line:'cavalry',rank:1,variant:'light-horse'},
 };
 export const unitLines=Object.fromEntries(Object.entries(originalUnitLines).map(([line,spec])=>[line,{
  ...spec,types:[...spec.types,...Object.entries(leaderUnitArtSpecs).filter(([,art])=>art.line===line).map(([id])=>id)],

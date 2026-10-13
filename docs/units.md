@@ -126,7 +126,7 @@ blow read the same plan.
 Generated — do not hand-edit anything below this line except the **Notes**
 column, which is carried through every regeneration.
 
-### Military — 36 rows
+### Military — 37 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -153,6 +153,7 @@ column, which is carried through every regeneration.
 | War Elephant | mounted | 50 | — | — | 3 | 130 | 2 | heavy | 151 | — | The Saddle | — | needs improved Ivory |  |
 | The Fire Lance | melee | 80 | — | — | 2 | 120 | 2 | heavy | 583 | — | Alchemy | — | needs improved Niter |  |
 | Knights Templar | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 445 | — | — | — | opened by a card · bought with faith only · mirrors the best mounted |  |
+| Numidian Cavalry | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 151 | — | — | Knight | opened by a card |  |
 | Slinger | ranged | 20 | 30 | 2 | 2 | 100 | 2 | line | 61 | — | — | Composite Bowman | unslowed by hills |  |
 | Fubing | melee | 27 | — | — | 2 | 110 | 2 | light | 19 | — | — | Spear Wall | — |  |
 | Tang Heavy Cavalry | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | — |  |

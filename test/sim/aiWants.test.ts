@@ -2475,7 +2475,11 @@ describe('the marginal draft reading', () => {
     // over. A row joins this count whenever a card takes a share of something
     // the books already total, which is a design decision each time and not a
     // number to nudge when a test goes red.
-    expect(engines).toBe(16);
+    //
+    // Seventeen since the Commerce implementation batch wrote The Bourse,
+    // *"gold buildings produce 50% more of their own yields"*, a share of what
+    // the gold buildings already pay.
+    expect(engines).toBe(17);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books

@@ -1861,6 +1861,12 @@ export function cityScopeAdmits(
         if (front.kind !== 'building' || !isBuildingId(front.id)) return false;
         if (!isEmpireBuilding(front.id)) return false;
       }
+      // And the narrowing to the Magnum Opus, read off its marker
+      // (`endsTheGame`) and never its name. See the scope's `opus` field.
+      if (scope.opus === true) {
+        if (front.kind !== 'building' || !isBuildingId(front.id)) return false;
+        if (buildingDef(front.id).endsTheGame !== true) return false;
+      }
       return true;
     }
     case 'queueDepth':
@@ -2121,6 +2127,10 @@ export function cityScopeAdmits(
       // `cityPostPays` rather than `cityHoldsPost`, so war and a blockade
       // suspend every line written on the scope at once. See the scope.
       return cityPostPays(state, city, viewerId ?? city.ownerId);
+    case 'ownerAtWar':
+      // The register itself, as `EmpireCondition`'s `atWar` reads it: the wild
+      // is never in it, so a war on barbarians does not count. See the scope.
+      return state.wars.some((war) => war.a === city.ownerId || war.b === city.ownerId);
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -2155,9 +2165,11 @@ function scopeNote(scope?: CityScope): string | null {
     case 'onResourceKind':
       return `settled on ${scope.kind}`;
     case 'queueHolds':
-      return scope.empireBuilding === true
-        ? 'building an empire building'
-        : `building a ${scope.category}`;
+      return scope.opus === true
+        ? 'building the Magnum Opus'
+        : scope.empireBuilding === true
+          ? 'building an empire building'
+          : `building a ${scope.category}`;
     case 'queueDepth':
       return `${scope.atLeast} things queued`;
     case 'frontier':
@@ -2264,6 +2276,8 @@ function scopeNote(scope?: CityScope): string | null {
       // The composite's own word, so a label reads "pasture or camp" where the
       // conjunction reads "pasture + camp".
       return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' or ');
+    case 'ownerAtWar':
+      return 'owner at war';
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -2579,10 +2593,17 @@ export function countOf(
       // entry for every roof a till rang up and nothing for any other, so the
       // count is the size of that record — walked over the town's shelf, which
       // is the order every sweep takes, rather than over the object's keys.
+      // `bank` narrows to one bank and `category` to one shelf (The Waqf's
+      // gold-bought faith houses, Bought and Paid For's gold-bought roofs);
+      // absent, either bank and every shelf count, The Endowment's reading.
       const here = (town: City): number => {
         let found = 0;
         for (const id of town.buildings) {
-          if (buildingBank(town, id) !== undefined) found += 1;
+          const bank = buildingBank(town, id);
+          if (bank === undefined) continue;
+          if (effect.bank !== undefined && bank !== effect.bank) continue;
+          if (effect.category !== undefined && buildingDef(id).category !== effect.category) continue;
+          found += 1;
         }
         return found;
       };
@@ -2903,6 +2924,19 @@ export function countOf(
       if (effect.within === 'city') return city ? walk(city) : 0;
       let total = 0;
       for (const town of citiesOf(state, playerId)) total += walk(town);
+      return total;
+    }
+    case 'monopolyLuxuries': {
+      // Three or more copies held here, and not one copy held by any other real
+      // empire — The Monopoly. `resourceCopies` is the net figure, so a copy
+      // lent away leaves the lender and counts for whoever received it.
+      let total = 0;
+      const others = realPlayers(state).filter((seat) => seat.id !== playerId);
+      for (const id of controlledResources(state, playerId, 'luxury')) {
+        if (resourceCopies(state, playerId, id) < 3) continue;
+        if (others.some((seat) => resourceCopies(state, seat.id, id) > 0)) continue;
+        total += 1;
+      }
       return total;
     }
     case 'empiresMet': {
@@ -5382,6 +5416,9 @@ function combatScaleCount(
       return slottedOrdersOfFlavour(state, playerId, scale.slot);
     case 'capitalGreatWorks':
       return capitalGreatWorks(state, playerId);
+    case 'uniqueLuxuries':
+      // The ledger count's own reading, asked of a fight (Numidian Cavalry).
+      return controlledResources(state, playerId, 'luxury').length;
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -7309,6 +7346,15 @@ export function cardGrantsAbility(
  * is the whole of the rule, and it is not written here — it is where every
  * founder-side clause already lives.
  */
+export function charterOpensUnit(state: GameState, playerId: number, unit: UnitTypeId): boolean {
+  // **A charter's unit** (`CharterSpec.unlocks.unit`). The collection is the
+  // record of the pick, so no list on the player is written for it; a charter
+  // is never seated and never leaves the collection.
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return false;
+  return sc.orders.some((id) => orderDef(id).charter?.unlocks.unit === unit);
+}
+
 export function cardUnlocksUnit(state: GameState, playerId: number, unit: UnitTypeId): boolean {
   for (const { effect } of effectsOfKind(state, playerId, 'unlocksUnit')) {
     if (effect.unit === unit) return true;
@@ -7935,7 +7981,9 @@ function routeScopesAdmit(
   if (effect.origin !== undefined && !cityScopeAdmits(state, from, effect.origin)) return false;
   if (effect.destination !== undefined) {
     if (!to) return false;
-    if (!cityScopeAdmits(state, to, effect.destination)) return false;
+    // The sender is the viewer, so a destination asked "follows your
+    // religion" means the sender's faith (The Silk Road Monks).
+    if (!cityScopeAdmits(state, to, effect.destination, from.ownerId)) return false;
   }
   // **Either town will do** (batch C8, Pilgrim Markets). The disjunction the
   // other two clauses cannot express, and it takes their bargain with a caller

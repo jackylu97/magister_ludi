@@ -922,6 +922,41 @@
       "modelClass": "mounted",
       "glyph": "T"
     },
+    "numidianCavalry": {
+      "name": "Numidian Cavalry",
+      "category": "military",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 48,
+      "size": "heavy",
+      "column": 7,
+      "unlockedByCard": true,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "class": {
+            "type": "numidianCavalry"
+          },
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "uniqueLuxuries",
+            "per": 1
+          }
+        }
+      ],
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "knight",
+      "modelClass": "mounted",
+      "glyph": "N",
+      "note": "Light horse paid for by trade. It fights harder for every kind of luxury its empire controls."
+    },
     "slinger": {
       "name": "Slinger",
       "category": "military",
