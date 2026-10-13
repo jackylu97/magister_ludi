@@ -276,7 +276,7 @@ briefs, agent reports, test names, and any new player-facing prose.
   12 `purchaseItemAt` · 13 `settlePopulationWindfall` (fills no bucket) ·
   14 `settleBorderWindfall` · 15 the trade verbs (`startRoute`/`cancelRoute`) ·
   16 `pressLump` · 17 `setCitizenFocus`. The helper's own docblock is the
-  register of record and runs to **23** entries — the names above are the first
+  register of record and runs to **24** entries — the names above are the first
   seventeen of it, never the whole. Future windfalls join by calling a
   `settle…Windfall`, never by reimplementing a completion.
 - **Culture**: `Player.culturePool` IS the draft basket (no second bank);
