@@ -88,6 +88,8 @@ The existing deck mechanics stay (the user, 2026-10-13): *"the levies tended wor
 
 **"Gained", not "trained" (the user, 2026-10-13).** *"to maximize the possible synergies, instead of 'when a unit is trained' or 'mustered' effects should read 'when a unit is gained' to include produced units, purchased units and free units and levied units."* A card that pays on a new unit reads one moment, a unit gained, whatever its source: produced in a city, bought with gold or faith, granted free (a muster, a commission reward, an on-draft boon), or raised by a levy. Card text says "gaining a unit" or "each time you gain a unit", and the "it counts as trained" clauses become unnecessary. Live cards this changes: Muster Rites, The Art of War, and the shared Rites of Passage. Open: whether a unit taken from someone else (a barbarian that joins you, a captured civilian) is also "gained".
 
+**Feeding units to die is a way to play (the user, 2026-10-13).** *"Feeding units to die is a funny way to play the game that i kind of want to support."* Cards that pay when a unit is lost pay on any loss, not only a loss while defending. This reverses the balance pass's fix to Songs of the Fallen (2026-10-06), which paid losses only on defence to stop exactly this. Together with the "gained" ruling it makes a sacrifice loop a real Dominion style: gain units cheaply, then spend them.
+
 Considered and declined in the same conversation (`docs/plans/card-synergy-research.md`): **tags** on cards with tag-counting pay-offs (forced synergy, against the second principle) and **a smaller pool per game** (a seat's two decks already narrow the pool, as tribes do in Hearthstone Battlegrounds).
 
 ### Two facts about the essentials worth designing around

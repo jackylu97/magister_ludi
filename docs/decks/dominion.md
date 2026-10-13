@@ -18,12 +18,12 @@ Ideas under discussion that are not yet part of the deck (the 2026-10-13 proposa
 
 | Tier | Cards | Live | Changing | Deferred | New |
 |---|---|---|---|---|---|
-| Tier 0 | 21 | 5 | 6 | 0 | 10 |
-| Tier I | 17 | 11 | 2 | 0 | 4 |
+| Tier 0 | 25 | 5 | 6 | 0 | 14 |
+| Tier I | 17 | 10 | 3 | 0 | 4 |
 | Tier II | 15 | 12 | 0 | 2 | 1 |
 | Tier III | 8 | 7 | 0 | 1 | 0 |
 | Tier IV | 15 | 13 | 0 | 2 | 0 |
-| **All** | **76** | **48** | **8** | **5** | **15** |
+| **All** | **80** | **47** | **9** | **5** | **19** |
 
 Plus 24 cards shared with another deck (below): 17 live, 1 changing, 1 deferred, 5 new.
 
@@ -68,7 +68,7 @@ Plus 24 cards shared with another deck (below): 17 live, 1 changing, 1 deferred,
 | **The Pacified Marches** | uncommon | changing | While slotted, gains +1 authority capacity and +5 culture for every barbarian camp cleared, at most +8 authority and +40 culture. | **Changing to:** Gains +1 authority capacity and +5 culture for every barbarian camp cleared this game, at most +8 authority and +40 culture. |
 | **The Art of War** | uncommon | changing | Training a unit grants science equal to three quarters of its strength. | **Changing to:** Gaining a unit grants science equal to three quarters of its strength. ("Gained" ruling, 2026-10-13.) |
 | **War Foundries** | rare | live | Cities with a Barracks gain gold equal to 30% of their base production and +38% production toward military units. |  |
-| **Songs of the Fallen** | rare | live | Killing a unit grants science and culture equal to twice its strength. Losing a unit while it defends grants the same. |  |
+| **Songs of the Fallen** | rare | changing | Killing a unit grants science and culture equal to twice its strength. Losing a unit while it defends grants the same. | **Changing to:** Killing or losing a unit grants science and culture equal to twice its strength. (Losses on the attack pay too: the user's ruling of 2026-10-13 supports feeding units to die.) |
 | **Horse Lords** | rare | live | Mounted units gain +3 strength and +1 movement. |  |
 
 ## Tier II
@@ -138,6 +138,10 @@ The user's ideas and picks (2026-10-13). None is in the data. Unnamed rows are t
 | **The Farming Garrisons** | 0 | common | Hexes with a fortified military unit gain +1 food and +1 production. | Changed by the user from "units work the hex like a citizen". Open: whether a garrison fortified in a town counts (its centre hex). Needs a hex test for "a fortified unit of yours stands here". |
 | **The Armourers' Secret** | 0 | uncommon | Researching a technology that unlocks a military unit grants one of that unit. | Research becomes units gained. Needs a new grant (the technology occasion exists; granting the unit it unlocks does not). |
 | **The Defiant Kingdom** | 0 | uncommon | While another empire holds more towns than you, you train military units 25% faster. | A catch-up card, and the first card on Mithridates' "against a wider empire" theme. Needs an empire condition comparing town counts (a combat version exists for his leader ability). |
+| **The Funeral Games** | 0 | common | When one of your units falls, gain faith equal to its strength. | Any loss pays, by the user's ruling (2026-10-13). Uses existing shapes (the death occasion, paid from the unit's strength). |
+| **The Armed Colony** | 0 | common | A town founded on or beside one of your military units starts with three extra hexes and one more citizen. | Revised by the user. Two effects as written. Needs new rules: a founding test for a unit on or beside the hex, and grants of hexes and a citizen. |
+| **The Cattle Raid** | 0 | common | Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns. | Revised by the user from Between Campaigns, and renamed because it is no longer a peace card (the cattle raids of the Irish epics). It refreshes rather than stacks. Uses existing shapes (a timed grant that renews). |
+| **The Bronze Smiths** | 0 | rare | Each improved strategic resource gives +3 science. | The marquee early science card. Uses an existing count (improved strategic resources), paid whether or not the hex is worked; The Quartermasters pays the same hexes when worked. |
 | **The Call to the Spear** | I | uncommon | Towns of at least five citizens may spend a citizen to raise the best melee unit you can build. | A levy: Dominion's own, so the levy keyword appears without Expansionist. Moved to Tier I and raised to five citizens by the user. The same job as Expansionist's The Muster of the Fields (Tier I: spend a citizen, gain the best melee unit), which a Dominion + Expansionist seat is also dealt at Tier I: one of the two should change. |
 | **Walled Towns** | I | common | Towns with walls gain +15% food. | Moved to Tier I by the user (walls unlock later). Needs a town scope for "has walls". |
 | **The Swift Riders** | I | uncommon | Mounted units may move after attacking. | Moved to Tier I by the user. Needs a new unit rule. |
