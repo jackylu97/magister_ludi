@@ -169,7 +169,6 @@ import {
   type GameState,
   type Player,
   createUnit,
-  newGame,
   playerById,
   spendGold,
   bumpRevision,
@@ -188,6 +187,7 @@ import { buildError, gatingTech, researchExpansion } from '../../src/sim/tech';
 import { PROJECT_IDS, projectDef } from '../../src/sim/projectData';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { isExploredBy, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 
 /**
  * Every source of the bot, read as text — for the one claim below that is about

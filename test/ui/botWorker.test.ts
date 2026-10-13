@@ -16,7 +16,7 @@ import { dealMemorySize } from '../../src/ai/dealMemory';
 import { readHarnessMemory } from '../../src/ai/harnessMemory';
 import { warLedgerSize } from '../../src/ai/warLedger';
 import { type Command } from '../../src/sim/commands';
-import { type Game, createGame, dispatch } from '../../src/sim/game';
+import { type Game, dispatch } from '../../src/sim/game';
 import { bumpRevision, playerById } from '../../src/sim/state';
 import { atWar, openWar } from '../../src/sim/wars';
 import { type BotWorkerReply, type BotWorkerRequest, answerBotWorker } from '../../src/ui/bot.worker';
@@ -24,6 +24,7 @@ import { applyTwinReply, createBotTwin } from '../../src/ui/botTwin';
 import { rosterFor } from '../../src/ui/gameSetup';
 import { digestOfState } from '../sim/aiDigestHelpers';
 import { playWithBotsThinking } from './botWorkerHelpers';
+import { createGame } from '../sim/newGameHelpers';
 
 /** A fake `Worker` that runs the real worker body through the structured-clone seam. */
 function fakeWorker(behaviour: 'answer' | 'error' = 'answer') {

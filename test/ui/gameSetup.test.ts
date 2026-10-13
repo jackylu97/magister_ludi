@@ -24,7 +24,7 @@ import { HERALDRY_IDS, heraldryFor } from '../../src/art/heraldryMarks';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES } from '../../src/sim/mapgen';
 import { playerPieceColor } from '../../src/render3d/lookData';
 import { RULES } from '../../src/sim/rulesData';
-import { newGame, realPlayers } from '../../src/sim/state';
+import { realPlayers } from '../../src/sim/state';
 import {
   DEFAULT_SEATS,
   DEFAULT_SIZE,
@@ -37,6 +37,7 @@ import {
   rosterFor,
   seatsAskPersona,
 } from '../../src/ui/gameSetup';
+import { newGame } from '../sim/newGameHelpers';
 
 describe('the stepper the landing offers', () => {
   it('counts from the rules floor to the palette ceiling, and opens on six', () => {

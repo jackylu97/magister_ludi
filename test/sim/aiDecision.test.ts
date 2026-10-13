@@ -25,8 +25,9 @@ import { describe, expect, it } from 'vitest';
 import { nextBotCommand, nextBotDecision } from '../../src/ai/bot';
 import { type BotCandidate, type ValueTerm, foldTerms, rankedCandidates } from '../../src/ai/decision';
 import { createBotStepper } from '../../src/ai/stepper';
-import { type Game, createGame } from '../../src/sim/game';
+import { type Game } from '../../src/sim/game';
 import type { GameConfig } from '../../src/sim/state';
+import { createGame } from './newGameHelpers';
 
 const CONFIG: GameConfig = {
   seed: 20260831,

@@ -8,8 +8,9 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { RoadLayer, signRoadCells } from '../../src/render3d/roads3d';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { type Tile, createMap, getTileAt, tileIndex, tileNeighbors } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * The board's half of trade: the track a caravan wears into the ground.

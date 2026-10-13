@@ -62,11 +62,11 @@ import {
   barbarianPlayer,
   bumpRevision,
   createUnit,
-  newGame,
 } from '../../src/sim/state';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
 import { layerMeshes, worldMatrices, wrapCopiesOf, WRAP_COPIES } from './unitLayerHelpers';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * The floating unit badges.

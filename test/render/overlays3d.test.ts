@@ -44,10 +44,11 @@ import {
   withExtraResources,
 } from '../../src/sim/resourceData';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { DIRECTION_COUNT, computeFreshwater, neighborInDirection } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 import type { LensView } from '../../src/ui/mapView';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * How many copies of every instance the board keeps for the horizontal wrap: one

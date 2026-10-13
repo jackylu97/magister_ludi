@@ -11,9 +11,10 @@ import { MaterialLibrary } from '../../src/render3d/toon';
 import { UNIT_REVIEW_PEOPLE } from '../../src/flairGallery/unitsFixture';
 import { FAMILIES } from '../../src/sim/greatPeopleData';
 import { createMap } from '../../src/sim/map';
-import { createUnit, newGame } from '../../src/sim/state';
+import { createUnit } from '../../src/sim/state';
 import { VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import type { FallenUnit } from '../../src/ui/mapView';
+import { newGame } from '../sim/newGameHelpers';
 
 const cleanup: (() => void)[] = [];
 afterEach(() => { for (const dispose of cleanup.splice(0).reverse()) dispose(); vi.restoreAllMocks(); });

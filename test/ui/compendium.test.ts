@@ -43,7 +43,7 @@ import { RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
 import { describeResourceSignature } from '../../src/sim/resourceEffects';
 import { anyCardDef, describeBuildingRow, stripRefs } from '../../src/sim/statecraft';
 import { DOCTRINE_IDS, ORDER_IDS, doctrineDef, orderIsDealt } from '../../src/sim/statecraftData';
-import { newGame } from '../../src/sim/state';
+import { newGame } from '../sim/newGameHelpers';
 import { gatingTech } from '../../src/sim/tech';
 import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../../src/sim/techData';
 import { techGifts } from '../../src/sim/techUnlocks';

@@ -26,7 +26,7 @@ import {
   yieldContextFor,
 } from '../../src/sim/yields/hex';
 import { createMap, getTileAt, type Tile } from '../../src/sim/map';
-import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
+import { type GameState, bumpRevision } from '../../src/sim/state';
 import {
   FEATURE_IDS,
   type FeatureId,
@@ -55,6 +55,7 @@ import {
   tileYieldLines,
 } from '../../src/ui/tileReadout';
 import { explainFoundingCost } from '../../src/sim/meters';
+import { newGame } from '../sim/newGameHelpers';
 
 function tile(overrides: Partial<Tile> = {}): Tile {
   return {

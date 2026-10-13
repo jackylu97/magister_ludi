@@ -28,7 +28,7 @@ import {
   foldCity,
 } from '../../src/sim/yields/town';
 import { applyCommand } from '../../src/sim/commands';
-import { createGame, snapshotState } from '../../src/sim/game';
+import { snapshotState } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import { explainRouteYieldBetween } from '../../src/sim/routeYields';
 import { RULES } from '../../src/sim/rulesData';
@@ -38,6 +38,7 @@ import { type City, type GameState, playerById, bumpRevision } from '../../src/s
 import { BUILDING_UNLOCK_TECH, TECH_IDS, techDef } from '../../src/sim/techData';
 import { buildError } from '../../src/sim/tech';
 import { explainUnitUpkeep, explainUnitUpkeepRebate, unitUpkeepOf } from '../../src/sim/upkeep';
+import { createGame } from './newGameHelpers';
 
 function game(seed = 11) {
   return createGame({

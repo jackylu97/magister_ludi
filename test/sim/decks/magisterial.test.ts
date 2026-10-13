@@ -36,7 +36,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type BuildingId } from '../../../src/sim/buildingData';
 import { refreshCityDerived } from '../../../src/sim/cities';
-import { type Game, createGame } from '../../../src/sim/game';
+import { type Game } from '../../../src/sim/game';
 import { type City, type GameState, type Player, bumpRevision, playerById } from '../../../src/sim/state';
 import { explainCity } from '../../../src/sim/yields/town';
 import { cardAuthority, drawOrderOffer, eligibleFor } from '../../../src/sim/statecraft';
@@ -57,6 +57,7 @@ import {
 } from '../../../src/sim/statecraftData';
 import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
 import { found } from '../statecraftHelpers';
+import { createGame } from '../newGameHelpers';
 
 // --- the deck -----------------------------------------------------------------
 

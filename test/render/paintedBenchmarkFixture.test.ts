@@ -13,8 +13,8 @@
  * two checks on each one before it writes the file.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
+import { createGame } from '../sim/newGameHelpers';
 
-import { createGame } from '../../src/sim/game';
 import { driveBots } from '../../src/ai/driver';
 import { loadSave, makeSavePayload } from '../../src/ui/saves';
 import type { GameConfig } from '../../src/sim/state';

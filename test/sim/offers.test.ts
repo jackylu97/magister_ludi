@@ -28,7 +28,7 @@ import { foundCityAt } from '../../src/sim/cities';
 import type { Command } from '../../src/sim/commands';
 import { applyCommand } from '../../src/sim/commands';
 import { claimDiscoveryAt } from '../../src/sim/discoveries';
-import { createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import { drawBeliefOffer } from '../../src/sim/religion';
 import { BELIEF_IDS, beliefDef } from '../../src/sim/religionData';
@@ -50,8 +50,9 @@ import {
   ORDER_IDS,
   orderDef,
 } from '../../src/sim/statecraftData';
-import { type GameState, claimWonder, newGame, bumpRevision } from '../../src/sim/state';
+import { type GameState, claimWonder, bumpRevision } from '../../src/sim/state';
 import { game, found } from './statecraftHelpers';
+import { createGame, newGame } from './newGameHelpers';
 
 /**
  * **The shelf, stocked for the file** (the decks rework, D1a): every

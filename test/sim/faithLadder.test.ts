@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
-import { createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import {
   faithRungCost,
@@ -29,6 +29,7 @@ import {
 } from '../../src/sim/religion';
 import { RELIGION } from '../../src/sim/religionData';
 import { type GameState, playerById, bumpRevision } from '../../src/sim/state';
+import { createGame } from './newGameHelpers';
 
 // --- harness ----------------------------------------------------------------
 

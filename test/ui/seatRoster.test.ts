@@ -38,7 +38,8 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type Player, newGame, realPlayers } from '../../src/sim/state';
+import { type Player, realPlayers } from '../../src/sim/state';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * The interface's own text. Read through Vite's raw glob rather than through

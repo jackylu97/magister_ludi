@@ -14,13 +14,14 @@ import { describe, expect, it } from 'vitest';
 
 import { applyCommand, type Command } from '../../src/sim/commands';
 import { bestMeleeFor, foundCityAt, growthThreshold, refreshCityDerived } from '../../src/sim/cities';
-import { createGame, dispatch, type Game } from '../../src/sim/game';
+import { dispatch, type Game } from '../../src/sim/game';
 import { levyError, levyOptions } from '../../src/sim/levies';
 import { getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { type City, bumpRevision, playerById, unitById } from '../../src/sim/state';
 import { describeCard, stripRefs } from '../../src/sim/statecraft';
 import { type OrderId, orderIsDealt } from '../../src/sim/statecraftData';
+import { createGame } from './newGameHelpers';
 
 const EVERY = RULES.cities.levy.everyTurns;
 

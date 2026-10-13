@@ -10,7 +10,7 @@
  * would count them twice.
  */
 import { foundCityAt } from '../../src/sim/cities';
-import { type Game, createGame, dispatch, restoreState, snapshotState } from '../../src/sim/game';
+import { type Game, dispatch, restoreState, snapshotState } from '../../src/sim/game';
 import type { Command } from '../../src/sim/commands';
 import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { isPassable } from '../../src/sim/pathfind';
@@ -29,6 +29,7 @@ import {
   orderIsDealt,
 } from '../../src/sim/statecraftData';
 import { ABILITY_TECH } from '../../src/sim/techData';
+import { createGame, forgetBuiltGames } from './newGameHelpers';
 
 /**
  * The bench, generated once a seed and handed out as a private copy.
@@ -192,6 +193,8 @@ export interface StockedRow {
 }
 
 export function stockDecks(rows: Readonly<Record<string, StockedRow>>): () => void {
+  // A game built before the rows changed is not the game `newGame` builds now.
+  forgetBuiltGames();
   const undo: (() => void)[] = [];
   for (const [id, row] of Object.entries(rows)) {
     if (!ORDER_IDS.includes(id as OrderId)) throw new Error(`stockDecks: "${id}" is no Order`);
@@ -220,6 +223,7 @@ export function stockDecks(rows: Readonly<Record<string, StockedRow>>): () => vo
   }
   return () => {
     for (const step of undo.reverse()) step();
+    forgetBuiltGames();
   };
 }
 
@@ -293,6 +297,7 @@ export function stockStandardDecks(): () => void {
  * The rows keep everything else; restore is mandatory for `stockDecks`' reason.
  */
 export function stockDoctrines(ids: readonly DoctrineId[]): () => void {
+  forgetBuiltGames();
   const undo: (() => void)[] = [];
   for (const id of ids) {
     const def = doctrineDef(id);
@@ -305,6 +310,7 @@ export function stockDoctrines(ids: readonly DoctrineId[]): () => void {
   }
   return () => {
     for (const step of undo.reverse()) step();
+    forgetBuiltGames();
   };
 }
 

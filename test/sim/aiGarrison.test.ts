@@ -24,26 +24,25 @@
  * The last two are played games rather than benches, deliberately: the defect
  * was invisible on any single board and only showed as a *sequence*. Every one
  * of the six was run against the old behaviour first and every one failed there.
+ * The two played games are forty turns of bot play on a standard map, so they
+ * live in `aiGarrison.slow.test.ts`; the four benches here stay in core.
  */
 import { describe, expect, it } from 'vitest';
 
-import { bestTechGoal, chooseProduction, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { chooseProduction, nextBotDecision, valueContext } from '../../src/ai/bot';
 import { defendersAt, garrisonAt } from '../../src/ai/campaign';
 import { aiConfigFor } from '../../src/ai/aiConfig';
 import type { ValueTerm } from '../../src/ai/decision';
-import { createBotStepper } from '../../src/ai/stepper';
 import { applyCommand } from '../../src/sim/commands';
 import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
-import { createGame } from '../../src/sim/game';
+import { newGame } from './newGameHelpers';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import {
   type City,
-  type GameConfig,
   type GameState,
   type Player,
   bumpRevision,
   createUnit,
-  newGame,
   playerById,
 } from '../../src/sim/state';
 import { UNIT_TYPE_IDS, isExplorer, unitDef } from '../../src/sim/unitData';
@@ -199,113 +198,5 @@ describe('the standing garrison (batch X13)', () => {
     if (chosen!.kind === 'unit') {
       expect(isExplorer(unitDef(chosen!.id as never))).toBe(false);
     }
-  });
-});
-
-/** Seed 7, standard, two seats and the wild — the audit's own board. */
-const SEED_SEVEN: GameConfig = {
-  seed: 7,
-  sizeName: 'standard',
-  players: [
-    { name: 'Crimson', color: '#d4502e' },
-    { name: 'Teal', color: '#1f8a85' },
-  ],
-  barbarians: true,
-};
-
-describe('the played opening (batch X13)', () => {
-  it('does not thrash the research goal while the empire’s knowledge is unchanged', () => {
-    // The audit: *"Sailing scores 125 / absent / 125 / absent across t2–t7"*,
-    // because its Lighthouse line is priced in gold and gold's price was
-    // swinging six-fold on alternate turns. Beakers are a pool so nothing was
-    // lost, but the plan and the feed were unstable.
-    //
-    // The claim, stated so it cannot pass by accident: within a stretch of turns
-    // over which the empire **learns nothing new**, the goal may move on, but it
-    // may never come *back* to a goal it has already left. A goal that returns is
-    // a goal that changed its mind about a board that did not change.
-    const game = createGame(SEED_SEVEN);
-    const stepper = createBotStepper(game, { warn: () => {} });
-    let known = -1;
-    let left: string[] = [];
-    let last: string | null = null;
-    const returns: string[] = [];
-    while (game.state.turn < 30) {
-      stepper.playTurn();
-      if (stepper.stalled()) break;
-      const player = seat(game.state, 0);
-      if (player.techsResearched.length !== known) {
-        known = player.techsResearched.length;
-        left = [];
-        last = null;
-      }
-      const goal = bestTechGoal(game.state, player);
-      if (goal === null) continue;
-      if (last !== null && goal !== last) left.push(last);
-      if (goal !== last && left.includes(goal)) returns.push(`t${game.state.turn}:${goal}`);
-      last = goal;
-    }
-    expect(returns).toEqual([]);
-  });
-
-  it('opens on a soldier, and never raises more rangers than its own cap wants', () => {
-    // (d)'s last pin, and the one place the ruling's words and the sheet's
-    // numbers have to be reconciled. The audit's symptom was *"seat 0 builds
-    // three scouts by t5 and seven by t66"*, and its mechanism was the table:
-    // with the Warrior row struck out by the old null worth, the Scout won by
-    // **default** on the turn a fresh ranger stood in the town. Two claims
-    // follow from the fix and both are pinned:
-    //
-    //   · **the first thing the capital raises is not a ranger.** Every seat
-    //     starts with a scout (`rules.startingUnits`), so the opening book
-    //     declines by design and this is the scored table's own answer — the
-    //     answer the null was corrupting.
-    //   · **the count never passes `military.scoutCap`.** The ruling says "at
-    //     most one scout beyond the starting one", which is a cap of two; the
-    //     sheet says three, and a cap is a balance number that lives in
-    //     `data/ai.json` rather than in a test. So the pin is against the sheet
-    //     — a seat that wants three and holds three is a seat obeying its dial,
-    //     and a seat holding seven was the defect.
-    const game = createGame(SEED_SEVEN);
-    const stepper = createBotStepper(game, { warn: () => {} });
-    const cap = aiConfigFor(undefined).military.scoutCap;
-    const rangers = new Set<number>();
-    let settler = false;
-    let first: string | null = null;
-    for (let guard = 0; guard < 40; guard++) {
-      stepper.playTurn();
-      if (stepper.stalled()) break;
-      for (const command of game.log) {
-        if (first !== null) break;
-        if (command.type !== 'setCityProduction' || command.playerId !== 0) continue;
-        const head = command.queue[0];
-        if (head !== undefined && head.kind === 'unit') first = head.id;
-      }
-      if (!settler) {
-        for (const unit of game.state.units) {
-          if (unit.ownerId !== 0) continue;
-          const def = unitDef(unit.type);
-          // **Only the rangers this seat raised.** A ruin hands a free scout to
-          // whoever finds it (`data/discoveries.json`, `Unit.freeUpkeep` at the
-          // free-unit seam), and the cap is a bound on what the empire *builds*
-          // — the soldiers' new price of 2026-09-15 replayed the board and a
-          // gift landed on it, which is not the bot exceeding its dial.
-          if (unit.freeUpkeep === true) continue;
-          if (isExplorer(def)) rangers.add(unit.id);
-          // The starting settler is spent on the capital in the first turn, so
-          // any settler standing after that is one this empire raised.
-          if (def.foundsCity === true) settler = true;
-        }
-      }
-    }
-    expect(first).not.toBeNull();
-    expect(isExplorer(unitDef(first as never))).toBe(false);
-    expect(settler).toBe(true);
-    expect(rangers.size).toBeLessThanOrEqual(cap);
-    let held = 0;
-    for (const unit of game.state.units) {
-      if (unit.ownerId === 0 && unit.freeUpkeep !== true && isExplorer(unitDef(unit.type))) held += 1;
-    }
-    expect(held).toBeLessThanOrEqual(cap);
   });
 });

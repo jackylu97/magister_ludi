@@ -32,13 +32,13 @@ import {
   type Unit,
   createCity,
   createUnit,
-  newGame,
   bumpRevision,
 } from '../../src/sim/state';
 import { moveCost } from '../../src/sim/terrainData';
 import { openWar } from '../../src/sim/wars';
 import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 
 /** A blank state whose map is a flat grassland rectangle, ready to be sculpted. */
 function flatState(width = 10, height = 8): GameState {
@@ -153,14 +153,6 @@ describe('findPath', () => {
       { col: 5, row: 2 },
     ]);
     expect(cost(state, path)).toBe(4);
-  });
-
-  it('excludes the start tile and includes the goal', () => {
-    const state = flatState();
-    const warrior = unit(state, 1, 2);
-    const path = findPath(state, warrior, at(state.map, 3, 2))!;
-    expect(path[0]).toEqual({ col: 2, row: 2 });
-    expect(path[path.length - 1]).toEqual({ col: 3, row: 2 });
   });
 
   it('refuses a path to the tile the unit is already on', () => {

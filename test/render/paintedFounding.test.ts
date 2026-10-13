@@ -36,9 +36,10 @@ import { signSites } from '../../src/render3d/sites3d';
 import { signUnits } from '../../src/render3d/pieces';
 import { signFeatureCells } from '../../src/render3d/board3d';
 import { createMap } from '../../src/sim/map';
-import { createUnit, newGame } from '../../src/sim/state';
+import { createUnit } from '../../src/sim/state';
 import { foundCityAt } from '../../src/sim/cities';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 const CAMERA = VIEW3D.camera;
 const GOLDEN: [number, number, number] = [.55, .85, -.35];

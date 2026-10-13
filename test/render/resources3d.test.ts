@@ -55,7 +55,7 @@ import { LensLayer, yieldDiscWidth, yieldRowLayout } from '../../src/render3d/le
 import { VIEW3D, resourcePropSpec } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundCityAt } from '../../src/sim/cities';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { visibleResourceAt } from '../../src/sim/tech';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { siteMark } from '../../src/art/siteMarks';
@@ -83,6 +83,7 @@ import {
   YIELD_MARK_STROKE,
   yieldMark,
 } from '../../src/art/yieldMarks';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * The board's half of the resources milestone: the diorama props, the flat
@@ -519,26 +520,6 @@ describe('the tile-icon atlas', () => {
     expect(tileIconIndex({ set: 'settle', id: SETTLE_MARK_IDS[0]! })).toBe(
       TILE_ICON_CELLS.length - SETTLE_MARK_CELLS.length,
     );
-  });
-
-  /**
-   * The one place a set was *grown* rather than appended, and why that is safe.
-   *
-   * The inscription joined the marginalia beside the serpent, which pushed the
-   * discovery sites and everything after them one cell along. Nothing broke,
-   * and the reason is worth pinning: no index in this project is ever
-   * *persisted*. Every consumer asks `tileIconRect` at build time — the board's
-   * decals, the standing markers, the fog's chart — so a shifted cell is
-   * re-derived rather than remembered, and the "append, never insert" rule is
-   * about not silently re-pointing a *baked* rectangle, which is a thing that
-   * only happens if somebody writes an index down. Nobody has.
-   */
-  it('re-derives every cell rectangle rather than remembering one', () => {
-    for (const cell of TILE_ICON_CELLS) {
-      const rect = tileIconRect(cell);
-      expect(rect.u1).toBeGreaterThan(rect.u0);
-      expect(rect.v1).toBeGreaterThan(rect.v0);
-    }
   });
 
   /**

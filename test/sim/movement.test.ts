@@ -14,9 +14,10 @@ import { foundCityAt } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { snapshotState } from '../../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, createUnit } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { openWar } from '../../src/sim/wars';
+import { newGame } from './newGameHelpers';
 
 /** A blank two-player state on a flat grassland rectangle, nobody at war. */
 function peaceState(width = 10, height = 8): GameState {

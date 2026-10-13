@@ -26,7 +26,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type Game, createGame } from '../../../src/sim/game';
+import { type Game } from '../../../src/sim/game';
 import { type GameState, type Player, playerById } from '../../../src/sim/state';
 import {
   type HandPosition,
@@ -45,6 +45,7 @@ import {
   orderDef,
   orderIsDealt,
 } from '../../../src/sim/statecraftData';
+import { createGame } from '../newGameHelpers';
 
 // --- the deck sheet, read ----------------------------------------------------
 

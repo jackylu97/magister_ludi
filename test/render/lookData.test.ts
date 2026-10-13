@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest';
 import viewJson from '../../data/view3d.json';
 import { RULES } from '../../src/sim/rulesData';
 import { playerPieceColor } from '../../src/render3d/lookData';
-import { newGame } from '../../src/sim/state';
+import { newGame } from '../sim/newGameHelpers';
 
 const PLAYERS = viewJson.players as {
   byColor: Record<string, string>;

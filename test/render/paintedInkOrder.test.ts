@@ -26,12 +26,13 @@ import {
 } from '../../src/render3d/paintedWorks';
 import { foundCityAt } from '../../src/sim/cities';
 import { type GameMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { VISIBLE, resetVisibility } from '../../src/sim/visibility';
 // @ts-expect-error The approved study modules remain JavaScript.
 import { prepareTerrainMap } from '../../src/terrainStudy/surface.js';
 // @ts-expect-error The approved study modules remain JavaScript.
 import { terrainMesh } from '../../src/terrainStudy/terrainMesh.js';
+import { newGame } from '../sim/newGameHelpers';
 
 const cleanup: (() => void)[] = [];
 afterEach(() => { for (const dispose of cleanup.splice(0).reverse()) dispose(); });

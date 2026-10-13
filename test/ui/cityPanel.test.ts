@@ -34,7 +34,6 @@ import {
   type City,
   type GameState,
   createUnit,
-  newGame,
   playerById,
   bumpRevision,
 } from '../../src/sim/state';
@@ -57,6 +56,7 @@ import {
   specialistRow,
   specialistRowText,
 } from '../../src/ui/cityPanel';
+import { newGame } from '../sim/newGameHelpers';
 
 /** A two-player state on a blank, landlocked desert rectangle — `cities.test.ts`'s `flatState`. */
 function flatState(width = 16, height = 12): GameState {

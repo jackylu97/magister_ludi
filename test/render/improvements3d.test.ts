@@ -30,10 +30,11 @@ import {
   improvementDef,
 } from '../../src/sim/improvementData';
 import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { TECH_IDS } from '../../src/sim/techData';
 import { computeFreshwater } from '../../src/sim/water';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * The board's half of the improvements milestone, and of the chop that followed

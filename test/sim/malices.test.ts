@@ -5,7 +5,6 @@ import {
   type GameState,
   type Player,
   bumpRevision,
-  newGame,
 } from '../../src/sim/state';
 import { applyCommand } from '../../src/sim/commands';
 import { OCCASIONS } from '../../src/sim/occasions';
@@ -44,6 +43,11 @@ import { classifyCard } from '../../src/sim/ledgerClass';
 import { readEmpire } from '../../src/sim/readings';
 import { unitDef } from '../../src/sim/unitData';
 import { judgeWagers, seatPendingMalices } from '../../src/sim/wagers';
+import { newGame } from './newGameHelpers';
+// `buildNewGame` is the real builder, not the test memo. The determinism
+// test below checks that building twice gives the same game, and a memo
+// would answer that by copying.
+import { newGame as buildNewGame } from '../../src/sim/state';
 
 /**
  * **The malice deck** — batch G3, `docs/wager.md` §4 (the spec of record).
@@ -350,8 +354,8 @@ describe('the draw', () => {
   });
 
   it('is the same deal from the same generator state', () => {
-    const one = newGame(config());
-    const two = newGame(config());
+    const one = buildNewGame(config());
+    const two = buildNewGame(config());
     expect(takeMalice(one, seat(one), 3)!.id).toBe(takeMalice(two, seat(two), 3)!.id);
   });
 });

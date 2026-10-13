@@ -29,7 +29,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
-import { createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import {
   drawBeliefOffer,
@@ -49,6 +49,7 @@ import { drawGreatPersonOffer } from '../../src/sim/greatPeople';
 import { type Family, greatPersonDef } from '../../src/sim/greatPeopleData';
 import { type GameState, playerById, bumpRevision } from '../../src/sim/state';
 import { ABILITY_TECH } from '../../src/sim/techData';
+import { createGame } from './newGameHelpers';
 
 // --- harness ----------------------------------------------------------------
 

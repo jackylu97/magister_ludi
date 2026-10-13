@@ -24,10 +24,11 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt, foundingErrorAt } from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { readSites } from '../../src/sim/readings';
-import { bumpRevision, type GameState, newGame } from '../../src/sim/state';
+import { bumpRevision, type GameState } from '../../src/sim/state';
 import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import { recommendedSiteRow } from '../../src/ui/tileReadout';
+import { newGame } from '../sim/newGameHelpers';
 
 /** The ruling's own board: three named luxuries in one hex's ring. */
 function board(): GameState {

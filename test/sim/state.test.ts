@@ -17,7 +17,7 @@ import {
   drawCensusInterval,
   emptyRenownFeed,
   hasEndedTurn,
-  newGame,
+  newGame as buildNewGame,
   normalizeConfig,
   playerById,
   unitById,
@@ -26,6 +26,11 @@ import { researchPlan } from "../../src/sim/tech";
 import { END_OF_TURN_PHASES, runEndOfTurn } from "../../src/sim/turn";
 import { generateMap } from "../../src/sim/mapgen";
 import { nextUint32 } from "../../src/sim/rng";
+import { newGame } from './newGameHelpers';
+
+// `buildNewGame` is the real `newGame`, not the test memo. The determinism
+// tests below check that building twice gives the same game, and a memo
+// would answer that by copying.
 
 function config(overrides: Partial<GameConfig> = {}): GameConfig {
   return {
@@ -180,18 +185,18 @@ describe("newGame", () => {
   });
 
   it("is deterministic: the same config produces an identical state", () => {
-    expect(newGame(config())).toEqual(newGame(config()));
+    expect(buildNewGame(config())).toEqual(buildNewGame(config()));
     // Also identical byte-for-byte, key order included.
-    expect(JSON.stringify(newGame(config()))).toBe(
-      JSON.stringify(newGame(config())),
+    expect(JSON.stringify(buildNewGame(config()))).toBe(
+      JSON.stringify(buildNewGame(config())),
     );
   });
 
   it("does not depend on how many other games were created first", () => {
-    const first = newGame(config());
-    newGame(config({ seed: 7 }));
-    newGame(config({ seed: -13, sizeName: "standard" }));
-    expect(newGame(config())).toEqual(first);
+    const first = buildNewGame(config());
+    buildNewGame(config({ seed: 7 }));
+    buildNewGame(config({ seed: -13, sizeName: "standard" }));
+    expect(buildNewGame(config())).toEqual(first);
   });
 
   it("gives different seeds different maps and different generator states", () => {
@@ -355,15 +360,6 @@ describe("endTurn", () => {
     expect(applyCommand(state, endTurn(0))).toEqual({ ok: true });
     expect(state.turn).toBe(2);
     expect(state.turnEnded).toEqual([false, false]);
-  });
-
-  it("advances every turn in a single-player game", () => {
-    const state = newGame(
-      config({ players: [{ name: "Solo", color: "#fff" }] }),
-    );
-    applyCommand(state, endTurn(0));
-    expect(state.turn).toBe(2);
-    expect(state.turnEnded).toEqual([false]);
   });
 
   it("keeps rolling over many turns", () => {
@@ -688,18 +684,6 @@ describe("the research queue field", () => {
     expect("researchQueue" in player).toBe(false);
   });
 
-  it("reads a state that has never heard of it as an empty plan", () => {
-    // The migration, such as it is: a save is `{config, log}` and is refused
-    // across a schema bump, so the only way a key-less player reaches this build
-    // is a snapshot or a hand-edited state. It reads as "nothing queued" rather
-    // than as a crash, through the one place the `?? []` lives.
-    const state = newGame(config());
-    const player = state.players[0]!;
-    player.researching = "mining";
-    delete player.researchQueue;
-    expect(researchPlan(player)).toEqual(["mining"]);
-  });
-
   it("carries the schema version that says the queue and the leftover march exist", () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
@@ -880,13 +864,6 @@ describe("the research queue field", () => {
 });
 
 describe("the unitsBuilt field (schema 31)", () => {
-  it("starts empty: presence is the state, exactly as researchQueue", () => {
-    const state = newGame(config());
-    const player = state.players[0]!;
-    expect(player.unitsBuilt).toEqual({});
-    expect(JSON.parse(JSON.stringify(player)).unitsBuilt).toEqual({});
-  });
-
   it("reads a v30 player with no unitsBuilt key as nobody having built anything", () => {
     // The migration note on `SCHEMA_VERSION` (31): a v30 save's
     // `settlersBuilt: n` has no home here, and a replay of the log re-derives

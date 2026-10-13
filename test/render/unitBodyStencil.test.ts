@@ -10,9 +10,10 @@ import { PaintedUnitKit } from '../../src/render3d/paintedUnits';
 import { UnitLayer, pieceColors, pieceMaterials, terrainUnder, unitColor } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { createMap, tileIndex } from '../../src/sim/map';
-import { newGame, type Unit } from '../../src/sim/state';
+import { type Unit } from '../../src/sim/state';
 import { unitDef, type UnitTypeId } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 const cleanup: (() => void)[] = [];
 afterEach(() => { for (const dispose of cleanup.splice(0).reverse()) dispose(); vi.restoreAllMocks(); });

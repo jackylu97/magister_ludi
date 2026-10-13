@@ -891,7 +891,7 @@ describe('fitColumns', () => {
  */
 
 import { applyCommand } from '../../src/sim/commands';
-import { newGame } from '../../src/sim/state';
+import { newGame } from '../sim/newGameHelpers';
 import { researchPlan, researchPlanWithout } from '../../src/sim/tech';
 import {
   chooseResearchCommand,

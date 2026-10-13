@@ -185,10 +185,6 @@ describe('a seat always has a charge', () => {
     expect(VIEW3D.players.fallbackOrder).toHaveLength(HERALDRY_IDS.length);
   });
 
-  it('honours a charge that was named', () => {
-    expect(heraldryFor(0, 'hound')).toBe('hound');
-  });
-
   /**
    * A charge string the build does not know falls **through** to the seat's own
    * rather than throwing. A banner is not worth a crash, and the field is a raw

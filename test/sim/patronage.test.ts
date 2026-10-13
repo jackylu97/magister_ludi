@@ -5,7 +5,6 @@ import {
   type GameConfig,
   type GameState,
   bumpRevision,
-  newGame,
   realPlayers,
 } from '../../src/sim/state';
 import { assignCitizens, foundCityAt } from '../../src/sim/cities';
@@ -24,6 +23,7 @@ import { explainCity } from '../../src/sim/yields/town';
 import { runWorldClock } from '../../src/sim/beads';
 import { runWagers, wagerDealOf, wagerStanding } from '../../src/sim/wagers';
 import type { TechId } from '../../src/sim/techData';
+import { newGame } from './newGameHelpers';
 
 /**
  * **The Patronage reads the works** — batch W4, the user's ruling of 2026-09-10

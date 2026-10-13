@@ -26,9 +26,10 @@
  */
 
 import { driveBots } from '../../src/ai/driver';
-import { type Game, createGame } from '../../src/sim/game';
+import { type Game } from '../../src/sim/game';
 import { foldEmpireRates } from '../../src/sim/yields/empire';
 import { type GameConfig, realPlayers } from '../../src/sim/state';
+import { createGame } from './newGameHelpers';
 
 /**
  * A standard map, two bot seats, the wild in the fog.

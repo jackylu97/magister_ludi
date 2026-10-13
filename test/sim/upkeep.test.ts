@@ -42,7 +42,7 @@ import {
   collectYields,
 } from '../../src/sim/yields/empire';
 import { applyCommand } from '../../src/sim/commands';
-import { type Game, createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { type Game, dispatch, replay, snapshotState } from '../../src/sim/game';
 import { RULES } from '../../src/sim/rulesData';
 import {
   type GameState,
@@ -67,6 +67,7 @@ import {
   unitUpkeepOf,
 } from '../../src/sim/upkeep';
 import { at, bareState } from './improvementHelpers';
+import { createGame } from './newGameHelpers';
 
 const UPKEEP = RULES.upkeep;
 

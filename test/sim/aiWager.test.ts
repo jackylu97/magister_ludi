@@ -34,11 +34,12 @@ import { AI, valueContext } from '../../src/ai/bot';
 import { withAiTuning } from '../../src/ai/aiConfig';
 import { driveBots } from '../../src/ai/driver';
 import { appraiseWagers, malicePrice, wagerLeanOf } from '../../src/ai/wager';
-import { type Game, createGame } from '../../src/sim/game';
+import { type Game } from '../../src/sim/game';
 import type { GameConfig, GameState, Player } from '../../src/sim/state';
 import { playerById } from '../../src/sim/state';
 import { WAGER_RULES, type WagerId, wagerBar, wagerDef } from '../../src/sim/wagerData';
 import { chooseWagerError, openWagerDeal } from '../../src/sim/wagers';
+import { createGame } from './newGameHelpers';
 
 const CONFIG: GameConfig = {
   seed: 20260909,

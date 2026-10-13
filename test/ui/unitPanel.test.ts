@@ -25,7 +25,7 @@
 import { describe, expect, it } from 'vitest';
 import { foundCityAt } from '../../src/sim/cities';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, type Unit, newGame } from '../../src/sim/state';
+import { type GameState, type Unit } from '../../src/sim/state';
 import { recomputeVisibility, resetVisibility } from '../../src/sim/visibility';
 import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
 import type { UnitTypeId } from '../../src/sim/unitData';
@@ -37,6 +37,7 @@ import {
   marchDestination,
   upkeepNote,
 } from '../../src/ui/unitPanel';
+import { newGame } from '../sim/newGameHelpers';
 
 const SOURCES = import.meta.glob(
   ['../../src/ui/controls.ts', '../../src/ui/unitPanel.ts', '../../src/main.ts'],

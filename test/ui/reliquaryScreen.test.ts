@@ -44,7 +44,8 @@ import {
   legacyIsSilent,
 } from '../../src/ui/greatPersonFace';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
-import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
+import { type GameState, bumpRevision } from '../../src/sim/state';
+import { newGame } from '../sim/newGameHelpers';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {

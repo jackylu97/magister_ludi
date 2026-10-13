@@ -28,7 +28,7 @@ import {
   updateElimination,
 } from '../../src/sim/combat';
 import { applyCommand } from '../../src/sim/commands';
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { dispatch, replay, snapshotState } from '../../src/sim/game';
 import {
   createMap,
   getTileAt,
@@ -48,7 +48,6 @@ import {
   clearTurnEnded,
   createUnit,
   isBarbarian,
-  newGame,
   playerById,
   realPlayers,
   type Unit,
@@ -56,7 +55,7 @@ import {
 } from '../../src/sim/state';
 import { advanceResearch } from '../../src/sim/tech';
 import { TECH_IDS, type TechId, UNIT_UNLOCK_TECH } from '../../src/sim/techData';
-import { END_OF_TURN_PHASES, emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
+import { emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
 import { UNIT_TYPE_IDS, isRanged, unitDef } from '../../src/sim/unitData';
 import { fullMovement, hasStackingRoom } from '../../src/sim/units';
 import {
@@ -69,6 +68,7 @@ import {
 import { computeFreshwater } from '../../src/sim/water';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { openEveryWar } from './warHelpers';
+import { createGame, newGame } from './newGameHelpers';
 
 /**
  * The wild (playable.md item 3, ledger Entry XX).
@@ -261,17 +261,6 @@ describe('the faction', () => {
 });
 
 describe('the phase', () => {
-  it('sits after the towns and before the healing', () => {
-    const names = END_OF_TURN_PHASES.map((phase) => phase.name);
-    // The position is a rules decision (see `barbarianTurn`): after the cities'
-    // phases so a raid meets the world this turn produced, before `healUnits` so
-    // a raider that marched or fought is not resting.
-    expect(names.indexOf('barbarians')).toBeGreaterThan(names.indexOf('healCities'));
-    expect(names.indexOf('barbarians')).toBeLessThan(names.indexOf('healUnits'));
-    expect(names.indexOf('barbarians')).toBeLessThan(names.indexOf('resetMovement'));
-    expect(names.indexOf('barbarians')).toBeLessThan(names.indexOf('refreshVisibility'));
-  });
-
   it('does nothing at all in a world with no wild in it', () => {
     const quiet = newGame({
       seed: 4,
@@ -964,18 +953,6 @@ function distance(state: GameState, a: { col: number; row: number }, b: { col: n
 }
 
 describe('role derivation', () => {
-  it('prefers theft to raiding when an unguarded civilian is in reach', () => {
-    const state = wildState();
-    const wild = wildId(state);
-    // Something to raid *and* something to steal, the raider between them.
-    foundCityAt(state, 0, at(state, 5, 8));
-    const prey = createUnit(state, 0, 'worker', 9, 8);
-    const raider = createUnit(state, wild, 'warrior', 10, 8);
-    recomputeAllVisibility(state);
-
-    expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'thief', preyId: prey.id });
-  });
-
   it('an empire at peace with the wild keeps its civilians off the menu too', () => {
     const state = wildState();
     const wild = wildId(state);

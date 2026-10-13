@@ -10,9 +10,10 @@
 import { expect } from 'vitest';
 
 import { type Command } from '../../src/sim/commands';
-import { type Game, createGame, dispatch } from '../../src/sim/game';
+import { type Game, dispatch } from '../../src/sim/game';
 import type { GameConfig } from '../../src/sim/state';
 import { unitDef } from '../../src/sim/unitData';
+import { createGame } from './newGameHelpers';
 
 export function config(overrides: Partial<GameConfig> = {}): GameConfig {
   return {

@@ -33,8 +33,9 @@ import { diplomacyDecision } from '../../src/ai/diplomacy';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { type City, type GameState, bumpRevision, newGame, playerById } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision, playerById } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 const UI_SOURCE = import.meta.glob('../../src/ui/*.ts', {
   query: '?raw',

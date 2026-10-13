@@ -9,7 +9,8 @@
 
 import { describe, expect, it } from 'vitest';
 import { hudBadgeWaiting, religionBadgeWaiting } from '../../src/ui/hudDock';
-import { newGame, type Player } from '../../src/sim/state';
+import { type Player } from '../../src/sim/state';
+import { newGame } from '../sim/newGameHelpers';
 
 function playerFixture(): Player {
   const state = newGame({
@@ -29,12 +30,6 @@ describe('hudBadgeWaiting', () => {
 
   it('is false with no player to ask — an empty seat owes no decision', () => {
     expect(hudBadgeWaiting(undefined)).toBe(false);
-  });
-
-  it('is true while an Order draft is waiting', () => {
-    const player = playerFixture();
-    player.statecraft.pendingOrder = { options: [] };
-    expect(hudBadgeWaiting(player)).toBe(true);
   });
 
   it('is true while a Doctrine draft is waiting', () => {

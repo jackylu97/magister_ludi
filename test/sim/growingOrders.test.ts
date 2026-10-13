@@ -15,7 +15,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { dispatch, replay, snapshotState } from '../../src/sim/game';
 import type { Command } from '../../src/sim/commands';
 import { getTileAt, tileNeighbors } from '../../src/sim/map';
 import { isWaterTerrain } from '../../src/sim/terrainData';
@@ -44,6 +44,7 @@ import {
   orderDef,
 } from '../../src/sim/statecraftData';
 import { game, found, marchOut } from './statecraftHelpers';
+import { createGame } from './newGameHelpers';
 
 // --- harness ----------------------------------------------------------------
 

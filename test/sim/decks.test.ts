@@ -31,14 +31,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { applyCommand } from '../../src/sim/commands';
-import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { type Game, dispatch, snapshotState } from '../../src/sim/game';
 import { LEADER_IDS, leaderDecks, leaderDef } from '../../src/sim/leaderData';
 import { RITE_IDS, riteAbility } from '../../src/sim/religionData';
 import {
   type GameState,
   type Player,
   SCHEMA_VERSION,
-  newGame,
   playerById,
 } from '../../src/sim/state';
 import {
@@ -96,6 +95,7 @@ import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { BUILDING_IDS } from '../../src/sim/buildingData';
 import { UNIT_TYPE_IDS } from '../../src/sim/unitData';
 import { stockDecks, stockStandardDecks, stockedShelf } from './statecraftHelpers';
+import { createGame, newGame } from './newGameHelpers';
 
 // --- the design doc, read ------------------------------------------------------
 

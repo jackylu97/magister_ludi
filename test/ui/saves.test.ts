@@ -16,8 +16,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/game';
-import { type GameConfig, SCHEMA_VERSION, hasEndedTurn, newGame } from '../../src/sim/state';
+import { type Game, dispatch, snapshotState } from '../../src/sim/game';
+import { type GameConfig, SCHEMA_VERSION, hasEndedTurn } from '../../src/sim/state';
 import {
   AUTOSAVE_SLOT,
   MAX_SAVE_CHARS,
@@ -48,6 +48,7 @@ import {
   unpackSave,
   writeSave,
 } from '../../src/ui/saves';
+import { createGame, newGame } from '../sim/newGameHelpers';
 
 /**
  * `localStorage` in eleven lines. The real one satisfies `SaveStorage`

@@ -14,11 +14,16 @@ import {
 } from '../../src/sim/startPositions';
 import { startBiasOf } from '../../src/sim/leaderData';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameConfig, newGame } from '../../src/sim/state';
+import { type GameConfig } from '../../src/sim/state';
 import { moveCost } from '../../src/sim/terrainData';
 import { unitDef } from '../../src/sim/unitData';
 import { unitsOnTile } from '../../src/sim/units';
 import { gameFor, mapFor } from './fixtures';
+import { newGame } from '../sim/newGameHelpers';
+// `buildNewGame` is the real builder, not the test memo. The determinism
+// test below checks that building twice gives the same game, and a memo
+// would answer that by copying.
+import { newGame as buildNewGame } from '../../src/sim/state';
 
 function config(players: number, sizeName = 'duel', seed = 4242): GameConfig {
   return {
@@ -266,8 +271,8 @@ describe('newGame start placement', () => {
   });
 
   it('is deterministic: two games from one config seat units identically', () => {
-    const a = newGame(config(4, 'standard'));
-    const b = newGame(config(4, 'standard'));
+    const a = buildNewGame(config(4, 'standard'));
+    const b = buildNewGame(config(4, 'standard'));
     expect(a.units).toEqual(b.units);
     expect(JSON.stringify(a.units)).toBe(JSON.stringify(b.units));
   });

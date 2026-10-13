@@ -44,7 +44,8 @@
 import { type GameMap } from '../../src/sim/map';
 import { type MapDetail, type MapgenOverrides, generateMapDetail } from '../../src/sim/mapgen';
 import { restoreState, snapshotState } from '../../src/sim/game';
-import { type GameConfig, type GameState, newGame } from '../../src/sim/state';
+import { type GameConfig, type GameState } from '../../src/sim/state';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * The cache key. `JSON.stringify` of the sheet rather than the sheet itself,

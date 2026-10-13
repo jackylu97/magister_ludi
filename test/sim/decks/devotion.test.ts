@@ -22,7 +22,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type Game, createGame } from '../../../src/sim/game';
+import { type Game } from '../../../src/sim/game';
 import {
   type City,
   type GameState,
@@ -68,6 +68,7 @@ import {
 import { RULES } from '../../../src/sim/rulesData';
 import type { BuildingId } from '../../../src/sim/buildingData';
 import type { RiteId } from '../../../src/sim/religionData';
+import { createGame } from '../newGameHelpers';
 
 /** The deck's own ids, in file order — the shelf everything below is asked of. */
 const DEVOTION: readonly OrderId[] = DECK_FILE_ORDERS.devotion;

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, dispatch } from '../../src/sim/game';
+import { dispatch } from '../../src/sim/game';
 import { bumpRevision } from '../../src/sim/state';
 import { pendingCourtOffers } from '../../src/ui/diplomacyOffers';
+import { createGame } from '../sim/newGameHelpers';
 
 function fixture() {
   const game = createGame({ seed: 7, sizeName: 'duel', players: [

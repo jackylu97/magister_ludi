@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { createMap, tileIndex } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import {
   NOTIFICATION_CAP,
@@ -10,6 +10,7 @@ import {
   createSightingWatcher,
   isActionable,
 } from '../../src/ui/notifications';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * The notification channel's model half: the per-seat chronicle, and the diff

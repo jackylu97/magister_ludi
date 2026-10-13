@@ -57,7 +57,7 @@ import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { BUILDING_IDS } from '../../src/sim/buildingData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { compendiumSections } from '../../src/ui/compendium';
-import { createGame } from '../../src/sim/game';
+import { createGame } from './newGameHelpers';
 import { inkDistance, MIN_INK_DISTANCE } from '../../src/art/seatInks';
 import { SEATS } from '../../src/ui/gameSetup';
 

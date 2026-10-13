@@ -7,10 +7,11 @@ import { signImprovements, signImprovedCells } from '../../src/render3d/improvem
 import { signRoadCells } from '../../src/render3d/roads3d';
 import { signSites } from '../../src/render3d/sites3d';
 import { signFeatureCells } from '../../src/render3d/board3d';
-import { newGame, createUnit, type GameState } from '../../src/sim/state';
+import { createUnit, type GameState } from '../../src/sim/state';
 import { createMap } from '../../src/sim/map';
 import { resetVisibility } from '../../src/sim/visibility';
 import { foundCityAt } from '../../src/sim/cities';
+import { newGame } from '../sim/newGameHelpers';
 
 function fixture() {
   const state = newGame({seed: 7, sizeName: 'duel', players: [{name: 'A', color: '#ac3333', isHuman: true}, {name: 'B', color: '#3344ac', isHuman: true}]});

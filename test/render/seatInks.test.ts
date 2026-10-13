@@ -32,7 +32,8 @@ import { LEADER_IDS, leaderDef } from '../../src/sim/leaderData';
 import { SEATS } from '../../src/ui/gameSetup';
 import { NO_LEADER, leaderFaces, seatLeaders } from '../../src/ui/leaderSelect';
 import { VIEW3D, playerPieceColor } from '../../src/render3d/lookData';
-import { createGame, snapshotState } from '../../src/sim/game';
+import { snapshotState } from '../../src/sim/game';
+import { createGame } from '../sim/newGameHelpers';
 import { compendiumSections } from '../../src/ui/compendium';
 
 // --- the bench ---------------------------------------------------------------

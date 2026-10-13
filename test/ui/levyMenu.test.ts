@@ -10,13 +10,14 @@ import { describe, expect, it } from 'vitest';
 
 import { foundCityAt, growthThreshold, refreshCityDerived } from '../../src/sim/cities';
 import { type Command } from '../../src/sim/commands';
-import { createGame, dispatch, type Game } from '../../src/sim/game';
+import { dispatch, type Game } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { type City, bumpRevision, playerById } from '../../src/sim/state';
 import type { OrderId } from '../../src/sim/statecraftData';
 import { levyMenuModel } from '../../src/ui/levyMenu';
 import { braceBody, uiSource } from './sourceHelpers';
+import { createGame } from '../sim/newGameHelpers';
 
 function bench(population = 6): { g: Game; city: City } {
   const g = createGame({

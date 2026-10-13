@@ -34,10 +34,11 @@ import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundCityAt, foundingErrorAt } from '../../src/sim/cities';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { readSites } from '../../src/sim/readings';
-import { bumpRevision, type GameState, newGame } from '../../src/sim/state';
+import { bumpRevision, type GameState } from '../../src/sim/state';
 import { EXPLORED, HIDDEN, resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import type { LensMode, LensView } from '../../src/ui/mapView';
+import { newGame } from '../sim/newGameHelpers';
 
 /** The layer's own source, for the register assertion at the foot of this file. */
 const LENS_SOURCE = (await import('../../src/render3d/lens3d.ts?raw')).default as string;

@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 
 import { type BuildingId, buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt, realiseItem } from '../../src/sim/cities';
-import { createGame } from '../../src/sim/game';
+import { createGame } from './newGameHelpers';
 import { type GameMap, getTileAt } from '../../src/sim/map';
 import {
   type City,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BoxGeometry, BufferGeometry, Color, InstancedMesh, Material, Mesh, MeshStandardMaterial, ShaderLib, Vector3 } from 'three';
 import { buildPaintedBoard, type PaintedBoard, type PaintedBoardMaterials, type PaintedVegetationAssets } from '../../src/render3d/paintedBoard.js';
-import { newGame } from '../../src/sim/state';
+import { newGame } from '../sim/newGameHelpers';
 import { PaintedWorksLayer, PAINTED_WORK_ASSET_NAMES, type PaintedWorksAssets } from '../../src/render3d/paintedWorks';
 import { installPaintedSurface, uninstallPaintedSurface, samplePaintedSurface, pickPaintedSurface } from '../../src/render3d/paintedSurface';
 import { terraceFarmSurface } from '../../src/render3d/terraceFarmSurface';

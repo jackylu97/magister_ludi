@@ -61,7 +61,6 @@ import {
   type Unit,
   bumpRevision,
   createUnit,
-  newGame,
   removeUnit,
   captureUnit,
 } from '../../src/sim/state';
@@ -75,6 +74,7 @@ import {
 } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { type ResourceId, resourceDef } from '../../src/sim/resourceData';
+import { newGame } from './newGameHelpers';
 
 // --- the bench --------------------------------------------------------------
 

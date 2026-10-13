@@ -19,9 +19,10 @@ import { buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, newGame, bumpRevision } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { defenseRows, defenseTotal, maxHpLedger } from '../../src/ui/cityPanel';
+import { newGame } from '../sim/newGameHelpers';
 
 const SOURCES = import.meta.glob(
   ['../../src/ui/unitPanel.ts', '../../src/ui/cityPanel.ts', '../../src/ui/controls.ts'],

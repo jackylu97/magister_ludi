@@ -22,7 +22,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type Game, createGame } from '../../../src/sim/game';
+import { type Game } from '../../../src/sim/game';
 import {
   type GameState,
   type Player,
@@ -70,6 +70,7 @@ import {
   ordersForDecks,
 } from '../../../src/sim/statecraftData';
 import { TECH_IDS, type TechId, techDef } from '../../../src/sim/techData';
+import { createGame } from '../newGameHelpers';
 
 /** The deck's own rows, in file order — what every draw and every screen walks. */
 const ROWS: readonly OrderId[] = DECK_FILE_ORDERS.expansionist;

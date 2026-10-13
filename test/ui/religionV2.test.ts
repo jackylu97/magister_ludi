@@ -23,7 +23,6 @@ import {
   type GameState,
   type Religion,
   createUnit,
-  newGame,
   bumpRevision,
 } from '../../src/sim/state';
 import {
@@ -65,6 +64,7 @@ import {
 } from '../../src/ui/religionScreen';
 import { chargeCostWords, proclaimSays } from '../../src/ui/controls';
 import { unitDef } from '../../src/sim/unitData';
+import { newGame } from '../sim/newGameHelpers';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {

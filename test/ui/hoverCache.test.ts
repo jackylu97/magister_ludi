@@ -11,7 +11,7 @@
  * the key, the readout goes stale until the pointer crosses into another hex.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createGame, dispatch } from '../../src/sim/game';
+import { dispatch } from '../../src/sim/game';
 import { createMap, getTileAt, tileHex } from '../../src/sim/map';
 import { bumpRevision, createUnit } from '../../src/sim/state';
 import { foundCityAt } from '../../src/sim/cities';
@@ -19,6 +19,7 @@ import { VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { createGameControls } from '../../src/ui/controls';
 import type { HoverInfo, MapView } from '../../src/ui/mapView';
 import { braceBody, uiSource } from './sourceHelpers';
+import { createGame } from '../sim/newGameHelpers';
 
 /** A two-seat game on a blank grassland board, everything in sight. */
 function makeGame() {

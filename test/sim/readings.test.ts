@@ -64,13 +64,14 @@ import {
 // file re-imported would count nothing at all.
 import * as tradeModule from '../../src/sim/trade';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
-import { type City, type GameState, bumpRevision, newGame, playerById } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision, playerById } from '../../src/sim/state';
 import { snapshotState } from '../../src/sim/game';
 import { END_OF_TURN_PHASES, runEndOfTurn } from '../../src/sim/turn';
 import { found, game } from './statecraftHelpers';
 import { refreshCityDerived } from '../../src/sim/cities';
 import { type BeliefId, BELIEF_IDS } from '../../src/sim/religionData';
 import { liveEffects } from '../../src/sim/statecraft/evaluator';
+import { newGame } from './newGameHelpers';
 
 /** The steps a town's list may carry — `docs/yields.md`'s 1 through 10. */
 const TOWN_STEPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];

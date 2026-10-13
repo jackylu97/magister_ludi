@@ -23,7 +23,7 @@ import {
 import { mapRange, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { generateMap } from '../../src/sim/mapgen';
 import { MAPGEN_CONFIG } from '../../src/sim/mapgenData';
-import { type GameConfig, type PlayerSpec, newGame, normalizeConfig } from '../../src/sim/state';
+import { type GameConfig, type PlayerSpec, normalizeConfig } from '../../src/sim/state';
 import {
   type StartSeat,
   chooseStartPositions,
@@ -41,6 +41,7 @@ import {
   castFor,
   seatOf,
 } from './leaderCriteria';
+import { newGame } from '../sim/newGameHelpers';
 
 const SEATS: StartSeat[] = LEADER_IDS.map((leader) => ({ leader }));
 
@@ -144,6 +145,16 @@ describe('a roster with no figures in it', () => {
 });
 
 describe('a roster with figures in it', () => {
+  /**
+   * Seed 11's standard map under the full roster, generated once for the tests
+   * below that only read it. The determinism test still generates its own two.
+   */
+  let held: ReturnType<typeof generateMap> | null = null;
+  function biasedMap(): ReturnType<typeof generateMap> {
+    held ??= generateMap(11, 'standard', undefined, SEATS);
+    return held;
+  }
+
   it('is a pure function of the roster: the same seats twice, the same world', () => {
     const first = generateMap(11, 'standard', undefined, SEATS);
     const second = generateMap(11, 'standard', undefined, SEATS);
@@ -155,12 +166,12 @@ describe('a roster with figures in it', () => {
 
   it('moves the world, so the figures are doing something at all', () => {
     const plain = generateMap(11, 'standard');
-    const biased = generateMap(11, 'standard', undefined, SEATS);
+    const biased = biasedMap();
     expect(fingerprint(biased)).not.toBe(fingerprint(plain));
   });
 
   it('seats every chair, and no two on one hex', () => {
-    const map = generateMap(11, 'standard', undefined, SEATS);
+    const map = biasedMap();
     const seated = chooseStartPositionsFor(map, SEATS);
     expect(seated).toHaveLength(SEATS.length);
     const at = seated.map((tile) => tileIndex(map, tile.col, tile.row));
@@ -168,7 +179,7 @@ describe('a roster with figures in it', () => {
   });
 
   it('scores a seat with labelled bias lines whose fold is the total (rule 5)', () => {
-    const map = generateMap(11, 'standard', undefined, SEATS);
+    const map = biasedMap();
     const seated = chooseStartPositionsFor(map, SEATS);
     const cap = startBiasCap(map);
     const bias = startBiasOf(SEATS[0]!.leader)!;
@@ -192,7 +203,7 @@ describe('a roster with figures in it', () => {
     // is all taken by the time its chair is served goes without — lawfully — and
     // what is still true is the thing worth pinning: it went without only
     // because there was nothing left to take.
-    const map = generateMap(11, 'standard', undefined, SEATS);
+    const map = biasedMap();
     const seated = chooseStartPositionsFor(map, SEATS);
     const spacing = startSpacing(map);
     const taken = new Set(seated.map((tile) => tileIndex(map, tile.col, tile.row)));
@@ -203,14 +214,17 @@ describe('a roster with figures in it', () => {
       // Nothing free, accepted, and far enough from every other chair answered
       // what this figure asked for — the fallback's own condition, asked of the
       // board rather than trusted.
+      // The site score is by far the dearest of the four questions, so it is
+      // asked last, of the few hexes the other three let through.
       const going = map.tiles.filter((tile) => {
         if (taken.has(tileIndex(map, tile.col, tile.row))) return false;
-        if (scoreStartSite(map, tile).reject !== null) return false;
         if (!siteMeetsWants(map, tile, wants)) return false;
-        return seated.every(
+        const farEnough = seated.every(
           (other, index) =>
             index === seat || wrappedDistance(map, tileHex(tile), tileHex(other)) >= spacing,
         );
+        if (!farEnough) return false;
+        return scoreStartSite(map, tile).reject === null;
       });
       expect(`${SEATS[seat]!.leader}: ${going.length} sites it could have had`).toBe(
         `${SEATS[seat]!.leader}: 0 sites it could have had`,
@@ -249,7 +263,7 @@ describe('a roster with figures in it', () => {
     const seat = LEADER_IDS.indexOf('mithridates');
     const wanted = startBiasOf('mithridates')!.furnish!;
     const radius = MAPGEN_CONFIG.resources.startFurnishRadius;
-    const map = generateMap(11, 'standard', undefined, SEATS);
+    const map = biasedMap();
     const start = chooseStartPositionsFor(map, SEATS)[seat]!;
     const near = mapRange(map, tileHex(start), radius);
     for (const kind of wanted) {

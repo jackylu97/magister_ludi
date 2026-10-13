@@ -35,7 +35,6 @@ import {
   bumpRevision,
   capitalCityOf,
   createUnit,
-  newGame,
   playerById,
 } from '../../src/sim/state';
 import {
@@ -50,6 +49,7 @@ import { fullMovement } from '../../src/sim/units';
 import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { openEveryWar } from './warHelpers';
+import { newGame } from './newGameHelpers';
 
 // --- the bench ---------------------------------------------------------------
 

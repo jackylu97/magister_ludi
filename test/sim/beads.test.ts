@@ -65,7 +65,6 @@ import {
 import { type Command, applyCommand } from "../../src/sim/commands";
 import { advanceProduction, foundCityAt } from "../../src/sim/cities";
 import {
-  createGame,
   dispatch,
   loadGame,
   replay,
@@ -85,7 +84,6 @@ import {
   type GameState,
   SCHEMA_VERSION,
   createUnit,
-  newGame,
   bumpRevision,
 } from "../../src/sim/state";
 import { buildError, isUnlocked } from "../../src/sim/tech";
@@ -93,6 +91,7 @@ import { razeCityAt } from "../../src/sim/diplomacy";
 import { END_OF_TURN_PHASES, runEndOfTurn } from "../../src/sim/turn";
 import { resetVisibility } from "../../src/sim/visibility";
 import { openEveryWar } from "./warHelpers";
+import { createGame, newGame } from './newGameHelpers';
 
 // --- the bench --------------------------------------------------------------
 

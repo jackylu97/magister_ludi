@@ -5,8 +5,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { createGame } from '../sim/newGameHelpers';
 
-import { createGame } from '../../src/sim/game';
 import type { GameState } from '../../src/sim/state';
 import { unitDef } from '../../src/sim/unitData';
 import { openingFocus } from '../../src/ui/openingFocus';

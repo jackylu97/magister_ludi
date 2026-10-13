@@ -12,10 +12,11 @@ import * as surfaceQueries from '../../src/render3d/paintedSurface';
 import { UnitLayer, badgeAnchors, placePiece, terrainUnder, unitColor } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { createMap, tileIndex } from '../../src/sim/map';
-import { newGame, type GameState, type Unit } from '../../src/sim/state';
+import { type GameState, type Unit } from '../../src/sim/state';
 import { unitDef, type UnitTypeId } from '../../src/sim/unitData';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { layerMeshes, worldMatrices, wrapCopiesOf } from './unitLayerHelpers';
+import { newGame } from '../sim/newGameHelpers';
 
 const cleanup: (() => void)[] = [];
 afterEach(() => { for (const dispose of cleanup.splice(0).reverse()) dispose(); vi.restoreAllMocks(); });

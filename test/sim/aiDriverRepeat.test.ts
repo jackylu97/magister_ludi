@@ -24,8 +24,9 @@ import type { BotDecision } from '../../src/ai/decision';
 import { driveSeat, sentToAPiece } from '../../src/ai/driver';
 import { createBotStepper } from '../../src/ai/stepper';
 import { applyCommand, type Command, type MoveUnitCommand } from '../../src/sim/commands';
-import { createGame, restoreState, snapshotState } from '../../src/sim/game';
+import { restoreState, snapshotState } from '../../src/sim/game';
 import { getTileAt, mapRange, tileHex } from '../../src/sim/map';
+import { createGame } from './newGameHelpers';
 
 const stub = {
   command: null as Command | null,

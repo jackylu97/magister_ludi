@@ -18,7 +18,7 @@ import {
 import { cityMaxHp } from '../../src/sim/combat';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { raid } from '../../src/sim/barbarians';
-import { type Game, createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../../src/sim/game';
+import { type Game, dispatch, loadGame, replay, saveGame, snapshotState } from '../../src/sim/game';
 import { buildingDef } from '../../src/sim/buildingData';
 import { improvementDef, improvementForResource } from '../../src/sim/improvementData';
 import { improvementError, improvementErrorAt } from '../../src/sim/improvements';
@@ -39,7 +39,6 @@ import {
   type GameState,
   type Unit,
   createUnit,
-  newGame,
   bumpRevision,
 } from '../../src/sim/state';
 import { hasAbility } from '../../src/sim/tech';
@@ -56,6 +55,7 @@ import { TERRAIN_IDS, isEmbarkableTerrain, isWaterTerrain, isWorkableTerrain } f
 import { isCivilian, isExplorer, unitDef } from '../../src/sim/unitData';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
+import { createGame, newGame } from './newGameHelpers';
 
 /**
  * The water milestone (design ledger, Entry XXVII): **Sailing, civilian

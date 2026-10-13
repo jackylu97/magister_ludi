@@ -8,7 +8,7 @@ import { MoveAnimations3D } from '../../src/render3d/animation3d';
 import { VIEW3D } from '../../src/render3d/lookData';
 import { badgeAnchors, placePiece } from '../../src/render3d/pieces';
 import { badgeCenterY } from '../../src/render3d/badges3d';
-import { newGame, type Unit } from '../../src/sim/state';
+import { type Unit } from '../../src/sim/state';
 import { installPaintedSurface, samplePaintedSurface, samplePaintedWorld, uninstallPaintedSurface } from '../../src/render3d/paintedSurface';
 // The study remains JavaScript; these tests exercise its production adapter.
 // @ts-expect-error No declarations for the standalone art modules.
@@ -17,6 +17,7 @@ import { prepareTerrainMap, neighbour, surfaceHeight, terrainMapWraps } from '..
 import { terrainMesh } from '../../src/terrainStudy/terrainMesh.js';
 // @ts-expect-error No declarations for the standalone art modules.
 import { createMountainRanges } from '../../src/terrainStudy/mountainRanges.js';
+import { newGame } from '../sim/newGameHelpers';
 
 type PreparedTile = Tile & { shoreEdges: number; joinedEdges: number; sharedHillEdges: number };
 type PreparedMap = GameMap & { tiles: PreparedTile[] };

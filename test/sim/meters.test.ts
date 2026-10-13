@@ -18,7 +18,7 @@ import {
 import {
   collectYields,
 } from '../../src/sim/yields/empire';
-import { type Game, createGame, dispatch, replay, saveGame, loadGame, snapshotState } from '../../src/sim/game';
+import { type Game, dispatch, replay, saveGame, loadGame, snapshotState } from '../../src/sim/game';
 import {
   type GameMap,
   type Tile,
@@ -55,11 +55,11 @@ import {
   type GameState,
   SCHEMA_VERSION,
   createUnit,
-  newGame,
   playerById,
   bumpRevision,
 } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
+import { createGame, newGame } from './newGameHelpers';
 
 /**
  * Wine's signature, read off the table rather than written down here.

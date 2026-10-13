@@ -14,9 +14,10 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Command } from '../../src/sim/commands';
-import { createGame, dispatch } from '../../src/sim/game';
+import { dispatch } from '../../src/sim/game';
 import { adoptGovernmentAt, draftCost } from '../../src/sim/statecraft';
 import { GOVERNMENT_TIERS, governmentsAtTier } from '../../src/sim/statecraftData';
+import { createGame } from './newGameHelpers';
 
 function game(seed = 7) {
   return createGame({

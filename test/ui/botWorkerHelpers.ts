@@ -16,11 +16,12 @@ import { answerAudience, driveBots, noteSentOrder, repeatsAnOrder } from '../../
 import { pendingDealRefusal, rememberDealRefusal } from '../../src/ai/dealMemory';
 import { readHarnessMemory } from '../../src/ai/harnessMemory';
 import type { Command } from '../../src/sim/commands';
-import { type Game, createGame, dispatch } from '../../src/sim/game';
+import { type Game, dispatch } from '../../src/sim/game';
 import { type GameConfig, playerById } from '../../src/sim/state';
 import { type BotWorkerRequest, answerBotWorker } from '../../src/ui/bot.worker';
 import { type TwinOutcome, applyTwinReply } from '../../src/ui/botTwin';
 import { digestOfState } from '../sim/aiDigestHelpers';
+import { createGame } from '../sim/newGameHelpers';
 
 export type Thinker = 'page' | 'worker';
 

@@ -10,7 +10,7 @@ import {
 import { cityBlockaded } from '../../src/sim/blockade';
 import { foundCityAt, spawnTileFor } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
-import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { type Game, dispatch, snapshotState } from '../../src/sim/game';
 import { type Tile, createMap, getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import {
   canStopOn,
@@ -24,7 +24,7 @@ import {
 } from '../../src/sim/pathfind';
 import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/routeYields';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, type Unit, bumpRevision, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, type Unit, bumpRevision, createUnit } from '../../src/sim/state';
 import { buildError } from '../../src/sim/tech';
 import { plainTechs } from './techHelpers';
 import { isWaterTerrain } from '../../src/sim/terrainData';
@@ -34,6 +34,7 @@ import { fullMovement, hasStackingRoom } from '../../src/sim/units';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 import { openEveryWar } from './warHelpers';
+import { createGame, newGame } from './newGameHelpers';
 
 /**
  * The naval line (`docs/tech-tree.md`, ruled 2026-08-29): three classes, one

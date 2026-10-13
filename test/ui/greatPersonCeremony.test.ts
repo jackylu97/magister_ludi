@@ -17,8 +17,9 @@ import { describe, expect, it } from 'vitest';
 
 import { CEREMONY_TIMING, deedLine } from '../../src/ui/greatPersonCeremony';
 import { greatPersonFace, legacyIsSilent } from '../../src/ui/greatPersonFace';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
+import { newGame } from '../sim/newGameHelpers';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {

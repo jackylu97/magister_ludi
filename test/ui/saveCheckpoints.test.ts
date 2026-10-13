@@ -19,7 +19,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { type Game, createGame, tryReplay, tryReplayResuming } from '../../src/sim/game';
+import { type Game, tryReplay, tryReplayResuming } from '../../src/sim/game';
 import { type GameConfig, type GameState, SCHEMA_VERSION } from '../../src/sim/state';
 import { lastLoaderMetrics, loadSlotAsync } from '../../src/ui/gameLoader';
 import {
@@ -46,6 +46,8 @@ import {
   playBots as play,
   replayedState as replayed,
 } from './gameLoaderHelpers';
+import { createGame } from '../sim/newGameHelpers';
+import { grownGames } from '../sim/grownGameHelpers';
 
 const CONFIG: GameConfig = {
   seed: 20261006,
@@ -57,10 +59,16 @@ const CONFIG: GameConfig = {
   barbarians: true,
 };
 
+/**
+ * The duel after any number of bot turns, played forward once for the file
+ * (`test/sim/grownGameHelpers.ts`). Every call hands back a private copy.
+ */
+const grownDuel = grownGames(CONFIG);
+
 /** Plays `turns`, autosaves through the real autosaver with checkpoints on. */
 async function autosaved(turns: number) {
-  const game = createGame(CONFIG);
-  play(game, turns);
+  const game = grownDuel(turns);
+  if (game.state.winnerId !== null) throw new Error('autosaved: the duel was won; pick a shorter horizon');
   const storage = memorySaveStorage();
   const { store, checkpoints } = checkpointsFor();
   const auto = createAutosaver({ storage, onWarn: () => undefined, checkpoints, defer: (t) => t() });

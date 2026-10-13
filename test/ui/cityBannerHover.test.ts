@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createCityBanners } from '../../src/ui/cityBanners';
 import type { MapView } from '../../src/ui/mapView';
 import { foundCityAt } from '../../src/sim/cities';
-import { createGame } from '../../src/sim/game';
+import { createGame } from '../sim/newGameHelpers';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { createUnit } from '../../src/sim/state';
 import { VISIBLE, resetVisibility } from '../../src/sim/visibility';

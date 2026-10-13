@@ -17,7 +17,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { driveBots } from '../../src/ai/driver';
-import { createGame, snapshotState, tryReplay } from '../../src/sim/game';
+import { snapshotState, tryReplay } from '../../src/sim/game';
 import { type GameConfig, normalizeConfig } from '../../src/sim/state';
 import {
   REFUSAL_WAY_OUT,
@@ -30,6 +30,7 @@ import {
 } from '../../src/ui/loadingSheet';
 import { loadSave, makeSavePayload } from '../../src/ui/saves';
 import { uiSource } from './sourceHelpers';
+import { createGame } from '../sim/newGameHelpers';
 
 const CONFIG: GameConfig = {
   seed: 20260914,

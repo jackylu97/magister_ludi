@@ -47,7 +47,7 @@ import {
   realiseItem,
   settleProductionWindfall,
 } from '../../src/sim/cities';
-import { createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import { nextBotCommand } from '../../src/ai/bot';
 import { RULES } from '../../src/sim/rulesData';
@@ -65,6 +65,7 @@ import { BUILDING_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
 import { game } from './purchaseHelpers';
+import { createGame } from './newGameHelpers';
 
 // --- harness ----------------------------------------------------------------
 

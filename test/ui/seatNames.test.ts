@@ -35,9 +35,10 @@
 import { describe, expect, it } from 'vitest';
 
 import { LEADER_IDS, leaderDef, seatName, seatPeople } from '../../src/sim/leaderData';
-import { type PlayerSpec, newGame, realPlayers } from '../../src/sim/state';
+import { type PlayerSpec, realPlayers } from '../../src/sim/state';
 import { rosterFor } from '../../src/ui/gameSetup';
 import { seatLeaders } from '../../src/ui/leaderSelect';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * Every surface that could print a seat's name: the interface, the shell, the

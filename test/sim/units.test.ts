@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, type Unit, createUnit } from '../../src/sim/state';
 import {
   UNIT_TYPE_IDS,
   isCivilian,
@@ -18,6 +18,7 @@ import {
   unitsOnTile,
 } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 
 /** A blank two-player state on a flat grassland rectangle. */
 function flatState(width = 16, height = 8): GameState {

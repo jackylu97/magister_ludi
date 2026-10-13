@@ -30,7 +30,6 @@ import {
   type GameState,
   bumpRevision,
   createUnit,
-  newGame,
   playerById,
   realPlayers,
 } from '../../../src/sim/state';
@@ -45,6 +44,7 @@ import {
 import { type OrderId } from '../../../src/sim/statecraftData';
 import { resetVisibility } from '../../../src/sim/visibility';
 import { openWar } from '../../../src/sim/wars';
+import { newGame } from '../newGameHelpers';
 
 const OPUS = { kind: 'building', id: 'theMagnumOpus' } as City['queue'][number];
 

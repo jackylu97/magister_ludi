@@ -29,10 +29,11 @@ import {
 } from '../../src/sim/greatPeopleData';
 import { improvementDef, workForFamily } from '../../src/sim/improvementData';
 import { describeFamilyVerb, stripRefs } from '../../src/sim/statecraft';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
 import { poolFigure } from '../../src/ui/figures';
 import { firstBlocker } from '../../src/ui/turnBlockers';
+import { newGame } from '../sim/newGameHelpers';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {

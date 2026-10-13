@@ -32,7 +32,7 @@ import {
   discoveryWeight,
 } from '../../src/sim/discoveryData';
 import { discoveryCells, placeDiscoveries } from '../../src/sim/discoveryPlacement';
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { dispatch, replay, snapshotState } from '../../src/sim/game';
 import { generateMap } from '../../src/sim/mapgen';
 import { MAPGEN_CONFIG } from '../../src/sim/mapgenData';
 import { makeRng } from '../../src/sim/rng';
@@ -41,7 +41,6 @@ import { chooseStartPositions } from '../../src/sim/startPositions';
 import {
   type GameState,
   createUnit,
-  newGame,
   playerById,
   bumpRevision,
 } from '../../src/sim/state';
@@ -52,6 +51,11 @@ import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { stockStandardDecks } from './statecraftHelpers';
+import { createGame, newGame } from './newGameHelpers';
+// `buildNewGame` is the real builder, not the test memo. The determinism
+// test below checks that building twice gives the same game, and a memo
+// would answer that by copying.
+import { newGame as buildNewGame } from '../../src/sim/state';
 
 /**
  * **The shelf, stocked for the file** (the decks rework, D1a): every
@@ -861,8 +865,8 @@ describe('replay', () => {
       sizeName: 'duel' as const,
       players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
     };
-    const state = newGame(config);
-    const twin = newGame(config);
+    const state = buildNewGame(config);
+    const twin = buildNewGame(config);
     const tile = state.map.tiles.find((candidate) => candidate.terrain === 'grassland')!;
     const twinTile = twin.map.tiles[state.map.tiles.indexOf(tile)]!;
     tile.discovery = 'ruins';

@@ -17,7 +17,6 @@ import {
   type GameState,
   type Unit,
   createUnit,
-  newGame,
   bumpRevision,
 } from '../../src/sim/state';
 import { availableTechs } from '../../src/sim/tech';
@@ -26,6 +25,7 @@ import { unitDef } from '../../src/sim/unitData';
 import { unitAwaitsOrders, unitOfferedForOrders } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
 import { firstBlocker, firstUnitOffer } from '../../src/ui/turnBlockers';
+import { newGame } from '../sim/newGameHelpers';
 
 /** A two-player state on a blank grassland rectangle, as `tech.test.ts` uses. */
 function flatState(width = 16, height = 12): GameState {

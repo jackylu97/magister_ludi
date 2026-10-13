@@ -16,8 +16,8 @@
 
 import { describe, expect, it } from 'vitest';
 import { uiSource } from './sourceHelpers';
+import { createGame } from '../sim/newGameHelpers';
 
-import { createGame } from '../../src/sim/game';
 import { settleCampBounty } from '../../src/sim/camps';
 import { runCommissions } from '../../src/sim/commissions';
 import { type GameState, bumpRevision, playerById } from '../../src/sim/state';

@@ -24,20 +24,20 @@
 import { describe, expect, it } from 'vitest';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
-import { type Game, createGame, dispatch, loadGame, saveGame, replay } from '../../src/sim/game';
+import { type Game, dispatch, loadGame, saveGame, replay } from '../../src/sim/game';
 import { createMap } from '../../src/sim/map';
 import {
   type GameState,
   type Unit,
   SCHEMA_VERSION,
   createUnit,
-  newGame,
 } from '../../src/sim/state';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { sleepError, sleepingSnapshot, unitAwaitsOrders, wakesSince } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { openEveryWar } from './warHelpers';
+import { createGame, newGame } from './newGameHelpers';
 
 /**
  * A blank three-seat state on flat grassland: two empires and the wild, so a

@@ -26,7 +26,7 @@ import { describe, expect, it } from 'vitest';
 
 import { claimClearedCampGround } from '../../../src/sim/camps';
 import { foundCityAt } from '../../../src/sim/cities';
-import { type Game, createGame } from '../../../src/sim/game';
+import { type Game } from '../../../src/sim/game';
 import { buildImprovementAt } from '../../../src/sim/improvements';
 import {
   type Tile,
@@ -60,6 +60,7 @@ import { TECH_IDS } from '../../../src/sim/techData';
 import { buildError, isUnlocked } from '../../../src/sim/tech';
 import { unitStampStrength } from '../../../src/sim/unitData';
 import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
+import { createGame } from '../newGameHelpers';
 
 function duel(seed = 11): Game {
   return createGame({

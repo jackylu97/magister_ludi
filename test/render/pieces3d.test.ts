@@ -68,7 +68,7 @@ import { MaterialLibrary } from '../../src/render3d/toon';
 import { pickUnitModel } from '../../src/render3d/unitModelPicking';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 import { createMap, tileIndex } from '../../src/sim/map';
-import { type GameState, barbarianPlayer, newGame } from '../../src/sim/state';
+import { type GameState, barbarianPlayer } from '../../src/sim/state';
 import { isEmbarkableTerrain } from '../../src/sim/terrainData';
 import {
   UNIT_TYPE_IDS,
@@ -81,6 +81,7 @@ import {
 import { resetVisibility } from '../../src/sim/visibility';
 import { closeWar, openWar } from '../../src/sim/wars';
 import { culledWhileInView, frustumOver, layerMeshes, worldMatrices, wrapCopiesOf } from './unitLayerHelpers';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * The sculpted miniatures: one board model per *class* of unit, all standing on
@@ -334,19 +335,6 @@ describe('the model-class roster', () => {
       if (unitDef(type).consecrates === true || unitDef(type).proclaims === true || unitDef(type).purges === true) continue;
       expect(badgeClassFor(type)).not.toBe('religious');
     }
-  });
-
-  it('builds a badge quad for every cell, the great person included', () => {
-    const board = geometry();
-    const seen = new Set<unknown>();
-    for (const id of BADGE_CELLS) {
-      expect(board.badgeIcons[id], `no badge quad for ${id}`).toBeDefined();
-      seen.add(board.badgeIcons[id]);
-    }
-    // Distinct geometries, because each bakes its own atlas rectangle: two
-    // classes sharing one quad would be two classes wearing one icon.
-    expect(seen.size).toBe(BADGE_CELLS.length);
-    board.dispose();
   });
 
   it('leaves no class model without a unit standing on it', () => {

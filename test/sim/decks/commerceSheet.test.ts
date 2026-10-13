@@ -17,8 +17,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { createGame } from '../newGameHelpers';
 
-import { createGame } from '../../../src/sim/game';
 import { addBuilding, bumpRevision, playerById } from '../../../src/sim/state';
 import { foundCityAt, ownedTiles, resourceCopies } from '../../../src/sim/cities';
 import { explainCity } from '../../../src/sim/yields/town';

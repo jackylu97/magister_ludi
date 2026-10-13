@@ -26,7 +26,7 @@ import { AXIS_MARK } from '../../src/ui/religionScreen';
 import { BELIEF_AXES } from '../../src/sim/religionData';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt } from '../../src/sim/cities';
-import { createGame } from '../../src/sim/game';
+import { createGame } from '../sim/newGameHelpers';
 import { getTileAt } from '../../src/sim/map';
 import { explainContribution } from '../../src/sim/purchase';
 import { playerById, bumpRevision } from '../../src/sim/state';

@@ -17,12 +17,12 @@ import {
   type Unit,
   bumpRevision,
   createUnit,
-  newGame,
 } from '../../src/sim/state';
 import { ABILITY_TECH, TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { openWar } from '../../src/sim/wars';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 
 /**
  * A blank grassland rectangle, two seats, every technology known.

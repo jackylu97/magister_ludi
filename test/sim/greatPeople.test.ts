@@ -43,7 +43,7 @@ import {
 } from '../../src/sim/yields/empire';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { previewCombat } from '../../src/sim/combat';
-import { createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { dispatch, snapshotState } from '../../src/sim/game';
 import {
   actGainOf,
   agedActFactor,
@@ -75,7 +75,6 @@ import {
   type GameState,
   type Unit,
   createUnit,
-  newGame,
   unitById,
   bumpRevision,
 } from '../../src/sim/state';
@@ -103,6 +102,7 @@ import {
 import type { CardEffectKind } from '../../src/sim/statecraftData';
 import { highestAge, techDef } from '../../src/sim/techData';
 import { game, found, keepTheRites, marchOut } from './statecraftHelpers';
+import { createGame, newGame } from './newGameHelpers';
 
 const PEOPLE = RULES.greatPeople;
 

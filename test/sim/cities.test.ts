@@ -69,7 +69,6 @@ import {
 } from '../../src/sim/yields/empire';
 import {
   type Game,
-  createGame,
   dispatch,
   loadGame,
   replay,
@@ -91,7 +90,6 @@ import {
   type Unit,
   SCHEMA_VERSION,
   createUnit,
-  newGame,
   playerById,
   bumpRevision,
 } from '../../src/sim/state';
@@ -115,6 +113,7 @@ import { PROJECT_IDS } from '../../src/sim/projectData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { roundYield } from '../../src/sim/yieldFormat';
+import { createGame, newGame } from './newGameHelpers';
 
 const CITIES = RULES.cities;
 
@@ -2322,16 +2321,6 @@ describe('windfall settlement (Entry XVIII)', () => {
     expect(city.queue).toEqual([{ kind: 'building', id: 'university' }]);
   });
 
-  it('adds a windfall to what the basket already held', () => {
-    const { state, city, worker } = chopper();
-    city.queue = [{ kind: 'building', id: 'amphitheater' }];
-    city.hammerBasket = buildingProductionCost('amphitheater') - TIMBER;
-
-    expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
-    expect(city.buildings).toEqual(['amphitheater']);
-    expect(city.hammerBasket).toBe(0);
-  });
-
   it('climbs the settler ladder exactly as the phase does', () => {
     // The A/B: the same city finishing the same settler through the two doors.
     // Escalation is the property most likely to be forgotten by a second
@@ -2866,13 +2855,23 @@ describe('escalating worker cost', () => {
     // escalating type (CLAUDE.md, "the ladder generalises"). Its old sibling
     // `noSettlerEscalation` was retired with the flag rulings of 2026-09-03, so
     // the ladder itself now always climbs, for every escalating row.
+    //
+    // The card is Colonial Charters, the one row that carries `settlerCost`
+    // today. This test used to grant Manifest of the Steppe, which lost its
+    // settler discount in the orders pass of 2026-09-10, so it had stopped
+    // checking anything. The settler half is pinned in `statecraft.test.ts`
+    // ("rulePercent — Colonial Charters cheapens settlers"); this is the worker
+    // half.
     const state = flatState();
     state.players[0]!.unitsBuilt.worker = 3;
+    state.players[0]!.unitsBuilt.settler = 3;
     const before = unitProductionCost(state, 0, 'worker');
-    state.players[0]!.statecraft.doctrines.push('manifestOfTheSteppe');
+    const settlerBefore = unitProductionCost(state, 0, 'settler');
+    state.players[0]!.techsResearched.push('colonialCharters' as never);
     bumpRevision(state);
-    const after = unitProductionCost(state, 0, 'worker');
-    expect(after).toBe(before);
+    // The card is live on this board: the settler did get cheaper.
+    expect(unitProductionCost(state, 0, 'settler')).toBeLessThan(settlerBefore);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(before);
   });
 
   it('charges the price it quotes, in production', () => {

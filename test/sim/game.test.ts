@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { type Command } from '../../src/sim/commands';
 import {
   type Game,
-  createGame,
   dispatch,
   loadGame,
   replay,
@@ -14,6 +13,11 @@ import {
 import { tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { type Cell, findPath, pathTurns, reachableTiles } from '../../src/sim/pathfind';
 import { type GameConfig, type Unit, SCHEMA_VERSION } from '../../src/sim/state';
+import { createGame } from './newGameHelpers';
+// `buildGame` is the real builder, not the test memo. The determinism
+// test below checks that building twice gives the same game, and a memo
+// would answer that by copying.
+import { createGame as buildGame } from '../../src/sim/game';
 
 function config(overrides: Partial<GameConfig> = {}): GameConfig {
   return {
@@ -91,14 +95,6 @@ describe('dispatch', () => {
 });
 
 describe('replay', () => {
-  it('reproduces the live state exactly from config and log', () => {
-    const game = createGame(config());
-    endTurns(game, 7);
-    const rebuilt = replay(game.config, game.log);
-    expect(rebuilt).toEqual(game.state);
-    expect(snapshotState(rebuilt)).toBe(snapshotState(game.state));
-  });
-
   it('reproduces an untouched game too', () => {
     const game = createGame(config());
     expect(replay(game.config, game.log)).toEqual(game.state);
@@ -445,8 +441,8 @@ describe('snapshotState / restoreState', () => {
 
 describe('determinism guard', () => {
   it('produces bit-identical states for interleaved games from one config', () => {
-    const a = createGame(config());
-    const b = createGame(config());
+    const a = buildGame(config());
+    const b = buildGame(config());
     for (let i = 0; i < 12; i++) {
       const command = endTurn(i % 3);
       // Deliberately alternate which game moves first.

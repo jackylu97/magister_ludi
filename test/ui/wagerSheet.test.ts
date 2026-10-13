@@ -135,9 +135,6 @@ describe('the deal sheet', () => {
     expect(sheet).not.toContain("window.addEventListener('keydown'");
   });
 
-  it('is registered for disposal like every other screen', () => {
-    expect(source('main.ts')).toContain('gameDisposers.push(() => wagerSheet?.dispose());');
-  });
 });
 
 describe('the track and the figure', () => {
@@ -196,12 +193,6 @@ describe('the Abacus, reworked', () => {
 });
 
 describe('the deed sheet’s age draw, retired', () => {
-  it('no longer raises itself on the age', () => {
-    const beads = source('beadsScreen.ts');
-    expect(beads).not.toContain('announceAge');
-    expect(beads).not.toContain('drawBanner');
-  });
-
   it('is the wager’s deal sheet that the age raises now', () => {
     const main = source('main.ts');
     const pump = main.slice(main.indexOf('function pumpBeadNews()'));

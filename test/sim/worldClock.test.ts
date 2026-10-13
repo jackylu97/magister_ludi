@@ -6,7 +6,6 @@ import {
   type GameState,
   SCHEMA_VERSION,
   bumpRevision,
-  newGame,
 } from "../../src/sim/state";
 import { LAST_TECH_AGE, type TechId } from "../../src/sim/techData";
 import { closeTheGreatWork, runWorldClock } from "../../src/sim/beads";
@@ -22,6 +21,7 @@ import {
   worldAge,
   worldAgeCountdown,
 } from "../../src/sim/worldClock";
+import { newGame } from './newGameHelpers';
 
 /**
  * **The world's clock** — batch G1, `docs/wager.md` §1 (the spec of record).

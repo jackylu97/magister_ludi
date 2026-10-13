@@ -38,9 +38,10 @@ import {
   unitRosterCost,
 } from '../../src/sim/cities';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { BUILDING_UNLOCK_TECH, UNIT_UNLOCK_TECH, techColumn } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
+import { newGame } from './newGameHelpers';
 
 /** The rows as they are written down, not as the interface types them. */
 const BUILDING_ROWS = (BUILDINGS_JSON as unknown as {

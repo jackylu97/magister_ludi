@@ -32,7 +32,7 @@ import {
   razeCityError,
   withdrawPeaceError,
 } from '../../src/sim/diplomacy';
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { dispatch, replay, snapshotState } from '../../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { pillageError } from '../../src/sim/improvements';
 import { canStopOn, canTransit, findPath, reachableTiles } from '../../src/sim/pathfind';
@@ -43,7 +43,6 @@ import {
   SCHEMA_VERSION,
   capitalCityOf,
   createUnit,
-  newGame,
 } from '../../src/sim/state';
 import { runEndOfTurn } from '../../src/sim/turn';
 import {
@@ -58,6 +57,7 @@ import {
   warBetween,
 } from '../../src/sim/wars';
 import { resetVisibility } from '../../src/sim/visibility';
+import { createGame, newGame } from './newGameHelpers';
 
 const WAR = RULES.war;
 

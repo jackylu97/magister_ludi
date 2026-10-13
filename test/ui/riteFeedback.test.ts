@@ -27,10 +27,11 @@ import { describe, expect, it } from 'vitest';
 
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
-import { type City, type GameState, bumpRevision, newGame } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import { riteSentence } from '../../src/ui/controls';
+import { newGame } from '../sim/newGameHelpers';
 
 const SOURCES = import.meta.glob(['../../src/ui/controls.ts'], {
   eager: true,

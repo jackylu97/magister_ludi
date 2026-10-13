@@ -17,9 +17,10 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { type City, type GameState, newGame } from '../../src/sim/state';
+import { type City, type GameState } from '../../src/sim/state';
 import { BELIEF_AXES } from '../../src/sim/religionData';
 import { HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * Cities that age (design ledger Entry VII's W1, the art pass): a town's sculpt

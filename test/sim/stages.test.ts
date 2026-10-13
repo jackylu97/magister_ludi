@@ -64,11 +64,11 @@ import {
   type GameState,
   type QueueItem,
   createUnit,
-  newGame,
   bumpRevision,
 } from '../../src/sim/state';
 import { plainTechs } from './techHelpers';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 
 /**
  * Entry XVII (the modifier doctrine) and Entry XVIII.5 (windfalls are

@@ -34,7 +34,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { dispatch, replay, snapshotState } from '../../src/sim/game';
 import {
   autoExploreError,
   exploreSearch,
@@ -44,7 +44,7 @@ import {
 import { advanceAlongPath } from '../../src/sim/movement';
 import { createMap, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, createUnit, newGame, bumpRevision } from '../../src/sim/state';
+import { type GameState, createUnit, bumpRevision } from '../../src/sim/state';
 import { END_OF_TURN_PHASES } from '../../src/sim/turn';
 import { isCombatant, isExplorer, unitDef } from '../../src/sim/unitData';
 import { unitAwaitsOrders } from '../../src/sim/units';
@@ -55,6 +55,7 @@ import {
   resetVisibility,
 } from '../../src/sim/visibility';
 import { firstBlocker } from '../../src/ui/turnBlockers';
+import { createGame, newGame } from './newGameHelpers';
 
 /**
  * A blank three-seat state on flat grassland — `sleep.test.ts`' fixture, for

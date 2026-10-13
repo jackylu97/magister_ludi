@@ -9,7 +9,7 @@
  * being exported from a test file: importing a `.test.ts` from a `.test.ts`
  * re-registers its tests.
  */
-import { createGame } from '../../src/sim/game';
+import { createGame } from './newGameHelpers';
 import type { Command } from '../../src/sim/commands';
 import type { PurchasableItem } from '../../src/sim/purchase';
 

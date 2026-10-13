@@ -36,11 +36,12 @@ import {
 import type { MaterialLibrary } from '../../src/render3d/toon';
 import { createMap } from '../../src/sim/map';
 import { makeRng } from '../../src/sim/rng';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { openEveryWar } from '../sim/warHelpers';
 import { WRAP_COPIES, layerMeshes, worldMatrices } from './unitLayerHelpers';
+import { newGame } from '../sim/newGameHelpers';
 
 const HP = VIEW3D.hpBar;
 

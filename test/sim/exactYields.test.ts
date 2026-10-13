@@ -48,10 +48,11 @@ import { cardYieldConversions } from '../../src/sim/statecraft';
 import { applyStages, foldStages, type StagedLine } from '../../src/sim/yields/stages';
 import { RULES } from '../../src/sim/rulesData';
 import { createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
+import { type GameState, bumpRevision } from '../../src/sim/state';
 import { formatYield, roundYield, signedYield, yieldShows } from '../../src/sim/yieldFormat';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 
 const CITIES = RULES.cities;
 

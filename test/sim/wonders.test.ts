@@ -38,7 +38,7 @@ import {
   isWonder,
 } from '../../src/sim/buildingData';
 import { applyCommand } from '../../src/sim/commands';
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { dispatch, replay, snapshotState } from '../../src/sim/game';
 import { purchaseError } from '../../src/sim/purchase';
 import { RULES } from '../../src/sim/rulesData';
 import {
@@ -99,6 +99,7 @@ import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { getTileAt } from '../../src/sim/map';
 import { buildError } from '../../src/sim/tech';
 import { emptyTurnReport } from '../../src/sim/turn';
+import { createGame } from './newGameHelpers';
 
 /** The row every framework test is written against. */
 const WONDER = 'theOracle' as const;

@@ -36,9 +36,10 @@ import {
   unitProductionCost,
 } from '../../src/sim/cities';
 import { siegeField, underSiege } from '../../src/sim/combat';
-import { type City, type GameState, bumpRevision, createUnit, newGame } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision, createUnit } from '../../src/sim/state';
 import type { Tile } from '../../src/sim/map';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 
 // --- harness ----------------------------------------------------------------
 

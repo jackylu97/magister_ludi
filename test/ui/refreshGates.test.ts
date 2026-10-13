@@ -16,11 +16,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { foundCityAt, turnsToBuild } from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { readCity } from '../../src/sim/readings';
-import { type City, type GameState, bumpRevision, newGame } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { cityGrowthRing } from '../../src/ui/cityBanners';
 import { createInfoCard } from '../../src/ui/infoCard';
 import { braceBody, uiSource } from './sourceHelpers';
+import { newGame } from '../sim/newGameHelpers';
 
 afterEach(() => vi.unstubAllGlobals());
 

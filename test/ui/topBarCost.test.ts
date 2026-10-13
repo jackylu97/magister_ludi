@@ -38,11 +38,12 @@ import * as town from '../../src/sim/yields/town';
 import * as meters from '../../src/sim/meters';
 import * as empireGold from '../../src/sim/empireGold';
 import { createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
+import { type GameState, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { readEmpire } from '../../src/sim/readings';
 import { setSlateShadow, slateShadow } from '../../src/sim/slate';
 import { tradeLedger } from '../../src/ui/tradeScreen';
+import { newGame } from '../sim/newGameHelpers';
 
 const UI_SOURCE = import.meta.glob(
   [

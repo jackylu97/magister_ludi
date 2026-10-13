@@ -10,10 +10,11 @@
  */
 import { createMap } from '../../src/sim/map';
 import type { Tile } from '../../src/sim/map';
-import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, type Unit, createUnit } from '../../src/sim/state';
 import type { UnitTypeId } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { openEveryWar } from './warHelpers';
+import { newGame } from './newGameHelpers';
 
 /** A blank state on flat grassland, with a second seat to be hostile with. */
 export function flatState(width = 12, height = 10): GameState {

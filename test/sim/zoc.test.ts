@@ -34,12 +34,13 @@ import {
   zocField,
 } from '../../src/sim/pathfind';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, type Unit, createCity, newGame, realPlayers } from '../../src/sim/state';
-import { type Game, createGame, dispatch, replay } from '../../src/sim/game';
+import { type GameState, type Unit, createCity, realPlayers } from '../../src/sim/state';
+import { type Game, dispatch, replay } from '../../src/sim/game';
 import { unitDef } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
 import { flatState, unit } from './zocHelpers';
+import { createGame, newGame } from './newGameHelpers';
 
 // --- scaffolding ------------------------------------------------------------
 

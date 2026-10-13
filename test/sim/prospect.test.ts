@@ -13,9 +13,10 @@ import {
 } from '../../src/sim/improvements';
 import { prospectDef } from '../../src/sim/improvementData';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, createUnit } from '../../src/sim/state';
 import { ABILITY_IDS, TECH_IDS, abilityDef, techDef } from '../../src/sim/techData';
 import { at, bareState as plainState } from './improvementHelpers';
+import { newGame } from './newGameHelpers';
 
 /**
  * The survey: `prospect`, and what turning a hill over is worth (ledger Entry

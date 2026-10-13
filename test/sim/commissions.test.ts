@@ -14,7 +14,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { type Game, dispatch, snapshotState } from '../../src/sim/game';
 import { settleCampBounty } from '../../src/sim/camps';
 import { capitalCityOf, playerById, bumpRevision, type GameState } from '../../src/sim/state';
 import {
@@ -43,6 +43,7 @@ import {
 } from '../../src/sim/commissions';
 import { END_OF_TURN_PHASES } from '../../src/sim/turn';
 import { found, keepTheRites } from './statecraftHelpers';
+import { createGame } from './newGameHelpers';
 
 const FRONTIER = 'dominionClearTheFrontier' as OrderId;
 const STRONGROOM = 'theStrongroom' as OrderId;

@@ -11,10 +11,11 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { foundCityAt } from '../../src/sim/cities';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import type { LensView } from '../../src/ui/mapView';
+import { newGame } from '../sim/newGameHelpers';
 
 function lens(overrides: Partial<LensView> = {}): LensView {
   return { ...NO_LENS, ...overrides };

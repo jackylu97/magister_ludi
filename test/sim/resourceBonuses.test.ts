@@ -67,7 +67,6 @@ import {
   type Unit,
   bumpRevision,
   createUnit,
-  newGame,
 } from '../../src/sim/state';
 import { TECH_IDS, type TechId } from '../../src/sim/techData';
 import { upgradeUnits } from '../../src/sim/tech';
@@ -76,6 +75,7 @@ import { resetVisibility } from '../../src/sim/visibility';
 import { openWar } from '../../src/sim/wars';
 import { UNIT_TYPE_IDS } from '../../src/sim/unitData';
 import { plainTechs } from './techHelpers';
+import { newGame } from './newGameHelpers';
 
 // --- the bench --------------------------------------------------------------
 

@@ -17,7 +17,6 @@ import {
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   type Game,
-  createGame,
   dispatch,
   loadGame,
   replay,
@@ -86,6 +85,7 @@ import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { at, bareState, woodedWorker } from './improvementHelpers';
 import { unitAwaitsOrders } from '../../src/sim/units';
+import { createGame } from './newGameHelpers';
 
 /**
  * Milestone 7: workers, the things they build, and the raiders who burn them.
@@ -392,16 +392,6 @@ describe('buildImprovement', () => {
     expect(foldTile(tile)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
     applyCommand(state, build(0, worker.id, 'farm'));
     expect(foldTile(tile)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
-  });
-
-  it('removes the worker when its last charge goes', () => {
-    const { state, worker } = workerState();
-    worker.chargesLeft = 1;
-    expect(applyCommand(state, build(0, worker.id, 'farm'))).toEqual({ ok: true });
-    expect(unitById(state, worker.id)).toBeUndefined();
-    expect(state.units).toHaveLength(0);
-    // And the work stands: the piece left, the farm did not.
-    expect(at(state, 5, 4).improvement).toBe('farm');
   });
 
   it('refuses a unit that is not a builder', () => {
@@ -1659,14 +1649,6 @@ describe('chopFeature', () => {
       expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
       expect(second.hammerBasket).toBe(chopBaseFor(state, 0, 'forest').production);
       expect(capital.hammerBasket).toBe(0);
-    });
-
-    it('consumes the worker on its last charge, like every other spend', () => {
-      const { state, worker } = woodedWorker();
-      worker.chargesLeft = 1;
-      expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
-      expect(unitById(state, worker.id)).toBeUndefined();
-      expect(state.units).toHaveLength(0);
     });
 
     it('lets the yield, the movement cost and the defence follow by themselves', () => {

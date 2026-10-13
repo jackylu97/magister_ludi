@@ -7,12 +7,13 @@ import { VIEW3D } from '../../src/render3d/lookData';
 import { SiteLayer, signSites } from '../../src/render3d/sites3d';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { TECH_IDS } from '../../src/sim/techData';
 import { DISCOVERY_KINDS, discoveryKindTech } from '../../src/sim/discoveryData';
 import { prospectDef } from '../../src/sim/improvementData';
 import { computeFreshwater } from '../../src/sim/water';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * The board's half of the sites: the ruin, the village, the camp.

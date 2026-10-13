@@ -72,11 +72,12 @@ import {
 } from '../../src/sim/upkeep';
 import { makeRng } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, bumpRevision, createUnit, newGame } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision, createUnit } from '../../src/sim/state';
 import { type TechAge, type TechId, highestAge } from '../../src/sim/techData';
 import { plainTechs } from './techHelpers';
 import { resetVisibility } from '../../src/sim/visibility';
 import { readEmpire } from '../../src/sim/readings';
+import { newGame } from './newGameHelpers';
 
 /**
  * The luxury signature vocabulary (design ledger, Entry IX; `resourceEffects.ts`).

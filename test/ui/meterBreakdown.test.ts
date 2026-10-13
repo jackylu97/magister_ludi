@@ -22,10 +22,11 @@ import {
   foldMeter,
   meterStanding,
 } from '../../src/sim/meters';
-import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
+import { type GameState, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import { foldCityHappiness, meterGroups } from '../../src/ui/meterBreakdown';
+import { newGame } from '../sim/newGameHelpers';
 
 /** A flat two-player world with nothing on it but the cities a test founds. */
 function flatState(): GameState {

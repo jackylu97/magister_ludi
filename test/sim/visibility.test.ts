@@ -4,9 +4,9 @@ import { expandBorders, foundCityAt } from '../../src/sim/cities';
 import { applyCombat, blocksLineOfSight, hasLineOfSight } from '../../src/sim/combat';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { hasMetSeat } from '../../src/sim/diplomacy';
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { dispatch, replay, snapshotState } from '../../src/sim/game';
 import { runEndOfTurn } from '../../src/sim/turn';
-import { type GameState, SCHEMA_VERSION, createUnit, newGame, removeUnit } from '../../src/sim/state';
+import { type GameState, SCHEMA_VERSION, createUnit, removeUnit } from '../../src/sim/state';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { unitDef } from '../../src/sim/unitData';
@@ -26,6 +26,11 @@ import {
   visibilityAt,
 } from '../../src/sim/visibility';
 import { openEveryWar } from './warHelpers';
+import { createGame, newGame } from './newGameHelpers';
+// `buildNewGame` is the real builder, not the test memo. The determinism
+// test below checks that building twice gives the same game, and a memo
+// would answer that by copying.
+import { newGame as buildNewGame } from '../../src/sim/state';
 
 /**
  * Fog of war, from the simulation's side.
@@ -740,7 +745,7 @@ describe('determinism', () => {
         { name: 'B', color: '#00a' },
       ],
     };
-    expect(newGame(config).visibility).toEqual(newGame(config).visibility);
+    expect(buildNewGame(config).visibility).toEqual(buildNewGame(config).visibility);
   });
 
   it('replays a log to byte-identical fog', () => {

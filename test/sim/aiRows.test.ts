@@ -16,9 +16,10 @@ import { AI, PERSONA_IDS, aiConfigFor, withAiTuning } from '../../src/ai/aiConfi
 import { valueContext } from '../../src/ai/bot';
 import { driveBots } from '../../src/ai/driver';
 import { ageBand } from '../../src/ai/value';
-import { type Game, createGame } from '../../src/sim/game';
+import { type Game } from '../../src/sim/game';
 import type { GameConfig, Player } from '../../src/sim/state';
 import { playerById } from '../../src/sim/state';
+import { createGame } from './newGameHelpers';
 
 const CONFIG: GameConfig = {
   seed: 20260903,

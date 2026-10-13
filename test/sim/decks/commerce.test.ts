@@ -42,8 +42,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { createGame } from '../newGameHelpers';
 
-import { createGame } from '../../../src/sim/game';
 import {
   type City,
   addBuilding,

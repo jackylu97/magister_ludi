@@ -4,7 +4,6 @@ import {
   type GameConfig,
   type GameState,
   bumpRevision,
-  newGame,
   realPlayers,
 } from "../../src/sim/state";
 import type { TechId } from "../../src/sim/techData";
@@ -37,6 +36,11 @@ import { OCCASIONS } from "../../src/sim/occasions";
 import { END_OF_TURN_PHASES } from "../../src/sim/turn";
 import { applyCommand } from "../../src/sim/commands";
 import { firstBlocker } from "../../src/ui/turnBlockers";
+import { newGame } from './newGameHelpers';
+// `buildNewGame` is the real builder, not the test memo. The determinism
+// test below checks that building twice gives the same game, and a memo
+// would answer that by copying.
+import { newGame as buildNewGame } from "../../src/sim/state";
 
 /**
  * **The wager** — batch G2, `docs/wager.md` §2/§3/§3b (the spec of record).
@@ -275,8 +279,8 @@ describe("the deal", () => {
   });
 
   it("is a seed — the same board deals the same three", () => {
-    const one = newGame(config());
-    const two = newGame(config());
+    const one = buildNewGame(config());
+    const two = buildNewGame(config());
     dealAgeTwo(one);
     dealAgeTwo(two);
     expect(openWagerDeal(one)!.dealt).toEqual(openWagerDeal(two)!.dealt);

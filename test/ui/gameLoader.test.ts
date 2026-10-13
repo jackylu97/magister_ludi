@@ -18,8 +18,7 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { driveBots } from '../../src/ai/driver';
-import { type Game, createGame, snapshotState, tryReplay } from '../../src/sim/game';
+import { type Game, snapshotState, tryReplay } from '../../src/sim/game';
 import { type GameConfig, normalizeConfig } from '../../src/sim/state';
 import { createGameAsync, loadSaveAsync, loadSlotAsync } from '../../src/ui/gameLoader';
 import {
@@ -31,6 +30,8 @@ import {
 } from '../../src/ui/saves';
 import { fakeWorkerFactory } from './gameLoaderHelpers';
 import { uiSource } from './sourceHelpers';
+import { createGame } from '../sim/newGameHelpers';
+import { grownGames } from '../sim/grownGameHelpers';
 
 const CONFIG: GameConfig = {
   seed: 20260914,
@@ -43,13 +44,16 @@ const CONFIG: GameConfig = {
 };
 
 
+/**
+ * The duel after any number of bot turns, played forward once for the file
+ * (`test/sim/grownGameHelpers.ts`). No game here runs long enough to be won.
+ */
+const grownDuel = grownGames(CONFIG);
+
 /** A save with enough game behind it that the walk is a real walk. */
 function developedSave(turns: number): { json: string; game: Game } {
-  const game = createGame(CONFIG);
-  for (let turn = 0; turn < turns; turn++) {
-    driveBots(game, { warn: () => undefined });
-    if (game.state.winnerId !== null) break;
-  }
+  const game = grownDuel(turns);
+  if (game.state.winnerId !== null) throw new Error('developedSave: the duel was won; pick a shorter horizon');
   return { json: JSON.stringify(makeSavePayload(game, 'Pinned', 1_757_000_000_000)), game };
 }
 

@@ -11,10 +11,11 @@
 import { expect } from 'vitest';
 
 import type { Command } from '../../src/sim/commands';
-import { type Game, createGame, dispatch } from '../../src/sim/game';
+import { type Game, dispatch } from '../../src/sim/game';
 import type { GameConfig } from '../../src/sim/state';
 import { ABILITY_TECH, TECH_IDS, type TechAge, type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
+import { createGame } from './newGameHelpers';
 
 /** A two-player duel config, overridable a field at a time. */
 export function config(overrides: Partial<GameConfig> = {}): GameConfig {

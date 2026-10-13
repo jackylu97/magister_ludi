@@ -28,7 +28,7 @@ import {
   valueContext,
 } from '../../src/ai/bot';
 import { type BotDecision, foldTerms } from '../../src/ai/decision';
-import { type Game, createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { type Game, dispatch, replay, snapshotState } from '../../src/sim/game';
 import type { City, GameConfig, GameState, Player, Unit } from '../../src/sim/state';
 import type { Tile } from '../../src/sim/map';
 import {
@@ -58,6 +58,8 @@ import { happinessDemand } from '../../src/sim/meters';
 import { worthPerCoin } from '../../src/ai/wants';
 import { applyCommand } from '../../src/sim/commands';
 import { at, bareState } from './improvementHelpers';
+import { createGame } from './newGameHelpers';
+import { grownGames } from './grownGameHelpers';
 
 /**
  * The standing maintenance bill, as `goldReserveFor` reads it — the negative
@@ -242,10 +244,11 @@ describe('the bot', () => {
  * the same two tiles and the ordering says nothing.
  */
 function grownGame(turns = 10): Game {
-  const game = createGame(CONFIG);
-  for (let turn = 0; turn < turns; turn++) driveBots(game, { warn: () => {} });
-  return game;
+  return growDuel(turns);
 }
+
+/** The duel played forward once for the whole file (`grownGameHelpers.ts`). */
+const growDuel = grownGames(CONFIG);
 
 /** One seat's first town. */
 function firstCity(state: GameState, playerId: number): City {

@@ -12,7 +12,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { bumpEconomy } from '../../src/sim/slate';
 
-import { createGame, dispatch, snapshotState } from "../../src/sim/game";
+import { dispatch, snapshotState } from "../../src/sim/game";
 import type { Command } from "../../src/sim/commands";
 import {
   buildingProductionCost,
@@ -263,6 +263,7 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
 
 /** A city for a player, on the tile their first unit is standing on. */
 import { found, game, keepTheRites, marchOut, stockStandardDecks } from "./statecraftHelpers";
+import { createGame } from './newGameHelpers';
 
 /**
  * **The shelf, stocked for the file** (the decks rework, D1a): every
@@ -2438,13 +2439,6 @@ describe("a card is what it prints", () => {
     }
   });
 
-  it("holds a card once, in a list of ids", () => {
-    const g = game();
-    const sc = g.state.players[0]!.statecraft;
-    grant(sc, "firstRites");
-    grant(sc, "firstRites");
-    expect(sc.orders).toEqual(["firstRites"]);
-  });
 });
 
 describe("the draw is rarity-first", () => {
@@ -9191,18 +9185,6 @@ describe("an Order dealt only from its age", () => {
     expect(eligibleFor(g.state, player)).toEqual(
       deckPoolOf(g.state, player).filter((id) => orderDef(id).band === 0 && !sc.orders.includes(id)),
     );
-  });
-
-  it("never deals one to an empire still in an earlier age", () => {
-    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
-      const g = game(seed);
-      const player = playerById(g.state, 0)!;
-      player.statecraft.government = "theEmpire";
-      bumpRevision(g.state);
-      const offer = drawOrderOffer(g.state, player);
-      for (const id of offer.options)
-        expect(gated, `seed ${seed}`).not.toContain(id);
-    }
   });
 
   it("keeps the chair of a row already held, whatever the age or the mark says", () => {

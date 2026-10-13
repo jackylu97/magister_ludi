@@ -29,7 +29,6 @@ import {
   type GameState,
   bumpRevision,
   createUnit,
-  newGame,
   playerById,
 } from '../../src/sim/state';
 import { foundCityAt } from '../../src/sim/cities';
@@ -43,6 +42,7 @@ import {
   strategicHoldings,
   tileCopyCount,
 } from '../../src/ui/resourceCopies';
+import { newGame } from '../sim/newGameHelpers';
 
 function bench(): GameState {
   const state = newGame({

@@ -30,7 +30,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type Game, createGame } from '../../../src/sim/game';
+import { type Game } from '../../../src/sim/game';
 import { getTileAt, raiseImprovement, razeImprovement } from '../../../src/sim/map';
 import { refreshCityDerived } from '../../../src/sim/cities';
 import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
@@ -65,6 +65,7 @@ import {
 } from '../../../src/sim/statecraftData';
 import { TECH_IDS, type TechAge, type TechId, techDef } from '../../../src/sim/techData';
 import { found, game } from '../statecraftHelpers';
+import { createGame } from '../newGameHelpers';
 
 /** The ids of `data/decks/scientific.json`, in file order. */
 const DECK: readonly OrderId[] = DECK_FILE_ORDERS.scientific;

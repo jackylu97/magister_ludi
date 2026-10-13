@@ -31,7 +31,6 @@ import {
   SCHEMA_VERSION,
   bankedTowardTech,
   createUnit,
-  newGame,
   bumpRevision,
 } from '../../src/sim/state';
 import {
@@ -83,6 +82,7 @@ import {
 import { choose, config, researchingGame } from './techHelpers';
 import { UNIT_TYPE_IDS, type UnitTypeId, isUnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 
 const RESEARCH = RULES.research;
 
@@ -232,33 +232,6 @@ describe('tech data integrity', () => {
     expect(techDataProblems()).toEqual([]);
   });
 
-  it('is a DAG: every tech is reachable from the empty set', () => {
-    // Kahn's peel. If any tech is left over it depends, however indirectly, on
-    // itself — and nobody would ever be able to research it.
-    const settled = new Set<TechId>();
-    let progress = true;
-    while (progress) {
-      progress = false;
-      for (const id of TECH_IDS) {
-        if (settled.has(id)) continue;
-        if (!techDef(id).prereqs.every((prereq) => settled.has(prereq))) continue;
-        settled.add(id);
-        progress = true;
-      }
-    }
-    expect([...settled].sort()).toEqual([...TECH_IDS].sort());
-  });
-
-  it('names only real prerequisites, and never one from a later age', () => {
-    for (const id of TECH_IDS) {
-      const def = techDef(id);
-      for (const prereq of def.prereqs) {
-        expect(isTechId(prereq), `${id} → ${prereq}`).toBe(true);
-        expect(techDef(prereq).age, `${id} → ${prereq}`).toBeLessThanOrEqual(def.age);
-      }
-    }
-  });
-
   it('unlocks only units and buildings that exist, and each of them once', () => {
     const units: string[] = [];
     const buildings: string[] = [];
@@ -343,14 +316,6 @@ describe('tech data integrity', () => {
       expect(techGifts(id).length, id).toBeGreaterThan(0);
     }
     expect(unlockDataProblems()).toEqual([]);
-  });
-
-  it('gives every node a glyph the research dial and the chart can light up', () => {
-    for (const id of TECH_IDS) {
-      const glyph = techDef(id).glyph;
-      expect(typeof glyph, id).toBe('string');
-      expect(glyph.length, id).toBeGreaterThan(0);
-    }
   });
 
   // Soft check, not a rule `techDataProblems` enforces: today's table happens

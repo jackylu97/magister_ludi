@@ -40,7 +40,7 @@ import { type Command } from '../../src/sim/commands';
 import type { DealTerms } from '../../src/sim/deals';
 import { foundCityAt, hasResource, resourceCopies } from '../../src/sim/cities';
 import { dealSideError } from '../../src/sim/diplomacy';
-import { type Game, createGame, dispatch } from '../../src/sim/game';
+import { type Game, dispatch } from '../../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import {
   type City,
@@ -48,11 +48,11 @@ import {
   bumpRevision,
   createUnit,
   hasEndedTurn,
-  newGame,
   playerById,
 } from '../../src/sim/state';
 import { atWar, openWar } from '../../src/sim/wars';
 import { resetVisibility } from '../../src/sim/visibility';
+import { createGame, newGame } from './newGameHelpers';
 
 const SOURCES = import.meta.glob('../../src/ai/*.ts', {
   query: '?raw',

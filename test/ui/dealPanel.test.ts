@@ -32,7 +32,7 @@ import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { resourceDef } from '../../src/sim/resourceData';
-import { type City, type GameState, newGame, playerById, bumpRevision } from '../../src/sim/state';
+import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
 import { openWar } from '../../src/sim/wars';
 import { resetVisibility } from '../../src/sim/visibility';
 import {
@@ -41,6 +41,7 @@ import {
   dealPanel,
   termLines,
 } from '../../src/ui/diplomacyScreen';
+import { newGame } from '../sim/newGameHelpers';
 
 function bench(): GameState {
   const state = newGame({

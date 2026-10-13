@@ -23,10 +23,11 @@ import { explainAuthority, explainHappiness } from '../../src/sim/meters';
 import { foundCityAt } from '../../src/sim/cities';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type City, type GameState, createUnit } from '../../src/sim/state';
 import { openWar } from '../../src/sim/wars';
 import { resetVisibility } from '../../src/sim/visibility';
 import { uiSource } from './sourceHelpers';
+import { newGame } from '../sim/newGameHelpers';
 
 const source = uiSource;
 

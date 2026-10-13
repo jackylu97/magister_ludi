@@ -31,8 +31,9 @@
 
 import { type PersonaOverride, clearSeatTuning, setAiTuning } from '../../src/ai/aiConfig';
 import { driveBots } from '../../src/ai/driver';
-import { type Game, createGame, snapshotState } from '../../src/sim/game';
+import { type Game, snapshotState } from '../../src/sim/game';
 import type { GameState, PlayerSpec } from '../../src/sim/state';
+import { createGame } from './newGameHelpers';
 
 /**
  * The persona order of the measured six-seat game (§3.6 of the plan): the

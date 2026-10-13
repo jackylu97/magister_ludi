@@ -9,12 +9,13 @@ import { PaintedCityLayer, type PaintedCityAssets } from '../../src/render3d/pai
 import { installPaintedSurface, uninstallPaintedSurface } from '../../src/render3d/paintedSurface';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt, tileIndex, type GameMap } from '../../src/sim/map';
-import { newGame, type GameState } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { EXPLORED, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 // @ts-expect-error No declarations for the shared study geometry.
 import { prepareTerrainMap } from '../../src/terrainStudy/surface.js';
 // @ts-expect-error No declarations for the shared study geometry.
 import { terrainMesh } from '../../src/terrainStudy/terrainMesh.js';
+import { newGame } from '../sim/newGameHelpers';
 
 const cleanups: (() => void)[] = [];
 afterEach(() => { for (const cleanup of cleanups.splice(0).reverse()) cleanup(); });

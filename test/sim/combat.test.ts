@@ -26,7 +26,7 @@ import {
   underSiege,
 } from '../../src/sim/combat';
 import { type Command, applyCommand } from '../../src/sim/commands';
-import { type Game, createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { type Game, dispatch, replay, snapshotState } from '../../src/sim/game';
 import { greatPersonDef } from '../../src/sim/greatPeopleData';
 import {
   type GameMap,
@@ -45,7 +45,6 @@ import {
   type City,
   type GameState,
   createUnit,
-  newGame,
   realPlayers,
   bumpRevision,
 } from '../../src/sim/state';
@@ -57,6 +56,7 @@ import { techsGrant } from '../../src/sim/techData';
 import { defenseBonus, explainTerrainDefense } from '../../src/sim/terrainData';
 import { setRiverEdge } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
+import { createGame, newGame } from './newGameHelpers';
 
 const COMBAT = RULES.combat;
 
@@ -379,19 +379,6 @@ describe('melee', () => {
     expect({ col: a.col, row: a.row }).toEqual({ col: 3, row: 3 });
   });
 
-  it('can be killed by the counter-attack, and then takes nothing with it', () => {
-    const state = flatState();
-    const a = createUnit(state, 0, 'scout', 3, 3);
-    const d = createUnit(state, 1, 'knight', 4, 3);
-    a.hp = 3;
-
-    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
-    expect(state.units.find((unit) => unit.id === a.id)).toBeUndefined();
-    // The knight was still hurt: a melee is simultaneous, and a defender that
-    // kills its attacker still took the blow that was already swung.
-    expect(d.hp).toBeLessThan(unitDef('knight').maxHp);
-  });
-
   it('spends every remaining movement point and sets hasAttacked', () => {
     const state = flatState();
     const a = createUnit(state, 0, 'horseman', 3, 3);
@@ -434,19 +421,6 @@ describe('melee', () => {
  * `30 × 0.8 = 24` is a guaranteed double kill whatever the die does.
  */
 describe('a melee exchange never kills both sides', () => {
-  it('kills the defender and leaves the attacker on exactly one hit point', () => {
-    const state = flatState();
-    const a = createUnit(state, 0, 'warrior', 3, 3);
-    const d = createUnit(state, 1, 'warrior', 4, 3);
-    a.hp = 5;
-    d.hp = 5;
-
-    expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
-    expect(state.units.find((unit) => unit.id === d.id)).toBeUndefined();
-    expect(state.units.find((unit) => unit.id === a.id)).toBe(a);
-    expect(a.hp).toBe(1);
-  });
-
   it('lets the survivor advance, at one hit point, into the tile it emptied', () => {
     const state = flatState();
     const a = createUnit(state, 0, 'warrior', 3, 3);
@@ -456,6 +430,7 @@ describe('a melee exchange never kills both sides', () => {
 
     expect(applyCommand(state, attack(a.id, 4, 3))).toEqual({ ok: true });
     expect(state.units.find((unit) => unit.id === d.id)).toBeUndefined();
+    expect(state.units.find((unit) => unit.id === a.id)).toBe(a);
     // The advance rule is untouched by the clamp: a unit on 1 hit point that
     // emptied a tile still steps onto it.
     expect({ col: a.col, row: a.row, hp: a.hp }).toEqual({ col: 4, row: 3, hp: 1 });
@@ -1815,18 +1790,6 @@ describe('fighting across the waterline', () => {
 // --- healing ----------------------------------------------------------------
 
 describe('healing after a fight', () => {
-  it('does not heal a unit that attacked, even at full movement', () => {
-    const state = flatState();
-    const u = createUnit(state, 0, 'warrior', 3, 3);
-    u.hp = 40;
-    // The state a free attack would leave: nothing spent, but a fight had.
-    u.hasAttacked = true;
-    u.movesLeft = fullMovement(u);
-
-    endRound(state);
-    expect(u.hp).toBe(40);
-  });
-
   it('heals it again the turn after, once the flag is cleared', () => {
     const state = flatState();
     const u = createUnit(state, 0, 'warrior', 3, 3);

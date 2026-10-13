@@ -17,7 +17,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { showsSeatStrip } from '../../src/ui/controls';
-import { newGame } from '../../src/sim/state';
+import { newGame } from '../sim/newGameHelpers';
 
 describe('the top-bar seat strip', () => {
   it('is hidden in the one-human game the product ships', () => {

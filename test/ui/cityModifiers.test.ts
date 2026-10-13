@@ -34,10 +34,11 @@ import {
 import { createMap, getTileAt } from '../../src/sim/map';
 import { meterEffects } from '../../src/sim/meters';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import { stageRows } from '../../src/ui/cityPanel';
+import { newGame } from '../sim/newGameHelpers';
 
 type Source = readonly [string, string, boolean];
 

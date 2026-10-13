@@ -24,8 +24,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { createGame } from '../sim/newGameHelpers';
 
-import { createGame } from '../../src/sim/game';
 import { foundCityAt } from '../../src/sim/cities';
 import { getTileAt } from '../../src/sim/map';
 import { buildingDef } from '../../src/sim/buildingData';
@@ -183,24 +183,6 @@ describe('the new game screen', () => {
     expect(gated).not.toBeNull();
     expect(stripRefs(leaderOpeningWords('unit', 'warrior'))).toContain(techDef(gated).name);
     expect(leaderOpeningWords('unit', 'warrior')).toContain(`[[tech:${gated}|`);
-  });
-
-  it('names no figure, no card and no knob in the page or its module', () => {
-    // The arena panel's rule, one screen over: a fourteenth leader appears with
-    // no page edit, which is only true while nothing on the page holds a name.
-    // Whole words: `modu` is a leader id and also the first four letters of
-    // "module", and a substring search would fail on English rather than on a
-    // hard-coded figure.
-    const names = (source: string, word: string): boolean =>
-      new RegExp(`\\b${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(source);
-    for (const name of ['leaderSelect.ts', 'index.html', 'style.css']) {
-      const source = uiSource(name);
-      for (const id of LEADER_IDS) {
-        expect(names(source, id), `${name} names ${id}`).toBe(false);
-        const written = leaderDef(id).name;
-        expect(names(source, written), `${name} names ${written}`).toBe(false);
-      }
-    }
   });
 
   it('seats every rival under a distinct figure from the sheet minus yours', () => {

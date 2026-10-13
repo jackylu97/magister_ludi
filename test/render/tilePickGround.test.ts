@@ -213,19 +213,12 @@ const faceLine = (face: Face): string => {
 };
 
 describe('the tile pick reads the ground (R5)', () => {
-  it('prints the six-neighbour table', () => {
-    const pickOnly = fixture.board.pickMeshes.filter(mesh => mesh.userData.paintedPickOnly);
-    const heights = pickOnly.map(mesh => { const box = (mesh as { boundingBox?: { max: { y: number } } }).boundingBox; return box ? box.max.y.toFixed(2) : '?'; });
-    console.log(`\npick meshes ${fixture.board.pickMeshes.length}, of them pick-only (peaks) ${pickOnly.length}; peak batch tops y = ${heights.join(' ')}`);
-    const lines = measure().map(row =>
-      `${row.subject.padEnd(9)} ${row.zoom.padEnd(9)} aimed ${name(row.aimed).padEnd(18)} picked ${name(row.picked).padEnd(18)} ${row.picked === row.aimed ? 'ok' : 'WRONG'}`);
-    console.log(`\n${lines.join('\n')}\n`);
-    console.log(`face area handed to another hex:\n${coverage().map(faceLine).join('\n')}\n`);
-    expect(lines).toHaveLength(36);
-  });
-
   it('returns the neighbour every time, for a mountain, a hill and a flat hex, at both zooms', () => {
-    const wrong = measure().filter(row => row.picked !== row.aimed)
+    const rows = measure();
+    // Three subjects, two zooms, six neighbours: a sweep that found nothing
+    // would otherwise pass.
+    expect(rows).toHaveLength(36);
+    const wrong = rows.filter(row => row.picked !== row.aimed)
       .map(row => `${row.subject} ${row.zoom}: aimed ${name(row.aimed)} picked ${name(row.picked)}`);
     expect(wrong).toEqual([]);
   });

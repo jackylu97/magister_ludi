@@ -26,7 +26,7 @@ import { CITY_MARK_IDS, cityMark } from '../../src/art/cityMarks';
 import { foundCityAt, growthThreshold } from '../../src/sim/cities';
 import { cityMaxHp, siegeField, underSiege } from '../../src/sim/combat';
 import { createMap, getTileAt, neighborTiles, tileHex, tileIndex } from '../../src/sim/map';
-import { type GameState, createUnit, newGame, bumpRevision } from '../../src/sim/state';
+import { type GameState, createUnit, bumpRevision } from '../../src/sim/state';
 import { type UnitTypeId, unitMaxHp } from '../../src/sim/unitData';
 import { EXPLORED, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { cssHex } from '../../src/render3d/badges3d';
@@ -50,6 +50,7 @@ import {
   visibleCityBanners,
 } from '../../src/ui/cityBanners';
 import { uiSource } from './sourceHelpers';
+import { newGame } from '../sim/newGameHelpers';
 
 /** A blank grassland board, two seats, nothing on it yet. */
 function boardState(): GameState {

@@ -22,9 +22,10 @@ import { describe, expect, it } from 'vitest';
 
 import { createMap, getTileAt } from '../../src/sim/map';
 import { takesByWalking } from '../../src/sim/pathfind';
-import { type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, createUnit } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { openWar } from '../../src/sim/wars';
+import { newGame } from '../sim/newGameHelpers';
 
 const SOURCES = import.meta.glob(['../../src/ui/controls.ts'], {
   eager: true,

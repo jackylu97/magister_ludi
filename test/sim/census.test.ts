@@ -5,7 +5,6 @@ import {
   type GameState,
   SCHEMA_VERSION,
   drawCensusInterval,
-  newGame,
 } from "../../src/sim/state";
 import {
   CENSUS_STATS,
@@ -32,6 +31,11 @@ import { firstBlocker } from "../../src/ui/turnBlockers";
 import { makeRng } from "../../src/sim/rng";
 // A bench that moves the board by hand says so (`test/sim/benches.test.ts`).
 import { bumpRevision } from "../../src/sim/state";
+import { newGame } from './newGameHelpers';
+// `buildNewGame` is the real builder, not the test memo. The determinism
+// test below checks that building twice gives the same game, and a memo
+// would answer that by copying.
+import { newGame as buildNewGame } from "../../src/sim/state";
 
 /**
  * **The census** — batch C1, `docs/wager.md` §10/§11 (the spec of record).
@@ -128,8 +132,8 @@ describe("the calendar", () => {
   });
 
   it("replays: the same seed reaches the same calendar twice", () => {
-    expect(censusTurns(newGame(config({ seed: 44 })), 5)).toEqual(
-      censusTurns(newGame(config({ seed: 44 })), 5),
+    expect(censusTurns(buildNewGame(config({ seed: 44 })), 5)).toEqual(
+      censusTurns(buildNewGame(config({ seed: 44 })), 5),
     );
   });
 });

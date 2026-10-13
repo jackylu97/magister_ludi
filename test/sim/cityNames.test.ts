@@ -23,13 +23,14 @@ import { describe, expect, it } from 'vitest';
 
 import { foundCityAt, nextCityName } from '../../src/sim/cities';
 import { razeCityAt } from '../../src/sim/diplomacy';
-import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
+import { dispatch, replay, snapshotState } from '../../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { LEADER_IDS, type LeaderId, leaderDef } from '../../src/sim/leaderData';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, newGame } from '../../src/sim/state';
+import { type City, type GameState } from '../../src/sim/state';
 import { unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { createGame, newGame } from './newGameHelpers';
 
 const PLAIN = RULES.cities.cityNames;
 

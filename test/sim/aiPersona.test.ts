@@ -46,11 +46,13 @@ import { foldTerms } from '../../src/ai/decision';
 import { driveBots } from '../../src/ai/driver';
 import { ageBand } from '../../src/ai/value';
 import { buildImprovementPlan } from '../../src/ai/plan';
-import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { type Game, dispatch, snapshotState } from '../../src/sim/game';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import type { City, GameConfig, GameState, Player } from '../../src/sim/state';
 import { bumpRevision, createUnit, playerById, realPlayers } from '../../src/sim/state';
 import { openEveryWar } from './warHelpers';
+import { createGame } from './newGameHelpers';
+import { grownGames } from './grownGameHelpers';
 
 // Re-aimed from seed 20260831 on 2026-09-03, when the default map became a
 // pangaea: the old seed's capital came up ringed in forest and shore, and a bench
@@ -66,7 +68,15 @@ const CONFIG: GameConfig = {
   barbarians: true,
 };
 
-function grownGame(turns = 10, config: GameConfig = CONFIG): Game {
+/** The standard duel after `turns` turns of bot play, played forward once for the file. */
+function grownGame(turns = 10): Game {
+  return growDuel(turns);
+}
+
+const growDuel = grownGames(CONFIG);
+
+/** A game played from turn 0 every time, for the test whose subject is replaying. */
+function playGame(turns: number, config: GameConfig): Game {
   const game = createGame(config);
   for (let turn = 0; turn < turns; turn++) driveBots(game, { warn: () => {} });
   return game;
@@ -261,10 +271,10 @@ describe('the persona sheet', () => {
       ],
     };
     // It reaches the players, which is the only way the bot can ever see it.
-    const first = grownGame(8, config);
+    const first = playGame(8, config);
     expect(seat(first.state, 0).persona).toBe('warmonger');
     expect(seat(first.state, 1).persona).toBe('tall');
-    const second = grownGame(8, config);
+    const second = playGame(8, config);
     expect(JSON.stringify(second.log)).toBe(JSON.stringify(first.log));
     expect(snapshotState(second.state)).toBe(snapshotState(first.state));
   });
@@ -440,7 +450,7 @@ describe('the settler’s two new halves', () => {
     // near-cancellation lands the other way at three of the nine turn counts.
     // Re-swept on the new ground; four of twelve candidate seeds hold
     // throughout and this is the first of them.
-    const game = grownGame(15, { ...CONFIG, seed: 1 });
+    const game = playGame(15, { ...CONFIG, seed: 1 });
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
 

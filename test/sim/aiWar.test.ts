@@ -67,7 +67,6 @@ import {
   type GameState,
   type Player,
   createUnit,
-  newGame,
   playerById,
   bumpRevision,
 } from '../../src/sim/state';
@@ -79,6 +78,7 @@ import { buildingCityHp, buildingCityStat, foldBuildingCityStat } from '../../sr
 import { wrappedDistance, tileHex } from '../../src/sim/map';
 import { slotLayout } from '../../src/sim/statecraftData';
 import { closeWar, openWar, setPeaceOffer } from '../../src/sim/wars';
+import { newGame } from './newGameHelpers';
 
 // --- the bench --------------------------------------------------------------
 

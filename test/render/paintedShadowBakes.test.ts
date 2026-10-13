@@ -23,7 +23,7 @@ import { signCityCells } from '../../src/render3d/cities3d';
 import { signImprovedCells } from '../../src/render3d/improvements3d';
 import { signFeatureCells } from '../../src/render3d/board3d';
 import { wrapWidth } from '../../src/render3d/layout';
-import { newGame, type GameState } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { createMap, getTileAt, tileIndex, type GameMap } from '../../src/sim/map';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { foundCityAt } from '../../src/sim/cities';
@@ -31,6 +31,7 @@ import { foundCityAt } from '../../src/sim/cities';
 import { prepareTerrainMap } from '../../src/terrainStudy/surface.js';
 // @ts-expect-error No declarations for the shared study geometry.
 import { terrainMesh } from '../../src/terrainStudy/terrainMesh.js';
+import { newGame } from '../sim/newGameHelpers';
 
 const cleanups: (() => void)[] = [];
 afterEach(() => { for (const cleanup of cleanups.splice(0).reverse()) cleanup(); });

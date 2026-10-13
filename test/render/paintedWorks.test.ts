@@ -16,12 +16,13 @@ import { pillageAt } from '../../src/sim/improvements';
 import { createMap, getTileAt, tileIndex, type GameMap } from '../../src/sim/map';
 import { RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
 import { bumpEconomy } from '../../src/sim/slate';
-import { createUnit, newGame, type GameState } from '../../src/sim/state';
+import { createUnit, type GameState } from '../../src/sim/state';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 // @ts-expect-error The approved study modules remain JavaScript.
 import { prepareTerrainMap, LAND_LEVEL, WATER_LEVEL, onTileTop } from '../../src/terrainStudy/surface.js';
 // @ts-expect-error The approved study modules remain JavaScript.
 import { terrainMesh } from '../../src/terrainStudy/terrainMesh.js';
+import { newGame } from '../sim/newGameHelpers';
 
 const cleanup: (() => void)[] = [];
 const SPECIAL_WORKS = ['academy', 'landmark', 'manufactory', 'customsHouse', 'citadel', 'holySite'] as const;

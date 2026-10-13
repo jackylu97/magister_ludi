@@ -37,12 +37,13 @@ import {
   tierPercent,
 } from '../../src/sim/meters';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, newGame, bumpRevision } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision } from '../../src/sim/state';
 import { improvementForResource } from '../../src/sim/improvementData';
 import { resourceDef, withExtraResources } from '../../src/sim/resourceData';
 import { TECH_IDS } from '../../src/sim/techData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 
 const CITIES = RULES.cities;
 const BUY = CITIES.tilePurchase;

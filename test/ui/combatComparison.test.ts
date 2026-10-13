@@ -14,13 +14,14 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { foundCityAt } from '../../src/sim/cities';
-import { createGame, dispatch } from '../../src/sim/game';
+import { dispatch } from '../../src/sim/game';
 import { createMap, getTileAt, mapRange, tileHex } from '../../src/sim/map';
 import { createUnit } from '../../src/sim/state';
 import { VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { openWar } from '../../src/sim/wars';
 import { COMPARISON_LINE, createGameControls } from '../../src/ui/controls';
 import type { HoverInfo, MapView } from '../../src/ui/mapView';
+import { createGame } from '../sim/newGameHelpers';
 
 /** A flat, fully charted duel board with the two seats already at war. */
 function fixture() {

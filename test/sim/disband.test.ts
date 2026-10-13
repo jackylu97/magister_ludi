@@ -26,11 +26,12 @@
 import { describe, expect, it } from 'vitest';
 
 import { applyCommand, disbandError } from '../../src/sim/commands';
-import { type Game, createGame, dispatch, replay } from '../../src/sim/game';
+import { type Game, dispatch, replay } from '../../src/sim/game';
 import { createMap } from '../../src/sim/map';
-import { type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, createUnit } from '../../src/sim/state';
 import { unitUpkeep } from '../../src/sim/upkeep';
 import { resetVisibility } from '../../src/sim/visibility';
+import { createGame, newGame } from './newGameHelpers';
 
 /** A blank three-seat state on flat grassland — `sleep.test.ts`'s fixture. */
 function flatState(): GameState {

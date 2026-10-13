@@ -23,8 +23,9 @@ import { VOICES, ageBand, yieldWeight } from '../../src/ai/value';
 import { driveBots } from '../../src/ai/driver';
 import { withAiTuning } from '../../src/ai/aiConfig';
 import { type Standing, foldStanding, standingOf } from '../../scripts/gridObjective';
-import { type Game, createGame } from '../../src/sim/game';
+import { type Game } from '../../src/sim/game';
 import type { GameConfig } from '../../src/sim/state';
+import { createGame } from './newGameHelpers';
 
 const CONFIG: GameConfig = {
   seed: 20260831,

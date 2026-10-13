@@ -35,7 +35,7 @@ import {
 } from '../../src/sim/cities';
 import { proposeDealError, openBordersError } from '../../src/sim/diplomacy';
 import { explainEmpireGold } from '../../src/sim/empireGold';
-import { createGame, dispatch, snapshotState } from '../../src/sim/game';
+import { dispatch, snapshotState } from '../../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { explainHappiness } from '../../src/sim/meters';
 import { withExtraResources } from '../../src/sim/resourceData';
@@ -45,7 +45,6 @@ import {
   type City,
   type GameState,
   createUnit,
-  newGame,
   playerById,
   bumpRevision,
 } from '../../src/sim/state';
@@ -54,6 +53,7 @@ import { explainTileYield, yieldContextFor } from '../../src/sim/yields/hex';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { openWar, setPeaceOffer, truceTurnsLeft, warBetween } from '../../src/sim/wars';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
+import { createGame, newGame } from './newGameHelpers';
 
 const WAR = RULES.war;
 

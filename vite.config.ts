@@ -143,7 +143,11 @@ export default defineConfig({
         //
         // It also lets the mapgen memo table (`test/mapgen/fixtures.ts`) span
         // the whole directory rather than one file, which is where most of what
-        // this bought comes from. A test that ever *does* need a virgin module
+        // this bought comes from. The same goes for the `newGame`/`createGame`
+        // memo in `test/sim/newGameHelpers.ts`, which saves the core tier
+        // thousands of duel-map generations; a helper that changes a data
+        // table at runtime calls its `forgetBuiltGames`, and
+        // `GAME_MEMO_VERIFY=1` checks every cache hit against a fresh build. A test that ever *does* need a virgin module
         // graph is the signal to turn this back on rather than to work around
         // it.
         isolate: false,

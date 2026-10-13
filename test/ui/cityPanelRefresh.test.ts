@@ -23,11 +23,12 @@ import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { readCity } from '../../src/sim/readings';
 import { BUILDING_IDS } from '../../src/sim/buildingData';
-import { type City, type GameState, bumpRevision, newGame } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { explainBuildingPreview } from '../../src/sim/yields/town';
 import { createBuildingPreviewMemo, panelRenderKey } from '../../src/ui/cityPanel';
 import { braceBody, uiSource } from './sourceHelpers';
+import { newGame } from '../sim/newGameHelpers';
 
 function board(): { state: GameState; cities: City[] } {
   const state = newGame({

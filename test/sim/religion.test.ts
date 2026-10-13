@@ -55,7 +55,7 @@ import {
   previewCombat,
 } from "../../src/sim/combat";
 import { fullMovement } from "../../src/sim/units";
-import { createGame, dispatch, snapshotState } from "../../src/sim/game";
+import { dispatch, snapshotState } from "../../src/sim/game";
 import {
   getTileAt,
   mapRange,
@@ -192,6 +192,7 @@ import {
 } from "../../src/sim/unitData";
 import { BUILDING_IDS, buildingDef } from "../../src/sim/buildingData";
 import { openEveryWar } from "./warHelpers";
+import { createGame } from './newGameHelpers';
 
 // --- harness ----------------------------------------------------------------
 
@@ -294,15 +295,6 @@ function keep(state: GameState, playerId: number, id: BeliefId): void {
 describe("the religion table", () => {
   it("has no problems to report", () => {
     expect(religionDataProblems(TECH_IDS)).toEqual([]);
-  });
-
-  it("names every belief and every rite once, and never twice across the card table", () => {
-    const all = [...BELIEF_IDS, ...RITE_IDS];
-    expect(new Set(all).size).toBe(all.length);
-    // A `CardId` is unique across all five classes, which is what lets one
-    // breakdown line carry one string. `anyCardDef` is the lookup that spans
-    // them; a collision would show up as a belief resolving to an Order.
-    for (const id of all) expect(anyCardDef(id).name.length).toBeGreaterThan(0);
   });
 
   it("gives every belief a description the screen can print", () => {

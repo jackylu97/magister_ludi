@@ -14,9 +14,10 @@ import { RevealView } from '../../src/render3d/reveal3d';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { visibleResourceAt } from '../../src/sim/tech';
 import { HIDDEN, resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * The node that reveals iron, read off the **row**.

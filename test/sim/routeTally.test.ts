@@ -25,8 +25,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import { createGame } from './newGameHelpers';
 
-import { createGame } from '../../src/sim/game';
 import { foundCityAt } from '../../src/sim/cities';
 import { getTileAt } from '../../src/sim/map';
 import { happinessOf } from '../../src/sim/meters';

@@ -77,9 +77,10 @@ import {
   orderIsDealt,
 } from '../../src/sim/statecraftData';
 import { FOLLOWER_BELIEF_IDS, beliefDef } from '../../src/sim/religionData';
-import { type City, type GameState, newGame, playerById, bumpRevision } from '../../src/sim/state';
+import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
 import { buildError, gatingTech, isUnlocked } from '../../src/sim/tech';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from './newGameHelpers';
 
 // --- the bench --------------------------------------------------------------
 

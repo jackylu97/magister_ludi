@@ -30,7 +30,7 @@ import { between, braceBody, uiSource } from './sourceHelpers';
 import { foundCityAt } from '../../src/sim/cities';
 import { type PillageReport, chopBaseFor } from '../../src/sim/improvements';
 import { createMap } from '../../src/sim/map';
-import { type GameState, newGame, playerById } from '../../src/sim/state';
+import { type GameState, playerById } from '../../src/sim/state';
 import { statecraftBlocker } from '../../src/sim/statecraft';
 import { ORDER_IDS, type OrderId } from '../../src/sim/statecraftData';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -50,6 +50,7 @@ import {
   statecraftPauseNotice,
   wantsNativeContextMenu,
 } from '../../src/ui/controls';
+import { newGame } from '../sim/newGameHelpers';
 
 // The rack's own order (`LENS_OPTIONS` in `main.ts`), which is the one source
 // the digit hotkeys read. Faith is appended rather than inserted, which is all a

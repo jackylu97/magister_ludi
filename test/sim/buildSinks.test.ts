@@ -49,7 +49,7 @@ import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map
 import { explainHappiness, happinessOf, tierPercent } from '../../src/sim/meters';
 import { PROJECT_IDS, projectDef, projectRate } from '../../src/sim/projectData';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type City, type GameState, createUnit } from '../../src/sim/state';
 import {
   BUILDING_UNLOCK_TECH,
   PROJECT_UNLOCK_TECH,
@@ -61,6 +61,7 @@ import { techGifts } from '../../src/sim/techUnlocks';
 import { UNIT_TYPE_IDS, isCivilian, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { openEveryWar } from './warHelpers';
+import { newGame } from './newGameHelpers';
 
 // --- the bench --------------------------------------------------------------
 

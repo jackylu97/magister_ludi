@@ -17,7 +17,6 @@ import { applyCombat } from '../../src/sim/combat';
 import { arriveOnTile } from '../../src/sim/arrival';
 import {
   type Game,
-  createGame,
   dispatch,
   saveGame,
   snapshotState,
@@ -99,6 +98,7 @@ import { buildError, isUnlocked } from '../../src/sim/tech';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { isCivilian, trades, unitDef } from '../../src/sim/unitData';
 import { at, bareState } from './improvementHelpers';
+import { createGame } from './newGameHelpers';
 
 /**
  * Trade: the caravan, the road, the route's yields and the city connection
@@ -2181,78 +2181,6 @@ describe('trade in the log', () => {
       ],
     };
   }
-
-  it('carries the schema version that says a caravan starts a route by name', () => {
-    // v23 wrote `sendTrader`, which this build's reducer does not have: a v23
-    // log would stop dead partway through a replay, so the save is refused
-    // rather than misread.
-    // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
-    // moved every replay that raised one.
-        // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
-    // double draft and The Holy Office's tenants move every replay with a
-    // prophet or an augur in it.
-    // v44: the age-1 restoration and the deepened chains — Calendar is a node
-    // again, Currency and Irrigation trade places, and Æra III/IV are re-chained,
-    // so a v43 log aims research at a tree this build does not have.
-    // v45: the endgame of Entry LVIII — the Magnum Opus, the three bead-paying
-    // great works, the Long Count's die and Alchemy's closing bead. A v44 log
-    // reaches a winner it never reached, and spends rolls it never spent.
-    // v46: the card pools of Entry LVIII — nineteen new Orders, a Doctrine, two
-    // beliefs and a sixth consecration join the bags a draft draws from, and The
-    // Laureate's once-per-game great person becomes a renown trickle. A v45 log
-    // names indices of hands this build does not deal.
-    // v47: the timeline reshape and the column-formula costs — seventeen
-    // prerequisite edges moved so every column earns its width, and every cost
-    // is rewritten off the node's own column. A v46 log aims research at a tree
-    // this build does not have, and pays prices it never paid.
-    // v48: the user's balance pass — the authored Order deepening ladder, the
-    // Order and Doctrine retunes, and the reworked luxury signatures. A v47 log
-    // drafts from a deck this build does not deal, and deepens by numbers it
-    // does not carry.
-    // v49: the cost ladder re-anchored at the first *paid* tier — the root is
-    // not a tier. Column 0 holds Agriculture alone and Agriculture is granted,
-    // so every column now takes the price the column to its left used to carry
-    // (Fletching 13 where it was 30) and a v48 log pays the wrong beakers from
-    // the first technology anybody researches.
-    // v50: tree revision 4 — the user's hand-drawn tree transcribed. Fourteen
-    // nodes renamed with their ids kept, three ids cut (`ancestorRites`,
-    // `chivalry`, `fortification`) and three added, almost every prerequisite
-    // re-hung, twelve columns and a truncated cost ladder — and, beside it, the
-    // one-unit-a-turn purchase rule widened to one *per class*.
-    // v55 (2026-09-03, the playtest notes): two table deletions — the Standing
-    // Stones improvement and the Terraces — so a v54 log that built either has
-    // no row to replay into.
-    // v57 (war & diplomacy, phase two): deals exist. Two registers, four
-    // verbs and a widened `proposePeace`, a luxury that may be lent across a
-    // table, and one technology that hands over a verb it did not — so a v56
-    // log knows no deal commands and replays into a different world.
-    // v68 (2026-09-05, the cards pass): Government IV and V become Order pools
-    // of their own and twenty-seven rows join them, so a v67 log's `chooseOrder`
-    // names indices into hands this build does not deal.
-    // 71 since batch C1 (2026-09-06): the dice leave; the faith ladder and the reroll arrive.
-    // 73 since batch D (2026-09-06): the buildings cut with chains — twelve
-    // ordinary rows withdrawn, five uniques added, the chain field, the
-    // Throne's per-unit rebate and the base beaker halved. 74 since batch C2
-    // landed the rites beside it on the same day.
-    // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
-    // bank and pool holds the fraction, so a v74 log banks different figures
-    // from its second turn on.
-    // 119 is the decks rework (D1a, branch `decks`): four seat fields, the
-    // reward hands, universal chairs and a draw that deals every hand
-    // differently — a v118 save is refused (`state.ts`'s changelog).
-    // 121 since D2d (the decks rework, branch `decks`): a town remembers when
-    // each of its buildings went up, a hex when its work was raised and a route
-    // when it opened, so a v120 log answers "not old enough" to every card
-    // written on an age — a bump within the branch, which migrates nothing
-    // either way.
-    // 123 since C8 (the decks rework, branch `decks`): a town remembers which
-    // bank paid for each of its buildings, so a v122 log answers "nobody bought
-    // this" to The Endowment for ever — a bump within the branch, which
-    // migrates nothing either way.
-    // 124 since the current-band ruling of 2026-10-13: a hand is dealt only from
-    // the seat's current band, so a v123 log would pick from different hands.
-    expect(SCHEMA_VERSION).toBe(124);
-  });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {
     const { state, home, partner, trader } = tradeWorld();

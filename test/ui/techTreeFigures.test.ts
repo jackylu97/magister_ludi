@@ -39,7 +39,7 @@ import { uiSource } from './sourceHelpers';
 import { stripRefs } from '../../src/sim/statecraft';
 import { buildingProductionCost, foundCityAt, unitProductionCost } from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, bumpRevision, newGame } from '../../src/sim/state';
+import { type GameState, bumpRevision } from '../../src/sim/state';
 import { playerScience, turnsToTech } from '../../src/sim/tech';
 import { TECH_IDS, type TechId, liveUnlocks, techDef } from '../../src/sim/techData';
 import { techGifts } from '../../src/sim/techUnlocks';
@@ -49,6 +49,7 @@ import { giftNote } from '../../src/ui/techTree';
 import { techRuleClauses } from '../../src/ui/techRuleWords';
 import { researchProgress } from '../../src/ui/researchProgress';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * An empire with **several towns and a few technologies**, which is the state

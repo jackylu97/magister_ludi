@@ -15,7 +15,7 @@ import {
   yieldContextFor,
 } from '../../src/sim/yields/hex';
 import { applyCommand } from '../../src/sim/commands';
-import { createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../../src/sim/game';
+import { dispatch, loadGame, replay, saveGame, snapshotState } from '../../src/sim/game';
 import { improvementForResource } from '../../src/sim/improvementData';
 import { type GameMap, type Tile, createMap, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { generateMap } from '../../src/sim/mapgen';
@@ -45,7 +45,6 @@ import {
   type GameConfig,
   type GameState,
   SCHEMA_VERSION,
-  newGame,
 } from '../../src/sim/state';
 import { buildError, isResourceVisible, requiredResource, visibleResourceAt } from '../../src/sim/tech';
 import {
@@ -59,6 +58,7 @@ import {
 import { TECH_IDS } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, requiredResourcesOf, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
+import { createGame, newGame } from '../sim/newGameHelpers';
 
 // --- the table --------------------------------------------------------------
 

@@ -929,8 +929,9 @@ describe('the city mode and the camera', () => {
 
 import { citizenFocus, foundCityAt } from '../../src/sim/cities';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
+import { newGame } from '../sim/newGameHelpers';
 
 /** The sentence, written once here and once in the panel — and nowhere else. */
 const FOCUS_LINE = 'Working for production — a settler is at the front.';

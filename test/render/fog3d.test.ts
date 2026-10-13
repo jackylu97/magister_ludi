@@ -37,7 +37,7 @@ import { UnitLayer } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt, mapRange, tileHex, tileIndex } from '../../src/sim/map';
-import { type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, createUnit } from '../../src/sim/state';
 import {
   EXPLORED,
   HIDDEN,
@@ -46,6 +46,7 @@ import {
   resetVisibility,
 } from '../../src/sim/visibility';
 import { LENS_DEFAULTS, type LensView } from '../../src/ui/mapView';
+import { newGame } from '../sim/newGameHelpers';
 
 /**
  * Fog of war, from the board's side.

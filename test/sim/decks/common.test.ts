@@ -25,7 +25,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { type Game, createGame } from '../../../src/sim/game';
+import { type Game } from '../../../src/sim/game';
 import { applyCommand } from '../../../src/sim/commands';
 import { type GameState, type Player, playerById } from '../../../src/sim/state';
 import {
@@ -45,6 +45,7 @@ import {
   orderDef,
   orderIsDealt,
 } from '../../../src/sim/statecraftData';
+import { createGame } from '../newGameHelpers';
 
 /** Every row of the shared file, in file order. */
 const COMMON: readonly OrderId[] = DECK_FILE_ORDERS.common;

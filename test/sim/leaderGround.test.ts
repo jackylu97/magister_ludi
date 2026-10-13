@@ -38,7 +38,6 @@ import {
   type Unit,
   bumpRevision,
   createUnit,
-  newGame,
   playerById,
 } from '../../src/sim/state';
 import { explainCardCityYields, explainCardPercentYields } from '../../src/sim/statecraft';
@@ -48,6 +47,7 @@ import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 import { cityContext, explainTileYield } from '../../src/sim/yields/hex';
 import { type LeaderId, leaderDef } from '../../src/sim/leaderData';
+import { newGame } from './newGameHelpers';
 
 // --- the bench --------------------------------------------------------------
 

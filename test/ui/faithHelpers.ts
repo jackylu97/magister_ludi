@@ -19,7 +19,6 @@ import {
   type GameState,
   type Religion,
   createUnit,
-  newGame,
   removeUnit,
   bumpRevision,
 } from '../../src/sim/state';
@@ -27,6 +26,7 @@ import { foundReligion } from '../../src/sim/religion';
 import { BELIEF_IDS } from '../../src/sim/religionData';
 import { recomputeVisibility, resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
+import { newGame } from '../sim/newGameHelpers';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {
