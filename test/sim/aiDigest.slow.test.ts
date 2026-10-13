@@ -367,10 +367,29 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * loop turn its seats spend those turns on other orders instead, and the print
  * moves from `fc238dc8:951127` to `bc49a8a5:962094`. Nothing stalled and no
  * command was refused or repeated.
+ *
+ * ---
+ *
+ * **The four approved decks and their shared cards (deck implementation
+ * batches D1–D4 and S, `docs/plans/deck-implementation.md`).** Duel
+ * `af2c51e6:276083` → `b5f6b5b8:286280`, standard `bc49a8a5:962094` →
+ * `8f051783:947360`.
+ *
+ * Every seat draws from different pools now. The Commerce, Dominion,
+ * Expansionist and Devotion sheets brought 348 rows live and retired their
+ * cuts, and the shared batch added nine rows to `common.json` and moved The
+ * Holy Army into it, which also changes the order cards are drawn in. New
+ * shapes change what a seated card pays (commissions, levies, tended works,
+ * faith purchases, card-taught rites, the Opus scopes), and new rows the bot
+ * can build (Plantation House, Numidian Cavalry, Company Guard) change what
+ * its technology valuer sees. No rule of play outside the decks changed. The
+ * duel print grew and the standard one shrank, which is not a finding: the
+ * seats hold different decks. Nothing stalled and no command was refused,
+ * which the assertion above this one checks before the hash does.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'af2c51e6:276083',
-  standard: 'bc49a8a5:962094',
+  duel: 'b5f6b5b8:286280',
+  standard: '8f051783:947360',
 };
 
 /**
