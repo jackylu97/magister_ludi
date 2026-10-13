@@ -82,6 +82,8 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 
 The existing deck mechanics stay (the user, 2026-10-13): *"the levies tended works, commissions and charters are interesting and fun, we just need more cards that have synergy."* The no-mechanic-creep principle applies to new cards; the fix for these four is more cards that read them, until each is a keyword many cards share.
 
+**Dominion is the tempo deck (the user, 2026-10-13).** *"dominion needs access to yields, but i think of it's playstyle more like taking advantage of tempo to prepare for war, rather than the long term scaling bonuses that should be accessible to other decks."* Dominion's economy cards pay any yield, but up front: lumps, short bursts and early flats that are strong now and fade, so a Dominion seat is ahead early and turns that lead into a war. Long-term scaling (pay that grows with citizens, hexes, time) belongs to the other decks. Peacetime pay that grows with army size is avoided: it punishes losses in war and compounds a conqueror's lead. The flat civic riders on military buildings ("Barracks give +2 science") lose to the civic buildings themselves and are to be reworked.
+
 Considered and declined in the same conversation (`docs/plans/card-synergy-research.md`): **tags** on cards with tag-counting pay-offs (forced synergy, against the second principle) and **a smaller pool per game** (a seat's two decks already narrow the pool, as tribes do in Hearthstone Battlegrounds).
 
 ### Two facts about the essentials worth designing around
