@@ -14,6 +14,8 @@ These lists are a snapshot (2026-10-13). Check the source before relying on one;
 
 **Empire conditions** (`EmpireCondition`): cityCountAtMost / AtLeast, authorityNegative / Positive, happinessNegative, atWar, atPeace, keepingRite, atWarWithOpusBuilder, noReligionFounded. Combat conditions: vsBarbarians, ownTerritory, foreignTerritory, onHills, vsCity, targetBelowHalf, capitalTerritory, inCity, capturedCity.
 
+**A unit gained** (the user's ruling, 2026-10-13): cards that pay on a new unit read "a unit gained", whatever its source: produced, bought with gold or faith, granted free (musters, commission rewards, on-draft boons) or raised by a levy. Write "gaining a unit" or "each time you gain a unit", never "trained" or "mustered". Today the game pays this moment as `unitCompletion` (and counts `unitTrained`); whether every source reaches it is an implementation check. Open: whether a unit taken from someone else counts.
+
 **The deck keywords** the user wants more cards to share (ruling, 2026-10-13): **levies** (a town spends a citizen), **tended works** (managed wild land), **commissions** (a goal that pays and leaves its chair), **charters** (a card that unlocks something and needs no chair).
 
 ## What the bot measurements found about raising and reading (2026-10-13 audit)

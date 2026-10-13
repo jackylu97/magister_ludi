@@ -8,7 +8,7 @@ This sheet is the design of record for the deck: what is in the game today, and 
 
 **Status:**
 - **live**: in the game as the "In the game" column prints it. A "Built as" note says where the game does something slightly different from the text.
-- **changing**: in the game, with a revision by the user (2026-10-13) that is not built yet. The "In the game" column is what plays today; the revision is in the last column.
+- **changing**: in the game, with a revision by the user (2026-10-13) that is not built yet, or one that follows from a ruling of theirs. The "In the game" column is what plays today; the revision is in the last column.
 - **deferred**: in the data but not dealt, because the effect needs something the game does not have yet (the last column says what).
 - **new**: designed but not in the data at all.
 
@@ -19,13 +19,13 @@ Ideas under discussion that are not yet part of the deck (the 2026-10-13 proposa
 | Tier | Cards | Live | Changing | Deferred | New |
 |---|---|---|---|---|---|
 | Tier 0 | 16 | 5 | 6 | 0 | 5 |
-| Tier I | 13 | 12 | 1 | 0 | 0 |
+| Tier I | 13 | 11 | 2 | 0 | 0 |
 | Tier II | 14 | 12 | 0 | 2 | 0 |
 | Tier III | 8 | 7 | 0 | 1 | 0 |
 | Tier IV | 15 | 13 | 0 | 2 | 0 |
-| **All** | **66** | **49** | **7** | **5** | **5** |
+| **All** | **66** | **48** | **8** | **5** | **5** |
 
-Plus 24 cards shared with another deck (below): 18 live, 1 deferred, 5 new.
+Plus 24 cards shared with another deck (below): 17 live, 1 changing, 1 deferred, 5 new.
 
 ### How the shelf is weighted (cards in the data)
 
@@ -43,11 +43,11 @@ Plus 24 cards shared with another deck (below): 18 live, 1 deferred, 5 new.
 |---|---|---|---|---|
 | **Blooded Spears** | common | changing | +4 strength against barbarians. Clearing a camp grants 25 production and 25 food to your nearest city. | **Changing to:** Military units gain +2 strength, doubled against barbarians. |
 | **Martial Law** | common | changing | Each garrisoned unit grants its city +1 happiness and +2 food. | **Changing to:** Each garrisoned unit grants its city +1 happiness and +3 food. |
-| **Muster Rites** | common | changing | Training a unit grants 6 faith and 6 food. | **Changing to:** Training a unit grants 8 faith and 8 food. |
+| **Muster Rites** | common | changing | Training a unit grants 6 faith and 6 food. | **Changing to:** Gaining a unit grants 8 faith and 8 food. |
 | **Commission: Clear the Frontier** | common | live | Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |  |
 | **The Standing Army** | rare | live | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |  |
 | **Blood Brothers** | rare | live | A barbarian unit you kill joins your side. |  |
-| **The King's Levy** | rare | live | Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep. |  |
+| **The King's Levy** | rare | live | Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep. | Wording: "counts as trained" becomes unnecessary under the "gained" ruling (2026-10-13). |
 | **The Horse Herds** | common | changing | Worked pastures and camps give +1 production. +20% production toward mounted units. | **Changing to:** Worked pastures and camps give +1 food and +1 production. |
 | **Battle Honours** | common | changing | Your first kill each turn grants 6 renown, and clearing a barbarian camp grants 12 renown, both favouring great generals. | **Changing to:** Commission. Kill ten units while this card is seated. Then choose a great general from a draft. The card leaves its chair. |
 | **Sword and Plough** | common | changing | While at peace, each city with a garrison gains +2 culture. While at war, each gains +2 production instead. | **Changing to:** Each city with a garrison gains +2 culture and +2 production. |
@@ -66,7 +66,7 @@ Plus 24 cards shared with another deck (below): 18 live, 1 deferred, 5 new.
 | **The Soldier-Farmers** | common | live | While at peace, garrisoned cities gain +2 food and +2 production on each worked pasture and camp. |  |
 | **The Marshals** | uncommon | live | +2 strength per adjacent friendly combat unit, at most +6. |  |
 | **The Pacified Marches** | uncommon | changing | While slotted, gains +1 authority capacity and +5 culture for every barbarian camp cleared, at most +8 authority and +40 culture. | **Changing to:** Gains +1 authority capacity and +5 culture for every barbarian camp cleared this game, at most +8 authority and +40 culture. |
-| **The Art of War** | uncommon | live | Training a unit grants science equal to three quarters of its strength. |  |
+| **The Art of War** | uncommon | changing | Training a unit grants science equal to three quarters of its strength. | **Changing to:** Gaining a unit grants science equal to three quarters of its strength. ("Gained" ruling, 2026-10-13.) |
 | **War Foundries** | rare | live | Cities with a Barracks gain gold equal to 30% of their base production and +38% production toward military units. |  |
 | **Songs of the Fallen** | rare | live | Killing a unit grants science and culture equal to twice its strength. Losing a unit while it defends grants the same. |  |
 | **Horse Lords** | rare | live | Mounted units gain +3 strength and +1 movement. |  |
@@ -116,7 +116,7 @@ Plus 24 cards shared with another deck (below): 18 live, 1 deferred, 5 new.
 | **The Annexed Provinces** | rare | live | Each captured city you hold gives +5% science and +5% culture in every city, at most +25%. |  |
 | **The Marshalate** | rare | live | Each great general you have called gives your military units +1 strength, at most +5. Citadels give +3 culture and +3 production. |  |
 | **The Military Frontier** | rare | live | Each unit garrisoned in a city gives it +3 science and +3 culture, at most three units per city. |  |
-| **The Nation in Arms** | rare | live | Every ten turns, each city with an Armoury raises the best melee unit you can build. They count as trained and cost no upkeep. |  |
+| **The Nation in Arms** | rare | live | Every ten turns, each city with an Armoury raises the best melee unit you can build. They count as trained and cost no upkeep. | Wording: "counts as trained" becomes unnecessary under the "gained" ruling (2026-10-13). |
 | **Circumvallation** | uncommon | deferred | While a rival city is under siege with at least one of your units beside it, it adds no production toward a Magnum Opus. You can see which rival cities are raising one. | Needs a rival city's Opus production to stop while it is besieged, and sight of which rival cities are raising one. |
 | **The Grand Coalition** | rare | live | While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster. |  |
 | **The Proconsuls** | uncommon | live | Captured cities with a garrison cost no authority and gain +10 defence. | Built as: each captured city with a garrison gives +4 authority capacity, which cancels what it costs. |
@@ -131,7 +131,7 @@ The user's ideas (2026-10-13), not named yet. None is in the data.
 | *unnamed* | 0 | +1 authority for each garrisoned unit. | |
 | *unnamed* | 0 | Scouts gain +1 sight. Discoveries grant +8 production to every city. | Two effects as written. |
 | *unnamed* | 0 | +30% production toward first- and second-age military units. | Fades as the army moves on to later ages' units. |
-| *unnamed* | 0 | While slotted, this card gains +1 science and +1 culture each time you train or muster a unit. It starts at +2 science and +2 culture. | A card that grows while seated. Open: whether a mustered unit counts as trained for other cards too (The King's Levy says its unit does; the game's record of units trained leaves free units out). |
+| *unnamed* | 0 | While slotted, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture. | A card that grows while seated. Reads every unit gained, under the "gained" ruling (2026-10-13). |
 | *unnamed* | 0 | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture. | Two effects as written. |
 
 ## Cards Dominion shares with another deck
@@ -140,7 +140,7 @@ The shared rows live in `data/decks/common.json`; the "In the game" column is th
 
 | Card | Rarity | Also in | Tier | Status | In the game | Not yet in, or how it was built |
 |---|---|---|---|---|---|---|
-| **Rites of Passage** | common | Devotion | 0 | live | Completing a military unit grants 12 faith. |  |
+| **Rites of Passage** | common | Devotion | 0 | changing | Completing a military unit grants 12 faith. | **Changing to:** Gaining a military unit grants 12 faith. ("Gained" ruling, 2026-10-13.) |
 | **Military Colonies** | uncommon | Expansionist | I | live | Cities with a Barracks gain +45% production toward settlers and workers. |  |
 | **The Escorted Roads** | uncommon | Commerce | I | live | Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders. |  |
 | **The Sacred Host** | rare | Devotion | I | live | Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 15 faith. |  |
