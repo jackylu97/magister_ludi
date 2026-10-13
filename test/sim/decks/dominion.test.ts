@@ -9,8 +9,10 @@
  *   · **the sheet is the table** — since the deck implementation batch the
  *     spec of record is the deck sheet, `docs/decks/dominion.md`. Its five tier
  *     tables are read here, card for card: every card has a row of that name,
- *     rarity, band and text, and every row that is not retired is on the sheet.
- *     The sheet's Proposed cuts table names exactly the retired rows.
+ *     rarity, band and text (the "In the game" column), and every row that is
+ *     not retired is on the sheet. A retired row is on no table and dealt by
+ *     nobody; the sheet no longer lists its cuts (the user, 2026-10-13: the
+ *     sheet reflects what is in the game and what is not in yet).
  *     `statecraftDocSync.test.ts` is the sync for the live rows' printed words
  *     against `docs/orders-and-doctrines.md`;
  *   · **one deck, one band, one rarity** on every row of the file;
@@ -87,41 +89,27 @@ function nameOf(cell: string): string {
 
 /**
  * **The five tier tables of the sheet**, in the sheet's own order. Read from
- * the first tier heading to the shared cards' heading, so the shared table
- * (whose rows live in `common.json`) is not read here.
+ * the first tier heading to the first level-two heading that is not a tier, so
+ * the new cards (not in the data yet) and the shared table (whose rows live in
+ * `common.json`) are not read here.
  */
 function docCards(): DocCard[] {
   const start = DOC.indexOf('\n## Tier 0');
   expect(start, 'the sheet has a Tier 0 table').toBeGreaterThanOrEqual(0);
-  const end = DOC.indexOf('\n## Cards Dominion shares', start);
-  const section = DOC.slice(start, end === -1 ? undefined : end);
   const cards: DocCard[] = [];
   let band: Band | null = null;
-  for (const line of section.split('\n')) {
+  for (const line of DOC.slice(start + 1).split('\n')) {
     const heading = /^## Tier (0|I|II|III|IV)$/.exec(line);
     if (heading) {
       band = TIERS[heading[1]!]!;
       continue;
     }
+    if (line.startsWith('## ')) break;
     const cells = cellsOf(line);
     if (cells === null || band === null || cells.length < 4) continue;
     cards.push({ name: nameOf(cells[0]!), rarity: cells[1] as OrderRarity, band, text: cells[3]! });
   }
   return cards;
-}
-
-/** The names in the sheet's Proposed cuts table. */
-function cutNames(): Set<string> {
-  const start = DOC.indexOf('\n## Proposed cuts');
-  expect(start, 'the sheet has a Proposed cuts table').toBeGreaterThanOrEqual(0);
-  const end = DOC.indexOf('\n## ', start + 1);
-  const section = DOC.slice(start, end === -1 ? undefined : end);
-  const names = new Set<string>();
-  for (const line of section.split('\n')) {
-    const cells = cellsOf(line);
-    if (cells !== null) names.add(nameOf(cells[0]!));
-  }
-  return names;
 }
 
 /** The rows of `data/decks/dominion.json`, in file order. */
@@ -132,7 +120,7 @@ const isLive = (id: OrderId): boolean =>
   orderDef(id).retired !== true &&
   (orderDef(id).effects.length > 0 || orderDef(id).commission !== undefined);
 
-/** The rows the sheet's cuts retired: kept for saves, dealt by nobody. */
+/** The retired rows: kept for saves, dealt by nobody, and off the sheet. */
 const isRetired = (id: OrderId): boolean => orderDef(id).retired === true;
 
 /** The rows the sheet's tier tables list: every row that is not retired. */
@@ -150,7 +138,7 @@ describe('the Dominion deck — the file', () => {
       expect(def.flavor, id).toBeTruthy();
       expect(def.text, `${id} carries no ratified text`).toBeTruthy();
       // Nothing in it is a charter (the ten access rows are Scientific's,
-      // Commerce's and Devotion's). Retired rows are the sheet's cuts.
+      // Commerce's and Devotion's). Retired rows are kept for saves.
       expect(def.charter, id).toBeUndefined();
     }
     // Ids are unique across the eight files (`decks.test.ts`); within this one,
@@ -179,14 +167,11 @@ describe('the Dominion deck — the file', () => {
     expect(SHEET_ROWS.length).toBe(doc.length);
   });
 
-  it('retires exactly the rows the sheet’s Proposed cuts name, and deals none of them', () => {
-    const cuts = cutNames();
+  it('keeps every retired row off the sheet’s tables, and deals none of them', () => {
+    const listed = new Set(docCards().map((card) => card.name));
     for (const id of ROWS) {
-      if (!isRetired(id)) {
-        expect(cuts.has(orderDef(id).name), `${id} is cut on the sheet and not retired`).toBe(false);
-        continue;
-      }
-      expect(cuts.has(orderDef(id).name), `${id} is retired and not on the sheet's cuts`).toBe(true);
+      if (!isRetired(id)) continue;
+      expect(listed.has(orderDef(id).name), `${id} is retired and still on the sheet`).toBe(false);
       expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
     }
   });

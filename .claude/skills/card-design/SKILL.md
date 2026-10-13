@@ -19,7 +19,7 @@ This skill is how we write and judge Order cards. It gathers the user's rulings,
 ## Specs of record (read before proposing)
 
 - `docs/decks/deck-design.md`: the goals, the rules (three essentials, one mechanic per deck, a real gap, each deck's currency), each deck's section, the pair grid, and the dated rulings: "Card design principles", the note that levies, tended works, commissions and charters stay, "Dominion is the tempo deck", "Only the current band is dealt", and what was declined (tags, a smaller pool per game).
-- `docs/decks/<deck>.md`: the deck's current cards, tier tables 0 to IV. Read the user's latest edits there first; they outrank any proposal section below them.
+- `docs/decks/<deck>.md`: the deck's current cards, tier tables 0 to IV. On a reorganised sheet (Dominion, 2026-10-13) each row says whether it is live, changing (the user's revision, not built yet), deferred or new, and the user's new card ideas have their own section. The user's revisions and ideas outrank everything else. Ideas still under discussion live in `docs/plans/<deck>-ideas.md` (Dominion's exists).
 - `docs/plans/card-measurements-2026-10-13.md`: what cards actually paid in bot games.
 - `docs/plans/card-synergy-research.md`: what Balatro, Slay the Spire, TFT, Battlegrounds, Monster Train, Hades and Against the Storm do.
 - `docs/plans/deck-midgame-changes.md`: the current list of changes and its rulings.
