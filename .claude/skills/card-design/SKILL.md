@@ -1,6 +1,6 @@
 ---
 name: card-design
-description: Use when proposing, revising or reviewing Order cards for the six decks (Dominion, Expansionist, Commerce, Devotion, Scientific, Magisterial) in Magister Ludi. Covers the user's card principles, how synergy is built, what each age's player is trying to do, and how strong a card dealt at each band must be to earn a chair.
+description: Use when proposing, revising or reviewing Order cards for the six decks (Dominion, Expansionist, Commerce, Devotion, Scientific, Magisterial) in Magister Ludi. Covers the user's card principles, how synergy is built, themes and throughlines (the deck map), floor and ceiling roles, composition and variety, leaders, tedium against investment, what each age's player is trying to do, and how strong a card dealt at each band must be.
 ---
 
 # Designing deck cards
@@ -10,6 +10,11 @@ This skill is how we write and judge Order cards. It gathers the user's rulings,
 - `references/power-bar.md`: what the economy, units and seated cards look like in each age, and the size a new card must reach.
 - `references/age-goals.md`: what a player is trying to do in each age, generally and per deck.
 - `references/synergy-patterns.md`: the shared stats and moments cards can read, the patterns from other games, and the traps.
+- `references/deck-maps.md`: each deck's themes and throughlines, and where its cards sit. Build or update the deck's map before proposing cards for it.
+
+**The current priority is shape, not numbers** (the user, 2026-10-13): the goal is the right *shape* of cards for a closed beta test, and numbers can always be tweaked. Size numbers against the power bar as a sensible first guess, but spend the effort on what a card does, what it connects to, and how it feels to play.
+
+**The goal for a deck** (the user, 2026-10-13): every game should feel slightly different, and a player cannot force a specific build. Cards have synergy and clear throughlines across the game, so playing into a style is rewarded, and each card is also worth taking on its own.
 
 ## Specs of record (read before proposing)
 
@@ -66,6 +71,70 @@ Synergy is what makes a draft feel like building something. Here it comes from *
 - Tags or labels written only to make cards combine (declined by the user).
 - Pay that grows with army size held at peace for Dominion: it punishes losses in war and compounds a conqueror's lead (the tempo ruling).
 
+## Themes and throughlines: the deck map
+
+Two different axes. Keep them apart.
+
+- **Themes are the deck's materials:** the pieces, quantities and moments its games are made of. For Dominion: great generals and citadels, garrisons, units trained, military buildings, barbarian camps, mounted, siege and naval units, captured towns, pillage, war and peace, logistics, upkeep, reparations, strategic resources and pastures. Cards are written on themes.
+- **Throughlines are directions a player can lean into.** For Dominion: the garrison state, raising the host, raiders, and conquest. They are not buckets cards belong to. They are a check: if a player leans this way, is there a rewarded path through all four ages, with access to science, culture and production along it?
+- **A strong theme serves several throughlines.** It offers a version that rewards each style and a version that is simply good. The user's example, generals and citadels: a unit standing on a citadel makes science (the garrison state); great generals give strength to adjacent units attacking cities (conquest); citadels gain food and production (good for anyone).
+- **The best anchors are themes the playstyle produces by itself.** A Dominion player fights, so earns general renown; generals make citadels; an army brings garrisons; barbarians bring camps. Cards that read these have a high floor, because the quantity shows up whether or not the player drafted for it, and set-up cards lift the ceiling. That is Balatro's played hands feeding the jokers. A quantity that only cards produce is a weaker anchor.
+- In the design docs (never in the game), note for each card its themes, the throughlines it serves, its role, the essential it pays, its band and its shape. `references/deck-maps.md` holds the map.
+
+## Floor and ceiling: the three roles
+
+Every card has a **floor** (what it does in a seat that is not building around it) and a **ceiling** (what it does in a seat that is). Every card needs a real floor: worth taking on its own.
+
+| Role | Floor | Ceiling | Usually |
+|---|---|---|---|
+| **Glue / opener** | high | low | common: fits most builds, starts a quantity |
+| **Pay-off** | medium | high | uncommon: grows with commitment |
+| **Build-defining** | carries a condition or drawback | very high | rare: changes how the player plays |
+
+A pay-off with no floor is a dead card. An opener whose ceiling matches a pay-off makes commitment pointless. The rarity column is a tendency, not a rule.
+
+## Composition: checks across a band and across the deck
+
+- **Theme check:** each major theme has cards serving at least two throughlines, plus one that is good to anyone, spread over several bands.
+- **Throughline check:** each throughline has a path through all four ages, with science, culture and production reachable along it. This is where "the deck needs science and culture" is answered for each style of play, not only for the deck as a whole.
+- **Peace and war:** most of bands 0 and 1 is useful at peace. War cards are strong enough to be held through peace.
+- **Shapes:** a band mixes flats, percentages, payouts on moments, growers, rules, combat lines, commissions, charters and levies. No shape dominates.
+- **Rarities:** each band has glue, pay-offs and a few build-defining rares.
+- **One job per card.** A card's job is what it reads, what it pays and where. Two cards with the same job are merged, or one changes what it reads.
+- **Theme and history:** each card names a real institution or practice, does what that institution did, and sits in the band of its era (no Knights Templar in band 0). The Soldier-Farmers paying food at peace (the Chinese *tuntian*) is the model.
+
+## Variety: every game slightly different, no forced build
+
+- **No linchpin.** No throughline depends on one specific card; each has several routes.
+- **Density per band.** Each hand holds one or two cards of each deck, and long bands run a dozen drafts against about 13 deck cards, so a seat sees most of a long band. Variety then comes from band 0 (four drafts show four of about eleven cards), from the rares, from which cards the player seats, and from the partner deck. Band 0's openers do much of the work of making games differ: give them several directions.
+- **Themes that cross throughlines** let a player pivot when the draft goes elsewhere: a card bought for one style still counts toward another.
+- **Leaders colour, they do not narrow** (see below).
+
+## Leaders
+
+- Each leader's ability points at a theme of its decks (Modu Chanyu: mounted units and pillage; Taizong: melee and garrisons; Joan: kills and faith; Mithridates: camps and plantations, and fighting wider empires).
+- That theme has at least three cards in the leader's two decks, across several bands and more than one throughline, so the leader has something to draft toward without being locked into one build.
+- Nothing names a leader or a leader's unique unit or building.
+- Leaders will be tuned later; when a card proposal makes a leader's theme thin or rich, say so.
+
+## Tedium: attention against impact
+
+The user's distinction: investment is not tedium, though they overlap. **Investment is attention spent on choices whose results the player can see. Tedium is attention spent on actions or tracking that do not change what the player chooses.** "+1 production on pastures" is satisfying: the player was already choosing pastures, and now they pay more. Training units is borderline: the decision is fine, but every unit is something to order every turn, and units the player does not need become chores. The worst case is a card that takes a lot of mental bandwidth and is not impactful or fun.
+
+Ask of every card:
+1. **Does it reward something the player already does, or assign a chore?** Rewarding an existing choice is best; adding one interesting new choice is good; adding repeated actions is bad.
+2. **What does it leave on the map?** Units are the most expensive thing a card can create, because each one needs orders every turn. Prefer fewer, better pieces (the best unit the player can build, arriving where it is needed) or a payout instead of a piece.
+3. **What must the player track?** A counter, timer or condition across turns must be tracked and shown by the game (a grower's current value, a commission's progress). Hidden state the player must compute is tedium.
+4. **Is the best play to repeat something dull?** Training to disband, declaring and making peace, farming a respawning camp. That is tedium and an exploit at once; caps and once-per-turn limits fix both.
+5. **Does it ask for positioning outside a fight?** Adjacency bonuses are good in battle, where the player is arranging units anyway, and tedious as an economy card at peace.
+
+| | Low impact | High impact |
+|---|---|---|
+| **Low attention** | Filler: fine as cheap glue | The best cards |
+| **High attention** | **Cut** | Build-defining: fine for rares, if the attention is the fun part |
+
+Attention turns into investment when the player is making choices with it and sees the result grow: a commission or grower whose progress is shown and whose payoff arrives as a moment.
+
 ## Power: what a card dealt now must be worth
 
 Read `references/power-bar.md` for the tables. The rule behind them:
@@ -102,6 +171,9 @@ For each card:
 | Band, rarity | Band 0 to 4; common, uncommon or rare |
 | Text | The player-facing line, with numbers, in plain words |
 | Age goal | Which goal of that age it serves (from `age-goals.md`) |
+| Themes and throughlines | The themes it is written on, the throughlines it serves, and which deck-map gap it fills |
+| Role | Glue, pay-off or build-defining, with its floor (alone) and ceiling (built around) |
+| Attention | What the player does differently with it seated, what it leaves on the map, what must be tracked; where it sits on the attention-against-impact table |
 | Power | The arithmetic against the bar: what it pays at the start and end of its band in a typical seat, compared with the median and best seated card |
 | Synergy | Raises: … Reads: … with the live cards in a seat's pool that feed it and that it feeds, and how many raisers exist at or before its band |
 | Displaces | What kind of seated card it pushes out, and why a player would make that swap |
@@ -112,6 +184,11 @@ Then a short note on the combinations the batch opens, each stated through a gen
 
 ## Before you hand it over
 
+- The deck map was read (or built) and each card says which gap it fills.
+- Every card has a real floor, and the batch mixes roles, shapes and rarities without two cards doing the same job.
+- Each card's theme and era fit its band and its historical model.
+- No card is high attention and low impact; cards that create units or ask for tracking justify it.
+- No card is a linchpin that one throughline depends on.
 - Each card has one effect and at most one condition, and its text fits on one line.
 - No card names another card.
 - Every pay-off has three or more set-ups available at or before its band in a two-deck pool.
