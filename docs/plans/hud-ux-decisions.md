@@ -67,3 +67,9 @@ The user, 2026-10-12: *"ok E2 is my favorite."* One drawer at the top-left, in t
 2. A screen registry in `main.ts`, then the empire panel (E2), the commission chips under it, and Supply.
 3. End Turn's waiting list, the chronicle and Lens beside it.
 4. The city screen, per its audit.
+
+## The faith screen
+
+- **The user's request (2026-10-12):** manage rites from the faith screen, and lay out every bonus the religion gives.
+- **Audit and three layouts (awaiting the user's pick):** https://claude.ai/artifact/2cmwZenBYFPeFm7UwEnE7K — written version `docs/plans/faith-screen-audit.md`. F1 (recommended): three tabs, Rites, Bonuses, Religion. F2: one page in three columns. F3: a rite calendar and a ledger.
+- **Bugs it found, live today:** retired rites are listed (`religionScreen.ts` walks every rite, not `LIVE_RITE_IDS`); card-taught rites name a technology as their teacher (`religionScreen.ts`, `controls.ts`); the sheet header names the retired augur (`index.html`); rite duration is printed twice and ignores The Octave; the founder share's line carries a belief's id (`statecraft/evaluator.ts`).
