@@ -1,6 +1,6 @@
 ---
 name: card-design
-description: Use when proposing, revising or reviewing Order cards for the six decks (Dominion, Expansionist, Commerce, Devotion, Scientific, Magisterial) in Magister Ludi. Covers the user's card principles, how synergy is built, themes and throughlines (the deck map), floor and ceiling roles, composition and variety, leaders, tedium against investment, what each age's player is trying to do, and how strong a card dealt at each band must be.
+description: Use when proposing, revising or reviewing Order cards for the six decks (Dominion, Expansionist, Commerce, Devotion, Scientific, Magisterial) in Magister Ludi. Covers the user's card principles, how synergy is built, finished builds (what a deck's endgame chairs look like), themes and throughlines (the deck map), floor and ceiling roles, composition and variety, leaders, tedium against investment, what each age's player is trying to do, and how strong a card dealt at each band must be.
 ---
 
 # Designing deck cards
@@ -15,6 +15,8 @@ This skill is how we write and judge Order cards. It gathers the user's rulings,
 **The current priority is shape, not numbers** (the user, 2026-10-13): the goal is the right *shape* of cards for a closed beta test, and numbers can always be tweaked. Size numbers against the power bar as a sensible first guess, but spend the effort on what a card does, what it connects to, and how it feels to play.
 
 **The goal for a deck** (the user, 2026-10-13): every game should feel slightly different, and a player cannot force a specific build. Cards have synergy and clear throughlines across the game, so playing into a style is rewarded, and each card is also worth taking on its own.
+
+**Design from finished builds** (the user, 2026-10-14: *"we need an idea of a few 'finished builds' (i.e. what a complete set of chairs should look like in the endgame). I think we have too many cards that are individually useful"*). Each deck is designed toward three or four finished builds; see "Finished builds" below. A card's own floor is real but modest, and most of its value is the build it joins.
 
 ## Specs of record (read before proposing)
 
@@ -71,6 +73,42 @@ Synergy is what makes a draft feel like building something. Here it comes from *
 - Tags or labels written only to make cards combine (declined by the user).
 - Pay that grows with army size held at peace for Dominion: it punishes losses in war and compounds a conqueror's lead (the tempo ruling).
 
+## Finished builds: design from the endgame down
+
+A **finished build** is what a seat's chairs look like at the end of a game where a plan came together: about eleven seated cards (charters take no chair), most of them working on one engine. Each deck has three or four, written in `references/deck-maps.md`. They are the target the deck is designed toward: every card belongs to at least one of them, or is deliberately glue.
+
+**Why.** A deck designed card by card, each with a full floor, ends up as a pile of individually useful cards. A seat then fills its chairs with whichever card pays most on its own. The endgame chairs look alike from game to game, and no draft feels like a plan coming together. The 2026-10-13 audit points the same way:
+- raisers outnumber readers: about twelve cards make more units and two read them; about twenty create citizens and four read them in the midgame;
+- most readers sit on saturating quantities (garrisons, military buildings), which pay the same with or without a plan.
+
+**What to write for each finished build:**
+- **Name and fantasy,** in one line.
+- **Engine:** the quantity it pushes and the moments it cashes in, in the shared vocabulary.
+- **How it wins:** how it reaches the Magnum Opus, or stops the empire building it.
+- **The eleven chairs, in four parts:**
+  - *Foundation* (2 or 3): cards from bands 0 and 1 still worth their chair at the end, such as growers, "this game" counters and levies.
+  - *Engine* (4 or 5): the set-ups and pay-offs on the engine's quantity.
+  - *Finishers* (1 or 2): band 3 and 4 rares that multiply the engine or cash it in.
+  - *Flex* (2 or 3): glue, and answers to the game in front of the player.
+- **Candidates, more than fit:** 15 to 20 cards across the bands, so several routes reach the build and none can be forced.
+- **What it gives up,** and **which partner decks feed it.**
+
+**Checks:**
+- **Better together.** An engine card is clearly stronger in its build than in a seat without one.
+- **The build beats a pile.** In the endgame, a finished build should clearly out-earn eleven of the deck's strongest individual cards seated together. If it does not, drafting for a plan is not worth it.
+- **Several routes.** Any two of a build's core cards turn it on; no build depends on one card.
+- **Every card has a home.** Each card belongs to at least one finished build or is deliberately glue. An engine card that serves two of a deck's builds is a bridge, and bridges make pivots possible.
+- **Individual usefulness falls with the band.**
+  - Three chairs cannot hold a build, so band 0 is mostly glue and openers that point toward builds.
+  - Bands 1 and 2 mix openers and engine cards.
+  - Bands 3 and 4 are mostly pay-offs and finishers that cash in what the seat assembled.
+  - A late card that does little outside its build is acceptable; an early one is not.
+- **Glue is a minority.** Starting target (the orchestrator's proposal, 2026-10-14; the user may change it): about a quarter of a deck is glue, half engine cards, and a quarter pay-offs and finishers.
+
+**How this fits the principles.** Principle 4 ("fits in") and "each card is also worth taking on its own" still hold, read this way: a card fits two or three of its deck's finished builds rather than every seat, and its floor is enough to take it when the draft goes elsewhere, never so much that the build is pointless.
+
+**Measuring it.** `explainCardImpact` (`src/sim/cardImpact.ts`) gives a seated card's ghost diff. Run it in two kinds of seat: one holding the card's build partners and one holding none. The gap is the card's synergy margin, and most engine cards should show a clear one.
+
 ## Themes and throughlines: the deck map
 
 Two different axes. Keep them apart.
@@ -83,7 +121,7 @@ Two different axes. Keep them apart.
 
 ## Floor and ceiling: the three roles
 
-Every card has a **floor** (what it does in a seat that is not building around it) and a **ceiling** (what it does in a seat that is). Every card needs a real floor: worth taking on its own.
+Every card has a **floor** (what it does in a seat that is not building around it) and a **ceiling** (what it does in a seat that is). Every card needs a real floor, but an engine card's floor is modest: most of its value is the finished build it joins (see "Finished builds").
 
 | Role | Floor | Ceiling | Usually |
 |---|---|---|---|
@@ -100,6 +138,7 @@ A pay-off with no floor is a dead card. An opener whose ceiling matches a pay-of
 - **Peace and war:** most of bands 0 and 1 is useful at peace. War cards are strong enough to be held through peace.
 - **Shapes:** a band mixes flats, percentages, payouts on moments, growers, rules, combat lines, commissions, charters and levies. No shape dominates.
 - **Rarities:** each band has glue, pay-offs and a few build-defining rares.
+- **Builds:** every card belongs to a finished build or is deliberately glue; glue is a minority, and individual usefulness falls from band 0 to band 4 (see "Finished builds").
 - **One job per card.** A card's job is what it reads, what it pays and where. Two cards with the same job are merged, or one changes what it reads.
 - **Theme and history:** each card names a real institution or practice, does what that institution did, and sits in the band of its era (no Knights Templar in band 0). The Soldier-Farmers paying food at peace (the Chinese *tuntian*) is the model.
 
@@ -173,6 +212,7 @@ For each card:
 | Age goal | Which goal of that age it serves (from `age-goals.md`) |
 | Themes and throughlines | The themes it is written on, the throughlines it serves, and which deck-map gap it fills |
 | Role | Glue, pay-off or build-defining, with its floor (alone) and ceiling (built around) |
+| Builds | The finished builds it belongs to and its part in each (foundation, engine, finisher, flex), or "glue" |
 | Attention | What the player does differently with it seated, what it leaves on the map, what must be tracked; where it sits on the attention-against-impact table |
 | Power | The arithmetic against the bar: what it pays at the start and end of its band in a typical seat, compared with the median and best seated card |
 | Synergy | Raises: … Reads: … with the live cards in a seat's pool that feed it and that it feeds, and how many raisers exist at or before its band |
@@ -185,6 +225,7 @@ Then a short note on the combinations the batch opens, each stated through a gen
 ## Before you hand it over
 
 - The deck map was read (or built) and each card says which gap it fills.
+- Each card names the finished builds it belongs to and its part in each, or says it is glue; the batch does not add to the glue share without saying so.
 - Every card has a real floor, and the batch mixes roles, shapes and rarities without two cards doing the same job.
 - Each card's theme and era fit its band and its historical model.
 - No card is high attention and low impact; cards that create units or ask for tracking justify it.

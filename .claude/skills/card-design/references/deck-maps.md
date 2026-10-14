@@ -50,6 +50,10 @@ Minor threads: naval force (map-dependent), and the holy war, which mostly belon
 | Mithridates VI | Dominion, Expansionist | strength against an empire holding more cities; food on plantations and camps | camps: The Horse Herds. "Against a wider empire" reads no quantity any card raises: no throughline to draft toward yet. |
 | Joan of Arc | Dominion, Devotion | kills pay faith and press her faith; strength on her faith's ground | kill cards (Songs of the Fallen, Battle Honours, The Art of War) |
 
+### Finished builds
+
+*Not written yet.* The next step: three or four finished builds for Dominion, each in the shape of SKILL.md's "Finished builds" section (engine, how it wins, the eleven chairs as foundation, engine, finishers and flex, 15 to 20 candidates, what it gives up, partner decks). Show them to the user before relying on them. The throughlines above are where to start: a finished build is a throughline's endgame, made concrete.
+
 ### Cards placed
 
 *Not yet placed.* The next step is to place every live Dominion card and the shared cards naming Dominion on the themes and throughlines above, with role, essential, band and shape, and then run the composition checks from SKILL.md.

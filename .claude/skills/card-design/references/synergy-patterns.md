@@ -34,6 +34,7 @@ These lists are a snapshot (2026-10-13). Check the source before relying on one;
 - **Monster Train.** Two clans per run, like our two decks. Cross-clan synergy comes from generic keywords both clans make or use, not from pair-specific cards.
 - **Hades.** Duo boons appear only once both gods are held, so the pay-off is never dead.
 - **Against the Storm.** Cornerstones chosen each year reward the same kinds of events, so they combine with each other.
+- **Magic: The Gathering's draft design** (from Wizards' published design writing, not researched in the repo). Each two-colour pair has a draft archetype, and a "signpost" uncommon in the pair's colours tells the drafter what it does. Commons are either glue that any deck plays or archetype cards strong in one or two archetypes. A set is tuned so that drafting for an archetype competes with taking the strongest card. The mapping to us: a seat's two decks are its two colours, the shared cards are the gold cards, and a band is a pack. A finished build is our archetype.
 
 Declined by the user: tags written to make cards combine, and a smaller pool per game. Open: counters every card raises or reads, pay-offs that arrive when they work, keystone moments at band openings.
 
