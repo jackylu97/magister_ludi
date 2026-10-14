@@ -44,6 +44,7 @@ import {
 } from '../sim/cities';
 import {
   explainBuildingPreview,
+  explainUnrestGate,
   foldBuildingPreview,
   foldCity,
   foldCityStages,
@@ -53,6 +54,13 @@ import {
   type CityReading,
   type CityYieldLine,
 } from '../sim/yields/town';
+import {
+  explainPacification,
+  foldPacification,
+  pacificationTurnsLeft,
+  rebelTurnsLeft,
+  unrestGarrison,
+} from '../sim/unrest';
 import {
   type BuildingId,
   type ProductionCategory,
@@ -122,6 +130,7 @@ import {
   type GameState,
   type QueueItem,
   type ReligionId,
+  barbarianPlayer,
   cityReligion,
   followerCount,
   hasEndedTurn,
@@ -869,6 +878,67 @@ export function maxHpLedger(city: City): string {
 }
 
 /**
+ * Everything the town panel's unrest card says, read off the simulation, or
+ * `null` for a town that is not in unrest (batch WC1, `docs/flags.md`
+ * (rrrrrr) part 1: *"the town panel shows the bar, the reasons and the turns
+ * left"*).
+ *
+ * Every figure is the simulation's own: the bar is the record's basket against
+ * its target, the reasons are `explainPacification`'s lines and the rate is
+ * their fold (rule 5), the turns are `pacificationTurnsLeft`, and the rebel
+ * warning is `rebelTurnsLeft` set against those turns. A rebel is only warned
+ * of when it would rise before the town settles, because the `unrest` phase
+ * fills the basket first and a town pacified on the turn a rebel was due
+ * raises none. A world with no wild seat raises no rebels, so it warns of none.
+ *
+ * Pure and module-level for `defenseRows`' reason: a suite with no jsdom can
+ * read what the card says.
+ */
+export interface UnrestCardParts {
+  /** Pacification banked, and what it must reach. */
+  progress: number;
+  target: number;
+  /** What the town gains each turn — the fold of `reasons`. */
+  rate: number;
+  /** Turns until it settles at that rate, or `null` when it is not settling. */
+  turns: number | null;
+  /** One row per reason, in the simulation's order: "Garrison · Warrior", "+1". */
+  reasons: { label: string; figure: string }[];
+  /** A soldier of the owner stands in the town. */
+  guarded: boolean;
+  /**
+   * Turns until the next rebel rises, when one will rise before the town
+   * settles — or `null` when none will (a garrison, a town that settles
+   * first, or a world with no wild).
+   */
+  rebelIn: number | null;
+}
+
+export function unrestCardParts(state: GameState, city: City): UnrestCardParts | null {
+  const unrest = city.unrest;
+  if (unrest === undefined) return null;
+  const lines = explainPacification(state, city);
+  const rate = foldPacification(lines);
+  const turns = pacificationTurnsLeft(state, city);
+  const guarded = unrestGarrison(state, city) !== null;
+  const nextRebel = rebelTurnsLeft(city);
+  const wild = barbarianPlayer(state) !== undefined;
+  const rebelIn =
+    guarded || !wild || nextRebel === null || (turns !== null && nextRebel >= turns)
+      ? null
+      : nextRebel;
+  return {
+    progress: unrest.progress,
+    target: unrest.target,
+    rate,
+    turns,
+    reasons: lines.map((line) => ({ label: line.source, figure: signedFigure(line.amount) })),
+    guarded,
+    rebelIn,
+  };
+}
+
+/**
  * One row of the defence ledger: what it is, what it is worth.
  *
  * `amount` is the same number `figures` prints, kept as a number so the
@@ -1377,6 +1447,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const { stat, amount } = def.cityStat;
       notes.append(note(`${amount > 0 ? '+' : ''}${amount} city ${stat}`));
     }
+    // The unrest marker (batch WC1), off the row's own field like the rest.
+    if (def.easesUnrest === true) notes.append(note('A town in unrest settles faster with this'));
     // **No renewal line** (the renewals axe, 2026-09-04). A card used to promise
     // every technology that would one day make this building pay more; the rows
     // that promised it are gone, and a building is worth what the figures above
@@ -1733,6 +1805,19 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         else line(row.label, row.figures, row.bad);
       }
     }
+    // **And last, the unrest gate** (step 13 of `docs/yields.md`, batch WC1):
+    // the voices a town in unrest makes none of, after everything above has
+    // been folded and multiplied. One row, because the reason is one, and in
+    // the stage's louder ink, because it is the last thing the chips went
+    // through — the chips read nought in these voices and this says why.
+    const gates = explainUnrestGate(city);
+    if (gates.length > 0) {
+      stageLine(
+        gates[0]!.source,
+        gates.map((gate) => `${YIELD_GLYPH[gate.yield]} ×0`).join('  '),
+        true,
+      );
+    }
     if (list.childElementCount > 0) box.append(list);
     // A town whose chips are pure ground — no buildings, no luxuries, no
     // percentage in force — has an empty list, and an empty card would read as a
@@ -1766,6 +1851,75 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       parts.push(`${YIELD_GLYPH[key]} ${percentFigure(percent)}`);
     }
     return parts.length === 0 ? null : parts.join('  ');
+  }
+
+  /**
+   * **The unrest card** — the bar, the reasons and the turns left (batch WC1,
+   * `docs/flags.md` (rrrrrr) part 1), or `null` for a town that is not in
+   * unrest, which is almost every town almost all of the time.
+   *
+   * The Growth and Borders rows' shape, because it is the same kind of thing: a
+   * basket filling toward a mark at a rate. Under the bar, the reasons it fills
+   * at, one row each with its figure — shown rather than tucked into a hover,
+   * because they are what the player can change (a soldier in the gate, a
+   * general beside it, a Courthouse). Then the one line about rebels. Every
+   * figure is `unrestCardParts`', and no figure is in the prose.
+   */
+  function renderUnrest(city: City): HTMLElement | null {
+    const parts = unrestCardParts(getGame().state, city);
+    if (parts === null) return null;
+    const card = element('div', 'city-card city-unrest');
+    const box = element('div', 'city-meter');
+    const head = element('div', 'city-meter-head');
+    head.append(element('span', 'city-meter-name', 'Unrest'));
+    head.append(
+      element(
+        'span',
+        'city-meter-rate is-bad',
+        parts.turns === null
+          ? `+${figure(parts.rate)} a turn · stalled`
+          : `+${figure(parts.rate)} a turn · ${parts.turns}t`,
+      ),
+    );
+    box.append(head);
+    box.append(bar(parts.progress, parts.target, 'is-unrest'));
+    const foot = element('div', 'city-meter-foot');
+    foot.append(element('span', 'city-meter-sub', 'Pacified at'));
+    foot.append(
+      element('span', 'city-meter-fig', `${figure(parts.progress)} / ${figure(parts.target)}`),
+    );
+    box.append(foot);
+    box.title = 'Pacification fills each turn; the town is pacified when the bar is full.';
+    card.append(box);
+
+    const reasons = element('ul', 'city-modifiers city-unrest-reasons');
+    for (const reason of parts.reasons) {
+      const item = element('li', 'city-modifier');
+      item.append(element('span', undefined, reason.label));
+      item.append(element('span', 'city-modifier-effect', reason.figure));
+      reasons.append(item);
+    }
+    if (reasons.childElementCount > 0) card.append(reasons);
+
+    card.append(
+      element(
+        'p',
+        'hint',
+        'Taken by force: no production, science or culture until it is pacified, ' +
+          'and its borders hold still. Food, gold and faith are untouched.',
+      ),
+    );
+    if (parts.guarded) {
+      card.append(element('p', 'hint', 'A soldier of yours holds the town, so no rebels rise.'));
+    } else if (parts.rebelIn !== null) {
+      // The wanting voice, because this is the one line on the card that is a
+      // lack the player can fix: a soldier in the gate.
+      const warn = element('p', 'hint wanting city-unrest-rebels');
+      warn.append(document.createTextNode('No soldier of yours stands in the town. Rebels rise in '));
+      warn.append(element('span', 'city-meter-fig', turnsLabel(parts.rebelIn)));
+      card.append(warn);
+    }
+    return card;
   }
 
   /**
@@ -1882,14 +2036,20 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const box = element('div', 'city-meter');
     const label = element('div', 'city-meter-head');
     label.append(element('span', 'city-meter-name', 'Borders'));
+    // A town in unrest grows no border (batch WC1): said in its own words,
+    // ahead of the writ's freeze, because it is this town's condition and the
+    // one its owner can end.
+    const halted = growth.unrest || growth.frozen;
     const rate = element(
       'span',
-      growth.frozen ? 'city-meter-rate is-bad' : 'city-meter-rate',
-      growth.frozen
-        ? `${roundYield(growth.base)} culture · frozen`
-        : growth.turns === null
-          ? `+${roundYield(growth.perTurn)} culture · stalled`
-          : `+${roundYield(growth.perTurn)} culture · ${growth.turns}t`,
+      halted ? 'city-meter-rate is-bad' : 'city-meter-rate',
+      growth.unrest
+        ? 'in unrest'
+        : growth.frozen
+          ? `${roundYield(growth.base)} culture · frozen`
+          : growth.turns === null
+            ? `+${roundYield(growth.perTurn)} culture · stalled`
+            : `+${roundYield(growth.perTurn)} culture · ${growth.turns}t`,
     );
     label.append(rate);
     box.append(label);
@@ -1897,7 +2057,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
     const note = element('div', 'city-meter-foot');
     note.append(
-      element('span', 'city-meter-sub', growth.frozen ? 'Authority overdrawn' : 'Next tile'),
+      element(
+        'span',
+        'city-meter-sub',
+        growth.unrest ? 'In unrest' : growth.frozen ? 'Authority overdrawn' : 'Next tile',
+      ),
     );
     note.append(
       element('span', 'city-meter-fig', `${roundYield(growth.banked)} / ${growth.cost}`),
@@ -1908,8 +2072,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // the rate — rule 5 one grade smaller: a player whose borders sped up is
     // entitled to find the reason on the line that sped up. On the row's hover
     // since the mode landed, for the Growth line's reason exactly.
-    box.title =
-      !growth.frozen && growth.percent !== 0
+    box.title = growth.unrest
+      ? 'The borders hold still until the town is pacified'
+      : !growth.frozen && growth.percent !== 0
         ? `Authority ${percentFigure(growth.percent)}`
         : growth.frozen
           ? 'Borders frozen — authority is overdrawn'
@@ -3311,6 +3476,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         'loses a little health each turn, but only an attack can take it.';
       title.append(badge);
     }
+    // In unrest (batch WC1), beside the siege in the same alarm voice: the one
+    // other condition that stops a town working. The card in the rail below
+    // says how long and why.
+    if (city.unrest !== undefined) {
+      const badge = element('span', 'city-size is-siege', 'In unrest');
+      badge.title =
+        'Taken by force and not yet pacified — it makes no production, science ' +
+        'or culture, and its borders hold still.';
+      title.append(badge);
+    }
     // What this town believes, beside its name — the 2026-08-28 ruling. The
     // full list of claims is a disclosure in the rail below; this is its answer
     // promoted to where a player actually looks. See `cityFaithHeadline`.
@@ -3333,6 +3508,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   function renderTownRail(city: City, locked: boolean, quote: CityReading): HTMLElement {
     const { state } = getGame();
     const rail = element('div', 'city-rail is-left');
+
+    // **Unrest first**, while it lasts (batch WC1): it is the reason every other
+    // figure on this screen reads nought, and the one clock its owner can hurry.
+    const unrest = renderUnrest(city);
+    if (unrest) rail.append(unrest);
 
     const clocks = element('div', 'city-card');
     clocks.append(renderGrowth(city, quote));
@@ -3460,6 +3640,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const held = renderPuppet(city);
     if (held) rail.append(held);
 
+    // A town in unrest builds nothing until it is pacified (batch WC1), whatever
+    // its queue says, so the rail says so before anything else.
+    if (city.unrest !== undefined) {
+      rail.append(element('p', 'hint', 'In unrest: nothing is built here until the town is pacified.'));
+    }
     if (puppet) {
       rail.append(
         element('p', 'hint', 'A conquered town chooses for itself what to build.'),

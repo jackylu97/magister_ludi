@@ -407,10 +407,24 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * three per cent and the standard one grew about two. Nothing stalled and no
  * command was refused, which the assertion above this one checks before the
  * hash does.
+ *
+ * ---
+ *
+ * **Unrest in captured towns (batch WC1, schema 125).** Duel
+ * `843c2e63:277904` → `ce3c090f:277904`, standard `20f927f3:966650` →
+ * `9daae566:966650`.
+ *
+ * Only the hash moved. Both prints kept their length, because the state
+ * differs only in the bytes of the schema number (124 → 125). No town changed
+ * hands in the duel game by turn 120, which was checked: no town has
+ * `capturedOn`, so no unrest record was ever written. The new bot terms (the
+ * garrison a town in unrest needs, the declaration's unrest drag, and the raze
+ * arm) changed no decision. Nothing stalled and no command was refused, which
+ * the assertion above this one checks before the hash does.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '843c2e63:277904',
-  standard: '20f927f3:966650',
+  duel: 'ce3c090f:277904',
+  standard: '9daae566:966650',
 };
 
 /**

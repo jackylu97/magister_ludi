@@ -44,9 +44,10 @@ Two stated shapes inside those rules, each because the layer is what it is:
   is an array.
 - **`foldCity` is the town's total, stages included.** A town's total is staged
   by definition (step 12), so the fold of a town is the flats plus the two
-  multiplications; a fourth verb for the multiplication would be a second place
-  a total could be computed. The bare sum of the list, with no stage on it, is
-  `foldCityFlats`, which is what `explainCity` fills `flats` with.
+  multiplications, and then the unrest gate (step 13); a fourth verb for the
+  multiplication would be a second place a total could be computed. The bare sum
+  of the list, with no stage on it, is `foldCityFlats`, which is what
+  `explainCity` fills `flats` with.
 
 ### The slate, and the two tenants beneath the verb
 
@@ -129,9 +130,10 @@ and the phases that write nothing a walk reads.
 
 ## The town — `explainCity` → `foldCity`
 
-Twelve steps. Steps 1–11 are `explainCity`, which returns **flats** and a
-**percent list** and applies neither to the other; step 12 is `foldCity`,
-which is the only place in the simulation a yield meets a percentage.
+Thirteen steps. Steps 1–11 are `explainCity`, which returns **flats** and a
+**percent list** and applies neither to the other; steps 12 and 13 are
+`foldCity`: the two stages, which are the only place in the simulation a yield
+meets a percentage, and then the unrest gate.
 
 | # | Step | Reads | Add / mult | Stage |
 |---|---|---|---|---|
@@ -147,6 +149,7 @@ which is the only place in the simulation a yield meets a percentage.
 | 10 | **The conversions** — `cardYieldConversions` | the **running flats** of one voice, paid again as another | multiplicative *within the step*, lands as a flat | — |
 | 11 | **The percent list** — `cityYieldPercents` (+ `productionModifiers` via `foldCityStages`) | the meter tiers, the luxuries', the cards', the arrears | gathered, never applied | city and empire |
 | 12 | **The two stages** — `applyStages` (`foldCity`) | step 11's list, folded per voice by `foldStageSums` | multiplicative | city, then empire |
+| 13 | **The unrest gate** — `explainUnrestGate` (`foldCity`) | `City.unrest`: a town in unrest makes none of the voices `rules.war.unrest.halts` names (production, science, culture), one labelled line a voice | holds the voice at nothing | — |
 
 ### Inside step 2 — the hex
 
@@ -197,12 +200,12 @@ stage over their fold, then the banks.
 
 | # | Step | Reads | Add / mult | Stage |
 |---|---|---|---|---|
-| 13 | **The luxuries' empire signatures** — `empireResourceYields` | the empire's holdings | additive | — |
-| 14 | **The caravans abroad** — `senderRouteYields` | routes this seat sent to another empire; the sea premium rides this fold too | additive | — |
-| 15 | **The treasury's ledger** — `explainEmpireGold` | connections, maintenance, the levy's surcharge, the charter's rebate, the treaties; every line declares itself **income** or **bill** (`TradeGoldKind`) | additive | — |
-| 16 | **The cards' empire payouts** — `explainEmpireCardYields` | the empire-scale card lines; **last**, because a rate conversion reads the rates 13–15 produced | additive | — |
-| 17 | **The empire stage** — `stageEmpireFold`, one reconciliation line a voice | the additive fold of 13–16 **minus the bills** | multiplicative | empire |
-| 18 | **The banks** — `foldEmpireLines`, in `collectYields` | the fold of 13–17, plus every town's step-12 total | — | — |
+| 14 | **The luxuries' empire signatures** — `empireResourceYields` | the empire's holdings | additive | — |
+| 15 | **The caravans abroad** — `senderRouteYields` | routes this seat sent to another empire; the sea premium rides this fold too | additive | — |
+| 16 | **The treasury's ledger** — `explainEmpireGold` | connections, maintenance, the levy's surcharge, the charter's rebate, the treaties; every line declares itself **income** or **bill** (`TradeGoldKind`) | additive | — |
+| 17 | **The cards' empire payouts** — `explainEmpireCardYields` | the empire-scale card lines; **last**, because a rate conversion reads the rates 14–16 produced | additive | — |
+| 18 | **The empire stage** — `stageEmpireFold`, one reconciliation line a voice | the additive fold of 14–17 **minus the bills** | multiplicative | empire |
+| 19 | **The banks** — `foldEmpireLines`, in `collectYields` | the fold of 14–18, plus every town's step-13 total | — | — |
 
 Occasions (`windfallPayout`) pay **outside** all of this: a one-time grant is
 modifier-immune, composed base + every rider into one printed figure before
@@ -255,6 +258,18 @@ banking (Entry XVIII.5).
 - **The centre inherits as an excess.** Step 1 is the base city yield plus
   whatever the town hex's own reading beats it by, per voice — the one line no
   list can share out.
+- **The unrest gate comes after both stages, and is not a percentage.**
+  Percentages sum inside a stage, so a −100% line would only cancel the stage's
+  other lines and never the voice. The gate sets the staged figure of each voice
+  it names to nothing, and it runs last so that no stage and no card can bring
+  the voice back. Food, gold and faith pass through it untouched. The town's
+  list and its percentages above the gate are still its real list, and the city
+  panel prints them with the gate's line under them.
+- **The gate reaches the town and nothing else.** The empire's own lines (steps
+  14–19) belong to the empire, so a card paying science to the empire still pays
+  it while one of its towns is in unrest. A conversion (step 10) reads the
+  running flats before the gate, so a card paying gold out of a town's
+  production still pays it: gold is untouched, which is the rule.
 
 ---
 
@@ -278,16 +293,16 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 | `pays` | city · count | 3, 11 | additive at 3; a helping's percentage (a row with `stage`) is gathered at 11 |
 | `pays` | capital · count | 3 | additive — once, in one town, because an empire line has no basket for a hammer |
 | `pays` | city · mirror | 3 | additive — a voice paid again off one category's buildings |
-| `cardYieldAmplifier` | | 2, 3, 16 | additive flat and a percentage, over the *card lines* of the fold it reads |
-| `pays` | route · flat | 6, 14 | additive (arrivals at 6, the caravans abroad at 14); `crossing` narrows a row to one of the two |
-| `pays` | route · count | 6, 14 | additive, same two steps — the helpings multiply the **bag**, as `perEndpointLuxury` does; the count is the road's own length (`routeLength`) |
+| `cardYieldAmplifier` | | 2, 3, 17 | additive flat and a percentage, over the *card lines* of the fold it reads |
+| `pays` | route · flat | 6, 15 | additive (arrivals at 6, the caravans abroad at 15); `crossing` narrows a row to one of the two |
+| `pays` | route · count | 6, 15 | additive, same two steps — the helpings multiply the **bag**, as `perEndpointLuxury` does; the count is the road's own length (`routeLength`) |
 | `buildingYieldPercent` | | 9 | multiplicative within the step; lands as a flat |
 | `pays` | city · share | 10 | multiplicative within the step; lands as a flat |
 | `percentYields` | | 11 | multiplicative, at whichever stage the row names |
 | `productionBonus` | | 11 | multiplicative, city stage, production only |
-| `pays` | empire · flat | 16 | additive — the luxuries' signature, and no card row today |
-| `pays` | empire · count | 16, 11 | additive at 16; a helping's percentage (a row with `stage`) is gathered at 11, in every town, since the count is the realm's and reads the same in each |
-| `pays` | empire · rate | 16 | additive, off this turn's own rates |
+| `pays` | empire · flat | 17 | additive — the luxuries' signature, and no card row today |
+| `pays` | empire · count | 17, 11 | additive at 17; a helping's percentage (a row with `stage`) is gathered at 11, in every town, since the count is the realm's and reads the same in each |
+| `pays` | empire · rate | 17 | additive, off this turn's own rates |
 
 ### Kinds that move a voice but not through this sequence
 
@@ -324,7 +339,7 @@ production, borders, the purchase of a tile — and the sequence lives under
 |---|---|
 | the hex | `explainTileYield` · `src/sim/yields/hex.ts` |
 | the town's list | `explainCity` · `src/sim/yields/town.ts` |
-| the town's total | `foldCity` → `applyStages` · `src/sim/yields/town.ts`, `src/sim/yields/stages.ts` |
+| the town's total | `foldCity` → `applyStages`, then `explainUnrestGate` · `src/sim/yields/town.ts`, `src/sim/yields/stages.ts` |
 | the empire's list | `explainEmpireLines` · `src/sim/yields/empire.ts` |
 | the banks | `collectYields` · `src/sim/yields/empire.ts` |
 | the two stages | `applyStages`, `foldStageSums` · `src/sim/yields/stages.ts` (the old `modifiers.ts`) |
@@ -337,5 +352,5 @@ the layer, never inside it). The edge back to `cities.ts` — for a town's
 territory and citizens — is function-level, the documented kind, and
 `test/mapgen/moduleCycles.test.ts` loads every file under `src/sim/**` first in
 turn to prove it. `collectYields` lives with the empire's list rather than in
-`turn.ts` because step 18 *is* the banks; `turn.ts` stays the fixed order of
+`turn.ts` because step 19 *is* the banks; `turn.ts` stays the fixed order of
 phases.

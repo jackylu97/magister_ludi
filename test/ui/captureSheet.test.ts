@@ -17,6 +17,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { CAPTURE_CHOICES, captureFace, captureFigures } from '../../src/ui/captureSheet';
+import { pacificationTurnsLeft } from '../../src/sim/unrest';
 import { applyCombat } from '../../src/sim/combat';
 import { applyCommand } from '../../src/sim/commands';
 import { explainAuthority, explainHappiness } from '../../src/sim/meters';
@@ -206,6 +207,24 @@ describe('the three answers', () => {
     const printed = JSON.stringify(face);
     expect(/\bwrits?\b/i.test(printed)).toBe(false);
     expect(/\bcontentment\b|\bcheer(s|ful)?\b/i.test(printed)).toBe(false);
+  });
+
+  /**
+   * Unrest (batch WC1): the same under both answers that keep the town, since
+   * annexing neither restarts nor ends it, and absent from the raze.
+   */
+  it('prints how long the town stays in unrest beside the two answers that keep it', () => {
+    const { state, city } = capture();
+    const face = captureFace(state, 0, city);
+    const unrestOf = (choice: string): string | undefined =>
+      face.options.find((option) => option.choice === choice)!.figures.find(
+        (line) => line.label === 'Unrest',
+      )?.value;
+    const turns = pacificationTurnsLeft(state, city);
+    expect(turns).not.toBeNull();
+    expect(unrestOf('annex')).toBe(`${turns}t`);
+    expect(unrestOf('puppet')).toBe(`${turns}t`);
+    expect(unrestOf('raze')).toBeUndefined();
   });
 
   /** What razing releases, said as the verb performs it: the ground goes unowned. */

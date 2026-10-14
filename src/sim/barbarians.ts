@@ -228,8 +228,14 @@ export function barbarianMeleeType(state: GameState): UnitTypeId | null {
   return weakest;
 }
 
-/** Is this camp standing in horse country? */
-export function campHasHorses(state: GameState, camp: BarbarianCamp): boolean {
+/**
+ * Is this camp standing in horse country?
+ *
+ * Asked of a place rather than of a camp record, so the same reading serves a
+ * rebel rising beside a town in unrest (`raiseRebel`, `unrest.ts`): a rebel is
+ * the kind a camp standing where the town stands would raise.
+ */
+export function campHasHorses(state: GameState, camp: Cell): boolean {
   const centre = getTileAt(state.map, camp.col, camp.row);
   if (!centre) return false;
   for (const tile of mapRange(state.map, tileHex(centre), BARB.horsesRadius)) {
@@ -306,8 +312,13 @@ export function barbarianMountType(state: GameState): UnitTypeId | null {
  * way the footman is: the strongest the median has reached, else the mildest
  * the tree names. A world whose tree names no mount at all falls back to the
  * footman, so the rule survives a `units.json` that never heard of cavalry.
+ *
+ * `camp` is any place on the board, not only a camp record. The unrest phase
+ * asks it of a town in unrest, because a rebel is "a barbarian unit of the kind
+ * a camp would raise that turn" (`docs/flags.md` (rrrrrr) part 1), and the only
+ * fact the rule reads from a camp is where it stands.
  */
-export function barbarianUnitType(state: GameState, camp: BarbarianCamp): UnitTypeId | null {
+export function barbarianUnitType(state: GameState, camp: Cell): UnitTypeId | null {
   if (state.turn >= BARB.horsemanFromTurn && campHasHorses(state, camp)) {
     const mounted = barbarianMountType(state);
     if (mounted !== null) return mounted;

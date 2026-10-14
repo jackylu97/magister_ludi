@@ -1,10 +1,12 @@
 /**
- * The marks a **town** flies beside its seat's charge — two, and the set is
+ * The marks a **town** flies beside its seat's charge — three, and the set is
  * opened rather than the charge table widened.
  *
  * The user's ruling of 2026-09-09 (`docs/flags.md`, (hhh) 5: *"cities that are
  * puppeted should have an indicator in their banner"*), joined on 2026-09-10 by
- * (gggg) (*"we need an icon for when a city is under siege"*). A banner already
+ * (gggg) (*"we need an icon for when a city is under siege"*) and on 2026-10-14
+ * by unrest (rrrrrr), which asks for "an unrest mark on the town's banner". A
+ * banner already
  * says two things — whose town this is (the seat's charge, on the hoist) and
  * what it believes (the religion's canton, on the fly) — and both of these are
  * a third fact of exactly that kind: a standing condition of the town, legible
@@ -33,6 +35,7 @@ import {
   MARK_STROKE,
   type MarkPath,
   dot,
+  drop,
   ink,
   markSvg,
   poly,
@@ -40,10 +43,10 @@ import {
 } from './resourceMarks';
 
 /** The town marks, as ids. The list is the atlas's cell order. */
-export type CityMarkId = 'puppet' | 'siege';
+export type CityMarkId = 'puppet' | 'siege' | 'unrest';
 
 /** In table order. Appended to, never reordered — an index is a texture coordinate. */
-export const CITY_MARK_IDS: readonly CityMarkId[] = ['puppet', 'siege'];
+export const CITY_MARK_IDS: readonly CityMarkId[] = ['puppet', 'siege', 'unrest'];
 
 export interface CityMark {
   /** What it depicts, for the reader of this file. Never printed. */
@@ -115,6 +118,33 @@ const CITY_MARKS: Record<CityMarkId, CityMark> = {
       solid(poly(16, 44, 26, 44, 21, 54)),
       solid(poly(27, 44, 37, 44, 32, 54)),
       solid(poly(38, 44, 48, 44, 43, 54)),
+    ],
+  },
+  unrest: {
+    note: 'a torch — a flame over a cup on a short haft',
+    paths: [
+      // The **torch**, chosen over a pitchfork, the other tool of a town that
+      // has risen. A pitchfork is three points on a stick, and three points on
+      // a banner that already flies the portcullis's three teeth is two marks a
+      // player has to tell apart by which way the points face. A flame is the
+      // one rounded, pointed silhouette in this set and in the charges, so it
+      // reads at the size a banner prints it.
+      //
+      // It says the right thing about the town: its people are out in the
+      // streets with torches, and the town makes nothing until they are not.
+      //
+      // The flame is three filled drops, point up: one tall tongue and a short
+      // one either side, which is what makes it fire rather than a leaf on a
+      // stick. Filled rather than outlined, because an outlined drop at twelve
+      // pixels closes into a ring.
+      solid(drop(32, 16, 7.5, 24)),
+      solid(drop(22.5, 22, 4, 13)),
+      solid(drop(41.5, 22, 4, 13)),
+      // The cup that holds it: a short trapezoid, wider at the lip, set a
+      // little below the flame so the two do not run together.
+      solid(poly(21, 33, 43, 33, 37, 40, 27, 40)),
+      // The haft, one stroke, long enough that the mark stands up.
+      ink('M32 40V58'),
     ],
   },
 };

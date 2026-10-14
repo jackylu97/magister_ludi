@@ -667,10 +667,15 @@ describe('determinism', () => {
    * at both seeds: 123 became 124. Nobody here drafts a card, so the rule that
    * deals only the current band changes nothing on this board; only the
    * recorded schema version moved.
+   *
+   * **Batch WC1 (unrest) moved the hash and not the length** at both seeds:
+   * 124 became 125, and the new `unrest` phase raises the revision once more
+   * a turn, twenty more over the sweep with the same number of digits. Nobody
+   * here takes a town, so nothing else moved.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '2719e10b:188968',
-    2026: 'c26df06f:188539',
+    11: '9884cd26:188968',
+    2026: '5fbfc440:188539',
   };
 
   for (const seed of [11, 2026]) {

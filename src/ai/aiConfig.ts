@@ -416,6 +416,17 @@ export interface AiConfig {
   military: {
     campHuntRadius: number;
     garrisonPerCity: number;
+    /**
+     * **Soldiers a town in unrest is owed** (batch WC1, `docs/flags.md`
+     * (rrrrrr) part 1: *"bots keep a garrison in a captured town until it is
+     * pacified"*). A town in unrest wants the larger of this and
+     * `garrisonPerCity`; every other town wants `garrisonPerCity` alone. A
+     * soldier in a town in unrest settles it faster, and an empty one raises
+     * rebels, so this is a floor the ordinary garrison cannot be tuned under.
+     * The piece holding one also strikes nothing in close quarters, since a
+     * kill would carry it out of the gate (`soldierCommand`).
+     */
+    unrestGarrison: number;
     armyPerCity: number;
     /**
      * **The warmonger's one capability.** Zero is the peaceful bot this file
@@ -752,6 +763,27 @@ export interface AiConfig {
      * gain.
      */
     targetValueWeight: number;
+    /**
+     * **What a target's unrest costs the declaration** (batch WC1). A town taken
+     * by force makes no production, science or culture until it is pacified, so
+     * a declaration reads the turns its target would sit in unrest — its
+     * pacification target over the rate a garrisoned town settles at — and
+     * multiplies the candidate's score by `1 − this × those turns`, floored at
+     * nothing. Nought ignores unrest altogether.
+     */
+    unrestDrag: number;
+    /**
+     * **When a town in unrest is not worth keeping** (batch WC1). A seat razes a
+     * town of its own in unrest when no soldier of its stands in it, none
+     * stands within `razeReach` hexes to come and hold it, and the town would
+     * sit in unrest at least this many more turns at the bare rate — the case in
+     * which keeping it means rebels rising beside it for as long as it lasts.
+     * A town the rules will not let it raze is never asked. Nought or less
+     * turns the arm off.
+     */
+    razeUnrestTurns: number;
+    /** How far, in hexes, a soldier may stand and still be "coming to hold it". */
+    razeReach: number;
     /**
      * **Towns taken this war at which a winning seat sues for a white peace**
      * (E1a, §2.6). A war with no goal is fought until the exchange turns, which

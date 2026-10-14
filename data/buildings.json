@@ -1634,6 +1634,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "authorityCapacity": 2,
+      "easesUnrest": true,
       "requiresSite": {
         "test": "captured"
       },

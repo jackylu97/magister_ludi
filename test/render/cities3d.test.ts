@@ -436,6 +436,12 @@ describe('the city fingerprint carries every sculpt fact', () => {
     // annexing one has to repaint its banner with nothing else about the town
     // having moved.
     ['being taken as a puppet', (s) => void (s.cities[0]!.puppet = true)],
+    // The ninth (batch WC1): a town in unrest flies a torch under the fly of
+    // its banner, so taking a town and pacifying it each repaint it.
+    [
+      'falling into unrest',
+      (s) => void (s.cities[0]!.unrest = { target: 4, progress: 0, unguarded: 0 }),
+    ],
   ];
 
   for (const [what, mutate] of facts) {
@@ -514,6 +520,7 @@ describe('the city fingerprint carries every sculpt fact', () => {
       wonders: 0,
       religion: null,
       puppet: false,
+      unrest: false,
     });
   });
 });
@@ -578,6 +585,47 @@ describe('a puppet says so on its banner', () => {
     // Smaller than the charge it hangs under: it qualifies the mark above it
     // rather than competing with it.
     expect(city.puppetSize).toBeLessThan(city.chargeSize);
+  });
+});
+
+// --- the unrest torch -------------------------------------------------------
+
+describe('a town in unrest says so on its banner', () => {
+  it('stamps one torch per flag, and takes it down when the town is pacified', () => {
+    const state = townState();
+    state.cities[0]!.unrest = { target: 4, progress: 0, unguarded: 0 };
+    const held = build(state);
+    expect(drew(held, held.geometry.cityMarkers.unrest)).toBe(3);
+    // No yoke for a town in unrest that is not a puppet: two marks, two facts.
+    expect(drew(held, held.geometry.cityMarkers.puppet)).toBe(0);
+    held.layer.dispose();
+    delete state.cities[0]!.unrest;
+    const pacified = build(state);
+    expect(drew(pacified, pacified.geometry.cityMarkers.unrest)).toBe(0);
+    pacified.layer.dispose();
+  });
+
+  it('flies the torch and the yoke together on a puppet in unrest', () => {
+    const state = townState();
+    state.cities[0]!.puppet = true;
+    state.cities[0]!.unrest = { target: 4, progress: 0, unguarded: 0 };
+    const built = build(state);
+    expect(drew(built, built.geometry.cityMarkers.puppet)).toBe(3);
+    expect(drew(built, built.geometry.cityMarkers.unrest)).toBe(3);
+    built.layer.dispose();
+  });
+
+  /**
+   * The torch hangs clear of the cloth like the yoke, but under the **fly**:
+   * a town taken by force is very often a puppet and in unrest at once, and the
+   * two marks must not stand on each other.
+   */
+  it('hangs below the flag, under the fly, clear of the yoke', () => {
+    const city = VIEW3D.city;
+    expect(city.unrestDrop * city.flagHeight).toBeGreaterThan(city.flagHeight / 2);
+    expect(city.unrestInset).toBe(city.deviceInset);
+    const apart = Math.abs(city.unrestInset - city.puppetInset) * city.flagWidth;
+    expect(apart).toBeGreaterThan((city.unrestSize + city.puppetSize) / 2);
   });
 });
 

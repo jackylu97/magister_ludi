@@ -18,10 +18,11 @@
  *   · **`foldX(…)`** is **the one sum** of such a list — `foldTileLines`,
  *     `foldCityFlats`, `foldEmpireLines`, `foldCardYields`. Where a layer's fold
  *     is more than an addition it says so and stays a fold: `foldCity` is the
- *     town's total, which *is* the flats plus step 12's two stages, because a
- *     town's total is staged by definition and a second verb for the
- *     multiplication would invite a second answer. `foldEmpireRates` is the
- *     empire's books summed for a card that asks what a turn is worth.
+ *     town's total, which *is* the flats plus step 12's two stages and step
+ *     13's unrest gate, because a town's total is staged by definition and a
+ *     second verb for the multiplication would invite a second answer.
+ *     `foldEmpireRates` is the empire's books summed for a card that asks what
+ *     a turn is worth.
  *   · **`readX(state, …)`** is the **memo** — `explain` + `fold`, keyed on the
  *     revision, and it lives in **this file and nowhere else**. That is the
  *     whole difference between the second verb and the third: a fold is taken,
@@ -197,9 +198,10 @@ export interface TownReading {
   /** Steps 1–11 of `docs/yields.md` — the list, the flats, the percentages. */
   reading: CityReading;
   /**
-   * Step 12: the two stages over the flats, toward whatever is at the **front**
-   * of the queue — the very call `collectYields` banks with, so a reader and the
-   * resolution cannot disagree about a barracks' hammers.
+   * Steps 12 and 13: the two stages over the flats, toward whatever is at the
+   * **front** of the queue, then the unrest gate — the very call
+   * `collectYields` banks with, so a reader and the resolution cannot disagree
+   * about a barracks' hammers.
    */
   total: CityYields;
 }
@@ -209,14 +211,14 @@ export interface EmpireReading {
   playerId: number;
   /** In `state.cities` order — founding order, which is every phase's order. */
   towns: readonly TownReading[];
-  /** Steps 13–17: `explainEmpireLines`, the stage line included. */
+  /** Steps 14–18: `explainEmpireLines`, the stage line included. */
   lines: readonly EmpireYieldLine[];
   /** The empire stage's own reconciliation lines, one per voice that moved. */
   stage: readonly EmpireYieldLine[];
   /** The meter tiers and the arrears, taken once for the seat. */
   empire: EmpirePercents;
   /**
-   * Step 18: every town's total plus the fold of the empire's lines — **the
+   * Step 19: every town's total plus the fold of the empire's lines — **the
    * headline**, and since batch E3b the only spelling of it.
    *
    * Each town is priced *toward whatever it is building*, which is the call

@@ -1356,6 +1356,14 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
       note: true,
     });
   }
+  // The unrest marker (batch WC1), read off the row for the watering clause's
+  // reason: a second such row says this without anybody typing it again.
+  if (def.easesUnrest === true) {
+    clauses.push({
+      text: 'A city in unrest that holds this settles faster.',
+      note: true,
+    });
+  }
   // **A row an Order opens** — the Gilded Hall, and the charters' eleven
   // (2026-09-04). Read off the row for the reason the watering clause above is:
   // eleven charters is eleven rows that would otherwise each have to remember to

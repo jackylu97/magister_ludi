@@ -48,6 +48,7 @@ import {
   starvationSentence,
   statecraftPause,
   statecraftPauseNotice,
+  unrestSentence,
   wantsNativeContextMenu,
 } from '../../src/ui/controls';
 import { newGame } from '../sim/newGameHelpers';
@@ -375,6 +376,22 @@ describe('starvationSentence', () => {
         'Uruk',
       ),
     ).toBe('Uruk is starving! It has shrunk to size 1 and its Settler is set aside.');
+  });
+});
+
+/**
+ * The two things the `unrest` phase tells a town's owner (batch WC1), in plain
+ * words and with no figure in them.
+ */
+describe('unrestSentence', () => {
+  it('says a town settled, and that a rebel rose and what would have stopped it', () => {
+    const at = { cityId: 0, ownerId: 0, col: 1, row: 1 };
+    expect(unrestSentence({ kind: 'pacified', ...at }, 'Uruk')).toBe(
+      'Uruk is pacified and works for you in full again.',
+    );
+    const rose = unrestSentence({ kind: 'rebel', unitId: 9, ...at }, 'Uruk');
+    expect(rose).toContain('Rebels rise beside Uruk');
+    expect(rose).not.toMatch(/\d/);
   });
 });
 
@@ -939,6 +956,7 @@ describe('the shared news register', () => {
       'reportSieges(result);',
       'reportCampNews(result);',
       'reportStarvation(result);',
+      'reportUnrest(result);',
       'reportGuilds(result);',
       'reportTriumphs(result);',
       'reportBeads(result);',

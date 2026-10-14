@@ -234,6 +234,31 @@ refreshCityCaptions();
       strip.repaint();
     },
   );
+  // **The torch a town in unrest flies** (batch WC1, `docs/flags.md` (rrrrrr)
+  // part 1), under the fly where the yoke hangs under the hoist. Drawn by the
+  // shipping layer off the fixture's own state, like the yoke above, so both
+  // can be judged together on a puppet in unrest.
+  checkbox(knobs, 'unrest', false, (on) => strip.setUnrest(on));
+  slider(
+    knobs,
+    'torch',
+    { min: 0.05, max: 0.24, step: 0.005, value: VIEW3D.city.unrestSize },
+    (value) => value.toFixed(3),
+    (value) => {
+      VIEW3D.city.unrestSize = value;
+      strip.repaint();
+    },
+  );
+  slider(
+    knobs,
+    'torch drop',
+    { min: 0.3, max: 1.2, step: 0.02, value: VIEW3D.city.unrestDrop },
+    (value) => `${value.toFixed(2)}×flag`,
+    (value) => {
+      VIEW3D.city.unrestDrop = value;
+      strip.repaint();
+    },
+  );
 }
 
 // --- 7. the marginalia ------------------------------------------------------

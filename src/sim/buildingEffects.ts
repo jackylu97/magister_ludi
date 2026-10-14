@@ -460,6 +460,27 @@ export function buildingUnitUpkeepRebate(city: {
   return list;
 }
 
+/**
+ * **The buildings in this town that speed the end of its unrest** — every row
+ * standing here that carries `BuildingDef.easesUnrest`, the Courthouse today
+ * (batch WC1).
+ *
+ * The one reading of the marker, so nothing in `src/sim/` compares a building
+ * id against `"courthouse"`. Ids rather than lines, because the figure each is
+ * worth is `rules.war.unrest.buildingRate` and not a number on the row: the
+ * pacification list (`explainPacification`, `unrest.ts`) turns each into one
+ * labelled line with the building's name on it. Walked in `BUILDING_IDS`
+ * order, the table's own, like every other reading here.
+ */
+export function buildingsEasingUnrest(city: { buildings: readonly BuildingId[] }): BuildingId[] {
+  const list: BuildingId[] = [];
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    if (buildingDef(id).easesUnrest === true) list.push(id);
+  }
+  return list;
+}
+
 /** The fold of a building city-stat list. The only sum of one. */
 export function foldBuildingCityStat(list: readonly BuildingCityStatLine[]): number {
   let total = 0;

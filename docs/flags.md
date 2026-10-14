@@ -38,7 +38,22 @@ the turn it falls; the user's playtest found authority stops binding by turn 50.
 Built in this order, each as its own batch, gated and deployed for playtesting
 before the next starts.
 
-1. **Unrest (batch WC1).**
+1. **Unrest (batch WC1) — BUILT 2026-10-14, schema 125.** As built:
+   `docs/war-diplomacy.md` §5c and `src/sim/unrest.ts`.
+   - **Choices made in the build, for the user to check in play:**
+     - The gate is step 13 of `docs/yields.md`, after both stages, so nothing
+       can bring a stopped voice back.
+     - One-time grants still land in a town in unrest: chopped hammers, card
+       windfalls, purchases, and a card that turns production into gold.
+     - A town ceded at a treaty table keeps its unrest record as it stands.
+     - A town in unrest raises no empty-queue blocker.
+     - Bots keep a soldier in a town in unrest and do not attack out of it with
+       that soldier. They raze their own town in unrest when no soldier is
+       within four hexes and six or more turns of unrest remain.
+   - **Bot games:** no town changed hands by turn 120 in the duel digest game
+     (checked), and the standard game's print kept its length, so the bots' own
+     play is unchanged in both. Unrest shows up in the user's conquests and in
+     longer bot wars.
    - A town taken by force enters unrest, **whether it is kept as a puppet or
      annexed** (the user). Annexing a puppet neither restarts nor ends its
      unrest. Razing leaves nothing to pacify.

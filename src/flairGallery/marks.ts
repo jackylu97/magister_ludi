@@ -753,7 +753,7 @@ function cityMarkFamily(into: HTMLElement): void {
     block(
       into,
       'Town marks — src/art/cityMarks.ts',
-      'What a **town** flies, as against what a seat does: one mark so far, the yoke a puppet wears until it is annexed. Same grid and same weight as the charges, because the two print an inch apart on one banner — and its own set, because a charge belongs to a player and this belongs to a city.',
+      'What a **town** flies, as against what a seat does: the yoke a puppet wears until it is annexed, the portcullis of a town under siege, and the torch of a town in unrest until it is pacified. Same grid and same weight as the charges, because they print an inch apart on one banner — and their own set, because a charge belongs to a player and these belong to a city.',
     ),
   );
   for (const id of CITY_MARK_IDS) {

@@ -377,6 +377,7 @@ import { awardOccasion } from './triumphs';
 import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
 import { bumpEconomy } from './slate';
+import { startUnrest } from './unrest';
 
 const COMBAT = RULES.combat;
 
@@ -3076,8 +3077,10 @@ function payBattleRiders(
  *     spot so no panel shows the old owner's dots.
  *
  * What it deliberately does **not** do: the hit points (a treaty batters no
- * walls), the triumph, the bead and the captor's own counters. Those are the
- * conquest, and they stay in `captureCity`.
+ * walls), the triumph, the bead, the captor's own counters and unrest (batch
+ * WC1: only a town taken by force enters it). Those are the conquest, and they
+ * stay in `captureCity`. A town ceded while it is in unrest keeps its record as
+ * it stands, because nothing here touches it.
  */
 export function handOverCity(state: GameState, city: City, ownerId: number): void {
   const loser = city.ownerId;
@@ -3163,6 +3166,14 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // town taken *by force* — a wager that counted a bargained city would be a war
   // card anybody could buy.
   city.capturedOn = state.turn;
+  // **Unrest** (batch WC1, `docs/flags.md` (rrrrrr) part 1): a town taken by
+  // force makes no production, science or culture until it is pacified. Here
+  // and not in `handOverCity`, for `capturedOn`'s reason: a town handed over at
+  // a treaty table was not taken by force. A fresh record every time, so a town
+  // taken again while still in unrest starts over for its new owner, and a
+  // founder who takes its own town back is in unrest too. Written after the
+  // handover, because the target is read off the population the captor holds.
+  startUnrest(city);
   if (wasCapital && loser !== ownerId) awardBeadOccasion(state, ownerId, 'capitalCaptured');
   recordScalingOccasion(state, ownerId, 'cityCaptured');
   if (marked) recordScalingOccasion(state, ownerId, 'wonderOrCapitalCaptured');

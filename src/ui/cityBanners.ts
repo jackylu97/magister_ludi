@@ -395,6 +395,11 @@ interface Banner {
    * lifecycle exactly — one node, shown and hidden. See "The siege mark".
    */
   siege: HTMLElement;
+  /**
+   * The torch beside the name, drawn iff this town is in unrest (batch WC1).
+   * The yoke's lifecycle exactly. See `buildUnrestMark`.
+   */
+  unrest: HTMLElement;
   /** The channel on the banner's foot. See "The wound on the foot". */
   health: HealthParts;
   /**
@@ -472,6 +477,17 @@ interface BannerFacts {
    * twenty turns stale may have been lifted, lost or won.
    */
   besieged: boolean;
+  /**
+   * The town is in unrest — taken by force and not yet pacified (`City.unrest`,
+   * batch WC1). The DOM half of the torch the board flies under the banner's
+   * fly (`CityLook.unrest`).
+   *
+   * On the siege mark's side of the `mine` gate, and for the board's reason:
+   * the flag over every town this seat can see already flies the torch, so the
+   * label beside it says the same. False on a remembered town, which keeps no
+   * conditions — unrest twenty turns stale may long since have settled.
+   */
+  unrest: boolean;
   mine: boolean;
   /** Drawn from `citySightings` rather than from the city itself. */
   stale: boolean;
@@ -839,6 +855,8 @@ function watchedFacts(
     // Read off the sweep's own field rather than asked here, so the whole
     // refresh builds one field per empire — see "The siege mark".
     besieged,
+    // Presence of the record is the state. See `BannerFacts.unrest`.
+    unrest: city.unrest !== undefined,
     mine,
     stale: false,
   };
@@ -911,6 +929,8 @@ function rememberedFacts(state: GameState, sighting: CitySighting, mine: boolean
     // Nor whether it is cut off. A siege is where armies are standing *now*,
     // and a memory of one is the reading a player would march at.
     besieged: false,
+    // Nor whether it is in unrest, for the siege's reason.
+    unrest: false,
     mine,
     stale: true,
   };
@@ -1149,6 +1169,43 @@ export function buildSiegeMark(): HTMLElement {
 /** Shows the mark, or takes it away. Presence is the whole of its state. */
 export function paintSiegeMark(mark: HTMLElement, besieged: boolean): void {
   mark.hidden = !besieged;
+}
+
+// --- the unrest mark --------------------------------------------------------
+
+/**
+ * What the unrest mark is called, everywhere it is said: the hover, the
+ * accessible name and the gallery's caption. `SIEGE_WORDS`' reason.
+ */
+export const UNREST_WORDS = 'In unrest';
+
+/**
+ * The torch as an element, hidden until the town falls into unrest (batch WC1,
+ * `docs/flags.md` (rrrrrr) part 1: *"an unrest mark on the town's banner"*).
+ *
+ * The yoke's construction and the siege mark's (`cityMarkDataUri`, a mask in
+ * one colour), because the three are sentences in one alphabet on one plate. It
+ * wears the plate's own ink at full strength: unrest is a standing condition
+ * like the yoke rather than the emergency the siege mark's alarm ink is for,
+ * but it is a condition the owner has something to do about, so it does not
+ * whisper. The words are on the hover, and the city panel says the rest.
+ *
+ * Exported with its painter so `flair.html` can show the real mark.
+ */
+export function buildUnrestMark(): HTMLElement {
+  const mark = document.createElement('span');
+  mark.className = 'city-banner-unrest';
+  mark.setAttribute('role', 'img');
+  mark.setAttribute('aria-label', UNREST_WORDS);
+  mark.title = `${UNREST_WORDS} — it makes no production, science or culture until it is pacified`;
+  mark.style.setProperty('--unrest-mark', `url("${cityMarkDataUri('unrest')}")`);
+  mark.hidden = true;
+  return mark;
+}
+
+/** Shows the mark, or takes it away. Presence is the whole of its state. */
+export function paintUnrestMark(mark: HTMLElement, unrest: boolean): void {
+  mark.hidden = !unrest;
 }
 
 // --- the garrison row, as elements ------------------------------------------
@@ -1401,6 +1458,8 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     // The second town mark, in the same hand and on the same terms — see "The
     // siege mark".
     const siege = buildSiegeMark();
+    // And the third, the torch of a town in unrest (batch WC1).
+    const unrest = buildUnrestMark();
     const pop = document.createElement('span');
     pop.className = 'city-banner-pop';
     // The badge and the ring share one box and one centre — the ring is *about*
@@ -1421,7 +1480,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     // it is what the eye lands on over a town somebody is holding.
     const garrison = buildGarrisonRow();
 
-    root.append(canton, size, name, yoke, siege, production, health.root, garrison);
+    root.append(canton, size, name, yoke, unrest, siege, production, health.root, garrison);
     // The banner sits inside the viewport, and the viewport turns a pointer
     // press into a pan or a move order. Without this, clicking a banner would
     // also send the selected unit to whichever tile happened to be under the
@@ -1447,6 +1506,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       ring,
       yoke,
       siege,
+      unrest,
       health,
       garrison,
       production,
@@ -1556,7 +1616,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
         facts.name
       }|${facts.production}|${facts.stale ? 1 : 0}|${facts.puppet ? 1 : 0}|${
         facts.besieged ? 1 : 0
-      }`;
+      }|${facts.unrest ? 1 : 0}`;
       if (signature !== banner.signature) {
         banner.signature = signature;
         // A signature term for the reason every other one is: annexing a town
@@ -1564,6 +1624,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
         // never polled.
         banner.yoke.hidden = !facts.puppet;
         paintSiegeMark(banner.siege, facts.besieged);
+        paintUnrestMark(banner.unrest, facts.unrest);
         banner.pop.textContent = facts.pop;
         banner.pop.hidden = facts.pop === '';
         // A memory keeps neither figure, so the whole box goes rather than

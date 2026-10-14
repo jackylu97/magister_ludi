@@ -600,12 +600,12 @@ describe("the card table", () => {
       "city/share",
       // One town, once, because an empire line has no basket for a hammer.
       "capital/count",
-      // The empire — step 16. The flat bag is the **luxuries'** whole use of the
+      // The empire — step 17. The flat bag is the **luxuries'** whole use of the
       // shape (`empireYields` until E5) and no card row carries one today.
       "empire/flat",
       "empire/count",
       "empire/rate",
-      // The caravan — steps 6 and 14.
+      // The caravan — steps 6 and 15.
       "route/flat",
       // And the caravan counted by its own length (batch GP3, Marco Polo): the
       // arm was built with GP2 and the roster row that names it is live now, so
@@ -1777,7 +1777,9 @@ describe("determinism", () => {
     // migrates nothing either way.
     // 124 since the current-band ruling of 2026-10-13: a hand is dealt only from
     // the seat's current band, so a v123 log would pick from different hands.
-    expect(SCHEMA_VERSION).toBe(124);
+    // 125 since WC1: a town taken by force enters unrest, so a v124 log's
+    // captured towns would bank hammers, beakers and culture this build withholds.
+    expect(SCHEMA_VERSION).toBe(125);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

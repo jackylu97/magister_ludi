@@ -519,6 +519,23 @@ export interface CitySpec {
   puppetInset: number;
   puppetDrop: number;
   puppetNudge: number;
+  /**
+   * The **unrest mark** — the torch a town in unrest flies (batch WC1,
+   * `docs/flags.md` (rrrrrr) part 1), hung clear of the cloth like the yoke but
+   * under the **fly** rather than the hoist.
+   *
+   * Its own column because a town taken by force is very often a puppet and in
+   * unrest at once, and the two marks must not stand on each other. The yoke
+   * qualifies whose town this is, so it hangs under the charge; unrest is a
+   * condition of the town itself, so it hangs under the other half of the
+   * banner. The four numbers are the yoke's, read the same way: the inset is a
+   * fraction of the flag's width, the drop a fraction of its height measured
+   * down from its middle.
+   */
+  unrestSize: number;
+  unrestInset: number;
+  unrestDrop: number;
+  unrestNudge: number;
   poleRadius: number;
   poleHeight: number;
   poleColor: string;

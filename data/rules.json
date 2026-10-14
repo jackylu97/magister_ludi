@@ -86,7 +86,17 @@
     "truceTurns": 10,
     "dealTurns": 20,
     "puppetAuthorityRelief": 1,
-    "puppetHappinessPercent": 75
+    "puppetHappinessPercent": 75,
+    "unrest": {
+      "targetPerCitizen": 2,
+      "baseRate": 1,
+      "garrisonRate": 1,
+      "generalRate": 1,
+      "generalReach": 1,
+      "buildingRate": 1,
+      "rebelEveryTurns": 3,
+      "halts": ["production", "science", "culture"]
+    }
   },
   "barbarians": {
     "firstCampTurn": 6,

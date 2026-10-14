@@ -135,6 +135,23 @@ export function garrisonAt(state: GameState, playerId: number, city: City): numb
 }
 
 /**
+ * **How many soldiers this town is owed** — `military.garrisonPerCity`, or for
+ * a town in unrest the larger of that and `military.unrestGarrison` (batch WC1,
+ * `docs/flags.md` (rrrrrr) part 1: *"bots keep a garrison in a captured town
+ * until it is pacified"*).
+ *
+ * The one reading of the figure, so the strike force's count of what comes off
+ * the top, the levy's empty-town term and the guards that keep a piece home all
+ * owe a town in unrest the same soldier. Floored at nothing, as the old reading
+ * was.
+ */
+export function garrisonOwed(ai: AiConfig, city: City): number {
+  const ordinary = Math.max(0, ai.military.garrisonPerCity);
+  if (city.unrest === undefined) return ordinary;
+  return Math.max(ordinary, ai.military.unrestGarrison);
+}
+
+/**
  * **Every combatant standing on this town's hex** — the old `garrisonAt`, kept
  * under the name of the question it actually answers.
  *
@@ -198,9 +215,8 @@ export interface StrikeForce {
 
 export function strikeForce(state: GameState, player: Player, ai: AiConfig): StrikeForce {
   const soldiers = fieldSoldiersOf(state, player.id);
-  let towns = 0;
-  for (const city of state.cities) if (city.ownerId === player.id) towns += 1;
-  const owed = towns * Math.max(0, ai.military.garrisonPerCity);
+  let owed = 0;
+  for (const city of state.cities) if (city.ownerId === player.id) owed += garrisonOwed(ai, city);
   let siege: Unit | null = null;
   let sieges = 0;
   for (const unit of soldiers) {

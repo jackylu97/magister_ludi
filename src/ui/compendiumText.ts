@@ -259,4 +259,19 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
       'Details: you need three things to use a resource — the technology that reveals it, the right improvement on it (or a city built on it), and ownership of the hex. A hex with a resource only accepts the improvement that resource requires. Luxuries count once per type, except silver and gold, where every copy counts. Clearing forest or jungle is not allowed on a hex with a resource you could otherwise work. Improvements built by great people can go on any land hex and give access to any resource on it.',
     ],
   ),
+  // Batch WC1 (`docs/flags.md` (rrrrrr) part 1): what happens to a city taken by
+  // force. Plain words and no figures — the city screen and the capture sheet
+  // print how long and why.
+  written(
+    'concept',
+    'unrest',
+    'Conquered cities and unrest',
+    'what happens to a city you take',
+    '⚑',
+    [
+      'When you take a city by force, you decide what becomes of it. You can annex it and govern it like any city of your own, hold it as a puppet that chooses its own production and asks less of your empire, or raze it to the ground.',
+      'A city taken by force is in unrest, whichever of the first two you choose. While it is in unrest it makes no production, science or culture, and its borders do not grow; its food, gold and faith are untouched. It settles a little every turn, and when it has settled enough the unrest is over. Keep one of your military units inside it: the city settles faster, and an empty city in unrest raises rebels, barbarian units that appear beside it every few turns.',
+      'Details: how long a city stays in unrest depends on how many citizens it had when it was taken. It settles faster with one of your military units inside, with one of your great generals inside or next to it, and once it has a Courthouse. The city screen shows how far it has settled, the reasons, and the turns left, and the city\'s banner carries a torch until it is over. Annexing a puppet neither restarts nor ends its unrest. A city taken back by the empire that founded it is in unrest too, and a city taken again while still in unrest starts over for its new owner. A razed city leaves nothing to settle. Buying things in a city in unrest works as it always does.',
+    ],
+  ),
 ];

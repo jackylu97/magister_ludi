@@ -53,6 +53,9 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
 - Trade routes between the two empires: cancel on declaration
 - City connections pathing through enemy territory: city connections should only apply to your own cities (the gold modifier). You can still use roads during war, they should become strategically important to control.
 - Capture aftermath: as today (authority cost, courthouse family). Let's keep the puppet mechanic in civ 5. You can choose to raze: cities are razed immediately, puppet: city becomes a puppet city, costs 1 less authority and 75% happiness (check civ 5's numbers), annex (full authority and happiness cost)
+  - **As built since batch WC1:** a town kept as a puppet or annexed is also in
+    unrest until it is pacified, and a razed town leaves nothing to pacify. See
+    §5c.
 - Pillage/plunder: as today; at peace they become illegal against real
   players by the combat rule above.
 - Pillaging a tile should heal the unit and give gold (i think this is already in)
@@ -119,6 +122,93 @@ in `data/rules.json` under `rules.naval`.
 - ▢ The user may have meant the walls too (one blow from full health to taken);
   as built the walls beat is unchanged, so this shortens a siege from three blows
   to two and never from two to one.
+
+## 5c. Unrest in a taken town (as built, batch WC1, schema 125)
+
+The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
+(rrrrrr) part 1). The code is `src/sim/unrest.ts`; every figure is in
+`data/rules.json` under `rules.war.unrest`.
+
+**Who enters unrest**
+
+- A town taken by force (`captureCity`) enters unrest, whether its captor keeps
+  it as a puppet or annexes it. The record is `City.unrest`, absent on every
+  town not in unrest.
+- A town retaken by the empire that founded it enters unrest too.
+- A town taken again while still in unrest starts a fresh unrest for its new
+  owner: a new target, an empty basket, and the rebel count back at nothing.
+- Annexing a puppet neither restarts nor ends its unrest. Razing leaves nothing
+  to pacify.
+- A town handed over at a treaty table is not taken by force: the handover
+  neither starts nor ends unrest, and a town ceded while in unrest keeps its
+  record as it stands.
+
+**While in unrest**
+
+- The town makes no production, science or culture. This is the unrest gate,
+  step 13 of `docs/yields.md`, applied after both percentage stages so no
+  percentage can bring a voice back. Food, gold and faith are untouched.
+- Its borders do not grow: nothing banks toward the next tile (`borderGrowth`),
+  and neither the phase nor a border windfall claims a hex for it.
+- Buying things there works as it always does, and a puppet still buys nothing.
+- It raises no production blocker: nothing it queued would move, so End Turn is
+  not held on its empty queue.
+
+**Pacification**
+
+- A basket filled each turn, compared against a target; when it reaches the
+  target the record is deleted and the town works again.
+- The target is `targetPerCitizen` (2) × the town's population at the moment it
+  was taken.
+- The rate is a labelled list (`explainPacification`, rule 5):
+  - `baseRate` (1) every turn;
+  - `garrisonRate` (1) while a military unit of the owner stands in the town
+    (`isFieldSoldier`: a scout or a ship does not count);
+  - `generalRate` (1) while a great general of the owner stands in the town or
+    within `generalReach` (1) hexes of it;
+  - `buildingRate` (1) for each building carrying the `easesUnrest` marker (the
+    Courthouse).
+- The `unrest` phase runs after `resetMovement` and before `wakeSleepers`: after
+  every phase that reads unrest (the yields, the borders) and every phase that
+  moves a piece, so the turn a town is pacified is still a turn of unrest, and
+  the town panel's "turns left" counts the End Turns with nothing made.
+
+**Rebels**
+
+- A town still in unrest at the phase with no military unit of its owner inside
+  counts the turn as unguarded (`CityUnrest.unguarded`). A turn with a soldier
+  inside adds nothing and takes nothing away.
+- On every turn that count reaches a multiple of `rebelEveryTurns` (3), a rebel
+  rises: a barbarian of the kind a camp standing on the town's hex would raise
+  that turn (`barbarianUnitType`), on a free hex beside the town drawn with
+  `state.rng`. None rises when no hex is free or the world has no wild seat.
+- The phase fills the basket before it counts the turn, so a town pacified on
+  the turn a rebel was due raises none.
+- From the moment it stands, a rebel is an ordinary barbarian.
+
+**Interface**
+
+- The town panel's unrest card: the bar, the reasons with their figures, the
+  turns left, and a warning while an unguarded town will raise a rebel before
+  it settles. The yields hover prints the gate as one line under the stages;
+  the band carries an "In unrest" badge; the borders row says "in unrest".
+- The 3D banner flies a torch under its fly (`CityLook.unrest`; the yoke hangs
+  under the hoist), and the DOM banner carries the same mark beside the name.
+- The capture sheet says the town is in unrest under both answers that keep it,
+  with the turns it will take. The owner hears a toast when a rebel rises and
+  when a town is pacified.
+
+**Bots**
+
+- A town in unrest is owed `military.unrestGarrison` (1) soldiers, or
+  `garrisonPerCity` if that is more; an empty one is garrisoned before an empty
+  ordinary town, and the soldier holding one strikes nothing in close quarters,
+  since a kill would carry it out of the gate.
+- The declaration multiplies a candidate's score by
+  `1 − war.unrestDrag × turns` the target would sit in unrest once garrisoned.
+- A town of the bot's own in unrest is razed when no soldier of its stands in
+  it or within `war.razeReach` hexes and it would sit in unrest at least
+  `war.razeUnrestTurns` more turns.
 
 ## 6. War costs
 

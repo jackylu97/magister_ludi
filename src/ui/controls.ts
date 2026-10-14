@@ -215,6 +215,7 @@ import {
 import {
   type StarvationReport,
 } from '../sim/cities';
+import type { UnrestReport } from '../sim/unrest';
 import {
   yieldContextFor,
 } from '../sim/yields/hex';
@@ -1297,6 +1298,21 @@ export function starvationSentence(report: StarvationReport, cityName: string): 
   const verb = names.length > 1 ? 'are' : 'is';
   const setAside = names.length > 0 ? ` and its ${names.join(' and ')} ${verb} set aside` : '';
   return `${cityName} is starving! It has shrunk to size ${report.population}${setAside}.`;
+}
+
+/**
+ * What the toast says when the `unrest` phase did something to one of the
+ * player's towns (batch WC1): a rebel rose beside it, or it was pacified.
+ *
+ * Pure and exported, `starvationSentence`'s shape: the caller resolves the
+ * town's display name, because this function has no state to look it up in.
+ * Plain, and with no figure in it: the town panel carries the numbers.
+ */
+export function unrestSentence(report: UnrestReport, cityName: string): string {
+  if (report.kind === 'pacified') {
+    return `${cityName} is pacified and works for you in full again.`;
+  }
+  return `Rebels rise beside ${cityName}! A soldier of yours in the town would keep them down.`;
 }
 
 /**
@@ -2850,6 +2866,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportCampNews(result);
       reportDisbands(command, result);
       reportStarvation(result);
+      reportUnrest(result);
       reportGuilds(result);
       reportCommissions(result);
       reportTriumphs(result);
@@ -3362,6 +3379,29 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       const city = cityById(state, report.cityId);
       if (!city) continue;
       announce(starvationSentence(report, cityDisplayName(state, city)));
+    }
+  }
+
+  /**
+   * **A town of yours settled, or raised a rebel.** One toast per entry in the
+   * `unrest` phase's report this seat owns (`CommandResult.unrest`, `endTurn`
+   * alone; batch WC1).
+   *
+   * `reportStarvation`'s shape: seat-filtered and read off the reducer's own
+   * report rather than diffed off the board, because once the phase has run a
+   * pacified town simply has no record and a rebel is one more barbarian. A
+   * rebel's toast pans to the rebel, which is where the player has to look.
+   */
+  function reportUnrest(result: CommandResult): void {
+    if (!result.ok || !result.unrest) return;
+    const { state } = getGame();
+    for (const report of result.unrest) {
+      if (report.ownerId !== localPlayerId) continue;
+      const city = cityById(state, report.cityId);
+      if (!city) continue;
+      announce(unrestSentence(report, cityDisplayName(state, city)), {
+        cell: { col: report.col, row: report.row },
+      });
     }
   }
 

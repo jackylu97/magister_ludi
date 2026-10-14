@@ -33,12 +33,14 @@ import {
   buildGarrisonRow,
   buildHealthBar,
   buildSiegeMark,
+  buildUnrestMark,
   cityHealthBar,
   createCityBanners,
   garrisonRow,
   paintGarrisonRow,
   paintHealthBar,
   paintSiegeMark,
+  paintUnrestMark,
 } from '../ui/cityBanners';
 import { CARD_LINE_ACCENT, cardLineMarkUrl } from '../ui/cardLine';
 import { printerDeviceMarkUrl } from '../ui/deviceMarks';
@@ -79,6 +81,7 @@ export function drawFlourishes(into: HTMLElement): void {
   pricePlateStall(into);
   cityBannerStall(into);
   siegeMarkStall(into);
+  unrestMarkStall(into);
   garrisonRowStall(into);
   bannerAnchorStall(into);
   seatInksStall(into);
@@ -445,6 +448,64 @@ function siegeMarkStall(into: HTMLElement): void {
   // ancestor would lose to the class every time — the price plate's rule.
   slider(knobs, 'size', { min: 8, max: 22, step: 0.5, value: 13 }, (v) => `${v}px`, (v) => {
     for (const mark of marks) mark.style.setProperty('--siege-size', `${v}px`);
+  });
+}
+
+/**
+ * The unrest mark on the plate (batch WC1, `docs/flags.md` (rrrrrr) part 1:
+ * *"an unrest mark on the town's banner"*), beside a quiet one and beside the
+ * siege mark.
+ *
+ * The siege stall's question, one mark over: whether a thirteen-pixel torch is
+ * still a torch, or only a smudge, on a plate seen from across the board. The
+ * third pill is the one to judge hardest — a town taken by force and then
+ * surrounded wears both marks at once, and the two must read as two.
+ *
+ * Built and painted by the shipping functions, so nothing on this page knows
+ * when a town is in unrest.
+ */
+function unrestMarkStall(into: HTMLElement): void {
+  const root = block(
+    into,
+    'The unrest mark',
+    'A torch beside the town’s name while it is in unrest — taken by force and not yet pacified. The yoke’s means again: one drawing masked in one colour, so the mark on the plate and the torch under the board’s banner are the same drawing. It wears the plate’s own ink rather than the siege’s alarm, because unrest is a standing condition, but at full strength rather than the yoke’s whisper, because it is one its owner can do something about.',
+  );
+  const grid = stallGrid(root);
+  const cell = stall(grid, 'quiet, in unrest, and in unrest under siege');
+  const ground = element('div', 'banner-ground');
+  const marks: HTMLElement[] = [];
+  const pill = (name: string, caption: string, unrest: boolean, besieged: boolean): void => {
+    const slot = element('div', 'banner-slot');
+    const banner = element('div', 'city-banner is-mine');
+    banner.style.setProperty('--banner-color', '#b3402f');
+    const size = element('span', 'city-banner-size');
+    size.append(element('span', 'city-banner-pop', '4'));
+    const torch = buildUnrestMark();
+    const siege = buildSiegeMark();
+    banner.append(
+      size,
+      element('span', 'city-banner-name', name),
+      torch,
+      siege,
+      element('span', 'city-banner-production', unrest ? 'idle' : 'Granary · 6t'),
+    );
+    paintUnrestMark(torch, unrest);
+    paintSiegeMark(siege, besieged);
+    slot.append(banner, element('span', 'banner-caption', caption));
+    ground.append(slot);
+    marks.push(torch);
+  };
+  pill('Eridu', 'quiet', false, false);
+  pill('Uruk', 'in unrest', true, false);
+  pill('Lagash', 'in unrest · under siege', true, true);
+  cell.append(ground);
+
+  const knobs = controls(root);
+  slider(knobs, 'size', { min: 8, max: 22, step: 0.5, value: 13 }, (v) => `${v}px`, (v) => {
+    for (const mark of marks) {
+      mark.style.width = `${v}px`;
+      mark.style.height = `${v}px`;
+    }
   });
 }
 

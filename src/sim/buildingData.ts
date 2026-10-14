@@ -1389,6 +1389,18 @@ export interface BuildingDef {
    */
   queueFloor?: number;
   /**
+   * **This building speeds the end of unrest in its town** — the Courthouse
+   * today (batch WC1, `docs/flags.md` (rrrrrr) part 1). Absent means a building
+   * that does nothing for unrest.
+   *
+   * A marker and not a figure, because the ruling keeps every number of unrest
+   * in `data/rules.json`: the extra pacification a marked building is worth is
+   * `rules.war.unrest.buildingRate`, the same for every such row. Read in one
+   * place, `buildingsEasingUnrest` (`buildingEffects.ts`), so nothing in
+   * `src/sim/` compares a building id against `"courthouse"`.
+   */
+  easesUnrest?: boolean;
+  /**
    * A half of this row's ratified text that is **deliberately not built**, in
    * the words a player reads, struck through on the card.
    *

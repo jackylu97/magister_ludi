@@ -4308,6 +4308,25 @@ kbd {
   mask-size: contain;
 }
 
+/* The torch, beside the name, on a town in unrest (`cityBanners.ts`,
+   `buildUnrestMark`; batch WC1). The yoke's rule in the plate's own ink, at full
+   strength rather than the yoke's whisper: unrest is a standing condition, but
+   one its owner has something to do about. */
+.city-banner-unrest {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--unrest-mark);
+  mask-image: var(--unrest-mark);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
 .city-banner-production {
   padding-left: 8px;
   border-left: 2px solid rgba(247, 242, 225, 0.3);
@@ -5290,6 +5309,18 @@ body:has(.city-mode:not([hidden])) #hud-context {
    bar and the yield chip above it must never disagree about what a colour is. */
 .city-bar-fill.is-culture {
   background: var(--y-cul);
+}
+/* Pacification (batch WC1): the bar a town in unrest fills toward settling. No
+   yield fills it, so it takes no yield's ink; teal, the calm the town is
+   filling toward, set against the alarm ink of the rate beside it. */
+.city-bar-fill.is-unrest {
+  background: var(--teal);
+}
+
+/* The unrest card's reasons sit under its bar rather than above a stage line,
+   so they do not take the modifier list's pull-up margin. */
+.city-unrest-reasons {
+  margin: 2px 0 4px;
 }
 
 /* Buy Tiles: the button that arms the mode, under the border line it belongs

@@ -248,6 +248,19 @@ export interface CityLook {
    * recompute the other.
    */
   puppet: boolean;
+  /**
+   * True while this town is **in unrest** — taken by force and not yet pacified
+   * (`City.unrest`, batch WC1, `docs/flags.md` (rrrrrr) part 1: *"an unrest mark
+   * on the town's banner"*).
+   *
+   * `puppet`'s reasons, one condition over: it changes what is drawn (a torch
+   * under the fly of the banner, `addTownMark`), so it belongs here and nowhere
+   * else, and being here puts it in the fingerprint, so the banner repaints the
+   * turn the town is taken and the turn it is pacified with nothing else about
+   * the town having to move. A town is often a puppet and in unrest at once, so
+   * the two marks hang under opposite halves of the banner.
+   */
+  unrest: boolean;
 }
 
 /** Does this town hold a finished building? */
@@ -305,6 +318,8 @@ export function cityLook(
     // a look is a set of answers rather than a copy of the town — so it is asked
     // as the question it is.
     puppet: city.puppet === true,
+    // The same reading of `City.unrest`, which is a record when present.
+    unrest: city.unrest !== undefined,
   };
 }
 
@@ -729,15 +744,17 @@ export class CityLayer {
       { material: icons.standingMaterial },
     );
 
-    // The town's own mark, under the charge and in the charge's column. Drawn
-    // before the device so the two halves of the banner are collected in the
-    // order a reader reads them: whose town, then what it believes.
+    // The town's own marks, hung clear of the cloth: the yoke under the charge,
+    // the unrest torch under the fly. Drawn before the device so the two halves
+    // of the banner are collected in the order a reader reads them: whose town,
+    // then what it believes.
     this.addTownMark(look, anchor, right, forward, geometry, collector, faceCamera, icons);
     this.addDevice(state, look, anchor, right, forward, geometry, collector, faceCamera, icons);
   }
 
   /**
-   * The **puppet's yoke**: the town's own mark, hung under the seat's charge.
+   * The **town's own marks**: the puppet's yoke, hung under the seat's charge,
+   * and since batch WC1 the torch of a town in unrest, hung under the fly.
    *
    * The user's ruling of 2026-09-09 — a town taken and not yet annexed says so
    * on its banner, because "which of these six towns of mine are puppets" is a
@@ -763,22 +780,43 @@ export class CityLayer {
     faceCamera: Quaternion,
     icons: TileIcons | null,
   ): void {
-    if (!icons || !look.puppet) return;
+    if (!icons) return;
     const up = new Vector3(0, 1, 0).applyQuaternion(faceCamera);
-    collector.add(
-      geometry.cityMarkers.puppet,
-      [],
-      new Matrix4().compose(
-        anchor
-          .clone()
-          .addScaledVector(right, CITY.puppetInset * CITY.flagWidth)
-          .addScaledVector(up, -CITY.puppetDrop * CITY.flagHeight)
-          .addScaledVector(forward, CITY.puppetNudge),
-        faceCamera,
-        new Vector3(CITY.puppetSize, CITY.puppetSize, 1),
-      ),
-      { material: icons.standingMaterial },
-    );
+    if (look.puppet) {
+      collector.add(
+        geometry.cityMarkers.puppet,
+        [],
+        new Matrix4().compose(
+          anchor
+            .clone()
+            .addScaledVector(right, CITY.puppetInset * CITY.flagWidth)
+            .addScaledVector(up, -CITY.puppetDrop * CITY.flagHeight)
+            .addScaledVector(forward, CITY.puppetNudge),
+          faceCamera,
+          new Vector3(CITY.puppetSize, CITY.puppetSize, 1),
+        ),
+        { material: icons.standingMaterial },
+      );
+    }
+    // **The torch of a town in unrest** (batch WC1), the yoke's construction
+    // under the other half of the banner: a puppet in unrest flies both, and
+    // they must not stand on each other. See `CitySpec.unrestInset`.
+    if (look.unrest) {
+      collector.add(
+        geometry.cityMarkers.unrest,
+        [],
+        new Matrix4().compose(
+          anchor
+            .clone()
+            .addScaledVector(right, CITY.unrestInset * CITY.flagWidth)
+            .addScaledVector(up, -CITY.unrestDrop * CITY.flagHeight)
+            .addScaledVector(forward, CITY.unrestNudge),
+          faceCamera,
+          new Vector3(CITY.unrestSize, CITY.unrestSize, 1),
+        ),
+        { material: icons.standingMaterial },
+      );
+    }
   }
 
   /**
@@ -1360,6 +1398,10 @@ export function signCities(state: GameState): number {
     // that grows, so it has no bit budget. `+1` so "no religion" and "the first
     // religion founded" are different numbers.
     h = Math.imul(h ^ ((look.religion ?? -1) + 1), 16777619);
+    // Whether the town is in unrest (batch WC1). Its own word rather than a
+    // sculpt bit: the packed integer above is full from bit 8 up with the wonder
+    // count, and the puppet flag already sits at its top.
+    h = Math.imul(h ^ (look.unrest ? 1 : 0), 16777619);
   }
   return h >>> 0;
 }

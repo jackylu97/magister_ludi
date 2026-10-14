@@ -128,12 +128,15 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     ].join('\n/* --- */\n');
   }
 
-  it('runs the twelve town steps and the six empire steps in the doc’s order', () => {
+  it('runs the thirteen town steps and the six empire steps in the doc’s order', () => {
     const steps = docSteps();
-    // Eighteen: twelve for the town, six for the empire. Written down so that a
-    // table quietly losing a row is a failure rather than a shorter pass.
+    // Nineteen: thirteen for the town, six for the empire. Written down so that
+    // a table quietly losing a row is a failure rather than a shorter pass. The
+    // thirteenth town step is the unrest gate (batch WC1), which `foldCity`
+    // asks after both stages; the walk below holds it after `applyStages` and
+    // before the empire's first step.
     expect(steps.map((entry) => entry.step)).toEqual(
-      Array.from({ length: 18 }, (_, i) => i + 1),
+      Array.from({ length: 19 }, (_, i) => i + 1),
     );
 
     const text = pipeline();
@@ -153,7 +156,7 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
   });
 
   /**
-   * The steps a kind's register row may name — the same eighteen.
+   * The steps a kind's register row may name — the same nineteen.
    */
   it('gives every register row a step that exists', () => {
     const steps = new Set(docSteps().map((entry) => String(entry.step)));

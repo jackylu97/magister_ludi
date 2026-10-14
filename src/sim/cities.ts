@@ -4,7 +4,7 @@
  * **What a city yields is one folder over** (batch E3b —
  * `docs/audit/evaluations.md` §4b step 9, *files by layer, not by topic*): the
  * sequence of `docs/yields.md` lives in `yields/hex.ts` (what one tile pays),
- * `yields/town.ts` (the twelve steps), `yields/empire.ts` (the seat's own list
+ * `yields/town.ts` (the thirteen steps), `yields/empire.ts` (the seat's own list
  * and `collectYields`, the phase that banks it) and `yields/stages.ts` (Entry
  * XVII's two multiplications). Those four import this file back for the
  * territory and the citizens they price — a function-level cycle, the
@@ -2523,7 +2523,9 @@ export function turnsToFill(remaining: number, perTurn: number): number | null {
  *   2. the writ's border factor multiplies it (`borderFactor`) — the same
  *      ±10/20% tier the meters already compute, summed-then-applied like every
  *      other percentage in this game;
- *   3. a writ in deficit freezes it outright, at any deficit at all.
+ *   3. a writ in deficit freezes it outright, at any deficit at all;
+ *   4. a town in unrest banks none of it (`unrest`, batch WC1), whatever the
+ *      writ says.
  *
  * The result is **exact** (batch X): a +10% on 3 culture is 3.3, and the third
  * of a point banks like every other fraction in the game. It used to floor,
@@ -2545,6 +2547,17 @@ export interface BorderGrowth {
   percent: number;
   /** True when the empire's writ is in deficit: no accrual, and no purchases. */
   frozen: boolean;
+  /**
+   * True while **this town** is in unrest (`City.unrest`, batch WC1): nothing
+   * banks toward the next tile and `expandBorders` claims nothing for it.
+   *
+   * A second flag beside `frozen` rather than a widening of it, because the two
+   * are different facts with different cures. A frozen border is the empire's
+   * writ and stops every town at once, and buying ground stops with it; a town
+   * in unrest is one town, and buying ground there is a purchase, which unrest
+   * leaves alone.
+   */
+  unrest: boolean;
   /** What actually banks toward the next tile this turn. */
   perTurn: number;
   /** What is already banked. */
@@ -2579,11 +2592,17 @@ export function borderGrowth(
   const cardPercent = foldCardRulePercent(
     cardRulePercent(state, city.ownerId, 'borderCulture', city),
   );
+  // **A town in unrest grows no border** (batch WC1). Its culture is already
+  // nothing (the unrest gate), so this is the rule said in its own channel
+  // rather than left to a zero: a voice `rules.war.unrest.halts` stops naming
+  // culture would otherwise start moving the border of a town in unrest.
+  const unrest = city.unrest !== undefined;
   // Summed with the meter's, then applied once — additive inside the channel,
   // exactly as Entry XVII has it inside a stage. Floored at zero for
   // `borderFactor`'s own reason: the worst a modifier can do is stop a border,
   // never march it backwards.
-  const factor = frozen ? 0 : Math.max(0, borderFactor(effects) + cardPercent / 100);
+  const factor =
+    frozen || unrest ? 0 : Math.max(0, borderFactor(effects) + cardPercent / 100);
   const base = yields.culture;
   // Exact since batch X — a +10% on 3 culture is 3.3 and the third of a point is
   // banked, where the old floor made the writ's bonus invisible to every town
@@ -2594,6 +2613,7 @@ export function borderGrowth(
     base,
     percent: borderPercent(effects) + (frozen ? 0 : cardPercent),
     frozen,
+    unrest,
     perTurn,
     banked: city.culture,
     cost,
@@ -5147,6 +5167,9 @@ export function expandBorders(state: GameState): void {
   }
   for (const city of state.cities) {
     if (frozen.get(city.ownerId) === true) continue;
+    // A town in unrest claims nothing, even out of a basket filled before it
+    // was taken — the freeze's two guarantees one town over (batch WC1).
+    if (city.unrest !== undefined) continue;
     const cost = borderCostFor(state, city);
     if (city.culture < cost) continue;
     const tile = bestExpansionTile(state, city);
@@ -5209,6 +5232,9 @@ export interface BorderCompletion {
  */
 export function settleBorderWindfall(state: GameState, city: City): BorderCompletion | null {
   if (bordersFrozen(meterEffects(state, city.ownerId))) return null;
+  // Nor out of a town in unrest (batch WC1): the culture stays banked, and the
+  // phase spends it once the town is pacified.
+  if (city.unrest !== undefined) return null;
   const tiles: Tile[] = [];
   for (;;) {
     const cost = borderCostFor(state, city);

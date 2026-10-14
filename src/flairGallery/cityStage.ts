@@ -220,6 +220,8 @@ export class CityStrip {
   private icons: TileIcons | null = null;
   /** Whether the six towns are held as puppets. The yoke's whole state. */
   private puppet = false;
+  /** Whether the six towns are in unrest. The torch's whole state (batch WC1). */
+  private unrest = false;
   private shadows = LOOK.shadows;
   private seat: number;
   private spin = true;
@@ -301,6 +303,13 @@ export class CityStrip {
     this.rebuild();
   }
 
+  /** Whether the towns are in unrest, which is what flies the torch. */
+  setUnrest(on: boolean): void {
+    if (this.unrest === on) return;
+    this.unrest = on;
+    this.rebuild();
+  }
+
   /**
    * Rebuilds against whatever `data/view3d.json`'s live values now say.
    *
@@ -348,6 +357,9 @@ export class CityStrip {
       if (city) {
         if (this.puppet) city.puppet = true;
         else delete city.puppet;
+        // A token record: the flag reads only whether the town is in unrest.
+        if (this.unrest) city.unrest = { target: 6, progress: 2, unguarded: 0 };
+        else delete city.unrest;
       }
       layer.build(
         panel.state,

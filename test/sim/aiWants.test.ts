@@ -2808,7 +2808,9 @@ describe('the piece walks itself back in, by the arm that already did that', () 
     // The arm is in the unit order, and it reads the standing count rather than
     // any memory of who stepped out of where.
     expect(source).toContain('const home = undefendedCity(state, player, unit);');
-    expect(source).toContain('garrisonAt(state, player.id, city) >= ai.military.garrisonPerCity');
+    // What a town is owed is `garrisonOwed` since batch WC1, which is
+    // `military.garrisonPerCity` for every town not in unrest.
+    expect(source).toContain('garrisonAt(state, player.id, city) >= garrisonOwed(ai, city)');
     // And the step the spend arm takes stores nothing: it is asked of the live
     // board at the moment it fires, never carried on a `Want`.
     expect(source).toContain('const step = stepAsideFor(');

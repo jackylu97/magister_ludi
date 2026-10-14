@@ -351,6 +351,8 @@ describe("the clock as a register", () => {
     // 123 since C8: a town records which bank paid for each of its buildings.
     // 124 since the current-band ruling of 2026-10-13: a hand is dealt only from
     // the seat's current band, so a v123 log would pick from different hands.
-    expect(SCHEMA_VERSION).toBe(124);
+    // 125 since WC1: a town taken by force enters unrest, so a v124 log's
+    // captured towns would bank hammers, beakers and culture this build withholds.
+    expect(SCHEMA_VERSION).toBe(125);
   });
 });

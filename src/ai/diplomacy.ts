@@ -77,7 +77,7 @@
  */
 
 import { type AiConfig } from './aiConfig';
-import { campaignRoad, strikeForce } from './campaign';
+import { campaignRoad, fieldSoldiersOf, garrisonAt, strikeForce } from './campaign';
 import { readDealRefusal } from './dealMemory';
 import { readWarExchange } from './warLedger';
 import {
@@ -105,6 +105,7 @@ import {
   declinePeaceError,
   proposeDealError,
   proposePeaceError,
+  razeCityError,
 } from '../sim/diplomacy';
 import { getTileAt, tileHex, wrappedDistance } from '../sim/map';
 // The settler's own reading of a town's ground, for `war.targetValueWeight`.
@@ -116,6 +117,9 @@ import { type UnitTypeId, isCombatant, unitDef } from '../sim/unitData';
 import { hasPeaceOffer, peaceTermsOn, warBetween } from '../sim/wars';
 import { round as round1 } from './decision';
 import { seatName, seatPeople } from '../sim/leaderData';
+import { turnsToFill } from '../sim/cities';
+import { RULES } from '../sim/rulesData';
+import { pacificationTurnsLeft, unrestTarget } from '../sim/unrest';
 
 /**
  * The one entry point: what this seat wants to say to somebody else, or `null`
@@ -135,6 +139,10 @@ export function diplomacyDecision(
   if (answered !== null) return answered;
   const peace = peaceDecision(state, player, ctx);
   if (peace !== null) return peace;
+  // A town of ours in unrest that nobody can come and hold (batch WC1). Before
+  // a declaration, because it is the aftermath of a war already fought.
+  const razed = razeDecision(state, player, ctx);
+  if (razed !== null) return razed;
   const war = declareDecision(state, player, ctx);
   if (war !== null) return war;
   return swapDecision(state, player, ctx);
@@ -1469,6 +1477,24 @@ export function explainDeclaration(
         op: 'mul',
       });
     }
+    // **What the target's unrest would cost** (batch WC1, `war.unrestDrag`): a
+    // town taken by force makes no production, science or culture until it is
+    // pacified, so the longer the target would sit in unrest once taken, the
+    // less the war is worth. Read at the rate a garrisoned town settles at,
+    // because this seat keeps a soldier in every town it takes.
+    if (reach !== null && ai.war.unrestDrag > 0) {
+      const settle = unrestSettleTurns(reach.city.population);
+      const drag = settle === null ? 0 : Math.max(0, 1 - ai.war.unrestDrag * settle);
+      lines.push({
+        label:
+          settle === null
+            ? `× 0 — ${reach.city.name} would never settle once taken, at the rules' own rates`
+            : `× ${round1(drag)} — ${reach.city.name} would sit in unrest ${round1(settle)} turns once ` +
+              `taken, making no production, science or culture, at a drag of ${ai.war.unrestDrag} a turn`,
+        value: drag,
+        op: 'mul',
+      });
+    }
     const appraisal = appraise(lines);
     const terms: ValueTerm[] = [
       { label: 'the army advantage, with appetite', value: appraisal.total, parts: appraisal.terms },
@@ -1597,6 +1623,124 @@ function explainExpedition(
         `over ${steps} steps of road: odds of ${round1(odds)} against the ${round1(bar)} an expedition wants`,
       value: 0,
     },
+  };
+}
+
+/**
+ * How many turns a town of this many citizens would sit in unrest once taken,
+ * settling at the rate a garrisoned town does — the base rate and one soldier
+ * inside (`rules.war.unrest`) — or `null` when that rate is nothing and it would
+ * never settle. Read before the town is taken, so it asks the rules rather than
+ * `explainPacification`, which reads the town's current owner's pieces.
+ */
+function unrestSettleTurns(population: number): number | null {
+  const rules = RULES.war.unrest;
+  return turnsToFill(unrestTarget(population), rules.baseRate + rules.garrisonRate);
+}
+
+/**
+ * **A town of ours in unrest that cannot be held, pulled down**, or `null`
+ * (batch WC1, `docs/flags.md` (rrrrrr) part 1: bots *"count unrest when
+ * deciding whether to take or raze a town"*).
+ *
+ * The light touch the ruling allows. A town is razed only when every clause
+ * holds, and each refused town prints the clause that kept it:
+ *
+ *   · the rules allow it (`razeCityError` — never a seat of government);
+ *   · no soldier of ours stands in it (`garrisonAt`): a held town settles and
+ *     raises no rebels, so it is kept;
+ *   · no soldier of ours stands within `war.razeReach` hexes, so nobody can come
+ *     and hold it soon;
+ *   · it would sit in unrest at least `war.razeUnrestTurns` more turns at the
+ *     rate it settles at now (`pacificationTurnsLeft`), raising a rebel every
+ *     third of them.
+ *
+ * Towns are asked in `state.cities` order and the first that clears every
+ * clause is razed. It is monotone — the town is gone — which is what keeps the
+ * driver's loop finite.
+ */
+function razeDecision(state: GameState, player: Player, ctx: ValueContext): BotDecision | null {
+  const ai = ctx.ai;
+  if (ai.war.razeUnrestTurns <= 0) return null;
+  const rows: BotCandidate[] = [];
+  let chosen: { city: City; left: number | null; row: number } | null = null;
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id || city.unrest === undefined) continue;
+    const label = city.name;
+    const refusal = razeCityError(state, player.id, city.id);
+    if (refusal !== null) {
+      rows.push({ label, score: 0, chosen: false, terms: [], rejected: refusal });
+      continue;
+    }
+    const held = garrisonAt(state, player.id, city);
+    if (held > 0) {
+      rows.push({ label, score: 0, chosen: false, terms: [], rejected: 'a soldier of ours holds it' });
+      continue;
+    }
+    const centre = getTileAt(state.map, city.col, city.row);
+    let coming: { unit: Unit; distance: number } | null = null;
+    if (centre) {
+      for (const unit of fieldSoldiersOf(state, player.id)) {
+        const at = getTileAt(state.map, unit.col, unit.row);
+        if (!at) continue;
+        const distance = wrappedDistance(state.map, tileHex(centre), tileHex(at));
+        if (distance > ai.war.razeReach) continue;
+        if (coming === null || distance < coming.distance) coming = { unit, distance };
+      }
+    }
+    if (coming !== null) {
+      rows.push({
+        label,
+        score: 0,
+        chosen: false,
+        terms: [],
+        rejected: `${unitLabel(coming.unit)} is ${coming.distance} hexes off and can come to hold it`,
+      });
+      continue;
+    }
+    // `null` is a town that is not settling at all, which waits out nothing.
+    const left = pacificationTurnsLeft(state, city);
+    if (left !== null && left < ai.war.razeUnrestTurns) {
+      rows.push({
+        label,
+        score: 0,
+        chosen: false,
+        terms: [],
+        rejected: `it settles in ${left} turns, under the ${ai.war.razeUnrestTurns} this seat waits out`,
+      });
+      continue;
+    }
+    // The score is the turns of unrest left, a finite figure even for a town
+    // that is not settling, so the feed never prints an infinity.
+    const score = left ?? ai.war.razeUnrestTurns;
+    rows.push({
+      label,
+      score,
+      chosen: false,
+      terms: [
+        {
+          label:
+            left === null
+              ? 'it is not settling at all, and no soldier of ours is in reach'
+              : `${left} turns of unrest left, and no soldier of ours is in reach`,
+          value: score,
+        },
+      ],
+    });
+    if (chosen === null) chosen = { city, left, row: rows.length - 1 };
+  }
+  if (chosen === null) return null;
+  rows[chosen.row]!.chosen = true;
+  return {
+    kind: 'war',
+    command: { type: 'razeCity', playerId: player.id, cityId: chosen.city.id },
+    subject: chosen.city.name,
+    summary:
+      `Pulls down ${chosen.city.name}: it is in unrest with no soldier of ours in it or within ` +
+      `${ai.war.razeReach} hexes to hold it, and it would sit in unrest ` +
+      `${chosen.left === null ? 'for good' : `${chosen.left} more turns`}, raising rebels.`,
+    candidates: rows,
+    focus: { col: chosen.city.col, row: chosen.city.row },
   };
 }
 

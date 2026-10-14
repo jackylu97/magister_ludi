@@ -306,6 +306,12 @@ export function firstBlocker(
 
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
+    // **A town in unrest is not asked** (batch WC1). It makes no production
+    // until it is pacified, so nothing it queued would move, and a puppet's
+    // own appraisal finds nothing worth starting at no hammers a turn — the
+    // blocker would stand over a town nobody can answer for. It is asked again
+    // the turn its unrest ends.
+    if (city.unrest !== undefined) continue;
     if (city.queue.length === 0) return { kind: 'cityProduction', cityId: city.id };
   }
 

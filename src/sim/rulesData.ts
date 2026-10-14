@@ -632,6 +632,60 @@ export interface WarRules {
    * less is entitled to see the discount.
    */
   puppetHappinessPercent: number;
+  /**
+   * Unrest in a town taken by force (batch WC1, `docs/flags.md` (rrrrrr) part
+   * 1). Every figure the rule is made of; the rule itself is
+   * `src/sim/unrest.ts`.
+   */
+  unrest: UnrestRules;
+}
+
+/**
+ * The numbers of unrest: how much pacification a taken town needs, how fast it
+ * fills, how often an unguarded town raises a rebel, and which yields it stops.
+ *
+ * Pacification works like a production basket: it fills by a rate each turn and
+ * unrest ends when it reaches the target. The rate is a labelled list
+ * (`explainPacification`), one line per reason, and each line's figure is one of
+ * the rates below.
+ */
+export interface UnrestRules {
+  /**
+   * Pacification a town needs per citizen it had on the turn it was taken. The
+   * target is this times that population, so a large town takes longer to
+   * settle than a small one.
+   */
+  targetPerCitizen: number;
+  /** Pacification every town in unrest gains each turn, whatever stands in it. */
+  baseRate: number;
+  /**
+   * Extra pacification while at least one military unit of the town's owner
+   * stands in the town. One line however many stand there.
+   */
+  garrisonRate: number;
+  /**
+   * Extra pacification while one of the owner's great generals stands in the
+   * town or within `generalReach` of it. One line however many generals do.
+   */
+  generalRate: number;
+  /** How far from the town, in hexes, a great general still counts. */
+  generalReach: number;
+  /**
+   * Extra pacification for each building in the town that carries the
+   * `easesUnrest` marker (the Courthouse today).
+   */
+  buildingRate: number;
+  /**
+   * An unguarded town in unrest raises a rebel on every turn whose count of
+   * unguarded turns is a multiple of this. Zero or less raises none.
+   */
+  rebelEveryTurns: number;
+  /**
+   * The yields a town in unrest makes none of. Read by the unrest gate, the last
+   * step of a town's yields (`explainUnrestGate`, `docs/yields.md` step 13).
+   * Every other yield is untouched.
+   */
+  halts: CityYieldKey[];
 }
 
 /**

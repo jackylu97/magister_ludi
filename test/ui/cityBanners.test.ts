@@ -666,6 +666,59 @@ describe('a puppet says so beside its name', () => {
   });
 });
 
+// --- the unrest torch -------------------------------------------------------
+
+describe('a town in unrest says so beside its name (batch WC1)', () => {
+  const restless = { target: 6, progress: 0, unguarded: 0 };
+
+  it('marks a watched town in unrest, yours or a rival’s, and unmarks it when it settles', () => {
+    const state = boardState();
+    const mine = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    const rival = foundCityAt(state, 1, getTileAt(state.map, 5, 4)!);
+    const read = (id: number) => visibleCityBanners(state, 0, null).find((b) => b.cityId === id)!;
+    expect(read(mine.id).unrest).toBe(false);
+    mine.unrest = { ...restless };
+    rival.unrest = { ...restless };
+    expect(read(mine.id).unrest).toBe(true);
+    // The board flies the torch over every town this seat can see, so the
+    // label beside it says the same: unrest is not behind the `mine` gate.
+    expect(read(rival.id).mine).toBe(false);
+    expect(read(rival.id).unrest).toBe(true);
+    delete mine.unrest;
+    expect(read(mine.id).unrest).toBe(false);
+  });
+
+  it('never marks a remembered town', () => {
+    const state = boardState();
+    foundCityAt(state, 0, getTileAt(state.map, 2, 2)!);
+    const town = foundCityAt(state, 1, getTileAt(state.map, 8, 4)!);
+    town.unrest = { ...restless };
+    state.visibility[0]!.fill(EXPLORED);
+    state.citySightings[0] = [
+      { cityId: town.id, ownerId: town.ownerId, name: town.name, col: town.col, row: town.row },
+    ];
+    const facts = visibleCityBanners(state, 0, null).find((one) => one.cityId === town.id)!;
+    expect(facts.stale).toBe(true);
+    expect(facts.unrest).toBe(false);
+  });
+
+  it('is drawn from the town-mark alphabet, appended after the siege mark', () => {
+    expect(CITY_MARK_IDS.indexOf('unrest')).toBeGreaterThan(CITY_MARK_IDS.indexOf('siege'));
+    expect(cityMark('unrest').note).toMatch(/torch/);
+    const banners = uiSource('cityBanners.ts');
+    expect(banners).toContain("cityMarkDataUri('unrest')");
+    const css = uiSource('style.css');
+    const rule = css.slice(css.indexOf('.city-banner-unrest'));
+    expect(rule.slice(0, rule.indexOf('}'))).toContain('mask-image: var(--unrest-mark)');
+  });
+
+  it('is a term of the signature, painted inside the gate', () => {
+    const text = uiSource('cityBanners.ts').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(text).toMatch(/facts\.unrest \? 1 : 0/);
+    expect(text).toMatch(/paintUnrestMark\(banner\.unrest, facts\.unrest\)/);
+  });
+});
+
 // --- the garrison row -------------------------------------------------------
 
 /**

@@ -79,8 +79,9 @@ import { type MeterContribution, explainAuthority, explainHappiness } from '../s
 import { type ModalShell, createModalShell } from './modalShell';
 import { cityDisplayName } from './cityDisplay';
 import { element } from './dom';
-import { meterFigure, signedMeterFigure } from './figures';
+import { meterFigure, signedMeterFigure, turnsLabel } from './figures';
 import { razeCityError } from '../sim/diplomacy';
+import { pacificationTurnsLeft } from '../sim/unrest';
 
 /** The three answers a conquest offers. `puppet` sends nothing — see the docblock. */
 export type CaptureChoice = 'annex' | 'puppet' | 'raze';
@@ -112,6 +113,14 @@ export interface CaptureFigures {
   population: number;
   /** How many hexes answer to it, and would answer to nobody if it came down. */
   hexes: number;
+  /**
+   * Turns until the town is pacified at the rate it settles now, or `null` for
+   * a town not in unrest (batch WC1). The same whether it is annexed or held,
+   * because annexing a puppet neither restarts nor ends its unrest.
+   */
+  unrestTurns: number | null;
+  /** Whether the town is in unrest at all — a town taken by force always is. */
+  unrest: boolean;
 }
 
 /** Does this meter line belong to this town? The label the meter itself wrote. */
@@ -178,6 +187,8 @@ export function captureFigures(
     puppetHappiness: foldTown(explainHappiness(held, playerId), city),
     population: city.population,
     hexes,
+    unrestTurns: pacificationTurnsLeft(state, city),
+    unrest: city.unrest !== undefined,
   };
 }
 
@@ -231,6 +242,12 @@ export function captureFace(state: GameState, playerId: number, city: City): Cap
     label: 'Happiness',
     value: `${signedMeterFigure(value)}☺`,
   });
+  // **How long it stays in unrest** (batch WC1), the same under both of the
+  // answers that keep it — annexing a puppet neither restarts nor ends its
+  // unrest — and absent from the one that pulls it down.
+  const unrest: CaptureFigureLine[] = figures.unrest
+    ? [{ label: 'Unrest', value: turnsLabel(figures.unrestTurns) }]
+    : [];
   return {
     cityId: city.id,
     title: `${cityDisplayName(state, city)} is taken`,
@@ -241,7 +258,7 @@ export function captureFace(state: GameState, playerId: number, city: City): Cap
         body:
           'The town joins your empire and obeys you like any other: you choose what' +
           ' it builds, you may buy in it and buy its ground. There is no way back.',
-        figures: [authority(figures.annexAuthority), happiness(figures.annexHappiness)],
+        figures: [authority(figures.annexAuthority), happiness(figures.annexHappiness), ...unrest],
         blocked: null,
       },
       {
@@ -252,7 +269,7 @@ export function captureFace(state: GameState, playerId: number, city: City): Cap
           ' buy nothing — no unit, no building, no ground — and its citizens work' +
           ' where they please. Everything it makes is still yours, and you may annex' +
           ' it whenever you like.',
-        figures: [authority(figures.puppetAuthority), happiness(figures.puppetHappiness)],
+        figures: [authority(figures.puppetAuthority), happiness(figures.puppetHappiness), ...unrest],
         blocked: null,
       },
       {
@@ -260,7 +277,7 @@ export function captureFace(state: GameState, playerId: number, city: City): Cap
         label: 'Raze',
         body:
           'The town is pulled down and its ground answers to nobody. Nothing is paid' +
-          ' for its stones.',
+          ' for its stones, and there is no unrest to wait out.',
         figures: [
           // Nought on both meters, and printed rather than omitted: a town that
           // is gone asks nothing of either, and that is the *comparison* the
@@ -330,6 +347,19 @@ export function createCaptureSheet(options: CaptureSheetOptions): CaptureSheet {
         'It holds as a puppet unless you say otherwise. Closing this leaves it one.',
       ),
     );
+    // **Unrest** (batch WC1): true of both answers that keep the town, so it is
+    // said once, above the three, rather than repeated in two of them.
+    if (town.unrest !== undefined) {
+      body.append(
+        element(
+          'p',
+          'capture-lead',
+          'Kept either way, it is in unrest until it is pacified: it makes no production,' +
+            ' science or culture, and its borders hold still. A soldier of yours inside' +
+            ' settles it faster and keeps rebels from rising.',
+        ),
+      );
+    }
 
     const row = element('div', 'capture-choices');
     for (const option of face.options) {

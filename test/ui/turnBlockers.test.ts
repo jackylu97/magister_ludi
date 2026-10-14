@@ -529,6 +529,19 @@ describe('firstBlocker · production', () => {
     });
   });
 
+  it('passes over a town in unrest, and asks again the turn it is pacified', () => {
+    // Batch WC1: a town in unrest makes no production, so nothing it queued
+    // would move, and a puppet's own appraisal finds nothing worth starting at
+    // no hammers a turn — a blocker there would stand over a town nobody can
+    // answer for.
+    const state = settled();
+    const city = plant(state, 0, 5, 5);
+    city.unrest = { target: 6, progress: 0, unguarded: 0 };
+    expect(firstBlocker(state, 0)).toBeNull();
+    delete city.unrest;
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'cityProduction', cityId: city.id });
+  });
+
   it('never blocks on a rival’s idle city', () => {
     const state = settled();
     plant(state, 1, 5, 5);

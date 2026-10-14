@@ -117,6 +117,7 @@ import {
   campaignTarget,
   fieldSoldiersOf,
   garrisonAt,
+  garrisonOwed,
   isFieldSoldier,
   isSiegePiece,
   levyReading,
@@ -850,7 +851,8 @@ function garrisonWorth(
 ): Appraisal | null {
   const def = unitDef(id);
   if (!isFieldSoldier(def)) return null;
-  const wanted = Math.max(0, ctx.ai.military.garrisonPerCity);
+  // A town in unrest is owed at least `military.unrestGarrison` (batch WC1).
+  const wanted = garrisonOwed(ctx.ai, city);
   const held = garrisonAt(state, player.id, city);
   const short = wanted <= 0 ? 0 : Math.max(0, Math.min(1, (wanted - held) / wanted));
   const soldier = explainSoldier(id, ctx);
@@ -3298,7 +3300,8 @@ function isRedundant(state: GameState, player: Player, unit: Unit): boolean {
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     if (city.col !== unit.col || city.row !== unit.row) continue;
-    if (garrisonAt(state, player.id, city) - 1 < aiFor(player).military.garrisonPerCity) return false;
+    // What the town is owed, which is more for a town in unrest (batch WC1).
+    if (garrisonAt(state, player.id, city) - 1 < garrisonOwed(aiFor(player), city)) return false;
     if (cityIsThreatened(state, player, city)) return false;
   }
   return true;
@@ -5207,7 +5210,7 @@ function unitRoleValue(
     // that queued one would build a hull it can never use.
     if (def.category === 'naval') return null;
     const garrison = garrisonAt(state, player.id, city);
-    const empty = garrison < ai.military.garrisonPerCity;
+    const empty = garrison < garrisonOwed(ai, city);
     // **The levy, and what the seat has seen of the world** (ruled 2026-09-04).
     // Three lines, and they are three different sentences: the standing army an
     // empire this size keeps, the emergency of a column at the gate
@@ -6799,9 +6802,29 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   // Every blow both arms weigh is filed here, so that a piece which ends up
   // digging in can still print what it looked at — a held blow is a decision.
   const weighed: BotCandidate[] = [];
+  // **The garrison of a town in unrest stays in the gate** (batch WC1,
+  // `docs/flags.md` (rrrrrr) part 1: *"bots keep a garrison in a captured town
+  // until it is pacified"*). Every march below already leaves a piece that is
+  // holding its town where it is (`isRedundant`), but a close-quarters kill
+  // advances the killer onto the hex it emptied, which would carry the garrison
+  // out and leave the town settling slower and raising rebels. So a melee piece
+  // holding a town in unrest strikes nothing next door; a bow still shoots,
+  // because a bow does not move.
+  const holding = unrestTownHeldBy(state, player, unit);
+  const stays = holding !== null && !isRanged(unitDef(unit.type));
+  if (stays) {
+    weighed.push(
+      refused(
+        'strike next door',
+        `it holds ${holding.name}, a town in unrest, and a kill would carry it out of the gate`,
+      ),
+    );
+  }
   // The wild's exchange is `military.wildAggression` (E1a); nought is the old
   // rule — dealt must beat taken, whatever the seat thinks of its neighbours.
-  const blow = favourableBlow(state, player, unit, holdsWild, ai.military.wildAggression, weighed);
+  const blow = stays
+    ? null
+    : favourableBlow(state, player, unit, holdsWild, ai.military.wildAggression, weighed);
   if (blow !== null) {
     return {
       command: { type: 'attack', playerId: player.id, unitId: unit.id, target: blow.at },
@@ -6823,7 +6846,7 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   //
   // A seat with no war on has nothing to swing at: `holdsRival` is gated on
   // `atWar`, and `previewCombat` refuses a peacetime blow besides.
-  const strike = favourableBlow(
+  const strike = stays ? null : favourableBlow(
     state,
     player,
     unit,
@@ -6906,10 +6929,13 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   const stand = standDown(
     state,
     unit,
-    held
-      ? 'A bowman of ours can take the same target and has not shot yet, so this piece holds; ' +
-        'no camp near a town worth marching on, and every town is held.'
-      : 'No favourable blow next door, no camp near a town worth marching on, and every town is held.',
+    holding !== null
+      ? `Holds ${holding.name}, a town of ours in unrest, until it is pacified: a soldier inside ` +
+        'settles it faster and keeps rebels from rising.'
+      : held
+        ? 'A bowman of ours can take the same target and has not shot yet, so this piece holds; ' +
+          'no camp near a town worth marching on, and every town is held.'
+        : 'No favourable blow next door, no camp near a town worth marching on, and every town is held.',
   );
   if (stand !== null && weighed.length > 0) stand.candidates = [...weighed, ...stand.candidates];
   return stand;
@@ -7771,12 +7797,33 @@ function campMarch(state: GameState, player: Player, unit: Unit): UnitTarget | n
   return null;
 }
 
+/**
+ * The town in unrest this piece is holding, or `null` (batch WC1).
+ *
+ * Holding means two things at once: the piece is a field soldier standing on
+ * one of this empire's towns that is in unrest, and the town would fall short
+ * of what it is owed without it (`garrisonOwed`). A second soldier in a town
+ * that already holds its garrison is free to fight. Unlike `isRedundant` this
+ * does not ask whether the town is threatened: the question is whether the gate
+ * would be left empty, not whether the piece is needed for anything else.
+ */
+function unrestTownHeldBy(state: GameState, player: Player, unit: Unit): City | null {
+  if (!isFieldSoldier(unitDef(unit.type))) return null;
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id || city.unrest === undefined) continue;
+    if (city.col !== unit.col || city.row !== unit.row) continue;
+    const without = garrisonAt(state, player.id, city) - 1;
+    return without < garrisonOwed(aiFor(player), city) ? city : null;
+  }
+  return null;
+}
+
 /** Does every town of this empire have at least its garrison standing in it? */
 function townsAreHeld(state: GameState, player: Player): boolean {
   const ai = aiFor(player);
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
-    if (garrisonAt(state, player.id, city) < ai.military.garrisonPerCity) return false;
+    if (garrisonAt(state, player.id, city) < garrisonOwed(ai, city)) return false;
   }
   return true;
 }
@@ -7794,10 +7841,17 @@ function undefendedCity(state: GameState, player: Player, unit: Unit): UnitTarge
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     if (city.col === unit.col && city.row === unit.row) return null;
-    if (garrisonAt(state, player.id, city) >= ai.military.garrisonPerCity) continue;
+    if (garrisonAt(state, player.id, city) >= garrisonOwed(ai, city)) continue;
     wanted.push({ city, distance: wrappedDistance(state.map, from, tileHex(getTileAt(state.map, city.col, city.row)!)) });
   }
-  wanted.sort((a, b) => a.distance - b.distance);
+  // **A town in unrest first, then the nearest** (batch WC1). An empty town in
+  // unrest settles at the bare rate and raises rebels, which an ordinary empty
+  // town does not, so it is the more urgent of two towns standing empty.
+  wanted.sort(
+    (a, b) =>
+      Number(b.city.unrest !== undefined) - Number(a.city.unrest !== undefined) ||
+      a.distance - b.distance,
+  );
   const tried: BotCandidate[] = [];
   for (const entry of wanted.slice(0, ai.search.pathProbes)) {
     const tile = getTileAt(state.map, entry.city.col, entry.city.row);

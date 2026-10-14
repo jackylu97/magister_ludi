@@ -1111,8 +1111,22 @@ import {
  * a different card and a v123 log's `chooseOrder` index would name a card this
  * build never dealt. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v125 (branch `decks`; batch WC1, `docs/flags.md` (rrrrrr) part 1): **a town
+ * taken by force enters unrest.** `City.unrest` is the one new field, absent on
+ * every town that is not in unrest. While it stands the town makes no
+ * production, science or culture and its borders do not grow; a new `unrest`
+ * phase fills its pacification each turn and raises a rebel from an unguarded
+ * town every third unguarded turn. The Courthouse gains the `easesUnrest`
+ * marker, `rules.war.unrest` holds every figure, and the town's yield sequence
+ * gains a thirteenth step, the unrest gate.
+ *
+ * **A v124 save is refused and does not replay.** From the first capture on, a
+ * v124 log's taken town would bank hammers, beakers and culture this build
+ * withholds, and a rebel would roll dice the v124 game never rolled. The branch
+ * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 124;
+export const SCHEMA_VERSION = 125;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2987,6 +3001,27 @@ export interface City {
    */
   puppet?: true;
   /**
+   * The town's **unrest**, or the key is **absent** for every town that is not
+   * in it (batch WC1, `docs/flags.md` (rrrrrr) part 1).
+   *
+   * A town taken by force enters unrest whether it is kept as a puppet or
+   * annexed, and so does a town retaken by the empire that founded it.
+   * `captureCity` writes a fresh record on every capture, so a town taken again
+   * while still in unrest starts over for its new owner. Annexing a puppet
+   * leaves the record alone, and a town handed over at a treaty table is not
+   * taken by force, so the handover neither starts nor ends one.
+   *
+   * While the record stands the town makes none of the yields
+   * `rules.war.unrest.halts` names (the unrest gate, `docs/yields.md` step 13)
+   * and its borders do not grow. The `unrest` phase (`runUnrest`,
+   * `src/sim/unrest.ts`) fills `progress` each turn and deletes the record when
+   * it reaches `target`.
+   *
+   * Presence is the state, `puppet`'s rule: a game in which nobody has taken a
+   * town serialises exactly as one from before the field existed.
+   */
+  unrest?: CityUnrest;
+  /**
    * True once this town has been somebody's **seat of government** — written at
    * the moment it is taken from an empire whose capital it was.
    *
@@ -3282,6 +3317,33 @@ export interface City {
 export interface CityLevyRecord {
   turn: number;
   after?: Partial<Record<CardId, number>>;
+}
+
+/**
+ * One town's unrest: how much pacification it needs, how much it has, and how
+ * many turns it has spent with no soldier of its owner inside. See `City.unrest`.
+ *
+ * Two of the three are counts rather than turns, and neither is a countdown.
+ * `progress` is a basket, filled like a food basket and compared against
+ * `target`. `unguarded` counts the turns that qualified, so the rebel cadence
+ * is "every third such turn" however the unguarded turns are spread out; a turn
+ * with a garrison in the town adds nothing to it and takes nothing from it.
+ */
+export interface CityUnrest {
+  /**
+   * Pacification needed to end the unrest: `rules.war.unrest.targetPerCitizen`
+   * times the town's population at the moment it was taken. Stored rather than
+   * derived because the population moves afterwards and the target must not.
+   */
+  target: number;
+  /** Pacification banked so far. Unrest ends the turn this reaches `target`. */
+  progress: number;
+  /**
+   * Turns this unrest has ended with no military unit of the town's owner
+   * standing in it. A rebel rises on each turn that takes this to a multiple of
+   * `rules.war.unrest.rebelEveryTurns`.
+   */
+  unguarded: number;
 }
 
 /**

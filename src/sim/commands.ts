@@ -262,6 +262,7 @@ import {
 import { type DealEndReport, type DealTerms, proposalById } from './deals';
 import type { CampBounty } from './camps';
 import type { CommissionReport } from './commissions';
+import type { UnrestReport } from './unrest';
 import { type GuildReport, dismissSpecialistAt, dismissSpecialistError } from './guilds';
 import { levyAt, levyError } from './levies';
 import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
@@ -1986,6 +1987,12 @@ export type CommandResult =
        * seat only its own.
        */
       commissions?: CommissionReport[];
+      /**
+       * Towns pacified and rebels raised during an `endTurn` resolution
+       * (`UnrestReport`, batch WC1). `commissions`' kind of news: the
+       * interface tells each seat about its own towns only.
+       */
+      unrest?: UnrestReport[];
     }
   | { ok: false; error: string };
 
@@ -2271,6 +2278,10 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   if (result.ok && report.dealsEnded.length > 0) result.dealsEnded = [...report.dealsEnded];
   // The commissions the resolution fulfilled — `peaces`' reason again.
   if (result.ok && report.commissions.length > 0) result.commissions = [...report.commissions];
+  // The towns that settled and the rebels that rose (batch WC1) — `peaces`'
+  // reason once more: a moment later a pacified town has no record and a rebel
+  // is one more barbarian.
+  if (result.ok && report.unrest.length > 0) result.unrest = [...report.unrest];
   return result;
 }
 

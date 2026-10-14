@@ -146,7 +146,9 @@ export interface BotCandidate {
  *   · `war` — a declaration, or a peace put on the table or signed
  *     (`declareWar`, `proposePeace`). Its candidate table carries **every** war
  *     the seat is in, because declining a peace is not a command and the only
- *     place a decline can be shown is beside the one it took.
+ *     place a decline can be shown is beside the one it took. Since batch WC1
+ *     it also carries a war's aftermath: a town of this seat's in unrest that it
+ *     cannot hold, pulled down (`razeCity`).
  *   · `deal` — a bargain offered or answered (`proposeDeal`, `acceptDeal`,
  *     `declineDeal`). Both answers are commands, so both are printed.
  *   · `endTurn` — the hand-over. Emitted by the stepper rather than by the

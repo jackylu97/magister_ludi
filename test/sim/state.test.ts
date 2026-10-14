@@ -571,6 +571,11 @@ describe("end-of-turn pipeline", () => {
       "spendLeftoverMovement",
       // Refills every allowance and clears `hasAttacked` — and resumes nothing.
       "resetMovement",
+      // Towns taken by force settle, and an unguarded one may raise a rebel
+      // (batch WC1). After every phase that reads unrest and every phase that
+      // moves a piece, and before the wake, because a rebel is a stranger at a
+      // sleeping worker's door. See `runUnrest`.
+      "unrest",
       // As late as it can be: the question "is an enemy standing next to my
       // sleeping worker" is only worth asking of a board that has stopped
       // moving, which is after the wild has raided *and* after
@@ -859,7 +864,9 @@ describe("the research queue field", () => {
     // 123 since C8: a town records which bank paid for each of its buildings.
     // 124 since the current-band ruling of 2026-10-13: a hand is dealt only from
     // the seat's current band, so a v123 log would pick from different hands.
-    expect(SCHEMA_VERSION).toBe(124);
+    // 125 since WC1: a town taken by force enters unrest, so a v124 log's
+    // captured towns would bank hammers, beakers and culture this build withholds.
+    expect(SCHEMA_VERSION).toBe(125);
   });
 });
 

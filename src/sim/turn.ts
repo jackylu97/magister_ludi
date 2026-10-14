@@ -102,7 +102,7 @@
  * ever fire on a hand-edited state, which is a phase no test can honestly cover.
  */
 
-import { barbarianTurn } from "./barbarians";
+import { barbarianTurn, barbarianUnitType } from "./barbarians";
 import { buildingAdjacentHeal } from "./buildingEffects";
 import type { CampBounty } from "./camps";
 import {
@@ -175,6 +175,7 @@ import {
   wakeUnit,
 } from "./state";
 import { setSlatePhase } from "./slate";
+import { type UnrestReport, runUnrest } from "./unrest";
 import { isCombatant, unitDef, unitMaxHp } from "./unitData";
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from "./resourceEffects";
@@ -486,6 +487,14 @@ export interface TurnReport {
    * private.
    */
   commissions: CommissionReport[];
+  /**
+   * Every town the `unrest` phase pacified and every rebel it raised, in
+   * `state.cities` order (`UnrestReport`, batch WC1). A difference for
+   * `peaces`' reason: once the phase has run, a pacified town simply has no
+   * record and a rebel is a barbarian like any other, so nothing on the board
+   * says either happened this turn. Only the town's owner hears about it.
+   */
+  unrest: UnrestReport[];
 }
 
 /**
@@ -530,6 +539,7 @@ export function emptyTurnReport(): TurnReport {
     peaces: [],
     dealsEnded: [],
     commissions: [],
+    unrest: [],
   };
 }
 
@@ -868,6 +878,37 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: resetMovement,
   },
   {
+    name: "unrest",
+    // **Towns taken by force settle, and an unguarded one may rebel** (batch
+    // WC1, `docs/flags.md` (rrrrrr) part 1). Each town in unrest fills its
+    // pacification by the turn's rate, and one still in unrest with no soldier
+    // of its owner inside counts the turn and may raise a rebel beside itself.
+    // See `runUnrest`.
+    //
+    // The position is a rules decision, for three reasons:
+    //
+    //   · **after every phase that reads unrest**: `collectYields` has already
+    //     held the town's production, science and culture at nothing and
+    //     `expandBorders` has already skipped it, so the turn a town is pacified
+    //     is still a turn of unrest from start to finish, and "two turns left"
+    //     on the panel means two more End Turns with nothing made;
+    //   · **after every phase that moves a piece** (the wild's raid, and the
+    //     standing orders walked by `spendLeftoverMovement`), so "a soldier
+    //     stands in the town" and "a general stands beside it" are asked of the
+    //     board the turn actually ended on. It is also after `resetMovement`, so
+    //     a rebel raised here does not act until the next resolution: its owner
+    //     sees it on the board and has a whole turn to deal with it;
+    //   · **before `wakeSleepers`**, because a rebel is a foreign soldier that
+    //     has just appeared beside a town, which is what that phase wakes a
+    //     sleeping worker for; and before `refreshVisibility`, which stays last.
+    //
+    // The rebel's kind is passed in rather than imported by `unrest.ts`:
+    // `barbarianUnitType` lives with the wild's code, and a rebel is the kind a
+    // camp standing on the town's hex would raise this turn.
+    run: (state, report) =>
+      runUnrest(state, report.unrest, (at) => barbarianUnitType(state, at)),
+  },
+  {
     name: "wakeSleepers",
     // A sleeping civilian with a foreign combatant inside its own sight wakes.
     // **Last**, and the position is the rule — see `wakeSleepers`.
@@ -994,6 +1035,9 @@ function keepHeal(state: GameState, unit: Unit): number {
  *     may finish its march right next to the sleeper *inside the resolution*. A
  *     wake asked any earlier is a wake asked of a board that has not stopped
  *     moving.
+ *   · **After `unrest`**, which can raise a rebel beside a town (batch WC1): a
+ *     foreign soldier that appeared during the resolution, which a sleeping
+ *     worker beside that town should be woken for.
  *   · **Before `refreshVisibility`**, which stays last and unconditional as its
  *     own docblock insists. Nothing here moves a piece, claims a tile or retypes
  *     a unit, so the fog has nothing to re-read on account of it — and this

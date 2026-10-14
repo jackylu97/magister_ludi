@@ -82,13 +82,17 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
 - **Percentages compound across two stages, never inside one**:
   `(base + flats) × (1 + Σ city%) × (1 + Σ empire%)`. Yields are exact decimals;
   rounding is the surface's.
-- Eighteen steps: twelve per town (the centre, the worked hexes, the cards' city
+- Nineteen steps: thirteen per town (the centre, the worked hexes, the cards' city
   lines, the luxuries, the specialists, the arriving routes, the palace, the
-  buildings, the cards' building shares, the conversions, the percent list, then
-  the two stages) and six per empire (the luxuries' empire signatures, the
-  caravans abroad, the treasury's ledger, the cards' empire payouts, the empire
-  stage, the banks). The order is pinned against the source by
-  `test/sim/yieldsDocSync.test.ts`.
+  buildings, the cards' building shares, the conversions, the percent list, the
+  two stages, then the unrest gate) and six per empire (the luxuries' empire
+  signatures, the caravans abroad, the treasury's ledger, the cards' empire
+  payouts, the empire stage, the banks). The order is pinned against the source
+  by `test/sim/yieldsDocSync.test.ts`.
+- **The unrest gate** (step 13) holds a town in unrest at nothing in production,
+  science and culture (`rules.war.unrest.halts`). It runs after both stages,
+  because percentages sum inside a stage and could not zero a voice; the city
+  panel prints it as one line under the stages.
 - **One-time grants are modifier-immune.** Everything pays through a
   `settle…Windfall`; `windfallPayout` composes base + every rider into one
   printed figure before banking.
@@ -182,6 +186,26 @@ Reference: **`docs/units.md`** (the roster; generated) and
   plan. A **melee** kill on the garrison beat takes the town in the same blow; a
   ranged kill leaves it to be walked into. City strength is the best unit its
   owner could train now; `underSiege` is derived, never stored.
+- **A town taken by force enters unrest** (batch WC1, `src/sim/unrest.ts`;
+  reference `docs/war-diplomacy.md` §5c). `captureCity` writes `City.unrest`
+  (presence is the state) whether the town is kept as a puppet or annexed, and
+  for a founder retaking its own town; a town taken again while in unrest starts
+  over for its new owner; a town handed over at a treaty table enters none. In
+  unrest a town makes no production, science or culture (the unrest gate, yield
+  step 13) and its borders do not grow; food, gold, faith and purchases are
+  untouched. **Pacification** fills a basket toward `2 × the population when
+  taken`, at a rate that is a labelled list (`explainPacification`): every turn,
+  a soldier of the owner's inside, a great general in or beside the town, and
+  each building with the `easesUnrest` marker (the Courthouse). The `unrest`
+  phase, after `resetMovement` and before `wakeSleepers`, fills it and ends the
+  unrest at the target; a town still in unrest with no soldier inside counts the
+  turn, and every third such turn a **rebel** rises on a free hex beside it — a
+  barbarian of the kind a camp there would raise, ordinary from then on. A town
+  in unrest raises no production blocker. Every figure is `rules.war.unrest`.
+  The town panel shows the bar, the reasons and the turns left; the banner and
+  the flag fly a torch (`CityLook.unrest`). Bots keep a soldier in such a town
+  (`military.unrestGarrison`), weigh a target's unrest in a declaration
+  (`war.unrestDrag`) and raze one they cannot hold (`war.razeUnrestTurns`).
 - **The waterline**: a land piece that closes may not strike a water hex; an
   embarked piece may not strike a ship; land bows and land siege fight a hull at
   their own percentages; a hull boarding a column takes a share of the counter.

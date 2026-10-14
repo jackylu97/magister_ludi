@@ -55,7 +55,10 @@ import {
   previewLineText,
   specialistRow,
   specialistRowText,
+  unrestCardParts,
 } from '../../src/ui/cityPanel';
+import { RULES } from '../../src/sim/rulesData';
+import { explainPacification, foldPacification } from '../../src/sim/unrest';
 import { newGame } from '../sim/newGameHelpers';
 
 /** A two-player state on a blank, landlocked desert rectangle — `cities.test.ts`'s `flatState`. */
@@ -502,5 +505,77 @@ describe('the focus pane', () => {
       expect(focusHint(focus)).not.toMatch(/\d/);
     }
     expect(new Set(labels).size).toBe(labels.length);
+  });
+});
+
+describe('the unrest card (batch WC1)', () => {
+  const UNREST = RULES.war.unrest;
+
+  /** A town of seat 0's in unrest, with the wild at the table or not. */
+  function restless(wild: boolean): { state: GameState; city: City } {
+    const state = newGame({
+      seed: 1,
+      sizeName: 'duel',
+      ...(wild ? { barbarians: true } : {}),
+      players: [
+        { name: 'A', color: '#a00', isHuman: true },
+        { name: 'B', color: '#00a', isHuman: true },
+      ],
+    });
+    state.map = createMap({ width: 16, height: 12, terrain: 'grassland' });
+    resetVisibility(state);
+    state.tileOwner = new Array<number | null>(16 * 12).fill(null);
+    state.units = [];
+    state.cities = [];
+    const city = plant(state, 0, 8, 5);
+    city.unrest = { target: 12, progress: 3, unguarded: 1 };
+    return { state, city };
+  }
+
+  it('says nothing for a town that is not in unrest', () => {
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    expect(unrestCardParts(state, city)).toBeNull();
+  });
+
+  it('prints the bar, the reasons and the turns left off the simulation', () => {
+    const { state, city } = restless(true);
+    const parts = unrestCardParts(state, city)!;
+    const lines = explainPacification(state, city);
+    expect(parts.progress).toBe(3);
+    expect(parts.target).toBe(12);
+    expect(parts.rate).toBe(foldPacification(lines));
+    expect(parts.reasons.map((reason) => reason.label)).toEqual(lines.map((line) => line.source));
+    expect(parts.turns).toBe(Math.ceil((12 - 3) / parts.rate));
+    expect(parts.guarded).toBe(false);
+  });
+
+  it('warns of a rebel only while the town is unguarded and would not settle first', () => {
+    const { state, city } = restless(true);
+    expect(unrestCardParts(state, city)!.rebelIn).toBe(UNREST.rebelEveryTurns - 1);
+    // A soldier in the gate: no rebels, and the garrison joins the reasons.
+    createUnit(state, 0, 'warrior', city.col, city.row);
+    bumpRevision(state);
+    const held = unrestCardParts(state, city)!;
+    expect(held.guarded).toBe(true);
+    expect(held.rebelIn).toBeNull();
+    expect(held.reasons).toHaveLength(2);
+    // A town that settles before the next rebel is due warns of none.
+    state.units = [];
+    city.unrest = { target: 12, progress: 11, unguarded: 1 };
+    expect(unrestCardParts(state, city)!.rebelIn).toBeNull();
+  });
+
+  it('warns of no rebel in a world with no wild seat', () => {
+    const { state, city } = restless(false);
+    expect(unrestCardParts(state, city)!.rebelIn).toBeNull();
+  });
+
+  it('keeps every number out of its sentences', () => {
+    // Rule 7: the figures are in figure spans; the prose has none.
+    const body = braceBody(uiSource('cityPanel.ts'), 'function renderUnrest(');
+    for (const match of body.matchAll(/'([^']*)'/g)) {
+      expect(match[1]!).not.toMatch(/\d/);
+    }
   });
 });

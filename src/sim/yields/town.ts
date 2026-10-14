@@ -1,12 +1,13 @@
 /**
- * **The town** — the twelve steps of `docs/yields.md`, from the centre to the
- * two stages.
+ * **The town** — the thirteen steps of `docs/yields.md`, from the centre to the
+ * unrest gate.
  *
  * `explainCity` is the list (steps 1–11: the labelled lines, their fold, and the
  * percent list that is deliberately *not* applied to them) and `foldCity` is the
- * total (step 12, the only place in the simulation a yield meets a percentage).
- * Between them sit the palace, the building shares, the conversions, the percent
- * list and the town's half of Entry XVII's staging.
+ * total (step 12, the only place in the simulation a yield meets a percentage,
+ * then step 13, the unrest gate, which holds a town in unrest at nothing in the
+ * voices it stops). Between them sit the palace, the building shares, the
+ * conversions, the percent list and the town's half of Entry XVII's staging.
  *
  * Split out of `cities.ts` in batch E3b (`docs/flags.md` item pp,
  * `docs/audit/evaluations.md` §4b step 9: *files by layer, not by topic*). No
@@ -1092,6 +1093,11 @@ export function foldCityStages(
  * the turn. The city panel prints the active modifiers as their own lines, which
  * is rule 5 read at empire scale: the multiplied number is never shown without
  * the reason beside it.
+ *
+ * **And then the unrest gate** (step 13, batch WC1): a town in unrest makes none
+ * of the voices `explainUnrestGate` names, whatever the stages made of them. It
+ * is the last thing here for the same reason the stages are here and not in a
+ * phase: every reader of a town's total reads it through this one function.
  */
 export function foldCity(
   state: GameState,
@@ -1107,7 +1113,54 @@ export function foldCity(
   const sums = foldCityStages(state, city, toward, hypothetical, quote.percents);
   const total: CityYields = { ...quote.flats };
   for (const key of CITY_YIELD_KEYS) total[key] = applyStages(total[key], sums[key]);
+  // **13 — the unrest gate** (batch WC1). Last, after both stages, so nothing a
+  // percentage does can bring a stopped voice back; see `explainUnrestGate`.
+  for (const gate of explainUnrestGate(city)) total[gate.yield] = 0;
   return total;
+}
+
+/**
+ * The words the unrest gate's line carries, on the city panel and in a test.
+ * One string, `CENTRE_SOURCE`'s reason.
+ */
+export const UNREST_SOURCE = 'In unrest';
+
+/** One voice a town in unrest makes none of, and why. See `explainUnrestGate`. */
+export interface CityYieldGate {
+  /** Why the voice is stopped — `UNREST_SOURCE`, the only gate there is. */
+  source: string;
+  /** The voice held at nothing. */
+  yield: CityYieldKey;
+}
+
+/**
+ * **Step 13 of `docs/yields.md` — the unrest gate**: the voices this town makes
+ * none of while it is in unrest, one line each, or an empty list for every town
+ * that is not (batch WC1, `docs/flags.md` (rrrrrr) part 1).
+ *
+ * The voices are `rules.war.unrest.halts` — production, science and culture —
+ * and every other voice passes untouched, so food, gold and faith are exactly
+ * what they would be without unrest.
+ *
+ * **Why a gate after the stages and not a line before them.** Percentages sum
+ * inside a stage (Entry XVII), so a −100% line would only cancel the stage's
+ * other lines, never the voice; and a flat line cancelling the running flats
+ * would have to read the fold it lands in. Setting the staged figure to nothing
+ * is the one operation that holds a voice at nothing, and doing it last means no
+ * stage and no card can bring the voice back. The labelled lines and the
+ * percentages above it are still the town's real list: the panel prints them,
+ * then this line under them, so a player can see what the town would make and
+ * why it makes none of it.
+ *
+ * What it does **not** reach: the empire's own lines (steps 14–19) are the
+ * empire's and not the town's, so a card paying science to the empire still pays
+ * it. A conversion at step 10 reads the running flats before the gate, so a card
+ * that pays gold out of a town's production still pays it; gold is untouched,
+ * which is the rule.
+ */
+export function explainUnrestGate(city: City): CityYieldGate[] {
+  if (city.unrest === undefined) return [];
+  return RULES.war.unrest.halts.map((key) => ({ source: UNREST_SOURCE, yield: key }));
 }
 
 /**
