@@ -68,9 +68,11 @@ before the next starts.
    - **From losses only** (the user). Weariness against one enemy is **your
      losses to it minus its losses to you**, never below zero, so a war you are
      winning costs nothing.
+   - **A town counts as 8 units** (the user, 2026-10-14: *"losing a town counts
+     as losing 8 units, losing a single unit shouldn't be very punishing"*).
    - *Defaults:*
      - A loss is a unit of yours that empire destroys or captures, military or
-       civilian, or a town of yours it takes by force (worth 3 units).
+       civilian, or a town of yours it takes by force.
      - Losses count over the last 20 turns. Peace does not erase them; they age
        out.
      - Barbarians never count, on either side.
@@ -89,10 +91,14 @@ before the next starts.
      - Experience from combat: +1 for each combat a unit survives, +2 for a
        kill, attacking or defending.
      - Veteran at 4 experience, Elite at 10.
-     - Each rank is one labelled line on the combat ledger: Veteran +10% and
-       Elite +20% of the unit's own base strength, rounded, at least +1. A share
-       rather than a flat figure, so a rank keeps its weight as the unit
-       upgrades through the ages.
+     - Veteran +3 strength, Elite +6 in total: the size of a general's aura and
+       of full fortification.
+   - **Each rank is one flat strength line on the combat ledger** (the user,
+     2026-10-14: *"our combat is based on flat bonuses, so the combat from ranks
+     should be flat right?"*). The damage curve reads the difference between
+     two strengths, so a flat edge is worth the same in every age (`combat.ts`:
+     *"it has no scale"*). A share of base strength would grow stronger each
+     age.
    - Experience stays with a unit through its automatic upgrades.
    - Fighting barbarians can take a unit to Veteran and no further, so camps
      that respawn cannot be farmed.
