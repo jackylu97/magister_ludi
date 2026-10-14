@@ -29,9 +29,12 @@ markup, or that a live plan reads as its spec, stays there — not here.
 | `balance-turn.md` | every Order weighed against a turn-92 empire, with the user's markup | the cuts landed; the live tables are `docs/orders-and-doctrines.md` |
 | `early-pacing.md` | the opening's pacing readings and the proposals they drove | built; the figures are in `data/rules.json` |
 | `great-people-history.md` · `trade-history.md` · `yields-history.md` · `city-screen-history.md` | the bench runs, renames and overridden redesign cut out of four reference docs on 2026-09-11 | the rules stayed in the references |
+| `painted-renderer/` | nineteen checkpoints of the painted renderer, 2026-09-12 → 09-15: the unit, siege, naval and embarkation art reviews, the world layers, the startup, movement and overview performance passes, the final validation, the art migration and the leader merge before unit integration. Moved from `docs/plans/` 2026-10-14 | landed; the painted board is the default renderer. The checkpoints the code still cites (the performance audit and its evidence, the fog study, and five terrain-study docs) stay in `docs/plans/` |
+| `diplomacy-design-prototype.md` | the diplomacy screen prototype, 2026-09-15. Moved from `docs/plans/` 2026-10-14 | built as the foreign courts screen (`docs/war-diplomacy.md`, "Foreign courts UI"); the prototype still runs at `/flair.html?review=diplomacy` |
 
-Each of the last eight left a one-paragraph redirect at its old path, because
-docblocks and tests across the tree cite it.
+The earlier moves that docblocks and tests cite each left a one-paragraph
+redirect at the old path. The 2026-10-14 moves left none, because nothing in
+the code or tests cites them.
 
 `docs/deprecated/` is the neighbouring drawer, for a doc that a *later* doc
 supersedes rather than one the code caught up with.
