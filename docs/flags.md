@@ -19,6 +19,88 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(rrrrrr) Three costs of war: unrest, war weariness, ranks — RULED, 2026-10-14**
+(the user, after the warmonger research in `docs/plans/warmonger-research.md`:
+*"we're missing certain mechanics for war that make the warmonger playstyle feel
+more strategic, namely war weariness, unit promotions, unrest"*). The design was
+proposed in chat and the user ruled on its four open questions: *"puppets should
+not skip unrest, weariness comes from losses only (the difference between your
+losses and their losses), lets have ranks just give more combat strength for
+now, order sounds good"*. Lines marked *default* are the orchestrator's choices
+inside that design: the user may overrule any of them. Every number lives in
+`data/rules.json`.
+
+Why these three: each prices a different part of a war. Weariness prices losses,
+unrest prices taking towns, ranks price losing units. Today a war costs nothing
+to declare, nothing to keep fighting, and a captured town works for its captor
+the turn it falls; the user's playtest found authority stops binding by turn 50.
+
+Built in this order, each as its own batch, gated and deployed for playtesting
+before the next starts.
+
+1. **Unrest (batch WC1).**
+   - A town taken by force enters unrest, **whether it is kept as a puppet or
+     annexed** (the user). Annexing a puppet neither restarts nor ends its
+     unrest. Razing leaves nothing to pacify.
+   - *Default:* a town retaken by the empire that founded it enters unrest too,
+     for `City.captured`'s reason: a war of reconquest is still a war.
+   - *Default:* a town taken again while still in unrest starts a fresh unrest
+     for its new owner.
+   - **While in unrest** the town makes no production, science or culture, and
+     its borders do not grow. Food, gold and faith are unaffected.
+   - **Pacification fills each turn,** the way production fills toward a
+     building. When it reaches the target, unrest ends. *Defaults:* the target
+     is 2 × the town's population on the turn it was taken. The rate per turn is
+     1, plus 1 while one of its owner's military units stands in the town, plus
+     1 while one of its owner's great generals stands in or beside it, plus 1
+     once it has a Courthouse. The rate is a labelled list (rule 5), and the town
+     panel shows the bar, the reasons and the turns left.
+   - **Rebels.** A town in unrest with no military unit of its owner in it
+     raises a rebel. *Default:* one every 3 such turns: a barbarian unit of the
+     kind a camp would raise that turn, placed on a free hex beside the town. A
+     rebel is an ordinary barbarian from then on.
+   - **Bots** keep a garrison in a captured town until it is pacified, and count
+     unrest when deciding whether to take or raze a town.
+   - **Interface:** the town panel's unrest section and an unrest mark on the
+     town's banner (a new `CityLook` field).
+   - Not in this batch: cards that read unrest.
+2. **War weariness (batch WC2).**
+   - **From losses only** (the user). Weariness against one enemy is **your
+     losses to it minus its losses to you**, never below zero, so a war you are
+     winning costs nothing.
+   - *Defaults:*
+     - A loss is a unit of yours that empire destroys or captures, military or
+       civilian, or a town of yours it takes by force (worth 3 units).
+     - Losses count over the last 20 turns. Peace does not erase them; they age
+       out.
+     - Barbarians never count, on either side.
+     - A town handed over in a peace deal is not a loss.
+   - Total weariness is the sum over enemies, and it is a line in the happiness
+     list, one line per enemy. *Default:* 1 happiness per point. An unhappy
+     empire stops growing and is not otherwise weakened, so weariness never
+     touches combat.
+   - Stored as losses stamped with their turn and read through the window:
+     compared, never counted down, the way Triumphs are recorded.
+   - **Bots** weigh weariness when offering and answering peace.
+3. **Ranks (batch WC3).**
+   - **Ranks give more combat strength and nothing else for now** (the user):
+     no choices, no extra health, no movement.
+   - *Defaults:*
+     - Experience from combat: +1 for each combat a unit survives, +2 for a
+       kill, attacking or defending.
+     - Veteran at 4 experience, Elite at 10.
+     - Each rank is one labelled line on the combat ledger: Veteran +10% and
+       Elite +20% of the unit's own base strength, rounded, at least +1. A share
+       rather than a flat figure, so a rank keeps its weight as the unit
+       upgrades through the ages.
+   - Experience stays with a unit through its automatic upgrades.
+   - Fighting barbarians can take a unit to Veteran and no further, so camps
+     that respawn cannot be farmed.
+   - **Interface:** a rank badge on the piece (it joins `signUnits` and the
+     flair gallery), rank and experience in the unit panel, the rank line in the
+     combat forecast.
+   - **Bots** keep damaged veterans out of fights they are likely to lose.
+
 **(qqqqqq) The deck balance review's rule questions — RULED, 2026-10-12** (the
 user, answering `docs/decks/review/summary.md` items 1–15, and in chat). The
 reasoning behind each question is in that file and the four lens reports

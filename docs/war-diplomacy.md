@@ -123,6 +123,9 @@ in `data/rules.json` under `rules.naval`.
 ## 6. War costs
 
 - ▢ War weariness in v1: (a) none, defer for later after playtesting if needed
+- **Ruled 2026-10-14, not built yet:** three costs of war, in this order:
+  unrest in captured towns, war weariness from net losses, and unit ranks.
+  The spec is `docs/flags.md` item (rrrrrr).
 - ▢ Warmonger reputation / opinions: not v1 (there are no opinions without
   diplomacy AI). Confirmed
 
