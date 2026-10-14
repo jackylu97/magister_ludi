@@ -31,6 +31,9 @@
 #diplomacy-body .diplo-head-name { font:400 32px/1.1 var(--face-display); }
 #diplomacy-body .diplo-head-status { margin-left:59px; color:#607256; font-size:10px; }
 #diplomacy-body .diplo-head.is-war .diplo-head-status { color:#993f31; }
+/* War weariness (batch WC2): the happiness your losses to this empire cost,
+   set like the status line above it, in the war colour because it is a cost. */
+#diplomacy-body .diplo-head-weariness { margin:0 0 0 59px; color:#993f31; font:10px var(--face-num); font-variant-numeric:tabular-nums; }
 #diplomacy-body .diplo-head .diplo-seal { width:45px; height:56px; }
 #diplomacy-body .diplo-head>.diplo-row-verbs { margin-left:auto; }
 #diplomacy-body .diplo-head .btn { font-size:10px; color:#965b47; border:0; padding:6px; }

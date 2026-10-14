@@ -206,6 +206,21 @@ Reference: **`docs/units.md`** (the roster; generated) and
   the flag fly a torch (`CityLook.unrest`). Bots keep a soldier in such a town
   (`military.unrestGarrison`), weigh a target's unrest in a declaration
   (`war.unrestDrag`) and raze one they cannot hold (`war.razeUnrestTurns`).
+- **Losing a war costs happiness** (batch WC2, `src/sim/weariness.ts`;
+  reference `docs/war-diplomacy.md` §6a). Every unit an empire loses to another
+  empire (killed, captured, or a caravan plundered) and every town taken from it
+  by force is recorded on `Player.warLosses` with the turn and the empire that
+  caused it. `recordWarLoss` is the one writer; its callers are `applyCombat`,
+  `captureCity` and `arriveOnTile`, pinned by `test/sim/weariness.test.ts`. War
+  weariness against one enemy is your losses to it minus its losses to you over
+  the last `windowTurns` (20) turns, never below zero, with a town worth
+  `townLoss` (8) units. The barbarians never count, a town ceded in a peace deal
+  is not a loss, and peace erases nothing: losses age out. Each enemy with
+  weariness is one cost line in the happiness list (`explainHappiness`), at
+  `happinessPerPoint` (1) a point, and weariness touches nothing else. The
+  `settleDiplomacy` phase prunes losses that have left the window. Every figure
+  is `rules.war.weariness`. The foreign courts screen shows the line on that
+  empire's table, and the Compendium has a concept entry.
 - **The waterline**: a land piece that closes may not strike a water hex; an
   embarked piece may not strike a ship; land bows and land siege fight a hull at
   their own percentages; a hull boarding a column takes a share of the counter.
@@ -449,7 +464,14 @@ army it raised. A war is then fought by a column that masses at a muster before
 it pushes, blows that must be favourable (a melee piece never walks into a wall
 at a loss — the bows go first), and hurt pieces that walk home. It ends on the
 warscore or on **this war's own exchange** — what it has cost against what it has
-taken, windowed by `warLedger.ts` off the simulation's own kill counters.
+taken, windowed by `warLedger.ts` off the simulation's own kill counters. Every
+peace decision also weighs the seat's own **war weariness** (batch WC2,
+`explainPeaceScore`: the warscore less `war.wearinessWeight` a point of
+happiness it costs, and `war.unhappyWearinessWeight` more for the part below
+nought), so a weary seat sues sooner, signs sooner and pays more to stop. The
+enemy's weariness never counts, so a winner is never harder to make peace with,
+and the warscore itself (which also decides whether a seat campaigns) is
+unchanged.
 
 ## The surfaces
 

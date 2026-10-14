@@ -638,6 +638,36 @@ export interface WarRules {
    * `src/sim/unrest.ts`.
    */
   unrest: UnrestRules;
+  /**
+   * War weariness (batch WC2, `docs/flags.md` (rrrrrr) part 2). Every figure
+   * the rule is made of; the rule itself is `src/sim/weariness.ts`.
+   */
+  weariness: WearinessRules;
+}
+
+/**
+ * The numbers of war weariness: how long a loss counts, what a unit and a town
+ * are worth, and what a point of weariness costs.
+ *
+ * Weariness against one enemy is the points this empire lost to that enemy
+ * inside the window, minus the points that enemy lost to this empire inside
+ * the same window, never below zero.
+ */
+export interface WearinessRules {
+  /**
+   * How many turns a loss counts for. A loss on turn `t` counts on turns `t`
+   * to `t + windowTurns − 1` and not after. Making peace does not end it early.
+   */
+  windowTurns: number;
+  /** Points of weariness for a unit destroyed or captured by an enemy. */
+  unitLoss: number;
+  /**
+   * Points of weariness for a town taken by force (the user, 2026-10-14:
+   * *"losing a town counts as losing 8 units"*).
+   */
+  townLoss: number;
+  /** Happiness one point of weariness costs. */
+  happinessPerPoint: number;
 }
 
 /**

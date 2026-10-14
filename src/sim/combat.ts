@@ -277,7 +277,11 @@
  *     fight, so there is no capacity, no loading, and no hold to sink. What
  *     crossing the waterline costs either side is *Across the waterline* above,
  *     and it is four clauses rather than a transport system.
- *   · **War weariness**, and every other happiness consequence of fighting.
+ *   · **Happiness changing how a fight goes.** War weariness exists since batch
+ *     WC2 (`weariness.ts`), but it lowers the losing empire's happiness and
+ *     never a unit's strength. All a fight does for it is record each unit or
+ *     town one empire loses to another (`recordWarLoss`, called here and from
+ *     `arriveOnTile`).
  *   · **Damage scaling with health.** A unit at 10 hit points hits exactly as
  *     hard as one at full, so a fight is a grind rather than an avalanche.
  *
@@ -378,6 +382,7 @@ import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
 import { bumpEconomy } from './slate';
 import { startUnrest } from './unrest';
+import { recordWarLoss } from './weariness';
 
 const COMBAT = RULES.combat;
 
@@ -1020,9 +1025,10 @@ function clampCityHp(city: City): void {
  * One flat strength bonus standing on one side of a fight, with the reason.
  *
  * Rule 5 applied to violence, and the shape the *next* such bonus joins rather
- * than a barbarian special case: a promotion, a great general, a war-weariness
- * malus all say "so many points, to this side, because of that" and all belong in
- * this list. There is exactly one entry in it today.
+ * than a barbarian special case: a promotion or a great general says "so many
+ * points, to this side, because of that" and belongs in this list. (War
+ * weariness does not: since batch WC2 it costs happiness and nothing in a
+ * fight, see `weariness.ts`.) There is exactly one entry in it today.
  *
  * Flat points rather than a fraction, and added **after** the multipliers, which
  * is a rules decision and not a rounding one. Terrain and fortification multiply
@@ -2503,6 +2509,8 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     const fromOwnerId = caravan.ownerId;
     outcome.killed.push(snapshotFallen(caravan));
     removeUnit(state, caravan.id);
+    // A destroyed caravan is a unit lost to the attacker's empire (batch WC2).
+    recordWarLoss(state, fromOwnerId, attacker.ownerId, 'unit');
     defenderDied = true;
     outcome.plundered = settleTraderPlunder(state, attacker.ownerId, caravan, {
       col: tile.col,
@@ -2634,6 +2642,10 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           // whatever took the piece. The capture arm above deliberately writes
           // neither: nothing died.
           tallyFall(state, attacker.ownerId, fallenOwner);
+          // And the war's own record of it, for war weariness (batch WC2). The
+          // same death read per enemy and over a window; nothing is written
+          // when either side is the wild.
+          recordWarLoss(state, fallenOwner, attacker.ownerId, 'unit');
           // Two riders on one death, and they belong to two empires: the killer's
           // `kill` and the fallen's `death`. Both are paid, in that order, because
           // a battle is one event that two laws have something to say about.
@@ -2683,6 +2695,9 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // the kill, and a city that broke a charge is nobody's seat, so a hex with
     // no defending empire records the loss alone.
     tallyFall(state, defenderOwner ?? null, fallenOwner);
+    // The counter-blow's kill is a war loss too (batch WC2), whether a unit or
+    // a city struck it: the attacker's empire lost a unit to the defender's.
+    if (defenderOwner !== undefined) recordWarLoss(state, fallenOwner, defenderOwner, 'unit');
     payBattleRiders(state, fallenOwner, 'death', tile, {
       actor: attacker.type,
       strength: fallenStrength(attacker),
@@ -3080,7 +3095,9 @@ function payBattleRiders(
  * walls), the triumph, the bead, the captor's own counters and unrest (batch
  * WC1: only a town taken by force enters it). Those are the conquest, and they
  * stay in `captureCity`. A town ceded while it is in unrest keeps its record as
- * it stands, because nothing here touches it.
+ * it stands, because nothing here touches it. The same goes for the war loss
+ * (batch WC2): a town handed over at a treaty table adds nothing to its old
+ * owner's war weariness, so `recordWarLoss` is called from `captureCity` only.
  */
 export function handOverCity(state: GameState, city: City, ownerId: number): void {
   const loser = city.ownerId;
@@ -3174,6 +3191,11 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // founder who takes its own town back is in unrest too. Written after the
   // handover, because the target is read off the population the captor holds.
   startUnrest(city);
+  // **War weariness** (batch WC2, `docs/flags.md` (rrrrrr) part 2): a town
+  // taken by force is a loss to the empire that held it. Here and not in
+  // `handOverCity`, for `capturedOn`'s reason: a town handed over in a peace
+  // deal was not taken by force, and is not a loss.
+  recordWarLoss(state, loser, ownerId, 'town');
   if (wasCapital && loser !== ownerId) awardBeadOccasion(state, ownerId, 'capitalCaptured');
   recordScalingOccasion(state, ownerId, 'cityCaptured');
   if (marked) recordScalingOccasion(state, ownerId, 'wonderOrCapitalCaptured');

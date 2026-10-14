@@ -74,6 +74,11 @@
  * opened from this side rather than by a schema, exactly as the refusal memory
  * is. `explainStanding` folds it, and three clauses spend it: sue, take a paper,
  * send the envoy home.
+ *
+ * **And a third since batch WC2: war weariness.** Every peace decision reads
+ * `explainPeaceScore`, which is the warscore less what this seat's own
+ * weariness against the enemy is costing it. Only the weary side is moved, and
+ * the warscore itself stays an exact mirror; see that function for why.
  */
 
 import { type AiConfig } from './aiConfig';
@@ -120,6 +125,8 @@ import { seatName, seatPeople } from '../sim/leaderData';
 import { turnsToFill } from '../sim/cities';
 import { RULES } from '../sim/rulesData';
 import { pacificationTurnsLeft, unrestTarget } from '../sim/unrest';
+import { happinessOf } from '../sim/meters';
+import { wearinessBetween } from '../sim/weariness';
 
 /**
  * The one entry point: what this seat wants to say to somebody else, or `null`
@@ -287,6 +294,13 @@ function townsTaken(state: GameState, playerId: number): number {
  * against mine, their conquests against mine, their army against mine — every
  * weight in `data/ai.json` and every line printed. See the module docblock for
  * what "losses" is actually read off, and why.
+ *
+ * **War weariness is deliberately not one of the lines** (batch WC2). The
+ * warscore is an exact mirror between the two empires, and it is read for more
+ * than peace: `campaignEnemy` (`bot.ts`) stops a seat campaigning once it reads
+ * under `war.sueFloor`. Weariness is a cost only the weary side pays, so it is
+ * weighed beside this reading and only where a peace is decided
+ * (`explainPeaceScore`).
  */
 export function explainWarScore(
   state: GameState,
@@ -326,6 +340,95 @@ export function explainWarScore(
     },
     { label: `theirs at ${theirs} × ${strengthWeight}`, value: theirs * strengthWeight, op: 'sub' },
   ]);
+}
+
+/**
+ * **The war as this seat weighs a peace**: the warscore, less what the war's
+ * weariness is costing this seat (batch WC2, `docs/flags.md` (rrrrrr) part 2:
+ * *"Bots weigh weariness when offering and answering peace"*).
+ *
+ * Every peace decision reads this rather than the bare warscore: the sue arm
+ * and the tribute it offers (`peaceDecision`), the answer to a paper
+ * (`readPeaceOffer`, `answerPeaceOffer`), and the table's counter
+ * (`counterRefusal`, `counterTerms`). So a weary seat falls under
+ * `war.sueFloor` sooner, reads as winning (`war.acceptCeiling`) later, owes
+ * more for a peace and so accepts a worse paper, and offers more coin when it
+ * sues.
+ *
+ * **Only this seat's own weariness, and never the enemy's.** The design intent
+ * is that weariness ends wars sooner and never later. If the enemy's weariness
+ * counted in this seat's favour, a seat winning against a weary enemy would
+ * read its war as better, press on longer and ask more, which is a war ending
+ * later. So the winner reads exactly the war it read before weariness existed,
+ * and only the side paying the weariness is moved.
+ *
+ * **Beside the warscore rather than inside it.** The warscore is an exact mirror
+ * between the two empires, and `campaignEnemy` (`bot.ts`) reads it to decide
+ * whether a seat is losing badly enough to stop campaigning. A cost only one
+ * side pays cannot sit in a mirror, and putting it there also changed the
+ * campaign: in `aiWar.slow.test.ts`' war loop the loser's one point of
+ * weariness put it one point under its floor, it stopped campaigning, and the
+ * counter-attack that used to even the exchange and bring the peace never
+ * came. Here, weariness moves the peace and nothing else.
+ *
+ * No weariness, no new lines: the reading is then the warscore itself, so a
+ * war without recorded losses prints and decides exactly as before.
+ */
+export function explainPeaceScore(
+  state: GameState,
+  player: Player,
+  enemy: Player,
+  ai: AiConfig,
+): Appraisal {
+  const score = explainWarScore(state, player, enemy, ai);
+  const weary = wearinessTerms(state, player, enemy, ai);
+  if (weary.length === 0) return score;
+  // Flat rather than nested: the warscore's lines are adds and subtracts, so
+  // appending to them folds to exactly the warscore less the weariness.
+  return appraise([...score.terms, ...weary]);
+}
+
+/**
+ * What this seat's own war weariness against this enemy costs it, as warscore
+ * points, for `explainPeaceScore`. Empty when it has none.
+ *
+ * Weariness is the happiness an empire pays because it has lost more to one
+ * enemy than it has taken from it over the last turns (`wearinessBetween`,
+ * `src/sim/weariness.ts`). Making peace does not refund it, but it stops it
+ * growing, which is the reason to weigh it when deciding whether to stop.
+ *
+ * Two knobs, both in `data/ai.json`:
+ *
+ *   · `war.wearinessWeight` — points per point of happiness the war's losses
+ *     cost. It is always paid while there is weariness.
+ *   · `war.unhappyWearinessWeight` — further points per point of that
+ *     weariness that sits below nought, where it stops the empire growing. An
+ *     empire with happiness to spare can absorb weariness; one already in
+ *     deficit is paying for the war in growth, and this is what makes it sue
+ *     sooner.
+ */
+function wearinessTerms(state: GameState, player: Player, enemy: Player, ai: AiConfig): ValueTerm[] {
+  const { wearinessWeight, unhappyWearinessWeight } = ai.war;
+  const happiness = wearinessBetween(state, player.id, enemy.id).happiness;
+  if (happiness <= 0) return [];
+  const terms: ValueTerm[] = [
+    {
+      label: `our losses to them cost us ${round1(happiness)} happiness in war weariness × ${wearinessWeight}`,
+      value: happiness * wearinessWeight,
+      op: 'sub',
+    },
+  ];
+  // Only asked when there is weariness, so a war with none never walks the
+  // happiness list.
+  const below = Math.min(happiness, Math.max(0, -happinessOf(state, player.id)));
+  if (below > 0) {
+    terms.push({
+      label: `${round1(below)} of it is below nought, where it stops growth × ${unhappyWearinessWeight}`,
+      value: below * unhappyWearinessWeight,
+      op: 'sub',
+    });
+  }
+  return terms;
 }
 
 // --- how this war is actually going -----------------------------------------
@@ -708,7 +811,7 @@ function peaceDecision(
 
   for (const enemy of rivalsOf(state, player)) {
     if (warBetween(state, player.id, enemy.id) === undefined) continue;
-    const score = explainWarScore(state, player, enemy, ai);
+    const score = explainPeaceScore(state, player, enemy, ai);
     const theirs = hasPeaceOffer(state, enemy.id, player.id);
     const mine = hasPeaceOffer(state, player.id, enemy.id);
     const owed = owedForPeace(score, ai);
@@ -998,7 +1101,7 @@ export function answerPeaceOffer(
 ): BotDecision | null {
   if (warBetween(state, player.id, enemy.id) === undefined) return null;
   if (!hasPeaceOffer(state, enemy.id, player.id)) return null;
-  const score = explainWarScore(state, player, enemy, ctx.ai);
+  const score = explainPeaceScore(state, player, enemy, ctx.ai);
   const reading = readPeaceOffer(state, player, enemy, score, ctx);
   const label = `the ${seatPeople(state, enemy.id)}`;
 
@@ -1098,7 +1201,7 @@ export function counterRefusal(
   const asker = playerById(state, askerSeat);
   if (!bot || !asker) return null;
   if (warBetween(state, botSeat, askerSeat) === undefined) return null;
-  const score = explainWarScore(state, bot, asker, ctx.ai);
+  const score = explainPeaceScore(state, bot, asker, ctx.ai);
   if (score.total <= ctx.ai.war.acceptCeiling) return null;
   return `The ${bot.name} will not treat while the war goes their way.`;
 }
@@ -1152,7 +1255,7 @@ export function counterTerms(
   if (!bot || !asker) return null;
   const ai = ctx.ai;
   const peace = warBetween(state, botSeat, askerSeat) !== undefined;
-  const score = peace ? explainWarScore(state, bot, asker, ai) : null;
+  const score = peace ? explainPeaceScore(state, bot, asker, ai) : null;
   // The one seat that has no counter to give: a war it is winning.
   if (score !== null && score.total > ai.war.acceptCeiling) return null;
   const bar = score === null ? 0 : -owedForPeace(score, ai);

@@ -79,7 +79,27 @@ before the next starts.
    - **Interface:** the town panel's unrest section and an unrest mark on the
      town's banner (a new `CityLook` field).
    - Not in this batch: cards that read unrest.
-2. **War weariness (batch WC2).**
+2. **War weariness (batch WC2) — BUILT 2026-10-14, schema 126.** As built:
+   `docs/war-diplomacy.md` §6a and `src/sim/weariness.ts`.
+   - **Choices made in the build, for the user to check in play:**
+     - Each enemy you are weary of is its own cost line in the happiness list,
+       labelled with that people's name.
+     - The foreign courts table shows the weariness against each empire, even
+       at peace, because peace does not erase losses.
+     - The Compendium has a "War weariness" entry.
+     - Bots read weariness only when deciding on peace: a weary bot sues
+       sooner, signs worse terms and pays more. The enemy's weariness never
+       counts, and the reading that decides whether a bot keeps campaigning
+       ignores weariness.
+   - **A regression found and fixed in the build:** the first version put
+     weariness into that campaigning reading too. A losing bot then stopped
+     marching one turn early, and the war in the slow-tier war loop never
+     reached a peace.
+   - **Bot games:** on the standard digest board, weariness cost the warmonger
+     its happiness bonus for a turn, and halved one rival's growth for two
+     turns. That was the only change.
+   - **Not built:** weariness in the decision to declare war, a turn message,
+     and a mark on the empire roster.
    - **From losses only** (the user). Weariness against one enemy is **your
      losses to it minus its losses to you**, never below zero, so a war you are
      winning costs nothing.

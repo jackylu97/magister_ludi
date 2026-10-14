@@ -881,6 +881,33 @@ export interface AiConfig {
     /** What one point of standing army strength is worth in the warscore. */
     strengthWeight: number;
     /**
+     * **What a point of war weariness costs a seat deciding on peace** (batch
+     * WC2, `docs/flags.md` (rrrrrr) part 2: bots weigh weariness when offering
+     * and answering peace).
+     *
+     * War weariness is the happiness an empire pays because it has lost more to
+     * one enemy than it has taken from it over the last turns
+     * (`src/sim/weariness.ts`). The peace reading (`explainPeaceScore`) is the
+     * warscore less this many points for each point of happiness this seat's
+     * own weariness against the enemy costs. So a seat whose war is wearing its
+     * people down sues sooner, signs sooner, and pays more to stop. The enemy's
+     * weariness is never counted, so a winning seat is never made harder to
+     * make peace with, and the warscore itself (which also decides whether a
+     * seat campaigns) is untouched. Nought ignores weariness.
+     */
+    wearinessWeight: number;
+    /**
+     * **What a point of weariness below nought costs on top** (batch WC2).
+     *
+     * An empire with happiness to spare can absorb weariness; one whose
+     * happiness is under nought stops growing, and the weariness is part of
+     * why. For the share of this seat's weariness that sits below nought (the
+     * smaller of the weariness and the deficit), the peace reading falls this
+     * many more points per point. Nought weighs a deficit like any other
+     * weariness.
+     */
+    unhappyWearinessWeight: number;
+    /**
      * The coin a **lent luxury** is priced at — the baseline a gold-for-luxury
      * offer has to clear, and the figure a peace paper's seams are valued with.
      * Authored 2026-09-03 and flagged for tuning: nothing has played against a

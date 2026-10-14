@@ -63,7 +63,9 @@ import {
   peaceButtonLabel,
   relationSentence,
   rosterNote,
+  wearinessLine,
 } from '../../src/ui/diplomacyScreen';
+import { recordWarLoss, wearinessBetween } from '../../src/sim/weariness';
 import { newGame } from '../sim/newGameHelpers';
 
 function bench(seats = 2, wild = false): GameState {
@@ -172,6 +174,40 @@ describe('the sheet’s rows', () => {
   it('says nothing about offers on a row that is not a war', () => {
     const state = bench();
     expect(offerSentence(diplomacyRows(state, 0)[0]!)).toBeNull();
+  });
+});
+
+describe('the war weariness line (batch WC2)', () => {
+  it('carries the happiness your losses to them cost, and says nothing when they cost none', () => {
+    const state = bench();
+    openWar(state, 0, 1);
+    expect(diplomacyRows(state, 0)[0]!.weariness).toBe(0);
+    expect(wearinessLine(diplomacyRows(state, 0)[0]!)).toBeNull();
+
+    recordWarLoss(state, 0, 1, 'town');
+    const row = diplomacyRows(state, 0)[0]!;
+    // The same figure the happiness breakdown prints on their line.
+    expect(row.weariness).toBe(wearinessBetween(state, 0, 1).happiness);
+    expect(row.weariness).toBeGreaterThan(0);
+    expect(wearinessLine(row)).toBe(`War weariness −${row.weariness} happiness`);
+    // A war the other side is losing costs them, and costs us nothing.
+    expect(diplomacyRows(state, 1)[0]!.weariness).toBe(0);
+  });
+
+  it('keeps the line through a peace, because a peace does not erase recent losses', () => {
+    const state = bench();
+    openWar(state, 0, 1);
+    recordWarLoss(state, 0, 1, 'unit');
+    closeWar(state, 0, 1);
+    const row = diplomacyRows(state, 0)[0]!;
+    expect(row.relation).toBe('truce');
+    expect(wearinessLine(row)).not.toBeNull();
+  });
+
+  it('draws the line in the table head, under the status', () => {
+    const screen = uiSource('diplomacyScreen.ts');
+    const head = screen.slice(screen.indexOf('function drawTableHead('));
+    expect(head.slice(0, head.indexOf('\n  }\n'))).toContain('wearinessLine(row)');
   });
 });
 

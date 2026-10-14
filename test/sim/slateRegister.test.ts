@@ -38,8 +38,10 @@
  *     the caps its beads pay, its technologies, and the religions whose holy
  *     city it holds), the city-local half of that law (`cityLocalEffects` — a
  *     town's rites and its followers' beliefs), every owned town's `buildings`,
- *     `population`, `puppet`, `captured`, `name` and centre hex, and the ages it
- *     has advanced (`techsResearched`).
+ *     `population`, `puppet`, `captured`, `name` and centre hex, the ages it
+ *     has advanced (`techsResearched`), and since batch WC2 the war losses it
+ *     and every other empire have suffered (`Player.warLosses`, the war
+ *     weariness lines).
  *   · **the pieces**, and this is the correction batch M3 made to M2's table.
  *     M2 put `meterEffects` on a clock a march could not move, on the claim that
  *     `meters.ts` never opens `state.units`. It does not — but the *card
@@ -177,6 +179,11 @@ const WRITES: { field: string; pattern: RegExp }[] = [
     pattern:
       /\.followers\s*=[^=]|delete\s+\w+(\.\w+)*\.followers|\bfollowers\[[^\]]*\]\s*=[^=]|delete\s+followers\[/,
   },
+  // Batch WC2: the war losses the happiness meter's weariness lines count.
+  {
+    field: 'warLosses',
+    pattern: /\.warLosses\s*=[^=]|\.warLosses\.(push|splice)\(|delete\s+\w+(\.\w+)*\.warLosses/,
+  },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -277,6 +284,9 @@ const ANNOUNCING = new Set([
   // subtraction is announced by the subtraction, which is the whole point of
   // having one.
   'state.ts#spendGold',
+  // Batch WC2: the one writer of `Player.warLosses`, which the happiness
+  // meter's war weariness lines count.
+  'weariness.ts#recordWarLoss',
   'state.ts#claimWonder',
   'state.ts#createCity',
   'state.ts#createUnit',
@@ -403,6 +413,10 @@ const EXCUSED = new Map<string, string>([
   [
     'draft.ts#settleDoctrineChoice',
     'takes no state, as above; `applyChooseDoctrine` (`commands.ts`) announces beside it',
+  ],
+  [
+    'weariness.ts#pruneWarLosses',
+    'the broom: it deletes only war losses that are already outside the weariness window on this turn and every later one, and the weariness reading skips those, so no answer changes',
   ],
 ]);
 

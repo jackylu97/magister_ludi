@@ -21,6 +21,14 @@
  * because a captured town is indistinguishable from a founded one the turn
  * after — hence `City.captured`, the only state Milestone 10 added.
  *
+ * The second stored input is the losses an empire has suffered in war
+ * (`Player.warLosses`, batch WC2), for the same reason: a unit that died or a
+ * town that changed hands leaves nothing on the board to count. War weariness
+ * is read from that list through `explainWeariness` (`weariness.ts`), and each
+ * enemy that has cost this empire more than it has lost becomes one cost line
+ * in the happiness list. The list is only appended to, and each loss counts for
+ * a fixed number of turns after it happened, compared against `state.turn`.
+ *
  * Happiness = supply − demand
  * ---------------------------
  *   supply   the palace, plus a flat sum per *unique* improved luxury
@@ -31,6 +39,8 @@
  *            (`docs/flags.md` item (kkk)): what a town costs is now a figure a
  *            player can count off the board, and the vertical limiter is the
  *            citizens themselves against the happiness there is to feed them.
+ *   weariness one cost line per enemy whose war has cost this empire more than
+ *            it has cost them over the last turns (batch WC2, `weariness.ts`).
  *
  * Authority = capacity − used
  * ---------------------------
@@ -65,6 +75,7 @@
 import { BUILDING_IDS, buildingDef, buildingPlural } from './buildingData';
 import { buildingDemandRelief, buildingHappiness } from './buildingEffects';
 import { improvementDef } from './improvementData';
+import { seatPeople } from './leaderData';
 import {
   type ResourceHolding,
   capitalCityOf,
@@ -101,6 +112,7 @@ import {
 import { type City, type GameState, playerById } from './state';
 import { eraNumeral, highestAge } from './techData';
 import { isCoastal } from './water';
+import { explainWeariness } from './weariness';
 
 const METERS = RULES.meters;
 const WAR = RULES.war;
@@ -420,6 +432,26 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
         list.push({ source: `${city.name} · puppet`, part: 'gain', value: relief });
       }
     }
+  }
+
+  /**
+   * **War weariness** (batch WC2, `docs/flags.md` (rrrrrr) part 2): one cost
+   * line per enemy whose war has cost this empire more than it has cost them
+   * over the last turns, after every town's line.
+   *
+   * One line per enemy rather than one total, so a player at war with two
+   * empires can see which war is wearing their people down. The label names the
+   * enemy and nothing else; the figure is the line's value. A war that has cost
+   * both sides the same, or that this empire is winning, has no line, because
+   * it costs nothing. The arithmetic is `wearinessBetween`'s.
+   */
+  for (const line of explainWeariness(state, playerId)) {
+    if (line.happiness <= 0) continue;
+    list.push({
+      source: `War weariness · the ${seatPeople(state, line.enemyId)}`,
+      part: 'cost',
+      value: -line.happiness,
+    });
   }
 
   return list;

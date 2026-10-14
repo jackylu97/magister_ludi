@@ -1125,8 +1125,24 @@ import {
  * v124 log's taken town would bank hammers, beakers and culture this build
  * withholds, and a rebel would roll dice the v124 game never rolled. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v126 (branch `decks`; batch WC2, `docs/flags.md` (rrrrrr) part 2): **losing
+ * a war costs happiness.** `Player.warLosses` is the one new field, absent
+ * until an empire first loses a unit or a town to another empire. Each record
+ * is a loss stamped with its turn and the empire that caused it. War weariness
+ * against one enemy is the losses suffered to it over the last
+ * `rules.war.weariness.windowTurns` turns minus the losses inflicted on it over
+ * the same turns, never below zero, with a town worth `townLoss` units. It is
+ * one cost line per enemy in the happiness list. The `settleDiplomacy` phase
+ * now also prunes records that have left the window.
+ *
+ * **A v125 save is refused and does not replay.** From the first unit lost in
+ * a war on, a v125 log's empire would be happier than this build makes it, so
+ * its towns would grow on turns this build holds them back, and the bots would
+ * weigh peace differently. The branch migrates nothing, for the reason given
+ * under v119.
  */
-export const SCHEMA_VERSION = 125;
+export const SCHEMA_VERSION = 126;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1858,6 +1874,29 @@ export interface Player {
    */
   unitsKilled: number;
   unitsLost: number;
+  /**
+   * **The losses this empire has suffered to other empires in war**, oldest
+   * first (batch WC2, `docs/flags.md` (rrrrrr) part 2). War weariness is read
+   * off this list (`src/sim/weariness.ts`).
+   *
+   * One record per unit another empire destroyed or captured, and one per town
+   * another empire took by force. Each record carries the turn it happened on
+   * and who did it. The list is only appended to, and only by `recordWarLoss`;
+   * readers count the records whose turn is inside the weariness window, so
+   * nothing here counts down. `pruneWarLosses` deletes records that have left
+   * the window, which changes no reading.
+   *
+   * Stored rather than derived because a loss leaves nothing on the board: a
+   * dead unit is gone, and a captured town looks the same as any other town of
+   * its new owner. `unitsLost` above is not enough either, because it counts
+   * losses to the barbarians, does not say which empire caused them, and never
+   * forgets.
+   *
+   * Absent until the first loss, and deleted again when the broom empties it,
+   * so an empire that has lost nothing to another empire serialises the way it
+   * did before the field existed.
+   */
+  warLosses?: WarLoss[];
   /**
    * **What this seat staked**, and in which age (`docs/wager.md` §2).
    *
@@ -3344,6 +3383,24 @@ export interface CityUnrest {
    * `rules.war.unrest.rebelEveryTurns`.
    */
   unguarded: number;
+}
+
+/** What a war loss was: a unit destroyed or captured, or a town taken by force. */
+export type WarLossKind = 'unit' | 'town';
+
+/**
+ * One loss an empire suffered to another empire. See `Player.warLosses`.
+ *
+ * The record says what was lost and not what it costs: how many points of
+ * weariness a unit or a town is worth is read from `rules.war.weariness` when
+ * the list is counted, so the figures stay in the data.
+ */
+export interface WarLoss {
+  /** `state.turn` when the loss happened. Compared against the window. */
+  turn: number;
+  /** The empire that destroyed, captured or took it. Never the barbarians. */
+  by: number;
+  kind: WarLossKind;
 }
 
 /**

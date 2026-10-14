@@ -129,6 +129,8 @@
     "unitLossWeight": 3,
     "cityWeight": 25,
     "strengthWeight": 0.4,
+    "wearinessWeight": 1,
+    "unhappyWearinessWeight": 2,
     "luxuryGoldBaseline": 120,
     "luxuryGptBaseline": 5,
     "openBordersPrice": 60,

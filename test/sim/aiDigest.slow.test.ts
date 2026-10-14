@@ -421,10 +421,38 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * garrison a town in unrest needs, the declaration's unrest drag, and the raze
  * arm) changed no decision. Nothing stalled and no command was refused, which
  * the assertion above this one checks before the hash does.
+ *
+ * ---
+ *
+ * **War weariness (batch WC2, schema 126).** Duel `ce3c090f:277904` →
+ * `1b5560ba:277904`, standard `9daae566:966650` → `37c3e10e:966087`.
+ *
+ * **Duel: only the hash moved.** Hashing the final state with the schema
+ * number set back to 125 gives exactly the WC1 pin, and no empire in that game
+ * has a war loss on record.
+ *
+ * **Standard: the simulation's happiness rule moved it, not the bots' peace
+ * weighting.** The command logs are identical with and without the bots'
+ * weariness knobs (`war.wearinessWeight` and `war.unhappyWearinessWeight`).
+ * What happened, in order:
+ *
+ *   · Seat 4 (the warmonger) lost a unit to seat 3 on turn 83, and seat 3 lost
+ *     two units to seat 4 on turn 93.
+ *   · That weariness cost seat 4 its 10 per cent bonus to science and culture
+ *     on turn 89, and halved seat 3's growth on turns 99 and 100.
+ *   · The first command to change is seat 3's, on turn 102. Its town "Seat 4 2"
+ *     (city 453) has 3 citizens where it used to have 4, so the bot no longer
+ *     sets that town's production focus.
+ *
+ * At turn 120 the standard game's log holds 5,174 commands and its print is 563
+ * characters shorter.
+ *
+ * Nothing stalled and no command was refused, which the assertion above this
+ * one checks before the hash does.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'ce3c090f:277904',
-  standard: '9daae566:966650',
+  duel: '1b5560ba:277904',
+  standard: '37c3e10e:966087',
 };
 
 /**

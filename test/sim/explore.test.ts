@@ -672,10 +672,16 @@ describe('determinism', () => {
    * 124 became 125, and the new `unrest` phase raises the revision once more
    * a turn, twenty more over the sweep with the same number of digits. Nobody
    * here takes a town, so nothing else moved.
+   *
+   * **Batch WC2 (war weariness) moved the hash and not the length** at both
+   * seeds: 125 became 126, and that is all. The two empires never go to war
+   * and losses to the wild are never recorded, so no seat gains a
+   * `warLosses` key. Checked by setting the version back to 125, which gives
+   * the old hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '9884cd26:188968',
-    2026: '5fbfc440:188539',
+    11: '1e564d2f:188968',
+    2026: '97d42b6b:188539',
   };
 
   for (const seed of [11, 2026]) {

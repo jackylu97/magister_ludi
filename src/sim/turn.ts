@@ -176,6 +176,7 @@ import {
 } from "./state";
 import { setSlatePhase } from "./slate";
 import { type UnrestReport, runUnrest } from "./unrest";
+import { pruneWarLosses } from "./weariness";
 import { isCombatant, unitDef, unitMaxHp } from "./unitData";
 // The empire's live share of a piece's maximum health — iron's ten points (R2).
 import { unitHealthBonus } from "./resourceEffects";
@@ -504,6 +505,10 @@ export interface TurnReport {
  */
 function settleDiplomacy(state: GameState, report: TurnReport): void {
   pruneTruces(state);
+  // War losses that have left the weariness window (batch WC2). A broom like
+  // the truces': every reader compares a loss's turn against the window, so
+  // what it deletes no reading counts. See `pruneWarLosses`.
+  pruneWarLosses(state);
   // The third broom in the beat, and the one that has something to say: a
   // bargain that has run out takes a lent seam home and stops a tribute, so
   // both empires' towns are priced off a different list from this line on.
@@ -560,7 +565,9 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // spent truces are swept out (`pruneTruces` — a broom rather than a clock,
     // exactly like the phase below it: every reader compares an absolute turn,
     // so a spent row is already inert and deleting it changes no outcome), and
-    // then every war both sides have signed is closed.
+    // then every war both sides have signed is closed. Since batch WC2 the
+    // sweep also drops war losses older than the weariness window
+    // (`pruneWarLosses`), on the same terms as the truces.
     //
     // Its position is the usual rules decision, and it is the top of the
     // resolution for one sentence: the turn should be resolved in a world whose

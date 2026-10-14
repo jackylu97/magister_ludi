@@ -96,6 +96,12 @@
       "buildingRate": 1,
       "rebelEveryTurns": 3,
       "halts": ["production", "science", "culture"]
+    },
+    "weariness": {
+      "windowTurns": 20,
+      "unitLoss": 1,
+      "townLoss": 8,
+      "happinessPerPoint": 1
     }
   },
   "barbarians": {

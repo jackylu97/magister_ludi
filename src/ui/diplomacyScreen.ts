@@ -101,7 +101,8 @@ import {
   resourceCopies,
 } from '../sim/cities';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
-import { figure } from './figures';
+import { wearinessBetween } from '../sim/weariness';
+import { figure, signedMeterFigure } from './figures';
 import type { ConfirmRequest } from './confirmCard';
 import { element } from './dom';
 import { createModalShell } from './modalShell';
@@ -154,6 +155,13 @@ export interface DiplomacyRow {
   /** Papers standing on the table between you, written by either hand. */
   papers: number;
   /**
+   * The happiness your losses to them are costing you in war weariness, or
+   * nought (`wearinessBetween`, `src/sim/weariness.ts`; batch WC2). The same
+   * figure as their line in the happiness breakdown. It can be above nought at
+   * peace, because making peace does not erase recent losses.
+   */
+  weariness: number;
+  /**
    * You have met them: seen their land, their town or their pieces, or signed
    * something with them (`hasMetSeat`, `src/sim/diplomacy.ts`).
    *
@@ -201,6 +209,7 @@ export function diplomacyRows(state: GameState, seat: number): DiplomacyRow[] {
         (paper) =>
           (paper.by === seat && paper.to === id) || (paper.by === id && paper.to === seat),
       ).length,
+      weariness: wearinessBetween(state, seat, id).happiness,
       met: hasMetSeat(state, seat, id),
     });
   }
@@ -261,6 +270,19 @@ export function relationSentence(
     return truceLeft === 1 ? 'Truce — one turn left' : `Truce — ${figure(truceLeft)} turns left`;
   }
   return 'At peace';
+}
+
+/**
+ * The line under the status that says what your losses to this empire are
+ * costing you in war weariness, or `null` when they cost nothing (batch WC2).
+ *
+ * Shown whatever the relation, because a peace does not erase recent losses:
+ * they keep costing happiness until they are old enough to stop counting. The
+ * figure is the same one the happiness breakdown prints on this empire's line.
+ */
+export function wearinessLine(row: DiplomacyRow): string | null {
+  if (row.weariness <= 0) return null;
+  return `War weariness ${signedMeterFigure(-row.weariness)} happiness`;
 }
 
 /**
@@ -1021,6 +1043,8 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     titles.append(element('p','eyebrow',`The court of the ${row.people}`));
     titles.append(line);
     titles.append(element('p', 'diplo-head-status', row.status));
+    const weary = wearinessLine(row);
+    if (weary !== null) titles.append(element('p', 'diplo-head-weariness', weary));
     head.append(titles);
 
     const verbs = element('div', 'diplo-row-verbs');

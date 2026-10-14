@@ -2534,7 +2534,9 @@ describe('improvements in the log', () => {
     // the seat's current band, so a v123 log would pick from different hands.
     // 125 since WC1: a town taken by force enters unrest, so a v124 log's
     // captured towns would bank hammers, beakers and culture this build withholds.
-    expect(SCHEMA_VERSION).toBe(125);
+    // 126 since WC2: a war's losses are recorded and cost happiness, so a v125
+    // log's losing empires would grow on turns this build holds them back.
+    expect(SCHEMA_VERSION).toBe(126);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

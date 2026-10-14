@@ -145,7 +145,7 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     [
       'Two empire-wide meters, shown on the top bar, stop you from growing without limit. Happiness is about the size of your cities: every citizen demands some, and if you run out, growth slows down. Authority is about the number of your cities: each one costs some, and if you exceed what you have, your science and culture are reduced.',
       'Neither is a hard wall — you can go over, you just pay for it. Keep happiness up with luxury resources, buildings such as Funeral Games, and cards. Keep authority up by building the right buildings and advancing through the ages, and by not founding cities faster than you can support them.',
-      'Details: happiness surplus gives bonuses in steps, and a deficit slows growth in steps. Exceeding authority reduces science and culture by a percentage. Hover a meter on the top bar for its sources and click it for the full breakdown. Each city\'s own buildings are combined into that city\'s demand line, so every city shows a single net figure.',
+      'Details: happiness surplus gives bonuses in steps, and a deficit slows growth in steps. Exceeding authority reduces science and culture by a percentage. Hover a meter on the top bar for its sources and click it for the full breakdown. Each city\'s own buildings are combined into that city\'s demand line, so every city shows a single net figure. A war you are losing costs happiness too; see War weariness.',
     ],
   ),
   written(
@@ -272,6 +272,21 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
       'When you take a city by force, you decide what becomes of it. You can annex it and govern it like any city of your own, hold it as a puppet that chooses its own production and asks less of your empire, or raze it to the ground.',
       'A city taken by force is in unrest, whichever of the first two you choose. While it is in unrest it makes no production, science or culture, and its borders do not grow; its food, gold and faith are untouched. It settles a little every turn, and when it has settled enough the unrest is over. Keep one of your military units inside it: the city settles faster, and an empty city in unrest raises rebels, barbarian units that appear beside it every few turns.',
       'Details: how long a city stays in unrest depends on how many citizens it had when it was taken. It settles faster with one of your military units inside, with one of your great generals inside or next to it, and once it has a Courthouse. The city screen shows how far it has settled, the reasons, and the turns left, and the city\'s banner carries a torch until it is over. Annexing a puppet neither restarts nor ends its unrest. A city taken back by the empire that founded it is in unrest too, and a city taken again while still in unrest starts over for its new owner. A razed city leaves nothing to settle. Buying things in a city in unrest works as it always does.',
+    ],
+  ),
+  // Batch WC2 (`docs/flags.md` (rrrrrr) part 2): what a losing war costs at
+  // home. Plain words and no figures; the happiness breakdown and the foreign
+  // courts screen print how much.
+  written(
+    'concept',
+    'warWeariness',
+    'War weariness',
+    'what a losing war costs at home',
+    '☹',
+    [
+      'Your people grow tired of a war that is going badly. Each time another empire destroys or captures one of your units, or takes one of your cities by force, that is a loss you suffered at its hands. Every unit and city you take from it counts the other way. When your recent losses to an empire are greater than its recent losses to you, the difference is your war weariness against it, and it costs you happiness.',
+      'A war you are winning costs you nothing, and neither does an even one. Losing a city counts for much more than losing a unit. To keep weariness down, fight where your units are strong, keep your cities defended, and make peace before a bad war gets worse.',
+      'Details: only recent losses count. Each loss stops counting a fixed number of turns after it happened, and making peace does not wipe it away any sooner. Losses to barbarians, and barbarians you defeat, never count. A city handed over in a peace treaty is not a loss, and neither is a unit you disband yourself. Your weariness against each empire is its own line in the happiness breakdown, and it is shown on that empire\'s page in the foreign courts. Weariness only lowers happiness: it never makes your units weaker in battle.',
     ],
   ),
 ];

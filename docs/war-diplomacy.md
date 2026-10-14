@@ -213,11 +213,100 @@ The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
 ## 6. War costs
 
 - ▢ War weariness in v1: (a) none, defer for later after playtesting if needed
-- **Ruled 2026-10-14, not built yet:** three costs of war, in this order:
-  unrest in captured towns, war weariness from net losses, and unit ranks.
-  The spec is `docs/flags.md` item (rrrrrr).
+- **Ruled 2026-10-14:** three costs of war, in this order: unrest in captured
+  towns (built, §5c), war weariness from net losses (built, §6a below), and unit
+  ranks (not built yet). The spec is `docs/flags.md` item (rrrrrr).
 - ▢ Warmonger reputation / opinions: not v1 (there are no opinions without
   diplomacy AI). Confirmed
+
+## 6a. War weariness (as built, batch WC2, schema 126)
+
+The second of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
+(rrrrrr) part 2). The code is `src/sim/weariness.ts`; every figure is in
+`data/rules.json` under `rules.war.weariness`.
+
+**What counts as a loss**
+
+- A unit of yours that another empire destroys or captures, military or
+  civilian. That includes a laden caravan plundered by a blow or by a piece
+  marching onto it, a unit killed by a ranged blow, and an attacker killed by
+  the counter-blow of a unit or of a city's walls.
+- A town of yours that another empire takes by force (`captureCity`).
+- Not a loss: anything involving the barbarians, on either side (rebels are
+  barbarians); a town handed over in a peace deal (`handOverCity` from a
+  treaty); a unit you disband yourself or one the creditors take; a settler,
+  worker, prophet or great person spending itself.
+
+**The record**
+
+- `Player.warLosses`: one entry per loss, `{turn, by, kind}`, where `kind` is
+  `unit` or `town`. Absent until the first loss.
+- `recordWarLoss` is the only writer. It ignores a loss to oneself and any loss
+  involving the barbarians. Its callers are pinned by a source test
+  (`test/sim/weariness.test.ts`): three in `applyCombat` (a caravan plundered,
+  a defender killed, an attacker killed by the counter-blow), one in
+  `captureCity`, and two in `arriveOnTile` (a caravan plundered, a civilian
+  captured).
+- Nothing counts down. A loss counts while `state.turn − turn <
+  windowTurns`, so a loss on turn `t` counts on turns `t` to `t + 19`.
+- The `settleDiplomacy` phase prunes losses that have left the window, beside
+  the truce broom. Deleting them changes no reading.
+
+**The rule**
+
+- Weariness against one enemy is the points you lost to it inside the window
+  minus the points it lost to you inside the window, never below zero. A unit
+  is `unitLoss` (1) point and a town is `townLoss` (8) points.
+- A war you are winning, or an even one, costs nothing.
+- Peace does not erase losses. They keep counting until they leave the window.
+- Each point costs `happinessPerPoint` (1) happiness. Total weariness is the
+  sum over enemies.
+
+**What it costs**
+
+- One cost line per enemy in the happiness list (`explainHappiness`,
+  `meters.ts`), labelled with the enemy's name ("War weariness · the Inca"),
+  after every town's line. An enemy you have no weariness against has no line.
+- Nothing else. Lower happiness slows growth and can cost the bonus a happy
+  empire gets, but weariness never touches a unit's strength or any combat
+  figure.
+- The meters are remembered on the economy clock (`slate.ts`). `recordWarLoss`
+  moves that clock after it writes, and the turn change moves it, which is when
+  a loss leaves the window. `Player.warLosses` is a row of the slate register
+  (`test/sim/slateRegister.test.ts`).
+
+**Interface**
+
+- The happiness hover and ledger on the top bar print the line per enemy.
+- The foreign courts screen prints "War weariness −N happiness" under the
+  status in that empire's table head, whatever the relation, because a peace
+  does not erase recent losses.
+- The Compendium has a concept entry, "War weariness".
+
+**Bots**
+
+- Every peace decision reads `explainPeaceScore` (`src/ai/diplomacy.ts`): the
+  warscore less `war.wearinessWeight` (1) points per point of happiness this
+  seat's own weariness costs, and `war.unhappyWearinessWeight` (2) more per
+  point of that weariness that sits below nought. The terms are printed, and a
+  seat with no weariness reads the bare warscore.
+- The readers are the sue arm and its tribute (`peaceDecision`), the answer to
+  a paper (`answerPeaceOffer`), and the table's counter (`counterRefusal`,
+  `counterTerms`). So a weary seat sues sooner (`war.sueFloor`), stops reading
+  as winning sooner (`war.acceptCeiling`), owes more for a peace and so signs a
+  worse paper, and offers more coin when it sues.
+- **Only the weary side is moved.** The enemy's weariness never counts for a
+  seat, so a winner facing a weary enemy reads exactly the war it read before
+  WC2 and is never harder to make peace with. Weariness ends wars sooner, never
+  later.
+- **The warscore itself is unchanged**: six lines, an exact mirror between the
+  two empires. It also decides whether a seat campaigns (`campaignEnemy`,
+  `bot.ts`: a seat under its `sueFloor` stops campaigning), and weariness must
+  not change that. A first version put weariness inside the warscore and broke
+  the slow war loop (`aiWar.slow.test.ts`): the loser's one point of weariness
+  put it one point under its floor, it stopped campaigning, the counter-attack
+  that evened the exchange never came, and the winner, still ahead on the
+  exchange, never signed.
 
 ## 7. Diplomacy beyond war — the v1 cut line
 

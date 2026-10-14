@@ -193,7 +193,9 @@ describe('the warscore', () => {
     // Rule: a score is the fold of its terms, exactly.
     expect(foldTerms(ours.terms)).toBe(ours.total);
     expect(foldTerms(theirsRead.terms)).toBe(theirsRead.total);
-    // Six lines and no more — the doc's whole specification.
+    // Six lines and no more — the doc's whole specification. War weariness is
+    // never one of them: batch WC2 weighs it beside the warscore, in the peace
+    // reading (`explainPeaceScore`, covered by `weariness.test.ts`).
     expect(ours.terms).toHaveLength(6);
     // The same war from the other side is the same number negated.
     expect(theirsRead.total).toBeCloseTo(-ours.total, 9);
