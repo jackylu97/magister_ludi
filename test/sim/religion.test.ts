@@ -23,10 +23,12 @@ import GREAT_PEOPLE_RAW from "../../data/greatPeople.json";
 import LEADERS_RAW from "../../data/leaders.json";
 import { unitMatches } from "../../src/sim/statecraft";
 import {
+  type CardEffect,
   type OrderId,
   type UnitFilter,
   orderDef,
 } from "../../src/sim/statecraftData";
+import { effectsGrantAbility } from "../../src/sim/statecraft/evaluator";
 import { describe, expect, it } from "vitest";
 
 import { type Command, applyCommand } from "../../src/sim/commands";
@@ -1151,6 +1153,26 @@ describe("a rite's turns and its teacher", () => {
       bumpRevision(g.state);
       expect(availableRites(g.state, 0), id).toContain(id);
     }
+  });
+
+  it("asks the evaluator whether a row teaches a verb, and reads no clause itself", () => {
+    // Batch UX8b moved the clause test into `statecraft/evaluator.ts`, the one
+    // module that reads `CardEffect.kind` (`effectsGrantAbility`).
+    const gifts = orderDef("theVotiveGifts" as OrderId).effects;
+    expect(effectsGrantAbility(gifts, riteAbility("votiveOffering"))).toBe(true);
+    expect(effectsGrantAbility(gifts, riteAbility("restoringOfTheHost"))).toBe(false);
+    // A grant behind a condition still names the card that would teach it.
+    const gated = [
+      {
+        kind: "conditionRule",
+        when: { test: "atPeace" },
+        then: [{ kind: "grantsAbility", ability: riteAbility("votiveOffering") }],
+      },
+    ] as CardEffect[];
+    expect(effectsGrantAbility(gated, riteAbility("votiveOffering"))).toBe(true);
+    const code = simSource("religion.ts").replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(code).not.toMatch(/effect\.kind/);
+    expect(code).toContain("effectsGrantAbility(def.effects, ability)");
   });
 });
 

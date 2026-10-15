@@ -96,6 +96,7 @@ import {
 } from './resourceEffects';
 import { type MeterStep, RULES } from './rulesData';
 import { slateMemo } from './slate';
+import type { CardId } from './statecraftData';
 import {
   cardAmplifier,
   cardAmplifierFlat,
@@ -135,6 +136,36 @@ export interface MeterContribution {
   source: string;
   part: MeterPart;
   value: number;
+  /**
+   * **The card that paid this line**, when one card paid all of it: a card's
+   * own happiness or authority line, or its tier boost (batch UX8b, so a meter
+   * can be split by source the way the Ledger splits a yield). Absent on every
+   * line no card paid — the palace, a luxury, a town's demand.
+   */
+  card?: CardId;
+  /**
+   * What each card standing on a building paid of `value`, on a building's
+   * line (Feast Days on a temple). The rest of `value` is the building's own.
+   * Absent when no card stands on it. See `meterCardShares`.
+   */
+  cards?: readonly MeterCardShare[];
+}
+
+/** One card's part of a meter line. */
+export interface MeterCardShare {
+  card: CardId;
+  value: number;
+}
+
+/**
+ * **What each card paid of one meter line**: the whole line for a line a card
+ * paid (`card`), the cards' parts of a building's line (`cards`), and nothing
+ * for a line no card paid. The one reading a per-source split of a meter takes,
+ * so a caller never has to know which field a line uses.
+ */
+export function meterCardShares(entry: MeterContribution): readonly MeterCardShare[] {
+  if (entry.card !== undefined) return [{ card: entry.card, value: entry.value }];
+  return entry.cards ?? [];
 }
 
 /** The total: the fold of the list, and the only place a meter is summed. */
@@ -311,10 +342,15 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // line worth zero that says so. One evaluator reads the card vocabulary
   // (`statecraft.ts`); this only folds what it returns.
   for (const line of cardHappiness(state, playerId)) {
-    list.push({ source: line.source, part: 'gain', value: line.amount });
+    list.push({ source: line.source, part: 'gain', value: line.amount, card: line.card });
   }
   for (const line of cardTierBoost(state, playerId).lines) {
-    list.push({ source: `${line.source} · +${line.amount} points to the positive-happiness bonus`, part: 'gain', value: 0 });
+    list.push({
+      source: `${line.source} · +${line.amount} points to the positive-happiness bonus`,
+      part: 'gain',
+      value: 0,
+      card: line.card,
+    });
   }
   // And the contentment the empire has *built*. Its own line for the reason
   // every other supply here has one — a player about to lose a town is entitled
@@ -325,7 +361,14 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // Feast Days' temple half): resolved by the one evaluator, folded onto the row
   // they name, and skipped by `cardHappiness` above so nothing is counted twice.
   for (const line of buildingHappiness(state, playerId, cardBuildingHappiness(state, playerId))) {
-    list.push({ source: line.source, part: 'gain', value: line.amount });
+    // The cards standing on the building ride along by part (`cards`), so the
+    // line still names one thing in one place and a split can still say who paid.
+    const cards = line.cards?.map((paid) => ({ card: paid.card, value: paid.amount }));
+    list.push(
+      cards === undefined
+        ? { source: line.source, part: 'gain', value: line.amount }
+        : { source: line.source, part: 'gain', value: line.amount, cards },
+    );
   }
 
   // What a citizen costs, less whatever sugar and honey take off it. One demand
@@ -644,7 +687,7 @@ export function explainAuthority(
   // says so with a `meterRule` instead (Hegemony, Client Kings), which is what
   // keeps the two halves of this meter meaning what they meant.
   for (const line of cardAuthority(state, playerId)) {
-    list.push({ source: line.source, part: 'gain', value: line.amount });
+    list.push({ source: line.source, part: 'gain', value: line.amount, card: line.card });
   }
 
   // What a seized and a harbour town cost this empire, asked once for the sweep.

@@ -53,6 +53,17 @@
  * side of that line as the tally. The docblock on `CardYieldTally` (`draft.ts`)
  * says why the rows are per card.
  *
+ * The religion, per source (batch UX8b)
+ * -------------------------------------
+ * `explainReligionLedger` is the Religion class split the same way, by the deck
+ * ledger's arithmetic generalised to any class (`classLinesOfCity`): each god,
+ * follower and enhancer belief, each rite a town is keeping and each
+ * consecration under its card, and each religion's founder's share under the
+ * religion (`EmpireYieldLine.founderShare`). Its six sums are `explainLedger`'s
+ * religion figures. `explainFaithLedger` is the faith screen's headline: the
+ * Ledger's faith row with the Religion class opened into those sources and
+ * every other class kept whole, folding to the top bar's faith figure.
+ *
  * A leaf above the readings, deliberately: this module imports the empire's
  * reading, the town's own list and the class vocabulary, and **nothing imports
  * it back**. `wagers.ts`, `score.ts`, `turn.ts` (the writer's one caller) and
@@ -64,7 +75,7 @@ import { type LedgerClass, LEDGER_CLASSES, classifyCard } from './ledgerClass';
 import { isWonder } from './buildingData';
 import { type TownReading, readEmpire } from './readings';
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
-import { type City, type GameState, realPlayers } from './state';
+import { type City, type GameState, type ReligionId, realPlayers } from './state';
 import type { CardYieldTally } from './statecraft/draft';
 import type { CardId } from './statecraftData';
 import type { EmpireYieldLine } from './yields/empire';
@@ -136,6 +147,10 @@ export function classifyEmpireGold(source: string): LedgerClass {
  * scale are the two meter tiers and the arrears, `classifyPercent` files both
  * under `other`, and so `shareGain` over these weights would hand the whole
  * figure to `other` in any case.
+ *
+ * **A religion's founder's share is religion's** by its own source
+ * (`EmpireYieldLine.founderShare`, batch UX8b), asked before the card: the
+ * share is no card's clause, and the card it carries only fills the field.
  */
 export function classifyEmpireLine(line: EmpireYieldLine): LedgerClass {
   switch (line.origin) {
@@ -146,6 +161,7 @@ export function classifyEmpireLine(line: EmpireYieldLine): LedgerClass {
     case 'gold':
       return classifyEmpireGold(line.source);
     case 'card':
+      if (line.founderShare !== undefined) return 'religion';
       return line.card === undefined ? 'other' : classifyCard(line.card);
     case 'stage':
       return 'other';
@@ -428,14 +444,33 @@ function lineFor(lines: DeckLedgerLine[], card: CardId): DeckLedgerLine {
  * state; nothing here iterates a map.
  */
 export function deckLinesOfCity(state: GameState, city: City): DeckLedgerLine[] {
+  return classLinesOfCity(state, city, 'deck');
+}
+
+/**
+ * **One town's slice of one class, split by the card that paid it** —
+ * `deckLinesOfCity`'s arithmetic for any class whose lines all carry a card
+ * (batch UX8b generalised it, so the Religion class can be split the same way).
+ *
+ * Per voice: the class's *rounded* share of the town is the total to split
+ * (`shareVoice`'s part for `cls`, so the cards add to the class exactly as the
+ * classes add to the town). What each card is owed is its own flats plus its
+ * share of the class's gain, which is the class's gain shared among the class's
+ * own percentages by magnitude and same sign. Then `shareOut` rounds the class's
+ * figure over those, and the last card carries the remainder.
+ *
+ * For `'deck'` this is the very arithmetic the deck ledger and the lifetime
+ * tally have always used, in the same order, so those figures do not move.
+ */
+function classLinesOfCity(state: GameState, city: City, cls: LedgerClass): DeckLedgerLine[] {
   const lines: DeckLedgerLine[] = [];
   const town = townOf(state, city);
   if (!town) return lines;
   const flats = flatsByClass(town.reading.lines);
-  const deckAt = LEDGER_CLASSES.indexOf('deck');
+  const classAt = LEDGER_CLASSES.indexOf(cls);
   for (const key of VOICES) {
     const { gain, shares } = shareVoice(state, city, town, flats, key);
-    const total = shares[deckAt]!;
+    const total = shares[classAt]!;
     // Who is owed what, in first-met order.
     const cards: CardId[] = [];
     const owed: number[] = [];
@@ -447,25 +482,25 @@ export function deckLinesOfCity(state: GameState, city: City): DeckLedgerLine[] 
       } else owed[at] = owed[at]! + amount;
     };
     for (const line of town.reading.lines) {
-      if (line.class !== 'deck' || line.card === undefined || line[key] === 0) continue;
+      if (line.class !== cls || line.card === undefined || line[key] === 0) continue;
       owe(line.card, line[key]);
     }
-    // The deck's gain, shared among the deck's own percentages — same sign only,
-    // as the class share was; a card whose percentage pushed the town the other
-    // way is owed none of it.
-    const deckGain = gain.deck;
-    if (deckGain !== 0) {
+    // The class's gain, shared among the class's own percentages — same sign
+    // only, as the class share was; a card whose percentage pushed the town the
+    // other way is owed none of it.
+    const classGain = gain[cls];
+    if (classGain !== 0) {
       const weights: { card: CardId; percent: number }[] = [];
       for (const line of percentLines(state, city, town.reading, key)) {
-        if (line.card === undefined || classifyPercent(line) !== 'deck') continue;
-        if (deckGain > 0 ? line.percent > 0 : line.percent < 0) {
+        if (line.card === undefined || classifyPercent(line) !== cls) continue;
+        if (classGain > 0 ? line.percent > 0 : line.percent < 0) {
           weights.push({ card: line.card, percent: line.percent });
         }
       }
       let sum = 0;
       for (const weight of weights) sum += Math.abs(weight.percent);
       for (const weight of weights) {
-        owe(weight.card, (deckGain * Math.abs(weight.percent)) / sum);
+        owe(weight.card, (classGain * Math.abs(weight.percent)) / sum);
       }
     }
     if (cards.length === 0) continue;
@@ -596,4 +631,138 @@ export function ledgerBagOfEmpire(state: GameState, playerId: number): LedgerBag
     for (const cls of LEDGER_CLASSES) bag[cls][voice.key] += voice.byClass[cls];
   }
   return bag;
+}
+
+// --- the religion, per source (batch UX8b) ----------------------------------
+
+/**
+ * Where one slice of the Religion class came from.
+ *
+ *   · `card` — a card of the faith: a god, a follower or enhancer belief, a rite
+ *     a town is keeping, or a cathedral's consecration (`classifyCard` files all
+ *     of these under religion, and `beliefPoolOf` / `isRiteId` /
+ *     `isConsecrationId` say which);
+ *   · `founderShare` — what a religion pays whoever holds its holy city
+ *     (`RELIGION.founderTrickle`). It is no card's clause, so it is named by the
+ *     religion it belongs to.
+ */
+export type ReligionLedgerSource =
+  | { kind: 'card'; card: CardId }
+  | { kind: 'founderShare'; religion: ReligionId };
+
+/** One source's slice of the Religion class: what it paid this turn, six voices. */
+export interface ReligionLedgerLine {
+  source: ReligionLedgerSource;
+  paid: CityYields;
+}
+
+function sameReligionSource(a: ReligionLedgerSource, b: ReligionLedgerSource): boolean {
+  if (a.kind === 'card') return b.kind === 'card' && b.card === a.card;
+  return b.kind === 'founderShare' && b.religion === a.religion;
+}
+
+/** The row for a source in a list of lines, opened in first-met order if absent. */
+function religionLineFor(lines: ReligionLedgerLine[], source: ReligionLedgerSource): ReligionLedgerLine {
+  let held = lines.find((line) => sameReligionSource(line.source, source));
+  if (held === undefined) {
+    held = { source, paid: emptyCityYields() };
+    lines.push(held);
+  }
+  return held;
+}
+
+/**
+ * **What the religion pays this empire this turn, source by source** — the
+ * Religion class of `explainLedger` split by who paid it, for the faith screen's
+ * Bonuses tab (`docs/plans/faith-screen-f1.md`).
+ *
+ * The towns first, each split by `classLinesOfCity` (the deck ledger's
+ * arithmetic for the religion class), then the empire's own religion lines: a
+ * card's empire-scale payout under its card, and a founder's share under its
+ * religion. Merged per source in first-met order, which is the order of the
+ * towns' own lists and so of the state.
+ *
+ * The six voices summed over these lines are `explainLedger`'s religion figures
+ * (rule 5: the list is what the slice is the fold of), and the test pins it
+ * voice by voice.
+ */
+export function explainReligionLedger(state: GameState, playerId: number): ReligionLedgerLine[] {
+  const lines: ReligionLedgerLine[] = [];
+  const reading = readEmpire(state, playerId);
+  for (const { city } of reading.towns) {
+    for (const line of classLinesOfCity(state, city, 'religion')) {
+      const held = religionLineFor(lines, { kind: 'card', card: line.card });
+      for (const key of VOICES) held.paid[key] += line.paid[key];
+    }
+  }
+  for (const line of reading.lines) {
+    if (classifyEmpireLine(line) !== 'religion') continue;
+    // `classifyEmpireLine` files a line here only by its founder's share or by
+    // its card, so one of the two is always set.
+    const source: ReligionLedgerSource =
+      line.founderShare !== undefined
+        ? { kind: 'founderShare', religion: line.founderShare }
+        : { kind: 'card', card: line.card! };
+    const held = religionLineFor(lines, source);
+    for (const key of VOICES) held.paid[key] += line[key];
+  }
+  return lines;
+}
+
+/** The six voices a list of religion lines adds up to. The only sum of one. */
+export function foldReligionLedger(lines: readonly ReligionLedgerLine[]): CityYields {
+  const total = emptyCityYields();
+  for (const line of lines) {
+    for (const key of VOICES) total[key] += line.paid[key];
+  }
+  return total;
+}
+
+/**
+ * One slice of the empire's faith a turn, for the Bonuses tab's headline: either
+ * one of the religion's own sources, or one of the Ledger's other classes taken
+ * whole.
+ *
+ * The user's ruling of 2026-10-15 (`docs/flags.md` (ssssss) 4.3) keeps Order
+ * cards off the faith screen, so the deck is one `class` slice (`'deck'`, which
+ * the screen names as Statecraft), never a slice per card.
+ */
+export type FaithLedgerLine =
+  | { kind: 'religion'; source: ReligionLedgerSource; faith: number }
+  | { kind: 'class'; class: LedgerClass; faith: number };
+
+/**
+ * **The empire's faith a turn, as the slices the faith screen's headline bar
+ * draws**: the Ledger's faith row in its own class order, with the Religion
+ * class opened up into its sources (`explainReligionLedger`) and every other
+ * class (worked land, buildings, the deck, wonders, and so on) kept whole as
+ * the Ledger groups it. Slices paying no faith are left out.
+ *
+ * Its fold is the Ledger's faith total, which is the top bar's faith figure
+ * (`readEmpire`), so the headline cannot disagree with the bar.
+ */
+export function explainFaithLedger(state: GameState, playerId: number): FaithLedgerLine[] {
+  const faith = explainLedger(state, playerId).find((voice) => voice.key === 'faith');
+  if (faith === undefined) return [];
+  const lines: FaithLedgerLine[] = [];
+  for (const cls of LEDGER_CLASSES) {
+    if (cls !== 'religion') {
+      const amount = faith.byClass[cls];
+      if (amount !== 0) lines.push({ kind: 'class', class: cls, faith: amount });
+      continue;
+    }
+    for (const line of explainReligionLedger(state, playerId)) {
+      if (line.paid.faith !== 0) {
+        lines.push({ kind: 'religion', source: line.source, faith: line.paid.faith });
+      }
+    }
+  }
+  return lines;
+}
+
+/** The faith a list of faith slices adds up to. The only sum of one. */
+export function foldFaithLedger(lines: readonly FaithLedgerLine[]): number {
+  let total = 0;
+  for (const line of lines) total += line.faith;
+  return total;
 }

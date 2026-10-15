@@ -36,6 +36,7 @@ import type { ImprovementId } from './improvementData';
 import { CITY_YIELD_KEYS } from './resourceData';
 import type { City, GameState } from './state';
 import type { CardBuildingHappinessLine, TileLine } from './statecraft';
+import type { CardId } from './statecraftData';
 import type { TechId } from './techData';
 
 /** One line of what a building pays a meter. `cardHappiness`' shape. */
@@ -43,6 +44,14 @@ export interface BuildingMeterLine {
   /** "Uruk · Funeral Games" — the town and the thing, in that order. */
   source: string;
   amount: number;
+  /**
+   * What each card standing on this building paid of `amount` (Feast Days on a
+   * temple), one entry per grant, in the order they were folded in. Absent when
+   * no card stands on it. The rest of `amount` is the building's own. Carried
+   * so the happiness ledger can say which card paid what (batch UX8b); the line
+   * and its figure are unchanged.
+   */
+  cards?: { card: CardId; amount: number }[];
 }
 
 /** One line of what a building adds to its own city's defence or sight. */
@@ -86,14 +95,16 @@ export function buildingHappiness(
       if (!city.buildings.includes(id)) continue;
       let amount = buildingDef(id).happiness ?? 0;
       const cards: string[] = [];
+      const paidBy: { card: CardId; amount: number }[] = [];
       for (const line of granted) {
         if (line.cityId !== city.id || line.building !== id) continue;
         amount += line.amount;
         if (!cards.includes(line.source)) cards.push(line.source);
+        paidBy.push({ card: line.card, amount: line.amount });
       }
       if (amount === 0) continue;
       const named = [`${city.name} · ${buildingDef(id).name}`, ...cards].join(' · ');
-      list.push({ source: named, amount });
+      list.push(paidBy.length > 0 ? { source: named, amount, cards: paidBy } : { source: named, amount });
     }
   }
   return list;

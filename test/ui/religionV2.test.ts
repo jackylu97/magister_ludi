@@ -996,8 +996,10 @@ describe('the two withdrawn rites', () => {
     const row = book
       .flatMap((section) => section.entries)
       .find((e) => e.id === 'rite:omenReading')!;
+    // No chapel is needed to say a rite (`riteError` asks for none), and a
+    // prophet may say a lasting rite over every city (batch UX8b).
     expect(row.rows.find((line) => line.label === 'Performed by')?.figures).toBe(
-      'a city with a chapel',
+      'any of your cities, or a prophet over all of them',
     );
     expect(row.rows.find((line) => line.label === 'Duration')?.figures).toContain('10');
   });

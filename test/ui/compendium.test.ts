@@ -822,7 +822,7 @@ describe('never hand-written prose about a number', () => {
       'describeResourceSignature', // the same bargain for a luxury
       'techGifts', // what a technology hands over
       'unitRosterCost', // the roster's own price, size line and column line
-      'riteGrantWords', // a rite's instant half
+      'riteTeachingCard', // which Order teaches a card-taught rite
       'gatingTech', // which technology unlocks a thing
       'improvementForResource', // which improvement opens a seam
       'RULES', // every tuned number in the game
@@ -985,11 +985,57 @@ describe('never hand-written prose about a number', () => {
     expect(concept).toContain('Not enough trade route capacity');
   });
 
-  it('keeps one describer for a rite, shared with the screen that performs one', () => {
-    // `riteGrantWords` lives in `religionScreen.ts` because that is where a rite
-    // is performed; the Compendium reads it rather than growing a second copy.
-    expect(sourceOf('religionScreen.ts')).toContain('export function riteGrantWords');
-    expect(sourceOf('compendium.ts')).toContain("from './religionScreen'");
+  it('names a card-taught rite’s teacher through the simulation’s own reading', () => {
+    // Batch UX8b: the shelf used to walk the Orders and read their clauses
+    // itself. Which Order teaches a rite is `riteTeachingCard`'s answer, the one
+    // the faith screen and the city screen print too.
+    const opening = sourceOf('compendium.ts');
+    const at = opening.indexOf('function riteOpening(');
+    const body = opening.slice(at, opening.indexOf('\n}\n', at));
+    expect(body).toContain('riteTeachingCard(id)');
+    expect(body).not.toContain('grantsAbility');
+    expect(body).not.toContain('ORDER_IDS');
+  });
+
+  /** A rite's entry on its shelf. */
+  function riteEntryOf(id: string): CompendiumEntry {
+    const found = everyEntry().find((entry) => entry.id === compendiumId('rite', id));
+    expect(found, id).toBeDefined();
+    return found!;
+  }
+
+  it('says a rite’s duration once, in a row, with one turn said as one turn', () => {
+    // The shelf printed "Kept for 10 turns" as a clause and "10 turns" in its
+    // Duration row; the row is the one statement now (batch UX8b).
+    for (const id of RITE_IDS) {
+      const entry = riteEntryOf(id);
+      for (const clause of entry.clauses) {
+        expect(clause.text, id).not.toMatch(/^Kept for /);
+      }
+      const duration = riteDef(id).duration;
+      const row = entry.rows.find((line) => line.label === 'Duration');
+      if (duration === undefined) {
+        expect(row, id).toBeUndefined();
+        continue;
+      }
+      expect(row?.figures, id).toMatch(duration === 1 ? / turn$/ : / turns$/);
+    }
+    const votive = riteEntryOf('votiveOffering').rows.find((line) => line.label === 'Duration');
+    expect(votive?.figures).toMatch(/^1 turn$/);
+  });
+
+  it('says who performs a rite as the reducer allows it, with no chapel needed', () => {
+    for (const id of RITE_IDS) {
+      const performedBy = riteEntryOf(id).rows.find(
+        (line) => line.label === 'Performed by',
+      )?.figures;
+      expect(performedBy, id).toBeDefined();
+      expect(performedBy, id).not.toContain('chapel');
+      const def = riteDef(id);
+      if (def.retired === true) expect(performedBy, id).toBe('nobody — withdrawn');
+      else if (def.atOnce !== undefined) expect(performedBy, id).toBe('any of your cities');
+      else expect(performedBy, id).toBe('any of your cities, or a prophet over all of them');
+    }
   });
 
   it('says which ground a hills waiver forgives, from the row’s own side', () => {

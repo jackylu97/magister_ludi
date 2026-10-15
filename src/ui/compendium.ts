@@ -205,7 +205,8 @@ import {
 } from '../sim/wagerData';
 import { WAGER_LINE_NAME } from './wagerSheet';
 import { describeBeadBoon } from '../sim/beads';
-import { AXIS_MARK, riteGrantWords } from './religionScreen';
+import { AXIS_MARK } from './religionScreen';
+import { riteTeachingCard } from '../sim/religion';
 import { resourceMarkNode } from './resourceMark';
 import { setYieldText } from './yieldMark';
 import { element, withArticle } from './dom';
@@ -774,15 +775,12 @@ function riteOpening(id: RiteId): CompendiumClause {
     return { text: 'Withdrawn: nothing opens this any more, and no city performs it.' };
   }
   // **A card-taught rite** (`RiteDef.byCard`, the Devotion deck): the Order
-  // whose charter or seated grant teaches it, never a node.
+  // whose charter or seated grant teaches it, never a node. Which Order is the
+  // simulation's own reading (`riteTeachingCard`), the one the faith screen
+  // and the city screen name too.
   if (def.byCard === true) {
-    const card = ORDER_IDS.find((order) => {
-      const row = orderDef(order);
-      if (row.retired === true) return false;
-      if (row.charter?.unlocks.rites?.includes(id)) return true;
-      return row.effects.some((effect) => effect.kind === 'grantsAbility' && effect.ability === id);
-    });
-    const by = card === undefined ? 'a card' : `the Order ${ref('order', card, orderDef(card).name)}`;
+    const card = riteTeachingCard(id);
+    const by = card === null ? 'a card' : `the Order ${ref('order', card, orderDef(card).name)}`;
     return { text: `Unlocked by ${by}, not by any technology.` };
   }
   const gate = (isAbilityId(id) ? ABILITY_TECH.get(id) : undefined) ?? def.tech;
@@ -2124,11 +2122,25 @@ function consecrationEntry(id: ConsecrationId): CompendiumEntry {
   };
 }
 
+/**
+ * Who may say a rite, as the shelf's "Performed by" row prints it.
+ *
+ * Any of the empire's cities, with no building needed (`riteError` asks for
+ * none; a Chapel only adds culture when a rite is said in its town). A rite
+ * with a lasting half may also be said by a prophet over every city at once
+ * (`empireRiteError`); one that only acts at once (`RiteDef.atOnce`, the
+ * offering and the restoring) is said by one city and never over the realm.
+ */
+function ritePerformedBy(id: RiteId): string {
+  const def = riteDef(id);
+  if (def.retired === true) return 'nobody — withdrawn';
+  if (def.atOnce !== undefined) return 'any of your cities';
+  return 'any of your cities, or a prophet over all of them';
+}
+
 function riteEntry(id: RiteId): CompendiumEntry {
   const def = riteDef(id);
   const clauses: CompendiumClause[] = [];
-  const grant = riteGrantWords(id);
-  if (grant.length > 0) clauses.push({ text: grant });
   clauses.push(...cardClauses(id, def.note));
   // **What opens it** (C1): the node that hands the verb over, linked — the
   // "Unlocked by" row this table used to end on.
@@ -2141,10 +2153,18 @@ function riteEntry(id: RiteId): CompendiumEntry {
     mark: { kind: 'glyph', glyph: '☩' },
     rows: [
       // **A rite is performed by a city** since the fewer-things pass, so there
-      // is no target word to print at all: the row says who says it, which is
-      // the one thing that changed about every rite in the table at once.
-      ...row('Performed by', def.retired === true ? 'nobody — withdrawn' : 'a city with a chapel'),
-      ...row('Duration', def.duration === undefined ? '' : `${figure(def.duration)} turns`),
+      // is no target word to print at all: the row says who says it.
+      ...row('Performed by', ritePerformedBy(id)),
+      // The duration, said once (batch UX8b): this row is the shelf's only
+      // statement of it, so no "Kept for" clause repeats it below. The row's
+      // own figure, because the shelf describes the table rather than an
+      // empire; what an amplifier makes of it is the faith screen's figure.
+      ...row(
+        'Duration',
+        def.duration === undefined
+          ? ''
+          : `${figure(def.duration)} ${def.duration === 1 ? 'turn' : 'turns'}`,
+      ),
     ],
     clauses,
     flavor: def.flavor.length === 0 ? null : def.flavor,

@@ -87,6 +87,14 @@
  * `(state, playerId, subject)` alone — ask it twice and get the same list, ask
  * it and the state is byte-identical afterwards. `test/sim/cardImpact.test.ts`
  * pins both.
+ *
+ * A rite before it is said (batch UX8b)
+ * -------------------------------------
+ * `explainRitePreview` asks the same question of a rite in one town: the ghost
+ * is the board with that town wearing the rite, and the diff is the same steps
+ * (`ghostDiffLines`), so what a rite would pay elsewhere in the realm is counted
+ * too. `test/sim/ritePreview.test.ts` pins that its fold is the empire's own
+ * books with the rite in place.
  */
 
 import {
@@ -122,7 +130,11 @@ import {
   orderDef,
   orderFitsSlot,
 } from './statecraftData';
-import { type BeliefId, beliefDef, beliefPoolOf } from './religionData';
+import { type BeliefId, type RiteId, beliefDef, beliefPoolOf, riteDef } from './religionData';
+// The rite preview's two readings of a rite not yet said: the town's timed list
+// wearing it, and the offering's production. `religion.ts` does not import this
+// module, so the edge is one way.
+import { cityTimedWithRite, riteOfferingHammers } from './religion';
 import {
   chairCount,
   describeEffects,
@@ -902,9 +914,35 @@ export function explainCardImpact(
   const player = playerById(state, playerId);
   if (!player) return [];
   const pair = ghostPair(state, player, subject);
-  const without = pair?.without;
-  const held = pair?.with;
-  if (!pair || !without || !held) return occasionLines(subject);
+  if (!pair) return occasionLines(subject);
+  const lines = ghostDiffLines(state, playerId, pair, subjectName(subject), sheet);
+  // 6. The occasions, which a diff can never see. See `occasionLines`.
+  lines.push(...occasionLines(subject));
+  return lines;
+}
+
+/**
+ * **Steps 1 to 5 of `explainCardImpact`, for any pair of worlds** — the towns,
+ * the reconciliation, the realm, the meters and the knock-ons, read on both
+ * sides of the pair and diffed. `name` labels the reconciliation line, which by
+ * construction belongs to whatever made the two worlds differ.
+ *
+ * Lifted out of `explainCardImpact` in batch UX8b so the rite preview
+ * (`explainRitePreview`) is the same method rather than a second copy of it. A
+ * card's ghost changes a seat or a religion and shares every town with the real
+ * board; a rite's ghost replaces one town. So each side reads **its own copy**
+ * of a town (`held.cities[at]`), which for a card's ghost is the very same
+ * object and changes nothing.
+ */
+function ghostDiffLines(
+  state: GameState,
+  playerId: number,
+  pair: { without: GameState; with: GameState },
+  name: string,
+  sheet?: CardImpactSheet,
+): CardImpactLine[] {
+  const without = pair.without;
+  const held = pair.with;
 
   /** The sheet, iff it is a sheet about *this* board and this seat. */
   const shared =
@@ -929,10 +967,15 @@ export function explainCardImpact(
   //    becomes a yield.
   const towns = new Bucket();
   const ground = new Bucket();
-  for (const city of without.cities) {
+  for (let at = 0; at < without.cities.length; at += 1) {
+    const city = without.cities[at]!;
     if (city.ownerId !== playerId) continue;
+    // The same town on the other side of the pair: the very object for a
+    // card's ghost, a copy wearing the rite for a rite's (see the docblock).
+    const other = held.cities[at];
+    const heldCity = other !== undefined && other.id === city.id ? other : city;
     const was = isReal(without) ? shared!.cardSums(city) : cityCardSums(without, city);
-    const now = isReal(held) ? shared!.cardSums(city) : cityCardSums(held, city);
+    const now = isReal(held) ? shared!.cardSums(heldCity) : cityCardSums(held, heldCity);
     for (const [source, sum] of now) {
       const before = was.get(source);
       for (const key of CITY_YIELD_KEYS) {
@@ -940,7 +983,7 @@ export function explainCardImpact(
       }
     }
     const groundBefore = isReal(without) ? shared!.context(city) : cityContext(without, city);
-    const groundAfter = isReal(held) ? shared!.context(city) : cityContext(held, city);
+    const groundAfter = isReal(held) ? shared!.context(heldCity) : cityContext(held, heldCity);
     for (const cell of city.workedTiles) {
       const tile = getTileAt(without.map, cell.col, cell.row);
       if (!tile) continue;
@@ -962,7 +1005,7 @@ export function explainCardImpact(
         for (const key of CITY_YIELD_KEYS) sum[key] += entry[key];
       }
       const nowLines = isReal(held)
-        ? shared!.tileAdds(city, tile)
+        ? shared!.tileAdds(heldCity, tile)
         : explainTileYield(tile, groundAfter);
       for (const entry of nowLines) {
         if (entry.kind !== 'add') continue;
@@ -985,7 +1028,7 @@ export function explainCardImpact(
   // The empire's own lines under the same held reading — the other half of what
   // a tier moves, and the figure the knock-on ladder walks from (batch H19).
   const realmThen = empireTotal(held, playerId, base);
-  const rest = emptyLine(subjectName(subject), 'city');
+  const rest = emptyLine(name, 'city');
   const named = foldCardImpact(lines);
   for (const key of CITY_YIELD_KEYS) {
     rest[key] = townsThen[key] - townsNow[key] - named[key];
@@ -1077,10 +1120,91 @@ export function explainCardImpact(
     }
   }
 
-  // 6. The occasions, which a diff can never see. See `occasionLines`.
-  lines.push(...occasionLines(subject));
-
   return lines;
+}
+
+// --- a rite, before it is said (batch UX8b) ---------------------------------
+
+/**
+ * **What saying this rite in this town would change**, as the same ordered,
+ * labelled list a card's stamp is the fold of. The faith screen's rite mode
+ * ranks free towns by it (`docs/plans/faith-screen-f1.md`, the Rites tab).
+ *
+ * The ghost is the board with one town replaced by a copy wearing the rite
+ * (`cityTimedWithRite`: any rite the town keeps taken off, then this one hung
+ * exactly as `riteTimedEntries` would hang it). Everything else is
+ * `explainCardImpact`'s method (`ghostDiffLines`): the towns, the realm, the
+ * meters and the knock-ons, read on both sides and diffed. So a card that pays
+ * the capital for every town keeping a rite (The Priest-Astronomers), or one
+ * that pays happiness in a town keeping one (The Consolation), is counted where
+ * it lands, not only in the town the rite is said in.
+ *
+ * `foldCardImpact` of the list is the change a turn. The offering's production
+ * into the town's build (`riteOfferingHammers`) is paid once, so it is an
+ * `occasion` line: `foldCardOccasions` holds it and the per-turn figure does not.
+ *
+ * The empty list for a town this seat does not hold and for a rite that hangs
+ * nothing. A town already keeping a rite is read as the prophet's word would
+ * leave it, the old rite off and this one on, although the town could not say a
+ * second rite itself (`riteError`); the screen asks only about free towns.
+ *
+ * Pure: nothing in `state` is touched, nothing is rolled, and the same question
+ * asked twice gets the same list.
+ */
+export function explainRitePreview(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  rite: RiteId,
+  sheet?: CardImpactSheet,
+): CardImpactLine[] {
+  if (!playerById(state, playerId)) return [];
+  const city = state.cities.find((one) => one.id === cityId);
+  if (city === undefined || city.ownerId !== playerId) return [];
+  const timed = cityTimedWithRite(state, playerId, city, rite);
+  if (timed === null) return [];
+  // Shallow, as every ghost here is: the one town is replaced by a copy with
+  // its own `timed` array, so nothing downstream can write through into `state`.
+  const ghostCity: City = { ...city, timed };
+  const ghost: GameState = {
+    ...state,
+    cities: state.cities.map((one) => (one.id === cityId ? ghostCity : one)),
+  };
+  const name = riteDef(rite).name;
+  const lines = ghostDiffLines(state, playerId, { without: state, with: ghost }, name, sheet);
+  const hammers = riteOfferingHammers(state, playerId, rite);
+  if (hammers > 0) {
+    const line = emptyLine(name, 'occasion');
+    line.occasion = occasionWords('rite', false);
+    line.production = hammers;
+    lines.push(line);
+  }
+  return lines;
+}
+
+/**
+ * **The voices a rite would add a turn across these towns, largest total gain
+ * first.** Rite mode ranks free towns by the first and shows the second beside
+ * it: the user's ruling that a rite paying two kinds of thing ranks by its main
+ * yield (`docs/plans/faith-screen-f1.md`, "Settled by the user").
+ *
+ * Read off the previews themselves (`foldCardImpact` of each), never off the
+ * rite's row, so a voice the rite pays in none of these towns is never offered
+ * as its main one. Only voices with a positive total are listed, and ties keep
+ * the six voices' own order. Empty when the rite adds no yield in any of these
+ * towns (Blessing of Arms, the offering, the restoring), which the screen reads
+ * as "keep founding order". A rite's non-yield half, such as Consecration of the
+ * Bounds' faster borders, is in its clauses (`describeCard`), not here.
+ */
+export function riteVoicesByGain(previews: readonly (readonly CardImpactLine[])[]): CityYieldKey[] {
+  const total = emptyCityYields();
+  for (const lines of previews) {
+    const gain = foldCardImpact(lines);
+    for (const key of CITY_YIELD_KEYS) total[key] += gain[key];
+  }
+  return CITY_YIELD_KEYS.filter((key) => total[key] > 0).sort(
+    (a, b) => total[b] - total[a] || CITY_YIELD_KEYS.indexOf(a) - CITY_YIELD_KEYS.indexOf(b),
+  );
 }
 
 /**

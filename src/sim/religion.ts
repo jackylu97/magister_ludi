@@ -148,6 +148,10 @@ import {
   timedEffectIsLive,
   windfallPayout,
 } from './statecraft';
+// The one reader of a card row's clauses for "which card teaches this verb",
+// asked by `riteTeachingCard`. Straight from the evaluator, as `levies.ts`
+// imports its readings, so the index needs no new line.
+import { effectsGrantAbility } from './statecraft/evaluator';
 import { hasAbility, hasTech } from './tech';
 import { type TechId, eraNumeral, highestAge, techDef } from './techData';
 import type { BuildingId } from './buildingData';
@@ -1394,7 +1398,9 @@ export function availableRites(state: GameState, playerId: number): RiteId[] {
  *
  * This reads the data tables, not a seat: whether an empire knows the rite is
  * still `hasAbility`'s question. Orders are walked in file order and retired
- * rows are skipped, as every pool skips them.
+ * rows are skipped, as every pool skips them. Whether a row's clauses hand over
+ * the verb is asked of the evaluator (`effectsGrantAbility`), the one module
+ * that reads `CardEffect.kind`.
  */
 export function riteTeachingCard(rite: RiteId): OrderId | null {
   const ability = riteAbility(rite);
@@ -1402,9 +1408,7 @@ export function riteTeachingCard(rite: RiteId): OrderId | null {
     const def = orderDef(id);
     if (def.retired === true) continue;
     if (def.charter?.unlocks.rites?.includes(rite) === true) return id;
-    for (const effect of def.effects) {
-      if (effect.kind === 'grantsAbility' && effect.ability === ability) return id;
-    }
+    if (effectsGrantAbility(def.effects, ability)) return id;
   }
   return null;
 }
@@ -1582,7 +1586,7 @@ export function performRiteAt(
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
 
-  const expiresTurn = stampRite(state, player.id, rite, def, city) ?? state.turn;
+  const expiresTurn = stampRite(state, player.id, rite, city) ?? state.turn;
   // The Founding Vows counts rites started while it is seated.
   recordScalingOccasion(state, player.id, 'riteStarted');
   payRiteAtOnce(state, player, city, def, cost);
@@ -1600,6 +1604,26 @@ export function performRiteAt(
     chapelCulture,
     wonders,
   };
+}
+
+/** The production a sum of faith buys at the faith rate (`faithPerHammer`), floored. */
+function faithAsHammers(cost: number): number {
+  const rate = RULES.production.faithPerHammer;
+  return rate > 0 ? Math.floor(cost / rate) : 0;
+}
+
+/**
+ * The production the offering (`RiteDef.atOnce.hammersFromFaith`) would put
+ * into a town's build if this empire said it now: the rite's price at the faith
+ * rate. Zero for every other rite.
+ *
+ * One figure for the preview (`explainRitePreview`) and for `payRiteAtOnce`,
+ * which reaches the same `faithAsHammers` with the price it has just charged.
+ * The price does not depend on the bank, so the two cannot disagree.
+ */
+export function riteOfferingHammers(state: GameState, playerId: number, rite: RiteId): number {
+  if (riteDef(rite).atOnce?.hammersFromFaith !== true) return 0;
+  return faithAsHammers(riteCostFor(state, playerId));
 }
 
 /**
@@ -1624,8 +1648,7 @@ function payRiteAtOnce(
   const now = def.atOnce;
   if (now === undefined) return;
   if (now.hammersFromFaith === true) {
-    const rate = RULES.production.faithPerHammer;
-    const hammers = rate > 0 ? Math.floor(cost / rate) : 0;
+    const hammers = faithAsHammers(cost);
     if (hammers > 0) {
       city.hammerBasket += hammers;
       settleProductionWindfall(state, city);
@@ -1698,26 +1721,26 @@ export function riteTurnsFor(state: GameState, playerId: number, rite: RiteId): 
 }
 
 /**
- * Hangs a rite's lasting effects on a town, and answers when they run out.
+ * The entries a rite started now by this empire would hang on a town: one
+ * `TimedEffect` per lasting effect, every one expiring on the turn
+ * `riteTurnsFor` gives. `null` when the rite hangs nothing, which is a
+ * withdrawn row.
  *
  * One `TimedEffect` per effect rather than one carrying a list, because every
  * reader walks a flat list of `{ card, effect }` and a nested one would be a
- * second shape for the evaluator to unwrap. The array is created lazily so a
- * city that has never been blessed serialises exactly as it did before this
- * system existed (`City.timed`'s convention).
+ * second shape for the evaluator to unwrap.
  *
- * The number of turns is `riteTurnsFor`'s, read once here. The expiry is an
- * absolute turn that nothing ticks (`TimedEffect`): a rite that got longer the
- * day a wonder was finished, or shorter the day it was captured, would be a
- * countdown, and timed effects in this game are comparisons.
+ * A reading, so the stamp and the preview share it: `stampRite` hangs exactly
+ * these entries, and `explainRitePreview` (`cardImpact.ts`) reads a copy of the
+ * town wearing them. The objects are built in the order and key order the
+ * stamp has always written, so a save is byte-identical.
  */
-function stampRite(
+export function riteTimedEntries(
   state: GameState,
   playerId: number,
   rite: RiteId,
-  def: RiteDef,
-  city: City,
-): number | null {
+): TimedEffect[] | null {
+  const def = riteDef(rite);
   if (def.duration === undefined) return null;
   // **A rite that only acts at once** (`RiteDef.atOnce`) still marks its town
   // for its duration, which is the lock between two performances. The mark is
@@ -1726,18 +1749,66 @@ function stampRite(
   const effects: readonly CardEffect[] =
     def.effects.length > 0 ? def.effects : def.atOnce !== undefined ? [RITE_MARK] : [];
   if (effects.length === 0) return null;
-  // `def` is always `riteDef(rite)` (both callers look it up by the same id),
-  // and the duration was checked above, so this is never `null` here.
+  // The duration was checked above, so this is never `null` here.
   const turns = riteTurnsFor(state, playerId, rite);
   if (turns === null) return null;
   const expiresTurn = state.turn + turns;
+  return effects.map((effect) => ({ card: rite, effect, expiresTurn }));
+}
+
+/**
+ * Hangs a rite's lasting effects on a town, and answers when they run out.
+ *
+ * The entries are `riteTimedEntries`', so the number of turns is
+ * `riteTurnsFor`'s, read once here. The expiry is an absolute turn that nothing
+ * ticks (`TimedEffect`): a rite that got longer the day a wonder was finished,
+ * or shorter the day it was captured, would be a countdown, and timed effects in
+ * this game are comparisons. The array is created lazily so a city that has
+ * never been blessed serialises exactly as it did before this system existed
+ * (`City.timed`'s convention).
+ */
+function stampRite(state: GameState, playerId: number, rite: RiteId, city: City): number | null {
+  const entries = riteTimedEntries(state, playerId, rite);
+  if (entries === null) return null;
   const list = city.timed ?? [];
-  for (const effect of effects) list.push({ card: rite, effect, expiresTurn });
+  for (const entry of entries) list.push(entry);
   city.timed = list;
   // A rite reaches `cityLocalEffects`, which `cardBuildingHappiness` folds into
   // the empire's contentment — announced at the stamp (batch M3, `slate.ts`).
   bumpEconomy(state);
-  return expiresTurn;
+  return entries[0]!.expiresTurn;
+}
+
+/**
+ * Is this timed entry part of a rite the town is keeping right now? Expired
+ * entries are not (they are inert, and `pruneTimedEffects` sweeps them), and
+ * neither are withdrawn rows, for `cityRite`'s reason. The one test
+ * `clearCityRite` and `cityTimedWithRite` both apply.
+ */
+function isKeptRiteEntry(state: GameState, entry: TimedEffect): boolean {
+  return timedEffectIsLive(state, entry) && isRiteId(entry.card) && riteDef(entry.card).retired !== true;
+}
+
+/**
+ * A town's timed list as it would stand after this rite were said there: any
+ * rite the town is keeping taken off, as the prophet's word takes it off
+ * (`clearCityRite`), then this rite's entries hung (`riteTimedEntries`). For a
+ * town keeping nothing that is exactly what `performRiteAt` leaves.
+ *
+ * Built new; the town is not touched. `null` when the rite hangs nothing. The
+ * rite preview (`explainRitePreview`, `cardImpact.ts`) reads a copy of the town
+ * wearing this list.
+ */
+export function cityTimedWithRite(
+  state: GameState,
+  playerId: number,
+  city: City,
+  rite: RiteId,
+): TimedEffect[] | null {
+  const entries = riteTimedEntries(state, playerId, rite);
+  if (entries === null) return null;
+  const kept = (city.timed ?? []).filter((entry) => !isKeptRiteEntry(state, entry));
+  return [...kept, ...entries];
 }
 
 /**
@@ -1752,14 +1823,7 @@ function stampRite(
 function clearCityRite(state: GameState, city: City): void {
   const timed = city.timed;
   if (!timed) return;
-  const kept = timed.filter(
-    (entry) =>
-      !(
-        timedEffectIsLive(state, entry) &&
-        isRiteId(entry.card) &&
-        riteDef(entry.card).retired !== true
-      ),
-  );
+  const kept = timed.filter((entry) => !isKeptRiteEntry(state, entry));
   if (kept.length === timed.length) return;
   if (kept.length === 0) delete city.timed;
   else city.timed = kept;
@@ -1912,7 +1976,7 @@ export function empireRiteAt(
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     clearCityRite(state, city);
-    const until = stampRite(state, player.id, rite, def, city);
+    const until = stampRite(state, player.id, rite, city);
     if (until !== null) expiresTurn = until;
     refreshCityDerived(state, city);
     // **An empire rite is the rite performed in every town**, so every chapel

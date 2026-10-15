@@ -341,9 +341,13 @@ Reference: **`docs/religion-v2.md`** (the machinery) and **`docs/beliefs.md`**
   standing adjacency aura). The **augur is retired** — a rite is a city's verb
   now. Charge prices are read in one place, spent in one, refused in one, printed
   by one.
-- **Rites** are a city's verb, bought with faith, one at a time per town, ten
-  turns, pure blessing — five rows. The faith ladder consecrates **automatically**
-  when the bank covers the next rung.
+- **Rites** are a city's verb, bought with faith, one at a time per town. Eight
+  live rows: five taught by the tree, three by Devotion Orders (`RiteDef.byCard`;
+  `riteTeachingCard` names the Order). Ten turns for most, five for Restoring of
+  the Host, one for Votive Offering, made longer by The Octave and Chichen Itza;
+  `riteTurnsFor` is the figure the town is stamped with and the faith screen
+  prints. The faith ladder consecrates **automatically** when the bank covers
+  the next rung.
 - Who is paid: the pantheon pays the empire that consecrated it; **follower**
   beliefs pay city-locally to whoever owns each following city (a rival's faith
   in your town is a gift); **founder-side** pay follows the holy site's stones;

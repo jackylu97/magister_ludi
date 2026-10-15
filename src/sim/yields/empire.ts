@@ -29,6 +29,7 @@ import { type CardYieldLine, explainCardEmpireYields, heldReligions } from '../s
 import {
   type City,
   type GameState,
+  type ReligionId,
   capitalCityOf,
   cityReligion,
   playerById,
@@ -427,6 +428,12 @@ export interface EmpireYieldLine extends CityYields {
   /** The card that pays it, for a surface filing it under the deck. */
   card?: CardId;
   /**
+   * The religion whose **founder's share** this line is
+   * (`CardYieldLine.founderShare`). When set it is the line's source, and the
+   * Ledger files the line under religion by it rather than by `card`.
+   */
+  founderShare?: ReligionId;
+  /**
    * The stage line's own multiplier on this voice — 1.1 for a realm ten points
    * up — so a surface prints the reason rather than inventing one. Absent on
    * every additive line.
@@ -555,6 +562,9 @@ export function explainEmpireLines(
       source: line.source,
       origin: 'card',
       card: line.card,
+      // The founder's share keeps its own source on the way out, so the Ledger
+      // can file it under religion without trusting the borrowed `card`.
+      ...(line.founderShare !== undefined ? { founderShare: line.founderShare } : {}),
     });
   }
   // The additive fold the stage multiplies — every line but the bills.

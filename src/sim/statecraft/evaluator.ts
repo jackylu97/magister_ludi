@@ -114,6 +114,7 @@ import {
   type GameState,
   type Player,
   type Religion,
+  type ReligionId,
   type TimedEffect,
   type Unit,
   buildingAge,
@@ -231,6 +232,18 @@ export interface LiveCardEffect {
   source: string;
   card: CardId;
   effect: CardEffect;
+  /**
+   * Set only on the **founder's share** of a religion: what the faith pays
+   * whoever holds its holy city (`RELIGION.founderTrickle`, `liveEffects`'
+   * seventh source). It names that religion, and it is the share's source.
+   *
+   * The share is not any card's clause, so `card` on such an entry is only
+   * there because every entry must carry one; it holds one of the religion's
+   * beliefs, which keeps the line in the religion's class for every reader
+   * that classes by card. A reader that splits the religion by source asks
+   * this field first, so the share is never credited to that belief.
+   */
+  founderShare?: ReligionId;
 }
 
 /** How each class of card names itself on a breakdown line. One table, one voice. */
@@ -930,6 +943,9 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
         source: word,
         card: mine.enhancer[0] ?? mine.follower[0] ?? sc.government,
         effect: amplifyTrickle(effect, amplifier),
+        // The share's own source. See `LiveCardEffect.founderShare` for why
+        // `card` above is not it.
+        founderShare: mine.id,
       });
     }
   }
@@ -1045,6 +1061,19 @@ export function isHolyCityOf(state: GameState, city: City, playerId: number): bo
     if (tileOwnerCityId(state, seat.col, seat.row) === city.id) return true;
   }
   return false;
+}
+
+/**
+ * The words that end a founder's share line in place of a multiplier: what was
+ * counted, in a player's terms ("founder's share from 3 foreign cities").
+ *
+ * The share counts the foreign cities that follow the faith
+ * (`RELIGION.founderTrickle`, `followingForeign`). A share that ever counted
+ * something else keeps its multiplier rather than name the wrong thing.
+ */
+function founderShareWords(effect: CardPaysEffect, counted: number, times: number): string {
+  if (effect.count !== 'followingForeign') return `founder's share ×${times}`;
+  return `founder's share from ${counted} foreign ${counted === 1 ? 'city' : 'cities'}`;
 }
 
 /**
@@ -1372,23 +1401,33 @@ export function liveUnitEffects(state: GameState, unit: Unit): LiveCardEffect[] 
   return [...liveEffects(state, unit.ownerId), ...timedLive(state, unit.ownerId, unit)];
 }
 
+/**
+ * One live entry narrowed to one kind: `LiveCardEffect` with its `effect` typed.
+ * `founderShare` rides along when the entry has one, so a reader of the
+ * narrowed list can still tell the founder's share from a belief's clause.
+ */
+export type LiveOfKind<K extends CardEffect['kind']> = {
+  source: string;
+  card: CardId;
+  effect: Extract<CardEffect, { kind: K }>;
+  founderShare?: ReligionId;
+};
+
 /** One live list narrowed to one kind. The shape every reader below is built on. */
 function pickKind<K extends CardEffect['kind']>(
   live: readonly LiveCardEffect[],
   kind: K,
-): { source: string; card: CardId; effect: Extract<CardEffect, { kind: K }> }[] {
-  const list: {
-    source: string;
-    card: CardId;
-    effect: Extract<CardEffect, { kind: K }>;
-  }[] = [];
+): LiveOfKind<K>[] {
+  const list: LiveOfKind<K>[] = [];
   for (const entry of live) {
     if (entry.effect.kind !== kind) continue;
-    list.push({
+    const picked: LiveOfKind<K> = {
       source: entry.source,
       card: entry.card,
       effect: entry.effect as Extract<CardEffect, { kind: K }>,
-    });
+    };
+    if (entry.founderShare !== undefined) picked.founderShare = entry.founderShare;
+    list.push(picked);
   }
   return list;
 }
@@ -1411,15 +1450,11 @@ export function effectsOfKind<K extends CardEffect['kind']>(
   state: GameState,
   playerId: number,
   kind: K,
-): readonly { source: string; card: CardId; effect: Extract<CardEffect, { kind: K }> }[] {
+): readonly LiveOfKind<K>[] {
   const reading = liveReading(state, playerId);
   const known = reading.byKind.get(kind);
   if (known !== undefined) {
-    return known as unknown as readonly {
-      source: string;
-      card: CardId;
-      effect: Extract<CardEffect, { kind: K }>;
-    }[];
+    return known as unknown as readonly LiveOfKind<K>[];
   }
   const cut = pickKind(reading.list, kind);
   reading.byKind.set(kind, cut);
@@ -1431,7 +1466,7 @@ function cityEffectsOfKind<K extends CardEffect['kind']>(
   state: GameState,
   city: City,
   kind: K,
-): { source: string; card: CardId; effect: Extract<CardEffect, { kind: K }> }[] {
+): LiveOfKind<K>[] {
   return pickKind(liveCityEffects(state, city), kind);
 }
 
@@ -3478,6 +3513,12 @@ export interface CardYieldLine {
   science: number;
   culture: number;
   faith: number;
+  /**
+   * The religion whose **founder's share** this line is, copied from the live
+   * entry (`LiveCardEffect.founderShare`). Absent on every other line. When
+   * set, this is the line's source and `card` is not.
+   */
+  founderShare?: ReligionId;
 }
 
 function emptyLine(card: CardId, source: string): CardYieldLine {
@@ -3773,14 +3814,25 @@ export function explainCardEmpireYields(
     if (paysSomething(line)) list.push(line);
   }
 
-  for (const { source, card, effect } of effectsOfKind(state, playerId, 'pays')) {
+  for (const { source, card, effect, founderShare } of effectsOfKind(state, playerId, 'pays')) {
     if (effect.basis !== 'count' || !paysAVoice(effect)) continue;
     // `capital` is a **city** line (see `explainCardCityYields`), so it leaves here with
     // `city`: an empire fold that also paid it would pay it twice.
     if (effect.where === 'city' || effect.where === 'capital') continue;
-    const times = helpings(countOf(state, playerId, card, effect), effect.per, effect.max);
+    const counted = countOf(state, playerId, card, effect);
+    const times = helpings(counted, effect.per, effect.max);
     if (times === 0) continue;
-    const line = emptyLine(card, label(source, `×${times}`));
+    // **The founder's share says what it is** (batch UX8b). Every other count
+    // line ends in its multiplier ("×3"); the share ends in words, because the
+    // count behind it is the one thing a player can check on the board: how
+    // many foreign towns follow the faith.
+    const line = emptyLine(
+      card,
+      founderShare === undefined
+        ? label(source, `×${times}`)
+        : label(source, founderShareWords(effect, counted, times)),
+    );
+    if (founderShare !== undefined) line.founderShare = founderShare;
     line[effect.to as CityYieldKey] = (effect.amount ?? 0) * times;
     if (paysSomething(line)) list.push(line);
   }
@@ -7638,6 +7690,27 @@ export function cardGrantsAbility(
 ): boolean {
   for (const { effect } of effectsOfKind(state, playerId, 'grantsAbility')) {
     if (effect.ability === ability) return true;
+  }
+  return false;
+}
+
+/**
+ * Does this **row** of effects hand over this verb? A question about a card's
+ * printed clauses, asked of the data table and not of any seat.
+ *
+ * `riteTeachingCard` (`religion.ts`) asks it to name the Order that teaches a
+ * card-taught rite. It lives here because this module is the one that reads
+ * `CardEffect.kind`. It is not a second answer to "may this empire do that",
+ * which stays `cardGrantsAbility`'s through `hasAbility`: a row naming a verb
+ * says which card would teach it, not that anybody holds the card.
+ *
+ * A grant inside a `conditionRule` counts, because the card still teaches the
+ * verb when its condition holds.
+ */
+export function effectsGrantAbility(effects: readonly CardEffect[], ability: AbilityId): boolean {
+  for (const effect of effects) {
+    if (effect.kind === 'grantsAbility' && effect.ability === ability) return true;
+    if (effect.kind === 'conditionRule' && effectsGrantAbility(effect.then, ability)) return true;
   }
   return false;
 }

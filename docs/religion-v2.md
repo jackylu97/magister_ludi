@@ -87,19 +87,31 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
   Host by The Host Restored, while the card is seated (a `grantsAbility`
   effect). These rows' `tech` only dates them for the Compendium.
 - **Naming the teacher.** `riteTeachingCard(rite)` (`religion.ts`) finds the
-  Order in the data tables. `riteTeacherName` (`religionScreen.ts`) is the name
-  both the faith screen ("needs …") and the city screen ("Taught by …") print:
-  the Order for a card-taught rite, the technology for the others.
+  Order in the data tables, asking the evaluator whether a row's clauses hand
+  over the verb (`effectsGrantAbility`, `statecraft/evaluator.ts`).
+  `riteTeacherName` (`religionScreen.ts`) is the name both the faith screen
+  ("needs …") and the city screen ("Taught by …") print, and the Compendium's
+  rite entry names the same Order: the Order for a card-taught rite, the
+  technology for the others.
 - **How long.** The row's `duration` is the base: ten turns for the five tree
   rites and Rite of Fasting, five for Restoring of the Host, one for Votive
   Offering (so a city may offer it once a turn). `riteDuration` amplifiers
   lengthen it: The Octave (while seated) and Chichen Itza (while held) add 50%
   each, summed before they apply. `riteTurnsFor(state, seat, rite)` is the
   result, floored once and never below one turn.
-- **One figure for the stamp and the screen.** `stampRite` stamps
-  `riteTurnsFor`'s figure as an absolute expiry turn, and the faith screen
-  prints the same figure, once. Losing an amplifier later does not shorten a
-  rite that is already running.
+- **One figure for the stamp and the screen.** `stampRite` hangs
+  `riteTimedEntries` (one entry per lasting effect, expiring on the turn
+  `riteTurnsFor` gives), and the faith screen prints the same figure, once.
+  Losing an amplifier later does not shorten a rite that is already running.
+- **Before it is said.** `explainRitePreview(state, seat, cityId, rite)`
+  (`cardImpact.ts`) is what saying the rite in that town would change, read on a
+  copy of the board whose one town wears the rite (`cityTimedWithRite`) and
+  diffed by `explainCardImpact`'s method, so pay that lands elsewhere (The
+  Priest-Astronomers' capital, The Consolation's happiness) is counted.
+  `foldCardImpact` is the change a turn; the offering's production
+  (`riteOfferingHammers`) is a one-time `occasion` line. `riteVoicesByGain`
+  orders the voices a set of previews adds, largest first: rite mode ranks
+  free towns by the first and shows the second beside it.
 - **What they pay.** The tree rites are lasting effects with nothing paid at
   once: food (+1🌾 on every hex that yields food) · science (+1🔬 per building
   in the town) · culture (+1🎵 on luxuries, +30% border growth) · defence (+10
@@ -193,11 +205,34 @@ The skip's pity, the culture meter and the tier are untouched by any of them.
   (`religionFounder`; falls back to `founderId` only when no stones stand on
   owned ground). Pays the enhancers' empire lines + the **founder trickle**
   (+1🕯 per foreign following city, +1💰 per two). Capture moves it.
+- **The founder's share is its own source.** Its live entries and lines carry
+  `founderShare: ReligionId` (`LiveCardEffect`, `CardYieldLine`,
+  `EmpireYieldLine`); the Ledger files the line under religion by that field
+  and `explainReligionLedger` credits it to the religion, never to the belief
+  whose id fills the line's `card`. Its label ends in words ("founder's share
+  from 3 foreign cities") instead of a multiplier. The amounts are unchanged.
 - **Follower beliefs** → city-local, to whoever OWNS each following city
   (a rival's faith in your town is a gift). A follower row that pays an
   empire fails `religionDataProblems`.
 - **Enhancers** → the tide itself: `{ kind: 'pressureRule', rule, delta }`
   over `rules.religion`, read only in `explainPressure`.
+
+## What the religion pays, by source (batch UX8b)
+
+The readings the faith screen's Bonuses tab draws (`docs/plans/faith-screen-f1.md`).
+
+- `explainReligionLedger(state, seat)` (`ledgerFold.ts`) splits the Ledger's
+  Religion class by source: each god, follower and enhancer belief, each rite
+  a town keeps and each consecration under its card, and each founder's share
+  under its religion. Its six sums are `explainLedger`'s religion figures.
+- `explainFaithLedger(state, seat)` is the headline: the Ledger's faith row
+  with the Religion class opened into those sources and every other class kept
+  whole. Order cards stay inside the one deck slice (the user's ruling,
+  `docs/flags.md` (ssssss) 4.3). It folds to the top bar's faith figure.
+- A meter line carries the card that paid it (`MeterContribution.card`, or
+  `cards` on a building's line for the cards standing on it, such as Feast Days
+  on a temple); `meterCardShares` reads either, so happiness and authority can
+  be split by source too.
 
 ## The tide
 
