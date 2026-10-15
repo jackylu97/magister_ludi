@@ -241,10 +241,11 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   cart already owned, else `buyRoute` through `controls.buyRouteOf` (see
   "A bought cart is kept, not spent" above); the unit sheet's row is a link
   ("Open the trade sheet");
-  the top bar's routes chip and a fourth HUD dock button both wear the drawn cart
-  (`TRADE_MARK`, `src/art/dockMarks.ts` — a bale on two wheels, drawn rather than
-  vendored, in the flair gallery's dock cabinet). `E` opens the sheet, beside
-  `C`/`H`/`W`; its listener is in `gameDisposers`.
+  the top bar's Trade tab opens the sheet, carries the routes figure (routes
+  running over routes allowed, with the trade ledger on hover) and wears the
+  drawn cart (`TRADE_MARK`, `src/art/dockMarks.ts` — a bale on two wheels, drawn
+  rather than vendored, in the flair gallery's dock cabinet). `E` opens the
+  sheet, beside `C`/`H`/`W`; its listener is in `gameDisposers`.
 
 ## Land or sea
 

@@ -539,6 +539,20 @@ Eight root pages, all named in `vite.config.ts` inputs:
   and turn timers, but keep their listeners. Dispose only before replacing the
   screen instances. Statecraft's × and Escape must still work on the first visit
   after Restart, including when leaving commits an Order.
+- **The HUD** (batch UX1, `docs/plans/hud-empire-panel-spec.md` §2 and §7). The
+  top bar, left to right: the six yields (each opens the Ledger on its own
+  yield, culture included); one meters chip, happiness and authority, each half
+  its own button and breakdown card; the turn line in the middle ("Turn 91 ·
+  Æra II · 9 left", the age card on hover); the seat strip in hot-seat play
+  only; three labelled tabs — Diplomacy (`W`), Trade with the routes figure
+  (`E`), and Standings, whose renown figure opens the Reliquary and bead figure
+  the Bead Race; then ? and ☰. Below about 1200 px the tabs keep their marks and
+  figures and drop their printed names. The Compendium opens from ☰ and the ?
+  card, the Abacus from the standings sheet and `A`. The Lens and the chronicle
+  (❧) are two small buttons left of End Turn, their cards opening above them.
+  The dock under the research card keeps Statecraft, Religion and Leader until
+  the empire panel replaces it (UX3). `topBar.ts` fills the bar; the comment at
+  the head of the HUD in `index.html` lists every surface.
 - **The landing is three screens and one element** (batch L7, `docs/flags.md`
   (yyyy); the mockup is `mockups/new-game-flow.html`): `data-step` on `#landing`
   is the whole of the screen state — **title** (the poster, shown here and

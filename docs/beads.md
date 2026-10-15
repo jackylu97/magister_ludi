@@ -47,9 +47,11 @@ earned is `docs/wager.md`**; this is the machinery under it.
   queue), `beadCount`, and `describeBeadBoon`/`beadCapEffects` (what a retired
   row promised, and what a bead already on a rod still pays).
 - UI: the abacus flip modal per award; the wager's deal sheet is what an age
-  opening raises; the top bar's age card carries the age and the countdown; the
-  Beads screen is the **ledger** — the rods, the live grants and the Opus's own
-  line — behind its three doors (the bead chip, any Abacus rod, `V`).
+  opening raises; the turn line in the middle of the top bar carries the age
+  and the countdown, with the age card on hover; the Beads screen is the
+  **ledger** — the rods, the live grants and the Opus's own line — behind its
+  three doors (the bead figure on the top bar's Standings tab, any Abacus rod,
+  `V`). The Abacus opens from the standings sheet and from `A`.
 
 ## What was retired
 

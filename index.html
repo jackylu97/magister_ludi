@@ -516,135 +516,100 @@
     ></div>
 
     <!-- ================= the HUD =================================
-         One surface per job, each pinned where it never moves, so nothing the
-         player reads or presses ever shifts under them:
+         One surface per job, each pinned in place so nothing the player reads
+         or presses moves under them. The layout is batch UX1's
+         (docs/plans/hud-empire-panel-spec.md §1 and §2):
 
-           top          #topbar         the empire's per-turn totals, the turn,
-                                        the seats, and the tool buttons
-           under it     #menu-popover   session-rare setup, from the ☰ button
-           under it     #help-overlay   the control scheme, from the ? button
-           under it     #log-popover    the chronicle, from the ❧ button
-           top-centre   #toasts         news, for five seconds each
-           top-left     #hud-research   what the empire is learning, and the way
-                                        into the star chart
-           under it     #hud-dock       Statecraft, Religion and Diplomacy,
-                                        centre — see the dock's own comment
-           under it     #hud-holdings   the strategic resources the empire holds
-                                        and what it has spent them on, hidden
-                                        until it holds one
-           bottom-left  #hud-context    what is under the cursor, and refusals
-           right        #city-panel / #unit-panel — one at a time
-           bottom-right #hud-end-turn   the one button pressed every single turn
-           whole window #tech-overlay   the star chart, from the research card
-                                        or T
-           whole window #abacus-overlay the score as an object, from the bar
-                                        button or A
+           top          #topbar           the bar. Left: the six yields and the
+                                          meters chip. Middle: the turn line.
+                                          Right: the seat strip (hot-seat only),
+                                          the Diplomacy, Trade and Standings
+                                          tabs, then ? and ☰
+           under it     #hud-meters       the happiness and authority
+                                          breakdowns, from the meters chip
+           under it     #menu-popover     the game menu, from ☰: saving and
+                                          loading, Statecraft, the Compendium,
+                                          the tutorial
+           under it     #help-overlay     the controls card, from ?
+           top-centre   #toasts           news, for five seconds each
+           top-left     #hud-research     what the empire is learning, and the
+                                          way into the star chart
+           under it     #hud-dock         Statecraft, Religion and Leader; see
+                                          the dock's own comment
+           under it     #hud-commissions  one chip per seated commission
+           under it     #hud-holdings     the strategic resources the empire
+                                          holds and what it has spent them on,
+                                          hidden until it holds one
+           bottom-left  #hud-context      what is under the cursor, and refusals
+           right        #city-panel / #unit-panel, one at a time
+           bottom-right #hud-end-turn     End Turn, with the Lens and the
+                                          chronicle (❧) as two small buttons to
+                                          its left; their cards open above them
+           whole window #tech-overlay     the star chart, from the research card
+                                          or T
+           whole window #abacus-overlay   the score as beads on rods, from the
+                                          standings sheet or A
 
-         #hud-end-turn never moves — muscle memory owns that corner outright.
-         The right-hand panels are the ones that give way: whichever is open
-         stops its own box short of End Turn's corner instead (see
-         `--end-turn-clearance` in src/style.css) and scrolls internally if its
-         content runs past that line.
+         #hud-end-turn never moves, so the hand can find it without looking. The
+         right-hand panels give way instead: whichever is open stops its own box
+         above End Turn's corner (see `--end-turn-clearance` in src/style.css)
+         and scrolls inside itself if its content runs past that line.
 
-         The last two are *screens*, not cards: each covers the window including
-         the bar, owns the keyboard while it is up, and closes the other as it
-         opens — see `closePopovers` and the `onOpen` hooks in src/main.ts.
+         The last two are screens, not cards: each covers the whole window,
+         takes the keyboard while it is up, and closes the other as it opens
+         (see `closePopovers` and the `onOpen` hooks in src/main.ts).
 
-         #hud-holdings is the one surface on that list with no markup here: it
-         builds its own element in src/ui/holdingsRail.ts and main.ts mounts it
-         after #hud-dock. It is listed all the same, because this comment is the
-         register of what the player can be looking at and a surface missing
-         from it is a surface the next reader does not know exists.
+         #hud-commissions and #hud-holdings have no markup here: each builds its
+         own element (src/ui/commissionRail.ts, src/ui/holdingsRail.ts) and
+         main.ts mounts it after #hud-dock. They are listed anyway, because this
+         comment is the list of everything the player can be looking at.
          ============================================================ -->
 
-    <!-- The top bar: a slim ink rule across the whole window, in reading order.
-         The board starts *below* it (see #viewport in style.css), so it covers
-         nothing and no click on it can fall through to a tile.
+    <!-- The top bar: a slim ink strip across the whole window, read left to
+         right. The board starts below it (see #viewport in style.css), so it
+         covers nothing and no click on it can fall through to a tile.
 
-         Left to right: what the empire earns each turn, whose turn it is, who
-         is at the table, and the buttons that open everything else. Research is
-         *not* here: it is the one thing the player checks every single turn, so
-         it earns a card of its own under the bar (#hud-research below). -->
+         Left, what the empire earns and how it stands: the six yields and one
+         chip for the two meters. Middle: the turn and the world's age. Right,
+         the screens about the other empires, as three labelled tabs, then the
+         controls card (?) and the game menu (☰). Research is not here: it is
+         checked every turn, so it has a card of its own under the bar
+         (#hud-research below). The Lens and the chronicle are beside End Turn.
+
+         Nothing may scroll out of sight at 1024 px wide. The yields step down
+         in size when the row is too long (`fitStrip` in src/ui/topBar.ts), and
+         below about 1200 px the tabs drop their printed names but keep their
+         marks, their figures and their accessible names. -->
     <header id="topbar">
-      <!-- Filled by src/ui/topBar.ts: the five civ-wide totals, summed over the
-           local player's cities and refreshed wherever the rest of the HUD is. -->
-      <div id="civ-yields" class="civ-yields" aria-label="Empire yields per turn"></div>
+      <!-- Filled by src/ui/topBar.ts: the six yields, summed over the local
+           seat's cities, then the meters chip. Refreshed wherever the rest of
+           the HUD is. -->
+      <div id="civ-yields" class="civ-yields" aria-label="Empire yields and meters"></div>
 
+      <!-- The turn line: "Turn 91 · Æra II · 9 left", or who the turn is
+           waiting for once this seat has ended its turn. Written by
+           src/ui/topBar.ts, which also hangs the age card on it. -->
       <p id="status" class="status">—</p>
 
       <!-- One chip per seat: who is playing, and who has already ended their
            turn. Clicking one takes that seat — hot-seat play, kept as a
-           development harness now that turns are simultaneous. -->
+           development harness now that turns are simultaneous. Hidden in a
+           game with one human, so it takes no room in the bar. -->
       <!-- `seat-strip`, not `seats`: the landing's seat-count <select> already
            owns that id, and `getElementById` answered with *it* — so the chips
            were being written into the dropdown, which both emptied the landing's
            Seats control after the first game and left this strip blank. -->
-      <div id="seat-strip" class="seats"></div>
+      <div id="seat-strip" class="seats" hidden></div>
+
+      <!-- The three tabs: Diplomacy (W), Trade (E) with the routes figure, and
+           Standings with the renown and bead figures. Built by
+           src/ui/topBar.ts, because their marks are runtime `data:` URIs and
+           their figures are the strip's to keep current. On Standings each
+           figure is its own button: renown opens the Reliquary, the beads open
+           the Bead Race, and the label opens the standings sheet. -->
+      <nav id="topbar-tabs" class="topbar-tabs" aria-label="Diplomacy, Trade and Standings"></nav>
 
       <div class="topbar-tools">
-        <!-- The Abacus: the score, as an object on the table rather than a
-             number in this bar. It is a screen and not a popover — see
-             #abacus-overlay below — so it sits beside the lens button rather
-             than in the popover column under it. -->
-        <button
-          id="abacus-button"
-          class="topbar-btn"
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded="false"
-          aria-controls="abacus-overlay"
-          title="The Abacus — the score (A)"
-        >
-          <span class="topbar-btn-line">
-            <span class="topbar-btn-label">Abacus</span>
-          </span>
-        </button>
-        <!-- The lens menu: one question asked of every tile at once, plus the
-             yield glyphs, which are an independent switch. The button names both,
-             so the bar always says what the board is showing.
-
-             The three spans are wrapped in one line box on purpose: they sit on
-             a shared baseline despite being three different sizes, and that
-             baseline group is then centred in the pill as a unit. A flex button
-             with `align-items: baseline` centres nothing — it hangs the whole
-             group from the top edge, which is what used to leave this label
-             sitting high in its own outline. -->
-        <button
-          id="lens-button"
-          class="topbar-btn"
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded="false"
-          aria-controls="lens-popover"
-          title="Map lens (Y toggles yields, R toggles resources)"
-        >
-          <span class="topbar-btn-line">
-            <span class="topbar-btn-label">Lens</span>
-            <span id="lens-current" class="topbar-btn-value">off</span>
-            <span id="lens-yields-flag" class="topbar-btn-flag" hidden>Yields</span>
-          </span>
-        </button>
-        <!-- The chronicle: every notice this seat has been shown, kept where it
-             can be gone back to. A toast is over in five seconds, which is right
-             for a notice and wrong for a record, so the same entries file
-             themselves behind this button. The badge counts what has arrived
-             since it was last opened.
-
-             Per seat, and cleared by a new game: the list is view state and says
-             so on the card. See src/ui/notifications.ts. -->
-        <button
-          id="log-button"
-          class="icon-btn"
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded="false"
-          aria-controls="log-popover"
-          title="Chronicle — what has happened"
-          aria-label="Chronicle"
-        >
-          <span aria-hidden="true">❧</span>
-          <span id="log-badge" class="icon-btn-badge" hidden></span>
-        </button>
         <button
           id="help-button"
           class="icon-btn"
@@ -657,21 +622,8 @@
         >
           ?
         </button>
-        <!-- The Compendium: every table in the game, read back off the data.
-             A book beside the ?, because the two answer different questions —
-             "how do I do this" and "what does this do". See src/ui/compendium.ts. -->
-        <button
-          id="compendium-button"
-          class="icon-btn"
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded="false"
-          aria-controls="compendium-overlay"
-          title="The Compendium"
-          aria-label="The Compendium"
-        >
-          ▤
-        </button>
+        <!-- The game menu. The Compendium opens from here (and from the ?
+             card); it used to have a ▤ button of its own in this bar. -->
         <button
           id="menu-button"
           class="icon-btn"
@@ -679,8 +631,8 @@
           aria-haspopup="dialog"
           aria-expanded="false"
           aria-controls="menu-popover"
-          title="Game setup"
-          aria-label="Game setup"
+          title="Game menu"
+          aria-label="Game menu"
         >
           ☰
         </button>
@@ -749,56 +701,12 @@
     <div id="hud-dock-popovers"></div>
 
     <!-- The popover column, hung under the right end of the bar so a card opens
-         directly beneath the button that opened it. A flex stack rather than two
-         separately-pinned cards, and nothing sits below them, so an opening card
-         can push nothing. -->
+         directly beneath the button that opened it: the game menu under ☰ and
+         the controls card under ?. A flex stack rather than separately pinned
+         cards, and nothing sits below them, so an opening card can push
+         nothing. The Lens and chronicle cards used to hang here too; they open
+         above their buttons in the End Turn corner now (#hud-turn-tools). -->
     <div id="hud-popovers">
-      <!-- The lens menu. The exclusive choices are radio buttons in spirit —
-           one row each, ticked, and `aria-pressed` says which is on — and under
-           them sit the switches that are *not* exclusive and compose with any
-           of them: the yield glyphs, and the resource roundels (which start
-           on). -->
-      <div
-        id="lens-popover"
-        class="hud-card popover popover-narrow"
-        role="dialog"
-        aria-label="Map lens"
-        hidden
-      >
-        <div class="popover-head">
-          <h2 class="popover-title">Map lens</h2>
-          <button id="lens-close" class="popover-close" type="button" aria-label="Close">
-            ×
-          </button>
-        </div>
-        <div id="lens-options" class="lens-options"></div>
-        <div id="lens-toggles" class="lens-toggles"></div>
-        <p class="hint">
-          A city screen and the settler lens both show yields regardless of this switch.
-        </p>
-      </div>
-
-      <!-- The chronicle. Newest first, turn-stamped in mono like every other
-           number in this interface, and an entry that knows where it happened
-           is a button that takes the camera there. Capped — see
-           NOTIFICATION_CAP — and per seat. -->
-      <div
-        id="log-popover"
-        class="hud-card popover"
-        role="dialog"
-        aria-label="Chronicle"
-        hidden
-      >
-        <div class="popover-head">
-          <h2 class="popover-title">Chronicle</h2>
-          <button id="log-close" class="popover-close" type="button" aria-label="Close">
-            ×
-          </button>
-        </div>
-        <div id="log-list" class="log-list"></div>
-        <p class="hint">A courtesy, not a record — a save carries the command log.</p>
-      </div>
-
       <!-- The game menu. Session-rare, so it costs no permanent screen space:
            the menu button opens it, Esc or a click outside closes it, and focus
            is trapped inside while it is open and restored to that button on
@@ -835,13 +743,27 @@
         <div id="menu-extras"></div>
 
         <!-- Statecraft has no bar button by design (see the overlay's own
-             comment, further down this file) — it opens from the culture
-             chip, from `C`, and now from here, so a player who has stumbled on
-             none of those still has one place that always lists everything a
-             game screen can be reached from. -->
+             comment, further down this file). It opens from the HUD dock, from
+             `C`, and from here, so a player who has found neither of the others
+             still has one place to look. -->
         <div class="row">
           <button id="menu-statecraft" class="btn btn-quiet" type="button">
             Statecraft…
+          </button>
+        </div>
+
+        <!-- The Compendium: every unit, building, card and rule, read off the
+             tables. It had a ▤ button in the bar until batch UX1; now it opens
+             from here and from the foot of the controls card. -->
+        <div class="row">
+          <button
+            id="menu-compendium"
+            class="btn btn-quiet"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="compendium-overlay"
+          >
+            The Compendium…
           </button>
         </div>
 
@@ -947,12 +869,18 @@
           <li>
             <kbd>Y</kbd> yield glyphs · <kbd>R</kbd> resource marks ·
             <kbd>1</kbd><kbd>2</kbd> pick a lens in the order the <b>Lens</b> menu
-            lists them · <kbd>0</kbd> clears it
+            lists them · <kbd>0</kbd> clears it. <b>Lens</b> and the chronicle
+            <b>❧</b> are the two small buttons beside End Turn
           </li>
           <li>
-            <kbd>C</kbd> Statecraft · <kbd>H</kbd> Religion · <kbd>W</kbd> Diplomacy · <kbd>A</kbd> the
-            Abacus · <kbd>V</kbd> the Bead Race · <b>❧</b> in the bar keeps the
-            chronicle
+            <kbd>C</kbd> Statecraft · <kbd>H</kbd> Religion · <kbd>W</kbd> Diplomacy ·
+            <kbd>E</kbd> Trade · <kbd>A</kbd> the Abacus · <kbd>V</kbd> the Bead Race
+          </li>
+          <li>
+            <b>Diplomacy</b>, <b>Trade</b> and <b>Standings</b> are the tabs at the
+            right of the top bar. On Standings, the renown figure opens the
+            Reliquary and the bead figure the Bead Race; the standings sheet
+            opens the Abacus. Click any yield to see where it comes from
           </li>
           <li>
             <b>Buy Tiles</b> on a city panel arms the price tags; click a tag to
@@ -979,7 +907,7 @@
           <button id="help-compendium" class="btn btn-second" type="button">
             Open the Compendium
           </button>
-          <span class="hint">every unit, building, card and rule, read off the tables</span>
+          <span class="hint">every unit, building, card and rule, read off the tables; also in <b>☰</b></span>
         </p>
       </div>
     </div>
@@ -1026,16 +954,14 @@
       </span>
     </button>
 
-    <!-- Under the research card: the HUD dock. Two square lozenge buttons in
-         the same ink/parchment language, front and centre because both open
-         onto a *standing* concern rather than a one-off tool — see
-         src/ui/hudDock.ts for the full case. Both are bare triggers now: each
-         opens a parchment screen, and the Faith popover the Religion button
-         used to own became the first block of that screen. Built by
-         `createHudDock`, called from `main.ts`; nothing here is static
-         beyond the container, because both buttons' icons are runtime
-         `data:` URIs. -->
-    <div id="hud-dock" class="hud-dock" aria-label="Statecraft, Religion and Diplomacy"></div>
+    <!-- Under the research card: the HUD dock. Three square buttons, for
+         Statecraft, Religion and the leader sheet, each opening a parchment
+         screen about this empire (see src/ui/hudDock.ts). Diplomacy, Trade and
+         the standings were doors here too; they are tabs in the top bar now.
+         Built by `createHudDock`, called from `main.ts`; nothing here is static
+         beyond the container, because the buttons' icons are runtime `data:`
+         URIs. The empire panel replaces the dock in batch UX3. -->
+    <div id="hud-dock" class="hud-dock" role="group" aria-label="Statecraft, Religion and Leader"></div>
 
     <!-- ================= the star chart =========================
          The tech tree, as a full-screen overlay over the whole board — and the
@@ -1090,8 +1016,8 @@
          Your government, your slots, your Orders and your Doctrines — the
          parchment screen of the three (the star chart is the table at night,
          the Abacus is the table in daylight, this is the table covered in
-         paper). Built by src/ui/statecraftScreen.ts; opened from the culture
-         chip or with C, closed with Esc, the ×, or a click on the table around
+         paper). Built by src/ui/statecraftScreen.ts; opened from the HUD dock,
+         the ☰ menu or C, closed with Esc, the ×, or a click on the table around
          the sheet.
 
          The naming bible is load-bearing here: the slottable cards are Orders,
@@ -1200,8 +1126,8 @@
          have" against "what I can do with it", which is the division both of
          its siblings make. Built by src/ui/tradeScreen.ts.
 
-         Four doors reach it: the routes chip in the bar, "All routes" on a
-         routed caravan's sheet, the same on a city panel's Routes row, and
+         Four doors reach it: the Trade tab in the top bar (and E), "All routes"
+         on a routed caravan's sheet, the same on a city panel's Routes row, and
          "Start route" on an idle trader's sheet — the last of which opens it
          with that trader as the chooser, since it is now the only way a route
          is opened at all (the user's ruling, 2026-08-28).
@@ -1270,8 +1196,8 @@
     <!-- ================= your civ ================================
          Who is at your table, what their two rules are paying you this turn,
          the two rows nobody else may raise and the towns your realm founds.
-         The thirteenth sheet on `modalShell.ts`, behind the fifth door on the
-         HUD dock — the one wearing this seat's own charge. A record and not a
+         The thirteenth sheet on `modalShell.ts`, behind the Leader button on
+         the HUD dock, the one wearing this seat's own charge. A record and not a
          decision: the deck and its draft retired with the second cut (batch
          L6a/L6b, `docs/flags.md` (xxxx)).
          ============================================================ -->
@@ -1338,9 +1264,11 @@
 
     <!-- ================= the Diplomacy screen ==================
          Every empire in the world, where this seat stands with each, and the
-         two verbs that change it: declare, and offer peace. The third door on
-         the HUD dock (the user's ruling, 2026-09-03: "lets have it be a new
-         menu, it can sit alongside the statecraft/religion icons").
+         two verbs that change it: declare, and offer peace. Opened from the
+         Diplomacy tab at the right end of the top bar, or with W (it was the
+         dock's third door until batch UX1; the user's ruling of 2026-09-03 had
+         given it "a new menu, it can sit alongside the statecraft/religion
+         icons").
 
          Trade's sibling and deliberately the same sheet, for the reason the
          Religion overlay gives: systems that ask a player for one decision at a
@@ -1383,7 +1311,8 @@
          the Religion overlay gives above it: three systems that deal cards from
          a pool must not look like three different games. Built by
          src/ui/beadsScreen.ts on each open; nothing on it is stored. Reached
-         from the bead chip in the top bar, from the Abacus, or with V.
+         from the bead figure on the top bar's Standings tab, from the Abacus,
+         or with V.
          ============================================================ -->
     <div
       id="beads-overlay"
@@ -1417,8 +1346,8 @@
          lightest — no split, no scrolling pane, ~30rem wide — because there is
          only ever one card on it. Built by src/ui/reliquaryScreen.ts on each
          open off Player.legacies; nothing on it is stored. Reached from the
-         renown chip in the top bar, and by the card that descends into it at
-         the end of a spend ceremony.
+         renown figure on the top bar's Standings tab, and by the card that
+         descends into that figure at the end of a spend ceremony.
          ============================================================ -->
     <div
       id="reliquary-overlay"
@@ -1562,8 +1491,8 @@
          A great person was spent: the card rises to centre over a dimmed
          board, the LEGACY counts its figure (the inversion, 2026-09-03 — what
          remains is the identity), the deed appears beneath without ceremony,
-         and the card descends into the renown chip, which is the Reliquary's
-         door. Built whole by src/ui/greatPersonCeremony.ts; a click anywhere
+         and the card descends into the renown figure on the Standings tab,
+         which is the Reliquary's door. Built whole by src/ui/greatPersonCeremony.ts; a click anywhere
          cuts it short.
          ============================================================ -->
     <div
@@ -1580,8 +1509,9 @@
          docs/flags.md item (uuuuu)). The fifteenth sheet on modalShell:
          one row per thing counted, one column per seat, the fold at the
          foot. Raised at the hand-over when the Magnum Opus closes the
-         game, and opened from the dock's sixth door on any turn — the
-         standings are true whether or not the work is finished.
+         game, and opened from the top bar's Standings tab on any turn: the
+         standings are true whether or not the work is finished. Its header
+         carries the Abacus's door, which used to be a button in the bar.
 
          It replaces the old victory modal, which announced the winner and
          a bead figure and said nothing about what a game came to.
@@ -1603,6 +1533,22 @@
           <p class="statecraft-hint">
             the score, line by line &mdash; <kbd>Esc</kbd> to close
           </p>
+          <!-- The Abacus: the same score as beads on rods. This button is the
+               Abacus screen's trigger (src/ui/abacusScreen.ts), so it carries
+               the `aria-expanded` mirror; the Abacus closes this sheet as it
+               opens, and gives the keyboard back to the Standings tab. -->
+          <button
+            id="victory-abacus"
+            class="victory-abacus"
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded="false"
+            aria-controls="abacus-overlay"
+            aria-keyshortcuts="A"
+            title="The Abacus: every empire's beads on a rod (A)"
+          >
+            The Abacus <kbd>A</kbd>
+          </button>
           <button id="victory-close" class="statecraft-close" type="button" aria-label="Close">
             &times;
           </button>
@@ -1616,8 +1562,9 @@
          player, thirteen beads on each, slid left as they are earned and
          coloured by the family that earned them (Entry VI, the Bead Race).
          Built by src/ui/abacusScreen.ts on the shared 3D stage in
-         src/render3d/abacus3d.ts; opened from the bar button or with A, closed
-         with Esc, the ×, or a click on the table around the sheet.
+         src/render3d/abacus3d.ts; opened from the standings sheet's header or
+         with A, closed with Esc, the ×, or a click on the table around the
+         sheet.
 
          The canvas and the floating name/tally labels are created by that file
          on the first open — the stage is not built at boot, and nothing in here
@@ -1751,18 +1698,114 @@
       </dl>
     </div>
 
-    <!-- Bottom-right, alone, and the same size and place every turn of every
-         game: the most-pressed control in the game gets a muscle-memory home. -->
+    <!-- Bottom-right: End Turn, the same size and in the same place every turn
+         of every game, so the hand finds it without looking. To its left sit
+         the two small buttons that used to be in the top bar (spec §7): the
+         map Lens and the chronicle (❧). Their cards open above them.
+         src/ui/diplomacyOffers.ts also hangs its "offers waiting" button above
+         this corner, so the corner is its host element. -->
     <div id="hud-end-turn">
       <!-- The way back to an offer the player put away to look at the board
            ("View map", src/ui/offerCard.ts). Pinned in this corner rather than
            floating over the map because this is the corner that already means
            "what the turn still wants from you" — the End Turn button under it
            stops on the very same offer. Hidden unless an offer is being held
-           off-screen; nothing is spent while it is up. -->
+           off-screen; nothing is spent while it is up. It sits left of the two
+           small buttons so they never move when it appears. -->
       <button id="offer-return" class="btn offer-return" type="button" hidden>
         ☞ Return to the offer
       </button>
+
+      <!-- The Lens and the chronicle. Both cards are positioned against this
+           wrapper, so each opens directly above the pair wherever End Turn's
+           label leaves them. -->
+      <div id="hud-turn-tools" class="hud-turn-tools">
+        <!-- The lens menu: one question asked of every tile at once, plus the
+             yield glyphs and the resource marks, which are independent
+             switches. The button names what the board is showing: the lens by
+             name, and a flag while the yield glyphs are up. Y, R and 0 to 9
+             work without opening it. -->
+        <button
+          id="lens-button"
+          class="turn-tool is-lens"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="lens-popover"
+          aria-keyshortcuts="Y R 0 1 2 3 4 5 6 7 8 9"
+          title="Map lens (Y toggles yields, R toggles resources, 0 to 9 pick a lens)"
+        >
+          <span class="turn-tool-label">Lens</span>
+          <span class="turn-tool-line">
+            <span id="lens-current" class="turn-tool-value">off</span>
+            <span id="lens-yields-flag" class="turn-tool-flag" hidden>Yields</span>
+          </span>
+        </button>
+        <!-- The chronicle: every notice this seat has been shown, kept where it
+             can be gone back to. A toast is gone in five seconds, which suits a
+             notice and not a record, so the same entries file themselves here.
+             The badge counts what has arrived since it was last opened. Per
+             seat, and cleared by a new game: see src/ui/notifications.ts. -->
+        <button
+          id="log-button"
+          class="turn-tool is-chronicle"
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="log-popover"
+          title="Chronicle: what has happened"
+          aria-label="Chronicle"
+        >
+          <span class="turn-tool-glyph" aria-hidden="true">❧</span>
+          <span id="log-badge" class="icon-btn-badge" hidden></span>
+        </button>
+
+        <!-- The lens menu's card. The exclusive choices are radio buttons in
+             spirit (one row each, ticked, and `aria-pressed` says which is on);
+             under them sit the switches that combine with any of them: the
+             yield glyphs, and the resource roundels, which start on. -->
+        <div
+          id="lens-popover"
+          class="hud-card popover popover-narrow"
+          role="dialog"
+          aria-label="Map lens"
+          hidden
+        >
+          <div class="popover-head">
+            <h2 class="popover-title">Map lens</h2>
+            <button id="lens-close" class="popover-close" type="button" aria-label="Close">
+              ×
+            </button>
+          </div>
+          <div id="lens-options" class="lens-options"></div>
+          <div id="lens-toggles" class="lens-toggles"></div>
+          <p class="hint">
+            A city screen and the settler lens both show yields regardless of this switch.
+          </p>
+        </div>
+
+        <!-- The chronicle's card. Newest first, turn-stamped in mono like every
+             other number in this interface, and an entry that knows where it
+             happened is a button that takes the camera there. Capped (see
+             NOTIFICATION_CAP) and per seat. -->
+        <div
+          id="log-popover"
+          class="hud-card popover"
+          role="dialog"
+          aria-label="Chronicle"
+          hidden
+        >
+          <div class="popover-head">
+            <h2 class="popover-title">Chronicle</h2>
+            <button id="log-close" class="popover-close" type="button" aria-label="Close">
+              ×
+            </button>
+          </div>
+          <div id="log-list" class="log-list"></div>
+          <p class="hint">A courtesy, not a record — a save carries the command log.</p>
+        </div>
+      </div>
+
       <!-- The label is its own element because the button says what it is *for*
            right now: "End Turn" when the turn may end, and the name of the first
            piece of unfinished business when it may not (see src/ui/turnBlockers.ts).

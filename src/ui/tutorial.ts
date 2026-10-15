@@ -133,10 +133,13 @@ export interface TutorialStep {
 export const STEPS: readonly TutorialStep[] = [
   {
     id: 'welcome',
-    anchor: '#abacus-button',
+    // The Standings tab at the right end of the top bar (batch UX1): it carries
+    // the seat's bead count and opens every empire's score, which is where the
+    // Abacus opens from now that it has no button in the bar.
+    anchor: '.topbar-tab.is-standings',
     title: 'Welcome',
     body:
-      'You lead a small people. Settle cities, learn ideas, and earn beads — the game\'s points, won by doing things first in the world. Everyone\'s beads are public, on the Abacus — the bead counter at the top of the screen. A full rod opens the game\'s final project, and finishing that project wins.',
+      'You lead a small people. Settle cities, learn ideas, and earn beads — the game\'s points, won by doing things first in the world. Your beads are counted on the Standings tab, top right. Press it to see every empire\'s score, and from there the Abacus, where each empire\'s beads sit on a rod. A full rod opens the game\'s final project, and finishing that project wins.',
     advance: { kind: 'next' },
   },
   {
@@ -228,7 +231,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: null,
     title: 'The rest arrives as you reach it',
     body:
-      'That is the basics. Each new mechanic explains itself the first time it appears, then leaves you alone. The question mark lists every control; the book beside it holds every rule in the game, and the pamphlet you started with.',
+      'That is the basics. Each new mechanic explains itself the first time it appears, then leaves you alone. The question mark at the top right lists every control. The menu beside it opens the Compendium, which holds every rule in the game and the pamphlet you started with.',
     advance: { kind: 'next' },
   },
 ];

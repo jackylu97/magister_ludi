@@ -90,10 +90,14 @@ describe('the renown figure', () => {
   });
 
   it('is composed by the top bar through that one function, never by hand', () => {
+    // The Standings tab prints the pool alone (batch UX1, spec §2: `✦57`). The
+    // whole figure, pool over its rung with the rate in parens, is the tab's
+    // tooltip, and it still comes out of `poolFigure`.
     const source = sourceOf('topBar.ts');
-    expect(source).toContain('poolFigure(player.renownPool');
+    expect(source).toContain('const pool = player?.renownPool ?? 0;');
     expect(source).toContain('renownThreshold(player)');
     expect(source).toContain('renownPerTurn(state, playerId)');
+    expect(source).toContain('poolFigure(pool, rate, rung)');
     // The failure this pins: a chip that added its own `/` and its own parens
     // would drift from gold's the first time either was touched.
     expect(source).not.toMatch(/renownPool\s*\}\s*\/\s*\$\{/);

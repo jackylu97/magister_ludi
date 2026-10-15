@@ -832,19 +832,24 @@ describe('the sheet’s frame and its doors', () => {
     expect(source('tradeScreen.ts')).not.toMatch(/let\s+isOpen\s*=/);
   });
 
-  it('opens from the top bar’s chip, the dock’s fourth button, the unit sheet and `E`', () => {
+  it('opens from the top bar’s Trade tab, the unit sheet and `E`', () => {
     const main = source('main.ts');
-    expect(main).toContain('hudDock.tradeButton.addEventListener');
+    // Batch UX1 made the routes chip and the dock's fourth button one door:
+    // the Trade tab at the right end of the bar, carrying the routes figure.
+    const bar = source('topBar.ts');
+    expect(bar).toContain("if (onOpenTrade) tradeTab.addEventListener('click', () => onOpenTrade());");
+    expect(main).toContain('onOpenTrade: () => {');
+    expect(main).not.toContain('hudDock.tradeButton');
     expect(main).toContain("if (event.key !== 'e' && event.key !== 'E') return;");
     // The hotkey is unbound between games, unlike its two older neighbours.
     expect(main).toContain(
       "gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));",
     );
-    expect(source('hudDock.ts')).toContain('tradeMarkDataUri()');
-    // The top bar's chip wears the same drawn cart rather than a typed glyph.
-    const bar = source('topBar.ts');
-    expect(bar).toContain('tradeMarkDataUri()');
-    expect(bar).not.toContain("element('span', 'civ-yield-icon', '⇄')");
+    // The tab wears the drawn cart rather than a typed glyph, and the dock
+    // no longer carries it.
+    expect(bar).toContain('tabMark(tradeMarkDataUri())');
+    expect(bar).not.toContain("'⇄'");
+    expect(source('hudDock.ts')).not.toContain('tradeMarkDataUri');
   });
 
   it('leaves the unit sheet one link and no route verbs', () => {

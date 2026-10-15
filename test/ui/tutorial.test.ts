@@ -626,6 +626,22 @@ describe('the wiring', () => {
     expect([...bar.matchAll(/meters\.append\(/g)].length).toBe(1);
   });
 
+  it('points the welcome at the Standings tab, where the beads are counted now', () => {
+    // Batch UX1 took the Abacus button out of the bar. The Standings tab
+    // carries the seat's bead count and opens the standings sheet, which is
+    // where the Abacus opens from, so the welcome rings that tab instead.
+    const welcome = STEPS.find((step) => step.id === 'welcome');
+    expect(welcome?.anchor).toBe('.topbar-tab.is-standings');
+    expect(source('ui/topBar.ts')).toContain("element('div', 'topbar-tab is-standings')");
+    expect(welcome?.body).toContain('Standings tab');
+    expect(welcome?.body).toContain('Abacus');
+    // The closing step sends the player to the menu for the Compendium, since
+    // the book beside the question mark is gone from the bar.
+    const close = STEPS.find((step) => step.id === 'close');
+    expect(close?.body).toContain('Compendium');
+    expect(close?.body).not.toContain('the book beside it');
+  });
+
   it('starts a new game at the first step, and keeps the notes', () => {
     // The user, 2026-08-30: a fresh game begins the sequence again whatever the
     // shelf remembers — progress is about *this* game's opening turns. The

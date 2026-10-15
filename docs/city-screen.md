@@ -121,7 +121,8 @@ button bottom centre. Implementation notes binding the build:
   derived rule (`body:has(.city-mode:not([hidden]))` — nothing stored, every
   close path restores it): the **whole empire bar** (`#topbar`, the ☰ menu
   included — a half-emptied strip read as a bug, and Escape/Leave are the
-  exits), the research card, the screen dock and the two popover columns. With
+  exits), the research card, the screen dock, the two popover columns, and the
+  Lens and chronicle buttons beside End Turn (End Turn itself stays). With
   the bar gone the mode's top padding collapses so the band sits flush; both
   facts share the one condition, so a browser without `:has` keeps the bar
   *and* keeps the band below it. The tile readout is the one card that stays —

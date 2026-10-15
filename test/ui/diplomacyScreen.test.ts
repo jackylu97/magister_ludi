@@ -415,25 +415,27 @@ describe('the wiring that spans files', () => {
   // The sources come from the suite's shared glob (`sourceHelpers.ts`).
   const source = uiSource;
 
-  it('gives the dock a third button and mounts every one of them', () => {
-    const dock = source('hudDock.ts');
-    expect(dock).toContain("buildButton(\n    'hud-dock-diplomacy'");
-    // Four since batch R2, when the Trade sheet took a door of its own beside
-    // this one (the user's ruling of 2026-09-09), five since batch L2b, when
-    // the leader's record took the next, and six since V1, when the standings
-    // took the last (the row grew past one line, so the pin reads the members
-    // in order rather than the literal). The claim is unchanged and is about
-    // *this* button: the dock mounts the row it built, and a button constructed
-    // and never appended is a door nobody can open.
-    expect(dock).toMatch(
-      /container\.append\(\s*statecraftButton,\s*religionButton,\s*diplomacyButton,\s*tradeButton,\s*leaderButton,\s*standingsButton,?\s*\);/,
+  it('gives the top bar a Diplomacy tab and mounts it', () => {
+    // The dock's third door until batch UX1; the first of the bar's three tabs
+    // since. A tab constructed and never mounted is a door nobody can open, so
+    // the pin reads the mount as well as the build.
+    const bar = source('topBar.ts');
+    expect(bar).toContain(
+      "const diplomacyTab = sheetButton('topbar-tab is-diplomacy', 'diplomacy-overlay');",
     );
+    expect(bar).toContain('tabs.replaceChildren(diplomacyTab, tradeTab, standingsGroup);');
+    expect(source('hudDock.ts')).not.toContain('hud-dock-diplomacy');
   });
 
-  it('opens the sheet from that button, through the same door the other two use', () => {
+  it('opens the sheet from that tab, through the same door `W` uses', () => {
     const main = source('main.ts');
-    expect(main).toContain('hudDock.diplomacyButton.addEventListener');
+    expect(source('topBar.ts')).toContain(
+      "if (onOpenDiplomacy) diplomacyTab.addEventListener('click', () => onOpenDiplomacy());",
+    );
+    expect(main).toContain('onOpenDiplomacy: () => openScreen(() => diplomacy?.open()),');
     expect(main).toContain('openScreen(() => diplomacy?.open())');
+    // The sheet gives the keyboard back to the tab.
+    expect(main).toContain('trigger: civYields.diplomacyTab,');
   });
 
   it('sends every write as a command, and never touches the state itself', () => {

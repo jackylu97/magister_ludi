@@ -1,8 +1,8 @@
 /**
  * The yield strip's chips must expand to fit a long figure, never wrap or clip
  * it (bug report, 2026-08-28): a three-digit yield, a `poolFigure` like
- * "27/90 (+2)", the routes chip's "⇄ 2 / 3", or a four-digit treasury beside
- * its `(+123)` all have to print on one line.
+ * "27/90 (+2)", or a four-digit treasury beside its `(+123)` all have to print
+ * on one line.
  *
  * Asked of `src/style.css` itself, for `test/ui/tilePriceTags.test.ts`'s
  * reason exactly: there is no jsdom in this suite (`vite.config.ts`), so a
@@ -74,6 +74,38 @@ describe('the top-bar yield strip', () => {
     const strip = rule(css, '.civ-yields');
     expect(strip).toMatch(/min-width:\s*0/);
     expect(strip).toMatch(/overflow-x:\s*auto/);
+  });
+});
+
+/**
+ * The tabs at the right end of the bar (batch UX1) carry figures too — the
+ * routes, renown and bead counts that used to be strip chips — and the same
+ * rule holds for them: a figure never wraps and a tab never shrinks below its
+ * content. Only the strip shrinks (`#topbar`'s own docblock).
+ */
+describe('the top-bar tabs', () => {
+  const css = source('src/style.css');
+
+  it('never wraps a tab, a part of one, or a figure on one', () => {
+    for (const selector of [
+      '.topbar-tab',
+      '.topbar-tab-part',
+      '.topbar-tab-figure,\n.topbar-figure-value',
+    ]) {
+      expect(rule(css, selector)).toMatch(/white-space:\s*nowrap/);
+    }
+  });
+
+  it('never shrinks a tab: only the strip gives', () => {
+    expect(rule(css, '.topbar-tabs')).toMatch(/flex:\s*none/);
+    expect(rule(css, '.topbar-tab')).toMatch(/flex:\s*none/);
+    expect(rule(css, '.civ-yields')).toMatch(/flex:\s*0 1 auto/);
+  });
+
+  it('prints every tab figure in tabular mono', () => {
+    expect(rule(css, '.topbar-tab-figure,\n.topbar-figure-value')).toMatch(
+      /font-variant-numeric:\s*tabular-nums/,
+    );
   });
 });
 

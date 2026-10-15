@@ -1282,15 +1282,21 @@ body {
 }
 
 /* --- the top bar ----------------------------------------------------------
-   A slim ink rule across the whole window: the empire's per-turn totals, the
-   turn, the seats, and the two buttons that open everything else.
+   A slim ink strip across the whole window (batch UX1, spec §2). Left: the six
+   yields and the meters chip. Middle: the turn line. Right: the seat strip in
+   hot-seat play, the Diplomacy, Trade and Standings tabs, then ? and ☰.
 
    It is the only chrome the game shows unasked, so it is a bar rather than a
    card — the board begins under its bottom edge (see #viewport) instead of
    being covered by it, which is what makes it impossible to click the map
    "through" the HUD. Ink ground, parchment text: the same inversion the city
    banners and the tooltip use, and the reason everything inside it outlines
-   itself in parchment rather than in the usual ink. */
+   itself in parchment rather than in the usual ink.
+
+   Only the yield strip may shrink. Every other item keeps its natural width,
+   so when the bar runs short the strip is what measures too narrow, and
+   `fitStrip` (`topBar.ts`) steps its figures down before anything would
+   scroll out of sight. */
 #topbar {
   position: fixed;
   top: 0;
@@ -1312,101 +1318,222 @@ body {
   box-shadow: 0 4px 0 rgba(29, 26, 32, 0.3);
 }
 
-/* The buttons take the far right; everything before them reads left to right. */
+/* ? and ☰, at the far right. The turn line's auto margins push the tabs and
+   these to the right edge, so this needs no margin of its own. */
 .topbar-tools {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 6px;
-  margin-left: auto;
 }
 
-/* A labelled bar button — the lens menu. Wider than an icon button because it
-   carries a value the player reads at a glance ("Lens Settler"), and quiet in
-   the same way: a parchment outline on ink, filled only when it is open.
+/* --- the three tabs --------------------------------------------------------
+   Diplomacy, Trade and Standings: the screens about the other empires, as
+   labelled tabs at the right end of the bar (built by `topBar.ts`). A tab is
+   the bar's quiet button: a parchment outline on ink, filled when pressed or
+   while its sheet is open. Its mark is the drawing the dock wore for the same
+   screen, masked in `currentColor`.
 
-   Two nested boxes, and the nesting is the whole point. The pill centres one
-   line box; the line box aligns its three spans — a small mono eyebrow, a
-   larger naming face, a flag — on a shared *baseline*. Doing both jobs on one
-   element is impossible: a flex container with `align-items: baseline` hangs
-   the baseline group from the cross-start edge, so a fixed-height pill left the
-   label sitting high inside its own outline with all the slack below it. That
-   was the visible misalignment. */
-.topbar-btn {
+   Standings is a group of three buttons inside one outline, because a button
+   cannot hold another button: the label opens the standings sheet, the renown
+   figure the Reliquary and the bead figure the bead ledger. Each part has its
+   own hover wash and its own focus ring (`#topbar :focus-visible`). */
+.topbar-tabs {
   display: flex;
+  flex: none;
   align-items: center;
-  justify-content: center;
-  height: 24px;
+  gap: 6px;
+}
+
+.topbar-tab {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
   padding: 0 9px;
   border: var(--border-thin) solid var(--on-ink-soft);
   border-radius: var(--radius-sm);
-  background: transparent;
+  background: rgba(247, 242, 225, 0.06);
   color: var(--parchment);
   font-family: var(--face-num);
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
   line-height: 1;
+  white-space: nowrap;
+}
+
+button.topbar-tab {
+  cursor: pointer;
+}
+
+button.topbar-tab:hover,
+.topbar-tab-part:hover {
+  background: rgba(247, 242, 225, 0.14);
+}
+
+/* Pressed, or its sheet is open: filled, the bar's own press (`.icon-btn`). */
+button.topbar-tab:active,
+button.topbar-tab[aria-expanded='true'],
+.topbar-tab-part:active,
+.topbar-tab-part[aria-expanded='true'] {
+  background: var(--parchment);
+  color: var(--ink);
+}
+
+/* The group's own outline holds the three parts; the parts draw no border of
+   their own except a hairline between them. Not `overflow: hidden`, which
+   would clip the parts' focus rings: the end parts round their own corners
+   to match the outline instead. */
+.topbar-tab.is-standings {
+  gap: 0;
+  padding: 0;
+}
+
+.topbar-tab-part {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 100%;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   white-space: nowrap;
   cursor: pointer;
 }
 
-.topbar-btn-line {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
+.topbar-tab-part + .topbar-tab-part {
+  border-left: 1px solid var(--on-ink-line);
 }
 
-/* The eyebrow: it names the control and never changes, so it stays quiet. */
-.topbar-btn-label {
+.topbar-tab-part:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.topbar-tab-part:last-child {
+  border-radius: 0 4px 4px 0;
+}
+
+/* Inside the outline rather than outside it, so a focused part's ring does
+   not run over its neighbours. */
+#topbar .topbar-tab-part:focus-visible {
+  outline-offset: -3px;
+}
+
+/* The printed name: the bar's mono eyebrow, quieter than the figures. */
+.topbar-tab-label {
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
   color: var(--on-ink-soft);
 }
 
-/* The value is the part that changes, so it is the part that is not grey. */
-.topbar-btn-value {
-  font-family: var(--face-ui);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  color: var(--y-gold-lit);
+button.topbar-tab:hover .topbar-tab-label,
+.topbar-tab-part:hover .topbar-tab-label {
+  color: var(--parchment);
 }
 
-/* The yields flag: a second, independent thing the board may be showing, so it
-   is a separate mark rather than part of the value — and it speaks in the food
-   voice, which is the colour those glyphs already use on the board. */
-.topbar-btn-flag {
-  padding: 1px 4px;
-  border: var(--border-thin) solid currentcolor;
-  border-radius: var(--radius-sm);
+button.topbar-tab:active .topbar-tab-label,
+button.topbar-tab[aria-expanded='true'] .topbar-tab-label,
+.topbar-tab-part:active .topbar-tab-label,
+.topbar-tab-part[aria-expanded='true'] .topbar-tab-label {
+  color: var(--ink-soft);
+}
+
+.topbar-tab-mark {
+  flex: none;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--tab-mark);
+  mask-image: var(--tab-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* A figure on a tab: tabular mono, like every number in this interface. */
+.topbar-tab-figure,
+.topbar-figure-value {
   font-family: var(--face-num);
-  font-size: 8.5px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* The figure's own small mark: the renown laurel, or the bead. */
+.topbar-figure-mark {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+}
+
+/* A route slot is free: the quiet good ink, never the alarm vermilion. */
+.topbar-tab.is-trade.is-good .topbar-tab-figure {
   color: var(--y-food-lit);
 }
 
-.topbar-btn[aria-expanded='true'] .topbar-btn-label {
-  color: var(--ink-soft);
+/* Renown wears gilt, the colour gold wears: renown and money are the two
+   things on this bar an empire banks. */
+.topbar-tab-figure.is-renown {
+  color: var(--y-gold-lit);
 }
 
-.topbar-btn:hover {
-  background: rgba(247, 242, 225, 0.14);
+/* A great person is waiting to be called: a glow, the quiet good state. */
+.topbar-tab-figure.is-renown.is-good .topbar-figure-value {
+  text-shadow: 0 0 10px rgba(236, 193, 84, 0.75);
 }
 
-.topbar-btn[aria-expanded='true'] {
-  background: var(--parchment);
-  border-color: var(--parchment);
-  color: var(--ink-soft);
-}
+/* Below about 1200 px the three tabs give up their printed names and keep
+   their marks and figures. A width breakpoint is honest here, as it is not
+   for the yield strip: a tab's name is fixed text, so whether it fits is a
+   question about the window, while the strip's width depends on its digits
+   and is measured instead (`fitStrip`). The name is hidden from sight only;
+   a screen reader still reads it, so every tab keeps its accessible name. */
+@media (max-width: 1199px) {
+  #topbar {
+    gap: 10px;
+  }
 
-.topbar-btn[aria-expanded='true'] .topbar-btn-value {
-  color: var(--vermilion);
+  .topbar-tab-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .topbar-tab,
+  .topbar-tab-part {
+    gap: 4px;
+  }
+
+  button.topbar-tab {
+    padding: 0 7px;
+  }
+
+  .topbar-tab-part {
+    padding: 0 6px;
+  }
 }
 
 /* --- the empire's per-turn yields ----------------------------------------
-   Five figures in the five yield voices, lifted to their on-ink variants. Mono
-   and tabular, so the row does not twitch as the numbers change width.
+   Six figures in the six yield colours, lifted to their on-ink variants, then
+   the meters chip. Mono and tabular, so the row does not twitch as the numbers
+   change width.
 
    The strip is a flex row of chips that must never wrap a chip's own text —
    a three-digit figure or a `(+123)` per-turn parenthetical breaking onto a
@@ -1418,10 +1545,14 @@ body {
    must never force the bar's right-hand controls off the edge. */
 .civ-yields {
   display: flex;
+  /* The one item in the bar that may shrink (see #topbar). */
+  flex: 0 1 auto;
   align-items: center;
   gap: clamp(6px, 1vw, 12px);
-  padding-right: 14px;
-  border-right: var(--border-thin) solid var(--on-ink-line);
+  /* Room inside the scroll box for a chip's focus ring, which `overflow-x`
+     would otherwise clip. Small enough that the strip, meters chip and all,
+     stays inside the 42 px bar. */
+  padding: 4px 5px;
   min-width: 0;
   overflow-x: auto;
 }
@@ -1492,13 +1623,11 @@ body {
   color: var(--y-faith-lit);
 }
 
-/* The culture chip's own affordance: it is the one yield chip that is also a
-   button (see `topBar.ts`'s `onOpenStatecraft`), and it wears the same cursor
-   and hover wash `.civ-meter` does immediately below, so "this opens
-   something" reads the same way at both ends of the strip. Padding and a
-   matching negative margin keep the hover wash from nudging the row's own
-   gap, the way `.civ-meter`'s does not have to because that strip pads every
-   chip alike. */
+/* A yield chip is also a button: each opens the Ledger on its own yield
+   (`onOpenLedger` in `topBar.ts`). It wears the same cursor and hover wash
+   `.civ-meter` does immediately below, so "this opens something" reads the
+   same way across the strip. Padding and a matching negative margin keep the
+   hover wash from nudging the row's own gap. */
 .civ-yield-clickable {
   cursor: pointer;
   padding: 2px 4px;
@@ -1511,18 +1640,36 @@ body {
   background: rgba(247, 242, 225, 0.14);
 }
 
-/* --- the two empire meters -----------------------------------------------
-   Happiness and authority, at the right-hand end of the yield strip and behind
-   their own hairline: they are not yields, they are what the empire *feels*
-   about them. Each chip is a button — click for the whole signed ledger — and
-   each carries its own consequence in text when it is biting, so the common
-   case needs no gesture at all (design ledger, Entry XIV.C). */
+/* --- the meters chip ------------------------------------------------------
+   Happiness and authority as one chip after the six yields, `☺ +8 · ♙ 0`
+   (spec §2): they are not yields, they are what the empire feels about them,
+   so they share one outline of their own. Each half is still its own button —
+   click for its whole signed ledger — and colours itself when it is biting,
+   so the common case needs no gesture at all (design ledger, Entry XIV.C). */
 .civ-meters {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 8px;
-  padding-left: 12px;
-  border-left: var(--border-thin) solid var(--on-ink-line);
+  gap: 6px;
+  padding: 1px 2px;
+  border: var(--border-thin) solid var(--on-ink-line);
+  border-radius: var(--radius-sm);
+}
+
+/* The dot between the two halves. A flex item of the chip itself, placed
+   between the two buttons by `order`, so the chip's only children stay the
+   two meters (the tutorial's meters step rings exactly them). */
+.civ-meters::after {
+  content: '·';
+  order: 1;
+  color: var(--on-ink-soft);
+  font-family: var(--face-num);
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.civ-meters > .civ-meter:last-child {
+  order: 2;
 }
 
 .civ-meter {
@@ -1575,12 +1722,14 @@ body {
 }
 
 /* --- the strip steps down before it would overflow ------------------------
-   A late empire prints six three-digit yields, a renown pool over its rung, a
-   routes count, a bead count and then the two meters — and on the playthrough
-   of 2026-09-04 (turn 92, six cities) that row outgrew the space the bar
-   leaves it. The strip's last resort took over: it scrolled, and what scrolled
-   out of sight was its right-hand end, which is exactly where the authority
-   meter lives. A meter you have to scroll to is a meter that is gone.
+   On the playthrough of 2026-09-04 (turn 92, six cities) the strip — then six
+   three-digit yields, renown, routes, beads, the age and the two meters —
+   outgrew the space the bar leaves it. The strip's last resort took over: it
+   scrolled, and what scrolled out of sight was its right-hand end, which is
+   exactly where the authority meter lives. A meter you have to scroll to is a
+   meter that is gone. Batch UX1 moved renown, routes, beads and the age out of
+   the strip, so it is the six yields and the meters chip now, and the steps
+   below still guard its right-hand end.
 
    The ruling (`docs/flags.md`, "From the first full playthrough", note 24):
    **the figures shrink before the strip would overflow**. Two steps down in
@@ -1606,7 +1755,6 @@ body {
    narrower than the one that scrolled. */
 .civ-yields.is-tight {
   gap: 8px;
-  padding-right: 10px;
 }
 
 .civ-yields.is-tight .civ-yield,
@@ -1620,13 +1768,11 @@ body {
 }
 
 .civ-yields.is-tight .civ-meters {
-  gap: 6px;
-  padding-left: 9px;
+  gap: 4px;
 }
 
 .civ-yields.is-tighter {
   gap: 6px;
-  padding-right: 8px;
 }
 
 .civ-yields.is-tighter .civ-yield,
@@ -1644,14 +1790,13 @@ body {
 }
 
 .civ-yields.is-tighter .civ-meters {
-  gap: 5px;
-  padding-left: 7px;
+  gap: 3px;
 }
 
-/* The chips are still buttons at every step — the Ledger's door, the
-   Statecraft door, the Trade door — so their hit area only tightens by the
-   pair of pixels the row is asking of everything else, and the negative margin
-   keeps moving with the padding so the wash still never nudges the gap. */
+/* The chips are still buttons at every step — each is the Ledger's door — so
+   their hit area only tightens by the pair of pixels the row is asking of
+   everything else, and the negative margin keeps moving with the padding so
+   the wash still never nudges the gap. */
 .civ-yields.is-tighter .civ-yield-clickable {
   padding: 2px 3px;
   margin: -2px -3px;
@@ -1811,9 +1956,11 @@ body {
 }
 
 /* --- the setup and controls popovers --------------------------------------
-   Hung under the right end of the bar, in one column, so that opening one reads
-   as that button unfolding rather than as a dialog arriving from nowhere. There
-   is no scrim: the game is still live behind it.
+   The game menu and the controls card, hung under the right end of the bar in
+   one column, so that opening one reads as that button unfolding rather than
+   as a dialog arriving from nowhere. There is no scrim: the game is still live
+   behind it. (The Lens and chronicle cards open above their buttons in the End
+   Turn corner instead; see `.hud-turn-tools`.)
 
    Transparent to the pointer, with the cards themselves opaque to it: the
    column's own box spans the gap between the cards, and the board underneath
@@ -2041,8 +2188,9 @@ button.log-entry:active {
 /* --- the unread badge -----------------------------------------------------
    A count, not a dot: "three things happened" and "eleven things happened" are
    different amounts of urgency, and the list behind the button is capped so the
-   number can never run away. Vermilion, because it is the one thing in the bar
-   asking to be pressed. */
+   number can never run away. Vermilion, because it is asking to be pressed. It
+   rides the chronicle's button beside End Turn (`.turn-tool`, which is
+   positioned for it); the bar's own icon buttons keep the anchor too. */
 .icon-btn {
   position: relative;
 }
@@ -2463,21 +2611,37 @@ button.log-entry:active {
   }
 }
 
-/* --- status and seats -----------------------------------------------------
-   Both live in the top bar, on ink. */
+/* --- the turn line and the seats ------------------------------------------
+   Both live in the top bar, on ink. The turn line sits in the middle: its two
+   auto margins share out the bar's spare room, which centres it between the
+   yields and the tabs and pushes the tabs and the tools to the right edge.
+   `topBar.ts` writes it: "Turn 91 · Æra II · 9 left". */
 
 .status {
   display: flex;
+  flex: none;
   align-items: baseline;
-  gap: 6px;
-  margin: 0;
-  padding-right: 14px;
-  border-right: var(--border-thin) solid var(--on-ink-line);
+  margin: 0 auto;
   font-size: 13px;
   white-space: nowrap;
 }
 
-/* "Turn 14" counts, so it is mono; the name is a name, so it is Fraunces. */
+/* The focusable line the age card hangs on. A hover wash says there is a card
+   here; there is no click, because there is no age screen to open. */
+.status-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  cursor: default;
+}
+
+.status-line:hover {
+  background: rgba(247, 242, 225, 0.1);
+}
+
+/* "Turn 14" counts, so it is mono. */
 .status-turn {
   font-family: var(--face-num);
   font-size: 11px;
@@ -2488,18 +2652,33 @@ button.log-entry:active {
   color: var(--on-ink-soft);
 }
 
-.status-name {
+.status-sep {
+  color: var(--on-ink-soft);
+}
+
+/* The world's age is a name, so it is in the naming face. */
+.status-age {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 14px;
   letter-spacing: -0.01em;
   line-height: 1.1;
 }
 
+/* The turns left before the age closes, in the quiet good ink: it is the last
+   window in which a wager staked on this age can still be met. */
+.status-left {
+  font-family: var(--face-num);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--y-food-lit);
+}
+
 /* Waiting on somebody else is a quiet state: the bar says so in the working
    face, not in a colour that competes with your own turn. */
-.status.is-waiting .status-name {
+.status-waiting {
   font-family: var(--face-ui);
   font-size: 12px;
   font-weight: 600;
@@ -2520,8 +2699,10 @@ button.log-entry:active {
 /* `renderSeats` (`main.ts`) hides the strip outright in the one-human game —
    see `showsSeatStrip` (`controls.ts`) — and `.seats`' own `display: flex`
    above would otherwise outrank the UA's `[hidden]` rule, the same override
-   every other `[hidden]` surface in this file already states explicitly. */
-.seats[hidden] {
+   every other `[hidden]` surface in this file already states explicitly. An
+   empty strip takes no room either, so no flex gap opens for it in the bar. */
+.seats[hidden],
+.seats:empty {
   display: none;
 }
 
@@ -3067,15 +3248,14 @@ kbd {
 }
 
 /* --- the HUD dock -----------------------------------------------------
-   Two square lozenge buttons directly under the research card — Statecraft
-   and Religion, "front and centre" read literally: a fixed corner rather than
-   a click or two down inside another surface. Pinned with `--research-card-h`
-   so it can never drift into the card above it, the same technique
-   `--end-turn-clearance` uses for the corner End Turn owns.
+   Three square buttons directly under the research card: Statecraft, Religion
+   and the leader sheet. Pinned with `--research-card-h` so it can never drift
+   into the card above it, the same technique `--end-turn-clearance` uses for
+   the corner End Turn owns. Diplomacy, Trade and the standings left it for the
+   top bar's tabs in batch UX1, and the empire panel replaces it in UX3.
 
-   Built by `src/ui/hudDock.ts`; see that module for why Statecraft opens a
-   screen the dock does not own and Religion opens a small popover of its
-   own. */
+   Built by `src/ui/hudDock.ts`; see that module for why each button is a bare
+   trigger for a screen the dock does not own. */
 .hud-dock {
   position: fixed;
   top: calc(var(--topbar-h) + 12px + var(--research-card-h) + 10px);
@@ -3614,7 +3794,11 @@ kbd {
   position: fixed;
   right: 14px;
   bottom: 14px;
-  z-index: 10;
+  /* Above the unit panel (12). The Lens and chronicle cards open upward from
+     this corner and must not be drawn under a selected unit's sheet; the
+     panel stops above End Turn's band, so nothing else here overlaps it.
+     Below the popover columns (15) and the toasts (16). */
+  z-index: 13;
   /* A row, so anything pinned here sits *beside* End Turn rather than on top of
      it. That is not a styling preference: the right-hand panels reserve exactly
      this corner by height (`--end-turn-clearance`), so a second control stacked
@@ -3623,6 +3807,128 @@ kbd {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* --- the Lens and the chronicle, beside End Turn ---------------------------
+   Two small buttons to End Turn's left (spec §7), moved out of the top bar in
+   batch UX1. 40 px tall, in the HUD's parchment card dress and with its
+   physical press, because they sit on the board rather than on the ink bar.
+   The Lens grows sideways to name the lens that is up; the chronicle is its
+   ❧ and the unread badge.
+
+   The wrapper is the cards' positioning box: each card opens directly above
+   the pair, right-aligned to it, wherever End Turn's label has left the pair. */
+.hud-turn-tools {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.turn-tool {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 8px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--face-ui);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 60ms ease-out, box-shadow 60ms ease-out;
+}
+
+.turn-tool:hover {
+  background: #fdfaef;
+}
+
+/* The press every bordered control in this HUD shares: the 3px throw of
+   `--shadow-sm`, collapsed. A button whose card is open stays pressed in. */
+.turn-tool:active,
+.turn-tool[aria-expanded='true'] {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+/* The chronicle's ❧. */
+.turn-tool-glyph {
+  font-size: 19px;
+  line-height: 1;
+}
+
+/* The Lens's two lines: a mono eyebrow that never changes, then what the
+   board is showing. */
+.turn-tool-label {
+  font-family: var(--face-num);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.turn-tool-line {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.turn-tool-value {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* The yield glyphs are up: a second, independent thing the board is showing,
+   so a separate mark in the food colour those glyphs use on the board. */
+.turn-tool-flag {
+  padding: 1px 3px;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  font-family: var(--face-num);
+  font-size: 7.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--y-food);
+}
+
+/* The two cards, risen above the pair rather than hung from the bar. Capped to
+   the room between the bar and this corner; a long chronicle scrolls inside. */
+.hud-turn-tools > .hud-card {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  z-index: auto;
+  max-height: calc(100dvh - var(--topbar-h) - 24px - var(--end-turn-clearance));
+  overflow-y: auto;
+}
+
+/* The incoming-offers button (`diplomacyOffers.css`) stands above this corner
+   while offers wait; the cards open above it then rather than over it. */
+body.has-diplomatic-offers .hud-turn-tools > .hud-card {
+  bottom: calc(100% + 12px + 48px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .turn-tool {
+    transition: none;
+  }
+}
+
+/* The city screen is a mode of its own. These two stood down with the top bar
+   they used to sit in, and they still do; End Turn stays. */
+body:has(.city-mode:not([hidden])) .hud-turn-tools {
+  display: none;
 }
 
 .btn-end {
@@ -11608,27 +11914,9 @@ p.city-trade-link {
 }
 
 /* --- renown, great people and their Triumphs -----------------------------
-   The fifth Entry XVIII bucket (`docs/great-people.md`) and the two surfaces it
-   reaches: the chip at the end of the yield strip, and the checklist inside its
-   hover card. */
-
-/* The renown chip wears the strip's gilt — the same voice gold does — because
-   renown and money are the two things on that row an empire *banks* rather than
-   only earns, and a sixth colour on a strip of six would be a new voice for a
-   thing that is not a new kind of number. It is told apart by its drawing (a
-   laurel, `src/art/meterMarks.ts`) and by its position past the hairline of the
-   yields, not by a hue nobody could name. */
-.civ-yield.is-renown .civ-yield-value,
-.civ-yield.is-renown .civ-yield-icon {
-  color: var(--y-gold-lit);
-}
-
-/* A name is waiting to be called. The chip's only state, and it is the quiet
-   good ink rather than the alarm vermilion — which stays reserved for a meter
-   in deficit, so a player never learns to flinch at good news. */
-.civ-yield.is-renown.is-good .civ-yield-value {
-  text-shadow: 0 0 10px rgba(236, 193, 84, 0.75);
-}
+   The fifth Entry XVIII bucket (`docs/great-people.md`). Its figure is on the
+   top bar's Standings tab (styled with the tabs, `.topbar-tab-figure.is-renown`);
+   this block is the checklist inside that figure's hover card. */
 
 /* The checklist's heading: the inscription voice the panels already use, ruled
    off from the ledger above it because it is a second, independent list rather
@@ -13538,34 +13826,9 @@ button.trade-chip {
   margin: 0;
 }
 
-/* The routes chip's own drawn mark (batch R2). The strip's other marks are
-   printed by `yieldMark.ts` through `--yield-mark`; this one is set per node by
-   `topBar.ts` because there is exactly one of it, so it carries its own custom
-   property rather than joining a table shaped for a closed union. Same mask
-   recipe as `.yield-mark` and `.hud-dock-icon` — no fifth mechanism. */
-.civ-yield-mark {
-  flex: none;
-  display: inline-block;
-  width: 1.05em;
-  height: 1.05em;
-  background-color: currentColor;
-  -webkit-mask-image: var(--civ-mark);
-  mask-image: var(--civ-mark);
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-}
-
-
-/* The routes chip, at the end of the yield strip beside renown. It is a button
-   because it opens a screen — the culture chip's precedent exactly. */
-.civ-yield-routes {
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-}
+/* The routes figure and its drawn cart moved from the yield strip to the top
+   bar's Trade tab in batch UX1; they are styled with the tabs
+   (`.topbar-tab-mark`, `.topbar-tab-figure`). */
 
 /* =========================================================================
    The Compendium, as a page (compendium.html).
@@ -14240,6 +14503,42 @@ body.compendium-page {
 .victory-to-title {
   background: transparent;
   color: var(--ink);
+}
+
+/* The Abacus's door, in the sheet's header (batch UX1: the Abacus left the
+   top bar). A quiet outlined button beside the close, with the key it shares
+   with the board. */
+.victory-abacus {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 60ms ease-out, box-shadow 60ms ease-out;
+}
+
+.victory-abacus:hover {
+  background: var(--table);
+}
+
+.victory-abacus:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .victory-abacus {
+    transition: none;
+  }
 }
 
 /* --- the bead sheet --------------------------------------------------------

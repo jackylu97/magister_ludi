@@ -135,14 +135,32 @@ describe('the sheet itself', () => {
     expect(main).toContain('toTitle: () => showLanding(),');
   });
 
-  it('is raised by the decided game and by the dock’s own door', () => {
+  it('is raised by the decided game and by the top bar’s Standings tab', () => {
+    // The dock's sixth door until batch UX1; the Standings tab's own button
+    // since, which the sheet gives the keyboard back to.
     const main = uiSource('main.ts');
     expect(main).toContain('victory = createVictoryScreen({');
-    expect(main).toContain('trigger: hudDock.standingsButton,');
+    expect(main).toContain('trigger: civYields.standingsTab,');
     expect(main).toContain('victory?.open();');
-    expect(main).toContain(
-      "hudDock.standingsButton.addEventListener('click', () => {\n    openScreen(() => victory?.open());\n  });",
-    );
+    expect(main).toContain('onOpenStandings: () => openScreen(() => victory?.open()),');
+    expect(main).not.toContain('hudDock.standingsButton');
+  });
+
+  it('carries the Abacus’s door in its header, since the Abacus left the bar', () => {
+    const html = uiSource('index.html');
+    const sheet = html.slice(html.indexOf('id="victory-overlay"'));
+    const header = sheet.slice(0, sheet.indexOf('</header>'));
+    expect(header).toContain('id="victory-abacus"');
+    expect(header).toContain('aria-controls="abacus-overlay"');
+    // The button is the Abacus screen's trigger, and the Abacus shuts this
+    // sheet as it opens, so closing the Abacus lands on the Standings tab.
+    const main = uiSource('main.ts');
+    expect(main).toContain('trigger: victoryAbacusButton,');
+    const abacus = main.slice(main.indexOf('abacus = createAbacusScreen({'));
+    const onOpen = abacus.slice(abacus.indexOf('onOpen: () => {'), abacus.indexOf('onOpenBeads:'));
+    expect(onOpen).toContain('victory?.close();');
+    // And `A` still opens it from anywhere.
+    expect(main).toContain('onToggleAbacus: () => abacus?.toggle(),');
   });
 
   it('has replaced the modal it was written to replace', () => {

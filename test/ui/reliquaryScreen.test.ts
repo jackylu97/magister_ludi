@@ -447,17 +447,22 @@ describe('the Reliquary screen', () => {
 
 // --- the door ---------------------------------------------------------------
 
-describe('the renown chip is the door', () => {
+describe('the renown figure is the door', () => {
   const BAR = source('topBar.ts');
 
-  it('makes the chip a button in the strip’s existing idiom, keyboard and all', () => {
-    expect(BAR).toContain('if (onOpenReliquary) {');
-    expect(BAR).toContain("renownItem.classList.add('civ-yield-clickable')");
-    expect(BAR).toContain("renownItem.setAttribute('role', 'button')");
-    expect(BAR).toContain("renownItem.addEventListener('click', () => onOpenReliquary())");
-    expect(BAR).toMatch(/renownItem\.addEventListener\('keydown'[\s\S]{0,200}Enter/);
-    // A page that wires no door leaves the chip exactly as it was.
-    expect(BAR).toContain("renownItem.setAttribute('aria-label', 'renown')");
+  it('is a real button on the Standings tab, so the keyboard needs no wiring of its own', () => {
+    // Batch UX1 moved renown off the yield strip onto the top bar's Standings
+    // tab. The figure is a `<button>` now, so Enter and Space press it
+    // natively; the old chip needed a role and a keydown handler to fake that.
+    expect(BAR).toContain(
+      "const renownItem = sheetButton('topbar-tab-part topbar-tab-figure is-renown', 'reliquary-overlay');",
+    );
+    expect(BAR).toContain(
+      "if (onOpenReliquary) renownItem.addEventListener('click', () => onOpenReliquary());",
+    );
+    expect(BAR).not.toMatch(/renownItem\.addEventListener\('keydown'/);
+    // Its accessible name carries the figure in full and says where it leads.
+    expect(BAR).toContain("renownItem.setAttribute('aria-label', figures.renownSpoken);");
   });
 
   it('hands the chip out by name so the ceremony can aim at it', () => {

@@ -18,7 +18,8 @@ that file's.
 - **The world's age is the mean** of every living real seat's highest researched
   technology, floored — not the first seat's. When the mean crosses, the current
   age is given a countdown to close: `rules.wager.countdown` (`data/rules.json`).
-  The countdown is public, on the top bar's age card.
+  The countdown is public, on the turn line in the middle of the top bar
+  ("9 left"), with the age card on hover.
 - **Æra I deals nothing** and Æra V will deal nothing. The wager runs in Æra II,
   III and IV; the last age's wager is judged when the Opus is raised or
   `rules.wager.lastAgeTurns` after the age opened, whichever comes first.

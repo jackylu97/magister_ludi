@@ -364,9 +364,12 @@ const statusEl = requireElement<HTMLElement>('status');
    `getElementById` gave both of these the landing's control. */
 const seatsEl = requireElement<HTMLElement>('seat-strip');
 const civYieldsEl = requireElement<HTMLElement>('civ-yields');
-/* The two meter cards, hung under the left end of the bar. The chips that open
-   them are built by `topBar.ts` inside #civ-yields, so the triggers are its to
-   make and the panels are the page's. */
+/* The three tabs at the right end of the bar: Diplomacy, Trade and Standings.
+   `topBar.ts` builds them into this container (batch UX1). */
+const topbarTabsEl = requireElement<HTMLElement>('topbar-tabs');
+/* The two meter cards, hung under the left end of the bar. The meters chip that
+   opens them is built by `topBar.ts` inside #civ-yields, so the triggers are its
+   to make and the panels are the page's. */
 const happinessPopoverEl = requireElement<HTMLElement>('happiness-popover');
 const happinessBodyEl = requireElement<HTMLElement>('happiness-body');
 const authorityPopoverEl = requireElement<HTMLElement>('authority-popover');
@@ -417,26 +420,26 @@ const researchFiguresEl = requireElement<HTMLElement>('research-figures');
 const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
 const techChartEl = requireElement<HTMLElement>('tech-chart');
 /* The HUD dock, directly under the research card: Statecraft, Religion and
-   Diplomacy. Its buttons are runtime `data:` URIs, so `createHudDock` builds
+   Leader. Its buttons' icons are runtime `data:` URIs, so `createHudDock` builds
    them into this container rather than index.html holding them static — see
-   `src/ui/hudDock.ts`. All three are bare triggers; the Faith popover they used
-   to sit beside became the Religion screen (ledger Entry XXVIII), and the
-   banner is the war ruling's own door (2026-09-03). */
+   `src/ui/hudDock.ts`. All three are bare triggers. */
 const hudDockEl = requireElement<HTMLElement>('hud-dock');
-/* The Abacus: the bar button that opens it, and the screen it opens. Its canvas
-   is not here — `abacusScreen.ts` builds one into the stage on the first open. */
-const abacusButton = requireElement<HTMLButtonElement>('abacus-button');
+/* The Abacus's door: a button in the standings sheet's header, which is the
+   Abacus screen's trigger now that the bar has no Abacus button (batch UX1).
+   The canvas is not here — `abacusScreen.ts` builds one into the stage on the
+   first open. */
+const victoryAbacusButton = requireElement<HTMLButtonElement>('victory-abacus');
 /* Statecraft's overlay and the body its contents are built into on each open.
-   There is no bar button: the screen is opened from the culture chip's card, by
-   the End Turn blocker, and by `C`. */
+   There is no bar button: the screen is opened from the HUD dock, the ☰ menu,
+   the End Turn blocker, and `C`. */
 const statecraftOverlayEl = requireElement<HTMLElement>('statecraft-overlay');
 const statecraftBodyEl = requireElement<HTMLElement>('statecraft-body');
 /* Religion's overlay and body — Statecraft's sibling sheet, opened from the
    dock's second button, by the End Turn blocker, and by `H`. */
 const religionOverlayEl = requireElement<HTMLElement>('religion-overlay');
 const religionBodyEl = requireElement<HTMLElement>('religion-body');
-/* Trade's overlay and body — Religion's sibling sheet, opened from the routes
-   chip in the bar, from a routed caravan's sheet, and from a city panel's
+/* Trade's overlay and body — Religion's sibling sheet, opened from the bar's
+   Trade tab, from `E`, from a routed caravan's sheet, and from a city panel's
    Routes row. */
 const tradeOverlayEl = requireElement<HTMLElement>('trade-overlay');
 const tradeBodyEl = requireElement<HTMLElement>('trade-body');
@@ -449,16 +452,18 @@ const wagerBodyEl = requireElement<HTMLElement>('wager-body');
 const censusOverlayEl = requireElement<HTMLElement>('census-overlay');
 const censusBodyEl = requireElement<HTMLElement>('census-body');
 /* The leader's sheet (batch L2b, re-aimed in L6b): the record of what your civ
-   does, behind the fifth door on the HUD dock. Its draft retired with the deck. */
+   does, behind the Leader button on the HUD dock. Its draft retired with the
+   deck. */
 const leaderOverlayEl = requireElement<HTMLElement>('leader-overlay');
 const leaderBodyEl = requireElement<HTMLElement>('leader-body');
 const diplomacyOverlayEl = requireElement<HTMLElement>('diplomacy-overlay');
 const diplomacyBodyEl = requireElement<HTMLElement>('diplomacy-body');
-/* The Compendium: the bar's book button, the overlay, and the body the same
-   module the standalone `compendium.html` page mounts is rendered into. It is
-   the one screen with no game behind it — see `src/ui/compendium.ts` — so it
-   belongs to the page rather than to a game and reads nothing about a seat. */
-const compendiumButton = requireElement<HTMLButtonElement>('compendium-button');
+/* The Compendium: its row in the ☰ menu (the bar's ▤ button went in batch
+   UX1), the overlay, and the body the same module the standalone
+   `compendium.html` page mounts is rendered into. It is the one screen with no
+   game behind it — see `src/ui/compendium.ts` — so it belongs to the page
+   rather than to a game and reads nothing about a seat. */
+const menuCompendiumButton = requireElement<HTMLButtonElement>('menu-compendium');
 const compendiumOverlayEl = requireElement<HTMLElement>('compendium-overlay');
 const compendiumBodyEl = requireElement<HTMLElement>('compendium-body');
 const abacusOverlayEl = requireElement<HTMLElement>('abacus-overlay');
@@ -481,7 +486,7 @@ const captureCloseEl = requireElement<HTMLElement>('capture-close');
 const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
 /* The standings — the victory sheet and the score (`victoryScreen.ts`, item
    (uuuuu)), the fifteenth of the family. Raised by a decided game and opened
-   from the dock's sixth door on any other turn. */
+   from the bar's Standings tab on any other turn. */
 const victoryOverlayEl = requireElement<HTMLElement>('victory-overlay');
 const victoryBodyEl = requireElement<HTMLElement>('victory-body');
 /**
@@ -1079,7 +1084,10 @@ const compendium: LazyOverlay<Compendium> = lazyOverlay({
         overlay: compendiumOverlayEl,
         body: compendiumBodyEl,
         closeButton: requireElement('compendium-close'),
-        trigger: compendiumButton,
+        // The ☰ button, not the menu row that opened it: the menu is closed
+        // by the time the book is, and a hidden row cannot take the keyboard
+        // back. The keyboard lands on ☰, the one standing door to the book.
+        trigger: menuButton,
         onOpen: () => {
           menu.close();
           help.close();
@@ -1105,7 +1113,12 @@ whenIdle(() => compendium.prefetch());
    a rite's line all open the same book. The overlay's `open` already shuts
    whatever else was up, so a keyword clicked over the star chart closes it. */
 setKeywordOpener((entryId) => compendium.open(entryId));
-compendiumButton.addEventListener('click', () => compendium.toggle());
+/* The menu's door to the book. The menu shuts first, so the keyboard goes back
+   to ☰ before the book takes it; the book gives it back there on close. */
+menuCompendiumButton.addEventListener('click', () => {
+  menu.close();
+  compendium.open();
+});
 /* The controls card's one link out. The card closes under it, because two
    surfaces at one z-index is one of them being invisible. */
 requireElement('help-compendium').addEventListener('click', () => {
@@ -2431,48 +2444,6 @@ async function boot(initial: Game | null): Promise<void> {
   });
 
   /**
-   * `Turn N — <you>` while the local seat still has moves to make, and
-   * `Turn N — Waiting: <them>` once it has ended and the turn cannot resolve
-   * until somebody else does.
-   *
-   * The waiting state is not reachable by pressing End Turn — that hops to the
-   * next open seat — but it is exactly what a networked client will sit in, and
-   * the seat chips reach it today.
-   */
-  function updateStatus(): void {
-    const { state } = game;
-    const local = state.players[controls.localPlayerId()];
-    if (!local) return;
-
-    // Two voices in one short line: the turn is a count, so it is mono, and the
-    // player is a name, so it is the naming face — in their own colour while
-    // they still have moves to make.
-    const turn = document.createElement('span');
-    turn.className = 'status-turn';
-    turn.textContent = `Turn ${state.turn}`;
-    const who = document.createElement('span');
-    who.className = 'status-name';
-
-    const playing = !hasEndedTurn(state, local.id);
-    statusEl.classList.toggle('is-waiting', !playing);
-    if (playing) {
-      who.textContent = seatName(state, local.id);
-      who.style.color = local.color;
-    } else {
-      // `realPlayers`, not the raw roster: the wild's flag is raised for it every
-      // turn (`clearTurnEnded`) so it would never appear here anyway, but a seat
-      // strip that agrees with this line by accident is a seat strip that will
-      // disagree the day a seat is auto-ended for some other reason.
-      const waiting = realPlayers(state).filter((player) => !hasEndedTurn(state, player.id));
-      who.textContent =
-        waiting.length > 0
-          ? `Waiting: ${waiting.map((p) => seatName(state, p.id)).join(', ')}`
-          : 'resolving';
-    }
-    statusEl.replaceChildren(turn, who);
-  }
-
-  /**
    * The seat chips: who is at the table, whose seat this client is playing
    * (outlined), and who has already ended their turn (faded, ticked).
    *
@@ -2792,12 +2763,13 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   function updatePanel(_selected: Unit | null, hover: HoverInfo | null): void {
-    updateStatus();
     renderSeats();
     updateLensMenu();
     // Cities change on almost everything — founding, growth, production, a seat
     // change — so every view of them is refreshed wherever the main panel is,
-    // the empire's per-turn totals in the top bar included.
+    // the empire's per-turn totals in the top bar included. The strip writes
+    // the turn line in the middle of the bar too (who the turn is waiting for
+    // included) and the figures on the Trade and Standings tabs.
     civYields.render();
     // The dock's badge and its open Faith card change on the same facts the
     // strip above just read, so it refreshes in the same breath.
@@ -2914,10 +2886,10 @@ async function boot(initial: Game | null): Promise<void> {
   });
 
   /*
-   * The standings sheet is **built further down**, with the HUD dock, because
+   * The standings sheet is **built further down**, after the top bar, because
    * the shell keeps the keyboard's return path on the control that opened a
-   * sheet and the dock's sixth door has to exist before the sheet can be told
-   * about it (`leaderSheet`'s reason exactly). Its disposer is here, in the
+   * sheet and the bar's Standings tab has to exist before the sheet can be
+   * told about it (`leaderSheet`'s reason exactly). Its disposer is here, in the
    * order the register has always carried it: a closure over the holder, run
    * long after the holder is filled.
    */
@@ -3929,7 +3901,8 @@ async function boot(initial: Game | null): Promise<void> {
     // §5/§11). It used to be the Bead Race's table wearing a banner; what an age
     // asks of everybody is the three bars it sets. The table itself is retired
     // with the deeds (batch Q1) and what is one press away behind the same three
-    // doors — the bead chip, an Abacus rod, `V` — is the bead ledger.
+    // doors — the bead figure on the Standings tab, an Abacus rod, `V` — is the
+    // bead ledger.
     //
     // Raised only for a seat that still owes the table an answer, which is
     // `firstBlocker`'s own reading: a hot-seat player who has already staked
@@ -4085,7 +4058,8 @@ async function boot(initial: Game | null): Promise<void> {
     onOfferGreatPerson: showGreatPersonOffer,
     /**
      * The spend ceremony — the card rises, the legacy counts, the deed appears,
-     * the card descends into the renown chip (`greatPersonCeremony.ts`).
+     * the card descends into the renown figure on the bar's Standings tab
+     * (`greatPersonCeremony.ts`).
      *
      * Raised on the accepted command and nowhere else, and it takes down the
      * HUD's cards first for the reason every screen does: a breakdown left open
@@ -4407,9 +4381,9 @@ async function boot(initial: Game | null): Promise<void> {
     yieldsToggle.checked = yields;
     resourcesToggle.checked = controls.resourcesShown();
 
-    // The bar button says both, because both are on the board: the lens by
-    // name, and the glyphs as a flag beside it. "off" is only honest when neither
-    // is up.
+    // The Lens button beside End Turn says both, because both are on the
+    // board: the lens by name, and the glyphs as a flag beside it. "off" is only
+    // honest when neither is up.
     const chosen = lensButtons.find((option) => option.mode === current);
     lensCurrentEl.textContent =
       current === 'none' ? (yields ? '—' : 'off') : (chosen?.label ?? 'off');
@@ -4741,7 +4715,9 @@ async function boot(initial: Game | null): Promise<void> {
     stage: abacusStageEl,
     register: abacusRegisterEl,
     closeButton: requireElement('abacus-close'),
-    trigger: abacusButton,
+    // The door in the standings sheet's header (batch UX1: the Abacus left
+    // the top bar). `A` opens it from anywhere.
+    trigger: victoryAbacusButton,
     rows: (): AbacusRow[] =>
       realPlayers(game.state).map((player) => ({
         playerId: player.id,
@@ -4757,6 +4733,10 @@ async function boot(initial: Game | null): Promise<void> {
       lens.close();
       techTree?.close();
       beads?.close();
+      // The standings sheet is where its door is. It closes before the Abacus
+      // remembers who had the keyboard, so closing the Abacus gives the
+      // keyboard to the Standings tab rather than to a hidden sheet.
+      victory?.close();
     },
     // A rod is the door to the cards behind it.
     onOpenBeads: () => {
@@ -4787,7 +4767,8 @@ async function boot(initial: Game | null): Promise<void> {
    * and the Opus's door. It was the *table* until batch Q1 retired the deeds.
    *
    * Statecraft's sibling in every respect — see `beadsScreen.ts` — and reached
-   * three ways: the bead chip in the top bar, a rod on the Abacus, and `V`.
+   * three ways: the bead figure on the bar's Standings tab, a rod on the
+   * Abacus, and `V`.
    * Nothing on it is stored, so it is built on each open off the live state.
    */
   beads = createBeadsScreen({
@@ -4920,10 +4901,11 @@ async function boot(initial: Game | null): Promise<void> {
    * The spend ceremony, raised by `controls`' `onGreatPersonSpent` and by
    * nothing else — a refused command never reaches it.
    *
-   * The card descends into the **renown chip**, which is the Reliquary's door,
-   * so the gesture and the way back are the same place; `civYields.renownChip`
-   * is asked for the element each time rather than captured, because the strip
-   * outlives no game and a stale node would aim the card at nowhere.
+   * The card descends into the **renown figure** on the bar's Standings tab,
+   * which is the Reliquary's door, so the gesture and the way back are the same
+   * place. `civYields.renownChip` is asked for the element each time rather
+   * than captured, because the strip outlives no game and a stale node would
+   * aim the card at nowhere.
    */
   /**
    * **The capture sheet**, raised by `controls`' `onCityCaptured` and by nothing
@@ -4983,6 +4965,10 @@ async function boot(initial: Game | null): Promise<void> {
    */
   const civYields: CivYieldStrip = createCivYieldStrip({
     container: civYieldsEl,
+    // The turn line in the middle of the bar, and the three tabs at its right
+    // end (batch UX1). The strip writes both on every render.
+    turnLine: statusEl,
+    tabs: topbarTabsEl,
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
     happiness: {
@@ -4996,8 +4982,8 @@ async function boot(initial: Game | null): Promise<void> {
       body: authorityBodyEl,
     },
     // The strip's cards join the HUD's one-card-at-a-time rule: opening one
-    // shuts the menu, the help sheet, the lens menu and the dock's Faith card,
-    // exactly as those three shut each other.
+    // shuts the menu, the help sheet, the lens menu, the chronicle and the
+    // star chart, exactly as those shut each other.
     onOpenPopover: () => {
       menu.close();
       help.close();
@@ -5005,22 +4991,10 @@ async function boot(initial: Game | null): Promise<void> {
       notifications?.close();
       techTree?.close();
     },
-    // The culture chip's own way in — see `topBar.ts`'s `civ-yield-clickable`.
-    // Closes the strip's own cards first, the same one-card-at-a-time rule
-    // `onOpenPopover` keeps for its three: a card left open under the
-    // Statecraft screen would be a card the player comes back to having
-    // abandoned its game.
-    onOpenStatecraft: () => {
-      meterCards?.close();
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      techTree?.close();
-      statecraft?.open();
-    },
-    // The routes chip's own door, on the culture chip's precedent: trade is the
-    // second system in this strip with a screen behind it.
+    // The Diplomacy tab. The same door `W` and the dock's old Diplomacy button
+    // use: shut every other HUD surface, then open the sheet.
+    onOpenDiplomacy: () => openScreen(() => diplomacy?.open()),
+    // The Trade tab, which carries the routes figure the routes chip used to.
     onOpenTrade: () => {
       meterCards?.close();
       menu.close();
@@ -5030,9 +5004,10 @@ async function boot(initial: Game | null): Promise<void> {
       techTree?.close();
       trade?.open();
     },
-    // The bead chip's own door, on the same precedent again: the Bead Race is
-    // the third system in this strip with a screen behind it, and the only one
-    // that is what the whole game is played for.
+    // The Standings tab's label: the standings sheet, which the dock's sixth
+    // door used to open. The Abacus opens from that sheet and from `A`.
+    onOpenStandings: () => openScreen(() => victory?.open()),
+    // The bead figure on the Standings tab: the bead ledger, as `V` opens it.
     onOpenBeads: () => {
       meterCards?.close();
       menu.close();
@@ -5042,9 +5017,9 @@ async function boot(initial: Game | null): Promise<void> {
       techTree?.close();
       beads?.open();
     },
-    // The renown chip's own door, the fourth on the same precedent: renown leads
-    // to great people and great people leave legacies, so the chip that counts
-    // the first is the honest way into the last.
+    // The renown figure on the Standings tab: renown calls great people and
+    // great people leave legacies, so the figure that counts the first is the
+    // way into the last.
     onOpenReliquary: () => {
       meterCards?.close();
       menu.close();
@@ -5054,11 +5029,10 @@ async function boot(initial: Game | null): Promise<void> {
       techTree?.close();
       reliquary?.open();
     },
-    // Every other yield chip's door, the fifth on the same precedent and the
-    // one wired to five chips at once: the Ledger is about all six voices, and
-    // the honest way in is the figure the player is already looking at. The
-    // voice comes with the click so the sheet opens picking out the one they
-    // asked about.
+    // Every yield chip's door, culture's included since batch UX1: the Ledger
+    // is about all six yields, and the way in is the figure the player is
+    // already looking at. The yield comes with the click so the sheet opens
+    // picking out the one they asked about.
     onOpenLedger: (key) => {
       meterCards?.close();
       menu.close();
@@ -5074,12 +5048,10 @@ async function boot(initial: Game | null): Promise<void> {
   meterCards = civYields;
 
   /**
-   * The HUD dock: Statecraft, Religion and Diplomacy, under the research card. See
-   * `src/ui/hudDock.ts` for the design; this is only wiring — the Statecraft
-   * button is a bare trigger (its click mirrors the culture chip's own
-   * `onOpenStatecraft` above and the ☰ menu's door to the same screen), and
-   * the Faith card is the dock's own popover, joining the same one-card-at-
-   * a-time rule every other HUD card keeps.
+   * The HUD dock: Statecraft, Religion and Leader, under the research card.
+   * See `src/ui/hudDock.ts` for the design; this is only wiring. Each button is
+   * a bare trigger, wired below through `openScreen`. Diplomacy, Trade and the
+   * standings left the dock for the bar's tabs in batch UX1.
    */
   hudDock = createHudDock({
     container: hudDockEl,
@@ -5119,7 +5091,8 @@ async function boot(initial: Game | null): Promise<void> {
     overlay: diplomacyOverlayEl,
     body: diplomacyBodyEl,
     closeButton: requireElement('diplomacy-close'),
-    trigger: hudDock.diplomacyButton,
+    // The bar's Diplomacy tab (batch UX1; it was the dock's third door).
+    trigger: civYields.diplomacyTab,
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     // Every verb below sends through `controls`, so the board's own funnel has
@@ -5234,11 +5207,9 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(()=>warDispatch?.dispose());
 
   /**
-   * The dock's two doors, wired the same way and deliberately so: both are bare
-   * triggers, both shut every other HUD surface first, and both then open a
-   * parchment screen. The Religion button used to open a small Faith popover
-   * the dock built itself; Religion v1 (ledger Entry XXVIII) gave it a screen,
-   * and the popover's content is its first block.
+   * One door for every screen the HUD's buttons open: shut every other HUD
+   * surface first, then open the sheet. The dock's buttons use it, and so do
+   * the bar's Diplomacy and Standings tabs, `H`, `W` and `E`.
    */
   function openScreen(open: () => void): void {
     meterCards?.close();
@@ -5255,20 +5226,6 @@ async function boot(initial: Game | null): Promise<void> {
   hudDock.religionButton.addEventListener('click', () => {
     openScreen(() => religion?.open());
   });
-  /* The third door, and the same wiring: a bare trigger that shuts every other
-     HUD surface and opens a parchment screen (the user's ruling, 2026-09-03). */
-  hudDock.diplomacyButton.addEventListener('click', () => {
-    openScreen(() => diplomacy?.open());
-  });
-  /* The fourth, and the reason it is here rather than only on the top bar's
-     routes chip: the user asked for it in these words (2026-09-09) — *"The trade
-     screen should have an icon next to the statecraft/religion/diplomacy
-     buttons"*. The chip keeps its own door; a system with two entrances is what
-     Statecraft has had since the dock was built. */
-  hudDock.tradeButton.addEventListener('click', () => {
-    openScreen(() => trade?.open());
-  });
-
   /**
    * **Your civ** — the thirteenth sheet on the shell (batch L2b, re-aimed at the
    * second cut in L6b): the record of what the figure at your table does.
@@ -5276,7 +5233,7 @@ async function boot(initial: Game | null): Promise<void> {
    * Built *here*, after the dock, rather than beside the other sheets above:
    * the shell keeps the keyboard's return path on the control that opened it
    * (`ModalShellOptions.trigger`), and the door has to exist before the sheet
-   * can be told about it. The fifth door on the dock is that control.
+   * can be told about it. The dock's Leader button is that control.
    */
   leaderSheet = createLeaderSheet({
     overlay: leaderOverlayEl,
@@ -5305,8 +5262,8 @@ async function boot(initial: Game | null): Promise<void> {
 
   gameDisposers.push(() => leaderSheet?.dispose());
 
-  /* The fifth door, and the one behind which nothing is ever owed: a figure is
-     a known quantity from the landing screen onward, so the sheet behind this
+  /* The dock's Leader button, behind which nothing is ever owed: a figure is a
+     known quantity from the landing screen onward, so the sheet behind this
      banner is a record — what your civ is, and what it is paying you today. */
   hudDock.leaderButton.addEventListener('click', () => {
     openScreen(() => leaderSheet?.open());
@@ -5316,9 +5273,9 @@ async function boot(initial: Game | null): Promise<void> {
    * **The standings** — the fifteenth sheet on the shell (`victoryScreen.ts`,
    * `docs/flags.md` item (uuuuu)), and the sheet a won game is announced on.
    *
-   * Built here, after the dock, for the leader sheet's reason exactly: the
+   * Built here, after the bar, for the leader sheet's reason exactly: the
    * shell hands the keyboard back to the control that opened a sheet, and the
-   * sixth door has to exist before the sheet can be told about it.
+   * Standings tab has to exist before the sheet can be told about it.
    *
    * `toTitle` is `showLanding` itself rather than a journey of this sheet's
    * own: leaving a finished game is the same walk from anywhere else in the
@@ -5328,7 +5285,8 @@ async function boot(initial: Game | null): Promise<void> {
     overlay: victoryOverlayEl,
     body: victoryBodyEl,
     closeButton: requireElement('victory-close'),
-    trigger: hudDock.standingsButton,
+    // The Standings tab's own button (batch UX1; it was the dock's sixth door).
+    trigger: civYields.standingsTab,
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     toTitle: () => showLanding(),
@@ -5349,13 +5307,6 @@ async function boot(initial: Game | null): Promise<void> {
       leaderSheet?.close();
       compendium.close();
     },
-  });
-
-  /* The sixth door, and the one thing behind it that is true on every turn of
-     every game: what each empire has to show for itself. The same sheet the
-     Magnum Opus raises when it closes the game (`onVictory`, below). */
-  hudDock.standingsButton.addEventListener('click', () => {
-    openScreen(() => victory?.open());
   });
 
   // `H` opens the Religion screen — the dock's own hotkey, and deliberately its
@@ -5384,7 +5335,7 @@ async function boot(initial: Game | null): Promise<void> {
     else openScreen(() => religion?.open());
   });
 
-  // `W` opens the Diplomacy screen — the third dock button's hotkey, wired here
+  // `W` opens the Diplomacy screen — the Diplomacy tab's hotkey, wired here
   // beside `H` and for its stated reason exactly: a screen with no unit and no
   // tile behind it belongs where its screen is built, not in `controls.ts`'s
   // board switch. `D` reads as a direction and `G` is the 2D grid's already;

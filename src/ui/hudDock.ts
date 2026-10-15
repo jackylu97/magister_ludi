@@ -1,8 +1,13 @@
 /**
- * The HUD dock: six square buttons under the research card, top-left, in the
- * same ink/parchment lozenge language — the front door to Statecraft, to
- * Religion, to Diplomacy, to Trade, to the figure at your table, and to the
- * standings.
+ * The HUD dock: three square buttons under the research card, top-left, in the
+ * same ink and parchment as the rest of the HUD. They open Statecraft, Religion
+ * and the leader sheet ("your civ").
+ *
+ * Diplomacy, Trade and the standings had doors here too until batch UX1. They
+ * are labelled tabs at the right end of the top bar now (`topBar.ts`), as the
+ * screens about the other empires; the dock keeps the screens about this one.
+ * The dock itself goes in batch UX3, when the empire panel and its drawer take
+ * over these three doors (`docs/plans/hud-empire-panel-spec.md` §4).
  *
  * Why a dock and not two more chips
  * ----------------------------------
@@ -24,14 +29,13 @@
  * here rather than being drawn twice: this dock is now the more prominent of
  * the two entrances — a fixed corner beats a chip in a scrolling strip — and
  * a player told the same thing in two places starts wondering if they are two
- * different things. The culture chip keeps its click affordance
- * (`civ-yield-clickable` in `topBar.ts`) and its own hint line ("press C") in
+ * different things. The culture chip keeps its own hint line ("press C") in
  * its hover card; only the pulsing dot moved. `hudBadgeWaiting` below is the
  * pure half of that fact, kept separate from the DOM write so it can be
  * tested without one.
  *
- * Both buttons open a screen now
- * -------------------------------
+ * Every button opens a screen
+ * ---------------------------
  * Each is a **bare trigger** — `main.ts` wires the click to
  * `statecraft.open()` / `religion.open()`, the same calls the ☰ menu's own
  * doors use, because opening a *screen* means closing every other HUD surface
@@ -54,12 +58,7 @@
  * scroll is vendored fresh beside it in `src/art/dockMarks.ts`.
  */
 
-import {
-  diplomacyMarkDataUri,
-  standingsMarkDataUri,
-  statecraftMarkDataUri,
-  tradeMarkDataUri,
-} from '../art/dockMarks';
+import { statecraftMarkDataUri } from '../art/dockMarks';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import type { Game } from '../sim/game';
 import { hasReligionOffer } from '../sim/religion';
@@ -106,55 +105,20 @@ export interface HudDock {
   readonly statecraftButton: HTMLButtonElement;
   readonly religionButton: HTMLButtonElement;
   /**
-   * The war-and-peace door (the user's ruling, 2026-09-03: *"lets have it be a
-   * new menu, it can sit alongside the statecraft/religion icons"*).
-   *
-   * It wears **no waiting badge**, and that is a decision rather than an
-   * omission: the other two pulse when the empire owes the game an answer — a
-   * draft to pick, a god to name — and diplomacy owes nothing. A war is
-   * announced by a toast and drawn on the board in red; a standing peace offer
-   * from a rival is news the same way. A dot that pulsed for the mere existence
-   * of a war would be pulsing for the rest of the game.
-   */
-  readonly diplomacyButton: HTMLButtonElement;
-  /**
-   * The trade door (the user's ruling, 2026-09-09, `docs/flags.md` item (iii):
-   * *"The trade screen should have an icon next to the
-   * statecraft/religion/diplomacy buttons"*).
-   *
-   * Fourth and last, and it wears **no waiting badge** for Diplomacy's reason
-   * exactly: the two that pulse do so when the empire owes the game an answer,
-   * and a free route slot is an opportunity rather than a debt. A dot that
-   * pulsed for every idle slot would be pulsing for most of the game.
-   */
-  readonly tradeButton: HTMLButtonElement;
-  /**
    * The leader door (batch L2b, `docs/flags.md` (dddd)).
    *
-   * Fifth and last, and the only one of the five that wears **the seat's own
-   * charge** rather than a drawn mark of its own: the sheet behind it is about
-   * the figure at *your* table, and heraldry is already the game's way of saying
-   * "yours" (`heraldryFor`, and the charge on a parchment canton — never
-   * straight in seat ink). Which means it is the one door whose icon is written
-   * on every `render` rather than once at construction: a hot-seat player
-   * changing chairs changes banners.
+   * The only one of the three that wears **the seat's own charge** rather than
+   * a drawn mark of its own: the sheet behind it is about the figure at *your*
+   * table, and heraldry is already the game's way of saying "yours"
+   * (`heraldryFor`, and the charge on a parchment canton — never straight in
+   * seat ink). So its icon is written on every `render` rather than once at
+   * construction: a hot-seat player changing chairs changes banners.
    *
-   * It wears a **waiting badge**, and it is the third of the five to: a figure's
-   * row is a decision the empire owes the game and one that — unlike a wager's —
-   * never expires, so the dot is the only thing on the HUD that says the debt is
-   * still standing after the End Turn blocker has been walked past.
+   * It wears **no waiting badge** (batch L6b): a figure is a known quantity
+   * from the landing screen on, and the sheet behind this door is a record
+   * rather than a decision.
    */
   readonly leaderButton: HTMLButtonElement;
-  /**
-   * The standings door (`docs/flags.md` item (uuuuu)): the score, as a list, for
-   * every seat — and the sheet the end of the game is announced on.
-   *
-   * Sixth and last, and it wears **no waiting badge** for the banner's reason
-   * exactly: the standings are a record rather than a decision. Nothing is ever
-   * owed here, and a dot that pulsed because a rival had pulled ahead would be
-   * pulsing for most of the game.
-   */
-  readonly standingsButton: HTMLButtonElement;
   /** Refreshes the badges. */
   render(): void;
 }
@@ -202,46 +166,16 @@ export function createHudDock(options: HudDockOptions): HudDock {
     'Religion (H)',
     yieldMarkDataUri('faith'),
   );
-  // The banner, third and last — the order the doors were built in, which is
-  // also the order a player meets the systems.
-  const diplomacyButton = buildButton(
-    'hud-dock-diplomacy',
-    'Diplomacy',
-    'Diplomacy (W)',
-    diplomacyMarkDataUri(),
-  );
-  // The cart, fourth: the sheet behind it is where a route is hired now, and
-  // hiring one is a standing decision of exactly the kind the other three doors
-  // are for (batch R2).
-  const tradeButton = buildButton('hud-dock-trade', 'Trade', 'Trade (E)', tradeMarkDataUri());
-  // The banner, fifth: the figure at this table. Its mark is written on every
-  // `render` rather than here, because it is the seat's charge and the seat can
-  // change — see `HudDock.leaderButton`.
+  // The leader door, third. Its mark is written on every `render` rather than
+  // here, because it is the seat's charge and the seat can change — see
+  // `HudDock.leaderButton`.
   const leaderButton = buildButton('hud-dock-leader', 'Leader', 'Your leader', '');
-  // The ranking, sixth: the score every seat has to show for itself, and
-  // the sheet a finished game is announced on (item (uuuuu)).
-  const standingsButton = buildButton(
-    'hud-dock-standings',
-    'Standings',
-    'The standings',
-    standingsMarkDataUri(),
-  );
-  container.append(
-    statecraftButton,
-    religionButton,
-    diplomacyButton,
-    tradeButton,
-    leaderButton,
-    standingsButton,
-  );
+  container.append(statecraftButton, religionButton, leaderButton);
 
   return {
     statecraftButton,
     religionButton,
-    diplomacyButton,
-    tradeButton,
     leaderButton,
-    standingsButton,
     render(): void {
       const { state } = getGame();
       const player = playerById(state, localPlayerId());
@@ -258,7 +192,7 @@ export function createHudDock(options: HudDockOptions): HudDock {
       if (icon instanceof HTMLElement) {
         // The mark's own colour is discarded — `.hud-dock-icon` wears it as a
         // *mask* over `currentColor`, so the charge prints in the dock's ink
-        // like the four doors beside it and never straight in seat ink, which
+        // like the two doors beside it and never straight in seat ink, which
         // is the heraldry rule kept by the drawing rather than by discipline.
         const uri = heraldryMarkDataUri(heraldryFor(localPlayerId(), player?.charge, player?.leader));
         icon.style.setProperty('--dock-mark', `url("${uri}")`);
