@@ -2,8 +2,9 @@
  * Smaller per-refresh costs (browser performance audit 2026-10-06, finding 12).
  *
  * `updatePanel` in `main.ts` refreshes the top bar, the star chart, the city
- * banners and the holdings rail after every selection, command and screen
- * change, often several times in a row with nothing in the state changed. Each
+ * banners and the empire panel (the holdings rail, until batch UX3) after every
+ * selection, command and screen change, often several times in a row with
+ * nothing in the state changed. Each
  * of them now either skips a repeat for the same state object, revision and
  * seat, or reads the town through the revision memo instead of folding it
  * again. The faith lens's hover card is moved without being measured again when
@@ -77,9 +78,12 @@ describe('a repeat refresh with nothing changed is skipped', () => {
     expect(body.indexOf('meterEffects(')).toBeGreaterThan(gate);
   });
 
-  it('the holdings rail: the state object as well as the revision, since a loaded game can repeat one', () => {
-    const body = braceBody(uiSource('holdingsRail.ts'), 'function render(');
-    expect(body).toContain('state === drawnState && state.revision === drawnRevision && seat === drawnSeat');
+  it('the empire panel: the state object as well as the revision, since a loaded game can repeat one', () => {
+    // The holdings rail's gate until batch UX3 folded its counts into the
+    // empire drawer's Supply section.
+    const body = braceBody(uiSource('empireDrawer.ts'), 'function render(');
+    expect(body).toContain('state === drawnState && state.revision === drawnRevision && seatId === drawnSeat');
+    expect(body.indexOf('empireGlance(')).toBeGreaterThan(body.indexOf('drawnSeat = seatId;'));
   });
 
   it('the star chart: one repaint per click rather than two, and none while closed', () => {

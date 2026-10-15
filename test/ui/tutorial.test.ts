@@ -592,25 +592,49 @@ describe('the wiring', () => {
   it('anchors its highlights on elements that exist', () => {
     const html = source('index.html');
     for (const step of STEPS) {
-      const anchor = step.anchor;
-      if (anchor === null) continue;
-      // A selector, not an id (2026-08-30): `#foo` is markup in the document,
-      // `.foo` is a class some module builds.
-      if (anchor.startsWith('#')) {
-        expect(html, step.id).toContain(`id="${anchor.slice(1)}"`);
-        continue;
+      if (step.anchor === null) continue;
+      // A selector list is checked one selector at a time (the open-the-tree
+      // step's panel-then-section pair, batch UX3), and an attribute test on
+      // an id is checked by the id.
+      for (const part of step.anchor.split(',').map((selector) => selector.trim())) {
+        const anchor = part.replace(/:not\(.*\)$/, '');
+        // A selector, not an id (2026-08-30): `#foo` is markup in the document,
+        // `.foo` is a class some module builds.
+        if (anchor.startsWith('#')) {
+          expect(html, step.id).toContain(`id="${anchor.slice(1)}"`);
+          continue;
+        }
+        expect(anchor.startsWith('.'), `${step.id}: ${anchor}`).toBe(true);
+        // A compound selector (`.a.b`) is built as one two-class literal by
+        // `element('div', 'a b')` — the build step's `.city-rail.is-right`
+        // (2026-09-03, the city mode). Joined with a space, a single class is
+        // the old exact check unchanged.
+        const literal = anchor.slice(1).split('.').join(' ');
+        const built = Object.keys(SOURCES).some((path) =>
+          SOURCES[path]?.includes(`'${literal}'`),
+        );
+        expect(built, `${step.id}: nothing builds ${anchor}`).toBe(true);
       }
-      expect(anchor.startsWith('.'), `${step.id}: ${anchor}`).toBe(true);
-      // A compound selector (`.a.b`) is built as one two-class literal by
-      // `element('div', 'a b')` — the build step's `.city-rail.is-right`
-      // (2026-09-03, the city mode). Joined with a space, a single class is
-      // the old exact check unchanged.
-      const literal = anchor.slice(1).split('.').join(' ');
-      const built = Object.keys(SOURCES).some((path) =>
-        SOURCES[path]?.includes(`'${literal}'`),
-      );
-      expect(built, `${step.id}: nothing builds ${anchor}`).toBe(true);
     }
+  });
+
+  it('opens the tree from the empire panel, and rings the research section once the drawer is open', () => {
+    // The research card is gone (batch UX3). Its section is inside the empire
+    // drawer, hidden until the drawer opens, so the step rings the panel while
+    // the drawer is shut and the section once it is open. The panel precedes
+    // the drawer in the document, so the lookup's first match is the panel for
+    // as long as it is not expanded.
+    const open = STEPS.find((step) => step.id === 'openChart')!;
+    expect(open.anchor).toBe('#empire-panel:not([aria-expanded="true"]), #hud-research');
+    const html = source('index.html');
+    expect(html.indexOf('id="empire-panel"')).toBeLessThan(html.indexOf('id="hud-research"'));
+    expect(open.body).toContain('banner');
+    expect(open.body).toContain('Research');
+    // And the card is re-placed whenever the drawer opens or closes.
+    expect(source('main.ts')).toContain('onChange: () => tutorial.refresh(),');
+    // The close step points at the bar that replaced the card.
+    const close = STEPS.find((step) => step.id === 'closeChart')!;
+    expect(close.body).not.toContain('research card');
   });
 
   it('rings the two meters and not the yield figures beside them', () => {

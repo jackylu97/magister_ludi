@@ -32,10 +32,21 @@ The user, 2026-10-12: *"ok E2 is my favorite."* One drawer at the top-left, in t
 - **A draft waiting** shows at rest: the culture section's edge and "a card awaits".
 - Keys stay: T opens the star chart, C opens Statecraft; the empire menu gets a free key (Q was proposed).
 - Hover opens after a short delay and never while dragging the map or aiming a move.
+- **Built** (batch UX3, `src/ui/empireDrawer.ts`). As drawn, with these choices inside the spec:
+  - A peek (depth one, on hover or Tab) tells the screen registry nothing, so a pointer crossing the corner closes no other card; it still counts as open, so Escape closes it first and any card or screen opening closes it. Pinning (depth two) is a card opening, so it closes the other cards.
+  - Only Tab opens a peek from the keyboard. The panel is also where the keyboard lands when the drawer closes, and a drawer that opened itself every time would be in the way.
+  - Pinned, the drawer behaves like the other HUD cards: the keyboard moves to the research section, Tab wraps inside the drawer, and the × comes last in the tab order. Closing it with the keyboard inside returns the keyboard to the panel.
+  - The H row reads **Faith** (the ruling in `docs/flags.md` (ssssss) 4.7), and its dot lights only for a belief to choose. The ? card says "H Faith" too; the sheet's own title is renamed in a later faith batch.
+  - The banner is the seat's charge in ink on a parchment disc, inside a ring of the seat's colour. With nothing chosen to research, the panel's research bar turns gilt and pulses, as the research card did.
+  - "Next government at N" names the next tier a government is actually offered at (4, 10, 18, 29, 45), not the next rung of the slot ladder.
+  - The age wager row opens the wager sheet, as drawn, and reads "2 of 3 bars met" ("no wager this age" in Æra I).
+  - The Supply heading is the house's grey eyebrow, not vermilion: vermilion means a shortage, and here it marks only the resources with none spare.
+  - The leader sheet's trigger is the drawer's Leader row, so the panel's own "expanded" state only ever describes the drawer. The drawer has closed by the time the sheet does, so the keyboard goes back to the page.
+  - The open-the-tree tutorial step rings the panel while the drawer is shut and the research section once it is open, and tells the player to click the banner, then Research.
 
 ### Commissions
 - **Card face:** the goal and a counter (pips for small counts, a bar for larger ones); an unseated commission shows its kept progress as paused. **Built** (batch C).
-- **Chips on the left side of the screen, under the empire panel and outside its drawer,** one per seated commission, at most four and then "+N more": a see-through background, a solid left edge in the deck's colour, a ring that fills, the name and the count in words; hover for the full goal and reward; click opens the government sheet at that card; "Fulfilled · reward paid" for one turn, then gone. (The user, 2026-10-12: *"Let's have commissions appear on the left side outside of the empire menu."*) **Built** under today's dock; it moves to sit below the empire panel when the panel is built.
+- **Chips on the left side of the screen, under the empire panel and outside its drawer,** one per seated commission, at most four and then "+N more": a see-through background, a solid left edge in the deck's colour, a ring that fills, the name and the count in words; hover for the full goal and reward; click opens the government sheet at that card; "Fulfilled · reward paid" for one turn, then gone. (The user, 2026-10-12: *"Let's have commissions appear on the left side outside of the empire menu."*) **Built** (batch C), and moved under the empire panel in batch UX3: 200 px wide, the first chip at `top: 120px`, at most four (three on a window under 720 px tall), then a "+N more" line that opens Statecraft.
 - Nothing about commissions goes in the top bar.
 
 ### Levies
@@ -49,7 +60,7 @@ The user, 2026-10-12: *"ok E2 is my favorite."* One drawer at the top-left, in t
 - **Their counts head the city build list,** where building decisions are made.
 
 ## Open
-- **Supply off the map.** In every layout the resources table stops being always visible: it becomes a Supply entry in the empire menu, with a warning chip only while a resource has none spare. That reverses the rule recorded in `src/ui/holdingsRail.ts` (lines 20 to 45: the counts must be readable without a click). **Ruled 2026-10-15: yes, move it** (`docs/flags.md` (ssssss) 1); the red dot on the banner covers a resource with no spare copy.
+- **Supply off the map.** In every layout the resources table stops being always visible: it becomes a Supply entry in the empire menu, with a warning chip only while a resource has none spare. That reverses the rule recorded in `src/ui/holdingsRail.ts` (lines 20 to 45: the counts must be readable without a click). **Ruled 2026-10-15: yes, move it** (`docs/flags.md` (ssssss) 1); the red dot on the banner covers a resource with no spare copy. **Built** in batch UX3: the card and `holdingsRail.ts` are gone, and the counts are the drawer's Supply section (the old rule and its reversal are recorded in `src/ui/empireDrawer.ts`). The strip at the head of the town's build list is UX7's.
 - **The city screen, settled by the user (2026-10-12):**
   - Arrangement A (keep the two rails, each with one job done well) is the direction.
   - The treasury shows on the city screen.

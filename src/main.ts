@@ -152,8 +152,7 @@ import {
 import { type NotificationsPanel, createNotificationsPanel } from './ui/notificationsPanel';
 import { createPopover } from './ui/popover';
 import { type Surface, type SurfaceKind, createScreenRegistry } from './ui/screenRegistry';
-import { type HudDock, createHudDock } from './ui/hudDock';
-import { type HoldingsRail, createHoldingsRail } from './ui/holdingsRail';
+import { type EmpireDrawer, createEmpireDrawer } from './ui/empireDrawer';
 import { type CommissionRail, createCommissionRail } from './ui/commissionRail';
 import { commissionCounters } from './ui/commissionGoal';
 import { type ToastStack, createToastStack } from './ui/toasts';
@@ -410,9 +409,15 @@ const lensOptionsEl = requireElement<HTMLElement>('lens-options');
 const lensTogglesEl = requireElement<HTMLElement>('lens-toggles');
 const lensCurrentEl = requireElement<HTMLElement>('lens-current');
 const lensYieldsFlagEl = requireElement<HTMLElement>('lens-yields-flag');
-/* The research card, top-left: the whole card is the button that opens the star
-   chart, so it is handed to `createTechTree` where the bar button used to be. */
-const researchCard = requireElement<HTMLButtonElement>('hud-research');
+/* The empire panel, top-left, and the drawer that opens beside it (batch UX3;
+   see `src/ui/empireDrawer.ts`). The panel is one button; the drawer is static
+   markup that module fills. */
+const empirePanelEl = requireElement<HTMLButtonElement>('empire-panel');
+const empireDrawerEl = requireElement<HTMLElement>('empire-drawer');
+/* The drawer's research section: one button that opens the star chart. It
+   keeps the old research card's ids, so it is handed to `createTechTree`, whose
+   `renderStatus` writes its name, figures, turns, bar and glyph. */
+const researchSection = requireElement<HTMLButtonElement>('hud-research');
 const techCurrentEl = requireElement<HTMLElement>('tech-current');
 const researchDialEl = requireElement<HTMLElement>('research-dial');
 const researchGlyphEl = requireElement<HTMLElement>('research-glyph');
@@ -420,23 +425,18 @@ const researchTurnsEl = requireElement<HTMLElement>('research-turns');
 const researchFiguresEl = requireElement<HTMLElement>('research-figures');
 const techOverlayEl = requireElement<HTMLElement>('tech-overlay');
 const techChartEl = requireElement<HTMLElement>('tech-chart');
-/* The HUD dock, directly under the research card: Statecraft, Religion and
-   Leader. Its buttons' icons are runtime `data:` URIs, so `createHudDock` builds
-   them into this container rather than index.html holding them static — see
-   `src/ui/hudDock.ts`. All three are bare triggers. */
-const hudDockEl = requireElement<HTMLElement>('hud-dock');
 /* The Abacus's door: a button in the standings sheet's header, which is the
    Abacus screen's trigger now that the bar has no Abacus button (batch UX1).
    The canvas is not here — `abacusScreen.ts` builds one into the stage on the
    first open. */
 const victoryAbacusButton = requireElement<HTMLButtonElement>('victory-abacus');
 /* Statecraft's overlay and the body its contents are built into on each open.
-   There is no bar button: the screen is opened from the HUD dock, the ☰ menu,
-   the End Turn blocker, and `C`. */
+   There is no bar button: the screen is opened from the empire drawer's culture
+   section, the ☰ menu, the End Turn blocker, and `C`. */
 const statecraftOverlayEl = requireElement<HTMLElement>('statecraft-overlay');
 const statecraftBodyEl = requireElement<HTMLElement>('statecraft-body');
 /* Religion's overlay and body — Statecraft's sibling sheet, opened from the
-   dock's second button, by the End Turn blocker, and by `H`. */
+   empire drawer's Faith row, by the End Turn blocker, and by `H`. */
 const religionOverlayEl = requireElement<HTMLElement>('religion-overlay');
 const religionBodyEl = requireElement<HTMLElement>('religion-body');
 /* Trade's overlay and body — Religion's sibling sheet, opened from the bar's
@@ -453,8 +453,8 @@ const wagerBodyEl = requireElement<HTMLElement>('wager-body');
 const censusOverlayEl = requireElement<HTMLElement>('census-overlay');
 const censusBodyEl = requireElement<HTMLElement>('census-body');
 /* The leader's sheet (batch L2b, re-aimed in L6b): the record of what your civ
-   does, behind the Leader button on the HUD dock. Its draft retired with the
-   deck. */
+   does, behind the empire drawer's Leader row and `L`. Its draft retired with
+   the deck. */
 const leaderOverlayEl = requireElement<HTMLElement>('leader-overlay');
 const leaderBodyEl = requireElement<HTMLElement>('leader-body');
 const diplomacyOverlayEl = requireElement<HTMLElement>('diplomacy-overlay');
@@ -968,29 +968,18 @@ const ledgerHistory = createLedgerHistory();
 let meterCards: CivYieldStrip | null = null;
 
 /**
- * The HUD dock, once `boot` has built it. A holder for `meterCards`' own
- * reason: its buttons need a game to read, and `updatePanel` is declared
- * before there is one.
+ * The empire panel and its drawer (batch UX3), once `boot` has built them. A
+ * holder for `meterCards`' own reason: the panel reads a game, `updatePanel` is
+ * declared before there is one, and the screen registry's list is written
+ * before there is one too.
  */
-let hudDock: HudDock | null = null;
+let empireDrawer: EmpireDrawer | null = null;
 
 /**
- * The holdings rail — what strategic resources this seat holds and how much of
- * each is still free, under the dock. A holder for `hudDock`'s reason exactly:
- * it reads a game, and `updatePanel` is declared before there is one.
- *
- * It is the one fixed HUD surface whose element is not markup in `index.html`.
- * `createHoldingsRail` builds its own card and this mounts it once, on the boot
- * that builds it; the element then outlives every later game the way
- * `#hud-dock` does, and each new rail replaces the last one's rows.
- */
-let holdings: HoldingsRail | null = null;
-
-/**
- * The commission chips (batch C), between the dock and the holdings card. A
- * holder for `holdings`' reason: it reads a game, and `updatePanel` is
- * declared before there is one. Built and mounted the same way, and its
- * `dispose` is in `gameDisposers`.
+ * The commission chips (batch C), under the empire panel. A holder for
+ * `empireDrawer`'s reason: it reads a game, and `updatePanel` is declared
+ * before there is one. `createCommissionRail` builds its own element, which is
+ * mounted once, after the drawer; its `dispose` is in `gameDisposers`.
  */
 let commissionRail: CommissionRail | null = null;
 
@@ -1170,6 +1159,11 @@ screens.register(held('meters', 'card', () => meterCards));
 // in `diplomacyOffers.ts`; that press already closes the other cards by being a
 // press outside them.
 screens.register({ name: 'offers', kind: 'card', close: () => diplomacyOffers?.close() });
+// The empire drawer (batch UX3). Pinning it calls `screens.opening('drawer')`;
+// a peek on hover tells the registry nothing, so a pointer crossing the corner
+// closes no other card. A peek still reports as open, so Escape closes it
+// before the selection and any card or screen opening takes it down.
+screens.register(held('drawer', 'card', () => empireDrawer));
 // The screens.
 screens.register(held('compendium', 'screen', () => compendium));
 screens.register(held('saves', 'screen', () => savesPanel));
@@ -2817,18 +2811,17 @@ async function boot(initial: Game | null): Promise<void> {
     // the turn line in the middle of the bar too (who the turn is waiting for
     // included) and the figures on the Trade and Standings tabs.
     civYields.render();
-    // The dock's badge and its open Faith card change on the same facts the
-    // strip above just read, so it refreshes in the same breath.
-    hudDock?.render();
-    // The holdings rail, on the same beat: ground changing hands, a unit built
-    // or lost, a row queued and a bargain signed all move a copy, and all of
-    // them land here. It watches `state.revision` and the seat itself, so the
-    // pointer moves that also reach this function cost two comparisons.
-    holdings?.render();
+    // The empire panel and its drawer change on the same facts the strip above
+    // just read: research, the draft meter, what is owed, and the Supply counts
+    // (ground changing hands, a unit built or lost, a row queued and a bargain
+    // signed all move a copy). It watches `state.revision` and the seat itself,
+    // so the pointer moves that also reach this function cost two comparisons.
+    empireDrawer?.render();
     // The commission chips, on the same beat and the same fingerprint.
     commissionRail?.render();
-    // The research card changes with the seat, with the science rate and with
-    // every completed tech, so it refreshes wherever the rest of the HUD does.
+    // The drawer's research section changes with the seat, with the science
+    // rate and with every completed tech; the star chart writes it, so it
+    // refreshes wherever the rest of the HUD does.
     techTree?.render();
     // The chronicle changes with the seat too — each has its own — so the badge
     // and any open list are re-read here rather than only when something is
@@ -4045,6 +4038,10 @@ async function boot(initial: Game | null): Promise<void> {
     onOpenTrade: () => trade?.open(),
     onOfferDiscovery: showDiscoveryOffer,
     onToggleStatecraft: () => statecraft?.toggle(),
+    // `Q` pins the empire drawer, or closes it when pinned; `L` opens the
+    // leader sheet (batch UX3, `docs/flags.md` (ssssss) 2).
+    onToggleEmpireDrawer: () => empireDrawer?.toggle(),
+    onToggleLeader: () => leaderSheet?.toggle(),
     // End Turn's Statecraft blocker puts the offer card up, because the offer is
     // what is owed; the screen is where a *slot* is changed and is opened by the
     // player rather than at them.
@@ -4386,7 +4383,8 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
-   * The star chart, and the HUD's research card it is opened from.
+   * The star chart, and the empire drawer's research section it is opened
+   * from (it was the HUD's research card until batch UX3, and kept its ids).
    *
    * Declared after `controls` because it asks whose seat this is; reached by
    * `controls` through the `techTree` holder above, which is what breaks the
@@ -4398,7 +4396,7 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('tech-close'),
     planStrip: requireElement('tech-plan'),
     hintLine: requireElement('tech-hint'),
-    statusCard: researchCard,
+    statusCard: researchSection,
     statusName: techCurrentEl,
     statusDial: researchDialEl,
     statusGlyph: researchGlyphEl,
@@ -4418,7 +4416,8 @@ async function boot(initial: Game | null): Promise<void> {
       // The chart opening is the guide's fourth step, and it is an *event*
       // rather than a command: nothing about the world changed, so there is
       // nothing in the commit funnel to read. Hooked here, at the screen's one
-      // open seam, so `T`, the research card and End Turn's blocker all count.
+      // open seam, so `T`, the drawer's research section and End Turn's
+      // blocker all count.
       tutorial.note({ kind: 'event', event: 'techChartOpened' });
     },
     // Its twin. The guide asks the player to fold the chart away before the
@@ -4890,45 +4889,47 @@ async function boot(initial: Game | null): Promise<void> {
   meterCards = civYields;
 
   /**
-   * The HUD dock: Statecraft, Religion and Leader, under the research card.
-   * See `src/ui/hudDock.ts` for the design; this is only wiring. Each button is
-   * a bare trigger that opens its sheet; the sheet's own opening closes what
-   * else is up. Diplomacy, Trade and the standings left the dock for the bar's
-   * tabs in batch UX1.
+   * The empire panel and its drawer (batch UX3). See `src/ui/empireDrawer.ts`
+   * for the design; this is the wiring. Each section and row opens its screen,
+   * and the screen's own opening closes the drawer through the registry.
+   * Research is the one door not wired here: the star chart owns the research
+   * section's click (`statusCard` above).
+   *
+   * A peek waits while anything blocks the board's keys (a sheet, news, the
+   * landing, the other empires' turns) and while a move is being aimed.
    */
-  hudDock = createHudDock({
-    container: hudDockEl,
+  empireDrawer = createEmpireDrawer({
+    panel: empirePanelEl,
+    drawer: empireDrawerEl,
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
+    canPeek: () => !isInputBlocked() && !controls.isMoveMode(),
+    onOpen: () => screens.opening('drawer'),
+    // The tutorial's open-the-tree step rings the panel, and the research
+    // section once the drawer is open, so it is re-placed on every change.
+    onChange: () => tutorial.refresh(),
+    openStatecraft: () => statecraft?.open(),
+    openFaith: () => religion?.open(),
+    openLeader: () => leaderSheet?.open(),
+    openWager: () => wagerSheet?.open(),
   });
+  gameDisposers.push(() => empireDrawer?.dispose());
 
   /**
-   * The holdings rail, under the dock. It builds its own card (see
-   * `src/ui/holdingsRail.ts` for why), so the mount is here and happens once:
-   * a later boot replaces the rail and swaps its element for the new one's.
-   */
-  const previousHoldings = holdings;
-  holdings = createHoldingsRail({
-    getGame: () => game,
-    localPlayerId: () => controls.localPlayerId(),
-  });
-  if (previousHoldings) previousHoldings.root.replaceWith(holdings.root);
-  else hudDockEl.after(holdings.root);
-
-  /**
-   * The commission chips (batch C): one per seated commission, directly under
-   * the dock and above the holdings card, which moves down by the chips'
-   * height (`--hud-commission-count`, written by the rail). A click opens the
-   * government sheet at the card.
+   * The commission chips (batch C): one per seated commission, under the empire
+   * panel, at most four and then "+N more". A chip opens the government sheet
+   * at its card, and "+N more" opens Statecraft. Mounted after the drawer, so
+   * the keyboard reaches the panel, then the drawer, then the chips.
    */
   const previousCommissions = commissionRail;
   commissionRail = createCommissionRail({
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
     openAt: (card) => statecraft?.openAt(card),
+    openAll: () => statecraft?.open(),
   });
   if (previousCommissions) previousCommissions.root.replaceWith(commissionRail.root);
-  else hudDockEl.after(commissionRail.root);
+  else empireDrawerEl.after(commissionRail.root);
   gameDisposers.push(() => commissionRail?.dispose());
   diplomacy = createDiplomacyScreen({
     overlay: diplomacyOverlayEl,
@@ -5049,33 +5050,30 @@ async function boot(initial: Game | null): Promise<void> {
   });
   gameDisposers.push(()=>warDispatch?.dispose());
 
-  hudDock.statecraftButton.addEventListener('click', () => statecraft?.open());
-  hudDock.religionButton.addEventListener('click', () => religion?.open());
   /**
    * **Your civ** — the thirteenth sheet on the shell (batch L2b, re-aimed at the
    * second cut in L6b): the record of what the figure at your table does.
    *
-   * Built *here*, after the dock, rather than beside the other sheets above:
-   * the shell keeps the keyboard's return path on the control that opened it
-   * (`ModalShellOptions.trigger`), and the door has to exist before the sheet
-   * can be told about it. The dock's Leader button is that control.
+   * Its trigger is the empire drawer's Leader row (batch UX3), which opens it
+   * with `L`: the row is the control that opened it, so the `aria-expanded`
+   * mirror goes there and not onto the panel, whose own `aria-expanded` says
+   * whether the drawer is open. The drawer has closed by the time the sheet
+   * closes, so the keyboard goes back to the page rather than to a hidden row.
+   * Nothing is ever owed behind this door, so the row carries no dot: a figure
+   * is a known quantity from the landing screen onward, and the sheet is a
+   * record of what your civ is and what it is paying you today.
    */
   leaderSheet = createLeaderSheet({
     overlay: leaderOverlayEl,
     body: leaderBodyEl,
     closeButton: requireElement('leader-close'),
-    trigger: hudDock.leaderButton,
+    trigger: requireElement<HTMLButtonElement>('drawer-leader'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     onOpen: () => screens.opening('leader'),
   });
 
   gameDisposers.push(() => leaderSheet?.dispose());
-
-  /* The dock's Leader button, behind which nothing is ever owed: a figure is a
-     known quantity from the landing screen onward, so the sheet behind this
-     banner is a record — what your civ is, and what it is paying you today. */
-  hudDock.leaderButton.addEventListener('click', () => leaderSheet?.open());
 
   /**
    * **The standings** — the fifteenth sheet on the shell (`victoryScreen.ts`,
@@ -5101,8 +5099,9 @@ async function boot(initial: Game | null): Promise<void> {
     onOpen: () => screens.opening('standings'),
   });
 
-  // `H` opens the Religion screen — the dock's own hotkey, and deliberately its
-  // own small listener rather than one more branch in `controls.ts`'s keydown
+  // `H` opens the Religion screen (the empire drawer's Faith row; the dock's
+  // until batch UX3), and is deliberately its own small listener rather than
+  // one more branch in `controls.ts`'s keydown
   // switch: that module owns the board's verbs (fortify, sleep, move mode, the
   // lens…) and this is a screen with no unit or tile behind it, the same kind of
   // thing `T`/`C`/`A` are but wired where their *screens* are built instead of
@@ -5331,6 +5330,9 @@ async function boot(initial: Game | null): Promise<void> {
     isBuyMode: () => controls.isBuyMode(),
     setBuyMode: (on) => controls.setBuyMode(on),
     onOpenTrade: () => trade?.open(),
+    // The ‹ › arrows beside the town's name open the previous or next town the
+    // same way a banner click does (batch UX6); without this they are not drawn.
+    onOpenCity: (cityId) => controls.setOpenCity(cityId),
     // The city mode prints its one board instruction while the guide is up (or
     // while Buy Tiles is armed, which the panel knows for itself). The guide is
     // this page's, exactly as the confirm card is.

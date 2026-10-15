@@ -12,8 +12,9 @@
  *
  * A player who only ever meets the rule as a refusal has been taught it the
  * worst way. So the count goes on the surfaces where the decision is actually
- * made — the holdings rail in the HUD, a build row in the city panel, a hex's
- * own readout, a bargain's list of goods — and this module is the one place
+ * made — the Supply section of the empire drawer (the holdings rail until batch
+ * UX3), a build row in the city panel, a hex's own readout, a bargain's list of
+ * goods — and this module is the one place
  * those four ask the question, so they cannot come back with four answers.
  *
  * Three things live here and nothing else does:

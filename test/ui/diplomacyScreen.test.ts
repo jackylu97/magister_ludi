@@ -424,7 +424,9 @@ describe('the wiring that spans files', () => {
       "const diplomacyTab = sheetButton('topbar-tab is-diplomacy', 'diplomacy-overlay');",
     );
     expect(bar).toContain('tabs.replaceChildren(diplomacyTab, tradeTab, standingsGroup);');
-    expect(source('hudDock.ts')).not.toContain('hud-dock-diplomacy');
+    // The dock that held it is gone (batch UX3), and the empire drawer that
+    // replaced it carries no door to the other empires.
+    expect(source('index.html')).not.toMatch(/id="(hud-dock|drawer)-diplomacy"/);
   });
 
   it('opens the sheet from that tab, through the same door `W` uses', () => {

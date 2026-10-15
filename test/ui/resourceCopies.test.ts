@@ -255,7 +255,9 @@ describe('a hex’s own quantity', () => {
 
 describe('who prints it', () => {
   it('is the one module the four surfaces ask', () => {
-    for (const file of ['cityPanel.ts', 'tileReadout.ts', 'holdingsRail.ts']) {
+    // The empire drawer's Supply section holds what the holdings rail did
+    // (batch UX3).
+    for (const file of ['cityPanel.ts', 'tileReadout.ts', 'empireDrawer.ts']) {
       expect(uiSource(file)).toContain("from './resourceCopies'");
     }
   });

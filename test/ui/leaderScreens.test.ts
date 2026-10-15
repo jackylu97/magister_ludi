@@ -295,10 +295,13 @@ describe("the leaders' draft", () => {
     expect(uiSource('style.css')).not.toContain('leader-draft-foot');
   });
 
-  it('takes the dot off the fifth door: nothing behind it is ever owed', () => {
-    const dock = uiSource('hudDock.ts');
-    expect(dock).toContain('leaderButton');
-    expect(dock).not.toContain('leaderBlocker');
+  it('takes the dot off the leader’s door: nothing behind it is ever owed', () => {
+    // The dock's fifth door until batch UX3; the empire drawer's Leader row
+    // since. The only row with a dot is Faith's, for a belief to choose.
+    const drawer = uiSource('empireDrawer.ts');
+    expect(drawer).not.toContain('leaderBlocker');
+    expect(drawer).toContain("faithRow.classList.toggle('is-owed', glance.beliefOwed);");
+    expect(drawer).not.toMatch(/leaderRow\.classList/);
   });
 });
 
@@ -408,7 +411,8 @@ describe('the sheet’s furniture', () => {
   it('builds on the shell and hands the keyboard back to the door', () => {
     expect(uiSource('leaderSheet.ts')).toContain('createModalShell({');
     expect(uiSource('leaderSheet.ts')).toContain('trigger,');
-    expect(uiSource('main.ts')).toContain('trigger: hudDock.leaderButton');
+    // The empire drawer's Leader row, which `L` stands in for (batch UX3).
+    expect(uiSource('main.ts')).toContain("trigger: requireElement<HTMLButtonElement>('drawer-leader'),");
   });
 
   it('wears the overlay class the cap rule reads, and is hidden at rest', () => {
@@ -428,11 +432,15 @@ describe('the sheet’s furniture', () => {
     expect(main).toContain("screens.register(held('leader', 'screen', () => leaderSheet));");
   });
 
-  it('gives the dock a fifth door wearing the seat’s own charge', () => {
-    const dock = uiSource('hudDock.ts');
-    expect(dock).toContain('leaderButton');
-    expect(dock).toContain('heraldryFor(localPlayerId(), player?.charge, player?.leader)');
-    expect(uiSource('main.ts')).toContain('hudDock.leaderButton.addEventListener');
+  it('puts the seat’s own charge on the empire panel, and the sheet behind its Leader row and L', () => {
+    // The dock's Leader button wore the charge until batch UX3; the empire
+    // panel's banner wears it now, and the drawer's Leader row opens the sheet.
+    const drawer = uiSource('empireDrawer.ts');
+    expect(drawer).toContain('heraldryFor(glance.playerId, player?.charge, player?.leader)');
+    expect(drawer).toContain("leaderRow.addEventListener('click', () => options.openLeader(), { signal });");
+    const main = uiSource('main.ts');
+    expect(main).toContain('openLeader: () => leaderSheet?.open(),');
+    expect(main).toContain('onToggleLeader: () => leaderSheet?.toggle(),');
   });
 });
 

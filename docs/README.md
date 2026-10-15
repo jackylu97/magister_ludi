@@ -310,7 +310,7 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   `payWindfallGrants` / the great-person draw, unseats it and records it in
   `PlayerStatecraft.commissionsFulfilled`; a fulfilled card stays held and can
   never be seated again. Private: nothing reads another empire. UI: the counter
-  on the card face (`ui/goalCounter.ts`) and the chips under the dock
+  on the card face (`ui/goalCounter.ts`) and the chips under the empire panel
   (`ui/commissionRail.ts`).
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
@@ -553,10 +553,10 @@ Eight root pages, all named in `vite.config.ts` inputs:
   an open screen or news blocks the board's keys. A new surface joins by
   registering, and `test/ui/screenRegistry.test.ts` fails a module built on the
   sheet frame that `main.ts` builds without registering it.
-- **The HUD** (batch UX1, `docs/plans/hud-empire-panel-spec.md` §2 and §7). The
-  top bar, left to right: the six yields (each opens the Ledger on its own
-  yield, culture included); one meters chip, happiness and authority, each half
-  its own button and breakdown card; the turn line in the middle ("Turn 91 ·
+- **The HUD** (batches UX1 and UX3, `docs/plans/hud-empire-panel-spec.md` §2
+  to §7). The top bar, left to right: the six yields (each opens the Ledger on
+  its own yield, culture included); one meters chip, happiness and authority,
+  each half its own button and breakdown card; the turn line in the middle ("Turn 91 ·
   Æra II · 9 left", the age card on hover); the seat strip in hot-seat play
   only; three labelled tabs — Diplomacy (`W`), Trade with the routes figure
   (`E`), and Standings, whose renown figure opens the Reliquary and bead figure
@@ -564,9 +564,21 @@ Eight root pages, all named in `vite.config.ts` inputs:
   figures and drop their printed names. The Compendium opens from ☰ and the ?
   card, the Abacus from the standings sheet and `A`. The Lens and the chronicle
   (❧) are two small buttons left of End Turn, their cards opening above them.
-  The dock under the research card keeps Statecraft, Religion and Leader until
-  the empire panel replaces it (UX3). `topBar.ts` fills the bar; the comment at
-  the head of the HUD in `index.html` lists every surface.
+  Top-left, the **empire panel** (`ui/empireDrawer.ts`): one button with the
+  seat's banner, a research bar and a draft-meter bar with their turns, and a red
+  dot on the banner while a card, a charter, a belief or a strategic resource
+  with none spare is waiting. Its **drawer** opens to the right. Resting the
+  pointer on the panel for 200 ms, or tabbing onto it, opens depth one: the
+  research section (opens the star chart; it keeps the old research card's ids,
+  which `techTree.ts` still writes) and the culture section (opens Statecraft).
+  A click, a tap, Enter or `Q` pins depth two, which adds Faith (`H`), Leader
+  (`L`), the age wager and the Supply counts (spare of held, vermilion when none
+  is spare; each opens its Compendium entry). A pinned drawer is a card in the
+  screen registry; a peek tells the registry nothing. The commission chips sit
+  under the panel, at most four (three on a window under 720 px tall) and then
+  "+N more". The dock, the research card and the always-visible resources card
+  are gone. `topBar.ts` fills the bar; the comment at the head of the HUD in
+  `index.html` lists every surface.
 - **The landing is three screens and one element** (batch L7, `docs/flags.md`
   (yyyy); the mockup is `mockups/new-game-flow.html`): `data-step` on `#landing`
   is the whole of the screen state — **title** (the poster, shown here and

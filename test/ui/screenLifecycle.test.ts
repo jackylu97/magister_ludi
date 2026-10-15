@@ -78,10 +78,13 @@ describe('the game-screen disposal register', () => {
       // game that is over.
       'leaderSheet?.dispose()',
       'abacus?.dispose()',
-      // The commission chips (batch C). Mounted once like the holdings card,
-      // and disposed through the register so a new game starts with an empty
-      // rail and the holdings card back in its place.
+      // The commission chips (batch C). Mounted once, and disposed through the
+      // register so a new game starts with an empty rail.
       'commissionRail?.dispose()',
+      // The empire panel and its drawer (batch UX3). It binds a capturing
+      // `pointerdown` and `keydown` on the window, which would go on answering
+      // for a game that is over.
+      'empireDrawer?.dispose()',
     ]) {
       expect(main, call).toContain(`gameDisposers.push(() => ${call});`);
     }
@@ -240,6 +243,8 @@ describe('the screen registry beside the disposal register', () => {
       ['capture', 'capture'],
       ['victory', 'standings'],
       ['ceremony', 'ceremony'],
+      // The empire drawer (batch UX3), the one card here built per game.
+      ['empireDrawer', 'drawer'],
     ] as const) {
       expect(main, holder).toContain(`gameDisposers.push(() => ${holder}?.dispose());`);
       expect(main, holder).toMatch(new RegExp(`screens\\.register\\(held\\('${name}', '\\w+', \\(\\) => ${holder}\\)\\);`));

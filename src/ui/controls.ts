@@ -1638,6 +1638,18 @@ export interface GameControlsOptions {
   /** Opens or closes the Statecraft screen. The `C` key and the culture chip. */
   onToggleStatecraft?: () => void;
   /**
+   * Pins the empire drawer, or closes it when it is pinned. The `Q` key
+   * (batch UX3; the user's ruling, `docs/flags.md` (ssssss) 2). Unlike `T` and
+   * `C` this is a card rather than a screen, so the board keeps its keys while
+   * the drawer is up and a second `Q` arrives here to close it.
+   */
+  onToggleEmpireDrawer?: () => void;
+  /**
+   * Opens or closes the leader sheet. The `L` key (batch UX3), on `T`'s terms:
+   * the sheet owns the keyboard while it is up, so this is only ever the way in.
+   */
+  onToggleLeader?: () => void;
+  /**
    * Puts whatever Statecraft owes this seat on screen. End Turn's blocker calls
    * it, exactly as `onOfferDiscovery` is called for a claimed ruin.
    */
@@ -2504,6 +2516,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onOpenTrade,
     onOfferDiscovery,
     onToggleStatecraft,
+    onToggleEmpireDrawer,
+    onToggleLeader,
     onOfferStatecraft,
     onStatecraftPause,
     onOfferReligion,
@@ -8229,6 +8243,31 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (event.key === 'c' || event.key === 'C') {
       event.preventDefault();
       onToggleStatecraft?.();
+      return;
+    }
+    if (
+      (event.key === 'q' || event.key === 'Q') &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
+      // The empire drawer, pinned, or closed when it already is (batch UX3).
+      // With a modifier held the key is the browser's or the system's (Cmd + Q
+      // quits), so it is left alone.
+      event.preventDefault();
+      onToggleEmpireDrawer?.();
+      return;
+    }
+    if (
+      (event.key === 'l' || event.key === 'L') &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey
+    ) {
+      // The leader sheet (batch UX3). Ctrl + L and Cmd + L are the address
+      // bar's, so a modified press is left alone.
+      event.preventDefault();
+      onToggleLeader?.();
       return;
     }
     if (event.key === 'a' || event.key === 'A') {

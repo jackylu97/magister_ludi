@@ -199,18 +199,11 @@
      panels — one number so nothing can drift out of alignment with it. */
   --topbar-h: 42px;
 
-  /* The research card's own rendered height: its 8px top/bottom padding, its
-     2.5px border on both edges, and the ~62px dial that is the taller of its
-     two children (the text stack never wins that contest). Named for the same
-     reason `--end-turn-h` is — so the HUD dock, pinned directly under the
-     card, can never silently drift out of alignment with it. */
-  --research-card-h: calc(62px + 8px * 2 + 2.5px * 2);
-
-  /* The dock's own height: two 3px-bordered, icon-only square buttons — a
-     22px mark centred over 4px of padding on every edge. Read by the Faith
-     card's own fixed column, which hangs under the dock the way
-     `--research-card-h` lets the dock hang under the research card. */
-  --hud-dock-h: calc(4px + 22px + 4px + var(--border) * 2);
+  /* The empire panel's size (batch UX3, spec §3). The drawer opens at its
+     right edge plus 6px and the commission chips start 10px under it, both
+     read off these two numbers so neither can drift away from the panel. */
+  --empire-panel-w: 200px;
+  --empire-panel-h: 56px;
 
   /* End Turn's own rendered height, built from exactly the numbers `.btn-end`
      is: its padding, its border, and one line of 16px content at the `.btn`
@@ -3038,386 +3031,610 @@ kbd {
   font-weight: 600;
 }
 
-/* --- top-left: the research card ------------------------------------------
-   What the empire is learning, permanently, in the corner the eye lands on
-   first: a parchment lozenge with a round dial at its left end — the "sky-lens
-   progress dial". The dial's outer rim is the progress (a conic-gradient ring,
-   set by `--progress` from `renderStatus`) and its inner disc is a scrap of
-   the star chart's own night sky, with the tech's glyph lit at the centre. No
-   bar, no canvas, no SVG: the ring is one CSS custom property.
-
-   The whole card is a `<button>`, so the ordinary card recipe has to be told
-   the things a button does not inherit (font, colour, text alignment) and the
-   flex row that seats the dial beside the text. It presses like every other
-   button on the page: 3px down, shadow collapsed, which on a fixed card reads
-   as the card itself being pushed into the table. The left end is rounded
-   full to hug the dial's circle; the right end keeps the ordinary card
-   radius. */
-#hud-research {
+/* --- top-left: the empire panel -------------------------------------------
+   The seat's banner and two thin bars, research and the draft meter, each
+   followed by its turns (batch UX3, `docs/plans/hud-empire-panel-spec.md` §3).
+   The whole panel is one button: the bars are 6px tall, far below a usable
+   target, so they are a reading and not doors. Resting the pointer on it opens
+   the drawer beside it; `src/ui/empireDrawer.ts` has the rules. */
+.empire-panel {
+  position: fixed;
   top: calc(var(--topbar-h) + 12px);
   left: 14px;
-  width: 230px;
+  z-index: 12;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px 8px 8px;
-  border-width: 2.5px;
-  border-radius: 999px var(--radius-sm) var(--radius-sm) 999px;
+  gap: 8px;
+  width: var(--empire-panel-w);
+  height: var(--empire-panel-h);
+  padding: 0 8px 0 5px;
+  border: var(--border) solid var(--ink);
+  border-radius: 12px;
+  background: var(--parchment);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
   font-family: var(--face-ui);
   font-size: 12px;
-  color: var(--ink);
   text-align: left;
   cursor: pointer;
   transition: transform 60ms ease-out, box-shadow 60ms ease-out;
 }
 
-#hud-research:hover {
+.empire-panel:hover,
+.empire-panel.is-open {
   background: #fdfaef;
 }
 
-#hud-research:active {
+/* Drawn open: the right edge flattened, so the panel reads as joined to the
+   drawer that has opened beside it. */
+.empire-panel.is-open {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}
+
+/* The physical press every HUD button has. */
+.empire-panel:active {
   transform: translate(3px, 3px);
   box-shadow: 0 0 0 var(--ink);
 }
 
-/* --- the dial --------------------------------------------------------------
-   ~62px across. Three stacked layers: the ring (this element's own
-   background), the sky (an inset disc on top of it) and the boss (a small
-   parchment pill overlapping the sky's lower-right edge). */
-.research-dial {
-  --progress: 0%;
-  --ring-color: var(--lapis);
+/* The seat's banner: its charge masked in ink on a parchment canton (the
+   heraldry rule: a charge never sits straight on seat ink), inside a ring of
+   the seat's own colour. `--banner-mark` starts as a transparent picture so the
+   mask hides everything until the first render writes the charge. */
+.empire-banner {
+  --banner-mark: linear-gradient(transparent, transparent);
   position: relative;
   flex: none;
-  width: 62px;
-  height: 62px;
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--seat-ink, var(--ink));
   border-radius: 50%;
-  /* A conic-gradient starts at 12 o'clock and runs clockwise by default —
-     exactly the sweep a progress ring wants, with no rotation to fake it. */
-  background: conic-gradient(
-    var(--ring-color) 0% var(--progress),
-    rgba(29, 26, 32, 0.16) var(--progress) 100%
-  );
+  background: var(--parchment);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
 }
 
-/* The sky: near-black, like the star chart's own ground, inset far enough to
-   leave the ring an even rim. A 1.5px ink seam is the only thing that admits
-   the rim and the sky are two different surfaces. */
-.research-dial-sky {
+.empire-banner::before {
   position: absolute;
   inset: 7px;
-  display: grid;
-  place-items: center;
-  overflow: hidden;
+  background-color: var(--ink);
+  -webkit-mask: var(--banner-mark) center / contain no-repeat;
+  mask: var(--banner-mark) center / contain no-repeat;
+  content: '';
+}
+
+.empire-banner.is-small {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+
+.empire-banner.is-small::before {
+  inset: 4px;
+}
+
+/* The red dot: a decision is waiting (a card, a charter, a belief, or a
+   strategic resource with none spare). It pulses for the reason the chronicle's
+   unread badge does: a still dot on a control nobody has learned to read yet is
+   decoration. */
+.empire-banner.is-owed::after {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  box-sizing: border-box;
+  width: 10px;
+  height: 10px;
   border: 1.5px solid var(--ink);
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 28%, #241f2c 0%, #17121a 65%, #100d13 100%);
+  background: var(--vermilion);
+  content: '';
+  animation: yield-waiting-pulse 1.8s ease-in-out infinite;
 }
 
-/* Ambient stars: fixed specks, not a fact about the game — just texture, so
-   they are placed with a custom property per span rather than earning ids. */
-.research-dial-star {
-  position: absolute;
-  left: var(--sx);
-  top: var(--sy);
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: rgba(247, 242, 225, 0.55);
-  box-shadow: 0 0 2px rgba(247, 242, 225, 0.45);
-}
-
-/* The tech's own glyph, gilt and glowing — the one thing in the sky that is a
-   fact rather than texture. `.is-dim` is the unlit ✧ the choose-state wears in
-   its place. */
-.research-dial-glyph {
-  position: relative;
-  z-index: 1;
-  font-size: 22px;
-  line-height: 1;
-  color: var(--gilt);
-  text-shadow: 0 0 6px rgba(200, 144, 31, 0.7), 0 0 12px rgba(200, 144, 31, 0.35);
-}
-
-.research-dial-glyph.is-dim {
-  font-size: 15px;
-  color: rgba(247, 242, 225, 0.32);
-  text-shadow: none;
-}
-
-/* The boss: turns left, worn like a badge pinned to the dial's rim. Empty
-   (the choose and complete states have no turn count to show) collapses it
-   away entirely rather than leaving a hollow pill. */
-.research-dial-boss {
-  position: absolute;
-  right: -6px;
-  bottom: -3px;
-  min-width: 18px;
-  padding: 1px 5px;
-  border: 1.5px solid var(--ink);
-  border-radius: 999px;
-  background: var(--parchment);
-  color: var(--ink);
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  text-align: center;
-  line-height: 1.4;
-}
-
-.research-dial-boss:empty {
-  display: none;
-}
-
-/* --- the text stack ---------------------------------------------------- */
-
-.research-text {
-  display: grid;
-  gap: 2px;
-  /* Lets the name's ellipsis actually bite inside a flex row — a flex item's
-     default min-width is its content's, which would push the card wider
-     rather than truncate. */
+.empire-bars {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 7px;
   min-width: 0;
 }
 
-/* The eyebrow names the screen the card opens, so the chart's title and this
-   line are the same words — "Natural Philosophy", not "Research". */
-.research-eyebrow {
-  line-height: 1.2;
+.empire-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* The naming face, as everywhere a thing is named. */
-.research-name {
-  font-family: var(--face-name);
-  font-variation-settings: 'opsz' 90;
-  font-weight: 600;
-  font-size: 1.02rem;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  /* A long tech name shortens rather than widening a card that is pinned to a
-     corner: the card's width is a promise that nothing under it ever moves. */
+/* 96px wide when there is room, narrower before a long turn count wraps. */
+.empire-bar {
+  flex: 0 1 96px;
+  min-width: 40px;
+  height: 6px;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  border-radius: 99px;
+  background: rgba(29, 26, 32, 0.15);
 }
 
-.research-figures {
-  font-family: var(--face-num);
-  font-size: 10px;
-  letter-spacing: 0.02em;
-  color: var(--ink-soft);
+.empire-bar-fill {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
 }
 
-/* Nothing chosen, and something left to choose: the same slow gilt pulse the
-   bar button wore, and the name goes quiet because it is a prompt and not a
-   title. The card keeps its place and its size — a nag that resized the card
-   would move the board's top-left corner every time a tech landed. */
-#hud-research.is-prompting {
-  border-color: var(--gilt);
+.empire-bar.is-research .empire-bar-fill {
+  background: var(--cobalt);
+}
+
+.empire-bar.is-draft .empire-bar-fill {
+  background: var(--grape);
+}
+
+/* Nothing chosen to research: the track goes gilt and breathes, which is the
+   old research card's nag moved onto the bar that stands for it. */
+.empire-bar.is-prompting {
+  background: rgba(200, 144, 31, 0.35);
   animation: tech-nudge 2.4s ease-in-out infinite;
 }
 
-#hud-research.is-prompting .research-name,
-#hud-research.is-done .research-name {
-  font-style: italic;
+/* Every technology researched: the bar is full, in gilt. */
+.empire-bar.is-finished .empire-bar-fill {
+  background: var(--gilt);
+}
+
+.empire-bar-turns {
+  flex: none;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* The panel opens sideways, and this says so. */
+.empire-panel-arrow {
+  flex: none;
+  margin-left: auto;
+  font-size: 13px;
+  line-height: 1;
   color: var(--ink-soft);
 }
 
-#hud-research.is-prompting .research-name {
-  color: var(--gilt);
-}
-
-/* The sky goes empty while nothing is chosen — the ambient specks are texture
-   for a tech actually being read, not for a prompt. */
-#hud-research.is-prompting .research-dial-star {
-  opacity: 0;
-}
-
-/* The tree is finished: the ring goes fully gilt rather than fully lapis — a
-   ring "complete" in the same voice the chart uses for a researched star —
-   and the card stops asking for anything. It still opens the chart, which is
-   now a record rather than a decision. */
-#hud-research.is-done .research-dial {
-  --ring-color: var(--gilt);
-}
-
 @media (prefers-reduced-motion: reduce) {
-  #hud-research.is-prompting {
+  .empire-banner.is-owed::after,
+  .empire-bar.is-prompting {
     animation: none;
   }
 }
 
-/* --- the HUD dock -----------------------------------------------------
-   Three square buttons directly under the research card: Statecraft, Religion
-   and the leader sheet. Pinned with `--research-card-h` so it can never drift
-   into the card above it, the same technique `--end-turn-clearance` uses for
-   the corner End Turn owns. Diplomacy, Trade and the standings left it for the
-   top bar's tabs in batch UX1, and the empire panel replaces it in UX3.
-
-   Built by `src/ui/hudDock.ts`; see that module for why each button is a bare
-   trigger for a screen the dock does not own. */
-.hud-dock {
+/* --- the empire drawer ---------------------------------------------------
+   Opens to the right of the panel (spec §4): its left edge is the panel's right
+   edge plus 6px, so the commission chips under the panel are never covered and
+   nothing moves when it opens. `data-depth` is written by `empireDrawer.ts`:
+   at 1 it shows research and culture and a foot line; at 2 it adds the Faith,
+   Leader and age wager rows, Supply, and the ×. */
+.empire-drawer {
   position: fixed;
-  top: calc(var(--topbar-h) + 12px + var(--research-card-h) + 10px);
-  left: 14px;
-  z-index: 10;
-  display: flex;
-  gap: 6px;
-}
-
-/* The button recipe every bordered control in this HUD shares — 3px ink,
-   an offset shadow, a physical press — sized to `--hud-dock-h` on both axes:
-   an icon and nothing else, a touch under the research dial it sits beneath.
-   Icon-only, so `title`/`aria-label` (set in `src/ui/hudDock.ts`) carry the
-   name a printed label used to. */
-.hud-dock-btn {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--hud-dock-h);
-  height: var(--hud-dock-h);
-  padding: 4px;
+  top: calc(var(--topbar-h) + 12px);
+  left: calc(14px + var(--empire-panel-w) + 6px);
+  z-index: 14;
+  box-sizing: border-box;
+  width: 300px;
+  padding: 6px 10px 9px;
   border: var(--border) solid var(--ink);
-  border-radius: var(--radius-sm);
+  border-radius: 2px var(--radius) var(--radius) var(--radius);
   background: var(--parchment);
-  color: var(--ink);
   box-shadow: var(--shadow-sm);
-  cursor: pointer;
-  transition: transform 60ms ease-out, box-shadow 60ms ease-out;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  line-height: 1.35;
 }
 
-.hud-dock-btn:hover {
-  background: #fdfaef;
-}
-
-/* The whole point of the language: a press is a physical event — the same
-   3px throw `--shadow-sm` sets, collapsed to nothing, `#hud-research:active`
-   uses one section up. */
-.hud-dock-btn:active {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 var(--ink);
-}
-
-/* The drawn mark, masked with `currentColor` — see `--dock-mark`, set per
-   button by `src/ui/hudDock.ts` (`src/art/dockMarks.ts` for Statecraft's
-   scroll, `src/art/yieldMarks.ts`'s own faith flame reused for Religion). */
-.hud-dock-icon {
-  display: block;
-  width: 22px;
-  height: 22px;
-  background-color: currentColor;
-  -webkit-mask-image: var(--dock-mark);
-  mask-image: var(--dock-mark);
-  -webkit-mask-size: contain;
-  mask-size: contain;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-}
-
-/* The Faith card's own fixed column, hung directly under the dock for the
-   same reason `#hud-meters` and `#hud-popovers` each hang under their own
-   trigger rather than sharing the other's corner — a card opens beneath the
-   button that opened it. Same recipe as both: transparent to the pointer,
-   the card itself opaque to it. */
-#hud-dock-popovers {
-  position: fixed;
-  top: calc(
-    var(--topbar-h) + 12px + var(--research-card-h) + 10px + var(--hud-dock-h) + 10px
-  );
-  left: 14px;
-  z-index: 15;
-  pointer-events: none;
-}
-
-#hud-dock-popovers > .hud-card {
-  /* `relative`, not `static`: it cancels `.hud-card`'s `fixed` exactly as
-     `static` did and lays out identically, and it is what the corner star's
-     pseudo-element anchors to. `z-index: auto` keeps the stacking as `static`
-     left it, so the column paints in DOM order as it always has. */
-  position: relative;
-  z-index: auto;
-  pointer-events: auto;
-}
-
-/* --- the holdings rail -----------------------------------------------------
-   What strategic resources this empire holds, and how much of each is still
-   free. Third card in the left column, under the dock, pinned by the same
-   arithmetic `#hud-dock-popovers` above uses so it can never drift into the
-   buttons. See `src/ui/holdingsRail.ts` for why it is here and not in the top
-   bar: that strip already shrinks twice to fit the window, and seven more items
-   would cost the yields their legibility.
-
-   The card builds itself in TypeScript rather than sitting in `index.html`,
-   which is why it is `position: fixed` here rather than inheriting a column's.
-   It hides outright when the empire holds nothing — `hidden` is the whole of its
-   state, and `.hud-card` is `display: flex`, so the attribute needs saying
-   twice to win. */
-#hud-holdings {
-  position: fixed;
-  /* Moved down by the commission chips' height when any are showing (batch C);
-     with none the sum adds nothing and the card sits where it always has. */
-  top: calc(
-    var(--topbar-h) + 12px + var(--research-card-h) + 10px + var(--hud-dock-h) + 10px +
-      var(--hud-commissions-h)
-  );
-  left: 14px;
-  z-index: 10;
-  width: 230px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 7px 10px 6px;
-}
-
-#hud-holdings[hidden] {
+.empire-drawer[hidden] {
   display: none;
 }
 
-.holdings-eyebrow {
-  margin: 0;
+/* An invisible strip over the 6px gap, so the pointer crossing from the panel
+   into the drawer never leaves both and the peek does not start to close. */
+.empire-drawer::before {
+  position: absolute;
+  top: calc(-1 * var(--border));
+  left: calc(-1 * var(--border) - 7px);
+  width: 8px;
+  height: var(--empire-panel-h);
+  content: '';
 }
 
-.holdings-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.empire-drawer[data-depth='1'] .drawer-more,
+.empire-drawer[data-depth='1'] .drawer-close,
+.empire-drawer[data-depth='2'] .drawer-foot {
+  display: none;
+}
+
+.drawer-head {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
+  align-items: center;
+  gap: 7px;
+  min-height: 26px;
 }
 
-/* Three columns: the mark, the name, and the pair of figures hard right. A
-   grid rather than a flex row with a spacer, so every row's figures line up
-   under each other — which is the whole reason the rail is readable at a
-   glance rather than something to be parsed. */
-.holdings-row {
-  display: grid;
-  grid-template-columns: 1.2em 1fr auto;
-  align-items: baseline;
-  gap: 6px;
-  font-family: var(--face-ui);
-  font-size: 11.5px;
-  line-height: 1.5;
-  color: var(--ink);
+/* Room for the × at depth two. */
+.empire-drawer[data-depth='2'] .drawer-head {
+  padding-right: 24px;
 }
 
-.holdings-mark {
-  display: inline-block;
-  color: var(--ink-soft);
-}
-
-.holdings-name {
+.drawer-seat {
   overflow: hidden;
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-/* The figure pair, in the house voice every number in this interface is set in.
-   `is-none` is the one state a glance has to catch with no gesture at all: an
-   empire whose last copy is already carrying something. */
+.drawer-hint {
+  flex: none;
+  margin-left: auto;
+  font-family: var(--face-num);
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+.drawer-close {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+}
+
+/* The research and culture sections: one large button each (spec §5). The
+   hover edge widens the left border by 2px and the padding gives the 2px back,
+   so nothing inside moves. */
+.drawer-section {
+  --edge: var(--ink);
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 6px;
+  padding: 6px 8px 7px 10px;
+  border: 2px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 60ms ease-out;
+}
+
+.drawer-section.is-research {
+  --edge: var(--cobalt);
+}
+
+.drawer-section.is-culture {
+  --edge: var(--grape);
+}
+
+.drawer-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35em;
+  font-family: var(--face-name);
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.drawer-arrow {
+  display: inline-block;
+  color: var(--ink-soft);
+  transition: transform 120ms ease-out, color 120ms ease-out;
+}
+
+/* The key hint: a small mono box, quieter than the house `kbd`. */
+.drawer-key {
+  flex: none;
+  margin-left: auto;
+  padding: 0 4px;
+  border: 1.5px solid var(--rule);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.drawer-key.is-arrow {
+  border-color: transparent;
+}
+
+/* Hover, keyboard focus, and a culture section with a card waiting all show
+   the section's colour on its left edge; the owed state keeps it at rest, so
+   the waiting draft is visible without hovering. */
+.drawer-section:hover,
+.drawer-section:focus-visible,
+.drawer-section.is-owed {
+  padding-left: 8px;
+  border-left-width: 4px;
+  border-left-color: var(--edge);
+}
+
+.drawer-section:hover,
+.drawer-section:focus-visible {
+  background: #fdfaef;
+}
+
+.drawer-section:hover .drawer-title-name,
+.drawer-section:focus-visible .drawer-title-name {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.drawer-section:hover .drawer-arrow,
+.drawer-section:focus-visible .drawer-arrow {
+  color: var(--ink);
+  transform: translateX(2px);
+}
+
+/* Keyboard focus: a ring in the section's colour, 2px outside the border, so it
+   shows on parchment and against the drawer's ink border alike. */
+.drawer-section:focus-visible {
+  outline: 3px solid var(--edge);
+  outline-offset: 2px;
+}
+
+.drawer-section:active {
+  transform: translate(2px, 2px);
+  border-top-color: var(--ink);
+  border-right-color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+.drawer-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  margin-top: 3px;
+}
+
+.drawer-name {
+  overflow: hidden;
+  font-family: var(--face-name);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The technology's glyph, written by the star chart; dim while nothing is
+   chosen. */
+.drawer-glyph {
+  flex: none;
+  color: var(--gilt);
+}
+
+.drawer-glyph.is-dim {
+  color: var(--ink-faint);
+}
+
+.drawer-figures {
+  flex: none;
+  margin-left: auto;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* "186/190 · +91 a turn · 1t": the separators belong to the parts that are
+   there, so an empty part (no rate while nothing is chosen) leaves no stray dot. */
+.drawer-figure-part:not(:empty)::before {
+  content: ' · ';
+}
+
+.drawer-bar {
+  display: block;
+  height: 6px;
+  margin-top: 5px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: rgba(29, 26, 32, 0.15);
+}
+
+.drawer-bar-fill {
+  display: block;
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--edge);
+}
+
+/* The star chart writes research progress as `--progress` (it drove the old
+   dial's ring); the culture bar's width is written directly. */
+#research-dial {
+  width: var(--progress, 0%);
+}
+
+.drawer-note {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.drawer-owed {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--vermilion);
+}
+
+.drawer-note[hidden],
+.drawer-owed[hidden] {
+  display: none;
+}
+
+/* The research section's two other states, written by the star chart: nothing
+   chosen (the old research card's gilt nag) and the whole tree researched. */
+#hud-research.is-prompting,
+#hud-research.is-done {
+  --edge: var(--gilt);
+}
+
+#hud-research.is-prompting {
+  padding-left: 8px;
+  border-left-width: 4px;
+  border-left-color: var(--gilt);
+  animation: tech-nudge 2.4s ease-in-out infinite;
+}
+
+#hud-research.is-prompting .drawer-name,
+#hud-research.is-done .drawer-name {
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+#hud-research.is-prompting .drawer-name {
+  color: var(--gilt);
+}
+
+.drawer-foot {
+  margin: 7px 0 0;
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+/* Depth two: the rest of the empire's screens, under an ink rule. */
+.drawer-more {
+  margin-top: 8px;
+  padding-top: 2px;
+  border-top: 2px solid var(--ink);
+}
+
+.drawer-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 5px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.drawer-row:hover {
+  background: #fdfaef;
+}
+
+.drawer-row:active {
+  transform: translate(1px, 1px);
+}
+
+.drawer-row-name {
+  flex: none;
+  font-weight: 600;
+}
+
+.drawer-row-note {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The Faith row's dot, and the only row dot: a belief is waiting to be chosen.
+   An affordable rite never lights it (`docs/flags.md` (ssssss) 4.7). */
+.drawer-row.is-owed .drawer-row-name::after {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--vermilion);
+  vertical-align: 0.12em;
+  content: '';
+  animation: yield-waiting-pulse 1.8s ease-in-out infinite;
+}
+
+/* Supply: every strategic resource held, as spare over held, in vermilion when
+   nothing is spare. The counts left the always-visible card for here and the
+   head of each town's build list (`docs/flags.md` (ssssss) 1); the banner's dot
+   is what still shows a shortage without a click. */
+.drawer-supply-head {
+  margin: 8px 0 3px;
+}
+
+.drawer-supply {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.drawer-supply-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 1px 2px;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.drawer-supply-row:hover {
+  background: #fdfaef;
+  text-decoration: underline;
+}
+
+.drawer-supply-mark {
+  color: var(--ink-soft);
+}
+
+.drawer-supply-row.is-short .drawer-supply-name {
+  color: var(--vermilion);
+}
+
+.drawer-supply-caption {
+  margin: 3px 0 0;
+  font-size: 9.5px;
+}
+
+.drawer-supply-caption[hidden] {
+  display: none;
+}
+
+/* The figure pair, in the house voice every number in this interface is set
+   in. Printed by `copiesFigureNode` here, on a town's build rows, on a hex's
+   readout and in a bargain's goods. `is-none` is the state a glance has to
+   catch: an empire whose last copy is already carrying something. */
 .res-copies {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
@@ -3430,28 +3647,41 @@ kbd {
   color: var(--vermilion);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .drawer-arrow,
+  .drawer-section {
+    transition: none;
+  }
+
+  .drawer-section:hover .drawer-arrow,
+  .drawer-section:focus-visible .drawer-arrow {
+    transform: none;
+  }
+
+  #hud-research.is-prompting,
+  .drawer-row.is-owed .drawer-row-name::after {
+    animation: none;
+  }
+}
+
 /* --- the commission chips -----------------------------------------------
-   One chip per seated commission, directly under the dock and above the
-   holdings card (batch C, the approved mockup's "chips in the left column").
-   See `src/ui/commissionRail.ts`. The rail writes the chip count onto the
-   root as `--hud-commission-count`; the chip height is fixed so the holdings
-   card can be moved down by a plain sum rather than a measurement. */
+   One chip per seated commission, in the left column under the empire panel
+   (batch C; moved under the panel in batch UX3, spec §6). At most four show,
+   three on a window under 720px tall, then a "+N more" line that opens
+   Statecraft: `commissionRail.ts` decides the cap. The drawer opens to the
+   right of this column, so it never covers a chip and no chip moves when it
+   opens. */
 :root {
   --commission-chip-h: 38px;
-  --commission-chip-gap: 5px;
-  --hud-commissions-h: calc(
-    var(--hud-commission-count, 0) * (var(--commission-chip-h) + var(--commission-chip-gap))
-  );
+  --commission-chip-gap: 6px;
 }
 
 #hud-commissions {
   position: fixed;
-  top: calc(
-    var(--topbar-h) + 12px + var(--research-card-h) + 10px + var(--hud-dock-h) + 10px
-  );
+  top: calc(var(--topbar-h) + 12px + var(--empire-panel-h) + 10px);
   left: 14px;
   z-index: 11;
-  width: 230px;
+  width: var(--empire-panel-w);
 }
 
 #hud-commissions[hidden] {
@@ -3564,14 +3794,15 @@ kbd {
   color: var(--vermilion);
 }
 
-/* The full goal and reward, beside the chip on hover, focus or a first tap. */
+/* The full goal and reward, beside the chip on hover, focus or a first tap
+   (spec §6: to its right, 260px wide). */
 .commission-pop {
   position: absolute;
   top: 0;
   left: calc(100% + 8px);
   z-index: 2;
   display: none;
-  width: 250px;
+  width: 260px;
   padding: 9px 11px;
   border: var(--border-thin) solid var(--ink);
   border-radius: var(--radius-sm);
@@ -3597,6 +3828,30 @@ kbd {
 
 .commission-pop-clause {
   margin: 0 0 3px;
+}
+
+/* The line after the cap: "+2 more", which opens Statecraft. Quieter than a
+   chip, so it reads as a pointer to the rest rather than as one more goal. */
+.commission-more {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 3px 8px;
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius-sm);
+  background: rgba(247, 242, 225, 0.72);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  color: var(--ink-soft);
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.commission-more:hover,
+.commission-more:focus-visible {
+  background: rgba(247, 242, 225, 0.92);
+  color: var(--ink);
 }
 
 /* --- a commission's counter on a card face ---------------------------------
@@ -3678,11 +3933,6 @@ kbd {
 .sc-card-focus {
   outline: 3px solid var(--line-ink, var(--vermilion));
   outline-offset: 3px;
-}
-
-.holdings-caption {
-  margin: 0;
-  font-size: 9.5px;
 }
 
 /* --- bottom-left: the context card ----------------------------------------
@@ -5089,9 +5339,9 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
 
    Two things stand down, and the second is the whole strip:
 
-   · the floating **cards** — the research dial, the screen dock, and the
-     popover columns that hang off them. These are what the playtest of
-     2026-09-03 named: the research card sat half-buried behind the band and the
+   · the floating **cards** — the empire panel and its drawer, the commission
+     chips, and the popover columns. This is what the playtest of 2026-09-03
+     named: the old research card sat half-buried behind the band and the old
      dock's buttons floated over the town rail's ground. A card that is *there
      but covered* is worse than one that is away, because it still takes the
      pointer.
@@ -5108,14 +5358,8 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
    cursor, which is exactly what a player in this mode is doing — so it slides
    clear of the rail instead (below) rather than standing down. */
 body:has(.city-mode:not([hidden])) #topbar,
-body:has(.city-mode:not([hidden])) #hud-research,
-body:has(.city-mode:not([hidden])) #hud-dock,
-body:has(.city-mode:not([hidden])) #hud-dock-popovers,
-/* The holdings rail stands down with the rest of the left column, and the
-   count it carries is not lost: the build list in this very screen prints the
-   same two figures on the row that wants them ("needs improved Copper 0/8"),
-   which is nearer the decision than a rail in the corner is. */
-body:has(.city-mode:not([hidden])) #hud-holdings,
+body:has(.city-mode:not([hidden])) #empire-panel,
+body:has(.city-mode:not([hidden])) #empire-drawer,
 body:has(.city-mode:not([hidden])) #hud-commissions,
 body:has(.city-mode:not([hidden])) #hud-meters,
 body:has(.city-mode:not([hidden])) #hud-popovers {
@@ -7624,9 +7868,10 @@ p.city-trade-link {
   outline-offset: 2px;
 }
 
-/* The nag worn by the research card while nothing is being researched: a slow
-   gilt pulse. Not a modal — the game keeps playing. Declared here, beside the
-   screen it belongs to, and used by `#hud-research` up in the HUD section. */
+/* The nag worn while nothing is being researched: a slow gilt pulse. Not a
+   modal; the game keeps playing. Declared here, beside the screen it belongs
+   to, and used by the empire panel's research bar and the drawer's research
+   section (`#hud-research`) up in the HUD section. */
 @keyframes tech-nudge {
   0%,
   100% {
@@ -10807,41 +11052,14 @@ p.city-trade-link {
   color: var(--ink-soft);
 }
 
-/* A HUD control with something waiting behind it: today, only the dock's
-   Statecraft button, when a draft is outstanding or a charter is banked
-   (`hasStatecraftOffer`). A mark rather than a colour change, so the figure or
-   icon underneath keeps its own voice. It pulses rather than sitting still: a
-   static dot on a control nobody has learned to read yet is decoration, and
-   the whole point of this mark is that it is not — see the notifications'
-   own unread badge, whose precedent this follows, for the same "something is
-   waiting" reading applied to a control nobody has to open to feel it.
-
-   This used to be `.civ-yield-waiting`, living only on the culture chip
-   (Entry XV). It moved to the dock's Statecraft button when the dock shipped
-   — one badge, not two, on the reading that a fixed corner beats a chip in a
-   scrolling strip as the louder of the interface's two doors to Statecraft —
-   and the class was renamed to say what it is now asked of rather than where
-   it was first drawn. The name still fits either kind of control: `position:
-   relative` is the only thing a host needs to supply. */
-.hud-badge-waiting {
-  position: relative;
-}
-
-.hud-badge-waiting::after {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  /* Plain `--vermilion`, not the `-lit` variant the culture chip wore: that
-     lift exists for ink-dark surfaces (see the root token's own comment) and
-     the dock is parchment, like the research card it sits under. */
-  background: var(--vermilion);
-  content: '';
-  animation: yield-waiting-pulse 1.8s ease-in-out infinite;
-}
-
+/* The pulse worn by a mark that says a decision is waiting: the red dot on the
+   empire panel's banner and the dot on the drawer's Faith row
+   (`src/ui/empireDrawer.ts`). A mark rather than a colour change, so the figure
+   or icon underneath keeps its own voice. It pulses rather than sitting still:
+   a static dot on a control nobody has learned to read yet is decoration, and
+   the whole point of this mark is that it is not. The dock's Statecraft and
+   Religion buttons wore it until batch UX3 (as `.hud-badge-waiting`), and the
+   culture chip before them. */
 /* `--vermilion` (#d4502e) has no separate RGB-components token to draw an
    alpha ring off, so the ring's colour is spelled out here rather than through
    a custom property invented for this one rule. */
@@ -10852,12 +11070,6 @@ p.city-trade-link {
   }
   50% {
     box-shadow: 0 0 0 4px rgba(212, 80, 46, 0);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hud-badge-waiting::after {
-    animation: none;
   }
 }
 
@@ -11520,16 +11732,14 @@ p.city-trade-link {
    It sits in the padding gutter — the star's box is 10px from the padding
    edge and the content box begins at 12px — so it never overlaps a word.
 
-   Two surfaces are exempt, each for a reason worth stating rather than a taste.
+   One surface is exempt, for a reason worth stating rather than a taste.
    `.saves-sheet` is the one `.hud-card` that scrolls its own content, and an
    absolutely-positioned ornament inside a scroller travels with the content
    instead of staying on the corner — a star that slides down the page as you
-   look for a save is worse than no star. `.research-card` is not a rectangle:
-   it is a pill with a 999px radius on its dial end, so its box's top-left
-   corner is a good 20px outside the shape a player can see, and the star drew
-   in mid-air beside it. It is also, of the ten, the one surface that is already
-   an instrument rather than a panel. */
-.hud-card:not(.saves-sheet):not(.research-card)::after {
+   look for a save is worse than no star. (The research card was the other
+   until batch UX3 removed it. The empire panel and its drawer are not
+   `.hud-card`s, so they need no exemption.) */
+.hud-card:not(.saves-sheet)::after {
   position: absolute;
   top: 1px;
   left: 1px;

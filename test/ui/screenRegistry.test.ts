@@ -209,6 +209,9 @@ const REGISTER: readonly (readonly [string, SurfaceKind])[] = [
   ['chronicle', 'card'],
   ['meters', 'card'],
   ['offers', 'card'],
+  // The empire drawer (batch UX3): a card, so pinning it closes the other cards
+  // and any card or screen opening closes it.
+  ['drawer', 'card'],
   // Screens: everything that covers the window and takes the keyboard.
   ['compendium', 'screen'],
   ['saves', 'screen'],
@@ -306,6 +309,8 @@ describe('the register in main.ts', () => {
       for (const match of source.matchAll(/export function (create\w+)\(/g)) builders.add(match[1]!);
     }
     for (const own of [
+      // The empire drawer follows the popover's pattern without calling it.
+      'createEmpireDrawer',
       'createTechTree',
       'createAbacusScreen',
       'createSavesPanel',

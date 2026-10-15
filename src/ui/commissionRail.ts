@@ -1,8 +1,9 @@
 /**
  * The commission chips: one small chip per **seated** commission, in the HUD's
- * left column directly under the dock and above the strategic-resources card
- * (batch C; the layout the user picked in the commissions mockup, "A on the
- * card, plus chips in the left column").
+ * left column directly under the empire panel (batch C; the layout the user
+ * picked in the commissions mockup, "A on the card, plus chips in the left
+ * column"; moved under the panel in batch UX3,
+ * `docs/plans/hud-empire-panel-spec.md` §6).
  *
  * What a chip shows
  * -----------------
@@ -18,23 +19,29 @@
  * chair, and the turn after that the chip is gone. A commission on the shelf
  * and not in a chair has no chip: its kept progress is on its card face.
  *
- * With no commission seated and none just fulfilled, the column is exactly as
- * it was: the rail is hidden and `--hud-commission-count` is nought, so the
- * strategic-resources card sits where it always has.
+ * With no commission seated and none just fulfilled, the rail is hidden and
+ * the board is clear.
  *
  * Layout
  * ------
- * The rail is `position: fixed` under the dock, like the holdings card. The
- * holdings card moves down by the rail's height, which is a CSS sum of the
- * chip count this module writes onto the root element (`--hud-commission-count`)
- * times a fixed chip height, so no measuring is needed.
+ * The rail is `position: fixed` 10px under the empire panel and as wide as it.
+ * The empire drawer opens to the right of the panel, so it never covers a chip
+ * and no chip moves when it opens.
+ *
+ * At most four chips show (`chipCap`); a fifth or more turns into a "+N more"
+ * line that opens Statecraft. On a window under 720px tall the cap is three,
+ * so four chips cannot reach down to the hover card at the bottom-left (spec
+ * §10). The cap is read from the window's height on each render rather than
+ * from a resize listener: `render` runs on pointer movement anyway, so a resize
+ * is picked up the next time the pointer moves.
  *
  * Listeners
  * ---------
  * Only on the chips themselves, which go away with the chips. `dispose` empties
- * the rail and resets the count, and `main.ts` registers it in `gameDisposers`.
+ * the rail, and `main.ts` registers it in `gameDisposers`.
  *
- * Kept fresh by the revision and the seat, as the holdings rail is.
+ * Kept fresh by the revision, the seat and the cap, since `render` is called on
+ * pointer movement.
  */
 
 import type { Game } from '../sim/game';
@@ -52,7 +59,7 @@ export interface CommissionRail {
   readonly root: HTMLElement;
   /** Re-reads the seat's seated commissions and redraws when they changed. */
   render(): void;
-  /** Empties the rail and puts the holdings card back where it was. */
+  /** Empties the rail. */
   dispose(): void;
 }
 
@@ -61,6 +68,37 @@ export interface CommissionRailOptions {
   localPlayerId: () => number;
   /** Opens the government sheet at this card. */
   openAt: (card: OrderId) => void;
+  /** Opens Statecraft: the "+N more" line's door. */
+  openAll: () => void;
+}
+
+/** The most chips the column shows (spec §6). */
+export const CHIP_CAP = 4;
+
+/** The cap on a short window, so the column stays clear of the hover card. */
+export const SHORT_WINDOW_CHIP_CAP = 3;
+
+/** A window shorter than this is short (spec §10: "At 720 px tall, keep the cap at three"). */
+export const SHORT_WINDOW_PX = 720;
+
+/** How many chips a window this tall shows. */
+export function chipCap(windowHeight: number): number {
+  return windowHeight < SHORT_WINDOW_PX ? SHORT_WINDOW_CHIP_CAP : CHIP_CAP;
+}
+
+/**
+ * The chips that show and how many are folded into "+N more". With exactly the
+ * cap there is no "+N more" line: a line saying "+0 more" would be noise, and a
+ * line standing in for one chip would take the chip's own place.
+ */
+export function capChips<T>(chips: readonly T[], cap: number): { shown: T[]; more: number } {
+  if (chips.length <= cap) return { shown: [...chips], more: 0 };
+  return { shown: chips.slice(0, cap), more: chips.length - cap };
+}
+
+/** The line after the cap: "+2 more". */
+export function moreWords(more: number): string {
+  return `+${more} more`;
 }
 
 /** The chip's second line once its goal is met. */
@@ -133,7 +171,7 @@ export function chipsFingerprint(chips: readonly CommissionChip[], playerId: num
 }
 
 export function createCommissionRail(options: CommissionRailOptions): CommissionRail {
-  const { getGame, localPlayerId, openAt } = options;
+  const { getGame, localPlayerId, openAt, openAll } = options;
 
   const root = element('div', 'commission-rail');
   root.id = 'hud-commissions';
@@ -146,12 +184,8 @@ export function createCommissionRail(options: CommissionRailOptions): Commission
   let drawnRevision = -1;
   let drawnSeat = -1;
   let drawnTurn = -1;
+  let drawnCap = -1;
   let drawnChips = '';
-
-  /** Writes the chip count where the holdings card's position reads it. */
-  function setCount(count: number): void {
-    document.documentElement.style.setProperty('--hud-commission-count', String(count));
-  }
 
   function chipNode(chip: CommissionChip, index: number): HTMLElement {
     const item = element('li', 'commission-item');
@@ -201,14 +235,30 @@ export function createCommissionRail(options: CommissionRailOptions): Commission
     return item;
   }
 
+  /** The "+N more" line: one button that opens Statecraft. */
+  function moreNode(more: number): HTMLElement {
+    const item = element('li', 'commission-item is-more');
+    const button = element('button', 'commission-more', moreWords(more));
+    button.type = 'button';
+    button.setAttribute(
+      'aria-label',
+      `${more} more ${more === 1 ? 'commission' : 'commissions'}; opens Statecraft`,
+    );
+    button.addEventListener('click', () => openAll());
+    item.append(button);
+    return item;
+  }
+
   function render(): void {
     const { state } = getGame();
     const seat = localPlayerId();
+    const cap = chipCap(window.innerHeight);
     if (
       state === drawnState &&
       state.revision === drawnRevision &&
       seat === drawnSeat &&
-      state.turn === drawnTurn
+      state.turn === drawnTurn &&
+      cap === drawnCap
     ) {
       return;
     }
@@ -216,14 +266,17 @@ export function createCommissionRail(options: CommissionRailOptions): Commission
     drawnRevision = state.revision;
     drawnSeat = seat;
     drawnTurn = state.turn;
+    drawnCap = cap;
 
     const chips = commissionChips(state, seat);
-    const printed = chipsFingerprint(chips, seat);
+    const printed = `${chipsFingerprint(chips, seat)}|${cap}`;
     if (printed === drawnChips) return;
     drawnChips = printed;
     root.hidden = chips.length === 0;
-    setCount(chips.length);
-    list.replaceChildren(...chips.map((chip, index) => chipNode(chip, index)));
+    const { shown, more } = capChips(chips, cap);
+    const nodes = shown.map((chip, index) => chipNode(chip, index));
+    if (more > 0) nodes.push(moreNode(more));
+    list.replaceChildren(...nodes);
   }
 
   function dispose(): void {
@@ -231,7 +284,7 @@ export function createCommissionRail(options: CommissionRailOptions): Commission
     root.hidden = true;
     drawnChips = '';
     drawnState = null;
-    setCount(0);
+    drawnCap = -1;
   }
 
   return { root, render, dispose };

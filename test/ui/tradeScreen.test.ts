@@ -98,7 +98,7 @@ const SOURCES = import.meta.glob(
     '../../src/ui/tradeScreen.ts',
     '../../src/ui/topBar.ts',
     '../../src/ui/unitPanel.ts',
-    '../../src/ui/hudDock.ts',
+    '../../src/ui/empireDrawer.ts',
     '../../src/ui/controls.ts',
     '../../src/ui/modalShell.ts',
     '../../src/ui/turnBlockers.ts',
@@ -845,11 +845,12 @@ describe('the sheet’s frame and its doors', () => {
     expect(main).toContain(
       "gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));",
     );
-    // The tab wears the drawn cart rather than a typed glyph, and the dock
-    // no longer carries it.
+    // The tab wears the drawn cart rather than a typed glyph, and the empire
+    // drawer that replaced the dock (batch UX3) has no Trade door.
     expect(bar).toContain('tabMark(tradeMarkDataUri())');
     expect(bar).not.toContain("'⇄'");
-    expect(source('hudDock.ts')).not.toContain('tradeMarkDataUri');
+    expect(source('empireDrawer.ts')).not.toContain('tradeMarkDataUri');
+    expect(source('empireDrawer.ts')).not.toContain('trade?.open()');
   });
 
   it('leaves the unit sheet one link and no route verbs', () => {

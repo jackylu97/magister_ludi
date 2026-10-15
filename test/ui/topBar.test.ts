@@ -39,7 +39,7 @@ const SOURCES = import.meta.glob(
     '../../src/sim/yields/empire.ts',
     '../../src/sim/readings.ts',
     '../../src/ui/topBar.ts',
-    '../../src/ui/hudDock.ts',
+    '../../src/ui/empireDrawer.ts',
     '../../src/ui/tutorial.ts',
     '../../src/main.ts',
     '../../src/style.css',
@@ -317,11 +317,16 @@ describe('the tabs and their doors', () => {
     expect(main).toContain('onOpenBeads: () => beads?.open(),');
   });
 
-  it('lets the dock keep only the screens about this empire', () => {
-    const dock = source('hudDock.ts');
-    expect(dock).toMatch(/container\.append\(statecraftButton, religionButton, leaderButton\);/);
-    for (const gone of ['hud-dock-diplomacy', 'hud-dock-trade', 'hud-dock-standings']) {
-      expect(dock, gone).not.toContain(gone);
+  it('leaves the screens about this empire to the empire drawer, and the other empires to the bar', () => {
+    // The dock kept Statecraft, Religion and Leader until batch UX3; the empire
+    // drawer has them now, and still nothing about another empire.
+    const html = source('index.html');
+    const drawer = html.slice(html.indexOf('<div id="empire-drawer"'), html.indexOf('<!-- ================= the star chart'));
+    for (const door of ['id="drawer-culture"', 'id="drawer-faith"', 'id="drawer-leader"']) {
+      expect(drawer, door).toContain(door);
+    }
+    for (const gone of ['diplomacy-overlay', 'trade-overlay', 'victory-overlay']) {
+      expect(drawer, gone).not.toContain(gone);
     }
     for (const gone of ['hudDock.diplomacyButton', 'hudDock.tradeButton', 'hudDock.standingsButton']) {
       expect(main, gone).not.toContain(gone);
@@ -586,7 +591,10 @@ describe('the ? card says where the moved things are', () => {
   const help = html.slice(html.indexOf('id="help-overlay"'), html.indexOf('id="help-compendium"'));
 
   it('names the keys, the tabs, and the two buttons beside End Turn', () => {
-    for (const key of ['C', 'H', 'W', 'E', 'A', 'V']) expect(help, key).toContain(`<kbd>${key}</kbd>`);
+    // Q and L since batch UX3: the empire drawer, pinned, and the leader sheet.
+    for (const key of ['C', 'H', 'W', 'E', 'A', 'V', 'Q', 'L']) {
+      expect(help, key).toContain(`<kbd>${key}</kbd>`);
+    }
     expect(help).toContain('<b>Diplomacy</b>, <b>Trade</b> and <b>Standings</b>');
     expect(help).toContain('beside End Turn');
     expect(help).toContain('opens the Abacus');
