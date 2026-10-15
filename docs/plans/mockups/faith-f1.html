@@ -1,0 +1,873 @@
+<title>Faith Screen F1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --table: #e9e2cf;
+  --parchment: #f7f2e1;
+  --parchment-2: #fdfaef;
+  --ink: #1d1a20;
+  --ink-soft: #56505a;
+  --ink-faint: rgba(29, 26, 32, 0.42);
+  --rule: rgba(29, 26, 32, 0.14);
+  --vermilion: #d4502e;
+  --gilt: #c8901f;
+  --teal: #1f8a85;
+  --grape: #7b3fa8;
+  --cobalt: #2757b8;
+  --page-bg: var(--table);
+  --card-bg: var(--parchment);
+  --text: var(--ink);
+  --text-soft: var(--ink-soft);
+  --hl-new: rgba(31, 138, 133, 0.16);
+  --display: 'Instrument Serif', Georgia, serif;
+  --title: Fraunces, Georgia, serif;
+  --body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --border: 3px;
+  --shadow: 5px 5px 0 var(--ink);
+  --shadow-sm: 3px 3px 0 var(--ink);
+  /* the game's inks, used inside the drawings only (the drawings are pictures of parchment) */
+  --g-ink: #1d1a20; --g-soft: #56505a; --g-faint: rgba(29,26,32,0.42); --g-parch: #f7f2e1; --g-parch2: #fdfaef; --g-table: #e9e2cf;
+  --y-food: #3f9636; --y-prod: #c26a1d; --y-gold: #a8760f; --y-sci: #2757b8; --y-cul: #7b3fa8; --y-faith: #a8467e;
+  --ax-sky: #3f639f; --ax-wild: #c2452a; --ax-water: #1a7873; --ax-hearth: #4e7c3f; --ax-none: #56505a; --ax-stone: #4a5a68; --ax-war: #d4502e; --ax-road: #b07f12; --ax-sun: #c8901f; --ax-frost: #2757b8;
+  --deck-devotion: #7b3fa8; --deck-dominion: #c2452a;
+  --ldg-tiles: #7a5a33; --ldg-buildings: #4a5a68; --ldg-deck: #7b3fa8; --ldg-religion: #a8467e; --ldg-wonders: #2757b8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page-bg: #19171c;
+    --card-bg: #24212a;
+    --text: #efe8d4;
+    --text-soft: #b7ae9c;
+    --rule: rgba(239, 232, 212, 0.16);
+    --shadow: 5px 5px 0 #000;
+    --shadow-sm: 3px 3px 0 #000;
+    --hl-new: rgba(31, 138, 133, 0.28);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #19171c;
+  --card-bg: #24212a;
+  --text: #efe8d4;
+  --text-soft: #b7ae9c;
+  --rule: rgba(239, 232, 212, 0.16);
+  --shadow: 5px 5px 0 #000;
+  --shadow-sm: 3px 3px 0 #000;
+  --hl-new: rgba(31, 138, 133, 0.28);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--page-bg); color: var(--text); font: 15px/1.55 var(--body); }
+.page { max-width: 1160px; margin: 0 auto; padding: 40px 16px 96px; }
+.num, code { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+code { font-size: 0.86em; background: var(--hl-new); padding: 1px 4px; border-radius: 3px; overflow-wrap: anywhere; }
+a { color: var(--teal); }
+h1 { font: 400 clamp(38px, 7vw, 64px)/1 var(--display); margin: 6px 0 14px; text-wrap: balance; }
+h1 i { color: var(--vermilion); }
+h2 { font: 400 clamp(28px, 4.5vw, 38px)/1.1 var(--display); margin: 64px 0 8px; }
+h3 { font: 600 20px/1.25 var(--title); margin: 0 0 6px; }
+.eyebrow { font: 600 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--vermilion); }
+.lede { max-width: 70ch; color: var(--text-soft); margin: 0 0 10px; }
+.card { background: var(--card-bg); border: var(--border) solid var(--ink); border-radius: 10px; box-shadow: var(--shadow); padding: 18px 20px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card { border-color: #000; } }
+:root[data-theme="dark"] .card { border-color: #000; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 18px; }
+.grid-3 p { margin: 6px 0 0; font-size: 14px; }
+.verdict { margin-top: 22px; border-left: 6px solid var(--teal); }
+.verdict p { margin: 4px 0; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 6px 22px; font-size: 14px; margin-top: 16px; }
+.notes > div { min-width: 0; }
+.notes h4 { font: 600 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--vermilion); margin: 4px 0 6px; }
+.notes ul { margin: 0; padding-left: 18px; }
+.notes li { margin-bottom: 4px; }
+.scrollnote { font: 500 12px/1.4 var(--mono); color: var(--text-soft); margin: 6px 0 0; }
+@media (min-width: 980px) { .scrollnote { display: none; } }
+.tbl-wrap { overflow-x: auto; margin-top: 12px; border: 1.5px solid var(--rule); border-radius: 8px; background: var(--card-bg); }
+table.doc { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 620px; }
+table.doc th, table.doc td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.doc th { font: 600 11px/1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-soft); background: var(--hl-new); }
+table.doc tr:last-child td { border-bottom: 0; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 12px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; align-items: start; }
+.steps li::before { content: counter(s); font: 400 34px/1 var(--display); color: var(--vermilion); }
+.steps p { margin: 2px 0 0; font-size: 14px; color: var(--text-soft); }
+.tabjump { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.tabjump a { font: 600 12px/1 var(--mono); letter-spacing: 0.06em; padding: 8px 12px; border: 2px solid var(--text); border-radius: 999px; color: var(--text); text-decoration: none; }
+.replay { font: 600 12px/1 var(--mono); padding: 7px 12px; border: 2px solid var(--text); border-radius: 6px; background: var(--card-bg); color: var(--text); cursor: pointer; box-shadow: var(--shadow-sm); }
+.replay:active { transform: translate(2px, 2px); box-shadow: none; }
+footer { margin-top: 60px; font-size: 13px; color: var(--text-soft); }
+
+/* ================= the drawings: the game's sheet, always parchment ================= */
+.mock-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 4px 10px 12px 4px; margin-top: 12px; }
+.mk { min-width: 940px; background: var(--g-parch); color: var(--g-ink); border: 3px solid var(--g-ink); border-radius: 10px; box-shadow: 6px 6px 0 var(--g-ink);
+  font: 13px/1.4 var(--body); padding: 16px 20px 18px; position: relative; }
+.mk .n { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.mk-head { display: flex; align-items: flex-end; gap: 14px; border-bottom: 2px solid var(--g-ink); padding-bottom: 9px; }
+.mk-head .eb { font: 600 9.5px/1 var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--g-soft); }
+.mk-head .tt { font: 600 26px/1.1 var(--title); font-variant: small-caps; letter-spacing: 0.02em; }
+.mk-head .bank { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.pillx { font: 500 11.5px/1 var(--mono); border: 1.5px solid var(--g-ink); border-radius: 999px; padding: 5px 9px; background: var(--g-parch2); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.pillx.faith { color: var(--y-faith); border-color: var(--y-faith); }
+.mk-head .x { width: 30px; height: 30px; border: 2px solid var(--g-ink); border-radius: 6px; display: grid; place-items: center; font-weight: 700; box-shadow: 2px 2px 0 var(--g-ink); flex: none; }
+.tabs { display: flex; gap: 6px; margin: 11px 0 12px; flex-wrap: wrap; }
+.tabs > a { font: 600 12px/1 var(--body); padding: 7px 12px; border: 2px solid var(--g-ink); border-radius: 999px; background: var(--g-parch2); color: var(--g-ink); text-decoration: none; }
+.tabs > a.on { background: var(--g-ink); color: var(--g-parch); }
+.tabs > a .k { font: 500 10.5px/1 var(--mono); opacity: 0.72; margin-left: 5px; }
+.sec { font: 600 9.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--vermilion); margin: 12px 0 7px; display: flex; gap: 10px; align-items: baseline; }
+.sec .r { margin-left: auto; color: var(--g-soft); letter-spacing: 0.06em; text-transform: none; font-weight: 500; }
+.soft { color: var(--g-soft); }
+.want { color: var(--vermilion); font-style: italic; }
+.btnx { display: inline-flex; align-items: center; gap: 5px; font: 600 12px/1 var(--body); padding: 7px 11px; border: 2px solid var(--g-ink); border-radius: 6px; background: var(--g-parch2); box-shadow: 2px 2px 0 var(--g-ink); white-space: nowrap; color: var(--g-ink); }
+.btnx.go { background: var(--g-ink); color: var(--g-parch); }
+.btnx.off { opacity: 0.42; box-shadow: none; }
+.btnx.sm { padding: 4px 8px; font-size: 11px; }
+.ann { outline: 2.5px solid var(--teal); outline-offset: 3px; border-radius: 6px; }
+.tagnew { font: 600 10px/1.2 var(--mono); color: #fff; background: var(--teal); border-radius: 4px; padding: 2px 6px; letter-spacing: 0.04em; white-space: nowrap; }
+
+/* yield marks (Lucide / Tabler outlines, as src/art/yieldMarks.ts) */
+.ym { width: 1em; height: 1em; display: inline-block; vertical-align: -0.14em; stroke: currentColor; fill: none; stroke-width: 2.75; stroke-linecap: round; stroke-linejoin: round; }
+.yf { color: var(--y-food); } .yp { color: var(--y-prod); } .yg { color: var(--y-gold); } .ys { color: var(--y-sci); } .yc { color: var(--y-cul); } .yh { color: var(--y-faith); }
+
+/* ---------- Rites tab ---------- */
+.strip { display: flex; flex-wrap: wrap; gap: 6px; }
+.rchip { border: 1.5px solid var(--g-ink); border-left: 4px solid var(--y-faith); border-radius: 5px; padding: 5px 8px; background: var(--g-parch2); max-width: 210px; }
+.rchip b { font: 600 12.5px/1.15 var(--title); display: block; }
+.rchip span { font-size: 11px; color: var(--g-soft); line-height: 1.25; display: block; }
+.rchip.grey { border-style: dashed; border-left-style: solid; border-left-color: var(--g-faint); background: transparent; opacity: 0.75; }
+.rchip.grey em { font-style: normal; color: var(--deck-devotion); font-weight: 600; }
+.towns { border: 2px solid var(--g-ink); border-radius: 8px; background: var(--g-parch2); }
+.trow { display: grid; grid-template-columns: 190px minmax(0, 1fr) 120px 190px; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid rgba(29,26,32,0.12); }
+.trow:last-child { border-bottom: 0; }
+.trow.head { font: 600 9.5px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--g-soft); padding-top: 7px; padding-bottom: 7px; background: var(--g-parch); border-radius: 8px 8px 0 0; }
+.tname b { font: 600 14px/1.15 var(--title); display: block; }
+.tname span { font-size: 11px; color: var(--g-soft); }
+.tname span.no { color: var(--vermilion); }
+.riteline { min-width: 0; }
+.riteline .rn { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+.riteline .rn b { font-weight: 600; }
+.tbar { height: 7px; border-radius: 4px; background: rgba(29,26,32,0.12); overflow: hidden; margin-top: 4px; }
+.tbar i { display: block; height: 100%; width: var(--w); background: var(--y-faith); border-radius: 4px; }
+.pays { font: 600 12px/1 var(--mono); text-align: right; white-space: nowrap; }
+.act { text-align: right; font-size: 11.5px; color: var(--g-soft); }
+.trow.free { background: rgba(31,138,133,0.05); }
+.trow.open { background: rgba(31,138,133,0.10); }
+.menu { grid-column: 1 / -1; margin: 2px 0 4px 190px; border: 2px solid var(--g-ink); border-radius: 8px; background: #fffdf5; box-shadow: 4px 4px 0 var(--g-ink); padding: 6px 10px 8px; }
+.mi { display: grid; grid-template-columns: minmax(0, 1fr) 140px 80px; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(29,26,32,0.1); }
+.mi b { font: 600 13px/1.2 var(--title); }
+.mi .d { display: block; font-size: 11px; color: var(--g-soft); }
+.mi .wp { font: 600 11.5px/1 var(--mono); text-align: right; }
+.mi .pr { font: 600 11.5px/1 var(--mono); text-align: right; }
+.mi.hot { background: rgba(31,138,133,0.12); border-radius: 4px; padding-left: 6px; padding-right: 6px; }
+.mi.grey { color: var(--g-soft); }
+.mi.grey b { color: var(--g-soft); }
+.menu .mfoot { padding-top: 7px; font-size: 11.5px; color: var(--g-soft); }
+.faithfoot { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; padding: 9px 12px; border: 2px solid var(--y-faith); border-radius: 8px; background: rgba(168,70,126,0.06); }
+.faithfoot .big { font: 600 15px/1 var(--mono); color: var(--y-faith); }
+.realm { margin-top: 10px; border: 1.5px dashed rgba(29,26,32,0.4); border-radius: 8px; padding: 8px 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.check { width: 16px; height: 16px; border: 2px solid var(--g-ink); border-radius: 3px; display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; line-height: 1; vertical-align: -3px; margin-right: 6px; background: var(--g-parch2); }
+.check.on { background: var(--g-ink); color: var(--g-parch); }
+.check.no { border-style: dashed; opacity: 0.4; }
+.sev-row { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .sev-row { grid-template-columns: minmax(0, 1fr); } }
+.mk.small { min-width: 560px; }
+.mk.small .trow { grid-template-columns: 170px minmax(0, 1fr) 110px; }
+
+/* ---------- Bonuses tab ---------- */
+.headline { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: stretch; }
+.hcard { border: 2px solid var(--g-ink); border-radius: 8px; background: var(--g-parch2); padding: 10px 14px 12px; position: relative; overflow: hidden; }
+.hcard .lbl { font: 600 9.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--g-soft); }
+.hcard .bigfig { font: 600 34px/1.05 var(--mono); font-variant-numeric: tabular-nums; color: var(--y-faith); display: flex; align-items: baseline; gap: 6px; margin: 4px 0 6px; }
+.hcard .bigfig .ym { width: 0.8em; height: 0.8em; }
+.hcard .bigfig small { font: 500 12px/1 var(--mono); color: var(--g-soft); }
+.fbar { display: flex; height: 18px; border: 2px solid var(--g-ink); border-radius: 5px; overflow: hidden; background: rgba(29,26,32,0.06); }
+.fbar span { display: block; height: 100%; width: 0; background: var(--c); border-right: 1.5px solid var(--g-parch); transition: width 520ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 160ms ease, opacity 160ms ease; transition-delay: var(--sd, 0ms); }
+.play .fbar span { width: var(--w); }
+.fbar.dim span { opacity: 0.32; }
+.fbar.dim span.hl { opacity: 1; filter: saturate(1.2); }
+.fkey { display: flex; flex-wrap: wrap; gap: 3px 12px; font: 500 11px/1.35 var(--mono); margin-top: 6px; }
+.fkey b { font-weight: 500; }
+.fkey b::before { content: ''; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; background: var(--c); }
+.relfigs { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0 6px; }
+.relfigs .f { font: 600 22px/1.1 var(--mono); font-variant-numeric: tabular-nums; display: inline-flex; align-items: baseline; gap: 3px; }
+.relfigs .f .ym { width: 0.78em; height: 0.78em; }
+.match { font: 600 11px/1.3 var(--mono); color: var(--teal); }
+.shelf { margin-top: 6px; }
+.shelf-head { display: flex; align-items: baseline; gap: 10px; margin: 14px 0 7px; }
+.shelf-head h5 { margin: 0; font: 600 9.5px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--vermilion); }
+.shelf-head .sub { font-size: 11.5px; color: var(--g-soft); }
+.shelf-head .tot { margin-left: auto; font: 600 12px/1 var(--mono); display: inline-flex; gap: 8px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; perspective: 1400px; }
+.bc { position: relative; border: 2px solid var(--li); border-radius: 7px; background: var(--g-parch); color: var(--li); padding: 9px 11px 10px; min-height: 150px; display: flex; flex-direction: column; gap: 2px;
+  transition: transform 120ms ease, box-shadow 120ms ease; transform-style: preserve-3d; cursor: default; }
+.bc::before { content: ''; position: absolute; inset: 4px; border: 1.5px solid currentColor; border-radius: 4px; opacity: 0.32; pointer-events: none; }
+.bc > *:not(.back) { position: relative; z-index: 1; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.bc:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--g-ink); }
+.bc .head { display: flex; align-items: center; gap: 6px; font: 600 9px/1 var(--mono); letter-spacing: 0.13em; text-transform: uppercase; }
+.bc .emb { width: 20px; height: 20px; border-radius: 50%; background: var(--li); color: #fff; display: grid; place-items: center; font-size: 11px; letter-spacing: 0; flex: none; }
+.bc h6 { margin: 3px 0 0; font: 600 14.5px/1.15 var(--title); color: var(--g-ink); }
+.bc .cl { font-size: 11.5px; line-height: 1.35; color: var(--g-ink); margin: 2px 0 0; }
+.bc .wh { font-size: 11px; color: var(--g-soft); margin-top: 3px; }
+.bc .wh i { font-style: normal; display: inline-block; border: 1px solid rgba(29,26,32,0.25); border-radius: 3px; padding: 0 4px; margin: 1px 2px 0 0; font: 500 10px/1.5 var(--mono); }
+.bc .stamp { margin-top: auto; padding-top: 6px; display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 10px; position: relative; min-height: 26px; align-items: baseline; }
+.bc .stamp .fig { font: 600 17px/1.1 var(--mono); font-variant-numeric: tabular-nums; display: inline-flex; align-items: baseline; gap: 2px; transform-origin: 50% 60%; white-space: nowrap; }
+.bc .stamp .fig .ym { width: 0.82em; height: 0.82em; }
+.bc .stamp .flour { font: 500 12px/1 var(--title); letter-spacing: 0.12em; opacity: 0.55; }
+.bc .stamp .glow { position: absolute; left: 50%; top: 60%; width: 120px; height: 46px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--li) 34%, transparent), transparent); transform: translate(-50%, -50%) scale(0.4); opacity: 0; pointer-events: none; }
+.bc .stamp .other { font-size: 11px; color: var(--g-soft); text-align: center; width: 100%; font-style: italic; }
+.bc.ghost { border-style: dashed; background: transparent; color: var(--g-faint); min-height: 110px; justify-content: center; align-items: center; text-align: center; }
+.bc.ghost h6 { color: var(--g-soft); font-style: italic; font-weight: 500; font-size: 12.5px; }
+.bc.plaque { --li: var(--y-faith); background: linear-gradient(180deg, #fbf3e6, var(--g-parch)); border-width: 3px; }
+.bc.plaque::before { inset: 3px; box-shadow: inset 0 0 0 2px var(--g-parch), inset 0 0 0 3.5px var(--y-faith); opacity: 0.55; }
+.bc.rite { --li: var(--y-faith); }
+.bc.wide { grid-column: span 2; }
+.bc .towns-mini { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.bc .towns-mini span { font: 500 10.5px/1 var(--mono); color: var(--g-ink); border: 1.5px solid var(--g-ink); border-radius: 4px; padding: 3px 5px; display: inline-flex; gap: 4px; align-items: center; }
+.bc .towns-mini span i { width: 26px; height: 4px; border-radius: 2px; background: rgba(29,26,32,0.15); position: relative; overflow: hidden; display: inline-block; }
+.bc .towns-mini span i::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--y-faith); }
+.bc .back { position: absolute; inset: -2px; border-radius: 7px; transform: rotateY(180deg); backface-visibility: hidden; -webkit-backface-visibility: hidden; z-index: 3;
+  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--li) 22%, var(--g-parch)) 0 6px, var(--g-parch) 6px 12px); border: 2px solid var(--li); }
+/* the deal: offerCard.ts's card-deal, staggered by --dd */
+.play .bc.deal { animation: card-deal 420ms ease-out var(--dd, 0ms) both; }
+@keyframes card-deal { from { transform: rotateY(180deg); } to { transform: rotateY(0deg); } }
+.stamp[data-phase='anticipate'] .fig { opacity: 0.35; }
+.stamp[data-phase='landed'] .fig { animation: stamp-land 420ms cubic-bezier(0.18, 1.5, 0.36, 1); }
+.stamp[data-phase='landed'] .glow { animation: stamp-glow 520ms ease-out; }
+@keyframes stamp-land { 0% { transform: scale(1) rotate(0); } 38% { transform: scale(1.2) rotate(-1.4deg); } 100% { transform: scale(1) rotate(0); } }
+@keyframes stamp-glow { 0% { opacity: 0; transform: translate(-50%,-50%) scale(0.35); } 30% { opacity: 0.9; transform: translate(-50%,-50%) scale(1); } 100% { opacity: 0; transform: translate(-50%,-50%) scale(1.25); } }
+.bigfig[data-phase='landed'], .relfigs[data-phase='landed'] .f { animation: stamp-land 420ms cubic-bezier(0.18, 1.5, 0.36, 1); }
+.bc.hl { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--g-ink); }
+@media (prefers-reduced-motion: reduce) {
+  .play .bc.deal { animation: none; }
+  .bc .back { display: none; }
+  .fbar span { transition: none; }
+  .stamp[data-phase] .fig, .stamp[data-phase] .glow, .bigfig[data-phase], .relfigs[data-phase] .f { animation: none !important; }
+  .bc, .bc:hover { transition: none; }
+}
+
+/* ---------- Religion tab ---------- */
+.rel { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; }
+.relcol { border-right: 1.5px solid rgba(29,26,32,0.2); padding-right: 18px; }
+.wheel { display: block; margin: 4px auto 6px; width: 210px; height: 210px; }
+.rung { text-align: center; font-size: 12px; color: var(--g-soft); margin: 0 0 8px; }
+.gods { display: grid; gap: 9px; }
+.gods .bc { min-height: 0; }
+.namefield { font: 600 22px/1.15 var(--title); border-bottom: 2px dashed rgba(29,26,32,0.35); padding-bottom: 3px; display: flex; gap: 10px; align-items: baseline; }
+.namefield small { font: 500 11px/1 var(--mono); color: var(--g-soft); margin-left: auto; }
+.facts { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px; }
+.facts span { font: 500 11.5px/1 var(--mono); border: 1.5px solid rgba(29,26,32,0.4); border-radius: 999px; padding: 5px 9px; background: var(--g-parch2); }
+.cards3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; perspective: 1400px; }
+.cards2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.fol { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.flist { border: 2px solid var(--g-ink); border-radius: 8px; background: var(--g-parch2); padding: 4px 10px; }
+.fl { display: grid; grid-template-columns: minmax(0, 1fr) 82px 64px; gap: 8px; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(29,26,32,0.1); font-size: 12.5px; }
+.fl:last-child { border-bottom: 0; }
+.fl .nm { min-width: 0; }
+.fl .nm b { font-weight: 600; }
+.fl .nm small { display: block; font-size: 10.5px; color: var(--g-soft); }
+.fl .ct { font: 500 11.5px/1 var(--mono); text-align: right; }
+.fl .pr { font: 600 11.5px/1 var(--mono); text-align: right; color: var(--y-faith); }
+.fl .ct i { display: block; height: 4px; border-radius: 2px; background: rgba(29,26,32,0.12); margin-top: 3px; position: relative; overflow: hidden; }
+.fl .ct i::after { content: ''; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--y-faith); }
+.fl.none .nm b { color: var(--g-ink); }
+.fl.none .pr { color: var(--vermilion); font-weight: 500; font-style: italic; font-family: var(--body); }
+.seat { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c); margin-right: 5px; vertical-align: 0; border: 1px solid var(--g-ink); }
+.rival { border: 2px solid var(--g-ink); border-radius: 8px; background: var(--g-parch2); padding: 8px 12px; font-size: 12.5px; }
+.rival .ex { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(29,26,32,0.3); color: var(--g-soft); }
+.clergy { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.cler { border: 2px solid var(--g-ink); border-radius: 8px; background: var(--g-parch2); padding: 8px 10px; }
+.cler b { font: 600 14px/1.2 var(--title); }
+.cler .pr { float: right; font: 600 12px/1.2 var(--mono); color: var(--y-faith); }
+.cler p { margin: 4px 0 0; font-size: 11.5px; }
+
+/* ---------- Rites tab, revision 2: narrow rows, rite mode ---------- */
+.statebar { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.statebar .replay.on { background: var(--teal); color: #fff; border-color: var(--teal); }
+.strip2 { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip2 { font: 600 12px/1 var(--body); padding: 6px 9px; border: 1.5px solid var(--g-ink); border-left: 4px solid var(--y-faith); border-radius: 5px; background: var(--g-parch2); color: var(--g-ink); cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+.chip2:hover { box-shadow: 2px 2px 0 var(--g-ink); transform: translate(-1px, -1px); }
+.chip2.on { background: var(--teal); border-color: var(--teal); color: #fff; box-shadow: 2px 2px 0 var(--g-ink); }
+.chip2.on .ym { color: #fff !important; }
+.chip2 .kept { font: 500 10px/1 var(--mono); opacity: 0.7; }
+.chip2.grey { border-style: dashed; border-left-style: solid; border-left-color: var(--g-faint); background: transparent; color: var(--g-soft); cursor: not-allowed; font-weight: 500; }
+.chip2.grey em { font-style: normal; color: var(--deck-devotion); font-weight: 600; }
+.ritesay { min-height: 22px; margin: 7px 0 8px; font-size: 12px; color: var(--g-soft); display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.ritesay.mode { color: var(--g-ink); background: rgba(31,138,133,0.10); border: 1.5px solid var(--teal); border-radius: 6px; padding: 6px 10px; }
+.ritesay b { font-family: var(--title); }
+.ritesay .esc { margin-left: auto; font: 500 10.5px/1 var(--mono); color: var(--g-soft); }
+.towns2 { border: 2px solid var(--g-ink); border-radius: 8px; background: var(--g-parch2); overflow: hidden; }
+.grp2 { font: 600 9px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--g-soft); background: var(--g-parch); padding: 5px 10px; border-bottom: 1px solid rgba(29,26,32,0.15); display: flex; gap: 8px; }
+.grp2 .r { margin-left: auto; letter-spacing: 0.04em; text-transform: none; }
+.row2 { display: grid; grid-template-columns: 22px 200px minmax(0, 1fr) 170px 150px; gap: 8px; align-items: center; padding: 3px 10px; min-height: 30px; border-bottom: 1px solid rgba(29,26,32,0.09); font-size: 12px; background: var(--g-parch2); position: relative; }
+.row2.free { background: #f4f8f1; }
+.row2.started { background: rgba(31,138,133,0.12); }
+.row2 .rk { font: 600 11px/1 var(--mono); color: var(--teal); text-align: right; }
+.row2 .nm { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row2 .nm b { font: 600 13px/1.1 var(--title); }
+.row2 .nm small { font-size: 10.5px; color: var(--g-soft); margin-left: 4px; }
+.row2 .nm small.no { color: var(--vermilion); }
+.row2 .mid { min-width: 0; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.row2 .mid .bar { flex: 1; height: 6px; border-radius: 3px; background: rgba(29,26,32,0.12); overflow: hidden; min-width: 40px; }
+.row2 .mid .bar i { display: block; height: 100%; width: var(--w); background: var(--y-faith); }
+.row2 .mid .tl { font: 500 11px/1 var(--mono); color: var(--g-soft); }
+.row2 .pay { font: 600 11.5px/1 var(--mono); text-align: right; white-space: nowrap; }
+.row2 .pay small { font: 500 10px/1 var(--mono); color: var(--g-soft); margin-left: 6px; }
+.row2 .act2 { text-align: right; white-space: nowrap; font-size: 11px; color: var(--g-soft); }
+.row2 .act2 .btnx { padding: 4px 9px; font-size: 11.5px; box-shadow: 2px 2px 0 var(--g-ink); cursor: pointer; }
+.row2 .act2 .btnx.go:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--g-ink); }
+.row2 .act2 .btnx.off { cursor: not-allowed; }
+.row2 .act2 .short { color: var(--vermilion); font-style: italic; margin-left: 4px; }
+.row2 .newtag { font: 600 9.5px/1 var(--mono); color: #fff; background: var(--teal); border-radius: 3px; padding: 2px 5px; margin-left: 4px; }
+.row2 .menu { margin: 4px 0 6px 230px; grid-column: 1 / -1; }
+.row2 .menu .mi { cursor: pointer; }
+.row2 .menu .mi:hover { background: rgba(31,138,133,0.10); }
+.row2 .menu .mi.grey { cursor: not-allowed; }
+.illmark { font: 600 9px/1 var(--mono); letter-spacing: 0.04em; color: var(--g-soft); border: 1px dashed rgba(29,26,32,0.45); border-radius: 3px; padding: 1px 3px; vertical-align: 1px; }
+.legendline { font-size: 12.5px; color: var(--text-soft); margin: 6px 0 0; }
+.legendline .illmark { color: var(--text-soft); border-color: var(--text-soft); }
+.flip { transition: transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+@media (prefers-reduced-motion: reduce) { .flip { transition: none; } .chip2:hover { transform: none; } }
+
+/* ---------- Religion tab, revision 2 ---------- */
+.rel2 { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 20px; }
+.wheel.big { width: 240px; height: 240px; margin: 6px auto 8px; }
+.statgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 6px 0 10px; }
+.statgrid div { border: 2px solid var(--g-ink); border-radius: 7px; background: var(--g-parch2); padding: 7px 9px; }
+.statgrid b { display: block; font: 600 19px/1.1 var(--mono); }
+.statgrid span { font-size: 11px; color: var(--g-soft); }
+.tolink { display: block; font: 600 12px/1.3 var(--body); color: var(--teal); text-decoration: none; border-top: 1.5px solid rgba(29,26,32,0.2); padding-top: 8px; }
+.rel2 .namefield { font-size: 19px; }
+.rel2 .facts span { font-size: 10.5px; padding: 4px 7px; }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="y-food" viewBox="0 0 24 24"><path d="M15 16a1 1 0 0 0-7-7q-4 4-5.987 12.385a.5.5 0 0 0 .602.602Q11 20 15 16l-3-3"/><path d="M15 9q4 4 7 0-3-4-7 0 4-4 0-7-4 3 0 7"/><path d="m8 15-2.58-2.58"/></symbol>
+    <symbol id="y-prod" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="y-gold" viewBox="0 0 24 24"><path d="M9.5 3h5a1.5 1.5 0 0 1 1.5 1.5a3.5 3.5 0 0 1 -3.5 3.5h-1a3.5 3.5 0 0 1 -3.5 -3.5a1.5 1.5 0 0 1 1.5 -1.5"/><path d="M4 17v-1a8 8 0 1 1 16 0v1a4 4 0 0 1 -4 4h-8a4 4 0 0 1 -4 -4"/></symbol>
+    <symbol id="y-sci" viewBox="0 0 24 24"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.453 15h11.094"/><path d="M8.5 2h7"/></symbol>
+    <symbol id="y-cul" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+    <symbol id="y-faith" viewBox="0 0 24 24"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/></symbol>
+  </defs>
+</svg>
+
+<div class="page">
+<p class="eyebrow">Magister Ludi · the faith screen · F1, all three tabs · 12 October 2026</p>
+<h1>The faith screen, <i>tab by tab</i></h1>
+<p class="lede">The user picked F1 (three tabs). This is the second revision: the Rites tab has narrower rows, free towns first, and a rite mode that ranks the free towns and starts a rite in one click; the Religion &amp; followers tab loses the god and belief cards and their figures, which the Bonuses tab already shows; the Bonuses tab is unchanged. Figures are the same bot game at turn 131 (seed 4242); towns marked "ill." and figures marked "would add" are illustrative.</p>
+<div class="tabjump"><a href="#t-rites">Rites</a><a href="#t-bonuses">Bonuses</a><a href="#t-religion">Religion &amp; followers</a><a href="#t-reuse">What reuses what</a><a href="#t-rulings">Rulings</a></div>
+
+<div class="card verdict">
+  <p class="eyebrow" style="color:var(--teal)">What changed in this revision</p>
+  <p><b>Rites:</b> fourteen towns on one screen (seven illustrative), in narrower rows: free towns first, then towns keeping a rite, soonest free first. Click a rite in the strip and the free towns re-order by what it would add in each, best first, each with a one-click "Start · 72" button. Once the bank cannot pay for another, the remaining buttons grey out with "short N". Click the rite again or press Escape to leave. With no rite selected, each free town keeps its "Start a rite" menu. "Start in several…" is gone: the rite mode does that job.</p>
+  <p><b>Bonuses:</b> unchanged.</p>
+  <p><b>Religion &amp; followers:</b> the god cards, the follower belief cards and every bonus figure are removed. The wheel, the religion's name and facts, who follows, rival pressure and the clergy remain, rearranged around a larger wheel.</p>
+</div>
+
+<!-- =========================================================== RITES -->
+<h2 id="t-rites">Tab 1 · Rites</h2>
+<p class="lede">Your towns are the rows, narrower than before so fourteen fit on one screen: free towns first, then towns keeping a rite, soonest free first. With no rite selected, a free town's "Start a rite" menu works as before. Click a rite in the strip and the free towns re-order by what that rite would add in each, best first, and every free row gets a one-click Start button carrying the price.</p>
+<p class="lede"><b>The drawing is live.</b> Click a rite in the strip, a Start button, a town's menu, or press Escape. The buttons below jump to the three states the user asked to see.</p>
+<div class="statebar">
+  <button class="replay" type="button" data-state="none">1 · No rite selected</button>
+  <button class="replay" type="button" data-state="harvest">2 · Rite of the Harvest selected</button>
+  <button class="replay" type="button" data-state="after">3 · After one start (Vaelport)</button>
+</div>
+<div class="mock-wrap"><div class="mk" id="rites">
+  <div class="mk-head">
+    <div><div class="eb">your religion · the Children of Sky and Wild</div><div class="tt">Faith</div></div>
+    <div class="bank"><span class="pillx faith"><svg class="ym"><use href="#y-faith"/></svg><span class="n" data-bank>137</span> · <span class="n">+87</span> a turn</span><span class="pillx">a rite costs <span class="n">72</span> · lasts <span class="n">10</span> turns</span></div>
+    <div class="x">×</div>
+  </div>
+  <div class="tabs"><a class="on" href="#t-rites">Rites<span class="k" data-tabcount>6 kept · 8 free</span></a><a href="#t-bonuses">Bonuses</a><a href="#t-religion">Religion &amp; followers</a></div>
+  <div class="sec" style="margin-top:4px">Rites you know <span class="r">click one to rank your free towns by it · each <span class="n">72</span> faith · <span class="n">10</span> turns</span></div>
+  <div class="strip2" data-strip></div>
+  <div class="ritesay" data-say></div>
+  <div class="towns2" data-towns></div>
+  <div class="faithfoot" data-foot></div>
+  <div class="realm"><b style="font-family:var(--title)">Over the whole realm</b><span class="soft">a prophet says one rite in every town at once, for one charge and <span class="n">72</span> faith paid once; it replaces the six rites kept below.</span><span class="want" style="margin-left:auto">You have no prophet (300 faith).</span></div>
+</div></div>
+<p class="scrollnote">The drawing is 940 px wide; scroll it sideways on a phone.</p>
+<p class="legendline"><span class="illmark">ill.</span> marks the seven illustrative towns added so the list is a realistic length; the other seven and every figure on them are the test game's. "Would add" figures are illustrative until <code>explainRitePreview</code> exists.</p>
+
+<div class="notes">
+  <div><h4>Order of the rows</h4><ul><li>Free towns first, in founding order; then towns keeping a rite, soonest free first.</li><li>With a rite selected, the free towns re-order by what it would add there, best first, and slide into place (instant with reduced motion).</li><li>A town started this turn joins the kept group at its head, marked "started now".</li></ul></div>
+  <div><h4>Settled by the user</h4><ul><li><b>One click starts a rite</b>, and the button carries the price ("Start · 72"). No confirm dialog. Once the bank cannot pay for another, every remaining button greys out and says "short N".</li><li><b>A rite that pays two things ranks by its main yield</b>, the second shown beside it (Consecration of the Bounds: culture, then "borders +30%").</li><li><b>Selecting the same rite again, or Escape, leaves the mode.</b></li></ul></div>
+  <div><h4>What else follows</h4><ul><li>"Start in several…" is gone: select a rite and click down the list. Each click is one <code>performRite</code>, so no batch command is needed.</li><li>Blessing of Arms adds the same +10 defence everywhere, so its ranking is a tie and the banner says so; the rows keep founding order.</li><li>A rite you lack is greyed in the strip with its card and cannot be selected.</li></ul></div>
+</div>
+
+<!-- =========================================================== BONUSES -->
+<h2 id="t-bonuses">Tab 2 · Bonuses</h2>
+<p class="lede">Every source of your religion's bonuses as a card, drawn the way the Orders screen draws an Order: an accent frame with an inner rule, the eyebrow and emblem, the name, the clause, where it pays, and the figure as a stamp in yield marks. Under the hood the figures are the Ledger's attribution, so the headline's religion total is the Ledger's Religion slice exactly. Press Replay to see the opening again; hover a card to light its share of the faith bar.</p>
+<p><button class="replay" type="button" id="replay">↻ Replay the opening</button></p>
+<div class="mock-wrap"><div class="mk" id="bonuses">
+  <div class="mk-head">
+    <div><div class="eb">your religion · the Children of Sky and Wild</div><div class="tt">Faith</div></div>
+    <div class="bank"><span class="pillx faith"><svg class="ym"><use href="#y-faith"/></svg><span class="n">137</span> · <span class="n">+87</span> a turn</span><span class="pillx">a rite costs <span class="n">72</span></span></div>
+    <div class="x">×</div>
+  </div>
+  <div class="tabs"><a href="#t-rites">Rites<span class="k">6 kept · 8 free</span></a><a class="on" href="#t-bonuses">Bonuses</a><a href="#t-religion">Religion &amp; followers</a></div>
+
+  <div class="headline">
+    <div class="hcard">
+      <div class="lbl">Faith a turn · the top bar's figure</div>
+      <div class="bigfig" data-count="87"><svg class="ym"><use href="#y-faith"/></svg><span class="cnt">+87</span><small>a turn, into a bank of 137</small></div>
+      <div class="fbar" id="fbar">
+        <span data-src="chaplains" style="--w:56.3%;--c:var(--deck-dominion);--sd:0ms" title="The Camp Chaplains 49"></span>
+        <span data-src="firstrites" style="--w:11.5%;--c:var(--deck-devotion);--sd:90ms" title="First Rites 10"></span>
+        <span data-src="land" style="--w:11.5%;--c:var(--ldg-tiles);--sd:180ms" title="worked land 10"></span>
+        <span data-src="herd" style="--w:5.75%;--c:#d48bb0;--sd:270ms" title="Herd Gods 5"></span>
+        <span data-src="founder" style="--w:3.45%;--c:var(--y-faith);--sd:360ms" title="founder share 3"></span>
+        <span data-src="buildings" style="--w:5.75%;--c:var(--ldg-buildings);--sd:450ms" title="buildings 5"></span>
+        <span data-src="wonders" style="--w:5.75%;--c:var(--ldg-wonders);--sd:540ms" title="wonders 5"></span>
+      </div>
+      <div class="fkey"><b style="--c:var(--deck-dominion)">Camp Chaplains 49</b><b style="--c:var(--deck-devotion)">First Rites 10</b><b style="--c:var(--ldg-tiles)">worked land 10</b><b style="--c:#d48bb0">Herd Gods 5</b><b style="--c:var(--y-faith)">founder share 3</b><b style="--c:var(--ldg-buildings)">buildings 5</b><b style="--c:var(--ldg-wonders)">wonders 5</b></div>
+    </div>
+    <div class="hcard">
+      <div class="lbl">What your religion pays a turn</div>
+      <div class="relfigs" id="relfigs">
+        <span class="f yp"><span class="cnt" data-to="17">+17</span><svg class="ym"><use href="#y-prod"/></svg></span>
+        <span class="f yg"><span class="cnt" data-to="13">+13</span><svg class="ym"><use href="#y-gold"/></svg></span>
+        <span class="f ys"><span class="cnt" data-to="50">+50</span><svg class="ym"><use href="#y-sci"/></svg></span>
+        <span class="f yc"><span class="cnt" data-to="4">+4</span><svg class="ym"><use href="#y-cul"/></svg></span>
+        <span class="f yh"><span class="cnt" data-to="8">+8</span><svg class="ym"><use href="#y-faith"/></svg></span>
+      </div>
+      <div class="match">= the Ledger's Religion slice, voice by voice ✓</div>
+      <div class="soft" style="font-size:11.5px;margin-top:4px">Gods, follower beliefs, the founder share and rites running. Cards seated from the decks are counted with the deck, as the Ledger counts them, and sit on the last two shelves.</div>
+    </div>
+  </div>
+
+  <div class="shelf">
+    <div class="shelf-head"><h5>Your gods</h5><span class="sub">pantheon · every town of yours</span><span class="tot"><span class="yp">+17</span><span class="yg">+12</span><span class="ys">+8</span><span class="yh">+5</span></span></div>
+    <div class="cards">
+      <div class="bc deal" style="--li:var(--ax-sky);--dd:0ms" data-src="star"><div class="back"></div><div class="head"><span class="emb">✶</span>a god · sky</div><h6>Star Readers</h6><p class="cl">+4 science in every city beside a mountain.</p><div class="wh"><i>Larkspur</i><i>Northwatch</i></div><div class="stamp"><span class="fig ys" data-to="8">+8<svg class="ym"><use href="#y-sci"/></svg></span><span class="glow"></span></div></div>
+      <div class="bc deal" style="--li:var(--ax-wild);--dd:110ms" data-src="herd"><div class="back"></div><div class="head"><span class="emb">🌲</span>a god · wild</div><h6>Herd Gods</h6><p class="cl">+1 production, +1 faith on every hex with a Pasture.</p><div class="wh"><i>Aldermarch</i><i>Larkspur</i><i>Vaelport</i><i>Crimson 1</i></div><div class="stamp"><span class="fig yp" data-to="5">+5<svg class="ym"><use href="#y-prod"/></svg></span><span class="fig yh" data-to="5">+5<svg class="ym"><use href="#y-faith"/></svg></span><span class="glow"></span></div></div>
+      <div class="bc deal" style="--li:var(--ax-water);--dd:220ms" data-src="sea"><div class="back"></div><div class="head"><span class="emb">🌊</span>a god · water</div><h6>Lord of the Sea</h6><p class="cl">+1 production, +1 gold on every hex with a Fishing Boat.</p><div class="wh"><i>5 towns' fishing boats</i></div><div class="stamp"><span class="fig yp" data-to="12">+12<svg class="ym"><use href="#y-prod"/></svg></span><span class="fig yg" data-to="12">+12<svg class="ym"><use href="#y-gold"/></svg></span><span class="glow"></span></div></div>
+    </div>
+  </div>
+
+  <div class="shelf">
+    <div class="shelf-head"><h5>Follower beliefs</h5><span class="sub">your 3 towns that follow · also kept in 7 foreign towns, which pay their own owners</span><span class="tot"><span class="yc">+4</span></span></div>
+    <div class="cards">
+      <div class="bc deal" style="--li:var(--ax-none);--dd:330ms" data-src="choirs"><div class="back"></div><div class="head"><span class="emb">◈</span>a follower belief</div><h6>Choirs</h6><p class="cl">+1 culture for every 4 citizens of a town that follows.</p><div class="wh"><i>Aldermarch</i><i>Larkspur</i></div><div class="stamp"><span class="fig yc" data-to="4">+4<svg class="ym"><use href="#y-cul"/></svg></span><span class="glow"></span></div></div>
+      <div class="bc deal" style="--li:var(--ax-hearth);--dd:440ms"><div class="back"></div><div class="head"><span class="emb">🌾</span>a follower belief</div><h6>Temple Spires</h6><p class="cl">Opens the Wat, bought with faith in a town that follows: +3 happiness, +1 faith for every 2 citizens.</p><div class="wh">no Wat bought yet</div><div class="stamp"><span class="flour">— · ✶ · —</span><span class="other">pays once a Wat stands</span></div></div>
+      <div class="bc deal" style="--li:var(--ax-sky);--dd:550ms"><div class="back"></div><div class="head"><span class="emb">✶</span>a follower belief</div><h6>Minarets</h6><p class="cl">Opens the Mosque, bought with faith in a town that follows: +3 faith, +2 production, +1 authority capacity.</p><div class="wh">no Mosque bought yet</div><div class="stamp"><span class="flour">— · ✶ · —</span><span class="other">pays once a Mosque stands</span></div></div>
+      <div class="bc ghost"><h6>Enhancer beliefs · 0 of 2</h6><span class="soft" style="font-size:11px">a prophet's charge, once you have Theology</span></div>
+    </div>
+  </div>
+
+  <div class="shelf">
+    <div class="shelf-head"><h5>Holy city and rites running</h5><span class="sub">what holding the faith's seat pays, and the seasons your towns are keeping</span><span class="tot"><span class="yg">+1</span><span class="ys">+42</span><span class="yh">+3</span></span></div>
+    <div class="cards">
+      <div class="bc plaque deal wide" style="--dd:660ms" data-src="founder"><div class="back"></div><div class="head"><span class="emb">✶</span>holy city</div><h6>Aldermarch ✶</h6><p class="cl"><b>Founder share:</b> +1 faith for every foreign town that follows by majority, and +1 gold for every two.</p><div class="wh"><i>Junipers Rest</i><i>Kestrel</i><i>Stonebridge</i> follow by majority · the holy site presses <span class="n">6</span> a turn on towns in reach</div><div class="stamp"><span class="fig yh" data-to="3">+3<svg class="ym"><use href="#y-faith"/></svg></span><span class="fig yg" data-to="1">+1<svg class="ym"><use href="#y-gold"/></svg></span><span class="glow"></span></div></div>
+      <div class="bc rite deal wide" style="--dd:770ms" data-src="omen"><div class="back"></div><div class="head"><span class="emb">❂</span>a rite · kept in 3 towns</div><h6>Omen Reading</h6><p class="cl">+1 science for each building in the town, while the rite runs.</p><div class="towns-mini"><span>Aldermarch 7t <i style="--w:70%"></i></span><span>Hollowmere 8t <i style="--w:80%"></i></span><span>Larkspur 9t <i style="--w:90%"></i></span></div><div class="stamp"><span class="fig ys" data-to="42">+42<svg class="ym"><use href="#y-sci"/></svg></span><span class="glow"></span></div></div>
+    </div>
+  </div>
+
+  <div class="shelf">
+    <div class="shelf-head"><h5>Seated cards that pay faith</h5><span class="sub">Devotion first, then any other deck · counted by the Ledger under Cards</span><span class="tot"><span class="yh">+59</span></span></div>
+    <div class="cards">
+      <div class="bc deal" style="--li:var(--deck-devotion);--dd:880ms" data-src="firstrites"><div class="back"></div><div class="head"><span class="emb">✚</span>Devotion · an order</div><h6>First Rites</h6><p class="cl">+25% production toward Shrines. Shrines give +2 faith.</p><div class="wh"><i>5 towns with a Shrine</i></div><div class="stamp"><span class="fig yh" data-to="10">+10<svg class="ym"><use href="#y-faith"/></svg></span><span class="glow"></span></div></div>
+      <div class="bc deal ann" style="--li:var(--deck-dominion);--dd:990ms" data-src="chaplains"><div class="back"></div><div class="head"><span class="emb">⚔</span>Dominion · an order</div><h6>The Camp Chaplains</h6><p class="cl">+1 faith for every unit you control.</p><div class="wh"><i>49 units</i> · <span class="tagnew">needs a ruling</span></div><div class="stamp"><span class="fig yh" data-to="49">+49<svg class="ym"><use href="#y-faith"/></svg></span><span class="glow"></span></div></div>
+    </div>
+  </div>
+</div></div>
+<p class="scrollnote">Scroll the drawing sideways on a phone.</p>
+
+<div class="notes">
+  <div><h4>The opening, beat by beat</h4><ul><li><b>0 ms:</b> the faith bar's slices grow left to right, 90 ms apart; the headline counts up to <span class="num">+87</span> and lands.</li><li><b>Cards:</b> each is dealt face down and turns over in 420 ms, 110 ms after the one before it: the Orders draft's deal (<code>card-deal</code>, <code>DEAL_STAGGER_MS</code>).</li><li><b>Figures:</b> as a card lands, its stamp holds for 220 ms, counts up over 750 ms, then lands with the overshoot and the glow: <code>playCardStamp</code>'s four beats.</li><li>With reduced motion on, nothing moves: the cards are face up and every figure is simply there.</li></ul></div>
+  <div><h4>Hover</h4><ul><li>A card lifts and casts the Orders hand's shadow (<code>.sc-card-order:hover</code>).</li><li>Its slice of the faith bar lights and the rest dim, so "where does my faith come from" is answered by pointing.</li><li>The card's hover card (as the Order's) lists the Ledger lines behind its figure, town by town.</li></ul></div>
+  <div><h4>When it plays</h4><ul><li>The Orders screen counts only on Confirm and lands stamps at rest, and the Religion sheet's rule is "the stamp lands here, it never plays". The user's request changes that for this tab.</li><li>Proposed: the deal plays every time the tab opens (it is short); a figure counts only if it changed since you last looked, otherwise it lands. Needs a ruling.</li></ul></div>
+</div>
+
+<!-- =========================================================== RELIGION -->
+<h2 id="t-religion">Tab 3 · Religion &amp; followers</h2>
+<p class="lede">The god cards, the belief cards and every bonus figure are gone: the Bonuses tab owns them. What stays is what is only here: the pantheon wheel (how many gods you hold, and progress toward the next place), the religion's name and facts, who follows, rival pressure, and the clergy. The towns are the same fourteen as on the Rites tab.</p>
+<div class="mock-wrap"><div class="mk">
+  <div class="mk-head">
+    <div><div class="eb">your religion · the Children of Sky and Wild</div><div class="tt">Faith</div></div>
+    <div class="bank"><span class="pillx faith"><svg class="ym"><use href="#y-faith"/></svg><span class="n">137</span> · <span class="n">+87</span> a turn</span><span class="pillx">a rite costs <span class="n">72</span></span></div>
+    <div class="x">×</div>
+  </div>
+  <div class="tabs"><a href="#t-rites">Rites<span class="k">6 kept · 8 free</span></a><a href="#t-bonuses">Bonuses</a><a class="on" href="#t-religion">Religion &amp; followers</a></div>
+  <div class="rel2">
+    <div class="relcol">
+      <div class="namefield">the Children of Sky and Wild <small>rename</small></div>
+      <div class="facts"><span>founded by you</span><span>holy city Aldermarch ✶</span><span>3 of 3 religions in the world</span></div>
+      <div class="sec">Pantheon · 3 of 3 places</div>
+      <svg class="wheel big" id="wheel" viewBox="-110 -110 220 220" aria-label="Pantheon wheel, three of twenty-two houses held"></svg>
+      <p class="rung">The pantheon is full. Your people name a god on their own when faith runs deep enough and a place is open.</p>
+      <div class="statgrid">
+        <div><b class="n">13</b><span>towns follow</span></div>
+        <div><b class="n">6 / 14</b><span>of yours</span></div>
+        <div><b class="n">7</b><span>foreign</span></div>
+        <div><b class="n yh">+6</b><span>holy site presses a turn</span></div>
+      </div>
+      <a class="tolink" href="#t-bonuses">What your gods and beliefs pay: Bonuses ›</a>
+    </div>
+    <div>
+      <div class="sec" style="margin-top:2px">Who follows <span class="r">citizens following · pressure your faith adds a turn</span></div>
+      <div class="fol">
+        <div>
+          <div class="soft" style="font-size:11.5px;margin-bottom:4px"><b style="color:var(--g-ink)">Your towns</b> · 6 of 14 follow</div>
+          <div class="flist">
+            <div class="fl"><span class="nm"><b>Aldermarch ✶</b> <span class="yh">✶</span><small>holy site, roads, capital</small></span><span class="ct">9 of 9<i style="--w:100%"></i></span><span class="pr">+30</span></div>
+            <div class="fl"><span class="nm"><b>Northwatch</b> <span class="yh">✶</span><small>holy site, roads</small></span><span class="ct">3 of 3<i style="--w:100%"></i></span><span class="pr">+26</span></div>
+            <div class="fl"><span class="nm"><b>Larkspur</b> <span class="yh">✶</span><small>roads</small></span><span class="ct">6 of 8<i style="--w:75%"></i></span><span class="pr">+20</span></div>
+            <div class="fl"><span class="nm"><b>Fallowmere <span class="illmark">ill.</span></b> <span class="yh">✶</span><small>roads</small></span><span class="ct">6 of 6<i style="--w:100%"></i></span><span class="pr">+18</span></div>
+            <div class="fl"><span class="nm"><b>Ashford <span class="illmark">ill.</span></b> <span class="yh">✶</span><small>roads</small></span><span class="ct">5 of 7<i style="--w:71%"></i></span><span class="pr">+12</span></div>
+            <div class="fl"><span class="nm"><b>Coldspring <span class="illmark">ill.</span></b><small>roads</small></span><span class="ct">2 of 5<i style="--w:40%"></i></span><span class="pr">+8</span></div>
+            <div class="fl none ann"><span class="nm"><b>Hollowmere</b><small>no holy site or road reaches it</small></span><span class="ct">0 of 10<i style="--w:0%"></i></span><span class="pr">no faith</span></div>
+            <div class="fl none"><span class="nm"><b>Vaelport</b><small>no holy site or road reaches it</small></span><span class="ct">0 of 9<i style="--w:0%"></i></span><span class="pr">no faith</span></div>
+            <div class="fl none"><span class="nm"><b>Crimson 1</b><small>no holy site or road reaches it</small></span><span class="ct">0 of 6<i style="--w:0%"></i></span><span class="pr">no faith</span></div>
+            <div class="fl none"><span class="nm"><b>Crimson 2</b><small>no holy site or road reaches it</small></span><span class="ct">0 of 4<i style="--w:0%"></i></span><span class="pr">no faith</span></div>
+            <div class="fl none"><span class="nm"><b>4 more <span class="illmark">ill.</span></b><small>Brightwater, Dunmere, Elmstead, Greyfen</small></span><span class="ct">0</span><span class="pr">no faith</span></div>
+          </div>
+        </div>
+        <div>
+          <div class="soft" style="font-size:11.5px;margin-bottom:4px"><b style="color:var(--g-ink)">Foreign towns</b> · 7 follow · their owners get your follower beliefs</div>
+          <div class="flist">
+            <div class="fl"><span class="nm"><b><span class="seat" style="--c:#c8901f"></span>Junipers Rest</b> <span class="yh">✶</span><small>Gilt</small></span><span class="ct">9 of 16<i style="--w:56%"></i></span><span class="pr">+20</span></div>
+            <div class="fl"><span class="nm"><b><span class="seat" style="--c:#1f8a85"></span>Stonebridge</b> <span class="yh">✶</span><small>Teal · roads, a caravan</small></span><span class="ct">8 of 10<i style="--w:80%"></i></span><span class="pr">+23</span></div>
+            <div class="fl"><span class="nm"><b><span class="seat" style="--c:#1f8a85"></span>Kestrel</b> <span class="yh">✶</span><small>Teal</small></span><span class="ct">7 of 10<i style="--w:70%"></i></span><span class="pr">+20</span></div>
+            <div class="fl"><span class="nm"><b><span class="seat" style="--c:#c8901f"></span>Cinderhold ✶</b><small>Gilt's capital</small></span><span class="ct">7 of 22<i style="--w:32%"></i></span><span class="pr">+24</span></div>
+            <div class="fl"><span class="nm"><b><span class="seat" style="--c:#c8901f"></span>Greyharbour</b><small>Gilt</small></span><span class="ct">7 of 20<i style="--w:35%"></i></span><span class="pr">+24</span></div>
+            <div class="fl"><span class="nm"><b><span class="seat" style="--c:#c8901f"></span>Westmarch</b><small>Gilt</small></span><span class="ct">7 of 16<i style="--w:44%"></i></span><span class="pr">+24</span></div>
+            <div class="fl"><span class="nm"><b><span class="seat" style="--c:#c8901f"></span>Pinehollow</b><small>Gilt</small></span><span class="ct">3 of 18<i style="--w:17%"></i></span><span class="pr">+24</span></div>
+          </div>
+          <div class="sec">Rival faiths pressing your towns</div>
+          <div class="rival ann">
+            <b>None this turn.</b> <span class="soft">The Children of Elder and Anvil (Teal) and the Children of Blood and Wolf (Gilt) reach none of your towns.</span>
+            <div class="ex"><b style="color:var(--g-ink)">When one does</b> (an example, not this game): <span class="seat" style="--c:#1f8a85"></span>Hollowmere · the Children of Elder and Anvil · <span class="n">+12</span> a turn by road from Kestrel · <span class="n">2</span> of <span class="n">10</span> follow it. A Temple there would hold it off.</div>
+          </div>
+        </div>
+      </div>
+      <div class="sec">Clergy <span class="r">called in <span class="btnx sm">Aldermarch ▾</span></span></div>
+      <div class="clergy">
+        <div class="cler"><span class="pr">300 <svg class="ym"><use href="#y-faith"/></svg></span><b>Prophet</b><p>Founds, plants holy sites, gains beliefs, proclaims, says a rite over the realm.</p><p class="want">You have 137.</p></div>
+        <div class="cler"><span class="pr">90 <svg class="ym"><use href="#y-faith"/></svg></span><b>Apostle</b><p>Carries the faith; mends your pieces; sets down relics.</p><p class="want">Needs Theology.</p></div>
+        <div class="cler"><span class="pr">200 <svg class="ym"><use href="#y-faith"/></svg></span><b>Inquisitor</b><p>Purges a rival faith from one of your towns.</p><p class="want">Needs The Holy Office.</p></div>
+      </div>
+    </div>
+  </div>
+</div></div>
+<p class="scrollnote">Scroll the drawing sideways on a phone.</p>
+<div class="notes">
+  <div><h4>Removed</h4><ul><li>The three god cards, the three follower belief cards and the enhancer places, with every figure on them: they are the Bonuses tab's.</li><li>"Augurs &amp; Pantheon" and the augur hint from the header.</li></ul></div>
+  <div><h4>Kept</h4><ul><li>The wheel, now the left column's centrepiece: lit houses are the gods you hold; the hub and the line under it say how many places are filled and how close the next one is. Nothing is chosen here.</li><li>The name (rename in place), the following lists, the clergy.</li></ul></div>
+  <div><h4>Added</h4><ul><li>A small panel of counts under the wheel: towns following, yours, foreign, the holy site's pressure.</li><li>Your towns no faith reaches, with the reason; rival faiths pressing your towns; the clergy's refusals written on the card.</li><li>A link to the Bonuses tab where the beliefs used to be.</li></ul></div>
+</div>
+
+<!-- =========================================================== REUSE -->
+<h2 id="t-reuse">What reuses what</h2>
+<div class="tbl-wrap"><table class="doc">
+  <tr><th>Part</th><th>Reuses</th><th>New</th></tr>
+  <tr><td>The sheet, header, tabs</td><td><code>modalShell.ts</code> as today; the tab pills follow the city screen's add-list tabs</td><td>a remembered tab per seat (a conversation fact, like the city screen's tab); retitle in <code>index.html</code> 1148–1151</td></tr>
+  <tr><td>Rites: town rows</td><td><code>cityRite</code>, <code>cityRiteTurnsLeft</code>, <code>riteCostFor</code>, <code>riteError</code>, <code>availableRites</code>; the "pays now" figure is the town's own lines carrying the rite id (<code>readEmpire</code>)</td><td>the row, menu and rite-mode DOM (~320 lines): ranking by <code>explainRitePreview</code>, the slide when rows re-order; <code>riteTurnsFor</code></td></tr>
+  <tr><td>Rites: starting</td><td><code>performRite</code> through <code>controls.performRite</code>, one command per click; <code>empireRite</code> for the prophet</td><td>nothing: each Start button is one command, and the buttons re-read the bank after each</td></tr>
+  <tr><td>Bonuses: card faces</td><td><code>.sc-card</code> frame and inner rule, <code>.sc-card-head</code>, emblem chip and <code>--line-ink</code> accents (<code>cardLine.ts</code>, <code>[data-axis]</code>, the deck inks); belief clauses from <code>describeCard</code>; <code>drawBeliefFace</code> in <code>religionScreen.ts</code></td><td>a plaque face for the holy city (the Doctrine's gilt double rule, in faith ink); a rite face with town chips</td></tr>
+  <tr><td>Bonuses: figures</td><td><code>cardStampNode</code>, <code>landCardStamp</code>, <code>playCardStamp</code> and <code>STAMP_TIMING</code> (<code>cardStamp.ts</code>); yield marks through <code>yieldMark.ts</code></td><td>an adapter from Ledger lines to a <code>StampReading</code> (the stamp takes strings and numbers only, so this is ~30 lines)</td></tr>
+  <tr><td>Bonuses: the deal</td><td><code>card-deal</code> keyframes and the <code>--deal-delay</code> stagger from <code>offerCard.ts</code> / <code>style.css</code> 10930</td><td>generalise <code>.offer-option.is-dealing</code> to a shared class so a second surface can deal</td></tr>
+  <tr><td>Bonuses: the headline</td><td>the Statecraft aggregate band (<code>drawAggregate</code>, <code>.sc-aggregate</code>) for the counting figures; <code>explainLedger</code>'s faith row; <code>ledgerInk.ts</code> class inks</td><td><code>explainReligionLedger</code> so the religion figures split by source and sum to the Ledger; the founder share's own source id</td></tr>
+  <tr><td>Religion &amp; followers tab</td><td><code>drawPantheonWheel</code> and the rung sentence from <code>drawPantheon</code>; the name field from <code>drawReligion</code>; <code>drawTide</code>; <code>drawClergy</code></td><td>the split following list, the "no faith reaches" rows, the rival rows (<code>explainPressure</code> for other religions), the counts panel, refusals on the clergy cards. The god and belief faces are dropped from this tab.</td></tr>
+</table></div>
+
+<h2>Simulation pieces and size</h2>
+<div class="tbl-wrap"><table class="doc">
+  <tr><th>Piece</th><th>For</th><th>Size</th></tr>
+  <tr><td><code>riteTurnsFor(state, seat, rite)</code>, lifted out of <code>stampRite</code></td><td>Rites: turns after The Octave and Chichen Itza</td><td>¼ day</td></tr>
+  <tr><td><code>explainRitePreview(state, seat, cityId, rite)</code>, a ghost reading</td><td>Rites: "would add" and the ranking in rite mode</td><td>1 day</td></tr>
+  <tr><td><code>explainReligionLedger(state, seat)</code>, by generalising <code>deckLinesOfCity</code> to any class</td><td>Bonuses: card figures that sum to the Ledger</td><td>½ day</td></tr>
+  <tr><td>The founder share's own source (not Temple Spires' id, <code>evaluator.ts</code> 931)</td><td>Bonuses: the holy city plaque</td><td>½ day</td></tr>
+  <tr><td><code>MeterContribution</code> carries its card</td><td>Bonuses: happiness on the card that pays it</td><td>½ day</td></tr>
+  <tr><td>Fixes: withdrawn rites, card-rite teachers, header, duration words</td><td>all</td><td>½ day</td></tr>
+  <tr><td>Interface: Rites tab with rite mode ~1.75 days, Bonuses tab with the animation ~1.5 days, Religion &amp; followers ~¼ day, styles and tests ~½ day</td><td></td><td>4 days</td></tr>
+  <tr><td><b>Total</b></td><td></td><td><b>about 7 days</b></td></tr>
+</table></div>
+<p class="lede" style="margin-top:8px">Unchanged at about 7 days: the rite mode adds about a quarter day to the Rites tab, and dropping the cards from the Religion &amp; followers tab saves about the same. Dropping "Start in several…" also removes the batch question.</p>
+
+<h2 id="t-rulings">Settled, and still open</h2>
+<div class="grid-3">
+  <div class="card"><h3>Settled by the user</h3><p>F1, three tabs. The Rites tab is built on your towns. The Bonuses tab is cards and animation. The Religion &amp; followers tab carries no god or belief cards. Free towns first. One click starts a rite, the button carries the price, and the rest grey out with "short N" once the bank cannot pay; no confirm dialog. A two-yield rite ranks by its main yield, the second beside it. Selecting the rite again, or Escape, leaves the mode.</p></div>
+</div>
+<ol class="steps">
+  <li><div><b>When the Bonuses tab animates.</b><p>The Religion sheet's rule today is "the stamp lands here, it never plays", and the Orders screen counts only on Confirm. Proposed: the deal plays each time the tab opens; a figure counts up only when it changed since you last looked, otherwise it lands.</p></div></li>
+  <li><div><b>Which figure the god and belief cards wear on the Bonuses tab.</b><p>The Ledger's attribution (proposed; sums to the Ledger; Star Readers <span class="num">+8</span>) or today's ghost stamp (what removing it would cost; <span class="num">+10</span>).</p></div></li>
+  <li><div><b>Which seated cards appear.</b><p>Devotion cards and any other card that pays faith (proposed; The Camp Chaplains, Dominion, is <span class="num">+49</span> of <span class="num">+87</span>), or Devotion only.</p></div></li>
+  <li><div><b>The prophet's rite on the Rites tab.</b><p>Offer it here (proposed), or only on the prophet's own sheet.</p></div></li>
+  <li><div><b>Rival pressure rows.</b><p>Towns you can see now only, or remembered towns too under the faith lens's fog rule.</p></div></li>
+  <li><div><b>The order of towns keeping a rite.</b><p>Soonest free first (drawn), or founding order.</p></div></li>
+  <li><div><b>From the first round.</b><p>Whether the drawer's Religion dot also lights when a town is free and a rite is affordable; whether the sheet is called "Faith" or "Religion".</p></div></li>
+</ol>
+
+<footer>
+  <p>Written version: <code>f1.md</code>. Earlier audit and the three layouts: <code>audit.md</code>, <code>ux-faith.html</code>. Yield marks are the game's own outlines (Lucide <code>carrot</code>, <code>settings</code>, <code>flask-conical</code>, <code>music</code>, <code>flame</code>, ISC; Tabler <code>moneybag</code>, MIT), as in <code>src/art/yieldMarks.ts</code>.</p>
+</footer>
+</div>
+
+<script>
+(function () {
+  // The pantheon wheel: 22 houses in axis runs, three held (sky, wild, water).
+  var axes = ['hearth','hearth','hearth','sky','sky','stone','stone','stone','stone','wild','wild','wild','water','water','war','war','road','sun','frost','none','none','none'];
+  var held = { 3: 'sky', 10: 'wild', 13: 'water' };
+  var glyph = { hearth: '🌾', sky: '✶', stone: '⛰', wild: '🌲', water: '🌊', war: '⚒', road: '🧭', sun: '☀', frost: '❄', none: '◈' };
+  var ink = { sky: '#3f639f', wild: '#c2452a', water: '#1a7873' };
+  var svg = document.getElementById('wheel');
+  if (svg) {
+    var NS = 'http://www.w3.org/2000/svg', n = axes.length, R = 100, r = 56, out = '';
+    for (var i = 0; i < n; i++) {
+      var a0 = (i / n) * Math.PI * 2 - Math.PI / 2, a1 = ((i + 1) / n) * Math.PI * 2 - Math.PI / 2;
+      var p = function (rad, a) { return (rad * Math.cos(a)).toFixed(2) + ' ' + (rad * Math.sin(a)).toFixed(2); };
+      var on = held[i] !== undefined;
+      out += '<path d="M ' + p(r, a0) + ' L ' + p(R, a0) + ' A ' + R + ' ' + R + ' 0 0 1 ' + p(R, a1) + ' L ' + p(r, a1) + ' A ' + r + ' ' + r + ' 0 0 0 ' + p(r, a0) + ' Z" fill="' + (on ? '#efd9a8' : '#fdfaef') + '" stroke="#1d1a20" stroke-width="' + (on ? 2.2 : 1.1) + '"/>';
+      if (on) out += '<path d="M ' + p(R - 3, a0 + 0.02) + ' A ' + (R - 3) + ' ' + (R - 3) + ' 0 0 1 ' + p(R - 3, a1 - 0.02) + '" fill="none" stroke="' + ink[held[i]] + '" stroke-width="5"/>';
+      var am = (a0 + a1) / 2, tx = (78 * Math.cos(am)).toFixed(1), ty = (78 * Math.sin(am)).toFixed(1);
+      out += '<text x="' + tx + '" y="' + ty + '" font-size="' + (on ? 13 : 10) + '" text-anchor="middle" dominant-baseline="central" opacity="' + (on ? 1 : 0.32) + '">' + glyph[axes[i]] + '</text>';
+    }
+    out += '<circle r="' + (r - 1) + '" fill="#f7f2e1" stroke="#1d1a20" stroke-width="3"/><circle r="' + (r - 8) + '" fill="none" stroke="#1d1a20" stroke-width="1.2"/>';
+    out += '<text y="-4" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="22" fill="#a8467e">3/3</text><text y="16" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7.5" letter-spacing="1.5" fill="#56505a">PANTHEON</text>';
+    out += '<circle r="' + (R + 1) + '" fill="none" stroke="#1d1a20" stroke-width="3"/>';
+    svg.innerHTML = out;
+  }
+
+  // The opening: the deal, the bar, and the stamps' four beats (cardStamp.ts STAMP_TIMING).
+  var T = { deal: 420, anticipate: 220, count: 750 };
+  var root = document.getElementById('bonuses');
+  var motion = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  var timers = [], frames = [];
+  function ease(t) { return 1 - Math.pow(1 - t, 3); }
+  function setNum(el, v) {
+    var node = el.firstChild && el.firstChild.nodeType === 3 ? el.firstChild : null;
+    var s = (v >= 0 ? '+' : '') + v;
+    if (node) node.nodeValue = s; else el.textContent = s;
+  }
+  function countEl(el, to, after) {
+    if (!motion) { setNum(el, to); if (after) after(); return; }
+    setNum(el, 0);
+    var start = null;
+    function step(ts) {
+      if (start === null) start = ts;
+      var t = Math.min(1, (ts - start) / T.count);
+      setNum(el, Math.round(to * ease(t)));
+      if (t < 1) frames.push(requestAnimationFrame(step)); else if (after) after();
+    }
+    frames.push(requestAnimationFrame(step));
+  }
+  function stampPlay(stamp, delay) {
+    var figs = stamp.querySelectorAll('.fig[data-to]');
+    if (!figs.length) return;
+    if (!motion) { figs.forEach(function (f) { setNum(f, Number(f.dataset.to)); }); stamp.dataset.phase = 'landed'; return; }
+    stamp.dataset.phase = 'anticipate';
+    figs.forEach(function (f) { setNum(f, 0); });
+    timers.push(setTimeout(function () {
+      stamp.dataset.phase = 'counting';
+      var left = figs.length;
+      figs.forEach(function (f) { countEl(f, Number(f.dataset.to), function () { if (--left === 0) { stamp.dataset.phase = ''; void stamp.offsetWidth; stamp.dataset.phase = 'landed'; } }); });
+    }, delay + T.anticipate));
+  }
+  function play() {
+    if (!root) return;
+    timers.forEach(clearTimeout); frames.forEach(cancelAnimationFrame); timers = []; frames = [];
+    root.classList.remove('play'); void root.offsetWidth; root.classList.add('play');
+    var big = root.querySelector('.bigfig'), bigc = big.querySelector('.cnt');
+    big.dataset.phase = '';
+    countEl({ set firstChild(v) {}, get firstChild() { return null; }, set textContent(v) { bigc.textContent = v; } }, 87, function () { big.dataset.phase = 'landed'; });
+    var rel = document.getElementById('relfigs');
+    rel.dataset.phase = '';
+    var cs = rel.querySelectorAll('.cnt'), left = cs.length;
+    cs.forEach(function (c) { countEl({ get firstChild() { return null; }, set textContent(v) { c.textContent = v; } }, Number(c.dataset.to), function () { if (--left === 0) rel.dataset.phase = 'landed'; }); });
+    root.querySelectorAll('.bc.deal').forEach(function (card) {
+      var d = parseInt(getComputedStyle(card).getPropertyValue('--dd'), 10) || 0;
+      var st = card.querySelector('.stamp');
+      if (st) stampPlay(st, motion ? d + T.deal : 0);
+    });
+  }
+  // Hover: a card lights its slice of the faith bar.
+  var bar = document.getElementById('fbar');
+  if (root && bar) {
+    root.querySelectorAll('.bc[data-src]').forEach(function (card) {
+      card.addEventListener('mouseenter', function () {
+        var src = card.dataset.src, hit = bar.querySelector('[data-src="' + src + '"]');
+        if (!hit) return; bar.classList.add('dim'); hit.classList.add('hl');
+      });
+      card.addEventListener('mouseleave', function () { bar.classList.remove('dim'); bar.querySelectorAll('.hl').forEach(function (s) { s.classList.remove('hl'); }); });
+    });
+    bar.querySelectorAll('span[data-src]').forEach(function (seg) {
+      seg.addEventListener('mouseenter', function () { var c = root.querySelector('.bc[data-src="' + seg.dataset.src + '"]'); if (c) c.classList.add('hl'); });
+      seg.addEventListener('mouseleave', function () { root.querySelectorAll('.bc.hl').forEach(function (c) { c.classList.remove('hl'); }); });
+    });
+  }
+  if (!motion && root) root.classList.add('play');
+  var btn = document.getElementById('replay');
+  if (btn) btn.addEventListener('click', play);
+  // Play when the drawing first comes into view.
+  if (root && 'IntersectionObserver' in window) {
+    var seen = false;
+    new IntersectionObserver(function (es, ob) { es.forEach(function (e) { if (e.isIntersecting && !seen) { seen = true; play(); ob.disconnect(); } }); }, { threshold: 0.25 }).observe(root);
+  } else { play(); }
+})();
+</script>
+
+<script>
+(function () {
+  // The Rites tab as a working prototype. Figures for the seven real towns are the
+  // test game's; the seven marked "ill." and every "would add" are illustrative.
+  var COST = 72, BANK0 = 137, INCOME = 87, TURN = 131;
+  var Y = { food: ['yf', 'y-food'], sci: ['ys', 'y-sci'], cul: ['yc', 'y-cul'], gold: ['yg', 'y-gold'], faith: ['yh', 'y-faith'] };
+  function mark(k) { return '<svg class="ym ' + Y[k][0] + '"><use href="#' + Y[k][1] + '"/></svg>'; }
+  var RITES = [
+    { id: 'harvest', name: 'Rite of the Harvest', y: 'food', unit: 'food', say: '+1 food on every worked hex that yields food' },
+    { id: 'omen', name: 'Omen Reading', y: 'sci', unit: 'science', say: '+1 science for each building in the town' },
+    { id: 'bounds', name: 'Consecration of the Bounds', y: 'cul', unit: 'culture', say: '+1 culture on every luxury hex; borders grow 30% faster', second: 'borders +30%' },
+    { id: 'arms', name: 'Blessing of Arms', y: null, unit: 'defence', say: '+10 city defence', flat: '+10 defence' },
+    { id: 'plenty', name: 'Rite of Plenty', y: 'gold', unit: 'gold', say: '+1 gold on every worked hex with a resource' }
+  ];
+  var GREY = [
+    ['Rite of Fasting', 'The Fast'], ['Votive Offering', 'The Votive Gifts'], ['Restoring of the Host', 'The Host Restored']
+  ];
+  // free towns, founding order; p = would add per rite
+  var FREE = [
+    { n: 'Northwatch', f: 'follows', p: { harvest: 3, omen: 4, bounds: 0, plenty: 1 } },
+    { n: 'Vaelport', f: 'follows nothing', p: { harvest: 7, omen: 6, bounds: 1, plenty: 3 } },
+    { n: 'Crimson 1', f: 'follows nothing', p: { harvest: 5, omen: 3, bounds: 0, plenty: 2 } },
+    { n: 'Crimson 2', f: 'follows nothing', p: { harvest: 4, omen: 2, bounds: 1, plenty: 0 } },
+    { n: 'Ashford', ill: 1, f: 'follows', p: { harvest: 6, omen: 5, bounds: 2, plenty: 2 } },
+    { n: 'Coldspring', ill: 1, f: 'follows', p: { harvest: 2, omen: 4, bounds: 0, plenty: 1 } },
+    { n: 'Elmstead', ill: 1, f: 'follows nothing', p: { harvest: 3, omen: 2, bounds: 3, plenty: 1 } },
+    { n: 'Greyfen', ill: 1, f: 'follows nothing', p: { harvest: 1, omen: 1, bounds: 0, plenty: 0 } }
+  ];
+  var KEPT = [
+    { n: 'Dunmere', ill: 1, f: 'follows nothing', r: 'Blessing of Arms', t: 2, pay: '+10 defence', y: null },
+    { n: 'Brightwater', ill: 1, f: 'follows nothing', r: 'Rite of Plenty', t: 4, pay: '+5', y: 'gold' },
+    { n: 'Fallowmere', ill: 1, f: 'follows', r: 'Rite of the Harvest', t: 6, pay: '+6', y: 'food' },
+    { n: 'Aldermarch ✶', f: 'holy city', r: 'Omen Reading', t: 7, pay: '+20', y: 'sci' },
+    { n: 'Hollowmere', f: 'follows nothing', r: 'Omen Reading', t: 8, pay: '+13', y: 'sci' },
+    { n: 'Larkspur', f: 'follows', r: 'Omen Reading', t: 9, pay: '+9', y: 'sci' }
+  ];
+  var S = { sel: null, bank: BANK0, started: [], menu: 'Northwatch' };
+  var root = document.getElementById('rites');
+  if (!root) return;
+  var motion = !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function rite(id) { for (var i = 0; i < RITES.length; i++) if (RITES[i].id === id) return RITES[i]; return null; }
+  function ill(t) { return t.ill ? ' <span class="illmark">ill.</span>' : ''; }
+  function fol(t) { var no = /nothing/.test(t.f); return '<small class="' + (no ? 'no' : '') + '">' + t.f + '</small>'; }
+  function wouldAdd(r, t) {
+    if (r.flat) return '<span class="pay">' + r.flat + '</span>';
+    var v = t.p[r.id];
+    return '<span class="pay ' + Y[r.y][0] + '">+' + v + ' ' + mark(r.y) + (r.second ? '<small>' + r.second + '</small>' : '') + '</span>';
+  }
+  function startBtn(rid, town) {
+    if (S.bank >= COST) return '<span class="btnx go" data-start="' + rid + '" data-town="' + town + '">Start · ' + COST + ' ' + mark('faith').replace('ym yh', 'ym') + '</span>';
+    return '<span class="btnx off">Start · ' + COST + '</span><span class="short">short ' + (COST - S.bank) + '</span>';
+  }
+  function render() {
+    // remember positions for the slide
+    var before = {};
+    root.querySelectorAll('[data-key]').forEach(function (el) { before[el.dataset.key] = el.getBoundingClientRect().top; });
+    var bankEl = root.querySelector('[data-bank]'); bankEl.textContent = S.bank;
+    // strip
+    var strip = '';
+    RITES.forEach(function (r) {
+      var kept = KEPT.filter(function (k) { return k.r === r.name; }).length + S.started.filter(function (s) { return s.r === r.name; }).length;
+      strip += '<span class="chip2' + (S.sel === r.id ? ' on' : '') + '" data-sel="' + r.id + '">' + r.name + (r.y ? ' ' + mark(r.y) : '') + (kept ? ' <span class="kept">kept in ' + kept + '</span>' : '') + '</span>';
+    });
+    GREY.forEach(function (g) { strip += '<span class="chip2 grey" title="Taught by a card you do not hold">' + g[0] + ' · <em>' + g[1] + '</em></span>'; });
+    root.querySelector('[data-strip]').innerHTML = strip;
+    // the line under the strip
+    var say = root.querySelector('[data-say]');
+    var r = S.sel ? rite(S.sel) : null;
+    if (r) {
+      say.className = 'ritesay mode';
+      var how = r.flat ? 'Every town gains the same ' + r.flat + ', so the free towns keep founding order.' : 'Free towns ranked by the ' + r.unit + ' it would add, best first' + (r.second ? '; ' + r.second + ' everywhere' : '') + '.';
+      say.innerHTML = '<b>' + r.name + '</b><span>' + r.say + '.</span><span>' + how + '</span><span class="esc">click the rite again or Esc to leave</span>';
+    } else {
+      say.className = 'ritesay';
+      say.innerHTML = 'No rite selected: each free town has its own menu. Select a rite above to rank the free towns by it and start it in one click.';
+    }
+    // rows
+    var free = FREE.filter(function (t) { return !S.started.some(function (s) { return s.n === t.n; }); });
+    if (r && !r.flat) free = free.slice().sort(function (a, b) { return b.p[r.id] - a.p[r.id]; });
+    var h = '<div class="grp2"><span>Free · ' + free.length + '</span><span class="r">' + (r ? 'would add' : 'founding order') + '</span></div>';
+    free.forEach(function (t, i) {
+      h += '<div class="row2 free" data-key="' + t.n + '"><span class="rk">' + (r ? (i + 1) : '') + '</span><span class="nm"><b>' + t.n + '</b>' + ill(t) + ' ' + fol(t) + '</span>';
+      if (r) {
+        h += '<span class="mid soft">keeps no rite</span>' + wouldAdd(r, t) + '<span class="act2">' + startBtn(r.id, t.n) + '</span>';
+      } else {
+        h += '<span class="mid soft">keeps no rite</span><span class="pay soft">—</span><span class="act2"><span class="btnx' + (S.menu === t.n ? ' go' : '') + '" data-menu="' + t.n + '">Start a rite ' + (S.menu === t.n ? '▴' : '▾') + '</span></span>';
+        if (S.menu === t.n) {
+          h += '<div class="menu">';
+          RITES.forEach(function (rr) {
+            var can = S.bank >= COST;
+            h += '<div class="mi' + (can ? '' : ' grey') + '" ' + (can ? 'data-start="' + rr.id + '" data-town="' + t.n + '"' : '') + '><span><b>' + rr.name + '</b><span class="d">' + rr.say + '</span></span><span class="wp">' + (rr.flat ? rr.flat : '<span class="' + Y[rr.y][0] + '">would add +' + t.p[rr.id] + ' ' + mark(rr.y) + '</span>' + (rr.second ? ' · ' + rr.second : '')) + '</span><span class="pr yh">' + (can ? COST + ' ' + mark('faith') : '<span class="want">short ' + (COST - S.bank) + '</span>') + '</span></div>';
+          });
+          h += '<div class="mi grey"><span><b>Votive Offering</b><span class="d">72 faith becomes 36 production on the build</span></span><span class="want" style="font-size:11px;text-align:right">needs The Votive Gifts seated</span><span></span></div>';
+          h += '<div class="mfoot">' + (S.bank >= COST ? 'After this: ' + (S.bank - COST) + ' faith left. ' + (S.bank - COST >= COST ? 'Enough for another.' : 'The next is affordable next turn (' + (S.bank - COST + INCOME) + ').') : 'You have ' + S.bank + '; a rite costs ' + COST + '.') + '</div></div>';
+        }
+      }
+      h += '</div>';
+    });
+    var kept = S.started.map(function (s) { return { n: s.n, ill: s.ill, f: s.f, r: s.r, t: 10, pay: s.pay, y: s.y, now: 1 }; }).concat(KEPT);
+    h += '<div class="grp2"><span>Keeping a rite · ' + kept.length + '</span><span class="r">soonest free first' + (r ? ' · cannot take ' + r.name + ' until then' : '') + '</span></div>';
+    kept.forEach(function (k) {
+      h += '<div class="row2' + (k.now ? ' started' : '') + '" data-key="' + k.n + '"><span class="rk"></span><span class="nm"><b>' + k.n + '</b>' + ill(k) + ' ' + fol(k) + '</span>';
+      h += '<span class="mid"><span>' + k.r + (k.now ? '<span class="newtag">started now</span>' : '') + '</span><span class="bar"><i style="--w:' + (k.t * 10) + '%"></i></span><span class="tl">' + k.t + 't</span></span>';
+      h += '<span class="pay ' + (k.y ? Y[k.y][0] : '') + '">' + k.pay + (k.y ? ' ' + mark(k.y) : '') + '</span>';
+      h += '<span class="act2">free on turn ' + (TURN + k.t) + '</span></div>';
+    });
+    root.querySelector('[data-towns]').innerHTML = h;
+    var nFree = free.length, nKept = kept.length;
+    root.querySelector('[data-tabcount]').textContent = nKept + ' kept · ' + nFree + ' free';
+    // the faith line
+    var can = Math.floor(S.bank / COST);
+    var foot = '<span class="big">' + mark('faith') + ' ' + S.bank + '</span>';
+    if (S.started.length) foot += '<span class="soft">was ' + BANK0 + '; ' + S.started.map(function (s) { return s.r + ' started in ' + s.n; }).join(', ') + '.</span>';
+    if (can >= 1) foot += '<span>enough for <b>' + can + '</b> rite' + (can > 1 ? 's' : '') + ' now. With +' + INCOME + ' a turn, the next is affordable next turn.</span>';
+    else foot += '<span><span class="want">short ' + (COST - S.bank) + ' for another rite.</span> Next turn you will have ' + (S.bank + INCOME) + ', enough for ' + Math.floor((S.bank + INCOME) / COST) + '.</span>';
+    root.querySelector('[data-foot]').innerHTML = foot;
+    // the slide
+    if (motion) {
+      root.querySelectorAll('[data-key]').forEach(function (el) {
+        var b = before[el.dataset.key]; if (b === undefined) return;
+        var d = b - el.getBoundingClientRect().top; if (Math.abs(d) < 1) return;
+        el.style.transform = 'translateY(' + d + 'px)'; el.classList.remove('flip');
+        requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add('flip'); el.style.transform = ''; }); });
+      });
+    }
+    document.querySelectorAll('.statebar .replay').forEach(function (b) {
+      var st = S.started.length ? 'after' : S.sel === 'harvest' ? 'harvest' : !S.sel ? 'none' : '';
+      b.classList.toggle('on', b.dataset.state === st);
+    });
+  }
+  function start(rid, town) {
+    if (S.bank < COST) return;
+    var t = FREE.filter(function (x) { return x.n === town; })[0], rr = rite(rid);
+    S.bank -= COST;
+    S.started.unshift({ n: t.n, ill: t.ill, f: t.f, r: rr.name, pay: rr.flat ? rr.flat : '+' + t.p[rid], y: rr.y });
+    S.menu = null;
+    render();
+  }
+  root.addEventListener('click', function (e) {
+    var el = e.target.closest('[data-sel],[data-start],[data-menu]');
+    if (!el) return;
+    if (el.dataset.sel) { S.sel = S.sel === el.dataset.sel ? null : el.dataset.sel; S.menu = null; render(); return; }
+    if (el.dataset.start) { start(el.dataset.start, el.dataset.town); return; }
+    if (el.dataset.menu) { S.menu = S.menu === el.dataset.menu ? null : el.dataset.menu; render(); }
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S.sel) { S.sel = null; render(); } });
+  document.querySelectorAll('.statebar .replay').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var st = b.dataset.state;
+      S = { sel: null, bank: BANK0, started: [], menu: null };
+      if (st === 'none') S.menu = 'Northwatch';
+      if (st === 'harvest') S.sel = 'harvest';
+      if (st === 'after') { S.sel = 'harvest'; render(); start('harvest', 'Vaelport'); return; }
+      render();
+    });
+  });
+  render();
+})();
+</script>

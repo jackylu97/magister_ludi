@@ -4,7 +4,7 @@ Date: 2026-10-12. Branch `decks` at `cec9f8e5`. Nothing in the repo was changed.
 
 The user's request: *"We should have the ability to configure and manage rites on that screen, along with all the bonuses from your religion clearly laid out."*
 
-The drawings are in `ux-faith.html` beside this file.
+The drawings are the faith audit artifact linked from `hud-ux-decisions.md`; that page embeds the screenshots, so it is not kept in the repo.
 
 ## How this was checked
 

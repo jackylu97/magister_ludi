@@ -1,6 +1,6 @@
 # HUD and screens: decisions so far
 
-A working doc for the interface rework, to pick up after the deck cards are in the game and the user has playtested them. It records what the user has settled, what is still open, and where the drafts live. Nothing here is built yet except where it says so.
+A working doc for the interface rework. It records what the user has settled, what is still open, and where the drafts live. Nothing here is built yet except where it says so. The build started on 2026-10-15; its batches are under "Build plan" below.
 
 The audits and drawings behind these decisions are artifacts (private to the user):
 - Commissions and levies mockup: https://claude.ai/artifact/AamrztC6ntoHoHVfeo4rLn
@@ -11,7 +11,7 @@ The audits and drawings behind these decisions are artifacts (private to the use
 - **Final E2, the agreed design:** https://claude.ai/artifact/FMZ5C4xQh9jRe2FUyRdZ76 — its written spec is `docs/plans/hud-empire-panel-spec.md` (every element, its states, sizes, keys, and the code each part replaces)
 - **City screen audit:** https://claude.ai/artifact/Jhzd7CgUYeizKK7ucRrsF5 — written version `docs/plans/city-screen-audit.md`
 
-The written versions are in the session scratchpad (`ux-audit/`); copy them into `docs/plans/` when this work starts.
+The written versions are in this folder: `hud-audit.md` (today's problems, layouts A, B, C), `hud-iterations.md` (B1 to B4), `hud-iterations-compact.md` (B4a to B4c), `hud-iterations-empire.md` (E1 to E3) and the spec, `hud-empire-panel-spec.md`. The three chosen drawings are in `mockups/`: `hud-e2-final.html`, `city-a-iterations.html` (A1 to A3) and `faith-f1.html`. The screenshots were not kept; the audit artifacts above carry them.
 
 ## Settled
 
@@ -65,11 +65,42 @@ The user, 2026-10-12: *"ok E2 is my favorite."* One drawer at the top-left, in t
 - **Two bugs the city audit found, live today:** the Trader row in the build list looks pressable but does nothing (the build is refused for `routeOnly`, `src/sim/tech.ts:1061`, and the panel never asks, `src/ui/cityPanel.ts:2544`); and the retired augur's "Call an augur" row still shows in every town (`src/ui/cityPanel.ts:2656` checks `awaitsTech`, not `retired`).
 - **Small decisions inside the build:** the empire menu's key; whether Leader and Standings get keys (L and S were proposed); the "screen registry" in `src/main.ts` that the audit recommends building first, since `main.ts` holds 19 hand-written lists of which screens to close.
 
-## Build order (when this starts)
-1. Regroup the top bar (fixes the overflow).
-2. A screen registry in `main.ts`, then the empire panel (E2), the commission chips under it, and Supply.
-3. End Turn's waiting list, the chronicle and Lens beside it.
-4. The city screen, per its audit.
+## Build plan (started 2026-10-15)
+
+The user, 2026-10-15: *"Could we begin the UX overhaul that we started planning? That should go on in parallel while i'm a blocker on deck changes"*.
+
+- Two streams run at once, one agent each, on separate files: **the HUD** and **the city screen**. The faith screen's bug fixes run beside them; the rest of the faith screen waits for its rulings.
+- Each batch is gated (typecheck, core tests, build), committed on `decks` and deployed to the play server before the next batch in its stream starts.
+- The rulings the later batches wait on are in `docs/flags.md` item (ssssss).
+- **Shared pieces:** the city screen builds the price column, the refusal line and the bank display (the list under "Shared components" below) as their own modules in `src/ui/`, with their own tests. The faith screen and the HUD use them instead of drawing their own.
+- **Fences:** the HUD stream owns `main.ts`, `topBar.ts`, `hudDock.ts`, `holdingsRail.ts`, `commissionRail.ts`, `turnBlockers.ts`, the tutorial's anchors, and the top bar, dock, research card and End Turn corner in `index.html`. The city stream owns `cityPanel.ts`, `levyMenu.ts` and the modules it creates, and (from UX6) the city-mode parts of `controls.ts`. Each stream edits only its own blocks of `style.css` and `index.html`.
+
+### HUD stream
+
+| Batch | What | Spec | Waits on |
+|---|---|---|---|
+| UX1 | **The top bar (B4).** One meters chip. Diplomacy, Trade and Standings as labelled tabs at the right end, carrying the routes, renown and bead figures. Then ? and ☰, with the Compendium inside ☰. The Abacus, Lens, ❧ and ▤ leave the bar: ❧ and Lens become buttons beside End Turn, and the Abacus opens from the standings sheet and from A. The dock loses its Diplomacy, Trade and Standings doors, which are now tabs. | `hud-empire-panel-spec.md` §2, and §7 for the two buttons | — |
+| UX2 | **The screen registry.** One function in `main.ts` opens a screen and closes the others, replacing the hand-written close lists. No visible change. | spec §9, step 2 | UX1 |
+| UX3 | **The empire panel and its drawer (E2),** the commission chips under it, and the Supply section. Removes the dock, the research card and, if ruled, the resources card. | spec §3 to §6, §8 | UX2; (ssssss) 1 and 2 |
+| UX4 | **End Turn's waiting list:** a count badge, and a hover list of everything still owed, each a link. | spec §7 | UX1 |
+
+### City screen stream
+
+| Batch | What | Spec | Waits on |
+|---|---|---|---|
+| UX5 | **Buying (A1).** The price column with its three looks. Queued buildings stay in the add list at full price. A shared refusal is said once per shelf. The treasury goes in the band. Faith purchases become a Faith shelf in the same column. A refused command says so in one line. Fixes the Trader row and the retired augur's row. Builds the shared price column, refusal line and bank display. | `city-screen-iterations.md` A1; the A1 bullet above; `city-screen-audit.md`, Recommendation step 1 | — |
+| UX6 | **The town at a glance.** Each yield chip opens its own complete list (the centre and the worked land first, summing to the chip). Short-of chips. ‹ › town stepping and its keys. The citizen line. The terrain hover card at the bottom-left. | audit step 2; `city-screen-iterations.md` "Settled" | UX5; (ssssss) 2 and 3 |
+| UX7 | **The build list.** The Supply strip at its head. One-line rows with one yield mark each. The "would add" preview and the buy line in a hover card over the right column. "Not yet · N" folds. Rows this town can never build are hidden. The Faith shelf is collapsed unless something in it is affordable. The tab is remembered per player. A "Now" action and ↓. The levy on the Size line. The Faith card, with the rites, in the town rail. Native tooltips become info cards. | audit step 3; the five build-list rulings and the hover rule above | UX6 |
+
+### Faith screen stream
+
+| Batch | What | Spec | Waits on |
+|---|---|---|---|
+| UX8a | **Four live bugs** from the faith audit (its §3, items 4 to 7): retired rites listed, card-taught rites naming a technology as their teacher, the augur in the sheet's header, and the duration printed twice and ignoring The Octave (which lifts `riteTurnsFor` out of `stampRite`). The founder share's line (item 8) needs its own source, so it goes with UX8b. | `faith-screen-audit.md` | — |
+| UX8b | **The readings the screen needs:** `riteTurnsFor`, `explainRitePreview`, `explainReligionLedger`, the founder share's own source, and a meter line that carries its card. | `faith-screen-f1.md`, "Simulation pieces and size" | (ssssss) 4 |
+| UX9 | The Rites tab, with rite mode. | F1, tab 1 | UX8b |
+| UX10 | The Bonuses tab, with the deal and stamp animation. | F1, tab 2 | UX8b; (ssssss) 4 |
+| UX11 | The Religion & followers tab. | F1, tab 3 | UX8b; (ssssss) 4 |
 
 ## The faith screen
 

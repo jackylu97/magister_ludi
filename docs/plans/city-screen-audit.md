@@ -1,6 +1,6 @@
 # City screen audit — Magister Ludi
 
-Date: 2026-10-12. Scope: how the city screen is arranged and how a player does the common jobs on it. It follows the HUD audit (`../ux-audit/audit.md`) and has to fit the HUD direction the user chose (`../ux-audit/final-e2.md`: the empire panel and its drawer at the top-left, commission chips in the left column, End Turn at the bottom-right carrying the waiting list).
+Date: 2026-10-12. Scope: how the city screen is arranged and how a player does the common jobs on it. It follows the HUD audit (`hud-audit.md`) and has to fit the HUD direction the user chose (`hud-empire-panel-spec.md`: the empire panel and its drawer at the top-left, commission chips in the left column, End Turn at the bottom-right carrying the waiting list).
 
 Screenshots are in `shots/` (full size) and `web/` (downscaled, used by `ux-city.html`). They were taken in headless Chromium against the dev server on port 5199, which runs `/Users/jacky/code/webciv-play` at commit `de4af78`. `src/ui/cityPanel.ts` there differs from the `decks` tree only by the levy menu (`git diff`: the `levyMenu` import, `levyMenuOpenFor`, `renderLevy` and its call in the town rail), so the screen in the screenshots is the screen in the repo apart from the levy, which I read in code. Line numbers below are for the `decks` tree.
 
@@ -110,7 +110,7 @@ Counting from the world with the town's banner visible. "Hover" is a pointer res
 
 **4. "What is this town short of?" has no answer in one place.**
 - Starving is the Growth line in red; idle is "Nothing queued" in the work rail's first card, in plain ink (`web/late-1024.jpg`, Larkspur); a siege is a band badge; a missing strategic resource is a red line on each row that needs it; an unaffordable rite is a sentence repeated on each rite row ("… asks 72 faith and Crimson has 51", four times).
-- The HUD spec moves the Supply counts out of the HUD and into "the head of the build list" (`final-e2.md` §1). The city screen does not have that strip yet.
+- The HUD spec moves the Supply counts out of the HUD and into "the head of the build list" (`hud-empire-panel-spec.md` §1). The city screen does not have that strip yet.
 
 **5. No way to go from one town to the next.**
 - No previous/next control or key; the band has the name only. Free pan is locked while the mode holds (`panLocked`), so you leave (Esc), find the next banner, and click it.
@@ -182,7 +182,7 @@ What this means for us:
 
 All three keep: the mode (the board live, citizens pinned by clicking hexes, Buy tiles on the board, the dimmed world, the pan lock), Escape's order, the ink-on-parchment look, every figure read from the simulation, and rule 5. All three fix the two bugs (Trader, retired augur) and add a visible reason to refused tags and a short line when a command is refused; those are not arrangement choices.
 
-HUD fit, for all three: End Turn keeps its corner and its waiting-count badge while a town is open, because the waiting list is still the thing that ends the turn. The Supply counts head the build list, as `final-e2.md` §1 specifies.
+HUD fit, for all three: End Turn keeps its corner and its waiting-count badge while a town is open, because the waiting list is still the thing that ends the turn. The Supply counts head the build list, as `hud-empire-panel-spec.md` §1 specifies.
 
 ### A — The same two rails, each with one job done well (recommended)
 

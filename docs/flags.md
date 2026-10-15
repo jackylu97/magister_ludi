@@ -19,6 +19,42 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(ssssss) The interface rework's open rulings — OPEN, 2026-10-15** (the user:
+*"Could we begin the UX overhaul that we started planning? That should go on in
+parallel while i'm a blocker on deck changes"*). The batches are in
+`docs/plans/hud-ux-decisions.md`, "Build plan". UX1, UX2, UX4, UX5 and UX8a
+need none of the rulings below and go first. Each line carries the
+orchestrator's proposal.
+
+1. **Supply off the board (UX3).** The always-visible resources card goes. Its
+   counts move to the drawer's Supply section and to the head of every town's
+   build list, and the banner's red dot lights while a resource has no spare
+   copy. This reverses the rule in `src/ui/holdingsRail.ts` that the counts be
+   readable without a click. *Proposed: yes, as the E2 spec draws it.*
+2. **Keys (UX3, UX6).** Q opens the empire drawer and pins it; L opens the
+   Leader sheet; `,` and `.` step to the previous and next town on the city
+   screen. None of the four is bound today. *Proposed: yes.*
+3. **Town stepping and puppets (UX6).** *Proposed: step through every town you
+   hold, in founding order, puppets included, because a puppet's screen is
+   where it is annexed or razed.*
+4. **The faith screen (UX8b to UX11),** from `docs/plans/faith-screen-f1.md`,
+   "Rulings still open":
+   1. The Bonuses tab deals its cards every time it opens; a figure counts up
+      only if it changed since you last looked. *Proposed.*
+   2. God and belief cards show the Ledger's figure, which sums to the Ledger,
+      not today's stamp (what removing the card would cost). *Proposed: the
+      Ledger's.*
+   3. The Bonuses tab shows every seated card that pays faith, not only
+      Devotion's. *Proposed.*
+   4. The prophet's rite appears on the Rites tab. *Proposed.*
+   5. Rows for rival faiths pressing your towns follow the faith lens's fog
+      rule: towns you remember count, not only towns in sight. *Proposed.*
+   6. Towns keeping a rite are listed soonest free first. *Proposed.*
+   7. The drawer's Religion dot lights only when a decision is owed (a belief
+      to choose), not whenever a rite is affordable, which would be true on most
+      turns. The sheet is called **Faith**, since it holds rites, bonuses and the
+      religion. *Proposed.*
+
 **(rrrrrr) Three costs of war: unrest, war weariness, ranks — RULED, 2026-10-14**
 (the user, after the warmonger research in `docs/plans/warmonger-research.md`:
 *"we're missing certain mechanics for war that make the warmonger playstyle feel

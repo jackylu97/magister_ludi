@@ -1,0 +1,575 @@
+<title>City Screen Iterations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --table: #e9e2cf;
+  --parchment: #f7f2e1;
+  --parchment-2: #fdfaef;
+  --ink: #1d1a20;
+  --ink-soft: #56505a;
+  --ink-faint: rgba(29, 26, 32, 0.42);
+  --rule: rgba(29, 26, 32, 0.14);
+  --vermilion: #d4502e;
+  --gilt: #c8901f;
+  --teal: #1f8a85;
+  --grape: #7b3fa8;
+  --cobalt: #2757b8;
+  --y-food: #3f9636;
+  --y-prod: #c26a1d;
+  --y-gold: #c8901f;
+  --y-sci: #2757b8;
+  --y-cul: #7b3fa8;
+  --y-faith: #a8467e;
+  --y-food-lit: #7fd06c;
+  --y-prod-lit: #eda75f;
+  --y-gold-lit: #ecc154;
+  --y-sci-lit: #82aef2;
+  --y-cul-lit: #cf9fee;
+  --y-faith-lit: #e08fc0;
+  --on-ink: #f7f2e1;
+  --on-ink-soft: rgba(247, 242, 225, 0.62);
+  --land-1: #e4bd72;
+  --land-2: #a9c46f;
+  --land-3: #c9a465;
+  --sea: #4f88c6;
+  --sea-2: #6b9fd4;
+  --page-bg: var(--table);
+  --card-bg: var(--parchment);
+  --text: var(--ink);
+  --text-soft: var(--ink-soft);
+  --hl-new: rgba(31, 138, 133, 0.16);
+  --hl-gone: rgba(212, 80, 46, 0.12);
+  --display: 'Instrument Serif', Georgia, serif;
+  --title: Fraunces, Georgia, serif;
+  --body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --border: 3px;
+  --shadow: 5px 5px 0 var(--ink);
+  --shadow-sm: 3px 3px 0 var(--ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page-bg: #19171c;
+    --card-bg: #24212a;
+    --text: #efe8d4;
+    --text-soft: #b7ae9c;
+    --rule: rgba(239, 232, 212, 0.16);
+    --shadow: 5px 5px 0 #000;
+    --shadow-sm: 3px 3px 0 #000;
+    --hl-new: rgba(31, 138, 133, 0.28);
+    --hl-gone: rgba(212, 80, 46, 0.22);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #19171c;
+  --card-bg: #24212a;
+  --text: #efe8d4;
+  --text-soft: #b7ae9c;
+  --rule: rgba(239, 232, 212, 0.16);
+  --shadow: 5px 5px 0 #000;
+  --shadow-sm: 3px 3px 0 #000;
+  --hl-new: rgba(31, 138, 133, 0.28);
+  --hl-gone: rgba(212, 80, 46, 0.22);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--page-bg); color: var(--text); font: 15px/1.55 var(--body); }
+.page { max-width: 1120px; margin: 0 auto; padding: 40px 16px 96px; }
+.num, code, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+code { font-size: 0.86em; background: var(--hl-new); padding: 1px 4px; border-radius: 3px; overflow-wrap: anywhere; }
+a { color: var(--teal); }
+h1 { font: 400 clamp(38px, 7vw, 64px)/1 var(--display); margin: 6px 0 14px; text-wrap: balance; }
+h1 i { color: var(--vermilion); }
+h2 { font: 400 clamp(28px, 4.5vw, 38px)/1.1 var(--display); margin: 64px 0 8px; }
+h3 { font: 600 20px/1.25 var(--title); margin: 0 0 6px; }
+.eyebrow { font: 600 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--vermilion); }
+.lede { max-width: 68ch; color: var(--text-soft); margin: 0 0 10px; }
+.card { background: var(--card-bg); border: var(--border) solid var(--ink); border-radius: 10px; box-shadow: var(--shadow); padding: 18px 20px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card { border-color: #000; } }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 18px; }
+.top3 .card h3 { display: flex; gap: 10px; align-items: baseline; }
+.top3 .rank { font: 600 30px/1 var(--display); color: var(--vermilion); }
+.top3 p { margin: 6px 0 0; font-size: 14px; }
+.verdict { margin-top: 22px; border-left: 6px solid var(--teal); }
+.verdict p { margin: 4px 0; }
+
+/* problems */
+.problem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 22px; margin: 18px 0 26px; align-items: start; }
+@media (max-width: 820px) { .problem { grid-template-columns: 1fr; } }
+.problem .sev { font: 600 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 7px; border-radius: 4px; border: 2px solid currentColor; display: inline-block; margin-bottom: 8px; }
+.sev.high { color: var(--vermilion); }
+.sev.med { color: var(--gilt); }
+.problem ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; }
+.problem li { margin-bottom: 4px; }
+.hk { margin-top: 10px; padding: 10px 12px; border: 1.5px dashed var(--teal); border-radius: 6px; font-size: 14px; }
+.hk b { color: var(--teal); }
+figure { margin: 0; }
+figure img { display: block; width: 100%; height: auto; border: var(--border) solid var(--ink); border-radius: 6px; box-shadow: var(--shadow-sm); background: var(--parchment); }
+figure + figure { margin-top: 12px; }
+figcaption { font: 500 12px/1.4 var(--mono); color: var(--text-soft); margin-top: 6px; }
+
+/* diagrams */
+.layout { margin: 26px 0 40px; }
+.layout-head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; margin-bottom: 10px; }
+.layout-head h3 { font: 400 30px/1.05 var(--display); margin: 0; }
+.tag { font: 600 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 8px; border-radius: 4px; background: var(--card-bg); border: 1.5px solid var(--rule); }
+.tag.rec { background: var(--teal); color: #fff; border-color: var(--teal); }
+.layout-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 22px; }
+.notes > div { min-width: 0; }
+.stage-wrap { overflow-x: auto; border-radius: 8px; -webkit-overflow-scrolling: touch; }
+.stage {
+  position: relative; min-width: 760px; aspect-ratio: 16 / 10; container-type: inline-size;
+  border: var(--border) solid var(--ink); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-sm);
+  background:
+    radial-gradient(ellipse 26% 22% at 32% 44%, var(--land-2) 0 60%, transparent 61%),
+    radial-gradient(ellipse 30% 28% at 40% 58%, var(--land-1) 0 62%, transparent 63%),
+    radial-gradient(ellipse 22% 26% at 72% 40%, var(--land-3) 0 60%, transparent 61%),
+    radial-gradient(ellipse 18% 16% at 78% 70%, var(--land-2) 0 58%, transparent 59%),
+    radial-gradient(ellipse 14% 12% at 16% 78%, var(--land-1) 0 58%, transparent 59%),
+    linear-gradient(160deg, var(--sea-2), var(--sea));
+  font-size: clamp(7px, 0.95cqw, 12px);
+}
+.stage::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255,255,255,0.18) 1px, transparent 1.5px); background-size: 2.4cqw 2.4cqw; }
+.el { position: absolute; z-index: 1; border: 0.22cqw solid var(--ink); border-radius: 0.6cqw; background: var(--parchment); color: var(--ink);
+  box-shadow: 0.25cqw 0.25cqw 0 var(--ink); padding: 0.45cqw 0.6cqw; line-height: 1.2; overflow: hidden; font-family: var(--body); }
+.el b { font-family: var(--title); font-weight: 600; }
+.el .k { font-family: var(--mono); font-size: 0.86em; color: var(--ink-soft); }
+.el.new { outline: 0.35cqw solid var(--teal); outline-offset: 0.15cqw; }
+.el.ghost { background: rgba(247, 242, 225, 0.7); border-style: dashed; box-shadow: none; }
+.el.warn { outline: 0.35cqw solid var(--vermilion); outline-offset: 0.15cqw; }
+.bar { position: absolute; z-index: 2; left: 0; right: 0; top: 0; height: 4.7%; background: var(--ink); color: var(--on-ink);
+  display: flex; align-items: center; gap: 0.7cqw; padding: 0 0.8cqw; font-family: var(--mono); white-space: nowrap; overflow: hidden; }
+.bar .grp { display: flex; gap: 0.55cqw; align-items: center; padding: 0.2cqw 0.5cqw; border-radius: 0.4cqw; }
+.bar .grp.lab { border: 0.12cqw solid var(--on-ink-soft); }
+.bar .grp .gl { font-size: 0.75em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-ink-soft); }
+.bar .sp { flex: 1; }
+.bar .f { color: var(--y-food-lit); } .bar .p { color: var(--y-prod-lit); } .bar .g { color: var(--y-gold-lit); }
+.bar .s { color: var(--y-sci-lit); } .bar .c { color: var(--y-cul-lit); } .bar .h { color: var(--y-faith-lit); }
+.bar .m { color: #9fe28e; } .bar .r { color: var(--y-gold-lit); }
+.bar .btn { border: 0.12cqw solid var(--on-ink-soft); border-radius: 0.35cqw; padding: 0.1cqw 0.45cqw; font-size: 0.85em; }
+.bar .cut { color: var(--vermilion); text-decoration: line-through; }
+.dock { display: flex; gap: 0.4cqw; padding: 0; border: 0; background: none; box-shadow: none; overflow: visible; }
+.dock span { display: grid; place-items: center; width: 2.6cqw; height: 2.6cqw; border: 0.22cqw solid var(--ink); border-radius: 0.45cqw; background: var(--parchment); box-shadow: 0.2cqw 0.2cqw 0 var(--ink); font-size: 1.1em; }
+.doors { display: flex; gap: 0.45cqw; padding: 0; border: 0; background: none; box-shadow: none; overflow: visible; }
+.doors span { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1cqw; min-width: 4.9cqw; height: 4.3cqw; padding: 0 0.3cqw;
+  border: 0.22cqw solid var(--ink); border-radius: 0.5cqw; background: var(--parchment); box-shadow: 0.2cqw 0.2cqw 0 var(--ink); font-size: 0.86em; position: relative; }
+.doors span i { font-style: normal; font-size: 1.3em; line-height: 1; }
+.doors span .k { font-size: 0.8em; }
+.doors span.badge::after { content: ''; position: absolute; top: -0.5cqw; right: -0.5cqw; width: 1cqw; height: 1cqw; border-radius: 50%; background: var(--vermilion); border: 0.15cqw solid var(--ink); }
+.doors span.short { border-color: var(--vermilion); color: var(--vermilion); }
+.chip { display: flex; align-items: center; gap: 0.5cqw; background: rgba(247, 242, 225, 0.78); border: 0.2cqw solid var(--deck, var(--ink)); border-left-width: 0.6cqw; border-radius: 0.4cqw; padding: 0.3cqw 0.5cqw; margin-bottom: 0.4cqw; font-size: 0.9em; }
+.chip .ring { width: 1.4cqw; height: 1.4cqw; border-radius: 50%; border: 0.25cqw solid var(--deck, var(--ink)); border-right-color: transparent; flex: none; }
+.chip .ct { margin-left: auto; font-family: var(--mono); }
+.list { position: absolute; z-index: 1; }
+.pill { display: block; text-align: right; margin-bottom: 0.4cqw; }
+.pill span { display: inline-block; background: var(--parchment); border: 0.2cqw solid var(--ink); border-radius: 2cqw; padding: 0.25cqw 0.8cqw; box-shadow: 0.2cqw 0.2cqw 0 var(--ink); font-size: 0.9em; }
+.pill.more span { background: none; border-style: dashed; box-shadow: none; }
+.endturn { background: var(--ink); color: var(--on-ink); font-family: var(--body); font-weight: 600; display: grid; place-items: center; font-size: 1.2em; }
+.rowlist { font-size: 0.86em; }
+.rowlist div { display: flex; justify-content: space-between; border-bottom: 0.1cqw solid var(--rule); }
+.rowlist .bad { color: var(--vermilion); }
+.cap { position: absolute; z-index: 3; font: 600 0.85em/1.15 var(--mono); color: #fff; background: rgba(29, 26, 32, 0.82); padding: 0.25cqw 0.5cqw; border-radius: 0.3cqw; max-width: 22cqw; }
+.cap.teal { background: var(--teal); }
+.cap.red { background: var(--vermilion); }
+.notes { font-size: 14px; }
+.notes h4 { font: 600 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--vermilion); margin: 4px 0 6px; }
+.notes ul { margin: 0; padding-left: 18px; }
+.notes li { margin-bottom: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font: 500 12px/1.3 var(--mono); color: var(--text-soft); margin: 8px 0 0; }
+.legend span::before { content: ''; display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -2px; border-radius: 3px; }
+.legend .l-new::before { border: 3px solid var(--teal); }
+.legend .l-warn::before { border: 3px solid var(--vermilion); }
+.legend .l-ghost::before { border: 2px dashed var(--ink-soft); }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; margin-top: 12px; border: 1.5px solid var(--rule); border-radius: 8px; background: var(--card-bg); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 640px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-soft); background: var(--hl-new); }
+td.y { color: var(--teal); font-weight: 600; }
+td.none { color: var(--vermilion); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+
+.hkmap { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 14px; }
+.hkmap .card { padding: 14px 16px; }
+.hkmap h3 { font-size: 17px; }
+.hkmap p { margin: 4px 0 0; font-size: 14px; }
+.unsure { font: 500 12px/1.4 var(--mono); color: var(--text-soft); }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 12px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; }
+.steps li::before { content: counter(s); font: 400 34px/1 var(--display); color: var(--vermilion); }
+.steps p { margin: 2px 0 0; font-size: 14px; color: var(--text-soft); }
+footer { margin-top: 60px; font-size: 13px; color: var(--text-soft); }
+footer li { margin-bottom: 4px; overflow-wrap: anywhere; }
+
+/* city-audit additions */
+.figrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 14px; }
+.figrow figure + figure { margin-top: 0; }
+.crops { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.crops figure + figure { margin-top: 0; }
+.radius { position: absolute; z-index: 1; border-radius: 50%; border: 0.3cqw dashed rgba(253,250,239,0.9); background: rgba(253,250,239,0.12); }
+.dim { position: absolute; inset: 0; z-index: 0; background: radial-gradient(ellipse 24% 30% at var(--cx,50%) var(--cy,50%), transparent 0 70%, rgba(29,26,32,0.32) 100%); }
+.el .sec { display: block; font-family: var(--mono); font-size: 0.72em; letter-spacing: 0.1em; text-transform: uppercase; color: var(--vermilion); margin: 0.2cqw 0 0.15cqw; }
+.el .ln { display: flex; justify-content: space-between; gap: 0.4cqw; font-size: 0.86em; border-bottom: 0.08cqw solid var(--rule); white-space: nowrap; overflow: hidden; }
+.el .ln.bad { color: var(--vermilion); font-style: italic; }
+.el .ln.fold { color: var(--ink-soft); border-bottom-style: dashed; }
+.el .ln.newl { background: var(--hl-new); }
+.el .bx { display: inline-block; border: 0.15cqw solid var(--ink); border-radius: 0.3cqw; padding: 0 0.3cqw; font-size: 0.8em; background: var(--parchment-2); }
+.el .bx.on { background: var(--ink); color: var(--parchment); }
+.el .bx.buy { border-color: var(--gilt); color: #7a5410; }
+.el .tabsx { display: flex; gap: 0.25cqw; flex-wrap: wrap; margin: 0.2cqw 0; }
+.el .meter { height: 0.45cqw; border-radius: 1cqw; background: rgba(29,26,32,0.15); margin: 0.15cqw 0 0.25cqw; overflow: hidden; }
+.el .meter i { display: block; height: 100%; }
+.band { position: absolute; z-index: 2; left: 0; right: 0; top: 0; background: var(--parchment); color: var(--ink); border-bottom: 0.25cqw solid var(--ink);
+  display: flex; align-items: center; gap: 0.6cqw; padding: 0 1cqw; white-space: nowrap; overflow: hidden; font-family: var(--body); }
+.band .nm { font: 400 2.1em/1 var(--display); }
+.band .k { font-family: var(--mono); font-size: 0.8em; color: var(--ink-soft); }
+.band .arr { font: 600 1.4em/1 var(--mono); color: var(--ink-soft); }
+.band .sp { flex: 1; }
+.band .yc { display: inline-flex; flex-direction: column; align-items: center; border: 0.15cqw solid var(--ink); border-radius: 0.35cqw; padding: 0.1cqw 0.35cqw; font-family: var(--mono); font-weight: 600; line-height: 1.05; }
+.band .yc small { font-size: 0.62em; font-weight: 500; }
+.band .short { border: 0.15cqw solid var(--vermilion); color: var(--vermilion); border-radius: 1cqw; padding: 0.05cqw 0.5cqw; font-size: 0.85em; }
+.band .bank { font-family: var(--mono); font-size: 0.85em; border: 0.12cqw dashed var(--ink-soft); border-radius: 0.3cqw; padding: 0.05cqw 0.35cqw; }
+.f { color: var(--y-food); } .p { color: var(--y-prod); } .g { color: var(--y-gold); } .s { color: var(--y-sci); } .c { color: var(--y-cul); } .h { color: var(--y-faith); }
+.tbl-mini { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.8em; min-width: 0; }
+.tbl-mini td, .tbl-mini th { padding: 0.05cqw 0.25cqw; border-bottom: 0.08cqw solid var(--rule); text-align: right; background: none; letter-spacing: 0; text-transform: none; font-size: 1em; }
+.tbl-mini td:first-child, .tbl-mini th:first-child { text-align: left; font-family: var(--body); }
+.tbl-mini tr.tot td { border-top: 0.15cqw solid var(--ink); font-weight: 600; }
+.legend .l-moved::before { border: 3px solid var(--gilt); }
+.el.moved { outline: 0.35cqw solid var(--gilt); outline-offset: 0.15cqw; }
+.score td:nth-child(2) { font-family: var(--mono); font-weight: 600; text-align: center; }
+.clicks td:nth-child(n+2) { font-family: var(--mono); }
+td.best { color: var(--teal); font-weight: 600; }
+.el .bad { color: var(--vermilion); font-style: italic; }
+.etb { position: absolute; top: 0.25cqw; left: 0.3cqw; background: var(--vermilion); color: #fff; border-radius: 1cqw; font: 600 0.75em/1 var(--mono); padding: 0.2cqw 0.35cqw; }
+.endturn { position: absolute; }
+
+.mocks { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-top: 4px; }
+.mockcol h4 { font: 600 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--vermilion); margin: 4px 0 8px; }
+.mockcol p.reads { font-size: 13.5px; color: var(--text-soft); margin: 10px 0 0; }
+.mock { background: var(--parchment); color: var(--ink); border: 3px solid var(--ink); border-radius: 6px; box-shadow: 4px 4px 0 #1d1a20; padding: 10px 12px; font: 13px/1.4 var(--body); width: 100%; max-width: 360px; position: relative; }
+.mock + .mock { margin-top: 14px; }
+.mock .mh { font: 600 10px/1.2 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--vermilion); margin: 6px 0 4px; display: flex; justify-content: space-between; gap: 8px; }
+.mock .mh span:last-child { color: #56505a; letter-spacing: 0.04em; text-transform: none; font-weight: 500; }
+.mock .mr { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(29,26,32,0.14); }
+.mock .mr .nm { font-weight: 600; }
+.mock .mr .q { font: 11px var(--mono); color: #56505a; }
+.mock .mr.off .nm { color: #8a8390; font-weight: 500; }
+.mock .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.mock .pb { font: 600 12px/1.2 var(--mono); border: 2px solid #1d1a20; border-radius: 4px; padding: 2px 7px; color: #7a5410; background: #fdfaef; box-shadow: 2px 2px 0 #1d1a20; white-space: nowrap; text-align: right; }
+.mock .pb.short { border-color: transparent; box-shadow: none; background: none; color: #56505a; }
+.mock .pb.short small { display: block; font-size: 10px; color: #d4502e; font-weight: 500; }
+.mock .pb.no { border-color: transparent; box-shadow: none; background: none; color: #8a8390; }
+.mock .pb.fa { color: #a8467e; }
+.mock .why { font-size: 12px; color: #56505a; font-style: italic; padding: 5px 0 3px; }
+.mock .note { font: 11px/1.35 var(--mono); color: #56505a; padding: 3px 0; }
+.mock .sw { display: flex; border: 2px solid #1d1a20; border-radius: 5px; overflow: hidden; margin: 6px 0; }
+.mock .sw span { flex: 1; text-align: center; padding: 4px 0; font-weight: 600; font-size: 12.5px; }
+.mock .sw span.on { background: #1d1a20; color: #f7f2e1; }
+.mock .sw span small { font: 500 10px var(--mono); opacity: 0.75; margin-left: 4px; }
+.mock .bar { position: static; height: 7px; border-radius: 9px; background: rgba(29,26,32,0.15); overflow: hidden; margin: 3px 0 6px; display: block; padding: 0; }
+.mock .bar i { display: block; height: 100%; background: var(--y-prod); }
+.mock .banks { display: flex; gap: 10px; flex-wrap: wrap; font: 600 12px var(--mono); padding: 4px 0 6px; border-bottom: 2px solid #1d1a20; }
+.mock .coin { display: inline-block; width: 11px; height: 11px; border-radius: 50%; border: 2px solid #c8901f; vertical-align: -1px; }
+.mock .coin.full { background: #c8901f; }
+.mock .card { position: absolute; }
+.mock.hovercard { border-style: solid; box-shadow: 4px 4px 0 #1d1a20; background: #fdfaef; }
+.mock .foot { margin-top: 8px; padding-top: 8px; border-top: 2px solid #1d1a20; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mock .foot .btnb { font: 600 12.5px var(--body); border: 2px solid #1d1a20; border-radius: 5px; padding: 4px 10px; background: #f7f2e1; box-shadow: 2px 2px 0 #1d1a20; white-space: nowrap; }
+.mock .lv { margin: 4px 0 0 10px; padding-left: 8px; border-left: 2px solid rgba(29,26,32,0.2); }
+.mock .bad { color: #d4502e; }
+.el .coinx { display: inline-block; width: 0.8cqw; height: 0.8cqw; border-radius: 50%; border: 0.15cqw solid var(--gilt); vertical-align: middle; }
+.el .coinx.full { background: var(--gilt); }
+.el.hov { background: #fdfaef; z-index: 4; box-shadow: 0.35cqw 0.35cqw 0 var(--ink); }
+</style>
+
+<div class="page">
+<p class="eyebrow">Magister Ludi · city screen · iterations of A · 12 October 2026</p>
+<h1>Three ways to buy, <i>and to spend</i></h1>
+<p class="lede">The user chose Arrangement A and asked for iterations on two problems: the Buy button under the queue reads as rushing the item, which it is not, and the Spend card is awkward. Three iterations follow, each with a different answer to both, keeping everything else from A.</p>
+
+<div class="card verdict">
+  <p class="eyebrow" style="color:var(--teal)">Recommendation</p>
+  <p><b>A2: Build and Buy as two views of the work rail.</b> The Buy view has no progress bars, every button says "Buy outright", and it lists gold, faith and citizens as three sections with one cost column, which also replaces the Spend card. Borrow one piece of A3: a row's hover card prints its purchase line, so the price can be checked while choosing what to build. If the user wants buying in one click from the build list, A1 is the safe second.</p>
+</div>
+
+<h2>Settled before the iterations</h2>
+<div class="grid-3">
+  <div class="card"><h3>The treasury is on screen</h3><p>In all three the band carries <span class="num">Treasury 437 (+21) · Faith 51 (+2)</span> beside the six chips, in the top bar's voice. Each iteration shows the bank once more where money is spent.</p></div>
+  <div class="card"><h3>The hover card is bottom-left</h3><p>The town rail stops about 180 px short of the bottom and the terrain card sits under it, in the rail's own column, covering no board. Leave and the caption have the bottom centre to themselves.</p></div>
+  <div class="card"><h3>Detail only on hover, over the right column</h3><p>A build row's "would add" figures move into the row's hover card, and a chip's breakdown stays a hover card. Both open over the work rail. Rows become one line: name, hammers, turns.</p></div>
+</div>
+
+<h2>What a purchase is</h2>
+<p class="lede">From <code>src/sim/purchase.ts</code>: a purchase costs the item's <b>full</b> production cost at 4 gold a hammer (or its faith price), plus any card riders, and "does not consume the banked basket and is not discounted by it". Buying a queued item strikes the queued copy off, and the hammers already in it carry on to the next item. The real rush is a different verb, <b>contribute</b> (<code>explainContribution</code>): a card lets you pour coin into the front item's bar, and it stops at what is left. So: a Buy price never sits next to a bar and always says "outright"; contribute keeps the bar and says "→ +N hammers".</p>
+
+<h2>A, as drawn</h2>
+<p class="lede">For reference. The Buy button on the "Building now" card, under the bar, is what read as rushing; the Spend card at the foot of the work rail is what read as awkward; the chip breakdown drawn open looked inline.</p>
+<div class="layout"><div class="stage-wrap"><div class="stage">
+    <div class="dim" style="--cx:49%;--cy:50%"></div>
+    <div class="radius" style="left:38%;top:30%;width:22%;height:36%"></div>
+    <div class="band" style="height:7.5%"><span class="arr">‹</span><span class="nm">Aldermarch ✶</span><span class="arr">›</span><span class="k">SIZE 11 · 190/190 HP</span>
+      <span class="short">Idle</span><span class="short">No Iron spare</span><span class="sp"></span><span class="bank">437 gold · 51 faith on hand</span>
+      <span class="yc f">40<small>FOOD</small></span><span class="yc p">38<small>PROD</small></span><span class="yc g">21<small>GOLD</small></span><span class="yc s">24.2<small>SCI</small></span><span class="yc c">17.6<small>CULT</small></span><span class="yc h">2<small>FAITH</small></span></div>
+    <div class="cap teal" style="left:4%;top:8.2%">‹ › and , . step through your towns</div>
+    <div class="cap teal" style="left:47%;top:8.2%">treasury: needs a ruling</div>
+    <div class="el new" style="left:78%;top:8.4%;width:21%;height:19%;z-index:3"><span class="sec">Food 40 · its own list (illustrative)</span><table class="tbl-mini"><tr><td>Town centre</td><td>+3</td></tr><tr><td>Worked land, 8 hexes</td><td>+21</td></tr><tr><td>Olives, honey (capital)</td><td>+4</td></tr><tr><td>Granary, Hanging Gardens</td><td>+5</td></tr><tr><td>… other lines</td><td>+7</td></tr><tr class="tot"><td>Total</td><td>40</td></tr></table></div>
+    <div class="el" style="left:1%;top:9.5%;width:16%;height:26%"><span class="sec">Growth</span><div class="ln"><span>+17 food</span><span>5t</span></div><div class="meter"><i style="width:34%;background:var(--y-food)"></i></div><div class="ln newl"><span>8 on land · 2 specialists · 1 idle</span><span></span></div><span class="sec">Borders</span><div class="meter"><i style="width:76%;background:var(--y-cul)"></i></div><span class="bx">Buy tiles</span><span class="sec">Focus</span><span class="bx">Default</span> <span class="bx">Food</span> <span class="bx on">Prod</span> <span class="bx">Gold</span></div>
+    <div class="el" style="left:1%;top:37%;width:16%;height:9%"><span class="sec">Specialists 2</span><div class="ln"><span>1 scholar</span><span class="bx">Dismiss</span></div></div>
+    <div class="el" style="left:1%;top:47.5%;width:16%;height:12%"><div class="ln"><span>Defence</span><span>67 ›</span></div><div class="ln"><span>Built</span><span>14 ›</span></div><div class="ln"><span>Routes</span><span>1 ›</span></div><div class="ln"><span>Faith</span><span>1 ›</span></div></div>
+    <div class="el new" style="left:1%;top:61%;width:16%;height:5.5%"><div class="ln"><span>Commission</span><span>93 / 150 hexes</span></div></div>
+    <div class="el" style="left:78.2%;top:28.5%;width:20.8%;height:12%"><span class="sec">Building now</span><div class="ln"><b>Smithy</b><span>60/89 · 1t ×</span></div><div class="meter"><i style="width:67%;background:var(--y-prod)"></i></div><span class="bx buy" style="outline:0.3cqw solid var(--teal)">Buy · 356 gold</span> <span class="k">queue ↑ ↓ ×</span></div>
+    <div class="el new" style="left:78.2%;top:41.5%;width:20.8%;height:4.5%"><div class="ln"><span>Iron <span class="bad">0/4</span> · Copper 3/5 · Horses 1/2 · …</span><span></span></div></div>
+    <div class="el" style="left:78.2%;top:47%;width:20.8%;height:30%"><div class="tabsx"><span class="bx on">All</span><span class="bx">Units</span><span class="bx">Buildings</span><span class="bx">Wonders</span><span class="bx">Projects</span></div>
+      <div class="ln newl"><span>Units can't be bought here this turn: a Swordsman stands in Aldermarch</span><span></span></div>
+      <div class="ln"><span>Scout 15⚙ 1t</span><span class="k">Now</span></div><div class="ln"><span>Settler 70⚙ 2t</span><span>280</span></div><div class="ln"><span>Worker 40⚙ 1t</span><span>160</span></div><div class="ln"><span>Bowman · Swordsman · …</span><span></span></div>
+      <div class="ln fold newl"><span>Not yet · 3 ▸ (Legionary, Bireme, War Galley)</span><span></span></div>
+      <div class="ln"><span>Temple 117⚙</span><span>468</span></div><div class="ln"><span>War Hall 89⚙</span><span>356</span></div>
+      <div class="ln fold newl"><span>Not yet · 3 ▸ (Harbour, Courthouse, Lighthouse)</span><span></span></div>
+      <div class="ln newl"><span>Caravans are hired on the trade sheet →</span><span></span></div></div>
+    <div class="el moved" style="left:78.2%;top:78%;width:20.8%;height:13.5%"><span class="sec">Spend</span><div class="ln"><span>Rites cost 72 faith; you have 51</span><span></span></div><div class="ln"><span>Levy a citizen ▾</span><span></span></div><div class="ln fold"><span>Faith purchases · 0 of 5 open ▸</span><span></span></div></div>
+    <div class="el" style="left:33%;top:88.6%;width:22%;height:4.5%;font-size:0.8em">caption above Leave, never under the card</div>
+    <div class="el" style="left:58%;top:80%;width:17.5%;height:12%"><span class="k">TERRAIN</span> Plains<br><span class="k">YIELDS</span> 2 food 2 prod</div>
+    <div class="el" style="left:42%;top:94.4%;width:12.2%;height:4.6%;text-align:center"><b>Leave the town</b> <span class="k">Esc</span></div>
+    <div class="el endturn" style="left:86.9%;top:93%;width:12.2%;height:5.6%"><span class="etb">+2</span>A card awaits</div>
+  </div></div>
+  </div>
+
+<div class="layout">
+  <div class="layout-head"><h3>A1 · A price on every row, made legible</h3><span class="tag">~4 days</span></div>
+  <p class="legend"><span class="l-new">new or changed</span></p>
+  <div class="layout-body">
+  <div class="stage-wrap"><div class="stage"><div class="dim" style="--cx:49%;--cy:46%"></div><div class="radius" style="left:38%;top:27%;width:22%;height:36%"></div><div class="band" style="height:7.5%"><span class="arr">‹</span><span class="nm">Aldermarch ✶</span><span class="arr">›</span><span class="k">SIZE 11 · 190/190 HP</span><span class="short">No Iron spare</span><span class="sp"></span><span class="bank" style="border-style:solid;border-color:var(--teal);outline:0.25cqw solid var(--teal)"><span class="g">Treasury 437 (+21)</span> · <span class="h">Faith 51 (+2)</span></span><span class="yc f">40<small>FOOD</small></span><span class="yc p">38<small>PROD</small></span><span class="yc g">21<small>GOLD</small></span><span class="yc s">24.2<small>SCI</small></span><span class="yc c">17.6<small>CULT</small></span><span class="yc h">2<small>FAITH</small></span></div>
+    <div class="el" style="left:1%;top:8.7%;width:16.5%;height:30%"><span class="sec">Growth</span><div class="ln"><span>+17 food</span><span>5t</span></div><div class="meter"><i style="width:34%;background:var(--y-food)"></i></div><div class="ln newl"><span>Size 11 · <b>Levy a citizen ▾</b></span><span></span></div><div class="ln"><span>8 on land · 2 specialists · 1 idle</span><span></span></div><span class="sec">Borders</span><div class="meter"><i style="width:76%;background:var(--y-cul)"></i></div><span class="bx">Buy tiles</span><span class="sec">Focus</span><span class="bx">Default</span> <span class="bx">Food</span> <span class="bx on">Prod</span> <span class="bx">Gold</span></div>
+    <div class="el" style="left:1%;top:40%;width:16.5%;height:8%"><span class="sec">Specialists 2</span><div class="ln"><span>1 scholar · 1 engineer</span><span class="bx">Dismiss</span></div></div>
+    <div class="el new" style="left:1%;top:49.5%;width:16.5%;height:15%"><span class="sec">Faith</span><div class="ln"><span>Follows your faith, 9 of 11</span><span></span></div><div class="ln"><span>Rite of the Harvest</span><span class="h">72</span></div><div class="ln"><span>Omen Reading</span><span class="h">72</span></div><div class="ln"><span class="k">72 faith each; you have 51</span><span></span></div></div>
+    <div class="el" style="left:1%;top:66%;width:16.5%;height:9%"><div class="ln"><span>Defence</span><span>67 ›</span></div><div class="ln"><span>Built</span><span>14 ›</span></div><div class="ln"><span>Routes</span><span>1 ›</span></div></div>
+    <div class="el" style="left:78.2%;top:8.7%;width:20.8%;height:11%"><span class="sec">Building now</span><div class="ln"><b>Smithy</b><span>60/89 · 1t ×</span></div><div class="meter"><i style="width:67%;background:var(--y-prod)"></i></div><div class="ln"><span>2 · Worker 1t</span><span>↑ ↓ ×</span></div></div>
+    <div class="el" style="left:78.2%;top:20.5%;width:20.8%;height:4.2%"><div class="ln"><span>Iron <span class="bad">0/4</span> · Copper 3/5 · Horses 1/2 · …</span><span></span></div></div>
+    <div class="el" style="left:78.2%;top:25.6%;width:20.8%;height:66%"><div class="tabsx"><span class="bx on">All</span><span class="bx">Units</span><span class="bx">Buildings</span><span class="bx">Wonders</span><span class="bx">Projects</span><span class="bx">Faith</span></div>
+      <div class="ln newl"><span class="k">BUY OUTRIGHT · FULL PRICE</span><span class="k">you have 437</span></div>
+      <div class="ln"><span>Smithy · in queue 1st · 89⚙</span><span class="bx buy">356</span></div>
+      <div class="ln"><span>Temple 117⚙ 4t</span><span class="k">468 <span class="bad">need 31</span></span></div>
+      <div class="ln"><span>War Hall 89⚙ 3t</span><span class="bx buy">356</span></div>
+      <div class="ln fold"><span>Not yet · 3 ▸</span><span></span></div>
+      <div class="ln newl"><span class="k">Units: none can be bought here this turn. A Swordsman stands in the town.</span><span></span></div>
+      <div class="ln"><span>Settler 70⚙ 2t</span><span class="bx buy">280</span></div>
+      <div class="ln"><span>Worker 40⚙ 1t</span><span class="bx buy">160</span></div>
+      <div class="ln"><span>Scout 15⚙ 1t</span><span class="k">—</span></div>
+      <div class="ln"><span>Bowman 61⚙ 2t</span><span class="k">—</span></div>
+      <div class="ln"><span>Swordsman · Spear Wall · …</span><span class="k">—</span></div>
+      <div class="ln fold"><span>Not yet · 4 ▸</span><span></span></div>
+      <div class="ln"><span class="sec" style="margin:0">Faith</span><span></span></div>
+      <div class="ln"><span>Call a prophet</span><span class="k h">120 <span class="bad">need 69</span></span></div>
+      <div class="ln newl"><span>Caravans are hired on the trade sheet →</span><span></span></div></div>
+    <div class="el hov" style="left:78.6%;top:30%;width:20%;height:17%"><span class="sec">War Hall · hover card</span><div class="ln"><span>89 hammers · 3 turns</span><span></span></div><div class="ln"><span>Would add</span><span>+2 prod</span></div><div class="ln"><span>Upkeep</span><span>−1 gold</span></div><div class="ln"><span>Buy outright</span><span>356 gold</span></div></div>
+    <div class="cap teal" style="left:63%;top:31%">previews only on hover, over the rail</div>
+
+    <div class="el new" style="left:1%;top:80%;width:17%;height:13.5%"><span class="k">TERRAIN</span> Plains<br><span class="k">YIELDS</span> 2 food 2 prod<br><span class="k">OWNER</span> Aldermarch</div>
+    <div class="cap teal" style="left:1.2%;top:76.4%">hover card, bottom-left</div>
+    <div class="el" style="left:34%;top:88.6%;width:32%;height:4.5%;font-size:0.8em;text-align:center">caption (tutorial or Buy tiles) above Leave</div>
+    <div class="el" style="left:43.9%;top:94.4%;width:12.2%;height:4.6%;text-align:center"><b>Leave the town</b> <span class="k">Esc</span></div>
+    <div class="el endturn" style="left:86.9%;top:93%;width:12.2%;height:5.6%"><span class="etb">+2</span>A card awaits</div></div></div>
+  <div class="mocks">
+ <div class="mockcol"><h4>Buy control · a price column</h4>
+  <div class="mock">
+   <div class="mh"><span>Buy outright · full price</span><span>you have 437 gold</span></div>
+   <div class="mr"><span><span class="nm">Smithy</span> <span class="q">in queue · 1st</span></span><span class="pb">356</span></div>
+   <div class="mr"><span><span class="nm">War Hall</span> <span class="q">89⚙ · 3t</span></span><span class="pb">356</span></div>
+   <div class="mr"><span><span class="nm">Temple</span> <span class="q">117⚙ · 4t</span></span><span class="pb short">468<small>need 31</small></span></div>
+   <div class="why">Units: none can be bought here this turn. A Swordsman stands in Aldermarch; move it to buy one.</div>
+   <div class="mr"><span><span class="nm">Settler</span> <span class="q">70⚙ · 2t</span></span><span class="pb">280</span></div>
+   <div class="mr off"><span><span class="nm">Bowman</span> <span class="q">61⚙ · 2t</span></span><span class="pb no">—</span></div>
+   <div class="mr off"><span><span class="nm">Swordsman</span> <span class="q">46⚙ · 1t</span></span><span class="pb no">—</span></div>
+  </div>
+  <p class="reads">A player reads: the number on the right of a row is what the whole thing costs to buy today, wherever it sits in the queue. Smithy shows the same 356 at 60/89 as at 0/89, and its bar is not on this list.</p>
+ </div>
+ <div class="mockcol"><h4>Spend · beside the bank it draws on</h4>
+  <div class="mock">
+   <div class="mh"><span>Growth</span><span>+17 food · 5t</span></div>
+   <div class="bar"><i style="width:34%;background:var(--y-food)"></i></div>
+   <div class="mr"><span>Size 11 · 8 on land, 2 specialists, 1 idle</span><span class="pb" style="color:#1d1a20">Levy ▾</span></div>
+   <div class="lv"><div class="mr"><span>Hammers for the Smithy</span><span class="num">+38⚙</span></div><div class="mr"><span>Muster a Swordsman</span><span class="num">unit</span></div><div class="note">Costs 1 citizen (11 → 10). Next levy here in 5 turns.</div></div>
+  </div>
+  <div class="mock">
+   <div class="mh"><span>Faith</span><span>51 faith</span></div>
+   <div class="mr"><span>Follows your faith, 9 of 11</span><span></span></div>
+   <div class="why">Rites cost 72 faith; you have 51.</div>
+   <div class="mr off"><span class="nm">Rite of the Harvest</span><span class="pb no fa">72</span></div>
+   <div class="mr off"><span class="nm">Omen Reading</span><span class="pb no fa">72</span></div>
+  </div>
+  <p class="reads">Citizens are spent from the population line, faith from the Faith card, gold from the price column. Faith purchases ("Call a prophet") are a Faith shelf of the add list, in the same price column.</p>
+ </div>
+</div>
+  <div class="notes"><div><h4>What changes from A</h4><ul><li>No price on "Building now" or the queue. Every add-list row has a price cell in one column headed "Buy outright · full price".</li><li>Three looks: can buy (a pressable tag), short (plain figure and "need 31"), not here (a dash, reason once per shelf).</li><li>Queued buildings stay in the add list, marked "in queue · 1st", at the same price, so the current build can be bought.</li><li>The levy on the Size line; rites in a Faith card; faith purchases as a Faith shelf.</li></ul></div><div><h4>Treasury</h4><ul><li>The band.</li><li>The price column head: "you have 437 gold".</li></ul></div><div><h4>Borrows, cost, risk</h4><ul><li>Humankind: the buyout under each item.</li><li>About 4 days with the rest of A.</li><li>The list stays long, a little wider; spending is in three places, each next to its bank.</li></ul></div></div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="layout-head"><h3>A2 · Build and Buy, two views of the work rail</h3><span class="tag rec">recommended</span><span class="tag">~4.5 days</span></div>
+  <p class="legend"><span class="l-new">new or changed</span></p>
+  <div class="layout-body">
+  <div class="stage-wrap"><div class="stage"><div class="dim" style="--cx:49%;--cy:46%"></div><div class="radius" style="left:38%;top:27%;width:22%;height:36%"></div><div class="band" style="height:7.5%"><span class="arr">‹</span><span class="nm">Aldermarch ✶</span><span class="arr">›</span><span class="k">SIZE 11 · 190/190 HP</span><span class="short">No Iron spare</span><span class="sp"></span><span class="bank" style="border-style:solid;border-color:var(--teal);outline:0.25cqw solid var(--teal)"><span class="g">Treasury 437 (+21)</span> · <span class="h">Faith 51 (+2)</span></span><span class="yc f">40<small>FOOD</small></span><span class="yc p">38<small>PROD</small></span><span class="yc g">21<small>GOLD</small></span><span class="yc s">24.2<small>SCI</small></span><span class="yc c">17.6<small>CULT</small></span><span class="yc h">2<small>FAITH</small></span></div>
+    <div class="el" style="left:1%;top:8.7%;width:16.5%;height:27%"><span class="sec">Growth</span><div class="ln"><span>+17 food</span><span>5t</span></div><div class="meter"><i style="width:34%;background:var(--y-food)"></i></div><div class="ln"><span>8 on land · 2 specialists · 1 idle</span><span></span></div><span class="sec">Borders</span><div class="meter"><i style="width:76%;background:var(--y-cul)"></i></div><span class="bx">Buy tiles</span><span class="sec">Focus</span><span class="bx">Default</span> <span class="bx">Food</span> <span class="bx on">Prod</span> <span class="bx">Gold</span></div>
+    <div class="el" style="left:1%;top:37%;width:16.5%;height:8%"><span class="sec">Specialists 2</span><div class="ln"><span>1 scholar · 1 engineer</span><span class="bx">Dismiss</span></div></div>
+    <div class="el" style="left:1%;top:46.5%;width:16.5%;height:12%"><div class="ln"><span>Faith · yours, 9 of 11</span><span>›</span></div><div class="ln"><span>Defence</span><span>67 ›</span></div><div class="ln"><span>Built</span><span>14 ›</span></div><div class="ln"><span>Routes</span><span>1 ›</span></div></div>
+    <div class="el" style="left:78.2%;top:8.7%;width:20.8%;height:11%"><span class="sec">Building now</span><div class="ln"><b>Smithy</b><span>60/89 · 1t ×</span></div><div class="meter"><i style="width:67%;background:var(--y-prod)"></i></div><div class="ln"><span>2 · Worker 1t</span><span>↑ ↓ ×</span></div></div>
+    <div class="el" style="left:78.2%;top:20.5%;width:20.8%;height:4.2%"><div class="ln"><span>Iron <span class="bad">0/4</span> · Copper 3/5 · Horses 1/2 · …</span><span></span></div></div>
+    <div class="el new" style="left:78.2%;top:25.6%;width:20.8%;height:66%">
+      <div style="display:flex;border:0.2cqw solid var(--ink);border-radius:0.4cqw;overflow:hidden;margin-bottom:0.3cqw"><span style="flex:1;text-align:center">Build</span><span style="flex:1;text-align:center;background:var(--ink);color:var(--parchment)">Buy</span></div>
+      <div class="ln" style="font-family:var(--mono);font-weight:600"><span class="g">437 gold</span><span class="h">51 faith</span><span>11 citizens</span></div>
+      <span class="sec">Gold · can buy now</span>
+      <div class="ln"><span>Settler</span><span class="bx buy">Buy outright 280</span></div>
+      <div class="ln"><span>Worker</span><span class="bx buy">Buy outright 160</span></div>
+      <div class="ln"><span>War Hall</span><span class="bx buy">Buy outright 356</span></div>
+      <div class="ln"><span>Smithy (building now)</span><span class="bx buy">Buy outright 356</span></div>
+      <div class="ln"><span class="k">its 60 hammers move to the next item</span><span></span></div>
+      <span class="sec">Gold · short</span><div class="ln"><span>Temple</span><span class="k">468 · need 31</span></div>
+      <div class="ln fold"><span>Not here now · Swordsman on the town hex (6) ▸</span><span></span></div>
+      <span class="sec">Faith</span><div class="ln"><span>Rite of the Harvest</span><span class="k h">72 · need 21</span></div><div class="ln"><span>Call a prophet</span><span class="k h">120 · need 69</span></div>
+      <span class="sec">Citizens</span><div class="ln"><span>Levy a citizen ▸</span><span class="k">1 citizen</span></div>
+    </div>
+    <div class="cap teal" style="left:66%;top:27%">view remembered</div>
+
+    <div class="el new" style="left:1%;top:80%;width:17%;height:13.5%"><span class="k">TERRAIN</span> Plains<br><span class="k">YIELDS</span> 2 food 2 prod<br><span class="k">OWNER</span> Aldermarch</div>
+    <div class="cap teal" style="left:1.2%;top:76.4%">hover card, bottom-left</div>
+    <div class="el" style="left:34%;top:88.6%;width:32%;height:4.5%;font-size:0.8em;text-align:center">caption (tutorial or Buy tiles) above Leave</div>
+    <div class="el" style="left:43.9%;top:94.4%;width:12.2%;height:4.6%;text-align:center"><b>Leave the town</b> <span class="k">Esc</span></div>
+    <div class="el endturn" style="left:86.9%;top:93%;width:12.2%;height:5.6%"><span class="etb">+2</span>A card awaits</div></div></div>
+  <div class="mocks">
+ <div class="mockcol"><h4>Buy control · a Buy view</h4>
+  <div class="mock">
+   <div class="sw"><span>Build<small>hammers</small></span><span class="on">Buy<small>now</small></span></div>
+   <div class="banks"><span style="color:#8a6514">437 gold</span><span style="color:#a8467e">51 faith</span><span>11 citizens</span></div>
+   <div class="mh"><span>Gold · can buy now</span><span></span></div>
+   <div class="mr"><span class="nm">Settler</span><span class="pb">Buy outright · 280</span></div>
+   <div class="mr"><span class="nm">War Hall</span><span class="pb">Buy outright · 356</span></div>
+   <div class="mr"><span><span class="nm">Smithy</span> <span class="q">building now</span></span><span class="pb">Buy outright · 356</span></div>
+   <div class="note">Full price, whatever its bar says. Its 60 hammers move to the next item.</div>
+   <div class="mh"><span>Gold · short</span><span></span></div>
+   <div class="mr off"><span class="nm">Temple</span><span class="pb short">468<small>need 31</small></span></div>
+   <div class="mh"><span>Not here now</span><span></span></div>
+   <div class="why">Bowman, Swordsman and 4 more: a Swordsman stands in Aldermarch.</div>
+  </div>
+  <p class="reads">A player reads: Build is what this town makes with hammers over turns; Buy is what the bank pays today, in full. The bar is never on the Buy view.</p>
+ </div>
+ <div class="mockcol"><h4>Spend · the Buy view, sectioned by bank</h4>
+  <div class="mock">
+   <div class="mh"><span>Faith</span><span>you have 51</span></div>
+   <div class="mr off"><span class="nm">Rite of the Harvest</span><span class="pb short fa">72<small>need 21</small></span></div>
+   <div class="mr off"><span class="nm">Omen Reading</span><span class="pb short fa">72<small>need 21</small></span></div>
+   <div class="mr off"><span class="nm">Call a prophet</span><span class="pb short fa">120<small>need 69</small></span></div>
+   <div class="mh"><span>Citizens</span><span>size 11</span></div>
+   <div class="mr"><span class="nm">Levy a citizen ▸</span><span class="pb" style="color:#1d1a20">1 citizen</span></div>
+   <div class="lv"><div class="mr"><span>Hammers for the Smithy</span><span class="num">+38⚙</span></div><div class="mr"><span>Muster a Swordsman</span><span class="num">unit</span></div></div>
+  </div>
+  <p class="reads">One list, one cost column, three banks. The view is remembered across towns and across a purchase, so buying twice does not bounce back to Build (the Civ VII complaint).</p>
+ </div>
+</div>
+  <div class="notes"><div><h4>What changes from A</h4><ul><li>A two-part switch under the Supply strip: Build (hammers, over turns) · Buy (now).</li><li>Build: the add list with hammers and turns only.</li><li>Buy: one list headed by the banks, sections Gold (can buy now, short, not here), Faith (rites, faith purchases), Citizens (the levy).</li><li>The current build is in Gold with "its 60 hammers move to the next item".</li><li>The view is remembered across towns and purchases.</li></ul></div><div><h4>Treasury</h4><ul><li>The band.</li><li>The Buy view header, with faith and citizens.</li></ul></div><div><h4>Borrows, cost, risk</h4><ul><li>Civilization VII: separate production and purchase views, without its reset-to-production complaint.</li><li>Endless Legend 2: one place listing every option, with the reason for the rest.</li><li>About 4.5 days. Comparing "4 turns" with "356 gold" takes a switch; the hover card can carry both.</li></ul></div></div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="layout-head"><h3>A3 · Buy from the row's hover card; one Town actions list</h3><span class="tag">~4.5 days</span></div>
+  <p class="legend"><span class="l-new">new or changed</span></p>
+  <div class="layout-body">
+  <div class="stage-wrap"><div class="stage"><div class="dim" style="--cx:49%;--cy:46%"></div><div class="radius" style="left:38%;top:27%;width:22%;height:36%"></div><div class="band" style="height:7.5%"><span class="arr">‹</span><span class="nm">Aldermarch ✶</span><span class="arr">›</span><span class="k">SIZE 11 · 190/190 HP</span><span class="short">No Iron spare</span><span class="sp"></span><span class="bank" style="border-style:solid;border-color:var(--teal);outline:0.25cqw solid var(--teal)"><span class="g">Treasury 437 (+21)</span> · <span class="h">Faith 51 (+2)</span></span><span class="yc f">40<small>FOOD</small></span><span class="yc p">38<small>PROD</small></span><span class="yc g">21<small>GOLD</small></span><span class="yc s">24.2<small>SCI</small></span><span class="yc c">17.6<small>CULT</small></span><span class="yc h">2<small>FAITH</small></span></div>
+    <div class="el" style="left:1%;top:8.7%;width:16.5%;height:24%"><span class="sec">Growth</span><div class="ln"><span>+17 food</span><span>5t</span></div><div class="meter"><i style="width:34%;background:var(--y-food)"></i></div><div class="ln"><span>8 on land · 2 specialists · 1 idle</span><span></span></div><span class="sec">Borders</span><div class="meter"><i style="width:76%;background:var(--y-cul)"></i></div><span class="sec">Focus</span><span class="bx">Default</span> <span class="bx">Food</span> <span class="bx on">Prod</span> <span class="bx">Gold</span></div>
+    <div class="el new" style="left:1%;top:34%;width:16.5%;height:24%"><span class="sec">Town actions</span><div class="ln" style="font-family:var(--mono)"><span class="g">437 gold</span><span class="h">51 faith</span><span>11 cit.</span></div>
+      <div class="ln"><span>Buy a tile</span><span class="g">from 83</span></div><div class="ln"><span>Levy a citizen ▸</span><span>1 citizen</span></div><div class="ln"><span class="k">Rite of the Harvest</span><span class="h">72</span></div><div class="ln"><span class="k">Omen Reading</span><span class="h">72</span></div><div class="ln"><span class="k">Call a prophet</span><span class="h">120</span></div><div class="ln"><span class="k">Faith: you have 51</span><span></span></div></div>
+    <div class="el" style="left:1%;top:59.5%;width:16.5%;height:7%"><span class="sec">Specialists 2</span><div class="ln"><span>1 scholar · 1 engineer</span><span></span></div></div>
+    <div class="el" style="left:1%;top:68%;width:16.5%;height:7.5%"><div class="ln"><span>Faith · Defence · Built · Routes</span><span>›</span></div></div>
+    <div class="el" style="left:78.2%;top:8.7%;width:20.8%;height:11%"><span class="sec">Building now</span><div class="ln"><b>Smithy</b><span>60/89 · 1t ×</span></div><div class="meter"><i style="width:67%;background:var(--y-prod)"></i></div><div class="ln"><span>2 · Worker 1t</span><span>↑ ↓ ×</span></div></div>
+    <div class="el" style="left:78.2%;top:20.5%;width:20.8%;height:4.2%"><div class="ln"><span>Iron <span class="bad">0/4</span> · Copper 3/5 · Horses 1/2 · …</span><span></span></div></div>
+    <div class="el" style="left:78.2%;top:25.6%;width:20.8%;height:66%"><div class="tabsx"><span class="bx on">All</span><span class="bx">Units</span><span class="bx">Buildings</span><span class="bx">Wonders</span><span class="bx">Projects</span></div>
+      <div class="ln"><span>Temple 117⚙ 4t</span><span class="coinx"></span></div>
+      <div class="ln" style="background:var(--hl-new)"><span>War Hall 89⚙ 3t</span><span class="coinx full"></span></div>
+      <div class="ln"><span>High Temple 232⚙ 7t</span><span class="coinx"></span></div>
+      <div class="ln fold"><span>Not yet · 3 ▸</span><span></span></div>
+      <div class="ln"><span>Settler 70⚙ 2t</span><span class="coinx full"></span></div>
+      <div class="ln"><span>Worker 40⚙ 1t</span><span class="coinx full"></span></div>
+      <div class="ln"><span>Scout 15⚙ 1t</span><span></span></div>
+      <div class="ln"><span>Bowman 61⚙ 2t</span><span></span></div>
+      <div class="ln"><span>… </span><span></span></div></div>
+    <div class="el hov new" style="left:78.6%;top:33%;width:20%;height:30%"><span class="sec">War Hall</span><div class="ln"><span>89 hammers · 3 turns · upkeep 1 gold</span><span></span></div><div class="ln"><span>Would add</span><span>+2 prod</span></div><div class="ln"><span>Click the row to queue it</span><span></span></div>
+      <div style="border-top:0.2cqw solid var(--ink);margin-top:0.5cqw;padding-top:0.4cqw"><div class="ln"><span><b>Buy outright</b> · 89⚙ × 4</span><span class="g">356 gold</span></div><div class="ln"><span class="k">you have 437</span><span class="bx buy">Buy</span></div></div></div>
+    <div class="cap teal" style="left:62%;top:34%">the hover card carries Buy</div>
+
+    <div class="el new" style="left:1%;top:80%;width:17%;height:13.5%"><span class="k">TERRAIN</span> Plains<br><span class="k">YIELDS</span> 2 food 2 prod<br><span class="k">OWNER</span> Aldermarch</div>
+    <div class="cap teal" style="left:1.2%;top:76.4%">hover card, bottom-left</div>
+    <div class="el" style="left:34%;top:88.6%;width:32%;height:4.5%;font-size:0.8em;text-align:center">caption (tutorial or Buy tiles) above Leave</div>
+    <div class="el" style="left:43.9%;top:94.4%;width:12.2%;height:4.6%;text-align:center"><b>Leave the town</b> <span class="k">Esc</span></div>
+    <div class="el endturn" style="left:86.9%;top:93%;width:12.2%;height:5.6%"><span class="etb">+2</span>A card awaits</div></div></div>
+  <div class="mocks">
+ <div class="mockcol"><h4>Buy control · the row's hover card</h4>
+  <div class="mock">
+   <div class="mr"><span><span class="nm">Temple</span> <span class="q">117⚙ · 4t</span></span><span class="coin"></span></div>
+   <div class="mr" style="background:rgba(31,138,133,0.14)"><span><span class="nm">War Hall</span> <span class="q">89⚙ · 3t</span></span><span class="coin full"></span></div>
+   <div class="mr"><span><span class="nm">Settler</span> <span class="q">70⚙ · 2t</span></span><span class="coin full"></span></div>
+   <div class="mr off"><span><span class="nm">Bowman</span> <span class="q">61⚙ · 2t</span></span><span></span></div>
+  </div>
+  <div class="mock hovercard">
+   <div class="mh"><span>War Hall</span><span>building</span></div>
+   <div class="mr"><span>89 hammers · 3 turns</span><span class="num">upkeep −1 gold</span></div>
+   <div class="mr"><span>Would add to Aldermarch</span><span class="num">+2⚙</span></div>
+   <div class="note">Click the row to queue it.</div>
+   <div class="foot"><span><b>Buy outright</b><br><span class="note">89⚙ × 4 gold · you have 437</span></span><span class="btnb">Buy · 356</span></div>
+  </div>
+  <p class="reads">A player reads: the card says everything about this thing, including what it costs to buy outright today and how that price is made. A filled coin on a row means you can; an open coin means you are short.</p>
+ </div>
+ <div class="mockcol"><h4>Spend · one Town actions list</h4>
+  <div class="mock">
+   <div class="banks"><span style="color:#8a6514">437 gold</span><span style="color:#a8467e">51 faith</span><span>11 citizens</span></div>
+   <div class="mr"><span class="nm">Buy a tile</span><span class="pb">from 83 gold</span></div>
+   <div class="mr"><span class="nm">Levy a citizen ▸</span><span class="pb" style="color:#1d1a20">1 citizen</span></div>
+   <div class="why">Faith: you have 51.</div>
+   <div class="mr off"><span class="nm">Rite of the Harvest</span><span class="pb no fa">72 faith</span></div>
+   <div class="mr off"><span class="nm">Omen Reading</span><span class="pb no fa">72 faith</span></div>
+   <div class="mr off"><span class="nm">Call a prophet</span><span class="pb no fa">120 faith</span></div>
+  </div>
+  <p class="reads">Every way to spend something in this town, one per row, its cost in one column with its bank. The add list is left to hammers; the card carries the gold price.</p>
+ </div>
+</div>
+  <div class="notes"><div><h4>What changes from A</h4><ul><li>Rows are one line with a coin mark: filled (can buy), open (short), none (not here).</li><li>The hover card over the rail ends with "Buy outright · 89⚙ × 4 · you have 437" and a Buy button; the same card opens from "Building now" and queued rows.</li><li>Click a row to queue; buy from the card (Tab from a focused row).</li><li>One Town actions list in the town rail: tiles, levy, rites, faith purchases, costs in one column.</li></ul></div><div><h4>Treasury</h4><ul><li>The band.</li><li>The Town actions header and every buy footer.</li></ul></div><div><h4>Borrows, cost, risk</h4><ul><li>Endless Legend 2: nested hover cards, "less clicking is better".</li><li>About 4.5 days; <code>infoCard.ts</code> is a note, not a control, and needs a pinned, focusable mode.</li><li>Buying hidden behind hover; touch needs two taps to add.</li></ul></div></div>
+  </div>
+</div>
+
+<h2>Compared</h2>
+<div class="tbl-wrap"><table class="clicks">
+<thead><tr><th></th><th>A (as drawn)</th><th>A1 · price column</th><th>A2 · Build / Buy</th><th>A3 · hover card</th></tr></thead>
+<tbody>
+<tr><td>Where buying happens</td><td>under the bar</td><td>the add list</td><td>its own view</td><td>the row's card</td></tr>
+<tr><td>Price next to a bar</td><td>yes</td><td class="best">never</td><td class="best">never</td><td class="best">never</td></tr>
+<tr><td>What the price says</td><td>"Buy"</td><td>column head "Buy outright · full price"</td><td>"Buy outright" on each button</td><td>"Buy outright · 89⚙ × 4"</td></tr>
+<tr><td>Buy something not queued</td><td>1</td><td class="best">1</td><td>2 (1 once remembered)</td><td>hover + 1</td></tr>
+<tr><td>Buy the current build</td><td>1</td><td class="best">1</td><td>2</td><td>hover + 1</td></tr>
+<tr><td>Everything affordable at a glance</td><td>no</td><td>scan the column</td><td class="best">one section</td><td>scan coin marks</td></tr>
+<tr><td>Spending gold, faith, citizens</td><td>one Spend card</td><td>beside each bank</td><td class="best">one list by bank</td><td>one actions list</td></tr>
+<tr><td>Treasury, second place</td><td>—</td><td>price column head</td><td>Buy view header</td><td>actions header, card footer</td></tr>
+<tr><td>Touch</td><td>taps</td><td>taps</td><td>taps</td><td>two taps to add</td></tr>
+<tr><td>Size, with the rest of A</td><td>~4 days</td><td class="best">~4 days</td><td>~4.5 days</td><td>~4.5 days</td></tr>
+<tr><td>Main risk</td><td>reads as rushing</td><td>long, wider list</td><td>a switch to compare</td><td>buying hidden</td></tr>
+</tbody></table></div>
+
+<h2>Recommendation</h2>
+<p class="lede"><b>A2.</b> It is the only one where the objection cannot arise at all: the Buy view has no bars and every button says "Buy outright". The same view answers the Spend card: gold, faith and citizens become one list with one cost column. "What can I buy now?" is one glance at its first section, and the build list loses its prices and gets shorter. Remembering the view avoids Civ VII's complaint. Add A3's purchase line to the row's hover card so the price is visible while choosing. If the user wants one-click buying from the build list, A1 is the safe second.</p>
+
+<footer>
+  <p>Full write-up: <code>iterations.md</code>; the audit: <code>audit.md</code>. Figures are from the turn-91 save (Aldermarch); the faith and levy figures in the mock-ups are illustrative.</p>
+  <ul>
+    <li>Firaxis, Civilization VII, Developing Settlements: https://civilization.2k.com/civ-vii/game-guide/gameplay/developing-settlements/</li>
+    <li>Steam discussion, Civilization VII purchase tab: https://steamcommunity.com/app/1295660/discussions/0/591762563949178511</li>
+    <li>DiamondLobby, Humankind buyout: https://diamondlobby.com/humankind/how-to-make-military-in-humankind/</li>
+    <li>Amplitude, EL2 State of the Game, November 2025: https://community.amplitude-studios.com/amplitude-studios/endless-legend-2/blogs/1015-%E2%80%8Bstate-of-the-game-%E2%80%93-november-2025</li>
+    <li>Power Up Gaming, EL2 nested tooltips: https://powerupgaming.co.uk/2026/09/16/endless-legend-2-full-release-brings-overhaul-to-cut-tedious-clicking/</li>
+  </ul>
+</footer>
+</div>

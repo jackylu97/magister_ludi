@@ -1,0 +1,411 @@
+<title>Final Empire Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --table: #e9e2cf;
+  --parchment: #f7f2e1;
+  --parchment-2: #fdfaef;
+  --ink: #1d1a20;
+  --ink-soft: #56505a;
+  --ink-faint: rgba(29, 26, 32, 0.42);
+  --rule: rgba(29, 26, 32, 0.14);
+  --vermilion: #d4502e;
+  --gilt: #c8901f;
+  --teal: #1f8a85;
+  --grape: #7b3fa8;
+  --cobalt: #2757b8;
+  --y-food: #3f9636;
+  --y-prod: #c26a1d;
+  --y-gold: #c8901f;
+  --y-sci: #2757b8;
+  --y-cul: #7b3fa8;
+  --y-faith: #a8467e;
+  --y-food-lit: #7fd06c;
+  --y-prod-lit: #eda75f;
+  --y-gold-lit: #ecc154;
+  --y-sci-lit: #82aef2;
+  --y-cul-lit: #cf9fee;
+  --y-faith-lit: #e08fc0;
+  --on-ink: #f7f2e1;
+  --on-ink-soft: rgba(247, 242, 225, 0.62);
+  --land-1: #e4bd72;
+  --land-2: #a9c46f;
+  --land-3: #c9a465;
+  --sea: #4f88c6;
+  --sea-2: #6b9fd4;
+  --page-bg: var(--table);
+  --card-bg: var(--parchment);
+  --text: var(--ink);
+  --text-soft: var(--ink-soft);
+  --hl-new: rgba(31, 138, 133, 0.16);
+  --hl-gone: rgba(212, 80, 46, 0.12);
+  --display: 'Instrument Serif', Georgia, serif;
+  --title: Fraunces, Georgia, serif;
+  --body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --border: 3px;
+  --shadow: 5px 5px 0 var(--ink);
+  --shadow-sm: 3px 3px 0 var(--ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page-bg: #19171c;
+    --card-bg: #24212a;
+    --text: #efe8d4;
+    --text-soft: #b7ae9c;
+    --rule: rgba(239, 232, 212, 0.16);
+    --shadow: 5px 5px 0 #000;
+    --shadow-sm: 3px 3px 0 #000;
+    --hl-new: rgba(31, 138, 133, 0.28);
+    --hl-gone: rgba(212, 80, 46, 0.22);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #19171c;
+  --card-bg: #24212a;
+  --text: #efe8d4;
+  --text-soft: #b7ae9c;
+  --rule: rgba(239, 232, 212, 0.16);
+  --shadow: 5px 5px 0 #000;
+  --shadow-sm: 3px 3px 0 #000;
+  --hl-new: rgba(31, 138, 133, 0.28);
+  --hl-gone: rgba(212, 80, 46, 0.22);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--page-bg); color: var(--text); font: 15px/1.55 var(--body); }
+.page { max-width: 1120px; margin: 0 auto; padding: 40px 16px 96px; }
+.num, code, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+code { font-size: 0.86em; background: var(--hl-new); padding: 1px 4px; border-radius: 3px; overflow-wrap: anywhere; }
+a { color: var(--teal); }
+h1 { font: 400 clamp(38px, 7vw, 64px)/1 var(--display); margin: 6px 0 14px; text-wrap: balance; }
+h1 i { color: var(--vermilion); }
+h2 { font: 400 clamp(28px, 4.5vw, 38px)/1.1 var(--display); margin: 64px 0 8px; }
+h3 { font: 600 20px/1.25 var(--title); margin: 0 0 6px; }
+.eyebrow { font: 600 11px/1 var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--vermilion); }
+.lede { max-width: 68ch; color: var(--text-soft); margin: 0 0 10px; }
+.card { background: var(--card-bg); border: var(--border) solid var(--ink); border-radius: 10px; box-shadow: var(--shadow); padding: 18px 20px; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card { border-color: #000; } }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin-top: 18px; }
+.top3 .card h3 { display: flex; gap: 10px; align-items: baseline; }
+.top3 .rank { font: 600 30px/1 var(--display); color: var(--vermilion); }
+.top3 p { margin: 6px 0 0; font-size: 14px; }
+.verdict { margin-top: 22px; border-left: 6px solid var(--teal); }
+.verdict p { margin: 4px 0; }
+
+/* problems */
+.problem { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 22px; margin: 18px 0 26px; align-items: start; }
+@media (max-width: 820px) { .problem { grid-template-columns: 1fr; } }
+.problem .sev { font: 600 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 7px; border-radius: 4px; border: 2px solid currentColor; display: inline-block; margin-bottom: 8px; }
+.sev.high { color: var(--vermilion); }
+.sev.med { color: var(--gilt); }
+.problem ul { margin: 6px 0 0; padding-left: 18px; font-size: 14px; }
+.problem li { margin-bottom: 4px; }
+.hk { margin-top: 10px; padding: 10px 12px; border: 1.5px dashed var(--teal); border-radius: 6px; font-size: 14px; }
+.hk b { color: var(--teal); }
+figure { margin: 0; }
+figure img { display: block; width: 100%; height: auto; border: var(--border) solid var(--ink); border-radius: 6px; box-shadow: var(--shadow-sm); background: var(--parchment); }
+figure + figure { margin-top: 12px; }
+figcaption { font: 500 12px/1.4 var(--mono); color: var(--text-soft); margin-top: 6px; }
+
+/* diagrams */
+.layout { margin: 26px 0 40px; }
+.layout-head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; margin-bottom: 10px; }
+.layout-head h3 { font: 400 30px/1.05 var(--display); margin: 0; }
+.tag { font: 600 11px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 8px; border-radius: 4px; background: var(--card-bg); border: 1.5px solid var(--rule); }
+.tag.rec { background: var(--teal); color: #fff; border-color: var(--teal); }
+.layout-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 6px 22px; }
+.notes > div { min-width: 0; }
+.stage-wrap { overflow-x: auto; border-radius: 8px; -webkit-overflow-scrolling: touch; }
+.stage {
+  position: relative; min-width: 760px; aspect-ratio: 16 / 10; container-type: inline-size;
+  border: var(--border) solid var(--ink); border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-sm);
+  background:
+    radial-gradient(ellipse 26% 22% at 32% 44%, var(--land-2) 0 60%, transparent 61%),
+    radial-gradient(ellipse 30% 28% at 40% 58%, var(--land-1) 0 62%, transparent 63%),
+    radial-gradient(ellipse 22% 26% at 72% 40%, var(--land-3) 0 60%, transparent 61%),
+    radial-gradient(ellipse 18% 16% at 78% 70%, var(--land-2) 0 58%, transparent 59%),
+    radial-gradient(ellipse 14% 12% at 16% 78%, var(--land-1) 0 58%, transparent 59%),
+    linear-gradient(160deg, var(--sea-2), var(--sea));
+  font-size: clamp(7px, 0.95cqw, 12px);
+}
+.stage::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: radial-gradient(rgba(255,255,255,0.18) 1px, transparent 1.5px); background-size: 2.4cqw 2.4cqw; }
+.el { position: absolute; z-index: 1; border: 0.22cqw solid var(--ink); border-radius: 0.6cqw; background: var(--parchment); color: var(--ink);
+  box-shadow: 0.25cqw 0.25cqw 0 var(--ink); padding: 0.45cqw 0.6cqw; line-height: 1.2; overflow: hidden; font-family: var(--body); }
+.el b { font-family: var(--title); font-weight: 600; }
+.el .k { font-family: var(--mono); font-size: 0.86em; color: var(--ink-soft); }
+.el.new { outline: 0.35cqw solid var(--teal); outline-offset: 0.15cqw; }
+.el.ghost { background: rgba(247, 242, 225, 0.7); border-style: dashed; box-shadow: none; }
+.el.warn { outline: 0.35cqw solid var(--vermilion); outline-offset: 0.15cqw; }
+.bar { position: absolute; z-index: 2; left: 0; right: 0; top: 0; height: 4.7%; background: var(--ink); color: var(--on-ink);
+  display: flex; align-items: center; gap: 0.7cqw; padding: 0 0.8cqw; font-family: var(--mono); white-space: nowrap; overflow: hidden; }
+.bar .grp { display: flex; gap: 0.55cqw; align-items: center; padding: 0.2cqw 0.5cqw; border-radius: 0.4cqw; }
+.bar .grp.lab { border: 0.12cqw solid var(--on-ink-soft); }
+.bar .grp .gl { font-size: 0.75em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-ink-soft); }
+.bar .sp { flex: 1; }
+.bar .f { color: var(--y-food-lit); } .bar .p { color: var(--y-prod-lit); } .bar .g { color: var(--y-gold-lit); }
+.bar .s { color: var(--y-sci-lit); } .bar .c { color: var(--y-cul-lit); } .bar .h { color: var(--y-faith-lit); }
+.bar .m { color: #9fe28e; } .bar .r { color: var(--y-gold-lit); }
+.bar .btn { border: 0.12cqw solid var(--on-ink-soft); border-radius: 0.35cqw; padding: 0.1cqw 0.45cqw; font-size: 0.85em; }
+.bar .cut { color: var(--vermilion); text-decoration: line-through; }
+.dock { display: flex; gap: 0.4cqw; padding: 0; border: 0; background: none; box-shadow: none; overflow: visible; }
+.dock span { display: grid; place-items: center; width: 2.6cqw; height: 2.6cqw; border: 0.22cqw solid var(--ink); border-radius: 0.45cqw; background: var(--parchment); box-shadow: 0.2cqw 0.2cqw 0 var(--ink); font-size: 1.1em; }
+.doors { display: flex; gap: 0.45cqw; padding: 0; border: 0; background: none; box-shadow: none; overflow: visible; }
+.doors span { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1cqw; min-width: 4.9cqw; height: 4.3cqw; padding: 0 0.3cqw;
+  border: 0.22cqw solid var(--ink); border-radius: 0.5cqw; background: var(--parchment); box-shadow: 0.2cqw 0.2cqw 0 var(--ink); font-size: 0.86em; position: relative; }
+.doors span i { font-style: normal; font-size: 1.3em; line-height: 1; }
+.doors span .k { font-size: 0.8em; }
+.doors span.badge::after { content: ''; position: absolute; top: -0.5cqw; right: -0.5cqw; width: 1cqw; height: 1cqw; border-radius: 50%; background: var(--vermilion); border: 0.15cqw solid var(--ink); }
+.doors span.short { border-color: var(--vermilion); color: var(--vermilion); }
+.chip { display: flex; align-items: center; gap: 0.5cqw; background: rgba(247, 242, 225, 0.78); border: 0.2cqw solid var(--deck, var(--ink)); border-left-width: 0.6cqw; border-radius: 0.4cqw; padding: 0.3cqw 0.5cqw; margin-bottom: 0.4cqw; font-size: 0.9em; }
+.chip .ring { width: 1.4cqw; height: 1.4cqw; border-radius: 50%; border: 0.25cqw solid var(--deck, var(--ink)); border-right-color: transparent; flex: none; }
+.chip .ct { margin-left: auto; font-family: var(--mono); }
+.list { position: absolute; z-index: 1; }
+.pill { display: block; text-align: right; margin-bottom: 0.4cqw; }
+.pill span { display: inline-block; background: var(--parchment); border: 0.2cqw solid var(--ink); border-radius: 2cqw; padding: 0.25cqw 0.8cqw; box-shadow: 0.2cqw 0.2cqw 0 var(--ink); font-size: 0.9em; }
+.pill.more span { background: none; border-style: dashed; box-shadow: none; }
+.endturn { background: var(--ink); color: var(--on-ink); font-family: var(--body); font-weight: 600; display: grid; place-items: center; font-size: 1.2em; }
+.rowlist { font-size: 0.86em; }
+.rowlist div { display: flex; justify-content: space-between; border-bottom: 0.1cqw solid var(--rule); }
+.rowlist .bad { color: var(--vermilion); }
+.cap { position: absolute; z-index: 3; font: 600 0.85em/1.15 var(--mono); color: #fff; background: rgba(29, 26, 32, 0.82); padding: 0.25cqw 0.5cqw; border-radius: 0.3cqw; max-width: 22cqw; }
+.cap.teal { background: var(--teal); }
+.cap.red { background: var(--vermilion); }
+.notes { font-size: 14px; }
+.notes h4 { font: 600 11px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--vermilion); margin: 4px 0 6px; }
+.notes ul { margin: 0; padding-left: 18px; }
+.notes li { margin-bottom: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font: 500 12px/1.3 var(--mono); color: var(--text-soft); margin: 8px 0 0; }
+.legend span::before { content: ''; display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -2px; border-radius: 3px; }
+.legend .l-new::before { border: 3px solid var(--teal); }
+.legend .l-warn::before { border: 3px solid var(--vermilion); }
+.legend .l-ghost::before { border: 2px dashed var(--ink-soft); }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; margin-top: 12px; border: 1.5px solid var(--rule); border-radius: 8px; background: var(--card-bg); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 640px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font: 600 11px/1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-soft); background: var(--hl-new); }
+td.y { color: var(--teal); font-weight: 600; }
+td.none { color: var(--vermilion); font-weight: 600; }
+tr:last-child td { border-bottom: 0; }
+
+.hkmap { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top: 14px; }
+.hkmap .card { padding: 14px 16px; }
+.hkmap h3 { font-size: 17px; }
+.hkmap p { margin: 4px 0 0; font-size: 14px; }
+.unsure { font: 500 12px/1.4 var(--mono); color: var(--text-soft); }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 12px; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; }
+.steps li::before { content: counter(s); font: 400 34px/1 var(--display); color: var(--vermilion); }
+.steps p { margin: 2px 0 0; font-size: 14px; color: var(--text-soft); }
+footer { margin-top: 60px; font-size: 13px; color: var(--text-soft); }
+footer li { margin-bottom: 4px; overflow-wrap: anywhere; }
+
+.dials { position: absolute; z-index: 1; display: flex; gap: 0.5cqw; align-items: flex-start; }
+.dial { display: flex; flex-direction: column; align-items: center; gap: 0.35cqw; position: relative; }
+.dial .ring { --p: 0; --c: var(--teal); position: relative; display: grid; place-items: center; width: 4.6cqw; height: 4.6cqw; border-radius: 50%;
+  border: 0.22cqw solid var(--ink); box-shadow: 0.22cqw 0.22cqw 0 var(--ink);
+  background: conic-gradient(var(--c) calc(var(--p) * 1%), rgba(247, 242, 225, 0.92) 0); }
+.dial .ring::before { content: ''; position: absolute; inset: 0.55cqw; border-radius: 50%; background: var(--parchment); border: 0.15cqw solid var(--ink); }
+.dial .ring i { position: relative; z-index: 1; font-style: normal; font-size: 1.45em; line-height: 1; color: var(--ink); }
+.dial.sky .ring::before { background: radial-gradient(circle at 40% 35%, #2b2f55, #12121e); }
+.dial.sky .ring i { color: var(--gilt); }
+.dial.sm .ring { width: 3.3cqw; height: 3.3cqw; }
+.dial.sm .ring::before { inset: 0.4cqw; }
+.dial.sm .ring i { font-size: 1.15em; }
+.dial .lab { background: var(--parchment); color: var(--ink); border: 0.15cqw solid var(--ink); border-radius: 0.3cqw; padding: 0.05cqw 0.4cqw; white-space: nowrap;
+  font: 500 0.7em/1.25 var(--mono); }
+.dial .lab b { font-family: var(--body); font-weight: 600; }
+.dial.badge .ring::after { content: ''; position: absolute; z-index: 2; top: -0.3cqw; right: -0.3cqw; width: 1cqw; height: 1cqw; border-radius: 50%; background: var(--vermilion); border: 0.15cqw solid var(--ink); }
+.dial.short .ring { --c: var(--vermilion); border-color: var(--vermilion); }
+.dial.short .lab { color: var(--vermilion); border-color: var(--vermilion); }
+.cluster { position: absolute; z-index: 1; }
+.cluster .grid6 { display: grid; grid-template-columns: repeat(3, 6.3cqw); gap: 0.5cqw 0; justify-items: center; }
+.cluster .big2 { display: flex; gap: 1.2cqw; margin-top: 0.7cqw; }
+.rail { position: absolute; z-index: 1; display: flex; flex-direction: column; gap: 0.45cqw; padding: 0.6cqw 0.5cqw; background: rgba(247, 242, 225, 0.9);
+  border: 0.22cqw solid var(--ink); border-radius: 0.7cqw; box-shadow: 0.25cqw 0.25cqw 0 var(--ink); }
+.rail .dial { flex-direction: row; gap: 0.6cqw; }
+.rail .dial .lab { border: 0; background: none; padding: 0; font-size: 0.85em; }
+.rail hr { border: 0; border-top: 0.15cqw solid var(--ink-faint); margin: 0.15cqw 0; width: 100%; }
+.rail .pin { font: 500 0.75em/1 var(--mono); color: var(--ink-soft); text-align: center; }
+.bar .tab { display: flex; gap: 0.4cqw; align-items: baseline; border: 0.14cqw solid var(--on-ink-soft); border-radius: 0.35cqw; padding: 0.15cqw 0.5cqw; background: rgba(247,242,225,0.08); }
+.bar .tab .tl { font-size: 0.8em; letter-spacing: 0.06em; text-transform: uppercase; }
+.bar .tab.newtab { border-color: var(--teal); box-shadow: 0 0 0 0.12cqw var(--teal); }
+.goalhead { font: 600 0.85em/1 var(--mono); color: #fff; letter-spacing: 0.1em; text-shadow: 0 0 0.3cqw #000, 0 0 0.3cqw #000; margin-bottom: 0.35cqw; }
+.refs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-top: 14px; }
+.refs .card h3 { font-size: 19px; }
+.refs .card p, .refs .card li { font-size: 14px; }
+.refs .card ul { margin: 6px 0 0; padding-left: 18px; }
+.refs .card li { margin-bottom: 4px; }
+.borrow { display: inline-block; font: 600 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 8px; border-radius: 4px; border: 1.5px dashed var(--teal); color: var(--teal); }
+.changed { border-left: 6px solid var(--teal); }
+
+.row { position: absolute; z-index: 1; display: flex; gap: 0.5cqw; align-items: center; }
+.strip { display: flex; align-items: center; gap: 0.5cqw; width: 16.7cqw; height: 1.9cqw; padding: 0 0.6cqw; background: var(--parchment); border: 0.2cqw solid var(--ink);
+  border-radius: 0.45cqw; box-shadow: 0.2cqw 0.2cqw 0 var(--ink); font-size: 0.85em; white-space: nowrap; overflow: hidden; }
+.strip i { font-style: normal; color: var(--gilt); background: #17172a; border-radius: 50%; width: 1.3cqw; height: 1.3cqw; display: grid; place-items: center; font-size: 0.8em; flex: none; }
+.strip .fill { flex: 1; height: 0.45cqw; border-radius: 0.3cqw; background: linear-gradient(90deg, var(--cobalt) 0 92%, rgba(29,26,32,0.15) 92%); min-width: 2cqw; }
+.strip b { font-family: var(--title); font-weight: 600; }
+.mini .ring { width: 2.1cqw !important; height: 2.1cqw !important; }
+.mini .ring::before { inset: 0.3cqw !important; }
+.mini .ring i { font-size: 0.85em !important; }
+.mini .lab { display: none; }
+.sq { display: grid; place-items: center; width: 2.1cqw; height: 2.1cqw; background: var(--parchment); border: 0.2cqw solid var(--ink); border-radius: 0.45cqw; box-shadow: 0.2cqw 0.2cqw 0 var(--ink); font-weight: 700; }
+.warnchip { display: flex; align-items: center; gap: 0.3cqw; height: 1.9cqw; padding: 0 0.5cqw; background: var(--parchment); color: var(--vermilion); border: 0.2cqw solid var(--vermilion); border-radius: 0.45cqw; font: 600 0.82em/1 var(--mono); white-space: nowrap; }
+.goalpill { position: absolute; z-index: 1; display: flex; align-items: center; gap: 0.45cqw; height: 1.9cqw; padding: 0 0.6cqw; background: rgba(247,242,225,0.88); border: 0.2cqw solid var(--ink);
+  border-left: 0.6cqw solid #4e7c3f; border-radius: 0.45cqw; font-size: 0.85em; white-space: nowrap; }
+.goalpill .ring { width: 1.1cqw; height: 1.1cqw; border-radius: 50%; border: 0.22cqw solid #4e7c3f; border-right-color: transparent; }
+.ghostbox { position: absolute; z-index: 1; border: 0.2cqw dashed var(--ink); border-radius: 0.6cqw; background: rgba(247,242,225,0.72); padding: 0.5cqw 0.6cqw; font-size: 0.85em; }
+.ghostbox .when { display: block; font: 600 0.8em/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--teal); margin-bottom: 0.4cqw; }
+.ghostbox .r { display: flex; justify-content: space-between; gap: 0.6cqw; border-bottom: 0.1cqw solid var(--rule); padding: 0.15cqw 0; white-space: nowrap; }
+.ghostbox .r .k { font-family: var(--mono); color: var(--ink-soft); }
+.ghostbox .bad { color: var(--vermilion); }
+.endb { position: absolute; z-index: 2; right: 1%; bottom: 1.6%; width: 12.2%; height: 5.4%; background: var(--ink); color: var(--on-ink); border: 0.22cqw solid var(--ink); border-radius: 0.6cqw;
+  box-shadow: 0.25cqw 0.25cqw 0 var(--ink); display: grid; place-items: center; font-weight: 600; font-size: 1.1em; }
+.endb .cnt { position: absolute; top: -0.8cqw; left: -0.8cqw; background: var(--vermilion); color: #fff; border: 0.18cqw solid var(--ink); border-radius: 1cqw; padding: 0.05cqw 0.45cqw; font: 600 0.8em/1.3 var(--mono); }
+.ico { position: absolute; z-index: 1; bottom: 1.6%; width: 2.8%; height: 4.4%; display: grid; place-items: center; background: var(--parchment); border: 0.2cqw solid var(--ink); border-radius: 0.5cqw; box-shadow: 0.2cqw 0.2cqw 0 var(--ink); font-size: 0.9em; }
+.banner { position: absolute; z-index: 1; display: flex; align-items: center; gap: 0.6cqw; padding: 0.3cqw 0.8cqw 0.3cqw 0.3cqw; background: var(--parchment); border: 0.22cqw solid var(--ink); border-radius: 2cqw 0.6cqw 0.6cqw 2cqw; box-shadow: 0.25cqw 0.25cqw 0 var(--ink); }
+.banner .crest { position: relative; width: 2.8cqw; height: 2.8cqw; border-radius: 50%; background: conic-gradient(var(--cobalt) 92%, rgba(29,26,32,0.15) 0); display: grid; place-items: center; }
+.banner .crest::before { content: ''; position: absolute; inset: 0.35cqw; border-radius: 50%; background: var(--parchment); border: 0.15cqw solid var(--ink); }
+.banner .crest i { position: relative; font-style: normal; color: var(--vermilion); font-size: 1.1em; }
+.banner .crest::after { content: ''; position: absolute; top: -0.2cqw; right: -0.2cqw; width: 0.9cqw; height: 0.9cqw; border-radius: 50%; background: var(--vermilion); border: 0.15cqw solid var(--ink); }
+.banner .t { line-height: 1.25; font-size: 0.85em; white-space: nowrap; }
+.banner .t b { font-family: var(--title); }
+.banner .t .k { font-family: var(--mono); }
+.handle { position: absolute; z-index: 1; left: 0; top: 6%; width: 1.25%; height: 28.9%; background: var(--parchment); border: 0.2cqw solid var(--ink); border-left: 0; border-radius: 0 0.5cqw 0.5cqw 0;
+  box-shadow: 0.2cqw 0.2cqw 0 var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6cqw; }
+.handle span { width: 0.4cqw; height: 4cqw; border-radius: 0.2cqw; background: linear-gradient(0deg, var(--c) 0 var(--p), rgba(29,26,32,0.15) var(--p)); }
+.handle em { width: 0.8cqw; height: 0.8cqw; border-radius: 50%; background: var(--vermilion); border: 0.12cqw solid var(--ink); }
+
+.crops { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.crops .stage { min-width: 0; }
+.crop-cap { font: 600 11px/1.3 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-soft); margin: 0 0 6px; }
+.stage-rest-cap { font: 600 11px/1.3 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-soft); margin: 0 0 6px; }
+.pnl { position: absolute; z-index: 2; background: var(--parchment); color: var(--ink); border-style: solid; border-color: var(--ink); box-shadow: var(--pshadow) var(--pshadow) 0 var(--ink); font-family: var(--body); }
+.pnl .mono, .pnl .k { font-family: var(--mono); color: var(--ink-soft); }
+.pnl b { font-family: var(--title); font-weight: 600; }
+.pnl .btnx { display: inline-flex; align-items: center; gap: 0.4em; border-style: solid; border-color: var(--ink); background: var(--parchment-2); font-weight: 600; white-space: nowrap; }
+.pnl .rowx { display: flex; align-items: center; justify-content: space-between; border-bottom-style: solid; border-bottom-color: var(--rule); white-space: nowrap; }
+.pnl .bad { color: var(--vermilion); }
+.pnl .sec { font-family: var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--vermilion); }
+.crestx { position: relative; flex: none; border-radius: 50%; display: grid; place-items: center; }
+.crestx::before { content: ''; position: absolute; border-radius: 50%; background: var(--parchment); border-style: solid; border-color: var(--ink); }
+.crestx i { position: relative; font-style: normal; }
+.crestx.badge::after { content: ''; position: absolute; border-radius: 50%; background: var(--vermilion); border-style: solid; border-color: var(--ink); }
+.crestx.sky::before { background: radial-gradient(circle at 40% 35%, #2b2f55, #12121e); }
+.barx { border-radius: 99px; background: rgba(29,26,32,0.15); overflow: hidden; }
+.barx > i { display: block; height: 100%; }
+.zone { outline-style: dashed; outline-color: var(--teal); }
+
+.secbtn { position: relative; display: block; background: var(--parchment); border-style: solid; border-color: var(--rule); cursor: pointer; }
+.secbtn .ttl { display: flex; align-items: baseline; gap: 0.35em; font-family: var(--title); font-weight: 600; }
+.secbtn .arr { color: var(--ink-soft); }
+.secbtn .kbox { margin-left: auto; font-family: var(--mono); color: var(--ink-soft); border-style: solid; border-color: var(--rule); }
+.secbtn.hov { background: #fdfaef; }
+.secbtn.hov .ttl span.t { text-decoration: underline; text-underline-offset: 0.18em; }
+.secbtn.hov .arr { color: var(--ink); }
+.secbtn.press { border-color: var(--ink); }
+.qchipx { display: flex; align-items: center; background: rgba(247,242,225,0.72); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); border-style: solid; border-color: var(--rule); }
+.qchipx .qn { font-family: var(--title); font-weight: 600; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qchipx .qc { font-family: var(--mono); color: var(--ink-soft); display: block; }
+.qchipx.done .qc { color: var(--vermilion); font-weight: 600; }
+.cursor { position: absolute; z-index: 5; font-size: 1em; color: var(--ink); text-shadow: 0 0 2px #fff, 0 0 2px #fff; }
+.specimens { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-top: 12px; }
+.spec { background: var(--table); border: 1.5px solid var(--rule); border-radius: 8px; padding: 14px; container-type: inline-size; color: var(--ink); }
+.spec .crop-cap { margin-bottom: 10px; color: var(--ink-soft); }
+.specs-wrap .card p { margin: 0; }
+</style>
+<div class="page">
+<p class="eyebrow">Magister Ludi · HUD audit, final · 12 October 2026</p>
+<h1>E2, <i>final</i></h1>
+<p class="lede">The user picked E2 (one drawer, two depths) and asked for two changes: commissions on the left side outside the empire menu, and research and culture as clickable sections instead of separate Tech tree and Statecraft buttons. This page draws the result. The written spec, with every state, size, key and the code each part replaces, is <code>final-e2.md</code> beside it.</p>
+
+<div class="card verdict"><p class="eyebrow" style="color:var(--teal)">What changed from E2</p>
+<p><b>Commissions</b> are see-through chips in the left column under the empire panel, outside the drawer, as in the approved mockup. <b>The drawer opens to the right of the panel</b>, so the chips are never covered and never move. <b>Research and Culture are each one large button</b>: clicking Research opens the star chart, clicking Culture opens Statecraft; they show a pointer, a coloured left edge, an underlined title and a moving arrow on hover, and a coloured ring on keyboard focus. The at-rest bars are not separate targets: the whole panel is one.</p></div>
+
+<h2>For reference: E2 as drawn</h2>
+<div class="legend"><span class="l-new">new or moved</span><span class="l-ghost">appears on hover, click, or when relevant</span></div>
+<section class="layout" id="ref-e2">
+  <div class="layout-head"><h3>E2 · as drawn last round</h3><span class="tag">for reference</span><span class="borrow">Endless Legend 2 · B4c</span></div>
+  <div class="layout-body">
+    <p class="stage-rest-cap">1 · At rest — the whole HUD, 1440 × 900</p>
+    <div class="stage-wrap"><div class="stage" role="img" aria-label="E2 · One drawer, two depths at rest"><div class="bar">
+  <span class="grp"><span class="f">172</span><span class="p">127</span><span class="g">437 (+82)</span><span class="s">91</span><span class="c">199</span><span class="h">51 (+14)</span></span>
+  <span class="grp lab"><span class="m">☺ +8</span><span>♙ 0</span></span>
+  <span class="sp"></span><span>TURN 91 · Æra II · 9 left</span><span class="sp"></span>
+  <span class="tab"><span class="tl">⚑ Diplomacy</span></span>
+  <span class="tab"><span class="tl">⛟ Trade</span><span>1/3</span></span>
+  <span class="tab"><span class="tl">≡ Standings</span><span class="r">✦57</span><span>●2/7</span></span>
+  <span class="btn">?</span><span class="btn">☰</span>
+</div><div class="pnl" style="left:calc(14 * 100cqw / 1440);top:calc(54 * 100cqw / 1440);border-width:calc(3 * 100cqw / 1440);border-radius:calc(12 * 100cqw / 1440);padding:0 calc(8 * 100cqw / 1440) 0 calc(6 * 100cqw / 1440);--pshadow:calc(3 * 100cqw / 1440);font-size:calc(12 * 100cqw / 1440);width:calc(150 * 100cqw / 1440);height:calc(56 * 100cqw / 1440);display:flex;align-items:center;gap:calc(8 * 100cqw / 1440);"><style>.c66259247::before{inset:calc(4 * 100cqw / 1440);border-width:calc(1.5 * 100cqw / 1440)}.c66259247::after{top:calc(-2 * 100cqw / 1440);right:calc(-2 * 100cqw / 1440);width:calc(10 * 100cqw / 1440);height:calc(10 * 100cqw / 1440);border-width:calc(1.5 * 100cqw / 1440)}</style><span class="crestx badge c66259247" style="width:calc(40 * 100cqw / 1440);height:calc(40 * 100cqw / 1440);background:conic-gradient(var(--ink) 100%, rgba(29,26,32,0.15) 0);"><i style="font-size:calc(16.8 * 100cqw / 1440);color:var(--vermilion)">☾</i></span><span style="display:flex;flex-direction:column;gap:calc(6 * 100cqw / 1440)"><span class="barx" style="display:inline-block;width:calc(70 * 100cqw / 1440);height:calc(6 * 100cqw / 1440)"><i style="width:98%;background:var(--cobalt)"></i></span><span class="barx" style="display:inline-block;width:calc(70 * 100cqw / 1440);height:calc(6 * 100cqw / 1440)"><i style="width:27%;background:var(--grape)"></i></span></span><span class="k" style="font-size:calc(13 * 100cqw / 1440)">▸</span></div><div class="ghostbox" style="left:1%;bottom:1.6%;width:17.5%;height:10%"><span class="when">on hover · a hex</span>Plains · 1 · 1</div><div class="ghostbox" style="right:1%;top:6.2%;width:23.6%;height:36%"><span class="when">when a unit is selected</span><b>Worker</b></div><div class="endb"><span class="cnt">+2</span>A card awaits ⏎</div>
+<div class="ico" style="right:14%">❧</div>
+<div class="ico" style="right:17.3%;font-family:var(--mono);font-size:0.75em">LENS</div><div class="ghostbox" style="right:1%;bottom:8.6%;width:17%"><span class="when">on hover · End Turn</span>
+<div class="r"><span>☞ A card awaits</span></div><div class="r"><span>☞ Choose a belief</span></div><div class="r"><span>☞ 2 units need orders</span></div></div><div class="cap teal" style="left:13%;top:7%">banner + two thin bars: research, draft meter</div></div></div>
+    <div class="crops">
+      <div><p class="crop-cap">2 · Hovered — depth one</p><div class="stage" role="img" aria-label="E2 · One drawer, two depths hovered" style="min-width:0;aspect-ratio:1 / 1"><div class="bar" style="height:6.56%;font-size:calc(11 * 100cqw / 640)"><span class="f">172</span><span class="p">127</span><span class="g">437 (+82)</span><span class="s">91</span><span class="c">199</span><span class="h">51 (+14)</span><span class="grp lab"><span class="m">☺ +8</span><span>♙ 0</span></span></div><div class="pnl" style="left:calc(14 * 100cqw / 640);top:calc(54 * 100cqw / 640);border-width:calc(3 * 100cqw / 640);border-radius:calc(12 * 100cqw / 640);padding:calc(6 * 100cqw / 640) calc(10 * 100cqw / 640) calc(8 * 100cqw / 640);--pshadow:calc(3 * 100cqw / 640);font-size:calc(12 * 100cqw / 640);width:calc(300 * 100cqw / 640);"><div style="display:flex;align-items:center;gap:calc(8 * 100cqw / 640);padding-bottom:calc(4 * 100cqw / 640);border-bottom:calc(2 * 100cqw / 640) solid var(--ink)"><style>.c31925584::before{inset:calc(4 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640)}.c31925584::after{top:calc(-2 * 100cqw / 640);right:calc(-2 * 100cqw / 640);width:calc(10 * 100cqw / 640);height:calc(10 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640)}</style><span class="crestx badge c31925584" style="width:calc(32 * 100cqw / 640);height:calc(32 * 100cqw / 640);background:conic-gradient(var(--ink) 100%, rgba(29,26,32,0.15) 0);"><i style="font-size:calc(13.44 * 100cqw / 640);color:var(--vermilion)">☾</i></span><b style="font-size:calc(14 * 100cqw / 640)">Crimson</b><span class="k" style="margin-left:auto;font-size:calc(10 * 100cqw / 640)">depth one · hover</span></div><div class="sec" style="font-size:calc(9.5 * 100cqw / 640);margin:calc(6 * 100cqw / 640) 0 calc(2 * 100cqw / 640)">Research</div><div><b>Code of Laws</b> <span class="mono">186/190 · 1t</span></div><span class="barx" style="display:inline-block;width:calc(270 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:98%;background:var(--cobalt)"></i></span><div style="margin-top:calc(5 * 100cqw / 640)"><span class="btnx" style="border-width:calc(2 * 100cqw / 640);border-radius:calc(5 * 100cqw / 640);padding:calc(2 * 100cqw / 640) calc(7 * 100cqw / 640);font-size:calc(11 * 100cqw / 640)">♔ Tech tree · T</span></div><div class="sec" style="font-size:calc(9.5 * 100cqw / 640);margin:calc(6 * 100cqw / 640) 0 calc(2 * 100cqw / 640)">Civics</div><div>Next draft <span class="mono">120/450 · 2t</span> · <span class="k">Tier 14 → 18</span></div><span class="barx" style="display:inline-block;width:calc(270 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:27%;background:var(--grape)"></i></span><div style="margin-top:calc(5 * 100cqw / 640)"><span class="btnx" style="border-width:calc(2 * 100cqw / 640);border-radius:calc(5 * 100cqw / 640);padding:calc(2 * 100cqw / 640) calc(7 * 100cqw / 640);font-size:calc(11 * 100cqw / 640)">§ Statecraft · C</span> <span class="bad" style="font-size:calc(10.5 * 100cqw / 640)">a card awaits</span></div><div class="k" style="margin-top:calc(8 * 100cqw / 640);font-size:calc(10.5 * 100cqw / 640)">▾ click for Religion, Leader, Supply, Goals</div></div></div></div>
+      <div><p class="crop-cap">3 · Clicked (or Q) — depth two, pinned</p><div class="stage" role="img" aria-label="E2 · One drawer, two depths with the empire menu open" style="min-width:0;aspect-ratio:1 / 1"><div class="bar" style="height:6.56%;font-size:calc(11 * 100cqw / 640)"><span class="f">172</span><span class="p">127</span><span class="g">437 (+82)</span><span class="s">91</span><span class="c">199</span><span class="h">51 (+14)</span><span class="grp lab"><span class="m">☺ +8</span><span>♙ 0</span></span></div><div class="pnl" style="left:calc(14 * 100cqw / 640);top:calc(54 * 100cqw / 640);border-width:calc(3 * 100cqw / 640);border-radius:calc(12 * 100cqw / 640);padding:calc(6 * 100cqw / 640) calc(10 * 100cqw / 640) calc(8 * 100cqw / 640);--pshadow:calc(3 * 100cqw / 640);font-size:calc(12 * 100cqw / 640);width:calc(300 * 100cqw / 640);"><div style="display:flex;align-items:center;gap:calc(8 * 100cqw / 640);padding-bottom:calc(4 * 100cqw / 640);border-bottom:calc(2 * 100cqw / 640) solid var(--ink)"><style>.c31925584::before{inset:calc(4 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640)}.c31925584::after{top:calc(-2 * 100cqw / 640);right:calc(-2 * 100cqw / 640);width:calc(10 * 100cqw / 640);height:calc(10 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640)}</style><span class="crestx badge c31925584" style="width:calc(32 * 100cqw / 640);height:calc(32 * 100cqw / 640);background:conic-gradient(var(--ink) 100%, rgba(29,26,32,0.15) 0);"><i style="font-size:calc(13.44 * 100cqw / 640);color:var(--vermilion)">☾</i></span><b style="font-size:calc(14 * 100cqw / 640)">Crimson</b><span class="k" style="margin-left:auto;font-size:calc(10 * 100cqw / 640)">depth two · pinned · Q</span></div><div class="sec" style="font-size:calc(9.5 * 100cqw / 640);margin:calc(6 * 100cqw / 640) 0 calc(2 * 100cqw / 640)">Research</div><div><b>Code of Laws</b> <span class="mono">186/190 · 1t</span></div><span class="barx" style="display:inline-block;width:calc(270 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:98%;background:var(--cobalt)"></i></span><div style="margin-top:calc(5 * 100cqw / 640)"><span class="btnx" style="border-width:calc(2 * 100cqw / 640);border-radius:calc(5 * 100cqw / 640);padding:calc(2 * 100cqw / 640) calc(7 * 100cqw / 640);font-size:calc(11 * 100cqw / 640)">♔ Tech tree · T</span></div><div class="sec" style="font-size:calc(9.5 * 100cqw / 640);margin:calc(6 * 100cqw / 640) 0 calc(2 * 100cqw / 640)">Civics</div><div>Next draft <span class="mono">120/450 · 2t</span> · <span class="k">Tier 14 → 18</span></div><span class="barx" style="display:inline-block;width:calc(270 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:27%;background:var(--grape)"></i></span><div style="margin-top:calc(5 * 100cqw / 640)"><span class="btnx" style="border-width:calc(2 * 100cqw / 640);border-radius:calc(5 * 100cqw / 640);padding:calc(2 * 100cqw / 640) calc(7 * 100cqw / 640);font-size:calc(11 * 100cqw / 640)">§ Statecraft · C</span> <span class="bad" style="font-size:calc(10.5 * 100cqw / 640)">a card awaits</span></div><div style="margin-top:calc(8 * 100cqw / 640);border-top:calc(2 * 100cqw / 640) solid var(--ink);padding-top:calc(2 * 100cqw / 640)"><div class="rowx " style="border-bottom-width:calc(1 * 100cqw / 640);padding:calc(4 * 100cqw / 640) 0;gap:calc(8 * 100cqw / 640)"><span>△ Religion</span><span class="k">H</span></div><div class="rowx " style="border-bottom-width:calc(1 * 100cqw / 640);padding:calc(4 * 100cqw / 640) 0;gap:calc(8 * 100cqw / 640)"><span>☾ Leader · your civ</span><span class="k">L</span></div><div class="sec" style="font-size:calc(9.5 * 100cqw / 640);margin:calc(6 * 100cqw / 640) 0 calc(2 * 100cqw / 640)">Supply</div><div style="display:flex;flex-wrap:wrap;gap:calc(3 * 100cqw / 640) calc(10 * 100cqw / 640);font-size:calc(10.5 * 100cqw / 640);padding:calc(4 * 100cqw / 640) 0"><span class="" style="white-space:nowrap">⌑ Copper <span class="mono ">4/12</span></span><span class="" style="white-space:nowrap">♘ Horses <span class="mono ">6/8</span></span><span class="" style="white-space:nowrap">⛟ Camels <span class="mono ">26/26</span></span><span class="bad" style="white-space:nowrap">Fe Iron <span class="mono bad">0/4</span></span><span class="" style="white-space:nowrap">⚘ Ivory <span class="mono ">25/25</span></span></div><div class="sec" style="font-size:calc(9.5 * 100cqw / 640);margin:calc(6 * 100cqw / 640) 0 calc(2 * 100cqw / 640)">Goals</div><div style="display:flex;align-items:center;gap:calc(6 * 100cqw / 640);border:calc(2 * 100cqw / 640) solid #c2452a;border-left-width:calc(6 * 100cqw / 640);border-radius:calc(4 * 100cqw / 640);padding:calc(3 * 100cqw / 640) calc(6 * 100cqw / 640);margin-top:calc(4 * 100cqw / 640);background:rgba(247,242,225,0.9);font-size:calc(11 * 100cqw / 640)"><span>Clear the Frontier</span><span class="k" style="margin-left:auto">1/2</span></div><div style="display:flex;align-items:center;gap:calc(6 * 100cqw / 640);border:calc(2 * 100cqw / 640) solid #4e7c3f;border-left-width:calc(6 * 100cqw / 640);border-radius:calc(4 * 100cqw / 640);padding:calc(3 * 100cqw / 640) calc(6 * 100cqw / 640);margin-top:calc(4 * 100cqw / 640);background:rgba(247,242,225,0.9);font-size:calc(11 * 100cqw / 640)"><span>Domesday Survey</span><span class="k" style="margin-left:auto">93/150</span></div><div style="display:flex;align-items:center;gap:calc(6 * 100cqw / 640);border:calc(2 * 100cqw / 640) solid #c8901f;border-left-width:calc(6 * 100cqw / 640);border-radius:calc(4 * 100cqw / 640);padding:calc(3 * 100cqw / 640) calc(6 * 100cqw / 640);margin-top:calc(4 * 100cqw / 640);background:rgba(247,242,225,0.9);font-size:calc(11 * 100cqw / 640)"><span>Age wager</span><span class="k" style="margin-left:auto">2 of 3</span></div></div></div></div></div>
+    </div>
+    <div class="card changed"><p style="margin:0"><b>~20,175 px² at rest, 1.6 %.</b> One drawer. At rest: the banner and two thin progress bars, no words. Hovering opens depth one: research and civics in full, each with a labelled button. A click extends the same drawer to depth two with Religion, Leader, Supply and Goals, and pins it.</p></div>
+    <div class="notes"><div><h4>What the user said</h4><ul><li>“Let’s have commissions appear on the left side outside of the empire menu.”</li><li>“Lets have the research and culture sections be clickable (and reflected in the UX as such) instead of dedicated civic/tech tree buttons.”</li></ul></div><div><h4>Where the tech tree is</h4><ul><li>The labelled Tech tree button at the top of the drawer: hover, then one click.</li><li>On touch: two taps. T as before.</li></ul></div><div><h4>Touch and keyboard</h4><ul><li>The first tap opens depth two directly.</li><li>Tab focus opens depth one; Q toggles depth two.</li></ul></div><div><h4>Risks</h4><ul><li>The tech tree is never one click from rest: the audit’s hidden-door problem, softened by hover.</li><li>No research name at rest.</li><li>Crossing the corner can open it; needs the 200 ms delay.</li></ul></div></div>
+  </div>
+</section>
+
+<h2>E2-final</h2>
+<section class="layout" id="final">
+  <div class="layout-body">
+    <p class="stage-rest-cap">1 · At rest, two commissions seated — the whole HUD, 1440 × 900</p>
+    <div class="stage-wrap"><div class="stage" role="img" aria-label="E2-final at rest: empire panel at the top-left, two commission chips under it, End Turn with a count badge."><div class="bar">
+  <span class="grp"><span class="f">172</span><span class="p">127</span><span class="g">437 (+82)</span><span class="s">91</span><span class="c">199</span><span class="h">51 (+14)</span></span>
+  <span class="grp lab"><span class="m">☺ +8</span><span>♙ 0</span></span>
+  <span class="sp"></span><span>TURN 91 · Æra II · 9 left</span><span class="sp"></span>
+  <span class="tab"><span class="tl">⚑ Diplomacy</span></span>
+  <span class="tab"><span class="tl">⛟ Trade</span><span>1/3</span></span>
+  <span class="tab"><span class="tl">≡ Standings</span><span class="r">✦57</span><span>●2/7</span></span>
+  <span class="btn">?</span><span class="btn">☰</span>
+</div><div class="pnl" style="left:calc(14 * 100cqw / 1440);top:calc(54 * 100cqw / 1440);width:calc(200 * 100cqw / 1440);height:calc(56 * 100cqw / 1440);border-width:calc(3 * 100cqw / 1440);border-radius:calc(12 * 100cqw / 1440);--pshadow:calc(3 * 100cqw / 1440);font-size:calc(12 * 100cqw / 1440);background:var(--parchment);display:flex;align-items:center;gap:calc(8 * 100cqw / 1440);padding:0 calc(8 * 100cqw / 1440) 0 calc(6 * 100cqw / 1440)"><style>.c66259247::before{inset:calc(4 * 100cqw / 1440);border-width:calc(1.5 * 100cqw / 1440)}.c66259247::after{top:calc(-2 * 100cqw / 1440);right:calc(-2 * 100cqw / 1440);width:calc(10 * 100cqw / 1440);height:calc(10 * 100cqw / 1440);border-width:calc(1.5 * 100cqw / 1440)}</style><span class="crestx badge c66259247" style="width:calc(40 * 100cqw / 1440);height:calc(40 * 100cqw / 1440);background:conic-gradient(var(--ink) 100%, rgba(29,26,32,0.15) 0);"><i style="font-size:calc(16.8 * 100cqw / 1440);color:var(--vermilion)">☾</i></span><span style="display:flex;flex-direction:column;gap:calc(7 * 100cqw / 1440);flex:1"><span style="display:flex;align-items:center;gap:calc(6 * 100cqw / 1440)"><span class="barx" style="display:inline-block;width:calc(96 * 100cqw / 1440);height:calc(6 * 100cqw / 1440)"><i style="width:98%;background:var(--cobalt)"></i></span><span class="mono" style="font-size:calc(10 * 100cqw / 1440)">1t</span></span><span style="display:flex;align-items:center;gap:calc(6 * 100cqw / 1440)"><span class="barx" style="display:inline-block;width:calc(96 * 100cqw / 1440);height:calc(6 * 100cqw / 1440)"><i style="width:27%;background:var(--grape)"></i></span><span class="mono" style="font-size:calc(10 * 100cqw / 1440)">2t</span></span></span><span class="k" style="font-size:calc(13 * 100cqw / 1440)">▸</span></div><div class="qchipx" style="position:absolute;z-index:1;left:calc(14 * 100cqw / 1440);top:calc(120 * 100cqw / 1440);width:calc(200 * 100cqw / 1440);height:calc(38 * 100cqw / 1440);border-width:calc(1 * 100cqw / 1440);border-left:calc(3 * 100cqw / 1440) solid #c2452a;border-radius:calc(4 * 100cqw / 1440);padding:0 calc(8 * 100cqw / 1440) 0 calc(6 * 100cqw / 1440);gap:calc(7 * 100cqw / 1440)"><span style="position:relative;flex:none;width:calc(22 * 100cqw / 1440);height:calc(22 * 100cqw / 1440);border-radius:50%;background:conic-gradient(#c2452a 50%, rgba(29,26,32,0.15) 0)"><span style="position:absolute;inset:calc(4 * 100cqw / 1440);border-radius:50%;background:rgba(247,242,225,0.95)"></span></span><span style="min-width:0"><span class="qn" style="font-size:calc(12 * 100cqw / 1440)">Clear the Frontier</span><span class="qc" style="font-size:calc(10.5 * 100cqw / 1440)">1 / 2 camps cleared</span></span></div><div class="qchipx" style="position:absolute;z-index:1;left:calc(14 * 100cqw / 1440);top:calc(164 * 100cqw / 1440);width:calc(200 * 100cqw / 1440);height:calc(38 * 100cqw / 1440);border-width:calc(1 * 100cqw / 1440);border-left:calc(3 * 100cqw / 1440) solid #4e7c3f;border-radius:calc(4 * 100cqw / 1440);padding:0 calc(8 * 100cqw / 1440) 0 calc(6 * 100cqw / 1440);gap:calc(7 * 100cqw / 1440)"><span style="position:relative;flex:none;width:calc(22 * 100cqw / 1440);height:calc(22 * 100cqw / 1440);border-radius:50%;background:conic-gradient(#4e7c3f 62%, rgba(29,26,32,0.15) 0)"><span style="position:absolute;inset:calc(4 * 100cqw / 1440);border-radius:50%;background:rgba(247,242,225,0.95)"></span></span><span style="min-width:0"><span class="qn" style="font-size:calc(12 * 100cqw / 1440)">The Domesday Survey</span><span class="qc" style="font-size:calc(10.5 * 100cqw / 1440)">93 / 150 hexes</span></span></div><div class="ghostbox" style="left:1%;bottom:1.6%;width:17.5%;height:10%"><span class="when">on hover · a hex</span>Plains · 1 · 1</div><div class="ghostbox" style="right:1%;top:6.2%;width:23.6%;height:36%"><span class="when">when a unit is selected</span><b>Worker</b></div><div class="endb"><span class="cnt">+2</span>A card awaits ⏎</div>
+<div class="ico" style="right:14%">❧</div>
+<div class="ico" style="right:17.3%;font-family:var(--mono);font-size:0.75em">LENS</div><div class="ghostbox" style="right:1%;bottom:8.6%;width:17%"><span class="when">on hover · End Turn</span>
+<div class="r"><span>☞ A card awaits</span></div><div class="r"><span>☞ Choose a belief</span></div><div class="r"><span>☞ 2 units need orders</span></div></div><div class="cap teal" style="left:16.5%;top:7%">empire panel · one target · opens the drawer to its right</div><div class="cap teal" style="left:16.5%;top:14.6%">seated commissions · outside the menu · never covered</div></div></div>
+    <div class="crops">
+      <div><p class="crop-cap">2 · Hovering the panel: depth one, pointer on Research</p><div class="stage" role="img" aria-label="Drawer at depth one, research section hovered" style="min-width:0;aspect-ratio:1 / 1"><div class="bar" style="height:6.56%;font-size:calc(11 * 100cqw / 640)"><span class="f">172</span><span class="p">127</span><span class="g">437 (+82)</span><span class="s">91</span><span class="c">199</span><span class="h">51 (+14)</span><span class="grp lab"><span class="m">☺ +8</span><span>♙ 0</span></span></div><div class="pnl" style="left:calc(14 * 100cqw / 640);top:calc(54 * 100cqw / 640);width:calc(200 * 100cqw / 640);height:calc(56 * 100cqw / 640);border-width:calc(3 * 100cqw / 640);border-radius:calc(12 * 100cqw / 640) calc(2 * 100cqw / 640) calc(2 * 100cqw / 640) calc(12 * 100cqw / 640);--pshadow:calc(3 * 100cqw / 640);font-size:calc(12 * 100cqw / 640);background:#fdfaef;display:flex;align-items:center;gap:calc(8 * 100cqw / 640);padding:0 calc(8 * 100cqw / 640) 0 calc(6 * 100cqw / 640)"><style>.c1171165::before{inset:calc(4 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640)}.c1171165::after{top:calc(-2 * 100cqw / 640);right:calc(-2 * 100cqw / 640);width:calc(10 * 100cqw / 640);height:calc(10 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640)}</style><span class="crestx badge c1171165" style="width:calc(40 * 100cqw / 640);height:calc(40 * 100cqw / 640);background:conic-gradient(var(--ink) 100%, rgba(29,26,32,0.15) 0);"><i style="font-size:calc(16.8 * 100cqw / 640);color:var(--vermilion)">☾</i></span><span style="display:flex;flex-direction:column;gap:calc(7 * 100cqw / 640);flex:1"><span style="display:flex;align-items:center;gap:calc(6 * 100cqw / 640)"><span class="barx" style="display:inline-block;width:calc(96 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:98%;background:var(--cobalt)"></i></span><span class="mono" style="font-size:calc(10 * 100cqw / 640)">1t</span></span><span style="display:flex;align-items:center;gap:calc(6 * 100cqw / 640)"><span class="barx" style="display:inline-block;width:calc(96 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:27%;background:var(--grape)"></i></span><span class="mono" style="font-size:calc(10 * 100cqw / 640)">2t</span></span></span><span class="k" style="font-size:calc(13 * 100cqw / 640)">▸</span></div><div class="qchipx" style="position:absolute;z-index:1;left:calc(14 * 100cqw / 640);top:calc(120 * 100cqw / 640);width:calc(200 * 100cqw / 640);height:calc(38 * 100cqw / 640);border-width:calc(1 * 100cqw / 640);border-left:calc(3 * 100cqw / 640) solid #c2452a;border-radius:calc(4 * 100cqw / 640);padding:0 calc(8 * 100cqw / 640) 0 calc(6 * 100cqw / 640);gap:calc(7 * 100cqw / 640)"><span style="position:relative;flex:none;width:calc(22 * 100cqw / 640);height:calc(22 * 100cqw / 640);border-radius:50%;background:conic-gradient(#c2452a 50%, rgba(29,26,32,0.15) 0)"><span style="position:absolute;inset:calc(4 * 100cqw / 640);border-radius:50%;background:rgba(247,242,225,0.95)"></span></span><span style="min-width:0"><span class="qn" style="font-size:calc(12 * 100cqw / 640)">Clear the Frontier</span><span class="qc" style="font-size:calc(10.5 * 100cqw / 640)">1 / 2 camps cleared</span></span></div><div class="qchipx" style="position:absolute;z-index:1;left:calc(14 * 100cqw / 640);top:calc(164 * 100cqw / 640);width:calc(200 * 100cqw / 640);height:calc(38 * 100cqw / 640);border-width:calc(1 * 100cqw / 640);border-left:calc(3 * 100cqw / 640) solid #4e7c3f;border-radius:calc(4 * 100cqw / 640);padding:0 calc(8 * 100cqw / 640) 0 calc(6 * 100cqw / 640);gap:calc(7 * 100cqw / 640)"><span style="position:relative;flex:none;width:calc(22 * 100cqw / 640);height:calc(22 * 100cqw / 640);border-radius:50%;background:conic-gradient(#4e7c3f 62%, rgba(29,26,32,0.15) 0)"><span style="position:absolute;inset:calc(4 * 100cqw / 640);border-radius:50%;background:rgba(247,242,225,0.95)"></span></span><span style="min-width:0"><span class="qn" style="font-size:calc(12 * 100cqw / 640)">The Domesday Survey</span><span class="qc" style="font-size:calc(10.5 * 100cqw / 640)">93 / 150 hexes</span></span></div><div class="pnl" style="left:calc(220 * 100cqw / 640);top:calc(54 * 100cqw / 640);width:calc(300 * 100cqw / 640);border-width:calc(3 * 100cqw / 640);border-radius:calc(2 * 100cqw / 640) calc(10 * 100cqw / 640) calc(10 * 100cqw / 640) calc(10 * 100cqw / 640);--pshadow:calc(3 * 100cqw / 640);font-size:calc(12 * 100cqw / 640);padding:calc(6 * 100cqw / 640) calc(10 * 100cqw / 640) calc(9 * 100cqw / 640)"><div style="display:flex;align-items:center;gap:calc(8 * 100cqw / 640);padding-bottom:calc(4 * 100cqw / 640);border-bottom:calc(2 * 100cqw / 640) solid var(--ink)"><b style="font-size:calc(14 * 100cqw / 640)">Crimson</b><span class="k" style="margin-left:auto;font-size:calc(10 * 100cqw / 640)">hover · click to pin</span></div><div class="secbtn hov" style="width:calc(280 * 100cqw / 640);border-width:calc(2 * 100cqw / 640);border-left-width:calc(4 * 100cqw / 640);border-left-color:var(--cobalt);border-radius:calc(6 * 100cqw / 640);padding:calc(6 * 100cqw / 640) calc(8 * 100cqw / 640) calc(7 * 100cqw / 640) calc(10 * 100cqw / 640);margin-top:calc(6 * 100cqw / 640);font-size:calc(11.5 * 100cqw / 640);"><div class="ttl" style="font-size:calc(13.5 * 100cqw / 640)"><span class="t">Research</span><span class="arr" style="transform:translateX(calc(2 * 100cqw / 640));display:inline-block;">→</span><span class="kbox" style="font-size:calc(10 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640);border-radius:calc(3 * 100cqw / 640);padding:0 calc(4 * 100cqw / 640)">T</span></div><div><b>Code of Laws</b> <span class="mono">186/190 · +91 a turn · 1t</span></div><span class="barx" style="display:inline-block;width:calc(254 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:98%;background:var(--cobalt)"></i></span><div class="k" style="font-size:calc(10.5 * 100cqw / 640)">next: Mathematics</div></div><div class="secbtn" style="width:calc(280 * 100cqw / 640);border-width:calc(2 * 100cqw / 640);border-left-width:calc(4 * 100cqw / 640);border-left-color:var(--grape);border-radius:calc(6 * 100cqw / 640);padding:calc(6 * 100cqw / 640) calc(8 * 100cqw / 640) calc(7 * 100cqw / 640) calc(10 * 100cqw / 640);margin-top:calc(6 * 100cqw / 640);font-size:calc(11.5 * 100cqw / 640);"><div class="ttl" style="font-size:calc(13.5 * 100cqw / 640)"><span class="t">Culture</span><span class="arr" style="">→</span><span class="kbox" style="font-size:calc(10 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640);border-radius:calc(3 * 100cqw / 640);padding:0 calc(4 * 100cqw / 640)">C</span></div><div>Next draft <span class="mono">120/450 · 2t</span></div><span class="barx" style="display:inline-block;width:calc(254 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:27%;background:var(--grape)"></i></span><div class="k" style="font-size:calc(10.5 * 100cqw / 640)">Tier 14 · next government at 18</div><div class="bad" style="font-size:calc(10.5 * 100cqw / 640)">a card awaits</div></div><div class="k" style="margin-top:calc(7 * 100cqw / 640);font-size:calc(10.5 * 100cqw / 640)">▾ click for Religion, Leader, Supply</div></div><span class="cursor" style="left:calc(300 * 100cqw / 640);top:calc(105 * 100cqw / 640);font-size:calc(18 * 100cqw / 640)">↖</span></div></div>
+      <div><p class="crop-cap">3 · Clicked (or Q): depth two, keyboard focus on Culture</p><div class="stage" role="img" aria-label="Drawer pinned at depth two, culture section with keyboard focus" style="min-width:0;aspect-ratio:1 / 1"><div class="bar" style="height:6.56%;font-size:calc(11 * 100cqw / 640)"><span class="f">172</span><span class="p">127</span><span class="g">437 (+82)</span><span class="s">91</span><span class="c">199</span><span class="h">51 (+14)</span><span class="grp lab"><span class="m">☺ +8</span><span>♙ 0</span></span></div><div class="pnl" style="left:calc(14 * 100cqw / 640);top:calc(54 * 100cqw / 640);width:calc(200 * 100cqw / 640);height:calc(56 * 100cqw / 640);border-width:calc(3 * 100cqw / 640);border-radius:calc(12 * 100cqw / 640) calc(2 * 100cqw / 640) calc(2 * 100cqw / 640) calc(12 * 100cqw / 640);--pshadow:calc(3 * 100cqw / 640);font-size:calc(12 * 100cqw / 640);background:#fdfaef;display:flex;align-items:center;gap:calc(8 * 100cqw / 640);padding:0 calc(8 * 100cqw / 640) 0 calc(6 * 100cqw / 640)"><style>.c1171165::before{inset:calc(4 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640)}.c1171165::after{top:calc(-2 * 100cqw / 640);right:calc(-2 * 100cqw / 640);width:calc(10 * 100cqw / 640);height:calc(10 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640)}</style><span class="crestx badge c1171165" style="width:calc(40 * 100cqw / 640);height:calc(40 * 100cqw / 640);background:conic-gradient(var(--ink) 100%, rgba(29,26,32,0.15) 0);"><i style="font-size:calc(16.8 * 100cqw / 640);color:var(--vermilion)">☾</i></span><span style="display:flex;flex-direction:column;gap:calc(7 * 100cqw / 640);flex:1"><span style="display:flex;align-items:center;gap:calc(6 * 100cqw / 640)"><span class="barx" style="display:inline-block;width:calc(96 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:98%;background:var(--cobalt)"></i></span><span class="mono" style="font-size:calc(10 * 100cqw / 640)">1t</span></span><span style="display:flex;align-items:center;gap:calc(6 * 100cqw / 640)"><span class="barx" style="display:inline-block;width:calc(96 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:27%;background:var(--grape)"></i></span><span class="mono" style="font-size:calc(10 * 100cqw / 640)">2t</span></span></span><span class="k" style="font-size:calc(13 * 100cqw / 640)">▸</span></div><div class="qchipx" style="position:absolute;z-index:1;left:calc(14 * 100cqw / 640);top:calc(120 * 100cqw / 640);width:calc(200 * 100cqw / 640);height:calc(38 * 100cqw / 640);border-width:calc(1 * 100cqw / 640);border-left:calc(3 * 100cqw / 640) solid #c2452a;border-radius:calc(4 * 100cqw / 640);padding:0 calc(8 * 100cqw / 640) 0 calc(6 * 100cqw / 640);gap:calc(7 * 100cqw / 640)"><span style="position:relative;flex:none;width:calc(22 * 100cqw / 640);height:calc(22 * 100cqw / 640);border-radius:50%;background:conic-gradient(#c2452a 50%, rgba(29,26,32,0.15) 0)"><span style="position:absolute;inset:calc(4 * 100cqw / 640);border-radius:50%;background:rgba(247,242,225,0.95)"></span></span><span style="min-width:0"><span class="qn" style="font-size:calc(12 * 100cqw / 640)">Clear the Frontier</span><span class="qc" style="font-size:calc(10.5 * 100cqw / 640)">1 / 2 camps cleared</span></span></div><div class="qchipx" style="position:absolute;z-index:1;left:calc(14 * 100cqw / 640);top:calc(164 * 100cqw / 640);width:calc(200 * 100cqw / 640);height:calc(38 * 100cqw / 640);border-width:calc(1 * 100cqw / 640);border-left:calc(3 * 100cqw / 640) solid #4e7c3f;border-radius:calc(4 * 100cqw / 640);padding:0 calc(8 * 100cqw / 640) 0 calc(6 * 100cqw / 640);gap:calc(7 * 100cqw / 640)"><span style="position:relative;flex:none;width:calc(22 * 100cqw / 640);height:calc(22 * 100cqw / 640);border-radius:50%;background:conic-gradient(#4e7c3f 62%, rgba(29,26,32,0.15) 0)"><span style="position:absolute;inset:calc(4 * 100cqw / 640);border-radius:50%;background:rgba(247,242,225,0.95)"></span></span><span style="min-width:0"><span class="qn" style="font-size:calc(12 * 100cqw / 640)">The Domesday Survey</span><span class="qc" style="font-size:calc(10.5 * 100cqw / 640)">93 / 150 hexes</span></span></div><div class="pnl" style="left:calc(220 * 100cqw / 640);top:calc(54 * 100cqw / 640);width:calc(300 * 100cqw / 640);border-width:calc(3 * 100cqw / 640);border-radius:calc(2 * 100cqw / 640) calc(10 * 100cqw / 640) calc(10 * 100cqw / 640) calc(10 * 100cqw / 640);--pshadow:calc(3 * 100cqw / 640);font-size:calc(12 * 100cqw / 640);padding:calc(6 * 100cqw / 640) calc(10 * 100cqw / 640) calc(9 * 100cqw / 640)"><div style="display:flex;align-items:center;gap:calc(8 * 100cqw / 640);padding-bottom:calc(4 * 100cqw / 640);border-bottom:calc(2 * 100cqw / 640) solid var(--ink)"><b style="font-size:calc(14 * 100cqw / 640)">Crimson</b><span class="k" style="margin-left:auto;font-size:calc(10 * 100cqw / 640)">pinned · Q · Esc closes</span></div><div class="secbtn" style="width:calc(280 * 100cqw / 640);border-width:calc(2 * 100cqw / 640);border-left-width:calc(2 * 100cqw / 640);border-left-color:var(--rule);border-radius:calc(6 * 100cqw / 640);padding:calc(6 * 100cqw / 640) calc(8 * 100cqw / 640) calc(7 * 100cqw / 640) calc(10 * 100cqw / 640);margin-top:calc(6 * 100cqw / 640);font-size:calc(11.5 * 100cqw / 640);"><div class="ttl" style="font-size:calc(13.5 * 100cqw / 640)"><span class="t">Research</span><span class="arr" style="">→</span><span class="kbox" style="font-size:calc(10 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640);border-radius:calc(3 * 100cqw / 640);padding:0 calc(4 * 100cqw / 640)">T</span></div><div><b>Code of Laws</b> <span class="mono">186/190 · +91 a turn · 1t</span></div><span class="barx" style="display:inline-block;width:calc(254 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:98%;background:var(--cobalt)"></i></span><div class="k" style="font-size:calc(10.5 * 100cqw / 640)">next: Mathematics</div></div><div class="secbtn hov" style="width:calc(280 * 100cqw / 640);border-width:calc(2 * 100cqw / 640);border-left-width:calc(4 * 100cqw / 640);border-left-color:var(--grape);border-radius:calc(6 * 100cqw / 640);padding:calc(6 * 100cqw / 640) calc(8 * 100cqw / 640) calc(7 * 100cqw / 640) calc(10 * 100cqw / 640);margin-top:calc(6 * 100cqw / 640);font-size:calc(11.5 * 100cqw / 640);outline:calc(3 * 100cqw / 640) solid var(--grape);outline-offset:calc(2 * 100cqw / 640);"><div class="ttl" style="font-size:calc(13.5 * 100cqw / 640)"><span class="t">Culture</span><span class="arr" style="transform:translateX(calc(2 * 100cqw / 640));display:inline-block;">→</span><span class="kbox" style="font-size:calc(10 * 100cqw / 640);border-width:calc(1.5 * 100cqw / 640);border-radius:calc(3 * 100cqw / 640);padding:0 calc(4 * 100cqw / 640)">C</span></div><div>Next draft <span class="mono">120/450 · 2t</span></div><span class="barx" style="display:inline-block;width:calc(254 * 100cqw / 640);height:calc(6 * 100cqw / 640)"><i style="width:27%;background:var(--grape)"></i></span><div class="k" style="font-size:calc(10.5 * 100cqw / 640)">Tier 14 · next government at 18</div><div class="bad" style="font-size:calc(10.5 * 100cqw / 640)">a card awaits</div></div><div style="margin-top:calc(8 * 100cqw / 640);border-top:calc(2 * 100cqw / 640) solid var(--ink);padding-top:calc(2 * 100cqw / 640)"><div class="rowx " style="border-bottom-width:calc(1 * 100cqw / 640);padding:calc(4 * 100cqw / 640) 0;gap:calc(8 * 100cqw / 640)"><span>△ Religion · faith 51, next rung 60</span><span class="k">H</span></div><div class="rowx " style="border-bottom-width:calc(1 * 100cqw / 640);padding:calc(4 * 100cqw / 640) 0;gap:calc(8 * 100cqw / 640)"><span>☾ Leader · your civ</span><span class="k">L</span></div><div class="rowx " style="border-bottom-width:calc(1 * 100cqw / 640);padding:calc(4 * 100cqw / 640) 0;gap:calc(8 * 100cqw / 640)"><span>◔ Age wager · 2 of 3 bars</span><span class="k">›</span></div><div class="sec" style="font-size:calc(9.5 * 100cqw / 640);margin:calc(6 * 100cqw / 640) 0 calc(2 * 100cqw / 640)">Supply</div><div style="display:flex;flex-wrap:wrap;gap:calc(3 * 100cqw / 640) calc(10 * 100cqw / 640);font-size:calc(10.5 * 100cqw / 640);padding:calc(4 * 100cqw / 640) 0"><span class="" style="white-space:nowrap">⌑ Copper <span class="mono ">4/12</span></span><span class="" style="white-space:nowrap">♘ Horses <span class="mono ">6/8</span></span><span class="" style="white-space:nowrap">⛟ Camels <span class="mono ">26/26</span></span><span class="bad" style="white-space:nowrap">Fe Iron <span class="mono bad">0/4</span></span><span class="" style="white-space:nowrap">⚘ Ivory <span class="mono ">25/25</span></span></div></div></div></div></div>
+    </div>
+    <div class="notes">
+<div><h4>At rest</h4><ul><li>Empire panel 200 × 56: banner (red dot when owed), research and draft bars with turns, ▸.</li><li>One target: hover opens depth one; click, tap, Enter or Q pins depth two.</li><li>Commission chips 200 × 38 under it, only for seated cards; at most four, then “+N more”.</li></ul></div>
+<div><h4>Drawer</h4><ul><li>Opens to the right of the panel (left 220, top 54, 300 wide), so it never covers the chips and nothing moves.</li><li>Depth one: the Research and Culture sections, each one big button.</li><li>Depth two: adds Religion (H), Leader (L), Age wager, Supply.</li></ul></div>
+<div><h4>Why the bars are not targets</h4><ul><li>6 px tall: far below a usable target (WCAG 2.2 asks for 24 px).</li><li>Splitting the panel was E1’s design, not picked.</li><li>The sections are one hover away; T and C go direct.</li></ul></div>
+<div><h4>Footprint at rest</h4><ul><li>22,975 px² (1.9 %) with no commission seated.</li><li>≈38,175 px² (3.1 %) with two seated.</li><li>Today: 70,101 px² (5.7 %).</li></ul></div>
+</div>
+  </div>
+</section>
+
+<h2>Close-up: the clickable sections</h2>
+<p class="lede">Drawn larger than life. Each section is a real button containing its title, figures and bar. Cursor: pointer throughout.</p>
+<div class="specimens"><div class="spec"><p class="crop-cap">Research · rest</p><div class="secbtn" style="width:calc(270 * 100cqw / 300);border-width:calc(2 * 100cqw / 300);border-left-width:calc(2 * 100cqw / 300);border-left-color:var(--rule);border-radius:calc(6 * 100cqw / 300);padding:calc(6 * 100cqw / 300) calc(8 * 100cqw / 300) calc(7 * 100cqw / 300) calc(10 * 100cqw / 300);margin-top:calc(6 * 100cqw / 300);font-size:calc(11.5 * 100cqw / 300);"><div class="ttl" style="font-size:calc(13.5 * 100cqw / 300)"><span class="t">Research</span><span class="arr" style="">→</span><span class="kbox" style="font-size:calc(10 * 100cqw / 300);border-width:calc(1.5 * 100cqw / 300);border-radius:calc(3 * 100cqw / 300);padding:0 calc(4 * 100cqw / 300)">T</span></div><div><b>Code of Laws</b> <span class="mono">186/190 · +91 a turn · 1t</span></div><span class="barx" style="display:inline-block;width:calc(244 * 100cqw / 300);height:calc(6 * 100cqw / 300)"><i style="width:98%;background:var(--cobalt)"></i></span><div class="k" style="font-size:calc(10.5 * 100cqw / 300)">next: Mathematics</div></div></div><div class="spec"><p class="crop-cap">Research · hover</p><div class="secbtn hov" style="width:calc(270 * 100cqw / 300);border-width:calc(2 * 100cqw / 300);border-left-width:calc(4 * 100cqw / 300);border-left-color:var(--cobalt);border-radius:calc(6 * 100cqw / 300);padding:calc(6 * 100cqw / 300) calc(8 * 100cqw / 300) calc(7 * 100cqw / 300) calc(10 * 100cqw / 300);margin-top:calc(6 * 100cqw / 300);font-size:calc(11.5 * 100cqw / 300);"><div class="ttl" style="font-size:calc(13.5 * 100cqw / 300)"><span class="t">Research</span><span class="arr" style="transform:translateX(calc(2 * 100cqw / 300));display:inline-block;">→</span><span class="kbox" style="font-size:calc(10 * 100cqw / 300);border-width:calc(1.5 * 100cqw / 300);border-radius:calc(3 * 100cqw / 300);padding:0 calc(4 * 100cqw / 300)">T</span></div><div><b>Code of Laws</b> <span class="mono">186/190 · +91 a turn · 1t</span></div><span class="barx" style="display:inline-block;width:calc(244 * 100cqw / 300);height:calc(6 * 100cqw / 300)"><i style="width:98%;background:var(--cobalt)"></i></span><div class="k" style="font-size:calc(10.5 * 100cqw / 300)">next: Mathematics</div></div></div><div class="spec"><p class="crop-cap">Research · keyboard focus</p><div class="secbtn hov" style="width:calc(270 * 100cqw / 300);border-width:calc(2 * 100cqw / 300);border-left-width:calc(4 * 100cqw / 300);border-left-color:var(--cobalt);border-radius:calc(6 * 100cqw / 300);padding:calc(6 * 100cqw / 300) calc(8 * 100cqw / 300) calc(7 * 100cqw / 300) calc(10 * 100cqw / 300);margin-top:calc(6 * 100cqw / 300);font-size:calc(11.5 * 100cqw / 300);outline:calc(3 * 100cqw / 300) solid var(--cobalt);outline-offset:calc(2 * 100cqw / 300);"><div class="ttl" style="font-size:calc(13.5 * 100cqw / 300)"><span class="t">Research</span><span class="arr" style="transform:translateX(calc(2 * 100cqw / 300));display:inline-block;">→</span><span class="kbox" style="font-size:calc(10 * 100cqw / 300);border-width:calc(1.5 * 100cqw / 300);border-radius:calc(3 * 100cqw / 300);padding:0 calc(4 * 100cqw / 300)">T</span></div><div><b>Code of Laws</b> <span class="mono">186/190 · +91 a turn · 1t</span></div><span class="barx" style="display:inline-block;width:calc(244 * 100cqw / 300);height:calc(6 * 100cqw / 300)"><i style="width:98%;background:var(--cobalt)"></i></span><div class="k" style="font-size:calc(10.5 * 100cqw / 300)">next: Mathematics</div></div></div><div class="spec"><p class="crop-cap">Research · pressed</p><div class="secbtn press" style="width:calc(270 * 100cqw / 300);border-width:calc(2 * 100cqw / 300);border-left-width:calc(4 * 100cqw / 300);border-left-color:var(--cobalt);border-radius:calc(6 * 100cqw / 300);padding:calc(6 * 100cqw / 300) calc(8 * 100cqw / 300) calc(7 * 100cqw / 300) calc(10 * 100cqw / 300);margin-top:calc(6 * 100cqw / 300);font-size:calc(11.5 * 100cqw / 300);transform:translate(calc(2 * 100cqw / 300),calc(2 * 100cqw / 300));"><div class="ttl" style="font-size:calc(13.5 * 100cqw / 300)"><span class="t">Research</span><span class="arr" style="">→</span><span class="kbox" style="font-size:calc(10 * 100cqw / 300);border-width:calc(1.5 * 100cqw / 300);border-radius:calc(3 * 100cqw / 300);padding:0 calc(4 * 100cqw / 300)">T</span></div><div><b>Code of Laws</b> <span class="mono">186/190 · +91 a turn · 1t</span></div><span class="barx" style="display:inline-block;width:calc(244 * 100cqw / 300);height:calc(6 * 100cqw / 300)"><i style="width:98%;background:var(--cobalt)"></i></span><div class="k" style="font-size:calc(10.5 * 100cqw / 300)">next: Mathematics</div></div></div><div class="spec"><p class="crop-cap">Culture · a draft is owed (at rest)</p><div class="secbtn" style="width:calc(270 * 100cqw / 300);border-width:calc(2 * 100cqw / 300);border-left-width:calc(4 * 100cqw / 300);border-left-color:var(--grape);border-radius:calc(6 * 100cqw / 300);padding:calc(6 * 100cqw / 300) calc(8 * 100cqw / 300) calc(7 * 100cqw / 300) calc(10 * 100cqw / 300);margin-top:calc(6 * 100cqw / 300);font-size:calc(11.5 * 100cqw / 300);"><div class="ttl" style="font-size:calc(13.5 * 100cqw / 300)"><span class="t">Culture</span><span class="arr" style="">→</span><span class="kbox" style="font-size:calc(10 * 100cqw / 300);border-width:calc(1.5 * 100cqw / 300);border-radius:calc(3 * 100cqw / 300);padding:0 calc(4 * 100cqw / 300)">C</span></div><div>Next draft <span class="mono">120/450 · 2t</span></div><span class="barx" style="display:inline-block;width:calc(244 * 100cqw / 300);height:calc(6 * 100cqw / 300)"><i style="width:27%;background:var(--grape)"></i></span><div class="k" style="font-size:calc(10.5 * 100cqw / 300)">Tier 14 · next government at 18</div><div class="bad" style="font-size:calc(10.5 * 100cqw / 300)">a card awaits</div></div></div><div class="spec"><p class="crop-cap">Culture · hover</p><div class="secbtn hov" style="width:calc(270 * 100cqw / 300);border-width:calc(2 * 100cqw / 300);border-left-width:calc(4 * 100cqw / 300);border-left-color:var(--grape);border-radius:calc(6 * 100cqw / 300);padding:calc(6 * 100cqw / 300) calc(8 * 100cqw / 300) calc(7 * 100cqw / 300) calc(10 * 100cqw / 300);margin-top:calc(6 * 100cqw / 300);font-size:calc(11.5 * 100cqw / 300);"><div class="ttl" style="font-size:calc(13.5 * 100cqw / 300)"><span class="t">Culture</span><span class="arr" style="transform:translateX(calc(2 * 100cqw / 300));display:inline-block;">→</span><span class="kbox" style="font-size:calc(10 * 100cqw / 300);border-width:calc(1.5 * 100cqw / 300);border-radius:calc(3 * 100cqw / 300);padding:0 calc(4 * 100cqw / 300)">C</span></div><div>Next draft <span class="mono">120/450 · 2t</span></div><span class="barx" style="display:inline-block;width:calc(244 * 100cqw / 300);height:calc(6 * 100cqw / 300)"><i style="width:27%;background:var(--grape)"></i></span><div class="k" style="font-size:calc(10.5 * 100cqw / 300)">Tier 14 · next government at 18</div><div class="bad" style="font-size:calc(10.5 * 100cqw / 300)">a card awaits</div></div></div></div>
+
+<h2>Close-up: the commission chips</h2>
+<p class="lede">As approved in the commissions mockup: see-through ground, deck-coloured left edge, a ring that fills, the count in words. Hover or tap for the goal and reward; click to open Statecraft at the card.</p>
+<div class="specimens"><div class="spec"><p class="crop-cap">Commission chip · rest</p><div style="position:relative;height:calc(44 * 100cqw / 300)"><div class="qchipx" style="position:absolute;z-index:1;left:calc(0 * 100cqw / 300);top:calc(0 * 100cqw / 300);width:calc(230 * 100cqw / 300);height:calc(38 * 100cqw / 300);border-width:calc(1 * 100cqw / 300);border-left:calc(3 * 100cqw / 300) solid #4e7c3f;border-radius:calc(4 * 100cqw / 300);padding:0 calc(8 * 100cqw / 300) 0 calc(6 * 100cqw / 300);gap:calc(7 * 100cqw / 300)"><span style="position:relative;flex:none;width:calc(22 * 100cqw / 300);height:calc(22 * 100cqw / 300);border-radius:50%;background:conic-gradient(#4e7c3f 62%, rgba(29,26,32,0.15) 0)"><span style="position:absolute;inset:calc(4 * 100cqw / 300);border-radius:50%;background:rgba(247,242,225,0.95)"></span></span><span style="min-width:0"><span class="qn" style="font-size:calc(12 * 100cqw / 300)">The Domesday Survey</span><span class="qc" style="font-size:calc(10.5 * 100cqw / 300)">93 / 150 hexes</span></span></div></div></div><div class="spec"><p class="crop-cap">Chip · hover or tap: detail beside it</p><div style="position:relative;height:calc(250 * 100cqw / 300)"><div class="qchipx" style="position:absolute;z-index:1;left:calc(0 * 100cqw / 300);top:calc(0 * 100cqw / 300);width:calc(150 * 100cqw / 300);height:calc(38 * 100cqw / 300);border-width:calc(1 * 100cqw / 300);border-left:calc(3 * 100cqw / 300) solid #4e7c3f;border-radius:calc(4 * 100cqw / 300);padding:0 calc(8 * 100cqw / 300) 0 calc(6 * 100cqw / 300);gap:calc(7 * 100cqw / 300)"><span style="position:relative;flex:none;width:calc(22 * 100cqw / 300);height:calc(22 * 100cqw / 300);border-radius:50%;background:conic-gradient(#4e7c3f 62%, rgba(29,26,32,0.15) 0)"><span style="position:absolute;inset:calc(4 * 100cqw / 300);border-radius:50%;background:rgba(247,242,225,0.95)"></span></span><span style="min-width:0"><span class="qn" style="font-size:calc(12 * 100cqw / 300)">The Domesday Survey</span><span class="qc" style="font-size:calc(10.5 * 100cqw / 300)">93 / 150 hexes</span></span></div><div class="pnl" style="left:calc(156 * 100cqw / 300);top:0;width:calc(140 * 100cqw / 300);border-width:calc(2 * 100cqw / 300);border-radius:calc(6 * 100cqw / 300);--pshadow:calc(2 * 100cqw / 300);font-size:calc(10 * 100cqw / 300);padding:calc(6 * 100cqw / 300)"><b style="font-size:calc(12 * 100cqw / 300)">The Domesday Survey</b><br>Own 150 hexes and work 50 improved or tended tiles.<br><span class="mono">hexes 93 / 150<br>tiles 41 / 50</span><br>Reward: production in every town and a great engineer.<br><span class="k">click: open at the card</span></div></div></div><div class="spec"><p class="crop-cap">Chip · goal met this turn</p><div style="position:relative;height:calc(44 * 100cqw / 300)"><div class="qchipx done" style="position:absolute;z-index:1;left:calc(0 * 100cqw / 300);top:calc(0 * 100cqw / 300);width:calc(230 * 100cqw / 300);height:calc(38 * 100cqw / 300);border-width:calc(1 * 100cqw / 300);border-left:calc(3 * 100cqw / 300) solid var(--gilt);border-radius:calc(4 * 100cqw / 300);padding:0 calc(8 * 100cqw / 300) 0 calc(6 * 100cqw / 300);gap:calc(7 * 100cqw / 300)"><span style="position:relative;flex:none;width:calc(22 * 100cqw / 300);height:calc(22 * 100cqw / 300);border-radius:50%;background:conic-gradient(#c2452a 100%, rgba(29,26,32,0.15) 0)"><span style="position:absolute;inset:calc(4 * 100cqw / 300);border-radius:50%;background:rgba(247,242,225,0.95)"></span></span><span style="min-width:0"><span class="qn" style="font-size:calc(12 * 100cqw / 300)">Clear the Frontier</span><span class="qc" style="font-size:calc(10.5 * 100cqw / 300)">Fulfilled · reward paid</span></span></div></div></div></div>
+
+<h2>Keys</h2>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Key</th><th>Opens</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td class="mono">T</td><td>Star chart (same as clicking Research)</td><td>as now</td></tr>
+<tr><td class="mono">C</td><td>Statecraft (same as clicking Culture)</td><td>as now</td></tr>
+<tr><td class="mono">H · W · E · A · V</td><td>Religion · Diplomacy · Trade · Abacus · bead ledger</td><td>as now</td></tr>
+<tr><td class="mono">Q</td><td>Empire drawer, depth two (toggle)</td><td class="y">new; unbound today</td></tr>
+<tr><td class="mono">L</td><td>Leader sheet</td><td class="y">new; unbound today</td></tr>
+<tr><td class="mono">Esc</td><td>Closes the drawer, then the usual layers</td><td>extended</td></tr>
+</tbody></table></div>
+
+<footer><p>Spec: <code>final-e2.md</code>. Earlier rounds: <code>audit.md</code>, <code>iterations.md</code>, <code>iterations-compact.md</code>, <code>iterations-empire.md</code>, all in this folder.</p></footer>
+</div>
