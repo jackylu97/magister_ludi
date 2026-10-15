@@ -63,6 +63,9 @@
  * religion figures. `explainFaithLedger` is the faith screen's headline: the
  * Ledger's faith row with the Religion class opened into those sources and
  * every other class kept whole, folding to the top bar's faith figure.
+ * `explainReligionLedgerByPlace` is the same split with each source's figure
+ * broken down by town (batch UX10), and `religionLinesOfCity` is one town's
+ * part of it, so the faith screen's two tabs quote one figure for a town.
  *
  * A leaf above the readings, deliberately: this module imports the empire's
  * reading, the town's own list and the class vocabulary, and **nothing imports
@@ -705,6 +708,89 @@ export function explainReligionLedger(state: GameState, playerId: number): Relig
         : { kind: 'card', card: line.card! };
     const held = religionLineFor(lines, source);
     for (const key of VOICES) held.paid[key] += line[key];
+  }
+  return lines;
+}
+
+/**
+ * **One town's Religion class, split by the card that paid it**: the deck
+ * ledger's arithmetic (`classLinesOfCity`) for the religion class. Whole
+ * numbers that add up to the town's Religion slice.
+ *
+ * The faith screen reads it in two places that must agree: the Rites tab prints
+ * what a kept rite pays in its town, and the Bonuses tab's cards list each
+ * source's figure town by town. A reading only; nothing writes from it.
+ */
+export function religionLinesOfCity(state: GameState, city: City): DeckLedgerLine[] {
+  return classLinesOfCity(state, city, 'religion');
+}
+
+/** Where one source's slice was paid: a town, or (`cityId` null) the empire's own lines. */
+export interface ReligionLedgerPart {
+  cityId: number | null;
+  paid: CityYields;
+}
+
+/** One source's slice of the Religion class, with where it was paid. */
+export interface ReligionLedgerPlaces extends ReligionLedgerLine {
+  /** In the towns' order (`state.cities`), then the empire's own lines. */
+  parts: ReligionLedgerPart[];
+}
+
+/**
+ * **`explainReligionLedger`, with each source's figure split by where it was
+ * paid**: one part a town (`religionLinesOfCity`), and one for the empire's own
+ * religion lines (a card's empire-scale payout, a founder's share).
+ *
+ * The walk is `explainReligionLedger`'s, in the same order, so each source's
+ * `paid` is that function's figure exactly (the test pins it) and the parts of
+ * a source add up to its `paid`. The Bonuses tab's hover cards print the parts
+ * town by town. A reading only.
+ */
+export function explainReligionLedgerByPlace(
+  state: GameState,
+  playerId: number,
+): ReligionLedgerPlaces[] {
+  const lines: ReligionLedgerPlaces[] = [];
+  const entryFor = (source: ReligionLedgerSource): ReligionLedgerPlaces => {
+    let held = lines.find((line) => sameReligionSource(line.source, source));
+    if (held === undefined) {
+      held = { source, paid: emptyCityYields(), parts: [] };
+      lines.push(held);
+    }
+    return held;
+  };
+  const partFor = (entry: ReligionLedgerPlaces, cityId: number | null): ReligionLedgerPart => {
+    let part = entry.parts.find((one) => one.cityId === cityId);
+    if (part === undefined) {
+      part = { cityId, paid: emptyCityYields() };
+      entry.parts.push(part);
+    }
+    return part;
+  };
+  const reading = readEmpire(state, playerId);
+  for (const { city } of reading.towns) {
+    for (const line of classLinesOfCity(state, city, 'religion')) {
+      const entry = entryFor({ kind: 'card', card: line.card });
+      const part = partFor(entry, city.id);
+      for (const key of VOICES) {
+        entry.paid[key] += line.paid[key];
+        part.paid[key] += line.paid[key];
+      }
+    }
+  }
+  for (const line of reading.lines) {
+    if (classifyEmpireLine(line) !== 'religion') continue;
+    const source: ReligionLedgerSource =
+      line.founderShare !== undefined
+        ? { kind: 'founderShare', religion: line.founderShare }
+        : { kind: 'card', card: line.card! };
+    const entry = entryFor(source);
+    const part = partFor(entry, null);
+    for (const key of VOICES) {
+      entry.paid[key] += line[key];
+      part.paid[key] += line[key];
+    }
   }
   return lines;
 }

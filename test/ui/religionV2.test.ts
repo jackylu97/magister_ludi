@@ -453,7 +453,7 @@ describe('the religious agents’ sheet', () => {
   });
 
   it('names the enhancer pool’s gate the same way the reducer refuses it', () => {
-    // The one technology literal in `religionScreen.ts` (`ENHANCER_TECH`), read
+    // The one technology literal in `faithReading.ts` (`ENHANCER_TECH`), read
     // back out of the sim's own sentence so a moved gate fails here rather than
     // quietly printing the wrong node in an empty house.
     const state = world();
@@ -578,7 +578,12 @@ describe('the belief offer’s eyebrow', () => {
     expect(beliefCardType('enhancer')).toBe('an enhancer belief');
     const main = sourceOf('main.ts');
     expect(main).toContain('payoff: beliefCardType(offer.pool)');
-    expect(sourceOf('religionScreen.ts')).toContain("'sc-card-type', beliefCardType(pool)");
+    // The Bonuses tab's cards (batch UX10): a god and a pooled belief each take
+    // the word off this table, and the face prints it as its eyebrow.
+    const bonuses = sourceOf('bonusesTab.ts');
+    expect(bonuses).toContain("beliefCard(id, 'god', beliefCardType(undefined), ours)");
+    expect(bonuses).toContain('beliefCard(id, pool, beliefCardType(pool), following)');
+    expect(bonuses).toContain("element('span', 'sc-card-type', card.eyebrow)");
   });
 
   it('reads a pooled pick back off the shelf it landed on', () => {

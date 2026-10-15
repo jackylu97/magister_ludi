@@ -24,6 +24,7 @@ import { type Command, applyCommand } from '../../src/sim/commands';
 import { getTileAt } from '../../src/sim/map';
 import { isPassable } from '../../src/sim/pathfind';
 import { explainPurchaseCost } from '../../src/sim/purchase';
+import { religionLinesOfCity } from '../../src/sim/ledgerFold';
 import { readCity } from '../../src/sim/readings';
 import { cityRite, explainNextRung, riteCostFor, riteGate, riteShortfall } from '../../src/sim/religion';
 import { LIVE_RITE_IDS, type RiteId, riteDef } from '../../src/sim/religionData';
@@ -58,6 +59,7 @@ import {
   toggleTownMenu,
   visitOn,
 } from '../../src/ui/ritesTab';
+import { bonusesTabModel } from '../../src/ui/bonusesTab';
 import { braceBody, uiSource } from './sourceHelpers';
 import { createGame } from '../sim/newGameHelpers';
 
@@ -176,15 +178,24 @@ describe('the rows', () => {
     expect(shown.count).toBe('2 kept · 2 free');
   });
 
-  it('say what a kept rite pays now from the town’s own lines carrying it', () => {
+  it('say what a kept rite pays now from the Ledger’s line for the town, the Bonuses tab’s figure', () => {
     const { state, towns } = world();
     applyCommand(state, { type: 'performRite', playerId: 0, cityId: towns[1]!.id, rite: OMEN } as Command);
     const kept = model(state, freshRitesView(state.turn)).kept[0]!;
-    const lines = readCity(state, towns[1]!).lines.filter((line) => line.card === OMEN);
-    expect(lines.length).toBeGreaterThan(0);
-    const science = lines.reduce((sum, line) => sum + line.science, 0);
-    expect(kept.pays).toEqual([{ voice: 'science', amount: science }]);
-    expect(ritePaysNow(state, towns[1]!, OMEN).science).toBe(science);
+    // The rite's line in the town's Religion slice (batch UX10).
+    const line = religionLinesOfCity(state, towns[1]!).find((one) => one.card === OMEN)!;
+    expect(line.paid.science).toBeGreaterThan(0);
+    expect(kept.pays).toEqual([{ voice: 'science', amount: line.paid.science }]);
+    expect(ritePaysNow(state, towns[1]!, OMEN)).toEqual(line.paid);
+    // Omen Reading pays a flat beaker per building, so the Ledger's figure is
+    // the town's own lines carrying the rite.
+    const flat = readCity(state, towns[1]!).lines.filter((one) => one.card === OMEN);
+    expect(line.paid.science).toBe(flat.reduce((sum, one) => sum + one.science, 0));
+    // And the Bonuses tab's rite card lists the same figure for the town.
+    const rite = bonusesTabModel(state, 0)
+      .shelves.flatMap((shelf) => shelf.cards)
+      .find((card) => card.key === `card:${OMEN}`)!;
+    expect(rite.parts.find((part) => part.label === kept.name)?.paid).toEqual(line.paid);
   });
 });
 

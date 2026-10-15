@@ -91,24 +91,16 @@
  */
 
 import { STAMP_TIMING, type StampReading, cardStampNode, playCardStamp, stampIsEmpty } from './cardStamp';
-import { cardLineMarkUrl } from './cardLine';
+import { DEAL_MS, DEAL_STAGGER_MS, cardBack } from './cardDeal';
 import { type GoalCounter, goalCounterNode } from './goalCounter';
 import { setDescriptorText } from './keywords';
 import { yieldElement as element } from './yieldMark';
 import { wantsMotion } from './motion';
 
 // --- the back ---------------------------------------------------------------
-
-/**
- * How long a card takes to come over, and how long between two of them.
- *
- * Milliseconds, and they are here rather than in `style.css` because the script
- * has to know when the last card has landed in order to take the backs down.
- * Two numbers in one place beat a duration in the stylesheet and a timeout in
- * the module that quietly disagree by 40ms and leave a back on the table.
- */
-const DEAL_MS = 420;
-const DEAL_STAGGER_MS = 110;
+//
+// The deal's timing and the card back live in `cardDeal.ts` since batch UX10,
+// so the Faith sheet's Bonuses tab can deal its cards the same way.
 
 /**
  * The two answers' marks: deal these again, and take none of them.
@@ -125,24 +117,6 @@ const DEAL_STAGGER_MS = 110;
  */
 const REROLL_MARK = '⟳';
 const PASS_MARK = '⊘';
-
-/**
- * One card's back: the weave, the gilt rules and the neutral seal.
- *
- * Entry VII's card-back weave, and the reason it can be one element is that a
- * back has nothing to say. It is identical on every card in the hand — same
- * ink, same emblem, same rules — because a back that varied would be telling
- * you which card to turn over first, which is the one thing a deck must never
- * do. The emblem is `CARD_LINE_MARKS.none`, the lozenge seal the Statecraft
- * screen already stamps with, asked for through `cardLine.ts` like every other
- * card emblem; drawing a ninth seal for the back would have been a second deck.
- */
-function cardBack(): HTMLElement {
-  const back = element('span', 'card-back');
-  back.setAttribute('aria-hidden', 'true');
-  back.style.setProperty('--card-back-emblem', cardLineMarkUrl('none'));
-  return back;
-}
 
 /** One thing a player may take. Strings only — see the module docblock. */
 export interface OfferOption {

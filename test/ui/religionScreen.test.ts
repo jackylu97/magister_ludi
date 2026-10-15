@@ -2,11 +2,11 @@
  * What the Faith sheet promises across its files, none of which one file can
  * keep on its own.
  *
- *   1. **Three tabs, and the third is the Statecraft sheet's split.** Rites,
- *      Bonuses, and Religion & followers (batch UX9), the chosen tab
- *      remembered per seat. The third tab keeps the split the 2026-08-27 pass
- *      gave both parchment screens: a fixed column of what the religion is,
- *      and a pane that scrolls.
+ *   1. **Three tabs, each drawn by its own module.** Rites (`ritesTab.ts`),
+ *      Bonuses (`bonusesTab.ts`) and Religion & followers (`followersTab.ts`),
+ *      the chosen tab remembered per seat. The third tab keeps the split the
+ *      2026-08-27 pass gave both parchment screens: a fixed column of what the
+ *      religion is, and a pane that scrolls.
  *   2. **One breakpoint, not two that agree today.** The width at which a split
  *      stops being readable is a fact about the split. Both sheets stack in the
  *      same media query, so this asserts there is exactly one `max-width`
@@ -16,9 +16,9 @@
  *
  * No document in this suite (see `controls.test.ts`), so the sources are read
  * through Vite's raw glob exactly as `cityScreen.test.ts` and
- * `seatRoster.test.ts` read theirs. The Rites tab's own behaviour (its order,
- * rite mode, the start flow, Escape) is tested on real boards in
- * `ritesTab.test.ts`.
+ * `seatRoster.test.ts` read theirs. Each tab's own behaviour is tested on real
+ * boards in its own suite: `ritesTab.test.ts`, `bonusesTab.test.ts` and
+ * `followersTab.test.ts`.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -34,12 +34,16 @@ import { riteTeachingCard } from '../../src/sim/religion';
 import { LIVE_RITE_IDS, riteDef } from '../../src/sim/religionData';
 import { orderDef } from '../../src/sim/statecraftData';
 import { techDef } from '../../src/sim/techData';
+import { braceBody } from './sourceHelpers';
 
 const SOURCES = import.meta.glob(
   [
     '../../src/ui/religionScreen.ts',
     '../../src/ui/ritesTab.ts',
     '../../src/ui/riteWords.ts',
+    '../../src/ui/bonusesTab.ts',
+    '../../src/ui/followersTab.ts',
+    '../../src/ui/faithReading.ts',
     '../../src/ui/statecraftScreen.ts',
     '../../src/ui/topBar.ts',
     '../../src/ui/controls.ts',
@@ -57,6 +61,16 @@ function source(name: string): string {
   }
   return text;
 }
+
+/** Every file the Faith sheet is drawn from, its shared words included. */
+const SHEET_FILES = [
+  'religionScreen.ts',
+  'ritesTab.ts',
+  'riteWords.ts',
+  'bonusesTab.ts',
+  'followersTab.ts',
+  'faithReading.ts',
+];
 
 /**
  * The stylesheet with its comments taken out.
@@ -85,7 +99,7 @@ function declaration(selector: string, property: string): string | undefined {
   return match?.[1]?.trim();
 }
 
-/** The body of one top-level `function name(...) { … }` in a screen module. */
+/** The body of one function inside `createReligionScreen` (two spaces in). */
 function fn(file: string, name: string): string {
   const text = source(file);
   const at = text.indexOf(`\n  function ${name}(`);
@@ -102,8 +116,13 @@ function fn(file: string, name: string): string {
   throw new Error(`${file}'s ${name} never closes`);
 }
 
+/** The body of one top-level function in a tab module, from its body's own brace. */
+function top(file: string, declaration: string): string {
+  return braceBody(source(file), declaration);
+}
+
 /**
- * The Religion sheet's own block in `index.html`: the banner comment above the
+ * The Faith sheet's own block in `index.html`: the banner comment above the
  * overlay, down to the end of its header (the eyebrow, the title and the hint
  * line). Everything under the header is built by `religionScreen.ts`.
  */
@@ -141,8 +160,8 @@ describe('the Faith sheet has three tabs', () => {
 
   it('paints the head over every tab, then the chosen tab in one panel', () => {
     // `draw` is the frame around `paint` since batch H18: it takes the one
-    // reading of the real board the belief stamps and rite previews share
-    // (`cardImpactSheet`) and lets go of it on the way out.
+    // reading of the real board the rite previews share (`cardImpactSheet`) and
+    // lets go of it on the way out.
     const paint = fn('religionScreen.ts', 'paint');
     const head = paint.indexOf('drawHead(state, seat, tab)');
     const panel = paint.indexOf("`faith-panel is-${tab}`");
@@ -151,7 +170,10 @@ describe('the Faith sheet has three tabs', () => {
     expect(paint).toContain('const tab = faithTabFor(seat);');
     expect(paint).toContain('drawRites(state, seat)');
     expect(paint).toContain('drawBonuses(state, seat)');
-    expect(paint).toContain('drawReligionTab(state, seat)');
+    expect(paint).toContain('drawReligion(state, seat)');
+    // Anything the last paint set moving is stopped before the next is built.
+    expect(paint.indexOf('stopMotion();')).toBeGreaterThan(-1);
+    expect(paint.indexOf('stopMotion();')).toBeLessThan(paint.indexOf('body.replaceChildren();'));
     // The bank over every tab is the shared bank display's, not a figure of
     // this sheet's own.
     expect(fn('religionScreen.ts', 'drawHead')).toContain(
@@ -163,46 +185,92 @@ describe('the Faith sheet has three tabs', () => {
     expect(fn('religionScreen.ts', 'drawHead')).toContain('chooseFaithTab(seat, which);');
   });
 
+  it('draws each tab from its own module, model first', () => {
+    const sheet = source('religionScreen.ts');
+    expect(fn('religionScreen.ts', 'drawBonuses')).toContain('bonusesTabModel(state, seat)');
+    expect(fn('religionScreen.ts', 'drawBonuses')).toContain('drawBonusesTab(');
+    expect(fn('religionScreen.ts', 'drawReligion')).toContain(
+      'followersTabModel(state, seat, religionReading(state, seat), aimedCityId)',
+    );
+    expect(fn('religionScreen.ts', 'drawReligion')).toContain('drawFollowersTab(state, seat, model, {');
+    // The old drawings are gone from the frame, not kept beside the new ones.
+    for (const old of ['function drawGods(', 'function drawBeliefs(', 'function drawClergy(', 'function drawWheelBlock(']) {
+      expect(sheet, old).not.toContain(old);
+    }
+  });
+
   it("builds the Statecraft screen's own four split classes on Religion & followers", () => {
-    const tab = fn('religionScreen.ts', 'drawReligionTab');
+    const tab = top('followersTab.ts', 'export function drawFollowersTab(');
     for (const className of ['sc-split', 'sc-column', 'sc-column-body', 'sc-pane']) {
       expect(`${className}: ${tab.includes(`'${className}`)}`).toBe(`${className}: true`);
     }
   });
 
-  it('puts the name and the wheel in the column, and who follows above the clergy in the pane', () => {
-    // Today's content where the spec says it will live (F1, Tab 3), until batch
-    // UX11 redraws the tab.
-    const tab = fn('religionScreen.ts', 'drawReligionTab');
-    const column = tab.indexOf('sc-column-body');
-    const name = tab.indexOf('drawFaithName');
-    const wheel = tab.indexOf('drawWheelBlock');
+  it('puts the religion in the column, and who follows, the rival faiths and the clergy in the pane', () => {
+    const tab = top('followersTab.ts', 'export function drawFollowersTab(');
+    const column = tab.indexOf('drawColumn(');
     const pane = tab.indexOf("'sc-pane'");
-    const following = tab.indexOf('drawFollowing');
-    const clergy = tab.indexOf('drawClergy');
+    const follows = tab.indexOf('drawFollows(model)');
+    const rivals = tab.indexOf('drawRivals(model)');
+    const clergy = tab.indexOf('drawClergy(');
     expect(column).toBeGreaterThan(-1);
-    expect(name).toBeGreaterThan(column);
-    expect(wheel).toBeGreaterThan(name);
-    expect(pane).toBeGreaterThan(wheel);
-    expect(following).toBeGreaterThan(pane);
-    expect(clergy).toBeGreaterThan(following);
+    expect(pane).toBeGreaterThan(column);
+    expect(follows).toBeGreaterThan(pane);
+    expect(rivals).toBeGreaterThan(follows);
+    expect(clergy).toBeGreaterThan(rivals);
+    // The column, top to bottom: the name and its facts, the wheel, the counts,
+    // and the way to Bonuses.
+    const left = top('followersTab.ts', 'function drawColumn(');
+    const order = ['drawName(', "'faith-facts'", 'drawPantheonWheel(', "'faith-counts'", "'faith-to-bonuses'"].map(
+      (landmark) => left.indexOf(landmark),
+    );
+    expect(order.every((at) => at > -1)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
   });
 
-  it('puts the gods, the beliefs and the holy city’s share on Bonuses', () => {
-    // F1, Tab 2's sources, drawn as today's cards until batch UX10.
-    const tab = fn('religionScreen.ts', 'drawBonuses');
-    const gods = tab.indexOf('drawGods');
-    const beliefs = tab.indexOf('drawBeliefs');
-    const trickle = tab.indexOf('drawTrickle');
-    expect(gods).toBeGreaterThan(-1);
-    expect(beliefs).toBeGreaterThan(gods);
-    expect(trickle).toBeGreaterThan(beliefs);
+  it('keeps no god or belief card on Religion & followers: the Bonuses tab owns them', () => {
+    const tab = source('followersTab.ts');
+    expect(tab).not.toContain('cardStampNode');
+    expect(tab).not.toContain('explainReligionLedger');
+    expect(tab).not.toContain('setDescriptorText(');
   });
 
   it('keeps no rites reference: the Rites tab is the rites', () => {
     const text = source('religionScreen.ts');
     expect(text).not.toContain('function drawPool(');
     expect(text).not.toContain('rel-rite-list');
+  });
+});
+
+describe('the opening', () => {
+  /**
+   * The Bonuses tab deals and counts when it opens (the ruling of 2026-10-15,
+   * 4.1): on the sheet's own opening and on a switch to the tab, never on a
+   * plain repaint, and never under reduced motion.
+   */
+  it('is armed by opening the sheet or switching to Bonuses, and spent by the paint', () => {
+    const sheet = source('religionScreen.ts');
+    expect(sheet).toContain("if (which === 'bonuses' && faithTabFor(seat) !== 'bonuses') bonusesOpening = true;");
+    const show = sheet.slice(sheet.indexOf('onShow: () => {'), sheet.indexOf('onClose:'));
+    expect(show).toContain('bonusesOpening = true;');
+    const bonuses = fn('religionScreen.ts', 'drawBonuses');
+    expect(bonuses).toContain('const opening = bonusesOpening && wantsMotion();');
+    expect(bonuses).toContain('bonusesOpening = false;');
+  });
+
+  it('remembers what each seat last saw, so only a changed figure counts', () => {
+    const bonuses = fn('religionScreen.ts', 'drawBonuses');
+    expect(bonuses).toContain('figureChanged(seen, key, now.get(key)');
+    expect(bonuses).toContain('seenBySeat.set(seat, now);');
+  });
+
+  it('stops every timer and count on the next paint, on close and on dispose', () => {
+    const stop = fn('religionScreen.ts', 'stopMotion');
+    expect(stop).toContain('window.clearTimeout(id)');
+    expect(stop).toContain('cancel()');
+    const sheet = source('religionScreen.ts');
+    expect(sheet).toContain('onClose: () => stopMotion(),');
+    expect(sheet).toContain('onDispose: () => stopMotion(),');
   });
 });
 
@@ -276,13 +344,10 @@ describe('the breakpoint', () => {
 });
 
 describe("the sheet's controls", () => {
-  it('leaves no uppercased control on the Religion sheet', () => {
-    // The eyebrows are labels and may shout; a button and a select may not.
-    // Three now: the religion pane's name field is the third control this
-    // sheet builds, and it is the one most likely to be dressed as a form
-    // element by accident.
+  it('leaves no uppercased control on the Faith sheet', () => {
+    // The eyebrows are labels and may shout; a button, a field and a select may
+    // not.
     for (const selector of [
-      '.rel-buy',
       '.rel-city-select',
       '.rel-name-field',
       '.btn',
@@ -293,6 +358,8 @@ describe("the sheet's controls", () => {
       '.faith-rite-chip',
       '.faith-town-menu-toggle',
       '.faith-town-link',
+      // Batch UX11: the way from Religion & followers to Bonuses.
+      '.faith-to-bonuses',
     ]) {
       const transform = declaration(selector, 'text-transform') ?? 'none';
       expect(`${selector}: ${transform}`).toBe(`${selector}: none`);
@@ -304,21 +371,25 @@ describe("the sheet's controls", () => {
     // button and option this screen builds takes its text from a def's `name`,
     // from the roster's own verb (`UnitDef.purchase.verb`) or from a sentence,
     // and this pins that none of them is typed in caps here.
-    for (const file of ['religionScreen.ts', 'ritesTab.ts']) {
+    for (const file of SHEET_FILES) {
       expect(/textContent = '[A-Z ]{4,}'/.test(source(file)), file).toBe(false);
     }
   });
 
-  it('takes the clergy row’s words off the roster, never out of this file', () => {
-    // A verb typed here would be a second name for a piece — "Call a prophet"
+  it('takes the clergy card’s words off the roster, never out of this file', () => {
+    // A verb typed here would be a second name for a piece: "Call a prophet"
     // lives on `UnitDef.purchase.verb` so a designer renaming the piece renames
-    // the button. The price is `explainPurchaseCost`'s total and the refusal is
-    // `purchaseError`'s sentence, which is what makes a pressable button a
-    // command the reducer takes.
-    const row = fn('religionScreen.ts', 'drawClergyRow');
-    expect(row).toContain('def.purchase?.verb');
-    expect(row).toContain('explainPurchaseCost(state, seat, cityId, item, currency)');
-    expect(row).toContain('purchaseError(state, seat, cityId, item, currency)');
+    // the button. The price and the refusal come off the price cell's look
+    // (`explainPurchaseCost`'s total, `purchaseError`'s sentence), so a pressable
+    // button is a command the reducer takes, and the gate is asked again at the
+    // press.
+    const model = top('followersTab.ts', 'export function followersTabModel(');
+    expect(model).toContain('def.purchase?.verb');
+    expect(model).toContain('purchaseLook(state, seat, aimed, item, currency)');
+    expect(model).toContain('explainPurchaseCost(state, seat, aimed, item, currency)');
+    const cards = top('followersTab.ts', 'function drawClergy(');
+    expect(cards).toContain('purchaseError(state, seat, aimed, item, look.bank)');
+    expect(cards).toContain("refusalLineElement(look.refusal, 'row')");
   });
 });
 
@@ -335,7 +406,7 @@ describe("the sheet's controls", () => {
  */
 describe('the retired agent', () => {
   it('is named nowhere on the Faith sheet', () => {
-    for (const file of ['religionScreen.ts', 'ritesTab.ts', 'riteWords.ts']) {
+    for (const file of SHEET_FILES) {
       expect(/augur/i.test(source(file)), file).toBe(false);
     }
   });
@@ -358,8 +429,9 @@ describe('the retired agent', () => {
   });
 
   it('sells the three pieces that are still called, in the order they are met', () => {
-    const text = source('religionScreen.ts');
-    expect(text).toContain("const CLERGY: readonly UnitTypeId[] = ['prophet', 'apostle', 'inquisitor']");
+    expect(source('followersTab.ts')).toContain(
+      "export const CLERGY: readonly UnitTypeId[] = ['prophet', 'apostle', 'inquisitor']",
+    );
   });
 });
 
@@ -422,79 +494,44 @@ describe('the rites, in words', () => {
 });
 
 /**
- * The standing face of a belief, and the ruling that put a figure on it
- * (`docs/flags.md` playthrough note 10, 2026-09-05: the card animations and the
- * yields belong on the religion cards too).
- *
- * Two sizes and no third: the ceremony is the draft, where the card is dealt
- * full-length and the number counts up; the column keeps the compact face, and
- * its stamp **lands**. A screen that replayed the count every time it opened
- * would be celebrating a decision the player made an age ago — the Doctrine
- * shelf's rule, one system over.
+ * The figure a god or belief card wears (`docs/flags.md` (ssssss) 4.2): the
+ * Ledger's attribution, which adds up to the Ledger's Religion slice, and not
+ * the ghost stamp that measured what removing the card would cost.
  */
-describe('the gods in the column wear their figure', () => {
-  it('builds the stamp on the compact face and lands it', () => {
-    const text = source('religionScreen.ts');
-    expect(text).toContain('const stamp = cardStampNode();');
-    expect(text).toContain('if (reading) landCardStamp(stamp, reading);');
-    // Never played: there is no ceremony on a screen at rest.
-    expect(text).not.toContain('playCardStamp');
-  });
-
-  it('reads the figure from the sim and shows nothing when there is nothing', () => {
-    const text = source('religionScreen.ts');
-    // The sheet's shared half rides in as the fourth argument (batch H18) and
-    // changes no figure — `test/sim/cardImpact.test.ts` pins that.
-    expect(text).toContain(
-      "stampReading(explainCardImpact(state, seat, { kind: 'belief', id }, sheet ?? undefined))",
-    );
-    // A belief that pays nothing standing keeps the flourish rather than a nought.
-    expect(text).toContain('stampIsEmpty(reading) ? null : reading');
-  });
-
-  it('hands every face on the sheet its own reading', () => {
-    const text = source('religionScreen.ts');
-    // The pantheon's places and the religion's two houses — a face drawn without
-    // a reading is a card wearing the flourish while it is quietly paying.
-    const drawn = text.match(/drawBeliefFace\([^)]*\)/g) ?? [];
-    expect(drawn.length).toBeGreaterThanOrEqual(2);
-    for (const call of drawn) {
-      if (call.startsWith('drawBeliefFace(\n')) continue;
-      expect(call, call).toContain('beliefStamp(state, seat,');
-    }
-    // And the house's pool reaches the face, so a follower belief is not
-    // announced as a god.
-    expect(text).toContain('drawBeliefFace(card, id, house.pool');
+describe('the cards on Bonuses wear the Ledger’s figure', () => {
+  it('reads the Ledger, place by place, and never the ghost stamp', () => {
+    const tab = source('bonusesTab.ts');
+    expect(tab).toContain('explainReligionLedgerByPlace(state, seat)');
+    expect(tab).toContain('explainFaithLedger(state, seat)');
+    expect(tab).not.toContain('explainCardImpact');
+    expect(tab).not.toContain('stampReading(');
   });
 
   it('keeps the compact stamp compact', () => {
-    // The two-sizes rule as a number: the column's seat is the collection's, not
-    // the tarot face's 24px — a taller seat would grow every slot on the sheet.
-    expect(declaration('.rel-slot .card-stamp', 'min-height')).toBe('20px');
-    expect(declaration('.rel-slot .card-stamp', 'line-height')).toBe('20px');
+    // A Bonuses card is the Statecraft hand's face, so it takes the hand's seat
+    // for the stamp: the same height-stable pair and the same smaller digits.
+    expect(source('bonusesTab.ts')).toContain("const classes = ['sc-card', 'faith-card', `is-${card.kind}`];");
+    expect(declaration('.sc-card .card-stamp', 'min-height')).toBe('20px');
+    expect(declaration('.sc-card .card-stamp', 'line-height')).toBe('20px');
   });
 
-  it('prints every clause of a face through the descriptor writer', () => {
+  it('prints every clause through the descriptor writer, and the wheel’s tooltip plainly', () => {
     // Hard rule: a describer emits `[[kind:id|Name]]`, and a clause written with
-    // `textContent` would print the brackets. Both writers are asked here — the
-    // live one on the face, the stripped one in the platform `title` a wheel
+    // `textContent` would print the brackets. Both writers are asked: the live
+    // one on a card's face, the stripped one in the platform `title` a wheel
     // house carries.
-    const text = source('religionScreen.ts');
-    expect(text).toContain('setDescriptorText(item, clause.text, { linked })');
-    expect(text).toContain('stripRefs(clause.text)');
-    expect(/textContent = `\$\{[^}]*clause/.test(text)).toBe(false);
+    expect(source('bonusesTab.ts')).toContain('setDescriptorText(item, clause.text, { linked })');
+    expect(source('followersTab.ts')).toContain('stripRefs(clause.text)');
+    for (const file of ['bonusesTab.ts', 'followersTab.ts']) {
+      expect(/textContent = `\$\{[^}]*clause/.test(source(file)), file).toBe(false);
+    }
   });
 });
 
 /**
- * **The pantheon is three places, and an empty one says what it is waiting for**
- * (`docs/flags.md`, rulings of 2026-09-06 evening, items b and d).
- *
- * The old sheet drew `pantheonSlots` places and stopped, so an empire before The
- * High Temple saw two places and no third — the slot existed, the tree opened
- * it, and the screen said nothing about either. And an empty place said
- * "unnamed", which answers none of the three questions a player actually has:
- * what does the next god cost, how close am I, and what opens the place after.
+ * **The pantheon is its places, and an empty one says what it is waiting for**
+ * (`docs/flags.md`, rulings of 2026-09-06 evening, items b and d), on the Bonuses
+ * tab's gods shelf since batch UX10.
  *
  * Every figure in the answer is the **sim's** (`explainNextRung` /
  * `nextRungWords`), and that is the load-bearing half: the faith chip's hover
@@ -503,25 +540,26 @@ describe('the gods in the column wear their figure', () => {
  */
 describe('the places at the fire', () => {
   it('walks the sim’s own list of places, not the count of open slots', () => {
-    const pantheon = fn('religionScreen.ts', 'drawGods');
-    expect(pantheon).toContain('pantheonPlaces(state, seat)');
+    const ghosts = top('bonusesTab.ts', 'function godGhosts(');
+    expect(ghosts).toContain('pantheonPlaces(state, seat)');
     // The shut place names its technology off the place, never out of this file.
-    expect(fn('religionScreen.ts', 'drawEmptyPlace')).toContain('techDef(place.awaits).name');
+    expect(ghosts).toContain('techDef(place.awaits).name');
   });
 
   it('prints the rung’s price from the sim describer and never composes one', () => {
-    const empty = fn('religionScreen.ts', 'drawEmptyPlace');
-    expect(empty).toContain('nextRungWords(rung)');
+    const ghosts = top('bonusesTab.ts', 'function godGhosts(');
+    expect(ghosts).toContain('nextRungWords(rung)');
     // The bar is the same two figures the sentence names — `banked / cost` — so
     // a reader of the bar and a reader of the line are told one thing. What must
     // not appear is a threshold arithmetic of this file's own.
-    expect(empty).toContain('rung.banked / rung.cost');
-    expect(empty).not.toContain('faithRungCost');
+    expect(ghosts).toContain('rung.banked / rung.cost');
+    expect(ghosts).not.toContain('faithRungCost');
   });
 
   it('prints the same ladder sentence under the wheel', () => {
-    const wheel = fn('religionScreen.ts', 'drawWheelBlock');
-    expect(wheel).toContain('nextRungWords(explainNextRung(state, seat, rate))');
+    expect(top('followersTab.ts', 'export function followersTabModel(')).toContain(
+      'nextRungWords(explainNextRung(state, seat, readEmpire(state, seat).totals.faith))',
+    );
   });
 
   it('is the sentence the faith chip’s hover card prints, off one describer', () => {

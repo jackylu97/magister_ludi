@@ -333,7 +333,7 @@ const DESCRIPTOR_SURFACES: readonly [string, string][] = [
   ['cityPanel.ts', 'the build list’s hover card'],
   ['offerCard.ts', 'the offer faces, their notes and their clause lists'],
   ['statecraftScreen.ts', 'the charter, the doctrines and the collection'],
-  ['religionScreen.ts', 'the belief faces'],
+  ['bonusesTab.ts', 'the Faith sheet’s Bonuses cards'],
   ['ritesTab.ts', 'the Rites tab’s banner, its menus and a row’s rite words'],
   ['unitPanel.ts', 'the rite card and the caravan’s lines'],
   ['reliquaryScreen.ts', 'the legacy on every card in the pile'],
@@ -354,7 +354,7 @@ const CLAUSE_COMPOSERS: readonly string[] = ['greatPersonFace.ts', 'riteWords.ts
 
 const PLAIN_SINKS: readonly [string, string][] = [
   ['controls.ts', 'the rite sentence — a chronicle line and a toast'],
-  ['religionScreen.ts', 'the wheel’s title attribute'],
+  ['followersTab.ts', 'the wheel’s title attribute'],
   ['unitPanel.ts', 'a great person’s legacy, in a title attribute'],
   ['compendium.ts', 'the index’s search, which is over words'],
 ];
@@ -408,12 +408,12 @@ describe('the descriptor register', () => {
 
   it('keeps the links out of the two surfaces that are buttons', () => {
     // An offer face and an Order in the collection are `<button>`s, and the
-    // click is a decision. The offer card says so outright; the Statecraft and
-    // Religion screens ask `keywordsAllowedIn`, which answers the same thing
-    // from the tag they built.
+    // click is a decision. The offer card says so outright; the Statecraft
+    // screen and the Faith sheet's Bonuses cards ask `keywordsAllowedIn`, which
+    // answers the same thing from the tag they built.
     expect(source('offerCard.ts')).toContain('{ linked: false }');
     expect(source('statecraftScreen.ts')).toContain('keywordsAllowedIn(into)');
-    expect(source('religionScreen.ts')).toContain('keywordsAllowedIn(into)');
+    expect(source('bonusesTab.ts')).toContain('keywordsAllowedIn(into)');
   });
 
   it('keeps them out of the hover cards no pointer can reach, too', () => {

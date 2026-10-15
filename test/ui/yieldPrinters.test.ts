@@ -95,7 +95,9 @@ const COMPOSERS: readonly { path: string; what: string }[] = [
   { path: 'src/ui/tradeLines.ts', what: 'a plunder’s spoils sentence' },
   { path: 'src/ui/controls.ts', what: 'the toasts: a raid, a camp’s bounty, a beaten wonder’s refund, a great person’s act, a chop, a survey' },
   { path: 'src/ui/statecraftScreen.ts', what: 'the culture ladder’s banked figure' },
-  { path: 'src/ui/religionScreen.ts', what: 'the pressure ledger’s signed lines, and a follower belief’s trickle' },
+  // The Faith sheet's shared words since batch UX10 (`religionScreen.ts` hands
+  // them on): a town's pressure ledger, its signed lines and its total.
+  { path: 'src/ui/faithReading.ts', what: 'the pressure ledger’s signed lines and its total' },
   { path: 'src/ui/techTree.ts', what: 'a node’s gifts: a renewal’s tile delta, a clearing’s one-off, and the empire’s science rate on the hover card and the HUD research card (the user, 2026-09-09: the star chart was printing that fold raw)' },
   { path: 'src/spectate/main.ts', what: 'the spectator’s seat line: the treasury and the faith pool' },
 ];
@@ -128,7 +130,7 @@ describe('every surface that composes a figure itself names the rule', () => {
       // The words' own file since batch E3b split `statecraft.ts` by layer.
       'src/sim/statecraft/describers.ts',
       'src/sim/resourceEffects.ts',
-      'src/ui/religionScreen.ts',
+      'src/ui/faithReading.ts',
     ]) {
       const source = read(path);
       expect(source, path).toMatch(

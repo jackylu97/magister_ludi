@@ -244,6 +244,18 @@ export function stampReading(lines: readonly CardImpactLine[]): StampReading {
   return reading;
 }
 
+/**
+ * A stamp for a figure that is already a sum in the six voices rather than an
+ * impact list: the Ledger's attribution of a source (the faith screen's
+ * Bonuses cards, batch UX10, which wear the Ledger's figure by the user's
+ * ruling of 2026-10-15). Rounded and filtered exactly as `stampReading`'s own
+ * figures are, so a card here and a card on the Statecraft sheet print a
+ * number the same way.
+ */
+export function stampOfYields(voices: Readonly<Record<CityYieldKey, number>>): StampReading {
+  return { figures: figuresOf({ ...voices }), occasionFigures: [], knockOn: [] };
+}
+
 function emptyVoices(): Record<CityYieldKey, number> {
   return { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
 }
@@ -398,6 +410,28 @@ export function landCardStamp(stamp: HTMLElement, reading: StampReading): void {
   stamp.dataset.face = stampThunks(reading) ? 'occasion' : 'figure';
   stamp.dataset.phase = 'landed';
   setYieldText(parts.figure, stampText(stampFigures(reading)));
+  const said = reading.occasion ?? reading.note;
+  parts.occasion.textContent = said === undefined ? '' : `· ${said}`;
+}
+
+/**
+ * Writes a stamp's figures with no motion and no landing: the face a card wears
+ * while it is still being dealt, before `playCardStamp` counts it or
+ * `landCardStamp` lands it, and the face of a plain redraw that should not
+ * replay either. `from` is what the digits show meanwhile: zero for a figure
+ * that will count up, or the figure itself for one that will only land or that
+ * stays as it is.
+ */
+export function holdCardStamp(stamp: HTMLElement, reading: StampReading, from: 'zero' | 'figure'): void {
+  const parts = partsOf(stamp);
+  if (!parts || stampIsEmpty(reading)) return;
+  const figures = stampFigures(reading);
+  stamp.dataset.face = stampThunks(reading) ? 'occasion' : 'figure';
+  stamp.dataset.phase = from === 'zero' ? 'anticipate' : 'held';
+  setYieldText(
+    parts.figure,
+    stampText(from === 'zero' ? figures.map((figure) => ({ ...figure, amount: 0 })) : figures),
+  );
   const said = reading.occasion ?? reading.note;
   parts.occasion.textContent = said === undefined ? '' : `· ${said}`;
 }

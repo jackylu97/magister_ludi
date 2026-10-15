@@ -12,7 +12,10 @@
  *     holds a belief, and says what it counts in words rather than "×N";
  *   · `explainFaithLedger` folds to the top bar's faith figure, opens the
  *     Religion class into its sources, and keeps every Order card inside one
- *     deck slice (the user's ruling of 2026-10-15, `docs/flags.md` (ssssss) 4.3).
+ *     deck slice (the user's ruling of 2026-10-15, `docs/flags.md` (ssssss) 4.3);
+ *   · `explainReligionLedgerByPlace` (batch UX10) is the same list with each
+ *     source split by town, and a town's part is `religionLinesOfCity`'s line,
+ *     the figure the Rites tab prints for a kept rite.
  *
  * Core: one small board, read a handful of times.
  */
@@ -34,8 +37,10 @@ import {
   explainFaithLedger,
   explainLedger,
   explainReligionLedger,
+  explainReligionLedgerByPlace,
   foldFaithLedger,
   foldReligionLedger,
+  religionLinesOfCity,
 } from '../../src/sim/ledgerFold';
 import { readEmpire } from '../../src/sim/readings';
 import { explainCardEmpireYields } from '../../src/sim/statecraft';
@@ -103,6 +108,48 @@ describe('the Religion class, split by source', () => {
     expect(paidBy('theQuietHours')?.culture).toBeGreaterThan(0);
     expect(paidBy('omenReading')?.science).toBeGreaterThan(0);
     expect(paidBy('pilgrimsCoin')?.gold).toBeGreaterThan(0);
+  });
+});
+
+describe('the Religion class, place by place', () => {
+  it('is explainReligionLedger, source for source, in the same order', () => {
+    const { state } = world();
+    const plain = explainReligionLedger(state, 0);
+    const byPlace = explainReligionLedgerByPlace(state, 0);
+    expect(byPlace.map((line) => line.source)).toEqual(plain.map((line) => line.source));
+    byPlace.forEach((line, index) => expect(line.paid, JSON.stringify(line.source)).toEqual(plain[index]!.paid));
+  });
+
+  it("adds each source's places up to its figure", () => {
+    const { state } = world();
+    for (const line of explainReligionLedgerByPlace(state, 0)) {
+      expect(line.parts.length, JSON.stringify(line.source)).toBeGreaterThan(0);
+      expect(foldReligionLedger(line.parts.map((part) => ({ source: line.source, paid: part.paid })))).toEqual(
+        line.paid,
+      );
+    }
+  });
+
+  it("gives a town's part as that town's own line, and the founder's share to the empire", () => {
+    const { state } = world();
+    const byPlace = explainReligionLedgerByPlace(state, 0);
+    const town = state.cities.find((city) => city.ownerId === 0)!;
+    for (const line of religionLinesOfCity(state, town)) {
+      const entry = byPlace.find((one) => one.source.kind === 'card' && one.source.card === line.card)!;
+      expect(entry.parts.find((part) => part.cityId === town.id)?.paid, line.card).toEqual(line.paid);
+    }
+    // The kept rite is one of them, which is the figure the Rites tab prints.
+    expect(religionLinesOfCity(state, town).find((line) => line.card === 'omenReading')?.paid.science).toBeGreaterThan(0);
+    const share = byPlace.find((one) => one.source.kind === 'founderShare')!;
+    expect(share.parts.map((part) => part.cityId)).toEqual([null]);
+  });
+
+  it('reads the board and changes nothing', () => {
+    const { state } = world();
+    const before = JSON.stringify(state);
+    explainReligionLedgerByPlace(state, 0);
+    religionLinesOfCity(state, state.cities[0]!);
+    expect(JSON.stringify(state)).toBe(before);
   });
 });
 

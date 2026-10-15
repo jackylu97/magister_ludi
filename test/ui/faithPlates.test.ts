@@ -303,9 +303,10 @@ describe('the following-cities list', () => {
   });
 
   it('prints it on the row, and never as “+0 a turn”', () => {
-    const screen = sourceOf('religionScreen.ts');
-    expect(screen).toContain("'rel-town-press'");
-    expect(screen).toContain('if (town.pressure > 0)');
+    // The Religion & followers tab's lists since batch UX11.
+    const tab = sourceOf('followersTab.ts');
+    expect(tab).toContain("'faith-follower-press'");
+    expect(tab).toContain('if (row.pressure > 0)');
   });
 });
 

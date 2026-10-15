@@ -217,6 +217,8 @@ The skip's pity, the culture meter and the tier are untouched by any of them.
   and `explainReligionLedger` credits it to the religion, never to the belief
   whose id fills the line's `card`. Its label ends in words ("founder's share
   from 3 foreign cities") instead of a multiplier. The amounts are unchanged.
+  Interface code finds the share by this field, never by its label
+  (`religionReading` in `src/ui/faithReading.ts`).
 - **Follower beliefs** → city-local, to whoever OWNS each following city
   (a rival's faith in your town is a gift). A follower row that pays an
   empire fails `religionDataProblems`.
@@ -239,6 +241,37 @@ The readings the faith screen's Bonuses tab draws (`docs/plans/faith-screen-f1.m
   `cards` on a building's line for the cards standing on it, such as Feast Days
   on a temple); `meterCardShares` reads either, so happiness and authority can
   be split by source too.
+- `explainReligionLedgerByPlace(state, seat)` (batch UX10) is
+  `explainReligionLedger` with each source's figure split by where it was paid:
+  one part per town, and one for the empire's own lines (a founder's share, a
+  card's empire payout). The parts add up to the source's figure. The Bonuses
+  tab's hover cards list them.
+- `religionLinesOfCity(state, city)` is one town's part: the town's Religion
+  slice split by card. The Rites tab prints what a kept rite pays from it, so a
+  town shows the same figure on the Rites and Bonuses tabs.
+
+## The Faith sheet's Bonuses and Religion & followers tabs (batches UX10, UX11)
+
+- **Bonuses** (`src/ui/bonusesTab.ts`): every Religion source the Ledger names
+  is one card, on one of four shelves: your gods; your religion's follower and
+  enhancer beliefs; holy cities you hold (a plaque with the founder's share) and
+  rites your towns keep; and the follower beliefs of another religion your
+  towns follow, which pay you there. The cards add up to the Religion slice,
+  and the headline's faith bar to the top bar's faith, with Order cards as one
+  Statecraft slice.
+- A card that pays no yield keeps its place and shows no figure. A belief that
+  only opens a building (Temple Spires opens the Wat) never shows one: the
+  building's yield is counted with buildings, so the card says where it stands.
+- The cards are dealt each time the tab opens. A figure counts up only if it
+  changed since the player last looked at the tab; the sheet remembers what
+  each seat last saw for as long as the page is open, and never saves it.
+- A belief two religions both hold is one Ledger source, so it appears once,
+  on your own religion's shelf.
+- **Religion & followers** (`src/ui/followersTab.ts`): the religion's facts,
+  the pantheon wheel, four counts, who follows at home and abroad, the rival
+  faiths pressing your towns (`explainPressure` for each town of yours; a seat
+  always sees its own towns, so the faith lens's fog rule lists them all), and
+  the clergy, each with its price and, when it cannot be called, the reason.
 
 ## The tide
 

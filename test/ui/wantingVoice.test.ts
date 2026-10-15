@@ -366,6 +366,9 @@ describe('the wanting voice', () => {
       ['the faith short of another rite', [on('faith-line'), on('faith-line-now', 'wanting')]],
       ['a rite not learnt, in a town’s menu', [on('faith-menu-item', 'is-locked'), on('faith-menu-says', 'wanting')]],
       ['why the realm’s rite cannot be said', [on('faith-realm'), on('faith-realm-why', 'wanting')]],
+      // The Faith sheet's clergy cards (batch UX11): a piece that cannot be
+      // called says why on its card, in a refusal line.
+      ['why a piece of the clergy cannot be called', [on('faith-clergy-card'), on('refusal-line', 'is-row', 'wanting')]],
       ['the hover card\'s unmet note', [on('info-card-notes'), on('wanting')]],
     ];
     for (const [what, chain] of wanting) {

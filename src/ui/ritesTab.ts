@@ -45,8 +45,9 @@
  * gate is `riteGate` (its sentence, and its shortfall when the bank is all that
  * is short), "would add" is `explainRitePreview`, the ranking voice is
  * `riteVoicesByGain`, the turns are `riteTurnsFor` and `cityRiteTurnsLeft`, what
- * a kept rite pays now is the town's own lines carrying the rite (`readCity`),
- * and the prophet's rite is `empireRiteGate`. A start is one `performRite`
+ * a kept rite pays now is the rite's share of the town's Religion slice in the
+ * Ledger (`religionLinesOfCity`, the figure the Bonuses tab prints for the same
+ * town), and the prophet's rite is `empireRiteGate`. A start is one `performRite`
  * command, sent by the page through `controls.performRite`; the tab never
  * changes the state itself.
  */
@@ -61,7 +62,8 @@ import {
 } from '../sim/cardImpact';
 import { capitalCityOf } from '../sim/cities';
 import { explainPurchaseCost } from '../sim/purchase';
-import { readCity, readEmpire } from '../sim/readings';
+import { religionLinesOfCity } from '../sim/ledgerFold';
+import { readEmpire } from '../sim/readings';
 import {
   type NextRung,
   availableRites,
@@ -309,13 +311,19 @@ function largestVoice(figures: Readonly<Record<CityYieldKey, number>>): CityYiel
   return best;
 }
 
-/** What one town's own lines carrying this rite pay now: `readCity`'s lines, summed. */
+/**
+ * What a kept rite pays in one town now: the rite's line in the town's Religion
+ * slice of the Ledger (`religionLinesOfCity`).
+ *
+ * The Bonuses tab's rite card lists the same lines town by town, so a town shows
+ * one figure on both tabs (batch UX10). The Ledger's figure is the rite's flat
+ * lines plus its share of what the town's percentages add, in whole numbers, so
+ * a rite that pays by percentage shows what it adds rather than nothing.
+ */
 export function ritePaysNow(state: GameState, city: City, rite: RiteId): Record<CityYieldKey, number> {
   const pays = { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
-  for (const line of readCity(state, city).lines) {
-    if (line.card !== rite) continue;
-    for (const key of CITY_YIELD_KEYS) pays[key] += line[key];
-  }
+  const line = religionLinesOfCity(state, city).find((one) => one.card === rite);
+  if (line !== undefined) for (const key of CITY_YIELD_KEYS) pays[key] = line.paid[key];
   return pays;
 }
 
@@ -325,8 +333,8 @@ const VOICE_PROBES = 2;
 /**
  * The voice a rite's chip is marked with.
  *
- *   1. If a town of this seat keeps the rite, the voice its own lines pay most
- *      in (`ritePaysNow`). This is free: the town's reading is already taken.
+ *   1. If a town of this seat keeps the rite, the voice it pays most in there
+ *      (`ritePaysNow`). This is cheap: the town's reading is already taken.
  *   2. Otherwise the rite is previewed in up to two towns, free towns first,
  *      and the voice it adds most to a turn (`riteVoicesByGain`) is the mark.
  *      A rite that adds nothing a turn but gives something once (the

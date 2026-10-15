@@ -11241,9 +11241,9 @@ p.city-trade-link {
 }
 
 /* The emblem: the archetype line's drawing, and still the loudest place its ink
-   lands — a chip in the eyebrow rather than a plate of its own. The Religion
-   sheet's belief cards keep the plate (`.rel-card-emblem`): a god is dealt and
-   never listed. */
+   lands — a chip in the eyebrow rather than a plate of its own. The Faith
+   sheet's Bonuses cards wear the same face with a glyph disc in this place
+   (`.faith-card-emblem`). */
 .sc-card-emblem {
   flex: none;
   width: 18px;
@@ -11560,167 +11560,19 @@ p.city-trade-link {
   --line-ink: var(--line-none);
 }
 
-/* The pool, in the display face: this is the one number the screen exists for.
-   It leads the pane because every block under it is priced against it — and
-   since the rework of 2026-09-06 it carries the ladder's own line under the
-   figure, which is when the next god arrives. */
-.rel-pool {
-  flex: 0 0 auto;
-}
-
-.rel-purchase {
-  flex: 0 0 auto;
-  min-width: 0;
-}
-
-.rel-pool-figure {
-  margin: 2px 0 2px;
-  font-family: var(--face-num);
-  font-size: 24px;
-  font-variant-numeric: tabular-nums;
-  color: var(--y-faith);
-}
-
-/* The ladder's sentence, under the pool. Tabular because it is three figures in
-   a row and they should line up with the pool above them; faint because it is a
-   forecast, and the pool is the fact. */
+/* The next god's line under the wheel on the Religion & followers tab: the
+   ladder's own sentence (`nextRungWords`). Tabular, because it carries
+   figures, and centred under the wheel it belongs to. */
 .rel-rung-line {
   margin: 0 0 6px;
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
+  text-align: center;
   color: var(--ink-soft);
 }
 
-/* The bank against the threshold, on the place that is waiting for it. A hair
-   of a rule rather than a widget — the sentence beside it already carries both
-   numbers, and what the bar adds is how close. */
-.rel-rung-bar {
-  flex: 1 0 100%;
-  height: 3px;
-  margin-top: 5px;
-  background: var(--rule);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.rel-rung-fill {
-  display: block;
-  height: 100%;
-  background: var(--y-faith);
-  opacity: 0.7;
-}
-
-/* The places at the fire, stacked under the wheel. A column rather than a row
-   of plates: in 320px a tall card beside the wheel is two things neither of
-   which can be read, and what a player wants off a god they already hold is its
-   name and its clauses, which is a line. */
-.rel-slot-row {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-/* A place at the fire. Filled it is a compact row — the Statecraft hand's
-   density, the same eyebrow-chip-name-clauses order — and empty it is the
-   outline of one, which is the same argument the Statecraft slot row makes: a
-   run of places is read as a run before any of the words are. */
-.rel-slot {
-  position: relative;
-  padding: 7px 9px 8px;
-  border: var(--border-thin) solid var(--line-ink, var(--ink));
-  border-radius: var(--radius-sm);
-  background: var(--parchment);
-  text-align: left;
-  color: var(--line-ink, var(--ink));
-}
-
-/* An unnamed place. It wraps since the rework of 2026-09-06: the first open
-   place carries the ladder's sentence and a bar under it, and a bar that had to
-   share a line with the sentence would be a bar nobody could read. */
-.rel-slot-empty {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  border-style: dashed;
-  border-color: var(--ink-faint);
-  background: transparent;
-  color: var(--ink-faint);
-}
-
-.rel-slot-ghost {
-  font-size: 18px;
-  line-height: 1;
-  opacity: 0.55;
-}
-
-/* The axis glyph. A **chip** in the eyebrow now, sized to `.sc-card-emblem`'s
-   18px box so a god's mark and an Order's drawing sit at one height — the plate
-   it used to be belongs to the offer that deals the god, which is where the
-   ceremony is. */
-.rel-card-emblem {
-  flex: none;
-  font-size: 15px;
-  line-height: 18px;
-  color: var(--line-ink, var(--ink));
-}
-
-.rel-axis-mark {
-  color: var(--line-ink, var(--ink));
-}
-
-/* A god's clauses at the hand's reading size — the same two declarations
-   `.sc-card .sc-clause` makes, because a row of a god and a card of an Order
-   are the same density by design and not by coincidence. */
-.rel-slot .sc-clauses {
-  margin-top: 4px;
-  padding-left: 13px;
-}
-
-.rel-slot .sc-clause {
-  font-size: 11.5px;
-  line-height: 1.4;
-}
-
-/* The price, line by line — rule 5 for a thing you buy, in the meter card's own
-   two-column shape so a breakdown reads the same wherever it appears. */
-.rel-price {
-  list-style: none;
-  margin: 4px 0 8px;
-  padding: 0;
-}
-
-.rel-price-line {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 1px 0;
-}
-
-.rel-price-total {
-  margin-top: 3px;
-  padding-top: 3px;
-  border-top: var(--border-thin) solid var(--ink-faint);
-  font-weight: 600;
-}
-
-.rel-buy-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* `.btn` is `flex: 1`, which in a two-item row makes the button eat whatever the
-   select does not want. It is a control on a panel and takes its own width — and
-   it stays in the panel's register (sentence case, no tracking), which is the
-   rule the city panel's Buy Tiles note is the other instance of. */
-.rel-buy {
-  flex: 0 0 auto;
-  text-transform: none;
-}
-
+/* The town the clergy is called in. A control, so it keeps the panel's
+   sentence case. */
 .rel-city-select {
   font: inherit;
   padding: 3px 6px;
@@ -11731,118 +11583,25 @@ p.city-trade-link {
   text-transform: none;
 }
 
-/* The clergy, at the foot: three rows of one shape — the piece on the left, the
-   verb and its price on the right. `auto-fit` for the rite list's reason, so a
-   wide sheet lays the three across and a stacked one runs them down. */
-.rel-clergy-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.rel-clergy {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.rel-clergy-name {
-  font-weight: 600;
-}
-
-/* The tide, under the cards. Ruled off rather than boxed: it is the same sheet
-   reading one block quieter, not a second panel. */
-.rel-tide {
-  padding-top: 8px;
-  border-top: var(--border-thin) solid var(--rule);
-}
-
-/* The rites, as compact rows in the pane. `auto-fit` rather than a fixed count
-   because the pane's width is whatever is left beside the pantheon: three
-   across on a wide sheet, one when the panes have stacked. */
-.rel-rite-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.rel-rite {
-  padding: 6px 9px;
-  border-left: 2px solid var(--grape);
-  background: color-mix(in srgb, var(--parchment) 88%, transparent);
-}
-
-/* A rite the empire has not been taught. Greyed rather than hidden: a reference
-   that concealed what you have not learnt is a reference you cannot plan with. */
-.rel-rite-locked {
-  border-left-color: var(--ink-faint);
-  opacity: 0.62;
-}
-
-.rel-rite-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 0 0 2px;
-}
-
-.rel-rite-name {
-  font-family: var(--face-display);
-}
-
-.rel-rite-tech {
-  font-family: var(--face-num);
-  font-size: 11px;
-  color: var(--ink-soft);
-}
-
-.rel-rite-say {
-  margin: 0 0 2px;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-/* ---------------------------------------------------------------------------
-   THE RELIGION BLOCK
-   ---------------------------------------------------------------------------
-   What this seat's faith *is*, in the pane rather than in the column. The
-   column is the pantheon — what the empire believes — and this is what has been
-   made out of it, which is a thing a player does and therefore a thing that
-   scrolls. Same paper, same eyebrows, no new register. */
-.rel-faith {
-  margin-top: 14px;
-}
-
-.rel-faith-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 2px 0 4px;
-}
-
+/* The religion's name at the head of the Religion & followers tab: a heading,
+   or a field when the page can rename it. */
 .rel-faith-title {
   margin: 0;
   font-family: var(--face-display);
   font-size: 20px;
 }
 
-/* The name, editable in place. It changes no rule, so it is a field rather than
-   a ceremony — dressed as the sheet's own paper with a hairline under it, so it
-   reads as a name that can be edited rather than as a form control dropped on
-   parchment. */
+/* The name, editable in place. Renaming changes no rule, so it is dressed as
+   the sheet's own paper with a dashed line under it rather than as a form box. */
 .rel-name-field {
-  flex: 1 1 auto;
+  width: 100%;
   min-width: 0;
   padding: 2px 4px;
   border: 0;
   border-bottom: var(--border-thin) dashed var(--ink-faint);
   background: transparent;
   font-family: var(--face-display);
-  font-size: 20px;
+  font-size: 22px;
   color: var(--ink);
   text-transform: none;
 }
@@ -11864,68 +11623,6 @@ p.city-trade-link {
 .rel-faith-count {
   font-family: var(--face-num);
   font-variant-numeric: tabular-nums;
-}
-
-.rel-house {
-  margin-top: 10px;
-}
-
-.rel-house .rel-slot {
-  margin-top: 4px;
-}
-
-.rel-trickle,
-.rel-following {
-  margin-top: 12px;
-}
-
-/* One town that follows. A line rather than a card: what a player wants off a
-   congregation is who, how many, and whose — and the ledger that explains it is
-   on the hover, because it is `explainPressure`'s list and it is long. */
-.rel-town {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin: 0 0 3px;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.rel-town-name {
-  font-family: var(--face-display);
-}
-
-/* A foreign town wears its owner's ink. Whose town it is is the whole of what
-   makes a rival's banner news — and the ink is the banner's own, set inline
-   from `Player.color`, exactly as the city banners are. */
-.rel-town-foreign .rel-town-name {
-  color: var(--seat-ink, var(--ink));
-}
-
-.rel-town-owner {
-  font-size: 11px;
-  color: var(--ink-soft);
-}
-
-.rel-town-majority {
-  color: var(--gilt, var(--ink));
-}
-
-.rel-town-count {
-  margin-left: auto;
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-soft);
-}
-
-/* The tide, after the count and quieter than it: the count is what this town
-   *is* and the tide is where it is going, so the standing figure keeps the
-   weight and the rate sits behind it. */
-.rel-town-press {
-  margin-left: 8px;
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-faint);
 }
 
 /* ================= the Faith sheet: tabs and the Rites tab (batch UX9) =======
@@ -12459,27 +12156,655 @@ button.faith-rite-chip:hover:not(.is-on) {
   margin-left: auto;
 }
 
-/* --- the Bonuses tab, as it stands until batch UX10 -------------------------- */
+/* --- the Bonuses tab (batch UX10) ---------------------------------------------
+   The drawing in `docs/plans/mockups/faith-f1.html`, Tab 2. A card wears the
+   Statecraft hand's face (`.sc-card`: the frame and inner rule in its accent,
+   the mono eyebrow, the name, the clauses and the compact stamp), so a god
+   looks like an Order. What is this tab's own is here: the headline, the
+   shelves, the emblem chip, the town chips, the holy city's plaque, the rite
+   card and the empty places. */
 .faith-bonuses {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 2px;
 }
 
+.faith-headline {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.faith-head-card {
+  min-width: 0;
+  padding: 10px 14px 12px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 8px;
+  background: #fdfaef;
+}
+
+.faith-head-figure {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 4px 0 6px;
+}
+
+.faith-head-bank,
+.faith-head-none {
+  font-family: var(--face-num);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.faith-head-match {
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--teal);
+}
+
+.faith-head-note {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+/* The faith bar: one slice per source, in the Ledger's inks, growing left to
+   right on an opening (`--slice-delay` is written per slice). */
+.faith-bar {
+  display: flex;
+  height: 18px;
+  margin-top: 2px;
+  overflow: hidden;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 5px;
+  background: rgba(29, 26, 32, 0.06);
+}
+
+.faith-slice {
+  display: block;
+  flex: none;
+  height: 100%;
+  border-right: 1.5px solid var(--parchment);
+  background: var(--slice-ink, var(--y-faith));
+  transition:
+    width 520ms cubic-bezier(0.2, 0.8, 0.2, 1) var(--slice-delay, 0ms),
+    opacity 160ms ease,
+    filter 160ms ease;
+}
+
+.faith-slice:last-child {
+  border-right: 0;
+}
+
+.faith-bar.is-dim .faith-slice {
+  opacity: 0.32;
+}
+
+.faith-bar.is-dim .faith-slice.is-lit {
+  opacity: 1;
+  filter: saturate(1.2);
+}
+
+.faith-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--face-num);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.faith-key-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.faith-key-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--slice-ink, var(--y-faith));
+}
+
+.faith-key-figure {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A shelf: its title, what it holds, and its total at the right. */
+.faith-shelf-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 14px 0 7px;
+}
+
+.faith-shelf-title {
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--vermilion);
+}
+
+.faith-shelf-note {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.faith-shelf-total {
+  margin-left: auto;
+  font-family: var(--face-num);
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.faith-shelf-empty {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* The perspective is what makes the deal a turn rather than a squash. */
 .faith-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  align-items: start;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  perspective: 1400px;
+}
+
+.faith-card.sc-card {
+  min-height: 150px;
+  cursor: default;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+}
+
+/* A card lifts with the Orders hand's shadow when it is hovered, focused, or
+   lit from its slice of the bar. */
+.faith-card.sc-card:hover,
+.faith-card.sc-card:focus-visible,
+.faith-card.sc-card.is-lit {
+  box-shadow: 4px 4px 0 var(--ink);
+  transform: translate(-2px, -2px);
+}
+
+.faith-card.is-wide {
+  grid-column: span 2;
+}
+
+/* The emblem: a disc in the card's accent with its glyph in paper. */
+.faith-card-emblem {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--line-ink, var(--ink));
+  color: var(--parchment);
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.faith-card-note {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+/* Where a card pays: the towns as chips, then a few plain words. */
+.faith-card-where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.faith-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  border: 1px solid rgba(29, 26, 32, 0.25);
+  border-radius: 3px;
+  font-family: var(--face-num);
+  font-size: 10px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* A town keeping a rite: its name, the turns it has left as a bar, and the count. */
+.faith-chip.is-kept {
+  padding: 2px 5px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  font-size: 10.5px;
+}
+
+.faith-chip.is-more {
+  border-style: dashed;
+  color: var(--ink-soft);
+}
+
+.faith-chip-bar {
+  display: inline-block;
+  width: 26px;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgba(29, 26, 32, 0.15);
+}
+
+.faith-chip-fill {
+  display: block;
+  height: 100%;
+  background: var(--y-faith);
+}
+
+.faith-chip-left {
+  font-variant-numeric: tabular-nums;
+}
+
+.faith-card-where-words {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+/* The figure sits at the foot, so a row of cards lines its stamps up. */
+.faith-card-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.faith-card-quiet {
+  font-size: 11px;
+  font-style: italic;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+/* The holy city's plaque: the Doctrine's heavier frame and doubled inner rule,
+   in faith's ink. The rite and the cathedral's patron wear faith's ink too. */
+.faith-card.is-holyCity {
+  --line-ink: var(--y-faith);
+  border-width: var(--border);
+  background: linear-gradient(180deg, #fbf3e6, var(--parchment));
+}
+
+.faith-card.is-holyCity::before {
+  inset: 3px;
+  border-color: var(--y-faith);
+  box-shadow:
+    inset 0 0 0 2px var(--parchment),
+    inset 0 0 0 3.5px var(--y-faith);
+  opacity: 0.55;
+}
+
+.faith-card.is-rite,
+.faith-card.is-consecration {
+  --line-ink: var(--y-faith);
+}
+
+/* An empty place: a dashed outline saying what it waits for. */
+.faith-card.is-ghost {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 110px;
+  padding: 10px;
+  border: 1.5px dashed var(--ink-faint);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  color: var(--ink-faint);
+}
+
+.faith-ghost-glyph {
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.55;
+}
+
+.faith-ghost-title {
+  font-family: var(--face-name);
+  font-size: 12.5px;
+  font-style: italic;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.faith-ghost-text {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.faith-ghost-bar {
+  align-self: stretch;
+  height: 3px;
+  margin-top: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--rule);
+}
+
+.faith-ghost-fill {
+  display: block;
+  height: 100%;
+  background: var(--y-faith);
+  opacity: 0.7;
+}
+
+/* Nothing moves under reduced motion: the sheet never deals or counts then, and
+   the bar and the lift have no transition. */
+@media (prefers-reduced-motion: reduce) {
+  .faith-slice,
+  .faith-card.sc-card {
+    transition: none;
+  }
+}
+
+/* --- the Religion & followers tab (batch UX11) --------------------------------
+   The drawing in `docs/plans/mockups/faith-f1.html`, Tab 3: the religion in the
+   Statecraft split's fixed column, and who follows, the rival faiths and the
+   clergy in the pane beside it. */
+.faith-religion-column {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.faith-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.faith-fact {
+  padding: 2px 8px;
+  border: 1.5px solid var(--ink-faint);
+  border-radius: 999px;
+  background: #fdfaef;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.faith-counts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.faith-count {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-sm);
+  background: #fdfaef;
+}
+
+.faith-count-value {
+  font-family: var(--face-num);
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--y-faith);
+}
+
+.faith-count-label {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+/* The way to the Bonuses tab, where the gods and beliefs used to be listed. A
+   control, so sentence case. */
+.faith-to-bonuses {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-transform: none;
+  color: var(--y-faith);
+  cursor: pointer;
+}
+
+.faith-to-bonuses:hover {
+  color: var(--ink);
+}
+
+.faith-follows,
+.faith-rivals,
+.faith-clergy {
+  margin-bottom: 18px;
+}
+
+.faith-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.faith-section-note {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.faith-follow-lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-top: 6px;
+}
+
+.faith-follow-title {
+  margin: 0 0 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.faith-follow-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+/* One town: its name, how many follow (with a bar), and what presses a turn. */
+.faith-follower {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px 70px;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+}
+
+.faith-follower-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  min-width: 0;
+}
+
+.faith-follower-town {
+  font-family: var(--face-name);
+  font-weight: 600;
+}
+
+.faith-follower-owner,
+.faith-follower-reason {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.faith-follower-majority {
+  color: var(--gilt);
+}
+
+/* A foreign town and a rival faith carry their owner's colour as a dot. */
+.faith-seat-dot {
+  flex: none;
+  align-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--seat-ink, var(--ink));
+}
+
+.faith-follower-count {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.faith-follower-bar {
+  display: block;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--rule);
+}
+
+.faith-follower-fill {
+  display: block;
+  height: 100%;
+  background: var(--y-faith);
+}
+
+.faith-follower-press {
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink-faint);
+}
+
+.faith-follower.is-unreached .faith-follower-town {
+  color: var(--ink-soft);
+}
+
+.faith-rivals-empty {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.faith-clergy-where {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.faith-clergy-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 10px;
+  margin-top: 8px;
+}
+
+.faith-clergy-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 9px 11px 10px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+}
+
+.faith-clergy-name {
+  margin: 0;
+  font-family: var(--face-name);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.faith-clergy-says {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
+.faith-clergy-card .price-cell {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+/* A piece that cannot be called keeps its price in view, quietly, with the
+   reason under it. */
+.faith-clergy-price {
+  margin-top: auto;
+  font-family: var(--face-num);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.faith-clergy-card .refusal-line {
+  margin: 0;
 }
 
 /* Under a narrow sheet the whole sheet scrolls (the paper's own breakpoint), so
    the panel stops scrolling, and a town row folds onto two lines: its name and
-   control first, what it keeps and adds under them. */
+   control first, what it keeps and adds under them. The Bonuses headline stacks
+   its two panels, and a wide card takes one column like the rest. */
 @media (max-width: 860px) {
   #religion-overlay .faith-panel.is-rites,
   #religion-overlay .faith-panel.is-bonuses {
     overflow-y: visible;
+  }
+
+  #religion-overlay .faith-headline {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #religion-overlay .faith-card.is-wide {
+    grid-column: auto;
+  }
+
+  #religion-overlay .faith-follower {
+    grid-template-columns: minmax(0, 1fr) 76px 62px;
   }
 
   #religion-overlay .faith-town {
@@ -12991,19 +13316,24 @@ button.faith-rite-chip:hover:not(.is-on) {
    hidden by `backface-visibility` — so the parchment weave is all there is to
    see until the card comes round.
 
-   The stagger is `--deal-delay`, written per card by `offerCard.ts` from its
-   own index: a hand dealt all at once is a hand that appeared, and the whole
-   reason to have a back is that a card is *turned over*. */
-.offer-option.is-dealing {
+   The stagger is `--deal-delay`, written per card from its own index
+   (`cardDeal.ts`): a hand dealt all at once is a hand that appeared, and the
+   whole reason to have a back is that a card is *turned over*.
+
+   Any card can be dealt (batch UX10): the Orders draft's offer cards and the
+   Faith sheet's Bonuses cards both wear `is-dealing` for the turn, so these
+   rules name the class alone. The draft's cards look and move exactly as they
+   did when the rules named `.offer-option`. */
+.is-dealing {
   transform-style: preserve-3d;
   animation: card-deal 420ms ease-out var(--deal-delay, 0ms) both;
 }
 
-.offer-option.is-dealing > *:not(.card-back) {
+.is-dealing > *:not(.card-back) {
   backface-visibility: hidden;
 }
 
-.offer-option.is-dealing > .card-back {
+.is-dealing > .card-back {
   transform: rotateY(180deg);
   backface-visibility: hidden;
 }
@@ -13021,15 +13351,15 @@ button.faith-rite-chip:hover:not(.is-on) {
   }
 }
 
-/* Reduced motion never sees a back at all — `offerCard.ts` does not deal one.
-   This is the belt to that braces: a card that somehow arrived face-down with
-   motion off is face-up on the first frame. */
+/* Reduced motion never sees a back at all — no surface deals one with motion
+   off. This is the belt to that braces: a card that somehow arrived face-down
+   with motion off is face-up on the first frame. */
 @media (prefers-reduced-motion: reduce) {
-  .offer-option.is-dealing {
+  .is-dealing {
     animation: none;
   }
 
-  .offer-option.is-dealing > .card-back {
+  .is-dealing > .card-back {
     display: none;
   }
 }
@@ -13214,14 +13544,14 @@ button.faith-rite-chip:hover:not(.is-on) {
 }
 
 /* 236px is the width of a wheel with a column of slot cards beside it, which is
-   what the flair gallery still draws and what this was. In the pantheon column
-   the wheel *is* the column, so on the screen it is sized to it — 200px, which
-   is what leaves the places at the fire above the fold on a 720-tall viewport —
-   and `min(…, 100%)` so a narrower column shrinks it rather than clipping it.
-   The drawing is a 100×100 viewBox and scales exactly: `WHEEL`'s proportions are
-   untouched, and the gallery's stall is left at the size it was tuned at. */
+   what the flair gallery still draws. On the Faith sheet's Religion & followers
+   tab the wheel is the left column's centrepiece, at 240px since batch UX11 (the
+   places at the fire moved to the Bonuses tab, so nothing under it needs the
+   room), and `min(…, 100%)` so a narrower column shrinks it rather than
+   clipping it. The drawing is a 100×100 viewBox and scales exactly: `WHEEL`'s
+   proportions are untouched, and the gallery's stall is left at its own size. */
 #religion-overlay .rel-wheel {
-  width: min(200px, 100%);
+  width: min(240px, 100%);
   height: auto;
   aspect-ratio: 1;
 }
@@ -16864,21 +17194,6 @@ body.compendium-page {
   font-size: 0.9rem;
 }
 
-/* The gods and beliefs standing in the pantheon's column (`religionScreen.ts`)
-   keep the compact face too, and therefore the compact stamp: the same seat, the
-   same height-stable pair, the same smaller digits. Written beside the hand's
-   rule rather than folded into its selector so each screen's face is one block
-   a reader can find by the name of the screen. */
-.rel-slot .card-stamp {
-  margin: 1px 0 4px;
-  min-height: 20px;
-  line-height: 20px;
-}
-
-.rel-slot .card-stamp-figure {
-  font-size: 0.9rem;
-}
-
 /* The two places the stamp is not on a card at all: the **aggregate** band under
    the chairs (`statecraftScreen.ts`) and the same reading at the head of the
    Ledger's first band (`ledgerScreen.ts`). Written beside the other two for the
@@ -16905,6 +17220,30 @@ body.compendium-page {
 
 .ldg-deck .card-stamp-figure {
   font-size: 0.95rem;
+}
+
+/* The Faith sheet's Bonuses headline (`bonusesTab.ts`): the same reading at
+   display size, because it is the one number the tab is about. Faith's ink on
+   the left; ink on the right, where every voice wears its own mark. */
+.faith-head-figure .card-stamp {
+  --stamp-ink: var(--y-faith);
+  justify-content: flex-start;
+  margin: 0;
+  min-height: 36px;
+  line-height: 36px;
+}
+
+.faith-head-figure .card-stamp-figure {
+  font-size: 1.9rem;
+}
+
+.faith-head-figure.is-voices .card-stamp {
+  --stamp-ink: var(--ink);
+  gap: 2px 14px;
+}
+
+.faith-head-figure.is-voices .card-stamp-figure {
+  font-size: 1.3rem;
 }
 
 /* ===========================================================================
