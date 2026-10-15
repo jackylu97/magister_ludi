@@ -67,6 +67,21 @@ the place to see them, so the figure never disagrees with the bar.
       turns. The sheet is called **Faith**, since it holds rites, bonuses and the
       religion. *Proposed.*
 
+**(tttttt) A purchase can strand set-aside hammers — fix held for the next
+save-format change, 2026-10-15.** Found by the UX5 agent and confirmed in code.
+When a town moves a building off the front of its queue, the hammers it had
+banked are set aside under that building's name (`city.itemProgress`,
+`parkHammers` in `src/sim/state.ts`). If the player then buys that building
+outright while it is not at the front, `purchaseItemAt` removes the queue row
+but leaves those hammers set aside, and since the building now stands, nothing
+can ever spend them. The stated rule is that buying never spends banked hammers
+and nothing is lost. *Proposed fix:* a bought item's set-aside hammers join the
+basket and go to whatever the town builds next; check the other ways a queued
+building can come to stand (a card or wonder granting it, capture) for the same
+leak. Fixing it changes outcomes, so it needs a new save format, which would
+stop the current playtest save from loading. *Default:* it lands with the next
+deck batch that changes the save format anyway. Say if you want it sooner.
+
 **(rrrrrr) Three costs of war: unrest, war weariness, ranks — RULED, 2026-10-14**
 (the user, after the warmonger research in `docs/plans/warmonger-research.md`:
 *"we're missing certain mechanics for war that make the warmonger playstyle feel
