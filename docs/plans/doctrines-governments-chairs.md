@@ -1,6 +1,8 @@
 # Doctrines, governments and chairs (proposal)
 
-**Status:** proposal, 2026-10-15, for the user to react to. Nothing here is built.
+**Status:** proposal, 2026-10-15. One part is ruled (below); the rest waits for the user. Nothing here is built.
+
+**Ruled, 2026-10-15: typed chairs are option B** (section 4). The user: *"I think B makes sense."* Every card is Military, Economic or Civic, and every government has a mix of the three plus Open chairs. The user then asked how a card should show all three things it now carries, before ruling on the other questions: *"How should we display the cards? Right now they're colored based on deck type, ideally we have some design that incorporates the deck affinity, chair type, and rarity. Please do a couple design proposals (remembering, we're going for an occult, tarot inspired card design). I'll take a look at your proposals and respond to your ruling questions after"*. The proposals are in `docs/plans/mockups/card-faces.html`.
 
 The user, verbatim:
 

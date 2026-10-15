@@ -19,6 +19,15 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(vvvvvv) Doctrines, governments and typed chairs — PARTLY RULED, 2026-10-15.**
+The proposal is `docs/plans/doctrines-governments-chairs.md`. Ruled: **typed
+chairs are option B** (*"I think B makes sense."*): every card is Military,
+Economic or Civic, and governments mix the three with Open chairs. Open: when
+Doctrines are offered, the fifteen Dominion candidates, and whether
+governments become a chair mix plus one rule. The user will answer those after
+seeing card face proposals that show deck, chair type and rarity together
+(`docs/plans/mockups/card-faces.html`).
+
 **(uuuuuu) Dominion's four builds, and Tier IV at draft 38 — RULED, 2026-10-15.**
 The user answered the questions in `docs/plans/dominion-builds.md`, where the
 rulings are written out with their words. In short:
