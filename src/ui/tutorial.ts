@@ -52,14 +52,16 @@
  * Hard rule 7. Plain words a first-time player already owns; no identifier ever
  * reaches the screen; a number appears only where the number *is* the rule.
  * There is one such number: how many beads open the Magnum Opus. It is read from
- * `data/beads.json` (`BEAD_THRESHOLD` below) and written in words, never typed
- * into the copy. Every string a player reads is in the two tables at the top of
- * this file, so the copy can be edited without reading a line of the machinery.
- * `test/ui/guideCopy.test.ts` checks that no line names a retired system and
- * that the bead count comes from data.
+ * `data/beads.json` (`BEAD_THRESHOLD` below) and written in words by
+ * `numberWords` (`numberWords.ts`), never typed into the copy. Every string a
+ * player reads is in the two tables at the top of this file, so the copy can be
+ * edited without reading a line of the machinery. `test/ui/guideCopy.test.ts`
+ * checks that no line names a retired system and that the bead count comes from
+ * data.
  */
 
 import beadsJson from '../../data/beads.json';
+import { numberWords } from './numberWords';
 
 // --- the figures -------------------------------------------------------------
 
@@ -75,29 +77,6 @@ import beadsJson from '../../data/beads.json';
  * checks it against `BEAD_RULES.threshold`.
  */
 export const BEAD_THRESHOLD: number = beadsJson.rules.threshold;
-
-const SMALL_NUMBER_WORDS = [
-  'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
-  'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
-  'seventeen', 'eighteen', 'nineteen',
-];
-const TENS_WORDS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
-
-/**
- * A whole number in words: "seven", "twenty", "twenty-one".
- *
- * The guide writes its figures in words, because its copy may contain no digit
- * (the copy test in `test/ui/tutorial.test.ts`). It covers zero to ninety-nine.
- * Anything else comes back as digits, so the copy test fails and names the line,
- * rather than the note quietly printing a wrong word.
- */
-export function numberWords(value: number): string {
-  if (!Number.isInteger(value) || value < 0 || value > 99) return String(value);
-  if (value < 20) return SMALL_NUMBER_WORDS[value]!;
-  const tens = TENS_WORDS[Math.floor(value / 10)]!;
-  const units = value % 10;
-  return units === 0 ? tens : `${tens}-${SMALL_NUMBER_WORDS[units]!}`;
-}
 
 /** "seven beads": the threshold as the copy says it. */
 const THRESHOLD_BEADS = `${numberWords(BEAD_THRESHOLD)} beads`;

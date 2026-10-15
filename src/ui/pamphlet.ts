@@ -40,8 +40,8 @@
  * owns, no identifier on screen, and no digit in the prose. The one figure the
  * pamphlet names is how many beads open the Magnum Opus, because there the
  * number *is* the rule. It comes from `data/beads.json` through the tutorial's
- * `BEAD_THRESHOLD` and is written in words by `numberWords`, so retuning the
- * data rewrites the page. `test/ui/guideCopy.test.ts` checks that no page names
+ * `BEAD_THRESHOLD` and is written in words by `numberWords` (`numberWords.ts`),
+ * so retuning the data rewrites the page. `test/ui/guideCopy.test.ts` checks that no page names
  * a retired system and that the bead count is not typed into the copy.
  * A named thing the book has a page about is a keyword ref
  * (`[[kind:id|name]]`), printed through `setDescriptorText` so it comes out
@@ -60,7 +60,8 @@
 
 import type { CompendiumEntry } from './compendium';
 import { setDescriptorText } from './keywords';
-import { BEAD_THRESHOLD, type TutorialStorage, numberWords } from './tutorial';
+import { numberWords } from './numberWords';
+import { BEAD_THRESHOLD, type TutorialStorage } from './tutorial';
 
 // --- the table ---------------------------------------------------------------
 

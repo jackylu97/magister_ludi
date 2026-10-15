@@ -21,13 +21,19 @@
  * it. One vocabulary, glossed once.
  *
  * `compendium.ts`'s digit rule holds here, and for the same reason: nothing on
- * these pages may name a number, because a number written in prose is a second
+ * these pages may type a number, because a number written in prose is a second
  * table that goes stale on the next balance pass. Where a figure matters the
  * sentence points at the cards below it, which print the live one.
- * `test/ui/compendium.test.ts` runs its scanner over this file as well.
+ * `test/ui/compendium.test.ts` runs its scanner over this file as well. The one
+ * exception is a figure the sentence cannot do without, such as what a kept
+ * wager pays: it is read from data and written in words (`numberWords.ts`), so
+ * it follows the data when it is retuned. `test/ui/guideCopy.test.ts` fails on
+ * a bead count typed into this file, and on a retired system named in it.
  */
 
+import { WAGER_RULES } from '../sim/wagerData';
 import type { CompendiumEntry, CompendiumSectionId } from './compendium';
+import { numberWords } from './numberWords';
 
 /** The id every lead page carries on its shelf: `unit:about`, `tech:about`. */
 export const SHELF_INTRO_KEY = 'about';
@@ -60,6 +66,11 @@ function lead(
   };
 }
 
+/** "two beads", "one bead": a count of beads read from data, in words. */
+function beadsInWords(count: number): string {
+  return `${numberWords(count)} ${count === 1 ? 'bead' : 'beads'}`;
+}
+
 /**
  * The fourteen lead pages, by shelf.
  *
@@ -69,8 +80,8 @@ function lead(
  */
 export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>> = {
   unit: lead('unit', 'About units', '⚔', [
-    'Units are the pieces you move on the map. You get one by putting it in a city’s build queue and letting the city’s production pay for it, or by buying it outright — most units with gold, and a few, such as the augur, with faith instead.',
-    'Military units fight. Civilian units — settlers, workers, augurs, prophets and great people — cannot fight, and are captured if an enemy reaches them. Several civilians are used up by the job they do: a settler becomes a city, a worker spends charges until it has none left.',
+    'Units are the pieces you move on the map. You get one by putting it in a city’s build queue and letting the city’s production pay for it, or by buying it outright — most units with gold, and a few, such as the prophet, with faith instead.',
+    'Military units fight. Civilian units — settlers, workers, prophets and great people — cannot fight, and are captured if an enemy reaches them. Several civilians are used up by the job they do: a settler becomes a city, a worker spends charges until it has none left.',
     'A trader is neither, and has a slot of its own on a hex: a caravan may stand where a civilian and a soldier are already standing, and any number of caravans may share one hex. A trader that an enemy reaches is destroyed rather than captured, and its cargo goes to the attacker.',
     'Each entry below gives a unit’s combat strength, how far it moves, how far it sees, what it costs, what it costs the treasury every turn to keep, and which technology unlocks it. Soldiers cost gold every turn; civilians, traders and the scout cost nothing, and neither does a unit the game handed you rather than sold you.',
   ]),
@@ -126,10 +137,12 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'The other two belong to the religion a prophet founds. A follower belief applies in every city that follows the faith, and it pays whoever owns that city — so a rival whose towns keep your religion is quietly getting your follower beliefs, and a rival’s faith in your towns is a gift you did not choose. An enhancer belief is the other half: it bends the spread itself — how far a holy site reaches, how hard it presses, how long a proclamation lasts — and it pays whoever holds the faith’s holy city, which is the city whose land the first holy site stands on. Take that city and you take what the faith pays. Both are drawn with a prophet’s charge, and a prophet can give a pool back and draw again.',
     'Each entry below gives exactly what a belief does. The words these cards use are explained on the Orders shelf.',
   ]),
+  // The augur is retired: a rite is a town's own verb, paid for in faith, and a
+  // prophet can say one over every town at once (`docs/religion-v2.md`, Rites).
   rite: lead('rite', 'About rites', '☩', [
-    'A rite is a temporary blessing performed by an augur. An augur is one deed: it performs a single rite, or it names a belief for your pantheon, and either uses it up.',
-    'Most rites are performed on one of your cities and last a stated number of turns; one is performed on a unit instead. The effect starts at once, and performing a rite uses up the augur’s movement for that turn.',
-    'Each entry below gives what a rite is performed on, how long it lasts, what it does, and the technology that teaches it.',
+    'A rite is a temporary blessing that a town pays for in faith. Any of your towns can say a rite your empire knows, and a prophet can say one over every town you own at once.',
+    'Most rites last a stated number of turns from the turn they are said; a few do their work at once instead. A town keeps only one rite at a time, and the price in faith rises with each age.',
+    'Each entry below gives who can say a rite, how long it lasts, what it does, and the technology or Order that teaches it.',
   ]),
   greatPerson: lead('greatPerson', 'About great people', '★', [
     'A great person is a famous individual who joins your civilisation. They are neither built nor bought. Renown — earned from certain buildings, from finishing wonders, and from Triumphs — fills a bar, and when it is full the game offers you a choice of great people to recruit.',
@@ -143,15 +156,19 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
   ]),
   bead: lead('bead', 'About the Bead Race', '◉', [
     'The Bead Race is the only way to win. There are no separate paths — no conquest track, no science track — just one row of glass beads per player, on the Abacus, where everyone can see them. A full rod is not the win: it is the permission to begin the Magnum Opus, and the empire that finishes that great work takes the game, however long anybody else’s rod is.',
-    'Every bead is an announced event. Nothing accrues quietly and nothing is counted in private: a bead is a claim on the world, so it is something other players can see coming, race you for, and take first.',
-    'There are two ways to earn one. The wager is the first and the ordinary one: every age from the second sets the whole world three bars, you stake one of them, and clearing a bar pays. The second is a handful of things that hand a bead over outright — finishing the last technology of the chart, raising one of the great works of the sky, raising the Magnum Opus itself.',
+    // Since batch Q1 no bead is raced for: a wager's bar can be met by every
+    // empire, and a grant is paid once to each empire (`docs/beads.md`).
+    'Every bead is an announced event, and nothing is counted in private: every rod is on the Abacus, and so is how close every empire stands to each goal the age has set. The one secret is which goal each empire staked.',
+    `There are two ways to earn one. The wager is the first and the ordinary one: every age from the second sets the whole world ${numberWords(WAGER_RULES.dealt)} bars, you stake one of them, and clearing a bar pays. The second is a handful of things that hand a bead over outright — finishing the last technology of the chart, raising one of the few buildings that pay one, raising the Magnum Opus itself.`,
     'There used to be more. Feats, race projects, quests and reckonings were the older answer — firsts in the world, races in the build list, deeds dealt from an age’s deck, and a measurement of everybody at the age’s close — and the wager replaced all four. Their pages are still below, marked withdrawn, because a game that earned one of those beads keeps it.',
-    'Every bead belongs to one of four families — domination, culture, science, economic — and the family decides the colour of the bead and nothing else: they are all worth the same, and a rod of four colours wins exactly as a rod of one does. Most beads also pay something once: a windfall, a free unit, or a permanent step in one of the meters.',
+    'Every bead belongs to one of four families — domination, culture, science, economic — and the family decides the colour of the bead and nothing else: they are all worth the same, and a rod of four colours opens the Magnum Opus exactly as a rod of one does. A bead pays nothing else today. Some of the withdrawn beads below paid a reward when they were earned, and a game that earned one keeps it.',
     'One slot on every rod is different. The last bead is golden, it can only be earned by completing the Magnum Opus, and its slot sits empty from the first turn — the standing question of the whole game. The pages below give the rules of the race, then everything that has ever paid a bead.',
   ]),
   wager: lead('wager', 'About the wager', '◈', [
-    'Every age from the second deals the whole world three targets at once, out of a deck cut for that age. Each of them is a bar — a figure to reach, not a race to win — so anybody who clears one clears it, however many others already have.',
-    'On the turn the cards are dealt you stake one of the three, in secret, and you cannot end that turn without staking. Clearing the card you staked pays two beads; clearing either of the others pays one; and the beads are minted the moment a bar is met rather than at the age’s close, so a bar met and then lost to a war still paid.',
+    // The counts are read from `data/wagers.json` (`rules.dealt`,
+    // `rules.stakeBeads`, `rules.otherBeads`) and written in words.
+    `Every age from the second deals the whole world ${numberWords(WAGER_RULES.dealt)} targets at once, out of a deck cut for that age. Each of them is a bar — a figure to reach, not a race to win — so anybody who clears one clears it, however many others already have.`,
+    `On the turn the cards are dealt you stake one of the ${numberWords(WAGER_RULES.dealt)}, in secret, and you cannot end that turn without staking. Clearing the card you staked pays ${beadsInWords(WAGER_RULES.stakeBeads)}; clearing any of the others pays ${beadsInWords(WAGER_RULES.otherBeads)}; and the beads are minted the moment a bar is met rather than at the age’s close, so a bar met and then lost to a war still paid.`,
     'Missing the card you staked is the only thing the wager punishes. At the age’s close a seat whose own bar went unmet is dealt a malice — a card with a bad face that takes one of its government’s chairs and stays there until the next age’s wager is judged. The malices are on their own shelf.',
     'A wager reads one of two ways, and the entry below says which. A standing bar reads your realm as it is now; a flowing bar counts what you have gathered since the cards were dealt. Some cards ask several things at once, and then the bar is how many of their clauses hold on one turn — all of them.',
     'Each entry below gives the thread a card is dealt under, which rod its beads land on, what it asks in plain words, and the bar it sets in each of the ages it can be dealt in.',

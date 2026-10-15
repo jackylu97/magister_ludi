@@ -481,12 +481,16 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
   /** The left column: one rod per real seat, and the golden slot on each. */
   function drawRods(state: GameState, seat: number): HTMLElement {
     const column = element('aside', 'bead-rods');
-    column.append(element('p', 'eyebrow sc-eyebrow', 'the reckoning'));
+    // "Beads held", not "the reckoning": the reckonings are a retired kind of
+    // bead, and their pages are still in the Compendium.
+    column.append(element('p', 'eyebrow sc-eyebrow', 'beads held'));
+    // The threshold opens the Magnum Opus, and finishing the Opus wins (schema
+    // 69). The golden bead is the Opus's own, minted when it is finished.
     column.append(
       element(
         'p',
         'bead-threshold',
-        `${figure(BEAD_RULES.threshold)} beads win — the last is golden`,
+        `${figure(BEAD_RULES.threshold)} beads open the Magnum Opus; finishing it mints the golden bead`,
       ),
     );
     // The finish line's own line, under the threshold and above the rods,

@@ -1,49 +1,66 @@
 /**
- * The guide's copy, checked against the live rules.
+ * The guide's copy, and the Compendium pages it sends players to, checked
+ * against the live rules.
  *
  * Principle 6 of `docs/plans/tutorial.md`: copy that states a number reads it
  * from data, and a sync test fails when a lesson names a retired system. The
- * guide that ships today is two modules: the opening walkthrough and its
- * one-time notes (`src/ui/tutorial.ts`), and the pamphlet (`src/ui/pamphlet.ts`).
- * This file holds both of them to three rules.
+ * guide that ships today is the opening walkthrough with its one-time notes
+ * (`src/ui/tutorial.ts`) and the pamphlet (`src/ui/pamphlet.ts`). Batch T0b
+ * added the pages those point at: the Compendium's written shelves
+ * (`compendiumText.ts`), the lead page of every generated shelf
+ * (`compendiumShelves.ts`) and the bead ledger (`beadsScreen.ts`). All five are
+ * held to three rules.
  *
  *   1. **No retired system is named.** The names come from data where the data
  *      has them: a bead kind whose every row is `retired: true` (feats,
- *      endeavours, quests and reckonings today) and a unit row marked retired
- *      (the augur). Two old player words have no data row to read them from,
- *      so they are listed by hand below with the reason.
+ *      endeavours, quests and reckonings today), a unit row marked retired (the
+ *      augur), and a card class whose every row is retired (the Doctrines, until
+ *      their rework). The old player words for two of those kinds have no data
+ *      row, so they are listed by hand below with the reason. A few strings name
+ *      a retired system on purpose, because a retired row keeps its page; each
+ *      is listed in `HISTORICAL` with the reason.
  *   2. **No removed control is named.** The copy once sent players to buttons
  *      that the interface rework took away or renamed. A short hand list, since
  *      a control that no longer exists leaves nothing in the code to read.
- *   3. **The bead threshold comes from data.** The rendered notes and pamphlet
- *      state `BEAD_RULES.threshold` in words, and no string literal in either
- *      source types a bead count by hand. The source check is the one that
- *      matters: a figure typed into the copy that happens to match the data
- *      today passes every check on the rendered text, and goes stale the day
- *      the data is retuned.
+ *   3. **Bead counts come from data.** The tutorial and the pamphlet state
+ *      `BEAD_RULES.threshold` in words, the wager shelf states what a kept wager
+ *      pays, and no string literal in any of the five sources types a bead count
+ *      by hand. The source check is the one that matters: a figure typed into
+ *      the copy that happens to match the data today passes every check on the
+ *      rendered text, and goes stale the day the data is retuned.
  *
- * What is read: every string literal in the two sources, with comments skipped
- * and keyword refs reduced to their words. That covers the step and note
- * tables, the pamphlet's pages and captions, and the strings built inline, such
- * as the pamphlet overlay's foot note. The exported tables are also read as
- * they render, so a name or figure that arrives through an interpolation is
- * seen too.
+ * What is read: every string literal in the five sources, with comments skipped
+ * and keyword refs reduced to their words, which covers strings built inline
+ * such as the pamphlet overlay's foot note. The exported tables and pure
+ * printers are also read as they render, so a name or figure that arrives
+ * through an interpolation is seen too.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import { BEAD_DATA, BEAD_RULES } from '../../src/sim/beadData';
+import { BEAD_DATA, BEAD_GRANT_IDS, BEAD_RULES, beadIsDormant } from '../../src/sim/beadData';
 import { stripRefs } from '../../src/sim/statecraft';
+import { DOCTRINE_IDS, doctrineDef } from '../../src/sim/statecraftData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
 import { WAGER_RULES } from '../../src/sim/wagerData';
+import { beadCardFace, opusStandingLine } from '../../src/ui/beadsScreen';
+import { SHELF_INTROS } from '../../src/ui/compendiumShelves';
+import { CONCEPT_ENTRIES, INTRO_ENTRIES } from '../../src/ui/compendiumText';
+import { numberWords } from '../../src/ui/numberWords';
 import { PAMPHLET_PAGES, pamphletEntry } from '../../src/ui/pamphlet';
-import { BEAD_THRESHOLD, STEPS, TIPS, numberWords } from '../../src/ui/tutorial';
+import { BEAD_THRESHOLD, STEPS, TIPS } from '../../src/ui/tutorial';
 import { uiSource } from './sourceHelpers';
 
-// --- what the guide says -----------------------------------------------------
+// --- what is read -------------------------------------------------------------
 
-/** The two modules the guide ships in. */
-const GUIDE_FILES = ['tutorial.ts', 'pamphlet.ts'] as const;
+/** The modules this file reads, each with why it is here. */
+const SCANNED: readonly { file: string; why: string }[] = [
+  { file: 'tutorial.ts', why: 'the opening walkthrough and its one-time notes' },
+  { file: 'pamphlet.ts', why: 'the pamphlet' },
+  { file: 'compendiumText.ts', why: 'the written shelves the guide sends players to' },
+  { file: 'compendiumShelves.ts', why: 'the lead page of every generated shelf' },
+  { file: 'beadsScreen.ts', why: 'the bead ledger, which the bead note points at' },
+];
 
 /**
  * Every string literal in a TypeScript source, as the words it holds.
@@ -127,14 +144,23 @@ function stringLiterals(source: string): string[] {
   return out;
 }
 
-/** Every string literal in both guide modules, refs reduced to their words. */
+/**
+ * A literal shaped like an identifier (one token, lowercase first) is a key, a
+ * discriminant or a CSS class, such as `kind === 'feat'` or `'bead-feat-list'`,
+ * not a sentence a player reads.
+ */
+const IDENTIFIER = /^[a-z][A-Za-z0-9-]*$/;
+
+/** Every string literal in the scanned modules, refs reduced to their words. */
 function literalCopy(): { file: string; text: string }[] {
-  return GUIDE_FILES.flatMap((file) =>
-    stringLiterals(uiSource(file)).map((text) => ({ file, text: stripRefs(text) })),
+  return SCANNED.flatMap(({ file }) =>
+    stringLiterals(uiSource(file))
+      .filter((text) => !IDENTIFIER.test(text))
+      .map((text) => ({ file, text: stripRefs(text) })),
   );
 }
 
-/** The guide as it renders: both tables of the tutorial, the pamphlet's pages. */
+/** The copy as it renders: the tables and the pure printers of the five modules. */
 function renderedCopy(): { where: string; text: string }[] {
   const out: { where: string; text: string }[] = [];
   for (const step of STEPS) {
@@ -150,8 +176,23 @@ function renderedCopy(): { where: string; text: string }[] {
     if (page.panel !== undefined) words.push(page.panel.caption);
     out.push({ where: `pamphlet ${page.id}`, text: words.join(' ') });
   }
-  const entry = pamphletEntry();
-  out.push({ where: 'pamphlet entry', text: `${entry.name}. ${entry.eyebrow}` });
+  const pamphlet = pamphletEntry();
+  out.push({ where: 'pamphlet entry', text: `${pamphlet.name}. ${pamphlet.eyebrow}` });
+  // One line per paragraph, so a historical paragraph can be skipped on its own.
+  const entries = [...INTRO_ENTRIES, ...CONCEPT_ENTRIES, ...Object.values(SHELF_INTROS)];
+  for (const entry of entries) {
+    if (entry === undefined) continue;
+    out.push({ where: entry.id, text: `${entry.name}. ${entry.eyebrow}` });
+    for (const clause of entry.clauses) out.push({ where: entry.id, text: stripRefs(clause.text) });
+  }
+  // The ledger: every grant it lists, and the Opus line in both states.
+  for (const id of BEAD_GRANT_IDS) {
+    if (beadIsDormant(id)) continue;
+    const face = beadCardFace(id);
+    out.push({ where: `ledger ${id}`, text: `${face.name}. ${face.eyebrow}. ${stripRefs(face.deed)}` });
+  }
+  out.push({ where: 'ledger opus', text: opusStandingLine(true) });
+  out.push({ where: 'ledger opus', text: opusStandingLine(false) });
   return out;
 }
 
@@ -190,24 +231,22 @@ function escaped(text: string): string {
 /**
  * The words the old copy used that no data row holds.
  *
- * The data names these systems by their kind keys (`endeavours`, `feats`), but
- * the copy described them in other words, and those words are what a stale line
- * would say again. "The Bead Race" stays: it is the live name of the win
- * condition, so it is removed before the "race" check runs.
+ * The data names these kinds by their keys (`endeavours`, `feats`), but the copy
+ * described them in other words, and those words are what a stale line would
+ * say again. Only the plural "races" and "race project" are refused: "a wonder
+ * is a race" is the ordinary word and still true, and "The Bead Race" is the
+ * live name of the win condition.
  */
-const OLD_WORDS: readonly { pattern: RegExp; why: string; allow?: RegExp }[] = [
-  {
-    pattern: /\braces?\b/i,
-    why: 'the old copy called the endeavours "races"',
-    allow: /\bBead Race\b/g,
-  },
+const OLD_WORDS: readonly { pattern: RegExp; why: string }[] = [
+  { pattern: /\braces\b/i, why: 'the old copy called the endeavours "races"' },
+  { pattern: /\brace projects?\b/i, why: 'the endeavours, as the Compendium named them' },
   { pattern: /\bfirsts? in the world\b/i, why: 'the feats, as the old copy described them' },
   { pattern: /\bworld firsts?\b/i, why: 'the feats, as the old copy described them' },
 ];
 
 /** Every retired name, as a whole-word pattern with the reason it is retired. */
-function retiredNames(): { pattern: RegExp; why: string; allow?: RegExp }[] {
-  const names: { pattern: RegExp; why: string; allow?: RegExp }[] = [];
+function retiredNames(): { pattern: RegExp; why: string }[] {
+  const names: { pattern: RegExp; why: string }[] = [];
   for (const kind of retiredBeadKinds()) {
     // `feats` → "feat" or "feats".
     const stem = kind.endsWith('s') ? kind.slice(0, -1) : kind;
@@ -222,6 +261,14 @@ function retiredNames(): { pattern: RegExp; why: string; allow?: RegExp }[] {
       why: `the ${name} is a retired row in data/units.json`,
     });
   }
+  // A whole card class can be withdrawn too. The Doctrines are, until their
+  // rework (A4) brings live rows back, and then this stops refusing the word.
+  if (DOCTRINE_IDS.length > 0 && DOCTRINE_IDS.every((id) => doctrineDef(id).retired === true)) {
+    names.push({
+      pattern: /\bdoctrines?\b/i,
+      why: 'every Doctrine row in data/statecraft.json is retired',
+    });
+  }
   return [...names, ...OLD_WORDS];
 }
 
@@ -229,12 +276,42 @@ const RETIRED_NAMES = retiredNames();
 
 /** The retired names one line says, each with its reason. */
 function retiredNamesIn(text: string): string[] {
-  const found: string[] = [];
-  for (const name of RETIRED_NAMES) {
-    const checked = name.allow === undefined ? text : text.replace(name.allow, ' ');
-    if (name.pattern.test(checked)) found.push(`${name.pattern.source} (${name.why})`);
-  }
-  return found;
+  return RETIRED_NAMES.filter((name) => name.pattern.test(text)).map(
+    (name) => `${name.pattern.source} (${name.why})`,
+  );
+}
+
+/**
+ * Strings that name a retired system on purpose, each with the reason. A retired
+ * row keeps its Compendium page and a bead earned under the old rules keeps its
+ * face, so the words for the old kinds still have to exist in a few places. A
+ * string is matched by how it starts.
+ */
+const HISTORICAL: readonly { file: string; starts: readonly string[]; why: string }[] = [
+  {
+    file: 'compendiumShelves.ts',
+    starts: ['There used to be more.'],
+    why: 'the Bead Race shelf says which kinds were withdrawn, above their kept pages',
+  },
+  {
+    file: 'compendiumShelves.ts',
+    starts: [
+      'About Doctrines',
+      'A Doctrine was a permanent bonus',
+      'The class is withdrawn.',
+      'Each entry below gives the government tier a Doctrine belonged to',
+    ],
+    why: 'the Doctrines shelf heads the withdrawn Doctrine pages, which are kept for games that took one',
+  },
+  {
+    file: 'beadsScreen.ts',
+    starts: ['race project'],
+    why: 'the kind word on the face of a bead earned before the race projects were withdrawn',
+  },
+];
+
+function isHistorical(text: string): boolean {
+  return HISTORICAL.some((row) => row.starts.some((start) => text.startsWith(start)));
 }
 
 describe('the guide names no retired system', () => {
@@ -251,8 +328,11 @@ describe('the guide names no retired system', () => {
     }
   });
 
-  it('reads both modules, and the strings built inline as well as the tables', () => {
+  it('reads every module it names, and the strings built inline as well as the tables', () => {
     const literals = literalCopy();
+    for (const { file } of SCANNED) {
+      expect(literals.some((line) => line.file === file), file).toBe(true);
+    }
     const reads = (file: string, words: string): boolean =>
       literals.some((line) => line.file === file && line.text.includes(words));
     expect(reads('tutorial.ts', 'Standings tab')).toBe(true);
@@ -260,9 +340,21 @@ describe('the guide names no retired system', () => {
     expect(reads('pamphlet.ts', 'Put it away freely')).toBe(true);
   });
 
-  it('says no retired name in any string of either module', () => {
+  it('keeps every historical allowance pointing at a string that exists', () => {
+    // An allowance whose string has gone would quietly excuse whatever replaced it.
+    const literals = literalCopy();
+    for (const row of HISTORICAL) {
+      for (const start of row.starts) {
+        const found = literals.some((line) => line.file === row.file && line.text.startsWith(start));
+        expect(found, `${row.file}: "${start}"`).toBe(true);
+      }
+    }
+  });
+
+  it('says no retired name in any string of any scanned module', () => {
     const wrong: string[] = [];
     for (const line of literalCopy()) {
+      if (isHistorical(line.text)) continue;
       for (const said of retiredNamesIn(line.text)) {
         wrong.push(`${line.file}: ${said} — ${line.text.slice(0, 90)}`);
       }
@@ -273,6 +365,7 @@ describe('the guide names no retired system', () => {
   it('says no retired name in the copy as it renders', () => {
     const wrong: string[] = [];
     for (const line of renderedCopy()) {
+      if (isHistorical(line.text)) continue;
       for (const said of retiredNamesIn(line.text)) {
         wrong.push(`${line.where}: ${said} — ${line.text.slice(0, 90)}`);
       }
@@ -280,16 +373,18 @@ describe('the guide names no retired system', () => {
     expect(wrong).toEqual([]);
   });
 
-  it('would catch the old bead note', () => {
-    // The check itself, held still against the lines this batch replaced.
+  it('would catch the old copy', () => {
+    // The check itself, held still against lines that T0 and T0b replaced.
     expect(retiredNamesIn('Feats: world firsts, always in play.')).not.toEqual([]);
     expect(retiredNamesIn('Races: a project every empire can build.')).not.toEqual([]);
     expect(retiredNamesIn('Quests: deeds you go and do.')).not.toEqual([]);
     expect(retiredNamesIn('Reckonings: everyone is measured at once.')).not.toEqual([]);
     expect(retiredNamesIn('Faith pays for augurs and prophets.')).not.toEqual([]);
     expect(retiredNamesIn('Points for doing things first in the world.')).not.toEqual([]);
-    // And lets the live name of the win condition through.
+    expect(retiredNamesIn('A rite is a temporary blessing performed by an augur.')).not.toEqual([]);
+    // And lets the live words through.
     expect(retiredNamesIn('The Bead Race')).toEqual([]);
+    expect(retiredNamesIn('So a wonder is a race, and worth starting early.')).toEqual([]);
   });
 });
 
@@ -315,7 +410,7 @@ const REMOVED_CONTROLS: readonly { pattern: RegExp; why: string }[] = [
 ];
 
 describe('the guide names no removed control', () => {
-  it('says none of them in any string of either module', () => {
+  it('says none of them in any string of any scanned module', () => {
     const wrong: string[] = [];
     for (const line of literalCopy()) {
       for (const control of REMOVED_CONTROLS) {
@@ -329,9 +424,9 @@ describe('the guide names no removed control', () => {
   });
 });
 
-// --- rule 3: the bead threshold ----------------------------------------------
+// --- rule 3: bead counts -------------------------------------------------------
 
-/** Every whole number the guide can write in words, mapped back to its value. */
+/** Every whole number the copy can write in words, mapped back to its value. */
 const WORD_VALUES = new Map<string, number>(
   Array.from({ length: 100 }, (_, value) => [numberWords(value), value] as const),
 );
@@ -353,24 +448,18 @@ function beadCountsIn(text: string): number[] {
   });
 }
 
-describe('the guide states the bead threshold from data', () => {
-  it('reads the same figure the simulation enforces', () => {
+/** "two beads", "one bead": how the copy says a count of beads. */
+function beadPhrase(count: number): string {
+  return `${numberWords(count)} ${count === 1 ? 'bead' : 'beads'}`;
+}
+
+describe('the guide states bead counts from data', () => {
+  it('reads the same threshold the simulation enforces', () => {
     expect(BEAD_THRESHOLD).toBe(BEAD_RULES.threshold);
   });
 
-  it('writes whole numbers in words', () => {
-    expect(numberWords(0)).toBe('zero');
-    expect(numberWords(7)).toBe('seven');
-    expect(numberWords(13)).toBe('thirteen');
-    expect(numberWords(20)).toBe('twenty');
-    expect(numberWords(21)).toBe('twenty-one');
-    expect(numberWords(99)).toBe('ninety-nine');
-    // Out of range comes back as digits, which the copy tests then refuse.
-    expect(numberWords(100)).toBe('100');
-  });
-
   it('says the threshold in the bead note and on the pamphlet page about winning', () => {
-    const phrase = `${numberWords(BEAD_RULES.threshold)} beads`;
+    const phrase = beadPhrase(BEAD_RULES.threshold);
     const note = TIPS.find((tip) => tip.id === 'beads');
     expect(note).toBeDefined();
     expect(note!.pages.map((page) => page.body).join(' ')).toContain(phrase);
@@ -379,7 +468,15 @@ describe('the guide states the bead threshold from data', () => {
     expect(winning!.lines.map((line) => stripRefs(line)).join(' ')).toContain(phrase);
   });
 
-  it('types no bead count into any string of either module', () => {
+  it('says what a kept wager pays on the wager shelf, as data/wagers.json has it', () => {
+    const shelf = SHELF_INTROS.wager;
+    expect(shelf).toBeDefined();
+    const text = shelf!.clauses.map((clause) => clause.text).join(' ');
+    expect(text).toContain(`pays ${beadPhrase(WAGER_RULES.stakeBeads)}`);
+    expect(text).toContain(`pays ${beadPhrase(WAGER_RULES.otherBeads)}`);
+  });
+
+  it('types no bead count into any string of any scanned module', () => {
     // A bead count in the copy must arrive through an interpolation from data.
     // A count typed into a literal fails here even if it matches the data today.
     const wrong: string[] = [];
@@ -403,8 +500,8 @@ describe('the guide states the bead threshold from data', () => {
       }
     }
     expect(wrong).toEqual([]);
-    // Not vacuous: the threshold is stated at least twice, once in each module.
-    expect(counted).toBeGreaterThanOrEqual(2);
+    // Not vacuous: the threshold twice (tutorial, pamphlet) and the two payouts.
+    expect(counted).toBeGreaterThanOrEqual(4);
   });
 
   it('would catch a count typed by hand', () => {
@@ -412,6 +509,7 @@ describe('the guide states the bead threshold from data', () => {
     expect(beadCountsIn('Hold 20 beads.')).toEqual([20]);
     expect(beadCountsIn('a rod of twenty-one beads')).toEqual([21]);
     expect(beadCountsIn('a rod of twenty one beads')).toEqual([21]);
+    expect(beadCountsIn('Clearing the card you staked pays two beads; the others pay one bead.')).toEqual([2, 1]);
     expect(beadCountsIn('Hold  beads to begin.')).toEqual([]);
     expect(beadCountsIn('A few things hand a bead over.')).toEqual([]);
     // A figure interpolated from data passes; the same figure typed does not.

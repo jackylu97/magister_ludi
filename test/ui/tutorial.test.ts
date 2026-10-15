@@ -44,7 +44,6 @@ import {
   cornerCard,
   advanceKey,
   nextStep,
-  numberWords,
   placeCard,
   readTutorialMemory,
   signalKey,
@@ -62,6 +61,7 @@ import {
   shouldShowPamphlet,
   writePamphletSeen,
 } from '../../src/ui/pamphlet';
+import { numberWords } from '../../src/ui/numberWords';
 import { stripRefs } from '../../src/sim/statecraft';
 
 const SOURCES = import.meta.glob(
