@@ -23,8 +23,9 @@
  * The centrepiece is one rod of the Abacus, drawn with the Beads screen's own
  * vocabulary (`abacusRodSlots`, `beadChipNode`, the four family inks) rather
  * than a second drawing of the same object: the wire, the beads already
- * settled, the empty slots, the golden slot at the threshold. The bead that was
- * just earned **slides down the wire and clacks into its slot**.
+ * settled, the empty slots, and the golden slot after the threshold's slots.
+ * The bead that was just earned **slides down the wire and clacks into its
+ * slot**.
  *
  * The motion is one CSS animation on one chip (`.bead-chip.is-arriving`) and
  * the *decision* to run it is in the face: `arriving` is the slot that moves,
@@ -50,6 +51,8 @@ import {
   abacusRodSlots,
   beadCardFace,
   beadChipNode,
+  beadsTowardThreshold,
+  goldenSlotNode,
 } from './beadsScreen';
 import { figure } from './figures';
 import { setDescriptorText } from './keywords';
@@ -94,15 +97,23 @@ export interface BeadAwardFace {
   deed: string;
   /** What it paid. Plain sentences, already banked; empty pays nothing. */
   boon: string[];
-  /** The whole rod, threshold-long, with the golden slot on the end. */
+  /**
+   * The whole rod: one slot for each bead the threshold asks for, then the
+   * golden slot (`abacusRodSlots`).
+   */
   slots: RodSlot[];
   /**
-   * Which slot the new bead slides into, or `null` for no motion at all — a
-   * reader who has asked for less of it, or a rod so full the bead has landed
-   * past the last drawn slot.
+   * Which slot the new bead slides into, or `null` for no motion at all: a
+   * reader who has asked for less of it, a bead earned after the rod was full,
+   * which has no slot of its own, or the golden bead. Only an earned bead's slot
+   * is ever marked.
    */
   arriving: number | null;
-  /** "7 of 20 beads". The rod, counted. */
+  /**
+   * "3 of 7 beads": the beads toward the threshold, counted against it
+   * (`beadsTowardThreshold`, which leaves the golden bead out). Not against the
+   * rod's length, which is one longer because of the golden slot.
+   */
   tally: string;
   /** "1 of 3", or `null` when this sheet is the only one waiting. */
   counter: string | null;
@@ -150,8 +161,13 @@ export function beadAwardFace(
   const card = beadCardFace(news.id);
   const family = BEAD_FAMILY_MARK[news.family].word.toLowerCase();
   const slots = abacusRodSlots(news.rod, BEAD_RULES.threshold);
-  const landed = news.rod.length - 1;
-  const settled = slots[landed]?.kind === 'bead';
+  // The slot that holds the bead that just landed, found by the bead itself
+  // rather than by its place in `news.rod`: the golden bead is drawn apart from
+  // the others, so a bead's place on the rod need not be its place in the list.
+  // A bead past the threshold has no slot, and the golden slot is never
+  // animated, so either answers -1 and gets no motion.
+  const newest = news.rod[news.rod.length - 1];
+  const landed = slots.findIndex((slot) => slot.kind === 'bead' && slot.bead === newest);
   return {
     eyebrow: news.kind === 'reckoning' ? 'a reckoning' : 'a bead',
     name: news.name,
@@ -160,8 +176,8 @@ export function beadAwardFace(
     deed: card.deed,
     boon: [...news.boon],
     slots,
-    arriving: options.still === true || !settled ? null : landed,
-    tally: `${figure(news.rod.length)} of ${figure(BEAD_RULES.threshold)} beads`,
+    arriving: options.still === true || landed < 0 ? null : landed,
+    tally: `${figure(beadsTowardThreshold(news.rod))} of ${figure(BEAD_RULES.threshold)} beads`,
     counter: queued > 1 ? `1 of ${queued}` : null,
   };
 }
@@ -224,9 +240,7 @@ export function createBeadModal(
     const wire = element('div', 'bead-rod-wire bead-award-wire');
     face.slots.forEach((slot, index) => {
       if (slot.kind === 'golden') {
-        const golden = element('span', 'bead-slot is-golden');
-        golden.title = 'The golden bead — only the Magnum Opus mints it';
-        wire.append(golden);
+        wire.append(goldenSlotNode(slot));
         return;
       }
       if (slot.kind === 'empty') {

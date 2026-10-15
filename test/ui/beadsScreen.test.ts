@@ -21,8 +21,10 @@
  *      sentence composed here — and a withdrawn row still has one, because the
  *      rows are kept for the record.
  *   2. A claimant reads as a claimant, and an unclaimed card reads as open.
- *   3. **A rod is as long as the threshold and its last slot is golden**, drawn
- *      empty however many beads the seat has earned.
+ *   3. **A rod has one slot for each bead the threshold asks for, then the
+ *      golden slot**, which stays empty however many beads the seat has earned
+ *      and is filled only once the seat holds the golden bead. The tally leaves
+ *      the golden bead out.
  *   4. The awards reach `announce` from the commit funnel, and the screen opens
  *      from its three doors rather than from the pointer.
  */
@@ -46,8 +48,12 @@ import {
   beadCardFace,
   beadClaimLine,
   beadHoverText,
+  beadThresholdLine,
+  beadsTowardThreshold,
   deckEraWord,
+  goldenSlotTitle,
   grantHeldLine,
+  isGoldenBead,
   standingLine,
   opusStandingLine,
 } from '../../src/ui/beadsScreen';
@@ -64,6 +70,7 @@ const SOURCES = import.meta.glob(
     '../../src/ui/cityPanel.ts',
     '../../src/ui/compendium.ts',
     '../../src/main.ts',
+    '../../src/style.css',
     '../../index.html',
   ],
   { eager: true, query: '?raw', import: 'default' },
@@ -81,6 +88,11 @@ function source(name: string): string {
 function bead(id: BeadCardId, turn: number): EarnedBead {
   const { kind, def } = anyBeadDef(id);
   return { id, kind, family: def.family, turn };
+}
+
+/** The golden bead, as a winner's beads record it once the Opus is finished. */
+function golden(turn: number): EarnedBead {
+  return bead('theGoldenBead', turn);
 }
 
 // --- the card faces ---------------------------------------------------------
@@ -226,35 +238,118 @@ describe('the claimant', () => {
 describe('a rod', () => {
   const earned = [bead(BEAD_FEAT_IDS[0]!, 12), bead(BEAD_QUEST_IDS[0]!, 30)];
 
-  it('is as long as the threshold, whatever the seat has earned', () => {
-    expect(abacusRodSlots([], 20)).toHaveLength(20);
-    expect(abacusRodSlots(earned, 20)).toHaveLength(20);
+  /** `count` beads of one row, earned one a turn from turn 0. */
+  function beads(count: number): EarnedBead[] {
+    return Array.from({ length: count }, (_, i) => bead(BEAD_FEAT_IDS[0]!, i));
+  }
+
+  it('has a slot for each bead the threshold asks for, then the golden slot', () => {
+    expect(abacusRodSlots([], 20)).toHaveLength(21);
+    expect(abacusRodSlots(earned, 20)).toHaveLength(21);
     // The default is the rules row, never a constant written here.
-    expect(abacusRodSlots([])).toHaveLength(BEAD_RULES.threshold);
+    expect(abacusRodSlots([])).toHaveLength(BEAD_RULES.threshold + 1);
   });
 
   it('puts the golden slot last, and leaves it empty', () => {
     const slots = abacusRodSlots(earned, 6);
-    expect(slots[5]!.kind).toBe('golden');
-    expect(slots[5]!.family).toBeUndefined();
-    // Even on a rod that has earned every ordinary bead: only the Magnum Opus
-    // mints the golden one, so nothing may ever be drawn in that slot.
-    const full = abacusRodSlots(
-      Array.from({ length: 6 }, (_, i) => bead(BEAD_FEAT_IDS[0]!, i)),
-      6,
-    );
-    expect(full[5]!.kind).toBe('golden');
+    expect(slots[6]!.kind).toBe('golden');
+    expect(slots[6]!.family).toBeUndefined();
+    // Even on a rod holding more beads than the threshold: only finishing the
+    // Magnum Opus mints the golden bead, so no earned bead is drawn in its slot.
+    const over = abacusRodSlots(beads(9), 6);
+    expect(over).toHaveLength(7);
+    expect(over[6]).toEqual({ kind: 'golden' });
+  });
+
+  it('draws a seventh earned bead, and puts the golden slot after the last of the threshold’s slots', () => {
+    // The bug this pins. The golden slot used to take the last of the
+    // threshold's slots, so a threshold of seven left six slots for earned
+    // beads and the seventh bead was never drawn. Seven beads open the Magnum
+    // Opus and only finishing the Opus mints the golden bead, so the golden
+    // bead is never one of the seven.
+    const held = beads(7);
+    const seven = abacusRodSlots(held, 7);
+    expect(seven).toHaveLength(8);
+    expect(seven.slice(0, 7).every((slot) => slot.kind === 'bead')).toBe(true);
+    expect(seven[6]).toEqual({ kind: 'bead', family: held[6]!.family, bead: held[6] });
+    expect(seven[7]).toEqual({ kind: 'golden' });
+    // The same at the threshold the rules row sets: every bead of a full rod is
+    // drawn, and the one golden slot comes right after the last of them.
+    const full = abacusRodSlots(beads(BEAD_RULES.threshold));
+    expect(full.filter((slot) => slot.kind === 'bead')).toHaveLength(BEAD_RULES.threshold);
+    expect(full.filter((slot) => slot.kind === 'golden')).toHaveLength(1);
+    expect(full.findIndex((slot) => slot.kind === 'golden')).toBe(BEAD_RULES.threshold);
   });
 
   it('fills from the left in the order the beads were earned', () => {
     const slots = abacusRodSlots(earned, 6);
-    expect(slots[0]).toEqual({ kind: 'bead', family: earned[0]!.family });
-    expect(slots[1]).toEqual({ kind: 'bead', family: earned[1]!.family });
+    expect(slots[0]).toEqual({ kind: 'bead', family: earned[0]!.family, bead: earned[0] });
+    expect(slots[1]).toEqual({ kind: 'bead', family: earned[1]!.family, bead: earned[1] });
     expect(slots[2]!.kind).toBe('empty');
   });
 
-  it('reads a seat’s standing as a claim against the number that wins', () => {
+  it('fills the golden slot on a winner’s rod, and leaves the golden bead out of the tally', () => {
+    // Finishing the Magnum Opus adds the golden bead to the winner's beads. It
+    // is drawn in the golden slot, and the tally counts only the beads toward
+    // the threshold, so the winner reads "7 of 7" rather than "8 of 7".
+    const threshold = BEAD_RULES.threshold;
+    const won = [...beads(threshold), golden(400)];
+    const slots = abacusRodSlots(won);
+    expect(slots).toHaveLength(threshold + 1);
+    expect(slots.slice(0, threshold).map((slot) => slot.bead)).toEqual(won.slice(0, threshold));
+    expect(slots[threshold]).toEqual({ kind: 'golden', bead: won[threshold] });
+    expect(beadsTowardThreshold(won)).toBe(threshold);
+    expect(standingLine('', beadsTowardThreshold(won), threshold).trim()).toBe(
+      `${threshold} of ${threshold}`,
+    );
+  });
+
+  it('keeps beads past the threshold out of the golden slot, and the golden bead out of theirs', () => {
+    // A seat can go on earning beads after its rod is full. Those beads have no
+    // slot, and they never spill into the golden one.
+    const over = [...beads(9), golden(400)];
+    const slots = abacusRodSlots(over, 7);
+    expect(slots).toHaveLength(8);
+    expect(slots.slice(0, 7).map((slot) => slot.bead)).toEqual(over.slice(0, 7));
+    expect(slots[7]).toEqual({ kind: 'golden', bead: over[9] });
+    // They still count toward the threshold, so the tally says so.
+    expect(beadsTowardThreshold(over)).toBe(9);
+    // The golden bead is found by what it is, not by where it sits in the list.
+    const early = [golden(400), ...beads(2)];
+    const drawn = abacusRodSlots(early, 7);
+    expect(drawn[0]).toEqual({ kind: 'bead', family: early[1]!.family, bead: early[1] });
+    expect(drawn[1]).toEqual({ kind: 'bead', family: early[2]!.family, bead: early[2] });
+    expect(drawn[2]!.kind).toBe('empty');
+    expect(drawn[7]).toEqual({ kind: 'golden', bead: early[0] });
+  });
+
+  it('knows the golden bead by the building that mints it, not by its id', () => {
+    // The bead's row carries no marker, so the reading goes through the
+    // building marked as ending the game, which is the marker the simulation
+    // reads to close it. Only the Opus's bead answers yes.
+    expect(isGoldenBead(golden(1))).toBe(true);
+    for (const id of BEAD_GRANT_IDS) {
+      if (id === 'theGoldenBead') continue;
+      expect(isGoldenBead(bead(id, 1)), id).toBe(false);
+    }
+    expect(source('beadsScreen.ts')).not.toContain('theGoldenBead');
+  });
+
+  it('says on the golden slot what mints it, and when it was minted once it is held', () => {
+    expect(goldenSlotTitle({ kind: 'golden' })).toContain('only the Magnum Opus mints it');
+    const held = goldenSlotTitle({ kind: 'golden', bead: golden(312) });
+    expect(held).toContain('312');
+    expect(held).toContain('finishing the Magnum Opus');
+  });
+
+  it('reads a seat’s standing against the threshold', () => {
     expect(standingLine('Crimson', 7, 20)).toBe('Crimson 7 of 20');
+  });
+
+  it('says how many beads open the Magnum Opus, and what mints the golden bead', () => {
+    expect(beadThresholdLine(7)).toBe(
+      '7 beads open the Magnum Opus; finishing it mints the golden bead',
+    );
   });
 
   it('tells the pointer which card a bead came off, its family and its turn', () => {
@@ -281,7 +376,27 @@ describe('the Abacus’s rods', () => {
   it('draws the golden slot through the one arithmetic', () => {
     expect(abacus).toContain('abacusRodSlots(row.beads, threshold)');
     expect(abacus).toContain("BEAD_RULES.threshold");
-    expect(abacus).toContain("'bead-slot is-golden'");
+    // One drawing of the golden slot, empty or held, shared by every rod.
+    expect(abacus).toContain('goldenSlotNode(slot)');
+    expect(source('beadsScreen.ts')).toContain('goldenSlotNode(slot)');
+    expect(source('style.css')).toContain('.bead-slot.is-golden.is-held');
+  });
+
+  it('counts every rod without the golden bead, on the frame and in the register', () => {
+    expect(abacus).toContain('beadsTowardThreshold(row.beads)');
+    expect(abacus).not.toContain('row.beads.length');
+    // The frame has no golden bead to draw it as, so it leaves it off.
+    expect(abacus).toContain('.filter((earned) => !isGoldenBead(earned))');
+    expect(source('beadsScreen.ts')).toContain('beadsTowardThreshold(player.beads)');
+  });
+
+  it('captions the rods with the same line as the beads screen', () => {
+    // The caption said "the last is golden", from when the golden bead was the
+    // last of the threshold's beads. Both screens print one line now: how many
+    // beads open the Magnum Opus, and that finishing it mints the golden bead.
+    expect(abacus).toContain('caption.textContent = beadThresholdLine(threshold);');
+    expect(abacus).not.toContain('the last is golden');
+    expect(source('beadsScreen.ts')).toContain('beadThresholdLine(BEAD_RULES.threshold)');
   });
 
   it('translates the rules’ families into the look file’s in one place', () => {

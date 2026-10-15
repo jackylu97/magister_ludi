@@ -112,12 +112,14 @@ describe('beadAwardFace', () => {
     expect(beadAwardFace(news({ boon: [] }), 1).boon).toEqual([]);
   });
 
-  it('draws the whole rod, threshold-long, with the golden slot on the end', () => {
-    // A rod is "how far to a win", not a tally: it is as long as the threshold
-    // whatever the seat has earned, and the last slot is the golden one.
+  it('draws the whole rod: a slot for each bead the threshold asks for, then the golden slot', () => {
+    // The rod's length comes from the threshold, not from what the seat has
+    // earned, so its empty slots show how far the seat is from the Magnum Opus.
+    // The golden slot comes after the threshold's slots: only finishing the
+    // Opus mints that bead, so it is never one of the beads the threshold counts.
     const face = beadAwardFace(news(), 1);
-    expect(face.slots).toHaveLength(BEAD_RULES.threshold);
-    expect(face.slots[face.slots.length - 1]!.kind).toBe('golden');
+    expect(face.slots).toHaveLength(BEAD_RULES.threshold + 1);
+    expect(face.slots[BEAD_RULES.threshold]!.kind).toBe('golden');
     expect(face.slots.filter((slot) => slot.kind === 'bead')).toHaveLength(3);
   });
 
@@ -125,6 +127,11 @@ describe('beadAwardFace', () => {
     expect(beadAwardFace(news(), 1).tally).toBe(`3 of ${BEAD_RULES.threshold} beads`);
     expect(beadAwardFace(news({ rod: rod(1) }), 1).tally).toBe(
       `1 of ${BEAD_RULES.threshold} beads`,
+    );
+    // Against the threshold, not against the rod's length: the golden slot is
+    // not one of the beads the threshold asks for.
+    expect(beadAwardFace(news({ rod: rod(BEAD_RULES.threshold) }), 1).tally).toBe(
+      `${BEAD_RULES.threshold} of ${BEAD_RULES.threshold} beads`,
     );
   });
 
@@ -136,17 +143,21 @@ describe('beadAwardFace', () => {
     expect(beadAwardFace(news({ rod: rod(BEAD_RULES.threshold - 1) }), 1).arriving).toBe(
       BEAD_RULES.threshold - 2,
     );
+    // The bead that fills the rod has a slot of its own and slides into it.
+    expect(beadAwardFace(news({ rod: rod(BEAD_RULES.threshold) }), 1).arriving).toBe(
+      BEAD_RULES.threshold - 1,
+    );
   });
 
   it('animates nothing once the rod is past the door', () => {
-    // A rod is threshold-long and its last slot is the **golden** one, which
-    // only the Magnum Opus mints — so a seat holding as many ordinary beads as
-    // the threshold has slots has run off the end of the drawing. It matters at
-    // the figure batch Q1 cut (`docs/wager.md` §5): a bench leader ends an age-IV
-    // game holding more beads than the door asks. The face says so by refusing
-    // the animation rather than marking the golden slot, which is the one slot
-    // nothing may ever be drawn in.
-    expect(beadAwardFace(news({ rod: rod(BEAD_RULES.threshold) }), 1).arriving).toBeNull();
+    // The rod has a slot for each bead the threshold asks for, then the golden
+    // slot, which only finishing the Magnum Opus mints. A bead earned after the
+    // rod is full lands at the golden slot's position, and it has no slot of
+    // its own. That happens at the threshold batch Q1 set (`docs/wager.md` §5):
+    // a bench leader ends an age-IV game holding more beads than the door asks.
+    // The face refuses the animation rather than marking the golden slot,
+    // because no earned bead is ever drawn there.
+    expect(beadAwardFace(news({ rod: rod(BEAD_RULES.threshold + 1) }), 1).arriving).toBeNull();
     expect(beadAwardFace(news({ rod: rod(BEAD_RULES.threshold + 3) }), 1).arriving).toBeNull();
   });
 
@@ -160,9 +171,38 @@ describe('beadAwardFace', () => {
     expect(face.tally).toBe(`3 of ${BEAD_RULES.threshold} beads`);
   });
 
+  it('counts a winner’s rod without the golden bead, and draws the golden slot filled', () => {
+    // Finishing the Magnum Opus adds the golden bead to the winner's beads, and
+    // its sheet is raised like any other bead's. The tally leaves the golden
+    // bead out ("7 of 7", not "8 of 7"), the golden slot holds it, and nothing
+    // slides: only an earned bead's slot is ever animated.
+    const won: EarnedBead[] = [
+      ...rod(BEAD_RULES.threshold),
+      { id: 'theGoldenBead', kind: 'grant', family: 'culture', turn: 400 },
+    ];
+    const face = beadAwardFace(
+      news({
+        id: 'theGoldenBead',
+        name: 'The Golden Bead',
+        kind: 'grant',
+        family: 'culture',
+        boon: [],
+        rod: won,
+      }),
+      1,
+    );
+    expect(face.tally).toBe(`${BEAD_RULES.threshold} of ${BEAD_RULES.threshold} beads`);
+    expect(face.slots).toHaveLength(BEAD_RULES.threshold + 1);
+    expect(face.slots[BEAD_RULES.threshold]).toEqual({
+      kind: 'golden',
+      bead: won[BEAD_RULES.threshold],
+    });
+    expect(face.arriving).toBeNull();
+  });
+
   it('animates nothing when the bead landed past the last drawn slot', () => {
-    // A rod at the threshold has won the game; there is no slot for a bead
-    // beyond the golden one, and marking one would be a class on nothing.
+    // Nothing is drawn after the golden slot, so marking a bead that landed
+    // there would put a class on a chip that does not exist.
     expect(beadAwardFace(news({ rod: rod(BEAD_RULES.threshold + 2) }), 1).arriving).toBeNull();
   });
 
@@ -261,6 +301,8 @@ describe('the sheet itself', () => {
     expect(modal).toContain("from './beadsScreen'");
     expect(modal).toContain('beadChipNode(');
     expect(modal).toContain('abacusRodSlots(');
+    // And its golden slot, empty or held.
+    expect(modal).toContain('goldenSlotNode(slot)');
   });
 
   it('tells whoever is holding news that the screen is clear', () => {

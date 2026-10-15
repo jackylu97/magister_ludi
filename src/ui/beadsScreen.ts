@@ -57,6 +57,7 @@ import {
   beadIsDormant,
 } from '../sim/beadData';
 import { describeBeadBoon } from '../sim/beads';
+import { BUILDING_IDS, buildingDef } from '../sim/buildingData';
 import {
   type EarnedBead,
   type GameState,
@@ -250,40 +251,112 @@ export function beadCardFace(
 // --- the rods ---------------------------------------------------------------
 
 /**
- * One position on a rod. `golden` is the last one and is **always empty**: only
- * the Magnum Opus mints that bead (Entry VI.3's climax amendment), and it sits
- * on every rod all game as the standing question.
+ * One position on a rod. `golden` is the last slot, after the slots the
+ * threshold counts. It is drawn empty until the seat holds the golden bead,
+ * which only finishing the Magnum Opus mints (Entry VI.3); finishing it ends the
+ * game, so in play the slot is empty, and on a winner's rod it is filled.
  */
 export interface RodSlot {
   kind: 'bead' | 'empty' | 'golden';
   family?: BeadFamily;
+  /**
+   * The bead drawn in this slot: the earned bead on a `bead` slot, and the
+   * golden bead on the `golden` slot once the seat holds it. Absent on an empty
+   * slot. The drawings read it for the hover text, so they never have to work
+   * out which bead in the seat's list a slot shows.
+   */
+  bead?: EarnedBead;
 }
 
 /**
- * A seat's rod, slot by slot: what it has earned, then what it has not, then the
- * gilt slot at the threshold.
+ * The ids of the golden bead: whatever bead a game-ending building mints when it
+ * is finished (`BuildingDef.endsTheGame`, which only the Magnum Opus carries).
  *
- * The threshold is the rod's *length*, which is the whole reason this is a
- * function of it rather than of a bead count: a rod is "how far to a win", and a
- * rod that stopped at what somebody happened to have earned would be a tally
- * rather than a race. The golden slot wins its position outright — it is the
- * threshold bead, and nothing else may be drawn there.
+ * The bead's own row has no marker saying it is the golden one, so this reads
+ * the building's marker, the same one `realiseItem` reads to close the game,
+ * rather than naming the row.
+ */
+const GOLDEN_BEAD_IDS: readonly BeadCardId[] = BUILDING_IDS.filter(
+  (id) => buildingDef(id).endsTheGame === true,
+).flatMap((id) =>
+  (buildingDef(id).onComplete ?? []).flatMap((grant) =>
+    grant.grant === 'bead' ? [grant.bead] : [],
+  ),
+);
+
+/** Whether this is the golden bead, which only finishing the Magnum Opus mints. */
+export function isGoldenBead(earned: EarnedBead): boolean {
+  return GOLDEN_BEAD_IDS.includes(earned.id);
+}
+
+/**
+ * How many of a seat's beads count toward the threshold: all of them except the
+ * golden bead. The golden bead is minted only after the Opus is finished, so it
+ * is never one of the threshold's beads, and a winner holding seven beads and
+ * the golden one reads "7 of 7" rather than "8 of 7". Beads earned past the
+ * threshold still count.
+ */
+export function beadsTowardThreshold(beads: readonly EarnedBead[]): number {
+  return beads.filter((earned) => !isGoldenBead(earned)).length;
+}
+
+/**
+ * A seat's rod, slot by slot: one slot for each bead the threshold asks for,
+ * filled from the left in the order the beads were earned, then the golden
+ * slot. The rod is `threshold + 1` slots long.
+ *
+ * The length comes from the threshold rather than from the seat's bead count,
+ * so the empty slots show how far the seat still is from being allowed to begin
+ * the Magnum Opus.
+ *
+ * The golden slot comes after the threshold's slots, never in place of the last
+ * of them. Holding `threshold` beads is what lets an empire begin the Opus, and
+ * only finishing the Opus mints the golden bead, so the golden bead is never one
+ * of the beads the threshold counts. The rod used to give the golden bead the
+ * last of the threshold's slots, a layout left over from when a full rod won the
+ * game outright; that left one slot too few, and the bead that filled the rod
+ * was never drawn.
+ *
+ * The golden bead is picked out by what it is (`isGoldenBead`), not by where it
+ * sits in the list, and it goes only in the golden slot. Beads earned past the
+ * threshold have no slot and never spill into the golden one; the tally beside
+ * each rod still counts them.
  */
 export function abacusRodSlots(
   beads: readonly EarnedBead[],
   threshold: number = BEAD_RULES.threshold,
 ): RodSlot[] {
-  const length = Math.max(1, Math.floor(threshold));
+  const counted = Math.max(0, Math.floor(threshold));
+  const toward = beads.filter((earned) => !isGoldenBead(earned));
+  const golden = beads.find((earned) => isGoldenBead(earned));
   const slots: RodSlot[] = [];
-  for (let i = 0; i < length; i++) {
-    if (i === length - 1) {
-      slots.push({ kind: 'golden' });
-      continue;
-    }
-    const earned = beads[i];
-    slots.push(earned ? { kind: 'bead', family: earned.family } : { kind: 'empty' });
+  for (let i = 0; i < counted; i++) {
+    const earned = toward[i];
+    slots.push(
+      earned ? { kind: 'bead', family: earned.family, bead: earned } : { kind: 'empty' },
+    );
   }
+  slots.push(golden ? { kind: 'golden', bead: golden } : { kind: 'golden' });
   return slots;
+}
+
+/**
+ * What the golden slot says when the pointer rests on it: what mints the golden
+ * bead while the slot is empty, and the turn it was minted once the seat holds
+ * it.
+ */
+export function goldenSlotTitle(slot: RodSlot): string {
+  if (slot.bead === undefined) return 'The golden bead — only the Magnum Opus mints it';
+  return `The golden bead, minted on turn ${figure(slot.bead.turn)} by finishing the Magnum Opus`;
+}
+
+/**
+ * The line above the rods: how many beads open the Magnum Opus, and what mints
+ * the golden bead. The beads screen and the Abacus both print it, so the two
+ * cannot describe the rod differently.
+ */
+export function beadThresholdLine(threshold: number): string {
+  return `${figure(threshold)} beads open the Magnum Opus; finishing it mints the golden bead`;
 }
 
 /**
@@ -400,6 +473,21 @@ export function beadChipNode(family: BeadFamily, title?: string): HTMLElement {
   return chip;
 }
 
+/**
+ * The golden slot at the end of a rod: hollow with a gilt rim, and filled
+ * (`is-held`) once the seat holds the golden bead.
+ *
+ * Exported for `beadChipNode`'s reason: the beads screen, the Abacus and the
+ * award sheet all draw this rod, and one drawing of the slot keeps the three
+ * from disagreeing about what an empty or a filled one looks like.
+ */
+export function goldenSlotNode(slot: RodSlot): HTMLElement {
+  const node = element('span', 'bead-slot is-golden');
+  node.classList.toggle('is-held', slot.bead !== undefined);
+  node.title = goldenSlotTitle(slot);
+  return node;
+}
+
 /** The family's glyph, taking the family's ink. `axisMarkNode`'s twin. */
 function familyMarkNode(family: BeadFamily): HTMLElement {
   const mark = BEAD_FAMILY_MARK[family];
@@ -486,13 +574,7 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     column.append(element('p', 'eyebrow sc-eyebrow', 'beads held'));
     // The threshold opens the Magnum Opus, and finishing the Opus wins (schema
     // 69). The golden bead is the Opus's own, minted when it is finished.
-    column.append(
-      element(
-        'p',
-        'bead-threshold',
-        `${figure(BEAD_RULES.threshold)} beads open the Magnum Opus; finishing it mints the golden bead`,
-      ),
-    );
+    column.append(element('p', 'bead-threshold', beadThresholdLine(BEAD_RULES.threshold)));
     // The finish line's own line, under the threshold and above the rods,
     // because it is a fact about the *world* rather than about any seat.
     column.append(element('p', 'hint bead-opus-line', opusStandingLine(opusOpen(state))));
@@ -502,30 +584,28 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
       rod.classList.toggle('is-local', player.id === seat);
       const head = element('div', 'bead-rod-head');
       head.append(element('span', 'bead-rod-name', seatName(state, player.id)));
+      // The tally leaves the golden bead out: it is not one of the threshold's.
       head.append(
         element(
           'span',
           'bead-rod-tally',
-          standingLine('', player.beads.length, BEAD_RULES.threshold).trim(),
+          standingLine('', beadsTowardThreshold(player.beads), BEAD_RULES.threshold).trim(),
         ),
       );
       rod.append(head);
 
       const wire = element('div', 'bead-rod-wire');
       const slots = abacusRodSlots(player.beads, BEAD_RULES.threshold);
-      slots.forEach((slot, index) => {
+      slots.forEach((slot) => {
         if (slot.kind === 'golden') {
-          const golden = element('span', 'bead-slot is-golden');
-          golden.title = 'The golden bead — only the Magnum Opus mints it';
-          wire.append(golden);
+          wire.append(goldenSlotNode(slot));
           return;
         }
         if (slot.kind === 'empty') {
           wire.append(element('span', 'bead-slot is-empty'));
           return;
         }
-        const earned = player.beads[index]!;
-        wire.append(beadChipNode(slot.family!, beadHoverText(earned)));
+        wire.append(beadChipNode(slot.family!, beadHoverText(slot.bead!)));
       });
       rod.append(wire);
       // The rod used to carry a line of dice of the Magister under the wire.

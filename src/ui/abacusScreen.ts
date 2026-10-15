@@ -31,11 +31,12 @@
  * score as a thing on a table — glass beads in the four families' colours, slid
  * left as they are earned, and it is what makes a lead legible across the room.
  * The **register** beneath it is the same rods in DOM, and it carries the three
- * things a WebGL object cannot: it is as long as the *threshold* rather than as
- * long as the frame was cut for, every bead answers a pointer with the card it
- * came off, and the **golden slot** sits at the far end of every rod, drawn
- * empty with a gilt rim all game as the standing question (Entry VI.3's climax
- * amendment: only the Magnum Opus mints that bead).
+ * things a WebGL object cannot: it has one slot for each bead the *threshold*
+ * asks for rather than as many as the frame was cut for, every bead answers a
+ * pointer with the card it came off, and the **golden slot** sits after those
+ * slots at the far end of every rod, drawn empty with a gilt rim until its seat
+ * holds the golden bead (Entry VI.3: only finishing the Magnum Opus mints that
+ * bead, so it is never one of the beads the threshold counts).
  *
  * `AbacusRow.beads` is `Player.beads` itself — the earned record, in the order
  * it was earned — and the rods read it and nothing else. The 3D stage wants a
@@ -74,7 +75,15 @@ import {
 import { BEAD_RULES } from '../sim/beadData';
 import type { BeadFamily } from '../sim/beadData';
 import type { EarnedBead } from '../sim/state';
-import { BEAD_FAMILY_MARK, abacusRodSlots, beadHoverText } from './beadsScreen';
+import {
+  BEAD_FAMILY_MARK,
+  abacusRodSlots,
+  beadHoverText,
+  beadThresholdLine,
+  beadsTowardThreshold,
+  goldenSlotNode,
+  isGoldenBead,
+} from './beadsScreen';
 import { figure } from './figures';
 import { element } from './dom';
 import { type WagerBoard, wagerFigure, wagerTrackFraction } from './wagerSheet';
@@ -237,7 +246,8 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
       name.append(swatch, element('span', undefined, row.name));
 
       const tally = element('div', 'abacus-label is-tally');
-      const count = element('span', 'abacus-count', String(row.beads.length));
+      // The register's count, which leaves the golden bead out.
+      const count = element('span', 'abacus-count', String(beadsTowardThreshold(row.beads)));
       const total = element('span', 'abacus-total', ` / ${perRod}`);
       tally.append(count, total);
 
@@ -272,14 +282,22 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
    * The frame is cut for a fixed number of beads (`beadsPerRod`), which is a
    * fact about the *object* and not about the rules — so a run longer than the
    * frame is truncated here rather than overflowing it. The register below is
-   * the reading that is as long as the threshold.
+   * the reading sized by the rules: a slot for each bead the threshold asks
+   * for, then the golden slot.
+   *
+   * The golden bead is left off the frame. The frame has no golden bead to draw
+   * it as, and drawn in its row's family ink it would read as one more ordinary
+   * bead; the register's golden slot is where it shows.
    */
   function seedRods(table: readonly AbacusRow[]): void {
     const perRod = abacus?.beadsPerRod ?? 0;
     table.forEach((row, index) =>
       abacus?.seed(
         index,
-        row.beads.slice(0, perRod).map((earned) => STAGE_FAMILY[earned.family]),
+        row.beads
+          .filter((earned) => !isGoldenBead(earned))
+          .slice(0, perRod)
+          .map((earned) => STAGE_FAMILY[earned.family]),
       ),
     );
   }
@@ -413,8 +431,9 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
   }
 
   /**
-   * The rods in DOM: one row per seat, `threshold` slots long, the golden one
-   * last.
+   * The rods in DOM: one row per seat, with a slot for each of the `threshold`
+   * beads that open the Magnum Opus and the golden slot after them, so
+   * `threshold + 1` slots in all.
    *
    * `abacusRodSlots` is the arithmetic and it is pure and pinned by a test —
    * "which slot, and is it the gilt one" is exactly the half of a drawing no
@@ -439,9 +458,11 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
     const census = drawCensusBand();
     if (census) register.append(census);
 
+    // The beads screen's own line, so the two screens describe the rod the same
+    // way: the golden bead comes from finishing the Opus, not from the threshold.
     const caption = document.createElement('p');
     caption.className = 'abacus-caption';
-    caption.textContent = `${figure(threshold)} beads open the Magnum Opus — the last is golden`;
+    caption.textContent = beadThresholdLine(threshold);
     register.append(caption);
 
     for (const row of table) {
@@ -453,25 +474,24 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
       rod.append(name);
 
       const wire = element('div', 'abacus-rod-wire');
-      abacusRodSlots(row.beads, threshold).forEach((slot, index) => {
+      abacusRodSlots(row.beads, threshold).forEach((slot) => {
         if (slot.kind === 'golden') {
-          const golden = element('span', 'bead-slot is-golden');
-          golden.title = 'The golden bead — only the Magnum Opus mints it';
-          wire.append(golden);
+          wire.append(goldenSlotNode(slot));
           return;
         }
         if (slot.kind === 'empty') {
           wire.append(element('span', 'bead-slot is-empty'));
           return;
         }
-        const earned = row.beads[index]!;
+        const earned = slot.bead!;
         const chip = element('span', 'bead-chip');
         chip.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[earned.family].ink})`);
         chip.title = beadHoverText(earned);
         wire.append(chip);
       });
       rod.append(wire);
-      rod.append(element('span', 'abacus-rod-tally', figure(row.beads.length)));
+      // The tally leaves the golden bead out: it is not one of the threshold's.
+      rod.append(element('span', 'abacus-rod-tally', figure(beadsTowardThreshold(row.beads))));
 
       if (onOpenBeads) {
         const open = document.createElement('button');

@@ -15792,6 +15792,16 @@ body.compendium-page {
   background: radial-gradient(circle at 50% 50%, rgba(200, 144, 31, 0.14) 0%, transparent 70%);
 }
 
+/* The golden slot once its seat holds the golden bead, which only finishing the
+   Magnum Opus mints: the same size and rim, filled gilt with the highlight every
+   bead has. Its size and the gap before it keep it apart from an economic bead,
+   which is gilt too. */
+.bead-slot.is-golden.is-held {
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0) 52%),
+    var(--gilt);
+}
+
 /* A family's glyph, in the family's ink. `rel-axis-mark`'s twin. */
 .bead-family-mark {
   color: var(--bead-ink, var(--ink-soft));
