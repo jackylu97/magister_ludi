@@ -63,7 +63,7 @@ the rest on augurs and rites.
 - Proposed:
   - **Great people with faith**: Divine Mandate's signature (the tier-18 government has no
     text yet) — call a great person for faith at a per-renown rate. The Commonwealth
-    already does this for gold at tier 45; faith gets there two eras earlier.
+    already does this for gold at tier 38; faith gets there two eras earlier.
   - **Units with faith**: Holy Order (enhancer) already promises warrior monks called with
     faith — build it, and add an Æra IV roster row or two behind it (the theme's late
     units). The augur/prophet purchase lane is the mechanism, already built.
@@ -173,7 +173,7 @@ citizens → per-head yields → science and culture compound.
 
 ## 9. The Court of Great People
 Renown as a currency and legacies as a collection.
-- Lives in: The Laureate, The Renaissance Court, The Commonwealth, governments (t45
+- Lives in: The Laureate, The Renaissance Court, The Commonwealth, governments (t38
   pair), beads (The Dynasty, The Most Called, the First-X feats).
 - State: **system built, deck thin** — one court Order exists; the family tags should
   dissolve into the other themes (each family serves 2–3 themes as their face cards).

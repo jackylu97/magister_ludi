@@ -292,8 +292,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   (● common ◆ uncommon ○ rare) is weighed 4/2/1 inside each sub-bag of the
   guaranteed military/economic/wildcard spread.
 - Pools: Chiefdom → Government I/II/III (tier 18 is the last new pool). Doctrine
-  tiers ride the ladder 4/10/18/29/45. Chairs by tier are the doc's Governments
-  table, sync-tested.
+  tiers ride the ladder 4/10/18/29/38. 2026-10-15: the fifth rung moved from 45
+  to 38 drafts (`docs/flags.md` (uuuuuu)). Chairs by tier are the doc's
+  Governments table, sync-tested.
 - **`statecraft/evaluator.ts` is the ONLY module switching on `CardEffect.kind`.**
   A new card is a JSON row; a new *shape* is a design decision, and a shape
   declared but never read fails a register test. The eight ways to pay a voice

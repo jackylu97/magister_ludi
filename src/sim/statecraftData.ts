@@ -7191,7 +7191,7 @@ export interface GovernmentDef extends CardDefBase {
    * **How many chairs this government supplies** — the whole of what a
    * government says about seating since the decks rework (D1a: *"chairs are
    * universal"*). The number is its tier's rung on `tierLadder` (3 / 5 / 8 /
-   * 11 / 11 at draft counts 0 / 4 / 18 / 29 / 45; a tier between rungs takes
+   * 11 / 11 at draft counts 0 / 4 / 18 / 29 / 38; a tier between rungs takes
    * the rung below it), written on the row so that the sixteen governments
    * stay rows with a signature each and the count is a field somebody can retune.
    *
@@ -7634,12 +7634,15 @@ export interface StatecraftConfig {
   // a dial a designer will one day turn expecting something to happen.
   /**
    * **The five rungs of the draft ladder**, one per band: Chiefdom and
-   * Government I to IV at regular draft counts 0 · 4 · 18 · 29 · 45, with
+   * Government I to IV at regular draft counts 0 · 4 · 18 · 29 · 38, with
    * 3 · 5 · 8 · 11 · 11 chairs (`docs/six-decks-first-cut.md` "Content bands";
    * the chairs are the user's ruling in `docs/decks/deck-design.md` "More
-   * chairs"). The fifth rung, for band 4, sits at 45 because that is where the
+   * chairs"). The fifth rung, for band 4, sits at 38 because that is where the
    * last governments are offered, and keeps eleven chairs because the ruling
-   * gives the last government tier eleven. The ladder is **read by the
+   * gives the last government tier eleven. It was 45 until the user's ruling
+   * of 2026-10-15 (`docs/flags.md` (uuuuuu)), which moved the rung and the
+   * tiers of the governments and doctrines offered there to 38 together, so
+   * that Tier IV is reached more often. The ladder is **read by the
    * simulation in three places**:
    *
    *   · a **band** opens at its rung's draft count (`bandTierAt`, the tier
@@ -7650,7 +7653,7 @@ export interface StatecraftConfig {
    *     figure written onto each row's `chairs`).
    *
    * The governments are still *offered* at the rows' own tiers
-   * (`GOVERNMENT_TIERS`, read off the rows: 4 · 10 · 18 · 29 · 45), which is a
+   * (`GOVERNMENT_TIERS`, read off the rows: 4 · 10 · 18 · 29 · 38), which is a
    * different question — a tier between two rungs keeps the rung below it, so
    * the tier-10 rows supply five chairs. The ladder is the design doc's table
    * and a sync test holds the two together.
@@ -7829,8 +7832,8 @@ export function poolOrders(pool: OrderPool): OrderId[] {
  * 4/10/18 — a player was reaching the third rung on turn twenty-nine, in Age I.
  *
  * **Every rung has its own pool since 2026-09-05.** The last clause used to be
- * a bare `return 'governmentIII'`, which meant the tier-29 and tier-45
- * governments re-dealt the shelf their predecessor had already emptied: a full
+ * a bare `return 'governmentIII'`, which meant the tier-29 governments and the
+ * top-tier ones re-dealt the shelf their predecessor had already emptied: a full
  * game drew no card it had not seen after Æra III, and adopting The Curia or
  * The Empire bought a wider council with nothing new to seat in it.
  */
@@ -7969,7 +7972,7 @@ export function chairsAtTier(tier: number): number {
 /**
  * **The regular draft counts at which a reward hand is banked** — every rung of
  * the ladder but the first (the design doc's "Doctrine reward hands": 4, 18,
- * 29 and, since band 4 was added, 45). Read by `settleDraft`.
+ * 29 and, since band 4 was added, 38). Read by `settleDraft`.
  */
 export const REWARD_DRAFTS: readonly number[] = TIER_LADDER.slice(1).map((rung) => rung.drafts);
 

@@ -86,11 +86,13 @@ dagger are what the row does *not* do.
 | Government I | 1 | 4 | 5 |
 | Government II | 2 | 18 | 8 |
 | Government III | 3 | 29 | 11 |
-| Government IV | 4 | 45 | 11 |
+| Government IV | 4 | 38 | 11 |
 
 A reward hand is banked at every rung but the first. A government is offered at its row's
-own tier (4 · 10 · 18 · 29 · 45); a tier between two rungs takes the rung below it for its
+own tier (4 · 10 · 18 · 29 · 38); a tier between two rungs takes the rung below it for its
 chairs.
+
+2026-10-15: the fifth rung moved from 45 to 38 drafts (`docs/flags.md` (uuuuuu)).
 
 ## Governments
 
@@ -109,7 +111,7 @@ chairs.
 | 29 | The Curia | 11 | +6 faith for each Cathedral. Faith buildings supply science equal to their faith. |
 |  | The Estates | 11 | +1 happiness in every city. +2 culture in every city of 8 or more population. |
 |  | The Sultanate | 11 | All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture. |
-| 45 | The Commonwealth | 11 | Great people may be bought with gold. Great-person improvements pay +50% more. |
+| 38 | The Commonwealth | 11 | Great people may be bought with gold. Great-person improvements pay +50% more. |
 |  | The Empire | 11 | +6 authority capacity. +2 combat strength for each great general you have earned this game. |
 |  | The Magisterium | 11 | Every offer of every kind shows one more card. +3 renown per turn for each wonder you hold. |
 

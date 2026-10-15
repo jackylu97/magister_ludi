@@ -52,6 +52,8 @@ It also gives the pairs a simple test: does one deck's currency feed the other d
 
 **More chairs: three early, eleven late.** Governments seat **3 / 5 / 8 / 11** cards across the four government tiers, replacing today's 3 / 4 / 6 / 9. Magisterial can seat more than the government allows, through its own abilities.
 
+2026-10-15: the fifth rung moved from 45 to 38 drafts (`docs/flags.md` (uuuuuu)).
+
 **Commissions, in every deck.** A commission is a goal card. You seat it, reach its goal using your deck's own mechanic, and it pays a large reward and leaves its chair. Each deck's commissions follow its mechanic: a Dominion commission might be to capture a city, an Expansionist one to tend a number of tiles. Commissions give the draft a target and the game some big moments. They are not a return of the retired feats, quests and endeavours: those were a separate hand dealt to you that earned beads, while a commission is a card you choose to draft and seat. **Commissions do not pay beads.** The wager system is to be reworked in its own future pass.
 
 **Improvements: each deck has a main family, and every pair of decks shares some.** Overlap is how two decks find each other on the map, so some is needed: every pair of decks should share at least some improvement types. But when three or four decks all pay something on the same improvement, it stops belonging to any of them and those cards become generic. Each deck has a main family of its own, and the shared ones are chosen deliberately, pair by pair.

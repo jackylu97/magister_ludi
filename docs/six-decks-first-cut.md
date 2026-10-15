@@ -62,9 +62,11 @@ Shared pairs are intentional. Modu and Joan should use the same pool differently
 | Middle (Tier I) | Government I | Regular draft count 4 | 5 | Add infrastructure, cross-type connections and tactical alternatives. |
 | Late (Tier II) | Government II | Regular draft count 18 | 8 | Add conversion engines, developed-city rewards and specialization. |
 | Advanced (Tier III) | Government III | Regular draft count 29 | 11 | Complete larger combinations; new uses for established assets. |
-| Final (Tier IV) | Government IV | Regular draft count 45 | 11 | Endgame cards: finishers, late engines and the decks' signatures at full size. |
+| Final (Tier IV) | Government IV | Regular draft count 38 | 11 | Endgame cards: finishers, late engines and the decks' signatures at full size. |
 
-**Band 4 and the chairs (deck implementation, foundation batch, 2026-10-12).** The deck sheets' Tier IV is band 4. Its rung sits at draft count 45, where the last governments are offered. There is no fifth research age, so band 4 asks for age 4, the same as band 3, and only the ladder rung separates them. The chairs are the user's ruling in `docs/decks/deck-design.md` "More chairs" (3 / 5 / 8 / 11, replacing 3 / 4 / 6 / 9); the fifth rung keeps eleven.
+**Band 4 and the chairs (deck implementation, foundation batch, 2026-10-12).** The deck sheets' Tier IV is band 4. Its rung sits at draft count 38, where the last governments are offered. There is no fifth research age, so band 4 asks for age 4, the same as band 3, and only the ladder rung separates them. The chairs are the user's ruling in `docs/decks/deck-design.md` "More chairs" (3 / 5 / 8 / 11, replacing 3 / 4 / 6 / 9); the fifth rung keeps eleven.
+
+2026-10-15: the fifth rung moved from 45 to 38 drafts (`docs/flags.md` (uuuuuu)).
 
 Government tiers here refer to this proposal's four-stage progression, not the live game's five government promotions. They mark the earliest unlock; cards remain available in later tiers. Government form (Council, Crown or League) does not restrict access.
 
@@ -88,7 +90,7 @@ All draw rules are authoring proposals, not implemented behavior. They deliberat
 
 ### Doctrine reward hands
 
-- At proposed reform milestones **4, 18, 29 and 45**, offer three distinct unowned **R** cards from the same currently unlocked, leader-eligible catalogue. These are bonus rare-only opportunities; rares remain available in normal hands before and after them.
+- At proposed reform milestones **4, 18, 29 and 38**, offer three distinct unowned **R** cards from the same currently unlocked, leader-eligible catalogue. These are bonus rare-only opportunities; rares remain available in normal hands before and after them.
 - Prefer a single-type rare from each leader deck, then another eligible rare, including cross-types. Exclude duplicates and use union-pool fallback if a source is empty. Rainbow samples different available types for its first two positions, then an eligible third rare. Extra-offer effects and legal redraw abilities apply to these hands too.
 - Taking a card adds it to the collection. Ordinary Orders do not activate automatically, add chairs or evade seals. A Charter instead grants its named research or construction access once on selection, with no chair or seal; it grants neither a free technology nor a free building. Taking any rare in a normal draft removes that same ID from future doctrine hands, and vice versa.
 - The player may bank or pass the reward; a banked reward does not block End Turn. Passing forfeits that opportunity. If all eligible rares are owned, resolve the reward as exhausted with no cost. No automatic compensation or new currency.

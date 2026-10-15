@@ -301,18 +301,19 @@ describe("the card table", () => {
     //
     // The rungs were 3/7/15 until the pacing retune of 2026-08-27 (user: "I got
     // to tier 7 on turn 29, not even age 2 yet"). The *ratified* ladder is
-    // 4/10/18/29/45 and is written down whole in `STATECRAFT.tierLadder`; this
+    // 4/10/18/29/38 and is written down whole in `STATECRAFT.tierLadder`; this
     // list is the live half — the rungs a triple actually exists for — so it is
     // its first three, and Gov IV's rows will extend it by themselves.
     // Gov IV and Gov V were written on 2026-08-28, so the live ladder is now the
     // whole ratified one and the two lists agree end to end.
-    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 29, 45]);
+    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 29, 38]);
     // `tierLadder` is the ladder of bands and chairs, read by the sim: four
-    // rungs since the decks rework (D1a), and a fifth at 45 for band 4 since
-    // the deck implementation's foundation batch. The governments are still
-    // offered at their rows' own tiers. The two lists are different questions
+    // rungs since the decks rework (D1a), and a fifth for band 4 since the
+    // deck implementation's foundation batch, at 45 until the user's ruling of
+    // 2026-10-15 moved it to 38. The governments are still offered at their
+    // rows' own tiers. The two lists are different questions
     // (`StatecraftConfig.tierLadder`).
-    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29, 45]);
+    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29, 38]);
     for (const tier of GOVERNMENT_TIERS) {
       expect(governmentsAtTier(tier), `tier ${tier}`).toHaveLength(3);
     }
@@ -3067,7 +3068,7 @@ describe("the master-list cut of 2026-08-28", () => {
   });
 
   it("offers Gov IV and Gov V at their rungs, and deals a Doctrine pool for each", () => {
-    for (const tier of [29, 45]) {
+    for (const tier of [29, 38]) {
       expect(governmentsAtTier(tier)).toHaveLength(3);
       // D1a: the Doctrine pools are retired shelves; the rows are kept.
       expect(poolDoctrines(tier)).toEqual([]);
@@ -6412,7 +6413,7 @@ describe("the cards pass of 2026-09-05", () => {
     // re-drew the shelf it had already emptied and adopting bought it nothing.
     for (const id of governmentsAtTier(29))
       expect(poolOfGovernment(id), id).toBe("governmentIV");
-    for (const id of governmentsAtTier(45))
+    for (const id of governmentsAtTier(38))
       expect(poolOfGovernment(id), id).toBe("governmentV");
     expect(ORDER_POOLS).toEqual([
       "chiefdom",
@@ -6653,7 +6654,7 @@ describe("the cards pass of 2026-09-05", () => {
     // the row that had no stock half at all now has two and is dealt again.
     // Retired with every Doctrine row by D1a; the words still print.
     expect(doctrineDef("blitz").retired).toBe(true);
-    expect(poolDoctrines(45)).toEqual([]);
+    expect(poolDoctrines(38)).toEqual([]);
     expect(said("blitz")).toEqual([
       "a unit that kills gets its movement back for the rest of the turn",
       "your units cannot fortify",
@@ -9088,7 +9089,7 @@ describe("the cadence and the chairs, as ruled on the third pass", () => {
     expect(OLD(19)).toBe(879);
   });
 
-  it("takes a quarter off the chairs at tiers 18, 29 and 45, and leaves the early ones alone", () => {
+  it("takes a quarter off the chairs at tiers 18, 29 and 38, and leaves the early ones alone", () => {
     /** A government's spread, M/E/W, as the doc's Slots column prints it. */
     const spread = (id: GovernmentId): [number, number, number] => {
       const slots = governmentDef(id).slots!;
@@ -9110,7 +9111,7 @@ describe("the cadence and the chairs, as ruled on the third pass", () => {
     // soldiers' government and the Merchant League still the counting-house.
     for (const id of governmentsAtTier(18)) expect(chairs(id), id).toBe(8);
     for (const id of governmentsAtTier(29)) expect(chairs(id), id).toBe(10);
-    for (const id of governmentsAtTier(45)) expect(chairs(id), id).toBe(12);
+    for (const id of governmentsAtTier(38)) expect(chairs(id), id).toBe(12);
 
     // The nine triples, before → after, printed here because they are the
     // ruling's own answer to "commensurately" and the doc table mirrors them
@@ -9128,7 +9129,7 @@ describe("the cadence and the chairs, as ruled on the third pass", () => {
     // **Every flavour keeps a chair** at the cut tiers, which is the half of the
     // ruling a total cannot express: "rounded, every group ≥ 1". The Council of
     // Elders' nought is older than this pass and sits at tier 4, untouched.
-    for (const tier of [18, 29, 45]) {
+    for (const tier of [18, 29, 38]) {
       for (const id of governmentsAtTier(tier)) {
         for (const count of spread(id))
           expect(count, id).toBeGreaterThanOrEqual(1);

@@ -436,7 +436,7 @@
     },
     "theCommonwealth": {
       "name": "The Commonwealth",
-      "tier": 45,
+      "tier": 38,
       "chairs": 11,
       "flavor": "The estate is common; the ledger is not.",
       "slots": {
@@ -462,7 +462,7 @@
     },
     "theEmpire": {
       "name": "The Empire",
-      "tier": 45,
+      "tier": 38,
       "chairs": 11,
       "flavor": "One frontier, and it is wherever the last courier stopped.",
       "slots": {
@@ -501,7 +501,7 @@
     },
     "theMagisterium": {
       "name": "The Magisterium",
-      "tier": 45,
+      "tier": 38,
       "chairs": 11,
       "flavor": "The Magister does not rule. He sets the rules.",
       "slots": {
@@ -1359,7 +1359,7 @@
     },
     "blitz": {
       "name": "Blitz",
-      "tier": 45,
+      "tier": 38,
       "decks": [],
       "band": 3,
       "line": "forge",
@@ -1379,7 +1379,7 @@
     },
     "thePhilosophersStone": {
       "name": "The Philosopher's Stone",
-      "tier": 45,
+      "tier": 38,
       "decks": [],
       "band": 3,
       "flavor": "Lead is only gold that has not been asked properly.",
@@ -1397,7 +1397,7 @@
     },
     "theGrandTourII": {
       "name": "The Grand Tour",
-      "tier": 45,
+      "tier": 38,
       "decks": [],
       "band": 3,
       "flavor": "One goes to see them, and comes back having been seen.",
@@ -1421,7 +1421,7 @@
     },
     "mareNostrum": {
       "name": "Mare Nostrum",
-      "tier": 45,
+      "tier": 38,
       "decks": [],
       "band": 3,
       "line": "caravan",
@@ -1450,7 +1450,7 @@
     },
     "theLeveeEnMasse": {
       "name": "The Levée en Masse",
-      "tier": 45,
+      "tier": 38,
       "decks": [],
       "band": 3,
       "line": "forge",
@@ -1472,7 +1472,7 @@
     },
     "paxMagistri": {
       "name": "Pax Magistri",
-      "tier": 45,
+      "tier": 38,
       "decks": [],
       "band": 3,
       "line": "green",
@@ -1499,7 +1499,7 @@
     },
     "theEncyclopaedia": {
       "name": "The Encyclopaedia",
-      "tier": 45,
+      "tier": 38,
       "decks": [],
       "band": 3,
       "line": "star",
@@ -1757,7 +1757,7 @@
     },
     "theTriumphalWay": {
       "name": "The Triumphal Way",
-      "tier": 45,
+      "tier": 38,
       "decks": [],
       "band": 3,
       "line": "forge",
@@ -7451,7 +7451,7 @@
       "chairs": 11
     },
     {
-      "drafts": 45,
+      "drafts": 38,
       "chairs": 11
     }
   ]

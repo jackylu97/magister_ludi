@@ -600,9 +600,10 @@ describe('a seeded draft for a Commerce figure', () => {
 
     const dealt = new Set<OrderId>();
     for (let n = 1; n <= 30; n++) {
-      // 45 is the fifth rung since batch F, which opens band 4 — where The
-      // Strongroom, the deck's first live Tier IV row, sits.
-      musa.statecraft.drafts = n === 1 ? 0 : 45;
+      // The last rung of the ladder opens band 4, where The Strongroom, the
+      // deck's first live Tier IV row, sits. Read from the ladder so that
+      // moving the rung (45 to 38 on 2026-10-15) does not need an edit here.
+      musa.statecraft.drafts = n === 1 ? 0 : TIER_LADDER[TIER_LADDER.length - 1]!.drafts;
       delete musa.statecraft.pendingOrder;
       const offer = drawOrderOffer(g.state, musa);
       for (const id of offer.options ?? []) {

@@ -38,7 +38,7 @@ The user, 2026-10-12: *"ok E2 is my favorite."* One drawer at the top-left, in t
   - Pinned, the drawer behaves like the other HUD cards: the keyboard moves to the research section, Tab wraps inside the drawer, and the × comes last in the tab order. Closing it with the keyboard inside returns the keyboard to the panel.
   - The H row reads **Faith** (the ruling in `docs/flags.md` (ssssss) 4.7), and its dot lights only for a belief to choose. The ? card says "H Faith" too; the sheet's own title is renamed in a later faith batch.
   - The banner is the seat's charge in ink on a parchment disc, inside a ring of the seat's colour. With nothing chosen to research, the panel's research bar turns gilt and pulses, as the research card did.
-  - "Next government at N" names the next tier a government is actually offered at (4, 10, 18, 29, 45), not the next rung of the slot ladder.
+  - "Next government at N" names the next tier a government is actually offered at (4, 10, 18, 29, 38), not the next rung of the slot ladder.
   - The age wager row opens the wager sheet, as drawn, and reads "2 of 3 bars met" ("no wager this age" in Æra I).
   - The Supply heading is the house's grey eyebrow, not vermilion: vermilion means a shortage, and here it marks only the resources with none spare.
   - The leader sheet's trigger is the drawer's Leader row, so the panel's own "expanded" state only ever describes the drawer. The drawer has closed by the time the sheet does, so the keyboard goes back to the page.

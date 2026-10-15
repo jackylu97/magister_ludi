@@ -445,12 +445,13 @@ describe('the schema, as landed', () => {
 
   it('is a five-rung ladder with universal chairs, and every government carries its rung’s count', () => {
     // Chairs 3 / 5 / 8 / 11 are the user's ruling (docs/decks/deck-design.md
-    // "More chairs"); the fifth rung (band 4) sits where the tier-45
-    // governments are offered and keeps eleven.
-    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29, 45]);
+    // "More chairs"); the fifth rung (band 4) sits where the tier-38
+    // governments are offered and keeps eleven. The rung was 45 until the
+    // user's ruling of 2026-10-15 (docs/flags.md (uuuuuu)).
+    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29, 38]);
     expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 8, 11, 11]);
     expect(TIER_LADDER).toHaveLength(BANDS.length);
-    expect(REWARD_DRAFTS).toEqual([4, 18, 29, 45]);
+    expect(REWARD_DRAFTS).toEqual([4, 18, 29, 38]);
     for (const id of GOVERNMENT_IDS) {
       const def = governmentDef(id);
       expect(def.chairs, id).toBe(chairsAtTier(def.tier));
@@ -458,14 +459,16 @@ describe('the schema, as landed', () => {
     }
     // A tier between two rungs keeps the rung below it.
     expect(chairsAtTier(10)).toBe(5);
-    expect(chairsAtTier(45)).toBe(11);
+    expect(chairsAtTier(38)).toBe(11);
     expect(bandTierAt(0)).toBe(0);
     expect(bandTierAt(3)).toBe(0);
     expect(bandTierAt(4)).toBe(1);
     expect(bandTierAt(17)).toBe(1);
     expect(bandTierAt(18)).toBe(2);
     expect(bandTierAt(29)).toBe(3);
-    expect(bandTierAt(44)).toBe(3);
+    expect(bandTierAt(37)).toBe(3);
+    expect(bandTierAt(38)).toBe(4);
+    // The old rung is now simply past the new one.
     expect(bandTierAt(45)).toBe(4);
     expect(bandTierAt(400)).toBe(4);
   });

@@ -1712,7 +1712,7 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
   const offer = drawOrderOffer(state, player);
   sc.pendingOrder = offer;
   // **A reward hand is banked at the ladder's rungs** (the design doc's
-  // "Doctrine reward hands": 4, 18, 29 and 45) — a count, never a hand, and never a
+  // "Doctrine reward hands": 4, 18, 29 and 38) — a count, never a hand, and never a
   // blocker. See `PlayerStatecraft.rewardHands` for why the deal waits for the
   // open.
   if (REWARD_DRAFTS.includes(plan.tier)) sc.rewardHands.push(plan.tier);
@@ -1951,7 +1951,7 @@ export function settleOrderSkip(state: GameState, player: Player): OrderSkip | n
 
 /**
  * **The reward hand** (`docs/six-decks-first-cut.md` "Doctrine reward hands";
- * the decks rework, D1a): at regular draft counts 4, 18, 29 and 45 an empire is
+ * the decks rework, D1a): at regular draft counts 4, 18, 29 and 38 an empire is
  * owed *"three distinct unowned rare cards from the same currently unlocked,
  * leader-eligible catalogue"* — a bonus draw of rares, and what the Doctrine
  * draft became. The Doctrine rows are retired; the rare-only hand is dealt
