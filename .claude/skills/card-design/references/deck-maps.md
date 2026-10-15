@@ -32,14 +32,16 @@ Source: `docs/decks/deck-design.md` (Dominion, its 11 bonus themes) and `docs/de
 
 ### Throughlines
 
+Since 2026-10-15 each throughline has a finished build (below), and the sources here are that build's cards. The garrison state became **the drilled legions**, built on unit ranks.
+
 | Throughline | Leans on | Science from | Culture from | Production from |
 |---|---|---|---|---|
-| **The garrison state** (holding and peace) | garrisons, citadels, military buildings, war and peace, upkeep | *to fill* | *to fill* | *to fill* |
-| **Raising the host** (tempo) | units trained or mustered, early units, levies (with Expansionist), generals | *to fill* | *to fill* | *to fill* |
-| **Raiders** (mobility and plunder) | mounted units, pillage, camps, kills | *to fill* | *to fill* | *to fill* |
-| **Conquest** (taking and holding towns) | captured towns, siege, kills, generals | *to fill* | *to fill* | *to fill* |
+| **The drilled legions** (holding and peace) | garrisons, ranks and experience, citadels, generals | a rank earned (Honours of the Legion); ranks earned this game (The Veterans' Roll); garrisons (The Military Frontier) | garrisons (Sword and Plough, Standing Garrisons); a rank earned; ranks earned this game | garrisons (Sword and Plough); ranked garrisons (The Fabricae); Standing Garrisons; Reserve Officers |
+| **The endless host** (tempo) | units gained, units lost, levies, war weariness | units gained (The Gathering Host, The Art of War); kills and losses (Songs of the Fallen); units held (The Grand Army) | units gained (The Gathering Host); kills and losses; units lost this game (The Hall of the Slain) | units lost this game (The Hall of the Slain); Reserve Officers; a declaration of war (The Arrière-ban); disbanding into the Opus (The Legions' Labour) |
+| **The steppe raiders** (mobility and plunder) | mounted units, pillage, camps, kills, ranks | pillages (The Captive Craftsmen) | kills and camps (The Bards' Praise); pillage (Spoils of War); hexes pillaged this game (The Sagas); a peace after a raiding war (Danegeld) | pastures and camps (The Horse Herds); pillages (The Captive Craftsmen, Spoils of War, The Plunder Trains) |
+| **The conqueror** (taking and holding towns) | captured towns, pacification, siege, kills, generals | a town pacified (The Provincial Census); towns captured this game (Spear-won Land); captured towns held (The Annexed Provinces) | captures (Triumphs); razing (The Sack); captured towns held (The Annexed Provinces) | razing (The Sack); towns captured this game (Spear-won Land); captured towns toward the Opus (Imperium) |
 
-Minor threads: naval force (map-dependent), and the holy war, which mostly belongs to the Dominion + Devotion pair.
+Minor threads: naval force (map-dependent; its two cards are among those the user ruled be reworked to serve a build, 2026-10-15), and the holy war, which mostly belongs to the Dominion + Devotion pair.
 
 ### Leaders
 
@@ -52,15 +54,28 @@ Minor threads: naval force (map-dependent), and the holy war, which mostly belon
 
 ### Finished builds
 
-*Proposed, not yet approved:* `docs/plans/dominion-builds.md` (2026-10-15, replacing the draft of 2026-10-14) drafts four builds, each in two versions:
-- an early build of Tier 0 to II cards (eight chairs, with a five-chair core for Tier I);
-- a late build of Tier III and IV cards plus one or two early scalers (eleven chairs).
+**Approved by the user, 2026-10-15** (*"I like these builds a lot more"*). The reasoning, sizing and turn-by-turn sketches are in `docs/plans/dominion-builds.md`, with the user's rulings at its end. Every card is on the deck sheet, `docs/decks/dominion.md`, which is the spec of record for card text. The user is revising the cards there next, so read the sheet for the current text.
 
-The four are the drilled legions (the garrison state, reshaped around unit ranks), the endless host, the steppe raiders and the conqueror. Each has a one-line loop, a Tier II "this game" counter that carries into the late build, and a capstone in Tier III. Use them as the working target until the user rules, and move them here once approved. The method is SKILL.md's "Finished builds" section; show new builds to the user before relying on them. The throughlines above are where to start: a finished build is a throughline made concrete, early and late.
+Each build has two versions: an early build of Tier 0 to II cards (eight chairs, with a five-chair core for Tier I), and a late build of Tier III and IV cards plus one or two early scalers (eleven chairs).
+
+| Build | The loop | The moment | Early scaler | Tier III capstone | Tier IV |
+|---|---|---|---|---|---|
+| **The drilled legions** | garrisons drill → units earn ranks → ranks pay, and win the fights that earn more ranks | a promotion | The Veterans' Roll | Knightly Ransom | the garrison finishers |
+| **The endless host** | gain units cheaply → every gain and every loss pays → the pay raises the next wave | a unit gained, a unit lost | The Gathering Host, The Hall of the Slain | Valhalla | The Legions' Labour |
+| **The steppe raiders** | ride out → pillage → plunder pays → riders live to earn ranks → they raid deeper | a pillage | The Captive Craftsmen, The Sagas | The Chevauchée | The Horde |
+| **The conqueror** | break the walls → take the town → pacify it → it pays for the next siege | a capture, a pacification | Spear-won Land | Pax Romana | Vae Victis, Spolia |
+
+Rulings that shape the builds (2026-10-15):
+- Tier IV opens at draft 38, so the long-game layer is reached more often. Capstones still sit in Tier III.
+- Elites are a perk of Dominion: drilling is not capped at Veteran.
+- The three shape families (ranks and experience, pacification, "this game" counts) are to be built.
+- Rule-breaking capstones are wanted, and more of them.
+- The Legions' Labour is the host's way to win, and levied units count toward it.
+- Cards no build uses are reworked to serve a build, not cut.
 
 ### Cards placed
 
-*Not yet placed.* The next step is to place every live Dominion card and the shared cards naming Dominion on the themes and throughlines above, with role, essential, band and shape, and then run the composition checks from SKILL.md.
+The builds doc places each card in one or more builds ("Also fits" under each build, and "Bridges and pivots"). The sheet lists every card by tier with its status. A full placement table (themes, throughlines, role, essential, shape for every card) waits until the user's revision pass settles the list.
 
 ## Other decks
 

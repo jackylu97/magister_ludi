@@ -19,6 +19,25 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(uuuuuu) Dominion's four builds, and Tier IV at draft 38 — RULED, 2026-10-15.**
+The user answered the questions in `docs/plans/dominion-builds.md`, where the
+rulings are written out with their words. In short:
+- **Tier IV opens at draft 38**, not 45 (*"lets have drafts feel more
+  impactful. Let's move it down to 38 drafts. we can tune culture costs
+  later."*). The governments and doctrines offered at that rung, and the
+  reward hand it banks, move with it. This applies to every deck.
+- Drilling may reach Elite: *"access to elite units should be a perk of
+  choosing dominion."*
+- The three shape families (ranks and experience, pacification, "this game"
+  counts) are to be built; the rule-breaking capstones stay, and the deck wants
+  more of them; The Legions' Labour is un-deferred and levied units count
+  toward it; the cards no build uses are reworked, not cut.
+- Next: every card goes onto `docs/decks/dominion.md` as a compact list by
+  tier, the user revises it, and the cards are built after that pass. The two
+  duplicates (ruling 7 there) wait for that pass.
+- The "this game" counts need new counters on the player, which is a save
+  format change. It can land together with (tttttt).
+
 **(ssssss) The interface rework's open rulings — RULED, 2026-10-15** (the user:
 *"Could we begin the UX overhaul that we started planning? That should go on in
 parallel while i'm a blocker on deck changes"*). The batches are in

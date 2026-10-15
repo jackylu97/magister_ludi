@@ -75,7 +75,7 @@ Synergy is what makes a draft feel like building something. Here it comes from *
 
 ## Finished builds: an early and a late version
 
-A **finished build** is what a seat's chairs look like once a plan has come together. Each deck has three or four, written in `references/deck-maps.md` (Dominion's draft is `docs/plans/dominion-builds.md`). They are the target the deck is designed toward: every card belongs to at least one of them, or is deliberately glue.
+A **finished build** is what a seat's chairs look like once a plan has come together. Each deck has three or four, written in `references/deck-maps.md` (Dominion's, approved 2026-10-15, are in `docs/plans/dominion-builds.md`). They are the target the deck is designed toward: every card belongs to at least one of them, or is deliberately glue.
 
 **Two versions of each build.** The user, 2026-10-15: *"lets do two versions, an early game build composed of tier 0/1/2 cards and a late game build composed of tier 3/4 cards (with possibly 1-2 earlier cards that scale throughout the game). You're not limited to cards that already exist or are proposed, focus on creating a satisfying playstyle and synergistic bonuses, with a mix of utility that fits with the build theme"*.
 - **The early build** is made of Tier 0, I and II cards.
@@ -84,7 +84,8 @@ A **finished build** is what a seat's chairs look like once a plan has come toge
   - It switches the loop on: openers that start the build's quantity, the first pay-offs, at least one card that changes what the player does (a new action or a broken rule), and a grower or "this game" counter that will keep scaling.
 - **The late build** has eleven chairs: Tier III and IV cards, plus the one or two early cards still seated because they grew.
   - It runs the loop at full size: percentages on top of the flats (the yield layers), a capstone that breaks a rule or doubles a category, and a card that makes a visible moment.
-- **Reachability.** Tier IV opens at draft 45, which few games reach (7 of 30 bot seats in the measurements of 2026-10-13, at a median turn of 189). Put each build's capstone in Tier III and treat Tier IV as the long-game layer, unless the ladder changes.
+- **Reachability.** Tier IV opens at draft 38 since 2026-10-15. It was 45, which few games reached (7 of 30 bot seats in the measurements of 2026-10-13, at a median turn of 189); the user moved it down so that late drafts feel more impactful. How often 38 is reached is not measured yet. Keep each build's capstone in Tier III so the build works without Tier IV, and use Tier IV for the long game and for the cards that break the game late.
+- **Rule-breakers are wanted.** The user, 2026-10-15, on Dominion's late capstones (a ranked unit ransomed instead of dying, a fallen unit rising again, pillage that eats a rival's build, captured towns pacified at once): *"these are great, if anything, we need more cards like this."*
 
 **Why.** A deck designed card by card, each with a full floor, ends up as a pile of individually useful cards. A seat then fills its chairs with whichever card pays most on its own. The endgame chairs look alike from game to game, and no draft feels like a plan coming together. The 2026-10-13 audit points the same way:
 - raisers outnumber readers: about twelve cards make more units and two read them; about twenty create citizens and four read them in the midgame;

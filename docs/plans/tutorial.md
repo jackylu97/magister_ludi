@@ -1,6 +1,6 @@
 # The tutorial: design and implementation plan
 
-**Status:** started 2026-10-14. A design proposal with decisions open for the user (section 7). Nothing in it is built.
+**Status:** approved by the user, 2026-10-15: the decisions in section 7 and the answers in section 10. T0 and T1 are being built; the rest follows the plan in section 8.
 
 - **The user's ask:** *"can you take a look at how other grand strategy/ 4X games handle their tutorial? lets start a tutorial design + implementation doc."*
 - **The research behind it:** `docs/plans/tutorial-research.md`.
@@ -244,6 +244,8 @@ Carried forward from the September plan, which gives the detail in `docs/depreca
 | D7 | Fix the stale copy now; build the rest around the interface rework | Yes |
 | D8 | Unlocks across games (Balatro, Marvel Snap) | Not now: the band rule already gates complexity by age inside one game |
 
+**Ruled, 2026-10-15.** The user: *"approved."* All eight decisions stand as recommended. The user then cleared the first two batches: *"you're good to delegate T0 and T1"*.
+
 ## 8. Implementation plan
 
 Each batch has a fence and narrow tests. The orchestrator runs the gate (typecheck, core, build) and deploys to the play server, and no batch may change what a seed produces.
@@ -281,7 +283,9 @@ T0 can go now. T1 to T4 do not depend on the layout and can start before the int
 
 ## 10. Open questions
 
-- Should a first draft's hand be smaller? That is a rule change, so it fits only inside a learning preset.
-- Governments and doctrines are waiting for their rework (A4), and so are their lessons.
-- Is the wager and bead endgame stable enough to teach now, or should its lessons wait?
-- Hotseat and multiplayer: lessons are per seat, and private offers stay hidden from other seats.
+Answered by the user, 2026-10-15 (their words in quotes):
+
+- **A smaller first hand:** no. *"no"*. The first draft deals the normal hand, in the learning preset too.
+- **Lessons for governments and doctrines:** deferred until their rework (A4). *"defer this for now"*
+- **Teaching the wager and bead endgame:** teach it now. *"yes"*, read as yes to "stable enough to teach now".
+- **Hotseat and multiplayer:** deferred. *"defer multiplayer"*. Lessons are built for the one local seat.

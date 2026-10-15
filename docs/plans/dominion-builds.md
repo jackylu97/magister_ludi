@@ -1,6 +1,6 @@
 # Dominion: four finished builds, early and late (proposal)
 
-**Status:** proposal, 2026-10-15, for the user to react to. It replaces the draft of 2026-10-14, which the user found unsatisfying. The user, verbatim:
+**Status:** accepted by the user, 2026-10-15, with the rulings at the end of this file. The cards are now on the deck sheet (`docs/decks/dominion.md`), which is the spec of record for them; this file keeps the reasoning behind the builds. It replaced the draft of 2026-10-14, which the user found unsatisfying. The user, verbatim:
 
 > *"i think the builds aren't very satisfying, for the 'builds' lets do two versions, an early game build composed of tier 0/1/2 cards and a late game build composed of tier 3/4 cards (with possibly 1-2 earlier cards that scale throughout the game). You're not limited to cards that already exist or are proposed, focus on creating a satisfying playstyle and synergistic bonuses, with a mix of utility that fits with the build theme"*
 
@@ -44,7 +44,7 @@ The method is the card-design skill's "Finished builds" section. Once the user a
 ## Three facts about the draft that shape every build
 
 1. **Tier 0 lasts about six drafts.** Tier I needs age 2, which bots reach around turn 55, so a seat drafts from Tier 0 only about six times. An early build therefore holds two Tier 0 cards, three at most, and each build lists alternatives.
-2. **Tier IV is rarely reached.** It opens at draft 45. In the bot games of 2026-10-13, 7 of 30 seats got there, at a median turn of 189. The user's one logged win closed on turn 164. So **each build's capstone is in Tier III**, and Tier IV is the long-game layer. See question 1.
+2. **Tier IV is rarely reached.** It opened at draft 45. In the bot games of 2026-10-13, 7 of 30 seats got there, at a median turn of 189. The user's one logged win closed on turn 164. So **each build's capstone is in Tier III**, and Tier IV is the long-game layer. (Ruling 1, 2026-10-15: Tier IV now opens at draft 38.)
 3. **Tier III is thin.** It holds 8 Dominion cards today. These four late builds use 22 different Tier III cards, 16 of them new.
 
 ## The four at a glance
@@ -522,14 +522,26 @@ One correction to the sheet: Living off the Land needs no new shape. `upkeepReba
 
 Adopting the whole draft adds 36 cards and replaces 2. The list above holds 11 more to rework or cut.
 
-### Questions for the user
+### Rulings, 2026-10-15
 
-1. **Tier IV:** it opens at draft 45, which 7 of 30 bot seats reached (median turn 189). Should the rung come down, to about 38 drafts? Or should each build's capstone stay in Tier III, as drafted here, with The Legions' Labour (the host's way to win) moved down to Tier III as well?
-2. **The drilled legions:** the garrison state becomes a build on ranks. Is that the right direction? Should drilling stop at Veteran, so that Elites come only from war against empires?
-3. **The three main families** (ranks, pacification, "this game" counts) carry most of the new cards. Should they be built?
-4. **The capstones that break rules** (Knightly Ransom, Valhalla, The Chevauchée, Pax Romana in Tier III; The Horde and Vae Victis in Tier IV): are they the right size for "break the game late" (the ruling of 2026-10-12), or too much?
-5. **The host's win:** should The Legions' Labour be un-deferred, and should a unit raised by a levy count toward it, so citizens become soldiers and then the Opus?
-6. **The cards no build uses:** rework or cut?
-7. **Two duplicates:**
+The user read this proposal and answered its questions in this file. Their words are quoted as written.
+
+1. **Tier IV opens at draft 38, not 45.** *"yes, lets have drafts feel more impactful. Let's move it down to 38 drafts. we can tune culture costs later."*
+   - The fifth rung of `tierLadder` (`data/statecraft.json`) moves to 38. The governments and doctrines offered at that rung, and the reward hand it banks, move with it.
+   - Culture costs are tuned later.
+   - The Legions' Labour stays in Tier IV, since Tier IV is now reached more often.
+2. **Drilling goes all the way to Elite.** *"nah, access to elite units should be a perk of choosing dominion."*
+   - The Drill Grounds has no Veteran cap.
+   - Fights with barbarians still stop at Veteran (the ranks rule). Dominion's cards are how a seat gets Elites without a war against an empire.
+3. **The three main families are to be built:** ranks and experience, pacification, and "this game" counts. *"yes"*
+4. **The rule-breaking capstones are the right size, and the deck should have more of them.** *"these are great, if anything, we need more cards like this."*
+5. **The Legions' Labour is un-deferred, and units raised by a levy count toward it,** so citizens become soldiers and then the Opus. *"yes."*
+6. **The cards no build uses are reworked, not cut.** *"rework."*
+7. **The two duplicates:** not answered yet. They are marked on the deck sheet for the user's revision pass:
    - the user's "gaining a unit grants science equal to its strength" against The Art of War;
-   - The Call to the Spear against Expansionist's The Muster of the Fields (already flagged on the sheet).
+   - The Call to the Spear against Expansionist's The Muster of the Fields.
+
+**What happens next.** The user: *"I like these builds a lot more, lets add all these new orders to the deck. i'll do a pass to revise after you've done so. Let's make the dominion doc more compact, for now, just a list of names, abilities, rarity and whether it is already implemented, requires modifications, or needs to be added altogether, grouped by tier."*
+- Every card in this proposal goes onto the deck sheet, `docs/decks/dominion.md`, which becomes a compact list grouped by tier: name, rarity, status and ability.
+- The sheet's earlier long form is kept as `docs/decks/reference/dominion-2026-10-15.md`.
+- The user then revises the cards on the sheet. The cards and their new shapes are built after that pass.
