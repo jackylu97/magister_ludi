@@ -42,12 +42,15 @@ import { getTileAt, neighborTiles, tileHex, wrappedDistance } from '../../src/si
 import { isPassable } from '../../src/sim/pathfind';
 import {
   type PurchasableItem,
+  type PurchaseSubject,
   bankOf,
   contributeError,
   explainPurchaseCost,
   explainRoutePrice,
   isPurchaseOnly,
   purchaseError,
+  purchaseGate,
+  purchaseShortfall,
   purchaseVerb,
   readPurchasableItem,
   routePrice,
@@ -62,7 +65,8 @@ import {
   bumpRevision,
 } from '../../src/sim/state';
 import { buildError, gatingTech } from '../../src/sim/tech';
-import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
+import { TECH_IDS } from '../../src/sim/techData';
+import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { hasStackingRoom } from '../../src/sim/units';
 import { buyCommand, game } from './purchaseHelpers';
 
@@ -756,6 +760,245 @@ describe('every refusal, and each leaves the state byte-identical', () => {
     city.buildings.push('greatZiggurat');
     bumpRevision(g.state);
     expect(explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!.total).toBe(bare.total);
+  });
+});
+
+// --- the bank's shortfall ----------------------------------------------------
+
+/**
+ * **"Short of the bank, and only that"**, answered by the gate itself (batch
+ * UX5b). `purchaseShortfall` is the figure the price column prints under a
+ * price the player cannot afford yet, and `purchaseGate` hands the same figure
+ * to the bot's want book beside the refusal. `purchaseError` and
+ * `purchaseShortfall` are each one half of `purchaseGate`'s answer, so these
+ * tests are about the figure agreeing with the sentence:
+ *
+ *   - when the bank is the only clause that refuses, the shortfall is the price
+ *     less what the bank holds, and raising the bank by exactly that much makes
+ *     the gate take the purchase;
+ *   - when any other clause refuses, the shortfall is `null` even if the bank is
+ *     also short, and no amount in the bank changes the refusal;
+ *   - when the gate takes the purchase, the shortfall is `null`.
+ */
+describe('the bank’s shortfall, read beside the gate', () => {
+  type Bank = 'gold' | 'faith';
+
+  /** Sets seat 0's balance in one bank, and says so to the memos. */
+  function hold(state: GameState, bank: Bank, amount: number): void {
+    const player = playerById(state, 0)!;
+    if (bank === 'gold') player.gold = amount;
+    else player.faithPool = amount;
+    bumpRevision(state);
+  }
+
+  /**
+   * Checks the three claims above for one purchase by seat 0 and returns which
+   * case it was. Leaves the bank as it found it.
+   */
+  function agreesWithTheGate(
+    state: GameState,
+    cityId: number,
+    item: PurchaseSubject,
+    bank: Bank,
+    label: string,
+  ): 'taken' | 'short' | 'refused' {
+    const held = bankOf(playerById(state, 0)!, bank);
+    const refusal = purchaseError(state, 0, cityId, item, bank);
+    const shortfall = purchaseShortfall(state, 0, cityId, item, bank);
+    expect(purchaseGate(state, 0, cityId, item, bank), label).toEqual({ refusal, shortfall });
+    if (refusal === null) {
+      expect(shortfall, label).toBeNull();
+      return 'taken';
+    }
+    if (shortfall !== null) {
+      const price = explainPurchaseCost(state, 0, cityId, item, bank)!.total;
+      expect(shortfall, label).toBe(price - held);
+      hold(state, bank, held + shortfall);
+      expect(purchaseError(state, 0, cityId, item, bank), label).toBeNull();
+      hold(state, bank, held);
+      return 'short';
+    }
+    hold(state, bank, 10_000_000);
+    expect(purchaseError(state, 0, cityId, item, bank), label).toBe(refusal);
+    hold(state, bank, held);
+    return 'refused';
+  }
+
+  it('is what a unit’s gold price needs beyond the treasury', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const price = explainPurchaseCost(g.state, 0, city.id, WARRIOR, 'gold')!.total;
+    hold(g.state, 'gold', price - 7);
+    expect(purchaseShortfall(g.state, 0, city.id, WARRIOR, 'gold')).toBe(7);
+    // The refusal for the same case is the money clause's sentence, unchanged.
+    expect(purchaseError(g.state, 0, city.id, WARRIOR, 'gold')).toBe(
+      `Warrior costs ${price} gold; Ada has ${price - 7}`,
+    );
+    expect(agreesWithTheGate(g.state, city.id, WARRIOR, 'gold', 'warrior')).toBe('short');
+    hold(g.state, 'gold', price);
+    expect(agreesWithTheGate(g.state, city.id, WARRIOR, 'gold', 'warrior')).toBe('taken');
+  });
+
+  it('is what a building’s gold price needs beyond the treasury', () => {
+    const g = game();
+    const gate = gatingTech('building', 'granary');
+    if (gate) learn(g.state, 0, gate);
+    const city = found(g.state, 0);
+    const price = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!.total;
+    hold(g.state, 'gold', 5);
+    expect(purchaseShortfall(g.state, 0, city.id, GRANARY, 'gold')).toBe(price - 5);
+    expect(agreesWithTheGate(g.state, city.id, GRANARY, 'gold', 'granary')).toBe('short');
+    hold(g.state, 'gold', price + 1);
+    expect(agreesWithTheGate(g.state, city.id, GRANARY, 'gold', 'granary')).toBe('taken');
+  });
+
+  it('is what a unit’s faith price needs beyond the faith bank', () => {
+    const g = game();
+    learn(g.state, 0, 'theHighTemple');
+    const city = found(g.state, 0);
+    const price = explainPurchaseCost(g.state, 0, city.id, PROPHET, 'faith')!.total;
+    hold(g.state, 'faith', price - 15);
+    expect(purchaseShortfall(g.state, 0, city.id, PROPHET, 'faith')).toBe(15);
+    expect(agreesWithTheGate(g.state, city.id, PROPHET, 'faith', 'prophet')).toBe('short');
+    hold(g.state, 'faith', price);
+    expect(agreesWithTheGate(g.state, city.id, PROPHET, 'faith', 'prophet')).toBe('taken');
+  });
+
+  it('is what a building’s faith price needs beyond the faith bank', () => {
+    // al-Khwārizmī's legacy lets faith buy the buildings that supply science.
+    const g = game();
+    learn(g.state, 0, 'letters');
+    const city = found(g.state, 0);
+    const library: PurchasableItem = { kind: 'building', id: 'library' };
+    expect(explainPurchaseCost(g.state, 0, city.id, library, 'faith')).toBeNull();
+    playerById(g.state, 0)!.legacies.push({ id: 'alKhwarizmi', age: 4 });
+    bumpRevision(g.state);
+    const price = explainPurchaseCost(g.state, 0, city.id, library, 'faith')!.total;
+    hold(g.state, 'faith', 3);
+    expect(purchaseShortfall(g.state, 0, city.id, library, 'faith')).toBe(price - 3);
+    expect(agreesWithTheGate(g.state, city.id, library, 'faith', 'library')).toBe('short');
+    hold(g.state, 'faith', price);
+    expect(agreesWithTheGate(g.state, city.id, library, 'faith', 'library')).toBe('taken');
+  });
+
+  it('is what a trade route needs beyond the treasury', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const route = { kind: 'route' } as const;
+    hold(g.state, 'gold', 0);
+    expect(purchaseShortfall(g.state, 0, city.id, route, 'gold')).toBe(routePrice(g.state, 0));
+    expect(agreesWithTheGate(g.state, city.id, route, 'gold', 'route')).toBe('short');
+    // A route is never sold for faith, so no faith bank is short of one.
+    hold(g.state, 'faith', 0);
+    expect(purchaseShortfall(g.state, 0, city.id, route, 'faith')).toBeNull();
+  });
+
+  it('is null when another clause refuses as well as the bank', () => {
+    const g = game();
+    const gate = gatingTech('building', 'granary');
+    if (gate) learn(g.state, 0, gate);
+    const city = found(g.state, 0);
+    hold(g.state, 'gold', 0);
+    hold(g.state, 'faith', 0);
+
+    /**
+     * Refused for something other than the bank, with both banks empty. Where
+     * the thing has a price in this bank, the empty bank could not pay it
+     * either.
+     */
+    const refusedTwice = (item: PurchaseSubject, bank: Bank, label: string): void => {
+      const price = explainPurchaseCost(g.state, 0, city.id, item, bank);
+      if (price !== null) expect(price.total, label).toBeGreaterThan(0);
+      expect(purchaseShortfall(g.state, 0, city.id, item, bank), label).toBeNull();
+      expect(agreesWithTheGate(g.state, city.id, item, bank, label)).toBe('refused');
+    };
+
+    // A piece already standing in the town's hex.
+    garrison(g.state, city, 'warrior');
+    refusedTwice(WARRIOR, 'gold', 'a warrior in the way');
+    marchOut(g.state, city);
+    // A building the town already has.
+    city.buildings.push('granary');
+    bumpRevision(g.state);
+    refusedTwice(GRANARY, 'gold', 'a granary already built');
+    // A town too small for a settler.
+    refusedTwice(SETTLER, 'gold', 'a town too small');
+    // The wrong bank, and a bank that does not sell the thing here.
+    refusedTwice(PROPHET, 'gold', 'a prophet for gold');
+    refusedTwice(WARRIOR, 'faith', 'a warrior for faith with no Cathedral');
+    // The town has already bought a soldier today.
+    city.purchasedUnitTurns = { militaryGold: g.state.turn };
+    bumpRevision(g.state);
+    refusedTwice(WARRIOR, 'gold', 'a soldier already bought today');
+    // A puppet spends nothing.
+    city.puppet = true;
+    bumpRevision(g.state);
+    refusedTwice(WORKER, 'gold', 'a puppet');
+  });
+
+  it('agrees with the gate on every row of a town, in both banks', () => {
+    // Every unit and building in the roster, the route, both banks, a rich and a
+    // poor treasury, and a town with a piece in its hex. A Cathedral opens the
+    // faith bank for units here, and al-Khwārizmī's legacy opens it for the
+    // buildings that supply science.
+    const g = game();
+    const player = playerById(g.state, 0)!;
+    player.techsResearched = [...TECH_IDS];
+    const city = found(g.state, 0);
+    city.buildings.push('cathedral');
+    player.legacies.push({ id: 'alKhwarizmi', age: 4 });
+    bumpRevision(g.state);
+
+    const seen = new Map<string, number>();
+    const tally = (key: string): void => {
+      seen.set(key, (seen.get(key) ?? 0) + 1);
+    };
+    const items: PurchaseSubject[] = [
+      ...UNIT_TYPE_IDS.map((id): PurchaseSubject => ({ kind: 'unit', id })),
+      ...BUILDING_IDS.map((id): PurchaseSubject => ({ kind: 'building', id })),
+      { kind: 'route' },
+    ];
+    const sweep = (): void => {
+      for (const item of items) {
+        for (const bank of ['gold', 'faith'] as const) {
+          const label = `${item.kind}:${'id' in item ? item.id : ''}:${bank}`;
+          const result = agreesWithTheGate(g.state, city.id, item, bank, label);
+          tally(`${bank}:${item.kind}:${result}`);
+          // A refusal from another clause while the bank could not pay either.
+          const price = explainPurchaseCost(g.state, 0, city.id, item, bank);
+          if (result === 'refused' && price !== null && bankOf(player, bank) < price.total) {
+            tally('refused while also short');
+          }
+        }
+      }
+    };
+    for (const [gold, faith] of [
+      [150, 60],
+      [0, 0],
+    ] as const) {
+      hold(g.state, 'gold', gold);
+      hold(g.state, 'faith', faith);
+      sweep();
+    }
+    garrison(g.state, city, 'warrior');
+    sweep();
+
+    // The sweep saw every case it is meant to check, in both banks.
+    for (const key of [
+      'gold:unit:short',
+      'gold:building:short',
+      'gold:route:short',
+      'faith:unit:short',
+      'faith:building:short',
+      'gold:unit:taken',
+      'faith:unit:taken',
+      'gold:unit:refused',
+      'gold:building:refused',
+      'faith:unit:refused',
+      'refused while also short',
+    ]) {
+      expect([key, (seen.get(key) ?? 0) > 0]).toEqual([key, true]);
+    }
   });
 });
 

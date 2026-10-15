@@ -17,7 +17,8 @@
  * an hour. The only property that tells a correct file from a nearly-correct one
  * is which of the two it asked, and that property lives in the text.
  *
- * **The stated exceptions**, both of which show the ink's name on purpose:
+ * **The stated exceptions.** The first two show the ink's name on purpose; the
+ * third prints nothing:
  *
  *   · **the setup screen's palette** (`gameSetup.ts`'s `SEATS`) — the twelve
  *     inks a table is dealt from, each named as a colour beside its swatch. A
@@ -25,15 +26,18 @@
  *   · **the save shelf's label** (`savesPanel.ts`) — a saved world is named by
  *     the figure seat 0 sat under, and falls back to *the save's own name*,
  *     which is what the player called it. Never an invented one.
- *   · **`src/ai/wants.ts`' two refusal mirrors** — not prints at all. They
- *     rebuild a sentence the simulation's own `purchaseError`/rite refusal
- *     writes, in order to compare against it, so they must read the very field
- *     those sentences read. The day those refusals speak in figures, these two
- *     lines follow them, and not before.
- *   · **`src/ui/priceCell.ts`' mirror of the same purchase refusal** (batch
- *     UX5), for the same reason: it recognises "short of the bank, and only
- *     that" by comparing against `purchaseError`'s sentence, which names the
- *     seat by the field. It prints nothing.
+ *   · **`src/ai/wants.ts`' one refusal mirror**, `riteOutOfReach`. It prints
+ *     nothing. It rebuilds the sentence `riteError` writes for its money clause
+ *     in order to compare against it, so it must read the very field that
+ *     sentence reads. The rite gate has no reading that answers "short of the
+ *     bank, and only that" as a number yet; when it gets one, this exception
+ *     goes too.
+ *
+ * The purchase gate has that reading (`purchaseShortfall` and `purchaseGate`,
+ * batch UX5b), so neither the bot's want book nor the price column
+ * (`priceCell.ts`) rebuilds `purchaseError`'s sentence any more, and their
+ * exceptions are gone. A new comparison against a refusal sentence that names
+ * the seat fails here.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -101,23 +105,35 @@ const READS_THE_FIELD: readonly RegExp[] = [
   /\b(?:player|seat|owner|local|enemy|founder|giver|winner)\s*[!?]?\s*\??\.name\b/,
 ];
 
-/** The mirrors above, allowed by what they are rather than by line number. */
+/**
+ * The rite mirror above, allowed by what it is rather than by line number: the
+ * comparison against `riteError`'s money sentence, which is the only line that
+ * names a rite's row while reading the field.
+ */
 function allowed(path: string, line: string): boolean {
-  return (path.endsWith('/wants.ts') || path.endsWith('/priceCell.ts')) && line.includes('refusal ===');
+  return (
+    path.endsWith('/wants.ts') && line.includes('refusal ===') && line.includes('riteDef(id).name')
+  );
 }
 
 describe('a seat’s name', () => {
   it('is asked of the one reading everywhere it is printed, never off the field', () => {
     const offenders: string[] = [];
+    const excused: string[] = [];
     for (const path of Object.keys(SOURCE).sort()) {
       const lines = code(SOURCE[path]!).split('\n');
       for (const [index, line] of lines.entries()) {
         if (!READS_THE_FIELD.some((shape) => shape.test(line))) continue;
-        if (allowed(path, line)) continue;
-        offenders.push(`${path}:${index + 1}: ${line.trim()}`);
+        const where = `${path}:${index + 1}: ${line.trim()}`;
+        if (allowed(path, line)) excused.push(where);
+        else offenders.push(where);
       }
     }
     expect(offenders).toEqual([]);
+    // The exception covers the rite mirror and nothing else. When the rite gate
+    // gets a reading of its own and the mirror goes, this fails, and the
+    // exception should go with it.
+    expect(excused).toHaveLength(1);
   });
 
   it('is asked at all — the reading is imported where the seats are named', () => {

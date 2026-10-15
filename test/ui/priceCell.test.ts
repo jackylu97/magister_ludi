@@ -1,13 +1,12 @@
 /**
- * The price column's cell (`src/ui/priceCell.ts`, batch UX5): its three looks,
- * the bridge from the purchase gate to them, and the heading over the column.
+ * The price column's cell (`src/ui/priceCell.ts`, batches UX5 and UX5b): its
+ * three looks, the bridge from the purchase gate to them, and the heading over
+ * the column.
  *
- * The looks are asked of the real gate (`purchaseError`, `explainPurchaseCost`)
- * in real towns, because the one part of this module that could drift from the
- * simulation is how it recognises "short of the bank, and only that": the gate
- * says so in a sentence, and `shortOfBankSentence` is that sentence composed a
- * second time (see its docblock). If the gate rewords it, the short-look tests
- * below fail rather than every short price quietly turning into a dash.
+ * The looks are asked of the real gate (`purchaseError`, `explainPurchaseCost`,
+ * `purchaseShortfall`) in real towns. "Short of the bank, and only that" is the
+ * simulation's own reading since UX5b, so this module never reads the refusal's
+ * words to find it; a source check below keeps it that way.
  *
  * No document in this suite (`controls.test.ts`), so the element builders are
  * read as source for the one claim that matters about them: only the `buy` look
@@ -22,6 +21,7 @@ import {
   type PurchasableItem,
   explainPurchaseCost,
   purchaseError,
+  purchaseShortfall,
 } from '../../src/sim/purchase';
 import { type City, type GameState, bumpRevision, createUnit, playerById } from '../../src/sim/state';
 import { TECH_IDS } from '../../src/sim/techData';
@@ -33,7 +33,6 @@ import {
   priceLook,
   priceNeedText,
   purchaseLook,
-  shortOfBankSentence,
 } from '../../src/ui/priceCell';
 import { braceBody, uiSource } from './sourceHelpers';
 import { createGame } from '../sim/newGameHelpers';
@@ -60,24 +59,27 @@ const WARRIOR: PurchasableItem = { kind: 'unit', id: 'warrior' };
 
 describe('the three looks', () => {
   it('is a pressable price when the gate takes the purchase', () => {
-    expect(priceLook({ bank: 'gold', price: 40, held: 100, refusal: null, onlyShortOfBank: false }))
+    expect(priceLook({ bank: 'gold', price: 40, refusal: null, shortfall: null }))
       .toEqual({ look: 'buy', bank: 'gold', price: 40 });
   });
 
   it('is short, with what is missing, when the bank is the only problem', () => {
     expect(
-      priceLook({ bank: 'gold', price: 468, held: 437, refusal: 'x', onlyShortOfBank: true }),
+      priceLook({ bank: 'gold', price: 468, refusal: 'x', shortfall: 31 }),
     ).toEqual({ look: 'short', bank: 'gold', price: 468, need: 31 });
     // A bank holds fractions; a player acts on whole coins, so what is missing
     // rounds up and is never nothing.
     expect(
-      priceLook({ bank: 'faith', price: 112, held: 111.5, refusal: 'x', onlyShortOfBank: true }),
+      priceLook({ bank: 'faith', price: 112, refusal: 'x', shortfall: 0.5 }),
     ).toMatchObject({ look: 'short', need: 1 });
+    expect(
+      priceLook({ bank: 'gold', price: 112, refusal: 'x', shortfall: 30.25 }),
+    ).toMatchObject({ look: 'short', need: 31 });
   });
 
   it('is a dash carrying the gate’s own sentence for every other refusal', () => {
     expect(
-      priceLook({ bank: 'gold', price: 60, held: 0, refusal: 'A Scout already stands here', onlyShortOfBank: false }),
+      priceLook({ bank: 'gold', price: 60, refusal: 'A Scout already stands here', shortfall: null }),
     ).toEqual({ look: 'none', bank: 'gold', price: 60, refusal: 'A Scout already stands here' });
   });
 });
@@ -101,10 +103,9 @@ describe('the purchase gate, read into a look', () => {
     playerById(state, 0)!.gold = 10;
     bumpRevision(state);
     const price = explainPurchaseCost(state, 0, city.id, WORKER, 'gold')!.total;
-    // The drift guard: the sentence this module recognises is the gate's own.
-    expect(purchaseError(state, 0, city.id, WORKER, 'gold')).toBe(
-      shortOfBankSentence('Ada', WORKER, 'gold', price, 10),
-    );
+    // The gate refuses, and the simulation says the bank is all that is wrong.
+    expect(purchaseError(state, 0, city.id, WORKER, 'gold')).not.toBeNull();
+    expect(purchaseShortfall(state, 0, city.id, WORKER, 'gold')).toBe(price - 10);
     expect(purchaseLook(state, 0, city.id, WORKER, 'gold')).toEqual({
       look: 'short',
       bank: 'gold',
@@ -122,13 +123,24 @@ describe('the purchase gate, read into a look', () => {
     const prophet: PurchasableItem = { kind: 'unit', id: 'prophet' };
     const price = explainPurchaseCost(state, 0, city.id, prophet, 'faith')!.total;
     expect(price).toBeGreaterThan(30);
-    expect(purchaseError(state, 0, city.id, prophet, 'faith')).toBe(
-      shortOfBankSentence('Ada', prophet, 'faith', price, 30),
-    );
+    expect(purchaseError(state, 0, city.id, prophet, 'faith')).not.toBeNull();
+    expect(purchaseShortfall(state, 0, city.id, prophet, 'faith')).toBe(price - 30);
     expect(purchaseLook(state, 0, city.id, prophet, 'faith')).toMatchObject({
       look: 'short',
       bank: 'faith',
       need: price - 30,
+    });
+  });
+
+  it('rounds what is missing up to a whole coin when the bank holds a fraction', () => {
+    const { state, city } = capital();
+    const price = explainPurchaseCost(state, 0, city.id, WORKER, 'gold')!.total;
+    playerById(state, 0)!.gold = price - 30.5;
+    bumpRevision(state);
+    expect(purchaseShortfall(state, 0, city.id, WORKER, 'gold')).toBe(30.5);
+    expect(purchaseLook(state, 0, city.id, WORKER, 'gold')).toMatchObject({
+      look: 'short',
+      need: 31,
     });
   });
 
@@ -152,7 +164,23 @@ describe('the purchase gate, read into a look', () => {
     playerById(state, 0)!.gold = 1;
     createUnit(state, 0, 'scout', city.col, city.row);
     bumpRevision(state);
-    expect(purchaseLook(state, 0, city.id, WARRIOR, 'gold')).toMatchObject({ look: 'none' });
+    expect(purchaseShortfall(state, 0, city.id, WARRIOR, 'gold')).toBeNull();
+    expect(purchaseLook(state, 0, city.id, WARRIOR, 'gold')).toMatchObject({
+      look: 'none',
+      refusal: `A Scout already stands in ${city.name} — move it first`,
+    });
+  });
+
+  it('decides the short look by the simulation’s reading, never by the refusal’s words', () => {
+    // UX5b: the gate reports the bank's shortfall as a number, so the cell has
+    // no reason to rebuild `purchaseError`'s sentence and compare it.
+    const source = uiSource('priceCell.ts');
+    const look = braceBody(source, 'export function purchaseLook(');
+    expect(look).toContain('purchaseShortfall(state, playerId, cityId, item, bank)');
+    const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    // A refusal may be tested for being absent, and never compared with words.
+    expect(code).not.toMatch(/refusal\s*===(?!\s*null\b)/);
+    expect(code).not.toContain('purchasableName');
   });
 
   it('draws no cell at all for a bank that does not sell the thing', () => {

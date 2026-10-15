@@ -80,8 +80,10 @@
  *     that faith has something to be held for.
  *   · **"Legal but for the price."** The simulation has one gate and it asks
  *     about the bank last, so a want beyond the purse comes back as a refusal
- *     rather than as a price — see `outOfReachFor`, and `riteOutOfReach` beside
- *     it for the same sentence one verb over.
+ *     rather than as a price. For a purchase the gate also reports the bank's
+ *     shortfall as a number (`purchaseGate`, read in `reachOf`). A rite's gate
+ *     has no such reading yet, so `riteOutOfReach` still recognises its money
+ *     clause by the sentence.
  *
  * **Batch 4 adds the constraints** (`meterPrices`, at the foot of the file), and
  * they are priced by the same formula around a different reading: what is short
@@ -151,8 +153,7 @@ import {
   type PurchaseSubject,
   bankOf,
   explainPurchaseCost,
-  purchasableName,
-  purchaseError,
+  purchaseGate,
   purchaseHexBlocker,
 } from '../sim/purchase';
 import {
@@ -1786,7 +1787,11 @@ function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
   return wants;
 }
 
-/** `riteError`'s money clause, said back to it. `outOfReachFor`'s twin. */
+/**
+ * `riteError`'s money clause, said back to it. A purchase's money clause is
+ * read as a number (`purchaseGate`); the rite gate has no such reading yet, so
+ * this still compares the sentence.
+ */
 function riteOutOfReach(player: Player, id: RiteId, price: number, refusal: string): boolean {
   const held = bankOf(player, 'faith');
   return (
@@ -2314,14 +2319,13 @@ export function priorPrice(ctx: ValueContext, currency: WantCurrency): number {
  * one-unit-per-city stamp, the spawn tile and the tree are all its and none of
  * them is restated here.
  *
- * The one thing it cannot answer on its own is *"would this be legal if I could
- * pay"* — the bank is the last clause it asks, so a want beyond the purse comes
- * back as a refusal like any other. `outOfReachFor` is that question, asked by
- * rebuilding the sentence the money clause makes and comparing it to the one
- * that came back. It is coupling to the simulation's words, and it is pinned by
- * a test that constructs a poor empire and asserts the book still holds the
- * want — so the day the sentence changes, the suite says so rather than the
- * book quietly emptying.
+ * The one thing its sentence cannot answer on its own is "would this be legal
+ * if I could pay": the bank is the last clause it asks, so a want beyond the
+ * purse comes back as a refusal like any other. `purchaseGate` answers it. It
+ * returns the gate's sentence and, beside it, the bank's shortfall when the
+ * bank is the only clause that refused, both from one pass through the gate.
+ * A test builds a poor empire and checks the book still holds the want, so the
+ * bot keeps saving toward what it cannot yet afford.
  *
  * **The three answers, in the order they are asked** (batch P3b re-ordered them,
  * and the order is the whole of what keeps item (hhhh) from widening the book).
@@ -2348,8 +2352,8 @@ export function priorPrice(ctx: ValueContext, currency: WantCurrency): number {
  * in front of the money clause, so a blocked hex hides whether this empire could
  * have paid at all — and a book that answered "within reach" for a want a
  * penniless seat cannot buy would have the spend arm marching a garrison about
- * for nothing. It is the same comparison `outOfReachFor` recognises, made rather
- * than parsed, and it is sound because the money clause is the *last* thing
+ * for nothing. It is the money clause's own comparison, the price against what
+ * the bank holds, and it is sound because the money clause is the *last* thing
  * `purchaseError` asks: past the room there is nothing else left to refuse for.
  * A seat that cannot pay is short whatever the blocker does, so the walk that
  * looks for somewhere to put it is not taken at all.
@@ -2374,12 +2378,10 @@ function reachOf(
 ): { price: number; outOfReach: boolean } | null {
   const price = explainPurchaseCost(state, player.id, city.id, item, currency);
   if (price === null) return null;
-  const refusal = purchaseError(state, player.id, city.id, item, currency);
+  const { refusal, shortfall } = purchaseGate(state, player.id, city.id, item, currency);
   if (refusal === null) return { price: price.total, outOfReach: false };
-  // 1 — the money clause, the reading this had before P3.
-  if (outOfReachFor(player, item, currency, price.total, refusal)) {
-    return { price: price.total, outOfReach: true };
-  }
+  // 1 — the money clause: every other clause passed and only the bank is short.
+  if (shortfall !== null) return { price: price.total, outOfReach: true };
   // 2 — the one refusal this seat can act on: a piece of its own in the way.
   // Only a unit is ever refused for it, and the gate's answer is handed down
   // rather than asked for a second time (see `purchaseHexBlocker`) — the
@@ -2478,19 +2480,6 @@ function stepAsideForBlocker(
     }
   }
   return best === null ? null : { unitId: blocker.id, col: best.tile.col, row: best.tile.row };
-}
-
-/** `purchaseError`'s money clause, said back to it. See `reachOf`. */
-function outOfReachFor(
-  player: Player,
-  item: PurchaseSubject,
-  currency: BankCurrency,
-  price: number,
-  refusal: string,
-): boolean {
-  const held = bankOf(player, currency);
-  const name = purchasableName(item);
-  return refusal === `${name} costs ${price} ${currency}; ${player.name} has ${Math.floor(held)}`;
 }
 
 // --- small shared shapes ------------------------------------------------------

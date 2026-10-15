@@ -802,12 +802,10 @@ function blockedByPieceSentence(blocker: Unit, city: City): string {
  *
  * The bot's half of item (hhhh), and it lives here rather than in `src/ai/`
  * because the alternative is the bot rebuilding a player-facing sentence to
- * recognise it. `outOfReachFor` (`src/ai/wants.ts`) already does exactly that
- * for the money clause and says in its own docblock that it is coupling to the
- * simulation's words; one such coupling is a documented cost, two is a habit.
- * So the comparison is made **inside the module that composes the sentence**,
- * where it cannot drift, and what crosses the seam is a piece rather than a
- * string.
+ * recognise it. (The money clause needs no sentence at all: `purchaseGate`
+ * reports the bank's shortfall as a number.) So the comparison is made
+ * **inside the module that composes the sentence**, where it cannot drift,
+ * and what crosses the seam is a piece rather than a string.
  *
  * `purchaseError` is still the single gate: this asks it, and answers `null`
  * for every refusal that is not this one. That ordering matters — a town that
@@ -873,6 +871,11 @@ export function purchaseHexBlocker(
  * knows, and the *built* piece keeps its spill to a neighbour.
  *
  * The **authority freeze is deliberately absent** — see the module docblock.
+ *
+ * The clauses themselves are in `clausesBeforeTheBank` below, and the last one,
+ * the bank, is in `purchaseGate`. This function returns the gate's sentence;
+ * `purchaseShortfall` returns its figure. Both come from the same pass, so they
+ * cannot disagree.
  */
 export function purchaseError(
   state: GameState,
@@ -881,6 +884,95 @@ export function purchaseError(
   item: unknown,
   currency: unknown,
 ): string | null {
+  return purchaseGate(state, playerId, cityId, item, currency).refusal;
+}
+
+/** The purchase gate's two answers about one purchase. */
+export interface PurchaseGateAnswer {
+  /** `purchaseError`'s sentence, or `null` when the gate takes the purchase. */
+  refusal: string | null;
+  /**
+   * How much more the bank must hold, when the bank is the only clause that
+   * refused: every other clause passed and the bank holds less than the price.
+   * `null` in every other case, including when the gate takes the purchase.
+   * Not rounded, because a bank holds fractions.
+   */
+  shortfall: number | null;
+}
+
+/**
+ * How much more of the bank this purchase needs when the bank is the only thing
+ * stopping it, or `null` when it is not (the purchase is allowed, or some other
+ * clause refuses it, whether or not the bank could also pay).
+ *
+ * The price column uses it to show "need 31" under a price the player cannot
+ * yet afford, instead of a dash. It is answered from the gate's own clauses so
+ * that no caller has to recognise this case by rebuilding the gate's sentence
+ * and comparing words.
+ */
+export function purchaseShortfall(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  item: unknown,
+  currency: unknown,
+): number | null {
+  return purchaseGate(state, playerId, cityId, item, currency).shortfall;
+}
+
+/**
+ * Both of the gate's answers from one pass through its clauses: the refusal
+ * (`purchaseError`) and the bank's shortfall (`purchaseShortfall`).
+ *
+ * For a caller that needs both. The bot's want book asks it once for every row
+ * it prices, and a second pass for every refused row would repeat the whole
+ * gate, `buildError` included.
+ *
+ * The bank is the gate's last clause and is asked here, so the sentence and the
+ * figure come from one comparison: the price against what the bank holds.
+ */
+export function purchaseGate(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  item: unknown,
+  currency: unknown,
+): PurchaseGateAnswer {
+  const reached = clausesBeforeTheBank(state, playerId, cityId, item, currency);
+  if (typeof reached === 'string') return { refusal: reached, shortfall: null };
+  const { player, name, bank, price } = reached;
+  const held = bankOf(player, bank);
+  if (held < price) {
+    return {
+      refusal: `${name} costs ${price} ${bank}; ${player.name} has ${Math.floor(held)}`,
+      shortfall: price - held,
+    };
+  }
+  return { refusal: null, shortfall: null };
+}
+
+/** What the bank clause needs once every earlier clause has passed. */
+interface AtTheBank {
+  player: Player;
+  /** The thing's display name, as the refusal prints it. */
+  name: string;
+  bank: PurchaseCurrency;
+  /** `explainPurchaseCost`'s total for this purchase. */
+  price: number;
+}
+
+/**
+ * Every clause of the gate except the bank, in the order `purchaseError`'s
+ * docblock gives. Returns the sentence of the first clause that refuses, or,
+ * when they all pass, what the bank clause in `purchaseGate` needs.
+ */
+function clausesBeforeTheBank(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  item: unknown,
+  currency: unknown,
+): string | AtTheBank {
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
   const city = cityById(state, cityId);
@@ -888,27 +980,22 @@ export function purchaseError(
   if (city.ownerId !== playerId) return `${city.name} does not belong to ${player.name}`;
   // **A route is the purse and nothing else** (batch R1). It is asked here so
   // that one gate answers "may this empire pay for this" whatever is being
-  // paid for — the money clause below is the very sentence the want book reads
-  // back to decide a row is merely unaffordable (`outOfReachFor`, `wants.ts`)
-  // — and it returns before every clause about a *town*, because everything a
-  // route can be refused for that is not the coin is `routeStartable`'s and
-  // `applyBuyRoute` asks that first. The town is named only so the price has a
-  // place to be asked; the treasury that pays is the empire's, which is why a
-  // puppet origin is no more refused here than it is by `startRoute`.
+  // paid for. The want book reads the bank clause's shortfall for a route
+  // exactly as it does for a thing (`purchaseGate`) to decide a row is merely
+  // unaffordable. It returns before every clause about a *town*, because
+  // everything a route can be refused for that is not the coin is
+  // `routeStartable`'s and `applyBuyRoute` asks that first. The town is named
+  // only so the price has a place to be asked; the treasury that pays is the
+  // empire's, which is why a puppet origin is no more refused here than it is
+  // by `startRoute`.
   if (isRouteItem(item)) {
     if (currency !== 'gold') {
       return `${purchasableName({ kind: 'route' })} is bought with gold, not ${String(currency)}`;
     }
     const price = explainPurchaseCost(state, playerId, cityId, { kind: 'route' }, 'gold');
     if (!price) return `${purchasableName({ kind: 'route' })} is not for sale in gold`;
-    const purse = bankOf(player, 'gold');
-    if (purse < price.total) {
-      return (
-        `${purchasableName({ kind: 'route' })} costs ${price.total} gold; ` +
-        `${player.name} has ${Math.floor(purse)}`
-      );
-    }
-    return null;
+    // Only the bank is left to ask, and `purchaseGate` asks it.
+    return { player, name: purchasableName({ kind: 'route' }), bank: 'gold', price: price.total };
   }
   // **A puppet spends nothing** (ruled 2026-09-03, Civ V's rule; schema 58).
   // Asked before the item is even read, because it is not about what is for
@@ -1200,11 +1287,8 @@ export function purchaseError(
 
   const price = explainPurchaseCost(state, playerId, cityId, bought, currency);
   if (!price) return `${name} is not for sale in ${currency}`;
-  const held = bankOf(player, currency);
-  if (held < price.total) {
-    return `${name} costs ${price.total} ${currency}; ${player.name} has ${Math.floor(held)}`;
-  }
-  return null;
+  // Only the bank is left to ask, and `purchaseGate` asks it.
+  return { player, name, bank: currency, price: price.total };
 }
 
 /**

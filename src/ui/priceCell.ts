@@ -27,12 +27,11 @@
 import {
   type PurchasableItem,
   type PurchaseCurrency,
-  bankOf,
   explainPurchaseCost,
-  purchasableName,
   purchaseError,
+  purchaseShortfall,
 } from '../sim/purchase';
-import { type GameState, playerById } from '../sim/state';
+import type { GameState } from '../sim/state';
 import { BANK_UNIT, bankHeldElement, bankHeldText } from './bankFigure';
 import { element } from './dom';
 import { YIELD_GLYPH } from './figures';
@@ -52,16 +51,15 @@ export type PriceLook =
 export interface PriceGate {
   bank: PriceBank;
   price: number;
-  /** What the bank holds now. */
-  held: number;
   /** The gate's sentence, or `null` when it would take the purchase. */
   refusal: string | null;
   /**
-   * True when the gate refused only because the bank cannot cover the price.
-   * The caller says so, because only the caller knows its gate (see
-   * `purchaseLook`).
+   * How much more the bank must hold when the bank is the only reason the gate
+   * refused, otherwise `null`. The caller asks its own gate for this as a
+   * number (for a purchase, `purchaseShortfall`), never by reading the
+   * refusal's words.
    */
-  onlyShortOfBank: boolean;
+  shortfall: number | null;
 }
 
 /**
@@ -75,8 +73,8 @@ export interface PriceGate {
 export function priceLook(gate: PriceGate): PriceLook {
   const { bank, price } = gate;
   if (gate.refusal === null) return { look: 'buy', bank, price };
-  if (gate.onlyShortOfBank) {
-    return { look: 'short', bank, price, need: Math.max(1, Math.ceil(price - gate.held)) };
+  if (gate.shortfall !== null) {
+    return { look: 'short', bank, price, need: Math.max(1, Math.ceil(gate.shortfall)) };
   }
   return { look: 'none', bank, price, refusal: gate.refusal };
 }
@@ -86,9 +84,10 @@ export function priceLook(gate: PriceGate): PriceLook {
  * does not sell it at all (no cell is drawn for that bank).
  *
  * Every figure and every refusal is the simulation's: the price is
- * `explainPurchaseCost`'s fold, the gate is `purchaseError`, and the bank is
- * `bankOf`. So a cell a player can press is a command the reducer takes, and a
- * dash carries the reducer's own sentence to the line that explains it.
+ * `explainPurchaseCost`'s fold, the gate is `purchaseError`, and what is
+ * missing is `purchaseShortfall`. So a cell a player can press is a command the
+ * reducer takes, a dash carries the reducer's own sentence to the line that
+ * explains it, and "need 31" is the gap the gate measured.
  */
 export function purchaseLook(
   state: GameState,
@@ -100,42 +99,14 @@ export function purchaseLook(
   const price = explainPurchaseCost(state, playerId, cityId, item, bank);
   if (!price) return null;
   const refusal = purchaseError(state, playerId, cityId, item, bank);
-  const player = playerById(state, playerId);
-  const held = player === undefined ? 0 : bankOf(player, bank);
   return priceLook({
     bank,
     price: price.total,
-    held,
     refusal,
-    onlyShortOfBank:
-      refusal !== null &&
-      player !== undefined &&
-      refusal === shortOfBankSentence(player.name, item, bank, price.total, held),
+    // Asked only after a refusal: a purchase the gate takes is short of nothing.
+    shortfall:
+      refusal === null ? null : purchaseShortfall(state, playerId, cityId, item, bank),
   });
-}
-
-/**
- * The sentence `purchaseError` ends on when every other clause has passed and
- * the bank cannot cover the price: "Settler costs 112 gold; Ada has 80".
- *
- * That clause is the gate's last, so a refusal equal to this sentence is a
- * refusal for the money and nothing else. Recognising it by its words is a cost
- * this module pays knowingly: it is the same comparison the bot makes for the
- * same clause (`outOfReachFor`, `src/ai/wants.ts`), and the simulation has no
- * reading yet that answers "short of the bank, and only that" the way
- * `purchaseHexBlocker` answers for the town's hex. If that reading is added,
- * this function goes. Until then `test/ui/priceCell.test.ts` asks the real gate
- * for both banks, so a reworded sentence fails a test instead of quietly
- * turning every short price into a dash.
- */
-export function shortOfBankSentence(
-  playerName: string,
-  item: PurchasableItem,
-  bank: PriceBank,
-  price: number,
-  held: number,
-): string {
-  return `${purchasableName(item)} costs ${price} ${bank}; ${playerName} has ${Math.floor(held)}`;
 }
 
 /** "468💰" or "120🕯": the figure in the bank's own mark. Composed here, drawn by `setYieldText`. */
