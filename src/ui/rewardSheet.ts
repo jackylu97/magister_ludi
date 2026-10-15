@@ -33,7 +33,7 @@ import { commissionGoalNode } from './commissionGoal';
 import type { Command } from '../sim/commands';
 import { type GameState, playerById } from '../sim/state';
 import { type PlayerStatecraft, describeCard } from '../sim/statecraft';
-import { orderDef } from '../sim/statecraftData';
+import { REWARD_DRAFTS, orderDef } from '../sim/statecraftData';
 import { element } from './dom';
 import { setDescriptorText } from './keywords';
 import { createModalShell } from './modalShell';
@@ -70,8 +70,48 @@ export interface RewardSheetOptions {
 /** The sheet's title, said once so the test and the page agree. */
 export const REWARD_SHEET_TITLE = 'A reward hand';
 
-/** What the sheet says when the seat has nothing banked and nothing dealt. */
-export const REWARD_NOTHING = 'No reward hand is banked. One is dealt at the fourth, eighteenth and twenty-ninth draft.';
+// The ordinal tables sit above `REWARD_NOTHING` on purpose: that sentence is
+// built when the module loads, and reading a `const` before the line that
+// declares it throws an error.
+const ORDINALS_UNDER_TWENTY = [
+  '', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth',
+  'tenth', 'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth',
+  'seventeenth', 'eighteenth', 'nineteenth',
+];
+const TENS_WORDS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+/**
+ * An ordinal in words, from "first" to "ninety-ninth".
+ *
+ * A sentence the player reads carries no digits (hard rule 7), so the sheet
+ * says "the fourth draft" rather than "the 4th draft". A number outside one to
+ * ninety-nine comes back as digits. That makes the no-digits check in
+ * `test/ui/rewardSheet.test.ts` fail, instead of the sheet printing a wrong
+ * word.
+ */
+export function ordinalInWords(position: number): string {
+  if (!Number.isInteger(position) || position < 1 || position > 99) return String(position);
+  if (position < 20) return ORDINALS_UNDER_TWENTY[position]!;
+  const tens = TENS_WORDS[Math.floor(position / 10)]!;
+  const units = position % 10;
+  // "twenty" becomes "twentieth"; "twenty" and "ninth" become "twenty-ninth".
+  return units === 0 ? `${tens.slice(0, -1)}ieth` : `${tens}-${ORDINALS_UNDER_TWENTY[units]!}`;
+}
+
+/** "A", "A and B", "A, B and C": commas, with "and" before the last item. */
+function listWords(parts: readonly string[]): string {
+  if (parts.length <= 1) return parts[0] ?? '';
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]!}`;
+}
+
+/**
+ * What the sheet says when the seat has nothing banked and nothing dealt.
+ *
+ * Built from `REWARD_DRAFTS`, so the drafts it names always match the ladder in
+ * `data/statecraft.json`. The sentence used to be typed out by hand, and it fell
+ * behind the ladder: it never named the fifth rung.
+ */
+export const REWARD_NOTHING = `No reward hand is banked. One is dealt at the ${listWords(REWARD_DRAFTS.map(ordinalInWords))} draft.`;
 
 /** What the sheet says when an open found no rare left to deal. */
 export const REWARD_EXHAUSTED = 'The reward came to nothing: every rare your decks can deal, you already hold. It cost you nothing.';
