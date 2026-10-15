@@ -45,6 +45,9 @@ import { offeredInBuildList } from '../../src/ui/cityPanel';
 const SOURCES = import.meta.glob(
   [
     '../../src/ui/cityPanel.ts',
+    // The price column's own module (batch UX5): the build list's prices are
+    // composed there, and one claim below is about how a price is written.
+    '../../src/ui/priceCell.ts',
     '../../src/ui/controls.ts',
     // The Compendium joins this suite for one claim: the Built row's keyword and
     // the book's entry for a consecration have to agree about the address, and
@@ -229,7 +232,9 @@ describe("the panel's controls", () => {
     for (const selector of [
       '.city-buy-tiles',
       '.city-buildable',
-      '.city-buildable-buy',
+      // The price column's plate and the line to the trade sheet (batch UX5).
+      '.price-cell',
+      '.city-trade-link',
       '.city-icon-button',
       '.city-close',
       // The focus pane's two controls, added the day the pane shipped — the
@@ -262,7 +267,7 @@ describe('the city mode', () => {
     for (const call of [
       'container.append(renderBand(city, quote));',
       'body.append(renderTownRail(city, locked, quote));',
-      'body.append(renderWorkRail(city, locked, puppet, quote));',
+      'body.append(renderWorkRail(city, locked, puppet, quote, notice));',
       'container.append(renderLeave());',
     ]) {
       expect(`${call}: ${text.includes(call)}`).toBe(`${call}: true`);
@@ -548,34 +553,43 @@ describe('the city mode', () => {
     expect(text).toMatch(/^let addTab: AddTab = 'all';$/m);
     expect(text).toContain('for (const { tab: which, label } of ADD_TABS)');
     // 'all' is a tab and never a shelf: no row is ever sorted into it, so it
-    // must not be an answer `queueCategory` could be expected to give.
-    expect(text).toMatch(/export type AddTab = AddShelf \| 'all';/);
+    // must not be an answer `queueCategory` could be expected to give. The
+    // Faith tab (batch UX5) is the same: nothing on it can ever be queued.
+    expect(text).toMatch(/export type AddTab = AddShelf \| 'faith' \| 'all';/);
     expect(text).not.toMatch(/AddShelf = ProductionCategory \| null \| 'all'/);
+    expect(text).not.toMatch(/AddShelf = ProductionCategory \| null \| 'faith'/);
+    // And the Faith tab is last, after the four production shelves.
+    expect(tabs![0]).toMatch(/\{ tab: 'faith', label: FAITH_SHELF\.label \},\n\];$/);
   });
 
   it('shows every shelf under All, each group under its own eyebrow', () => {
-    // One predicate decides what a tab shows, so a fifth shelf cannot be added
-    // and quietly left out of All.
+    // One predicate decides what a tab shows, so a new shelf cannot be added
+    // and quietly left out of All. It takes the tab rather than reading module
+    // state, so the build list's model is a pure function of what it is handed.
     const text = panel();
-    expect(text).toContain("return addTab === 'all' || addTab === shelf;");
-    for (const call of ["shelfShows('unit')", 'shelfShows(null)', 'shelfShows(shelf)']) {
-      expect(`${call}: ${text.includes(call)}`).toBe(`${call}: true`);
-    }
-    // The eyebrow over a group is written after its rows are in — a heading over
-    // nothing is worse than no heading — and it takes the shelf's own word out
-    // of `ADD_SHELVES` rather than a fifth spelling of "wonders".
-    expect(text).toContain("if (addTab !== 'all') return;");
-    expect(text).toContain("element('h4', 'city-shelf-head', word)");
+    expect(text).toContain("return tab === 'all' || tab === shelf;");
     for (const call of [
-      "groupHead('unit', unitsAt)",
-      'groupHead(shelf, at)',
-      'groupHead(null, projectsAt)',
+      "shelfShows(tab, 'unit')",
+      'shelfShows(tab, shelf)',
+      'shelfShows(tab, null)',
+      "shelfShows(tab, 'faith')",
     ]) {
       expect(`${call}: ${text.includes(call)}`).toBe(`${call}: true`);
     }
-    // Every shelf carries the word its eyebrow prints.
+    // The eyebrow over a group prints on the All tab only (a single-shelf tab
+    // is named by the lit tab), and takes the shelf's own word rather than a
+    // fresh spelling of "wonders".
+    expect(fn('cityPanel.ts', 'renderBuildables')).toContain(
+      "if (addTab === 'all') grid.append(element('h4', 'city-shelf-head', shelf.word));",
+    );
+    // A shelf with nothing on it is never filed, so no eyebrow stands over
+    // nothing.
+    expect(text).toContain('if (rows.length === 0 && !caravans) return;');
+    // Every production shelf carries the word its eyebrow prints, and so does
+    // the Faith shelf.
     const shelves = /export const ADD_SHELVES[\s\S]*?\n\];/.exec(text);
     expect((shelves![0].match(/word: '/g) ?? []).length).toBe(4);
+    expect(text).toContain("export const FAITH_SHELF = { label: 'Faith', word: 'faith' } as const;");
   });
 
   it('prints its one board instruction only when somebody is asking', () => {
@@ -595,19 +609,22 @@ describe('the build list', () => {
     expect(declaration('.city-buildable-grid', 'grid-template-columns')).toBe('minmax(0, 1fr)');
   });
 
-  it('lays the row as a line with every buy tag inline, and the button as a grid', () => {
+  it('lays the row as a line with every price inline, and the button as a grid', () => {
     // A row, not a two-column grid (the user, 2026-09-06: the unit purchase "is
     // breaking out into a second line"): a town with an open faith bank puts two
-    // tags beside a unit, and a grid's second column wrapped the third cell.
+    // prices beside a unit, and a grid's second column wrapped the third cell.
     expect(declaration('.city-buildable-row', 'display')).toBe('flex');
     expect(declaration('.city-buildable-row > .city-buildable', 'flex')).toBe('1 1 0');
     expect(declaration('.city-buildable-row > .city-buildable', 'min-width')).toBe('0');
-    expect(declaration('.city-buildable-row > .city-buildable-buy', 'flex')).toBe('0 0 auto');
+    expect(declaration('.city-buildable-row > .price-cell', 'flex')).toBe('0 0 auto');
     expect(declaration('.city-buildable', 'display')).toBe('grid');
-    // And the tag is the figure alone — no "or" (the same ruling).
-    const tag = fn('cityPanel.ts', 'priceTag');
-    expect(tag).toContain('`${price.total}${glyph}`');
-    expect(tag).not.toContain('`or ${');
+    // And a price is the figure alone — no "or" (the same ruling). Composed in
+    // the price column's own module since batch UX5.
+    const cell = source('priceCell.ts');
+    expect(cell).toContain(
+      "return `${price}${bank === 'faith' ? YIELD_GLYPH.faith : YIELD_GLYPH.gold}`;",
+    );
+    expect(cell).not.toContain('`or ${');
   });
 
   it('floors the two figure columns so neither steals width from a name', () => {
@@ -615,7 +632,7 @@ describe('the build list', () => {
     // taking the room out of the name beside it. A floor on each figure column
     // means the name is the only thing that flexes, and it flexes *up*.
     expect(declaration('.city-buildable-cost', 'min-width')).toBeDefined();
-    expect(declaration('.city-buildable-buy', 'min-width')).toBeDefined();
+    expect(declaration('.price-cell', 'min-width')).toBeDefined();
     // And the name is still the cell that gives: it, and only it, ellipsises.
     expect(declaration('.city-buildable-name', 'text-overflow')).toBe('ellipsis');
   });
@@ -663,12 +680,13 @@ describe('the build list', () => {
     expect(source('cityPanel.ts')).toContain("costSpan.classList.add('is-reason', 'wanting')");
     expect(source('cityPanel.ts')).toContain("price.classList.add('is-reason', 'wanting')");
     // The card behind the row is where the untruncated list lives, and it is
-    // bound on the button itself so a greyed row can still raise it.
+    // bound on the button itself so a greyed row can still raise it. It is
+    // asked at the place the row would land, or, for a building already in the
+    // queue (batch UX5), the place it stands.
     const text = source('cityPanel.ts');
     expect(text).toContain('previewList.append(note(previewLineText(line)))');
-    expect(text).toContain(
-      "info.bind(button, () => itemCard(city, { kind: 'building', id }, city.queue.length))",
-    );
+    expect(text).toContain("info.bind(button, () => itemCard(city, { kind: 'building', id }, at))");
+    expect(text).toContain('const at = row.queued === null ? city.queue.length : row.queued - 1;');
   });
 
   it('offers no row for a piece that is called rather than built', () => {
@@ -691,12 +709,20 @@ describe('the build list', () => {
       if (!isPurchaseOnly({ kind: 'unit', id })) continue;
       expect(offeredInBuildList(id), id).toBe(false);
     }
-    // And the predicate turns away exactly the two marked classes, no third.
+    // And the predicate turns away exactly the three marked classes, no fourth:
+    // called (a great person), bought (the prophet), and hired with a route
+    // (the trader, batch UX5 — its row looked pressable and did nothing).
     const hidden = UNIT_TYPE_IDS.filter((id) => !offeredInBuildList(id));
     for (const id of hidden) {
       const def = unitDef(id);
-      expect(def.greatWork === true || isPurchaseOnly({ kind: 'unit', id }), id).toBe(true);
+      expect(
+        def.greatWork === true || isPurchaseOnly({ kind: 'unit', id }) || def.routeOnly === true,
+        id,
+      ).toBe(true);
     }
+    const caravans = UNIT_TYPE_IDS.filter((id) => unitDef(id).routeOnly === true);
+    expect(caravans.length).toBeGreaterThan(0);
+    for (const id of caravans) expect(offeredInBuildList(id), id).toBe(false);
   });
 
   /**
@@ -749,17 +775,22 @@ describe('what the panel says at the foot of a list', () => {
     expect(text).toContain('A ringed hex is a tile this city works');
   });
 
-  it('does not print the treasury a second time under the build list', () => {
-    // The top bar carries `Player.gold` on a chip a hand's width above this
-    // caption; a second copy is a number a player has to check against itself.
-    // What is left is the rule a price tag cannot state on its own.
+  it('says what a gold price is, and leaves the treasury to the band and the column heading', () => {
+    // The 2026-08-27 ruling kept the treasury off this caption because the top
+    // bar showed it a hand's width above. The top bar has stood down in a town
+    // since 2026-09-03, and the user ruled on 2026-10-12 that the treasury shows
+    // on the city screen (batch UX5). It is in the band and in the price
+    // column's heading ("you have 437 gold"), so the caption under the list does
+    // not print it a third time: it says what a gold price is.
     const text = source('cityPanel.ts');
     expect(text).not.toContain('in the treasury');
-    // Cut to a fragment with the rails (2026-09-03), and the claim is the one
-    // it always was: what survives is the *conversion* — the rule no single
-    // price tag can state for itself — and the treasury is still nowhere.
-    expect(text).toContain('A tag buys the row outright');
-    expect(text).toContain('banked hammers stay banked');
+    const list = fn('cityPanel.ts', 'renderBuildables');
+    expect(list).toContain('Gold prices are the full cost, at ${RULES.production.goldPerHammer}');
+    expect(list).toContain('however much has been built');
+    expect(list).toContain('priceHeadElement(ordinary.map(held))');
+    expect(fn('cityPanel.ts', 'renderBand')).toContain(
+      'band.append(bankLineElement(readBanks(state, localPlayerId())));',
+    );
   });
 
   it('leaves air between the last build row and the caption', () => {

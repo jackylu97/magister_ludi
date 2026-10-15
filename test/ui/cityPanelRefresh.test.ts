@@ -112,6 +112,30 @@ describe('a render with nothing new to say is skipped', () => {
     expect(panelRenderKey(state, city, 0, false, false)).not.toBe(base);
   });
 
+  it('keys on the line for a refused command, which leaves the revision where it was', () => {
+    // Batch UX5: a refused command changes nothing in the state, so without
+    // this term the work rail's line saying why would not appear until
+    // something else moved.
+    const { state, cities } = board();
+    const city = cities[0]!;
+    const base = panelRenderKey(state, city, 0, false, false);
+    expect(panelRenderKey(state, city, 0, false, false, null)).toBe(base);
+    const refused = panelRenderKey(state, city, 0, false, false, 'Aldermarch is not on the coast');
+    expect(refused).not.toBe(base);
+    expect(panelRenderKey(state, city, 0, false, false, 'Another sentence')).not.toBe(refused);
+  });
+
+  it('shows the refused command only at the revision and in the town it was refused in', () => {
+    const body = braceBody(uiSource('cityPanel.ts'), '  function render(): void {');
+    expect(body).toContain(
+      'if (refused !== null && (city === null || refused.cityId !== city.id)) refused = null;',
+    );
+    expect(body).toContain('refused !== null && refused.revision === drawing.revision ? refused.text : null;');
+    expect(body).toContain(
+      'panelRenderKey(drawing, city, localPlayerId(), isBuyMode(), isTutorialActive(), notice)',
+    );
+  });
+
   it('keys on the build-list tab, which lives in the module', () => {
     expect(braceBody(uiSource('cityPanel.ts'), 'export function panelRenderKey(')).toContain('addTab');
   });

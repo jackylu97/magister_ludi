@@ -293,18 +293,26 @@ describe('the build list prices rows off one quote', () => {
  * panel's, and it is read off the source for this suite's usual reason (no
  * jsdom): a tag that quietly stopped adding the class would still draw.
  */
-describe('the buy tag carries the reducer’s refusal', () => {
-  it('greys, speaks, and wears the wanting voice off the same answer', () => {
-    const tag = braceBody(uiSource('cityPanel.ts'), 'function priceTag(');
-    // One question, asked once and used three ways: the disabled state, the
-    // words on the control, and the ink.
-    expect(tag).toContain('const refusal = purchaseError(state, seat, city.id, item, currency);');
-    expect(tag).toContain('button.disabled = blocker !== null;');
-    expect(tag).toContain("if (refusal !== null) button.classList.add('wanting');");
-    // The words are the reducer's, never the panel's — `blocker` here so an
-    // ended turn still says so.
-    expect(tag).toContain('button.title = blocker ??');
-    expect(tag).toMatch(/'aria-label',\s*\n\s*blocker \?\?/);
+describe('the price column carries the reducer’s answer', () => {
+  /**
+   * Batch UX5 (the user's A1 ruling, 2026-10-12) moved the refusal off the tag:
+   * a price now reads in one of three looks (`priceCell.ts`) and the reason is a
+   * line on the screen (`refusalLine.ts`). What stays the panel's half is that
+   * it asks the gate through the one bridge and draws exactly what comes back.
+   * The looks themselves are pinned against the real gate in
+   * `test/ui/priceCell.test.ts`, and every pressable price is sent to the
+   * reducer in `test/ui/cityPanelBuying.test.ts`.
+   */
+  it('asks the purchase gate for every cell, and draws the look it answers', () => {
+    const panel = uiSource('cityPanel.ts');
+    const model = braceBody(panel, 'export function buildListModel(');
+    expect(model).toContain('const look = purchaseLook(state, seat, city.id, item, bank);');
+    const list = braceBody(panel, 'function renderBuildables(');
+    expect(list).toContain('return priceCellElement(cell.look, {');
+    expect(list).toContain('onBuy: () => buy(city, item, cell.look.bank)');
+    // Nothing in the panel prices a purchase or composes a refusal of its own.
+    expect(panel).not.toMatch(/\bpurchaseError\(state/);
+    expect(panel).not.toMatch(/\bexplainPurchaseCost\(/);
   });
 
   it('prints the piece in the way, by name', () => {
@@ -455,10 +463,21 @@ describe('the build list hides what can never be built (user, 2026-08-30)', () =
     eager: true,
   })['../../src/ui/cityPanel.ts'] as string;
   it('skips awaitsTech rows in every roster loop', () => {
-    expect(source.match(/awaitsTech === true\) continue;/g)?.length).toBeGreaterThanOrEqual(3);
+    // The unit rows, the rows that are only bought, and the building rows.
+    const model = braceBody(source, 'export function buildListModel(');
+    expect(model).toContain('if (def.awaitsTech === true) continue;');
+    expect(model).toContain('if (def.awaitsTech === true) return null;');
+    expect(model).toContain('if (buildingDef(id).awaitsTech === true) continue;');
+  });
+  it('skips a retired row in every roster loop (batch UX5: the retired augur)', () => {
+    // A retired unit fails `isUnlocked`, so the unit rows never see one; the
+    // rows that are only bought skip the tree on purpose and must ask.
+    const model = braceBody(source, 'export function buildListModel(');
+    expect(model).toContain('if (def.retired === true) return null;');
+    expect(model).toContain('if (buildingDef(id).retired === true) continue;');
   });
   it('skips a wonder somebody already raised', () => {
-    expect(source).toContain('wonderClaim(getGame().state, id) !== undefined) continue;');
+    expect(source).toContain('wonderClaim(state, id) !== undefined) continue;');
   });
 });
 

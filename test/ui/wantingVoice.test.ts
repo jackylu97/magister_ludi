@@ -178,10 +178,13 @@ const SURFACES: { file: string; says: string; carries: string }[] = [
   { file: 'cityPanel.ts', says: "a building's refusal", carries: "element('p', 'info-card-state wanting', problem)" },
   { file: 'cityPanel.ts', says: "a unit row's missing resource", carries: "price.classList.add('is-reason', 'wanting')" },
   { file: 'cityPanel.ts', says: "a building row's refusal", carries: "costSpan.classList.add('is-reason', 'wanting')" },
-  // The buy tag, since item (hhhh): a purchase the reducer refuses — most often
-  // now because a piece of the same kind is standing in the city hex — greys
-  // *and* speaks, and the sentence is on the control (`title`/`aria-label`).
-  { file: 'cityPanel.ts', says: "a buy tag the reducer refuses", carries: "if (refusal !== null) button.classList.add('wanting')" },
+  // The price column, since batch UX5 (the user's A1 ruling, 2026-10-12). A
+  // refused purchase is no longer a vermilion tag with its reason in a native
+  // tooltip: a price the bank is short of says how much more is needed, and
+  // every other refusal is a line on the screen, said once at the head of its
+  // shelf or under its one row. A command the reducer refused is a line too.
+  { file: 'priceCell.ts', says: 'what a price is short of', carries: "element('span', 'price-cell-need wanting', priceNeedText(look.need))" },
+  { file: 'refusalLine.ts', says: 'a refusal said once, or a refused command', carries: "element('p', `refusal-line is-${where} wanting`)" },
   // The star chart's node card, at the foot, under the two state lines that are
   // not lacks.
   { file: 'techTree.ts', says: "a node's refusal", carries: "element('p', 'info-card-state wanting', problem)" },
@@ -228,10 +231,10 @@ describe('the wanting voice', () => {
       '.bead-card-gate',
       '.rel-call-note',
       '.city-buildable-cost',
-      // The buy tag sets the treasury's gold on itself, later in the sheet than
-      // the rule — so the doubled class is what carries the refusal's vermilion
-      // onto it (item (hhhh)).
-      '.city-buildable-buy',
+      // The buy tag (`.city-buildable-buy`) was a host until batch UX5 moved a
+      // purchase's refusal off the tag and onto a line (`.refusal-line`), which
+      // sets no ink of its own and so needs no doubled class to win.
+      //
       // The trade sheet used to be a sixth host: `.trade-candidate-why` set its
       // own faint ink on a greyed table row. Batch R2 rewrote the sheet and the
       // refusal moved to the Unavailable tab, where `.trade-reason-why` owns
@@ -249,10 +252,10 @@ describe('the wanting voice', () => {
     // One descendant rule beats even the doubled class, and it is the one that
     // matters most: the row carrying "needs improved ⛏ Iron" is disabled.
     expect(css()).toContain('.city-buildable:disabled .city-buildable-cost:not(.wanting)');
-    // And the same excuse said on a control (item (hhhh)): `:disabled` on the
-    // buy tag is a class plus a pseudo-class, which ties the doubled `.wanting`
-    // and beats it on order — so the tag's *ink* is split off its plate.
-    expect(css()).toContain('.city-buildable-buy:disabled:not(.wanting)');
+    // The buy tag's own excuse (`.city-buildable-buy:disabled:not(.wanting)`)
+    // went with the tag in batch UX5: a price never wears the class now. What
+    // is short sits on a child line (`.price-cell-need`) that sets no ink.
+    expect(css()).not.toContain('.city-buildable-buy');
   });
 
   it('folded the three vermilions that were doing its job', () => {
@@ -315,10 +318,15 @@ describe('the wanting voice', () => {
         'the buildable row\'s "needs improved ⛏ Iron"',
         [off('city-buildable'), on('city-buildable-cost', 'is-reason', 'wanting')],
       ],
+      // The price column (batch UX5): the gold a price is short of, a refusal
+      // said once at the head of a shelf or under a row, and a refused command.
+      ['what a price is short of', [on('price-cell', 'is-short'), on('price-cell-need', 'wanting')]],
       [
-        'the buy tag the reducer refuses',
-        [off('city-buildable-buy', 'wanting')],
+        'a refusal said once at the head of a shelf',
+        [on('city-buildable-grid'), on('refusal-line', 'is-head', 'wanting')],
       ],
+      ['a refusal under its one row', [on('city-buildable-grid'), on('refusal-line', 'is-row', 'wanting')]],
+      ['a refused command', [on('city-rail', 'is-right'), on('refusal-line', 'is-command', 'wanting')]],
       ['the unit sheet\'s "Why not"', [on('unit-card'), on('unit-card-blocked', 'wanting')]],
       ['the bead gate, unmet', [on('bead-card'), on('bead-card-gate', 'wanting')]],
       [
@@ -363,9 +371,14 @@ describe('the wanting voice', () => {
         [off('city-buildable'), on('city-buildable-cost')],
         'inherit',
       ],
-      // A buy tag greyed because this seat has ended its turn: a state, not a
-      // lack, so it never carries the class and keeps the plate's faint ink.
-      ['a buy tag on an ended turn', [off('city-buildable-buy')], 'var(--ink-faint)'],
+      // A price this seat may not press because it has ended its turn: a state,
+      // not a lack, so it never carries the class and keeps the plate's faint
+      // ink. And the two looks of a price that are not a refusal sentence keep
+      // their own quiet ink: a short price's figure (the line under it is the
+      // lack), and the dash (its reason is a line elsewhere).
+      ['a price on an ended turn', [off('price-cell', 'is-buy')], 'var(--ink-faint)'],
+      ['a short price’s figure', [on('price-cell', 'is-short')], 'var(--ink-soft)'],
+      ['a price that cannot be bought here', [on('price-cell', 'is-none')], 'var(--ink-faint)'],
     ];
     for (const [what, chain, ink] of quiet) {
       expect(computed(chain, 'color')?.value, what).toBe(ink);

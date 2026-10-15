@@ -84,8 +84,11 @@ describe('the price plate', () => {
     expect(barred).not.toMatch(/line-through/);
     expect(barred).toMatch(/var\(--price-ink-barred\)/);
     expect(barred).toMatch(/var\(--price-rim-barred\)/);
-    // The panel's own disabled tokens, so the two refusals are one colour.
-    const panel = rule(css, '.city-buildable-buy:disabled');
+    // The panel's own disabled tokens, so the two are one colour. Since batch
+    // UX5 the panel's greyed plate is a price that may not be pressed this turn
+    // (`.price-cell.is-buy:disabled`); the panel says its refusals on lines
+    // instead, which a plate standing on a hex has no room for.
+    const panel = rule(css, '.price-cell.is-buy:disabled');
     expect(panel).toMatch(/var\(--ink-faint\)/);
     expect(plate).toMatch(/--price-ink-barred:\s*var\(--ink-faint\)/);
     expect(plate).toMatch(/--price-paper-barred:\s*var\(--table\)/);

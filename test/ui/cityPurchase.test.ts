@@ -23,6 +23,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AXIS_MARK } from '../../src/ui/religionScreen';
+import { buildListModel } from '../../src/ui/cityPanel';
 import { BELIEF_AXES } from '../../src/sim/religionData';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt } from '../../src/sim/cities';
@@ -30,6 +31,8 @@ import { createGame } from '../sim/newGameHelpers';
 import { getTileAt } from '../../src/sim/map';
 import { explainContribution } from '../../src/sim/purchase';
 import { playerById, bumpRevision } from '../../src/sim/state';
+import { TECH_IDS } from '../../src/sim/techData';
+import { unitDef } from '../../src/sim/unitData';
 
 /** The one row in the table that takes contributions. Found by its marker. */
 const CONSECRATOR = BUILDING_IDS.find(
@@ -48,11 +51,14 @@ function game() {
 }
 
 /** The panel's own text, read through Vite's raw glob (`seatRoster.test.ts`). */
-const SOURCES = import.meta.glob(['../../src/ui/cityPanel.ts', '../../src/style.css'], {
-  eager: true,
-  query: '?raw',
-  import: 'default',
-}) as Record<string, string>;
+const SOURCES = import.meta.glob(
+  ['../../src/ui/cityPanel.ts', '../../src/ui/priceCell.ts', '../../src/style.css'],
+  {
+    eager: true,
+    query: '?raw',
+    import: 'default',
+  },
+) as Record<string, string>;
 
 function fileSource(name: string): string {
   const key = Object.keys(SOURCES).find((path) => path.endsWith(name));
@@ -75,33 +81,44 @@ describe('the build list and the price tags', () => {
     expect(source).toMatch(/purchaseVerb\(item\)/);
   });
 
-  it('gives a unit row and a building row a tag, and a project or a wonder none', () => {
-    const source = panelSource();
-    // The rows are built through one helper, so the three call sites say which
-    // of them is priced. A project never completes, so there is nothing to buy;
-    // a **wonder** is refused by `purchaseError` outright (it is built, not
-    // bought), so its row withholds the tag rather than offering a price the
-    // reducer will not honour.
-    expect(source).toMatch(/row\(button, \{ kind: 'unit', id \}\)/);
-    expect(source).toMatch(/row\(button, wonder \? undefined : \{ kind: 'building', id \}\)/);
-    expect(source).toMatch(/\n\s*row\(button\);/);
+  it('prices every unit row and every building row, wonders included, and no project', () => {
+    // Every row of the add list has a cell in the price column since batch UX5
+    // (the user's A1 ruling). A **wonder** gets one too: the gate refuses it in
+    // most towns ("a wonder must be built, not bought") and the cell is then a
+    // dash, but a card may open a bank for one (The Gilded Scaffold, the Valley
+    // of Kings), and a row that withheld its cell could never show that price.
+    // A project is a conversion that never completes, so nothing can buy one.
+    const g = game();
+    const settler = g.state.units.find((u) => u.ownerId === 0 && unitDef(u.type).foundsCity)!;
+    const city = foundCityAt(g.state, 0, getTileAt(g.state.map, settler.col, settler.row)!);
+    playerById(g.state, 0)!.techsResearched = [...TECH_IDS];
+    bumpRevision(g.state);
+    const rows = buildListModel(g.state, city, 0, 'all', false).flatMap((shelf) => shelf.rows);
+    // Not vacuous: the list holds all three kinds.
+    expect(rows.some((row) => row.kind === 'unit')).toBe(true);
+    expect(rows.some((row) => row.kind === 'building' && row.wonder)).toBe(true);
+    expect(rows.some((row) => row.kind === 'project')).toBe(true);
+    for (const row of rows) {
+      if (row.kind === 'project') expect(row.cells, row.name).toEqual([]);
+      else expect(row.cells.length, row.name).toBeGreaterThan(0);
+    }
   });
 
-  it('prices and greys the tag with the reducer’s own two functions', () => {
-    const source = panelSource();
-    // The figure is the price evaluator's fold and the blocker is the command's
-    // own sentence — so a tag a player can press is a command the reducer takes.
-    expect(source).toMatch(/explainPurchaseCost\(state, seat, city\.id, item, currency\)/);
-    expect(source).toMatch(/purchaseError\(state, seat, city\.id, item, currency\)/);
+  it('prices and gates a cell with the reducer’s own two functions', () => {
+    // The figure is the price evaluator's fold and the gate is the command's own
+    // sentence, so a price a player can press is a command the reducer takes.
+    // Asked in one place, the price column's bridge to the purchase gate.
+    const cell = fileSource('priceCell.ts');
+    expect(cell).toMatch(/explainPurchaseCost\(state, playerId, cityId, item, bank\)/);
+    expect(cell).toMatch(/purchaseError\(state, playerId, cityId, item, bank\)/);
+    expect(panelSource()).toMatch(/purchaseLook\(state, seat, city\.id, item, bank\)/);
   });
 
-  it('states the conversion in the caption, and the treasury nowhere', () => {
-    // The caption used to lead with `Player.gold`, on the Buy Tiles caption's
-    // precedent. That precedent stopped holding the day the top bar grew a gold
-    // chip (user, 2026-08-27): the figure is on screen a hand's width above
-    // this, and a second copy is a number a player has to check against itself.
-    // What a caption *can* say that no price tag can is the rule behind every
-    // tag on the grid, and that is read off the rules rather than typed.
+  it('states the conversion in the caption, read off the rules', () => {
+    // What a caption can say that no single price can is the rule behind every
+    // gold price on the list, and that is read off the rules rather than typed.
+    // The treasury itself is in the band and the price column's heading since
+    // the user's ruling of 2026-10-12 (`cityScreen.test.ts` pins where).
     const source = panelSource();
     expect(source).not.toMatch(/in the treasury/);
     expect(source).toMatch(/RULES\.production\.goldPerHammer/);

@@ -13,8 +13,17 @@
  * Every edit — add, remove, move up — is expressed as a *whole new queue* and
  * sent as one `setCityProduction` command (see `commands.ts` for why the command
  * is a replacement rather than a diff). So the panel's job is only ever "build
- * the array the player now wants and dispatch it", and a rejected command leaves
- * both the city and the panel exactly as they were.
+ * the array the player now wants and dispatch it". A rejected command leaves the
+ * city exactly as it was, and since batch UX5 the work rail says why in one line
+ * (`refused`).
+ *
+ * Buying
+ * ------
+ * Every row of the add list has a price in one right-hand column (the user's A1
+ * ruling, 2026-10-12): `buildListModel` decides the rows, their prices and where
+ * each refusal is said, and `priceCell.ts`, `refusalLine.ts` and
+ * `bankFigure.ts` draw the price, the refusals and the treasury. A purchase
+ * always costs the full price, so no price sits beside a progress bar.
  *
  * Gating
  * ------
@@ -91,14 +100,28 @@ import { buildingCityStat, cityQueueFloor, queueFloorRefusal } from '../sim/buil
 import {
   type PurchasableItem,
   type PurchaseCurrency,
+  bankOf,
   contributeError,
   explainContribution,
-  explainPurchaseCost,
   isPurchaseOnly,
-  purchasableName,
-  purchaseError,
   purchaseVerb,
 } from '../sim/purchase';
+import { BANKS, bankLineElement, readBanks } from './bankFigure';
+import {
+  type PriceHeadBank,
+  type PriceLook,
+  emptyPriceCellElement,
+  priceCellElement,
+  priceHeadElement,
+  purchaseLook,
+} from './priceCell';
+import {
+  type RefusalEntry,
+  type RefusalHeadLine,
+  type RefusalPlace,
+  planRefusals,
+  refusalLineElement,
+} from './refusalLine';
 import type { Command, CommandResult } from '../sim/commands';
 import type { ConfirmRequest } from './confirmCard';
 import { annexCityError, razeCityError } from '../sim/diplomacy';
@@ -389,6 +412,47 @@ export function insertionIndex(queue: readonly QueueItem[]): number {
 }
 
 /**
+ * A plain copy of a queue: the panel edits a copy and sends it, never the
+ * state's own array.
+ */
+export function queueDraft(queue: readonly QueueItem[]): QueueItem[] {
+  return queue.map((item): QueueItem => {
+    if (item.kind === 'unit') return { kind: 'unit', id: item.id };
+    if (item.kind === 'project') return { kind: 'project', id: item.id };
+    return { kind: 'building', id: item.id };
+  });
+}
+
+/**
+ * The queue a press on a build row sends: the town's queue with `item` placed
+ * where `insertionIndex` puts it.
+ *
+ * Exported so the tests can send exactly the command a press would send, and
+ * check the reducer takes it for every row the build list leaves pressable.
+ */
+export function queueWithAdded(queue: readonly QueueItem[], item: QueueItem): QueueItem[] {
+  const next = queueDraft(queue);
+  next.splice(insertionIndex(queue), 0, item);
+  return next;
+}
+
+/** "1st", "2nd", "3rd", "11th": an English ordinal, the teens included. */
+export function ordinalWord(position: number): string {
+  const teens = position % 100;
+  if (teens >= 11 && teens <= 13) return `${position}th`;
+  return `${position}${['th', 'st', 'nd', 'rd'][position % 10] ?? 'th'}`;
+}
+
+/**
+ * "in queue · 1st": the mark on a building row that is already in the queue.
+ * The current build is 1st, which is how the current build can be bought from
+ * the add list in one press (the user's A1 ruling, 2026-10-12).
+ */
+export function queuedMark(position: number): string {
+  return `in queue · ${ordinalWord(position)}`;
+}
+
+/**
  * May this unit type ever appear as a **build** row at all?
  *
  * Not "can this city build one today" — that is `buildError`'s question and its
@@ -417,10 +481,17 @@ export function insertionIndex(queue: readonly QueueItem[]): number {
  *
  * Pure and module-level for `stageRows`' reason: the suite has no jsdom, and
  * "which rows exist" is the half of the build list that can be quietly wrong.
+ *
+ * A third marker joined in batch UX5: **hired with a route** (`UnitDef.routeOnly`,
+ * the trader). Its row looked pressable and did nothing, because `buildError`
+ * refuses it and the unit loop never asked (the city audit's Trader bug). The
+ * build list now prints one line in its place that opens the trade sheet,
+ * where caravans are hired (`buildListModel`'s `caravans`).
  */
 export function offeredInBuildList(id: UnitTypeId): boolean {
   if (isPurchaseOnly({ kind: 'unit', id })) return false;
   if (unitDef(id).greatWork === true) return false;
+  if (unitDef(id).routeOnly === true) return false;
   return true;
 }
 
@@ -453,15 +524,31 @@ export const ADD_SHELVES: readonly { shelf: AddShelf; label: string; word: strin
 ];
 
 /**
- * A tab of the add-list: one shelf, or **all four at once**.
+ * The Faith shelf (batch UX5): the things a town buys with faith and never
+ * builds, "Call a prophet" and the rest, priced in the same column as every
+ * other row.
+ *
+ * Not an `AddShelf`, for the reason `'all'` is not one: an `AddShelf` is an
+ * answer `queueCategory` gives about a row a queue can hold, and nothing on
+ * this shelf can ever be queued. The purchase-only rows priced in gold (the
+ * Company Guard) stay at the foot of the units, beside the bank they draw on.
+ */
+export const FAITH_SHELF = { label: 'Faith', word: 'faith' } as const;
+
+/** A shelf the build list prints: one of the four production shelves, or the Faith shelf. */
+export type ListShelf = AddShelf | 'faith';
+
+/**
+ * A tab of the add-list: one shelf, or **all of them at once**.
  *
  * `'all'` is deliberately *not* a fifth `AddShelf`. A shelf is an answer
  * `queueCategory` gives about a row (see `AddShelf`), and no row is ever sorted
  * into "all" — it is a filter the player holds, not a kind of thing a town
  * builds. Keeping the two types apart is what stops a future reader from asking
  * the simulation whether something is an "all", which it cannot answer.
+ * `'faith'` is the Faith shelf's tab (`FAITH_SHELF`).
  */
-export type AddTab = AddShelf | 'all';
+export type AddTab = AddShelf | 'faith' | 'all';
 
 /**
  * The tabs across the top of the add-list. **All comes first and is the
@@ -474,6 +561,7 @@ export type AddTab = AddShelf | 'all';
 export const ADD_TABS: readonly { tab: AddTab; label: string }[] = [
   { tab: 'all', label: 'All' },
   ...ADD_SHELVES.map(({ shelf, label }) => ({ tab: shelf, label })),
+  { tab: 'faith', label: FAITH_SHELF.label },
 ];
 
 /**
@@ -489,11 +577,326 @@ export const ADD_TABS: readonly { tab: AddTab; label: string }[] = [
 let addTab: AddTab = 'all';
 
 /**
- * Does this shelf print under the tab in hand? The All tab shows every shelf;
- * every other tab shows itself and nothing else.
+ * Does this shelf print under this tab? The All tab shows every shelf; every
+ * other tab shows itself and nothing else. Takes the tab rather than reading
+ * `addTab`, so `buildListModel` stays a pure function of what it is handed.
  */
-function shelfShows(shelf: AddShelf): boolean {
-  return addTab === 'all' || addTab === shelf;
+export function shelfShows(tab: AddTab, shelf: ListShelf): boolean {
+  return tab === 'all' || tab === shelf;
+}
+
+// --- the build list, as data -------------------------------------------------
+
+/**
+ * One cell of a row's price column: a bank that sells the row, how buying it
+ * reads today (`priceCell.ts`), and, for a dash, where its reason is said.
+ */
+export interface BuildListCell {
+  look: PriceLook;
+  /**
+   * Where a dash's reason is said (`refusalLine.ts`): once at the head of the
+   * shelf, or on a line under the row. `null` for a cell that is not a dash,
+   * and for a dash whose reason the row already prints as its own refusal.
+   */
+  place: RefusalPlace | null;
+}
+
+/** A unit the town could queue. */
+export interface UnitListRow {
+  kind: 'unit';
+  id: UnitTypeId;
+  name: string;
+  /** Why the queue would refuse it here, in `buildError`'s words, or `null`. */
+  blocked: string | null;
+  /**
+   * True when the only refusal is the strategic resource. The row then draws
+   * the requirement with its marks and counts instead of the sentence.
+   */
+  wantsResource: boolean;
+  /** Fewer citizens than the row asks for. The queue refuses it as well. */
+  tooSmall: boolean;
+  /** The build button may be pressed. */
+  enabled: boolean;
+  cells: BuildListCell[];
+}
+
+/** A building or wonder this town has not built. */
+export interface BuildingListRow {
+  kind: 'building';
+  id: BuildingId;
+  name: string;
+  wonder: boolean;
+  blocked: string | null;
+  /** Where it stands in the queue, counted from 1 for the current build, or `null`. */
+  queued: number | null;
+  enabled: boolean;
+  cells: BuildListCell[];
+}
+
+/** A project. It is a conversion rather than a thing, so it has no price cells. */
+export interface ProjectListRow {
+  kind: 'project';
+  id: ProjectId;
+  name: string;
+  enabled: boolean;
+  cells: BuildListCell[];
+}
+
+/** Something a town buys and never builds: "Call a prophet", "Hire a Company Guard". */
+export interface OfferListRow {
+  kind: 'offer';
+  id: UnitTypeId;
+  /** The roster's name, which the purchase gate's sentences use. */
+  name: string;
+  /** How the row offers itself (`purchaseVerb`). */
+  verb: string;
+  cells: BuildListCell[];
+}
+
+export type BuildListRow = UnitListRow | BuildingListRow | ProjectListRow | OfferListRow;
+
+/** One shelf of the build list, as the panel prints it. */
+export interface BuildListShelf {
+  shelf: ListShelf;
+  /** The eyebrow over the shelf on the All tab ("units", "faith"). */
+  word: string;
+  rows: BuildListRow[];
+  /** The reasons said once at the head of this shelf (`planRefusals`). */
+  refusals: RefusalHeadLine[];
+  /**
+   * A caravan is open to this empire. The shelf ends with the line that opens
+   * the trade sheet, where caravans are hired, instead of a build row the
+   * reducer would refuse.
+   */
+  caravans: boolean;
+}
+
+/**
+ * **Everything the add list prints, as data**: which rows exist, which build
+ * buttons may be pressed, how each price reads, and where each refusal is said.
+ *
+ * Pure, for the reason `levyMenuModel` is: the suite has no document, and this
+ * is the half of the screen that can be quietly wrong. Every answer is the
+ * simulation's: `buildError` greys a build row, the purchase gate decides a
+ * price's look (`purchaseLook`), and the refusals are the gates' own sentences.
+ * The batch UX5 test sends the reducer the very command each pressable row and
+ * each pressable price would send, and checks it is taken.
+ *
+ * Which rows exist is unchanged from before UX5, with four changes:
+ *   - **Every unit row asks `buildError`** with the town in hand, so a row the
+ *     reducer would refuse is greyed with the reducer's sentence. Before, the
+ *     unit loop greyed only for size and resources, which is how the Trader
+ *     row came to look pressable and do nothing.
+ *   - **Caravans are not build rows.** A route-only unit open to this empire
+ *     sets `caravans`, and the renderer prints the line to the trade sheet.
+ *   - **A queued building keeps its row** (the user's A1 ruling, 2026-10-12),
+ *     the current build included, marked with its place in the queue and
+ *     priced in full. Its build button is not pressable, because a second copy
+ *     in one queue is refused; its price is, so the current build can be bought
+ *     in one press.
+ *   - **No retired row prints anywhere.** The purchase-only loop checked
+ *     `awaitsTech` and not `retired`, which is how the retired augur's "Call an
+ *     augur" stayed in every town.
+ *
+ * `locked` is the panel's own lock (an ended turn, or a puppet). It greys the
+ * build buttons only. A price's look is the reducer's answer either way; when
+ * the turn has ended, the renderer greys a pressable price itself.
+ */
+export function buildListModel(
+  state: GameState,
+  city: City,
+  seat: number,
+  tab: AddTab,
+  locked: boolean,
+): BuildListShelf[] {
+  const shelves: BuildListShelf[] = [];
+
+  /** The cells a row gets: one per bank that sells it, gold first. */
+  const priced = (item: PurchasableItem): BuildListCell[] => {
+    const cells: BuildListCell[] = [];
+    for (const bank of BANKS) {
+      const look = purchaseLook(state, seat, city.id, item, bank);
+      if (look !== null) cells.push({ look, place: null });
+    }
+    return cells;
+  };
+
+  /**
+   * A thing bought and never built, priced in `bank`, or `null` when there is
+   * no such row to print. Shown before its technology lands (the faith screen
+   * has always quoted the prophet's price), but never once the game has
+   * withdrawn it, and never while no technology can reach it.
+   */
+  const offerRow = (id: UnitTypeId, bank: PurchaseCurrency): OfferListRow | null => {
+    const def = unitDef(id);
+    if (def.awaitsTech === true) return null;
+    if (def.retired === true) return null;
+    const item: PurchasableItem = { kind: 'unit', id };
+    if (!isPurchaseOnly(item)) return null;
+    if (def.purchase?.currency !== bank) return null;
+    const cells = priced(item);
+    if (cells.length === 0) return null;
+    return { kind: 'offer', id, name: def.name, verb: purchaseVerb(item), cells };
+  };
+
+  /**
+   * Files a shelf, after deciding where each refused price's reason is said.
+   * A dash whose reason the row already prints (its own build refusal, which
+   * the purchase gate shares) adds nothing: the reason is on screen once.
+   */
+  const file = (shelf: ListShelf, word: string, rows: BuildListRow[], caravans: boolean): void => {
+    if (rows.length === 0 && !caravans) return;
+    const entries: RefusalEntry<BuildListCell>[] = [];
+    for (const row of rows) {
+      const printed = row.kind === 'unit' || row.kind === 'building' ? row.blocked : null;
+      for (const cell of row.cells) {
+        if (cell.look.look !== 'none') continue;
+        if (cell.look.refusal === printed) continue;
+        entries.push({ key: cell, name: row.name, refusal: cell.look.refusal });
+      }
+    }
+    const plan = planRefusals(entries);
+    for (const entry of entries) entry.key.place = plan.places.get(entry.key) ?? null;
+    shelves.push({ shelf, word, rows, refusals: plan.head, caravans });
+  };
+
+  const shelfWord = (shelf: AddShelf): string =>
+    ADD_SHELVES.find((entry) => entry.shelf === shelf)?.word ?? '';
+
+  if (shelfShows(tab, 'unit')) {
+    const rows: BuildListRow[] = [];
+    let caravans = false;
+    for (const id of UNIT_TYPE_IDS) {
+      const def = unitDef(id);
+      // Hidden outright (user, 2026-08-30): a hull no technology can reach
+      // yet has no business on the list.
+      if (def.awaitsTech === true) continue;
+      if (!isUnlocked(state, city.ownerId, 'unit', id)) continue;
+      // Hidden, not greyed (user, 2026-09-03: "once a unit is obsolete, please
+      // remove it from the build queue"). The same walk the reducer asks.
+      if (upgradeTargetForType(state, city.ownerId, id) !== null) continue;
+      // A caravan is hired on the trade sheet, never queued: one line stands
+      // for every caravan type open to the empire.
+      if (def.routeOnly === true) {
+        caravans = true;
+        continue;
+      }
+      if (!offeredInBuildList(id)) continue;
+      // Asked as "can the empire spare one", the reducer's own question since
+      // batch R1, so the greyed row and the refusal agree about a copy an army
+      // already stands on.
+      const missing = requiredResource('unit', id);
+      const needsResource = missing.length > 0 && !canSpareAnyOf(state, city.ownerId, missing);
+      const blocked = buildError(state, city.ownerId, 'unit', id, city);
+      // The resource is drawn with its marks and counts only when it is the
+      // whole refusal: asked again with the resource waived, the gate says yes.
+      const wantsResource =
+        blocked !== null &&
+        needsResource &&
+        buildError(state, city.ownerId, 'unit', id, city, { ignoreResourceRequirement: true }) ===
+          null;
+      const tooSmall = city.population < def.minCityPop;
+      rows.push({
+        kind: 'unit',
+        id,
+        name: def.name,
+        blocked,
+        wantsResource,
+        tooSmall,
+        enabled: !locked && !tooSmall && blocked === null,
+        cells: priced({ kind: 'unit', id }),
+      });
+    }
+    // The things bought with gold and never built, at the foot of the units.
+    for (const id of UNIT_TYPE_IDS) {
+      const row = offerRow(id, 'gold');
+      if (row !== null) rows.push(row);
+    }
+    file('unit', shelfWord('unit'), rows, caravans);
+  }
+
+  // One pass per shelf rather than one pass with a sort inside it, because the
+  // All tab prints buildings and wonders as two groups.
+  for (const shelf of ['building', 'wonder'] as const) {
+    if (!shelfShows(tab, shelf)) continue;
+    const rows: BuildListRow[] = [];
+    for (const id of BUILDING_IDS) {
+      // Which shelf the row belongs on is the simulation's own sorter.
+      if (queueCategory({ kind: 'building', id }) !== shelf) continue;
+      // Hidden outright, not greyed (user, 2026-08-30): a building no
+      // technology can reach yet, one the fewer-things cut withdrew, one that
+      // only arrives as a gift, and a wonder somebody already raised.
+      if (buildingDef(id).awaitsTech === true) continue;
+      if (buildingDef(id).retired === true) continue;
+      if (buildingDef(id).grantedOnly === true) continue;
+      if (isWonder(id) && wonderClaim(state, id) !== undefined) continue;
+      if (city.buildings.includes(id)) continue;
+      if (!isUnlocked(state, city.ownerId, 'building', id)) continue;
+      const at = city.queue.findIndex((item) => item.kind === 'building' && item.id === id);
+      // The reducer's own sentence, and the only refusal a building row prints.
+      // The town is handed over so the wonder clause does not fire on the town
+      // legitimately building it.
+      const blocked = buildError(state, city.ownerId, 'building', id, city);
+      rows.push({
+        kind: 'building',
+        id,
+        name: buildingDef(id).name,
+        wonder: isWonder(id),
+        blocked,
+        queued: at < 0 ? null : at + 1,
+        enabled: !locked && blocked === null && at < 0,
+        cells: priced({ kind: 'building', id }),
+      });
+    }
+    file(shelf, shelfWord(shelf), rows, false);
+  }
+
+  // The projects, last, because they are what a town falls back on (Entry
+  // XXVI). One already standing in the queue is hidden: a project never leaves
+  // the queue, so a second copy could never be reached.
+  if (shelfShows(tab, null)) {
+    const standing = new Set(
+      city.queue.filter((item) => item.kind === 'project').map((item) => item.id),
+    );
+    const rows: BuildListRow[] = [];
+    for (const id of PROJECT_IDS) {
+      if (standing.has(id)) continue;
+      if (!isUnlocked(state, city.ownerId, 'project', id)) continue;
+      rows.push({
+        kind: 'project',
+        id,
+        name: projectDef(id).name,
+        enabled: !locked && buildError(state, city.ownerId, 'project', id, city) === null,
+        cells: [],
+      });
+    }
+    file(null, shelfWord(null), rows, false);
+  }
+
+  if (shelfShows(tab, 'faith')) {
+    const rows: BuildListRow[] = [];
+    for (const id of UNIT_TYPE_IDS) {
+      const row = offerRow(id, 'faith');
+      if (row !== null) rows.push(row);
+    }
+    file('faith', FAITH_SHELF.word, rows, false);
+  }
+
+  return shelves;
+}
+
+/**
+ * The banks whose prices are in view on these shelves, in `BANKS` order: what
+ * the price column's heading names ("you have 437 gold").
+ */
+export function banksInView(shelves: readonly BuildListShelf[]): PurchaseCurrency[] {
+  const seen = new Set<PurchaseCurrency>();
+  for (const shelf of shelves) {
+    for (const row of shelf.rows) {
+      for (const cell of row.cells) seen.add(cell.look.bank);
+    }
+  }
+  return BANKS.filter((bank) => seen.has(bank));
 }
 
 /**
@@ -595,6 +998,10 @@ export interface CityPanelOptions {
    * Opens the Trade screen, from the Routes row. Optional for `setBuyMode`'s
    * reason exactly: a panel built without one is still a panel, and the row
    * simply carries no button.
+   *
+   * The build list's caravan line opens it too (batch UX5): caravans are hired
+   * on the trade sheet, so that line is a link there. Without this option the
+   * line is plain words.
    */
   onOpenTrade?: () => void;
   /**
@@ -1000,15 +1407,46 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   let levyMenuOpenFor: number | null = null;
 
   /**
+   * The last command this panel sent that the reducer refused, and when.
+   *
+   * The work rail prints its sentence as one line (`renderWorkRail`) until the
+   * next accepted command or the next town. Before batch UX5 every refused
+   * command here returned without a word, so a press that did nothing looked
+   * exactly like a press that was never made.
+   *
+   * It is shown only while the world is at the revision it was refused at and
+   * the same town is open. So an accepted command from anywhere, this panel or
+   * the board, hides it by moving the revision, and opening another town hides
+   * it by changing the town. `report` also forgets it on this panel's own
+   * accepted commands, and `render` forgets it once another town is open, so
+   * coming back to the town does not raise it again.
+   */
+  let refused: { cityId: number; revision: number; text: string } | null = null;
+
+  /**
    * Every dispatch this panel makes leaves through here.
    *
    * The panel sends its own commands rather than going through the board's
    * funnel, so it reports its own — `controls.reportCommand`, the same seam
    * that funnel ends on (see its docblock for why reporting beats routing).
    * Answers the result so a call site stays one line.
+   *
+   * A refusal is kept for the work rail's line (`refused`), and the panel is
+   * repainted to show it. Nothing in the state moved, so nothing else on the
+   * page needs to repaint.
    */
   function report(command: Command, result: CommandResult): CommandResult {
-    if (result.ok) options.onCommitted?.(command, result);
+    if (result.ok) {
+      options.onCommitted?.(command, result);
+      refused = null;
+      return result;
+    }
+    refused = {
+      cityId: 'cityId' in command ? command.cityId : -1,
+      revision: getGame().state.revision,
+      text: result.error,
+    };
+    render();
     return result;
   }
 
@@ -1026,9 +1464,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
   /**
    * Sends a purchase and repaints. `commit`'s twin one bank over, and the same
-   * contract: a refused command changes nothing at all, and the button that
-   * sent it was only enabled because `purchaseError` said the reducer would
-   * take it.
+   * contract: a refused command changes nothing at all, and the price that sent
+   * it was only pressable because `purchaseError` said the reducer would take
+   * it (`purchaseLook`).
    */
   function buy(city: City, item: PurchasableItem, currency: PurchaseCurrency): void {
     const command: Command = {
@@ -1160,11 +1598,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
   /** A copy of the city's queue: the panel edits a draft, never the state. */
   function draft(city: City): QueueItem[] {
-    return city.queue.map((item): QueueItem => {
-      if (item.kind === 'unit') return { kind: 'unit', id: item.id };
-      if (item.kind === 'project') return { kind: 'project', id: item.id };
-      return { kind: 'building', id: item.id };
-    });
+    return queueDraft(city.queue);
   }
 
   // --- the hover card ------------------------------------------------------
@@ -2465,14 +2899,22 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    *
    * Every figure is `explainContribution`'s, so the number on the button is the
    * number the bank loses and the hammers it promises are the hammers the basket
-   * receives; the blocker is `contributeError`'s sentence, exactly as a price
-   * tag is greyed with `purchaseError`'s. A `title` rather than the hover card,
-   * for `priceTag`'s reason: this is a *control* with a refusal on it.
+   * receives; the blocker is `contributeError`'s sentence.
+   *
+   * A refused button also says why on a line under the pair, once per reason
+   * (batch UX5: no refusal lives only in a native tooltip). A finished turn is
+   * not a refusal of this verb, and the foot of the work rail already says the
+   * turn is over, so it adds no line.
+   *
+   * These buttons are the one thing allowed under the bar, because a
+   * contribution does fill the bar ("→ +34⚙"). A purchase never does, which is
+   * why no price sits on this card (`renderBuildables`).
    */
   function contributeRow(city: City, locked: boolean): HTMLElement | null {
     const { state } = getGame();
     const seat = localPlayerId();
     const row = element('div', 'city-contribute');
+    const refusals: string[] = [];
     let any = false;
     for (const currency of ['gold', 'faith'] as const) {
       const offer = explainContribution(state, seat, city.id, currency);
@@ -2482,9 +2924,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const button = element('button', 'city-contribute-button');
       button.type = 'button';
       setYieldText(button, `${offer.spend}${glyph} → +${offer.hammers}${HAMMER}`);
-      const blocker = locked
-        ? `You have ended turn ${state.turn}`
-        : contributeError(state, seat, city.id, currency);
+      const refusal = locked ? null : contributeError(state, seat, city.id, currency);
+      const blocker = locked ? `You have ended turn ${state.turn}` : refusal;
+      if (refusal !== null && !refusals.includes(refusal)) refusals.push(refusal);
       button.disabled = blocker !== null;
       // The completion is said out loud where there is one, because "this press
       // finishes it" is the whole reason to press the bigger of the two.
@@ -2499,6 +2941,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       button.addEventListener('click', () => give(city, currency));
       row.append(button);
     }
+    for (const refusal of refusals) row.append(refusalLineElement(refusal, 'row'));
     return any ? row : null;
   }
 
@@ -2594,38 +3037,32 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
-   * Everything the city could add: every *unlocked* unit type, every unlocked
-   * building it has not built and has not already queued, and — last, because
-   * they are the floor rather than a choice — the unlocked projects.
+   * The add list: every row `buildListModel` decides on, drawn, with the price
+   * column on the right (the user's A1 ruling, 2026-10-12).
    *
-   * A unit the city is too small for is shown *disabled with its reason* rather
-   * than hidden — "why can I not build a settler" is a question the interface
-   * should answer, and an option that silently does not exist answers nothing.
+   * What a row is, whether it may be pressed and how its price reads are the
+   * model's answers; this function only lays them out. Top to bottom:
+   *   - the tabs: All first, then the four shelves, then Faith;
+   *   - the price column's heading, "Buy outright · full price · you have 437
+   *     gold", once over every shelf priced in gold;
+   *   - for each shelf: its eyebrow on the All tab, the Faith shelf's own
+   *     heading ("you have 51 faith"), the reasons several of its rows share,
+   *     then the rows, each followed by any reason only it has;
+   *   - the caption, which says what a gold price is.
    *
-   * A unit the player has not researched is a different case and *is* hidden:
-   * it is not a thing this city cannot do yet, it is a thing that does not exist
-   * yet, and fifteen greyed-out rows would bury the four the player can press.
-   * The tech screen is where the rest of the roster is, with what it costs to
-   * get there. Availability is asked of `isUnlocked` — the same function the
-   * reducer validates the queue with — so this list can never offer a button
-   * `setCityProduction` would refuse.
+   * A price is the full price and never falls as the town builds
+   * (`purchase.ts`), so no price sits on "Building now" or on the queue rows.
+   * The current build is bought from its own row here, marked "in queue · 1st",
+   * at the price a fresh copy would show.
    *
-   * A type that belongs to **another verb** is the third case and is hidden from
-   * this list altogether (`offeredInBuildList`, two playtest notes): the augur is
-   * not a thing this city cannot build yet, it is a thing no city ever builds,
-   * and a great person is not built by anybody at all. A greyed row for either
-   * answered "why can I not build this" with "because it is not built". The
-   * augur has a row of its own at the foot of the units instead, in the bank it
-   * is actually sold in; a great person has no row here at all, because there is
-   * no counter it is sold over.
-   *
-   * Every buildable row also carries its **price in coin** (M9, Entry XXIX), so
-   * "or 60💰" is beside the thing it would buy rather than on a screen of its
-   * own. The tag is greyed with `purchaseError`'s sentence, exactly as the build
-   * button is greyed with `buildError`'s.
+   * A unit the city is too small for, or one the reducer refuses, is shown
+   * greyed with its reason rather than hidden: "why can I not build this" is a
+   * question the screen should answer. A row nothing can reach yet, or that the
+   * game has withdrawn, is hidden (`buildListModel`).
    */
   function renderBuildables(city: City, locked: boolean, quote: CityReading): HTMLElement {
     const { state } = getGame();
+    const seat = localPlayerId();
     const box = element('div', 'city-buildables');
     box.append(element('h3', undefined, 'Add to queue'));
     // The tabs. One long list of everything a town can start was the list this
@@ -2653,151 +3090,67 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       tabs.append(tab);
     }
     box.append(tabs);
+
+    const shelves = buildListModel(state, city, seat, addTab, locked);
     const grid = element('div', 'city-buildable-grid');
+    const player = playerById(state, seat);
+    const held = (bank: PurchaseCurrency): PriceHeadBank => ({
+      bank,
+      held: player === undefined ? 0 : bankOf(player, bank),
+    });
+    // A seat that has ended its turn may read its prices and not press them.
+    // That is a state rather than a lack, so the plate goes quiet rather than
+    // vermilion, and the work rail's foot already says the turn is over.
+    const paused = hasEndedTurn(state, seat) ? `You have ended turn ${state.turn}` : null;
 
-    /**
-     * The eyebrow over one group of the All tab, written *after* its rows are
-     * in — because whether a group has any is only known then, and a heading
-     * over nothing is worse than no heading at all.
-     *
-     * `at` is where the group started, so the label is spliced in above its own
-     * rows rather than appended below them. On a single-shelf tab there is
-     * nothing to label: the tab that is lit already said it.
-     */
-    const groupHead = (shelf: AddShelf, at: number): void => {
-      if (addTab !== 'all') return;
-      if (grid.childElementCount === at) return;
-      const word = ADD_SHELVES.find((entry) => entry.shelf === shelf)?.word ?? '';
-      grid.insertBefore(element('h4', 'city-shelf-head', word), grid.children[at] ?? null);
-    };
-
+    /** In front of any standing project, never behind it — see `insertionIndex`. */
     const add = (item: QueueItem): void => {
-      const next = draft(city);
-      // In front of any standing project, never behind it — see `insertionIndex`.
-      next.splice(insertionIndex(city.queue), 0, item);
-      commit(city, next);
+      commit(city, queueWithAdded(city.queue, item));
     };
 
-    /**
-     * One buildable row: the button that queues it, and — for a unit or a
-     * building — the small tag that buys it outright.
-     *
-     * The tag is a **sibling** of the build button rather than a control inside
-     * it, because a button inside a button is not a thing the platform will
-     * draw, and because the two are genuinely different verbs: one spends the
-     * next few turns, the other spends the treasury.
-     *
-     * **A second tag appears where the faith bank is open** — a town holding a
-     * Reliquary (Entry LVIII). It is not a clause here: `priceTag` answers
-     * `null` for a bank that does not sell the row, and `explainPurchaseCost` is
-     * the one place that question is decided, so this line is simply "ask both
-     * banks" and the table decides which of them speaks.
-     */
-    const row = (build: HTMLElement, item?: PurchasableItem): void => {
-      const line = element('div', 'city-buildable-row');
-      line.append(build);
-      if (item) {
-        for (const currency of ['gold', 'faith'] as const) {
-          const tag = priceTag(city, item, currency, locked);
-          if (tag) line.append(tag);
-        }
-      }
-      grid.append(line);
-    };
-
-    const unitsAt = grid.childElementCount;
-    for (const id of shelfShows('unit') ? UNIT_TYPE_IDS : []) {
-      // Hidden outright (user, 2026-08-30): a hull no technology can reach
-      // yet has no business on the list.
-      if (unitDef(id).awaitsTech === true) continue;
-      if (!isUnlocked(state, city.ownerId, 'unit', id)) continue;
-      // **Hidden, not greyed** (user, 2026-09-03: "once a unit is obsolete,
-      // please remove it from the build queue"): a warrior an empire could
-      // already field as a swordsman is not a row this town cannot build *yet*,
-      // it is a row that has been replaced — and a greyed one would answer "why
-      // can I not build this" with "because you can build something better",
-      // which is an offer, not a refusal. The same reading the reducer gives it
-      // (`buildError`), asked of the same walk (`upgradeTargetForType`), so the
-      // row leaves the list on the turn the successor becomes trainable and
-      // comes back if the iron under it is ever lost.
-      if (upgradeTargetForType(state, city.ownerId, id) !== null) continue;
-      // Bought or not at all, or called and never made: neither belongs on a
-      // build row. See `offeredInBuildList`.
-      if (!offeredInBuildList(id)) continue;
+    /** A unit's build button: name, then cost and turns or the reason it is greyed. */
+    const unitButton = (row: UnitListRow): HTMLElement => {
+      const { id } = row;
       const def = unitDef(id);
       // The live price, not the base one: a settler gets dearer with every
       // settler this player has built, and the button quotes exactly what
       // `advanceProduction` will charge (`unitProductionCost`).
       const cost = unitProductionCost(state, city.ownerId, id);
-      const tooSmall = city.population < def.minCityPop;
-      // A strategic resource the player does not control is the same *kind* of
-      // refusal as a city that is too small — the unit exists, this empire just
-      // cannot field it yet — so it is shown greyed with its reason rather than
-      // hidden, unlike an unresearched type. `buildError` is the reducer's own
-      // sentence; the technology half of it can never fire here, because a type
-      // that failed it was skipped by `isUnlocked` above.
-      // A list since batch R1, because a row may accept either of two resources
-      // (`UnitDef.requiresResource`), and asked as "can the empire spare one"
-      // rather than "does it hold one" so the greyed row and the reducer's own
-      // refusal agree about a copy an army is already standing on.
       const missing = requiredResource('unit', id);
-      const needsResource =
-        missing.length > 0 && !canSpareAnyOf(state, city.ownerId, missing);
       const button = element('button', 'city-buildable');
       button.type = 'button';
-      button.disabled = locked || tooSmall || needsResource;
-      // "needs improved ⛏️ Iron", not "needs ⛏️ Iron". Since M7 owning the seam
-      // is not enough — a worker has to mine it (`hasResource`, design ledger
-      // Entry IX's correction) — and a button that said only "needs Iron" to a
-      // player who is *standing on* their own iron hill would be a button
-      // telling them to go to war over something they already have.
-      // Two forms of the same sentence, and the split is the mark's doing. The
-      // spoken one is words only: a screen reader reading a resource's glyph
-      // announces its Unicode name before the word it decorates, which is the
-      // one surface an icon makes *worse*.
-      // Since batch R4 the spoken form carries the counts too, in words rather
-      // than as `0/8`: a screen reader given a slashed pair reads "zero slash
-      // eight", which is the one thing the drawn figure is better at.
+      button.disabled = !row.enabled;
+      // Words only in the spoken form: a screen reader reading a resource's
+      // glyph announces its Unicode name before the word it decorates. Since
+      // batch R4 it carries the counts too, in words rather than as `0/8`.
       const needsSpoken =
         missing.length === 0
           ? ''
           : `improved ${requirementWords(state, city.ownerId, missing)}`;
-      // A label rather than a `title`, and that is the hover card's doing: a
-      // native tooltip would arrive a second *after* the card, on top of it,
-      // saying less. The sentence is kept — it is the only place a screen
-      // reader is told why a greyed row is greyed — it has simply stopped
-      // being a second thing that draws.
       button.setAttribute(
         'aria-label',
-        needsResource
+        row.wantsResource
           ? `${def.name} — needs ${needsSpoken}`
-          : tooSmall
-            ? `${def.name} — needs population ${def.minCityPop}`
-            : `${def.name} — ${cost} production`,
+          : row.blocked !== null
+            ? `${def.name} — ${row.blocked}`
+            : row.tooSmall
+              ? `${def.name} — needs population ${def.minCityPop}`
+              : `${def.name} — ${cost} production`,
       );
       button.append(element('span', 'city-buildable-name', def.name));
-      // An unbuildable row keeps its reason where the price goes: a "needs
-      // improved Iron" that had to share the line with "9⚙ · 4t" would be
-      // quoting a schedule for something that is not going to start. `is-reason`
-      // gives the sentence the whole row rather than the figure column, because
-      // a sentence in a figure's width is a sentence nobody reads — and because
-      // the price column exists to hold prices, which is what lets the name
-      // beside it keep its own width (see `.city-buildable`).
+      // A row the queue refuses keeps its reason where the price goes, on a
+      // line of its own (`is-reason`) and in the voice every refusal wears
+      // (`wanting`, the user, 2026-09-08).
       const price = element('span', 'city-buildable-cost');
-      if (needsResource && missing.length > 0) {
-        // `is-reason` is the *layout* — the whole row instead of the price
-        // column — and `wanting` is the voice: this cell has stopped quoting a
-        // schedule and started naming something the empire has not got, which is
-        // the one thing every surface says in the same vermilion italic (the
-        // user, 2026-09-08).
+      if (row.wantsResource) {
         price.classList.add('is-reason', 'wanting');
         price.append('needs improved ');
-        // The count goes on the refusal itself (batch R4), because "needs
-        // improved Copper" said to a player who is looking at eight copper mines
-        // is the refusal the proposal calls the worst way to learn a rule.
-        // "Copper 0/8" says the whole of it: you have eight, every one is
-        // carrying something.
+        // The count goes on the refusal itself (batch R4): "Copper 0/8" says
+        // you have eight and every one is already carrying something.
         price.append(requirementNodes(state, city.ownerId, missing));
+      } else if (row.blocked !== null) {
+        price.classList.add('is-reason', 'wanting');
+        setYieldText(price, row.blocked);
       } else {
         setYieldText(
           price,
@@ -2806,153 +3159,79 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       }
       button.append(price);
       // Priced at the back of the queue, because that is where pressing this
-      // would put it — `city.queue.length` is 0 exactly when the queue is
-      // empty, which is the one case the banked hammers are already its own.
+      // would put it.
       info.bind(button, () => itemCard(city, { kind: 'unit', id }, city.queue.length));
       button.addEventListener('click', () => add({ kind: 'unit', id }));
-      row(button, { kind: 'unit', id });
-    }
+      return button;
+    };
 
-    // The things that are **bought or not at all**, at the foot of the units and
-    // priced in their own bank. Shown whether or not the technology has landed,
-    // unlike a buildable row: the Religion screen has said "an augur costs 40🕯"
-    // since before Divination, and a player who opens a city ought to find the
-    // same offer in the place they are already deciding what a town does next.
-    for (const id of shelfShows('unit') ? UNIT_TYPE_IDS : []) {
-      // Hidden outright (user, 2026-08-30): a hull no technology can reach
-      // yet has no business on the list.
-      if (unitDef(id).awaitsTech === true) continue;
-      const item: PurchasableItem = { kind: 'unit', id };
-      if (!isPurchaseOnly(item)) continue;
-      const currency = unitDef(id).purchase!.currency;
-      const tag = priceTag(city, item, currency, locked, purchaseVerb(item));
-      if (tag) {
-        const line = element('div', 'city-buildable-row is-purchase');
-        line.append(tag);
-        grid.append(line);
+    /** A building's build button, which also stands for a building already in the queue. */
+    const buildingButton = (row: BuildingListRow): HTMLElement => {
+      const { id } = row;
+      const def = buildingDef(id);
+      const cost = buildingProductionCost(id, state, city.ownerId);
+      // Where pressing it would put it, or where it already stands: the
+      // estimate and the hover card are for that place in the queue.
+      const at = row.queued === null ? city.queue.length : row.queued - 1;
+      const button = element('button', 'city-buildable is-building');
+      if (row.wonder) button.classList.add('is-wonder');
+      if (row.queued !== null) button.classList.add('is-queued');
+      button.type = 'button';
+      button.disabled = !row.enabled;
+      button.setAttribute(
+        'aria-label',
+        row.blocked ??
+          (row.queued !== null
+            ? `${def.name} — ${queuedMark(row.queued)}`
+            : `${def.name} — ${cost} production`),
+      );
+      const name = element('span', 'city-buildable-name', def.name);
+      // The eyebrow: a wonder is a different *kind* of thing to spend a hundred
+      // hammers on, and a player needs to know that before reading the price.
+      if (row.wonder) name.append(element('span', 'city-buildable-eyebrow', 'wonder'));
+      // And where it already stands in the queue. A fact, not a refusal, so it
+      // is the quiet eyebrow and the row is drawn as a label rather than a
+      // greyed button (`.city-buildable.is-queued`).
+      if (row.queued !== null) {
+        name.append(element('span', 'city-buildable-eyebrow is-queued', queuedMark(row.queued)));
       }
-    }
-
-    groupHead('unit', unitsAt);
-
-    const queued = new Set(
-      city.queue.filter((item) => item.kind === 'building').map((item) => item.id),
-    );
-    // One pass per shelf rather than one pass with a sort inside it, because the
-    // All tab prints the two as *groups*: every building, then every wonder, in
-    // `ADD_SHELVES`' own order. A single walk of `BUILDING_IDS` would interleave
-    // them in table order and no eyebrow could honestly sit over that.
-    for (const shelf of ['building', 'wonder'] as const) {
-      if (!shelfShows(shelf)) continue;
-      const at = grid.childElementCount;
-      for (const id of BUILDING_IDS) {
-        // Which of the two shelves this row belongs on, asked of the simulation's
-        // own sorter (`queueCategory`) rather than of `isWonder` a second time:
-        // "wonder is its own category" is the table's ruling, and this list reads
-        // it rather than restating it.
-        if (queueCategory({ kind: 'building', id }) !== shelf) continue;
-        // Hidden outright, not greyed (user, 2026-08-30): a building no
-        // technology can reach yet is noise, and a wonder somebody already raised
-        // is a row that can never be built — the same reading the reducer's
-        // planQueueItem gives both.
-        if (buildingDef(id).awaitsTech === true) continue;
-        // The same reading for the two rows a queue may never hold *ever*: one
-        // the fewer-things cut withdrew (`retired`) and one that only ever
-        // arrives as a gift (`grantedOnly`, the Town Charter). A row whose
-        // refusal can never be acted on is noise wherever it is printed, which
-        // is exactly the argument the marker above it won.
-        if (buildingDef(id).retired === true) continue;
-        if (buildingDef(id).grantedOnly === true) continue;
-        if (isWonder(id) && wonderClaim(getGame().state, id) !== undefined) continue;
-        if (city.buildings.includes(id) || queued.has(id)) continue;
-        if (!isUnlocked(state, city.ownerId, 'building', id)) continue;
-        const def = buildingDef(id);
-        const wonder = isWonder(id);
-        // The reducer's own sentence, and the only thing that can grey a building
-        // row: "The Oracle already stands in Uruk (Crimson)", or "Ur is already
-        // building The Oracle". The city is handed over so the second clause does
-        // not fire on the town that is legitimately building it — see
-        // `buildError`, whose sentence this is.
-        const blocked = buildError(state, city.ownerId, 'building', id, city);
-        const button = element('button', 'city-buildable is-building');
-        if (wonder) button.classList.add('is-wonder');
-        button.type = 'button';
-        button.disabled = locked || blocked !== null;
-        button.setAttribute(
-          'aria-label',
-          blocked ?? `${def.name} — ${buildingProductionCost(id, state, city.ownerId)} production`,
+      button.append(name);
+      const costSpan = element('span', 'city-buildable-cost');
+      if (row.blocked !== null) {
+        // The unit row's pair, and for its reason: `is-reason` gives the
+        // sentence the row, `wanting` gives it the voice every refusal wears.
+        costSpan.classList.add('is-reason', 'wanting');
+        setYieldText(costSpan, row.blocked);
+        button.append(costSpan);
+      } else {
+        setYieldText(
+          costSpan,
+          `${cost}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, at, quote))}`,
         );
-        const name = element('span', 'city-buildable-name', def.name);
-        // The eyebrow: a wonder is a different *kind* of thing to spend a hundred
-        // hammers on, and a player deciding needs to know that before they read
-        // the price rather than after they lose the race. It rides the row on
-        // every tab — the group eyebrow above it names the shelf, this one names
-        // the *stakes*, and a player scrolling the All tab needs the second even
-        // where they have already read the first.
-        if (wonder) name.append(element('span', 'city-buildable-eyebrow', 'wonder'));
-        button.append(name);
-        // A row nobody can build keeps its reason where the price goes, exactly as
-        // an unbuildable unit row does: quoting a schedule for something that is
-        // never going to start is the one thing worse than saying nothing.
-        const costSpan = element('span', 'city-buildable-cost');
-        if (blocked !== null) {
-          // The unit row's pair, and for its reason: `is-reason` gives the
-          // sentence the row, `wanting` gives it the voice every refusal wears.
-          costSpan.classList.add('is-reason', 'wanting');
-          setYieldText(costSpan, blocked);
-          button.append(costSpan);
-        } else {
-          setYieldText(
-            costSpan,
-            `${buildingProductionCost(id, state, city.ownerId)}${HAMMER} · ${turnsLabel(turnsToBuild(state, city, { kind: 'building', id }, city.queue.length, quote))}`,
-          );
-          button.append(costSpan);
-          // What this town would gain today — Orders, beliefs, wonders, whatever
-          // in this empire's law wakes on this row (user, 2026-08-28: a barracks
-          // should read "+1⚙" with God of the Forge held). The fold of exactly
-          // the lines the hover card lists below, never re-derived — a building
-          // that pays nothing of its own and wakes no card prints the house dash,
-          // exactly as `turnsLabel` prints one for an unanswerable estimate.
-          //
-          // A line of the row rather than a second line of the price column
-          // (user, from a playthrough): the bag has no ceiling — the Founding
-          // Oath pays all six voices at once — and inside the price column it
-          // was setting the column's width, which is the name's width, which is
-          // what the list is read by. On its own line it truncates instead.
-          const foldedPreview = foldBuildingPreview(buildingPreview(state, city, id, quote));
-          button.append(
-            element('span', 'city-buildable-preview', previewFigures(foldedPreview) || '—'),
-          );
-        }
-        info.bind(button, () => itemCard(city, { kind: 'building', id }, city.queue.length));
-        button.addEventListener('click', () => add({ kind: 'building', id }));
-        // **No Buy tag on a wonder.** `purchaseError` refuses one outright (a
-        // wonder is built, not bought), so a price tag here would be an offer the
-        // reducer will not honour — `isPurchaseOnly`'s sibling question, asked of
-        // the other end of the same rule.
-        row(button, wonder ? undefined : { kind: 'building', id });
+        button.append(costSpan);
+        // What this town would gain today — Orders, beliefs, wonders, whatever
+        // in this empire's law wakes on this row (user, 2026-08-28). The fold
+        // of exactly the lines the hover card lists, never re-derived; a
+        // building that pays nothing prints the house dash. On a line of its
+        // own so it truncates rather than taking the name's width.
+        const foldedPreview = foldBuildingPreview(buildingPreview(state, city, id, quote));
+        button.append(
+          element('span', 'city-buildable-preview', previewFigures(foldedPreview) || '—'),
+        );
       }
-      groupHead(shelf, at);
-    }
+      info.bind(button, () => itemCard(city, { kind: 'building', id }, at));
+      button.addEventListener('click', () => add({ kind: 'building', id }));
+      return button;
+    };
 
-    // The projects, at the bottom of the list because that is what they are for:
-    // the thing a city falls back on when the rows above it are spent (Entry
-    // XXVI). Already-queued ones are hidden for a building's reason one scale
-    // further — a project never leaves the queue, so a second copy could never
-    // be reached — and the price is the *rate* rather than a total, because a
-    // repeatable item has no total.
-    const standing = new Set(
-      city.queue.filter((item) => item.kind === 'project').map((item) => item.id),
-    );
-    const projectsAt = grid.childElementCount;
-    for (const id of shelfShows(null) ? PROJECT_IDS : []) {
-      if (standing.has(id)) continue;
-      if (!isUnlocked(state, city.ownerId, 'project', id)) continue;
+    /** A project's build button. A project is a conversion, so it is never priced. */
+    const projectButton = (row: ProjectListRow): HTMLElement => {
+      const { id } = row;
       const def = projectDef(id);
       const bead = def.bead;
       const button = element('button', 'city-buildable is-building');
       button.type = 'button';
-      button.disabled = locked;
+      button.disabled = !row.enabled;
       button.setAttribute(
         'aria-label',
         bead === undefined
@@ -2981,18 +3260,91 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       );
       info.bind(button, () => itemCard(city, { kind: 'project', id }, city.queue.length));
       button.addEventListener('click', () => add({ kind: 'project', id }));
-      // No price tag: a project is a conversion that never completes, so there
-      // is nothing to buy. See `PurchasableItem`.
-      row(button);
+      return button;
+    };
+
+    /**
+     * The left of a row: the build button, or for a thing that is only ever
+     * bought, its offer as a plain label. The label is not a control, so
+     * nothing about it looks pressable; the price beside it is the control.
+     */
+    const lead = (row: BuildListRow): HTMLElement => {
+      if (row.kind === 'unit') return unitButton(row);
+      if (row.kind === 'building') return buildingButton(row);
+      if (row.kind === 'project') return projectButton(row);
+      return element('span', 'city-offer-name', row.verb);
+    };
+
+    /** One price cell, wired to the purchase it stands for. */
+    const priceCell = (row: BuildListRow, cell: BuildListCell): HTMLElement => {
+      const item: PurchasableItem | null =
+        row.kind === 'building'
+          ? { kind: 'building', id: row.id }
+          : row.kind === 'project'
+            ? null
+            : { kind: 'unit', id: row.id };
+      return priceCellElement(cell.look, {
+        name: row.name,
+        ...(item === null ? {} : { onBuy: () => buy(city, item, cell.look.bank) }),
+        paused,
+        mark: cell.place?.at === 'head' ? cell.place.mark : null,
+      });
+    };
+
+    /**
+     * The line that stands in for every caravan row: caravans are hired with a
+     * route on the trade sheet and never queued (`UnitDef.routeOnly`). A link
+     * when the page handed in the way there, plain words when it did not.
+     */
+    const tradeSheetLine = (): HTMLElement => {
+      if (onOpenTrade === undefined) {
+        return element('p', 'city-trade-link', 'Caravans are hired on the trade sheet.');
+      }
+      const link = element('button', 'city-trade-link', 'Caravans are hired on the trade sheet →');
+      link.type = 'button';
+      link.addEventListener('click', () => onOpenTrade());
+      return link;
+    };
+
+    // The heading over the price column, once, naming the banks the ordinary
+    // shelves are priced in. The Faith shelf carries its own heading.
+    const ordinary = banksInView(shelves.filter((shelf) => shelf.shelf !== 'faith'));
+    if (ordinary.length > 0) grid.append(priceHeadElement(ordinary.map(held)));
+
+    for (const shelf of shelves) {
+      // The eyebrow over a group, on the All tab only: a single-shelf tab is
+      // already named by the tab that is lit.
+      if (addTab === 'all') grid.append(element('h4', 'city-shelf-head', shelf.word));
+      if (shelf.shelf === 'faith') grid.append(priceHeadElement([held('faith')]));
+      // The reasons several rows share, said once, before the rows they cover.
+      for (const line of shelf.refusals) {
+        grid.append(refusalLineElement(line.text, 'head', line.mark));
+      }
+      for (const row of shelf.rows) {
+        const line = element(
+          'div',
+          row.kind === 'offer' ? 'city-buildable-row is-offer' : 'city-buildable-row',
+        );
+        line.append(lead(row));
+        // A project keeps the column's width with an empty cell, so its button
+        // lines up with the rows priced around it.
+        if (row.kind === 'project') line.append(emptyPriceCellElement());
+        for (const cell of row.cells) line.append(priceCell(row, cell));
+        grid.append(line);
+        // The reasons only this row has, on lines under it.
+        for (const cell of row.cells) {
+          if (cell.place?.at === 'row') grid.append(refusalLineElement(cell.place.text, 'row'));
+        }
+      }
+      if (shelf.caravans) grid.append(tradeSheetLine());
     }
-    groupHead(null, projectsAt);
 
     // A shelf with nothing on it is a real answer — every wonder in the age
     // already stands, or no technology has opened a project yet — and it is the
     // greyed-row reading one scale up: a tab that vanished would take the
     // question with it. On the All tab the same emptiness means something wider,
     // so it says so in wider words.
-    if (grid.childElementCount === 0) {
+    if (shelves.length === 0) {
       box.append(
         element(
           'p',
@@ -3002,94 +3354,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       );
     }
     box.append(grid);
-    // What a price tag *is*, and nothing about how much money you have.
-    //
-    // The treasury figure used to lead this line, on the Buy Tiles caption's
-    // precedent. It is off (user, 2026-08-27) because the precedent stopped
-    // holding the day the top bar grew a gold chip: the number is on screen
-    // already, a hand's width above this, and a second copy that only some
-    // screens carry is a number a player has to check against itself. What is
-    // left is the rule a tag cannot state on its own — the conversion, and that
-    // the banked hammers are neither spent nor discounted — which is the part
-    // somebody reading a price actually needs.
+    // What a gold price is, said once under the list: the conversion, and that
+    // it is the full cost however far the town has got. The treasury itself is
+    // in the column's heading and in the band since batch UX5 (the user's
+    // ruling of 2026-10-12, "The treasury shows on the city screen", which
+    // replaces the 2026-08-27 ruling that kept it off this screen).
     box.append(
       element(
         'p',
         'hint',
-        // Cut to a fragment with the rails (the 2026-09-03 revision): the rule
-        // is the conversion and the one thing a price cannot say for itself,
-        // and the sentence around it was scaffolding.
-        `A tag buys the row outright · ${RULES.production.goldPerHammer}` +
-          `${YIELD_GLYPH.gold} per ${HAMMER} of full cost · banked hammers stay banked`,
+        `Gold prices are the full cost, at ${RULES.production.goldPerHammer}` +
+          `${YIELD_GLYPH.gold} per ${HAMMER}, however much has been built. Buying what ` +
+          'is being built now passes its banked hammers to the next item.',
       ),
     );
     return box;
-  }
-
-  /**
-   * The small button beside a build row that buys the thing outright — "or
-   * 60💰" — or `null` when this bank does not sell it at all.
-   *
-   * `label` overrides the terse form for a row that *is* the offer rather than
-   * an alternative to one: the augur's row has no build button beside it, so it
-   * reads "Call an augur · 40🕯" and fills the line.
-   *
-   * Every question it asks is the reducer's. The price is
-   * `explainPurchaseCost`'s total, so the number on the tag is the number the
-   * bank loses; the blocker is `purchaseError`'s sentence, so a greyed tag says
-   * why in the words the command would have answered with. A `title` rather
-   * than the hover card, because this is a *control* with a refusal on it and
-   * the card beside it is describing the thing itself.
-   */
-  function priceTag(
-    city: City,
-    item: PurchasableItem,
-    currency: PurchaseCurrency,
-    locked: boolean,
-    label?: string,
-  ): HTMLElement | null {
-    const { state } = getGame();
-    const seat = localPlayerId();
-    const price = explainPurchaseCost(state, seat, city.id, item, currency);
-    if (!price) return null;
-    const glyph = currency === 'faith' ? YIELD_GLYPH.faith : YIELD_GLYPH.gold;
-    const button = element(
-      'button',
-      label === undefined ? 'city-buildable-buy' : 'city-buildable-buy is-offer',
-    );
-    button.type = 'button';
-    // The terse form is the figure alone (the user, 2026-09-06: "leave out the
-    // 'or'") — the plate, the coin ink and the place beside the build button
-    // already say what the number is.
-    setYieldText(
-      button,
-      label === undefined ? `${price.total}${glyph}` : `${label} · ${price.total}${glyph}`,
-    );
-    const refusal = purchaseError(state, seat, city.id, item, currency);
-    const blocker = locked ? `You have ended turn ${state.turn}` : refusal;
-    button.disabled = blocker !== null;
-    // **The wanting voice on the tag** (item (hhhh)): the day a purchase could
-    // be refused for something standing in the town's own hex, a greyed price
-    // stopped being enough — "60💰" in faint ink says *not now* where the
-    // sentence says *move your warrior*. So a tag the reducer refuses wears the
-    // vermilion italic every other refusal on this screen wears, and the words
-    // are on the control itself (`title`/`aria-label`) rather than in a second
-    // line beside it: this is a button with a reason on it.
-    //
-    // `refusal` and not `blocker`, and that is the sweep's own distinction
-    // (`test/ui/wantingVoice.test.ts`): a seat that has ended its turn is in a
-    // *state*, not short of anything, and shouting at it in vermilion would be
-    // telling a player off for pressing End Turn.
-    if (refusal !== null) button.classList.add('wanting');
-    // Words only in the spoken form: a screen reader announcing a currency glyph
-    // reads its Unicode name before the number it decorates.
-    button.setAttribute(
-      'aria-label',
-      blocker ?? `Buy ${purchasableName(item)} for ${price.total} ${currency}`,
-    );
-    button.title = blocker ?? `Buy ${purchasableName(item)} outright`;
-    button.addEventListener('click', () => buy(city, item, currency));
-    return button;
   }
 
   /**
@@ -3492,6 +3771,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const belief = renderFaithHeadline(city);
     if (belief) title.append(belief);
     band.append(title);
+    // The banks, just left of the six chips (the user, 2026-10-12: "The
+    // treasury shows on the city screen"). The top bar stands down while a town
+    // is open, and a price column with no bank in sight is a column the player
+    // has to leave the town to check. Written exactly as the top bar writes it,
+    // the bank and then the rate in brackets (`bankFigure.ts`).
+    band.append(bankLineElement(readBanks(state, localPlayerId())));
     band.append(renderYieldChips(city, quote));
     return band;
   }
@@ -3621,9 +3906,15 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     locked: boolean,
     puppet: boolean,
     quote: CityReading,
+    notice: string | null,
   ): HTMLElement {
     const { state } = getGame();
     const rail = element('div', 'city-rail is-right');
+
+    // A command this panel sent that the reducer refused, in the reducer's own
+    // words (`refused`). First in the rail and held at its top while the rail
+    // scrolls, so it is in view wherever the press was made.
+    if (notice !== null) rail.append(refusalLineElement(notice, 'command'));
 
     const now = element('div', 'city-card');
     now.append(renderProduction(city, locked, quote));
@@ -3718,7 +4009,17 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // town's panel took tens of milliseconds to rebuild each time. See
     // `panelRenderKey` for what counts as a change.
     const { state: drawing } = getGame();
-    const key = city === null ? null : panelRenderKey(drawing, city, localPlayerId(), isBuyMode(), isTutorialActive());
+    // A refusal belongs to the town it was refused in: another town open means
+    // it is forgotten, so coming back does not raise it again. While the same
+    // town stays open it shows only at the revision it was refused at, so any
+    // accepted command hides it. See `refused`.
+    if (refused !== null && (city === null || refused.cityId !== city.id)) refused = null;
+    const notice =
+      refused !== null && refused.revision === drawing.revision ? refused.text : null;
+    const key =
+      city === null
+        ? null
+        : panelRenderKey(drawing, city, localPlayerId(), isBuyMode(), isTutorialActive(), notice);
     if (key !== null && drawing === drawnState && key === drawnKey) return;
     drawnState = drawing;
     drawnKey = key;
@@ -3771,7 +4072,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     container.append(renderBand(city, quote));
     const body = element('div', 'city-body');
     body.append(renderTownRail(city, locked, quote));
-    body.append(renderWorkRail(city, locked, puppet, quote));
+    body.append(renderWorkRail(city, locked, puppet, quote, notice));
     container.append(body);
     // Out of the flow, both of them: they sit against the bottom of the screen
     // rather than after the rails, and the row above must not shorten to make
@@ -3831,7 +4132,10 @@ export function createBuildingPreviewMemo(): (
  *   phase, so it covers the town, the empire, the treasury and the turn
  *   (including whether the seat has ended it, which locks the panel);
  * - the town, the seat looking at it, the build-list tab (`addTab`), buy mode
- *   and whether the guide is up (the board caption reads the last two).
+ *   and whether the guide is up (the board caption reads the last two);
+ * - the line for a command the reducer just refused (batch UX5). A refusal
+ *   leaves the revision where it was, so without this term the line would not
+ *   appear until something else changed.
  *
  * Open disclosures are not in the key: the browser toggles a `<details>` in
  * place, so the drawn panel already shows them. A new input to the panel must
@@ -3844,6 +4148,15 @@ export function panelRenderKey(
   seat: number,
   buyMode: boolean,
   tutorialActive: boolean,
+  notice: string | null = null,
 ): string {
-  return [state.revision, city.id, seat, addTab, buyMode ? 'buy' : '', tutorialActive ? 'guide' : ''].join('|');
+  return [
+    state.revision,
+    city.id,
+    seat,
+    addTab,
+    buyMode ? 'buy' : '',
+    tutorialActive ? 'guide' : '',
+    notice ?? '',
+  ].join('|');
 }

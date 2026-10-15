@@ -30,6 +30,10 @@
  *     writes, in order to compare against it, so they must read the very field
  *     those sentences read. The day those refusals speak in figures, these two
  *     lines follow them, and not before.
+ *   · **`src/ui/priceCell.ts`' mirror of the same purchase refusal** (batch
+ *     UX5), for the same reason: it recognises "short of the bank, and only
+ *     that" by comparing against `purchaseError`'s sentence, which names the
+ *     seat by the field. It prints nothing.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -97,9 +101,9 @@ const READS_THE_FIELD: readonly RegExp[] = [
   /\b(?:player|seat|owner|local|enemy|founder|giver|winner)\s*[!?]?\s*\??\.name\b/,
 ];
 
-/** The two mirrors above, allowed by what they are rather than by line number. */
+/** The mirrors above, allowed by what they are rather than by line number. */
 function allowed(path: string, line: string): boolean {
-  return path.endsWith('/wants.ts') && line.includes('refusal ===');
+  return (path.endsWith('/wants.ts') || path.endsWith('/priceCell.ts')) && line.includes('refusal ===');
 }
 
 describe('a seat’s name', () => {

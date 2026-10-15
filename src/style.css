@@ -3731,7 +3731,7 @@ kbd {
    The **price plate**: one per hex the open city could buy, floating over the
    board with the city banners (`tilePriceTags.ts`).
 
-   It is the city panel's buy tag (`.city-buildable-buy`) laid on the ground, and
+   It is the city panel's price plate (`.price-cell.is-buy`) laid on the ground, and
    deliberately so: a price on a hex and a price on a build row are the same
    offer in two places, and until this pass they were two different objects —
    gilt numerals on an ink pill out here, gilt numerals on parchment in there.
@@ -3800,7 +3800,7 @@ kbd {
   box-shadow: calc(var(--price-throw) + 1px) calc(var(--price-throw) + 1px) 0 var(--ink);
 }
 
-/* The panel's press, minus the nudge: `.city-buildable-buy` depresses by moving
+/* The panel's press, minus the nudge: `.price-cell.is-buy` depresses by moving
    two pixels into its own shadow, and this plate cannot — its `transform` is the
    projection of a hex and is written inline every frame, so a stylesheet rule
    would either be overridden or fight the camera. Losing the throw is the same
@@ -4615,6 +4615,13 @@ kbd {
   white-space: nowrap;
 }
 
+/* The banks, just left of the six chips (batch UX5; the user, 2026-10-12: "The
+   treasury shows on the city screen"). A figure, so it never shrinks: the name
+   and the belief line are what give when the band is short of room. */
+.city-band .bank-line {
+  flex: 0 0 auto;
+}
+
 /* The six chips take the far end of the band, where the empire's six sit one
    bar up — same order, same inks, same marks, so the eye does not relearn them
    when the mode opens. */
@@ -5270,15 +5277,22 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 /* The Cathedral's two banks, under the production bar (design ledger Entry LV).
    A pair rather than a column: gold and faith are the same offer twice and a
-   player picks one, so they sit side by side and share the row's width. The
-   buttons wear the buy tag's plate (`.city-buildable-buy`) because a price on a
-   build row and a price under a bar are the same offer in two places — the one
-   difference is that these two say what the coin *buys*, so they carry a hammer
-   as well as a currency mark and are given room for both. */
+   player picks one, so they sit side by side and share the row's width. They
+   wear the plate a price wears (`.price-cell.is-buy`), and they say what the
+   coin buys, a hammer figure beside the currency mark. Unlike a price, a
+   contribution does fill the bar, which is why these alone may sit under it.
+
+   A refused pair says why on a line of its own under the buttons
+   (`.refusal-line`, batch UX5), which is what the wrap is for. */
 .city-contribute {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin-top: 6px;
+}
+
+.city-contribute > .refusal-line {
+  flex: 1 0 100%;
 }
 
 .city-contribute-button {
@@ -5612,18 +5626,18 @@ body:has(.city-mode:not([hidden])) #hud-context {
   padding: 0 2px;
 }
 
-/* One buildable: the button that queues it, and the tag that buys it. Two
-   controls on one line rather than one control with a control inside it — a
-   button in a button is not a thing the platform draws, and the two are
-   genuinely different verbs. The tag takes only the width its figure needs, so
-   a row with no tag (a project) is the full-width button it always was. */
+/* One row of the add list: the button that queues the thing on the left, and
+   its price cells on the right (`priceCell.ts`, batch UX5). Two controls on one
+   line and never a control inside a control: queueing and buying are different
+   verbs. A project's row carries an empty cell, so every build button in the
+   list starts and ends on the same lines. */
 .city-buildable-row {
   /* A row, not a two-column grid (the user, 2026-09-06: the unit purchase "is
      breaking out into a second line"): a town with an open faith bank puts
-     *two* tags beside a unit, and the grid's second column wrapped the third
-     cell under the first. Flex keeps every tag inline; the build button takes
+     *two* prices beside a unit, and the grid's second column wrapped the third
+     cell under the first. Flex keeps every price inline; the build button takes
      what is left and shrinks its own name (`.city-buildable` clips) before a
-     tag ever leaves the line. */
+     price ever leaves the line. */
   display: flex;
   align-items: stretch;
   gap: 4px;
@@ -5635,85 +5649,247 @@ body:has(.city-mode:not([hidden])) #hud-context {
   min-width: 0;
 }
 
-.city-buildable-row > .city-buildable-buy {
+/* The price column. Every cell keeps the same floor (`.price-cell`), so the
+   figures line up down the list and a price that gains a digit never takes
+   width from the name beside it. */
+.city-buildable-row > .price-cell {
   flex: 0 0 auto;
 }
 
-/* The purchase offer at the foot of the units — the augur's row. It *is* the
-   offer rather than an alternative to one, so it has no build button beside it
-   and takes the whole line. */
-.city-buildable-row.is-purchase > .city-buildable-buy {
-  flex: 1 1 auto;
+/* A thing that is only ever bought ("Call a prophet", "Hire a Company Guard").
+   Its offer is a label, not a button: there is nothing to queue, so nothing on
+   the left of the row may look pressable, and the price beside it is the
+   control. A dashed rim and no throw read as a line of the list. */
+.city-offer-name {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  padding: 6px 8px;
+  border: var(--border-thin) dashed var(--ink-faint);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* The price in coin, in the treasury's own ink so it reads as money at a glance
-   and never as another hammer figure. Quieter than the build button it stands
-   beside — buying is the second thing a player does with a row, not the first —
-   and it wears the same pressed shadow so the two feel like one control pair. */
-.city-buildable-buy {
+/* The line that stands in for the caravan rows: caravans are hired with a
+   route on the trade sheet and never queued. The keyword link's voice (bold,
+   the text's own ink, an underline under the pointer), because it is a way to
+   another screen rather than an order. Without a way there it is plain words. */
+.city-trade-link {
+  justify-self: start;
+  margin: 2px 0 0;
+  padding: 3px 2px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-align: left;
+  text-transform: none;
+}
+
+button.city-trade-link {
+  cursor: pointer;
+}
+
+button.city-trade-link:hover,
+button.city-trade-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+p.city-trade-link {
+  color: var(--ink-soft);
+}
+
+/* --- the price column, refusal lines and banks ---------------------------
+   Three small shared pieces (batch UX5; `docs/plans/hud-ux-decisions.md`,
+   "Shared components"): `priceCell.ts`, `refusalLine.ts` and `bankFigure.ts`.
+   Built for the city screen and meant for the faith screen and the HUD, so
+   none of these rules is scoped to the city panel. */
+
+/* The heading over the column: "Buy outright · full price" on the left and
+   "you have 437 gold" on the right, in the small mono every label wears. */
+.price-head {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 2px 8px;
+  margin: 2px 0 1px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  color: var(--ink-soft);
+}
+
+.price-head-rule {
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.price-head-banks {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* One cell of the column. The floor is what keeps the column a column. */
+.price-cell {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  /* Wide enough for the dearest tag the bank prints, so the buy column never
-     takes width from the name it stands beside — which is exactly what it was
-     doing, one row at a time, whenever a price gained a digit. */
   min-width: 4.8em;
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+/* Can buy now: the pressable plate, in the bank's own ink, with the same throw
+   as the build button beside it so the two read as one pair of controls. */
+.price-cell.is-buy {
   padding: 5px 8px;
   border: var(--border-thin) solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--parchment);
   color: var(--y-gold);
-  font-family: var(--face-num);
-  font-size: 10.5px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
   box-shadow: 2px 2px 0 var(--ink);
   cursor: pointer;
 }
 
-/* The offer that *is* the row — the prophet's since the augur was retired
-   (`cityPanel.ts` builds it). It spans the grid, and its label is one sentence
-   ending in a price ("Call a prophet · 40🕯"), so it is centred with
-   the currency mark tucked against the figure. `space-between` was right while
-   the row was half a two-column grid and pushed the mark to the far edge the
-   moment the list became full width, which read as a price for nothing. */
-.city-buildable-buy.is-offer {
-  justify-content: center;
-  gap: 3px;
-  border-left: 5px solid var(--y-faith);
-  font-family: var(--face-ui);
-  font-size: 11px;
-  font-weight: 600;
+.price-cell.is-buy.is-faith {
+  color: var(--y-faith);
 }
 
-.city-buildable-buy:hover:not(:disabled) {
+.price-cell.is-buy:hover:not(:disabled) {
   background: #fffdf4;
 }
 
-.city-buildable-buy:active:not(:disabled) {
+.price-cell.is-buy:active:not(:disabled) {
   transform: translate(2px, 2px);
   box-shadow: 0 0 0 var(--ink);
 }
 
-.city-buildable-buy:disabled {
+/* A plate the gate would take but the seat may not press now, because it has
+   ended its turn. A state rather than a lack: the faint ink, never the wanting
+   voice. */
+.price-cell.is-buy:disabled {
   border-color: var(--ink-faint);
   background: var(--table);
   box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
+  color: var(--ink-faint);
   cursor: default;
 }
 
-/* The ink is split off the plate above for one reason, and it is the buildable
-   row's `:not(.wanting)` excuse said on a control instead of a cell: a tag the
-   reducer refuses wears the wanting voice (item (hhhh) — "A Warrior already
-   stands in Uruk"), and `:disabled` here is a class plus a pseudo-class, which
-   ties `.wanting.wanting` on specificity and beats it on order. Everything a
-   greyed tag *is* — the faint rim, the dead ground, the shallow throw — stays
-   above; only the figure's colour steps aside for the voice.
+/* Short of the bank: the plain figure with no plate, and what is missing under
+   it. `.price-cell-need` sets no ink of its own; it takes the vermilion italic
+   from `.wanting`, the voice of every "you have not got X". */
+.price-cell.is-short {
+  padding: 2px 4px;
+  color: var(--ink-soft);
+}
 
-   A seat that has merely ended its turn is not wanting anything, so its tag
-   never carries the class and takes the faint ink here, exactly as before. */
-.city-buildable-buy:disabled:not(.wanting) {
+.price-cell-need {
+  font-size: 9px;
+}
+
+/* Cannot be bought here: a dash. The reason is a line at the head of the shelf
+   or under the row (`.refusal-line`). */
+.price-cell.is-none {
+  flex-direction: row;
+  gap: 1px;
+  padding: 5px 4px;
   color: var(--ink-faint);
+}
+
+/* A row nothing could ever buy keeps the column's width and shows nothing. */
+.price-cell.is-empty {
+  visibility: hidden;
+}
+
+/* The small number that ties a dash to the shared reason it answers to. The
+   same element on both ends, so the two always look alike. */
+.refusal-mark {
+  margin: 0 1px;
+  font-family: var(--face-num);
+  font-size: 8px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 0;
+}
+
+/* A refusal, said once. The ink and the italic are `.wanting`'s; these rules
+   set only the size and where the line stands. */
+.refusal-line {
+  margin: 1px 0;
+  font-family: var(--face-ui);
+  font-size: 10.5px;
+  line-height: 1.35;
+}
+
+/* Under the one row it speaks for, indented to sit with it. */
+.refusal-line.is-row {
+  margin-top: -1px;
+  padding-left: 10px;
+}
+
+/* A command the reducer refused just now: boxed so it reads as news, and held
+   at the top of its rail while the rail scrolls. */
+.refusal-line.is-command {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 5px 8px;
+  border: var(--border-thin) solid var(--vermilion);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.35);
+}
+
+/* The banks: "Treasury 437 (+21) · Faith 51 (+2)". The labels quiet, each
+   figure in its bank's ink, every number in the tabular mono. */
+.bank-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.bank-figure-label {
+  font-family: var(--face-ui);
+  font-weight: 600;
+}
+
+.bank-figure-value,
+.bank-held {
+  font-weight: 600;
+}
+
+.bank-figure.is-gold .bank-figure-value,
+.bank-held.is-gold {
+  color: var(--y-gold);
+}
+
+.bank-figure.is-faith .bank-figure-value,
+.bank-held.is-faith {
+  color: var(--y-faith);
 }
 
 /* The stripe down the left edge is what separates the two kinds: a city builds
@@ -11399,6 +11575,36 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .city-buildable:disabled .city-buildable-eyebrow {
   color: var(--ink-faint);
+}
+
+/* A building already in the queue keeps its row in the add list (batch UX5,
+   the user's A1 ruling), marked with where it stands: "in queue · 1st". Its
+   build button cannot be pressed, because a second copy in one queue is
+   refused, but nothing is wrong with it, so it is drawn as a quiet label (a
+   dashed rim, no throw, the ordinary ink) rather than greyed like a refused
+   row. Its price beside it is pressable as usual. */
+.city-buildable.is-queued:disabled {
+  border-color: var(--ink-soft);
+  border-style: dashed;
+  border-left-style: solid;
+  border-left-color: var(--cobalt);
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
+}
+
+.city-buildable.is-wonder.is-queued:disabled {
+  border-left-color: var(--gilt);
+}
+
+.city-buildable.is-queued:disabled .city-buildable-cost:not(.wanting),
+.city-buildable.is-queued:disabled .city-buildable-preview,
+.city-buildable.is-queued:disabled .city-buildable-eyebrow.is-queued {
+  color: var(--ink-soft);
+}
+
+.city-buildable.is-queued:disabled .city-buildable-eyebrow:not(.is-queued) {
+  color: var(--gilt);
 }
 
 /* --- renown, great people and their Triumphs -----------------------------
