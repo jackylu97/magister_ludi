@@ -52,7 +52,7 @@ Minor threads: naval force (map-dependent), and the holy war, which mostly belon
 
 ### Finished builds
 
-*Not written yet.* The next step: three or four finished builds for Dominion, each in the shape of SKILL.md's "Finished builds" section (engine, how it wins, the eleven chairs as foundation, engine, finishers and flex, 15 to 20 candidates, what it gives up, partner decks). Show them to the user before relying on them. The throughlines above are where to start: a finished build is a throughline's endgame, made concrete.
+*Proposed, not yet approved:* `docs/plans/dominion-builds.md` (2026-10-14) drafts four: the garrison state, the endless host, the steppe raiders and the conqueror. Use them as the working target until the user rules; move them here once approved. The method: three or four finished builds for Dominion, each in the shape of SKILL.md's "Finished builds" section (engine, how it wins, the eleven chairs as foundation, engine, finishers and flex, 15 to 20 candidates, what it gives up, partner decks). Show them to the user before relying on them. The throughlines above are where to start: a finished build is a throughline's endgame, made concrete.
 
 ### Cards placed
 
