@@ -89,6 +89,20 @@ The user, 2026-10-12: *"ok E2 is my favorite."* One drawer at the top-left, in t
 
 The user, 2026-10-15: *"Could we begin the UX overhaul that we started planning? That should go on in parallel while i'm a blocker on deck changes"*.
 
+**Status: every batch below is built, gated and deployed (2026-10-15).** Each was committed on `decks` after typecheck, the core tests and the build passed; batches that touched the simulation or the bots also passed the bot replay digests unchanged. No batch changed the save format.
+
+| Batch | Commit | | Batch | Commit |
+|---|---|---|---|---|
+| UX1 top bar | `a2e445ad` | | UX7 build list | `bbf164e6` |
+| UX2 screen registry | `73dffb9a` | | UX7b city follow-ups | `6066464f` |
+| UX3 empire panel | `005ec94a` | | UX8a faith bugs | `ac0b1dfe` |
+| UX4 End Turn list | `d6f429e7` | | UX8b faith readings | `36f070f6` |
+| UX5 city buying | `19c8232a` | | UX9 Faith tabs, Rites | `77fbbba7` |
+| UX5b purchase shortfall | `f05a9c57` | | UX10, UX11 Bonuses, Religion | `4e052d90` |
+| UX6 town at a glance | `8e66ef05` | | | |
+
+Still open after the build: the top bar's fit at 1024 px has not been checked in a browser; a purchase can strand set-aside hammers (`docs/flags.md` (tttttt), held for the next save-format change); `pamphlet.ts` still says "the Religion screen", because its text is pinned as ruled.
+
 - Two streams run at once, one agent each, on separate files: **the HUD** and **the city screen**. The faith screen's bug fixes run beside them; the rest of the faith screen waits for its rulings.
 - Each batch is gated (typecheck, core tests, build), committed on `decks` and deployed to the play server before the next batch in its stream starts.
 - The rulings the later batches wait on are in `docs/flags.md` item (ssssss).
