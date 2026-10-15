@@ -1,29 +1,32 @@
 /**
- * **The Dominion deck, entered** (D1b, `docs/plans/decks-rework.md` "D1b — the
- * cards"; the design of record is `docs/six-decks-first-cut.md`, its
- * "Dominion" section and the "Card-reading conventions" above it).
+ * **The Dominion deck** (D1b, `docs/plans/decks-rework.md` "D1b — the cards").
  *
  * The deck's rows live in `data/decks/dominion.json`, and this file is the
- * register for them. What it pins:
+ * register for them. What it checks:
  *
- *   · **the sheet is the table** — since the deck implementation batch the
- *     spec of record is the deck sheet, `docs/decks/dominion.md`. Its five tier
- *     tables are read here, card for card: every card has a row of that name,
- *     rarity, band and text (the "In the game" column), and every row that is
- *     not retired is on the sheet. A retired row is on no table and dealt by
- *     nobody; the sheet no longer lists its cuts (the user, 2026-10-13: the
- *     sheet reflects what is in the game and what is not in yet).
- *     `statecraftDocSync.test.ts` is the sync for the live rows' printed words
+ *   · **the sheet matches the data.** The spec of record is the deck sheet,
+ *     `docs/decks/dominion.md`. Since 2026-10-15 it is a compact list: five tier
+ *     tables, each row giving a card's name, rarity, status and ability. The
+ *     status says how the row relates to the data:
+ *       - `implemented`: a data row of that name exists, is dealt, and has the
+ *         same rarity, band and text;
+ *       - `modify`: a data row exists but needs work, so only its presence is
+ *         checked. A renamed card is written "New Name (was Old Name)", and the
+ *         old name is the data row's;
+ *       - `add`: no data row of that name exists yet.
+ *     Every data row that is not retired is on the sheet, once, as
+ *     `implemented` or `modify`. A retired row is on no table and dealt by
+ *     nobody. `statecraftDocSync.test.ts` checks the live rows' printed words
  *     against `docs/orders-and-doctrines.md`;
  *   · **one deck, one band, one rarity** on every row of the file;
- *   · **live or deferred, never half** — a row carries effects and is dealt, or
- *     it carries a stated deferral, no effects, and is in no pool
- *     (`orderIsDealt`'s own rule). Never bent into a near-fit: the shapes the
- *     deferred rows wait on are the deck's shape audit, and D2's input;
- *   · **every live row speaks** — `describeCard` says a clause for it and no
+ *   · **live or deferred, never half**: a row either carries effects and is
+ *     dealt, or carries a stated deferral, no effects, and is in no pool
+ *     (`orderIsDealt`'s own rule). A text that needs a missing shape is
+ *     deferred, never bent into a near fit;
+ *   · **every live row speaks**: `describeCard` says a clause for it, and no
  *     surface is handed a raw keyword ref;
- *   · **a seeded draft deals this deck's live rows and nothing else** — no
- *     deferred row, nothing off the seat's own shelf.
+ *   · **a seeded draft deals this deck's live rows and nothing else**: no
+ *     deferred row, and nothing off the seat's own shelf.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -52,9 +55,8 @@ import { createGame } from '../newGameHelpers';
 // --- the deck sheet, read ----------------------------------------------------
 
 /**
- * **The deck sheet** (`docs/decks/dominion.md`) is the spec of record since the
- * deck implementation batch (`docs/plans/deck-implementation.md`); it replaced
- * the Dominion section of `docs/six-decks-first-cut.md`, which is now history.
+ * **The deck sheet** (`docs/decks/dominion.md`), the spec of record since the
+ * deck implementation batch (`docs/plans/deck-implementation.md`).
  */
 const docFiles = import.meta.glob('../../../docs/decks/dominion.md', {
   eager: true,
@@ -66,11 +68,21 @@ const DOC = Object.values(docFiles)[0] as string;
 /** The sheet's tier headings, which are the bands. */
 const TIERS: Record<string, Band> = { '0': 0, I: 1, II: 2, III: 3, IV: 4 };
 
-/** One card the sheet's tier tables list: its name, its rarity, its band, its text. */
+/** How a sheet row relates to the data: the first word of its Status cell. */
+type DocStatus = 'implemented' | 'modify' | 'add';
+const DOC_STATUSES: readonly DocStatus[] = ['implemented', 'modify', 'add'];
+
+/** One card the sheet's tier tables list. */
 interface DocCard {
+  /** The name the sheet prints, without the bold and the "(was …)" note. */
   name: string;
+  /** The name in the "(was …)" note, when the sheet gives one. */
+  was?: string;
   rarity: OrderRarity;
   band: Band;
+  status: DocStatus;
+  /** The word after the colon in the Status cell ("deferred", "revised" …), if any. */
+  reason?: string;
   text: string;
 }
 
@@ -82,16 +94,19 @@ function cellsOf(line: string): string[] | null {
   return cells;
 }
 
-/** A card's name as the sheet prints it, with the bold and any "(built)" note removed. */
-function nameOf(cell: string): string {
-  return cell.replace(/\*\*/g, '').replace(/\s*\((built|new)\)$/, '').trim();
+/** A Card cell read into the printed name and the "(was …)" name, if any. */
+function namesOf(cell: string): { name: string; was?: string } {
+  const plain = cell.replace(/\*\*/g, '').trim();
+  const match = /^(.*?)\s*\(was (.+)\)$/.exec(plain);
+  if (match === null) return { name: plain };
+  return { name: match[1]!.trim(), was: match[2]!.trim() };
 }
 
 /**
  * **The five tier tables of the sheet**, in the sheet's own order. Read from
  * the first tier heading to the first level-two heading that is not a tier, so
- * the new cards (not in the data yet) and the shared table (whose rows live in
- * `common.json`) are not read here.
+ * the shared table (whose rows live in `common.json`) and the notes after it
+ * are not read here.
  */
 function docCards(): DocCard[] {
   const start = DOC.indexOf('\n## Tier 0');
@@ -107,10 +122,23 @@ function docCards(): DocCard[] {
     if (line.startsWith('## ')) break;
     const cells = cellsOf(line);
     if (cells === null || band === null || cells.length < 4) continue;
-    cards.push({ name: nameOf(cells[0]!), rarity: cells[1] as OrderRarity, band, text: cells[3]! });
+    const [head, reason] = cells[2]!.split(':').map((part) => part.trim());
+    const status = head as DocStatus;
+    expect(DOC_STATUSES, `"${cells[0]}" has an unknown status "${cells[2]}"`).toContain(status);
+    cards.push({
+      ...namesOf(cells[0]!),
+      rarity: cells[1] as OrderRarity,
+      band,
+      status,
+      ...(reason ? { reason } : {}),
+      text: cells[3]!,
+    });
   }
   return cards;
 }
+
+/** The name of the data row a sheet row stands for: the "(was …)" name if given. */
+const dataNameOf = (card: DocCard): string => card.was ?? card.name;
 
 /** The rows of `data/decks/dominion.json`, in file order. */
 const ROWS: readonly OrderId[] = DECK_FILE_ORDERS.dominion;
@@ -123,7 +151,7 @@ const isLive = (id: OrderId): boolean =>
 /** The retired rows: kept for saves, dealt by nobody, and off the sheet. */
 const isRetired = (id: OrderId): boolean => orderDef(id).retired === true;
 
-/** The rows the sheet's tier tables list: every row that is not retired. */
+/** The rows the sheet's tier tables must list: every row that is not retired. */
 const SHEET_ROWS: readonly OrderId[] = ROWS.filter((id) => !isRetired(id));
 
 describe('the Dominion deck — the file', () => {
@@ -152,23 +180,48 @@ describe('the Dominion deck — the file', () => {
     const doc = docCards();
     expect(doc.length, 'the doc lists cards under every tier heading').toBeGreaterThan(0);
     const byName = new Map(SHEET_ROWS.map((id) => [orderDef(id).name, id] as const));
+    // Every name in the file, retired rows included: names are unique in the
+    // file, so a card still to be added may not reuse a retired row's name.
+    const everyName = new Set(ROWS.map((id) => orderDef(id).name));
     for (const card of doc) {
-      const id = byName.get(card.name);
-      expect(id, `the deck file has no row for "${card.name}"`).toBeDefined();
+      if (card.status === 'add') {
+        expect(everyName.has(card.name), `"${card.name}" is marked add but the data has it`).toBe(false);
+        if (card.was !== undefined) {
+          expect(everyName.has(card.was), `"${card.was}" is marked add but the data has it`).toBe(false);
+        }
+        continue;
+      }
+      const id = byName.get(dataNameOf(card));
+      expect(id, `the deck file has no row for "${dataNameOf(card)}"`).toBeDefined();
+      if (card.status === 'modify') {
+        // A row the sheet calls deferred is one the game does not deal yet.
+        if (card.reason === 'deferred') {
+          expect(isLive(id!), `${card.name} is marked deferred but is dealt`).toBe(false);
+        }
+        continue;
+      }
+      // Implemented: in the data, dealt, and printed exactly as the sheet prints it.
       const def = orderDef(id!);
-      expect(def.rarity, `${card.name} — the doc's mark`).toBe(card.rarity);
-      expect(def.band, `${card.name} — the doc's tier`).toBe(card.band);
-      expect(def.text, `${card.name} — the doc's own words`).toBe(card.text);
+      expect(card.was, `${card.name} is implemented and renamed`).toBeUndefined();
+      expect(isLive(id!), `${card.name} is marked implemented but is not dealt`).toBe(true);
+      expect(def.rarity, `${card.name}: the sheet's rarity`).toBe(card.rarity);
+      expect(def.band, `${card.name}: the sheet's tier`).toBe(card.band);
+      expect(def.text, `${card.name}: the sheet's ability`).toBe(card.text);
     }
-    const listed = new Set(doc.map((card) => card.name));
+    // Every row that is not retired is on the sheet once, as implemented or modify.
+    const listed = doc.filter((card) => card.status !== 'add').map(dataNameOf);
+    expect(new Set(listed).size, 'a data row is listed twice').toBe(listed.length);
     for (const name of byName.keys()) {
-      expect(listed.has(name), `"${name}" is a row the doc's Dominion tables do not list`).toBe(true);
+      expect(listed.includes(name), `"${name}" is a row the sheet's tier tables do not list`).toBe(true);
     }
-    expect(SHEET_ROWS.length).toBe(doc.length);
+    expect(listed.length).toBe(SHEET_ROWS.length);
+    // And the sheet prints no name twice.
+    const printed = doc.map((card) => card.name);
+    expect(new Set(printed).size, 'the sheet prints a name twice').toBe(printed.length);
   });
 
   it('keeps every retired row off the sheet’s tables, and deals none of them', () => {
-    const listed = new Set(docCards().map((card) => card.name));
+    const listed = new Set(docCards().flatMap((card) => [card.name, dataNameOf(card)]));
     for (const id of ROWS) {
       if (!isRetired(id)) continue;
       expect(listed.has(orderDef(id).name), `${id} is retired and still on the sheet`).toBe(false);

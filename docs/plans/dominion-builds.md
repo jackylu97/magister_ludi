@@ -545,3 +545,38 @@ The user read this proposal and answered its questions in this file. Their words
 - Every card in this proposal goes onto the deck sheet, `docs/decks/dominion.md`, which becomes a compact list grouped by tier: name, rarity, status and ability.
 - The sheet's earlier long form is kept as `docs/decks/reference/dominion-2026-10-15.md`.
 - The user then revises the cards on the sheet. The cards and their new shapes are built after that pass.
+
+### Reworks and new rule-breakers (2026-10-15)
+
+Written onto the deck sheet for rulings 6 and 4. Each is a first draft for the user's revision pass.
+
+**Reworks (ruling 6).** Each of the eleven cards no build used now serves one:
+- **The Camp Chaplains** (Tier 0, common) serves the raiders and the conqueror: killing a unit grants faith equal to its strength. Pay for an army held at peace is what the tempo ruling avoids, so it pays on kills instead, which those two builds make anyway. It is also a third card for Joan of Arc's kills-and-faith theme.
+- **The Armed Colony** (Tier 0, common) serves the drilled legions: the unit beside the new town becomes a Veteran, so settling feeds ranks. The user's three extra hexes stay; the extra citizen gives way to the rank.
+- **The Outriders** (Tier 0, common; the user's scouts card) serves the raiders and the host: a discovery or a cleared camp grants 8 production to every town. It keeps the user's discovery payout and adds camps, which both builds clear early. The scouts' sight is dropped to keep one effect.
+- **The Captured Arms** (Tier 0, common; the user's "gaining a unit grants science equal to its strength") serves the raiders and the conqueror: +1 science for every unit killed this game, at most +20. The Art of War already pays science on units gained, so this reads kills instead, and it gives the two builds with no early science a scaler that lasts into Tier II.
+- **The Campaign Annals** (Tier 0, rare; was The Bronze Smiths) serves the drilled legions: a grower that gains +1 science each time a unit earns a rank. The legions had no science before Tier I. It keeps the role the user gave The Bronze Smiths, the early science rare, and every Dominion seat earns ranks by fighting.
+- **The Marching Camps** (Tier I, common; was March Discipline) serves the drilled legions and the conqueror: attacking does not break fortification. A garrison that sallies out (The Sally Port) and a siege line that attacks from its trenches both stay dug in.
+- **The Soldiers' Purse** (Tier I, common) serves the drilled legions, and the ranked riders and assault troops of the other builds: each rank lowers a unit's upkeep by 1, so a quality army pays its own way.
+- **Armoury Guilds** (Tier II, common) serves the endless host: when a unit falls, the nearest town with an Armoury gains production equal to its strength. The fallen arm the next wave, and the host gets a production payout on losses.
+- **The Longships** (Tier II, uncommon; was Marine Drill) serves the raiders, as sea raiders: ships may pillage improvements on the shore beside them, and every pillage card pays for it.
+- **The Captured Arsenals** (Tier III, common; was Arsenals) serves the conqueror: towns in unrest still build military units, so a taken town arms the next march at once. The conqueror also had no Tier III common.
+- **The Landing Parties** (Tier III, uncommon; was Naval Supremacy) serves the conqueror: land units attacking from a ship gain +8 strength, which makes coastal towns targets for landings.
+
+**New rule-breakers (ruling 4).** Two in Tier III and four in Tier IV, which now opens at draft 38:
+- **Rally to the Standard** (Tier III, uncommon) serves the endless host: units gained may appear beside a great general. The host's waves arrive where the fighting is, without a march from home for every new unit.
+- **The Testudo** (Tier III, uncommon) serves the drilled legions: ranged attacks cannot kill your units. A bow can wound a Veteran but not finish it, so a town falls only to an assault that faces its garrison.
+- **The Varangian Guard** (Tier IV, rare) serves the drilled legions: Elite units may attack twice a turn. A few Elites cut through an army, which pays off every card that made one.
+- **The Glorious Dead** (Tier IV, rare) serves the endless host: losses never count toward war weariness. It removes the host's one real cost, and it is the late form of The Funeral Oration.
+- **The Harrying** (Tier IV, rare) serves the steppe raiders: pillaging beside a rival town with no garrison throws that town into unrest. The raid stops the town, not only its fields, and the defender's answer is to garrison every town.
+- **The Great Bombards** (Tier IV, rare) serves the conqueror: siege units break a town's walls in one blow. It is a lasting form of The Wooden Horse, from the age of the guns that took Constantinople.
+
+**Names for the user's unnamed ideas:** The Garrison Captains (+1 authority for each garrisoned unit), The Spear Makers (+30% production toward first- and second-age military units) and The Hunting Grounds (faster camps nearby, +4 strength at home). Their text is the user's.
+
+**Shapes these add,** beyond the families the builds already need:
+- a count of units killed this game (The Captured Arms), in the approved "this game" family;
+- a grower on the promotion moment (The Campaign Annals), in the ranks family;
+- a rank test for upkeep (The Soldiers' Purse);
+- a second way into unrest (The Harrying), and an exception to the unrest gate for military units (The Captured Arsenals), both in the pacification family;
+- unit and combat rules: keep fortification when attacking, pillage from a ship, appear beside a general, no kill by a ranged blow, two attacks a turn for Elites, walls broken in one blow;
+- war weariness at zero for your losses (The Funeral Oration's weight, taken to nothing).
