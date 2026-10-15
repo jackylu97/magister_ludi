@@ -142,7 +142,8 @@ describe('the sheet itself', () => {
     expect(main).toContain('victory = createVictoryScreen({');
     expect(main).toContain('trigger: civYields.standingsTab,');
     expect(main).toContain('victory?.open();');
-    expect(main).toContain('onOpenStandings: () => openScreen(() => victory?.open()),');
+    expect(main).toContain('onOpenStandings: () => victory?.open(),');
+    expect(main).toContain("onOpen: () => screens.opening('standings'),");
     expect(main).not.toContain('hudDock.standingsButton');
   });
 
@@ -154,11 +155,16 @@ describe('the sheet itself', () => {
     expect(header).toContain('aria-controls="abacus-overlay"');
     // The button is the Abacus screen's trigger, and the Abacus shuts this
     // sheet as it opens, so closing the Abacus lands on the Standings tab.
+    // Since batch UX2 the shutting is the screen registry's: the Abacus is a
+    // screen, and opening a screen closes the other screens, the standings
+    // among them.
     const main = uiSource('main.ts');
     expect(main).toContain('trigger: victoryAbacusButton,');
     const abacus = main.slice(main.indexOf('abacus = createAbacusScreen({'));
-    const onOpen = abacus.slice(abacus.indexOf('onOpen: () => {'), abacus.indexOf('onOpenBeads:'));
-    expect(onOpen).toContain('victory?.close();');
+    const onOpen = abacus.slice(abacus.indexOf('onOpen:'), abacus.indexOf('onOpenBeads:'));
+    expect(onOpen).toContain("screens.opening('abacus')");
+    expect(main).toContain("screens.register(held('abacus', 'screen', () => abacus));");
+    expect(main).toContain("screens.register(held('standings', 'screen', () => victory));");
     // And `A` still opens it from anywhere.
     expect(main).toContain('onToggleAbacus: () => abacus?.toggle(),');
   });

@@ -150,9 +150,10 @@ describe('the interface never raises a platform dialog', () => {
   it('mounts the card on a shell the page owns', () => {
     expect(source('index.html')).toContain('id="confirm-overlay"');
     expect(source('main.ts')).toContain("requireElement<HTMLElement>('confirm-overlay')");
-    // Escape order: the card is one of the surfaces `closePopovers` takes down,
-    // and one of the surfaces the hotkeys refuse to fire under.
-    expect(source('main.ts')).toContain('confirmCard.close()');
-    expect(source('main.ts')).toContain('confirmCard.isOpen');
+    // The card is news in the screen registry (batch UX2): the sweep takes it
+    // down, and the hotkeys refuse to fire while it is up.
+    expect(source('main.ts')).toContain("screens.register(held('confirm', 'news', () => confirmCard));");
+    // Raised through one door, which closes the open cards first.
+    expect(source('main.ts')).toContain("screens.opening('confirm');\n  confirmCard.ask(request, onConfirm);");
   });
 });

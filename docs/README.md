@@ -539,6 +539,16 @@ Eight root pages, all named in `vite.config.ts` inputs:
   and turn timers, but keep their listeners. Dispose only before replacing the
   screen instances. Statecraft's × and Escape must still work on the first visit
   after Restart, including when leaving commits an Order.
+- **The screen registry** (`src/ui/screenRegistry.ts`, batch UX2) decides what
+  closes when something opens. Every surface registers once in `main.ts` as a
+  card (the HUD's small cards), a screen (anything that covers the window) or
+  news (an offer, a Triumph or a bead, the confirm card, the spend ceremony), and
+  its open hook calls `screens.opening(name)`. Opening a card or a screen closes
+  every other card and screen; raising news closes only the cards; `closeAll` is
+  Escape's first layer and the sweep for the title screen and a loaded game; and
+  an open screen or news blocks the board's keys. A new surface joins by
+  registering, and `test/ui/screenRegistry.test.ts` fails a module built on the
+  sheet frame that `main.ts` builds without registering it.
 - **The HUD** (batch UX1, `docs/plans/hud-empire-panel-spec.md` §2 and §7). The
   top bar, left to right: the six yields (each opens the Ledger on its own
   yield, culture included); one meters chip, happiness and authority, each half

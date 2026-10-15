@@ -838,7 +838,7 @@ describe('the sheet’s frame and its doors', () => {
     // the Trade tab at the right end of the bar, carrying the routes figure.
     const bar = source('topBar.ts');
     expect(bar).toContain("if (onOpenTrade) tradeTab.addEventListener('click', () => onOpenTrade());");
-    expect(main).toContain('onOpenTrade: () => {');
+    expect(main).toContain('onOpenTrade: () => trade?.open(),');
     expect(main).not.toContain('hudDock.tradeButton');
     expect(main).toContain("if (event.key !== 'e' && event.key !== 'E') return;");
     // The hotkey is unbound between games, unlike its two older neighbours.

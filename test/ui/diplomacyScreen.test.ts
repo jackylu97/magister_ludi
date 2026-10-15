@@ -432,8 +432,11 @@ describe('the wiring that spans files', () => {
     expect(source('topBar.ts')).toContain(
       "if (onOpenDiplomacy) diplomacyTab.addEventListener('click', () => onOpenDiplomacy());",
     );
-    expect(main).toContain('onOpenDiplomacy: () => openScreen(() => diplomacy?.open()),');
-    expect(main).toContain('openScreen(() => diplomacy?.open())');
+    // The tab and `W` open the sheet, and the sheet's own opening closes
+    // whatever else is up (the screen registry, batch UX2).
+    expect(main).toContain('onOpenDiplomacy: () => diplomacy?.open(),');
+    expect(main).toContain('else diplomacy?.open();');
+    expect(main).toContain("onOpen: () => screens.opening('diplomacy'),");
     // The sheet gives the keyboard back to the tab.
     expect(main).toContain('trigger: civYields.diplomacyTab,');
   });
@@ -469,9 +472,11 @@ describe('the wiring that spans files', () => {
   });
 
   it('closes every other surface when it opens, and is closed by the sweep', () => {
+    // Both halves are the screen registry's (batch UX2): the sheet tells it
+    // when it opens, and its registration is what the sweep closes.
     const main = source('main.ts');
-    expect(main).toContain('diplomacy?.close();');
-    expect(main).toContain('(diplomacy?.isOpen ?? false) ||');
+    expect(main).toContain("onOpen: () => screens.opening('diplomacy'),");
+    expect(main).toContain("screens.register(held('diplomacy', 'screen', () => diplomacy));");
     expect(main).toContain('gameDisposers.push(() => diplomacy?.dispose());');
   });
 });

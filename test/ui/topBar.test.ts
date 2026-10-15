@@ -291,7 +291,9 @@ describe('the tabs and their doors', () => {
   it('opens Diplomacy from its tab, through the same door W uses', () => {
     expect(bar).toContain("sheetButton('topbar-tab is-diplomacy', 'diplomacy-overlay')");
     expect(bar).toContain("if (onOpenDiplomacy) diplomacyTab.addEventListener('click', () => onOpenDiplomacy());");
-    expect(main).toContain('onOpenDiplomacy: () => openScreen(() => diplomacy?.open()),');
+    // The sheet's own opening closes whatever else is up (the screen registry,
+    // batch UX2), so the door only opens it.
+    expect(main).toContain('onOpenDiplomacy: () => diplomacy?.open(),');
     expect(main).toContain('trigger: civYields.diplomacyTab,');
   });
 
@@ -299,7 +301,7 @@ describe('the tabs and their doors', () => {
     expect(bar).toContain("sheetButton('topbar-tab is-trade', 'trade-overlay')");
     expect(bar).toContain("if (onOpenTrade) tradeTab.addEventListener('click', () => onOpenTrade());");
     expect(bar).toContain('info.bind(tradeTab, () => routesCard());');
-    expect(main).toContain('trade?.open();');
+    expect(main).toContain('onOpenTrade: () => trade?.open(),');
   });
 
   it('gives Standings three doors: the sheet, the Reliquary and the bead ledger', () => {
@@ -309,10 +311,10 @@ describe('the tabs and their doors', () => {
     expect(bar).toContain("if (onOpenBeads) beadsItem.addEventListener('click', () => onOpenBeads());");
     expect(bar).toContain('info.bind(renownItem, () => renownCard());');
     expect(bar).toContain('info.bind(beadsItem, () => beadsCard());');
-    expect(main).toContain('onOpenStandings: () => openScreen(() => victory?.open()),');
+    expect(main).toContain('onOpenStandings: () => victory?.open(),');
     expect(main).toContain('trigger: civYields.standingsTab,');
-    expect(main).toContain('reliquary?.open();');
-    expect(main).toContain('beads?.open();');
+    expect(main).toContain('onOpenReliquary: () => reliquary?.open(),');
+    expect(main).toContain('onOpenBeads: () => beads?.open(),');
   });
 
   it('lets the dock keep only the screens about this empire', () => {
@@ -560,7 +562,21 @@ describe('the Compendium, from the menu and the ? card', () => {
       "menuCompendiumButton.addEventListener('click', () => {\n  menu.close();\n  compendium.open();\n});",
     );
     const block = main.slice(main.indexOf('createCompendium({'));
-    expect(block.slice(0, block.indexOf('onOpen:'))).toContain('trigger: menuButton,');
+    const options = block.slice(0, block.indexOf('onOpen:'));
+    // The row is the book's trigger, so the `aria-expanded` mirror lands on
+    // the row and ☰'s own stays the menu's (it read as expanded for as long as
+    // the book was open while ☰ was the trigger).
+    expect(options).toContain('trigger: menuCompendiumButton,');
+    expect(options).not.toContain('trigger: menuButton,');
+    // The row is hidden by the time the book closes, so ☰ takes the keyboard,
+    // whichever way the book was closed.
+    const watcher = main.slice(main.indexOf('new MutationObserver(() => {'));
+    expect(watcher.slice(0, watcher.indexOf('}).observe('))).toContain(
+      'menuButton.focus({ preventScroll: true });',
+    );
+    expect(main).toContain(
+      "}).observe(compendiumOverlayEl, { attributes: true, attributeFilter: ['hidden'] });",
+    );
     expect(main).not.toContain('compendiumButton.addEventListener');
   });
 });

@@ -371,8 +371,11 @@ describe('the doors to the screen', () => {
   });
 
   it('joins the registers every other overlay is in', () => {
-    expect(main).toContain('(beads?.isOpen ?? false) ||');
-    expect(main).toContain('beads?.close();');
+    // One registration in the screen registry (batch UX2): it closes the rest as
+    // it opens, the rest close it, the sweep takes it down, and it blocks the
+    // hotkeys while it is up.
+    expect(main).toContain("screens.register(held('beadLedger', 'screen', () => beads));");
+    expect(main).toContain("onOpen: () => screens.opening('beadLedger'),");
   });
 });
 

@@ -1299,8 +1299,9 @@ describe('the door in the yield strip', () => {
 
   it('is wired from main, and hands the chip’s own voice through', () => {
     const main = source('main.ts');
-    expect(main).toContain('onOpenLedger: (key) => {');
-    expect(main).toContain('ledger?.open(key);');
+    // The sheet's own opening closes whatever else is up (the screen
+    // registry, batch UX2), so the chip's door only opens it.
+    expect(main).toContain('onOpenLedger: (key) => ledger?.open(key),');
   });
 
   it('pushes its disposer into the register every per-game screen joins', () => {
@@ -1326,8 +1327,10 @@ describe('the door in the yield strip', () => {
 
   it('takes its turn in the one-sheet-at-a-time rule, both ways', () => {
     const main = source('main.ts');
-    expect(main).toContain('(ledger?.isOpen ?? false)');
-    expect(main).toContain('ledger?.close();');
+    // One registration in the screen registry (batch UX2) is both ways: its
+    // opening closes the rest, and any other opening or the sweep closes it.
+    expect(main).toContain("screens.register(held('ledger', 'screen', () => ledger));");
+    expect(main).toContain("onOpen: () => screens.opening('ledger'),");
     // The way out is the register's, not a call in `showLanding`: `boot` sweeps
     // the same list, so a save loaded without visiting the landing is covered.
     expect(main).toContain('gameDisposers.push(() => ledger?.dispose());');

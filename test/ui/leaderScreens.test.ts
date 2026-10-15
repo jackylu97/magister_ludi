@@ -423,9 +423,9 @@ describe('the sheet’s furniture', () => {
   it('registers in the disposal register and nowhere by name', () => {
     const main = uiSource('main.ts');
     expect(main).toContain('gameDisposers.push(() => leaderSheet?.dispose());');
-    // And it is taken down by `closePopovers`, so it cannot stand over the
-    // landing screen after a restart.
-    expect(main).toContain('leaderSheet?.close();');
+    // And it is in the screen registry, whose sweep takes it down, so it
+    // cannot stand over the landing screen after a restart.
+    expect(main).toContain("screens.register(held('leader', 'screen', () => leaderSheet));");
   });
 
   it('gives the dock a fifth door wearing the seat’s own charge', () => {

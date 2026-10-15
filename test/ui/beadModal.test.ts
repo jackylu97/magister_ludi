@@ -425,9 +425,14 @@ describe('the queue above the sheets', () => {
   });
 
   it('blocks the board’s hotkeys while a sheet stands', () => {
+    // The bead sheet is news in the screen registry (batch UX2), and the
+    // hotkeys' guard asks the registry whether any screen or news is up.
     const guard = main.slice(main.indexOf('function isInputBlocked'));
     const body = guard.slice(0, guard.indexOf('function newsBlocked'));
-    expect(body).toContain('beadSheet?.isOpen');
+    expect(body).toContain('screens.blocksInput()');
+    expect(main).toMatch(
+      /name: 'bead',\s*kind: 'news',\s*isOpen: \(\) => beadSheet\?\.isOpen \?\? false,/,
+    );
   });
 });
 

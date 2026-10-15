@@ -418,8 +418,9 @@ describe('the Reliquary screen', () => {
     const main = source('main.ts');
     expect(main).toContain('reliquary = createReliquaryScreen({');
     expect(main).toContain('gameDisposers.push(() => reliquary?.dispose());');
-    expect(main).toContain('reliquary?.close();');
-    expect(main).toContain('(reliquary?.isOpen ?? false)');
+    // Swept through the screen registry (batch UX2): registered once, it is
+    // closed by the sweep and blocks the hotkeys while it is up.
+    expect(main).toContain("screens.register(held('reliquary', 'screen', () => reliquary));");
   });
 
   it('narrows the paper it borrows', () => {
@@ -471,9 +472,11 @@ describe('the renown figure is the door', () => {
   });
 
   it('opens the sheet through main’s one-screen-at-a-time door', () => {
+    // The door opens the sheet, and the sheet's opening tells the screen
+    // registry, which closes whatever else is up (batch UX2).
     const main = source('main.ts');
-    expect(main).toContain('onOpenReliquary: () => {');
-    expect(main).toContain('reliquary?.open();');
+    expect(main).toContain('onOpenReliquary: () => reliquary?.open(),');
+    expect(main).toContain("onOpen: () => screens.opening('reliquary'),");
   });
 });
 

@@ -151,6 +151,7 @@ import {
 } from './ui/notifications';
 import { type NotificationsPanel, createNotificationsPanel } from './ui/notificationsPanel';
 import { createPopover } from './ui/popover';
+import { type Surface, type SurfaceKind, createScreenRegistry } from './ui/screenRegistry';
 import { type HudDock, createHudDock } from './ui/hudDock';
 import { type HoldingsRail, createHoldingsRail } from './ui/holdingsRail';
 import { type CommissionRail, createCommissionRail } from './ui/commissionRail';
@@ -167,12 +168,12 @@ import { faithPlates } from './ui/faithPlates';
 import { type CivYieldStrip, createCivYieldStrip } from './ui/topBar';
 import { type CardImpactSubject, explainCardImpact } from './sim/cardImpact';
 import { stampIsEmpty, stampReading } from './ui/cardStamp';
-import { type OfferOption, createOfferCard } from './ui/offerCard';
+import { type OfferCard, type OfferOption, createOfferCard } from './ui/offerCard';
 import { type TriumphModal, createTriumphModal } from './ui/triumphModal';
 import { type Rect as TutorialRect, createTutorial } from './ui/tutorial';
 import { createPamphletOverlay, shouldShowPamphlet } from './ui/pamphlet';
 import { authorityOf, happinessOf } from './sim/meters';
-import { type ConfirmCard, createConfirmCard } from './ui/confirmCard';
+import { type ConfirmCard, type ConfirmRequest, createConfirmCard } from './ui/confirmCard';
 import { triumphDef } from './sim/triumphData';
 import { AXIS_MARK, beliefCardType, beliefOfferEyebrow } from './ui/religionScreen';
 import { beliefDef } from './sim/religionData';
@@ -669,9 +670,19 @@ setSeatCount(DEFAULT_SEATS);
 // --- the HUD's transient cards ---------------------------------------------
 
 /**
- * The three transient cards. Only one is ever open — each closes the other two
- * as it opens — and Escape reaches them through `controls`, which owns the key
- * and the order it backs things out in.
+ * **The screen registry** (`src/ui/screenRegistry.ts`, batch UX2): every card,
+ * screen and piece of news this page can show, registered once (the list is
+ * further down, after the Compendium, once every holder exists), and the one
+ * rule for what closes when something opens. Each surface's open hook says
+ * `screens.opening(name)` and the registry does the closing; nothing in this
+ * file keeps a list of what to close.
+ */
+const screens = createScreenRegistry();
+
+/**
+ * The three transient cards. Only one card is ever open: each tells the
+ * registry it is opening, which closes the others. Escape reaches them through
+ * `controls`, which owns the key and the order it backs things out in.
  *
  * They are built here, before any game exists, because they are properties of
  * the *page*: the help sheet reads the same with no game behind it, and the menu
@@ -682,10 +693,7 @@ const menu = createPopover({
   trigger: menuButton,
   closeButton: requireElement('menu-close'),
   onOpen: () => {
-    help.close();
-    lens.close();
-    notifications?.close();
-    meterCards?.close();
+    screens.opening('menu');
     // A card that opens showing "Restart?" is a card that will eventually be
     // answered by accident. The save row is reset for the same reason, plus one
     // of its own: its message line reports a moment, and the moment has passed.
@@ -697,23 +705,13 @@ const help = createPopover({
   panel: helpOverlayEl,
   trigger: helpButton,
   closeButton: requireElement('help-close'),
-  onOpen: () => {
-    menu.close();
-    lens.close();
-    notifications?.close();
-    meterCards?.close();
-  },
+  onOpen: () => screens.opening('help'),
 });
 const lens = createPopover({
   panel: lensPopoverEl,
   trigger: lensButton,
   closeButton: requireElement('lens-close'),
-  onOpen: () => {
-    menu.close();
-    help.close();
-    notifications?.close();
-    meterCards?.close();
-  },
+  onOpen: () => screens.opening('lens'),
 });
 
 // --- saving and loading -----------------------------------------------------
@@ -905,7 +903,7 @@ function disposeGameScreens(): void {
 }
 let religion: ReligionScreen | null = null;
 /* Trade's screen, built in `boot` for `religion`'s reason: it asks whose seat
-   this is, and `closePopovers` is declared before there is one. */
+   this is, and the screen registry's list is written before there is one. */
 let trade: TradeScreen | null = null;
 let wagerSheet: WagerSheet | null = null;
 /* The census sheet, built in `boot` for `wagerSheet`'s reason exactly. */
@@ -934,10 +932,11 @@ function chosenReasons(decision: BotDecision): string[] {
   return chosen.terms.map((term) => term.label);
 }
 /* The Reliquary and the spend ceremony, held here for `religion`'s reason: both
-   are built in `boot` off a seat, and `closePopovers` and `showLanding` are
-   written before there is one. The ceremony is not a screen the player opens —
-   it is raised by a command — but a card left rising over a game the player has
-   walked away from is exactly what those two sweeps exist to prevent. */
+   are built in `boot` off a seat, and the screen registry's list and
+   `showLanding` are written before there is one. The ceremony is not a screen
+   the player opens — it is raised by a command — but a card left rising over a
+   game the player has walked away from is exactly what the registry's sweep
+   exists to prevent. */
 let reliquary: ReliquaryScreen | null = null;
 let ceremony: GreatPersonCeremony | null = null;
 /* The capture sheet, held here for the ceremony's reason exactly: it is raised
@@ -964,14 +963,14 @@ const ledgerHistory = createLedgerHistory();
 /**
  * The top bar's meter chips, once `boot` has built them. A holder for the same
  * reason the star chart is one: the cards belong to a strip that needs a game to
- * read, and `closePopovers` is declared before there is one.
+ * read, and the screen registry's list is written before there is one.
  */
 let meterCards: CivYieldStrip | null = null;
 
 /**
  * The HUD dock, once `boot` has built it. A holder for `meterCards`' own
- * reason: the Faith card it owns needs a game to read, and `closePopovers` is
- * declared before there is one.
+ * reason: its buttons need a game to read, and `updatePanel` is declared
+ * before there is one.
  */
 let hudDock: HudDock | null = null;
 
@@ -1003,7 +1002,7 @@ let commissionRail: CommissionRail | null = null;
  * and that is the whole of its lifecycle (see `notifications.ts`: it is view
  * state, and a save carries the command log instead). The panel and the stack
  * are holders for `meterCards`' reason: both need `controls`, which does not
- * exist until `boot`, and `closePopovers` is declared before either.
+ * exist until `boot`, and the screen registry's list is written before either.
  */
 const notificationLog: NotificationLog = createNotificationLog();
 let notifications: NotificationsPanel | null = null;
@@ -1014,6 +1013,12 @@ let toasts: ToastStack | null = null;
  * `boot` and both have to be able to ask whether a sheet is up.
  */
 let triumphSheet: TriumphModal | null = null;
+/**
+ * The offer card, once `boot` has built it. `boot` works with its own constant;
+ * this holder is the screen registry's way to it, for the register's reason: the
+ * list of surfaces is written once, at module scope.
+ */
+let offerCardHolder: OfferCard | null = null;
 
 /**
  * The bead sheet, and the Bead Race's news waiting for a clear screen.
@@ -1055,9 +1060,8 @@ function clearBeadNews(): void {
  * Built here at module scope rather than in `boot`, beside the compendium and
  * the help sheet and for their reason: it is a property of the *page*, not of a
  * game — it reads nothing about a seat, a turn or a board, it only asks a
- * question somebody else wrote. That also puts it above `closePopovers` and
- * `isInputBlocked`, both of which have to be able to take it down and to ask
- * whether it is up.
+ * question somebody else wrote. That also puts it above the screen registry's
+ * list, which has to be able to take it down and to ask whether it is up.
  */
 const confirmCard: ConfirmCard = createConfirmCard(confirmOverlayEl);
 
@@ -1084,24 +1088,13 @@ const compendium: LazyOverlay<Compendium> = lazyOverlay({
         overlay: compendiumOverlayEl,
         body: compendiumBodyEl,
         closeButton: requireElement('compendium-close'),
-        // The ☰ button, not the menu row that opened it: the menu is closed
-        // by the time the book is, and a hidden row cannot take the keyboard
-        // back. The keyboard lands on ☰, the one standing door to the book.
-        trigger: menuButton,
-        onOpen: () => {
-          menu.close();
-          help.close();
-          lens.close();
-          notifications?.close();
-          meterCards?.close();
-          techTree?.close();
-          abacus?.close();
-          beads?.close();
-          statecraft?.close();
-          religion?.close();
-          trade?.close();
-          diplomacy?.close();
-        },
+        // The menu's own row, which is the control that opens the book: it
+        // carries `aria-controls` for the overlay, so the `aria-expanded`
+        // mirror belongs on it. It used to be ☰ itself, which then read as
+        // expanded for as long as the book was open. The row is hidden by the
+        // time the book closes, so the keyboard goes to ☰ instead (below).
+        trigger: menuCompendiumButton,
+        onOpen: () => screens.opening('compendium'),
       }),
     ),
 });
@@ -1113,12 +1106,27 @@ whenIdle(() => compendium.prefetch());
    a rite's line all open the same book. The overlay's `open` already shuts
    whatever else was up, so a keyword clicked over the star chart closes it. */
 setKeywordOpener((entryId) => compendium.open(entryId));
-/* The menu's door to the book. The menu shuts first, so the keyboard goes back
-   to ☰ before the book takes it; the book gives it back there on close. */
+/* The menu's door to the book. The menu shuts first, so it goes at once even
+   while the book is still loading on its first open, and the keyboard is back
+   on ☰ before the book takes it. */
 menuCompendiumButton.addEventListener('click', () => {
   menu.close();
   compendium.open();
 });
+/* **Where the keyboard goes when the book closes.** The shell gives it back to
+   the book's trigger, the menu row, which is hidden by then, so focus would
+   fall to the page. ☰ is the door the book is reached through in a game, so it
+   takes the keyboard instead. Watched on the overlay's `hidden` attribute, the
+   one flag every way of closing the book sets (the ×, Escape, the ground, a
+   sweep). Only while a game is on screen: over the title screen there is no ☰
+   to land on. */
+new MutationObserver(() => {
+  if (!compendiumOverlayEl.hidden || !landingEl.hidden) return;
+  const active = document.activeElement;
+  if (active === null || active === document.body || compendiumOverlayEl.contains(active)) {
+    menuButton.focus({ preventScroll: true });
+  }
+}).observe(compendiumOverlayEl, { attributes: true, attributeFilter: ['hidden'] });
 /* The controls card's one link out. The card closes under it, because two
    surfaces at one z-index is one of them being invisible. */
 requireElement('help-compendium').addEventListener('click', () => {
@@ -1126,66 +1134,109 @@ requireElement('help-compendium').addEventListener('click', () => {
   compendium.open();
 });
 
-function closePopovers(): boolean {
-  const wasOpen =
-    menu.isOpen ||
-    help.isOpen ||
-    lens.isOpen ||
-    (notifications?.isOpen ?? false) ||
-    (meterCards?.isOpen ?? false) ||
-    (techTree?.isOpen ?? false) ||
-    (abacus?.isOpen ?? false) ||
-    (beads?.isOpen ?? false) ||
-    (statecraft?.isOpen ?? false) ||
-    (religion?.isOpen ?? false) ||
-    (trade?.isOpen ?? false) ||
-    (wagerSheet?.isOpen ?? false) ||
-    (censusSheet?.isOpen ?? false) ||
-    // The leader's record (batch L2b), on the census sheet's terms exactly.
-    (leaderSheet?.isOpen ?? false) ||
-    (diplomacy?.isOpen ?? false) ||
-    (reliquary?.isOpen ?? false) ||
-    (ledger?.isOpen ?? false) ||
-    // Counted with the other sheets, and closing it is the puppet answer — the
-    // one the rules already made. It swallows its own Escape while it is up, so
-    // this arm is the landing screen's and a new game's, not the key's.
-    (capture?.isOpen ?? false) ||
-    compendium.isOpen ||
-    savesPanel.isOpen ||
-    // Escape never actually arrives here while the card is up — it answers its
-    // own key in a capturing listener, "no" — but this is also what a new game
-    // and the landing screen call, and a question about a piece from the last
-    // game must not survive into the next one.
-    confirmCard.isOpen;
-  menu.close();
-  help.close();
-  lens.close();
-  notifications?.close();
-  meterCards?.close();
-  techTree?.close();
-  abacus?.close();
-  beads?.close();
-  statecraft?.close();
-  religion?.close();
-  trade?.close();
-  // The leader's record (batch L2b). It is counted in `wasOpen` above and taken
-  // down here, which is what makes Escape mean "clear the screen" for it and
-  // what keeps it from standing over the landing after a restart.
-  leaderSheet?.close();
-  diplomacy?.close();
-  diplomacyOffers?.close();
-  reliquary?.close();
-  ledger?.close();
-  capture?.close();
-  // The ceremony is not a popover and answers no key, but it is a card standing
-  // over the board on a timer, and Escape meaning "clear the screen" has to mean
-  // it here too. It is not counted in `wasOpen`: it takes itself down, so it is
-  // never the reason Escape had something to do.
-  ceremony?.close();
-  compendium.close();
-  savesPanel.close();
-  confirmCard.close();
-  return wasOpen;
+/**
+ * A surface the registry reaches through its holder, so the instance a new boot
+ * builds is the one asked rather than the one this line first saw. The holders
+ * are filled in `boot`; until then a surface reads as closed and closing it does
+ * nothing.
+ */
+function held(
+  name: string,
+  kind: SurfaceKind,
+  get: () => { readonly isOpen: boolean; close(): void } | null,
+): Surface {
+  return { name, kind, isOpen: () => get()?.isOpen ?? false, close: () => get()?.close() };
+}
+
+/*
+ * **The register**: every surface this page can show, once. The kinds and the
+ * rule they follow are `src/ui/screenRegistry.ts`'s docblock; in short, opening
+ * a card or a screen closes the other cards and screens, raising news closes
+ * the cards, and `closeAll` closes everything. A new card, screen or piece of
+ * news is added here, and its open hook calls `screens.opening` with its name
+ * (`test/ui/screenRegistry.test.ts` holds this list to that).
+ *
+ * News is closed by `clear`, where it has one: a sweep drops what is queued
+ * behind it as well, since the sweep is the title screen's and a new game's.
+ */
+// The cards.
+screens.register(held('menu', 'card', () => menu));
+screens.register(held('help', 'card', () => help));
+screens.register(held('lens', 'card', () => lens));
+screens.register(held('chronicle', 'card', () => notifications));
+screens.register(held('meters', 'card', () => meterCards));
+// The incoming-offers list does not report whether it is open, so it is closed
+// whenever the cards are and never counts as open. It opens from its own button
+// in `diplomacyOffers.ts`; that press already closes the other cards by being a
+// press outside them.
+screens.register({ name: 'offers', kind: 'card', close: () => diplomacyOffers?.close() });
+// The screens.
+screens.register(held('compendium', 'screen', () => compendium));
+screens.register(held('saves', 'screen', () => savesPanel));
+screens.register(held('starChart', 'screen', () => techTree));
+screens.register(held('abacus', 'screen', () => abacus));
+screens.register(held('statecraft', 'screen', () => statecraft));
+screens.register(held('rewards', 'screen', () => rewardSheet));
+screens.register(held('religion', 'screen', () => religion));
+screens.register(held('trade', 'screen', () => trade));
+screens.register(held('wager', 'screen', () => wagerSheet));
+screens.register(held('census', 'screen', () => censusSheet));
+screens.register(held('leader', 'screen', () => leaderSheet));
+screens.register(held('diplomacy', 'screen', () => diplomacy));
+screens.register(held('beadLedger', 'screen', () => beads));
+screens.register(held('reliquary', 'screen', () => reliquary));
+screens.register(held('ledger', 'screen', () => ledger));
+screens.register(held('capture', 'screen', () => capture));
+screens.register(held('standings', 'screen', () => victory));
+// The war dispatch is a screen rather than news: it is built last, so its
+// Escape listener runs after every sheet's, and over an open sheet Escape would
+// close the sheet underneath first. Opening it closes the other screens, as it
+// always has.
+screens.register({
+  name: 'warDispatch',
+  kind: 'screen',
+  isOpen: () => warDispatch?.isOpen ?? false,
+  close: () => warDispatch?.clear(),
+});
+// The news.
+screens.register({
+  name: 'offer',
+  kind: 'news',
+  isOpen: () => offerCardHolder?.isOpen ?? false,
+  close: () => offerCardHolder?.clear(),
+});
+screens.register({
+  name: 'triumph',
+  kind: 'news',
+  isOpen: () => triumphSheet?.isOpen ?? false,
+  close: () => triumphSheet?.clear(),
+});
+screens.register({
+  name: 'bead',
+  kind: 'news',
+  isOpen: () => beadSheet?.isOpen ?? false,
+  close: () => beadSheet?.clear(),
+});
+screens.register(held('confirm', 'news', () => confirmCard));
+screens.register(held('ceremony', 'news', () => ceremony));
+
+/**
+ * Opens the load list. Its module has no open hook of its own, so its three
+ * doors (the title screen's Load, its `L` key, and the ☰ menu's Load…) come
+ * through here to tell the registry first.
+ */
+function openSaves(): void {
+  screens.opening('saves');
+  savesPanel.open();
+}
+
+/**
+ * Raises the confirm card, which is news: the open cards close under it, and a
+ * sheet that asked the question stays up behind it.
+ */
+function askConfirm(request: ConfirmRequest, onConfirm: () => void): void {
+  screens.opening('confirm');
+  confirmCard.ask(request, onConfirm);
 }
 
 // --- the landing screen -----------------------------------------------------
@@ -1322,26 +1373,21 @@ function loadSlotId(slotId: string | null): void {
 }
 
 function showLanding(): void {
-  // Nothing from the game may be left standing in front of the landing. The
-  // popovers sit below it in the stack, so this is not what makes them
-  // invisible — it is so that Start does not drop the player back into a game
-  // with a card open that they opened a game ago, and so that the landing is
-  // never competing with a second surface for the keyboard.
-  closePopovers();
-  // A toast is not a popover and would otherwise float over the landing card,
+  // Nothing from the game may be left standing in front of the landing: every
+  // card, screen and piece of news in the register closes, the standings and
+  // the Triumph and bead sheets among them. The cards sit below the landing in
+  // the stack, so this is not what makes them invisible — it is so that Start
+  // does not drop the player back into a game with a card open that they opened
+  // a game ago, and so that the landing is never competing with a second
+  // surface for the keyboard.
+  screens.closeAll();
+  // A toast is not a surface and would otherwise float over the landing card,
   // still counting down news about a game the player has walked away from.
   toasts?.clear();
-  // Nor is the Triumph sheet, and it does not even count down: a sheet left up
-  // would sit over the landing waiting to be proceeded past into a game that is
-  // no longer running.
-  triumphSheet?.clear();
-  // Nor the bead sheet, and nor the news queued behind it: a bead taken in a
-  // game the player has walked away from is not a sheet to proceed past into a
-  // game that is no longer running.
+  // The news queued behind the bead sheet, too: a bead taken in a game the
+  // player has walked away from is not a sheet to proceed past into a game
+  // that is no longer running.
   clearBeadNews();
-  // And the standings, for the same reason — a sheet about a game the player
-  // has walked away from, standing over the title card.
-  victory?.close();
   setRestartConfirm(false);
   // A worker reading the rules while the player reads the landing. Whatever the
   // next press turns out to be — Begin, Continue, a shelf row — it builds its
@@ -1353,9 +1399,9 @@ function showLanding(): void {
   // The Compendium is deliberately **not** disposed here. It is a property of
   // the page rather than of a game — built at module scope beside the help
   // sheet, reachable from the controls card before anything has been started,
-  // and holding nothing a restart could make stale. `closePopovers` above has
-  // already shut it, which is the whole of what the landing needs. Disposing it
-  // would unbind its Escape for the rest of the session.
+  // and holding nothing a restart could make stale. `screens.closeAll()` above
+  // has already shut it, which is the whole of what the landing needs.
+  // Disposing it would unbind its Escape for the rest of the session.
   // `hidden` is the whole of the screen state — one flag, read by `inputBlocked`
   // as well as by the stylesheet, so "is the landing up?" has one answer.
   landingEl.hidden = false;
@@ -1534,7 +1580,7 @@ continueButton.addEventListener('click', () => {
   loadSlotId(newestSlot(saveStorage)?.id ?? null);
 });
 
-landingLoadButton.addEventListener('click', () => savesPanel.open());
+landingLoadButton.addEventListener('click', () => openSaves());
 
 // --- the landing's three steps (batch L7, docs/flags.md (yyyy)) --------------
 
@@ -1556,7 +1602,7 @@ const landing: LandingFlow = createLandingFlow({
   onKey: (action) => {
     if (action === 'continue') continueButton.click();
     else if (action === 'new') landing.go('world');
-    else if (action === 'load') savesPanel.open();
+    else if (action === 'load') openSaves();
     else compendium.open();
   },
   // Nothing on a step may open half-scrolled or with the keyboard nowhere, so
@@ -2856,6 +2902,9 @@ async function boot(initial: Game | null): Promise<void> {
      */
     onPhase: (phase) => {
       offerReturnEl.hidden = phase !== 'hidden';
+      // An offer on screen is news: the open cards close under it, and a sheet
+      // behind it stays (`screenRegistry.ts`, rule 2).
+      if (phase === 'shown') screens.opening('offer');
       // An offer is the one genuinely blocking surface, so bead news that
       // arrived under it has been waiting. Every phase change is a chance for
       // the screen to have cleared; `pumpBeadNews` answers that itself.
@@ -2863,6 +2912,7 @@ async function boot(initial: Game | null): Promise<void> {
     },
   });
   offerReturnEl.addEventListener('click', () => offerCard.reopen());
+  offerCardHolder = offerCard;
 
   /**
    * The Triumph sheet. Declared here for the offer card's reason exactly — the
@@ -3776,13 +3826,16 @@ async function boot(initial: Game | null): Promise<void> {
   ];
 
   /**
-   * A screen in front of the board owns the keyboard: the landing, and the
-   * two full-screen surfaces — the star chart and the Abacus — each of which
-   * handles its own Escape while it is up. Named and hoisted above
-   * `createGameControls` so the HUD dock's own `H` hotkey (wired below,
-   * standalone rather than through `controls.ts`'s own keydown switch — see
-   * that wiring's comment) can defer to the same guard rather than growing a
-   * second copy of it.
+   * Whether the board's keys are off: something in front of the board owns the
+   * keyboard. Named and hoisted above `createGameControls` so the `H`, `W` and
+   * `E` hotkeys (wired below, standalone rather than through `controls.ts`'s
+   * own keydown switch — see that wiring's comment) defer to the same guard
+   * rather than growing a second copy of it.
+   *
+   * The surfaces are the screen registry's (rule 4 in `screenRegistry.ts`):
+   * every screen and every piece of news blocks the keys while it is up, and a
+   * card does not. A new screen joins by being registered; there is no second
+   * list here to forget. Three things that are not surfaces block them too.
    */
   function isInputBlocked(): boolean {
     return (
@@ -3792,63 +3845,7 @@ async function boot(initial: Game | null): Promise<void> {
       endTurnWorking ||
       !landingEl.hidden ||
       graphicsResetting ||
-      (diplomacy?.isOpen ?? false) ||
-      (religion?.isOpen ?? false) ||
-      (warDispatch?.isOpen ?? false) ||
-      (techTree?.isOpen ?? false) ||
-      (abacus?.isOpen ?? false) ||
-      (beads?.isOpen ?? false) ||
-      (statecraft?.isOpen ?? false) ||
-      // The two screens this pass added. Both own the keyboard while they are
-      // up — each handles its own Escape — and neither has any business letting
-      // `H`, `T` or End Turn through from underneath.
-      (trade?.isOpen ?? false) ||
-      (wagerSheet?.isOpen ?? false) ||
-      // The census sheet, on the same terms: it owns its own Escape while it is
-      // up, and End Turn must not fire from underneath a blocker.
-      (censusSheet?.isOpen ?? false) ||
-      // The leader's record, on the same terms (batch L2b).
-      (leaderSheet?.isOpen ?? false) ||
-      // The Reliquary owns its own Escape and its own arrow keys while it is up
-      // — the pile is what ‹ › mean there — so the board must not see either
-      // from underneath, and neither should `H`, `T` or End Turn.
-      (reliquary?.isOpen ?? false) ||
-      // The Ledger owns its own Escape while it is up, on the Reliquary's
-      // argument exactly: the board must not see the key from underneath, and
-      // `H`, `T` and End Turn have no business firing behind a sheet.
-      (ledger?.isOpen ?? false) ||
-      // The ceremony is a card on a timer over the board (`greatPersonCeremony.ts`).
-      // It answers no key at all, which is exactly why it is here: End Turn
-      // firing under it would resolve a turn the player is still watching.
-      (ceremony?.isOpen ?? false) ||
-      compendium.isOpen ||
-      // The load list is the third such screen, and the only one that can be
-      // up while the landing is: it handles its own Escape (see
-      // `savesPanel.ts`).
-      savesPanel.isOpen ||
-      // The offer card is the one genuinely blocking surface here: it owns
-      // the keyboard while it is up, and there is nothing to escape to (see
-      // `offerCard.ts`).
-      offerCard.isOpen ||
-      // The Triumph sheet is the mild kind of modal (`triumphModal.ts`): it
-      // answers its own Enter and Escape in a capturing listener, so the board
-      // would never have seen either key anyway. It is here for the *other*
-      // hotkeys — `H`, `T`, End Turn — which have no business firing under a
-      // sheet the player has not proceeded past.
-      (triumphSheet?.isOpen ?? false) ||
-      // The standings (item (uuuuu)) are a parchment sheet now rather than the
-      // Triumph sheet's sibling, and they block on every other sheet's terms:
-      // they own their own Escape while up, and `H`, `T` and End Turn have no
-      // business firing behind a page the player is reading.
-      (victory?.isOpen ?? false) ||
-      // The confirm card is the Triumph sheet's kind (`confirmCard.ts`): it
-      // answers its own Enter and Escape in a capturing listener, so it is here
-      // for the *other* hotkeys — `H`, `T`, End Turn — which have no business
-      // firing under an unanswered question.
-      confirmCard.isOpen ||
-      // And the bead sheet, which is the Triumph sheet in every respect that
-      // matters here.
-      (beadSheet?.isOpen ?? false)
+      screens.blocksInput()
     );
   }
 
@@ -3894,6 +3891,7 @@ async function boot(initial: Game | null): Promise<void> {
     if (pendingBeadNews.length > 0 && beadSheet) {
       const news = pendingBeadNews;
       pendingBeadNews = [];
+      screens.opening('bead');
       beadSheet.show(news);
       return;
     }
@@ -4029,7 +4027,9 @@ async function boot(initial: Game | null): Promise<void> {
     // raises the button and yields a frame before the drive above takes the
     // thread. Without it the key would call `endTurn` directly and freeze.
     onEndTurnPressed: (force) => pressEndTurn(force),
-    closePopovers,
+    // Escape's first layer: the registry's sweep, which reports whether a card
+    // was open (only cards can be, when the keys are not blocked).
+    closePopovers: () => screens.closeAll(),
     inputBlocked: isInputBlocked,
     onToggleTechTree: () => techTree?.toggle(),
     onToggleAbacus: () => abacus?.toggle(),
@@ -4061,14 +4061,12 @@ async function boot(initial: Game | null): Promise<void> {
      * the card descends into the renown figure on the bar's Standings tab
      * (`greatPersonCeremony.ts`).
      *
-     * Raised on the accepted command and nowhere else, and it takes down the
-     * HUD's cards first for the reason every screen does: a breakdown left open
-     * under a card rising to centre is a card the player comes back to having
-     * lost their place.
+     * Raised on the accepted command and nowhere else. It is news, so the HUD's
+     * open cards close first: a breakdown left open under a card rising to
+     * centre is a card the player comes back to having lost their place.
      */
     onGreatPersonSpent: (spend) => {
-      meterCards?.close();
-      notifications?.close();
+      screens.opening('ceremony');
       ceremony?.play(spend);
     },
     /**
@@ -4093,6 +4091,9 @@ async function boot(initial: Game | null): Promise<void> {
      * the first row that names one, and hides itself until then.
      */
     onTriumphs: (awards) => {
+      // News: the open cards close under the sheet. `controls` only reports a
+      // list with something in it, so there is always a sheet to raise.
+      screens.opening('triumph');
       triumphSheet?.show(
         awards.map((award) => {
           // `art` is declared optional and no row carries one yet; the day a
@@ -4265,14 +4266,8 @@ async function boot(initial: Game | null): Promise<void> {
     log: notificationLog,
     localPlayerId: () => controls.localPlayerId(),
     onAction: runAction,
-    // The HUD's one-card-at-a-time rule, from the other side.
-    onOpenPopover: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      meterCards?.close();
-      techTree?.close();
-    },
+    // The HUD's one-card-at-a-time rule, through the registry.
+    onOpenPopover: () => screens.opening('chronicle'),
   });
 
   /**
@@ -4416,9 +4411,10 @@ async function boot(initial: Game | null): Promise<void> {
     // it reports it back into the board's funnel — otherwise everything watching
     // what the player *does* is deaf to the one command this screen exists for.
     onCommitted: (command, result) => controls.reportCommand(command, result),
-    // Two full-screen screens at one z-index is one of them being invisible.
+    // Two full-screen screens at one z-index is one of them being invisible:
+    // the registry closes every other card and screen as the chart opens.
     onOpen: () => {
-      abacus?.close();
+      screens.opening('starChart');
       // The chart opening is the guide's fourth step, and it is an *event*
       // rather than a command: nothing about the world changed, so there is
       // nothing in the commit funnel to read. Hooked here, at the screen's one
@@ -4462,12 +4458,9 @@ async function boot(initial: Game | null): Promise<void> {
       return result.ok ? null : result.error;
     },
     onRefuse: (message) => controls.guide(message),
-    onOpen: () => {
-      statecraft?.close();
-      menu.close();
-      help.close();
-      lens.close();
-    },
+    // It takes Statecraft's place: the registry closes that screen as this
+    // one opens.
+    onOpen: () => screens.opening('rewards'),
   });
   gameDisposers.push(() => rewardSheet?.dispose());
 
@@ -4490,14 +4483,7 @@ async function boot(initial: Game | null): Promise<void> {
     // A refusal is guidance the player provoked, not news: the manicule line,
     // which is what `controls.guide` writes (see its docblock).
     onRefuse: (message) => controls.guide(`☞ ${message}`),
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      techTree?.close();
-      abacus?.close();
-    beads?.close();
-    },
+    onOpen: () => screens.opening('statecraft'),
   });
 
   // The parchment sheets share the boot's lifetime. Their capturing keyboard
@@ -4539,15 +4525,7 @@ async function boot(initial: Game | null): Promise<void> {
       religion?.refresh();
     },
     onRefuse: (message) => controls.guide(`☞ ${message}`),
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      techTree?.close();
-      abacus?.close();
-    beads?.close();
-      statecraft?.close();
-    },
+    onOpen: () => screens.opening('religion'),
   });
 
   gameDisposers.push(() => religion?.dispose());
@@ -4596,19 +4574,7 @@ async function boot(initial: Game | null): Promise<void> {
       updatePanel(null, renderer.getHover());
     },
     panTo: (cell) => controls.panTo(cell),
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      meterCards?.close();
-      techTree?.close();
-      abacus?.close();
-    beads?.close();
-      statecraft?.close();
-      religion?.close();
-      compendium.close();
-    },
+    onOpen: () => screens.opening('trade'),
   });
 
   gameDisposers.push(() => trade?.dispose());
@@ -4637,20 +4603,7 @@ async function boot(initial: Game | null): Promise<void> {
       abacus?.refresh();
       return result.ok;
     },
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      meterCards?.close();
-      techTree?.close();
-      abacus?.close();
-      beads?.close();
-      statecraft?.close();
-      religion?.close();
-      trade?.close();
-      compendium.close();
-    },
+    onOpen: () => screens.opening('wager'),
   });
 
   gameDisposers.push(() => wagerSheet?.dispose());
@@ -4681,21 +4634,7 @@ async function boot(initial: Game | null): Promise<void> {
       abacus?.refresh();
       return result.ok;
     },
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      meterCards?.close();
-      techTree?.close();
-      abacus?.close();
-      beads?.close();
-      statecraft?.close();
-      religion?.close();
-      trade?.close();
-      wagerSheet?.close();
-      compendium.close();
-    },
+    onOpen: () => screens.opening('census'),
   });
 
   gameDisposers.push(() => censusSheet?.dispose());
@@ -4727,22 +4666,14 @@ async function boot(initial: Game | null): Promise<void> {
         color: playerPieceColor(player.color, player.id),
         beads: player.beads,
       })),
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      techTree?.close();
-      beads?.close();
-      // The standings sheet is where its door is. It closes before the Abacus
-      // remembers who had the keyboard, so closing the Abacus gives the
-      // keyboard to the Standings tab rather than to a hidden sheet.
-      victory?.close();
-    },
-    // A rod is the door to the cards behind it.
-    onOpenBeads: () => {
-      abacus?.close();
-      beads?.open();
-    },
+    // The registry closes the other cards and screens, the standings sheet
+    // among them, which is where the Abacus's door is. That happens before the
+    // Abacus remembers who had the keyboard, so closing the Abacus gives the
+    // keyboard to the Standings tab rather than to a hidden sheet.
+    onOpen: () => screens.opening('abacus'),
+    // A rod is the door to the cards behind it. The bead ledger's opening
+    // closes the Abacus.
+    onOpenBeads: () => beads?.open(),
     // **The age's three bars**, ranked across the table (batch G2). A closure
     // over the live state, for `rows`' reason: the screen knows names, figures
     // and inks, and the fold is somebody else's.
@@ -4777,19 +4708,7 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('beads-close'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      meterCards?.close();
-      techTree?.close();
-      abacus?.close();
-      statecraft?.close();
-      religion?.close();
-      trade?.close();
-      compendium.close();
-    },
+    onOpen: () => screens.opening('beadLedger'),
   });
   gameDisposers.push(() => beads?.dispose());
 
@@ -4816,21 +4735,7 @@ async function boot(initial: Game | null): Promise<void> {
     // the same integer every memo in the simulation is keyed on
     // (`docs/audit/evaluations.md` §2b).
     getRevision: () => game.state.revision,
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      meterCards?.close();
-      techTree?.close();
-      abacus?.close();
-      beads?.close();
-      statecraft?.close();
-      religion?.close();
-      trade?.close();
-      diplomacy?.close();
-      compendium.close();
-    },
+    onOpen: () => screens.opening('reliquary'),
     /**
      * A call bought at the ladder — The Commonwealth's gold, The Magisterium's
      * faith, The Academy's scholars (`purchaseGreatPersonOffer`, batch H3).
@@ -4878,22 +4783,7 @@ async function boot(initial: Game | null): Promise<void> {
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     history: () => ledgerHistory.samples(),
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      meterCards?.close();
-      techTree?.close();
-      abacus?.close();
-      beads?.close();
-      statecraft?.close();
-      religion?.close();
-      trade?.close();
-      diplomacy?.close();
-      reliquary?.close();
-      compendium.close();
-    },
+    onOpen: () => screens.opening('ledger'),
   });
   gameDisposers.push(() => ledger?.dispose());
 
@@ -4928,9 +4818,7 @@ async function boot(initial: Game | null): Promise<void> {
       if (choice === 'annex') controls.annexCity(cityId);
       else controls.razeCity(cityId);
     },
-    onOpen: () => {
-      closePopovers();
-    },
+    onOpen: () => screens.opening('capture'),
   });
   gameDisposers.push(() => capture?.dispose());
 
@@ -4981,77 +4869,32 @@ async function boot(initial: Game | null): Promise<void> {
       closeButton: requireElement('authority-close'),
       body: authorityBodyEl,
     },
-    // The strip's cards join the HUD's one-card-at-a-time rule: opening one
-    // shuts the menu, the help sheet, the lens menu, the chronicle and the
-    // star chart, exactly as those shut each other.
-    onOpenPopover: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      techTree?.close();
-    },
-    // The Diplomacy tab. The same door `W` and the dock's old Diplomacy button
-    // use: shut every other HUD surface, then open the sheet.
-    onOpenDiplomacy: () => openScreen(() => diplomacy?.open()),
-    // The Trade tab, which carries the routes figure the routes chip used to.
-    onOpenTrade: () => {
-      meterCards?.close();
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      techTree?.close();
-      trade?.open();
-    },
-    // The Standings tab's label: the standings sheet, which the dock's sixth
-    // door used to open. The Abacus opens from that sheet and from `A`.
-    onOpenStandings: () => openScreen(() => victory?.open()),
-    // The bead figure on the Standings tab: the bead ledger, as `V` opens it.
-    onOpenBeads: () => {
-      meterCards?.close();
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      techTree?.close();
-      beads?.open();
-    },
-    // The renown figure on the Standings tab: renown calls great people and
-    // great people leave legacies, so the figure that counts the first is the
-    // way into the last.
-    onOpenReliquary: () => {
-      meterCards?.close();
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      techTree?.close();
-      reliquary?.open();
-    },
+    // The strip's two breakdown cards join the HUD's one-card-at-a-time rule
+    // through the registry, like every other card.
+    onOpenPopover: () => screens.opening('meters'),
+    // The doors on the bar. Each sheet's own opening closes whatever else is
+    // up, so a door only has to open its sheet.
+    onOpenDiplomacy: () => diplomacy?.open(),
+    onOpenTrade: () => trade?.open(),
+    onOpenStandings: () => victory?.open(),
+    onOpenBeads: () => beads?.open(),
+    onOpenReliquary: () => reliquary?.open(),
     // Every yield chip's door, culture's included since batch UX1: the Ledger
     // is about all six yields, and the way in is the figure the player is
     // already looking at. The yield comes with the click so the sheet opens
     // picking out the one they asked about.
-    onOpenLedger: (key) => {
-      meterCards?.close();
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      techTree?.close();
-      ledger?.open(key);
-    },
+    onOpenLedger: (key) => ledger?.open(key),
   });
-  // Escape and the landing screen reach these through `closePopovers`, which is
-  // declared before any game exists — so it finds them through this holder.
+  // The screen registry and the landing screen reach these through this
+  // holder, since the registry's list is written before any game exists.
   meterCards = civYields;
 
   /**
    * The HUD dock: Statecraft, Religion and Leader, under the research card.
    * See `src/ui/hudDock.ts` for the design; this is only wiring. Each button is
-   * a bare trigger, wired below through `openScreen`. Diplomacy, Trade and the
-   * standings left the dock for the bar's tabs in batch UX1.
+   * a bare trigger that opens its sheet; the sheet's own opening closes what
+   * else is up. Diplomacy, Trade and the standings left the dock for the bar's
+   * tabs in batch UX1.
    */
   hudDock = createHudDock({
     container: hudDockEl,
@@ -5187,45 +5030,27 @@ async function boot(initial: Game | null): Promise<void> {
         refusal: counterRefusal(game.state, targetId, asker, ctx),
       };
     },
-    askConfirm: (request, run) => confirmCard.ask(request, run),
-    onOpen: () => { closePopovers(); },
+    askConfirm,
+    onOpen: () => screens.opening('diplomacy'),
   });
   gameDisposers.push(() => diplomacy?.dispose());
   diplomacyOffers = createDiplomacyOffers({
     host: requireElement('hud-end-turn'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    review: id => openScreen(() => diplomacy?.open(id)),
+    review: id => diplomacy?.open(id),
   });
   gameDisposers.push(() => { diplomacyOffers?.dispose(); diplomacyOffers = null; });
   warDispatch=createWarDispatch({
-    beforeOpen:()=>{closePopovers();},
+    beforeOpen:()=>screens.opening('warDispatch'),
     canShow:()=>!newsBlocked()&&!endTurnWorking,
     relevant:notice=>notice.onId===controls.localPlayerId(),
-    review:targetId=>openScreen(()=>diplomacy?.open(targetId)),
+    review:targetId=>diplomacy?.open(targetId),
   });
   gameDisposers.push(()=>warDispatch?.dispose());
 
-  /**
-   * One door for every screen the HUD's buttons open: shut every other HUD
-   * surface first, then open the sheet. The dock's buttons use it, and so do
-   * the bar's Diplomacy and Standings tabs, `H`, `W` and `E`.
-   */
-  function openScreen(open: () => void): void {
-    meterCards?.close();
-    menu.close();
-    help.close();
-    lens.close();
-    notifications?.close();
-    techTree?.close();
-    open();
-  }
-  hudDock.statecraftButton.addEventListener('click', () => {
-    openScreen(() => statecraft?.open());
-  });
-  hudDock.religionButton.addEventListener('click', () => {
-    openScreen(() => religion?.open());
-  });
+  hudDock.statecraftButton.addEventListener('click', () => statecraft?.open());
+  hudDock.religionButton.addEventListener('click', () => religion?.open());
   /**
    * **Your civ** — the thirteenth sheet on the shell (batch L2b, re-aimed at the
    * second cut in L6b): the record of what the figure at your table does.
@@ -5242,22 +5067,7 @@ async function boot(initial: Game | null): Promise<void> {
     trigger: hudDock.leaderButton,
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      meterCards?.close();
-      techTree?.close();
-      abacus?.close();
-      beads?.close();
-      statecraft?.close();
-      religion?.close();
-      trade?.close();
-      wagerSheet?.close();
-      censusSheet?.close();
-      compendium.close();
-    },
+    onOpen: () => screens.opening('leader'),
   });
 
   gameDisposers.push(() => leaderSheet?.dispose());
@@ -5265,9 +5075,7 @@ async function boot(initial: Game | null): Promise<void> {
   /* The dock's Leader button, behind which nothing is ever owed: a figure is a
      known quantity from the landing screen onward, so the sheet behind this
      banner is a record — what your civ is, and what it is paying you today. */
-  hudDock.leaderButton.addEventListener('click', () => {
-    openScreen(() => leaderSheet?.open());
-  });
+  hudDock.leaderButton.addEventListener('click', () => leaderSheet?.open());
 
   /**
    * **The standings** — the fifteenth sheet on the shell (`victoryScreen.ts`,
@@ -5290,23 +5098,7 @@ async function boot(initial: Game | null): Promise<void> {
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     toTitle: () => showLanding(),
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      meterCards?.close();
-      techTree?.close();
-      abacus?.close();
-      beads?.close();
-      statecraft?.close();
-      religion?.close();
-      trade?.close();
-      wagerSheet?.close();
-      censusSheet?.close();
-      leaderSheet?.close();
-      compendium.close();
-    },
+    onOpen: () => screens.opening('standings'),
   });
 
   // `H` opens the Religion screen — the dock's own hotkey, and deliberately its
@@ -5332,7 +5124,7 @@ async function boot(initial: Game | null): Promise<void> {
     if (typing) return;
     event.preventDefault();
     if (religion?.isOpen === true) religion.close();
-    else openScreen(() => religion?.open());
+    else religion?.open();
   });
 
   // `W` opens the Diplomacy screen — the Diplomacy tab's hotkey, wired here
@@ -5354,7 +5146,7 @@ async function boot(initial: Game | null): Promise<void> {
     if (typing) return;
     event.preventDefault();
     if (diplomacy?.isOpen === true) diplomacy.close();
-    else openScreen(() => diplomacy?.open());
+    else diplomacy?.open();
   });
 
   // `E` opens the Trade sheet — the fourth screen with a letter, wired here
@@ -5381,7 +5173,7 @@ async function boot(initial: Game | null): Promise<void> {
     if (typing) return;
     event.preventDefault();
     if (trade?.isOpen === true) trade.close();
-    else openScreen(() => trade?.open());
+    else trade?.open();
   };
   window.addEventListener('keydown', onTradeKey);
   gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));
@@ -5548,7 +5340,7 @@ async function boot(initial: Game | null): Promise<void> {
     // owns, and the act underneath it must stay reachable without one. Dismissing
     // a guildsman cannot be taken back — they return to the fields and the town's
     // guild bar restarts with them — which is the whole test for this card.
-    askConfirm: (request, run) => confirmCard.ask(request, run),
+    askConfirm,
     // **The rites are the city's verb** since the fewer-things pass. The panel
     // owns the rows and the board's funnel owns the dispatch, exactly as the
     // Buy Tiles button owns the mode and `controls.ts` owns the click.
@@ -5692,7 +5484,7 @@ async function boot(initial: Game | null): Promise<void> {
       const unit = controls.selectedUnit();
       if (!unit) return;
       const { title, body } = disbandPrompt(unit);
-      confirmCard.ask({ title, body, confirmLabel: 'Disband', cancelLabel: 'Keep' }, () => {
+      askConfirm({ title, body, confirmLabel: 'Disband', cancelLabel: 'Keep' }, () => {
         controls.disbandUnit();
         updatePanel(null, renderer.getHover());
       });
@@ -5716,7 +5508,11 @@ async function boot(initial: Game | null): Promise<void> {
     if ('preparePaintedMap' in renderer) await (renderer as Renderer3D).preparePaintedMap(replacement.state.map, terrainBuildProgress);
     // A direct load need not visit the landing. Finish any staged arrangement
     // against the old game and clear its delayed work before swapping state.
-    closePopovers();
+    // The sweep closes every surface in the register: the star chart, the
+    // Abacus, the standings, the Ledger and the rest of the old game's sheets,
+    // and the news queued behind the dispatch, the offer and the Triumph and
+    // bead sheets.
+    screens.closeAll();
     suspendGame?.();
     // An announcement about the game that just ended has nothing to say about
     // the one starting, so it goes with it.
@@ -5729,25 +5525,16 @@ async function boot(initial: Game | null): Promise<void> {
     notificationLog.clear();
     toasts?.clear();
     // A decided game belongs to the game that decided it, and so does every
-    // bead taken in it: the standings go down with the board they counted.
-    victory?.close();
+    // bead taken in it, and the bead news still queued.
     clearBeadNews();
     // And so does the Ledger's curve: it is a hundred turns of a game that is
     // over, and a curve carried into the next one would be the same lie as a
     // chronicle carried across (`notifications.ts`, two lines up).
     ledgerHistory.clear();
-    ledger?.close();
-    // A star chart of the game that just ended has nothing to say about the
-    // one starting either.
-    techTree?.close();
-    // Nor does a scoreboard. The rods themselves are re-strung — the new table
-    // may seat different people — but not now: `refresh` only marks them stale,
-    // and the rebuild happens on the next open, if there ever is one.
-    abacus?.close();
-    beads?.close();
+    // The scoreboard's rods are re-strung — the new table may seat different
+    // people — but not now: `refresh` only marks them stale, and the rebuild
+    // happens on the next open, if there ever is one.
     abacus?.refresh();
-    warDispatch?.clear();
-    diplomacy?.close();
     game = replacement;
     // The turn guard is about *this* game's turns. A resumed game is very often
     // at a turn number the last one also reached, and without this its first
@@ -5858,18 +5645,15 @@ async function boot(initial: Game | null): Promise<void> {
 
   menuLoadButton.addEventListener('click', () => {
     resetSaveMenu();
-    // The menu goes: the list is a screen, and a card left open underneath it
-    // would be a card the player comes back to having abandoned its game.
-    menu.close();
-    savesPanel.open();
+    // The menu goes as the list opens: the list is a screen, and the registry
+    // closes the cards under a screen.
+    openSaves();
   });
 
   // The menu's own door to Statecraft — see the button's comment in
-  // `index.html`. Same pattern as Load: the menu goes, the screen comes up.
-  menuStatecraftButton.addEventListener('click', () => {
-    menu.close();
-    statecraft?.open();
-  });
+  // `index.html`. Same pattern as Load: the screen comes up, and its opening
+  // closes the menu.
+  menuStatecraftButton.addEventListener('click', () => statecraft?.open());
 
   // The guide, from the top: the sequence *and* every one-time note, because a
   // player asking for it again is almost always showing the game to somebody
@@ -6028,8 +5812,10 @@ async function boot(initial: Game | null): Promise<void> {
     endTurnGeneration += 1;
   }
   gameDisposers.push(cancelPendingEndTurn);
+  // The surfaces themselves are closed by `screens.closeAll()`, which both
+  // callers run first; this is the delayed work behind them (the dispatch's
+  // timer and queue, a pending End Turn, the splash, the offer held off screen).
   suspendGame = () => {
-    diplomacyOffers?.close();
     warDispatch?.clear();
     cancelPendingEndTurn();
     splash.clear();

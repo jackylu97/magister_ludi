@@ -218,11 +218,14 @@ describe('the page it lives on', () => {
     // queued behind this sheet (`beadModal.ts`, `pumpBeadNews` in main.ts), so
     // "the screen is clear" has to be announced rather than polled for.
     expect(main).toContain('onClosed: () => pumpBeadNews()');
-    // The other hotkeys have no business firing under a sheet nobody has
-    // proceeded past — `H`, `T`, End Turn.
-    expect(main).toContain('(triumphSheet?.isOpen ?? false)');
-    // And a sheet must not survive into the landing screen.
-    expect(main).toContain('triumphSheet?.clear();');
+    // It is news in the screen registry (batch UX2). The other hotkeys have no
+    // business firing under a sheet nobody has proceeded past — `H`, `T`, End
+    // Turn — and a sheet must not survive into the landing screen: the
+    // registry's sweep closes it by clearing its queue.
+    expect(main).toMatch(
+      /name: 'triumph',\s*kind: 'news',\s*isOpen: \(\) => triumphSheet\?\.isOpen \?\? false,\s*close: \(\) => triumphSheet\?\.clear\(\),/,
+    );
+    expect(main).toContain('screens.closeAll();');
   });
 
   it('reads the words off the one place a Triumph’s words live', () => {

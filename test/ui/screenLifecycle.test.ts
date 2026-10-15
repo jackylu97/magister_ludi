@@ -170,8 +170,9 @@ describe('the game-screen disposal register', () => {
     expect(sheet).not.toContain("window.addEventListener('keydown'");
     expect(main).toContain('gameDisposers.push(() => victory?.dispose());');
     // The landing takes it down by closing it, never by disposing it: Restart
-    // and load reuse the booted screens.
-    expect(main).toContain('victory?.close();');
+    // and load reuse the booted screens. Since batch UX2 the closing is the
+    // screen registry's sweep, which reaches the sheet through its holder.
+    expect(main).toContain("screens.register(held('standings', 'screen', () => victory));");
     expect(main).not.toContain('victory?.clear();');
     expect(main).not.toContain('createVictoryModal');
   });
@@ -181,7 +182,8 @@ describe('the game-screen disposal register', () => {
     const landing = main.slice(main.indexOf('function showLanding()'), main.indexOf('function hideLanding()'));
     const begin = main.slice(main.indexOf('async function beginGame('), main.indexOf('function terrainBuildProgress('));
     expect(begin).toContain('if (takeOverGame) await takeOverGame(loaded);');
-    expect(landing).toContain('closePopovers();');
+    // The registry's sweep closes every surface without disposing any.
+    expect(landing).toContain('screens.closeAll();');
     expect(landing).toContain('suspendGame?.();');
     expect(landing).not.toContain('disposeGameScreens();');
     const boot = main.slice(main.indexOf('async function boot('));
@@ -192,8 +194,8 @@ describe('the game-screen disposal register', () => {
   it('clears old dialogs and delayed turns on both Restart and direct load', () => {
     const main = source('main.ts');
     const adopt = main.slice(main.indexOf('async function adoptGame('), main.indexOf('takeOverGame = adoptGame;'));
-    expect(adopt).toContain('closePopovers();');
-    expect(adopt.indexOf('suspendGame?.();')).toBeGreaterThan(adopt.indexOf('closePopovers();'));
+    expect(adopt).toContain('screens.closeAll();');
+    expect(adopt.indexOf('suspendGame?.();')).toBeGreaterThan(adopt.indexOf('screens.closeAll();'));
     expect(adopt.indexOf('suspendGame?.();')).toBeLessThan(adopt.indexOf('game = replacement;'));
     expect(adopt).not.toContain('disposeGameScreens();');
     const suspend = main.slice(main.indexOf('suspendGame = () => {')).split('\n  };')[0]!;
@@ -204,5 +206,50 @@ describe('the game-screen disposal register', () => {
     expect(cancel).toContain('window.cancelAnimationFrame(endTurnRaf)');
     expect(cancel).toContain('window.clearTimeout(endTurnTimer)');
     expect(cancel).toContain('endTurnWorking = false;');
+  });
+});
+
+/**
+ * **One register for what is up, one for what must unbind** (batch UX2).
+ *
+ * The screen registry (`src/ui/screenRegistry.ts`) is the list of what can be
+ * open and how to close it; `gameDisposers` is the list of what must be unbound
+ * before a new boot replaces the screens. They are different questions and stay
+ * different lists, but every per-game screen is on both, and the sweep that
+ * Restart and load run is the registry's, so a screen added to one and not the
+ * other is a screen that is either left standing or left listening.
+ */
+describe('the screen registry beside the disposal register', () => {
+  const main = source('main.ts');
+
+  it('registers every per-game sheet that the disposal register tears down', () => {
+    for (const [holder, name] of [
+      ['techTree', 'starChart'],
+      ['abacus', 'abacus'],
+      ['beads', 'beadLedger'],
+      ['statecraft', 'statecraft'],
+      ['rewardSheet', 'rewards'],
+      ['religion', 'religion'],
+      ['trade', 'trade'],
+      ['wagerSheet', 'wager'],
+      ['censusSheet', 'census'],
+      ['leaderSheet', 'leader'],
+      ['diplomacy', 'diplomacy'],
+      ['reliquary', 'reliquary'],
+      ['ledger', 'ledger'],
+      ['capture', 'capture'],
+      ['victory', 'standings'],
+      ['ceremony', 'ceremony'],
+    ] as const) {
+      expect(main, holder).toContain(`gameDisposers.push(() => ${holder}?.dispose());`);
+      expect(main, holder).toMatch(new RegExp(`screens\\.register\\(held\\('${name}', '\\w+', \\(\\) => ${holder}\\)\\);`));
+    }
+  });
+
+  it('keeps the registry itself out of the disposal register: it holds no listener', () => {
+    // The registry is a list and a rule, built once at module scope; a new boot's
+    // surfaces replace the old ones by reading the same holders.
+    expect(main).toContain('const screens = createScreenRegistry();');
+    expect(main).not.toContain('gameDisposers.push(() => screens');
   });
 });

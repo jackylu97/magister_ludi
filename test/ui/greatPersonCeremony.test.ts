@@ -278,7 +278,9 @@ describe('the ceremony’s lifecycle', () => {
   it('is registered with the per-game screens and shut by the two sweeps', () => {
     const main = source('main.ts');
     expect(main).toContain('gameDisposers.push(() => ceremony?.dispose());');
-    expect(main).toContain('ceremony?.close();');
-    expect(main).toContain('(ceremony?.isOpen ?? false)');
+    // It is news in the screen registry (batch UX2): the sweep shuts it, the
+    // hotkeys wait while it plays, and raising it closes the HUD's open cards.
+    expect(main).toContain("screens.register(held('ceremony', 'news', () => ceremony));");
+    expect(main).toContain("screens.opening('ceremony');\n      ceremony?.play(spend);");
   });
 });
