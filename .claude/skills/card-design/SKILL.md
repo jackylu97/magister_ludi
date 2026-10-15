@@ -1,6 +1,6 @@
 ---
 name: card-design
-description: Use when proposing, revising or reviewing Order cards for the six decks (Dominion, Expansionist, Commerce, Devotion, Scientific, Magisterial) in Magister Ludi. Covers the user's card principles, how synergy is built, finished builds (what a deck's endgame chairs look like), themes and throughlines (the deck map), floor and ceiling roles, composition and variety, leaders, tedium against investment, what each age's player is trying to do, and how strong a card dealt at each band must be.
+description: Use when proposing, revising or reviewing Order cards for the six decks (Dominion, Expansionist, Commerce, Devotion, Scientific, Magisterial) in Magister Ludi. Covers the user's card principles, how synergy is built, finished builds (an early and a late version of each), themes and throughlines (the deck map), floor and ceiling roles, composition and variety, leaders, tedium against investment, what each age's player is trying to do, and how strong a card dealt at each band must be.
 ---
 
 # Designing deck cards
@@ -16,7 +16,7 @@ This skill is how we write and judge Order cards. It gathers the user's rulings,
 
 **The goal for a deck** (the user, 2026-10-13): every game should feel slightly different, and a player cannot force a specific build. Cards have synergy and clear throughlines across the game, so playing into a style is rewarded, and each card is also worth taking on its own.
 
-**Design from finished builds** (the user, 2026-10-14: *"we need an idea of a few 'finished builds' (i.e. what a complete set of chairs should look like in the endgame). I think we have too many cards that are individually useful"*). Each deck is designed toward three or four finished builds; see "Finished builds" below. A card's own floor is real but modest, and most of its value is the build it joins.
+**Design from finished builds** (the user, 2026-10-14: *"we need an idea of a few 'finished builds' (i.e. what a complete set of chairs should look like in the endgame). I think we have too many cards that are individually useful"*). Each deck is designed toward three or four finished builds; see "Finished builds" below. A card's own floor is real but modest, and most of its value is the build it joins. Each build has two versions (the user, 2026-10-15): an early build of Tier 0 to II cards, and a late build of Tier III and IV cards plus one or two early cards that scale. New cards are welcome.
 
 ## Specs of record (read before proposing)
 
@@ -73,37 +73,58 @@ Synergy is what makes a draft feel like building something. Here it comes from *
 - Tags or labels written only to make cards combine (declined by the user).
 - Pay that grows with army size held at peace for Dominion: it punishes losses in war and compounds a conqueror's lead (the tempo ruling).
 
-## Finished builds: design from the endgame down
+## Finished builds: an early and a late version
 
-A **finished build** is what a seat's chairs look like at the end of a game where a plan came together: about eleven seated cards (charters take no chair), most of them working on one engine. Each deck has three or four, written in `references/deck-maps.md`. They are the target the deck is designed toward: every card belongs to at least one of them, or is deliberately glue.
+A **finished build** is what a seat's chairs look like once a plan has come together. Each deck has three or four, written in `references/deck-maps.md` (Dominion's draft is `docs/plans/dominion-builds.md`). They are the target the deck is designed toward: every card belongs to at least one of them, or is deliberately glue.
+
+**Two versions of each build.** The user, 2026-10-15: *"lets do two versions, an early game build composed of tier 0/1/2 cards and a late game build composed of tier 3/4 cards (with possibly 1-2 earlier cards that scale throughout the game). You're not limited to cards that already exist or are proposed, focus on creating a satisfying playstyle and synergistic bonuses, with a mix of utility that fits with the build theme"*.
+- **The early build** is made of Tier 0, I and II cards.
+  - It has eight chairs at the end of Tier II, but five for most of the early game (Tier I), so name its **five-chair core**.
+  - Tier 0 is dealt only until age 2 opens Tier I, which is about six drafts. So the build holds two Tier 0 cards, three at most.
+  - It switches the loop on: openers that start the build's quantity, the first pay-offs, at least one card that changes what the player does (a new action or a broken rule), and a grower or "this game" counter that will keep scaling.
+- **The late build** has eleven chairs: Tier III and IV cards, plus the one or two early cards still seated because they grew.
+  - It runs the loop at full size: percentages on top of the flats (the yield layers), a capstone that breaks a rule or doubles a category, and a card that makes a visible moment.
+- **Reachability.** Tier IV opens at draft 45, which few games reach (7 of 30 bot seats in the measurements of 2026-10-13, at a median turn of 189). Put each build's capstone in Tier III and treat Tier IV as the long-game layer, unless the ladder changes.
 
 **Why.** A deck designed card by card, each with a full floor, ends up as a pile of individually useful cards. A seat then fills its chairs with whichever card pays most on its own. The endgame chairs look alike from game to game, and no draft feels like a plan coming together. The 2026-10-13 audit points the same way:
 - raisers outnumber readers: about twelve cards make more units and two read them; about twenty create citizens and four read them in the midgame;
 - most readers sit on saturating quantities (garrisons, military buildings), which pay the same with or without a plan.
 
+The first Dominion draft (2026-10-14) fell flat for three reasons worth avoiding:
+- it was assembled from cards already on the sheet, mostly flats that barely touched each other;
+- it showed one endgame mixing Tier 0 and Tier IV cards, though only the current band is dealt, so it never showed the build coming together;
+- it had few moments and no capstone.
+
 **What to write for each finished build:**
-- **Name and fantasy,** in one line.
-- **Engine:** the quantity it pushes and the moments it cashes in, in the shared vocabulary.
-- **How it wins:** how it reaches the Magnum Opus, or stops the empire building it.
-- **The eleven chairs, in four parts:**
-  - *Foundation* (2 or 3): cards from bands 0 and 1 still worth their chair at the end, such as growers, "this game" counters and levies.
-  - *Engine* (4 or 5): the set-ups and pay-offs on the engine's quantity.
-  - *Finishers* (1 or 2): band 3 and 4 rares that multiply the engine or cash it in.
-  - *Flex* (2 or 3): glue, and answers to the game in front of the player.
-- **Candidates, more than fit:** 15 to 20 cards across the bands, so several routes reach the build and none can be forced.
-- **What it gives up,** and **which partner decks feed it.**
+- **The fantasy,** in a sentence or two, and **the loop in one line** (X → Y → more X), built on a quantity or moment the playstyle produces by itself.
+- **The early build:**
+  - a table of its chairs: card, tier, rarity, text, role, what it raises or reads, the essential it pays, and status and shape;
+  - the five-chair core;
+  - how a few turns feel.
+- **The late build:**
+  - the same table;
+  - which early scalers carried over, and how big they grew;
+  - the capstone and the moment;
+  - how a few turns feel.
+- **The utility mix, what the build gives up, its partner decks and its leader.**
+- **Alternatives for each version,** so several routes reach the build and none can be forced.
+
+**New cards are welcome.** Do not limit a build to cards that exist or are proposed. Mark each new card, and mark each effect the vocabulary cannot express as a **new shape**, saying what is missing. Prefer a few new shapes that several cards share, reading mechanics the game already has, over many one-offs.
 
 **Checks:**
+- **One loop.** Every chair raises the build's quantity, reads it, or pays an essential or a fitting utility from it.
 - **Better together.** An engine card is clearly stronger in its build than in a seat without one.
-- **The build beats a pile.** In the endgame, a finished build should clearly out-earn eleven of the deck's strongest individual cards seated together. If it does not, drafting for a plan is not worth it.
+- **The build beats a pile.** A finished build should clearly out-earn the same number of the deck's strongest individual cards seated together: eight for the early build, eleven for the late one. If it does not, drafting for a plan is not worth it.
 - **Several routes.** Any two of a build's core cards turn it on; no build depends on one card.
-- **Every card has a home.** Each card belongs to at least one finished build or is deliberately glue. An engine card that serves two of a deck's builds is a bridge, and bridges make pivots possible.
+- **A scaler carries over.** At least one early card is still worth its chair in the late build, because of what the build did.
+- **The essentials along the way.** Science, culture and production in both versions, from the build's own quantity where possible.
+- **Every card has a home.** Each card belongs to at least one finished build or is deliberately glue. A card that serves two of a deck's builds is a bridge, and bridges make pivots possible.
 - **Individual usefulness falls with the band.**
-  - Three chairs cannot hold a build, so band 0 is mostly glue and openers that point toward builds.
-  - Bands 1 and 2 mix openers and engine cards.
-  - Bands 3 and 4 are mostly pay-offs and finishers that cash in what the seat assembled.
+  - Tier 0 is mostly glue and openers that point toward builds.
+  - Tiers I and II mix openers and engine cards.
+  - Tiers III and IV are mostly pay-offs and capstones that cash in what the seat assembled.
   - A late card that does little outside its build is acceptable; an early one is not.
-- **Glue is a minority.** Starting target (the orchestrator's proposal, 2026-10-14; the user may change it): about a quarter of a deck is glue, half engine cards, and a quarter pay-offs and finishers.
+- **Glue is a minority.** Starting target (the orchestrator's proposal, 2026-10-14; the user may change it): about a quarter of a deck is glue, half engine cards, and a quarter pay-offs and capstones.
 
 **How this fits the principles.** Principle 4 ("fits in") and "each card is also worth taking on its own" still hold, read this way: a card fits two or three of its deck's finished builds rather than every seat, and its floor is enough to take it when the draft goes elsewhere, never so much that the build is pointless.
 
@@ -212,7 +233,7 @@ For each card:
 | Age goal | Which goal of that age it serves (from `age-goals.md`) |
 | Themes and throughlines | The themes it is written on, the throughlines it serves, and which deck-map gap it fills |
 | Role | Glue, pay-off or build-defining, with its floor (alone) and ceiling (built around) |
-| Builds | The finished builds it belongs to and its part in each (foundation, engine, finisher, flex), or "glue" |
+| Builds | The finished builds it belongs to, in which version (early or late), and its role there (opener, engine, pay-off, scaler, capstone, utility), or "glue" |
 | Attention | What the player does differently with it seated, what it leaves on the map, what must be tracked; where it sits on the attention-against-impact table |
 | Power | The arithmetic against the bar: what it pays at the start and end of its band in a typical seat, compared with the median and best seated card |
 | Synergy | Raises: … Reads: … with the live cards in a seat's pool that feed it and that it feeds, and how many raisers exist at or before its band |
@@ -225,7 +246,7 @@ Then a short note on the combinations the batch opens, each stated through a gen
 ## Before you hand it over
 
 - The deck map was read (or built) and each card says which gap it fills.
-- Each card names the finished builds it belongs to and its part in each, or says it is glue; the batch does not add to the glue share without saying so.
+- Each card names the finished builds it belongs to, the version (early or late) and its role there, or says it is glue; the batch does not add to the glue share without saying so.
 - Every card has a real floor, and the batch mixes roles, shapes and rarities without two cards doing the same job.
 - Each card's theme and era fit its band and its historical model.
 - No card is high attention and low impact; cards that create units or ask for tracking justify it.

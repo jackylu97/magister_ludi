@@ -52,7 +52,11 @@ Minor threads: naval force (map-dependent), and the holy war, which mostly belon
 
 ### Finished builds
 
-*Proposed, not yet approved:* `docs/plans/dominion-builds.md` (2026-10-14) drafts four: the garrison state, the endless host, the steppe raiders and the conqueror. Use them as the working target until the user rules; move them here once approved. The method: three or four finished builds for Dominion, each in the shape of SKILL.md's "Finished builds" section (engine, how it wins, the eleven chairs as foundation, engine, finishers and flex, 15 to 20 candidates, what it gives up, partner decks). Show them to the user before relying on them. The throughlines above are where to start: a finished build is a throughline's endgame, made concrete.
+*Proposed, not yet approved:* `docs/plans/dominion-builds.md` (2026-10-15, replacing the draft of 2026-10-14) drafts four builds, each in two versions:
+- an early build of Tier 0 to II cards (eight chairs, with a five-chair core for Tier I);
+- a late build of Tier III and IV cards plus one or two early scalers (eleven chairs).
+
+The four are the drilled legions (the garrison state, reshaped around unit ranks), the endless host, the steppe raiders and the conqueror. Each has a one-line loop, a Tier II "this game" counter that carries into the late build, and a capstone in Tier III. Use them as the working target until the user rules, and move them here once approved. The method is SKILL.md's "Finished builds" section; show new builds to the user before relying on them. The throughlines above are where to start: a finished build is a throughline made concrete, early and late.
 
 ### Cards placed
 
