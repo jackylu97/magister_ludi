@@ -77,6 +77,12 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
   the empire's age (**40 · 56 · 72 · 90**, the faith ladder's rungs read by
   age). Votive Offering also needs something other than a wonder at the front
   of the town's queue.
+- **Short of the bank.** The bank is the gate's last clause. `riteGate` returns
+  the refusal and, when the bank is the only clause that refused, how much
+  faith is missing (`riteShortfall`), from one pass. The Faith sheet's "short N"
+  and the bot's want book read that figure, never the sentence. The prophet's
+  rite over the realm has the same pair (`empireRiteGate`,
+  `empireRiteShortfall`).
 - **Taught by the tree (five rows).** Each is an ability in its node's
   `unlocks.abilities` (`ABILITY_TECH`): Rite of the Harvest and Omen Reading
   (Divination), Consecration of the Bounds (Stonecraft), Blessing of Arms
@@ -89,7 +95,7 @@ A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError
 - **Naming the teacher.** `riteTeachingCard(rite)` (`religion.ts`) finds the
   Order in the data tables, asking the evaluator whether a row's clauses hand
   over the verb (`effectsGrantAbility`, `statecraft/evaluator.ts`).
-  `riteTeacherName` (`religionScreen.ts`) is the name both the faith screen
+  `riteTeacherName` (`riteWords.ts`) is the name both the Faith sheet
   ("needs …") and the city screen ("Taught by …") print, and the Compendium's
   rite entry names the same Order: the Order for a card-taught rite, the
   technology for the others.

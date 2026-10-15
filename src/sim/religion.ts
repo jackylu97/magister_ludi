@@ -1478,6 +1478,12 @@ export function cityRiteTurnsLeft(state: GameState, city: City): number {
  * the reducer's own. The refusals in the order a player would think of them: is
  * this my town, has it the door, do I know this rite, is the town already
  * keeping one, and can I pay for it.
+ *
+ * The clauses before the bank are in `riteClausesBeforeTheBank` below, and the
+ * last one, the bank, is in `riteGate`. This function returns the gate's
+ * sentence; `riteShortfall` returns its figure. Both come from the same pass,
+ * so they cannot disagree. `purchaseError` and `purchaseShortfall`
+ * (`purchase.ts`) are split the same way.
  */
 export function riteError(
   state: GameState,
@@ -1485,6 +1491,86 @@ export function riteError(
   cityId: number,
   rite: unknown,
 ): string | null {
+  return riteGate(state, playerId, cityId, rite).refusal;
+}
+
+/** The rite gate's two answers about one rite in one town. */
+export interface RiteGateAnswer {
+  /** `riteError`'s sentence, or `null` when the gate takes the rite. */
+  refusal: string | null;
+  /**
+   * How much more faith the bank must hold, when the bank is the only clause
+   * that refused: every other clause passed and the bank holds less than the
+   * price. `null` in every other case, including when the gate takes the rite.
+   * Not rounded, because a bank holds fractions.
+   */
+  shortfall: number | null;
+}
+
+/**
+ * How much more faith this rite needs in this town when the bank is the only
+ * thing stopping it, or `null` when it is not (the rite is allowed, or some
+ * other clause refuses it, whether or not the bank could also pay).
+ *
+ * The faith screen's Rites tab uses it to grey a Start button with "short 7"
+ * rather than a refusal, and the bot's want book uses it to keep a rite it
+ * cannot pay for yet as something to save toward. Neither has to recognise
+ * this case by rebuilding the gate's sentence and comparing words.
+ */
+export function riteShortfall(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  rite: unknown,
+): number | null {
+  return riteGate(state, playerId, cityId, rite).shortfall;
+}
+
+/**
+ * Both of the gate's answers from one pass through its clauses: the refusal
+ * (`riteError`) and the bank's shortfall (`riteShortfall`).
+ *
+ * The bank is the gate's last clause and is asked here, so the sentence and
+ * the figure come from one comparison: the price against what the bank holds.
+ */
+export function riteGate(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  rite: unknown,
+): RiteGateAnswer {
+  const reached = riteClausesBeforeTheBank(state, playerId, cityId, rite);
+  if (typeof reached === 'string') return { refusal: reached, shortfall: null };
+  const { player, name, cost } = reached;
+  if (player.faithPool < cost) {
+    return {
+      refusal: `${name} asks ${cost} faith and ${player.name} has ${Math.floor(player.faithPool)}`,
+      shortfall: cost - player.faithPool,
+    };
+  }
+  return { refusal: null, shortfall: null };
+}
+
+/** What the rite gate's bank clause needs once every earlier clause has passed. */
+interface AtTheRiteBank {
+  player: Player;
+  /** The rite's display name, as the refusal prints it. */
+  name: string;
+  /** `riteCostFor`'s price for this empire now. */
+  cost: number;
+}
+
+/**
+ * Every clause of the rite gate except the bank, in the order `riteError`'s
+ * docblock gives. Returns the sentence of the first clause that refuses, or,
+ * when they all pass, what the bank clause in `riteGate` needs.
+ */
+function riteClausesBeforeTheBank(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  rite: unknown,
+): string | AtTheRiteBank {
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
   const city = state.cities.find((row) => row.id === cityId);
@@ -1507,11 +1593,8 @@ export function riteError(
       return `${def.name} is not given toward a wonder`;
     }
   }
-  const cost = riteCostFor(state, playerId);
-  if (player.faithPool < cost) {
-    return `${def.name} asks ${cost} faith and ${player.name} has ${Math.floor(player.faithPool)}`;
-  }
-  return null;
+  // Only the bank is left to ask, and `riteGate` asks it.
+  return { player, name: def.name, cost: riteCostFor(state, playerId) };
 }
 
 /** What performing a rite did, for the announcement and the chronicle. */
@@ -1903,26 +1986,59 @@ export function empireRiteError(
   unitId: number,
   rite: unknown,
 ): string | null {
+  return empireRiteGate(state, playerId, unitId, rite).refusal;
+}
+
+/**
+ * How much more faith the prophet's rite over the realm needs when the bank is
+ * the only thing stopping it, or `null` when it is not. `riteShortfall`'s twin
+ * for the realm: the faith sheet's Rites tab greys its "Say" button with
+ * "short 7" from it rather than reading `empireRiteError`'s sentence.
+ */
+export function empireRiteShortfall(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+  rite: unknown,
+): number | null {
+  return empireRiteGate(state, playerId, unitId, rite).shortfall;
+}
+
+/**
+ * Both of the realm gate's answers from one pass through its clauses: the
+ * refusal (`empireRiteError`) and the bank's shortfall (`empireRiteShortfall`).
+ * `riteGate`'s shape, and the bank is again the last clause asked.
+ */
+export function empireRiteGate(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+  rite: unknown,
+): RiteGateAnswer {
   const problem = prophetProblem(state, playerId, unitId, 'empireRite');
-  if (problem !== null) return problem;
+  if (problem !== null) return { refusal: problem, shortfall: null };
   const player = playerById(state, playerId)!;
-  if (!isRiteId(rite)) return `There is no rite called "${String(rite)}"`;
+  const refuse = (refusal: string): RiteGateAnswer => ({ refusal, shortfall: null });
+  if (!isRiteId(rite)) return refuse(`There is no rite called "${String(rite)}"`);
   const def = riteDef(rite);
-  if (def.retired === true) return `${def.name} is no longer performed`;
+  if (def.retired === true) return refuse(`${def.name} is no longer performed`);
   if (!hasAbility(state, playerId, riteAbility(rite))) {
-    return `${def.name} is not known to ${player.name}`;
+    return refuse(`${def.name} is not known to ${player.name}`);
   }
   // A rite that acts at once is said by one town for its own reason, never over
   // the whole realm for one price.
-  if (def.atOnce !== undefined) return `${def.name} is said by one city, not over the realm`;
+  if (def.atOnce !== undefined) return refuse(`${def.name} is said by one city, not over the realm`);
   if (!state.cities.some((city) => city.ownerId === playerId)) {
-    return `${player.name} has no city to bless`;
+    return refuse(`${player.name} has no city to bless`);
   }
   const cost = riteCostFor(state, playerId);
   if (player.faithPool < cost) {
-    return `${def.name} asks ${cost} faith and ${player.name} has ${Math.floor(player.faithPool)}`;
+    return {
+      refusal: `${def.name} asks ${cost} faith and ${player.name} has ${Math.floor(player.faithPool)}`,
+      shortfall: cost - player.faithPool,
+    };
   }
-  return null;
+  return { refusal: null, shortfall: null };
 }
 
 /** What a prophet's empire-wide rite did, for the announcement. */

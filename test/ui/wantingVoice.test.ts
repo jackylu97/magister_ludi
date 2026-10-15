@@ -210,6 +210,13 @@ const SURFACES: { file: string; says: string; carries: string }[] = [
   { file: 'statecraftScreen.ts', says: 'an arrangement that will not seal', carries: "element('p', 'sc-commit-problem wanting', problem)" },
   // The Reliquary's rail of calls.
   { file: 'reliquaryScreen.ts', says: 'a call the bank cannot pay for', carries: "call.disabled ? 'rel-call-note wanting' : 'rel-call-note'" },
+  // The Faith sheet's Rites tab (batch UX9): the faith the bank is short of for
+  // another rite, a rite the empire has not learnt in a town's menu, and why the
+  // prophet's rite over the realm cannot be said. A Start button the bank cannot
+  // pay for is the price cell's own short look, registered above.
+  { file: 'ritesTab.ts', says: 'the faith short of another rite', carries: "model.faith.short ? 'faith-line-now wanting' : 'faith-line-now'" },
+  { file: 'ritesTab.ts', says: 'a rite not learnt, in a town’s menu', carries: "item.known ? 'faith-menu-says' : 'faith-menu-says wanting'" },
+  { file: 'ritesTab.ts', says: 'a prophet the realm lacks, or the realm’s refusal', carries: "model.realm.wanting ? 'faith-realm-why wanting' : 'faith-realm-why'" },
 ];
 
 describe('the wanting voice', () => {
@@ -350,6 +357,9 @@ describe('the wanting voice', () => {
       ['the luxury a road would bring', [on('trade-card'), on('trade-import', 'wanting')]],
       ['the arrangement that will not seal', [on('sc-commit-problem', 'wanting')]],
       ['the call the bank cannot pay for', [on('rel-call-note', 'wanting')]],
+      ['the faith short of another rite', [on('faith-line'), on('faith-line-now', 'wanting')]],
+      ['a rite not learnt, in a town’s menu', [on('faith-menu-item', 'is-locked'), on('faith-menu-says', 'wanting')]],
+      ['why the realm’s rite cannot be said', [on('faith-realm'), on('faith-realm-why', 'wanting')]],
       ['the hover card\'s unmet note', [on('info-card-notes'), on('wanting')]],
     ];
     for (const [what, chain] of wanting) {

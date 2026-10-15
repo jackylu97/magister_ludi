@@ -1,85 +1,46 @@
 /**
- * The Religion screen: your gods, your beliefs, the tide, and who you may call.
+ * The Faith sheet: rites, the bonuses your religion pays, and the religion
+ * itself, on three tabs (`docs/plans/faith-screen-f1.md`; batch UX9 in
+ * `docs/plans/hud-ux-decisions.md`, "Build plan").
  *
- * The sheet's subject is the **deck of faith** (ruled 2026-09-06). Everything a
- * player's religion *is* is a card — a god in a place at the fire, a follower
- * belief, an enhancer — and this screen is those cards, standing, each wearing
- * the figure it pays (`landCardStamp`). What used to lead the sheet was a piece
- * for hire and its price ladder; that piece is retired (`docs/religion-v2.md`),
- * the faith ladder consecrates on its own (`openFaithLadder`), and what took its
- * place at the head is the one question the old panel could not answer: **when
- * does the next god arrive**. Below the cards, in this order and deliberately:
- * the tide (who follows, and what presses), then the clergy a player may call.
+ * The sheet is called Faith since the ruling of 2026-10-15 (`docs/flags.md`
+ * (ssssss) 4.7), because it holds rites and bonuses as well as the religion.
+ * Its three tabs:
+ *
+ *   - **Rites**: every town of yours as a row, the rites you know as a strip of
+ *     chips, and rite mode, which ranks the free towns by what a rite would add
+ *     and starts it in one click. Built by `ritesTab.ts`.
+ *   - **Bonuses**: the gods, the follower and enhancer beliefs, each wearing the
+ *     figure it pays, and what the holy city is paid. This is the old sheet's
+ *     content, moved here until batch UX10 redraws the tab as cards with the
+ *     Orders screen's deal and stamp.
+ *   - **Religion & followers**: the religion's name, the pantheon wheel with
+ *     the next god's rung under it, every town that follows, and the clergy.
+ *     Also the old sheet's content until batch UX11 redraws it.
+ *
+ * The tab a seat last chose is remembered for that seat (`faithTabFor`), as
+ * the city screen remembers its add-list tab: a fact about the person at the
+ * keyboard, kept for the page's lifetime and never saved.
  *
  * **No retired piece is named on this sheet**, in a sentence or in a comment.
- * `test/ui/religionScreen.test.ts` checks this file and the sheet's own block
- * in `index.html`, which holds its title and hint line. A screen that explained
- * a mechanism the reducer refuses would teach a player a rule that is not true.
+ * `test/ui/religionScreen.test.ts` checks this file, `ritesTab.ts`,
+ * `riteWords.ts` and the sheet's own block in `index.html`, which holds its
+ * title and hint line. A screen that explained a mechanism the reducer refuses
+ * would teach a player a rule that is not true.
  *
- * The fourth full-screen overlay and the second parchment one, and it is
- * deliberately the Statecraft sheet's sibling rather than a new language: same
- * bones, same card face, and since batch H5 the same frame — `modalShell.ts`,
- * where `hidden` is the whole of the screen state, the ×, Escape and a press on
- * the ground arrive at one `close`, and opening closes whatever else was up. Two systems that draft
- * permanent things from a pool should not look like two different games.
+ * The frame is `modalShell.ts`, like every parchment sheet: `hidden` is the
+ * whole of the screen state, and the ×, Escape and a press on the ground arrive
+ * at one `close`. Escape on the Rites tab first leaves rite mode, then closes an
+ * open town menu, and only then closes the sheet (`escapeRites`, through the
+ * shell's `onKey`).
  *
- * What it graduates from
- * ----------------------
- * The dock's Faith popover (`hudDock.ts`) was a promise about where religion
- * would live, made before religion existed — "the faithful gather, their purpose
- * comes later". This is later. The popover's whole content is the first block
- * of this sheet, in the same figures, because there is no second arithmetic to
- * disagree with the first.
- *
- * The axis, and why it is a glyph
- * -------------------------------
- * A belief's axis is its synergy thread (`BeliefAxis` — "for the screen's
- * grouping and for nothing else"), and it is drawn as an **accent plus a
- * glyph** rather than as a drawn emblem. `cardLine.ts`'s marks are the
- * Statecraft deck's seven threads; borrowing one for the hearth would say a
- * belief is a card of the Wild Hunt, which is not true. A glyph is the
- * interface's other symbol channel (`figures.ts`), it inherits the type ramp
- * and the accent ink, and it costs no drawing — which is what the design pass
- * asked for.
- *
- * Two panes, and the pantheon never leaves
- * ----------------------------------------
- * The user's note (2026-08-27), one screen after the same note about
- * Statecraft: "ideally it would also fit on a single screen; split panes would
- * be good here too". The sheet used to be one column — the pool and its price
- * ladder, then the wheel and eighteen-hundred pixels of slot cards, then the
- * rites — and a player deciding whether to spend faith had to scroll past their
- * own gods to reach the figure that priced it.
- *
- * It is now the same **split** the Statecraft sheet is, down to the classes and
- * the breakpoint: the pantheon is a fixed column on the left — the wheel, the
- * gods under it, the count over it — and everything a player *does* is a pane
- * that scrolls beside it. The division is "what my faith is" against "what I
- * can do with it", which is also why the pool figure moved: how much faith has
- * gathered is not a fact about the sky, it is the first line of the price.
- *
- * A god in the column is a **row**, not the tall card it was. That is the hand's
- * argument from `statecraftScreen.ts` — the tarot proportion is the ceremony and
- * it stays where the ceremony is (`offerCard.ts`, which is where a god is dealt
- * and turned over) — and it costs the same one thing it cost there: the flavour
- * line, which is the only part of a card that says nothing about what the card
- * does, and which the offer still prints.
- *
- * Derived, never stored
- * ---------------------
- * Nothing on this screen is state. The slots are `pantheonSlots(techs)`, the
- * price is `explainPurchaseCost`, the rites are the table filtered by
- * `hasAbility`, and every clause a belief prints is `describeCard` — the same
- * function the offer that dealt it printed. The one thing this file keeps is
- * which city the purchase row is aimed at, which is a fact about a
- * conversation and not about the game (`statecraftScreen.ts`'s held card, one
- * screen over).
- *
- * One rule, one sentence
- * ----------------------
- * The purchase button is enabled by `purchaseError` and disabled with its
- * sentence, which is the sentence the reducer would answer with — so a button a
- * player can press is a command the simulation takes.
+ * Nothing on this screen is state. Every figure is a reading of the game
+ * (`religionReading`, `ritesTabModel`, the belief stamps), and every change is
+ * a command the page sends: a purchase, a rename, a rite in a town
+ * (`performRite`, through `controls.performRite`), or a prophet's rite over the
+ * realm (`empireRite`). What the sheet keeps is the conversation: the tab, the
+ * Rites tab's selected rite and open menu, what this visit started, and which
+ * town the clergy row is aimed at.
  */
 
 import { readEmpire } from '../sim/readings';
@@ -93,13 +54,13 @@ import {
   stampReading,
 } from './cardStamp';
 import { type CardImpactSheet, cardImpactSheet, explainCardImpact } from '../sim/cardImpact';
-import { poolFigure } from './figures';
 import {
   type NextRung,
   type PantheonPlace,
   type PressureLine,
-  availableRites,
   beliefPool,
+  cityRite,
+  empireRiteError,
   explainNextRung,
   explainPressure,
   foundReligionError,
@@ -111,8 +72,7 @@ import {
   poolHeld,
   poolSlots,
   renameReligionError,
-  riteTeachingCard,
-  riteTurnsFor,
+  riteError,
   RELIGION_NAME_LIMIT,
 } from '../sim/religion';
 import {
@@ -127,12 +87,9 @@ import {
   type ReligionBeliefPool,
   type RiteId,
   BELIEF_IDS,
-  LIVE_RITE_IDS,
   RELIGION_BELIEF_POOLS,
   beliefDef,
-  riteDef,
 } from '../sim/religionData';
-import { orderDef } from '../sim/statecraftData';
 import { drawPantheonWheel, pantheonWheelLayout } from './pantheonWheel';
 import { type CardYieldLine, explainCardEmpireYields, describeCard, stripRefs } from '../sim/statecraft';
 import {
@@ -151,6 +108,29 @@ import { type UnitTypeId, unitDef } from '../sim/unitData';
 import { YIELD_GLYPH } from './yieldMark';
 import { element } from './dom';
 import { seatName } from '../sim/leaderData';
+import { bankLineElement, readBank } from './bankFigure';
+import { wantsMotion } from './motion';
+import {
+  type RitesView,
+  createRiteReadingCache,
+  drawRitesTab,
+  escapeRites,
+  freshRitesView,
+  noteRealmRite,
+  noteRiteStarted,
+  ritesCount,
+  ritesTabModel,
+  ritesViewForTown,
+  selectRite,
+  toggleTownMenu,
+} from './ritesTab';
+
+/**
+ * The two rite words other screens print, composed in `riteWords.ts` and handed
+ * on from here by name, where the city screen's rite rows (`controls.ts`) have
+ * always imported them.
+ */
+export { riteGrantWords, riteTeacherName } from './riteWords';
 
 /**
  * The mark each axis wears, and the accent it is drawn in.
@@ -186,46 +166,6 @@ export const AXIS_MARK: Record<BeliefAxis, { glyph: string }> = {
 
 /** The empty slot's ghost — the outline of a god nobody has named. */
 const SLOT_GLYPH = '◇';
-
-/**
- * How long a rite runs, in words: "Kept for 10 turns", or "Kept for 1 turn".
- *
- * `turns` is the figure for one empire, and this screen always passes it:
- * `riteTurnsFor`, the same reading `stampRite` stamps, so the extra turns from
- * The Octave or Chichen Itza are printed as well as given. Without it the
- * figure is the row's own `duration`. The Compendium calls it that way,
- * because it describes the table rather than any one empire.
- *
- * `describeCard` cannot say this: a clause is an ordinary `CardEffect` and
- * knows nothing about the rite it hangs on, while how long a rite runs is a
- * fact about the rite. Exported because the Compendium prints the same
- * sentence on its Rites shelf, so the two surfaces word it one way.
- *
- * Empty for a withdrawn rite, which has no duration and hangs nothing.
- */
-export function riteGrantWords(id: RiteId, turns?: number | null): string {
-  const def = riteDef(id);
-  if (def.duration === undefined) return '';
-  const kept = turns ?? def.duration;
-  return `Kept for ${kept} ${kept === 1 ? 'turn' : 'turns'}`;
-}
-
-/**
- * What teaches a rite, as the name a rite row prints after "needs" or "Taught
- * by": the Order for a card-taught rite (`riteTeachingCard`), and the
- * technology on the row for every other rite.
- *
- * A card-taught row (`RiteDef.byCard`) still carries a `tech`, but it only
- * dates the rite for the Compendium, so it is never printed as the teacher.
- * Shared with the city screen's rite rows (`riteOptions` in `controls.ts`) so
- * the two screens name the same teacher.
- */
-export function riteTeacherName(id: RiteId): string {
-  const def = riteDef(id);
-  if (def.byCard !== true) return techDef(def.tech).name;
-  const card = riteTeachingCard(id);
-  return card === null ? 'a card' : `the Order ${orderDef(card).name}`;
-}
 
 // --- the religion, as the pane reads it -------------------------------------
 
@@ -499,11 +439,49 @@ export function beliefOfferEyebrow(pool: ReligionBeliefPool | undefined): string
   return 'an enhancer belief · bends how your faith spreads';
 }
 
+// --- the three tabs -------------------------------------------------------------
+
+/** The Faith sheet's three tabs. */
+export type FaithTab = 'rites' | 'bonuses' | 'religion';
+
+/** The tabs in the order they are drawn, with their labels. */
+export const FAITH_TABS: readonly { tab: FaithTab; label: string }[] = [
+  { tab: 'rites', label: 'Rites' },
+  { tab: 'bonuses', label: 'Bonuses' },
+  { tab: 'religion', label: 'Religion & followers' },
+];
+
+/**
+ * The tab each seat last chose. Module state rather than game state, for the
+ * reason the city screen's add-list tab is (`addTab` in `cityPanel.ts`): which
+ * tab a player last looked at is a fact about the person at the keyboard, it is
+ * not in the save, and it resets when the page does. Kept per seat because a
+ * hot-seat game passes the keyboard round. Read and written by seat id only;
+ * nothing walks it.
+ */
+const tabBySeat = new Map<number, FaithTab>();
+
+/** The tab this seat sees when the sheet opens: the one it last chose, or Rites. */
+export function faithTabFor(seat: number): FaithTab {
+  return tabBySeat.get(seat) ?? 'rites';
+}
+
+/** Remembers a seat's choice of tab. */
+export function chooseFaithTab(seat: number, tab: FaithTab): void {
+  tabBySeat.set(seat, tab);
+}
+
 export interface ReligionScreen {
   readonly isOpen: boolean;
   open(): void;
   close(): void;
   toggle(): void;
+  /**
+   * Opens the sheet on the Rites tab with this town's "Start a rite" menu open:
+   * the city screen's way in, from its Faith card. A town keeping a rite has no
+   * menu, so its row is marked and brought into view instead.
+   */
+  openRitesFor(cityId: number): void;
   /** The state changed. Redraws if the screen is up; cheap enough to call always. */
   refresh(): void;
   dispose(): void;
@@ -518,6 +496,22 @@ export interface ReligionScreenOptions {
   getPlayerId: () => number;
   /** Sends the purchase. The screen never mutates state itself. */
   buy: (cityId: number, item: PurchasableItem, currency: 'faith' | 'gold') => void;
+  /**
+   * Starts a rite in a town: one `performRite` command, which the page sends
+   * through `controls.performRite`. Optional, so a page without it still draws
+   * the Rites tab, with its Start buttons unpressable.
+   */
+  performRite?: (cityId: number, rite: RiteId) => void;
+  /**
+   * Has a prophet say a rite over the whole realm: one `empireRite` command.
+   * Optional for `performRite`'s reason.
+   */
+  sayRiteOverRealm?: (unitId: number, rite: RiteId) => void;
+  /**
+   * Opens a town's city screen. A town's name on the Rites tab is a link to it,
+   * and following it closes the sheet. Without it the names are plain words.
+   */
+  openCity?: (cityId: number) => void;
   /**
    * Sends `renameReligion`. Optional, so a page with no religion verb wired
    * simply shows the name as a heading rather than as a field — the same
@@ -651,32 +645,6 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   let sheet: CardImpactSheet | null = null;
 
   /**
-   * The pool, its rate, and **when the next god arrives** — the Faith chip's
-   * whole content, folded in.
-   *
-   * The second line is `nextRungWords`, which is the sim's own sentence about
-   * the ladder (`explainNextRung`), and it is printed here for the reason the
-   * pool figure is: the faith chip's hover card says exactly this, off exactly
-   * this reading, and two surfaces composing one threshold is how a sheet comes
-   * to promise a god at a price the phase disagrees with. Nothing on this screen
-   * adds a figure of its own.
-   *
-   * The rate is `readEmpire`' — the top bar's fold, handed in rather than folded
-   * again, which is the bargain `explainNextRung` documents.
-   */
-  function drawPool(state: GameState, seat: number): HTMLElement {
-    const block = element('section', 'rel-pool');
-    const player = playerById(state, seat);
-    const rate = readEmpire(state, seat).totals.faith;
-    block.append(element('p', 'eyebrow sc-eyebrow', 'faith gathered'));
-    const figure = element('p', 'rel-pool-figure');
-    figure.textContent = player ? poolFigure(player.faithPool, rate) : '—';
-    block.append(figure);
-    block.append(element('p', 'rel-rung-line', nextRungWords(explainNextRung(state, seat, rate))));
-    return block;
-  }
-
-  /**
    * The pool as a wheel: one house per god, runs of an axis adjacent.
    *
    * The axes have no printed name any more (`AXIS_MARK`, "deliberate"), and
@@ -753,40 +721,22 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   }
 
   /**
-   * The pantheon: the wheel, and one place per **place** under it.
+   * The gods: one card per place in the pantheon, each wearing the figure it
+   * pays, and an empty place saying what it is waiting for (`drawEmptyPlace`).
+   * On the Bonuses tab until batch UX10 redraws it as a shelf of cards.
    *
-   * The slot list is the Statecraft idiom and the same argument for it — a run
-   * of slots is a run of *places a thing goes*, and the shape says so before any
-   * of the words are read. What differs is that a god never comes back out, so
-   * there is nothing to click: these are `article`s, not buttons.
-   *
-   * **Every place the tree will ever open is drawn**, not only the ones open
-   * today (ruled 2026-09-06): the pantheon is three faces, and the third saying
-   * what opens it is the fact the old sheet — which drew `pantheonSlots` places
-   * and stopped — could not print. `pantheonPlaces` is the whole shape, and it
-   * is the sim's, so which technology opens which place is not a word this file
-   * knows.
-   *
-   * The wheel does not replace them, and the two are not the same picture: the
-   * wheel is the **pool** — where a god sits in the sky and what it is next to —
-   * and a slot is a god's **face**, which is what it actually does. A player
-   * wants both, so they are stacked in one column: the sky, then the gods in it.
-   * They sat side by side while this was a full-width sheet; in a 320px column a
-   * card beside the wheel is two things neither of which can be read.
+   * Every place the tree will ever open is drawn, not only the ones open today
+   * (ruled 2026-09-06), so the third place can say which technology opens it.
+   * `pantheonPlaces` is the whole shape, and it is the simulation's.
    */
-  function drawPantheon(state: GameState, seat: number): HTMLElement {
-    const block = element('section', 'rel-pantheon');
+  function drawGods(state: GameState, seat: number): HTMLElement {
+    const block = element('section', 'rel-pantheon faith-shelf');
     const player = playerById(state, seat);
     const slots = pantheonSlots(state, seat);
     const held = player?.pantheon.beliefs ?? [];
     const rung = explainNextRung(state, seat, readEmpire(state, seat).totals.faith);
-    block.append(
-      element('p', 'eyebrow sc-eyebrow', `pantheon · ${held.length} of ${slots}`),
-    );
-    const wheelRow = element('div', 'rel-wheel-row');
-    wheelRow.append(drawWheel(state, seat, slots));
-    block.append(wheelRow);
-    const row = element('div', 'rel-slot-row');
+    block.append(element('p', 'eyebrow sc-eyebrow', `your gods · ${held.length} of ${slots}`));
+    const row = element('div', 'rel-slot-row faith-cards');
     let firstOpen = true;
     for (const place of pantheonPlaces(state, seat)) {
       const empty = place.belief === null;
@@ -799,8 +749,6 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       }
       row.append(card);
     }
-    // Under the wheel, in the same column: the sky and the faces are two
-    // readings of one pantheon and the column is the whole of it.
     block.append(row);
     if (player && held.length < slots) {
       block.append(
@@ -811,6 +759,27 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
         ),
       );
     }
+    return block;
+  }
+
+  /**
+   * The pantheon as a wheel, with the next god's rung under it: the Religion &
+   * followers tab's column (F1, Tab 3). The rung sentence is the simulation's
+   * (`nextRungWords` over `explainNextRung`), the same one the faith chip's
+   * hover card prints, so the two cannot quote different thresholds. The rate
+   * is `readEmpire`'s, the top bar's own figure.
+   */
+  function drawWheelBlock(state: GameState, seat: number): HTMLElement {
+    const block = element('section', 'rel-pantheon');
+    const player = playerById(state, seat);
+    const slots = pantheonSlots(state, seat);
+    const held = player?.pantheon.beliefs ?? [];
+    const rate = readEmpire(state, seat).totals.faith;
+    block.append(element('p', 'eyebrow sc-eyebrow', `pantheon · ${held.length} of ${slots}`));
+    const wheelRow = element('div', 'rel-wheel-row');
+    wheelRow.append(drawWheel(state, seat, slots));
+    block.append(wheelRow);
+    block.append(element('p', 'rel-rung-line', nextRungWords(explainNextRung(state, seat, rate))));
     return block;
   }
 
@@ -924,25 +893,17 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   }
 
   /**
-   * The religion block: what this seat's faith **is**, and who follows it.
+   * The religion's name and the world's count of religions, or, for a seat that
+   * has founded none, what a religion is and how one is founded. The head of
+   * the Religion & followers tab.
    *
-   * Two states and no third, which is the whole of `foundedReligion`'s reading:
-   * a seat that has founded nothing is told what a religion is and how one is
-   * founded, with the world's count against the cap beside it — because "can I
-   * still have one" is the first question, and the answer stops being yes. A
-   * seat that has one gets its name and its **belief rungs as faces** —
-   * followers then enhancers, each wearing the figure it pays, the same standing
-   * card the pantheon's places wear one column over.
-   *
-   * What the faith is *paid* and who follows it went to `drawTide` in the rework
-   * of 2026-09-06: this block is the cards, that one is what they are doing.
-   *
-   * Every figure comes off `religionReading`, which is pure and pinned; this
-   * function is the DOM and the one control (the name field).
+   * The name is editable in place. It is generated so a religion has one at all
+   * (`generateReligionName`); renaming changes no rule, so it is a field rather
+   * than a ceremony, and a refusal is the reducer's own sentence in the
+   * manicule line rather than an error on the control.
    */
-  function drawReligion(state: GameState, seat: number): HTMLElement {
+  function drawFaithName(state: GameState, seat: number, reading: ReligionReading): HTMLElement {
     const block = element('section', 'rel-faith');
-    const reading = religionReading(state, seat);
     const mine = reading.religion;
     block.append(element('p', 'eyebrow sc-eyebrow', 'your religion'));
 
@@ -958,8 +919,8 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       );
       block.append(element('p', 'rel-faith-how', reading.found!.how));
       // The world's count, and the blocker under it when there is one. The cap
-      // is a fact about the *world* rather than about this seat, which is why it
-      // is printed whether or not anything is stopping this player today.
+      // is a fact about the world rather than about this seat, so it is printed
+      // whether or not anything is stopping this player today.
       block.append(element('p', 'rel-faith-count', reading.count));
       if (reading.found!.blocker !== null) {
         block.append(element('p', 'sc-none', reading.found!.blocker));
@@ -967,10 +928,6 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       return block;
     }
 
-    // The name, editable in place. It is generated so a religion has one at all
-    // (`generateReligionName`); renaming changes no rule, which is why this is a
-    // field rather than a ceremony, and why a refusal is the reducer's own
-    // sentence in the manicule line rather than an error on the control.
     const nameRow = element('div', 'rel-faith-name');
     if (options.rename) {
       const field = document.createElement('input');
@@ -999,10 +956,26 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     }
     block.append(nameRow);
     block.append(element('p', 'rel-faith-count', reading.count));
+    return block;
+  }
 
-    // The houses. An empty one says what fills it rather than showing a ghost
-    // and nothing else — the gods' slot row is a place a player already knows
-    // how to fill, and a religion's two houses are not.
+  /**
+   * The religion's follower and enhancer beliefs, each wearing the figure it
+   * pays, and an empty place saying what fills it. On the Bonuses tab until
+   * batch UX10 redraws it. Every figure comes off `religionReading` and the
+   * belief stamps.
+   */
+  function drawBeliefs(state: GameState, seat: number, reading: ReligionReading): HTMLElement {
+    const block = element('section', 'rel-faith faith-shelf');
+    const mine = reading.religion;
+    block.append(element('p', 'eyebrow sc-eyebrow', 'your religion’s beliefs'));
+    if (mine === null) {
+      block.append(
+        element('p', 'sc-none', 'You have founded no religion, so no follower or enhancer belief pays yet.'),
+      );
+      return block;
+    }
+    const houses = element('div', 'faith-cards');
     for (const house of reading.houses) {
       const box = element('div', 'rel-house');
       box.append(
@@ -1026,34 +999,22 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
         empty.title = POOL_WORD[house.pool].says;
         box.append(empty);
       }
-      block.append(box);
+      houses.append(box);
     }
+    block.append(houses);
     return block;
   }
 
   /**
-   * The tide, **under the cards**: what the holy city is paid, and every town in
-   * the world that follows.
-   *
-   * Split off `drawReligion` in the rework of 2026-09-06 for the ruling's own
-   * reason: the sheet's subject is the deck, and the tide is what the deck is
-   * doing. It reads exactly as it did — the same lines, the same hovers, the
-   * same order — one block lower and drawn compact, because a player scanning
-   * for their gods should not scroll a congregation list to reach them.
-   *
-   * Nothing here when this seat founded nothing: the tide is a fact about a
-   * religion, and a seat with none is told how to found one three blocks up.
+   * What the faith pays whoever holds its holy city, in
+   * `explainCardEmpireYields`' own labelled lines, so the figure here is the
+   * figure `collectYields` banks. It stops arriving the turn somebody takes the
+   * holy city. On the Bonuses tab until batch UX10 redraws it as the holy
+   * city's plaque. Nothing for a seat that has founded no religion.
    */
-  function drawTide(state: GameState, seat: number): HTMLElement | null {
-    const reading = religionReading(state, seat);
-    const mine = reading.religion;
-    if (mine === null) return null;
-    const block = element('section', 'rel-faith rel-tide');
-
-    // What the faith pays whoever holds its holy city. `explainCardEmpireYields`' own
-    // labelled lines, so the figure here is the figure `collectYields` banks —
-    // and it stops arriving the turn somebody takes the holy city off you.
-    const trickle = element('div', 'rel-trickle');
+  function drawTrickle(reading: ReligionReading): HTMLElement | null {
+    if (reading.religion === null) return null;
+    const trickle = element('section', 'rel-trickle faith-shelf');
     trickle.append(element('p', 'eyebrow sc-eyebrow', 'what the holy city is paid'));
     if (reading.trickle.length === 0) {
       trickle.append(element('p', 'sc-none', 'Nothing yet — no town abroad follows you.'));
@@ -1067,12 +1028,21 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       }
       trickle.append(list);
     }
-    block.append(trickle);
+    return trickle;
+  }
 
-    // The congregation. Yours and theirs in one list, because a follower belief
-    // lands in both and a player reading two lists would be reading one rule
-    // twice — the foreign towns are the ones that pay the trickle, and the ones
-    // whose owners are quietly getting your beliefs.
+  /**
+   * Every town in the world that follows this seat's religion, with how many of
+   * its citizens follow and what the faith presses on it a turn: the Religion &
+   * followers tab's pane, until batch UX11 splits it into your towns and
+   * foreign towns. Yours and theirs in one list, because a follower belief lands
+   * in both. Nothing for a seat that has founded no religion; the column above
+   * says how to found one.
+   */
+  function drawFollowing(reading: ReligionReading): HTMLElement | null {
+    const mine = reading.religion;
+    if (mine === null) return null;
+    const block = element('section', 'rel-faith rel-tide');
     const towns = element('div', 'rel-following');
     towns.append(
       element('p', 'eyebrow sc-eyebrow', `following cities · ${reading.following.length}`),
@@ -1098,16 +1068,13 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
           `${town.following} of ${town.population} citizens`,
         ),
       );
-      // And whether the town is still moving. A congregation is a standing
-      // count; the tide is the derivative, and the two together are the whole
-      // of "is this one mine yet". Absent at zero rather than "+0 a turn",
-      // which reads as a broken figure — a faith with followers and no pressure
-      // is a real state (the tide carried it here and has receded).
+      // Absent at zero rather than "+0 a turn", which reads as a broken figure:
+      // a faith with followers and no pressure is a real state.
       if (town.pressure > 0) {
         row.append(element('span', 'rel-town-press', `+${town.pressure} a turn`));
       }
-      // The ledger on hover, and it is `explainPressure`'s own list — the same
-      // one the tide folds into the bank.
+      // The ledger on hover: `explainPressure`'s own list, the one the tide
+      // folds into the bank.
       row.title = pressureLedgerText(town.ledger);
       towns.append(row);
     }
@@ -1126,80 +1093,261 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     return parts.join(' ');
   }
 
-  /**
-   * The rites, as a reference: what each does, how long it runs, and what
-   * teaches it.
-   *
-   * Every rite the table still teaches (`LIVE_RITE_IDS`), known or not, so a
-   * player can plan for the ones they have not learnt yet. Withdrawn rows are
-   * left out: no town may keep one, so listing them would describe rites that
-   * do not exist any more. Which rites are known is `availableRites`, the
-   * reading the city screen's rows use too, so the two agree about what is
-   * greyed. An unknown rite names its teacher with `riteTeacherName`: the
-   * technology, or the Order for a card-taught rite.
-   */
-  function drawRites(state: GameState, seat: number): HTMLElement {
-    const block = element('section', 'rel-rites');
-    block.append(element('p', 'eyebrow sc-eyebrow', 'rites · a town keeps one'));
-    const known = new Set<RiteId>(availableRites(state, seat));
-    const list = element('div', 'rel-rite-list');
-    for (const id of LIVE_RITE_IDS) {
-      const def = riteDef(id);
-      const row = element('div', known.has(id) ? 'rel-rite' : 'rel-rite rel-rite-locked');
-      const head = element('p', 'rel-rite-head');
-      head.append(element('span', 'rel-rite-name', def.name));
-      head.append(
-        element(
-          'span',
-          'rel-rite-tech',
-          known.has(id) ? 'known' : `needs ${riteTeacherName(id)}`,
-        ),
-      );
-      row.append(head);
-      const clauses = describeCard(id);
-      // The duration, said once and first. The figure is the one this empire's
-      // town would be stamped with (`riteTurnsFor`), so a seated The Octave or
-      // a held Chichen Itza is counted here as it is in the town.
-      const kept = riteGrantWords(id, riteTurnsFor(state, seat, id));
-      // Composed as one sentence and **drawn as a descriptor**: a rite's row is
-      // prose in a `<p>` and nothing on it answers a click, so the things its
-      // clauses name are live keywords. The join is inside the call because the
-      // marks have to survive it — a plain `textContent` here would print
-      // brackets.
-      const say = element('p', 'rel-rite-say');
-      setDescriptorText(
-        say,
-        // The row's `note` is player prose from the data row, printed as it is
-        // written (hard rule 7): it carries what the effect list cannot say,
-        // such as which Order opens a card-taught rite.
-        [kept, clauses.map((clause) => clause.text).join(' · '), def.note ?? '']
-          .filter((part) => part.length > 0)
-          .join(' · '),
-      );
-      row.append(say);
-      // Labelled, for the Compendium's reason (copy pass, 2026-08-28): the
-      // rite's own payoff line sits directly above it in the same column.
-      const flavor = element('p', 'sc-flavor');
-      flavor.append(element('span', 'flavor-label', 'Flavour'));
-      flavor.append(document.createTextNode(def.flavor));
-      row.append(flavor);
-      list.append(row);
-    }
-    block.append(list);
-    // Said once, here, because it is the rule that makes the whole system a
-    // decision rather than a queue: a rite is a town's turn and its bank's.
-    block.append(
-      element(
-        'p',
-        'sc-flavor',
-        'A rite is said over one of your towns. The town keeps one at a time, and your faith pays for it.',
-      ),
-    );
-    return block;
-  }
-
   /** Which city the purchase row is aimed at. A conversation, not the game. */
   let aimedCityId: number | null = null;
+
+  // --- the Rites tab ------------------------------------------------------------
+
+  /** The Rites tab's conversation (`RitesView`), and the seat it belongs to. */
+  let ritesView: RitesView = freshRitesView(0);
+  let ritesSeat: number | null = null;
+  /** The town `openRitesFor` asked about, used by the opening it causes. */
+  let pendingTown: number | null = null;
+  /** True for the paint after `openRitesFor`, so that town's row is scrolled into view once. */
+  let scrollToFocus = false;
+  /** The previews and chip voices, kept while the board is unchanged. */
+  const riteReadings = createRiteReadingCache();
+
+  /** The conversation for this seat; a seat that changed under the sheet starts afresh. */
+  function viewFor(state: GameState, seat: number): RitesView {
+    if (ritesSeat !== seat) {
+      ritesView = freshRitesView(state.turn);
+      ritesSeat = seat;
+    }
+    return ritesView;
+  }
+
+  /**
+   * A Start button: one `performRite` command, sent by the page. The gate is
+   * asked again at the click, as the clergy row does, because the button was
+   * drawn against the board as it stood; a refusal now is said in the reducer's
+   * own words instead of being sent. Whether the command was taken is read off
+   * the board afterwards (the town keeps the rite), and only then is the start
+   * recorded for the faith line and the "started now" mark.
+   */
+  function startRite(cityId: number, rite: RiteId): void {
+    const send = options.performRite;
+    if (send === undefined) return;
+    const state = options.getState();
+    const seat = options.getPlayerId();
+    const refusal = riteError(state, seat, cityId, rite);
+    if (refusal !== null) {
+      options.onRefuse?.(refusal);
+      draw();
+      return;
+    }
+    const before = playerById(state, seat)?.faithPool ?? 0;
+    send(cityId, rite);
+    const after = options.getState();
+    const city = after.cities.find((one) => one.id === cityId);
+    if (city !== undefined && cityRite(after, city) === rite) {
+      ritesView = noteRiteStarted(
+        viewFor(after, seat),
+        after.turn,
+        { cityId, rite },
+        before,
+        playerById(after, seat)?.faithPool ?? 0,
+      );
+    }
+    draw();
+  }
+
+  /**
+   * The realm's button: one `empireRite` command with the prophet the model
+   * picked, asked of `empireRiteError` again at the click. Taken when the bank
+   * paid for it; every town now keeping the rite is recorded as started.
+   */
+  function sayOverRealm(unitId: number, rite: RiteId): void {
+    const send = options.sayRiteOverRealm;
+    if (send === undefined) return;
+    const state = options.getState();
+    const seat = options.getPlayerId();
+    const refusal = empireRiteError(state, seat, unitId, rite);
+    if (refusal !== null) {
+      options.onRefuse?.(refusal);
+      draw();
+      return;
+    }
+    const before = playerById(state, seat)?.faithPool ?? 0;
+    send(unitId, rite);
+    const after = options.getState();
+    const bank = playerById(after, seat)?.faithPool ?? 0;
+    if (bank < before) {
+      const towns = after.cities
+        .filter((city) => city.ownerId === seat && cityRite(after, city) === rite)
+        .map((city) => city.id);
+      ritesView = noteRealmRite(viewFor(after, seat), after.turn, rite, towns, before, bank);
+    }
+    draw();
+  }
+
+  /** The Rites tab: its model, read with this paint's shared sheet, and drawn. */
+  function drawRites(state: GameState, seat: number): HTMLElement {
+    const view = viewFor(state, seat);
+    const model = ritesTabModel(state, seat, view, riteReadings.readings(state, seat, sheet ?? undefined));
+    const openCity = options.openCity;
+    return drawRitesTab(model, {
+      selectRite: (rite) => {
+        ritesView = selectRite(ritesView, rite);
+        draw();
+      },
+      toggleMenu: (cityId) => {
+        ritesView = toggleTownMenu(ritesView, cityId);
+        draw();
+      },
+      start: options.performRite === undefined ? undefined : startRite,
+      sayOverRealm: options.sayRiteOverRealm === undefined ? undefined : sayOverRealm,
+      // A town's name opens its city screen and closes the sheet, which would
+      // otherwise stand in front of it.
+      openCity:
+        openCity === undefined
+          ? undefined
+          : (cityId) => {
+              shell.close();
+              openCity(cityId);
+            },
+    });
+  }
+
+  // --- the other two tabs, as they stand until UX10 and UX11 ----------------------
+
+  /** The Bonuses tab: the gods, the religion's beliefs, and the holy city's share. */
+  function drawBonuses(state: GameState, seat: number): HTMLElement {
+    const reading = religionReading(state, seat);
+    const pane = element('div', 'faith-bonuses');
+    pane.append(drawGods(state, seat));
+    pane.append(drawBeliefs(state, seat, reading));
+    const trickle = drawTrickle(reading);
+    if (trickle !== null) pane.append(trickle);
+    return pane;
+  }
+
+  /**
+   * The Religion & followers tab: the Statecraft sheet's split, with the
+   * religion's name and the wheel in the fixed column, and who follows and the
+   * clergy in the pane that scrolls.
+   */
+  function drawReligionTab(state: GameState, seat: number): HTMLElement {
+    const reading = religionReading(state, seat);
+    const split = element('div', 'sc-split');
+    const column = element('aside', 'sc-column');
+    const stack = element('div', 'sc-column-body');
+    stack.append(drawFaithName(state, seat, reading));
+    stack.append(drawWheelBlock(state, seat));
+    column.append(stack);
+    split.append(column);
+    const pane = element('div', 'sc-pane');
+    const following = drawFollowing(reading);
+    if (following !== null) pane.append(following);
+    pane.append(drawClergy(state, seat));
+    split.append(pane);
+    return split;
+  }
+
+  // --- the frame: tabs, the bank, and one paint ------------------------------------
+
+  /** The row over every tab: the three tabs, and the faith bank in the bank display's style. */
+  function drawHead(state: GameState, seat: number, tab: FaithTab): HTMLElement {
+    const head = element('div', 'faith-head');
+    const tabs = element('div', 'faith-tabs');
+    tabs.setAttribute('role', 'group');
+    tabs.setAttribute('aria-label', 'Faith sheet tabs');
+    for (const { tab: which, label } of FAITH_TABS) {
+      const on = which === tab;
+      const button = element('button', on ? 'faith-tab is-on' : 'faith-tab');
+      button.type = 'button';
+      button.dataset.key = `tab:${which}`;
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+      button.append(element('span', 'faith-tab-label', label));
+      if (which === 'rites') button.append(element('span', 'faith-tab-count', ritesCount(state, seat)));
+      button.addEventListener('click', () => {
+        chooseFaithTab(seat, which);
+        draw();
+      });
+      tabs.append(button);
+    }
+    head.append(tabs);
+    head.append(bankLineElement([readBank(state, seat, 'faith')]));
+    return head;
+  }
+
+  /** Where things stood before a repaint, so the repaint can keep them. */
+  interface Layout {
+    tab: string | null;
+    scroll: number;
+    /** Each town row's top, by town id. */
+    rows: Map<string, number>;
+    /** The `data-key` of the control that had the keyboard. */
+    focus: string | null;
+  }
+
+  /** Set when the sheet opens: the first paint of a visit keeps nothing from the last one. */
+  let fresh = true;
+
+  function measure(): Layout {
+    const panel = body.querySelector<HTMLElement>('.faith-panel');
+    const rows = new Map<string, number>();
+    for (const row of body.querySelectorAll<HTMLElement>('.faith-town[data-city]')) {
+      rows.set(row.dataset.city!, row.getBoundingClientRect().top);
+    }
+    const active = document.activeElement;
+    const focus =
+      active instanceof HTMLElement && body.contains(active)
+        ? (active.closest<HTMLElement>('[data-key]')?.dataset.key ?? null)
+        : null;
+    return { tab: panel?.dataset.tab ?? null, scroll: panel?.scrollTop ?? 0, rows, focus };
+  }
+
+  /**
+   * The rows slide from where they were to where they are (the user's
+   * mockup: "slide into place"), as a transform that ends where the layout
+   * already is, so nothing waits on it. Skipped under reduced motion.
+   */
+  function slide(before: Map<string, number>): void {
+    for (const row of body.querySelectorAll<HTMLElement>('.faith-town[data-city]')) {
+      const was = before.get(row.dataset.city!);
+      if (was === undefined) continue;
+      const moved = was - row.getBoundingClientRect().top;
+      if (Math.abs(moved) < 1) continue;
+      row.animate?.([{ transform: `translateY(${moved}px)` }, { transform: 'translateY(0)' }], {
+        duration: 360,
+        easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
+      });
+    }
+  }
+
+  /**
+   * Gives the keyboard back to the control that had it. A Start button whose
+   * town has just moved to the kept group is gone, so the keyboard goes to the
+   * selected rite's chip, or, from a menu, to that town's name.
+   */
+  function giveBackFocus(key: string | null): void {
+    if (key === null) return;
+    let target = body.querySelector<HTMLElement>(`[data-key="${key}"]`);
+    if (target === null && ritesView.selected !== null) {
+      target = body.querySelector<HTMLElement>(`[data-key="chip:${ritesView.selected}"]`);
+    }
+    if (target === null) {
+      const city = /^(?:start|menu|menu-start):(\d+)/.exec(key)?.[1];
+      if (city !== undefined) target = body.querySelector<HTMLElement>(`[data-key="name:${city}"]`);
+    }
+    target?.focus({ preventScroll: true });
+  }
+
+  /** After a paint: the scroll, the slide and the keyboard, kept from before it. */
+  function settle(panel: HTMLElement, tab: FaithTab, before: Layout | null): void {
+    if (before !== null) {
+      if (before.tab === tab) {
+        panel.scrollTop = before.scroll;
+        if (wantsMotion()) slide(before.rows);
+      }
+      giveBackFocus(before.focus);
+    }
+    if (scrollToFocus && tab === 'rites') {
+      scrollToFocus = false;
+      body.querySelector<HTMLElement>('.faith-town.is-focus')?.scrollIntoView({ block: 'nearest' });
+    }
+  }
 
   function draw(): void {
     sheet = cardImpactSheet(options.getState(), options.getPlayerId());
@@ -1213,47 +1361,25 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   function paint(): void {
     const state = options.getState();
     const seat = options.getPlayerId();
+    const before = fresh ? null : measure();
+    fresh = false;
     body.replaceChildren();
     if (!playerById(state, seat)) return;
-    // The split, and it is the Statecraft sheet's own — the same four classes,
-    // so the two parchment screens cannot drift apart and the width at which
-    // they stack is one media query rather than two that agree today.
-    const split = element('div', 'sc-split');
-    const column = element('aside', 'sc-column');
-    const stack = element('div', 'sc-column-body');
-    stack.append(drawPantheon(state, seat));
-    column.append(stack);
-    split.append(column);
-
-    const pane = element('div', 'sc-pane');
-    // **The order is the ruling's** (2026-09-06): the cards, then what the cards
-    // are doing, then what may be bought. The pool leads the pane because it is
-    // the one figure every block below it is priced against, and it carries the
-    // ladder's own sentence — how much faith has gathered and when the next god
-    // arrives are one question asked twice.
-    pane.append(drawPool(state, seat));
-    // The religion's belief rungs — the deck's second half, the pantheon in the
-    // column being the first.
-    pane.append(drawReligion(state, seat));
-    // The tide under the cards, compact: who follows, and what presses.
-    const tide = drawTide(state, seat);
-    if (tide !== null) pane.append(tide);
-    pane.append(drawRites(state, seat));
-    // The clergy last. A purchase is the smallest decision on the sheet, and the
-    // gods and the beliefs above it are what the sheet is about.
-    pane.append(drawClergy(state, seat));
-    split.append(pane);
-    body.append(split);
+    const tab = faithTabFor(seat);
+    body.append(drawHead(state, seat, tab));
+    const panel = element('div', `faith-panel is-${tab}`);
+    panel.dataset.tab = tab;
+    if (tab === 'rites') panel.append(drawRites(state, seat));
+    else if (tab === 'bonuses') panel.append(drawBonuses(state, seat));
+    else panel.append(drawReligionTab(state, seat));
+    body.append(panel);
+    settle(panel, tab, before);
   }
 
   /**
-   * The frame (`modalShell.ts`) — `hidden` is the whole of the screen state, the
-   * ×, Escape and a press on the ground all arrive at one `close`, the keyboard
-   * goes to the × and comes back to the bar, and the disposer is the game's.
-   *
-   * This sheet adds nothing to it. There is no proposal on this screen and
-   * nothing it forgets on the way out: a belief is taken by a command the
-   * instant it is picked, so leaving is only leaving.
+   * The frame (`modalShell.ts`). Opening forgets the last visit's rite mode,
+   * menu and starts (`onShow`); Escape on the Rites tab leaves rite mode, then
+   * an open menu, before the shell closes the sheet (`onKey`).
    */
   const shell = createModalShell({
     overlay,
@@ -1261,6 +1387,28 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     closeButton,
     trigger,
     onOpen: () => options.onOpen?.(),
+    onShow: () => {
+      const state = options.getState();
+      ritesView = freshRitesView(state.turn);
+      ritesSeat = options.getPlayerId();
+      if (pendingTown !== null) {
+        ritesView = ritesViewForTown(ritesView, pendingTown);
+        pendingTown = null;
+        scrollToFocus = true;
+      }
+      fresh = true;
+    },
+    onKey: (event) => {
+      if (event.key !== 'Escape') return false;
+      if (faithTabFor(options.getPlayerId()) !== 'rites') return false;
+      const next = escapeRites(ritesView);
+      if (next === null) return false;
+      event.preventDefault();
+      event.stopPropagation();
+      ritesView = next;
+      draw();
+      return true;
+    },
     draw,
   });
 
@@ -1271,6 +1419,18 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     open: shell.open,
     close: shell.close,
     toggle: shell.toggle,
+    openRitesFor(cityId: number): void {
+      const seat = options.getPlayerId();
+      chooseFaithTab(seat, 'rites');
+      if (shell.isOpen) {
+        ritesView = ritesViewForTown(viewFor(options.getState(), seat), cityId);
+        scrollToFocus = true;
+        shell.refresh();
+        return;
+      }
+      pendingTown = cityId;
+      shell.open();
+    },
     refresh: shell.refresh,
     dispose: shell.dispose,
   };

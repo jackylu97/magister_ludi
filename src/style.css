@@ -11749,6 +11749,604 @@ p.city-trade-link {
   color: var(--ink-faint);
 }
 
+/* ================= the Faith sheet: tabs and the Rites tab (batch UX9) =======
+   The three tabs and the faith bank sit over every tab (`.faith-head`). Each
+   tab's content is the panel under them (`.faith-panel`): it scrolls on the
+   Rites and Bonuses tabs, and on Religion & followers it holds the Statecraft
+   split, whose two halves scroll themselves. The Rites tab follows the drawing
+   in `docs/plans/mockups/faith-f1.html`: town rows about 30px tall, so
+   fourteen towns fit on one screen with the strip and the faith line. */
+.faith-head {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.faith-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* The city screen's add-list pills, at this sheet's size. A control, so
+   sentence case (`religionScreen.test.ts`). */
+.faith-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 5px 12px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 999px;
+  background: #fdfaef;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.faith-tab:hover:not(.is-on) {
+  background: #fffdf4;
+}
+
+.faith-tab.is-on {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.faith-tab-count {
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.72;
+}
+
+.faith-panel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+}
+
+.faith-panel.is-rites,
+.faith-panel.is-bonuses {
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* --- the strip of rites ---------------------------------------------------- */
+.faith-rites {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.faith-rites-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+
+.faith-rites-head .sc-eyebrow {
+  margin: 0;
+}
+
+.faith-rites-note {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.faith-rite-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+/* A rite you know: a chip with the faith ink down its left edge. Lit teal while
+   its rite mode is on, as the drawing has it. */
+.faith-rite-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border: 1.5px solid var(--ink);
+  border-left: 4px solid var(--y-faith);
+  border-radius: 5px;
+  background: #fdfaef;
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+}
+
+button.faith-rite-chip:hover:not(.is-on) {
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.faith-rite-chip.is-on {
+  border-color: var(--teal);
+  background: var(--teal);
+  color: #fff;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.faith-rite-chip-mark {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.faith-rite-chip-kept {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+/* A rite you do not know: dashed, quiet, and not a control. */
+.faith-rite-chip.is-locked {
+  border-style: dashed;
+  border-left-style: solid;
+  border-left-color: var(--ink-faint);
+  background: transparent;
+  color: var(--ink-soft);
+  font-weight: 500;
+  cursor: default;
+}
+
+.faith-rite-chip-teacher {
+  font-style: italic;
+}
+
+/* The line under the strip, and in rite mode the banner. */
+.faith-rite-say {
+  margin: 0;
+  min-height: 22px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.faith-rite-say.is-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 6px 10px;
+  border: 1.5px solid var(--teal);
+  border-radius: var(--radius-sm);
+  background: rgba(31, 138, 133, 0.1);
+  color: var(--ink);
+}
+
+.faith-rite-say-name {
+  font-family: var(--face-name);
+}
+
+.faith-rite-say-leave {
+  margin-left: auto;
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.faith-rite-paused {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+/* --- the towns -------------------------------------------------------------- */
+.faith-towns {
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 8px;
+  background: #fdfaef;
+  overflow: hidden;
+}
+
+.faith-town-group {
+  display: flex;
+  gap: 8px;
+  padding: 5px 10px;
+  border-bottom: 1px solid rgba(29, 26, 32, 0.15);
+  background: var(--parchment);
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.faith-town-group-note {
+  margin-left: auto;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+/* One town: rank, name, what it keeps, what it adds or pays, and its control. */
+.faith-town {
+  display: grid;
+  grid-template-columns: 22px minmax(120px, 200px) minmax(0, 1fr) minmax(0, 170px) auto;
+  align-items: center;
+  column-gap: 8px;
+  min-height: 30px;
+  padding: 3px 10px;
+  border-bottom: 1px solid rgba(29, 26, 32, 0.09);
+  font-size: 12px;
+}
+
+.faith-town.is-free {
+  background: #f4f8f1;
+}
+
+.faith-town.is-started {
+  background: rgba(31, 138, 133, 0.12);
+}
+
+/* The town the city screen asked about. */
+.faith-town.is-focus {
+  box-shadow: inset 3px 0 0 var(--teal);
+}
+
+.faith-town-rank {
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--teal);
+  text-align: right;
+}
+
+.faith-town-name {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.faith-town-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-family: var(--face-name);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.faith-town-link:hover,
+.faith-town-link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.faith-town-label {
+  font-family: var(--face-name);
+  font-size: 13px;
+}
+
+.faith-town-faith {
+  margin-left: 5px;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.faith-town-mid {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.faith-town.is-kept .faith-town-mid {
+  color: var(--ink);
+}
+
+.faith-town-rite {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.faith-town-new {
+  margin-left: 4px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: var(--teal);
+  color: #fff;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+.faith-town-bar {
+  flex: 1 1 auto;
+  min-width: 40px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(29, 26, 32, 0.12);
+  overflow: hidden;
+}
+
+.faith-town-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--y-faith);
+}
+
+.faith-town-left {
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+/* What a rite would add or pays: the ranking voice first and largest. */
+.faith-town-pays,
+.faith-menu-adds {
+  display: flex;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--face-num);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.faith-figure:not(.is-main) {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.faith-figure-words {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+
+.faith-figure-none {
+  color: var(--ink-faint);
+}
+
+.faith-town-act {
+  justify-self: end;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.faith-town-menu-toggle {
+  padding: 4px 9px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: #fdfaef;
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.faith-town-menu-toggle.is-open {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.faith-town-empty {
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.faith-towns > .refusal-line {
+  padding: 2px 10px;
+}
+
+/* A labelled price cell (`priceCell.ts`'s `label`): "Start · 72" and, once the
+   bank cannot pay, the same words in a dashed rim with "short 7" beside them,
+   on one line so a row keeps its height. */
+#religion-overlay .price-cell.is-labelled {
+  flex-direction: row;
+  gap: 6px;
+  min-width: 0;
+}
+
+#religion-overlay .price-cell.is-labelled.is-short .price-cell-figure {
+  padding: 3px 8px;
+  border: 1.5px dashed var(--ink-faint);
+  border-radius: var(--radius-sm);
+}
+
+/* --- a free town's menu ----------------------------------------------------- */
+.faith-town-menu {
+  grid-column: 1 / -1;
+  margin: 2px 0 6px 30px;
+  padding: 6px 10px 8px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 8px;
+  background: #fffdf5;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.faith-menu-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 140px) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(29, 26, 32, 0.1);
+}
+
+.faith-menu-name {
+  font-family: var(--face-name);
+  font-size: 13px;
+}
+
+.faith-menu-says {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.faith-menu-item.is-locked .faith-menu-name {
+  color: var(--ink-soft);
+}
+
+.faith-menu-foot {
+  margin: 0;
+  padding-top: 7px;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+/* --- the faith line, held at the foot while the list scrolls ---------------- */
+.faith-line {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 8px 12px;
+  border: var(--border-thin) solid var(--y-faith);
+  border-radius: 8px;
+  background: #f9eff1;
+  font-size: 12px;
+}
+
+.faith-line-bank {
+  font-family: var(--face-num);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--y-faith);
+}
+
+.faith-line-history,
+.faith-line-ahead {
+  color: var(--ink-soft);
+}
+
+/* --- the prophet's rite over the whole realm -------------------------------- */
+.faith-realm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 8px 12px;
+  border: 1.5px dashed rgba(29, 26, 32, 0.4);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.faith-realm-title {
+  font-family: var(--face-name);
+}
+
+.faith-realm-says {
+  flex: 1 1 260px;
+  color: var(--ink-soft);
+}
+
+.faith-realm-why {
+  margin-left: auto;
+}
+
+/* --- the Bonuses tab, as it stands until batch UX10 -------------------------- */
+.faith-bonuses {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.faith-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  align-items: start;
+  gap: 10px;
+}
+
+/* Under a narrow sheet the whole sheet scrolls (the paper's own breakpoint), so
+   the panel stops scrolling, and a town row folds onto two lines: its name and
+   control first, what it keeps and adds under them. */
+@media (max-width: 860px) {
+  #religion-overlay .faith-panel.is-rites,
+  #religion-overlay .faith-panel.is-bonuses {
+    overflow-y: visible;
+  }
+
+  #religion-overlay .faith-town {
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'rank name act'
+      'rank mid pays'
+      'menu menu menu';
+    row-gap: 2px;
+  }
+
+  #religion-overlay .faith-town-rank {
+    grid-area: rank;
+  }
+
+  #religion-overlay .faith-town-name {
+    grid-area: name;
+  }
+
+  #religion-overlay .faith-town-mid {
+    grid-area: mid;
+  }
+
+  #religion-overlay .faith-town-pays {
+    grid-area: pays;
+  }
+
+  #religion-overlay .faith-town-act {
+    grid-area: act;
+  }
+
+  #religion-overlay .faith-town-menu {
+    grid-area: menu;
+    margin-left: 0;
+  }
+
+  #religion-overlay .faith-menu-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  #religion-overlay .faith-menu-adds {
+    grid-column: 1 / 2;
+    justify-content: flex-start;
+  }
+}
+
 /* ---------------------------------------------------------------------------
    THE CITY SHEET'S FAITH BLOCK
    ---------------------------------------------------------------------------

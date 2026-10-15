@@ -108,12 +108,16 @@ describe('the page dispatches in exactly one place', () => {
         'rerollOffer',
         // The religion sheet's faith purchase.
         'purchaseItem',
+        // The Faith sheet's Rites tab: a prophet's rite said over the whole
+        // realm (batch UX9). A rite started in one town goes through
+        // `controls.performRite` instead, so it is not on this list.
+        'empireRite',
         // The two sheets the End Turn blocker raises.
         'chooseWager',
         'dismissCensus',
       ].sort(),
     );
-    // The thirteenth is a whole class rather than one verb: the reward sheet
+    // One more site is a whole class rather than one verb: the reward sheet
     // hands its command down already built, so the page sends it unopened.
     expect(MAIN).toContain('const result = send(command)');
   });

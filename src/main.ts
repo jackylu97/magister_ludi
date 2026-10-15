@@ -4490,15 +4490,11 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => statecraft?.dispose());
 
   /**
-   * The Religion screen: the faith pool, the pantheon's places, the augur's
-   * price and the rites it carries.
-   *
-   * Statecraft's sibling in every respect that matters — declared here beside
-   * it, reached back through the `religion` holder, and every write it makes is
-   * a **command**. The one it can send is `purchaseItem`, so an augur called
-   * from this sheet is called the same way the city panel's own faith row calls
-   * one — and the same way a network peer or a future AI would — and the
-   * sentence a refusal shows is the reducer's own.
+   * The Faith sheet (`religionScreen.ts`): rites, the bonuses the religion
+   * pays, and the religion, on three tabs. Every change it makes is a command
+   * sent from here: a purchase, a rename, a rite started in a town (through
+   * `controls.performRite`, the same path the city screen uses), and a
+   * prophet's rite over the realm. A refusal shows the reducer's own sentence.
    */
   religion = createReligionScreen({
     overlay: religionOverlayEl,
@@ -4523,6 +4519,14 @@ async function boot(initial: Game | null): Promise<void> {
       controls.repaint();
       religion?.refresh();
     },
+    // The Rites tab's Start buttons: one `performRite` each, announced and
+    // repainted by `controls` exactly as a start from the city screen is.
+    performRite: (cityId, rite) => controls.performRite(cityId, rite),
+    sayRiteOverRealm: (unitId, rite) => {
+      send({ type: 'empireRite', playerId: controls.localPlayerId(), unitId, rite });
+    },
+    // A town's name on the Rites tab opens its city screen.
+    openCity: (cityId) => controls.setOpenCity(cityId),
     onRefuse: (message) => controls.guide(`☞ ${message}`),
     onOpen: () => screens.opening('religion'),
   });
@@ -5348,6 +5352,7 @@ async function boot(initial: Game | null): Promise<void> {
     // Buy Tiles button owns the mode and `controls.ts` owns the click.
     riteOptions: (cityId) => controls.riteOptions(cityId),
     performRite: (cityId, rite) => controls.performRite(cityId, rite),
+    onOpenRites: (cityId) => religion?.openRitesFor(cityId),
     onChanged: () => {
       renderer.invalidate();
       updatePanel(null, renderer.getHover());

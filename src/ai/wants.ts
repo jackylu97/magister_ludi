@@ -80,10 +80,9 @@
  *     that faith has something to be held for.
  *   · **"Legal but for the price."** The simulation has one gate and it asks
  *     about the bank last, so a want beyond the purse comes back as a refusal
- *     rather than as a price. For a purchase the gate also reports the bank's
- *     shortfall as a number (`purchaseGate`, read in `reachOf`). A rite's gate
- *     has no such reading yet, so `riteOutOfReach` still recognises its money
- *     clause by the sentence.
+ *     rather than as a price. Both gates also report the bank's shortfall as a
+ *     number: `purchaseGate` for a purchase (read in `reachOf`) and
+ *     `riteShortfall` for a rite (read in `riteOutOfReach`).
  *
  * **Batch 4 adds the constraints** (`meterPrices`, at the foot of the file), and
  * they are priced by the same formula around a different reading: what is short
@@ -173,6 +172,7 @@ import {
   religionBeliefPool,
   riteCostFor,
   riteError,
+  riteShortfall,
 } from '../sim/religion';
 import { RULES } from '../sim/rulesData';
 import { canStopOn, moveProfile, stepCost, zocField } from '../sim/pathfind';
@@ -1768,7 +1768,7 @@ function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
       // turns' faith away therefore had no faith wants at all, priced its bank
       // off the table with nothing in the book to argue up from, and banked a
       // currency it had told itself it had no use for.
-      const short = refusal !== null && riteOutOfReach(player, id, price, refusal);
+      const short = refusal !== null && riteOutOfReach(state, player, city.id, id);
       if (refusal !== null && !short) continue;
       const worth = explainRite(id, here);
       const row: Want = {
@@ -1788,15 +1788,13 @@ function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
 }
 
 /**
- * `riteError`'s money clause, said back to it. A purchase's money clause is
- * read as a number (`purchaseGate`); the rite gate has no such reading yet, so
- * this still compares the sentence.
+ * True when the faith bank is the only reason this town may not say this rite
+ * yet. The rite gate answers that itself (`riteShortfall`), so nothing here
+ * rebuilds its refusal sentence, the same way `reachOf` reads `purchaseGate`
+ * for a purchase.
  */
-function riteOutOfReach(player: Player, id: RiteId, price: number, refusal: string): boolean {
-  const held = bankOf(player, 'faith');
-  return (
-    refusal === `${riteDef(id).name} asks ${price} faith and ${player.name} has ${Math.floor(held)}`
-  );
+function riteOutOfReach(state: GameState, player: Player, cityId: number, id: RiteId): boolean {
+  return riteShortfall(state, player.id, cityId, id) !== null;
 }
 
 /**

@@ -333,7 +333,8 @@ const DESCRIPTOR_SURFACES: readonly [string, string][] = [
   ['cityPanel.ts', 'the build list’s hover card'],
   ['offerCard.ts', 'the offer faces, their notes and their clause lists'],
   ['statecraftScreen.ts', 'the charter, the doctrines and the collection'],
-  ['religionScreen.ts', 'the belief faces and the rites'],
+  ['religionScreen.ts', 'the belief faces'],
+  ['ritesTab.ts', 'the Rites tab’s banner, its menus and a row’s rite words'],
   ['unitPanel.ts', 'the rite card and the caravan’s lines'],
   ['reliquaryScreen.ts', 'the legacy on every card in the pile'],
   ['greatPersonCeremony.ts', 'the legacy, as the spend ceremony’s headline'],
@@ -344,11 +345,12 @@ const DESCRIPTOR_SURFACES: readonly [string, string][] = [
  *
  * `greatPersonFace.ts` puts `Forever:` on the head of a legacy's first clause
  * and hands the list on; the two surfaces above are what draw it, and both are
- * in the register. It is named here rather than exempted quietly, because the
+ * in the register. `riteWords.ts` joins a rite's clauses into the line the
+ * Rites tab carries in its model, and `ritesTab.ts` draws it. It is named here rather than exempted quietly, because the
  * sweep below cannot tell composing from printing and a silent skip is how a
  * real offender gets in wearing the same shape.
  */
-const CLAUSE_COMPOSERS: readonly string[] = ['greatPersonFace.ts'];
+const CLAUSE_COMPOSERS: readonly string[] = ['greatPersonFace.ts', 'riteWords.ts'];
 
 const PLAIN_SINKS: readonly [string, string][] = [
   ['controls.ts', 'the rite sentence — a chronicle line and a toast'],

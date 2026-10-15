@@ -1,41 +1,45 @@
 /**
- * Three promises the Religion sheet makes across two files, none of which
- * either file can keep on its own.
+ * What the Faith sheet promises across its files, none of which one file can
+ * keep on its own.
  *
- *   1. **It is a split, and it is the Statecraft sheet's split.** The 2026-08-27
- *      pass gave both parchment screens the same shape — a fixed column of what
- *      your empire *is*, a scrolling pane of what it can *do* — by having the
- *      Religion screen build the very classes the Statecraft one does. The
- *      failure this guards is quiet and total: a `draw()` that goes back to
- *      appending blocks straight onto the body still renders perfectly, in one
- *      column, off the bottom of a 720-tall viewport, which is the thing the
- *      pass existed to fix.
+ *   1. **Three tabs, and the third is the Statecraft sheet's split.** Rites,
+ *      Bonuses, and Religion & followers (batch UX9), the chosen tab
+ *      remembered per seat. The third tab keeps the split the 2026-08-27 pass
+ *      gave both parchment screens: a fixed column of what the religion is,
+ *      and a pane that scrolls.
  *   2. **One breakpoint, not two that agree today.** The width at which a split
  *      stops being readable is a fact about the split. Both sheets stack in the
- *      *same* media query, so this asserts there is exactly one `max-width`
- *      query naming either overlay and that it names both.
- *   3. **The sheet has one register of controls.** `cityScreen.test.ts`'s rule
- *      three, one screen over: an eyebrow is a label and may shout, a *control*
- *      may not. The Buy control and the city select are the two on this sheet.
+ *      same media query, so this asserts there is exactly one `max-width`
+ *      query naming the paper.
+ *   3. **The sheet has one register of controls.** An eyebrow is a label and
+ *      may shout; a control may not.
  *
- * No jsdom in this suite (see `controls.test.ts`), so the sources are read
+ * No document in this suite (see `controls.test.ts`), so the sources are read
  * through Vite's raw glob exactly as `cityScreen.test.ts` and
- * `seatRoster.test.ts` read theirs — and that is the right instrument anyway,
- * because every failure above is a layout that is merely wrong rather than an
- * error anything throws.
+ * `seatRoster.test.ts` read theirs. The Rites tab's own behaviour (its order,
+ * rite mode, the start flow, Escape) is tested on real boards in
+ * `ritesTab.test.ts`.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import { riteGrantWords, riteTeacherName } from '../../src/ui/religionScreen';
+import {
+  FAITH_TABS,
+  chooseFaithTab,
+  faithTabFor,
+  riteGrantWords,
+  riteTeacherName,
+} from '../../src/ui/religionScreen';
 import { riteTeachingCard } from '../../src/sim/religion';
-import { LIVE_RITE_IDS, RITE_IDS, riteDef } from '../../src/sim/religionData';
+import { LIVE_RITE_IDS, riteDef } from '../../src/sim/religionData';
 import { orderDef } from '../../src/sim/statecraftData';
 import { techDef } from '../../src/sim/techData';
 
 const SOURCES = import.meta.glob(
   [
     '../../src/ui/religionScreen.ts',
+    '../../src/ui/ritesTab.ts',
+    '../../src/ui/riteWords.ts',
     '../../src/ui/statecraftScreen.ts',
     '../../src/ui/topBar.ts',
     '../../src/ui/controls.ts',
@@ -113,46 +117,96 @@ function religionSheetHeader(): string {
   return html.slice(start, end);
 }
 
-/**
- * The painting itself is `paint`, not `draw`: since batch H18 `draw` is the
- * frame around it — it takes the one reading of the real board every belief on
- * this sheet shares (`cardImpactSheet`) and lets go of it on the way out — and
- * everything about the *layout* is one function in.
- */
-describe('the Religion sheet is a split', () => {
-  it("builds the Statecraft screen's own four split classes", () => {
-    const draw = fn('religionScreen.ts', 'paint');
+describe('the Faith sheet has three tabs', () => {
+  it('draws Rites, Bonuses and Religion & followers, in that order', () => {
+    expect(FAITH_TABS.map((entry) => entry.label)).toEqual([
+      'Rites',
+      'Bonuses',
+      'Religion & followers',
+    ]);
+  });
+
+  it('opens on Rites, and remembers the tab each seat chose', () => {
+    // Seats nobody has set yet: the module's map is per page, so these ids are
+    // ones no other test touches.
+    expect(faithTabFor(901)).toBe('rites');
+    chooseFaithTab(901, 'bonuses');
+    expect(faithTabFor(901)).toBe('bonuses');
+    // Another seat is untouched: hot-seat play passes the keyboard round.
+    expect(faithTabFor(902)).toBe('rites');
+    chooseFaithTab(902, 'religion');
+    expect(faithTabFor(901)).toBe('bonuses');
+    expect(faithTabFor(902)).toBe('religion');
+  });
+
+  it('paints the head over every tab, then the chosen tab in one panel', () => {
+    // `draw` is the frame around `paint` since batch H18: it takes the one
+    // reading of the real board the belief stamps and rite previews share
+    // (`cardImpactSheet`) and lets go of it on the way out.
+    const paint = fn('religionScreen.ts', 'paint');
+    const head = paint.indexOf('drawHead(state, seat, tab)');
+    const panel = paint.indexOf("`faith-panel is-${tab}`");
+    expect(head).toBeGreaterThan(-1);
+    expect(panel).toBeGreaterThan(head);
+    expect(paint).toContain('const tab = faithTabFor(seat);');
+    expect(paint).toContain('drawRites(state, seat)');
+    expect(paint).toContain('drawBonuses(state, seat)');
+    expect(paint).toContain('drawReligionTab(state, seat)');
+    // The bank over every tab is the shared bank display's, not a figure of
+    // this sheet's own.
+    expect(fn('religionScreen.ts', 'drawHead')).toContain(
+      "bankLineElement([readBank(state, seat, 'faith')])",
+    );
+  });
+
+  it('remembers a tab press for the seat that pressed it', () => {
+    expect(fn('religionScreen.ts', 'drawHead')).toContain('chooseFaithTab(seat, which);');
+  });
+
+  it("builds the Statecraft screen's own four split classes on Religion & followers", () => {
+    const tab = fn('religionScreen.ts', 'drawReligionTab');
     for (const className of ['sc-split', 'sc-column', 'sc-column-body', 'sc-pane']) {
-      expect(`${className}: ${draw.includes(`'${className}`)}`).toBe(`${className}: true`);
+      expect(`${className}: ${tab.includes(`'${className}`)}`).toBe(`${className}: true`);
     }
   });
 
-  it('puts the pantheon in the column and the cards above the tide above the clergy', () => {
-    // **The ruling of 2026-09-06 as an order**: the sheet's subject is the deck,
-    // so the cards lead, the tide reports what they are doing, and the purchases
-    // close. The failure this guards is the old sheet's, which led with a price
-    // — a player opening the screen met a button before they met their gods.
-    const draw = fn('religionScreen.ts', 'paint');
-    const column = draw.indexOf('sc-column-body');
-    const pantheon = draw.indexOf('drawPantheon');
-    const pane = draw.indexOf("'sc-pane'");
-    const pool = draw.indexOf('drawPool');
-    const religion = draw.indexOf('drawReligion');
-    const tide = draw.indexOf('drawTide');
-    const rites = draw.indexOf('drawRites');
-    const clergy = draw.indexOf('drawClergy');
-    // Order in the source is order in the DOM here: every one of these is an
-    // `append` onto the node built just above it.
+  it('puts the name and the wheel in the column, and who follows above the clergy in the pane', () => {
+    // Today's content where the spec says it will live (F1, Tab 3), until batch
+    // UX11 redraws the tab.
+    const tab = fn('religionScreen.ts', 'drawReligionTab');
+    const column = tab.indexOf('sc-column-body');
+    const name = tab.indexOf('drawFaithName');
+    const wheel = tab.indexOf('drawWheelBlock');
+    const pane = tab.indexOf("'sc-pane'");
+    const following = tab.indexOf('drawFollowing');
+    const clergy = tab.indexOf('drawClergy');
     expect(column).toBeGreaterThan(-1);
-    expect(pantheon).toBeGreaterThan(column);
-    expect(pane).toBeGreaterThan(pantheon);
-    expect(pool).toBeGreaterThan(pane);
-    expect(religion).toBeGreaterThan(pool);
-    expect(tide).toBeGreaterThan(religion);
-    expect(rites).toBeGreaterThan(tide);
-    expect(clergy).toBeGreaterThan(rites);
+    expect(name).toBeGreaterThan(column);
+    expect(wheel).toBeGreaterThan(name);
+    expect(pane).toBeGreaterThan(wheel);
+    expect(following).toBeGreaterThan(pane);
+    expect(clergy).toBeGreaterThan(following);
   });
 
+  it('puts the gods, the beliefs and the holy city’s share on Bonuses', () => {
+    // F1, Tab 2's sources, drawn as today's cards until batch UX10.
+    const tab = fn('religionScreen.ts', 'drawBonuses');
+    const gods = tab.indexOf('drawGods');
+    const beliefs = tab.indexOf('drawBeliefs');
+    const trickle = tab.indexOf('drawTrickle');
+    expect(gods).toBeGreaterThan(-1);
+    expect(beliefs).toBeGreaterThan(gods);
+    expect(trickle).toBeGreaterThan(beliefs);
+  });
+
+  it('keeps no rites reference: the Rites tab is the rites', () => {
+    const text = source('religionScreen.ts');
+    expect(text).not.toContain('function drawPool(');
+    expect(text).not.toContain('rel-rite-list');
+  });
+});
+
+describe('the paper', () => {
   it('caps every parchment sheet at the viewport, from one rule', () => {
     // The cap is what makes a pane scroll instead of the page: without it the
     // sheet grows and the "fixed" column leaves with it.
@@ -233,6 +287,12 @@ describe("the sheet's controls", () => {
       '.rel-name-field',
       '.btn',
       '.btn-primary',
+      // The Faith sheet's own controls since batch UX9: the tabs, the rite
+      // chips, a town's menu toggle and its name, which opens the city screen.
+      '.faith-tab',
+      '.faith-rite-chip',
+      '.faith-town-menu-toggle',
+      '.faith-town-link',
     ]) {
       const transform = declaration(selector, 'text-transform') ?? 'none';
       expect(`${selector}: ${transform}`).toBe(`${selector}: none`);
@@ -244,8 +304,9 @@ describe("the sheet's controls", () => {
     // button and option this screen builds takes its text from a def's `name`,
     // from the roster's own verb (`UnitDef.purchase.verb`) or from a sentence,
     // and this pins that none of them is typed in caps here.
-    const text = source('religionScreen.ts');
-    expect(/textContent = '[A-Z ]{4,}'/.test(text)).toBe(false);
+    for (const file of ['religionScreen.ts', 'ritesTab.ts']) {
+      expect(/textContent = '[A-Z ]{4,}'/.test(source(file)), file).toBe(false);
+    }
   });
 
   it('takes the clergy row’s words off the roster, never out of this file', () => {
@@ -273,8 +334,10 @@ describe("the sheet's controls", () => {
  * why this reads the whole source rather than only the strings.
  */
 describe('the retired agent', () => {
-  it('is named nowhere on the Religion sheet', () => {
-    expect(/augur/i.test(source('religionScreen.ts'))).toBe(false);
+  it('is named nowhere on the Faith sheet', () => {
+    for (const file of ['religionScreen.ts', 'ritesTab.ts', 'riteWords.ts']) {
+      expect(/augur/i.test(source(file)), file).toBe(false);
+    }
   });
 
   it('is named nowhere in the sheet’s header in index.html', () => {
@@ -287,6 +350,13 @@ describe('the retired agent', () => {
     expect(/augur/i.test(header)).toBe(false);
   });
 
+  it('calls the sheet Faith (the ruling of 2026-10-15, (ssssss) 4.7)', () => {
+    const header = religionSheetHeader();
+    expect(header).toContain('<h2 class="statecraft-title">Faith</h2>');
+    expect(header).toContain('aria-label="Faith"');
+    expect(header).not.toContain('Pantheon &amp; Rites');
+  });
+
   it('sells the three pieces that are still called, in the order they are met', () => {
     const text = source('religionScreen.ts');
     expect(text).toContain("const CLERGY: readonly UnitTypeId[] = ['prophet', 'apostle', 'inquisitor']");
@@ -294,18 +364,18 @@ describe('the retired agent', () => {
 });
 
 /**
- * The rites reference (batch UX8a, items 4, 5 and 7 of
- * `docs/plans/faith-screen-audit.md`): only the rites a town can still keep,
- * each naming what teaches it, and its duration said once with the figure the
- * town would actually be stamped with.
+ * The rites, as the Rites tab names them (batch UX8a's fixes, items 4, 5 and 7
+ * of `docs/plans/faith-screen-audit.md`, kept by UX9): only the rites a town can
+ * still keep, each naming what teaches it, and its duration said once with the
+ * figure the town would actually be stamped with.
  */
-describe('the rites reference', () => {
+describe('the rites, in words', () => {
   it('lists only the rites the table still teaches', () => {
-    const rites = fn('religionScreen.ts', 'drawRites');
-    expect(rites).toContain('for (const id of LIVE_RITE_IDS)');
-    // The whole table includes the two withdrawn rows.
-    expect(rites).not.toContain('RELIGION.rites');
-    expect(RITE_IDS.length).toBeGreaterThan(LIVE_RITE_IDS.length);
+    const tab = source('ritesTab.ts');
+    expect(tab).toContain('LIVE_RITE_IDS.filter((id) => known.has(id))');
+    expect(tab).toContain('LIVE_RITE_IDS.filter((id) => !known.has(id))');
+    expect(tab).not.toContain('RITE_IDS)');
+    expect(tab).not.toContain('RELIGION.rites');
   });
 
   it('names the Order that teaches a card-taught rite, and the technology for the rest', () => {
@@ -324,17 +394,22 @@ describe('the rites reference', () => {
   });
 
   it('asks the same teacher on this sheet and on the city screen', () => {
-    expect(fn('religionScreen.ts', 'drawRites')).toContain('`needs ${riteTeacherName(id)}`');
+    expect(source('ritesTab.ts')).toContain('`needs ${riteTeacherName(rite)}`');
     const options = fn('controls.ts', 'riteOptions');
     expect(options).toContain('riteTeacherName(id)');
     expect(options).not.toContain('techDef(riteDef(id).tech)');
+    // The city screen imports it from this sheet, which hands it on by name.
+    expect(source('religionScreen.ts')).toContain(
+      "export { riteGrantWords, riteTeacherName } from './riteWords';",
+    );
   });
 
   it('says the duration once, from the figure the town would be stamped with', () => {
-    const rites = fn('religionScreen.ts', 'drawRites');
-    expect(rites).toContain('riteGrantWords(id, riteTurnsFor(state, seat, id))');
+    const says = source('riteWords.ts');
+    expect(says).toContain('riteGrantWords(rite, riteTurnsFor(state, seat, rite))');
     // No second "for N turns" composed from the row's base figure.
-    expect(rites).not.toContain('def.duration');
+    expect(says).not.toContain('def.duration}');
+    expect(source('ritesTab.ts')).not.toContain('def.duration');
   });
 
   it('says one turn, not one turns', () => {
@@ -428,7 +503,7 @@ describe('the gods in the column wear their figure', () => {
  */
 describe('the places at the fire', () => {
   it('walks the sim’s own list of places, not the count of open slots', () => {
-    const pantheon = fn('religionScreen.ts', 'drawPantheon');
+    const pantheon = fn('religionScreen.ts', 'drawGods');
     expect(pantheon).toContain('pantheonPlaces(state, seat)');
     // The shut place names its technology off the place, never out of this file.
     expect(fn('religionScreen.ts', 'drawEmptyPlace')).toContain('techDef(place.awaits).name');
@@ -444,9 +519,9 @@ describe('the places at the fire', () => {
     expect(empty).not.toContain('faithRungCost');
   });
 
-  it('leads the pane with the pool and the same ladder sentence', () => {
-    const pool = fn('religionScreen.ts', 'drawPool');
-    expect(pool).toContain('nextRungWords(explainNextRung(state, seat, rate))');
+  it('prints the same ladder sentence under the wheel', () => {
+    const wheel = fn('religionScreen.ts', 'drawWheelBlock');
+    expect(wheel).toContain('nextRungWords(explainNextRung(state, seat, rate))');
   });
 
   it('is the sentence the faith chip’s hover card prints, off one describer', () => {

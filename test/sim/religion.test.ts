@@ -101,6 +101,8 @@ import {
   cityRiteTurnsLeft,
   empireRiteAt,
   empireRiteError,
+  empireRiteGate,
+  empireRiteShortfall,
   healAdjacentAt,
   healAdjacentError,
   openPeriodicOffers,
@@ -117,6 +119,8 @@ import {
   pruneTimedEffects,
   religionBlocker,
   riteError,
+  riteGate,
+  riteShortfall,
   ritePreview,
   riteTeachingCard,
   riteTurnsFor,
@@ -838,6 +842,134 @@ describe("rites", () => {
     );
   });
 
+  // --- the bank's shortfall (batch UX9) --------------------------------------
+  //
+  // `riteShortfall` is what the faith screen prints as "short 7" on a Start
+  // button and what the bot's want book reads to keep a rite it cannot pay for
+  // yet. `riteError` and `riteShortfall` are the two halves of `riteGate`'s one
+  // answer, so these cases are about the figure agreeing with the sentence.
+
+  /**
+   * Checks the gate's three cases for one rite in one town of seat 0 and says
+   * which it was: taken (no refusal, no shortfall), short (only the bank
+   * refuses, and holding the shortfall more lets it through), or refused (some
+   * other clause refuses, and no amount of faith changes that). Leaves the bank
+   * as it found it.
+   */
+  function agreesWithTheGate(
+    state: GameState,
+    cityId: number,
+    rite: string,
+  ): "taken" | "short" | "refused" {
+    const player = playerById(state, 0)!;
+    const held = player.faithPool;
+    const refusal = riteError(state, 0, cityId, rite);
+    const shortfall = riteShortfall(state, 0, cityId, rite);
+    expect(riteGate(state, 0, cityId, rite)).toEqual({ refusal, shortfall });
+    if (refusal === null) {
+      expect(shortfall).toBeNull();
+      return "taken";
+    }
+    if (shortfall !== null) {
+      expect(shortfall).toBe(riteCostFor(state, 0) - held);
+      player.faithPool = held + shortfall;
+      expect(riteError(state, 0, cityId, rite)).toBeNull();
+      player.faithPool = held;
+      return "short";
+    }
+    player.faithPool = 1_000_000;
+    expect(riteError(state, 0, cityId, rite)).toBe(refusal);
+    player.faithPool = held;
+    return "refused";
+  }
+
+  it("say how much more faith a rite needs when the bank is all that is short", () => {
+    const { g, city, player } = town();
+    player.faithPool = 12;
+    expect(riteShortfall(g.state, 0, city.id, "omenReading")).toBe(28);
+    // The sentence for the same case is unchanged.
+    expect(riteError(g.state, 0, city.id, "omenReading")).toBe(
+      "Omen Reading asks 40 faith and Ada has 12",
+    );
+    expect(agreesWithTheGate(g.state, city.id, "omenReading")).toBe("short");
+    // A bank holds fractions, and the shortfall is not rounded.
+    player.faithPool = 12.5;
+    expect(riteShortfall(g.state, 0, city.id, "omenReading")).toBe(27.5);
+    player.faithPool = 40;
+    expect(agreesWithTheGate(g.state, city.id, "omenReading")).toBe("taken");
+    expect(riteShortfall(g.state, 0, city.id, "omenReading")).toBeNull();
+  });
+
+  it("say nothing is short when another clause refuses as well as the bank", () => {
+    const { g, city, player } = town();
+    const other = found(g.state, 1);
+    performRiteAt(g.state, player, city, "omenReading");
+    player.faithPool = 0;
+    // Keeping a rite already, a rite this empire has not learnt, a withdrawn
+    // rite, a town that is not this seat's, and no rite at all: more faith
+    // fixes none of them, so the bank is never named as the reason.
+    for (const [cityId, rite] of [
+      [city.id, "riteOfTheHarvest"],
+      [city.id, "blessingOfArms"],
+      [city.id, "thePreaching"],
+      [other.id, "omenReading"],
+      [city.id, "nonsense"],
+    ] as const) {
+      expect(riteShortfall(g.state, 0, cityId, rite), `${cityId}:${rite}`).toBeNull();
+      expect(agreesWithTheGate(g.state, cityId, rite), `${cityId}:${rite}`).toBe("refused");
+    }
+  });
+
+  it("say nothing is short when the offering has nothing to be given to", () => {
+    // Votive Offering's own clause is asked before the bank: a town building
+    // nothing is refused for that, however much faith there is.
+    const { g, city, player } = town();
+    // The Votive Gifts teaches the offering while it is seated.
+    const gifts = "theVotiveGifts" as OrderId;
+    player.statecraft.orders = [gifts];
+    player.statecraft.slots = [{ card: gifts, sealedUntil: 0 }];
+    bumpRevision(g.state);
+    expect(availableRites(g.state, 0)).toContain("votiveOffering");
+    city.queue = [];
+    player.faithPool = 0;
+    bumpRevision(g.state);
+    expect(riteError(g.state, 0, city.id, "votiveOffering")).toBe(
+      `${city.name} is building nothing`,
+    );
+    expect(riteShortfall(g.state, 0, city.id, "votiveOffering")).toBeNull();
+    expect(agreesWithTheGate(g.state, city.id, "votiveOffering")).toBe("refused");
+    // With something to give to, the bank is the only thing left to ask.
+    city.queue = [{ kind: "unit", id: "warrior" }];
+    bumpRevision(g.state);
+    expect(agreesWithTheGate(g.state, city.id, "votiveOffering")).toBe("short");
+  });
+
+  it("agree with the sentence across every live rite, every bank and every town", () => {
+    const { g, city, player } = town("stonecraft", "bronzeWorking", "currency");
+    const second = found(g.state, 1);
+    const seen = new Map<string, number>();
+    const tally = (key: string): void => {
+      seen.set(key, (seen.get(key) ?? 0) + 1);
+    };
+    const sweep = (): void => {
+      for (const cityId of [city.id, second.id, 9999]) {
+        for (const rite of [...LIVE_RITE_IDS, ...RITE_IDS, "nonsense"]) {
+          tally(agreesWithTheGate(g.state, cityId, rite));
+        }
+      }
+    };
+    for (const faith of [0, 39.5, 40, 1000]) {
+      player.faithPool = faith;
+      sweep();
+    }
+    performRiteAt(g.state, player, city, "omenReading");
+    player.faithPool = 3;
+    sweep();
+    for (const key of ["taken", "short", "refused"]) {
+      expect([key, (seen.get(key) ?? 0) > 0]).toEqual([key, true]);
+    }
+  });
+
   it("The Vigil keeps the lamp lit for exactly as long as the rite runs", () => {
     // The belief waited on "the rule that asks a city whether it is keeping a
     // rite", which is `cityRite` — a town fact since the rites became a city's
@@ -1269,6 +1401,33 @@ describe("a prophet says a rite over every town", () => {
       } as Command).ok,
     ).toBe(false);
     expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it("says how much more faith it needs only when the bank is all that is short", () => {
+    // `riteShortfall`'s twin for the realm (batch UX9): the faith sheet greys
+    // its "Say" button with "short N" from this figure.
+    const { g, player, prophet } = ready();
+    player.faithPool = 3;
+    expect(empireRiteShortfall(g.state, 0, prophet.id, "omenReading")).toBe(37);
+    expect(empireRiteGate(g.state, 0, prophet.id, "omenReading")).toEqual({
+      refusal: "Omen Reading asks 40 faith and Ada has 3",
+      shortfall: 37,
+    });
+    // Holding the shortfall more is exactly enough.
+    player.faithPool = 40;
+    expect(empireRiteError(g.state, 0, prophet.id, "omenReading")).toBeNull();
+    expect(empireRiteShortfall(g.state, 0, prophet.id, "omenReading")).toBeNull();
+    // Another clause refusing, with the bank empty as well: nothing is short.
+    player.faithPool = 0;
+    for (const rite of ["blessingOfArms", "votiveOffering", "thePreaching", "nonsense"]) {
+      expect(empireRiteError(g.state, 0, prophet.id, rite), rite).not.toBeNull();
+      expect(empireRiteShortfall(g.state, 0, prophet.id, rite), rite).toBeNull();
+    }
+    prophet.movesLeft = 0;
+    expect(empireRiteError(g.state, 0, prophet.id, "omenReading")).toBe(
+      `Unit ${prophet.id} has no movement left`,
+    );
+    expect(empireRiteShortfall(g.state, 0, prophet.id, "omenReading")).toBeNull();
   });
 });
 

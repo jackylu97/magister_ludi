@@ -28,10 +28,13 @@ import { TECH_IDS } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { YIELD_GLYPH } from '../../src/ui/figures';
 import {
+  priceCellSpoken,
   priceFigureText,
   priceHeadText,
+  priceLabelText,
   priceLook,
   priceNeedText,
+  priceShortText,
   purchaseLook,
 } from '../../src/ui/priceCell';
 import { braceBody, uiSource } from './sourceHelpers';
@@ -233,20 +236,61 @@ describe('the words', () => {
   });
 });
 
+describe('a labelled cell (batch UX9)', () => {
+  // The faith sheet's rite buttons: the cell is the action itself, so it leads
+  // with a verb and carries the price (the user's ruling of 2026-10-12), and a
+  // button the bank cannot pay for says "short 7", the words of that ruling.
+  it('leads with its label and then the figure', () => {
+    expect(priceLabelText('Start', 'faith', 72)).toBe(`Start · 72${YIELD_GLYPH.faith}`);
+    expect(priceShortText(7)).toBe('short 7');
+  });
+
+  it('is read aloud as the action, the thing and the price', () => {
+    const name = 'Omen Reading in Larkspur';
+    expect(priceCellSpoken({ look: 'buy', bank: 'faith', price: 72 }, { name, label: 'Start' })).toBe(
+      'Start Omen Reading in Larkspur for 72 faith',
+    );
+    expect(
+      priceCellSpoken({ look: 'short', bank: 'faith', price: 72, need: 7 }, { name, label: 'Start' }),
+    ).toBe('Start Omen Reading in Larkspur for 72 faith: 7 more faith needed');
+    expect(
+      priceCellSpoken(
+        { look: 'none', bank: 'faith', price: 72, refusal: 'Larkspur is building nothing' },
+        { name, label: 'Start' },
+      ),
+    ).toBe('Start Omen Reading in Larkspur: not possible. Larkspur is building nothing');
+  });
+
+  it('leaves a bare price exactly as the city screen reads it', () => {
+    const name = 'Settler';
+    expect(priceCellSpoken({ look: 'buy', bank: 'gold', price: 112 }, { name })).toBe(
+      'Buy Settler outright for 112 gold',
+    );
+    expect(priceCellSpoken({ look: 'short', bank: 'gold', price: 112, need: 31 }, { name })).toBe(
+      'Settler costs 112 gold to buy outright; 31 more gold needed',
+    );
+    expect(
+      priceCellSpoken({ look: 'none', bank: 'gold', price: 112, refusal: 'x' }, { name, reason: 'why' }),
+    ).toBe('Settler cannot be bought here: why');
+  });
+});
+
 describe('the cell as drawn', () => {
   const cell = (): string => braceBody(uiSource('priceCell.ts'), 'export function priceCellElement(');
 
   it('makes only the buy look a control', () => {
     const body = cell();
-    expect(body).toContain("element('button', `price-cell is-buy ${bankClass}`)");
-    expect(body).toContain("element('span', `price-cell is-short ${bankClass}`)");
-    expect(body).toContain("element('span', `price-cell is-none ${bankClass}`)");
+    expect(body).toContain("element('button', `price-cell is-buy ${classes}`)");
+    expect(body).toContain("element('span', `price-cell is-short ${classes}`)");
+    expect(body).toContain("element('span', `price-cell is-none ${classes}`)");
     expect(body.match(/element\('button'/g) ?? []).toHaveLength(1);
   });
 
   it('says what is short in the wanting voice, and pauses a plate quietly', () => {
     const body = cell();
     expect(body).toContain("element('span', 'price-cell-need wanting', priceNeedText(look.need))");
+    // A labelled cell says the same thing in the words its ruling uses.
+    expect(body).toContain("element('span', 'price-cell-need wanting', priceShortText(look.need))");
     // A finished turn is a state, not a lack: it disables the plate and never
     // adds the class.
     expect(body).toContain('button.disabled = paused !== null || options.onBuy === undefined;');
@@ -256,6 +300,18 @@ describe('the cell as drawn', () => {
   it('reads a dash’s reason to a screen reader rather than the dash', () => {
     const body = cell();
     expect(body).toContain("dash.setAttribute('aria-hidden', 'true');");
-    expect(body).toContain('`${options.name} cannot be bought here: ${reason}`');
+    expect(body).toContain('const spoken = priceCellSpoken(look, options);');
+    expect(body).toContain("cell.append(element('span', 'sr-only', spoken));");
+    expect(braceBody(uiSource('priceCell.ts'), 'export function priceCellSpoken(')).toContain(
+      '`${options.name} cannot be bought here: ${reason}`',
+    );
+  });
+
+  it('draws the label’s words on the plate and on a short cell alike', () => {
+    const body = cell();
+    expect(body).toContain('priceLabelText(options.label!, look.bank, look.price)');
+    expect(body).toContain('setYieldText(button, text);');
+    expect(body).toContain('setYieldText(figure, text);');
+    expect(body).toContain("labelled ? ' is-labelled' : ''");
   });
 });

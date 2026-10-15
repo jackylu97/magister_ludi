@@ -6,10 +6,13 @@
  *     right-hand column, under the heading "Buy outright · full price · you
  *     have 437 gold", and the Faith shelf prices its rows in the same column in
  *     the faith ink;
- *   - the faith screen's rites and the HUD when they are rebuilt (batches UX3
- *     and UX9 to UX11 in `docs/plans/hud-ux-decisions.md`, "Shared
- *     components"). A rite's gate is `riteError` rather than `purchaseError`, so
- *     that screen hands its own answer to `priceLook`.
+ *   - the faith sheet's Rites tab (batch UX9, `ritesTab.ts`): each free town's
+ *     "Start · 72" button and each row of a town's "Start a rite" menu. A
+ *     rite's gate is `riteGate` rather than `purchaseError`, so that tab hands
+ *     its own answer to `priceLook`, and it passes a `label`, because there the
+ *     cell is the action itself rather than a price beside one;
+ *   - the HUD when it is rebuilt (`docs/plans/hud-ux-decisions.md`, "Shared
+ *     components").
  *
  * The three looks are told apart by shape, never by colour alone:
  *   - `buy`: a pressable plate carrying the figure;
@@ -119,6 +122,24 @@ export function priceNeedText(need: number): string {
   return `need ${need}`;
 }
 
+/**
+ * "Start · 72🕯": a labelled cell's words, the label and then the figure. The
+ * faith sheet's rite buttons read this way because the user ruled that the
+ * button carries the price (2026-10-12).
+ */
+export function priceLabelText(label: string, bank: PriceBank, price: number): string {
+  return `${label} · ${priceFigureText(bank, price)}`;
+}
+
+/**
+ * "short 7", the line beside a labelled cell the bank cannot pay for yet. The
+ * user's words for a rite button that has run out of faith ("every remaining
+ * button greys out with 'short N'"); a bare price says "need 7" instead.
+ */
+export function priceShortText(need: number): string {
+  return `short ${need}`;
+}
+
 /** One bank's part of the column heading. */
 export interface PriceHeadBank {
   bank: PriceBank;
@@ -158,6 +179,15 @@ export function priceHeadElement(banks: readonly PriceHeadBank[]): HTMLElement {
 export interface PriceCellOptions {
   /** The thing's name, for the spoken label: "Buy Settler outright for 112 gold". */
   name: string;
+  /**
+   * Words before the figure, for a cell that is the action itself rather than a
+   * price beside one: the faith sheet passes "Start", so its plate reads
+   * "Start · 72🕯" and is read aloud as "Start Omen Reading in Larkspur for 72
+   * faith". A labelled cell the bank cannot pay for yet shows the same words
+   * with "short 7" beside them. Without a label the cell is a bare price, as
+   * the city screen's column draws it.
+   */
+  label?: string;
   /** What pressing a `buy` cell does. Without it the plate is drawn but not pressable. */
   onBuy?: () => void;
   /**
@@ -173,50 +203,82 @@ export interface PriceCellOptions {
 }
 
 /**
+ * What a screen reader is told about one cell, in place of what is drawn. Pure,
+ * so the words are tested without a document.
+ *
+ *   - bare: "Buy Settler outright for 112 gold", "Settler costs 112 gold to buy
+ *     outright; 31 more gold needed", "Settler cannot be bought here: …";
+ *   - labelled: "Start Omen Reading in Larkspur for 72 faith", "… for 72 faith:
+ *     7 more faith needed", "Start Votive Offering in Larkspur: not possible. …".
+ */
+export function priceCellSpoken(
+  look: PriceLook,
+  options: Pick<PriceCellOptions, 'name' | 'label' | 'reason'>,
+): string {
+  const amount = `${look.price} ${BANK_UNIT[look.bank]}`;
+  const label = options.label;
+  if (look.look === 'buy') {
+    return label === undefined
+      ? `Buy ${options.name} outright for ${amount}`
+      : `${label} ${options.name} for ${amount}`;
+  }
+  if (look.look === 'short') {
+    const more = `${look.need} more ${BANK_UNIT[look.bank]} needed`;
+    return label === undefined
+      ? `${options.name} costs ${amount} to buy outright; ${more}`
+      : `${label} ${options.name} for ${amount}: ${more}`;
+  }
+  const reason = options.reason ?? look.refusal;
+  return label === undefined
+    ? `${options.name} cannot be bought here: ${reason}`
+    : `${label} ${options.name}: not possible. ${reason}`;
+}
+
+/**
  * One cell of the price column. The `buy` look is a button; the other two are
  * not controls at all, so they are drawn as plain text and nothing about them
- * looks pressable.
+ * looks pressable. A labelled cell (`PriceCellOptions.label`) wears
+ * `is-labelled` as well, so a screen can lay its words out on one line.
  */
 export function priceCellElement(look: PriceLook, options: PriceCellOptions): HTMLElement {
-  const bankClass = `is-${look.bank}`;
-  const amount = `${look.price} ${BANK_UNIT[look.bank]}`;
+  const labelled = options.label !== undefined;
+  const classes = `is-${look.bank}${labelled ? ' is-labelled' : ''}`;
+  const text = labelled
+    ? priceLabelText(options.label!, look.bank, look.price)
+    : priceFigureText(look.bank, look.price);
+  const spoken = priceCellSpoken(look, options);
   if (look.look === 'buy') {
-    const button = element('button', `price-cell is-buy ${bankClass}`);
+    const button = element('button', `price-cell is-buy ${classes}`);
     button.type = 'button';
-    setYieldText(button, priceFigureText(look.bank, look.price));
+    setYieldText(button, text);
     const paused = options.paused ?? null;
     button.disabled = paused !== null || options.onBuy === undefined;
-    button.setAttribute('aria-label', paused ?? `Buy ${options.name} outright for ${amount}`);
+    button.setAttribute('aria-label', paused ?? spoken);
     if (paused !== null) button.title = paused;
     const onBuy = options.onBuy;
     if (onBuy !== undefined) button.addEventListener('click', () => onBuy());
     return button;
   }
   if (look.look === 'short') {
-    const cell = element('span', `price-cell is-short ${bankClass}`);
+    const cell = element('span', `price-cell is-short ${classes}`);
     const figure = element('span', 'price-cell-figure');
-    setYieldText(figure, priceFigureText(look.bank, look.price));
+    setYieldText(figure, text);
     figure.setAttribute('aria-hidden', 'true');
-    const need = element('span', 'price-cell-need wanting', priceNeedText(look.need));
+    const need = labelled
+      ? element('span', 'price-cell-need wanting', priceShortText(look.need))
+      : element('span', 'price-cell-need wanting', priceNeedText(look.need));
     need.setAttribute('aria-hidden', 'true');
     cell.append(figure, need);
-    cell.append(
-      element(
-        'span',
-        'sr-only',
-        `${options.name} costs ${amount} to buy outright; ${look.need} more ${BANK_UNIT[look.bank]} needed`,
-      ),
-    );
+    cell.append(element('span', 'sr-only', spoken));
     return cell;
   }
-  const cell = element('span', `price-cell is-none ${bankClass}`);
+  const cell = element('span', `price-cell is-none ${classes}`);
   const dash = element('span', 'price-cell-dash', '—');
   dash.setAttribute('aria-hidden', 'true');
   cell.append(dash);
   const mark = options.mark ?? null;
   if (mark !== null) cell.append(refusalMarkElement(mark));
-  const reason = options.reason ?? look.refusal;
-  cell.append(element('span', 'sr-only', `${options.name} cannot be bought here: ${reason}`));
+  cell.append(element('span', 'sr-only', spoken));
   return cell;
 }
 
