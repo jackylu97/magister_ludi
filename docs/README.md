@@ -626,13 +626,16 @@ Eight root pages, all named in `vite.config.ts` inputs:
 | `city-screen.md` · `pamphlet.md` | two shipped specs of record, each with a tail still open |
 | `art-pass.md` · `splash-art.md` | art direction: a live backlog and the standing refusals |
 | `playtest_notes.md` | the user's running playtest diary |
+| `decks/` | the six decks: `deck-design.md` (the goals, the rules and the dated rulings) and one sheet per deck, saying of each card whether it is live, changing, deferred or new. The card-design skill (`.claude/skills/card-design/`) reads them |
+| `plans/` | work in progress: the tutorial plan (`tutorial.md`, with `tutorial-research.md`), the interface rework (`hud-ux-decisions.md`, `hud-empire-panel-spec.md`, the city and faith screen plans), the deck measurements and research, Dominion's finished builds and ideas, and the plans the code still cites |
 
 **The drawers** — open only for the *why*:
 
 - `history/` — working docs whose rulings are now code: `design-history.md` (the
   unabridged entry ledger, where cited entry numbers resolve), `flags-log.md`
   (every ruling made, item letters kept), `bot-priorities-log.md`,
-  `schema-changelog.md`, and the batch docs.
+  `schema-changelog.md`, the batch docs, and `painted-renderer/` (the painted
+  renderer's checkpoints).
 - `deprecated/` — docs a *later doc* superseded, with the master named beside each.
 - `audit/` — finished read-only passes, cited by path from docblocks across the
   tree. History, not current state.
