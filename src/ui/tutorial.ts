@@ -50,10 +50,57 @@
  * The voice is `compendiumText.ts`'s
  * ----------------------------------
  * Hard rule 7. Plain words a first-time player already owns; no identifier ever
- * reaches the screen; a number appears only where the number *is* the rule
- * (twenty beads). Every string a player reads is in the two tables at the top of
+ * reaches the screen; a number appears only where the number *is* the rule.
+ * There is one such number: how many beads open the Magnum Opus. It is read from
+ * `data/beads.json` (`BEAD_THRESHOLD` below) and written in words, never typed
+ * into the copy. Every string a player reads is in the two tables at the top of
  * this file, so the copy can be edited without reading a line of the machinery.
+ * `test/ui/guideCopy.test.ts` checks that no line names a retired system and
+ * that the bead count comes from data.
  */
+
+import beadsJson from '../../data/beads.json';
+
+// --- the figures -------------------------------------------------------------
+
+/**
+ * How many beads an empire must hold before it may begin the Magnum Opus.
+ *
+ * This is the same `rules.threshold` row that `BEAD_RULES.threshold` reads in
+ * `src/sim/beadData.ts`, and the simulation's build check enforces it. It is read
+ * from the data file directly because this module imports nothing from
+ * `src/sim/` (pinned in `test/ui/tutorial.test.ts`). Reading one number from a
+ * data file cannot change the game, which is what that pin protects. The
+ * pamphlet reads the figure through here too, and `test/ui/guideCopy.test.ts`
+ * checks it against `BEAD_RULES.threshold`.
+ */
+export const BEAD_THRESHOLD: number = beadsJson.rules.threshold;
+
+const SMALL_NUMBER_WORDS = [
+  'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+  'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
+  'seventeen', 'eighteen', 'nineteen',
+];
+const TENS_WORDS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+/**
+ * A whole number in words: "seven", "twenty", "twenty-one".
+ *
+ * The guide writes its figures in words, because its copy may contain no digit
+ * (the copy test in `test/ui/tutorial.test.ts`). It covers zero to ninety-nine.
+ * Anything else comes back as digits, so the copy test fails and names the line,
+ * rather than the note quietly printing a wrong word.
+ */
+export function numberWords(value: number): string {
+  if (!Number.isInteger(value) || value < 0 || value > 99) return String(value);
+  if (value < 20) return SMALL_NUMBER_WORDS[value]!;
+  const tens = TENS_WORDS[Math.floor(value / 10)]!;
+  const units = value % 10;
+  return units === 0 ? tens : `${tens}-${SMALL_NUMBER_WORDS[units]!}`;
+}
+
+/** "seven beads": the threshold as the copy says it. */
+const THRESHOLD_BEADS = `${numberWords(BEAD_THRESHOLD)} beads`;
 
 // --- the tables --------------------------------------------------------------
 
@@ -139,7 +186,7 @@ export const STEPS: readonly TutorialStep[] = [
     anchor: '.topbar-tab.is-standings',
     title: 'Welcome',
     body:
-      'You lead a small people. Settle cities, learn ideas, and earn beads — the game\'s points, won by doing things first in the world. Your beads are counted on the Standings tab, top right. Press it to see every empire\'s score, and from there the Abacus, where each empire\'s beads sit on a rod. A full rod opens the game\'s final project, and finishing that project wins.',
+      'You lead a small people. Settle cities, learn ideas, and earn beads, mostly by meeting the goals each new age sets. Your beads are counted on the Standings tab, top right. Press it to see every empire\'s score, and from there the Abacus, where each empire\'s beads sit on a rod. A full rod opens the game\'s final project, and finishing that project wins.',
     advance: { kind: 'next' },
   },
   {
@@ -308,8 +355,10 @@ export const TIPS: readonly TutorialTip[] = [
     pages: [
       {
         title: 'A god to keep',
+        // The augur is retired. A god now arrives on its own once enough faith
+        // is saved (the faith ladder, `docs/religion-v2.md`).
         body:
-          'Faith pays for augurs and prophets — the religious units. An augur adds a god to your pantheon: a permanent bonus for your whole empire. A prophet later turns your gods into a religion, which spreads to citizens one at a time.',
+          'Your faith has earned a god for your pantheon. Pick one: a god is a permanent bonus for your whole empire. Later, a prophet can found a religion on your gods, and it spreads to citizens one at a time.',
       },
     ],
   },
@@ -320,7 +369,9 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'A caravan is a route, not a piece you steer',
         body:
-          'Do not move the caravan yourself. Press Start Route and pick two cities — it walks there on its own, pays the destination city every turn, and builds a road as it goes.',
+          // The Start Route button left the unit panel in batch R2; a route is
+          // sent from the Trade sheet, which the caravan's panel opens.
+          'Do not move the caravan yourself. Press Open the trade sheet on its panel and send it between two cities — it walks there on its own, pays the destination city every turn, and builds a road as it goes.',
       },
     ],
   },
@@ -335,6 +386,9 @@ export const TIPS: readonly TutorialTip[] = [
       },
     ],
   },
+  // The bead rule as it stands since batch Q1 (`docs/beads.md`, `docs/wager.md`):
+  // a bead comes from a wager kept or from a grant, and from nothing else. The
+  // threshold is read from data (`THRESHOLD_BEADS`), never typed here.
   {
     id: 'beads',
     triggers: ['event:bead', 'event:ageOpened'],
@@ -342,17 +396,17 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'The Bead Race',
         body:
-          'Beads are the game\'s only points. Do something first in the world and the bead is yours — every player\'s beads are public, on the Abacus. Hold twenty beads and you may begin the Magnum Opus; finishing that great work wins the game.',
+          `Beads open the way to victory. Hold ${THRESHOLD_BEADS} and you may begin the Magnum Opus, the game's final great work, and whoever finishes it wins. Every empire's beads are public, on the Abacus.`,
       },
       {
-        title: 'Four kinds of bead',
+        title: 'The wager',
         body:
-          'Beads come four ways. Feats: world firsts, always in play. Races: a project every empire can build — only the first to finish wins it. Quests: deeds you go and do. Reckonings: when a new age begins, everyone is measured at once and one winner is named.',
+          'Most beads come from the wager. Each new age sets every empire the same goals: you stake one in secret, meeting any of them pays beads, and the one you staked pays more. Miss the one you staked and you take a malice, a bad card that holds one of your chairs until the next wager is judged.',
       },
       {
-        title: 'The table',
+        title: 'Other beads',
         body:
-          'Press V to see the bead table: what is on offer, what has been claimed, and by whom. Most beads also pay a one-time reward. The golden bead at the end is earned only by building the Magnum Opus, the game\'s final project.',
+          'A few things hand a bead over outright: finishing the last technology on the tree, and raising certain buildings. Press V to see every empire\'s beads and what still pays one. The golden bead at the end is earned only by finishing the Magnum Opus.',
       },
     ],
   },
@@ -401,7 +455,9 @@ export const TIPS: readonly TutorialTip[] = [
       {
         title: 'Your authority is stretched',
         body:
-          'You hold more cities than your authority can govern, so your science and culture are reduced until it recovers. Certain buildings raise it, and so does entering a new age — hover the authority number at the top of the screen for the full account.',
+          // Below zero, borders stop growing and land cannot be bought; the
+          // yield penalty starts further down (`meterEffects`, `src/sim/meters.ts`).
+          'You hold more cities than your authority can govern, so your borders stop growing and you cannot buy land until it recovers. Go further over and your production, science and culture drop too. Certain buildings raise it, and so does entering a new age — hover the authority number at the top of the screen for the full account.',
       },
     ],
   },

@@ -37,8 +37,12 @@
  * The voice is `compendiumText.ts`'s
  * ----------------------------------
  * Hard rule 7, same as the tutorial: plain words a first-time player already
- * owns, no identifier on screen, and no digit in the prose — the one figure
- * named is spelled ("twenty beads"), because there the number *is* the rule.
+ * owns, no identifier on screen, and no digit in the prose. The one figure the
+ * pamphlet names is how many beads open the Magnum Opus, because there the
+ * number *is* the rule. It comes from `data/beads.json` through the tutorial's
+ * `BEAD_THRESHOLD` and is written in words by `numberWords`, so retuning the
+ * data rewrites the page. `test/ui/guideCopy.test.ts` checks that no page names
+ * a retired system and that the bead count is not typed into the copy.
  * A named thing the book has a page about is a keyword ref
  * (`[[kind:id|name]]`), printed through `setDescriptorText` so it comes out
  * bold and linked, never as brackets.
@@ -56,7 +60,7 @@
 
 import type { CompendiumEntry } from './compendium';
 import { setDescriptorText } from './keywords';
-import type { TutorialStorage } from './tutorial';
+import { BEAD_THRESHOLD, type TutorialStorage, numberWords } from './tutorial';
 
 // --- the table ---------------------------------------------------------------
 
@@ -171,7 +175,8 @@ export const PAMPHLET_PAGES: readonly PamphletPage[] = [
     },
     lines: [
       'Culture earns drafts of cards — pick one, then place it in a slot on the [[concept:statecraft|Statecraft]] screen to make it law.',
-      'Faith works on the [[concept:religion|Religion]] screen — gods, blessings, and in time a religion of your own.',
+      // The faith screen is named Faith since the interface rework (2026-10-15).
+      'The Faith screen holds your gods, your blessings and, in time, a [[concept:religion|religion]] of your own.',
     ],
   },
   {
@@ -241,8 +246,10 @@ export const PAMPHLET_PAGES: readonly PamphletPage[] = [
       image: '/pamphlet/abacus.png',
       caption: 'The Abacus: every player\'s beads, strung side by side.',
     },
+    // The bead rule since batch Q1 (`docs/beads.md`): beads come from a wager
+    // kept or from a grant, and the threshold is read from data, never typed.
     lines: [
-      'The game is scored in [[bead:about|beads]] — points for doing things first in the world; twenty beads lets you begin the Magnum Opus.',
+      `Hold ${numberWords(BEAD_THRESHOLD)} [[bead:about|beads]] to begin the Magnum Opus: meeting the goals each new age sets in its [[wager:about|wager]] earns them, and so do a few buildings and the last technology.`,
       'Finishing that great work wins the game outright, whatever anybody else holds.',
     ],
   },
@@ -250,7 +257,9 @@ export const PAMPHLET_PAGES: readonly PamphletPage[] = [
     id: 'help',
     title: 'Help, and your first goals',
     lines: [
-      'This pamphlet stays in the Compendium — the book button at the top of the screen — where bold words everywhere link to every rule in the game.',
+      // The book button left the top bar in batch UX1; the Compendium opens
+      // from the menu (☰) at the right end of the bar.
+      'This pamphlet stays in the Compendium, where bold words everywhere link to every rule in the game; open it from the menu at the top right.',
       'First goals: found a second city, finish a technology, build a worker, clear a barbarian camp.',
     ],
   },
@@ -529,7 +538,7 @@ export function createPamphletOverlay(options: PamphletOverlayOptions): Pamphlet
     const note = doc.createElement('p');
     note.className = 'pamphlet-note';
     note.textContent =
-      'Put it away freely — this whole pamphlet stays in the Compendium, on the Introduction shelf, behind the book button at the top of the screen.';
+      'Put it away freely: this whole pamphlet stays in the Compendium, on the Introduction shelf. The Compendium opens from the menu at the top right of the screen.';
     foot.append(note);
     const button = doc.createElement('button');
     button.type = 'button';

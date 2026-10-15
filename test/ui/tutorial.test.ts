@@ -32,6 +32,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  BEAD_THRESHOLD,
   FIRST_PROGRESS,
   FRESH_MEMORY,
   STEPS,
@@ -43,6 +44,7 @@ import {
   cornerCard,
   advanceKey,
   nextStep,
+  numberWords,
   placeCard,
   readTutorialMemory,
   signalKey,
@@ -461,9 +463,9 @@ describe('the copy', () => {
 
   it('spells every number it says', () => {
     for (const line of prose()) {
-      // "twenty beads" is the only figure the guide names, and it is spelled,
-      // so a digit anywhere in this prose is a number that has escaped the
-      // tables it belongs in.
+      // The bead threshold is the only figure the guide names. It is read from
+      // data and written in words, so a digit anywhere in this prose is a
+      // number that has escaped the tables it belongs in.
       expect(line, line).not.toMatch(/\d/);
     }
   });
@@ -475,7 +477,10 @@ describe('the copy', () => {
   });
 
   it('says what wins the game', () => {
-    expect(prose().join(' ')).toContain('twenty beads');
+    // How many beads open the Magnum Opus, as the data says it today. The
+    // figure itself is checked against the simulation in `guideCopy.test.ts`.
+    expect(prose().join(' ')).toContain(`${numberWords(BEAD_THRESHOLD)} beads`);
+    expect(prose().join(' ')).toContain('Magnum Opus');
   });
 
   /**
@@ -760,8 +765,12 @@ describe('the pamphlet', () => {
     expect(all).toContain('right-click');
     expect(all).toContain('technology tree');
     expect(all).toContain('Statecraft');
-    expect(all).toContain('Religion');
-    expect(all).toContain('twenty beads');
+    // The ruling named "the Religion screen"; the interface rework renamed it
+    // Faith (2026-10-15). The page still names religion itself.
+    expect(all).toContain('Faith screen');
+    expect(all).toContain('religion');
+    // The bead count comes from data (`guideCopy.test.ts` holds that).
+    expect(all).toContain(`${numberWords(BEAD_THRESHOLD)} beads`);
     expect(all).toContain('Magnum Opus');
     expect(all).toContain('Happiness');
     expect(all).toContain('found a second city');
@@ -798,8 +807,9 @@ describe('the pamphlet', () => {
         lines.push(stripRefs(text));
       }
       for (const line of lines) {
-        // No identifier and no digit: the one figure the pamphlet names is
-        // spelled ("twenty beads"), the tutorial's own bargain.
+        // No identifier and no digit: the one figure the pamphlet names, the
+        // bead threshold, is read from data and written in words, as in the
+        // tutorial.
         expect(line, line).not.toMatch(/[a-z][A-Z]/);
         expect(line, line).not.toMatch(/\d/);
       }

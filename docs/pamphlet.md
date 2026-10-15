@@ -9,8 +9,9 @@ pass over the tutorial flow itself.
 
 - Where to click units to select them (on the tile or the unit icon).
 - How to move and attack with units.
-- An overview of: the tech tree, the Statecraft screen, the Religion
-  screen, the city screen.
+- An overview of: the tech tree, the Statecraft screen, the Faith
+  screen, the city screen. (The ruling said "the Religion screen"; that
+  screen was renamed Faith in the interface rework of 2026-10-15.)
 - Walk through basics: building things in cities, founding more cities,
   progressing through the tech tree.
 - What the win conditions are (beads, the Great Work).
@@ -151,8 +152,47 @@ explanation — "so that it isn't too text heavy". Binding shape:
   ("the bead counter at the top of the screen"); the closing card points at
   the pamphlet.
 - **Tests**: `test/ui/tutorial.test.ts` (pamphlet table/prose/memory/
-  ordering pins, meter-note wiring, the no-star sweep) and
-  `test/ui/compendium.test.ts` (anchor, deep link, search, refs, printer).
+  ordering pins, meter-note wiring, the no-star sweep),
+  `test/ui/compendium.test.ts` (anchor, deep link, search, refs, printer) and
+  `test/ui/guideCopy.test.ts` (no retired system named; the bead count read
+  from data).
+
+### Corrections, 2026-10-15 (batch T0 of `docs/plans/tutorial.md`)
+
+Factual fixes to the copy that ships today. The page list and the shot list
+are unchanged; the six-page rewrite is batch T3.
+
+- **How you win** (`winning`): beads come from meeting the goals of each new
+  age's wager and from a few grants (some buildings and the last
+  technology), not from "doing things first in the world". The number of
+  beads that opens the Magnum Opus is `rules.threshold` in
+  `data/beads.json`, read through `BEAD_THRESHOLD` in `src/ui/tutorial.ts`
+  and written in words by `numberWords`. It is never typed into the copy.
+- **Statecraft and religion** (`draft`): the faith screen is called Faith
+  ("The Faith screen holds your gods, your blessings and, in time, a
+  religion of your own"). The keyword link to the religion entry stays, on
+  the word "religion".
+- **Help** (`help`) and the overlay's foot: the Compendium opens from the
+  menu at the top right. The book button they named left the top bar in
+  batch UX1.
+- **The tutorial's cards** (`src/ui/tutorial.ts`), corrected to the same
+  rules:
+  - the welcome card: beads come mostly from the goals each new age sets;
+  - the bead note's three pages: the threshold from data, the wager (stake
+    one goal in secret; missing it brings a malice), and the other beads
+    (the last technology, a few buildings, the golden bead);
+  - the religion note: a god arrives once enough faith is saved, with no
+    augur;
+  - the caravan note: routes are sent from the Trade sheet, which the
+    caravan's panel opens (its Start Route button is gone);
+  - the authority note: below zero, borders stop growing and land cannot be
+    bought; production, science and culture fall only further down.
+- **The sync test** (`test/ui/guideCopy.test.ts`) fails when any string in
+  `src/ui/tutorial.ts` or `src/ui/pamphlet.ts` names a retired system
+  (feats, endeavours, quests and reckonings, read from `data/beads.json`;
+  retired units such as the augur, read from `data/units.json`; and the
+  old words "races" and "first in the world"), names a removed control, or
+  types a bead count into a string instead of reading it from data.
 
 ### Shot list (capture against the running game, drop into `public/pamphlet/`)
 
