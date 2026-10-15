@@ -95,6 +95,7 @@
     "hardTargetMargin": 1.2,
     "siegeStrikeFloor": 0,
     "withdrawBelowHealth": 0.35,
+    "veteranCautionBelow": 0.75,
     "screenRadius": 3,
     "screenBonus": 30,
     "screenExposure": 6

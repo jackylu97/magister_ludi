@@ -1600,6 +1600,21 @@ export interface BadgeSpec {
   chargeOffsetY: number;
   /** How far in front of the rim the boss sits, so it never z-fights it. */
   chargeNudge: number;
+  /**
+   * A ranked piece's boss (batch WC3): one or two chevrons on a small parchment
+   * disc at the badge's upper-left corner, the opposite corner from the
+   * worker's charge count. See `UnitLayer.addRankBadge` in `pieces.ts`.
+   */
+  rankDiameter: number;
+  /**
+   * Offset of the rank boss's centre from the badge's, as a fraction of
+   * `diameter` along the camera's right and up axes. A negative `rankOffsetX`
+   * is to the left.
+   */
+  rankOffsetX: number;
+  rankOffsetY: number;
+  /** How far in front of the rim the rank boss sits, so it never z-fights it. */
+  rankNudge: number;
 }
 
 export interface AnimationSpec {
@@ -2691,6 +2706,10 @@ export const VIEW3D: View3DData = {
     chargeOffsetX: viewJson.badges.chargeOffsetX,
     chargeOffsetY: viewJson.badges.chargeOffsetY,
     chargeNudge: viewJson.badges.chargeNudge,
+    rankDiameter: viewJson.badges.rankDiameter,
+    rankOffsetX: viewJson.badges.rankOffsetX,
+    rankOffsetY: viewJson.badges.rankOffsetY,
+    rankNudge: viewJson.badges.rankNudge,
   },
   animation: viewJson.animation,
   lens: {

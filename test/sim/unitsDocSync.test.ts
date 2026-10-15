@@ -215,6 +215,20 @@ const FIGURE_BLOCKS: readonly { key: 'combat' | 'naval'; heading: string }[] = [
   { key: 'naval', heading: 'naval' },
 ];
 
+/**
+ * One table row per figure. A figure that is itself a group of figures (a plain
+ * object, such as `rules.combat.ranks`) is printed as rows of its own, each
+ * under its dotted name (`ranks.ladder.veteran.strength`), so every number in a
+ * nested rule reaches the doc rather than printing as "[object Object]". A list
+ * is still one row: it is one figure written as several values.
+ */
+function figureRows(name: string, value: unknown): string[] {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return Object.entries(value).flatMap(([key, inner]) => figureRows(`${name}.${key}`, inner));
+  }
+  return [`| \`${name}\` | ${String(value)} |`];
+}
+
 // --- printing -----------------------------------------------------------------
 
 /**
@@ -261,7 +275,7 @@ function printRegion(notes: ReadonlyMap<string, string>): string {
   for (const { key, heading } of FIGURE_BLOCKS) {
     out.push(`\`rules.${heading}\``, '', '| Figure | Value |', '|---|---|');
     for (const [name, value] of Object.entries(RULES[key])) {
-      out.push(`| \`${name}\` | ${String(value)} |`);
+      out.push(...figureRows(name, value));
     }
     out.push('');
   }

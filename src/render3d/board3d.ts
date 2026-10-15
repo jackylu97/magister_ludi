@@ -51,6 +51,7 @@ import { IMPROVEMENT_IDS, type ImprovementId, improvementBaseRow } from '../sim/
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import type { Unit } from '../sim/state';
 import type { BeliefAxis } from '../sim/religionData';
+import type { RankId } from '../sim/rulesData';
 import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
 import { type TerrainId, isEmbarkableTerrain } from '../sim/terrainData';
 import { type ModelClass, UNIT_TYPE_IDS, type UnitTypeId, isNaval, unitDef } from '../sim/unitData';
@@ -65,6 +66,7 @@ import {
   CITY_MARK_CELLS,
   MEDALLION_CELLS,
   NUMERAL_CELLS,
+  RANK_MARK_CELLS,
   SITE_MARK_CELLS,
   SURVEY_MARK_CELLS,
   SETTLE_MARK_CELLS,
@@ -1073,6 +1075,21 @@ function buildNumeralMarkers(): BufferGeometry[] {
 }
 
 /**
+ * The rank marks, standing up: `buildChargeMarkers` against the rank cells of
+ * the same atlas (`RANK_MARK_CELLS`, batch WC3). This is what a ranked piece's
+ * corner boss is built from (`UnitLayer.addRankBadge`, `pieces.ts`), a token
+ * standing in the diorama beside the worker's numeral boss.
+ */
+function buildRankMarkers(): Record<RankId, BufferGeometry> {
+  const out: Partial<Record<RankId, BufferGeometry>> = {};
+  for (const id of RANK_MARK_CELLS) {
+    const rect = tileIconRect({ set: 'rank', id });
+    out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
+  }
+  return out as Record<RankId, BufferGeometry>;
+}
+
+/**
  * One geometry per shape, built once and shared by every board ever built.
  *
  * Prisms are pre-built per height class rather than being one unit prism scaled
@@ -1291,6 +1308,11 @@ export class BoardGeometry {
    * — see `buildNumeralMarkers`. Indexed by digit, exactly as `numerals` is.
    */
   readonly numeralMarkers: BufferGeometry[];
+  /**
+   * The standing form of the rank cells, for a ranked piece's corner boss (batch
+   * WC3) — see `buildRankMarkers`. Keyed by rank id.
+   */
+  readonly rankMarkers: Record<RankId, BufferGeometry>;
   /** An upright unit quad standing on its base, for the sprite units. */
   readonly billboard: BufferGeometry;
   /** The blob shadow under a billboard, and the foot it stands in. */
@@ -1427,6 +1449,7 @@ export class BoardGeometry {
     this.settleMarkers = buildSettleMarkers();
     this.resourceStem = markerPin(VIEW3D.lens.resourceStemTaper);
     this.numeralMarkers = buildNumeralMarkers();
+    this.rankMarkers = buildRankMarkers();
     this.river = riverSegment();
     this.borderBand = riverSegment();
     this.roadStrip = riverSegment();
@@ -1515,6 +1538,7 @@ export class BoardGeometry {
     for (const quad of Object.values(this.settleMarkers)) quad.dispose();
     this.resourceStem.dispose();
     for (const quad of this.numeralMarkers) quad.dispose();
+    for (const quad of Object.values(this.rankMarkers)) quad.dispose();
     for (const quad of Object.values(this.yieldGlyphs)) quad.dispose();
     for (const quad of this.numerals) quad.dispose();
     for (const quad of this.medallions) quad.dispose();

@@ -215,7 +215,7 @@ The first of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
 - ▢ War weariness in v1: (a) none, defer for later after playtesting if needed
 - **Ruled 2026-10-14:** three costs of war, in this order: unrest in captured
   towns (built, §5c), war weariness from net losses (built, §6a below), and unit
-  ranks (not built yet). The spec is `docs/flags.md` item (rrrrrr).
+  ranks (built, §6b below). The spec is `docs/flags.md` item (rrrrrr).
 - ▢ Warmonger reputation / opinions: not v1 (there are no opinions without
   diplomacy AI). Confirmed
 
@@ -307,6 +307,101 @@ The second of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
   put it one point under its floor, it stopped campaigning, the counter-attack
   that evened the exchange never came, and the winner, still ahead on the
   exchange, never signed.
+
+## 6b. Unit ranks (as built, batch WC3, schema 127)
+
+The third of the three costs of war ruled on 2026-10-14 (`docs/flags.md`
+(rrrrrr) part 3): ranks make a unit worth keeping alive, so losing one costs
+more than the hammers. The code is `src/sim/ranks.ts`; every figure is in
+`data/rules.json` under `rules.combat.ranks`.
+
+**Experience**
+
+- `Unit.experience`, absent until a unit's first award. `awardExperience` is
+  the only writer, and `applyCombat` (step 5b, after everything else in the
+  fight) is the only caller; both are pinned by a source test
+  (`test/sim/ranks.test.ts`).
+- A blow is a **fight** when it is struck at a unit that is not a civilian, or
+  at a town whose walls still stand. Taking a civilian, plundering a caravan and
+  walking into a beaten town with nobody in the gate are not fights and pay
+  nothing.
+- Each side that lives through a fight earns `survive` (1), or `kill` (2) in
+  its place when it destroyed the unit it fought. Attacking and defending are
+  paid alike. A ranged attacker that takes no counter-blow has still survived a
+  fight, and so has the unit it shot.
+- A town never earns experience, and neither does a garrison standing behind
+  walls that took the blow in its place.
+- A barbarian beaten under Blood Brothers counts as a kill for the unit that
+  beat it, though it joins rather than dies.
+- Experience stays with the unit through an automatic upgrade (the type changes
+  in place) and through a change of owner (`captureUnit` changes only the
+  owner).
+
+**The barbarian cap**
+
+- A fight with the barbarians raises experience up to the threshold of
+  `barbarianCap` (Veteran) and no further, and a unit already at or past it
+  gains nothing from one, so a camp that keeps respawning cannot be farmed.
+- Fights with empires have no cap: a Veteran made on barbarians goes on to
+  Elite against an empire.
+- *Choice made in the build:* barbarian units earn no experience at all, so a
+  raider or a camp guard does not grow stronger the longer it lives.
+
+**Ranks**
+
+- Derived from experience on every read (`rankOf`), never stored. Veteran from
+  `ladder.veteran.experience` (4), Elite from `ladder.elite.experience` (10).
+- Each rank is **one flat strength line** on the combat ledger, on whichever
+  side the unit fights: "Veteran +3" or "Elite +6". The Elite figure is the
+  total, so an Elite unit prints one line, never a Veteran line beside it.
+  Because the damage curve reads the difference between two strengths, the
+  same flat edge is worth the same in every age.
+- Nothing else: no extra health, no movement, no choices.
+- A town defending its walls has no rank line, whatever stands in it.
+- *Choice made in the build:* a card's birth stamp of strength (Professional
+  Soldiers, the Terracotta Army) used to print as "Veteran" on the forecast. It
+  is now "Training", so "Veteran" means only the rank.
+- *Choice made in the build:* the strength a battle rider scales by
+  (`fallenStrength`, Songs of the Fallen) is still the roster's strength plus
+  the stamp, without the rank.
+
+**Interface**
+
+- **The board:** a ranked piece's badge carries a boss at its upper-left corner,
+  one chevron for a Veteran and two for an Elite, on a parchment disc
+  (`src/art/rankMarks.ts`, traced into the tile atlas by `drawRankCell`). The
+  worker's charge digit takes the other corner. The boss's size and place are
+  `badges.rankDiameter`, `rankOffsetX`, `rankOffsetY` and `rankNudge` in
+  `data/view3d.json`. A walking copy carries the boss too. The rank, not the
+  experience, is a member of the piece fingerprint (`signUnits`).
+- **The garrison row** on a city banner shows the same chevrons as a chip at the
+  roundel's corner, since a piece in a town gives its badge to the row, and the
+  hover names the rank ("Veteran Swordsman").
+- **The unit panel:** the rank and its mark under the unit's name ("Veteran ·
+  Rome"), an Experience figure toward the next rank ("5/10", or the total at
+  Elite), and the rank's strength in the notes ("+3 Veteran").
+- **The combat forecast** prints the rank line under the unit's strength, with
+  every other line.
+- **The Compendium** has a concept entry, "Unit ranks", and the combat entry
+  points to it. The flair cabinet lists both marks, has a stall for the boss
+  with knobs on its numbers, and ranks two pieces of its garrison row.
+
+**Bots**
+
+- A ranked piece below `military.veteranCautionBelow` (0.75) of its own health
+  refuses a blow that is not decisive when the counter-blow's worst roll could
+  kill it, or when the blow deals no more than it takes. Neither the seat's
+  appetite nor the siege appetite loosens it. A decisive blow (a kill, a
+  capture) is still taken. The refusal is printed on the candidate.
+- Every blow a bot weighs is read off the combat forecast, so the rank's
+  strength is already in each exchange. Nothing else in the bots reads ranks:
+  the army strength a declaration weighs is unchanged, and the rest and
+  withdraw thresholds are the same for every piece.
+
+**Not built**
+
+- A message when a unit earns a rank.
+- Cards, buildings or wonders that read ranks or grant experience.
 
 ## 7. Diplomacy beyond war — the v1 cut line
 

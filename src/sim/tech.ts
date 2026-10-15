@@ -1916,7 +1916,7 @@ export function researchSettledBy(player: Player, grant: number): string | null 
  * technologies now allow, in place.
  *
  * Called the instant a tech completes, so the army is never a turn behind the
- * tree. Four things are preserved and each is a rule:
+ * tree. Five things are preserved and each is a rule:
  *
  *   · the unit's **id**, so a selection, a standing order and an animation all
  *     survive the upgrade — this is the same piece, better armed.
@@ -1926,6 +1926,9 @@ export function researchSettledBy(player: Player, grant: number): string | null 
  *     gained maximum hit points does not arrive already wounded either.
  *   · its **movement left**, clamped to the new type's allowance — a chariot
  *     that becomes something slower cannot keep the difference.
+ *   · its **experience** (batch WC3), and so its rank: a Veteran warrior is a
+ *     Veteran swordsman. Nothing here touches `Unit.experience`, because only
+ *     the type changes; `test/sim/ranks.test.ts` pins it.
  *
  * The chain is walked rather than stepped, so a unit that missed a generation
  * (a hand-built state, a scenario, or a save from before its line existed)

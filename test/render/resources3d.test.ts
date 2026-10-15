@@ -12,6 +12,7 @@ import {
 
 import { CITY_MARK_IDS } from '../../src/art/cityMarks';
 import { SETTLE_MARK_IDS } from '../../src/art/settleMarks';
+import { RANK_MARK_IDS } from '../../src/art/rankMarks';
 import {
   AXIS_CELLS,
   CHARGE_CELLS,
@@ -21,6 +22,7 @@ import {
   MEDALLION_CELLS,
   MEDALLION_TURNS,
   NUMERAL_CELLS,
+  RANK_MARK_CELLS,
   SITE_MARK_CELLS,
   SURVEY_MARK_CELLS,
   TILE_ICON_CELLS,
@@ -401,6 +403,12 @@ describe('the tile-icon atlas', () => {
     const settles = TILE_ICON_CELLS.filter((cell) => cell.set === 'settle').map((c) => c.id);
     expect(settles).toEqual([...SETTLE_MARK_CELLS]);
     expect(SETTLE_MARK_CELLS).toEqual([...SETTLE_MARK_IDS]);
+    // And the twelfth, appended by batch WC3: the rank marks, the chevrons a
+    // ranked piece's badge carries at its corner. One cell per rank, in the
+    // simulation's own rank order.
+    const ranks = TILE_ICON_CELLS.filter((cell) => cell.set === 'rank').map((c) => c.id);
+    expect(ranks).toEqual([...RANK_MARK_CELLS]);
+    expect(RANK_MARK_CELLS).toEqual([...RANK_MARK_IDS]);
     expect(TILE_ICON_CELLS).toHaveLength(
       RESOURCE_IDS.length +
         6 +
@@ -412,7 +420,8 @@ describe('the tile-icon atlas', () => {
         SURVEY_MARK_CELLS.length +
         MEDALLION_CELLS.length +
         CITY_MARK_CELLS.length +
-        SETTLE_MARK_CELLS.length,
+        SETTLE_MARK_CELLS.length +
+        RANK_MARK_CELLS.length,
     );
   });
 
@@ -433,12 +442,17 @@ describe('the tile-icon atlas', () => {
     // A turn count below the first rest is not a thing the marks can carry, and
     // it is floored rather than refused: the board draws what it is told.
     expect(medallionIdFor(0)).toBe(1);
-    // Last of its own set, which is now two sets in from the end: the town marks
-    // went on behind it (batch U4) and the settle marks behind those (item
-    // (ttttt)), and an appended set moves nothing in front of it — which is
-    // exactly the property this file is about.
+    // Last of its own set, which is now three sets in from the end: the town
+    // marks went on behind it (batch U4), the settle marks behind those (item
+    // (ttttt)) and the rank marks behind those (batch WC3), and an appended set
+    // moves nothing in front of it — which is exactly the property this file is
+    // about.
     expect(tileIconIndex({ set: 'medallion', id: 'more' })).toBe(
-      TILE_ICON_CELLS.length - CITY_MARK_CELLS.length - SETTLE_MARK_CELLS.length - 1,
+      TILE_ICON_CELLS.length -
+        CITY_MARK_CELLS.length -
+        SETTLE_MARK_CELLS.length -
+        RANK_MARK_CELLS.length -
+        1,
     );
   });
 
@@ -463,6 +477,7 @@ describe('the tile-icon atlas', () => {
         MEDALLION_CELLS.length -
         CITY_MARK_CELLS.length -
         SETTLE_MARK_CELLS.length -
+        RANK_MARK_CELLS.length -
         MARGINALIA_CELLS.length,
     );
     // The inscription joined the marginalia *behind* the serpent, so the serpent
@@ -477,6 +492,7 @@ describe('the tile-icon atlas', () => {
         MEDALLION_CELLS.length -
         CITY_MARK_CELLS.length -
         SETTLE_MARK_CELLS.length -
+        RANK_MARK_CELLS.length -
         1,
     );
     // The axes kept their place when the survey notes arrived behind them, which
@@ -487,6 +503,7 @@ describe('the tile-icon atlas', () => {
         MEDALLION_CELLS.length -
         CITY_MARK_CELLS.length -
         SETTLE_MARK_CELLS.length -
+        RANK_MARK_CELLS.length -
         1,
     );
     // The survey notes kept their place when the medallions arrived behind
@@ -498,27 +515,37 @@ describe('the tile-icon atlas', () => {
         MEDALLION_CELLS.length -
         CITY_MARK_CELLS.length -
         SETTLE_MARK_CELLS.length -
+        RANK_MARK_CELLS.length -
         1,
     );
     // And the town marks kept theirs when the settle marks arrived behind them,
     // which is that property once more and the reason the new set went last.
     expect(
       tileIconIndex({ set: 'cityMark', id: CITY_MARK_CELLS[CITY_MARK_CELLS.length - 1]! }),
-    ).toBe(TILE_ICON_CELLS.length - SETTLE_MARK_CELLS.length - 1);
+    ).toBe(TILE_ICON_CELLS.length - SETTLE_MARK_CELLS.length - RANK_MARK_CELLS.length - 1);
     // The medallions kept their place when the town marks arrived behind them,
     // and again when the settle marks arrived behind those.
     expect(tileIconIndex({ set: 'medallion', id: 1 })).toBe(
       TILE_ICON_CELLS.length -
         MEDALLION_CELLS.length -
         CITY_MARK_CELLS.length -
-        SETTLE_MARK_CELLS.length,
+        SETTLE_MARK_CELLS.length -
+        RANK_MARK_CELLS.length,
     );
     expect(tileIconIndex({ set: 'cityMark', id: CITY_MARK_IDS[0]! })).toBe(
-      TILE_ICON_CELLS.length - CITY_MARK_CELLS.length - SETTLE_MARK_CELLS.length,
+      TILE_ICON_CELLS.length -
+        CITY_MARK_CELLS.length -
+        SETTLE_MARK_CELLS.length -
+        RANK_MARK_CELLS.length,
     );
-    // The settle marks are the newest set and are on the end, which is the rule.
+    // The settle marks kept their place when the rank marks arrived behind
+    // them (batch WC3).
     expect(tileIconIndex({ set: 'settle', id: SETTLE_MARK_IDS[0]! })).toBe(
-      TILE_ICON_CELLS.length - SETTLE_MARK_CELLS.length,
+      TILE_ICON_CELLS.length - SETTLE_MARK_CELLS.length - RANK_MARK_CELLS.length,
+    );
+    // The rank marks are the newest set and are on the end, which is the rule.
+    expect(tileIconIndex({ set: 'rank', id: RANK_MARK_IDS[0]! })).toBe(
+      TILE_ICON_CELLS.length - RANK_MARK_CELLS.length,
     );
   });
 

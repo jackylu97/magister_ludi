@@ -550,7 +550,11 @@
     "chargeDiameter": 0.17,
     "chargeOffsetX": 0.6,
     "chargeOffsetY": 0.6,
-    "chargeNudge": 0.012
+    "chargeNudge": 0.012,
+    "rankDiameter": 0.19,
+    "rankOffsetX": -0.6,
+    "rankOffsetY": 0.6,
+    "rankNudge": 0.012
   },
   "animation": {
     "msPerHex": 160,

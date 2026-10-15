@@ -27,6 +27,7 @@ import { foundCityAt, growthThreshold } from '../../src/sim/cities';
 import { cityMaxHp, siegeField, underSiege } from '../../src/sim/combat';
 import { createMap, getTileAt, neighborTiles, tileHex, tileIndex } from '../../src/sim/map';
 import { type GameState, createUnit, bumpRevision } from '../../src/sim/state';
+import { RULES } from '../../src/sim/rulesData';
 import { type UnitTypeId, unitMaxHp } from '../../src/sim/unitData';
 import { EXPLORED, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { cssHex } from '../../src/render3d/badges3d';
@@ -928,6 +929,31 @@ describe('the garrison row', () => {
     expect(wounded).not.toBe(before);
     expect(garrisonSignature(garrisonRow(state, units, 0, units[0]!.id))).not.toBe(wounded);
     expect(garrisonSignature(null)).toBe('');
+  });
+
+  /**
+   * The rank chip (batch WC3): a piece standing in a town has given its badge
+   * to this row, so the row carries the rank the badge would have shown, names
+   * it on the hover, and is rewritten when a piece is promoted where it stands.
+   */
+  it('carries each piece’s rank, names it on the hover, and folds it into the signature', () => {
+    const state = boardState();
+    const { units } = garrisoned(state, 4, 4, ['warrior', 'swordsman', 'archer']);
+    units[1]!.experience = RULES.combat.ranks.ladder.veteran.experience;
+    units[2]!.experience = RULES.combat.ranks.ladder.elite.experience;
+    const row = garrisonRow(state, units, 0, null)!;
+    expect(row.pieces.map((piece) => piece.rank)).toEqual([null, 'veteran', 'elite']);
+    expect(row.pieces[0]!.label).toBe('Warrior');
+    expect(row.pieces[1]!.label).toBe('Veteran Swordsman');
+    expect(row.pieces[2]!.label).toBe('Elite Archer');
+    // Promoted where it stands: the row is written again.
+    const before = garrisonSignature(row);
+    units[0]!.experience = RULES.combat.ranks.ladder.veteran.experience;
+    expect(garrisonSignature(garrisonRow(state, units, 0, null))).not.toBe(before);
+    // And the painter hangs the chip only on a ranked roundel.
+    const paint = uiSource('cityBanners.ts');
+    expect(paint).toContain("chip.className = 'city-banner-piece-rank'");
+    expect(paint).toContain('rankMarkDataUri(piece.rank)');
   });
 });
 

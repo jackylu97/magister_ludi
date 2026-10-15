@@ -66,6 +66,7 @@ import {
   NAVAL_MARK_STROKE,
   NAVAL_RIGS,
 } from '../art/navalMarks';
+import { RANK_MARK_IDS, rankMark, rankMarkDataUri } from '../art/rankMarks';
 import { siteMark } from '../art/siteMarks';
 import { SURVEY_MARK_IDS, surveyMark, surveyMarkDataUri } from '../art/surveyMarks';
 import { SETTLE_MARK_IDS, settleMark, settleMarkDataUri } from '../art/settleMarks';
@@ -140,6 +141,7 @@ export function drawMarkFamilies(into: HTMLElement): void {
   navalFamily(into);
   heraldryFamily(into);
   cityMarkFamily(into);
+  rankMarkFamily(into);
   marginaliaFamily(into);
 }
 
@@ -758,6 +760,26 @@ function cityMarkFamily(into: HTMLElement): void {
   );
   for (const id of CITY_MARK_IDS) {
     markCell(grid, id, cityMarkDataUri(id), cityMark(id).note);
+  }
+}
+
+/**
+ * The rank marks (batch WC3): what a ranked piece's badge carries at its corner
+ * and what the unit panel and the garrison row print beside its name. The 12px
+ * swatch is the one to judge hardest, because the boss on the board is about
+ * that size: the Elite's two chevrons must stay two. Section 11 has them on the
+ * badge with the knobs, and the flourishes (section 3) in the garrison row.
+ */
+function rankMarkFamily(into: HTMLElement): void {
+  const grid = markGrid(
+    block(
+      into,
+      'Rank marks — src/art/rankMarks.ts',
+      'One chevron for a Veteran and two for an Elite: the count is the whole message. Heavy open strokes rather than filled bands, so the two chevrons keep a gap between them at the dozen pixels the badge’s corner boss prints them at.',
+    ),
+  );
+  for (const id of RANK_MARK_IDS) {
+    markCell(grid, id, rankMarkDataUri(id), rankMark(id).note);
   }
 }
 

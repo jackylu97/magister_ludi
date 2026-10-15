@@ -63,6 +63,10 @@ import type { RouteReading } from './tradeLines';
 import { setYieldText, yieldFigureNodes } from './yieldMark';
 import { element } from './dom';
 import { seatName } from '../sim/leaderData';
+// A unit's rank and experience (batch WC3). The panel prints both and draws
+// the rank's own mark, the one the board's badge carries at its corner.
+import { experienceOf, nextRankOf, rankName, rankOf, rankStrength, rankThreshold } from '../sim/ranks';
+import { rankMarkDataUri } from '../art/rankMarks';
 
 /** The three voices an improvement can move, in the order the panel reads them. */
 const DELTA_KEYS = ['food', 'production', 'gold'] as const;
@@ -399,6 +403,31 @@ interface UnitAction {
    */
   card?: () => Node;
   run: () => void;
+}
+
+/**
+ * **The Experience stat's figure** (batch WC3): the experience a piece has
+ * earned over the threshold of its next rank ("5/10" is five earned of the ten
+ * Elite needs), or what it has earned alone once it holds the highest rank.
+ *
+ * Pure and exported, for `marchDestination`'s reason: a figure that is merely
+ * wrong throws nothing.
+ */
+export function experienceFigure(unit: Unit): string {
+  const earned = experienceOf(unit);
+  const next = nextRankOf(unit);
+  return next === null ? String(earned) : `${earned}/${rankThreshold(next)}`;
+}
+
+/**
+ * **What a piece's rank brings to every fight**, as the notes line says it:
+ * "+3 Veteran", the fortified note's shape one fact over, or `null` for a piece
+ * without a rank (batch WC3). The figure is the rank's own strength line, the
+ * one the combat forecast prints under the piece's strength.
+ */
+export function rankNote(unit: Unit): string | null {
+  const rank = rankOf(unit);
+  return rank === null ? null : `${signedFigure(rankStrength(rank))} ${rankName(rank)}`;
 }
 
 /**
@@ -1325,16 +1354,27 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // therefore the one fact about the piece a player has to read before
     // pressing anything.
     const person = greatPerson();
+    // **A ranked piece says so under its name** (batch WC3): "Veteran · Rome",
+    // with the rank's own chevrons in front, the mark the board's badge carries
+    // at its corner. The great person's family takes the same place for the
+    // same reason, and the two never meet: a great person is a civilian and
+    // never earns a rank.
+    const rank = rankOf(unit);
     const header = element('div', 'unit-header');
     const title = element('div', 'unit-title');
     title.append(element('h2', undefined, person ? person.name : def.name));
-    title.append(
-      element(
-        'span',
-        'unit-owner',
-        person ? `${person.family} · ${whose}` : whose,
-      ),
+    const ownerLine = element(
+      'span',
+      'unit-owner',
+      person ? `${person.family} · ${whose}` : rank !== null ? `${rankName(rank)} · ${whose}` : whose,
     );
+    if (!person && rank !== null) {
+      const mark = element('span', 'unit-rank-mark');
+      mark.setAttribute('aria-hidden', 'true');
+      mark.style.setProperty('--rank-mark', `url("${rankMarkDataUri(rank)}")`);
+      ownerLine.prepend(mark);
+    }
+    title.append(ownerLine);
     header.append(title);
 
     const close = element('button', 'city-close', '×');
@@ -1384,6 +1424,16 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       if (isRanged(def)) {
         stats.append(stat('Ranged', `${def.rangedStrength} · ${def.range}⌖`, false));
       }
+      // **Experience**, toward the next rank (batch WC3): "5/10" is five earned
+      // of the ten Elite needs, and a piece at the top rank shows what it has
+      // with nothing over it. Every fighting piece carries it, at nought too,
+      // so a player meets the system before the first promotion. The rank's
+      // own strength is in the notes below, beside the trench's.
+      const box = stat('Experience', experienceFigure(unit), false);
+      box.title =
+        'Experience from fights. A unit becomes a Veteran and then Elite, and each rank adds ' +
+        'strength in every fight. Fights with barbarians only take a unit as far as Veteran.';
+      stats.append(box);
     }
     container.append(stats);
 
@@ -1410,6 +1460,10 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // of this list is states the piece is passing through.
     notes.push(upkeepNote(unit));
     if (isFortified(unit)) notes.push(`${signedFigure(fortifyBonus(unit))} fortified`);
+    // The rank's strength, the trench's sentence one fact over: what the piece
+    // brings to every fight on top of its own strength (batch WC3).
+    const ranked = rankNote(unit);
+    if (ranked !== null) notes.push(ranked);
     // Beside fortification and for its reason: a standing state the player chose
     // and would otherwise have to infer from the button's label. The mark is the
     // same one the button wears, so the sheet says one thing twice rather than

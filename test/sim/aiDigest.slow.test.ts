@@ -449,10 +449,32 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * Nothing stalled and no command was refused, which the assertion above this
  * one checks before the hash does.
+ *
+ * ---
+ *
+ * **Unit ranks (batch WC3, schema 127).** Duel `1b5560ba:277904` →
+ * `d8a34333:278234`, standard `37c3e10e:966087` → `ab40e54f:956390`.
+ *
+ * Unlike WC1 and WC2, both prints changed length, because ranks change fights
+ * on both boards:
+ *
+ *   · A unit that survives a fight earns experience, and the `experience` key
+ *     now appears on pieces in the state.
+ *   · A Veteran or Elite fights with a flat +3 or +6 strength line on the
+ *     combat ledger, so later fights between ranked units resolve differently.
+ *   · Bots keep damaged ranked units out of fights they are likely to lose
+ *     (`military.veteranCautionBelow`).
+ *
+ * The two games therefore diverge from the first fight in which a piece earns
+ * experience. The duel print grew by 330 characters and the standard one
+ * shrank by 9,697 (about one per cent).
+ *
+ * Nothing stalled and no command was refused, which the assertion above this
+ * one checks before the hash does.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '1b5560ba:277904',
-  standard: '37c3e10e:966087',
+  duel: 'd8a34333:278234',
+  standard: 'ab40e54f:956390',
 };
 
 /**

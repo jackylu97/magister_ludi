@@ -623,3 +623,24 @@ describe('the Remove row', () => {
     expect(main).toContain('controls.removeImprovement();');
   });
 });
+
+/**
+ * A ranked piece's sheet (batch WC3, `docs/flags.md` (rrrrrr) part 3: *"rank
+ * and experience in the unit panel"*). The two figures are pure helpers,
+ * checked in `test/sim/ranks.test.ts`; what is pinned here is that the sheet
+ * prints them, read from the source because this suite mounts no DOM.
+ */
+describe('the rank on the sheet', () => {
+  const panel = source('unitPanel.ts');
+  const render = panel.slice(panel.indexOf('function render(): void {'));
+
+  it('puts the rank under the name, with its mark', () => {
+    expect(render).toContain('`${rankName(rank)} · ${whose}`');
+    expect(render).toContain('rankMarkDataUri(rank)');
+  });
+
+  it('counts experience for every fighting piece, and notes the rank’s strength', () => {
+    expect(render).toContain("stat('Experience', experienceFigure(unit), false)");
+    expect(render).toContain('const ranked = rankNote(unit);');
+  });
+});

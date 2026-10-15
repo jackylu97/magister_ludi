@@ -5199,8 +5199,9 @@ export interface CardUnitStatEffect {
  * creation is stamped: a completion, a purchase, a wonder's grant, a ruin's
  * escort. Both fields have exactly one reader apiece and neither is a
  * multiplier: `unitMaxHp` folds the hit points into the roster's maximum, and
- * `planCombat` folds the strength in as one labelled line ("Veteran +1") on
- * whichever side the piece is standing (`unitData.ts`).
+ * `planCombat` folds the strength in as one labelled line ("Training +1";
+ * "Veteran" since batch WC3 names a rank) on whichever side the piece is
+ * standing (`unitData.ts`).
  *
  * It is deliberately **not** in the piece fingerprint (`signUnits`, `pieces.ts`):
  * nothing a stamp changes is drawn. The hp bar reads a *fraction* and the

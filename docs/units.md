@@ -29,7 +29,10 @@ save may name it, and it leaves the reference because nobody can raise one.
   the naval classes name the triangle's corners.
 - **Str** — `combatStrength`, what the piece is worth closing or holding.
   A zero is not "very weak": it is how a row declares itself a civilian
-  (`isCombatant`), never killed, only captured.
+  (`isCombatant`), never killed, only captured. A piece that has earned a rank
+  in combat (batch WC3) adds one flat line on top of this figure in every fight;
+  the thresholds and strengths are the `ranks.*` rows of `rules.combat` at the
+  foot of this doc.
 - **Ranged** · **Range** — `rangedStrength` and `range`, present or absent as a
   pair. The pair *is* the declaration that a row shoots (`isRanged`); a row
   without it can only close.
@@ -257,6 +260,13 @@ trench). This is the whole of the naval triangle in the simulation.
 | `cityCaptureHpFraction` | 0.25 |
 | `siegeDamagePerTurn` | 5 |
 | `captureCivilians` | true |
+| `ranks.survive` | 1 |
+| `ranks.kill` | 2 |
+| `ranks.barbarianCap` | veteran |
+| `ranks.ladder.veteran.experience` | 4 |
+| `ranks.ladder.veteran.strength` | 3 |
+| `ranks.ladder.elite.experience` | 10 |
+| `ranks.ladder.elite.strength` | 6 |
 
 `rules.naval`
 

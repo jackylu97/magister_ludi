@@ -1781,7 +1781,9 @@ describe("determinism", () => {
     // captured towns would bank hammers, beakers and culture this build withholds.
     // 126 since WC2: a war's losses are recorded and cost happiness, so a v125
     // log's losing empires would grow on turns this build holds them back.
-    expect(SCHEMA_VERSION).toBe(126);
+    // 127 since WC3: units earn ranks in combat, so a v126 log's veterans
+    // would fight weaker than this build makes them.
+    expect(SCHEMA_VERSION).toBe(127);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

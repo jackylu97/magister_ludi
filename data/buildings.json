@@ -945,7 +945,7 @@
         "onComplete": 10,
         "perTurn": 2
       },
-      "note": "Soldiers raised in this city are veterans from the day they muster, and stay veterans wherever they march."
+      "note": "Soldiers raised in this city start out better trained, and keep that training wherever they march."
     },
     "greatWall": {
       "name": "The Great Wall",

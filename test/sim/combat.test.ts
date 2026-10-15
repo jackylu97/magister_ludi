@@ -3060,7 +3060,7 @@ describe('cards and stamps on the strength ledger', () => {
     void d;
   });
 
-  it('a stamped veteran carries its own labelled point, on either side', () => {
+  it('a stamped piece carries its own labelled point, on either side', () => {
     const state = flatState();
     slot(state, 0, 'drumsOfWar');
     // Created *after* the card is slotted, so the stamp is written at the birth.
@@ -3069,15 +3069,19 @@ describe('cards and stamps on the strength ledger', () => {
     // U9 doubled the stamp with the ladder (Drums of War: +4).
     expect(a.stamp).toEqual({ strength: 4 });
 
+    // The line is labelled "Training". It said "Veteran" until batch WC3 gave
+    // that word to the first rank, which is a line of its own
+    // (`test/sim/ranks.test.ts`).
     const attacking = forecast(state, a.id, 4, 3);
-    const mine = attacking.attackerLines.find((l) => l.source === 'Veteran')!;
+    const mine = attacking.attackerLines.find((l) => l.source === 'Training')!;
     expect(mine.amount).toBe(4);
-    expect(attacking.defenderLines.some((l) => l.source === 'Veteran')).toBe(false);
+    expect(attacking.defenderLines.some((l) => l.source === 'Training')).toBe(false);
+    expect(attacking.attackerLines.some((l) => l.source === 'Veteran')).toBe(false);
     expect(attacking.attackerStrength).toBe(foldCombatStrength(attacking.attackerLines));
 
-    // The same point defends. `d` swings at the veteran and finds it steadier.
+    // The same point defends. `d` swings at the stamped piece and finds it steadier.
     const defending = forecast(state, d.id, 3, 3);
-    expect(defending.defenderLines.find((l) => l.source === 'Veteran')!.amount).toBe(4);
+    expect(defending.defenderLines.find((l) => l.source === 'Training')!.amount).toBe(4);
   });
 
   it('The Muster Roll raises the bar a heal fills, not just the number on it', () => {

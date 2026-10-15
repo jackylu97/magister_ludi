@@ -52,6 +52,8 @@ import { RULES } from '../sim/rulesData';
 import type { GameState, Unit } from '../sim/state';
 import { HIDDEN, isVisibleTo } from '../sim/visibility';
 import { seatSeesSleepingVein } from '../sim/improvements';
+// A piece's rank (batch WC3), for the boss the walking copy's badge carries.
+import { rankOf } from '../sim/ranks';
 import { layerVisibility, type LayerVisibility } from './layerVisibility';
 import { canvasAttributes, drawingBufferRatio, watchPixelRatio } from './canvasSetup';
 import type {
@@ -3184,6 +3186,11 @@ export class Renderer3D implements MapView {
      * is in flight — against the alternative of teaching the instanced badge
      * buckets to move, which is the thing hiding-and-respawning exists to avoid.
      */
+    // The rank boss travels with the badge (batch WC3), so a Veteran keeps its
+    // chevron for the length of a march. Nothing while the tile atlas is still
+    // rasterising, exactly as the resting boss waits for it.
+    const rank = rankOf(unit);
+    const rankBoss = rank !== null && this.icons !== null ? { id: rank, icons: this.icons } : null;
     const badgeFor = (): Group | null =>
       this.badges && this.unitBadgesVisible !== false
         ? buildBadge(
@@ -3194,6 +3201,7 @@ export class Renderer3D implements MapView {
             color,
             faceCamera,
             visualHeight,
+            rankBoss,
           )
         : null;
 

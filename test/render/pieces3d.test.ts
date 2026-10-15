@@ -20,6 +20,7 @@ import {
   FILE_BADGE_CELLS,
   type TileIcons,
   type UnitBadges,
+  badgeCenterY,
   hpBarY,
 } from '../../src/render3d/badges3d';
 import {
@@ -58,6 +59,7 @@ import {
   pieceColors,
   pieceMaterials,
   placePiece,
+  rankBossPosition,
   signUnits,
   unitColor,
   unitStackIndices,
@@ -68,6 +70,7 @@ import { MaterialLibrary } from '../../src/render3d/toon';
 import { pickUnitModel } from '../../src/render3d/unitModelPicking';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 import { createMap, tileIndex } from '../../src/sim/map';
+import { RULES } from '../../src/sim/rulesData';
 import { type GameState, barbarianPlayer } from '../../src/sim/state';
 import { isEmbarkableTerrain } from '../../src/sim/terrainData';
 import {
@@ -1664,6 +1667,74 @@ describe('the worker charge badge', () => {
     board.dispose();
   });
 
+  /**
+   * The rank boss (batch WC3): one chevron for a Veteran and two for an Elite,
+   * at the badge's other upper corner, from the same tile atlas and on the same
+   * depth-tested material as the charge digit.
+   */
+  it('bosses a ranked piece\'s badge with its rank\'s mark, and an unranked one with none', () => {
+    const board = geometry();
+    const layer = new UnitLayer();
+    const game = state([{ type: 'warrior' }, { type: 'warrior' }, { type: 'warrior' }]);
+    game.units[0]!.experience = RULES.combat.ranks.ladder.veteran.experience;
+    game.units[1]!.experience = RULES.combat.ranks.ladder.elite.experience;
+    layer.build(
+      game,
+      board,
+      new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+      new Quaternion(),
+      false,
+      null,
+      fakeBadges,
+      null,
+      null,
+      fakeIcons,
+    );
+    const meshes = layerMeshes(layer.group);
+    const bossOf = (geometry: unknown) => meshes.filter((mesh) => mesh.geometry === geometry);
+    expect(bossOf(board.rankMarkers.veteran).length).toBeGreaterThan(0);
+    expect(bossOf(board.rankMarkers.elite).length).toBeGreaterThan(0);
+    for (const mesh of [...bossOf(board.rankMarkers.veteran), ...bossOf(board.rankMarkers.elite)]) {
+      expect(mesh.material).toBe(fakeIcons.standingMaterial);
+    }
+    layer.dispose();
+    board.dispose();
+
+    // The third warrior has no rank, and a board of unranked pieces draws no
+    // rank boss at all.
+    const plain = new UnitLayer();
+    const plainBoard = geometry();
+    plain.build(
+      state([{ type: 'warrior' }]),
+      plainBoard,
+      new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+      new Quaternion(),
+      false,
+      null,
+      fakeBadges,
+      null,
+      null,
+      fakeIcons,
+    );
+    const rankQuads = Object.values(plainBoard.rankMarkers);
+    expect(layerMeshes(plain.group).some((mesh) => rankQuads.includes(mesh.geometry))).toBe(false);
+    plain.dispose();
+    plainBoard.dispose();
+  });
+
+  it('stands the rank boss at the corner opposite the charge digit', () => {
+    // Read off the data rather than a picture: the boss is moved left of the
+    // badge's centre and up from it, where the worker's digit is moved right.
+    expect(VIEW3D.badges.rankOffsetX).toBeLessThan(0);
+    expect(VIEW3D.badges.chargeOffsetX).toBeGreaterThan(0);
+    expect(VIEW3D.badges.rankOffsetY).toBeGreaterThan(0);
+    const feet = new Vector3(0, 0, 0);
+    const at = rankBossPosition(feet, 1, new Quaternion());
+    // With the identity camera, right is +x and up is +y.
+    expect(at.x).toBeLessThan(0);
+    expect(at.y).toBeGreaterThan(badgeCenterY(1));
+  });
+
   it('draws no boss at all while the tile atlas has not loaded yet', () => {
     const board = geometry();
     const layer = new UnitLayer();
@@ -1919,7 +1990,7 @@ describe('the worker charge badge', () => {
     expect(signUnits(b)).toBe(signUnits(a));
   });
 
-  it('hashes exactly the eleven properties the trap names', () => {
+  it('hashes exactly the twelve properties the trap names', () => {
     // Read through Vite's raw glob rather than `node:fs` — the pattern
     // `test/sim/cities.test.ts` set for the same kind of assertion, and for the
     // same reason: this project has no node typings and a source read is not
@@ -1962,7 +2033,44 @@ describe('the worker charge badge', () => {
       // the picture without moving. The aim it holds is an ordinary `path`
       // and is not hashed: see the docblock on `signUnits`.
       'exploreBit(unit)',
+      // Added deliberately with ranks (batch WC3): a ranked piece wears a boss
+      // at its badge's corner, and a defender promoted by a fight it won
+      // without moving would otherwise keep the old one. The rank, never the
+      // raw experience: see `rankIndex`.
+      'rankIndex(unit)',
     ]);
+  });
+
+  /**
+   * The rank's own three cases (batch WC3), which are the whole contract: a
+   * rank gained moves the hash, a rank changing moves it again, and experience
+   * that changes no rank leaves it alone.
+   */
+  it('moves the units fingerprint when a piece gains a rank, and again at the next', () => {
+    const recruit = state([{ type: 'warrior' }]);
+    const veteran = state([{ type: 'warrior' }]);
+    const elite = state([{ type: 'warrior' }]);
+    veteran.units[0]!.experience = RULES.combat.ranks.ladder.veteran.experience;
+    elite.units[0]!.experience = RULES.combat.ranks.ladder.elite.experience;
+    expect(signUnits(veteran)).not.toBe(signUnits(recruit));
+    expect(signUnits(elite)).not.toBe(signUnits(veteran));
+    expect(signUnits(elite)).not.toBe(signUnits(recruit));
+  });
+
+  it('leaves the fingerprint alone when experience moves inside one rank', () => {
+    // Experience moves after every fight a piece lives through, and most of
+    // those change nothing that is drawn. One short of the first rank is
+    // still no rank, and one past it is still the same rank.
+    const veteranAt = RULES.combat.ranks.ladder.veteran.experience;
+    const fresh = state([{ type: 'warrior' }]);
+    const blooded = state([{ type: 'warrior' }]);
+    blooded.units[0]!.experience = veteranAt - 1;
+    expect(signUnits(blooded)).toBe(signUnits(fresh));
+    const veteran = state([{ type: 'warrior' }]);
+    const seasoned = state([{ type: 'warrior' }]);
+    veteran.units[0]!.experience = veteranAt;
+    seasoned.units[0]!.experience = veteranAt + 1;
+    expect(signUnits(seasoned)).toBe(signUnits(veteran));
   });
 });
 

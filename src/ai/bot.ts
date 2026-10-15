@@ -246,7 +246,10 @@ import {
 // `state.revision` — the bot subscribes to the same source of truth the panel,
 // the top bar and the Ledger do (batch E2). See `readings.ts`.
 import { readCity, readEmpirePercents } from '../sim/readings';
-import { fortifyError, previewCombat } from '../sim/combat';
+import { type CombatForecast, fortifyError, previewCombat } from '../sim/combat';
+// A unit's rank, read from its experience (batch WC3). The wounded-veteran
+// clause in `favourableBlow` asks it.
+import { rankName, rankOf } from '../sim/ranks';
 import type { Command } from '../sim/commands';
 import { disbandError } from '../sim/commands';
 import { explainEmpireGold } from '../sim/empireGold';
@@ -7119,6 +7122,18 @@ function favourableBlow(
       tried.push(exchange);
       continue;
     }
+    // **A wounded veteran stays out of a fight it is likely to lose** (batch
+    // WC3, `docs/flags.md` (rrrrrr) part 3). Asked after the walls clause and
+    // before every appetite, so neither the seat's temperament nor the siege
+    // appetite can spend a ranked piece. A decisive blow is never held, for the
+    // reason every stand-down in this file gives. See `woundedVeteranHolds`.
+    const caution = decisive ? null : woundedVeteranHolds(player, unit, preview);
+    if (caution !== null) {
+      terms.push({ label: caution, value: ai.military.rangedDeferral, op: 'sub' });
+      exchange.score = foldOf(terms);
+      tried.push(exchange);
+      continue;
+    }
     if (defer !== null) {
       tried.push(exchange);
       continue;
@@ -7143,6 +7158,43 @@ function favourableBlow(
     tried.push(exchange);
   }
   return null;
+}
+
+/**
+ * **Why a wounded ranked piece should not take this blow**, as the line the
+ * candidate prints, or `null` when the blow is not one it should refuse (batch
+ * WC3, `docs/flags.md` (rrrrrr) part 3: *"bots keep damaged veterans out of
+ * fights they are likely to lose"*).
+ *
+ * A light touch, and every clause says how light:
+ *
+ *   · **ranked**: the piece holds a rank (`rankOf`). An unranked piece is
+ *     weighed exactly as before this batch;
+ *   · **wounded**: it is below `military.veteranCautionBelow` of its own
+ *     maximum health, read off the forecast, which already uses the piece's
+ *     own maximum. Nought turns the clause off;
+ *   · **likely to lose**: the forecast's worst roll of the counter-blow would
+ *     kill it, or the blow deals no more than it takes at the midpoint. That
+ *     is the plain "deal more than you take" rule with no appetite, so a
+ *     warmonger's temperament and the siege appetite cannot loosen it.
+ *
+ * The caller never asks it of a decisive blow, so a wounded veteran still
+ * finishes a piece it can kill. Nothing here moves a piece away from danger;
+ * the rest and withdraw arms do that for every hurt piece alike.
+ */
+function woundedVeteranHolds(player: Player, unit: Unit, preview: CombatForecast): string | null {
+  const rank = rankOf(unit);
+  if (rank === null) return null;
+  if (preview.attackerMaxHp <= 0) return null;
+  const below = aiFor(player).military.veteranCautionBelow;
+  if (preview.attackerHp / preview.attackerMaxHp >= below) return null;
+  const couldDie = preview.damageToAttackerMax >= preview.attackerHp;
+  const losing = preview.damageToDefender <= preview.damageToAttacker;
+  if (!couldDie && !losing) return null;
+  const who = `a wounded ${rankName(rank)} on ${preview.attackerHp} of ${preview.attackerMaxHp} hit points`;
+  return couldDie
+    ? `${who} could die to the counter-blow — this seat keeps its veterans out of a fight they could lose`
+    : `${who} would deal ${preview.damageToDefender} for ${preview.damageToAttacker} — this seat keeps its veterans out of a fight they are losing`;
 }
 
 /**

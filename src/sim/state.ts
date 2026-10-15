@@ -1141,8 +1141,25 @@ import {
  * its towns would grow on turns this build holds them back, and the bots would
  * weigh peace differently. The branch migrates nothing, for the reason given
  * under v119.
+ *
+ * v127 (branch `decks`; batch WC3, `docs/flags.md` (rrrrrr) part 3): **units
+ * earn ranks in combat.** `Unit.experience` is the one new field, absent until
+ * a unit earns its first experience. A unit gains `rules.combat.ranks.survive`
+ * for each fight it lives through and `kill` in place of that for a fight in
+ * which it destroyed the unit it fought, attacking or defending. It is a
+ * Veteran from 4 experience and Elite from 10, and the rank is one flat
+ * strength line on the combat ledger (+3 and +6). Fights with the barbarians
+ * can take a unit to Veteran and no further, and barbarian units earn nothing.
+ * The strength line a card's stamp adds is now labelled "Training", because
+ * "Veteran" names the rank.
+ *
+ * **A v126 save is refused and does not replay.** Once any unit reaches
+ * Veteran, a v126 log's copy of it fights weaker than this build makes it, so
+ * its fights end differently and a later command can name a unit that is no
+ * longer where the log expects it. The branch migrates nothing, for the reason
+ * given under v119.
  */
-export const SCHEMA_VERSION = 126;
+export const SCHEMA_VERSION = 127;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2696,6 +2713,28 @@ export interface Unit {
    * `Unit.trade`'s case exactly.
    */
   autoExplore?: true;
+  /**
+   * **The experience this unit has earned in combat** (batch WC3,
+   * `docs/flags.md` (rrrrrr) part 3), or the key is absent until it earns any.
+   *
+   * A unit's rank is read from this number every time it is needed
+   * (`rankOf`, `src/sim/ranks.ts`) and is never stored, the way a barbarian's
+   * role is derived each turn. Each rank adds one flat strength line on the
+   * combat ledger and does nothing else.
+   *
+   * Written only by `awardExperience` (`ranks.ts`), which `applyCombat` calls
+   * once for each side of a fight that lives through it. Absent until the first
+   * award, so a unit that has never fought serialises exactly as it did before
+   * the field existed.
+   *
+   * It stays with the piece: an automatic upgrade changes the unit's type in
+   * place (`applyUpgrade`, `tech.ts`), and a change of owner (`captureUnit`)
+   * changes only the owner, so a barbarian that joins under Blood Brothers keeps
+   * whatever it had. The renderer hashes the rank, not this number, into the
+   * piece fingerprint (`signUnits`), because only a change of rank changes what
+   * is drawn.
+   */
+  experience?: number;
 }
 
 /**

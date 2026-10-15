@@ -119,7 +119,29 @@ before the next starts.
    - Stored as losses stamped with their turn and read through the window:
      compared, never counted down, the way Triumphs are recorded.
    - **Bots** weigh weariness when offering and answering peace.
-3. **Ranks (batch WC3).**
+3. **Ranks (batch WC3) — BUILT 2026-10-14, schema 127.** As built:
+   `docs/war-diplomacy.md` §6b and `src/sim/ranks.ts`.
+   - **Choices made in the build, for the user to check in play:**
+     - **Kills:** a kill earns 2 experience in all, not 1 for surviving plus
+       2. Veteran takes two kills and Elite five.
+     - **What counts as a fight:** a blow at a soldier, or at a town whose walls
+       still stand. Taking a civilian, plundering a caravan or walking into an
+       empty town earns nothing, and towns never earn.
+     - **Barbarians** take a unit to Veteran and no further. Barbarian units
+       earn no experience themselves.
+     - **The forecast's old card line is renamed.** The strength stamp from
+       cards (Professional Soldiers, the Terracotta Army) used to print
+       "Veteran"; it now prints "Training", so "Veteran" means only the rank.
+       The Terracotta Army's note is reworded to match.
+     - **Where the rank shows:** one chevron (Veteran) or two (Elite) on the
+       unit's badge, the same chip on a town banner's garrison row, and the
+       rank and experience in the unit panel.
+     - **Bots** keep a ranked unit below three quarters health out of a blow
+       it could die to, or one that deals no more than it takes.
+   - **Bot games:** both digest games changed, because units now earn ranks
+     in them.
+   - **Not built:** a message when a unit ranks up, cards that read ranks, and
+     ranks in the bots' strength estimate when deciding on war.
    - **Ranks give more combat strength and nothing else for now** (the user):
      no choices, no extra health, no movement.
    - *Defaults:*

@@ -243,6 +243,55 @@ export interface CombatRules {
    * them, which is a different game and a one-line change.
    */
   captureCivilians: boolean;
+  /**
+   * Unit ranks (batch WC3, `docs/flags.md` (rrrrrr) part 3). Every figure the
+   * rule is made of; the rule itself is `src/sim/ranks.ts`.
+   */
+  ranks: RankRules;
+}
+
+/**
+ * The ranks a unit can hold, lowest first. The ids are fixed in code because
+ * the art draws one mark per rank (`src/art/rankMarks.ts`); the figures for
+ * each are in `RankRules.ladder`.
+ */
+export type RankId = 'veteran' | 'elite';
+
+/**
+ * The numbers of unit ranks: how much experience a fight is worth, where each
+ * rank starts, what each is worth in a fight, and how far fights with the
+ * barbarians can take a unit.
+ */
+export interface RankRules {
+  /**
+   * Experience for surviving a fight, attacking or defending. A ranged attacker
+   * that takes no counter-blow has still survived a fight.
+   */
+  survive: number;
+  /**
+   * Experience for a fight in which the unit destroyed the unit it fought. It
+   * is paid in place of `survive`, not on top of it.
+   */
+  kill: number;
+  /**
+   * The highest rank fights with the barbarians can take a unit to. They can
+   * raise its experience up to this rank's threshold and no further, so a camp
+   * that keeps respawning cannot be farmed. Fights with empires have no cap.
+   */
+  barbarianCap: RankId;
+  /** Each rank's threshold and strength. */
+  ladder: Record<RankId, RankRung>;
+}
+
+/** One rank's figures. */
+export interface RankRung {
+  /** The experience at which a unit holds this rank. */
+  experience: number;
+  /**
+   * The flat combat strength the rank adds, in total and not on top of the rank
+   * below it: an Elite unit gets this rank's figure and nothing from Veteran.
+   */
+  strength: number;
 }
 
 /**

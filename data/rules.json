@@ -39,7 +39,16 @@
     "cityHealPerTurn": 20,
     "cityCaptureHpFraction": 0.25,
     "siegeDamagePerTurn": 5,
-    "captureCivilians": true
+    "captureCivilians": true,
+    "ranks": {
+      "survive": 1,
+      "kill": 2,
+      "barbarianCap": "veteran",
+      "ladder": {
+        "veteran": { "experience": 4, "strength": 3 },
+        "elite": { "experience": 10, "strength": 6 }
+      }
+    }
   },
   "naval": {
     "hitAndRunCost": 1,

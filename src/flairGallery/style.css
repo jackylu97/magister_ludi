@@ -525,6 +525,17 @@ body {
   background: var(--table);
 }
 
+/* The rank boss strip (batch WC3), framed as the route strip is and for its
+   reason: the badges are drawn at board size, so the canvas may scroll on a
+   narrow window but must never be resampled. */
+.rank-canvas {
+  display: block;
+  max-width: 100%;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+}
+
 /* --- the wild's red ------------------------------------------------------- */
 
 /* Two figures across one stage, so the aspect is wide and short: the pieces are

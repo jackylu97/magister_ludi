@@ -4221,6 +4221,37 @@ kbd {
   filter: brightness(1.15);
 }
 
+/* A ranked piece's chevrons (batch WC3) at the roundel's upper-left corner,
+   where the board stands the same mark on the badge this row has taken over: a
+   small parchment chip, the mark masked in ink on it. The rank is written by
+   `paintGarrisonRow`; nothing here knows which rank it is. */
+.city-banner-piece-rank {
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--parchment);
+  box-shadow: 0 0 0 1px rgba(29, 26, 32, 0.55);
+  pointer-events: none;
+}
+
+.city-banner-piece-rank::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  background-color: var(--ink);
+  -webkit-mask-image: var(--rank-mark);
+  mask-image: var(--rank-mark);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
 /* The wound, under the roundel of a hurt piece and under nobody else's — the
    board's own rule (`hpBarFill`). The channel is the banner's channel ink; the
    fill's colour and its floor are the board's, written per piece by
@@ -5969,6 +6000,26 @@ body:has(.city-mode:not([hidden])) #hud-context {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--unit-color, var(--ink-soft));
+}
+
+/* A ranked piece's chevrons before "Veteran · Rome" (batch WC3): the same
+   drawing as the corner boss on the board's badge, masked in the line's own
+   colour. */
+.unit-rank-mark {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 4px;
+  vertical-align: -1px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--rank-mark);
+  mask-image: var(--rank-mark);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
 
 /* Two figures, side by side, in the city panel's yield-chip shape. */

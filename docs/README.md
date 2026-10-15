@@ -221,6 +221,24 @@ Reference: **`docs/units.md`** (the roster; generated) and
   `settleDiplomacy` phase prunes losses that have left the window. Every figure
   is `rules.war.weariness`. The foreign courts screen shows the line on that
   empire's table, and the Compendium has a concept entry.
+- **Units earn ranks in combat** (batch WC3, `src/sim/ranks.ts`; reference
+  `docs/war-diplomacy.md` §6b). A blow is a fight when it is struck at a unit
+  that is not a civilian or at a town whose walls still stand; each side that
+  lives through one earns `survive` (1), or `kill` (2) in its place for
+  destroying the unit it fought, attacking or defending, and a ranged attacker
+  with no counter-blow still survived. `Unit.experience` (presence is the
+  state) has one writer, `awardExperience`, paid only at the end of
+  `applyCombat`. The rank is derived (`rankOf`), never stored: Veteran from 4,
+  Elite from 10, each **one flat strength line** on the ledger on both sides
+  ("Veteran +3", "Elite +6", the Elite figure a total) and nothing else.
+  Barbarian fights raise experience up to Veteran and no further, barbarian
+  units earn none, and a town earns none. Experience stays through an automatic
+  upgrade and a change of owner. A card's birth stamp of strength now prints as
+  "Training", so "Veteran" means only the rank. Every figure is
+  `rules.combat.ranks`. The badge carries a boss at its upper-left corner (one
+  chevron or two, `src/art/rankMarks.ts`, the rank a member of `signUnits`), the
+  garrison row a chip, the unit panel the rank and an Experience figure, the
+  forecast the line, and the Compendium a concept entry.
 - **The waterline**: a land piece that closes may not strike a water hex; an
   embarked piece may not strike a ship; land bows and land siege fight a hull at
   their own percentages; a hull boarding a column takes a share of the counter.
@@ -471,7 +489,10 @@ happiness it costs, and `war.unhappyWearinessWeight` more for the part below
 nought), so a weary seat sues sooner, signs sooner and pays more to stop. The
 enemy's weariness never counts, so a winner is never harder to make peace with,
 and the warscore itself (which also decides whether a seat campaigns) is
-unchanged.
+unchanged. A **wounded veteran** (batch WC3: a ranked piece below
+`military.veteranCautionBelow` of its health) refuses a blow that is not
+decisive when the counter could kill it or the blow deals no more than it
+takes, whatever the seat's appetite or the siege appetite says.
 
 ## The surfaces
 

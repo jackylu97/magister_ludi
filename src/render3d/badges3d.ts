@@ -114,6 +114,7 @@ import {
   RESOURCE_MARK_STROKE,
   resourceMark,
 } from '../art/resourceMarks';
+import { RANK_MARK_IDS, rankMark } from '../art/rankMarks';
 import { siteMark } from '../art/siteMarks';
 import { SURVEY_MARK_IDS, type SurveyMarkId, surveyMark } from '../art/surveyMarks';
 import { SETTLE_MARK_IDS, type SettleMarkId, settleMark } from '../art/settleMarks';
@@ -126,6 +127,7 @@ import {
 import { DISCOVERY_KINDS, type DiscoveryKind } from '../sim/discoveryData';
 import { BELIEF_AXES, type BeliefAxis } from '../sim/religionData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
+import type { RankId } from '../sim/rulesData';
 import type { ModelClass } from '../sim/unitData';
 
 import { type MarkerPaperStyle, VIEW3D, mixColor } from './lookData';
@@ -1169,6 +1171,18 @@ export const CITY_MARK_CELLS: readonly CityMarkId[] = CITY_MARK_IDS;
  */
 export const SETTLE_MARK_CELLS: readonly SettleMarkId[] = SETTLE_MARK_IDS;
 
+/**
+ * The **rank** marks: one cell per rank a unit can hold (`src/art/rankMarks.ts`,
+ * batch WC3) — one chevron for a Veteran, two for an Elite.
+ *
+ * Aliased from the art registry for `SITE_MARK_CELLS`' reason exactly. Printed
+ * on **parchment**, like the worker's numerals and for their reason: the mark
+ * is a small boss standing at the corner of a unit's badge
+ * (`UnitLayer.addRankBadge`, `pieces.ts`), and its own disc of paper is what
+ * keeps it legible over a rim in any seat's colour and over any ground behind it.
+ */
+export const RANK_MARK_CELLS: readonly RankId[] = RANK_MARK_IDS;
+
 /** A cell of the tile atlas: which set it belongs to, and which member. */
 export type TileIconCell =
   | { set: 'resource'; id: ResourceId }
@@ -1181,7 +1195,8 @@ export type TileIconCell =
   | { set: 'axis'; id: BeliefAxis }
   | { set: 'survey'; id: SurveyMarkId }
   | { set: 'cityMark'; id: CityMarkId }
-  | { set: 'settle'; id: SettleMarkId };
+  | { set: 'settle'; id: SettleMarkId }
+  | { set: 'rank'; id: RankId };
 
 /**
  * Every cell of the tile atlas, in layout order: the resources, then the six
@@ -1208,6 +1223,8 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
   ...MEDALLION_CELLS.map((id) => ({ set: 'medallion', id }) as TileIconCell),
   ...CITY_MARK_CELLS.map((id) => ({ set: 'cityMark', id }) as TileIconCell),
   ...SETTLE_MARK_CELLS.map((id) => ({ set: 'settle', id }) as TileIconCell),
+  // Batch WC3's rank marks, on the end for this list's one rule.
+  ...RANK_MARK_CELLS.map((id) => ({ set: 'rank', id }) as TileIconCell),
 ];
 
 /**
@@ -2109,6 +2126,41 @@ function drawSettleCell(
 }
 
 /**
+ * Paints one rank mark: a parchment disc with the chevrons on it (batch WC3).
+ *
+ * `drawCityMarkCell` again, at the charges' size and in the same ink, because a
+ * rank boss is the same kind of thing as a charge on a canton: a small drawn
+ * mark on its own field of paper, standing in front of something in a seat's
+ * colour. The mark carries its own heavier stroke weights (`rankMarks.ts`), so
+ * the set's weight passed here is only the fallback.
+ */
+function drawRankCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  id: RankId,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+
+  context.save();
+  context.fillStyle = cssHex(ICONS.paperColor);
+  context.beginPath();
+  context.arc(center.x, center.y, paperRadiusFraction() * cell, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  paintMarkPaths(
+    context,
+    rankMark(id),
+    center,
+    Math.max(1, ICONS.chargeScale * cell),
+    ICONS.inkColor,
+  );
+}
+
+/**
  * Paints one numeral: a parchment disc with a digit on it.
  *
  * Text rather than artwork, and drawn in the platform's own mono-ish stack. See
@@ -2560,10 +2612,15 @@ export class TileIcons {
         drawSettleCell(context, index, layout, cell.id);
         return;
       }
-      // Every `TileIconCell` variant is one of the ten branches above; this is
-      // the exhaustiveness check, not a reachable draw path — an eleventh set
-      // added to the union without a painter here fails typecheck instead of
-      // drawing a blank cell.
+      // A unit's rank, on its own disc of parchment; see `RANK_MARK_CELLS`.
+      if (cell.set === 'rank') {
+        drawRankCell(context, index, layout, cell.id);
+        return;
+      }
+      // Every `TileIconCell` variant is one of the branches above; this is the
+      // exhaustiveness check, not a reachable draw path — a new set added to
+      // the union without a painter here fails typecheck instead of drawing a
+      // blank cell.
       const exhaustive: never = cell;
       throw new Error(`icons: unhandled atlas cell ${JSON.stringify(exhaustive)}`);
     });

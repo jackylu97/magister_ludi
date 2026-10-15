@@ -42,6 +42,12 @@
  * where a unit stands, so nothing else would ever have told this layer to
  * redraw the badge that names it.
  *
+ * A ranked piece's badge carries a boss at the opposite corner: one chevron for
+ * a Veteran, two for an Elite (`addRankBadge`, batch WC3). It is built the same
+ * way, from the tile atlas's rank cells, and its rank joined `signUnits` for the
+ * same reason: a piece promoted by a fight it won without moving would
+ * otherwise keep its old badge.
+ *
  * The one piece that wears no badge
  * ---------------------------------
  * A unit standing **in a town whose banner this seat can see** has neither
@@ -151,6 +157,9 @@ import { Group, type Material, Matrix4, Mesh, Quaternion, type Texture, Vector3 
 
 import { GREAT_PERSON_IDS, type GreatPersonId } from '../sim/greatPeopleData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
+// A piece's rank, read from its experience (batch WC3). The corner boss and
+// the fingerprint both ask it; neither reads the raw experience.
+import { RANK_IDS, type RankId, rankOf } from '../sim/ranks';
 import { type GameMap, tileIndex } from '../sim/map';
 import { type GameState, type Unit, isBarbarian } from '../sim/state';
 import type { TerrainId } from '../sim/terrainData';
@@ -392,6 +401,13 @@ export function buildBadge(
   rimColor: number,
   faceCamera: Quaternion,
   visualHeight: number,
+  /**
+   * The piece's rank and the tile atlas to print its boss from, or nothing for
+   * an unranked piece (batch WC3). Passed by the walking copy so a Veteran keeps
+   * its chevron for the length of a march; see `UnitLayer.addRankBadge` for the
+   * resting one.
+   */
+  rank: { id: RankId; icons: TileIcons } | null = null,
 ): Group {
   const group = new Group();
   const forward = new Vector3(0, 0, 1).applyQuaternion(faceCamera);
@@ -420,7 +436,42 @@ export function buildBadge(
   rim.renderOrder = RENDER_ORDER.badge;
   group.add(rim);
 
+  if (rank !== null) {
+    const boss = new Mesh(geometry.rankMarkers[rank.id], rank.icons.standingMaterial);
+    boss.position.copy(rankBossPosition(new Vector3(0, 0, 0), visualHeight, faceCamera));
+    boss.quaternion.copy(faceCamera);
+    boss.scale.set(BADGE.rankDiameter, BADGE.rankDiameter, 1);
+    boss.frustumCulled = false;
+    boss.castShadow = false;
+    boss.receiveShadow = false;
+    boss.renderOrder = RENDER_ORDER.badge;
+    group.add(boss);
+  }
+
   return group;
+}
+
+/**
+ * **Where a ranked piece's boss stands**, given where the piece's feet are
+ * (batch WC3): at the badge's centre height, moved toward the upper-left corner
+ * by `badges.rankOffsetX` and `rankOffsetY` of the badge's diameter along the
+ * camera's own right and up, and `rankNudge` toward the eye so it never
+ * z-fights the rim it stands in front of.
+ *
+ * One function for the resting boss (`UnitLayer.addRankBadge`) and the walking
+ * copy's (`buildBadge`), so a piece's chevron cannot jump when it starts to
+ * move. Pure arithmetic on the data, which is what lets a test hold it still.
+ */
+export function rankBossPosition(feet: Vector3, visualHeight: number, faceCamera: Quaternion): Vector3 {
+  const right = new Vector3(1, 0, 0).applyQuaternion(faceCamera);
+  const up = new Vector3(0, 1, 0).applyQuaternion(faceCamera);
+  const forward = new Vector3(0, 0, 1).applyQuaternion(faceCamera);
+  return feet
+    .clone()
+    .setY(feet.y + badgeCenterY(visualHeight))
+    .addScaledVector(right, badgeDiameter() * BADGE.rankOffsetX)
+    .addScaledVector(up, badgeDiameter() * BADGE.rankOffsetY)
+    .addScaledVector(forward, BADGE.rankNudge);
 }
 
 /**
@@ -1226,6 +1277,22 @@ export class UnitLayer {
             slots,
           );
         }
+        // The rank boss, for a piece that holds a rank. Under the same gate as
+        // the badge it stands on, for the charge boss's reason: a mark at the
+        // corner of a disc that is not drawn would be floating in the air.
+        const rank = rankOf(unit);
+        if (icons && rank !== null) {
+          this.addRankBadge(
+            rank,
+            placement,
+            visualHeight,
+            geometry,
+            collector,
+            faceCamera,
+            icons,
+            slots,
+          );
+        }
       }
       if (!held) {
         this.addHpBar(
@@ -1420,6 +1487,47 @@ export class UnitLayer {
         geometry.numeralMarkers[digit]!,
         [],
         new Matrix4().compose(position, faceCamera, size),
+        { material: icons.standingMaterial, order: RENDER_ORDER.badge },
+      ),
+    );
+  }
+
+  /**
+   * A ranked piece's boss: one chevron for a Veteran, two for an Elite, on a
+   * small parchment disc at the badge's upper-left corner (batch WC3,
+   * `docs/flags.md` (rrrrrr) part 3: *"a rank badge on the piece"*).
+   *
+   * `addChargeBadge` at the opposite corner, built the same way and for the same
+   * reasons: from the tile atlas's own cells (`geometry.rankMarkers`), on its
+   * depth-tested material so a hill hides it exactly as it hides the badge, and
+   * pushed into `slots` so a walk takes it off the board with the piece. Only a
+   * fighting piece earns a rank and only a builder carries a charge count, so
+   * the two bosses never stand on one badge; they take different corners anyway,
+   * so each corner always means the same thing.
+   *
+   * Where it stands and how big it is are `badges.rankOffsetX`, `rankOffsetY`,
+   * `rankDiameter` and `rankNudge` in `data/view3d.json`, which the flair
+   * cabinet's rank stall dials.
+   */
+  private addRankBadge(
+    rank: RankId,
+    placement: PiecePlacement,
+    visualHeight: number,
+    geometry: BoardGeometry,
+    collector: InstanceCollector,
+    faceCamera: Quaternion,
+    icons: TileIcons,
+    slots: InstanceHandle[],
+  ): void {
+    slots.push(
+      collector.add(
+        geometry.rankMarkers[rank],
+        [],
+        new Matrix4().compose(
+          rankBossPosition(placement.position, visualHeight, faceCamera),
+          faceCamera,
+          new Vector3(BADGE.rankDiameter, BADGE.rankDiameter, 1),
+        ),
         { material: icons.standingMaterial, order: RENDER_ORDER.badge },
       ),
     );
@@ -1676,6 +1784,11 @@ export class UnitLayer {
  * pillaged. Nothing about the piece says so, which is exactly why it has to be
  * hashed. It is remembered on the economy clock (`unitHealthBonus`), so asking
  * it once per piece per repaint is a map lookup.
+ *
+ * **The rank is the newest member** (batch WC3, `rankIndex`). A ranked piece
+ * wears a boss at its badge's corner (`addRankBadge`), and a defender promoted
+ * by a fight it won without moving would otherwise go on wearing the old one.
+ * The rank and not the experience, for the reason `rankIndex` gives.
  */
 export function signUnits(state: GameState): number {
   let h = Math.imul(2166136261 ^ state.units.length, 16777619) ^ signWars(state);
@@ -1691,6 +1804,7 @@ export function signUnits(state: GameState): number {
     h = Math.imul(h ^ personIndex(unit), 16777619);
     h = Math.imul(h ^ routeBit(unit), 16777619);
     h = Math.imul(h ^ exploreBit(unit), 16777619);
+    h = Math.imul(h ^ rankIndex(unit), 16777619);
   }
   return h >>> 0;
 }
@@ -1734,4 +1848,19 @@ function routeBit(unit: Unit): number {
  */
 function exploreBit(unit: Unit): number {
   return unit.autoExplore === undefined ? 0 : 1;
+}
+
+/**
+ * The piece's rank as a small integer (batch WC3): `-1` for no rank, then the
+ * rank's place in `RANK_IDS`. A function for `routeBit`'s reason, so the
+ * fingerprint's source stays a list of properties.
+ *
+ * The **rank**, never the raw experience. Experience moves after every fight a
+ * piece lives through, and most of those change nothing that is drawn; hashing
+ * it would rebuild the whole layer for a picture that did not change. The rank
+ * changes the corner boss, so it is the fact that is hashed.
+ */
+function rankIndex(unit: Unit): number {
+  const rank = rankOf(unit);
+  return rank === null ? -1 : RANK_IDS.indexOf(rank);
 }

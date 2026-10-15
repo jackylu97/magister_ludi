@@ -1166,9 +1166,10 @@ export function unitHp(unit: WoundedUnit, empireHp = 0): number {
  * reading of `UnitStamp.strength`.
  *
  * It is deliberately **not** folded into `UnitDef.combatStrength` anywhere: hard
- * rule 5 says a strength is the fold of a labelled list, so the veteran's point
- * joins `planCombat`'s breakdown as a line a player can read ("Veteran +1")
- * rather than as a bigger number beside the roster's name.
+ * rule 5 says a strength is the fold of a labelled list, so the stamped point
+ * joins `planCombat`'s breakdown as a line a player can read ("Training +1")
+ * rather than as a bigger number beside the roster's name. The label was
+ * "Veteran" until batch WC3 gave that word to the first rank (`ranks.ts`).
  */
 export function unitStampStrength(unit: StampedUnit): number {
   return unit.stamp?.strength ?? 0;

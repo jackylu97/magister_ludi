@@ -65,7 +65,8 @@
  * law, a citadel under the defender's feet, and — since 2026-08-28 — a **great
  * general standing within a couple of hexes**, which is worth the same points to
  * a charge as to a shield wall and names the general on the card
- * (`generalAuraLines`).
+ * (`generalAuraLines`). Since batch WC3 a unit's **rank** is one more
+ * (`rankStrengthLines`, `ranks.ts`).
  *
  * The two percentages that survive are on the *attacker's* side and are both
  * facts about that army rather than about the ground: the river penalty, and
@@ -262,10 +263,20 @@
  * starves nobody. The gate is one clause in `siegeField`, where the besieger's
  * seat is already in hand.
  *
+ * Ranks
+ * -----
+ * Since batch WC3 (`docs/flags.md` (rrrrrr) part 3) a unit earns experience for
+ * every fight it lives through, and at fixed amounts of it holds a rank: Veteran,
+ * then Elite. A rank is one flat strength line on this ledger, on whichever side
+ * the unit fights, and nothing else. `ranks.ts` is the whole rule; this file
+ * folds the line in `planCombat` and pays the experience at the end of
+ * `applyCombat`, step 5b.
+ *
  * Deliberately deferred (v1 has none of these, on purpose)
  * -------------------------------------------------------
- *   · **Experience and promotions.** No XP, no promotion tree, no veterancy —
- *     every warrior fights like every other warrior.
+ *   · **Promotion choices.** A rank is a fixed strength line, not a pick from a
+ *     tree: no extra health, no movement, no bonus against one kind of unit
+ *     (the user's ruling for WC3).
  *   · **City ranged strikes.** A city defends, is defended, and since the
  *     2026-08-28 ruling swings back at whoever comes to the gate — but it never
  *     *reaches*. There is no bombardment from the walls at a hex the attacker is
@@ -383,6 +394,9 @@ import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
 import { bumpEconomy } from './slate';
 import { startUnrest } from './unrest';
 import { recordWarLoss } from './weariness';
+// A leaf over the rule book and `state.ts`, like `weariness.ts`, so this edge
+// cannot make a cycle either.
+import { awardExperience, rankStrengthLines } from './ranks';
 
 const COMBAT = RULES.combat;
 
@@ -1025,10 +1039,10 @@ function clampCityHp(city: City): void {
  * One flat strength bonus standing on one side of a fight, with the reason.
  *
  * Rule 5 applied to violence, and the shape the *next* such bonus joins rather
- * than a barbarian special case: a promotion or a great general says "so many
- * points, to this side, because of that" and belongs in this list. (War
- * weariness does not: since batch WC2 it costs happiness and nothing in a
- * fight, see `weariness.ts`.) There is exactly one entry in it today.
+ * than a barbarian special case: a rank or a great general says "so many
+ * points, to this side, because of that" and belongs in this list (a rank since
+ * batch WC3, `ranks.ts`). War weariness does not: since batch WC2 it costs
+ * happiness and nothing in a fight, see `weariness.ts`.
  *
  * Flat points rather than a fraction, and added **after** the multipliers, which
  * is a rules decision and not a rounding one. Terrain and fortification multiply
@@ -1752,8 +1766,9 @@ function planCombat(
     }
   }
   /**
-   * **The veteran's own point**, both sides — Drums of War, and the second
-   * reading of a piece's stamp (`unitStampStrength`, `unitData.ts`).
+   * **The strength a piece was trained with**, both sides — Professional
+   * Soldiers, the Terracotta Army, and the second reading of a piece's stamp
+   * (`unitStampStrength`, `unitData.ts`).
    *
    * A labelled line and never a bigger number beside the roster's name, which is
    * hard rule 5 at the scale of one soldier: a player looking at the forecast
@@ -1762,13 +1777,33 @@ function planCombat(
    * holds it today — the law that stamped it may have been unslotted years ago —
    * so it is read off the unit here rather than through `cardCombatLines`, which
    * asks what the cards say now.
+   *
+   * Labelled "Training" since batch WC3. It used to say "Veteran", which is now
+   * the name of the first rank, and a forecast printing "Veteran" twice for two
+   * different reasons would leave the player unable to tell them apart.
    */
-  const veteran = (unit: Unit, side: 'attacker' | 'defender'): void => {
+  const trained = (unit: Unit, side: 'attacker' | 'defender'): void => {
     const amount = unitStampStrength(unit);
-    if (amount !== 0) bonuses.push({ source: 'Veteran', side, amount });
+    if (amount !== 0) bonuses.push({ source: 'Training', side, amount });
   };
-  veteran(attacker, 'attacker');
-  if (target.unit) veteran(target.unit, 'defender');
+  trained(attacker, 'attacker');
+  if (target.unit) trained(target.unit, 'defender');
+  /**
+   * **The piece's rank**, both sides (batch WC3, `ranks.ts`): one flat line,
+   * "Veteran +3" or "Elite +6", from the experience the piece has earned.
+   *
+   * Beside the training line, because both are facts about the piece itself
+   * that travel with it whoever holds it. A town has no rank: at the walls beat
+   * the town defends with what it derives, and the garrison's rank counts only
+   * once the garrison is the thing being struck.
+   */
+  const ranked = (unit: Unit, side: 'attacker' | 'defender'): void => {
+    for (const line of rankStrengthLines(unit)) {
+      bonuses.push({ source: line.source, side, amount: line.amount });
+    }
+  };
+  ranked(attacker, 'attacker');
+  if (target.unit) ranked(target.unit, 'defender');
   /**
    * The empire's law, both sides, generalised from the wild's tax above.
    *
@@ -2452,6 +2487,9 @@ export type CombatResult = { ok: true; outcome: CombatOutcome } | { ok: false; e
  *   4. the attacker's turn ends and its trench is abandoned.
  *   5. the advance, last, because it is the only step that needs the tile to be
  *      empty already.
+ *   5b. experience, for each side that lived through a fight (batch WC3). After
+ *      every write above, because what a side earns depends on who is still
+ *      standing.
  */
 export function applyCombat(state: GameState, attackerId: number, cell: Cell): CombatResult {
   const planned = planCombat(state, attackerId, cell);
@@ -2879,6 +2917,44 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     forecast.defenderStrength > forecast.attackerStrength
   ) {
     awardOccasion(state, attacker.ownerId, 'battleWonAgainstStronger');
+  }
+
+  /**
+   * **5b — experience** (batch WC3, `docs/flags.md` (rrrrrr) part 3; the rule
+   * is `ranks.ts`). Paid once the fight is fully settled, because what each side
+   * earns depends on who is still standing.
+   *
+   * A blow is a **fight** when it was struck at something that fights back or
+   * could have: a unit that is not a civilian, or a town whose walls still stand.
+   * Taking a civilian, plundering a caravan and walking into a beaten town with
+   * nobody in the gate are not fights, so they pay nothing. A ranged blow is a
+   * fight like any other: the archer that took no counter-blow still survived it.
+   *
+   * Each side that lives through a fight earns `survive`, or `kill` in its place
+   * when it destroyed the unit it fought. "Destroyed" is the defender's bar
+   * reaching nothing, so a barbarian won over under Blood Brothers counts as a
+   * kill for the piece that beat it, even though it joins rather than dies.
+   * A town never earns experience, and neither does the garrison standing behind
+   * walls that took the blow in its place.
+   */
+  const fought =
+    !forecast.capturesUnit &&
+    !forecast.plundersUnit &&
+    (forecast.cityPhase === 'walls' ||
+      (target.unit !== null && isCombatant(unitDef(target.unit.type))));
+  if (fought && defenderOwnerBefore !== null) {
+    const defenderFell = target.unit !== null && defenderDied;
+    if (outcome.attackerSurvived) {
+      awardExperience(state, attacker, defenderFell ? 'kill' : 'survived', defenderOwnerBefore);
+    }
+    if (target.unit !== null && !defenderFell) {
+      awardExperience(
+        state,
+        target.unit,
+        outcome.attackerSurvived ? 'survived' : 'kill',
+        attacker.ownerId,
+      );
+    }
   }
 
   updateElimination(state);

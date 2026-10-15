@@ -294,6 +294,10 @@ import { unitHealthBonus } from '../sim/resourceEffects';
 import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
 import { cityDisplayName } from './cityDisplay';
 import { cityMarkDataUri } from '../art/cityMarks';
+// A piece's rank and its chevrons (batch WC3), for the corner chip on a
+// garrison roundel.
+import { type RankId, rankName, rankOf } from '../sim/ranks';
+import { rankMarkDataUri } from '../art/rankMarks';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import { seatInks } from '../art/seatInks';
 import { type BadgeClass, cssHex } from '../render3d/badges3d';
@@ -702,6 +706,12 @@ export interface GarrisonPiece {
   mine: boolean;
   /** What it is, in plain words, for the tooltip and the screen reader. */
   label: string;
+  /**
+   * Its rank, or `null` for a piece without one (batch WC3). The roundel wears
+   * the rank's chevrons at its corner, as the board's badge does, because a
+   * piece standing in a town has given its badge to this row.
+   */
+  rank: RankId | null;
 }
 
 /** A town's row: what it draws, whether it fans, and what it could not fit. */
@@ -786,6 +796,10 @@ export function garrisonRow(
     // The wild takes the parchment rim the board gives it — its ink is the disc
     // now, and a red ring round a red disc is a ring nobody sees.
     const rim = wild ? VIEW3D.badges.wildRimColor : unitColor(state, unit);
+    const rank = rankOf(unit);
+    // "Veteran Swordsman": the rank in front of the name, as the unit panel's
+    // header line puts it under the name.
+    const named = rank === null ? name : `${rankName(rank)} ${name}`;
     pieces.push({
       unitId: unit.id,
       badge: badgeClassFor(unit.type),
@@ -797,7 +811,8 @@ export function garrisonRow(
       mine: commandable(unit, seat),
       // The figures follow the town's own hover (`healthBar`): the same order,
       // the same words, one hover away from a drawing that is only a glance.
-      label: hurt === null ? name : `${name} · ${unitHp(unit, bonus)}/${unitMaxHp(unit, bonus)} hp`,
+      label: hurt === null ? named : `${named} · ${unitHp(unit, bonus)}/${unitMaxHp(unit, bonus)} hp`,
+      rank,
     });
   }
   return {
@@ -1278,6 +1293,18 @@ export function paintGarrisonRow(
     dressRoundel(disc, piece.badge, piece.wild);
     seat.append(disc);
 
+    // **The rank chip** (batch WC3): the rank's chevrons at the roundel's
+    // upper-left corner, where the board stands the same mark on the badge
+    // this row has taken over. A mask in the banner's ink on a parchment chip,
+    // so it reads over any seat's rim.
+    if (piece.rank !== null) {
+      const chip = document.createElement('span');
+      chip.className = 'city-banner-piece-rank';
+      chip.setAttribute('aria-hidden', 'true');
+      chip.style.setProperty('--rank-mark', `url("${rankMarkDataUri(piece.rank)}")`);
+      seat.append(chip);
+    }
+
     if (piece.hurt !== null) {
       const bar = document.createElement('span');
       bar.className = 'city-banner-piece-bar';
@@ -1325,7 +1352,8 @@ export function paintGarrisonRow(
  * The row's signature: what has to change before its DOM is rewritten.
  *
  * Every term is something the row *draws* — which piece, in what mark, in whose
- * ink, how hurt, and whether it is the one in hand — so a stack that has not
+ * ink, how hurt, whether it is the one in hand, and since batch WC3 what rank
+ * its corner chip shows — so a stack that has not
  * moved costs a string compare, and a blow landing on the second piece rewrites
  * the row it is drawn in. The `+N` is in it because a ninth piece arriving
  * changes the chip and nothing else.
@@ -1337,7 +1365,7 @@ export function garrisonSignature(row: GarrisonRow | null): string {
       (piece) =>
         `${piece.unitId}:${piece.badge}:${piece.ink}:${piece.hurt?.toFixed(3) ?? ''}:${
           piece.selected ? 1 : 0
-        }:${piece.mine ? 1 : 0}`,
+        }:${piece.mine ? 1 : 0}:${piece.rank ?? ''}`,
     )
     .join(',');
   return `${pieces}+${row.more}${row.fanned ? 'f' : ''}`;

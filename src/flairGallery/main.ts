@@ -54,6 +54,7 @@ import {
 } from './marks';
 import { drawCaravan } from './caravan';
 import { drawPieceInks } from './pieceInks';
+import { drawRankStall } from './ranks';
 import { block, checkbox, controls, element, section, select, slider } from './sheet';
 import { requireElement } from '../ui/dom';
 
@@ -304,7 +305,21 @@ const caravanStage = drawCaravan(
   ),
 );
 
-// --- 11. palette and ramp ---------------------------------------------------
+// --- 11. unit ranks --------------------------------------------------------
+
+// Batch WC3 (`docs/flags.md` (rrrrrr) part 3): the rank boss a ranked piece's
+// badge carries at its corner, drawn from the atlases' own cells with knobs on
+// the four numbers the board reads. The garrison row's rank chip is in the
+// flourishes (section 3), on the shipping row.
+const rankStall = drawRankStall(
+  open(
+    'ranks',
+    'Unit Ranks',
+    'The chevrons a ranked piece wears at the corner of its badge: one for a Veteran, two for an Elite. A piece has to fight and live to earn one, so a fresh board never shows them; here they are, at board size.',
+  ),
+);
+
+// --- 12. palette and ramp ---------------------------------------------------
 
 drawPaletteAndRamp(
   open(
@@ -373,6 +388,8 @@ void drawMarginaliaSwatches(chartBlock).then((icons) => {
   shelf.setIcons(icons);
   // The medallions come out of the same atlas and wait for it the same way.
   routeStall.setIcons(icons);
+  // And the rank boss (batch WC3), for the same reason.
+  rankStall.setIcons(icons);
 });
 
 window.addEventListener('resize', () => {

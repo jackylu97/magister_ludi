@@ -53,6 +53,7 @@ import { cityMaxHp } from '../sim/combat';
 import { createGame } from '../sim/game';
 import { createMap, getTileAt } from '../sim/map';
 import { createUnit, newGame } from '../sim/state';
+import { RULES } from '../sim/rulesData';
 import { resetVisibility } from '../sim/visibility';
 import { type BeliefId, BELIEF_IDS, beliefDef } from '../sim/religionData';
 import { type UnitTypeId, unitMaxHp } from '../sim/unitData';
@@ -534,7 +535,7 @@ function garrisonRowStall(into: HTMLElement): void {
   const root = block(
     into,
     'The garrison row',
-    'The pieces standing on a town’s hex, listed above its banner: one roundel each, the board’s own mark in the owner’s own ink, resting on the top edge of the plate â a few pixels of overlap â so it reads as standing *in* the town rather than floating over its label. A hurt piece carries the board’s hit bar under its roundel and a whole one carries none. Past four the roundels fan — they overlap rather than widening a row that would outgrow the plate — and past eight the remainder is a numeral. The piece in hand is ringed exactly as the board rings it.',
+    'The pieces standing on a town’s hex, listed above its banner: one roundel each, the board’s own mark in the owner’s own ink, resting on the top edge of the plate â a few pixels of overlap â so it reads as standing *in* the town rather than floating over its label. A hurt piece carries the board’s hit bar under its roundel and a whole one carries none. Past four the roundels fan — they overlap rather than widening a row that would outgrow the plate — and past eight the remainder is a numeral. The piece in hand is ringed exactly as the board rings it. A ranked piece wears its rank’s chevrons at the roundel’s corner, as its badge on the board does.',
   );
   const grid = stallGrid(root);
   const cell = stall(grid, 'one, three, six and ten');
@@ -585,6 +586,13 @@ function garrisonRowStall(into: HTMLElement): void {
     caption: string,
     wounded: number | null,
     held: number | null,
+    /**
+     * Experience for the pieces at these places in the stack (batch WC3): the
+     * rank chip at the roundel's corner is the shipping row's own, read off the
+     * piece's real experience through `rankOf`, so the page only says how much
+     * each piece has earned.
+     */
+    earned: ReadonlyMap<number, number> = new Map(),
   ): void => {
     const town = foundCityAt(state, 0, getTileAt(state.map, at, 4)!);
     let selected: number | null = null;
@@ -592,6 +600,8 @@ function garrisonRowStall(into: HTMLElement): void {
       const unit = createUnit(state, 0, ROSTER[i % ROSTER.length]!, town.col, town.row);
       if (i === wounded) unit.hp = Math.max(1, Math.round(unitMaxHp(unit) / 3));
       if (i === held) selected = unit.id;
+      const experience = earned.get(i);
+      if (experience !== undefined) unit.experience = experience;
     }
     const slot = element('div', 'banner-slot garrison-slot');
     const banner = element('div', 'city-banner is-mine');
@@ -619,7 +629,19 @@ function garrisonRowStall(into: HTMLElement): void {
   };
 
   row(2, 1, 'one', null, null);
-  row(7, 3, 'three', null, null);
+  // The warrior a Veteran and the archer Elite: the rank chip at each roundel's
+  // corner, at the size the row prints it.
+  row(
+    7,
+    3,
+    'three · a Veteran and an Elite',
+    null,
+    null,
+    new Map([
+      [0, RULES.combat.ranks.ladder.veteran.experience],
+      [2, RULES.combat.ranks.ladder.elite.experience],
+    ]),
+  );
   row(12, 6, 'six · one hurt', 2, null);
   row(18, 10, 'ten · one in hand', 4, 1);
   cell.append(ground);

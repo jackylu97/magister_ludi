@@ -628,6 +628,16 @@ export interface AiConfig {
      */
     withdrawBelowHealth: number;
     /**
+     * **A wounded veteran stays out of a fight it is likely to lose** (batch
+     * WC3, `docs/flags.md` (rrrrrr) part 3): the share of its own hit points
+     * below which a piece holding a rank refuses a blow that is not decisive
+     * when the counter-blow's worst roll could kill it, or when the blow deals
+     * no more than it takes. The seat's appetite and the siege appetite do not
+     * loosen it. An unranked piece is not affected, and nought turns the clause
+     * off. See `woundedVeteranHolds` in `bot.ts`.
+     */
+    veteranCautionBelow: number;
+    /**
      * Hexes a bowman looks for a sighted hostile in before it starts caring
      * where it stands. Small: this is a *skirmish* rule, not a doctrine.
      */

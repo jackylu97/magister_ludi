@@ -678,10 +678,18 @@ describe('determinism', () => {
    * and losses to the wild are never recorded, so no seat gains a
    * `warLosses` key. Checked by setting the version back to 125, which gives
    * the old hashes exactly.
+   *
+   * **Batch WC3 (ranks) moved both hashes, and the length at seed 11 only.**
+   * 126 became 127 at both seeds. At seed 11 one of seat 1's scouts lives
+   * through a fight with a barbarian and earns one experience, so it gains an
+   * `"experience":1` key: fifteen characters, which is the whole growth from
+   * 188968 to 188983. One experience is no rank, so nothing fights differently
+   * and no later turn moves. At seed 2026 nobody fights, so only the version
+   * moved there.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '1e564d2f:188968',
-    2026: '97d42b6b:188539',
+    11: '509126d9:188983',
+    2026: '2df81816:188539',
   };
 
   for (const seed of [11, 2026]) {
