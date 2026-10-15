@@ -59,13 +59,15 @@ import {
   foldCityStages,
   productionModifiers,
   queueCategory,
+  UNREST_SOURCE,
   type BuildingPreviewLine,
   type CityReading,
-  type CityYieldLine,
+  type CityYieldPercent,
 } from '../sim/yields/town';
 import {
   explainPacification,
   foldPacification,
+  inUnrest,
   pacificationTurnsLeft,
   rebelTurnsLeft,
   unrestGarrison,
@@ -126,14 +128,9 @@ import type { Command, CommandResult } from '../sim/commands';
 import type { ConfirmRequest } from './confirmCard';
 import { annexCityError, razeCityError } from '../sim/diplomacy';
 import { type Game, dispatch } from '../sim/game';
-import { meterEffects } from '../sim/meters';
-import {
-  type ModifierStage,
-  type StageSums,
-  MODIFIER_STAGES,
-  STAGE_LABEL,
-} from '../sim/yields/stages';
-import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
+import { happinessOf, meterEffects } from '../sim/meters';
+import { type ModifierStage, applyStages } from '../sim/yields/stages';
+import { CITY_YIELD_KEYS, type CityYieldKey, type ResourceId } from '../sim/resourceData';
 import {
   type SpecialistYieldLine,
   citySpecialistYields,
@@ -145,7 +142,7 @@ import type { SpecialistFamily } from '../sim/greatPeopleData';
 // The town's one reading — see `renderCity`, and `readings.ts` for the model.
 import { readCity } from '../sim/readings';
 import { cityRouteRows, routeSlotsLine as routeSlotsLineOf } from './tradeLines';
-import { requirementNodes, requirementWords } from './resourceCopies';
+import { requirementNodes, requirementWords, strategicHoldings } from './resourceCopies';
 import { setYieldText, yieldMarkNode } from './yieldMark';
 import { roundYield } from '../sim/yieldFormat';
 import {
@@ -186,12 +183,16 @@ import {
   PROJECT_GLYPHS,
   PROJECT_SPOKEN,
   YIELD_GLYPH,
-  effectFigure,
+  YIELD_NAME,
+  copiesFigure,
+  copiesWords,
   figure,
+  netFigure,
   percentFigure,
   signedFigure,
   turnsLabel,
 } from './figures';
+import { prefersReducedMotion } from './motion';
 import type { RiteOption } from './controls';
 import { cityRite, cityRiteTurnsLeft } from '../sim/religion';
 import { type RiteId, riteDef } from '../sim/religionData';
@@ -402,8 +403,8 @@ export function cityFaithHeadline(
  * together: a player who queued Tithes and then Scholarship has said "mint coin
  * when there is nothing else", and a warrior belongs in front of both.
  *
- * Pure and module-level for `stageRows`' reason — this is the panel's placement
- * decision rather than its DOM, and the suite that holds it still has no jsdom.
+ * Pure and module-level because this is the panel's placement decision rather
+ * than its DOM, and the suite that holds it has no jsdom.
  */
 export function insertionIndex(queue: readonly QueueItem[]): number {
   let at = queue.length;
@@ -479,8 +480,8 @@ export function queuedMark(position: number): string {
  * asks (`buildError`, `purchaseError`): a second great-person family or a second
  * faith-bought piece is a JSON row and this list learns about it for free.
  *
- * Pure and module-level for `stageRows`' reason: the suite has no jsdom, and
- * "which rows exist" is the half of the build list that can be quietly wrong.
+ * Pure and module-level because the suite has no jsdom, and "which rows exist"
+ * is the half of the build list that can be quietly wrong.
  *
  * A third marker joined in batch UX5: **hired with a route** (`UnitDef.routeOnly`,
  * the trader). Its row looked pressable and did nothing, because `buildError`
@@ -586,6 +587,56 @@ export function shelfShows(tab: AddTab, shelf: ListShelf): boolean {
 }
 
 // --- the build list, as data -------------------------------------------------
+
+/**
+ * Whether a unit type gets a line in this town's build list at all: a row, or
+ * the caravans' line to the trade sheet.
+ *
+ * Hidden outright, never greyed: a hull no technology can reach yet (user,
+ * 2026-08-30), a type the empire has not unlocked, and a type a better one has
+ * replaced (user, 2026-09-03: "once a unit is obsolete, please remove it from
+ * the build queue", asked of the reducer's own walk). Shared by the build list
+ * and the band's "none spare" chips, so the two cannot disagree about which
+ * rows exist.
+ */
+export function unitRowShown(state: GameState, city: City, id: UnitTypeId): boolean {
+  if (unitDef(id).awaitsTech === true) return false;
+  if (!isUnlocked(state, city.ownerId, 'unit', id)) return false;
+  if (upgradeTargetForType(state, city.ownerId, id) !== null) return false;
+  return true;
+}
+
+/** How a unit's build row reads in this town. See `unitRowGate`. */
+export interface UnitRowGate {
+  /** Why the queue would refuse it here, in `buildError`'s words, or `null`. */
+  blocked: string | null;
+  /** True when the only refusal is the strategic resource. */
+  wantsResource: boolean;
+  /** Fewer citizens than the row asks for. */
+  tooSmall: boolean;
+  /** The resources the row accepts, any one of which would do. */
+  missing: readonly ResourceId[];
+}
+
+/**
+ * The reducer's answers for one unit row in one town.
+ *
+ * The resource is asked as "can the empire spare one", the reducer's own
+ * question since batch R1, so the greyed row and the refusal agree about a copy
+ * an army already stands on. It is drawn with its marks and counts only when it
+ * is the whole refusal: asked again with the resource waived, the gate says yes.
+ */
+export function unitRowGate(state: GameState, city: City, id: UnitTypeId): UnitRowGate {
+  const missing = requiredResource('unit', id);
+  const needsResource = missing.length > 0 && !canSpareAnyOf(state, city.ownerId, missing);
+  const blocked = buildError(state, city.ownerId, 'unit', id, city);
+  const wantsResource =
+    blocked !== null &&
+    needsResource &&
+    buildError(state, city.ownerId, 'unit', id, city, { ignoreResourceRequirement: true }) ===
+      null;
+  return { blocked, wantsResource, tooSmall: city.population < unitDef(id).minCityPop, missing };
+}
 
 /**
  * One cell of a row's price column: a bank that sells the row, how buying it
@@ -767,43 +818,23 @@ export function buildListModel(
     const rows: BuildListRow[] = [];
     let caravans = false;
     for (const id of UNIT_TYPE_IDS) {
-      const def = unitDef(id);
-      // Hidden outright (user, 2026-08-30): a hull no technology can reach
-      // yet has no business on the list.
-      if (def.awaitsTech === true) continue;
-      if (!isUnlocked(state, city.ownerId, 'unit', id)) continue;
-      // Hidden, not greyed (user, 2026-09-03: "once a unit is obsolete, please
-      // remove it from the build queue"). The same walk the reducer asks.
-      if (upgradeTargetForType(state, city.ownerId, id) !== null) continue;
+      if (!unitRowShown(state, city, id)) continue;
       // A caravan is hired on the trade sheet, never queued: one line stands
       // for every caravan type open to the empire.
-      if (def.routeOnly === true) {
+      if (unitDef(id).routeOnly === true) {
         caravans = true;
         continue;
       }
       if (!offeredInBuildList(id)) continue;
-      // Asked as "can the empire spare one", the reducer's own question since
-      // batch R1, so the greyed row and the refusal agree about a copy an army
-      // already stands on.
-      const missing = requiredResource('unit', id);
-      const needsResource = missing.length > 0 && !canSpareAnyOf(state, city.ownerId, missing);
-      const blocked = buildError(state, city.ownerId, 'unit', id, city);
-      // The resource is drawn with its marks and counts only when it is the
-      // whole refusal: asked again with the resource waived, the gate says yes.
-      const wantsResource =
-        blocked !== null &&
-        needsResource &&
-        buildError(state, city.ownerId, 'unit', id, city, { ignoreResourceRequirement: true }) ===
-          null;
-      const tooSmall = city.population < def.minCityPop;
+      const gate = unitRowGate(state, city, id);
       rows.push({
         kind: 'unit',
         id,
-        name: def.name,
-        blocked,
-        wantsResource,
-        tooSmall,
-        enabled: !locked && !tooSmall && blocked === null,
+        name: unitDef(id).name,
+        blocked: gate.blocked,
+        wantsResource: gate.wantsResource,
+        tooSmall: gate.tooSmall,
+        enabled: !locked && !gate.tooSmall && gate.blocked === null,
         cells: priced({ kind: 'unit', id }),
       });
     }
@@ -933,20 +964,6 @@ function agentChargeNotes(def: UnitDef): string[] {
 }
 
 /**
- * **Which of the town's eleven steps the panel's yield card prints**, in the
- * order it prints them — the luxuries, the buildings, the guildsmen, the
- * caravans (steps 4, 8, 5, 6 of `docs/yields.md`).
- *
- * A list rather than a filter over all of them, because the omissions are
- * deliberate and each has a home: the centre and the worked hexes are the hover
- * card over the hex itself, the cards' own lines are the card's stamp, and the
- * conversions and the building shares are a share of the block above them rather
- * than a source a player goes looking for. The reach is the rule (the 2026-09-03
- * ruling: the breakdown is one hover deeper and no shallower), not the ink.
- */
-const PANEL_LEDGER_STEPS: readonly number[] = [4, 8, 5, 6];
-
-/**
  * Which standing-fact disclosures a player has opened, by label.
  *
  * `addTab`'s neighbour and its twin in every way: module state, out of the
@@ -975,6 +992,15 @@ export interface CityPanelOptions {
   /** The city to show, or null to show nothing. */
   getCity: () => City | null;
   onClose: () => void;
+  /**
+   * Opens another of the seat's towns in place of this one: the ‹ and › beside
+   * the town's name (batch UX6). The page hands in `controls.setOpenCity`, the
+   * one way a town is opened, so the camera frames the new town and buy mode is
+   * put away exactly as when its banner is clicked. Optional for `setBuyMode`'s
+   * reason: a panel built without it is still a panel, and simply draws no
+   * arrows. The comma and period keys step towns from `controls.ts` either way.
+   */
+  onOpenCity?: (cityId: number) => void;
   /** Called after a command lands, so the rest of the page can catch up. */
   onChanged: () => void;
   /**
@@ -1041,77 +1067,14 @@ export interface CityPanel {
   render(): void;
 }
 
-/** One row of the modifier list: what it is, what it is worth, how it reads. */
-export interface ModifierRow {
-  label: string;
-  figures: string;
-  /** A malus, set in the alarm ink. */
-  bad: boolean;
-  /** A stage's own line — the fold, in the panel's louder ink. */
-  stage: boolean;
-}
-
-/**
- * One stage of the modifier list, as the rows it prints: **its sources, and
- * nothing above them**.
- *
- * The heading is gone, and this is the second and last pass at the same
- * complaint. Every percentage `foldCityStages` folds has a line here — the
- * meters, the luxuries, the hammers behind the current build, and nothing else
- * joins that fold — so the heading was, by construction, its own lines said
- * again in different glyphs. The first pass collapsed the *one-source* case,
- * which left the two-source case printing
- *
- *     Empire            🔬 +10%  🎭 +10%
- *     Happiness +6      🔬🎭 +10%
- *     Silk              🔬 +10%
- *
- * and the player's reading of that (user, 2026-08-27) is the right one: the
- * first row is arithmetic they can do by eye off the two under it, and the
- * lines are clear enough on their own. So the fold is not printed and its parts
- * are. Nothing is lost that the panel did not already say twice, and the yield
- * chips at the top of the screen are where the *multiplied* figure belongs.
- *
- * The label survives in exactly one place, and it is a **canary rather than a
- * heading**: a stage that folds to a figure with no source to explain it. That
- * cannot happen today and the register test in `test/ui/cityModifiers.test.ts`
- * is what keeps it so — but if a future modifier ever joins `foldCityStages`
- * without joining this list, the panel says "Empire 🔬 +10%" with nothing under
- * it rather than swallowing a percentage the player cannot account for. A
- * silent stage would be the one failure this list exists to prevent.
- *
- * A stage nothing joined at all prints nothing, exactly as before.
- *
- * Pure, and separated from the DOM for the reason `yieldRowLayout` is: it is the
- * half of the panel that decides what a player *sees twice*, and a suite with no
- * jsdom can still read a list of rows.
- */
-export function stageRows(
-  label: string,
-  figures: string | null,
-  sources: readonly (readonly [string, string, boolean])[],
-): ModifierRow[] {
-  if (sources.length === 0) {
-    // Nothing folded and nothing to say, or the canary above.
-    if (figures === null) return [];
-    return [{ label, figures, bad: false, stage: true }];
-  }
-  return sources.map(([source, effect, bad]) => ({
-    label: source,
-    figures: effect,
-    bad,
-    stage: false,
-  }));
-}
-
 /**
  * The same six voices, for a preview fold or one of its lines —
  * `foldBuildingPreview`'s `CityYields` and `BuildingPreviewLine` share every
  * numeric field, so one formatter reads both. Empty when nothing in it pays,
  * which is the house dash's cue at both call sites below.
  *
- * Pure and exported for the reason `stageRows` is: a suite with no jsdom can
- * still call a formatter directly (`test/ui/cityPanel.test.ts`).
+ * Pure and exported because a suite with no jsdom can still call a formatter
+ * directly (`test/ui/cityPanel.test.ts`).
  */
 export function previewFigures(entry: CityYields): string {
   const parts: string[] = [];
@@ -1394,6 +1357,429 @@ export function defenseTotal(rows: readonly DefenseRow[]): number {
   return total;
 }
 
+// --- the town at a glance (batch UX6) ----------------------------------------
+
+/** One row of a yield chip's list. See `chipLedgerRows`. */
+export interface ChipLedgerRow {
+  /** The simulation's own label, or "Worked land (8 hexes)" for the hexes the town works. */
+  label: string;
+  /** What the row adds to the chip, exactly. The chip is the fold of the rows. */
+  amount: number;
+  /** A percentage row's own percentage, printed beside its label; `null` for every other row. */
+  percent: number | null;
+  /**
+   * Which part of `docs/yields.md` the row comes from: `flat` for steps 1 to 10,
+   * `percent` for one percentage of the two stages (step 12), `gate` for the
+   * unrest gate (step 13), and `unaccounted` for the canary
+   * (`UNACCOUNTED_SOURCE`).
+   */
+  kind: 'flat' | 'percent' | 'gate' | 'unaccounted';
+}
+
+/** One chip's whole list: the rows, and the chip they add up to. */
+export interface ChipLedger {
+  key: CityYieldKey;
+  /** The chip itself: `foldCity` toward what the town is building. */
+  total: number;
+  rows: ChipLedgerRow[];
+}
+
+/** The id of the chips' card, which each chip names as the thing it controls. */
+const CHIP_CARD_ID = 'city-chip-card';
+
+/** The label of the one row the worked hexes are folded into. */
+export function workedLandLabel(hexes: number): string {
+  return `Worked land (${hexes} ${hexes === 1 ? 'hex' : 'hexes'})`;
+}
+
+/**
+ * The canary's label. A chip whose rows do not add up to it gets one more row
+ * carrying the difference, so the list still sums to the chip and the screen
+ * admits the gap instead of hiding it. The core test asserts it never appears.
+ */
+export const UNACCOUNTED_SOURCE = 'Not accounted for';
+
+/**
+ * **One yield chip's complete list** (batch UX6): everything the chip adds up
+ * from, in the order the simulation adds it (`docs/yields.md`), so the rows sum
+ * to the chip (rule 5).
+ *
+ * - **The town centre** first: step 1's two lines under the simulation's own
+ *   labels ("City centre" is the town's hex, "The town itself" is what a
+ *   settlement makes by being one).
+ * - **The worked land**: step 2 folded into one row, "Worked land (8 hexes)".
+ *   Each hex's own breakdown is the hover card over that hex. A card's line
+ *   lifted out of a hex keeps a row of its own, summed over the hexes it pays on.
+ * - **This yield's other lines**, steps 3 to 10, one row each, in order.
+ * - **The percentages**, step 12: one row per percentage, the city stage's
+ *   first, then the empire's, each with what it adds. Within a stage the
+ *   percentages add (Entry XVII), so each one's share is exact: the stage's base
+ *   times its own percentage. The city stage's base is the flats; the empire
+ *   stage's base is the flats after the city stage, worked out with
+ *   `applyStages`, the simulation's one implementation of that arithmetic. A
+ *   stage prints its parts and never its sum (the user, 2026-08-27).
+ * - **The unrest gate**, step 13, last: a town in unrest makes none of some
+ *   voices, so the row takes away everything above it.
+ *
+ * Every figure comes from the simulation: the lines are `readCity`'s, the
+ * percentages are `quote.percents` and `productionModifiers` toward the front
+ * of the queue, the stage sums are `foldCityStages`, and the chip is
+ * `foldCity`. If the rows ever fail to add up to the chip, a last row says so
+ * (`UNACCOUNTED_SOURCE`) rather than letting the list quietly disagree with it.
+ *
+ * Pure, so the suite can check without a document that every chip's list adds
+ * up to the chip (`test/ui/cityModifiers.test.ts`).
+ */
+export function chipLedgerRows(
+  state: GameState,
+  city: City,
+  quote: CityReading,
+  key: CityYieldKey,
+): ChipLedger {
+  const front = city.queue[0];
+  const total = foldCity(state, city, [], front, quote)[key];
+  const rows: ChipLedgerRow[] = [];
+  const flat = (label: string, amount: number): void => {
+    if (amount !== 0) rows.push({ label, amount, percent: null, kind: 'flat' });
+  };
+
+  // 1 — the centre.
+  for (const line of quote.lines) if (line.step === 1) flat(line.source, line[key]);
+
+  // 2 — the worked hexes, and the cards' lines lifted out of them.
+  let land = 0;
+  let hexes = 0;
+  const lifted: { source: string; amount: number; hexes: number }[] = [];
+  for (const line of quote.lines) {
+    if (line.step !== 2) continue;
+    if (line.card === undefined) {
+      land += line[key];
+      hexes += 1;
+      continue;
+    }
+    const seen = lifted.find((entry) => entry.source === line.source);
+    if (seen === undefined) {
+      lifted.push({ source: line.source, amount: line[key], hexes: 1 });
+    } else {
+      seen.amount += line[key];
+      seen.hexes += 1;
+    }
+  }
+  flat(workedLandLabel(hexes), land);
+  for (const entry of lifted) {
+    flat(entry.hexes > 1 ? `${entry.source} (${entry.hexes} hexes)` : entry.source, entry.amount);
+  }
+
+  // 3 to 10 — everything else that adds.
+  for (const line of quote.lines) if (line.step > 2) flat(line.source, line[key]);
+
+  // 12 — the two stages, one row per percentage.
+  const flats = quote.flats[key];
+  const sums = foldCityStages(state, city, front, [], quote.percents)[key];
+  const empireBase = applyStages(flats, { city: sums.city, empire: 0 });
+  for (const source of chargedSources(state, city, quote, key, 'city', sums)) {
+    pushShare(rows, source, flats);
+  }
+  for (const source of chargedSources(state, city, quote, key, 'empire', sums)) {
+    pushShare(rows, source, empireBase);
+  }
+
+  // 13 — the unrest gate.
+  if (explainUnrestGate(city).some((gate) => gate.yield === key)) {
+    const running = sumOfRows(rows);
+    if (running !== 0) {
+      rows.push({ label: UNREST_SOURCE, amount: -running, percent: null, kind: 'gate' });
+    }
+  }
+
+  const residue = total - sumOfRows(rows);
+  if (Math.abs(residue) > 1e-9) {
+    rows.push({ label: UNACCOUNTED_SOURCE, amount: residue, percent: null, kind: 'unaccounted' });
+  }
+  return { key, total, rows };
+}
+
+/** One percentage on one voice of a town, named as a chip's list names it. */
+interface StagePercent {
+  label: string;
+  percent: number;
+  /** The town's percentage line it stands for; absent for the hammers behind a build. */
+  line?: CityYieldPercent;
+}
+
+/**
+ * The percentages one stage actually charged on one voice of a town.
+ *
+ * Nearly always every line `stageSources` lists. But `foldCityStages` may leave
+ * a line out for a pair (town, item): The Great Warring Tribes lifts
+ * authority's malus from production toward units. When the listed lines do not
+ * add up to the stage's sum, `foldCityStages` itself is asked which line it
+ * left out: a line whose removal leaves the sum where it was was never in it.
+ * So the rule stays the simulation's, and the list prints only what was charged.
+ */
+function chargedSources(
+  state: GameState,
+  city: City,
+  quote: CityReading,
+  key: CityYieldKey,
+  stage: ModifierStage,
+  sums: { city: number; empire: number },
+): StagePercent[] {
+  const sources = stageSources(state, city, quote, key, stage);
+  let listed = 0;
+  for (const source of sources) listed += source.percent;
+  if (listed === sums[stage]) return sources;
+  const front = city.queue[0];
+  return sources.filter((source) => {
+    const line = source.line;
+    if (line === undefined) return true;
+    const without = quote.percents.filter((other) => other !== line);
+    return foldCityStages(state, city, front, [], without)[key][stage] !== sums[stage];
+  });
+}
+
+/**
+ * The percentages one stage applies to one voice of a town: for the city stage
+ * on production, the hammers behind the front of the queue first (as
+ * `foldCityStages` adds them), then `quote.percents`' lines for that stage, in
+ * their own order.
+ */
+function stageSources(
+  state: GameState,
+  city: City,
+  quote: CityReading,
+  key: CityYieldKey,
+  stage: ModifierStage,
+): StagePercent[] {
+  const list: StagePercent[] = [];
+  if (stage === 'city' && key === 'production') {
+    for (const modifier of productionModifiers(state, city, city.queue[0])) {
+      if (modifier.percent !== 0) list.push({ label: modifier.source, percent: modifier.percent });
+    }
+  }
+  for (const line of quote.percents) {
+    if (line.yield !== key || line.stage !== stage || line.percent === 0) continue;
+    list.push({ label: percentLabel(state, city, line), percent: line.percent, line });
+  }
+  return list;
+}
+
+/**
+ * A percentage line's label. A meter's line also names the meter's standing
+ * ("Happiness +6"), because the tier is earned by that figure and a player
+ * looking at the percentage wants to know how far the meter is from the next
+ * rung.
+ */
+function percentLabel(state: GameState, city: City, line: CityYieldPercent): string {
+  if (line.meter === undefined) return line.source;
+  const effect = meterEffects(state, city.ownerId).find(
+    (entry) => entry.meter === line.meter && !entry.growth && entry.yields.length > 0,
+  );
+  return effect === undefined ? line.source : `${line.source} ${signedFigure(effect.value)}`;
+}
+
+/** One percentage's row: its share of the stage's base. Nothing is pushed for a share of nothing. */
+function pushShare(rows: ChipLedgerRow[], source: StagePercent, base: number): void {
+  const amount = (base * source.percent) / 100;
+  if (amount !== 0) {
+    rows.push({ label: source.label, amount, percent: source.percent, kind: 'percent' });
+  }
+}
+
+/** The fold of a chip's rows, in their own order. */
+function sumOfRows(rows: readonly ChipLedgerRow[]): number {
+  let total = 0;
+  for (const row of rows) total += row.amount;
+  return total;
+}
+
+/** Where on the city screen a short-of chip's fix is. The chip is a link there. */
+export type ShortOfTarget = 'buildList' | 'focus' | 'growth' | 'defence' | 'unrest' | `row:${string}`;
+
+/** One thing a town is short of, as a chip in the band (batch UX6). */
+export interface ShortOfChip {
+  id: 'unrest' | 'siege' | 'starving' | 'idle' | 'unhappy' | 'resource';
+  /** The chip's words: "Starving", "No Iron spare". */
+  label: string;
+  /** A figure beside the words, set in the tabular mono, or `null`. */
+  figure: string | null;
+  /** What the chip means, as a sentence: its spoken label and its hover. */
+  why: string;
+  /** Where on this screen the town's problem is fixed. */
+  target: ShortOfTarget;
+}
+
+/**
+ * **What this town is short of** (batch UX6; `docs/plans/city-screen-audit.md`,
+ * problem 4): one chip per problem that is true, and nothing at all for a town
+ * that is fine. Each chip is a link to the part of the screen where the problem
+ * is fixed.
+ *
+ * In order of how badly they stop the town:
+ * - **In unrest** (with the turns left): taken by force and not yet pacified,
+ *   so it makes no production, science or culture (`inUnrest`). The unrest card.
+ * - **Under siege**: every neighbouring hex is denied (`underSiege`). The
+ *   Defence ledger.
+ * - **Starving**: the food surplus is below nothing (`growthSurplus`, the same
+ *   figure the Growth row prints). The Focus pane.
+ * - **Idle**: nothing in the queue. The build list. A puppet chooses for
+ *   itself, so it is never told it is idle.
+ * - **Unhappy**: the empire's happiness is below nothing, which slows every
+ *   town's growth (`meterEffects`). The Growth row, where the slowing shows.
+ * - **No Iron spare** (one chip a resource): the empire holds copies and every
+ *   one is spoken for, and a build row in this town needs one. That row. UX7's
+ *   Supply strip will be the fuller answer.
+ *
+ * Every condition is the simulation's own reading. Pure, so the suite can check
+ * each chip without a document.
+ */
+export function shortOfChips(state: GameState, city: City, quote: CityReading): ShortOfChip[] {
+  const chips: ShortOfChip[] = [];
+  if (inUnrest(city)) {
+    const turns = pacificationTurnsLeft(state, city);
+    chips.push({
+      id: 'unrest',
+      label: 'In unrest',
+      figure: turns === null ? null : turnsLabel(turns),
+      why:
+        'Taken by force and not yet pacified: it makes no production, science or culture, ' +
+        'and its borders hold still.',
+      target: 'unrest',
+    });
+  }
+  if (underSiege(state, city, siegeField(state, city.ownerId))) {
+    chips.push({
+      id: 'siege',
+      label: 'Under siege',
+      figure: null,
+      why:
+        'Every neighbouring hex is denied to this town: it cannot heal and loses a little ' +
+        'health each turn, but only an attack can take it.',
+      target: 'defence',
+    });
+  }
+  if (growthSurplus(state, city, foldCity(state, city, [], undefined, quote)) < 0) {
+    chips.push({
+      id: 'starving',
+      label: 'Starving',
+      figure: null,
+      why: 'The town eats more food than it makes, and will shrink. Point its citizens at food.',
+      target: 'focus',
+    });
+  }
+  if (city.queue.length === 0 && city.puppet !== true) {
+    chips.push({
+      id: 'idle',
+      label: 'Idle',
+      figure: null,
+      why: 'Nothing is being built here.',
+      target: 'buildList',
+    });
+  }
+  if (happinessOf(state, city.ownerId) < 0) {
+    chips.push({
+      id: 'unhappy',
+      label: 'Unhappy',
+      figure: null,
+      why:
+        'Your empire is unhappy, so every town grows more slowly. Luxuries and buildings ' +
+        'that make people happy fix it.',
+      target: 'growth',
+    });
+  }
+  for (const count of strategicHoldings(state, city.ownerId)) {
+    if (count.spare > 0) continue;
+    const wanting = UNIT_TYPE_IDS.find((id) => {
+      if (!unitRowShown(state, city, id) || !offeredInBuildList(id)) return false;
+      const gate = unitRowGate(state, city, id);
+      return gate.wantsResource && gate.missing.includes(count.id);
+    });
+    if (wanting === undefined) continue;
+    chips.push({
+      id: 'resource',
+      label: `No ${count.name} spare`,
+      figure: copiesFigure(count.spare, count.held),
+      why:
+        `${count.name}: ${copiesWords(count.spare, count.held)}. ` +
+        `The ${unitDef(wanting).name} needs one.`,
+      target: `row:${wanting}`,
+    });
+  }
+  return chips;
+}
+
+/** Where a town's people are: on land, in a trade, or idle. See `citizenLineText`. */
+export interface CitizenParts {
+  population: number;
+  /** Citizens working a hex. */
+  land: number;
+  /** Citizens in a trade (the guilds' specialists). */
+  specialists: number;
+  /** The rest: citizens with nowhere to stand. */
+  idle: number;
+}
+
+/**
+ * Where this town's people are. The idle are the rest of the population once
+ * the worked hexes and the specialists are counted, so the three parts always
+ * add up to the town's size.
+ */
+export function citizenParts(city: City): CitizenParts {
+  const land = city.workedTiles.length;
+  const specialists = totalSpecialists(city);
+  return {
+    population: city.population,
+    land,
+    specialists,
+    idle: Math.max(0, city.population - land - specialists),
+  };
+}
+
+/**
+ * "Citizens 11: 8 on land · 2 specialists · 1 idle" (batch UX6), which replaced
+ * "8/11 working": the old line did not say where the other three were. A part
+ * with nobody in it is left out, except the land.
+ */
+export function citizenLineText(parts: CitizenParts): string {
+  const pieces = [`${parts.land} on land`];
+  if (parts.specialists > 0) {
+    pieces.push(`${parts.specialists} ${parts.specialists === 1 ? 'specialist' : 'specialists'}`);
+  }
+  if (parts.idle > 0) pieces.push(`${parts.idle} idle`);
+  return `Citizens ${parts.population}: ${pieces.join(' · ')}`;
+}
+
+/**
+ * Every town this seat holds, in founding order (`state.cities` order), puppets
+ * included (the user's ruling, `docs/flags.md` (ssssss) 3: a puppet's screen is
+ * where it is annexed or razed). The order ‹ › and the comma and period keys
+ * step through.
+ */
+export function townsInOrder(state: GameState, seat: number): City[] {
+  return state.cities.filter((city) => city.ownerId === seat);
+}
+
+/**
+ * The town one step before (`-1`) or after (`1`) this one, or `null` when the
+ * seat holds no other town.
+ *
+ * **The ends wrap**: after the last town comes the first again. Stepping is a
+ * way to visit every town, and a step that stopped at the end would make the
+ * player turn round and walk all the way back.
+ */
+export function steppedTownId(
+  state: GameState,
+  seat: number,
+  fromId: number,
+  step: -1 | 1,
+): number | null {
+  const towns = townsInOrder(state, seat);
+  if (towns.length < 2) return null;
+  const at = towns.findIndex((city) => city.id === fromId);
+  if (at < 0) return towns[0]!.id;
+  return towns[(at + step + towns.length) % towns.length]!.id;
+}
+
 export function createCityPanel(options: CityPanelOptions): CityPanel {
   const { container, getGame, localPlayerId, getCity, onClose, onChanged, onOpenTrade } =
     options;
@@ -1614,15 +2000,37 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   const info = createInfoCard({ className: 'info-card' });
 
   /**
-   * The band's own card, and the only reason there are two: a chip in a
-   * horizontal strip is compared against the chips beside it, so a card raised
-   * *next to* one covers the very figures the reader is comparing. The top bar
-   * met this first and `placement: 'below'` is its answer (`infoCard.ts`); the
-   * name band is the same strip one screen down, so it borrows the same one.
+   * **The yield chips' card** (batch UX6): one card for the band's six chips. It
+   * holds the list of the chip under the pointer or the keyboard's focus, or of
+   * the chip a click pinned, and it stands over the work rail and never over the
+   * board (`docs/plans/city-screen-iterations.md`, "Settled"): the board between
+   * the rails is where citizens are moved, and a card over it would cover the
+   * hexes the list is about.
    *
-   * Put away with `info` on every render, for `info`'s reason exactly.
+   * The panel's own element rather than an `infoCard`, because an info card is
+   * a note that can never be pinned. It is rebuilt with the panel on every
+   * render. `chipCard`, `chipLedgers` and `chipButtons` are the drawn card, the
+   * lists the drawn chips were printed from, and the chips themselves; the
+   * chips' handlers read them when they fire, so a handler left on a panel that
+   * has since been rebuilt finds the new ones.
    */
-  const strip = createInfoCard({ className: 'info-card is-strip', placement: 'below' });
+  let chipCard: HTMLElement | null = null;
+  let chipLedgers = new Map<CityYieldKey, ChipLedger>();
+  let chipButtons = new Map<CityYieldKey, HTMLButtonElement>();
+  /**
+   * The chip a click pinned open, and the town it belongs to. View state, kept
+   * out of the save. It is not in the render key, for the reason an open
+   * disclosure is not: a click updates the drawn card in place, and every later
+   * render draws the pin from here. Opening another town forgets it.
+   */
+  let pinnedChip: { cityId: number; key: CityYieldKey } | null = null;
+  /**
+   * Where each short-of chip points, collected while the panel draws: the build
+   * list, the Focus pane, the Growth row, the Defence ledger, the unrest card,
+   * and the build row of each unit a chip names. Emptied at the start of every
+   * render, so a chip never points at an element that has been taken down.
+   */
+  let anchors = new Map<ShortOfTarget, HTMLElement>();
 
   /** A figure chip: the number large, its name small and quiet beneath it. */
   function stat(label: string, value: string): HTMLElement {
@@ -2046,245 +2454,174 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
 
   /**
-   * **One line of the town's list, as figures** — `+3🌾 +1⚒`.
+   * The six yield chips. Each is a button that raises its own complete list
+   * (`chipLedgerRows`) on hover or focus, and pins it open on a click
+   * (batch UX6; the user's hover rule, 2026-10-12: hovering a yield chip shows
+   * the breakdown of that yield's sources).
    *
-   * One printer for every step, because a line is a line: batch E2 collapsed
-   * three near-identical local functions (a building's, a caravan's, a seam's)
-   * that differed only in which voices they bothered to look at and in one
-   * per-citizen suffix. `CityYieldLine` speaks all six voices, so the printer
-   * asks all six and prints the ones that are not nought — a route simply
-   * carries no faith, and says so by carrying nought.
-   *
-   * The building's per-citizen beaker is **inside** the line's science now,
-   * where the town banks it, rather than printed beside it as a rate: "Library
-   * +1.5🔬" in a town of three is what that library is actually paying, and the
-   * figure a player can check against the chip above.
-   */
-  function quoteFigures(entry: CityYieldLine): string {
-    const parts: string[] = [];
-    for (const key of CITY_YIELD_KEYS) {
-      const value = roundYield(entry[key]);
-      if (value === 0) continue;
-      parts.push(`${value > 0 ? '+' : ''}${value}${YIELD_GLYPH[key]}`);
-    }
-    return parts.join(' ');
-  }
-
-  /**
-   * The five figures, and — under them — the list they are the fold of.
-   *
-   * The chips are `foldCity`, which has the happiness and authority
-   * multipliers already folded in and, since the Age I rework, the share of the
-   * hammers a barracks puts behind whatever is at the front of the queue. A
-   * multiplied number shown without the reason beside it is a total computed
-   * beside its list, which is exactly what CLAUDE.md's rule 5 forbids, so the
-   * whole of what is inside the chips gets said underneath them, in the order it
-   * is applied:
-   *
-   *   · every line the city's buildings pay (`explainCityBuildings`) — one per
-   *     building, so "Granary +3🌾" is a fact a player can find. One line each
-   *     since the renewals axe (2026-09-04): a technology no longer adds a
-   *     second line to a building already standing.
-   *   · every building putting extra hammers behind the current build.
-   *   · every empire modifier that is currently biting.
-   *
-   * A line worth nothing is never printed, at any of the three levels: a
-   * modifier that does nothing is not a modifier, and a granary in a city whose
-   * queue is empty is not a hammer bonus.
+   * Each chip prints its list's own total, which is `foldCity` toward the front
+   * of the queue, the figure the end of turn banks. So a chip and its list cannot
+   * disagree. The figure is rounded for the eye like every yield the player
+   * reads (`netFigure`, batch X): before UX6 the chips printed the exact
+   * fraction, and a town making 8.855 beakers said so.
    */
   function renderYieldChips(city: City, quote: CityReading): HTMLElement {
     const { state } = getGame();
-    // The rate for what is actually being built — the same call `collectYields`
-    // banks with, so the ⚙ chip is the number the basket will receive.
-    const front = city.queue[0];
-    const yields = foldCity(state, city, [], front, quote);
     const row = element('div', 'city-yields');
+    chipLedgers = new Map();
+    chipButtons = new Map();
+    /** One chip's list, kept for its handlers, and its total for the chip. */
+    const ledgerOf = (key: YieldKey): number => {
+      const ledger = chipLedgerRows(state, city, quote, key);
+      chipLedgers.set(key, ledger);
+      return ledger.total;
+    };
     const entries: [YieldKey, string, number][] = [
-      ['food', 'Food', yields.food],
-      ['production', 'Prod', yields.production],
-      ['gold', 'Gold', yields.gold],
-      ['science', 'Sci', yields.science],
-      ['culture', 'Cult', yields.culture],
-      ['faith', 'Faith', yields.faith],
+      ['food', 'Food', ledgerOf('food')],
+      ['production', 'Prod', ledgerOf('production')],
+      ['gold', 'Gold', ledgerOf('gold')],
+      ['science', 'Sci', ledgerOf('science')],
+      ['culture', 'Cult', ledgerOf('culture')],
+      ['faith', 'Faith', ledgerOf('faith')],
     ];
     for (const [key, label, value] of entries) {
-      const chip = element('div', `city-yield is-${key}`);
-      chip.append(element('span', 'city-yield-value', String(value)));
+      const chip = element('button', `city-yield is-${key}`);
+      chip.type = 'button';
+      chip.append(element('span', 'city-yield-value', netFigure(value)));
       const name = element('span', 'city-yield-label');
       // The drawn mark ahead of the abbreviation, so this row and the top bar's
-      // strip name a voice the same way. The word stays: these are the six
-      // headline figures of the panel and "Prod" is what makes them scannable
-      // before a player has learnt six pictures. The mark is `aria-hidden`, so
-      // the chip still reads as its word alone.
+      // strip name a voice the same way. The mark is `aria-hidden`; the chip's
+      // spoken label says the yield in words.
       name.append(yieldMarkNode(key, true), document.createTextNode(label));
       chip.append(name);
-      // The breakdown is **one hover deeper** and no shallower (the 2026-09-03
-      // ruling): the band carries the folds and the list that folds into them
-      // comes up under the chip a player asks about. Nothing is lost — the card
-      // is the very list this function used to print underneath itself, built
-      // by the same code — and rule 5 is kept by the reach rather than by the
-      // ink, which is what a band of six figures makes possible at all.
-      strip.bind(chip, () => yieldLedger(city, quote));
+      chip.setAttribute('aria-label', `${YIELD_NAME[key]}, ${netFigure(value)} a turn`);
+      chip.setAttribute('aria-controls', CHIP_CARD_ID);
+      chip.setAttribute('aria-expanded', 'false');
+      chip.setAttribute('aria-pressed', pinnedChip?.key === key ? 'true' : 'false');
+      // A tap is not a hover (`infoCard.ts`'s rule): on touch the click pins
+      // the list instead.
+      chip.addEventListener('pointerenter', (event) => {
+        if (event.pointerType !== 'touch') showChipCard(key);
+      });
+      chip.addEventListener('pointerleave', () => settleChipCard());
+      chip.addEventListener('focus', () => showChipCard(key));
+      chip.addEventListener('blur', () => settleChipCard());
+      chip.addEventListener('click', () => togglePinnedChip(city, key));
+      chip.addEventListener('keydown', unpinOnEscape);
+      chipButtons.set(key, chip);
       row.append(chip);
     }
     return row;
   }
 
-  /**
-   * Everything folded into the chips above, as the list it is the fold of.
-   *
-   * Verbatim the ledger the panel printed under the strip until the mode landed
-   * — the same five loops in the same order, the same `stageRows` collapse — so
-   * "one hover deeper" is a move and not a rewrite. See `renderYieldChips` for
-   * why it moved and `stageRows` for why a stage prints its parts.
-   */
-  function yieldLedger(city: City, quote: CityReading): HTMLElement {
-    const { state } = getGame();
-    const front = city.queue[0];
-    const box = element('div', 'city-yields-box');
-    const list = element('ul', 'city-modifiers ledger');
-    const line = (label: string, figures: string, bad = false): void => {
-      const item = element('li', bad ? 'city-modifier is-bad' : 'city-modifier');
-      item.append(element('span', undefined, label));
-      item.append(element('span', 'city-modifier-effect', figures));
-      list.append(item);
-    };
-    // A stage's own line: the same shape, set in the panel's louder ink, because
-    // it is the figure the chips were actually multiplied by and the lines under
-    // it are its parts.
-    const stageLine = (label: string, figures: string, bad = false): void => {
-      const item = element('li', bad ? 'city-modifier is-stage is-bad' : 'city-modifier is-stage');
-      item.append(element('span', undefined, label));
-      item.append(element('span', 'city-modifier-effect', figures));
-      list.append(item);
-    };
+  /** Fills the chips' card with one chip's list and shows it. */
+  function showChipCard(key: CityYieldKey): void {
+    const card = chipCard;
+    const ledger = chipLedgers.get(key);
+    if (card === null || ledger === undefined) return;
+    const pinned = pinnedChip?.key === key;
+    card.replaceChildren(chipCardContent(ledger, pinned));
+    card.classList.toggle('is-pinned', pinned);
+    card.hidden = false;
+    for (const [other, chip] of chipButtons) {
+      chip.setAttribute('aria-expanded', other === key ? 'true' : 'false');
+    }
+  }
 
-    // **The town's own list, printed** (batch E2). Until now this walked four of
-    // `explainCity`'s eleven sources a second time to get the labels back, which
-    // was rule 5 kept in the simulation and rebuilt on the interface's side —
-    // one of the four private copies `docs/audit/evaluations.md` §3a names. The
-    // quote *is* the labelled list now (`CityYieldLine`), so the panel filters
-    // it and prints.
-    //
-    // The four steps it prints are the four it has always printed and in the
-    // order it printed them: the luxuries (step 4) before the buildings (8),
-    // because a seam in the ground is older than a market built over it; the
-    // guildsmen (5) beside the stones that seated them (Entry XLVIII), since a
-    // scholar's beakers seeming to come from nowhere is rule 5's exact failure;
-    // and the caravans arriving (6) after the buildings, because that is what
-    // they are read off — `explainRouteYield` counts the *partner's* buildings.
-    // The centre, the hexes and the cards are one reach further in on purpose —
-    // a hex's own breakdown is the hover card over that hex, and the deck's is
-    // the card's stamp — and an empire-scale signature belongs to no town at
-    // all, so the top bar's totals carry it.
-    for (const step of PANEL_LEDGER_STEPS) {
-      for (const entry of quote.lines) {
-        if (entry.step !== step) continue;
-        const figures = quoteFigures(entry);
-        if (figures) line(entry.source, figures);
-      }
+  /** The card once the pointer or focus has left a chip: the pinned list, or nothing. */
+  function settleChipCard(): void {
+    if (pinnedChip !== null) showChipCard(pinnedChip.key);
+    else hideChipCard();
+  }
+
+  function hideChipCard(): void {
+    if (chipCard !== null) {
+      chipCard.hidden = true;
+      chipCard.classList.remove('is-pinned');
+      chipCard.replaceChildren();
     }
-    // Then the two multiplications, in the order they happen (Entry XVII): what
-    // the town did for itself, then what the empire does to the result. Each
-    // prints the *lines* it is the sum of and not the sum — see `stageRows`,
-    // whose whole subject is that the fold and its parts were the same sentence
-    // twice. A player reading downward sees the flats, then every percentage
-    // with its source beside it, and the chip at the top of the screen is where
-    // the multiplied figure lives.
-    const sums = foldCityStages(state, city, front, [], quote.percents);
-    const percents = quote.percents;
-    const hammers = productionModifiers(state, city, front);
-    for (const stage of MODIFIER_STAGES) {
-      const sources: [string, string, boolean][] = [];
-      if (stage === 'city') {
-        // The hammers are city-stage and are named first, because they are the
-        // modifier a player is most often looking for: what is behind *this*
-        // build.
-        for (const modifier of hammers) {
-          sources.push([modifier.source, `${HAMMER} ${percentFigure(modifier.percent)}`, false]);
-        }
-      } else {
-        for (const effect of meterEffects(state, city.ownerId)) {
-          // The growth stifle and the writ's border tier are *other channels*
-          // (Entry XIV.D.4): they multiply the food surplus and the culture
-          // accrual, not a yield, so they belong to the Growth and Borders lines
-          // that quote them, and they would not add up under this heading.
-          if (effect.growth || effect.yields.length === 0) continue;
-          const meter = effect.meter === 'happiness' ? 'Happiness' : 'Authority';
-          sources.push([
-            `${meter} ${signedFigure(effect.value)}`,
-            effectFigure(effect),
-            effect.percent < 0,
-          ]);
-        }
-      }
-      // A luxury's percentage is printed in the same voice as the meters', under
-      // the stage its signature put it in — which is the city stage for every row
-      // in today's table: "+20% science in each coastal city" is a fact about the
-      // coastal city, and multiplies with what that city built.
-      for (const percent of percents) {
-        if (percent.resource === undefined || percent.stage !== stage) continue;
-        sources.push([
-          percent.source,
-          `${YIELD_GLYPH[percent.yield]} ${percentFigure(percent.percent)}`,
-          percent.percent < 0,
-        ]);
-      }
-      // A stage nothing joined is not printed at all; one whose lines cancel to
-      // nothing prints both lines, which is the whole point of summing rather
-      // than compounding — a player who can see two modifiers can find where
-      // they went.
-      for (const row of stageRows(STAGE_LABEL[stage], stageFigures(sums, stage), sources)) {
-        if (row.stage) stageLine(row.label, row.figures, row.bad);
-        else line(row.label, row.figures, row.bad);
-      }
-    }
-    // **And last, the unrest gate** (step 13 of `docs/yields.md`, batch WC1):
-    // the voices a town in unrest makes none of, after everything above has
-    // been folded and multiplied. One row, because the reason is one, and in
-    // the stage's louder ink, because it is the last thing the chips went
-    // through — the chips read nought in these voices and this says why.
-    const gates = explainUnrestGate(city);
-    if (gates.length > 0) {
-      stageLine(
-        gates[0]!.source,
-        gates.map((gate) => `${YIELD_GLYPH[gate.yield]} ×0`).join('  '),
-        true,
-      );
-    }
-    if (list.childElementCount > 0) box.append(list);
-    // A town whose chips are pure ground — no buildings, no luxuries, no
-    // percentage in force — has an empty list, and an empty card would read as a
-    // card that failed. The sentence is the honest reading of the emptiness.
-    else box.append(element('p', 'hint', 'The ground alone — nothing is added here yet.'));
-    return box;
+    for (const chip of chipButtons.values()) chip.setAttribute('aria-expanded', 'false');
   }
 
   /**
-   * One stage's summed percentages as figures — `🔬 +20% ⚙ +25%` — or `null`
-   * when that stage is doing nothing to any yield.
-   *
-   * See `stageRows` for what is done with it when the stage has exactly one
-   * source: the fold of one line is that line, and printing both was the
-   * doubled science/culture reading players saw after the two-stage rework.
-   *
-   * The fold of `foldCityStages`, which is the same fold `foldCity` multiplies
-   * by, so the heading and the chip cannot disagree. Production carries the
-   * hammers behind the current build, which is why the ⚙ figure here can be
-   * larger than the percentages listed under it: those are yields, the hammers
-   * are named on their own lines below.
+   * A click on a chip pins its list, or unpins it when it was the pinned one.
+   * The chip is still under the pointer or the focus either way, so its list
+   * stays up until that leaves.
    */
-  function stageFigures(
-    sums: Record<CityYieldKey, StageSums>,
-    stage: ModifierStage,
-  ): string | null {
-    const parts: string[] = [];
-    for (const key of CITY_YIELD_KEYS) {
-      const percent = sums[key][stage];
-      if (percent === 0) continue;
-      parts.push(`${YIELD_GLYPH[key]} ${percentFigure(percent)}`);
+  function togglePinnedChip(city: City, key: CityYieldKey): void {
+    pinnedChip = pinnedChip?.key === key ? null : { cityId: city.id, key };
+    for (const [other, chip] of chipButtons) {
+      chip.setAttribute('aria-pressed', pinnedChip?.key === other ? 'true' : 'false');
     }
-    return parts.length === 0 ? null : parts.join('  ');
+    showChipCard(key);
+  }
+
+  function unpinChip(): void {
+    pinnedChip = null;
+    for (const chip of chipButtons.values()) chip.setAttribute('aria-pressed', 'false');
+    hideChipCard();
+  }
+
+  /**
+   * Escape on a chip or on the pinned card takes the pin down first, so the
+   * town stays open. Escape anywhere else still leaves the town (`controls.ts`
+   * owns that key), and the pin goes with the town.
+   */
+  function unpinOnEscape(event: KeyboardEvent): void {
+    if (event.key !== 'Escape' || pinnedChip === null) return;
+    event.preventDefault();
+    event.stopPropagation();
+    unpinChip();
+  }
+
+  /**
+   * One chip's list as the card prints it: the yield and its total, a row per
+   * line, then the total again under a rule. Every row is rounded for the eye
+   * and the total is rounded from the exact total (`yieldFormat.ts`), so the
+   * printed rows may differ from it by a rounding; the exact rows add up to it
+   * exactly.
+   */
+  function chipCardContent(ledger: ChipLedger, pinned: boolean): DocumentFragment {
+    const fragment = document.createDocumentFragment();
+    const head = element('div', 'city-chip-card-head');
+    const name = element('span', 'city-chip-card-name');
+    const word = YIELD_NAME[ledger.key];
+    name.append(
+      yieldMarkNode(ledger.key, true),
+      document.createTextNode(word.charAt(0).toUpperCase() + word.slice(1)),
+    );
+    head.append(name);
+    head.append(element('span', 'city-chip-card-total', `${netFigure(ledger.total)} a turn`));
+    if (pinned) {
+      const close = element('button', 'city-icon-button city-chip-card-close', '×');
+      close.type = 'button';
+      close.setAttribute('aria-label', 'Unpin this list');
+      close.addEventListener('click', () => unpinChip());
+      head.append(close);
+    }
+    fragment.append(head);
+    if (ledger.rows.length === 0) {
+      fragment.append(element('p', 'hint', 'Nothing in this town makes any of it.'));
+      return fragment;
+    }
+    const list = element('ul', 'city-chip-rows');
+    for (const row of ledger.rows) {
+      const item = element('li', `city-chip-row is-${row.kind}`);
+      if (row.amount < 0) item.classList.add('is-bad');
+      const label = element('span', 'city-chip-row-label', row.label);
+      if (row.percent !== null) {
+        label.append(element('span', 'city-chip-row-percent', percentFigure(row.percent)));
+      }
+      item.append(label);
+      item.append(element('span', 'city-chip-row-amount', signedFigure(row.amount)));
+      list.append(item);
+    }
+    fragment.append(list);
+    const total = element('div', 'city-chip-card-foot');
+    total.append(element('span', undefined, 'Total'));
+    total.append(element('span', 'city-chip-row-amount', netFigure(ledger.total)));
+    fragment.append(total);
+    return fragment;
   }
 
   /**
@@ -2303,6 +2640,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const parts = unrestCardParts(getGame().state, city);
     if (parts === null) return null;
     const card = element('div', 'city-card city-unrest');
+    anchors.set('unrest', card);
     const box = element('div', 'city-meter');
     const head = element('div', 'city-meter-head');
     head.append(element('span', 'city-meter-name', 'Unrest'));
@@ -2405,15 +2743,19 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     box.append(label);
     box.append(bar(city.foodBasket, threshold, 'is-food'));
 
-    // The working count rides this row (the 2026-09-03 revision): where a
-    // town's people are standing is a fact about how fast it grows, and it was
-    // a section of its own for no better reason than that it arrived as one.
+    // The basket against the next citizen, the Borders row's "Next tile" one
+    // row up the rail in the same voice.
     const foot = element('div', 'city-meter-foot');
-    foot.append(renderCitizens(city));
+    foot.append(element('span', 'city-meter-sub', 'Next citizen'));
     foot.append(
       element('span', 'city-meter-fig', `${Math.floor(city.foodBasket)} / ${threshold}`),
     );
     box.append(foot);
+    // And where the town's people are (batch UX6): a fact about how fast it
+    // grows, on the row that says so. Its own line under the bar, because it
+    // names three groups and a foot shared with a figure has room for one.
+    box.append(renderCitizens(city));
+    anchors.set('growth', box);
 
     // Every percentage on the channel, named on the line it throttles rather
     // than up among the yield percentages — this is its own channel (Entry
@@ -2561,6 +2903,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const current = cityFocus(city);
 
     const box = element('div', 'city-focus-pane');
+    anchors.set('focus', box);
     const head = element('div', 'city-meter-head');
     head.append(element('span', 'city-meter-name', 'Focus'));
     box.append(head);
@@ -2611,26 +2954,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
-   * The citizen line: how many are placed, and how many of those the player
-   * placed by hand.
+   * The citizen line (batch UX6): "Citizens 11: 8 on land · 2 specialists · 1
+   * idle" (`citizenLineText`). It replaced "8/11 working", which did not say
+   * where the other three were.
    *
-   * The pinned count is the number of pins currently *honoured*, not the length
-   * of `city.lockedTiles` — a pin on a tile the city has lost is kept in the
-   * state (see `assignCitizens`) but there is no citizen standing on it, and a
-   * panel that counted it would be counting a citizen that does not exist.
+   * The number pinned by hand rides the line's hover. It counts the pins
+   * currently *honoured*, not the length of `city.lockedTiles`: a pin on a tile
+   * the city has lost is kept in the state (see `assignCitizens`) but there is
+   * no citizen standing on it, and a panel that counted it would be counting a
+   * citizen that does not exist.
    */
   function renderCitizens(city: City): HTMLElement {
     const pinned = city.lockedTiles.filter((cell) =>
       city.workedTiles.some((tile) => tile.col === cell.col && tile.row === cell.row),
     ).length;
-    // "5/7 working" — a fragment on the Growth row rather than a section of its
-    // own (the 2026-09-03 revision). The pinned figure is the clause that had to
-    // go somewhere and it went one hover deeper, with the count it qualifies.
-    const line = element(
-      'span',
-      'city-meter-sub',
-      `${city.workedTiles.length}/${city.population} working`,
-    );
+    const line = element('p', 'city-citizens', citizenLineText(citizenParts(city)));
     line.title = `${figure(pinned)} pinned by hand`;
     return line;
   }
@@ -3093,6 +3431,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
 
     const shelves = buildListModel(state, city, seat, addTab, locked);
     const grid = element('div', 'city-buildable-grid');
+    // Where the band's "Idle" chip points (batch UX6).
+    anchors.set('buildList', grid);
     const player = playerById(state, seat);
     const held = (bank: PurchaseCurrency): PriceHeadBank => ({
       bank,
@@ -3326,6 +3666,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
           row.kind === 'offer' ? 'city-buildable-row is-offer' : 'city-buildable-row',
         );
         line.append(lead(row));
+        // Where a band chip naming this unit points ("No Iron spare").
+        if (row.kind === 'unit') anchors.set(`row:${row.id}`, line);
         // A project keeps the column's width with an empty cell, so its button
         // lines up with the rows priced around it.
         if (row.kind === 'project') line.append(emptyPriceCellElement());
@@ -3719,15 +4061,103 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   }
 
   /**
+   * The ‹ and › either side of the town's name (batch UX6): the previous and
+   * the next town the seat holds, in founding order with puppets included,
+   * wrapping at the ends (`steppedTownId`). The comma and period keys do the
+   * same from `controls.ts`.
+   *
+   * Absent when the page handed in no way to open a town (`onOpenCity`), as
+   * the trade button is absent without `onOpenTrade`: a panel built without
+   * one is still a panel, and an arrow that did nothing would be the Trader
+   * row's bug again. With only one town held, both arrows are there but
+   * greyed, so the control does not appear and vanish as towns are founded.
+   */
+  function stepButtons(city: City): { previous: HTMLElement; next: HTMLElement } | null {
+    const open = options.onOpenCity;
+    if (open === undefined) return null;
+    const { state } = getGame();
+    const make = (step: -1 | 1): HTMLElement => {
+      const button = element('button', step < 0 ? 'city-step is-previous' : 'city-step is-next');
+      button.type = 'button';
+      button.textContent = step < 0 ? '‹' : '›';
+      const key = step < 0 ? ',' : '.';
+      button.setAttribute('aria-keyshortcuts', key);
+      const target = steppedTownId(state, localPlayerId(), city.id, step);
+      const town = target === null ? undefined : state.cities.find((one) => one.id === target);
+      if (target === null || town === undefined) {
+        button.disabled = true;
+        button.setAttribute('aria-label', 'No other town');
+        return button;
+      }
+      const words = `${step < 0 ? 'Previous' : 'Next'} town: ${cityDisplayName(state, town)}`;
+      button.setAttribute('aria-label', words);
+      button.title = `${words} (${key})`;
+      button.addEventListener('click', () => open(target));
+      return button;
+    };
+    return { previous: make(-1), next: make(1) };
+  }
+
+  /**
+   * The short-of chips in the middle of the band (batch UX6): one per problem
+   * `shortOfChips` finds, each a link to where it is fixed on this screen. The
+   * group is drawn empty for a town that is fine, so the band keeps its shape.
+   */
+  function renderShortOf(city: City, quote: CityReading): HTMLElement {
+    const box = element('div', 'city-short-of');
+    for (const chip of shortOfChips(getGame().state, city, quote)) {
+      const button = element('button', `city-short is-${chip.id}`);
+      button.type = 'button';
+      button.append(element('span', 'city-short-label', chip.label));
+      if (chip.figure !== null) button.append(element('span', 'city-short-figure', chip.figure));
+      button.setAttribute('aria-label', `${chip.label}: ${chip.why}`);
+      button.title = chip.why;
+      button.addEventListener('click', () => pointTo(chip.target));
+      box.append(button);
+    }
+    return box;
+  }
+
+  /**
+   * Takes the player to where a short-of chip's problem is fixed: scrolls it
+   * into view, opens it when it is a closed disclosure, marks it for a moment
+   * and moves the keyboard's focus into it. A unit row on a shelf the tab in
+   * hand hides is shown first, by switching to the Units tab.
+   */
+  function pointTo(target: ShortOfTarget): void {
+    let at = anchors.get(target);
+    if (at === undefined && target.startsWith('row:') && !shelfShows(addTab, 'unit')) {
+      addTab = 'unit';
+      drawnKey = null;
+      render();
+      at = anchors.get(target);
+    }
+    if (at === undefined) return;
+    if (at instanceof HTMLDetailsElement) at.open = true;
+    at.scrollIntoView({ block: 'nearest', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    // Taken off and put back so a second press marks the place again.
+    at.classList.remove('is-pointed');
+    void at.offsetWidth;
+    at.classList.add('is-pointed');
+    const focusable = at.matches('button, summary, input')
+      ? at
+      : at.querySelector<HTMLElement>('button:not(:disabled), summary, input:not(:disabled)');
+    focusable?.focus({ preventScroll: true });
+  }
+
+  /**
    * The name band: the town's own bar across the top edge, and the one loudest
    * "you are somewhere else now" the mode has without moving the camera.
    *
-   * Everything the old header carried, in the same order and the same voices —
-   * the name, Size, hit points with `maxHpLedger` on hover, the siege badge,
-   * the belief badge — with the six yield chips riding the far end where the
-   * empire's own chips sit one bar up. The empire's chips give way while the
-   * mode holds (`style.css`, and it is derived from the panel's own `hidden`
-   * rather than stored anywhere), so the only yields on screen are this town's.
+   * Everything the old header carried, in the same order and the same voices:
+   * the name between its ‹ and › (batch UX6), Size, hit points with
+   * `maxHpLedger` on hover, and the belief badge. Then what the town is short
+   * of (`renderShortOf`; the siege and unrest badges that sat beside the name
+   * are two of those chips since UX6), the banks, and the six yield chips at
+   * the far end where the empire's own chips sit one bar up. The empire's
+   * chips give way while the mode holds (`style.css`, and it is derived from
+   * the panel's own `hidden` rather than stored anywhere), so the only yields
+   * on screen are this town's.
    *
    * No close cross: the way out is one button at the bottom of the screen, and
    * two exits in two corners is the thing the exit was meant to fix.
@@ -3736,7 +4166,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const { state } = getGame();
     const band = element('div', 'city-band');
     const title = element('div', 'city-title');
+    // ‹ and › either side of the name step through the seat's towns (batch UX6).
+    const step = stepButtons(city);
+    if (step !== null) title.append(step.previous);
     title.append(element('h2', undefined, cityDisplayName(state, city)));
+    if (step !== null) title.append(step.next);
     title.append(element('span', 'city-size', `Size ${city.population}`));
     // Hit points beside population, in the same small voice — `cityMaxHp` is
     // the fold `explainCityMaxHp` breaks down, so the tooltip and the figure
@@ -3744,33 +4178,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const hp = element('span', 'city-size', `${city.hp}/${cityMaxHp(city)} hp`);
     hp.title = maxHpLedger(city);
     title.append(hp);
-    // Derived every render and never stored — see `underSiege`. A besieged
-    // town neither heals nor holds, and this is the only place a player who
-    // has not opened the compendium learns that Uruk is starving rather than
-    // merely wounded.
-    if (underSiege(state, city, siegeField(state, city.ownerId))) {
-      const badge = element('span', 'city-size is-siege', 'Under siege');
-      badge.title =
-        'Every neighbouring hex is denied to this town — it cannot heal and ' +
-        'loses a little health each turn, but only an attack can take it.';
-      title.append(badge);
-    }
-    // In unrest (batch WC1), beside the siege in the same alarm voice: the one
-    // other condition that stops a town working. The card in the rail below
-    // says how long and why.
-    if (city.unrest !== undefined) {
-      const badge = element('span', 'city-size is-siege', 'In unrest');
-      badge.title =
-        'Taken by force and not yet pacified — it makes no production, science ' +
-        'or culture, and its borders hold still.';
-      title.append(badge);
-    }
     // What this town believes, beside its name — the 2026-08-28 ruling. The
     // full list of claims is a disclosure in the rail below; this is its answer
     // promoted to where a player actually looks. See `cityFaithHeadline`.
     const belief = renderFaithHeadline(city);
     if (belief) title.append(belief);
     band.append(title);
+    // What the town is short of, in the middle of the band (batch UX6). The
+    // siege and unrest badges that sat beside the name are two of these chips
+    // now, so each problem is said in one place.
+    band.append(renderShortOf(city, quote));
     // The banks, just left of the six chips (the user, 2026-10-12: "The
     // treasury shows on the city screen"). The top bar stands down while a town
     // is open, and a price column with no bank in sight is a column the player
@@ -3841,7 +4258,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const standing = element('div', 'city-card city-discs');
     const rows = defenseRows(state, city);
     const defence = disclosure('Defence', figure(defenseTotal(rows)), renderDefense(city));
-    if (defence) standing.append(defence);
+    if (defence) {
+      standing.append(defence);
+      anchors.set('defence', defence);
+    }
     const built = disclosure('Built', figure(city.buildings.length), renderBuilt(city));
     if (built) standing.append(built);
     // The routes summary counts the caravans this town is an end of; the empire
@@ -3882,7 +4302,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       if (rites) {
         rites.title =
           held !== null
-            ? `${riteDef(held).name}, ${left} more turns`
+            ? `${riteDef(held).name}, ${left} ${left === 1 ? 'turn' : 'turns'} left`
             : sayable.length > 0
               ? 'This city keeps no rite; one can be said here now'
               : 'This city keeps no rite';
@@ -4014,6 +4434,8 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // town stays open it shows only at the revision it was refused at, so any
     // accepted command hides it. See `refused`.
     if (refused !== null && (city === null || refused.cityId !== city.id)) refused = null;
+    // A pinned chip belongs to its town too, and goes the same way.
+    if (pinnedChip !== null && (city === null || pinnedChip.cityId !== city.id)) pinnedChip = null;
     const notice =
       refused !== null && refused.revision === drawing.revision ? refused.text : null;
     const key =
@@ -4026,8 +4448,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // Every anchor in this panel is about to stop existing, and an open card
     // would be left pointing at a row that has gone. See `infoCard.ts`.
     info.hide();
-    strip.hide();
     container.replaceChildren();
+    // The chips' card and the short-of chips' places are drawn afresh below.
+    chipCard = null;
+    anchors = new Map();
     container.className = 'city-mode';
     container.hidden = city === null;
     if (!city) return;
@@ -4069,11 +4493,20 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // band's height`, which was right at one window width and put the work rail
     // through the chips at every other. In flow the band takes what it needs and
     // the row below starts where it actually ends, at every width there is.
+    // The chips' card first, so the chips the band draws have it to fill.
+    chipCard = element('div', 'city-chip-card');
+    chipCard.id = CHIP_CARD_ID;
+    chipCard.hidden = true;
+    chipCard.addEventListener('keydown', unpinOnEscape);
     container.append(renderBand(city, quote));
     const body = element('div', 'city-body');
     body.append(renderTownRail(city, locked, quote));
     body.append(renderWorkRail(city, locked, puppet, quote, notice));
+    // Over the work rail and never over the board: the card is placed against
+    // the rail's own edge (`.city-chip-card`).
+    body.append(chipCard);
     container.append(body);
+    if (pinnedChip !== null) showChipCard(pinnedChip.key);
     // Out of the flow, both of them: they sit against the bottom of the screen
     // rather than after the rails, and the row above must not shorten to make
     // room for something that is over the board anyway.

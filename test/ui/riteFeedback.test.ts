@@ -9,9 +9,11 @@
  *
  * Two claims, and the second is the one with teeth:
  *
- *   1. **The sentence is the simulation's own words.** `ritePreview` is what the
- *      rite's row on the city's sheet promised, so the offer and the report are
- *      one string. A sentence composed here out of the performance report would
+ *   1. **The sentence is the simulation's own words.** `riteOfferText` is what
+ *      the rite's row on the city's sheet promises: the row's own text and the
+ *      turns `riteTurnsFor` would stamp (batch UX6). So the offer and the report
+ *      are one string, and `cityPanelGlance.test.ts` checks both say 15 turns
+ *      when Chichen Itza stands. A sentence composed here out of the performance report would
  *      be a second description of what a rite does, and the two would drift the
  *      first time a rite was retuned.
  *   2. **It is composed *before* the command and announced after.** `commit`'s

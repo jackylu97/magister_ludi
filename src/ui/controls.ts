@@ -282,7 +282,7 @@ import {
   purgeError,
   riteCostFor,
   riteError,
-  ritePreview,
+  riteTurnsFor,
 } from '../sim/religion';
 import {
   type HolySitePlanting,
@@ -332,6 +332,7 @@ import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { nextUnitInStack, resolveUnitPointerTarget } from './unitPointer';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
+import { steppedTownId } from './cityPanel';
 import { HAMMER, YIELD_GLYPH, figure, percentFigure, signedFigure } from './figures';
 // The bargain vocabulary: the terms a Deal panel writes and what signing one
 // moved. Type-only — this module sends commands and reads reports, and every
@@ -424,6 +425,31 @@ export function moveModeNotice(movesLeft: number): string {
 }
 
 /**
+ * What a rite does and how long it would run if this empire started it now:
+ * "Every building standing in this city adds a little learning · lasts 15
+ * turns". The rite row on the city screen prints it (`riteOptions`) and so does
+ * the announcement after a rite (`riteSentence`), so the offer and the report
+ * are one string.
+ *
+ * The turns are `riteTurnsFor`'s (batch UX6), the figure the town is stamped
+ * with, so The Octave and Chichen Itza are counted. `ritePreview`, which the two
+ * printed before, quotes the row's base duration and said 10 where the town
+ * would get 15. The words around the figure are `ritePreview`'s own, so the two
+ * read alike; when the simulation offers a preview that takes the empire into
+ * account (batch UX8b's `explainRitePreview`), this should read that instead.
+ *
+ * `null` for a row with neither text nor a duration.
+ */
+export function riteOfferText(state: GameState, playerId: number, id: RiteId): string | null {
+  const text = riteDef(id).text;
+  const turns = riteTurnsFor(state, playerId, id);
+  const lasts = turns === null ? null : `lasts ${turns} ${turns === 1 ? 'turn' : 'turns'}`;
+  if (text !== undefined && text !== '' && lasts !== null) return `${text} · ${lasts}`;
+  if (text !== undefined && text !== '') return text;
+  return lasts;
+}
+
+/**
  * What a rite that has just been performed is announced as: "✶ Omen Reading at
  * Uruk · Every building standing in this city adds a little learning · lasts 10
  * turns".
@@ -434,10 +460,10 @@ export function moveModeNotice(movesLeft: number): string {
  * else on the screen; it is a town's own verb now and costs a season of faith,
  * which makes the sentence more necessary rather than less.
  *
- * Every word is the simulation's own. `ritePreview` is exactly what the rite's
- * row on the city's sheet promised in this same position (the same call
- * `riteOptions` makes), so what the player was offered and what the Chamberlain
- * reports back are one string by construction rather than by agreement.
+ * `riteOfferText` is exactly what the rite's row on the city's sheet promised
+ * in this same position (the same call `riteOptions` makes), so what the player
+ * was offered and what the Chamberlain reports back are one string by
+ * construction rather than by agreement, turns included.
  * `describeCard` is the fallback for a row whose text is silent — a card's
  * printed clauses, which is the other place a rite's effect is already written
  * down. Composing a third sentence out of the performance report would be a
@@ -450,7 +476,7 @@ export function riteSentence(state: GameState, city: City, id: RiteId): string {
   const def = riteDef(id);
   const where = ` at ${cityDisplayName(state, city)}`;
   const payoff =
-    ritePreview(id) ??
+    riteOfferText(state, city.ownerId, id) ??
     describeCard(id)
       .filter((clause) => clause.deferred !== true)
       // **Stripped**: this sentence is announced — the chronicle line and a
@@ -604,7 +630,7 @@ export interface RiteOption {
   name: string;
   /** Why it cannot be performed, or `null`. The reducer's own sentence. */
   blocked: string | null;
-  /** What it would do, in one line. `ritePreview`'s. */
+  /** What it would do and how long it would last, in one line. `riteOfferText`'s. */
   preview: string | null;
   /**
    * What teaches a greyed row (`riteTeacherName`): the technology, or the
@@ -4903,6 +4929,22 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * Opens the town before (`-1`) or after (`1`) the open one: the comma and
+   * period keys (batch UX6). Every town the seat holds, in founding order with
+   * puppets included, wrapping at the ends (`steppedTownId`). Nothing happens
+   * with no town open, or when the seat holds only the one.
+   *
+   * Through `setOpenCity`, the one way a town is opened, so the camera frames
+   * the new town and buy mode is put away exactly as when a banner is clicked.
+   */
+  function stepOpenCity(step: -1 | 1): void {
+    const city = openCity();
+    if (city === null) return;
+    const next = steppedTownId(getGame().state, localPlayerId, city.id, step);
+    if (next !== null) setOpenCity(next);
+  }
+
+  /**
    * Why the selected unit cannot found a city here.
    *
    * The seat's own questions — is this my turn to act — are asked here; the
@@ -5824,7 +5866,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return {
         id,
         name: riteDef(id).name,
-        preview: ritePreview(id),
+        preview: riteOfferText(state, localPlayerId, id),
         blocked,
         // The faith screen's own reading of the teacher, so the two screens
         // agree: a card-taught rite names its Order, not the technology its
@@ -8113,6 +8155,22 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       else if (buyMode) setBuyMode(false);
       else if (openCity()) setOpenCity(null);
       else clearSelection();
+      return;
+    }
+    if (
+      (event.key === ',' || event.key === '.') &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      openCity() !== null
+    ) {
+      // The previous and the next town, while a town is open (batch UX6; the
+      // user's ruling, `docs/flags.md` (ssssss) 2). The ‹ and › beside the
+      // town's name are the same step. With a modifier held the key is the
+      // browser's or the system's (Cmd + comma opens preferences), so it is
+      // left alone; and a field being typed in has already returned above.
+      event.preventDefault();
+      stepOpenCity(event.key === ',' ? -1 : 1);
       return;
     }
     if (event.key === 'g' || event.key === 'G') {

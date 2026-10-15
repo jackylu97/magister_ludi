@@ -133,10 +133,14 @@ describe('the city sheet', () => {
     expect(text).toMatch(/hp\.title = maxHpLedger\(city\)/);
   });
 
-  it('shows an Under siege badge next to the name, derived every render', () => {
+  it('says Under siege in the band, derived every render', () => {
+    // Since batch UX6 the siege is one of the band's short-of chips
+    // (`shortOfChips`), a link to the Defence ledger, rather than a badge beside
+    // the name; it is still asked of the simulation on every render.
     const text = source('cityPanel.ts');
     expect(text).toMatch(/underSiege\(state, city, siegeField\(state, city\.ownerId\)\)/);
-    expect(text).toMatch(/'city-size is-siege', 'Under siege'/);
+    expect(text).toMatch(/label: 'Under siege',/);
+    expect(text).toMatch(/target: 'defence',/);
   });
 
   it('prints a defence line from explainCityStrength', () => {

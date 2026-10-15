@@ -6,7 +6,7 @@
  * append — would have put every future warrior behind a row that is never
  * reached, and the queue would have silently stopped the first time a player
  * pressed Tithes. `insertionIndex` is that decision extracted from the panel's
- * DOM, the way `stageRows` is (this suite has no jsdom), and it is worth
+ * DOM, the way `chipLedgerRows` is (this suite has no jsdom), and it is worth
  * holding still because the failure it prevents is invisible from every other
  * angle: nothing errors, nothing is refused, the town just quietly builds
  * nothing but coin for the rest of the game.

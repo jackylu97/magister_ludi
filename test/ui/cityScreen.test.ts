@@ -339,19 +339,20 @@ describe('the city mode', () => {
     // the half-emptied strip again, one element at a time.
     expect(text).not.toContain('#civ-yields {\n  visibility: hidden');
     // And the one card that stays, because it is about the hex under the
-    // cursor and that is what a player in this mode is doing: it moves to the
-    // bottom RIGHT corner (the user, first playthrough 2026-09-05 — beside the
-    // left rail it covered the worked hexes once the rail's bars filled out),
-    // and CLEAR of the work rail rather than under it: at the bare gutter the
-    // card stood on the rail's footprint and hid the tail of a long queue
-    // (the same playthrough, note 13). The offset is the rail's gutter + its
-    // width + the gap, read off the rail's own rule so the two move together.
-    expect(text).toContain('body:has(.city-mode:not([hidden])) #hud-context');
-    expect(declaration('body:has(.city-mode:not([hidden])) #hud-context', 'left')).toBe('auto');
-    const railWidth = declaration('.city-rail.is-right', 'width');
-    expect(declaration('body:has(.city-mode:not([hidden])) #hud-context', 'right')).toBe(
-      `calc(14px + ${railWidth} + 14px)`,
-    );
+    // cursor and that is what a player in this mode is doing. Since batch UX6
+    // (the user, 2026-10-12: "The terrain hover card sits at the bottom-left")
+    // it keeps its own bottom-left corner at the town rail's width, so it stands
+    // in the rail's column and covers no board, and the rail stops short of it.
+    // It sat at the bottom right from 2026-09-05 because beside a full rail it
+    // covered the worked hexes; under the rail it covers none.
+    const card = 'body:has(.city-mode:not([hidden])) #hud-context';
+    expect(text).toContain(card);
+    expect(declaration(card, 'left')).toBe('14px');
+    expect(declaration(card, 'right')).toBe('auto');
+    expect(declaration(card, 'width')).toBe(declaration('.city-rail.is-left', 'width'));
+    // The rail's bottom margin is the card's room, read off one variable.
+    expect(declaration('.city-rail.is-left', 'margin-bottom')).toContain('var(--city-context-room)');
+    expect(declaration('.city-mode', '--city-context-room')).toBe('180px');
   });
 
   it('lets the band take the bar’s place, and only when the bar has gone', () => {
@@ -374,28 +375,36 @@ describe('the city mode', () => {
     expect(text).toContain("leave.addEventListener('click', onClose);");
   });
 
-  it('puts the yield breakdown one hover deeper and nowhere shallower', () => {
-    // The ledger the panel used to print under the chips is the card the chips
-    // raise — the same five loops, moved rather than rewritten. If a future
-    // edit drops the bind, six multiplied figures would be on screen with no
-    // reason beside them, which is rule 5's one forbidden shape.
+  it('gives each yield chip its own complete list, one hover deeper and pinned by a click', () => {
+    // Since batch UX6 each chip raises its own list (`chipLedgerRows`), the
+    // town centre and the worked land first, summing to the chip; the old card
+    // printed one partial list under all six. The chip prints the list's own
+    // total, so a chip and its list cannot disagree. `cityModifiers.test.ts`
+    // checks the lists add up for every town of a developed empire.
     const text = panel();
-    expect(text).toContain('strip.bind(chip, () => yieldLedger(city, quote));');
-    for (const fold of [
-      // **The town's own list, printed** (batch E2). The card used to walk four
-      // of `explainCity`'s sources a second time to get their labels back — one
-      // of the four private rebuilds `docs/audit/evaluations.md` §3a names — and
-      // now filters the labelled list the quote returns. The steps it prints are
-      // the four it always printed, in the order it printed them (the luxuries,
-      // the buildings, the guildsmen, the caravans: 4, 8, 5, 6), so the pin is
-      // on the list of steps rather than on four call sites.
-      'const PANEL_LEDGER_STEPS: readonly number[] = [4, 8, 5, 6];',
-      'for (const step of PANEL_LEDGER_STEPS) {',
-      'if (entry.step !== step) continue;',
-      'quoteFigures(entry)',
-      'stageRows(STAGE_LABEL[stage]',
+    const chips = fn('cityPanel.ts', 'renderYieldChips');
+    expect(chips).toContain('const ledger = chipLedgerRows(state, city, quote, key);');
+    expect(chips).toContain("chip.append(element('span', 'city-yield-value', netFigure(value)));");
+    for (const gesture of [
+      "chip.addEventListener('pointerenter'",
+      "chip.addEventListener('focus', () => showChipCard(key));",
+      "chip.addEventListener('click', () => togglePinnedChip(city, key));",
     ]) {
-      expect(`${fold}: ${text.includes(fold)}`).toBe(`${fold}: true`);
+      expect(`${gesture}: ${chips.includes(gesture)}`).toBe(`${gesture}: true`);
+    }
+    // The card stands over the work rail, never over the board: drawn inside the
+    // rails' row and placed against the work rail's edge at its width.
+    expect(fn('cityPanel.ts', 'render')).toContain('body.append(chipCard);');
+    expect(declaration('.city-body', 'position')).toBe('relative');
+    expect(declaration('.city-chip-card', 'position')).toBe('absolute');
+    expect(declaration('.city-chip-card', 'right')).toBe('14px');
+    expect(declaration('.city-chip-card', 'width')).toBe(declaration('.city-rail.is-right', 'width'));
+    // A note while hovered, a control once pinned.
+    expect(declaration('.city-chip-card', 'pointer-events')).toBe('none');
+    expect(declaration('.city-chip-card.is-pinned', 'pointer-events')).toBe('auto');
+    // And the old partial list is gone rather than merely unused.
+    for (const gone of ['PANEL_LEDGER_STEPS', 'function yieldLedger(', 'function stageRows(']) {
+      expect(`${gone}: ${text.includes(gone)}`).toBe(`${gone}: false`);
     }
     // And the four private walks are gone rather than merely unused.
     for (const gone of [
@@ -752,8 +761,10 @@ describe('the build list', () => {
     // which is exactly why it is read out of the source here: the panel greys a
     // row it cannot build *yet* and skips a row that has been replaced, and the
     // difference between the two is one `continue` nobody would miss going.
+    // Asked in `unitRowShown` since batch UX6, which the build list and the
+    // band's "none spare" chips share, so the two cannot disagree.
     const panel = source('cityPanel.ts');
-    expect(panel).toContain("if (upgradeTargetForType(state, city.ownerId, id) !== null) continue;");
+    expect(panel).toContain("if (upgradeTargetForType(state, city.ownerId, id) !== null) return false;");
     // Asked of the reducer's own walk, so the list and the gate cannot drift.
     expect(panel).toMatch(/import \{[^}]*upgradeTargetForType[^}]*\} from '\.\.\/sim\/tech'/s);
   });
@@ -1064,8 +1075,9 @@ describe('the citizen focus line', () => {
     expect(growth).toBeGreaterThanOrEqual(0);
     expect(focus).toBeGreaterThan(growth);
     // And the count is on the Growth row itself rather than in a section — the
-    // one call, inside the one printer.
-    expect(source('cityPanel.ts')).toContain('foot.append(renderCitizens(city));');
+    // one call, inside the one printer. Since batch UX6 it is the citizen line
+    // ("Citizens 11: 8 on land · 2 specialists · 1 idle") under the bar.
+    expect(fn('cityPanel.ts', 'renderGrowth')).toContain('box.append(renderCitizens(city));');
   });
 });
 

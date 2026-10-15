@@ -13,7 +13,7 @@
  * assertion below is the printer applied to a list the sim actually returned.
  *
  * No jsdom (`controls.test.ts`), so the two are exported and called directly,
- * exactly as `stageRows` is in `cityModifiers.test.ts` — the DOM half of
+ * exactly as `chipLedgerRows` is in `cityModifiers.test.ts` — the DOM half of
  * `renderBuildables`/`buildingCard` is three lines that hand a printer's
  * output to an element, and nothing about a house dash or a joined line needs
  * a document to hold still.
@@ -463,9 +463,14 @@ describe('the build list hides what can never be built (user, 2026-08-30)', () =
     eager: true,
   })['../../src/ui/cityPanel.ts'] as string;
   it('skips awaitsTech rows in every roster loop', () => {
-    // The unit rows, the rows that are only bought, and the building rows.
+    // The unit rows (through `unitRowShown`, which the band's "none spare" chips
+    // ask too since batch UX6), the rows that are only bought, and the building
+    // rows.
     const model = braceBody(source, 'export function buildListModel(');
-    expect(model).toContain('if (def.awaitsTech === true) continue;');
+    expect(model).toContain('if (!unitRowShown(state, city, id)) continue;');
+    expect(braceBody(source, 'export function unitRowShown(')).toContain(
+      'if (unitDef(id).awaitsTech === true) return false;',
+    );
     expect(model).toContain('if (def.awaitsTech === true) return null;');
     expect(model).toContain('if (buildingDef(id).awaitsTech === true) continue;');
   });

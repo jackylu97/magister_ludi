@@ -1,129 +1,265 @@
 /**
- * The city panel's modifier list, and the one thing about it that was wrong: a
- * stage heading that said its own lines a second time.
+ * Each yield chip's own list (`chipLedgerRows`, batch UX6), and the two things
+ * it must never do: disagree with the chip, and print a stage's sum over the
+ * percentages it is the sum of.
  *
- * `stageRows` is the panel's layout decision extracted from its DOM (this suite
- * has no jsdom), and it is worth holding still because the failure is invisible
- * to every other kind of test — the numbers were right, the fold was right, the
- * player just read the same fact twice in two different sets of glyphs.
+ * A chip is `foldCity` toward the front of the queue, the figure the end of
+ * turn banks. Its list is the town centre, the worked land, the town's other
+ * lines, one row per percentage and the unrest gate, so the rows add up to the
+ * chip (rule 5). The first block checks that for every voice of every town of a
+ * developed empire, built by hand so it stays quick: a capital with buildings,
+ * specialists, percentages from buildings, the meters and a treasury in debt, a
+ * town in unrest, a puppet and a rival's town. `cityModifiers.slow.test.ts`
+ * asks the same of a game the bots have played forward.
  *
- * The first pass collapsed the *one-source* case and left the rest; the player
- * read the two-source case the same way (2026-08-27) and they were right, so the
- * heading is gone entirely and the sources are the list. What is asserted here is
- * that and its one exception — the **canary**, a stage that folds to a figure
- * with no line to account for it, which is the only shape in which a heading
- * still prints.
+ * The second block is the user's ruling of 2026-08-27, kept from the list the
+ * chips replaced: a stage prints its parts and never its sum, because the sum is
+ * arithmetic a player can do by eye and was the same fact said twice. With it,
+ * the canary: a list that cannot account for its chip says so on a last row
+ * rather than quietly disagreeing with it.
  *
- * The second block is the reason dropping the heading is *safe*: every
- * percentage `foldCityStages` folds has a line of its own in this list, so the
- * fold is visibly the sum of what is printed under where it used to be. If a
- * future modifier joined the fold without joining the list, that would stop being
- * true — the canary would fire in the panel, and this block fails here first.
+ * The third block is what makes the percentage rows complete: every percentage
+ * `foldCityStages` folds has a line of its own in the lists the rows come from.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  foundCityAt,
-} from '../../src/sim/cities';
+import { foundCityAt, refreshCityDerived } from '../../src/sim/cities';
 import {
   cityYieldPercents,
+  foldCity,
   foldCityStages,
   productionModifiers,
+  type CityReading,
 } from '../../src/sim/yields/town';
+import { STAGE_LABEL } from '../../src/sim/yields/stages';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { meterEffects } from '../../src/sim/meters';
+import { readCity, readEmpire } from '../../src/sim/readings';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
-import { type GameState } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision, playerById } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
-import { stageRows } from '../../src/ui/cityPanel';
+import {
+  type ChipLedger,
+  UNACCOUNTED_SOURCE,
+  chipLedgerRows,
+  workedLandLabel,
+} from '../../src/ui/cityPanel';
+import { signedFigure } from '../../src/ui/figures';
+import { braceBody, uiSource } from './sourceHelpers';
 import { newGame } from '../sim/newGameHelpers';
 
-type Source = readonly [string, string, boolean];
+/** A blank grassland board for seat 0 and a rival, with nothing on it yet. */
+function board(width: number, height: number): GameState {
+  const state = newGame({
+    seed: 11,
+    sizeName: 'duel',
+    players: [
+      { name: 'A', color: '#a00', isHuman: true },
+      { name: 'B', color: '#00a', isHuman: false },
+    ],
+  });
+  state.map = createMap({ width, height, terrain: 'grassland' });
+  resetVisibility(state);
+  state.units = [];
+  state.cities = [];
+  state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
+  computeFreshwater(state.map);
+  return state;
+}
 
-const HAPPINESS: Source = ['Happiness +8', '🔬🎭 +10%', false];
-const AUTHORITY: Source = ['Authority −6', '⚙🔬🎭 −10%', true];
+/**
+ * An empire with something on every step a test can reach by hand: a capital of
+ * eight (the palace, eight buildings, two scholars, a warrior at the front so
+ * the barracks puts hammers behind it), a town in unrest, a puppet building a
+ * monument with a workshop behind it, a rival's town, and a treasury in debt.
+ */
+function developedEmpire(): GameState {
+  const state = board(22, 14);
+  const capital = foundCityAt(state, 0, getTileAt(state.map, 5, 5)!);
+  capital.population = 8;
+  capital.buildings.push(
+    'granary',
+    'library',
+    'monument',
+    'forum',
+    'barracks',
+    'workshop',
+    'houseOfWisdom',
+    'machuPicchu',
+  );
+  capital.specialists.scholar = 2;
+  capital.queue = [{ kind: 'unit', id: 'warrior' }];
 
-describe('a stage prints its parts and never their sum', () => {
-  it('drops the heading over a single line', () => {
-    // The reported bug in its first shape: the empire stage's summed figures
-    // over a single meter line saying the same thing.
-    const rows = stageRows('Empire', '🔬 +10%  🎭 +10%', [HAPPINESS]);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]!.label).toBe('Happiness +8');
-    // The line's own figure, which groups the yields it multiplies rather than
-    // listing them apart — same fact, one row.
-    expect(rows[0]!.figures).toBe('🔬🎭 +10%');
-    expect(rows[0]!.stage).toBe(false);
+  const restless = foundCityAt(state, 0, getTileAt(state.map, 12, 5)!);
+  restless.population = 4;
+  restless.buildings.push('library');
+  restless.unrest = { target: 12, progress: 3, unguarded: 1 };
+  restless.queue = [{ kind: 'building', id: 'monument' }];
+
+  const puppet = foundCityAt(state, 0, getTileAt(state.map, 8, 10)!);
+  puppet.population = 3;
+  puppet.buildings.push('workshop');
+  puppet.puppet = true;
+  puppet.queue = [{ kind: 'building', id: 'monument' }];
+
+  const rival = foundCityAt(state, 1, getTileAt(state.map, 18, 10)!);
+  rival.population = 5;
+  rival.buildings.push('library', 'granary');
+
+  playerById(state, 0)!.gold = -40;
+  for (const city of state.cities) refreshCityDerived(state, city);
+  bumpRevision(state);
+  return state;
+}
+
+function fold(ledger: ChipLedger): number {
+  let total = 0;
+  for (const row of ledger.rows) total += row.amount;
+  return total;
+}
+
+function ledgerOf(state: GameState, city: City, key: (typeof CITY_YIELD_KEYS)[number]): ChipLedger {
+  return chipLedgerRows(state, city, readCity(state, city), key);
+}
+
+describe('every chip’s list adds up to the chip, for every town of a developed empire', () => {
+  it('folds to the chip, which is the figure the end of turn banks, with nothing unaccounted', () => {
+    const state = developedEmpire();
+    for (const city of state.cities) {
+      const quote: CityReading = readCity(state, city);
+      const banked = readEmpire(state, city.ownerId).towns.find((town) => town.city.id === city.id)!;
+      for (const key of CITY_YIELD_KEYS) {
+        const ledger = chipLedgerRows(state, city, quote, key);
+        const where = `${city.name} ${key}`;
+        // The chip is `foldCity` toward the front, and that is what is banked.
+        expect(ledger.total, where).toBe(foldCity(state, city, [], city.queue[0], quote)[key]);
+        expect(ledger.total, where).toBe(banked.total[key]);
+        // The rows add up to it, and none of them is the canary.
+        expect(Math.abs(fold(ledger) - ledger.total), where).toBeLessThan(1e-9);
+        expect(ledger.rows.filter((row) => row.kind === 'unaccounted'), where).toEqual([]);
+        // Nothing that adds nothing is printed.
+        expect(ledger.rows.filter((row) => row.amount === 0), where).toEqual([]);
+      }
+    }
   });
 
-  it('drops it over two lines as well — the note that reopened this', () => {
-    // "Empire +10% science +10% culture" above "Happiness +6 culture science
-    // +10%" is arithmetic the player can do by eye off the rows beneath it.
-    const rows = stageRows('Empire', '🔬 +10%', [HAPPINESS, AUTHORITY]);
-    expect(rows.map((row) => row.stage)).toEqual([false, false]);
-    expect(rows.map((row) => row.label)).toEqual(['Happiness +8', 'Authority −6']);
-    // And the word itself is nowhere in what the panel prints.
-    expect(rows.some((row) => row.label.includes('Empire'))).toBe(false);
+  it('starts from the town centre and the worked land, then the rest in the sequence’s order', () => {
+    const state = developedEmpire();
+    const capital = state.cities[0]!;
+    const food = ledgerOf(state, capital, 'food');
+    const hexes = capital.workedTiles.length;
+    expect(hexes).toBeGreaterThan(0);
+    // The centre's line first, then the land folded into one row.
+    expect(food.rows[0]!.label).toBe('City centre');
+    expect(food.rows.map((row) => row.label)).toContain(workedLandLabel(hexes));
+    expect(food.rows.findIndex((row) => row.label === workedLandLabel(hexes))).toBe(1);
+    // The granary is one of the other lines, after the land.
+    expect(food.rows.map((row) => row.label)).toContain('Granary');
+    expect(workedLandLabel(1)).toBe('Worked land (1 hex)');
+    expect(workedLandLabel(8)).toBe('Worked land (8 hexes)');
+  });
+
+  it('has the percentages, the hammers behind the build and the unrest gate in the lists', () => {
+    // Not vacuous: each kind of row the list can print appears somewhere.
+    const state = developedEmpire();
+    const [capital, restless] = state.cities;
+    const science = ledgerOf(state, capital!, 'science');
+    expect(science.rows.some((row) => row.kind === 'percent')).toBe(true);
+    // The treasury in debt costs a quarter of the thought, as a row of its own.
+    const arrears = science.rows.find((row) => row.label === 'Treasury in debt');
+    expect(arrears?.percent).toBeLessThan(0);
+    expect(arrears?.amount).toBeLessThan(0);
+    // The barracks puts hammers behind the warrior at the front.
+    const production = ledgerOf(state, capital!, 'production');
+    expect(production.rows.find((row) => row.label === 'Barracks')).toMatchObject({
+      kind: 'percent',
+      percent: 25,
+    });
+    // A town in unrest makes no production, and its list says why, last.
+    const stopped = ledgerOf(state, restless!, 'production');
+    expect(stopped.total).toBe(0);
+    expect(stopped.rows[stopped.rows.length - 1]).toMatchObject({ kind: 'gate', label: 'In unrest' });
+    expect(Math.abs(fold(stopped))).toBeLessThan(1e-9);
+    // Gold is untouched by unrest, and its list has no gate.
+    expect(ledgerOf(state, restless!, 'gold').rows.some((row) => row.kind === 'gate')).toBe(false);
+  });
+});
+
+describe('a stage prints its parts and never their sum', () => {
+  it('prints each percentage on a row of its own, and never a stage’s heading', () => {
+    const state = developedEmpire();
+    for (const city of state.cities) {
+      for (const key of CITY_YIELD_KEYS) {
+        const labels = ledgerOf(state, city, key).rows.map((row) => row.label);
+        expect(labels).not.toContain(STAGE_LABEL.city);
+        expect(labels).not.toContain(STAGE_LABEL.empire);
+      }
+    }
+  });
+
+  it('names a meter’s line with the meter’s standing, once', () => {
+    // A fresh capital is content, so the happiness tier stands on its thought:
+    // one row, "Happiness +N", and not a stage's sum over it.
+    const state = board(12, 8);
+    const city = foundCityAt(state, 0, getTileAt(state.map, 5, 4)!);
+    bumpRevision(state);
+    const happiness = meterEffects(state, 0).find(
+      (effect) => effect.meter === 'happiness' && !effect.growth && effect.yields.length > 0,
+    );
+    expect(happiness).toBeDefined();
+    const rows = ledgerOf(state, city, 'science').rows.filter((row) => row.kind === 'percent');
+    const named = rows.filter((row) => row.label.startsWith('Happiness'));
+    expect(named).toHaveLength(1);
+    expect(named[0]!.label).toBe(`Happiness ${signedFigure(happiness!.value)}`);
+    expect(named[0]!.percent).toBe(happiness!.percent);
+  });
+
+  it('prints no percentage on a voice nothing multiplies', () => {
+    const state = board(12, 8);
+    const city = foundCityAt(state, 0, getTileAt(state.map, 5, 4)!);
+    bumpRevision(state);
+    expect(ledgerOf(state, city, 'food').rows.some((row) => row.kind === 'percent')).toBe(false);
   });
 
   it('keeps a malus in the alarm ink', () => {
-    expect(stageRows('Empire', '⚙ −10%', [AUTHORITY])[0]!.bad).toBe(true);
+    // A row that takes away is printed in vermilion, off the figure itself.
+    const card = braceBody(uiSource('cityPanel.ts'), 'function chipCardContent(');
+    expect(card).toContain("if (row.amount < 0) item.classList.add('is-bad');");
   });
 
-  it('prints both lines when two sources cancel, and no "no net change"', () => {
-    // The whole point of summing rather than compounding: a +10% and a −10% have
-    // to read as nothing, and a player who can see two modifiers must be able to
-    // find where they went. The two lines are how they find them.
-    const rows = stageRows('Empire', null, [HAPPINESS, AUTHORITY]);
-    expect(rows).toHaveLength(2);
-    expect(rows.some((row) => row.figures === 'no net change')).toBe(false);
-  });
-
-  it('prints nothing for a stage nothing joined', () => {
-    expect(stageRows('City bonuses', null, [])).toEqual([]);
-  });
-
-  it('keeps the canary: a fold with nothing to account for it still prints', () => {
-    // Cannot happen today (the block below is what keeps it so), and if it ever
-    // does the panel must say a percentage is in force rather than swallow it.
-    const rows = stageRows('Empire', '🔬 +10%', []);
-    expect(rows).toEqual([{ label: 'Empire', figures: '🔬 +10%', bad: false, stage: true }]);
+  it('keeps the canary: a list that cannot account for its chip says so', () => {
+    // Cannot happen with the simulation as it is (the first block is what keeps
+    // it so). Simulated here by a reading with one line taken out of its list
+    // but not out of its fold: the chip still says the whole, and the list
+    // must not quietly disagree with it.
+    const state = developedEmpire();
+    const capital = state.cities[0]!;
+    const real = readCity(state, capital);
+    const granary = real.lines.find((line) => line.source === 'Granary' && line.food !== 0)!;
+    const doctored: CityReading = { ...real, lines: real.lines.filter((line) => line !== granary) };
+    const ledger = chipLedgerRows(state, capital, doctored, 'food');
+    const last = ledger.rows[ledger.rows.length - 1]!;
+    expect(last).toMatchObject({ kind: 'unaccounted', label: UNACCOUNTED_SOURCE });
+    expect(last.amount).toBeGreaterThan(0);
+    expect(Math.abs(fold(ledger) - ledger.total)).toBeLessThan(1e-9);
   });
 });
 
 describe('every percentage the stages fold has a line of its own', () => {
-  function empire(): GameState {
-    const state = newGame({
-      seed: 11,
-      sizeName: 'duel',
-      players: [
-        { name: 'A', color: '#a00', isHuman: true },
-        { name: 'B', color: '#00a', isHuman: false },
-      ],
-    });
-    state.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
-    resetVisibility(state);
-    state.units = [];
-    state.cities = [];
-    state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
-    computeFreshwater(state.map);
-    foundCityAt(state, 0, getTileAt(state.map, 5, 4)!);
-    return state;
-  }
-
   it('folds exactly the meters, the luxuries and the hammers — nothing unlisted', () => {
-    const state = empire();
+    const state = board(12, 8);
+    foundCityAt(state, 0, getTileAt(state.map, 5, 4)!);
     const city = state.cities[0]!;
     const front = city.queue[0];
     const sums = foldCityStages(state, city, front);
     const percents = cityYieldPercents(state, city);
     const hammers = productionModifiers(state, city, front);
 
-    // Rebuilt from the two lists the panel prints from. If a third source ever
-    // joins `foldCityStages` without joining one of these, this diverges — and
-    // the collapse above would start hiding a modifier rather than a repetition.
+    // Rebuilt from the two lists the chips' rows come from. If a third source
+    // ever joins `foldCityStages` without joining one of these, this diverges,
+    // and the chips' lists would start leaving a percentage out.
     for (const key of CITY_YIELD_KEYS) {
       const city_ = percents
         .filter((line) => line.yield === key && line.stage === 'city')
@@ -138,24 +274,24 @@ describe('every percentage the stages fold has a line of its own', () => {
     }
   });
 
-  it('gives the happiness tier one row, not a fold and its reason', () => {
-    const state = empire();
-    // A fresh capital is content — and, since the palace's writ of six
-    // (2026-09-08, ruling ddd), solvent as well, so the empire stage holds two
-    // effects rather than one: the happiness tier on thought and the writ's on
-    // hammers. The subject here is the *happiness* row and the collapse it
-    // must not get, so the row is built from the happiness line alone; the
-    // writ's line is pinned beside it rather than filtered away in silence.
+  it('gives the meters one row each, on every voice they move', () => {
+    // A fresh capital is content and, since the palace's authority of six
+    // (2026-09-08, ruling ddd), solvent as well, so two meters stand on it: the
+    // happiness tier on thought and the authority tier on hammers. Each is one
+    // row on each voice it moves, never a fold and its reason.
+    const state = board(12, 8);
+    const city = foundCityAt(state, 0, getTileAt(state.map, 5, 4)!);
+    bumpRevision(state);
     const effects = meterEffects(state, 0).filter(
       (effect) => !effect.growth && effect.yields.length > 0,
     );
     expect(effects.map((effect) => effect.meter)).toEqual(['happiness', 'authority']);
-    const happiness = effects.filter((effect) => effect.meter === 'happiness');
-    expect(happiness).toHaveLength(1);
-    const rows = stageRows('Empire', '🔬 +10%  🎭 +10%', [
-      [`Happiness +${happiness[0]!.value}`, '🔬🎭 +10%', false],
-    ]);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]!.label).toBe(`Happiness +${happiness[0]!.value}`);
+    for (const effect of effects) {
+      const word = effect.meter === 'happiness' ? 'Happiness' : 'Authority';
+      for (const key of effect.yields) {
+        const rows = ledgerOf(state, city, key).rows.filter((row) => row.label.startsWith(word));
+        expect(rows, `${word} on ${key}`).toHaveLength(1);
+      }
+    }
   });
 });

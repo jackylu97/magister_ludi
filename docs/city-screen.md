@@ -117,6 +117,9 @@ button bottom centre. Implementation notes binding the build:
   the display face · Size · hp (ledger on hover) · siege badge · belief badge ·
   the six yield chips, each raising the rule-5 ledger it folds
   (`yieldLedger`). Since revision 4 the banks sit just left of the chips.
+  Since revision 5 each chip raises its own complete list (`chipLedgerRows`),
+  the siege badge is one of the short-of chips in the middle of the band, and
+  ‹ › stand either side of the name.
 - **The chrome stands down** while the mode holds, all of it through one
   derived rule (`body:has(.city-mode:not([hidden]))` — nothing stored, every
   close path restores it): the **whole empire bar** (`#topbar`, the ☰ menu
@@ -126,9 +129,11 @@ button bottom centre. Implementation notes binding the build:
   the bar gone the mode's top padding collapses so the band sits flush; both
   facts share the one condition, so a browser without `:has` keeps the bar
   *and* keeps the band below it. The tile readout is the one card that stays —
-  it slides right of the town rail instead.
+  it slides right of the town rail instead. (Since revision 5 it stands at the
+  bottom-left, under the town rail.)
 - **Town rail** (`.city-rail.is-left`, 230px): Growth and Borders meters (the
-  working count rides the Growth row; both breakdowns on the row's hover) ·
+  working count rides the Growth row; both breakdowns on the row's hover;
+  since revision 5 the citizen line replaces the working count) ·
   Buy tiles · the focus note when set · the specialists row · four
   disclosures, closed by default with the fold in the summary — Defence · N
   (the fold of `defenseRows`), Built · N, Routes · N, Faith · N.
@@ -191,9 +196,9 @@ as buying outright.
     under it in the wanting voice;
   - **cannot be bought here**: a dash. The reason is said elsewhere (below).
 - Which look a cell gets is the purchase gate's answer (`purchaseLook`, which
-  reads `explainPurchaseCost`, `purchaseError` and `bankOf`). "Short" means the
-  gate refused for the money and nothing else; any earlier refusal makes it a
-  dash, because more money would not help.
+  reads `explainPurchaseCost`, `purchaseError` and `purchaseShortfall`).
+  "Short" means the gate refused for the money and nothing else; any earlier
+  refusal makes it a dash, because more money would not help.
 - A seat that has ended its turn sees its pressable prices greyed in the quiet
   ink (a state, not a lack). The work rail's foot already says the turn is over.
 - Wonders now have a cell too. In most towns it is a dash ("a wonder must be
@@ -289,11 +294,111 @@ as buying outright.
   `bankFigure.ts`, are written for the faith screen and the HUD to use too
   (`docs/plans/hud-ux-decisions.md`, "Shared components"), each with its own
   test file.
-- Recognising "short of the bank, and only that" compares the gate's refusal
-  with the sentence `purchaseError` writes for its last clause, the same
-  comparison the bot makes (`outOfReachFor` in `src/ai/wants.ts`). A
-  simulation reading that answered it directly, as `purchaseHexBlocker` does
-  for the town's hex, would replace that comparison.
+- `purchaseShortfall` (`src/sim/purchase.ts`, batch UX5b) answers "short of
+  the bank, and only that" as a number: how much more the bank must hold, or
+  `null` when the purchase is allowed or another clause refuses it. The price
+  cell reads it for "need 31", and the bot reads the same answer through
+  `purchaseGate`. Nothing recognises the case by comparing the gate's words.
+
+## Revision 5 — the town at a glance, batch UX6 (shipped 2026-10-15)
+
+The plan is `docs/plans/hud-ux-decisions.md` (UX6) and the "Settled" list in
+`docs/plans/city-screen-iterations.md`. The keys and the stepping order are
+the user's rulings in `docs/flags.md` (ssssss) 2 and 3.
+
+### Each yield chip has its own list
+
+- Hovering a yield chip, or tabbing to it, shows that yield's complete list in
+  a card over the work rail (`.city-chip-card`: the work rail's corner and
+  width, from the top of the rails down). It never covers the board. A click
+  pins the card; a second click, the card's ×, or Escape on the chip or the
+  card unpins it. Hovering another chip while one is pinned shows that chip's
+  list until the pointer leaves. Opening another town drops the pin.
+- The list (`chipLedgerRows`, `cityPanel.ts`) reads the town's own reading
+  (`readCity`), in the order of `docs/yields.md`:
+  - the town centre's line(s);
+  - "Worked land (8 hexes)": every worked hex folded into one row. A card that
+    pays on hexes is lifted out of it and named on its own row;
+  - that yield's other lines only (buildings, luxuries, routes, specialists,
+    cards), with the simulation's labels;
+  - one row per percentage, priced as its share of its stage. Within a stage
+    percentages add, so each share is the stage's base times its percentage;
+    the empire stage's base is the figure after the city stage. A meter's row
+    carries its standing ("Happiness +8"). The hammers behind the build at the
+    front of the queue are city-stage rows on production;
+  - "In unrest" last, for the yields a town in unrest makes none of.
+- The rows add up to the chip exactly (rule 5), and the chip prints the list's
+  own total, which is `foldCity` toward the front of the queue: the figure the
+  end of turn banks. If the rows ever fail to add up, a last row says "Not
+  accounted for" with the difference, rather than the card quietly
+  disagreeing with its chip.
+- The figures are rounded for the eye (batch X), so the printed rows may be a
+  rounding away from the printed total. The chips used to print the exact
+  fraction ("8.855"); they are rounded now too.
+- A stage never prints its sum over its parts (the user's ruling of
+  2026-08-27, kept). A row that takes away is in the alarm ink.
+- When a card lifts a percentage off one item (The Great Warring Tribes lifts
+  authority's malus from production toward units), the list asks
+  `foldCityStages` which line it left out and does not print it.
+- Tests: `test/ui/cityModifiers.test.ts` checks every chip of every town of a
+  hand-built empire (buildings, specialists, percentages, a treasury in debt, a
+  town in unrest, a puppet, a rival); `cityModifiers.slow.test.ts` checks the
+  same at turns 40 and 80 of the bots' duel.
+
+### What the town is short of
+
+- In the middle of the band, only when true, one chip per problem
+  (`shortOfChips`), in this order:
+  - **In unrest**, with the turns left → the unrest card;
+  - **Under siege** → the Defence disclosure, opened;
+  - **Starving** (the Growth row's own surplus is below nothing) → the
+    citizen focus pane;
+  - **Idle** (nothing queued; never for a puppet, which chooses for itself) →
+    the build list;
+  - **Unhappy** (the empire's happiness is below nothing) → the Growth row,
+    where the slower growth shows;
+  - **No Iron spare** (a strategic resource with no spare copy, when a unit row
+    in this town wants one), with "spare/held" → that unit's row, switching
+    to the Units tab if needed. UX7's Supply strip will take this over.
+- Nothing shows when the town is fine. The siege and unrest badges that sat
+  beside the name are two of these chips now, so each problem is said once.
+- A chip is a button: it scrolls to the place it names, marks it for a moment
+  and moves the keyboard focus there. Its tooltip and spoken label say why.
+
+### Stepping between towns
+
+- ‹ and › either side of the town's name, and the comma and period keys, open
+  the previous and next town the seat holds, in founding order, puppets
+  included (`townsInOrder`, `steppedTownId`), through `controls.setOpenCity`.
+- Stepping wraps: › on the last town opens the first. With one town the arrows
+  are greyed.
+- The keys act only while a town is open, never while typing in a field, and
+  never with Ctrl, Cmd or Alt held (Cmd + comma is the browser's).
+- The arrows appear only when the page passes `onOpenCity` to
+  `createCityPanel`, as the trade link appears only with `onOpenTrade`.
+
+### The citizen line
+
+- Under the Growth bar: "Citizens 11: 8 on land · 2 specialists · 1 idle"
+  (`citizenLineText`), replacing "8/11 working". A part with nobody in it is
+  left out, except the land. The parts always add up to the town's size.
+
+### The tile readout at the bottom-left
+
+- In a town the tile readout (`#hud-context`) keeps its bottom-left corner at
+  the town rail's width, so it stands in the rail's column and covers no
+  board. The town rail stops short of it (`--city-context-room`, 180px) and
+  scrolls inside what is left. Leave the town and the board caption have the
+  bottom centre to themselves.
+
+### Rite durations
+
+- A rite's row and the sentence after a rite both say how long it lasts from
+  `riteTurnsFor`, the figure the town is stamped with, so a seat holding
+  Chichen Itza reads "lasts 15 turns" rather than the row's base 10
+  (`riteOfferText`, `controls.ts`).
+- The tooltip on the town rail's Rites disclosure says "Rite of Plenty, 1 turn
+  left", not "1 more turns".
 
 ## Citizen focus pane (ruled 2026-09-03, shipped)
 

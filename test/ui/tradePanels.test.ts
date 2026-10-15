@@ -45,7 +45,8 @@ import {
   usedRouteSlots,
 } from '../../src/sim/trade';
 import { cityDisplayName } from '../../src/ui/cityDisplay';
-import { readEmpire } from '../../src/sim/readings';
+import { readCity, readEmpire } from '../../src/sim/readings';
+import { chipLedgerRows } from '../../src/ui/cityPanel';
 import {
   NO_ROUTE_CAPACITY,
   cityRouteRows,
@@ -355,18 +356,33 @@ describe('the city panel’s routes row', () => {
    * is one of `foldCity`' flats) and were not in the list under them, which is
    * a total shown without its reason — rule 5's one forbidden shape.
    */
-  it('prints the caravan’s lines under the chips it is already inside', () => {
-    const panel = source('cityPanel.ts');
-    // **Step 6 of the town's own published list** since batch E2: the panel
-    // filters `CityYieldLine`s rather than walking `cityRouteYields` a second
-    // time, so a caravan's line is printed by the same list the chips are the
-    // fold of. Step 6 is the routes arriving (`docs/yields.md`) and it is named
-    // in the panel's own `PANEL_LEDGER_STEPS`.
-    expect(panel).toMatch(/const PANEL_LEDGER_STEPS: readonly number\[\] = \[4, 8, 5, 6\];/);
-    expect(panel).toMatch(/if \(entry\.step !== step\) continue;/);
-    expect(panel).toMatch(/line\(entry\.source, figures\)/);
+  it('prints the caravan’s lines in the chips’ own lists, which add up to the chips', () => {
+    // **Step 6 of the town's own published list** since batch E2: a caravan's
+    // line is printed by the same list the chips are the fold of. Since batch
+    // UX6 each chip prints its own complete list (`chipLedgerRows`), every step
+    // included, so the partner's food chip names the route that feeds it.
+    const { state, trader, home, partner } = tradeWorld();
+    home.buildings.push('granary', 'library');
+    applyCommand(state, {
+      type: 'startRoute',
+      playerId: 0,
+      unitId: trader.id,
+      fromCityId: home.id,
+      toCityId: partner.id,
+    });
+    const quote = readCity(state, partner);
+    const arriving = quote.lines.filter((line) => line.step === 6 && line.food !== 0);
+    expect(arriving.length).toBeGreaterThan(0);
+    const ledger = chipLedgerRows(state, partner, quote, 'food');
+    for (const line of arriving) {
+      expect(ledger.rows.map((row) => row.label)).toContain(line.source);
+    }
+    let fold = 0;
+    for (const row of ledger.rows) fold += row.amount;
+    expect(Math.abs(fold - ledger.total)).toBeLessThan(1e-9);
     // And the trading post is a mark, not a building row: it is history, and all
     // it does is let later caravans reach further.
+    const panel = source('cityPanel.ts');
     expect(panel).toMatch(/city\.tradingPost === true/);
     expect(panel).toMatch(/trading post/);
   });
