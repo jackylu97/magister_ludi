@@ -463,9 +463,10 @@ describe('the city mode', () => {
     const card = fn('cityPanel.ts', 'renderFaithCard');
     // Every row is the sim's: nothing here names a rite or composes a refusal.
     expect(card).toContain('options.riteOptions?.(city.id) ?? []');
-    expect(card).toContain(
-      "priceLook({ bank: 'faith', price: row.cost, refusal: row.blocked, shortfall: null })",
-    );
+    // Since batch UX7b each look is the rite gate's own answer, so a rite the
+    // bank is only short of says "need N".
+    expect(card).toContain('const gate = riteGate(state, seat, city.id, row.id);');
+    expect(card).toContain('shortfall: gate.shortfall,');
     // The refusals, once per reason, and the turns left on the rite it keeps.
     expect(card).toContain('const plan = planRefusals(refused);');
     expect(card).toContain('cityRiteTurnsLeft(state, city)');
@@ -1149,7 +1150,7 @@ describe('the citizen focus pane', () => {
   it('sits in the left rail, directly under the Growth and Borders meters', () => {
     const rail = fn('cityPanel.ts', 'renderTownRail');
     const growth = rail.indexOf('renderGrowth(city, quote)');
-    const borders = rail.indexOf('renderBorders(city, locked, quote)');
+    const borders = rail.indexOf('renderBorders(city, quote)');
     const focus = rail.indexOf('renderFocusPane(city, locked)');
     expect(growth).toBeGreaterThanOrEqual(0);
     expect(borders).toBeGreaterThan(growth);

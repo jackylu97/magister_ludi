@@ -188,6 +188,15 @@ export interface PriceCellOptions {
    * the city screen's column draws it.
    */
   label?: string;
+  /**
+   * Words for the spoken form only, for a bare price that is the action itself
+   * rather than a price beside one: the city screen's Faith card passes
+   * "Start", so its cell still shows "72🕯" and is read aloud as "Start Omen
+   * Reading in Uruk for 72 faith" (batch UX7b). It is spoken exactly as a
+   * `label` is, and draws nothing. Ignored when `label` is set, which speaks
+   * its own words.
+   */
+  spokenLabel?: string;
   /** What pressing a `buy` cell does. Without it the plate is drawn but not pressable. */
   onBuy?: () => void;
   /**
@@ -210,13 +219,14 @@ export interface PriceCellOptions {
  *     outright; 31 more gold needed", "Settler cannot be bought here: …";
  *   - labelled: "Start Omen Reading in Larkspur for 72 faith", "… for 72 faith:
  *     7 more faith needed", "Start Votive Offering in Larkspur: not possible. …".
+ *     A bare cell with a `spokenLabel` is spoken the same way.
  */
 export function priceCellSpoken(
   look: PriceLook,
-  options: Pick<PriceCellOptions, 'name' | 'label' | 'reason'>,
+  options: Pick<PriceCellOptions, 'name' | 'label' | 'spokenLabel' | 'reason'>,
 ): string {
   const amount = `${look.price} ${BANK_UNIT[look.bank]}`;
-  const label = options.label;
+  const label = options.label ?? options.spokenLabel;
   if (look.look === 'buy') {
     return label === undefined
       ? `Buy ${options.name} outright for ${amount}`

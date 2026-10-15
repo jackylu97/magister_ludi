@@ -746,6 +746,19 @@ function itemName(kind: QueueKind, id: string): string {
 }
 
 /**
+ * A building's name with the article a sentence wants in front of it: "a
+ * Library", "an Armoury", "a University" (the row's own `article` where the
+ * vowel rule gets it wrong), and the name alone when it already carries its
+ * own, so a refusal never reads "wants a The Alchemical Society". Words only:
+ * nothing decides anything by it.
+ */
+function buildingWithArticle(id: BuildingId): string {
+  const def = buildingDef(id);
+  if (/^the /i.test(def.name)) return def.name;
+  return `${def.article ?? indefinite(def.name)} ${def.name}`;
+}
+
+/**
  * What a site requirement asks for, **named as a place** — "a harbour", "a
  * mountain within reach" — rather than as the flag that encodes it.
  *
@@ -784,7 +797,7 @@ function siteWords(site: CityScope): string {
     case 'populationAtLeast':
       return `a population of ${site.value}`;
     case 'hasBuilding':
-      return `a ${buildingDef(site.building).name}`;
+      return buildingWithArticle(site.building);
     case 'all':
       return site.of.map((inner) => siteWords(inner)).join(' and ');
     case 'any':
@@ -1192,9 +1205,7 @@ export function buildError(
   if (kind === 'building' && isBuildingId(id) && city !== undefined) {
     const parent = buildingDef(id).requiresBuilding;
     if (parent !== undefined && !city.buildings.includes(parent)) {
-      const named = buildingDef(parent);
-      const article = named.article ?? indefinite(named.name);
-      return `${itemName(kind, id)} needs ${article} ${named.name} standing in ${city.name}`;
+      return `${itemName(kind, id)} needs ${buildingWithArticle(parent)} standing in ${city.name}`;
     }
   }
   // **The site**, last of the building clauses and only when a town is in hand:

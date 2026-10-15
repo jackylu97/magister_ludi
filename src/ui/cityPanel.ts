@@ -44,6 +44,8 @@ import {
   growthThreshold,
   canSpareAnyOf,
   isCoastalCity,
+  purchasableTiles,
+  tileBuyingError,
   productionAwaitingRoom,
   queueItemCost,
   queueItemName,
@@ -209,7 +211,7 @@ import {
 } from './figures';
 import { prefersReducedMotion } from './motion';
 import type { RiteOption } from './controls';
-import { cityRite, cityRiteTurnsLeft } from '../sim/religion';
+import { cityRite, cityRiteTurnsLeft, riteGate } from '../sim/religion';
 import { type RiteId, riteDef } from '../sim/religionData';
 import { chargeCostWords } from '../sim/religion';
 import { createInfoCard } from './infoCard';
@@ -2305,29 +2307,71 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   /** The element whose card is showing, so a late `pointerleave` from another one is ignored. */
   let rowCardAnchor: HTMLElement | null = null;
 
-  /** Shows the work rail's card for `anchor` on pointer rest or focus, and hides it after. */
-  function bindRowCard(anchor: HTMLElement, build: () => Node): void {
+  /**
+   * Shows the work rail's card for `anchor` on pointer rest or focus, and hides
+   * it after. `near` is for a short note on one of the rail's buttons (batch
+   * UX7b): the card then stands just under the button, or just over it when
+   * there is no room under, rather than in the other half of the rail.
+   */
+  function bindRowCard(anchor: HTMLElement, build: () => Node, near = false): void {
     // A tap is not a hover (`infoCard.ts`'s rule): touch is left alone.
     anchor.addEventListener('pointerenter', (event) => {
-      if (event.pointerType !== 'touch') showRowCard(anchor, build);
+      if (event.pointerType !== 'touch') showRowCard(anchor, build, near);
     });
     anchor.addEventListener('pointerleave', () => hideRowCard(anchor));
-    anchor.addEventListener('focus', () => showRowCard(anchor, build));
+    anchor.addEventListener('focus', () => showRowCard(anchor, build, near));
     anchor.addEventListener('blur', () => hideRowCard(anchor));
   }
 
-  function showRowCard(anchor: HTMLElement, build: () => Node): void {
+  function showRowCard(anchor: HTMLElement, build: () => Node, near = false): void {
     const card = rowCard;
     if (card === null) return;
     rowCardAnchor = anchor;
     card.replaceChildren(build());
-    // The half of the rail the row is not in: a row in the upper half gets the
-    // card in the lower half, and the other way round.
-    const rail = anchor.closest('.city-rail') ?? anchor;
+    card.classList.toggle('is-note', near);
     const row = anchor.getBoundingClientRect();
-    const frame = rail.getBoundingClientRect();
-    card.classList.toggle('is-low', row.top + row.height / 2 < frame.top + frame.height / 2);
+    if (!near) {
+      // The half of the rail the row is not in: a row in the upper half gets the
+      // card in the lower half, and the other way round.
+      const rail = anchor.closest('.city-rail') ?? anchor;
+      const frame = rail.getBoundingClientRect();
+      card.style.top = '';
+      card.style.bottom = '';
+      card.classList.toggle('is-low', row.top + row.height / 2 < frame.top + frame.height / 2);
+      card.hidden = false;
+      return;
+    }
+    // A note: measured before it is seen, then placed against its button inside
+    // the frame the card is positioned in (`.city-body`), under the button when
+    // it fits there and over it when it does not.
+    card.classList.remove('is-low');
+    card.style.visibility = 'hidden';
     card.hidden = false;
+    const frame = (card.offsetParent ?? card.parentElement ?? card).getBoundingClientRect();
+    const size = card.getBoundingClientRect();
+    const under = row.bottom - frame.top + 4;
+    const over = row.top - frame.top - 4 - size.height;
+    card.style.top = `${under + size.height <= frame.height || over < 0 ? under : over}px`;
+    card.style.bottom = 'auto';
+    card.style.visibility = '';
+  }
+
+  /**
+   * A short note on one of the work rail's own buttons (×, ↑, ↓, "Now", the
+   * contribute buttons), raised in the rail's card just beside the button
+   * rather than in the hover card beside the rail, which opened over the board
+   * (batch UX7b). `noteOn`'s twin otherwise.
+   */
+  function railNoteOn(anchor: HTMLElement, text: string, describe = true): void {
+    if (describe) anchor.setAttribute('aria-description', text.split('\n').join('. '));
+    bindRowCard(anchor, () => noteNode(text), true);
+  }
+
+  /** A note's lines, as the hover cards print them. */
+  function noteNode(text: string): HTMLElement {
+    const box = element('div', 'info-card-note');
+    for (const part of text.split('\n')) box.append(element('p', undefined, part));
+    return box;
   }
 
   /** Hides the card, or, given an anchor, hides it only if it is that anchor's. */
@@ -2818,11 +2862,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    */
   function noteOn(anchor: HTMLElement, text: string, describe = true): void {
     if (describe) anchor.setAttribute('aria-description', text.split('\n').join('. '));
-    info.bind(anchor, () => {
-      const box = element('div', 'info-card-note');
-      for (const part of text.split('\n')) box.append(element('p', undefined, part));
-      return box;
-    });
+    info.bind(anchor, () => noteNode(text));
   }
 
   // --- sections ------------------------------------------------------------
@@ -3199,10 +3239,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    *
    * The Buy Tiles button sits under it rather than in the header, because it is
    * the other half of the same sentence: this is how ground is acquired, and
-   * gold is the way to hurry it. It is disabled with the reason on it while the
-   * writ bars purchases, which is the same freeze the line above just reported.
+   * gold is the way to hurry it. It is greyed with the simulation's own answer
+   * (`tileBuyingError`, batch UX7b): a puppet's purse, or the writ's freeze
+   * unless a card lifts it for tiles. It used to be greyed whenever the borders
+   * were frozen, so Purchased Prosperity, which lifts the freeze for tiles,
+   * could not be used from here.
    */
-  function renderBorders(city: City, locked: boolean, quote: CityReading): HTMLElement {
+  function renderBorders(city: City, quote: CityReading): HTMLElement {
     const growth = borderGrowth(
       getGame().state,
       city,
@@ -3264,20 +3307,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const active = isBuyMode();
     buy.textContent = active ? 'Stop buying' : 'Buy tiles';
     buy.classList.toggle('is-active', active);
-    const blocker = locked
-      ? `You have ended turn ${getGame().state.turn}`
-      : growth.frozen
-        ? 'Borders frozen — authority is overdrawn'
-        : null;
+    const { state } = getGame();
+    // The ended turn is the panel's own lock and is said at the foot of the work
+    // rail; everything else is the tile gate's town-wide answer.
+    const ended = hasEndedTurn(state, localPlayerId());
+    const refusal = ended ? null : tileBuyingError(state, localPlayerId(), city.id);
+    const blocker = ended ? `You have ended turn ${state.turn}` : refusal;
     buy.disabled = blocker !== null;
-    // Both reasons are on screen already: the ended turn at the foot of the work
-    // rail, the frozen writ on the Borders row above this button.
     noteOn(buy, blocker ?? 'Show what the ground around this city costs in gold');
     buy.addEventListener('click', () => {
       setBuyMode(!isBuyMode());
       onChanged();
     });
     box.append(buy);
+    // Why it is greyed, on a line (never only a note).
+    if (refusal !== null) box.append(refusalLineElement(refusal, 'row'));
 
     return box;
   }
@@ -3577,13 +3621,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     name.tabIndex = 0;
     bindRowCard(name, () => itemCard(city, item, 0));
     what.append(name);
-    what.append(
-      element(
-        'span',
-        'city-prod-turns',
-        `${roundYield(city.hammerBasket)}/${cost} · ${turns === null ? 'stalled' : `${turns}t`}`,
-      ),
+    const schedule = element(
+      'span',
+      'city-prod-turns',
+      `${roundYield(city.hammerBasket)}/${cost} · ${turns === null ? 'stalled' : `${turns}t`}`,
     );
+    what.append(schedule);
     // **And where it is taken off.** The front row left the queue list when the
     // list became "what comes after this", and its × had to come with it or the
     // one row a player most often changes their mind about would be the one row
@@ -3591,7 +3634,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const drop = element('button', 'city-icon-button', '×');
     drop.type = 'button';
     drop.setAttribute('aria-label', 'Stop building this');
-    noteOn(drop, 'Stop building this', false);
+    railNoteOn(drop, 'Stop building this', false);
     // The works-list floor greys this one too — the last two rows of a Vizier's
     // town are the two the reducer will not let it be left without, and the
     // front row is one of them. Same sentence as the queue list's ×, said on a
@@ -3624,7 +3667,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const waiting = productionAwaitingRoom(getGame().state, city);
     if (waiting !== null) {
       const held = element('p', 'city-prod-waiting', `${queueItemName(item)} is waiting for room`);
-      noteOn(
+      railNoteOn(
         held,
         'Finished, with nowhere to stand — the work is kept until a hex beside the town clears.',
       );
@@ -3632,10 +3675,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     }
     // The works-list floor's sentence, when it is what greys the ×.
     if (floored) box.append(refusalLineElement(queueFloorRefusal(city, floor), 'row'));
-    // The rate the bar fills at, on the bar's hover rather than on a line of
-    // its own — the rails' rule, and the figure is the ⚙ chip in the band.
-    noteOn(
-      what,
+    // The rate the bar fills at, on the figures' hover rather than on a line of
+    // its own — the rails' rule, and the figure is the ⚙ chip in the band. On
+    // the figures rather than the whole row, so the name keeps the item's card.
+    railNoteOn(
+      schedule,
       `+${roundYield(perTurn)} a turn · ${roundYield(city.hammerBasket)} of ${cost} banked`,
     );
     // And the two banks, on the rows that declare they take them (Entry LV).
@@ -3700,7 +3744,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       button.setAttribute('aria-label', blocker ?? promise);
       // The promise on hover (batch UX7: no native tooltips). A refusal is said
       // on a line under the pair as well, below.
-      noteOn(button, blocker ?? promise, false);
+      railNoteOn(button, blocker ?? promise, false);
       button.addEventListener('click', () => give(city, currency));
       row.append(button);
     }
@@ -3767,7 +3811,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const up = element('button', 'city-icon-button', '↑');
       up.type = 'button';
       up.setAttribute('aria-label', `Move ${queueItemName(item)} up`);
-      noteOn(up, 'Move up', false);
+      railNoteOn(up, 'Move up', false);
       up.disabled = locked || index === 0;
       up.addEventListener('click', () => {
         const next = draft(city);
@@ -3782,7 +3826,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const down = element('button', 'city-icon-button', '↓');
       down.type = 'button';
       down.setAttribute('aria-label', `Move ${queueItemName(item)} down`);
-      noteOn(down, 'Move down', false);
+      railNoteOn(down, 'Move down', false);
       down.disabled = locked || index === city.queue.length - 1;
       down.addEventListener('click', () => {
         const next = draft(city);
@@ -3795,7 +3839,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const remove = element('button', 'city-icon-button', '×');
       remove.type = 'button';
       remove.setAttribute('aria-label', `Remove ${queueItemName(item)}`);
-      noteOn(remove, 'Remove', false);
+      railNoteOn(remove, 'Remove', false);
       // **The works list a town may not be left short of** — The Vizier's Hall
       // (batch S2). The greyed button is explained by the reducer's own
       // sentence, said once under the "Building now" card, whose × it greys as
@@ -4080,7 +4124,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
      * "Now", for a row that may go to the front of the queue (batch UX7): a unit
      * or building the town may queue, or a building queued behind the current
      * build. Not a project, which never leaves the queue and would hold every
-     * row behind it. Shown on the row's hover or focus (`.city-now`).
+     * row behind it. Shown on the row's hover or focus, in room the build button
+     * gives up for it then (`.has-now`, batch UX7b): it covered the button's
+     * figures in UX7, so a click there queued the row at the front when the
+     * player meant the back.
      */
     const nowButton = (row: BuildListRow): HTMLElement | null => {
       if (locked) return null;
@@ -4092,7 +4139,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const now = element('button', 'city-now', 'Now');
       now.type = 'button';
       now.setAttribute('aria-label', `Build ${row.name} now, ahead of the queue`);
-      noteOn(now, 'Put it at the front of the queue. Shift-click on a row does the same.');
+      railNoteOn(now, 'Put it at the front of the queue. Shift-click on a row does the same.');
       now.addEventListener('click', () => addNow(item));
       return now;
     };
@@ -4152,7 +4199,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const left = element('div', 'city-buildable-lead');
       left.append(lead(row));
       const now = nowButton(row);
-      if (now !== null) left.append(now);
+      if (now !== null) {
+        // The row makes room for "Now" beside the build button while it is
+        // hovered or focused (batch UX7b), so "Now" never covers any part of
+        // the button that adds the row at the back (`.has-now`).
+        left.classList.add('has-now');
+        left.append(now);
+      }
       line.append(left);
       // A project keeps the column's width with an empty cell, so its button
       // lines up with the rows priced around it.
@@ -4356,12 +4409,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    *     (`priceCell.ts`). The price is the control, because a rite is one verb,
    *     spending faith, so the name is a label. What it does and for how long
    *     (`riteOfferText`) is the row's hover note;
-   *   - the refusals said once (`planRefusals`), "Each of these asks 72 faith
-   *     and Ada has 51" rather than once a row, or a reason only one rite has
-   *     under its row. A rite is not short of the bank in the price's own words
-   *     yet (the "need 21" look), because that needs the faith screen's rite
-   *     gate (batch UX9); until then a rite the bank cannot pay for is a dash
-   *     and the bank's sentence is the shared line;
+   *   - a rite the bank is only short of shows its price with "need 21" under
+   *     it (`riteGate`, batch UX7b), and the refusals of anything else are said
+   *     once (`planRefusals`), "Uruk is already keeping Rite of Plenty"
+   *     rather than once a row, or a reason only one rite has under its row;
    *   - the rites the empire has not learnt, folded under "Not yet", each with
    *     what teaches it, because a rite not yet learnt is an argument for going
    *     and learning it;
@@ -4407,9 +4458,22 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const known = rows.filter((row) => row.requiredTechName === null);
     const unknown = rows.filter((row) => row.requiredTechName !== null);
     if (known.length > 0) {
-      const looks = known.map((row) =>
-        priceLook({ bank: 'faith', price: row.cost, refusal: row.blocked, shortfall: null }),
-      );
+      // Each look is the rite gate's own answer (`riteGate`, batch UX7b): a rite
+      // the bank is only short of says "need N", as a price in the build list
+      // does. A seat that has ended its turn may read its rites and not start
+      // them; its pressable prices go quiet (`paused`) rather than becoming a
+      // refusal.
+      const seat = localPlayerId();
+      const paused = hasEndedTurn(state, seat) ? `You have ended turn ${state.turn}` : null;
+      const looks = known.map((row) => {
+        const gate = riteGate(state, seat, city.id, row.id);
+        return priceLook({
+          bank: 'faith',
+          price: row.cost,
+          refusal: gate.refusal,
+          shortfall: gate.shortfall,
+        });
+      });
       // The refusals, once per reason (`planRefusals`), keyed by each row's id.
       const refused: RefusalEntry<RiteId>[] = [];
       known.forEach((row, index) => {
@@ -4426,7 +4490,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         const name = element('span', 'city-rite-name', row.name);
         line.append(name);
         const cell = priceCellElement(look, {
-          name: row.name,
+          name: `${row.name} in ${city.name}`,
+          // Said as the act it is: a rite is started, not bought.
+          spokenLabel: 'Start',
           ...(performRite === undefined
             ? {}
             : {
@@ -4435,12 +4501,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
                   onChanged();
                 },
               }),
+          paused,
           mark: place?.at === 'head' ? place.mark : null,
         });
-        // Said as the act it is: a rite is started, not bought.
-        if (look.look === 'buy') {
-          cell.setAttribute('aria-label', `Start ${row.name} here for ${row.cost} faith`);
-        }
         line.append(cell);
         if (row.preview !== null) {
           noteOn(name, row.preview);
@@ -4891,7 +4954,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     clocks.append(renderGrowth(city, quote));
     // Under growth, because the two are the town's two clocks and the slower
     // one reads as the ground under the faster.
-    clocks.append(renderBorders(city, locked, quote));
+    clocks.append(renderBorders(city, quote));
     // And under both of them the one control that moves them: where this town's
     // people are pointed, and whether it may grow at all.
     clocks.append(renderFocusPane(city, locked));
@@ -5010,10 +5073,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * question it answers: a player being taught (the guide is up), and a player
    * who has armed Buy Tiles, whose whole mode is clicking hexes.
    */
-  function renderBoardCaption(): HTMLElement | null {
+  function renderBoardCaption(city: City): HTMLElement | null {
     const { state } = getGame();
     if (isBuyMode()) {
-      return element(
+      const caption = element(
         'p',
         'city-board-caption',
         // Leads with the treasury a tag's price is checked against, because in
@@ -5021,6 +5084,18 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         `${figure(playerById(state, localPlayerId())?.gold ?? 0)}${YIELD_GLYPH.gold} on hand · ` +
           'every price on the board is what that hex costs now · Esc stops buying',
       );
+      // **Why a plate shows a dash** (batch UX7b). A plate the treasury is short
+      // for says "need N" on the board itself; one refused for anything else is
+      // a dash, and its reason is said here, once. The reasons are the tile
+      // gate's own sentences, read off the same offers the plates are drawn from.
+      const barred = new Set<string>();
+      for (const offer of purchasableTiles(state, city)) {
+        if (offer.error !== null && offer.shortfall === null) barred.add(offer.error);
+      }
+      for (const reason of barred) {
+        caption.append(element('span', 'city-board-caption-why wanting', reason));
+      }
+      return caption;
     }
     if (!isTutorialActive()) return null;
     return element(
@@ -5167,7 +5242,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // Out of the flow, both of them: they sit against the bottom of the screen
     // rather than after the rails, and the row above must not shorten to make
     // room for something that is over the board anyway.
-    const caption = renderBoardCaption();
+    const caption = renderBoardCaption(city);
     if (caption) container.append(caption);
     container.append(renderLeave());
   }

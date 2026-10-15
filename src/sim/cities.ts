@@ -5491,6 +5491,123 @@ export function tilePurchaseError(
   cityId: number,
   cell: Cell,
 ): string | null {
+  return tilePurchaseGate(state, playerId, cityId, cell).refusal;
+}
+
+/** The tile purchase gate's two answers about one hex (`tilePurchaseGate`). */
+export interface TilePurchaseGateAnswer {
+  /** `tilePurchaseError`'s sentence, or `null` when the gate takes the purchase. */
+  refusal: string | null;
+  /**
+   * How much more gold the treasury must hold, when the gold is the only clause
+   * that refused: every other clause passed and the treasury holds less than
+   * the price. `null` in every other case, including when the gate takes the
+   * purchase. Not rounded, because a treasury holds fractions.
+   */
+  shortfall: number | null;
+}
+
+/**
+ * How much more gold this hex needs when the treasury is the only thing
+ * stopping its purchase, or `null` when it is not (the purchase is allowed, or
+ * some other clause refuses it, whether or not the treasury could also pay).
+ *
+ * The board's price plates use it to show "need 31" under a price the player
+ * cannot yet afford (batch UX7b), as the city screen's price column does with
+ * `purchaseShortfall`. It is answered from the gate's own clauses, so no
+ * caller has to recognise this case by comparing the refusal's words.
+ */
+export function tilePurchaseShortfall(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  cell: Cell,
+): number | null {
+  return tilePurchaseGate(state, playerId, cityId, cell).shortfall;
+}
+
+/**
+ * Both of the tile gate's answers from one pass through its clauses: the
+ * refusal (`tilePurchaseError`) and the treasury's shortfall
+ * (`tilePurchaseShortfall`). `purchaseGate`'s shape, one counter over.
+ *
+ * The gold is the gate's last clause and is asked here, so the sentence and the
+ * figure come from one comparison: the price against what the treasury holds.
+ */
+export function tilePurchaseGate(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  cell: Cell,
+): TilePurchaseGateAnswer {
+  const town = tileTownClauses(state, playerId, cityId);
+  if (typeof town === 'string') return { refusal: town, shortfall: null };
+  const { player, city } = town;
+
+  const { map } = state;
+  const tile = getTileAt(map, cell.col, cell.row);
+  if (!tile) return { refusal: `No tile at (${String(cell.col)}, ${String(cell.row)})`, shortfall: null };
+
+  const index = tileIndex(map, tile.col, tile.row);
+  const owner = state.tileOwner[index];
+  if (owner !== null) {
+    return {
+      refusal:
+        owner === city.id ? `${city.name} already owns this tile` : 'This tile is already owned',
+      shortfall: null,
+    };
+  }
+
+  if (!withinWorkRadius(state, city, tile.col, tile.row)) {
+    return { refusal: `Too far from ${city.name} to buy`, shortfall: null };
+  }
+
+  if (!touchesTerritory(state, playerId, tile)) {
+    return { refusal: 'Not next to your territory', shortfall: null };
+  }
+
+  const frozen = tileFreeze(state, playerId);
+  if (frozen !== null) return { refusal: frozen, shortfall: null };
+
+  const price = tilePurchasePrice(state, playerId, cityId, cell);
+  if (player.gold < price) {
+    return { refusal: `Costs ${price} gold; you have ${player.gold}`, shortfall: price - player.gold };
+  }
+
+  return { refusal: null, shortfall: null };
+}
+
+/**
+ * Why this town may buy no tile at all right now, or `null` when it may buy
+ * some: the clauses of the tile gate that do not depend on which hex or what
+ * it costs, which are the player and the town and whose it is, the puppet's
+ * purse, and the writ's freeze with its one lift.
+ *
+ * The city screen's Buy tiles button is greyed with exactly this sentence
+ * (batch UX7b). Before, the button was greyed whenever the writ was
+ * overdrawn, so a seat holding Purchased Prosperity, whose card lifts the
+ * freeze for tiles, could not arm the mode at all.
+ *
+ * The same clauses the gate asks, in the same functions, so the button and the
+ * gate cannot disagree. The gate still asks the freeze after the hex's own
+ * clauses, where it always has, so the sentence a refused purchase returns is
+ * unchanged.
+ */
+export function tileBuyingError(state: GameState, playerId: number, cityId: number): string | null {
+  const town = tileTownClauses(state, playerId, cityId);
+  if (typeof town === 'string') return town;
+  return tileFreeze(state, playerId);
+}
+
+/**
+ * The tile gate's first clauses: the player, the town and whose it is, and the
+ * puppet's purse. The refusal's sentence, or the two the later clauses need.
+ */
+function tileTownClauses(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+): string | { player: Player; city: City } {
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
   const city = cityById(state, cityId);
@@ -5502,37 +5619,23 @@ export function tilePurchaseError(
   if (city.puppet === true) {
     return `${city.name} is a puppet — a puppet spends nothing; annex it to invest`;
   }
+  return { player, city };
+}
 
-  const { map } = state;
-  const tile = getTileAt(map, cell.col, cell.row);
-  if (!tile) return `No tile at (${String(cell.col)}, ${String(cell.row)})`;
-
-  const index = tileIndex(map, tile.col, tile.row);
-  const owner = state.tileOwner[index];
-  if (owner !== null) {
-    return owner === city.id ? `${city.name} already owns this tile` : 'This tile is already owned';
-  }
-
-  if (!withinWorkRadius(state, city, tile.col, tile.row)) {
-    return `Too far from ${city.name} to buy`;
-  }
-
-  if (!touchesTerritory(state, playerId, tile)) return 'Not next to your territory';
-
-  // The freeze, and its one lift (Purchased Prosperity, batch C4). A second
-  // clause on this same `if` rather than a second way to buy a hex, which is
-  // what `goldBuysWonders` does at the other counter and for its reason: every
-  // refusal above and below this one is asked unchanged.
+/**
+ * The freeze, and its one lift (Purchased Prosperity, batch C4): the sentence
+ * when an overdrawn writ bars buying ground, or `null`. A second clause on this
+ * same `if` rather than a second way to buy a hex, which is what
+ * `goldBuysWonders` does at the other counter and for its reason: every refusal
+ * before and after this one is asked unchanged.
+ */
+function tileFreeze(state: GameState, playerId: number): string | null {
   if (
     bordersFrozen(meterEffects(state, playerId)) &&
     !cardActionRule(state, playerId, 'goldBuysFrozenTiles')
   ) {
     return 'Borders frozen — authority is overdrawn';
   }
-
-  const price = tilePurchasePrice(state, playerId, cityId, cell);
-  if (player.gold < price) return `Costs ${price} gold; you have ${player.gold}`;
-
   return null;
 }
 
@@ -5554,6 +5657,12 @@ export interface TileOffer {
   price: number;
   /** `null` when the player may buy it right now. */
   error: string | null;
+  /**
+   * How much more gold the treasury needs when gold is the only reason the
+   * hex cannot be bought now, otherwise `null` (`tilePurchaseShortfall`). The
+   * board's plate prints it as "need 31" (batch UX7b).
+   */
+  shortfall: number | null;
 }
 
 export function purchasableTiles(state: GameState, city: City): TileOffer[] {
@@ -5572,13 +5681,16 @@ export function purchasableTiles(state: GameState, city: City): TileOffer[] {
     if (state.tileOwner[tileIndex(map, tile.col, tile.row)] !== null) continue;
     if (!touchesTerritory(state, owner, tile)) continue;
     const cell: Cell = { col: tile.col, row: tile.row };
+    // Everything left is a real offer, so whatever the gate says is a reason
+    // the *player* cannot take it today — an empty purse, or a frozen writ. One
+    // pass gives the sentence and, for the purse, how much is missing.
+    const gate = tilePurchaseGate(state, owner, city.id, cell);
     offers.push({
       col: tile.col,
       row: tile.row,
       price: tilePurchasePrice(state, owner, city.id, cell),
-      // Everything left is a real offer, so whatever this says is a reason the
-      // *player* cannot take it today — an empty purse, or a frozen writ.
-      error: tilePurchaseError(state, owner, city.id, cell),
+      error: gate.refusal,
+      shortfall: gate.shortfall,
     });
   }
   offers.sort((a, b) => tileIndex(map, a.col, a.row) - tileIndex(map, b.col, b.row));

@@ -143,7 +143,8 @@ describe('the price plate', () => {
     // One printer for both modes' faces — a second `setYieldText` would be the
     // fork this layer exists to avoid.
     expect(module).toMatch(/setYieldText\(tag\.root, plate\.text\)/);
-    expect(module).toMatch(/text: `\$\{YIELD_GLYPH\.gold\} \$\{offer\.price\}`/);
+    expect(module).toMatch(/const price = `\$\{YIELD_GLYPH\.gold\} \$\{offer\.price\}`;/);
+    expect(module).toContain("text: look.look === 'none' ? '—' : price,");
     // The spoken and hovered forms stay words: a screen reader given the glyph
     // reads its Unicode name before the number it decorates.
     expect(module).toMatch(/aria-label/);
@@ -172,13 +173,16 @@ describe('the price plate', () => {
 });
 
 describe('the flair cabinet’s specimen', () => {
-  it('shows all three states, built from the game’s own class and printer', () => {
+  it('shows every look, built from the game’s own class and printer', () => {
     const gallery = source('flourishes.ts');
     expect(gallery).toContain('pricePlateStall');
     expect(gallery).toMatch(/'tile-price'/);
     expect(gallery).toMatch(/is-barred/);
     expect(gallery).toMatch(/is-hovered/);
     expect(gallery).toMatch(/setYieldText/);
+    // The short and not-here looks (batch UX7b), in the board's own words.
+    expect(gallery).toContain("plate.append(element('span', 'tile-price-need wanting', priceNeedText(state.need)));");
+    expect(gallery).toContain("state.dash === true ? '—'");
   });
 
   /**

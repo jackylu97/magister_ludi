@@ -4420,8 +4420,8 @@ body.has-diplomatic-offers .end-turn-list {
 
    Everything tunable is a custom property on the class, so the plate can be
    dialed in one block — this is `data/view3d.json`'s job done in the register a
-   DOM surface actually reads. `flair.html` carries a specimen of all three
-   states for exactly that iteration. */
+   DOM surface actually reads. `flair.html` carries a specimen of every look for
+   exactly that iteration. */
 .tile-price {
   --price-paper: var(--parchment);
   --price-ink: var(--y-gold);
@@ -4498,6 +4498,21 @@ body.has-diplomatic-offers .end-turn-list {
   color: var(--price-ink-barred);
   cursor: not-allowed;
   box-shadow: var(--price-throw) var(--price-throw) 0 rgba(29, 26, 32, 0.18);
+}
+
+/* Short of the treasury (batch UX7b): the greyed figure and, under it, what is
+   missing — the price column's "need 31", the one refusal more gold fixes. The
+   need line takes its vermilion from `.wanting`; this only stacks the two. A
+   hex refused for anything else shows a dash instead of its figure, and its
+   reason is said once in the board caption. */
+.tile-price.is-short {
+  flex-direction: column;
+  gap: 0;
+}
+
+.tile-price-need {
+  font-size: calc(var(--price-size) * 0.82);
+  line-height: 1.1;
 }
 
 /* The faith lens's plate: the same plate, in a founder's ink, saying a fact
@@ -5997,6 +6012,13 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-soft);
 }
 
+/* Why the board's dashed plates are dashed (batch UX7b): the tile gate's own
+   sentence, once, on a line of its own under the caption's first line. */
+.city-board-caption-why {
+  display: block;
+  margin-top: 2px;
+}
+
 .city-size {
   display: inline-block;
   margin-top: 2px;
@@ -6931,13 +6953,29 @@ p.city-trade-link {
   color: inherit;
 }
 
-/* The left of a row: the build button, and the "Now" that sits over its
-   figures while the row is hovered or holds the keyboard (batch UX7). */
+/* The left of a row: the build button, and the "Now" beside it while the row
+   is hovered or holds the keyboard (batch UX7). */
 .city-buildable-lead {
   position: relative;
   display: flex;
   flex: 1 1 0;
   min-width: 0;
+  transition: padding-right 90ms ease-out;
+}
+
+/* The build button gives up room for "Now" while the row is hovered or focused
+   (batch UX7b), so "Now" stands beside the button and never over it: every part
+   of the button still adds the row at the back. Only the button's own content
+   moves; the price column stays where it is. */
+.city-buildable-row:hover > .city-buildable-lead.has-now,
+.city-buildable-row:focus-within > .city-buildable-lead.has-now {
+  padding-right: 40px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .city-buildable-lead {
+    transition: none;
+  }
 }
 
 .city-buildable-lead > .city-buildable,
@@ -6947,15 +6985,17 @@ p.city-trade-link {
 }
 
 /* "Now": puts the row at the front of the queue. Present for the keyboard all
-   along and drawn only while the row is hovered or focused, over the hammers
-   and turns (which the row's hover card repeats). A plate in the build
-   button's own voice, so it reads as the same row's second verb. */
+   along and drawn only while the row is hovered or focused, in the room the
+   build button gives up for it. A plate in the build button's own voice, so it
+   reads as the same row's second verb. */
 .city-now {
   position: absolute;
   top: 50%;
-  right: 5px;
+  right: 0;
+  width: 36px;
   transform: translateY(-50%);
-  padding: 2px 7px;
+  padding: 2px 0;
+  text-align: center;
   border: var(--border-thin) solid var(--ink);
   border-radius: var(--radius-sm);
   background: var(--parchment);
@@ -7137,6 +7177,17 @@ p.city-trade-link {
 .city-row-card.is-low {
   top: auto;
   bottom: max(calc(14px + 46px), var(--end-turn-clearance));
+}
+
+/* A short note on one of the rail's own buttons (batch UX7b): as wide as its
+   words, against the rail's right edge, just under or over its button (placed
+   by `showRowCard`). It used to open in the hover card beside the rail, which
+   put it over the board. */
+.city-row-card.is-note {
+  width: auto;
+  max-width: 300px;
+  padding: 5px 8px;
+  box-shadow: 2px 2px 0 var(--ink);
 }
 
 /* "Buy outright · 356💰 · you have 437 gold", or why it is not sold here. */
@@ -10489,6 +10540,11 @@ p.city-trade-link {
   .city-chip-card,
   .city-row-card {
     width: 244px;
+  }
+
+  .city-row-card.is-note {
+    width: auto;
+    max-width: 244px;
   }
 }
 

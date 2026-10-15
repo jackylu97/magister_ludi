@@ -275,6 +275,42 @@ describe('a labelled cell (batch UX9)', () => {
   });
 });
 
+describe('a spoken label (batch UX7b)', () => {
+  // The city screen's Faith card: a bare price in the price column that is the
+  // action itself, so it is read aloud as the act and still shows the figure.
+  it('is read aloud as a label is', () => {
+    const name = 'Omen Reading in Uruk';
+    expect(
+      priceCellSpoken({ look: 'buy', bank: 'faith', price: 72 }, { name, spokenLabel: 'Start' }),
+    ).toBe('Start Omen Reading in Uruk for 72 faith');
+    expect(
+      priceCellSpoken(
+        { look: 'short', bank: 'faith', price: 72, need: 21 },
+        { name, spokenLabel: 'Start' },
+      ),
+    ).toBe('Start Omen Reading in Uruk for 72 faith: 21 more faith needed');
+    expect(
+      priceCellSpoken(
+        { look: 'none', bank: 'faith', price: 72, refusal: 'Uruk is already keeping Rite of Plenty' },
+        { name, spokenLabel: 'Start' },
+      ),
+    ).toBe('Start Omen Reading in Uruk: not possible. Uruk is already keeping Rite of Plenty');
+  });
+
+  it('draws nothing: the face stays the bare price, and a label still wins', () => {
+    const body = braceBody(uiSource('priceCell.ts'), 'export function priceCellElement(');
+    // Only `label` decides what is drawn.
+    expect(body).toContain('const labelled = options.label !== undefined;');
+    expect(body).not.toContain('spokenLabel');
+    expect(
+      priceCellSpoken(
+        { look: 'buy', bank: 'faith', price: 72 },
+        { name: 'Omen Reading', label: 'Start', spokenLabel: 'Say' },
+      ),
+    ).toBe('Start Omen Reading for 72 faith');
+  });
+});
+
 describe('the cell as drawn', () => {
   const cell = (): string => braceBody(uiSource('priceCell.ts'), 'export function priceCellElement(');
 

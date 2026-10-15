@@ -46,6 +46,7 @@ import { CARD_LINE_ACCENT, cardLineMarkUrl } from '../ui/cardLine';
 import { printerDeviceMarkUrl } from '../ui/deviceMarks';
 import { AXIS_MARK } from '../ui/religionScreen';
 import { drawPantheonWheel, pantheonWheelLayout } from '../ui/pantheonWheel';
+import { priceNeedText } from '../ui/priceCell';
 import { YIELD_GLYPH, setYieldText } from '../ui/yieldMark';
 import { Renderer3D } from '../render3d/renderer3d';
 import { foundCityAt } from '../sim/cities';
@@ -227,16 +228,26 @@ function pricePlateStall(into: HTMLElement): void {
   const root = block(
     into,
     'The price plate',
-    'What a hex costs, while Buy Tiles mode is up. The city panel’s buy tag laid on the ground: parchment under a hairline ink rim, the coin drawn from `src/art/yieldMarks.ts` rather than typed, the figure in tabular mono. A hex the treasury cannot cover keeps its figure and loses its ink — greyed, never struck, because a line through a price says *withdrawn* when it means *not today*.',
+    'What a hex costs, while Buy Tiles mode is up. The city panel’s buy tag laid on the ground: parchment under a hairline ink rim, the coin drawn from `src/art/yieldMarks.ts` rather than typed, the figure in tabular mono. A hex the treasury cannot cover keeps its figure and loses its ink — greyed, never struck, because a line through a price says *withdrawn* when it means *not today* — with what it lacks under it, as the price column says it. A hex refused for anything else shows a dash, its reason said once in the board caption.',
   );
   const grid = stallGrid(root);
-  const cell = stall(grid, 'three plates, over ground', 'stall-price');
+  const cell = stall(grid, 'four plates, over ground', 'stall-price');
   const ground = element('div', 'price-ground');
 
-  const states: { caption: string; price: number; barred: boolean; hovered: boolean }[] = [
+  const states: {
+    caption: string;
+    price: number;
+    barred: boolean;
+    hovered: boolean;
+    /** The short look's "need N" (batch UX7b). */
+    need?: number;
+    /** The not-here look: a dash instead of the figure. */
+    dash?: boolean;
+  }[] = [
     { caption: 'affordable', price: 50, barred: false, hovered: false },
     { caption: 'hovered', price: 75, barred: false, hovered: true },
-    { caption: 'unaffordable', price: 110, barred: true, hovered: false },
+    { caption: 'short', price: 110, barred: true, hovered: false, need: 31 },
+    { caption: 'not here', price: 90, barred: true, hovered: false, dash: true },
   ];
   const plates: HTMLElement[] = [];
   for (const state of states) {
@@ -249,7 +260,12 @@ function pricePlateStall(into: HTMLElement): void {
     }
     if (state.hovered) plate.classList.add('is-hovered');
     // The game's own printer, so the coin on this page is the coin on the board.
-    setYieldText(plate, `${YIELD_GLYPH.gold} ${state.price}`);
+    setYieldText(plate, state.dash === true ? '—' : `${YIELD_GLYPH.gold} ${state.price}`);
+    // And its own words for what is missing, as `tilePriceTags.ts` writes them.
+    if (state.need !== undefined) {
+      plate.classList.add('is-short');
+      plate.append(element('span', 'tile-price-need wanting', priceNeedText(state.need)));
+    }
     slot.append(plate, element('span', 'price-caption', state.caption));
     ground.append(slot);
     plates.push(plate);

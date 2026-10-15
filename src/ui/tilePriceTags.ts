@@ -13,10 +13,13 @@
  * ------------------------------------------------
  * One tag per entry in `purchasableTiles` (`cities.ts`), which is the *one*
  * evaluator: the price on the tag is the price the reducer charges, and a hex
- * the reducer would refuse wears a greyed tag carrying the reducer's own
- * sentence rather than no tag at all. That is the mode's whole content — a
- * player who cannot afford the wheat field needs to see what it costs and be
- * told why not, and a tag that vanished would answer neither question.
+ * the reducer would refuse wears a greyed tag rather than no tag at all. That
+ * is the mode's whole content — a player who cannot afford the wheat field
+ * needs to see what it costs and be told why not, and a tag that vanished would
+ * answer neither question. Since batch UX7b a tag takes the price column's
+ * three looks (`tilePlateLook`): can buy, short with "need 31" under the
+ * figure, or a dash for a hex refused for anything but the treasury, whose
+ * reason the city screen's board caption says once.
  *
  * Ground that is not on offer at all — the sea, a rival's territory, hexes off
  * the frontier — gets nothing. There is no price to quote on a tile nobody is
@@ -88,10 +91,11 @@
  * `test/ui/tilePriceTags.test.ts` pins its dress).
  */
 
-import { purchasableTiles } from '../sim/cities';
+import { type TileOffer, purchasableTiles } from '../sim/cities';
 import type { Game } from '../sim/game';
 import type { City } from '../sim/state';
 import type { MapView } from './mapView';
+import { type PriceLook, priceLook, priceNeedText } from './priceCell';
 import { YIELD_GLYPH, setYieldText } from './yieldMark';
 
 /**
@@ -115,6 +119,12 @@ export interface MapPlate {
   spoken: string;
   /** True for a plate that is a figure and a reason rather than a button. */
   disabled: boolean;
+  /**
+   * The short look (batch UX7b): how much more gold the treasury needs, printed
+   * as "need 31" under the figure, as the city screen's price column prints it.
+   * Absent on every other plate.
+   */
+  need?: number;
   /**
    * An extra class on the plate's root, for a supplier with a dress of its own.
    *
@@ -268,6 +278,7 @@ export function createMapPlates(options: MapPlatesOptions): MapPlates {
         plate.className ?? '',
         plate.ink ?? '',
         plate.inert === true ? '1' : '0',
+        plate.need ?? '',
       ].join('|');
       if (signature !== tag.signature) {
         tag.signature = signature;
@@ -281,6 +292,14 @@ export function createMapPlates(options: MapPlatesOptions): MapPlates {
         // drawn mark and the space after one is what gives it air (the lead
         // rule, `yieldMark.ts`).
         setYieldText(tag.root, plate.text);
+        // The short look's second line: what the treasury lacks, in the wanting
+        // voice, as the price column says it (`priceNeedText`).
+        if (plate.need !== undefined) {
+          const need = document.createElement('span');
+          need.className = 'tile-price-need wanting';
+          need.textContent = priceNeedText(plate.need);
+          tag.root.append(need);
+        }
         // Words only in the spoken form and in the tooltip: the platform builds
         // both out of a string, and a screen reader given the glyph reads its
         // Unicode name before the number it decorates. A refusal here is the
@@ -289,6 +308,7 @@ export function createMapPlates(options: MapPlatesOptions): MapPlates {
         tag.root.setAttribute('aria-label', plate.spoken);
         tag.root.title = plate.spoken;
         tag.root.classList.toggle('is-barred', plate.disabled);
+        tag.root.classList.toggle('is-short', plate.need !== undefined);
         // A label is a button the platform will never dispatch to: `disabled`
         // as well as `pointer-events: none`, because the second is a stylesheet
         // the flair cabinet could photograph without and the first is the rule.
@@ -333,11 +353,28 @@ export function createMapPlates(options: MapPlatesOptions): MapPlates {
 }
 
 /**
+ * The look one offer's plate takes (batch UX7b), the price column's three
+ * (`priceCell.ts`): can buy now, short of the treasury ("need N"), or not
+ * here (a dash, its reason said once in the board caption). Decided by
+ * `priceLook` from the tile gate's own answers, the refusal and the shortfall
+ * (`tilePurchaseGate`), so "short" is never recognised by its words.
+ */
+export function tilePlateLook(offer: TileOffer): PriceLook {
+  return priceLook({
+    bank: 'gold',
+    price: offer.price,
+    refusal: offer.error,
+    shortfall: offer.shortfall,
+  });
+}
+
+/**
  * The Buy Tiles supplier: `purchasableTiles` as plates.
  *
  * The *one* evaluator, exactly as before — the price on the plate is the price
  * the reducer charges and a hex the reducer would refuse wears the reducer's
- * own sentence. Nothing about the offer is decided here.
+ * own sentence. Nothing about the offer is decided here. Since batch UX7b a
+ * plate takes one of the price column's three looks (`tilePlateLook`).
  */
 export function createTilePriceTags(options: TilePriceTagsOptions): TilePriceTags {
   const { container, renderer, getGame, getCity, isActive, onBuy } = options;
@@ -347,18 +384,21 @@ export function createTilePriceTags(options: TilePriceTagsOptions): TilePriceTag
     getPlates: () => {
       const city = getCity();
       if (!isActive() || !city) return [];
-      return purchasableTiles(getGame().state, city).map((offer) => {
-        const affordable = offer.error === null;
+      return purchasableTiles(getGame().state, city).map((offer): MapPlate => {
+        const look = tilePlateLook(offer);
+        // The coin then the figure. The mark leads here where the city panel's
+        // price trails, because that cell sits in a column and this one is a
+        // plate with nothing around it — leading with the coin is what says
+        // "money" before it says "sixty". A hex refused for anything but the
+        // treasury shows a dash, because its price would buy nothing.
+        const price = `${YIELD_GLYPH.gold} ${offer.price}`;
         return {
           col: offer.col,
           row: offer.row,
-          // The coin then the figure. The mark leads here where the city
-          // panel's `or 60💰` trails, because that tag is the end of a sentence
-          // and this one is a plate with nothing around it — leading with the
-          // coin is what says "money" before it says "sixty".
-          text: `${YIELD_GLYPH.gold} ${offer.price}`,
-          spoken: affordable ? `Buy this tile for ${offer.price} gold` : offer.error ?? '',
-          disabled: !affordable,
+          text: look.look === 'none' ? '—' : price,
+          spoken: look.look === 'buy' ? `Buy this tile for ${offer.price} gold` : offer.error ?? '',
+          disabled: look.look !== 'buy',
+          ...(look.look === 'short' ? { need: look.need } : {}),
         };
       });
     },

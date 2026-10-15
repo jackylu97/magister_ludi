@@ -181,6 +181,10 @@ const SURFACES: { file: string; says: string; carries: string }[] = [
   { file: 'cityPanel.ts', says: 'what a row under "Not yet" waits on', carries: "reasonLine(reason, 'city-not-yet-why wanting')" },
   { file: 'cityPanel.ts', says: "why a row kept for its price cannot be queued", carries: "reasonLine(reason, 'refusal-line is-row wanting')" },
   { file: 'cityPanel.ts', says: "why the rows' card says a thing is not sold here", carries: "line.classList.add('wanting');" },
+  // The board's tile price plates since batch UX7b: what the treasury lacks
+  // under a short plate, and why a plate shows a dash, once in the caption.
+  { file: 'tilePriceTags.ts', says: 'what a tile plate is short of', carries: "need.className = 'tile-price-need wanting';" },
+  { file: 'cityPanel.ts', says: 'why the board shows a dash for a hex', carries: "element('span', 'city-board-caption-why wanting', reason)" },
   // The price column, since batch UX5 (the user's A1 ruling, 2026-10-12). A
   // refused purchase is no longer a vermilion tag with its reason in a native
   // tooltip: a price the bank is short of says how much more is needed, and
@@ -335,6 +339,8 @@ describe('the wanting voice', () => {
         [on('city-not-yet'), on('city-not-yet-row', 'is-unit'), on('city-not-yet-why', 'wanting')],
       ],
       ['the rows\' card\'s "not bought here"', [on('city-row-card'), on('city-row-card-buy', 'wanting')]],
+      ['a short tile plate\'s "need 31"', [off('tile-price', 'is-barred', 'is-short'), on('tile-price-need', 'wanting')]],
+      ['why a tile plate is a dash', [on('city-board-caption'), on('city-board-caption-why', 'wanting')]],
       // The price column (batch UX5): the gold a price is short of, a refusal
       // said once at the head of a shelf or under a row, and a refused command.
       ['what a price is short of', [on('price-cell', 'is-short'), on('price-cell-need', 'wanting')]],

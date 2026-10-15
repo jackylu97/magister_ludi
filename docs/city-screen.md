@@ -462,9 +462,11 @@ A1 ("Spend presentation").
 
 ### "Now" and ↓
 
-- "Now", shown over a row's figures while it is hovered or focused, puts it at
-  the front of the queue (`queueWithFront`); Shift-click on the row does the
-  same. A building already in the queue is moved to the front rather than
+- "Now", shown beside a row's build button while the row is hovered or
+  focused, puts it at the front of the queue (`queueWithFront`); Shift-click on
+  the row does the same. The build button makes room for it then, so "Now"
+  never covers any part of the button that adds the row at the back (it did in
+  UX7, over the figures; batch UX7b moved it). A building already in the queue is moved to the front rather than
   queued twice. A project has no "Now": it never leaves the queue and would
   hold every row behind it.
 - Each queue row has ↓ beside ↑ and ×.
@@ -482,10 +484,12 @@ A1 ("Spend presentation").
   click deeper; the rite the town keeps and the turns left; then each known
   rite as a row with its price in faith in the price column. The price is the
   control (the name is a label), and what the rite does is its hover note.
-- A refusal several rites share is said once ("Each of these asks 72 faith and
-  Ada has 51", the rite gate's own sentence). A rite the bank is short of is a
-  dash for now, not the "need 21" look: that needs `riteShortfall`, which batch
-  UX9 adds to `religion.ts`.
+- Each rite's price is the rite gate's own answer (`riteGate`): a rite the
+  bank is only short of shows "need 21" under its price (batch UX7b), and a
+  refusal several rites share is said once ("Uruk is already keeping Rite of
+  Plenty", the gate's own sentence). The price is read aloud as the act,
+  "Start Omen Reading in Uruk for 72 faith" (`priceCell.ts`'s `spokenLabel`),
+  while the cell still shows the bare price.
 - Rites the empire has not learnt fold under "Not yet", each with what teaches
   it.
 - "Rites in every town →" opens the faith sheet's rites when the page passes
@@ -500,6 +504,10 @@ A1 ("Spend presentation").
   the levy.
 - The contribute buttons' promise is a note too; their refusals were already
   lines.
+- The notes on the work rail's own buttons (×, ↑, ↓, "Now", the contribute
+  buttons, and the front card's figures) open in the rail's card just under
+  or over the button (`railNoteOn`, batch UX7b), not in the hover card beside
+  the rail, which put them over the board.
 
 ### Smaller changes
 
@@ -511,11 +519,28 @@ A1 ("Spend presentation").
   · forum" (`label` in `statecraft/evaluator.ts` drops a scope note that only
   repeats its source's name; no figure changed).
 
-### Not built
+### Batch UX7b
 
-- The board's tile price plates in the three looks. "Short of the bank" needs
-  a reading the simulation does not have for tiles (`purchaseShortfall` covers
-  items only), so the plates keep their two looks.
+- **The board's tile price plates take the price column's three looks**
+  (`tilePlateLook`, `tilePriceTags.ts`): can buy, short with "need 31" under the
+  figure, or a dash for a hex refused for anything but the treasury, whose
+  reason the board caption says once. The simulation answers "short of the
+  treasury, and only that" itself: `tilePurchaseGate` (`cities.ts`) returns the
+  refusal and the shortfall from one pass through the tile gate's clauses, the
+  way `purchaseGate` does for items, and `purchasableTiles` carries the
+  shortfall on each offer. The refusals and their order are unchanged: two bot
+  games (a duel to turn 70, a three-seat game to turn 60, tiles bought in
+  both) ended in byte-identical states with and without this change.
+- **The Buy tiles button asks the simulation** (`tileBuyingError`, the tile
+  gate's town-wide clauses: the puppet's purse, and the writ's freeze unless a
+  card lifts it). It was greyed whenever the borders were frozen, so a seat
+  holding Purchased Prosperity could not arm the mode. A greyed button says
+  why on a line under it.
+- **"wants a The Alchemical Society"** now reads "wants The Alchemical
+  Society": a building's name keeps its own article, and a name that takes "an"
+  gets it (`buildingWithArticle`, `tech.ts`; words only).
+- **"Now"** moved beside the build button, and **the work rail's notes** open
+  inside the rail (both above).
 
 ### How much shorter
 

@@ -18,7 +18,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { foundCityAt } from '../../src/sim/cities';
+import { type TileOffer, foundCityAt } from '../../src/sim/cities';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { getTileAt } from '../../src/sim/map';
 import { purchaseError } from '../../src/sim/purchase';
@@ -45,6 +45,7 @@ import {
   queueWithFront,
   unitRowShown,
 } from '../../src/ui/cityPanel';
+import { tilePlateLook } from '../../src/ui/tilePriceTags';
 import { braceBody, uiSource } from './sourceHelpers';
 import { createGame } from '../sim/newGameHelpers';
 
@@ -366,7 +367,9 @@ describe('the work rail’s card and the Faith card', () => {
 
   it('prices the rites on the Faith card and links to every town’s rites when it can', () => {
     const card = braceBody(uiSource('cityPanel.ts'), 'function renderFaithCard(');
-    expect(card).toContain("cell.setAttribute('aria-label', `Start ${row.name} here for ${row.cost} faith`);");
+    // Spoken as the act it is, with the visible price left bare (batch UX7b).
+    expect(card).toContain("spokenLabel: 'Start',");
+    expect(card).not.toContain("setAttribute('aria-label'");
     expect(card).toContain('const openRites = options.onOpenRites;');
     expect(card).toContain("'Rites in every town →'");
   });
@@ -380,7 +383,7 @@ describe('no native tooltips, and Escape and scrolling', () => {
     expect(uiSource('cityPanel.ts')).not.toMatch(/\.title = /);
     expect(uiSource('levyMenu.ts')).not.toMatch(/\.title = /);
     expect(braceBody(uiSource('cityPanel.ts'), 'function noteOn(')).toContain(
-      'info.bind(anchor, () => {',
+      'info.bind(anchor, () => noteNode(text));',
     );
   });
 
@@ -414,5 +417,103 @@ describe('the labels in a yield list', () => {
     );
     expect(labels.some((label) => label.startsWith('Building · Forum'))).toBe(true);
     expect(labels.some((label) => /Forum · forum/i.test(label))).toBe(false);
+  });
+});
+
+// --- batch UX7b ---------------------------------------------------------------
+
+describe('the board’s tile price plates, in the price column’s three looks', () => {
+  const offer = (error: string | null, shortfall: number | null): TileOffer => ({
+    col: 0,
+    row: 0,
+    price: 95,
+    error,
+    shortfall,
+  });
+
+  it('can buy, is short by what the treasury lacks, or is not here', () => {
+    expect(tilePlateLook(offer(null, null))).toEqual({ look: 'buy', bank: 'gold', price: 95 });
+    expect(tilePlateLook(offer('Costs 95 gold; you have 64', 31))).toEqual({
+      look: 'short',
+      bank: 'gold',
+      price: 95,
+      need: 31,
+    });
+    expect(tilePlateLook(offer('Borders frozen — authority is overdrawn', null))).toEqual({
+      look: 'none',
+      bank: 'gold',
+      price: 95,
+      refusal: 'Borders frozen — authority is overdrawn',
+    });
+  });
+
+  it('draws "need N" under a short plate, a dash on one not here, and says why once', () => {
+    const plates = uiSource('tilePriceTags.ts');
+    expect(plates).toContain("text: look.look === 'none' ? '—' : price,");
+    expect(plates).toContain("...(look.look === 'short' ? { need: look.need } : {}),");
+    expect(plates).toContain("need.className = 'tile-price-need wanting';");
+    const caption = braceBody(uiSource('cityPanel.ts'), 'function renderBoardCaption(');
+    expect(caption).toContain('if (offer.error !== null && offer.shortfall === null) barred.add(offer.error);');
+  });
+});
+
+describe('the Buy tiles button asks the simulation', () => {
+  it('is greyed by the tile gate’s town-wide answer, which Purchased Prosperity lifts', () => {
+    const borders = braceBody(uiSource('cityPanel.ts'), 'function renderBorders(');
+    expect(borders).toContain('tileBuyingError(state, localPlayerId(), city.id)');
+    expect(borders).not.toContain('growth.frozen\n        ?');
+    expect(borders).toContain("if (refusal !== null) box.append(refusalLineElement(refusal, 'row'));");
+  });
+});
+
+describe('“Now” beside the row, never over it', () => {
+  it('makes room beside the build button, at least as wide as “Now”', () => {
+    const css = uiSource('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
+    const rule = (selector: string): string => {
+      const at = css.indexOf(`\n${selector} {`);
+      if (at < 0) throw new Error(`no rule for ${selector}`);
+      return css.slice(css.indexOf('{', at) + 1, css.indexOf('}', at));
+    };
+    const room = /padding-right:\s*(\d+)px/.exec(
+      rule(
+        '.city-buildable-row:hover > .city-buildable-lead.has-now,\n.city-buildable-row:focus-within > .city-buildable-lead.has-now',
+      ),
+    );
+    const width = /width:\s*(\d+)px/.exec(rule('.city-now'));
+    expect(Number(room?.[1])).toBeGreaterThanOrEqual(Number(width?.[1]));
+    expect(rule('.city-now')).toMatch(/right:\s*0;/);
+    expect(braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(')).toContain(
+      "left.classList.add('has-now');",
+    );
+  });
+});
+
+describe('the work rail’s button notes open over the rail', () => {
+  it('raises the notes of ×, ↑, ↓, the contribute buttons and “Now” in the rail’s card', () => {
+    const panel = uiSource('cityPanel.ts');
+    for (const call of [
+      "railNoteOn(drop, 'Stop building this', false);",
+      "railNoteOn(up, 'Move up', false);",
+      "railNoteOn(down, 'Move down', false);",
+      "railNoteOn(remove, 'Remove', false);",
+      'railNoteOn(button, blocker ?? promise, false);',
+      "railNoteOn(now, 'Put it at the front of the queue. Shift-click on a row does the same.');",
+    ]) {
+      expect(`${call}: ${panel.includes(call)}`).toBe(`${call}: true`);
+    }
+    expect(braceBody(panel, 'function railNoteOn(')).toContain(
+      'bindRowCard(anchor, () => noteNode(text), true);',
+    );
+  });
+});
+
+describe('the site sentence’s article', () => {
+  it('says "wants The Alchemical Society", never "wants a The Alchemical Society"', () => {
+    const { state, city } = developed();
+    const refusal = buildError(state, 0, 'building', 'theAlchemicalCodex', city);
+    expect(refusal).toContain('wants The Alchemical Society;');
+    expect(refusal).not.toContain('a The ');
+    // And a name that takes "a" still takes it.
+    expect(buildError(state, 0, 'building', 'university', city)).toContain('needs a Library standing in');
   });
 });
