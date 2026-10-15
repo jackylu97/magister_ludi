@@ -1,6 +1,6 @@
 # The tutorial: design and implementation plan
 
-**Status:** approved by the user, 2026-10-15: the decisions in section 7 and the answers in section 10. T0 and T1 are being built; the rest follows the plan in section 8.
+**Status:** approved by the user, 2026-10-15: the decisions in section 7 and the answers in section 10. T0 and T1 are built (section 8); the rest follows the plan there.
 
 - **The user's ask:** *"can you take a look at how other grand strategy/ 4X games handle their tutorial? lets start a tutorial design + implementation doc."*
 - **The research behind it:** `docs/plans/tutorial-research.md`.
@@ -36,7 +36,7 @@ Two things follow:
   - Names inside descriptors are bold keyword links that open their entry on click (`src/ui/keywords.ts`). There is no hover card yet.
 - **Numbers that explain themselves.** Every yield, meter and strength is a labelled list (rule 5), and the panels print it.
 - **Refusals in words.** Every gate is an `…Error` function, and its sentence is both the greyed button's reason and the refused command's message.
-- **Stale copy.**
+- **Stale copy** (fixed by T0, 2026-10-15; see section 8).
   - The live bead note says twenty beads and lists four kinds of bead: feats, races, quests and reckonings. Beads now come from wagers kept and from grants, and the threshold is seven (`data/beads.json`).
   - Nothing in the tutorial or the pamphlet mentions decks, chairs, bands, commissions, levies, charters, unrest, weariness or ranks.
 - **Two unbuilt plans.** The September plan and the pamphlet's second edition (both now in `docs/deprecated/`) were never built.
@@ -266,6 +266,10 @@ Each batch has a fence and narrow tests. The orchestrator runs the gate (typeche
 
 T0 can go now. T1 to T4 do not depend on the layout and can start before the interface rework. T5 to T9 follow it.
 
+**Built, 2026-10-15:**
+- **T0** (`84893853`): the bead note, the tips and the pamphlet match the current rules, and `test/ui/guideCopy.test.ts` fails on a retired system or a typed bead count. A follow-up (`eef4ee47`) fixed the same stale text in the Compendium and on the beads screen, and moved the number-word helpers into `src/ui/numberWords.ts`. T0 also found that the bead rod drew one slot too few for the threshold; that fix is a separate batch.
+- **T1** (`1d73131b`): `src/ui/guideModel.ts`, `guideLessons.ts` (37 lessons, IDs and triggers as data, working titles only), `guideSchedule.ts` and `guideStorage.ts` (version 2 memory and migration from version 1). Nothing is wired into the game yet; the wiring notes for T5 and T6 are in `guideSchedule.ts`'s header.
+
 ## 9. Testing and measuring
 
 - **Sync:** every figure a lesson states comes from data, and no lesson names a retired system (feats, races, quests, reckonings, the augur).
@@ -289,3 +293,9 @@ Answered by the user, 2026-10-15 (their words in quotes):
 - **Lessons for governments and doctrines:** deferred until their rework (A4). *"defer this for now"*
 - **Teaching the wager and bead endgame:** teach it now. *"yes"*, read as yes to "stable enough to teach now".
 - **Hotseat and multiplayer:** deferred. *"defer multiplayer"*. Lessons are built for the one local seat.
+
+Raised while building T1 (2026-10-15). Each is built as shown below until the user rules; each is a small change:
+
+- **Walkthrough lessons across games.** A walkthrough lesson finished in one game is skipped in later games. The old tutorial replayed all eleven steps in every new game.
+- **Skip.** Pressing Skip also switches the walkthrough off for later games, as the old tutorial did.
+- **What "I've played Civilization" skips.** The lessons on systems section 1 calls familiar: happiness, workers, discovery, camps, the combat forecast, war and peace, religion, caravans and great people.
