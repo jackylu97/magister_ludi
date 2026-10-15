@@ -317,9 +317,13 @@ describe('the doors onto a town’s production stay shut on a waiting head', () 
 
   it('raises `cityProduction` for an empty queue and nothing else', () => {
     const text = source('turnBlockers.ts');
+    // Since batch UX4 the blockers are yielded by one walk (`blockersInOrder`)
+    // that both `firstBlocker` and `allBlockers` read, so a line that raises the
+    // blocker yields it. A `return` is counted too, so a second door written
+    // the old way would still be caught.
     const raises = text
       .split('\n')
-      .filter((line) => line.includes("kind: 'cityProduction'") && line.includes('return'));
+      .filter((line) => line.includes("kind: 'cityProduction'") && /\b(return|yield)\b/.test(line));
     expect(raises).toHaveLength(1);
     expect(raises[0]).toContain('city.queue.length === 0');
   });

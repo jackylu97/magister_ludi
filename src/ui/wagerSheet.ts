@@ -29,6 +29,16 @@
  * already staked — is a pure function above the DOM, so the jsdom-less suite can
  * pin it. Drawing is a page of `append` calls that fail loudly or not at all.
  * That is `ledgerScreen.ts`' discipline and `beadsScreen.ts`' before it.
+ *
+ * Visited after the stake
+ * -----------------------
+ * Since batch UX3 the empire drawer's age wager row opens this sheet at any time
+ * in the age, so it is read after the stake as well as on the deal turn. A card
+ * the seat may not stake is then refused on the sheet: its button is disabled,
+ * and the reason is said once in the simulation's own words (`chooseWagerError`,
+ * the gate the reducer uses), through the shared refusal line
+ * (`refusalLine.ts`). Without it the two cards the seat did not stake offered
+ * "Stake this" and the game refused the press.
  */
 
 import type { GameState } from '../sim/state';
@@ -44,6 +54,7 @@ import {
 } from '../sim/wagerData';
 import {
   type WagerStandingRow,
+  chooseWagerError,
   dealtWagers,
   openWagerDeal,
   wagerStakeOf,
@@ -54,6 +65,7 @@ import { BEAD_FAMILY_MARK } from './beadsScreen';
 import { element } from './dom';
 import { eraWord, figure } from './figures';
 import { createModalShell } from './modalShell';
+import { planRefusals, refusalLineElement } from './refusalLine';
 
 /**
  * What each thread is called on a card.
@@ -96,6 +108,12 @@ export interface WagerFace {
   clauses: string | null;
   /** Whether this seat has staked this card. */
   staked: boolean;
+  /**
+   * Why this seat may not stake this card now, in the simulation's words
+   * (`chooseWagerError`), or `null` when it may. Always `null` on the staked
+   * card, whose button already says so.
+   */
+  refusal: string | null;
 }
 
 /**
@@ -125,6 +143,7 @@ export function wagerFaces(state: GameState, playerId: number, deal: WagerDeal):
           ? `all ${figure(def.reads.clauses.length)} at once`
           : null,
       staked: staked === index,
+      refusal: staked === index ? null : chooseWagerError(state, playerId, index),
     });
   });
   return faces;
@@ -250,14 +269,34 @@ export function createWagerSheet(options: WagerSheetOptions): WagerSheet {
     head.append(element('p', 'wager-lead-text', WAGER_DEAL_LEAD));
     body.append(head);
 
+    const faces = wagerFaces(state, seat, deal);
+    // A refusal said once: the cards refused for the same reason share one
+    // line above the grid, and a reason only one card has goes under its card.
+    const refused = faces.filter((face) => face.refusal !== null);
+    const plan = planRefusals(
+      refused.map((face) => ({ key: face.id, name: face.name, refusal: face.refusal! })),
+    );
+    if (plan.head.length > 0) {
+      const head = element('div', 'wager-refusals');
+      head.id = 'wager-refusals';
+      for (const line of plan.head) head.append(refusalLineElement(line.text, 'head', line.mark));
+      body.append(head);
+    }
+
     const grid = element('div', 'wager-grid');
-    wagerFaces(state, seat, deal).forEach((face, at) => {
-      grid.append(drawFace(face, at));
+    faces.forEach((face, at) => {
+      const place = plan.places.get(face.id);
+      grid.append(drawFace(face, at, place?.at === 'row' ? place.text : null, place?.at === 'head'));
     });
     body.append(grid);
   }
 
-  function drawFace(face: WagerFace, at: number): HTMLElement {
+  function drawFace(
+    face: WagerFace,
+    at: number,
+    rowRefusal: string | null,
+    refusedAtHead: boolean,
+  ): HTMLElement {
     const card = element('article', 'wager-card');
     const mark = BEAD_FAMILY_MARK[face.family];
     card.style.setProperty('--wager-ink', `var(${mark.ink})`);
@@ -274,13 +313,15 @@ export function createWagerSheet(options: WagerSheetOptions): WagerSheet {
     const button = element('button', 'wager-stake') as HTMLButtonElement;
     button.type = 'button';
     button.textContent = face.staked ? 'Staked' : 'Stake this';
-    button.disabled = face.staked;
+    button.disabled = face.staked || face.refusal !== null;
+    if (refusedAtHead) button.setAttribute('aria-describedby', 'wager-refusals');
     button.addEventListener('click', () => {
       if (!options.stake(at)) return;
       render();
       shell.close();
     });
     card.append(button);
+    if (rowRefusal !== null) card.append(refusalLineElement(rowRefusal, 'row'));
     return card;
   }
 

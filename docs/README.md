@@ -564,6 +564,11 @@ Eight root pages, all named in `vite.config.ts` inputs:
   figures and drop their printed names. The Compendium opens from ☰ and the ?
   card, the Abacus from the standings sheet and `A`. The Lens and the chronicle
   (❧) are two small buttons left of End Turn, their cards opening above them.
+  End Turn (batch UX4, `ui/endTurnList.ts`) keeps one width and names the first
+  thing the turn is waiting on; a vermilion badge counts the rest, and hovering
+  or focusing it lists everything (`allBlockers` in `ui/turnBlockers.ts`, which
+  walks `firstBlocker`'s clauses in its order), each row going where a press
+  would.
   Top-left, the **empire panel** (`ui/empireDrawer.ts`): one button with the
   seat's banner, a research bar and a draft-meter bar with their turns, and a red
   dot on the banner while a card, a charter, a belief or a strategic resource

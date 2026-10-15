@@ -1,11 +1,12 @@
 /**
  * The star chart: the technology tree as the magister's sky.
  *
- * A full-screen overlay opened from the HUD's research card (or `T`), and the one
- * deliberately dark surface in a light interface — ink ground, gilt stars,
- * hairline sight-lines between a node and the nodes it depends on (see the
- * flourish set in Entry VII of `docs/design-notes.md`). Everything else on the
- * screen is parchment on a table; this is the table at night.
+ * A full-screen overlay opened from the research section of the HUD's empire
+ * drawer (or `T`), and the one deliberately dark surface in a light interface —
+ * ink ground, gilt stars, hairline sight-lines between a node and the nodes it
+ * depends on (see the flourish set in Entry VII of `docs/design-notes.md`).
+ * Everything else on the screen is parchment on a table; this is the table at
+ * night.
  *
  * **Not on `modalShell.ts`.** With the Abacus, this is one of the two
  * full-screen overlays batch H5 left off the parchment sheets' shared frame, and
@@ -17,12 +18,14 @@
  * shut. It keeps a second, non-capturing window listener for the presses that
  * start outside the overlay — see `onWindowKeyDown`.
  *
- * It also fills the HUD's research card, the fixed surface at the top-left that
- * says what the empire is learning (`renderStatus`, at the foot of this file).
- * The card is this screen's handle and its readout at once, and it lives here
- * rather than in a module of its own for the same reason the bar line it
- * replaced did: one file reads `researching`, so the card and the lit node in
- * the chart cannot come to two different conclusions about it.
+ * It also fills the research section of the empire drawer (`renderStatus`, at
+ * the foot of this file): what the empire is learning, and the way into this
+ * screen. It was the HUD's research card until batch UX3 moved it into the
+ * drawer and kept its ids. It is written here rather than in a module of its
+ * own so that one file reads `researching`, and the section and the lit node in
+ * the chart cannot come to two different conclusions about it. The empire
+ * panel's research bar reads the same figures through `researchProgress`, at
+ * the same rate.
  *
  * It reads the simulation and sends exactly one command
  * -----------------------------------------------------
@@ -546,7 +549,7 @@ export interface TechTree {
   open(): void;
   close(): void;
   toggle(): void;
-  /** Rebuilds the chart if it is open, and always refreshes the research card. */
+  /** Rebuilds the chart if it is open, and always refreshes the drawer's research section. */
   render(): void;
   /** Unbinds the window listeners. See the dispose method's docblock. */
   dispose(): void;
@@ -583,20 +586,21 @@ export interface TechTreeOptions {
    */
   hintLine: HTMLElement;
   /**
-   * The HUD's research card (top-left, under the bar). The whole card is a
-   * button: it opens this screen, and it is where what is being learnt is
-   * written between visits. See `renderStatus`.
+   * The research section of the empire drawer (`#hud-research`, the HUD's
+   * research card until batch UX3). The whole section is a button: it opens
+   * this screen, and it is where what is being learnt is written between
+   * visits. See `renderStatus`.
    */
   statusCard: HTMLButtonElement;
-  /** The card's second line: the technology's name, or the prompt to pick one. */
+  /** The technology's name, or the prompt to pick one. */
   statusName: HTMLElement;
-  /** The dial: its `--progress` custom property is the ring's whole story. */
+  /** The progress bar: its `--progress` custom property is its width. */
   statusDial: HTMLElement;
-  /** The glyph lit at the centre of the dial's sky. */
+  /** The technology's glyph, before its name. */
   statusGlyph: HTMLElement;
-  /** The small parchment boss overlapping the dial's edge — turns left. */
+  /** Turns left, after the figures. */
   statusBoss: HTMLElement;
-  /** The card's mono figures line — banked over cost. */
+  /** The mono figures: banked over cost. */
   statusFigures: HTMLElement;
   getGame: () => Game;
   localPlayerId: () => number;
@@ -758,7 +762,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   /**
    * The pass in hand. Written by `beginPass` and by nothing else, and read by
    * every printer on this screen — the nodes, the strip, the hover card and the
-   * HUD's research card, which is what stops the four of them quoting four
+   * drawer's research section, which is what stops the four of them quoting four
    * separately-summed science rates.
    */
   let pass: Pass | null = null;
@@ -1246,9 +1250,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     const banked = player ? bankedTowardTech(player, id) : 0;
     const shows = player !== undefined && !researched && (current || banked > 0);
     if (shows && player) {
-      // The same arithmetic the HUD's research card draws, from the same
-      // helper: the bar on this node and the bar at the top-left of the screen
-      // are one fact shown twice, and they must never round differently.
+      // The same arithmetic the drawer's research section and the empire
+      // panel's research bar draw, from the same helper: the bar on this node
+      // and the bars at the top-left of the screen are one fact shown more
+      // than once, and they must never round differently.
       const progress = researchProgress(banked, def.cost, rate);
       face.fill.style.width = `${(progress.fraction * 100).toFixed(1)}%`;
       setYieldText(face.progress, `${progress.banked} / ${progress.cost}`);
@@ -1434,7 +1439,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    *     — for the same reason every other control in this game is.
    *
    * Hidden while the plan is one node long, which is the state every game
-   * starts in and returns to: a strip holding only what the research card at
+   * starts in and returns to: a strip holding only what the empire panel at
    * the top-left already says would be a second readout of one fact. Hiding is
    * the `hidden` attribute on a flex sibling of the stage, so the height goes
    * back to the chart — which is why this is called *before* `layoutField` runs.
@@ -2064,36 +2069,33 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     { passive: false },
   );
 
-  // --- the HUD's research card ---------------------------------------------
+  // --- the empire drawer's research section ---------------------------------
 
   /**
-   * The card at the top-left: what this seat is learning, how far along it is,
-   * and the way in.
+   * The drawer's research section: what this seat is learning, how far along
+   * it is, and the way into this screen. It was the HUD's research card until
+   * batch UX3, and it kept the card's ids.
    *
-   * Three states, and each is a different sentence rather than a blank field.
-   * All three share one dial: its rim is a conic-gradient ring sized by the
-   * `--progress` custom property (0–100%, no canvas or SVG), and its sky holds
-   * either the tech's own glyph or a stand-in star.
+   * Three states, and each is a different sentence rather than a blank field:
    *
-   *   · **Learning something.** The name, the ring at the real fraction, the
-   *     tech's glyph lit gilt in the sky, "3t" on the dial's boss, and
-   *     "230/250 🔬" below the name.
-   *   · **Nothing chosen, and there is still something to choose.** The prompt,
-   *     the ring faint and stopped, the sky empty but for one dim ✧, and the
-   *     same slow gilt pulse the bar button used to wear — now worn by the
-   *     card's border. The nag is a pulse rather than a modal: research is a
-   *     decision the player should make, and a screen that demanded it before
+   *   · **Learning something.** The name with the technology's glyph before
+   *     it, the bar at the real fraction (its `--progress`), "230/250 🔬" and
+   *     "3t".
+   *   · **Nothing chosen, and there is still something to choose.** The
+   *     prompt, an empty bar, a dim ✧, and a slow gilt pulse on the section
+   *     (`.is-prompting`). The nag is a pulse rather than a modal: research is
+   *     a decision the player should make, and a screen that demanded it before
    *     the game would continue would be a screen that interrupted the game to
    *     ask. (This is the same condition End Turn's "Choose research" blocker
    *     is derived from — see `firstBlocker` in `turnBlockers.ts`. Both read
    *     `researching` and `availableTechs`, so neither can nag while the other
    *     says all is well.)
-   *   · **The tree is finished.** The ring goes fully gilt, the sky keeps a lit
-   *     ✦, and the name says so, quietly, and stops asking. The card still
+   *   · **The tree is finished.** The bar full in gilt (`.is-done`), a lit ✦,
+   *     and the name says so, quietly, and stops asking. The section still
    *     opens the chart, because a finished tree is still worth reading.
    *
    * Always the local seat: this is what *you* are researching, and in a hot-seat
-   * session the card follows the chair the same way every other HUD surface
+   * session the section follows the chair the same way every other HUD surface
    * does — `localPlayerId()` is asked afresh on every render.
    */
   function renderStatus(): void {
@@ -2108,13 +2110,12 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       statusCard.classList.toggle('is-prompting', prompting);
       statusCard.classList.toggle('is-done', !prompting);
       statusName.textContent = prompting ? 'Choose research…' : 'Philosophy complete';
-      // A stopped ring either way: prompting has no fraction to show, and the
-      // finished tree's ring is drawn full by the `.is-done` CSS override on
-      // `--ring-color` rather than by a fraction here.
+      // An empty bar while prompting, which has no fraction to show, and a
+      // full one for a finished tree, which `.is-done` draws in gilt.
       statusDial.style.setProperty('--progress', prompting ? '0%' : '100%');
-      // The sky holds a dim stand-in star while nothing is chosen, and a lit
-      // one once the tree is finished — the tech's own glyph belongs to
-      // neither state, there being no current tech to draw it for.
+      // A dim stand-in star while nothing is chosen, and a lit one once the
+      // tree is finished: the tech's own glyph belongs to neither state, there
+      // being no current tech to draw it for.
       statusGlyph.textContent = prompting ? '✧' : '✦';
       statusGlyph.classList.toggle('is-dim', prompting);
       // Neither state has a turn count: prompting has no denominator to count
@@ -2153,8 +2154,8 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     setYieldText(statusGlyph, def.glyph);
     statusGlyph.classList.remove('is-dim');
     statusBoss.textContent = progress.turns === null ? '' : `${progress.turns}t`;
-    // The figures line drops the turn count `progress.figures` carries — the
-    // dial's boss says it instead, so the two would otherwise repeat a fact.
+    // The figures drop the turn count `progress.figures` carries: the turns
+    // are their own element (`statusBoss`), so the two would repeat a fact.
     setYieldText(statusFigures, `${progress.banked}/${progress.cost} ${BEAKER}`);
     statusCard.title =
       `${def.name}: ${progress.banked} / ${progress.cost} beakers ` +

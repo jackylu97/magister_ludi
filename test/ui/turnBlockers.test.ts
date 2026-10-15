@@ -24,7 +24,7 @@ import { TECH_IDS } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { unitAwaitsOrders, unitOfferedForOrders } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
-import { firstBlocker, firstUnitOffer } from '../../src/ui/turnBlockers';
+import { allBlockers, firstBlocker, firstUnitOffer } from '../../src/ui/turnBlockers';
 import { newGame } from '../sim/newGameHelpers';
 
 /** A two-player state on a blank grassland rectangle, as `tech.test.ts` uses. */
@@ -759,6 +759,111 @@ describe('firstBlocker · Religion', () => {
     state.players[1]!.barbarian = true;
     state.players[1]!.pantheon.pending = { options: ['sacredFire'] };
     expect(firstBlocker(state, 1)).toBeNull();
+  });
+});
+
+/**
+ * **The whole list** (batch UX4): End Turn's badge and hover list read
+ * `allBlockers`, and its label reads `firstBlocker`. Both walk one generator, so
+ * the list's first item is always the label's, and everything after it comes in
+ * the same order a run of presses would visit it.
+ */
+describe('allBlockers · the whole list', () => {
+  it('is empty when nothing is owed, and for the seats that are never blocked', () => {
+    const state = settled();
+    expect(allBlockers(state, 0)).toEqual([]);
+    expect(allBlockers(state, 99)).toEqual([]);
+    state.players[1]!.barbarian = true;
+    createUnit(state, 1, 'warrior', 3, 3);
+    expect(allBlockers(state, 1)).toEqual([]);
+  });
+
+  it('lists everything, in the order a press would visit it', () => {
+    const state = settled();
+    const player = state.players[0]!;
+    player.researching = null;
+    const first = createUnit(state, 0, 'warrior', 3, 3);
+    const second = createUnit(state, 0, 'warrior', 4, 3);
+    const home = plant(state, 0, 6, 6);
+    const far = plant(state, 0, 10, 6);
+    player.pantheon.pending = { options: ['sacredFire'] };
+    player.statecraft.pendingOrder = { options: ['firstRites'] };
+    player.pendingDiscovery = { kind: 'ruins', col: 2, row: 2, options: [] };
+    expect(allBlockers(state, 0)).toEqual([
+      { kind: 'discovery' },
+      { kind: 'statecraft', what: 'order' },
+      { kind: 'religion' },
+      { kind: 'idleUnit', unitId: first.id },
+      { kind: 'idleUnit', unitId: second.id },
+      { kind: 'cityProduction', cityId: home.id },
+      { kind: 'cityProduction', cityId: far.id },
+      { kind: 'research' },
+    ]);
+  });
+
+  it('always starts with what firstBlocker says, as the list is answered', () => {
+    const state = settled();
+    const player = state.players[0]!;
+    player.researching = null;
+    const unit = createUnit(state, 0, 'warrior', 3, 3);
+    const city = plant(state, 0, 6, 6);
+    player.statecraft.pendingOrder = { options: ['firstRites'] };
+    const answers: (() => void)[] = [
+      () => delete player.statecraft.pendingOrder,
+      () => (unit.movesLeft = 0),
+      () => (city.queue = [{ kind: 'unit', id: 'warrior' }]),
+      () => (player.researching = availableTechs(state, 0)[0] ?? null),
+    ];
+    for (const answer of answers) {
+      expect(allBlockers(state, 0)[0]).toEqual(firstBlocker(state, 0));
+      answer();
+    }
+    expect(allBlockers(state, 0)).toEqual([]);
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('honours a skip exactly as firstBlocker does', () => {
+    const state = settled();
+    const skipped = createUnit(state, 0, 'warrior', 3, 3);
+    const other = createUnit(state, 0, 'warrior', 4, 3);
+    const exclusions = { skippedUnitIds: new Set([skipped.id]) };
+    expect(allBlockers(state, 0, exclusions)).toEqual([{ kind: 'idleUnit', unitId: other.id }]);
+    expect(firstBlocker(state, 0, exclusions)).toEqual({ kind: 'idleUnit', unitId: other.id });
+  });
+
+  it('lists every idle cart, and none when there is nowhere to send one', () => {
+    const state = settled();
+    const home = plant(state, 0, 4, 4);
+    const far = plant(state, 0, 8, 4);
+    home.queue = [{ kind: 'unit', id: 'warrior' }];
+    far.queue = [{ kind: 'unit', id: 'warrior' }];
+    const lone = createUnit(state, 0, 'trader', 4, 4);
+    // No market yet: no slot, so the carts block nothing.
+    expect(allBlockers(state, 0)).toEqual([]);
+    home.buildings = [...home.buildings, 'market'];
+    const second = createUnit(state, 0, 'trader', 8, 4);
+    bumpRevision(state);
+    expect(allBlockers(state, 0)).toEqual([
+      { kind: 'idleTrader', unitId: lone.id },
+      { kind: 'idleTrader', unitId: second.id },
+    ]);
+  });
+
+  it('is one walk of the clauses that both functions read', () => {
+    const source = (
+      import.meta.glob('../../src/ui/turnBlockers.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>
+    )['../../src/ui/turnBlockers.ts']!;
+    expect(source).toContain('function* blockersInOrder(');
+    expect(source).toContain('const first = blockersInOrder(state, playerId, exclusions).next();');
+    expect(source).toContain('return [...blockersInOrder(state, playerId, exclusions)];');
+    // And no clause is written twice: each kind is yielded in one place.
+    for (const kind of ['discovery', 'religion', 'greatPerson', 'wager', 'census', 'research']) {
+      expect(source.match(new RegExp(`yield \\{ kind: '${kind}' \\}`, 'g'))?.length, kind).toBe(1);
+    }
   });
 });
 

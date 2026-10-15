@@ -377,7 +377,7 @@ import {
   routeReading as routeReadingOf,
   routeSlotsLine as routeSlotsLineOf,
 } from './tradeLines';
-import { type TurnBlocker, firstBlocker, firstUnitOffer } from './turnBlockers';
+import { type TurnBlocker, allBlockers, firstBlocker, firstUnitOffer } from './turnBlockers';
 import { prefersReducedMotion } from './motion';
 import { withArticle } from './dom';
 import { seatName, seatPeople } from '../sim/leaderData';
@@ -1995,6 +1995,18 @@ export interface GameControls {
    * outstanding *before* they press, rather than being bounced by it.
    */
   endTurnBlocker(): TurnBlocker | null;
+  /**
+   * Everything End Turn would stop on, in the order it would stop (batch UX4):
+   * the list the button shows on hover. Its first item is `endTurnBlocker()`,
+   * read past the same skipped units.
+   */
+  endTurnBlockers(): TurnBlocker[];
+  /**
+   * Takes the player to one piece of unfinished business, exactly as a press of
+   * End Turn takes them to the first: the camera, the selection or the screen,
+   * and the guide line. The waiting list's rows call it.
+   */
+  goToBlocker(blocker: TurnBlocker): void;
   /** Whose seat this client is playing. */
   localPlayerId(): number;
 
@@ -7450,6 +7462,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     return firstBlocker(getGame().state, localPlayerId, { skippedUnitIds });
   }
 
+  /** The whole list End Turn would walk, for the button's waiting list. */
+  function endTurnBlockers(): TurnBlocker[] {
+    return allBlockers(getGame().state, localPlayerId, { skippedUnitIds });
+  }
+
   /**
    * The next piece to put in the player's hand — the camera's own question,
    * one clause wider than the button's (`firstUnitOffer`, and the split is
@@ -8363,6 +8380,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     guide,
     sendStatecraft,
     endTurnBlocker,
+    endTurnBlockers,
+    goToBlocker: focusBlocker,
     setLocalPlayer,
     lens: () => manualLens,
     boardLens: () => effectiveLens().mode,

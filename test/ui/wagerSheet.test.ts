@@ -10,6 +10,7 @@ import {
 } from '../../src/ui/wagerSheet';
 import { WAGER_IDS, wagerDef } from '../../src/sim/wagerData';
 import type { GameState, WagerDeal } from '../../src/sim/state';
+import { chooseWagerError } from '../../src/sim/wagers';
 
 /**
  * **The wager's two surfaces** — the deal sheet and the Abacus's standings band
@@ -135,6 +136,49 @@ describe('the deal sheet', () => {
     expect(sheet).not.toContain("window.addEventListener('keydown'");
   });
 
+});
+
+/**
+ * **A visit after the stake** (batch UX4). The empire drawer's age wager row
+ * opens this sheet at any time in the age, so it is read after the stake too.
+ * The cards the seat did not stake are then refused on the sheet, in the
+ * simulation's own words, rather than offering "Stake this" for the game to
+ * refuse the press.
+ */
+describe('the deal sheet after the stake', () => {
+  /** `board`'s table, with the world in the deal's age so the gate can find it. */
+  function open(staked: number | null): { state: GameState; deal: WagerDeal } {
+    const { state, deal } = board(staked);
+    Object.assign(state, { turn: 41, ageClose: { age: 1, turn: 30 } });
+    return { state, deal };
+  }
+
+  it('refuses the cards not staked, in the gate’s own sentence, and not the staked one', () => {
+    const { state, deal } = open(1);
+    const faces = wagerFaces(state, 0, deal);
+    expect(faces.map((face) => face.refusal)).toEqual([
+      chooseWagerError(state, 0, 0),
+      null,
+      chooseWagerError(state, 0, 2),
+    ]);
+    expect(faces[0]!.refusal).toBe('You have already staked this age');
+  });
+
+  it('refuses nothing before the stake', () => {
+    const { state, deal } = open(null);
+    expect(wagerFaces(state, 0, deal).map((face) => face.refusal)).toEqual([null, null, null]);
+  });
+
+  it('disables a refused card’s button and says the reason once, on the sheet', () => {
+    const sheet = source('wagerSheet.ts');
+    expect(sheet).toContain('button.disabled = face.staked || face.refusal !== null;');
+    expect(sheet).toContain('const plan = planRefusals(');
+    expect(sheet).toContain("head.append(refusalLineElement(line.text, 'head', line.mark));");
+    expect(sheet).toContain("card.append(refusalLineElement(rowRefusal, 'row'));");
+    // The reason is the simulation's, never a sentence written here.
+    expect(sheet).toContain('chooseWagerError(state, playerId, index)');
+    expect(sheet).not.toContain('You have already staked this age');
+  });
 });
 
 describe('the track and the figure', () => {

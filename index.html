@@ -545,7 +545,9 @@
                                           most four, then "+N more"
            bottom-left  #hud-context      what is under the cursor, and refusals
            right        #city-panel / #unit-panel, one at a time
-           bottom-right #hud-end-turn     End Turn, with the Lens and the
+           bottom-right #hud-end-turn     End Turn, with a badge counting what
+                                          else is waiting and, on hover or focus,
+                                          a list of all of it; the Lens and the
                                           chronicle (❧) as two small buttons to
                                           its left; their cards open above them
            whole window #tech-overlay     the star chart, from the drawer's
@@ -1909,10 +1911,29 @@
       <!-- The label is its own element because the button says what it is *for*
            right now: "End Turn" when the turn may end, and the name of the first
            piece of unfinished business when it may not (see src/ui/turnBlockers.ts).
-           The ⏎ never changes — it is the key, not the verb. -->
-      <button id="end-turn" class="btn btn-primary btn-end" type="button">
+           The ⏎ never changes — it is the key, not the verb.
+
+           The badge at its top-left counts what is waiting after the first item
+           ("+2"), and the list below opens above the button on hover or focus
+           with every item, each a button to where it is answered (batch UX4,
+           src/ui/endTurnList.ts). The list comes after the button so Tab walks
+           from End Turn into its rows. -->
+      <button
+        id="end-turn"
+        class="btn btn-primary btn-end"
+        type="button"
+        aria-describedby="end-turn-list"
+      >
+        <span id="end-turn-more" class="end-turn-more" aria-hidden="true" hidden></span>
         <span id="end-turn-label">End Turn</span> <kbd class="btn-key">⏎</kbd>
       </button>
+      <div
+        id="end-turn-list"
+        class="end-turn-list"
+        role="group"
+        aria-label="Still to do this turn"
+        hidden
+      ></div>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

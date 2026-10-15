@@ -172,8 +172,10 @@ describe('the great-person blocker', () => {
     // being satisfied with a no-op.
     expect(main).toContain("case 'openGreatPerson':");
     expect(main).toContain('showGreatPersonOffer();');
-    // And the End Turn button has a word for it.
-    expect(main).toMatch(/greatPerson: '[^']+',/);
+    // And the End Turn button has a word for it. The label table lives with
+    // End Turn's waiting list since batch UX4, and `main.ts` prints from it.
+    expect(sourceOf('endTurnList.ts')).toMatch(/greatPerson: '[^']+',/);
+    expect(main).toContain('END_TURN_LABELS[blocker.kind]');
   });
 });
 

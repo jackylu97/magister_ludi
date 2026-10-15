@@ -333,11 +333,11 @@ export function percentFigure(percent: number): string {
  *
  * The same grammar `poolFigure` gives renown against its ladder, and for the
  * same reason: "how much room have I left" is one question, not two, and a
- * player reading 2/3 on the holdings rail and 2/3 on a build row is reading one
- * number in one voice. Which side is which is said in words by the surface (the
- * rail captions its column, a build row and every spoken label say "spare of"),
- * never by the figure — rule 7 keeps numbers out of prose and prose out of
- * numbers.
+ * player reading 2/3 in the empire drawer's Supply section (the holdings rail
+ * until batch UX3) and 2/3 on a build row is reading one number in one voice.
+ * Which side is which is said in words by the surface (the Supply section
+ * captions its list, a build row and every spoken label say "spare of"), never
+ * by the figure — rule 7 keeps numbers out of prose and prose out of numbers.
  */
 export function copiesFigure(spare: number, held: number): string {
   return `${figure(spare)}/${figure(held)}`;

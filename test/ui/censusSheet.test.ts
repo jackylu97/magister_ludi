@@ -231,7 +231,10 @@ describe('the blocker', () => {
     expect(blockers.indexOf('censusBlocker(state, playerId)')).toBeGreaterThan(
       blockers.indexOf('wagerBlocker(state, playerId)'),
     );
-    expect(uiSource('main.ts')).toContain("census: 'Read the census'");
+    // The button's word for it. The label table lives with End Turn's waiting
+    // list since batch UX4, and `main.ts` prints the label from it.
+    expect(uiSource('endTurnList.ts')).toContain("census: 'Read the census'");
+    expect(uiSource('main.ts')).toContain('END_TURN_LABELS[blocker.kind]');
   });
 });
 

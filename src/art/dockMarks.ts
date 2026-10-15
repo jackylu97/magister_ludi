@@ -1,16 +1,25 @@
 /**
- * The HUD dock's own marks: Statecraft's scroll and Diplomacy's banner.
+ * The marks for the screens the HUD opens: Statecraft's scroll, Diplomacy's
+ * banner, Trade's cart and the standings' ranking.
  *
- * A fourth vendored set, two icons deep
- * -------------------------------------
+ * Where they are worn
+ * -------------------
+ * They were drawn for the HUD dock, a row of square buttons under the research
+ * card. The dock is gone: since batch UX1 the banner, the cart and the ranking
+ * are the marks on the top bar's Diplomacy, Trade and Standings tabs
+ * (`topBar.ts`), and since batch UX3 the empire drawer opens Statecraft from
+ * its culture section, so the scroll is shown only in the flair gallery
+ * (`src/flairGallery/marks.ts`). It is kept for the next surface that needs a
+ * mark for Statecraft. The file keeps its name so the history reads straight.
+ *
+ * A fourth vendored set
+ * ---------------------
  * `yieldMarks.ts` and `meterMarks.ts` each carry a closed, exhaustive table
  * because each keys off a closed union the sim declares (`YieldKey`,
- * `MeterId`). The HUD dock's three buttons are not that: Statecraft and
- * Diplomacy are screens, not meters, and Religion's button is the faith
- * **yield**'s own mark worn at dock scale — see `src/ui/hudDock.ts` for why
- * that one is a reuse rather than a second drawing of the same flame. So this
- * file holds the two the dock had to have drawn and no table shaped to hold
- * more.
+ * `MeterId`). These are not that: each is a screen, not a meter, so this file
+ * holds one drawing per screen and no table shaped to hold more. (The dock's
+ * Religion button wore the faith **yield**'s own flame rather than a second
+ * drawing of it.)
  *
  *   statecraft  Lucide `scroll-text`  (ISC) — a scroll: an Order is a writ,
  *               and the dock's button opens the screen that reads them
@@ -29,8 +38,8 @@
  *
  * The upstream drawing is reproduced to the coordinate, pure outline
  * (`fill="none"`, one weight, round caps and joins) like every member of the
- * other three sets; `test/ui/hudDock.test.ts` pins the path data against the
- * vendored string.
+ * other three sets. `test/ui/topBar.test.ts` pins the tabs' marks and the
+ * shared printer they go through.
  */
 
 import { type MarkPath, markSvg } from './resourceMarks';
@@ -99,9 +108,10 @@ export function diplomacyMarkDataUri(color = '#000'): string {
 }
 
 /**
- * **The cart** — the Trade sheet's door, and the third mark in this set (batch
- * R2, the user's ruling of 2026-09-09: *"The trade screen should have an icon
- * next to the statecraft/religion/diplomacy buttons"*).
+ * **The cart** — the Trade sheet's door (the Trade tab's mark since batch UX1),
+ * and the third mark in this set (batch R2, the user's ruling of 2026-09-09:
+ * *"The trade screen should have an icon next to the statecraft/religion/
+ * diplomacy buttons"*).
  *
  * Drawn here rather than vendored, which is the one member of this file that is:
  * the outline sets carry an office, a herald and a flame, and none of them
@@ -155,9 +165,10 @@ export function tradeMarkDataUri(color = '#000'): string {
  * which is a picture this interface has never drawn.
  *
  * Three rules and not a counting frame, which was the first drawing: a frame's
- * two uprights and two rods come out at dock scale as a shape with dots in it,
- * where descending rules read as an order of finish at any size. The Abacus has
- * its own door on the top bar and this is not it.
+ * two uprights and two rods come out at a button's scale as a shape with dots
+ * in it, where descending rules read as an order of finish at any size. It is
+ * the Standings tab's mark since batch UX1; the Abacus opens from the standings
+ * sheet, not from this mark.
  *
  * Same grid, same weight, same caps and joins as the three beside it, so it
  * masks and prints identically and no fifth mechanism was written for it.

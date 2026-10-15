@@ -7,6 +7,13 @@
  * a capital building nothing, the button *takes them to the thing they forgot*.
  * One press, one blocker, in a fixed order — press again and it finds the next.
  *
+ * Since batch UX4 the button also shows the whole list: a badge counts what is
+ * left after the first, and hovering the button lists every item. So the gate
+ * has two readings, `firstBlocker` (the label, and where a press goes) and
+ * `allBlockers` (the list), and both read one generator, `blockersInOrder`, so
+ * they walk the same clauses in the same order and cannot disagree about what
+ * comes first.
+ *
  * Why it lives here and not in `src/sim/`
  * ---------------------------------------
  * Because it is not a rule. The reducer's `endTurn` is unchanged and will still
@@ -167,7 +174,36 @@ export interface BlockerExclusions {
 
 /**
  * The first thing this seat still owes the turn, or `null` when it owes
- * nothing and End Turn may simply end the turn.
+ * nothing and End Turn may simply end the turn. The first item of
+ * `allBlockers`, read without walking the rest.
+ */
+export function firstBlocker(
+  state: GameState,
+  playerId: number,
+  exclusions?: BlockerExclusions,
+): TurnBlocker | null {
+  const first = blockersInOrder(state, playerId, exclusions).next();
+  return first.done === true ? null : first.value;
+}
+
+/**
+ * Everything this seat still owes the turn, in the order End Turn takes the
+ * player to it: `firstBlocker`'s answer first, then every other item, each idle
+ * unit, cart and empty queue on its own (batch UX4; the button's list groups
+ * them for reading). Empty when the turn may simply end.
+ */
+export function allBlockers(
+  state: GameState,
+  playerId: number,
+  exclusions?: BlockerExclusions,
+): TurnBlocker[] {
+  return [...blockersInOrder(state, playerId, exclusions)];
+}
+
+/**
+ * The one walk of the clauses, yielding each piece of unfinished business in
+ * order. A generator, so `firstBlocker` stops at the first item and pays for
+ * nothing after it, while `allBlockers` takes them all.
  *
  * The order is the order of the cost of forgetting: a unit that stands still is
  * a turn of movement gone, a city with an empty queue is a turn of hammers
@@ -188,17 +224,17 @@ export interface BlockerExclusions {
  * docblock. It touches only the idle-unit arm; a skip does not excuse a city
  * or the research pool, which were never what Skip Turn was for.
  */
-export function firstBlocker(
+function* blockersInOrder(
   state: GameState,
   playerId: number,
   exclusions?: BlockerExclusions,
-): TurnBlocker | null {
+): Generator<TurnBlocker, void, undefined> {
   const player = playerById(state, playerId);
-  if (!player || player.eliminated) return null;
+  if (!player || player.eliminated) return;
   // The wild has no screen to be prompted on and never sends an `endTurn`; a
   // blocker computed for it would be a question nobody can answer.
-  if (player.barbarian) return null;
-  if (hasEndedTurn(state, playerId)) return null;
+  if (player.barbarian) return;
+  if (hasEndedTurn(state, playerId)) return;
 
   // **First**, ahead of everything, and that is the cost-of-forgetting order read
   // one notch further: an idle unit costs a turn of movement and an empty queue a
@@ -208,7 +244,7 @@ export function firstBlocker(
   // thing they walked across the map for. It is also the only blocker whose
   // subject is a decision the reducer is holding open rather than a thing on the
   // board, which is why it names no id: the empire is the subject.
-  if (player.pendingDiscovery !== undefined) return { kind: 'discovery' };
+  if (player.pendingDiscovery !== undefined) yield { kind: 'discovery' };
 
   // **Beside the discovery, and for its reasons exactly.** A Statecraft draft is
   // the same shape of debt one scale out: the offer sits on the empire until it
@@ -221,7 +257,7 @@ export function firstBlocker(
   // and a blocker on it would delete the only reason banking exists. The top
   // bar's badge is where an unclaimed triple is said out loud instead.
   const statecraft = statecraftBlockerKind(player);
-  if (statecraft !== null) return { kind: 'statecraft', what: statecraft };
+  if (statecraft !== null) yield { kind: 'statecraft', what: statecraft };
 
   // **And beside both**, for their reasons exactly (ledger Entry XXVIII): a
   // belief offer sits on the empire until it is spent, no other seat can take
@@ -230,7 +266,7 @@ export function firstBlocker(
   // a card already on screen. It is third rather than first only because a
   // discovery and a draft can both be outstanding at once and something has to
   // be; a god does not go stale while the other two are answered.
-  if (religionBlocker(player) !== null) return { kind: 'religion' };
+  if (religionBlocker(player) !== null) yield { kind: 'religion' };
 
   // **The fourth offer**, and it owes the turn exactly what the other three do
   // (`docs/great-people.md`): the hand sits on the empire until it is spent, no
@@ -243,7 +279,7 @@ export function firstBlocker(
   //
   // An **empty** offer never reaches here: `greatPersonBlocker` answers `null`
   // for one, because a spent roster is not a decision.
-  if (greatPersonBlocker(player) !== null) return { kind: 'greatPerson' };
+  if (greatPersonBlocker(player) !== null) yield { kind: 'greatPerson' };
 
   // **The fifth offer retired with the leaders' deck** (batch L6a, and the
   // discriminant with the screens in L6b): a figure is two abilities live from
@@ -263,7 +299,7 @@ export function firstBlocker(
   // was dealt does not go stale while a discovery, a draft, a god and a name are
   // answered. The rule itself is `wagerBlocker` in the simulation, where the bot
   // reads it.
-  if (wagerBlocker(state, playerId) !== null) return { kind: 'wager' };
+  if (wagerBlocker(state, playerId) !== null) yield { kind: 'wager' };
 
   // **The sixth, and the only one that is not a decision at all** (batch C1,
   // `docs/wager.md` §10). The census is *news*: the world has been measured, the
@@ -276,12 +312,12 @@ export function firstBlocker(
   // because it is the only one that costs nothing to answer late, and because
   // being *told* something can wait behind every decision that is still open.
   // The rule itself is `censusBlocker` in the simulation, where the bot reads it.
-  if (censusBlocker(state, playerId) !== null) return { kind: 'census' };
+  if (censusBlocker(state, playerId) !== null) yield { kind: 'census' };
 
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
     if (exclusions?.skippedUnitIds?.has(unit.id)) continue;
-    if (unitAwaitsOrders(unit)) return { kind: 'idleUnit', unitId: unit.id };
+    if (unitAwaitsOrders(unit)) yield { kind: 'idleUnit', unitId: unit.id };
   }
 
   // **The cart that came home** (R4, 2026-09-09). It stands exactly where the
@@ -301,8 +337,9 @@ export function firstBlocker(
   // clause up: sleep is a fact about the piece, and it is also what makes this
   // arm monotone for the bot — a seat with no legal pair stands its wagon down
   // once and is not asked again.
-  const trader = firstSendableIdleTrader(state, playerId, exclusions);
-  if (trader !== null) return { kind: 'idleTrader', unitId: trader };
+  for (const trader of sendableIdleTraders(state, playerId, exclusions)) {
+    yield { kind: 'idleTrader', unitId: trader };
+  }
 
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
@@ -312,43 +349,40 @@ export function firstBlocker(
     // blocker would stand over a town nobody can answer for. It is asked again
     // the turn its unrest ends.
     if (city.unrest !== undefined) continue;
-    if (city.queue.length === 0) return { kind: 'cityProduction', cityId: city.id };
+    if (city.queue.length === 0) yield { kind: 'cityProduction', cityId: city.id };
   }
 
   // Nothing left to research is not unfinished business — it is a finished
   // tree, and a prompt that could never be satisfied would be a locked button.
   if (player.researching === null && availableTechs(state, playerId).length > 0) {
-    return { kind: 'research' };
+    yield { kind: 'research' };
   }
-
-  return null;
 }
 
 /**
- * The id of the first cart this seat could send, or `null` — `firstBlocker`'s
+ * The ids of the carts this seat could send, in `state.units` order: the
  * `idleTrader` arm, split out so the expensive half is asked **last**.
  *
- * The order of the three questions is the order of their cost, and it is the
- * whole implementation decision: the wagons first (a walk of `state.units` and
- * one `unitDef` lookup each), and only if one is standing does the empire get
+ * The order of the questions is the order of their cost, and it is the whole
+ * implementation decision: the wagons first (a walk of `state.units` and one
+ * `unitDef` lookup each), and only once one is standing does the empire get
  * asked whether it has anywhere to send it (`hasSendablePair`, a walk of the
- * towns). A seat with no caravan at all — which is most seats for most of a
- * game — pays a units walk and nothing else.
+ * towns), and then only once. A seat with no caravan at all, which is most
+ * seats for most of a game, pays a units walk and nothing else.
  */
-function firstSendableIdleTrader(
+function* sendableIdleTraders(
   state: GameState,
   playerId: number,
   exclusions?: BlockerExclusions,
-): number | null {
-  let first: number | null = null;
+): Generator<number, void, undefined> {
+  let sendable: boolean | null = null;
   for (const unit of idleTraders(state, playerId)) {
     if (unit.sleeping === true) continue;
     if (exclusions?.skippedUnitIds?.has(unit.id)) continue;
-    first = unit.id;
-    break;
+    sendable ??= hasSendablePair(state, playerId);
+    if (!sendable) return;
+    yield unit.id;
   }
-  if (first === null) return null;
-  return hasSendablePair(state, playerId) ? first : null;
 }
 
 /**

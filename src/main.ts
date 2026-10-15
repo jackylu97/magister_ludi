@@ -248,6 +248,15 @@ import { isLeaderId, leaderDef, seatName, seatPeople } from './sim/leaderData';
 import { faithHoverCard, faithHoverReading } from './ui/faithHover';
 import { cityAt } from './sim/cities';
 import type { TurnBlocker } from './ui/turnBlockers';
+import {
+  type EndTurnList,
+  type WaitingItem,
+  type WaitingRow,
+  END_TURN_LABELS,
+  PAUSE_LABELS,
+  createEndTurnList,
+  waitingRows,
+} from './ui/endTurnList';
 import { requireElement } from './ui/dom';
 
 /**
@@ -2112,30 +2121,12 @@ function showCombatForecast(reading: ReturnType<GameControls['combatForecast']>)
  * thing you forgot — so the button is disabled for exactly one reason, and it is
  * not the player's: while the other empires are moving there is no press to
  * take. See `END_TURN_WORKING_LABEL` and `pressEndTurn`.
+ *
+ * Since batch UX4 the button also carries everything else that is waiting: a
+ * badge counts it and a list opens on hover or focus (`src/ui/endTurnList.ts`,
+ * where the label words `END_TURN_LABELS` and `PAUSE_LABELS` now live, so the
+ * label and the list read one table). `showEndTurnState` writes all three.
  */
-const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
-  idleUnit: 'Unit needs orders',
-  // The R4 ruling's own words for the prompt that replaced "Unit needs orders"
-  // on a caravan: a cart is never told where to stand, it is sent.
-  idleTrader: 'Send an idle trader',
-  cityProduction: 'Choose production',
-  research: 'Choose research',
-  discovery: 'A discovery awaits',
-  statecraft: 'A card awaits',
-  religion: 'A god awaits',
-  greatPerson: 'A great person awaits',
-  wager: 'A wager awaits',
-  // The one label that names a *reading* rather than a decision: nothing is
-  // owed here but a look, and the verb says so.
-  census: 'Read the census',
-};
-
-const PAUSE_LABELS: Record<StatecraftPause, string> = {
-  // The soft pause on the button itself (user, 2026-08-30): the guide line was
-  // too easy to miss, and a button that says what is waiting is the reminder.
-  order: 'You have a new Order',
-  government: 'A government awaits your oath',
-};
 
 /**
  * What the button says while the seats nobody is sitting in take their turns.
@@ -2168,11 +2159,23 @@ let endTurnGeneration = 0;
  */
 const BOTS_TO_THE_WORKER = Symbol('the bots play in the worker');
 
-function showEndTurnState(blocker: TurnBlocker | null, pause: StatecraftPause | null): void {
+/**
+ * End Turn's badge and waiting list, once `boot` has built them. A holder for
+ * `meterCards`' reason: the list's rows go to the board through `controls`,
+ * which needs a game, and `showEndTurnState` is declared before there is one.
+ */
+let endTurnList: EndTurnList | null = null;
+
+function showEndTurnState(
+  blocker: TurnBlocker | null,
+  pause: StatecraftPause | null,
+  rows: readonly WaitingRow[] = [],
+): void {
   // **The working state outranks both.** A blocker read while the resolution is
   // running is a reading of a turn being resolved rather than one being played,
   // and there is nothing the player could answer with it anyway: the press has
-  // been taken and the only true thing to say is what is happening.
+  // been taken and the only true thing to say is what is happening. The badge
+  // and the list go with it, for the same reason.
   if (endTurnWorking) {
     endTurnLabelEl.textContent = END_TURN_WORKING_LABEL;
     endTurnButton.classList.remove('btn-primary');
@@ -2180,6 +2183,7 @@ function showEndTurnState(blocker: TurnBlocker | null, pause: StatecraftPause | 
     endTurnButton.disabled = true;
     endTurnButton.setAttribute('aria-busy', 'true');
     endTurnButton.title = 'The other empires are taking their turns';
+    endTurnList?.render([]);
     return;
   }
   endTurnButton.classList.remove('is-working');
@@ -2196,6 +2200,7 @@ function showEndTurnState(blocker: TurnBlocker | null, pause: StatecraftPause | 
   endTurnButton.title = blocker
     ? 'Something is still outstanding — press to go to it, or Shift-click to end the turn anyway'
     : 'End your turn (Enter)';
+  endTurnList?.render(rows);
 }
 
 // --- renderer selection ----------------------------------------------------
@@ -2855,7 +2860,11 @@ async function boot(initial: Game | null): Promise<void> {
     // Whether the turn may end is derived from the same state as everything
     // else on this list — a unit that just moved, a queue that just filled, a
     // technology just chosen — so it is recomputed in the same one place.
-    showEndTurnState(controls.endTurnBlocker(), statecraftPause(game.state, controls.localPlayerId()));
+    // The whole list, read once: its first item is the label, the rest are the
+    // badge and the hover list (batch UX4), so the three cannot disagree.
+    const blockers = controls.endTurnBlockers();
+    const pause = statecraftPause(game.state, controls.localPlayerId());
+    showEndTurnState(blockers[0] ?? null, pause, waitingRows(game.state, blockers, pause));
     // The guide's two halves of this beat. The selection is a *signal* — the
     // opening sequence's second step is "select your settler", and the caravan's
     // note is raised by picking one up — and it is read here rather than pushed
@@ -4046,11 +4055,8 @@ async function boot(initial: Game | null): Promise<void> {
     // what is owed; the screen is where a *slot* is changed and is opened by the
     // player rather than at them.
     onOfferStatecraft: showStatecraftOffer,
-    onStatecraftPause: (kind) => {
-      // The button's promise kept: the pause opens the thing that waits.
-      if (kind === 'government') showStatecraftOffer();
-      else statecraft?.open();
-    },
+    // The button's promise kept: the pause opens the thing that waits.
+    onStatecraftPause: (kind) => openStatecraftPause(kind),
     onOfferReligion: showReligionOffer,
     onOfferGreatPerson: showGreatPersonOffer,
     /**
@@ -5805,6 +5811,36 @@ async function boot(initial: Game | null): Promise<void> {
   endTurnButton.addEventListener('click', (event) => {
     pressEndTurn(event.shiftKey);
   });
+
+  /**
+   * What the Statecraft pause opens: the charter card for a banked government,
+   * and the screen for an Order outside its slot. A press of End Turn and the
+   * pause's row in the waiting list both come here.
+   */
+  function openStatecraftPause(kind: StatecraftPause): void {
+    if (kind === 'government') showStatecraftOffer();
+    else statecraft?.open();
+  }
+
+  /**
+   * End Turn's badge and waiting list (batch UX4, `src/ui/endTurnList.ts`). A
+   * row goes where a press of End Turn would go for its item: the board's own
+   * `goToBlocker` for a blocker, and the waiting Statecraft thing for the
+   * pause. The repaint after it is the one a press makes, so the label and the
+   * list catch up with whatever the row changed (a cart waved off, a city
+   * opened).
+   */
+  endTurnList = createEndTurnList({
+    button: endTurnButton,
+    badge: requireElement('end-turn-more'),
+    list: requireElement('end-turn-list'),
+    onPick: (item: WaitingItem) => {
+      if (item.kind === 'pause') openStatecraftPause(item.pause);
+      else controls.goToBlocker(item.blocker);
+      updatePanel(null, renderer.getHover());
+    },
+  });
+  gameDisposers.push(() => endTurnList?.dispose());
 
   // Entry LVII's register, for a pair of pending hops rather than a listener: a
   // game torn down between the press and the drive would otherwise resolve a

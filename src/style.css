@@ -212,6 +212,13 @@
      silently drift out of sync with the button it is reserving space for. */
   --end-turn-h: calc(11px + 12px + var(--border) * 2 + 16px * 1.25);
 
+  /* End Turn's steady width (batch UX4). The label changes with what the turn
+     is waiting on, and a button that grew and shrank with it slid the Lens and
+     the chronicle along beside it. So the button keeps one width, sized for the
+     longest label it says ("The others are moving…", about 190px of bold 16px
+     text, plus the ⏎ and the padding), and centres whatever it says inside. */
+  --end-turn-w: 264px;
+
   /* The whole bottom-right corner End Turn owns and the panels must clear:
      a gap above the button the same size as every other corner margin in
      this HUD, the button's own height, and the button's own offset from the
@@ -1988,7 +1995,10 @@ button.topbar-tab[aria-expanded='true'] .topbar-tab-label,
 
    Above the popover column in the stack (16 against 15) because a toast is a
    five-second thing and a card is not: the toast should never be the surface
-   that loses, and it is gone before it can be in the way for long. */
+   that loses, and it is gone before it can be in the way for long. The one
+   exception is the empire drawer (17, batch UX4): on a window narrower than
+   about 1430px a centred toast reaches over it, and the drawer is what the
+   player has opened and is reading, while the toast is also in the chronicle. */
 .toasts {
   position: fixed;
   top: calc(var(--topbar-h) + 10px);
@@ -3221,7 +3231,11 @@ kbd {
   position: fixed;
   top: calc(var(--topbar-h) + 12px);
   left: calc(14px + var(--empire-panel-w) + 6px);
-  z-index: 14;
+  /* Above the toasts (16), the one exception to their rule (batch UX4). Below
+     about 1430px wide a centred toast reaches over the drawer, and the drawer
+     is the surface the player opened and is reading; the toast is kept in the
+     chronicle and is gone in five seconds. Still under the bar (20). */
+  z-index: 17;
   box-sizing: border-box;
   width: 300px;
   padding: 6px 10px 9px;
@@ -4182,14 +4196,20 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
 }
 
 .btn-end {
+  /* For the badge at its top-left corner. */
+  position: relative;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 9px;
+  box-sizing: border-box;
+  min-width: var(--end-turn-w);
   padding: 11px 20px 12px;
   border-width: var(--border);
   border-radius: var(--radius);
   font-size: 16px;
   letter-spacing: 0.01em;
+  white-space: nowrap;
   box-shadow: var(--shadow);
 }
 
@@ -4263,6 +4283,109 @@ body:has(.city-mode:not([hidden])) .hud-turn-tools {
   #end-turn.is-working #end-turn-label {
     animation: none;
   }
+}
+
+/* --- End Turn's badge and waiting list (batch UX4) -------------------------
+   The label names the first thing the turn is waiting on. The badge at the
+   button's top-left counts the rest ("+2"), and the list opens above the
+   button on hover or focus with every item, each a button to where it is
+   answered (`src/ui/endTurnList.ts`). */
+.end-turn-more {
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  min-width: 22px;
+  padding: 1px 6px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--vermilion);
+  color: #fff;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0;
+  text-align: center;
+  pointer-events: none;
+}
+
+.end-turn-more[hidden] {
+  display: none;
+}
+
+/* Above End Turn, right-aligned to it, and as wide as it, so it never reaches
+   over the Lens and the chronicle. It opens upward like their cards, and above
+   the incoming-offers button when that is standing. */
+.end-turn-list {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  box-sizing: border-box;
+  width: var(--end-turn-w);
+  padding: 8px 10px 7px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.end-turn-list[hidden] {
+  display: none;
+}
+
+body.has-diplomatic-offers .end-turn-list {
+  bottom: calc(100% + 12px + 48px);
+}
+
+.end-turn-list-head {
+  margin: 0 0 4px;
+}
+
+.end-turn-list-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each item is a button: the manicule, then what is waiting. */
+.end-turn-list-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 4px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.end-turn-list-row:hover {
+  background: #fdfaef;
+}
+
+.end-turn-list-row:hover .end-turn-list-words {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.end-turn-list-hand {
+  flex: none;
+  color: var(--vermilion);
+}
+
+.end-turn-list-foot {
+  margin: 5px 0 0;
+  font-size: 10px;
 }
 
 /* --- move mode -------------------------------------------------------------
@@ -17510,6 +17633,13 @@ body.compendium-page {
   margin: 0;
   max-width: 62ch;
   color: var(--ink-soft);
+}
+
+/* Why a card may not be staked, said once above the cards (batch UX4): on a
+   visit after the stake, the cards not staked are refused, and the reason is
+   the simulation's own sentence. */
+.wager-refusals {
+  margin: 0 0 10px;
 }
 
 .wager-grid {

@@ -85,6 +85,10 @@ describe('the game-screen disposal register', () => {
       // `pointerdown` and `keydown` on the window, which would go on answering
       // for a game that is over.
       'empireDrawer?.dispose()',
+      // End Turn's waiting list (batch UX4). Its rows go to the board through
+      // the boot's `controls`, so a list left bound would send a press to a
+      // game that has been replaced.
+      'endTurnList?.dispose()',
     ]) {
       expect(main, call).toContain(`gameDisposers.push(() => ${call});`);
     }

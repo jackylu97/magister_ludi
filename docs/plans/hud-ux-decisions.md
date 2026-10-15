@@ -55,6 +55,14 @@ The user, 2026-10-12: *"ok E2 is my favorite."* One drawer at the top-left, in t
 
 ### End Turn
 - **End Turn carries everything still waiting:** its label names the first item, a badge counts the rest, and hovering (or focus) lists them all, each a link. Replaces stacked notices. The chronicle and Lens sit as two small buttons beside it.
+- **Built** (batch UX4, `src/ui/endTurnList.ts`). As drawn, with these choices inside the spec:
+  - The list is `allBlockers` (`turnBlockers.ts`), which walks the same clauses in the same order as `firstBlocker`, so the label and the list's first row cannot disagree. The Statecraft pause (a banked charter, or an Order outside its slot) comes last, since a press mentions it but does not stop on it.
+  - Idle units, carts and towns waiting on the same thing share one row with a count ("3 units need orders"); the row goes to the first of them, as a press would. A lone unit or town is named ("Scout needs orders", "Choose production in Aldermarch").
+  - The badge counts rows after the first, so it matches what the list shows. Hidden while the others are moving.
+  - The list opens 150 ms after the pointer rests on End Turn, at once on keyboard focus (Tab then walks its rows), never for a touch, and closes 300 ms after the pointer leaves. Escape inside it closes it and hands the keyboard back to End Turn. It is a hover card, not a card in the screen registry.
+  - End Turn keeps one width (`--end-turn-w`, 264 px), sized for the longest label it says ("The others are moving…"), so the Lens and the chronicle no longer slide. "A government awaits your oath" became "A government awaits" to fit.
+- **The toast over the empire drawer** (found in UX3): the drawer now stacks above the toasts. A centred toast reaches over the drawer on any window narrower than about 1430 px, and moving the toasts would have put them over the unit panel instead; the drawer is what the player opened and is reading, and every toast is kept in the chronicle.
+- **The wager sheet after the stake:** since the drawer gave it a standing door, a visit mid-age refused the two cards not staked only after a press. Their buttons are now disabled, and the game's own reason ("You have already staked this age") is said once above the cards.
 
 ### Strategic resources
 - **Their counts head the city build list,** where building decisions are made.

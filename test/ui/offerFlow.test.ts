@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PAUSE_LABELS } from '../../src/ui/endTurnList';
 
 /**
  * The Statecraft offer chain, pinned at the source (the deployed bug of
@@ -247,7 +248,9 @@ describe('the reroll button', () => {
 
 describe('the soft pause lives on the End Turn button (user, 2026-08-30)', () => {
   it('labels the button and opens the waiting thing on click', () => {
-    expect(MAIN).toContain("order: 'You have a new Order'");
+    // The label table lives with End Turn's waiting list since batch UX4, so
+    // the button and the list read one table.
+    expect(PAUSE_LABELS.order).toBe('You have a new Order');
     expect(MAIN).toContain('PAUSE_LABELS[pause]');
     expect(MAIN).toContain('onStatecraftPause: (kind) =>');
   });

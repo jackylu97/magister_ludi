@@ -178,14 +178,14 @@ function dockFamily(into: HTMLElement): void {
   const grid = markGrid(
     block(
       into,
-      'The dock — src/art/dockMarks.ts',
-      'The marks that open a sheet from the HUD dock. The cart and the ranking are drawn here rather than vendored: no outline set carries a bale on two wheels, or an order of finish with a bead at the head of each place.',
+      'The screen marks — src/art/dockMarks.ts',
+      'The marks for the screens the HUD opens. They were drawn for the HUD dock, which is gone: since batch UX1 the banner, the cart and the ranking are the top bar tabs, and since batch UX3 the scroll is shown only here. The cart and the ranking are drawn here rather than vendored: no outline set carries a bale on two wheels, or an order of finish with a bead at the head of each place.',
     ),
   );
-  markCell(grid, 'statecraft', statecraftMarkDataUri(), 'the Orders & Doctrines dock button');
-  markCell(grid, 'diplomacy', diplomacyMarkDataUri(), 'the war & peace dock button');
-  markCell(grid, 'trade', tradeMarkDataUri(), 'the Caravans dock button, and the routes chip');
-  markCell(grid, 'standings', standingsMarkDataUri(), 'the standings & victory dock button');
+  markCell(grid, 'statecraft', statecraftMarkDataUri(), 'Statecraft: the dock button until batch UX3, unused in the game since');
+  markCell(grid, 'diplomacy', diplomacyMarkDataUri(), 'the Diplomacy tab in the top bar');
+  markCell(grid, 'trade', tradeMarkDataUri(), 'the Trade tab in the top bar');
+  markCell(grid, 'standings', standingsMarkDataUri(), 'the Standings tab in the top bar');
 }
 
 function lineFamily(into: HTMLElement): void {
