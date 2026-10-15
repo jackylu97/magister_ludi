@@ -40,7 +40,7 @@ The drawings are in `mockups/faith-f1.html`. The Rites tab there is a working pr
   - Your gods: Star Readers +8 science (Larkspur, Northwatch); Herd Gods +5 production +5 faith; Lord of the Sea +12 production +12 gold.
   - Follower beliefs: Choirs +4 culture; Temple Spires and Minarets wear the flourish and say "pays once a Wat / Mosque stands"; the enhancer place is a dashed ghost ("0 of 2, a prophet's charge once you have Theology").
   - Holy city and rites running: a wide gilt-ruled plaque for Aldermarch with the founder share (+3 faith, +1 gold, from Junipers Rest, Kestrel and Stonebridge following by majority) and the holy site's pressure; a wide rite card for Omen Reading with its three towns as chips with turns bars, +42 science.
-  - Seated cards that pay faith: First Rites (Devotion) +10 faith; The Camp Chaplains (Dominion) +49 faith, marked as needing a ruling.
+  - ~~Seated cards that pay faith~~: **removed by the user's ruling of 2026-10-15.** Order cards are shown on the Statecraft screen only. The headline still sums to the top bar, with everything the cards pay as one slice that names Statecraft (`docs/flags.md` (ssssss)).
 - **Each card:** accent frame and inner rule, an emblem chip and mono eyebrow ("a god · sky", "Devotion · an order"), the name, the clause, where it pays (town chips), and the figure in the game's yield marks.
 - **The opening, as drawn:**
   1. The faith bar's slices grow, 90 ms apart; the headline counts up and lands.
@@ -93,6 +93,8 @@ The drawings are in `mockups/faith-f1.html`. The Rites tab there is a working pr
 Unchanged by this revision: rite mode adds about a quarter day, and dropping the cards from the Religion & followers tab saves about the same. No new command, and none for starting in several towns either.
 
 ## Rulings still open
+
+**Answered by the user on 2026-10-15** (`docs/flags.md` (ssssss) 4): all as proposed, except 3. The user, verbatim: *"accept all, except only show religious beliefs in the bonus screen; orders should appear on the statecraft screen, showing them in both places could be confusing."* So the Bonuses tab has no shelf of seated cards. The list below is kept as the record of what was asked.
 
 1. **When the Bonuses tab animates.** The Religion sheet's rule today is "the stamp lands here, it never plays", and the Orders screen counts only on Confirm. Proposed: the deal plays every time the tab opens; a figure counts up only if it changed since you last looked, otherwise it lands.
 2. **Which figure the god and belief cards wear on the Bonuses tab:** the Ledger's attribution (proposed; sums to the Ledger; Star Readers +8) or today's ghost stamp (what removing it would cost; Star Readers +10).

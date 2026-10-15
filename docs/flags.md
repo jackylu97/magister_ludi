@@ -19,12 +19,23 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(ssssss) The interface rework's open rulings — OPEN, 2026-10-15** (the user:
+**(ssssss) The interface rework's open rulings — RULED, 2026-10-15** (the user:
 *"Could we begin the UX overhaul that we started planning? That should go on in
 parallel while i'm a blocker on deck changes"*). The batches are in
 `docs/plans/hud-ux-decisions.md`, "Build plan". UX1, UX2, UX4, UX5 and UX8a
 need none of the rulings below and go first. Each line carries the
 orchestrator's proposal.
+
+**The user's answers, 2026-10-15:** points 1, 2 and 3 as proposed (Supply moves
+off the board; Q, L, comma and period are bound; town stepping includes
+puppets). Point 4 as proposed except 4.3, verbatim: *"accept all, except only
+show religious beliefs in the bonus screen; orders should appear on the
+statecraft screen, showing them in both places could be confusing."* So the
+Bonuses tab shows the religion's own sources (gods, follower and enhancer
+beliefs, the holy city's founder share, rites running) and no Order cards.
+*Default inside that ruling:* the tab's headline faith figure still sums to the
+top bar's, with everything the cards pay as one slice that names Statecraft as
+the place to see them, so the figure never disagrees with the bar.
 
 1. **Supply off the board (UX3).** The always-visible resources card goes. Its
    counts move to the drawer's Supply section and to the head of every town's
@@ -45,7 +56,8 @@ orchestrator's proposal.
       not today's stamp (what removing the card would cost). *Proposed: the
       Ledger's.*
    3. The Bonuses tab shows every seated card that pays faith, not only
-      Devotion's. *Proposed.*
+      Devotion's. *Proposed.* **Overruled: no Order cards on the Bonuses tab;
+      Orders are shown on the Statecraft screen.**
    4. The prophet's rite appears on the Rites tab. *Proposed.*
    5. Rows for rival faiths pressing your towns follow the faith lens's fog
       rule: towns you remember count, not only towns in sight. *Proposed.*
