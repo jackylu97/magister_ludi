@@ -658,22 +658,25 @@ describe('the followers on a city sheet', () => {
   it('keeps every claim on the town reachable, hovered with the ledger', () => {
     // The claim survives the city mode (`docs/city-screen.md`, revision 3);
     // where the block sits does not. It used to be a section under the
-    // citizens' row; it is now the fourth standing disclosure in the town rail,
-    // closed by default with the number of claims in its summary and **every
-    // word it had inside it** — which is the no-deletion rule this list is the
+    // citizens' row, then the fourth standing disclosure in the town rail; since
+    // batch UX7 it is a disclosure inside the Faith card, closed by default with
+    // the number of claims in its summary and **every word it had inside it**
+    // — which is the no-deletion rule this list is the
     // hardest case of, because a faith pressing on a town with nobody converted
     // yet is exactly the thing a player must not be able to miss.
     const panel = sourceOf('cityPanel.ts');
     expect(panel).toContain('renderFollowers(city)');
     expect(panel).toContain('pressureLedgerText(row.ledger)');
     expect(panel).toContain('unconvertedCitizens(city)');
-    // Drawn in the rail that carries the town's standing facts, behind a
-    // disclosure whose summary is the count of claims — never dropped, and
-    // never a fact the sheet invents beside the list.
-    const rail = fn('cityPanel.ts', 'renderTownRail');
-    expect(rail).toContain('renderFollowers(city)');
-    expect(rail).toContain("disclosure('Faith'");
-    expect(rail).toContain('cityFaithRows(state, city, localPlayerId())');
+    // Drawn in the town rail's Faith card since batch UX7, behind a disclosure
+    // whose summary is the count of claims — never dropped, and never a fact
+    // the sheet invents beside the list.
+    expect(fn('cityPanel.ts', 'renderTownRail')).toContain('renderFaithCard(city)');
+    const card = fn('cityPanel.ts', 'renderFaithCard');
+    expect(card).toContain(
+      "disclosure('Every faith here', figure(claims.length), renderFollowers(city))",
+    );
+    expect(card).toContain('cityFaithRows(state, city, localPlayerId())');
     // And the header still carries the one-line answer the block is the
     // argument for (the 2026-08-28 ruling), in the band now.
     expect(fn('cityPanel.ts', 'renderBand')).toContain('renderFaithHeadline(city)');

@@ -172,12 +172,15 @@ const off = (...classes: string[]): Node => ({ classes: new Set(classes), disabl
  */
 const SURFACES: { file: string; says: string; carries: string }[] = [
   // The city screen — the rite's "Taught by", the two hover-card notes that are
-  // prerequisites, the queue's building and project previews, and the two
-  // buildable rows whose price column has become a sentence.
+  // prerequisites, the queue's building and project previews, and (since batch
+  // UX7) what a folded row waits on, why a row kept for its price cannot be
+  // queued, and why the rows' card says a thing is not sold here. A build
+  // row's own refusal is a refusal line under the row (`refusalLine.ts`).
   { file: 'cityPanel.ts', says: 'the rite a tech has not taught', carries: "'city-rite-says wanting'" },
   { file: 'cityPanel.ts', says: "a building's refusal", carries: "element('p', 'info-card-state wanting', problem)" },
-  { file: 'cityPanel.ts', says: "a unit row's missing resource", carries: "price.classList.add('is-reason', 'wanting')" },
-  { file: 'cityPanel.ts', says: "a building row's refusal", carries: "costSpan.classList.add('is-reason', 'wanting')" },
+  { file: 'cityPanel.ts', says: 'what a row under "Not yet" waits on', carries: "reasonLine(reason, 'city-not-yet-why wanting')" },
+  { file: 'cityPanel.ts', says: "why a row kept for its price cannot be queued", carries: "reasonLine(reason, 'refusal-line is-row wanting')" },
+  { file: 'cityPanel.ts', says: "why the rows' card says a thing is not sold here", carries: "line.classList.add('wanting');" },
   // The price column, since batch UX5 (the user's A1 ruling, 2026-10-12). A
   // refused purchase is no longer a vermilion tag with its reason in a native
   // tooltip: a price the bank is short of says how much more is needed, and
@@ -230,7 +233,9 @@ describe('the wanting voice', () => {
       '.info-card-state',
       '.bead-card-gate',
       '.rel-call-note',
-      '.city-buildable-cost',
+      // The build row's schedule cell (`.city-buildable-cost`) was a host until
+      // batch UX7 took the reason out of the row: a refusal is a line under the
+      // row now, or a folded row's reason, and neither host sets an ink.
       // The buy tag (`.city-buildable-buy`) was a host until batch UX5 moved a
       // purchase's refusal off the tag and onto a line (`.refusal-line`), which
       // sets no ink of its own and so needs no doubled class to win.
@@ -248,10 +253,14 @@ describe('the wanting voice', () => {
     }
   });
 
-  it('excuses the class where a host still outranks it', () => {
-    // One descendant rule beats even the doubled class, and it is the one that
-    // matters most: the row carrying "needs improved ⛏ Iron" is disabled.
-    expect(css()).toContain('.city-buildable:disabled .city-buildable-cost:not(.wanting)');
+  it('needs no excuse inside a greyed build button, because no refusal sits there', () => {
+    // One descendant rule used to beat even the doubled class: the disabled row
+    // carrying "needs improved ⛏ Iron" in its schedule cell. Since batch UX7 no
+    // reason is printed inside a build button (a folded row's reason and a kept
+    // row's refusal are lines of their own), so the excuse is gone and no build
+    // button carries the voice.
+    expect(css()).not.toContain(':not(.wanting)');
+    expect(uiSource('cityPanel.ts')).not.toContain("classList.add('is-reason', 'wanting')");
     // The buy tag's own excuse (`.city-buildable-buy:disabled:not(.wanting)`)
     // went with the tag in batch UX5: a price never wears the class now. What
     // is short sits on a child line (`.price-cell-need`) that sets no ink.
@@ -311,13 +320,14 @@ describe('the wanting voice', () => {
     // check, kept.
     const wanting: [string, Node[]][] = [
       ['the tile cell a technology has not opened', [on('tile-requires', 'is-wanting')]],
-      ['the rite\'s "Taught by"', [on('city-rite-row'), on('city-rite-says', 'wanting')]],
+      ['the rite\'s "Taught by"', [on('city-not-yet-row'), on('city-rite-says', 'wanting')]],
       ['the queue card\'s refusal', [on('info-card'), on('info-card-state', 'wanting')]],
       ['the night card\'s refusal', [on('info-card', 'is-night'), on('info-card-state', 'wanting')]],
       [
-        'the buildable row\'s "needs improved ⛏ Iron"',
-        [off('city-buildable'), on('city-buildable-cost', 'is-reason', 'wanting')],
+        'a folded row\'s "needs improved ⛏ Iron"',
+        [on('city-not-yet'), on('city-not-yet-row', 'is-unit'), on('city-not-yet-why', 'wanting')],
       ],
+      ['the rows\' card\'s "not bought here"', [on('city-row-card'), on('city-row-card-buy', 'wanting')]],
       // The price column (batch UX5): the gold a price is short of, a refusal
       // said once at the head of a shelf or under a row, and a refused command.
       ['what a price is short of', [on('price-cell', 'is-short'), on('price-cell-need', 'wanting')]],

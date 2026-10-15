@@ -171,7 +171,8 @@ describe('what a town is short of', () => {
       label: 'No Iron spare',
       figure: '0/1',
       why: 'Iron: 0 spare of 1. The Legionary needs one.',
-      target: 'row:legionary',
+      // The Supply strip at the head of the build list, since batch UX7.
+      target: 'supply',
     });
   });
 
@@ -321,9 +322,10 @@ describe('the turns a rite would last', () => {
     );
   });
 
-  it('says one turn, not one turns, on the Rites shelf', () => {
-    const rail = braceBody(uiSource('cityPanel.ts'), 'function renderTownRail(');
-    expect(rail).toContain("${left} ${left === 1 ? 'turn' : 'turns'} left");
-    expect(rail).not.toContain('more turns');
+  it('says one turn, not one turns, on the rite a town keeps', () => {
+    // On the Faith card since batch UX7, where the Rites shelf's tooltip was.
+    const card = braceBody(uiSource('cityPanel.ts'), 'function renderFaithCard(');
+    expect(card).toContain("${left} ${left === 1 ? 'turn' : 'turns'} left");
+    expect(uiSource('cityPanel.ts')).not.toContain('more turns');
   });
 });

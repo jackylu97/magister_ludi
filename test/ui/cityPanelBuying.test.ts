@@ -36,6 +36,7 @@ import {
   createUnit,
   playerById,
 } from '../../src/sim/state';
+import type { OrderId } from '../../src/sim/statecraftData';
 import { buildError } from '../../src/sim/tech';
 import { TECH_IDS } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
@@ -135,8 +136,14 @@ function shelf(shelves: readonly BuildListShelf[], which: BuildListShelf['shelf'
   return found;
 }
 
+/** The rows a shelf shows: the ones the town can use, read as queued, or buy. */
 function rows(shelves: readonly BuildListShelf[]): BuildListRow[] {
   return shelves.flatMap((entry) => entry.rows);
+}
+
+/** Every row a shelf holds, the ones folded under "Not yet" included. */
+function everyRow(shelves: readonly BuildListShelf[]): BuildListRow[] {
+  return shelves.flatMap((entry) => [...entry.rows, ...entry.notYet.map((folded) => folded.row)]);
 }
 
 // --- the core claim -----------------------------------------------------------
@@ -149,7 +156,14 @@ describe('nothing the list leaves pressable is refused', () => {
   function check(label: string, state: GameState, city: City): Record<string, number> {
     const locked = city.puppet === true;
     const counts = { enabled: 0, buy: 0, short: 0, none: 0 };
-    for (const row of rows(buildListModel(state, city, 0, 'all', locked))) {
+    const shelves = buildListModel(state, city, 0, 'all', locked);
+    // A folded row is drawn without a build button or a price, so nothing in
+    // it can be pressed; the model folds a row only when no price of it could
+    // be (batch UX7).
+    for (const { row } of shelves.flatMap((entry) => entry.notYet)) {
+      for (const cell of row.cells) expect(cell.look.look, `${label}: ${row.name} folded`).toBe('none');
+    }
+    for (const row of rows(shelves)) {
       const item = queueItemOf(row);
       if (item !== null && row.kind !== 'offer' && row.enabled) {
         counts.enabled += 1;
@@ -210,31 +224,39 @@ describe('nothing the list leaves pressable is refused', () => {
 
   it('presses nothing in a puppet: it chooses for itself, and spends nothing', () => {
     const { state, city } = puppet();
-    for (const row of rows(buildListModel(state, city, 0, 'all', true))) {
+    for (const row of everyRow(buildListModel(state, city, 0, 'all', true))) {
       if (row.kind !== 'offer') expect(row.enabled, row.name).toBe(false);
       for (const cell of row.cells) expect(cell.look.look, row.name).toBe('none');
     }
   });
 
   it('greys a build row only with a reason the screen prints', () => {
-    // Every refusal is on screen (batch UX5: never only in a native tooltip):
-    // the row's own sentence, its place in the queue, or, for a town too small,
-    // the purchase gate's sentence on a line under the row.
+    // Every refusal is on screen (batch UX5: never only in a native tooltip).
+    // Since batch UX7 a row that cannot be queued and cannot be bought folds
+    // under "Not yet" with its reason; one the list keeps greyed is a row that
+    // can still be bought, or a building already in the queue, and the panel
+    // prints its build refusal on a line under it (`buildReason`).
+    let folded = 0;
     for (const town of [firstTurn(), developed()]) {
-      for (const row of rows(buildListModel(town.state, town.city, 0, 'all', false))) {
+      const shelves = buildListModel(town.state, town.city, 0, 'all', false);
+      for (const { row, reason } of shelves.flatMap((entry) => entry.notYet)) {
+        folded += 1;
+        if (reason.kind === 'text') expect(reason.text, row.name).not.toBe('');
+        else expect(reason.resources.length, row.name).toBeGreaterThan(0);
+      }
+      for (const row of rows(shelves)) {
         if (row.kind === 'unit' && !row.enabled) {
-          if (row.blocked !== null) continue;
-          expect(row.tooSmall, row.name).toBe(true);
-          expect(
-            row.cells.some((cell) => cell.place?.at === 'row' && /needs population/.test(cell.place.text)),
-            row.name,
-          ).toBe(true);
+          // Kept although it cannot be queued: it can be bought.
+          expect(row.cells.some((cell) => cell.look.look !== 'none'), row.name).toBe(true);
         }
         if (row.kind === 'building' && !row.enabled) {
           expect(row.blocked !== null || row.queued !== null, row.name).toBe(true);
         }
       }
     }
+    expect(folded).toBeGreaterThan(0);
+    const list = braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(');
+    expect(list).toContain('const why = buildReason(row);');
   });
 });
 
@@ -257,12 +279,17 @@ describe('a refusal is said once per reason', () => {
   });
 
   it('says a reason only one row has under that row', () => {
+    // A worker stands in the town as well as the scout: of the rows the list
+    // shows, only the Worker is refused for it (the Settler folds away, the
+    // town being too small), so that reason is said under the Worker's row.
     const { state, city } = firstTurn();
+    createUnit(state, 0, 'worker', city.col, city.row);
+    bumpRevision(state);
     const units = shelf(buildListModel(state, city, 0, 'all', false), 'unit');
-    const settler = units.rows.find((row) => row.kind === 'unit' && row.id === 'settler')!;
-    expect(settler.cells[0]!.place).toEqual({
+    const worker = units.rows.find((row) => row.kind === 'unit' && row.id === 'worker')!;
+    expect(worker.cells[0]!.place).toEqual({
       at: 'row',
-      text: purchaseError(state, 0, city.id, { kind: 'unit', id: 'settler' }, 'gold'),
+      text: purchaseError(state, 0, city.id, { kind: 'unit', id: 'worker' }, 'gold'),
     });
   });
 
@@ -278,15 +305,18 @@ describe('a refusal is said once per reason', () => {
     }
   });
 
-  it('adds nothing for a dash whose reason the row already prints', () => {
+  it('adds nothing for a dash whose reason the row already says', () => {
     // A unit the empire has no spare horses for is refused by the queue and the
-    // purchase gate in the same words, and the row prints them already.
+    // purchase gate in the same words. Since batch UX7 it folds under "Not yet"
+    // with the requirement and its counts, and its dash never reaches the
+    // shelf's head.
     const { state, city } = developed();
     const units = shelf(buildListModel(state, city, 0, 'all', false), 'unit');
-    const horsed = units.rows.filter((row) => row.kind === 'unit' && row.wantsResource);
+    const horsed = units.notYet.filter(({ row }) => row.kind === 'unit' && row.wantsResource);
     expect(horsed.length).toBeGreaterThan(0);
-    for (const row of horsed) {
+    for (const { row, reason } of horsed) {
       if (row.kind !== 'unit') continue;
+      expect(reason.kind, row.name).toBe('resource');
       expect(row.cells[0]!.look).toMatchObject({ look: 'none', refusal: row.blocked });
       expect(row.cells[0]!.place, row.name).toBeNull();
       expect(units.refusals.map((line) => line.text), row.name).not.toContain(row.blocked);
@@ -347,7 +377,7 @@ describe('a queued building stays in the add list', () => {
     expect(city.buildings).toContain('granary');
     expect(city.queue[0]).toEqual({ kind: 'unit', id: 'worker' });
     expect(city.hammerBasket).toBe(30);
-    const after = rows(buildListModel(state, city, 0, 'all', false));
+    const after = everyRow(buildListModel(state, city, 0, 'all', false));
     expect(after.some((row) => row.kind === 'building' && row.id === 'granary')).toBe(false);
     expect(after.find((row) => row.kind === 'building' && row.id === 'library')).toMatchObject({
       queued: 2,
@@ -377,7 +407,7 @@ describe('which rows print', () => {
     const retiredUnits = new Set(UNIT_TYPE_IDS.filter((id) => unitDef(id).retired === true));
     const retiredBuildings = new Set(BUILDING_IDS.filter((id) => buildingDef(id).retired === true));
     for (const town of [firstTurn(), developed()]) {
-      for (const row of rows(buildListModel(town.state, town.city, 0, 'all', false))) {
+      for (const row of everyRow(buildListModel(town.state, town.city, 0, 'all', false))) {
         if (row.kind === 'unit' || row.kind === 'offer') {
           expect(retiredUnits.has(row.id), row.id).toBe(false);
         }
@@ -402,7 +432,7 @@ describe('which rows print', () => {
     const list = braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(');
     expect(list).toContain("'Caravans are hired on the trade sheet →'");
     expect(list).toContain("link.addEventListener('click', () => onOpenTrade());");
-    expect(list).toContain('if (shelf.caravans) grid.append(tradeSheetLine());');
+    expect(list).toContain('if (shelf.caravans) into.append(tradeSheetLine());');
   });
 
   it('gathers what is bought with faith on a Faith shelf, priced in faith', () => {
@@ -415,12 +445,30 @@ describe('which rows print', () => {
       expect(row.cells.map((cell) => cell.look.bank), row.name).toEqual(['faith']);
     }
     // A thing bought with gold and never built stays with the units, beside
-    // the bank it draws on.
+    // the bank it draws on — once something has opened it for this empire. The
+    // Company Guard is a card's to open (batch UX7: hidden until it is); with
+    // the card held it is a row of the units, waiting on a Barracks here.
     const units = shelf(shelves, 'unit');
-    expect(units.rows.some((row) => row.kind === 'offer' && row.id === 'companyGuard')).toBe(true);
-    for (const row of units.rows) {
-      if (row.kind === 'offer') expect(row.cells.map((cell) => cell.look.bank)).toEqual(['gold']);
-    }
+    expect(unitDef('companyGuard').unlockedByCard).toBe(true);
+    expect(everyRow([units]).some((row) => row.id === 'companyGuard')).toBe(false);
+    const carded = developed();
+    const sc = playerById(carded.state, 0)!.statecraft;
+    sc.orders.push('theCharteredCompany' as OrderId);
+    sc.slots.push({ card: 'theCharteredCompany' as OrderId, sealedUntil: carded.state.turn });
+    bumpRevision(carded.state);
+    // No Barracks here yet: it waits under "Not yet", in the gate's own words.
+    const waiting = shelf(buildListModel(carded.state, carded.city, 0, 'unit', false), 'unit');
+    const folded = waiting.notYet.find(({ row }) => row.id === 'companyGuard');
+    expect(folded?.reason).toEqual({
+      kind: 'text',
+      text: purchaseError(carded.state, 0, carded.city.id, { kind: 'unit', id: 'companyGuard' }, 'gold'),
+    });
+    // With one, it is a row of the units, priced in gold.
+    carded.city.buildings.push('barracks');
+    bumpRevision(carded.state);
+    const open = shelf(buildListModel(carded.state, carded.city, 0, 'unit', false), 'unit');
+    const guard = open.rows.find((row) => row.kind === 'offer' && row.id === 'companyGuard');
+    expect(guard?.cells.map((cell) => cell.look.bank)).toEqual(['gold']);
     // Each tab shows its own shelf and nothing else.
     expect(buildListModel(state, city, 0, 'faith', false).map((entry) => entry.shelf)).toEqual([
       'faith',
@@ -430,7 +478,7 @@ describe('which rows print', () => {
     ]);
     // And it heads its column with the faith bank.
     expect(braceBody(uiSource('cityPanel.ts'), 'function renderBuildables(')).toContain(
-      "if (shelf.shelf === 'faith') grid.append(priceHeadElement([held('faith')]));",
+      "if (shelf.shelf === 'faith') into.append(priceHeadElement([held('faith')]));",
     );
   });
 });

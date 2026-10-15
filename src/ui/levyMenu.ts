@@ -6,8 +6,9 @@
  * exact figure on the right and the granting card's name underneath, and a cost
  * line under the lines: the population change and how long the town waits
  * before it may levy again. The button is greyed while no line can be chosen —
- * most often because the town is still waiting — with the reason in its hover.
- * A town whose owner holds no levy card gets no button at all.
+ * most often because the town is still waiting — and the panel prints the
+ * reason on a line under it. A town whose owner holds no levy card gets no
+ * button at all.
  *
  * Split in two so the menu can later open from a citizen token (the user's
  * preferred version): `levyMenuModel` is pure and says what the menu holds;
@@ -41,7 +42,11 @@ export interface LevyMenuModel {
   lines: LevyMenuLine[];
   /** True while no line can be chosen. */
   disabled: boolean;
-  /** The button's hover: the reason it is greyed, or what it does. */
+  /**
+   * The reason the button is greyed, or what it does. The panel prints the
+   * reason on a line under a greyed button; the button carries either as its
+   * spoken description.
+   */
   title: string;
   /** "Costs 1 citizen (pop 9 → 8). Next levy here in 5 turns." */
   cost: string;
@@ -118,33 +123,43 @@ export function levyMenuModel(
 }
 
 /**
- * Draws the button and, when `open`, the menu under it. `onToggle` flips the
- * menu; `onChoose` is handed the use a line was pressed for. A greyed line
- * carries its refusal as its hover, so it says what the reducer would say.
+ * The button, "Levy a citizen ▾". Since batch UX7 it stands on the town's
+ * population line (`docs/plans/city-screen-iterations.md`, A1: the levy sits
+ * beside the bank it spends, which is the town's people). `onToggle` flips the
+ * menu, which the panel draws under the line (`renderLevyMenuBody`). A greyed
+ * button's reason is a line the panel prints under it (`model.title`), never a
+ * tooltip.
  */
-export function renderLevyMenu(
+export function renderLevyTrigger(
   model: LevyMenuModel,
   open: boolean,
   onToggle: () => void,
-  onChoose: (use: LevyUse) => void,
-): HTMLElement {
-  const box = element('div', 'city-levy');
+): HTMLButtonElement {
   const button = element('button', 'btn btn-quiet btn-tiny city-levy-button', 'Levy a citizen ▾');
   button.type = 'button';
   button.disabled = model.disabled;
-  button.title = model.title;
   button.setAttribute('aria-expanded', open && !model.disabled ? 'true' : 'false');
+  button.setAttribute('aria-description', model.title);
   button.addEventListener('click', onToggle);
-  box.append(button);
-  if (!open || model.disabled) return box;
+  return button;
+}
 
+/**
+ * The menu the button opens: one line per use, its figure on the right, and
+ * under it the granting card or, for a line that cannot be chosen, the
+ * reducer's own refusal. Both are printed, so neither needs a tooltip.
+ * `onChoose` is handed the use a line was pressed for.
+ */
+export function renderLevyMenuBody(
+  model: LevyMenuModel,
+  onChoose: (use: LevyUse) => void,
+): HTMLElement {
   const menu = element('div', 'city-levy-menu');
   for (const line of model.lines) {
     const row = element('div', 'city-levy-row');
     const choose = element('button', 'city-levy-choice', line.label);
     choose.type = 'button';
     choose.disabled = line.blocked !== null;
-    choose.title = line.blocked ?? line.source;
     choose.addEventListener('click', () => onChoose(line.use));
     row.append(choose);
     row.append(element('span', 'city-levy-figure num', line.figure));
@@ -152,6 +167,5 @@ export function renderLevyMenu(
     menu.append(row);
   }
   menu.append(element('p', 'city-levy-cost', model.cost));
-  box.append(menu);
-  return box;
+  return menu;
 }

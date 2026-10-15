@@ -469,7 +469,7 @@ describe('the build list hides what can never be built (user, 2026-08-30)', () =
     const model = braceBody(source, 'export function buildListModel(');
     expect(model).toContain('if (!unitRowShown(state, city, id)) continue;');
     expect(braceBody(source, 'export function unitRowShown(')).toContain(
-      'if (unitDef(id).awaitsTech === true) return false;',
+      'if (def.awaitsTech === true) return false;',
     );
     expect(model).toContain('if (def.awaitsTech === true) return null;');
     expect(model).toContain('if (buildingDef(id).awaitsTech === true) continue;');

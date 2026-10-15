@@ -128,9 +128,10 @@ describe('the fortify readout is points, never a percentage', () => {
 
 describe('the city sheet', () => {
   it('reads its hit points as hp / cityMaxHp, with the ledger on hover', () => {
+    // On hover in the panel's own card since batch UX7, not a native tooltip.
     const text = source('cityPanel.ts');
     expect(text).toMatch(/\$\{city\.hp\}\/\$\{cityMaxHp\(city\)\} hp/);
-    expect(text).toMatch(/hp\.title = maxHpLedger\(city\)/);
+    expect(text).toMatch(/noteOn\(hp, maxHpLedger\(city\)\)/);
   });
 
   it('says Under siege in the band, derived every render', () => {

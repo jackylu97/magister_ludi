@@ -2928,14 +2928,14 @@ button.seat:active {
    **Why the class is written twice.** Nearly every host line below this point
    sets its own colour on the element itself (`.city-rite-says`,
    `.info-card-state`, `.bead-card-gate`, `.rel-call-note`,
-   `.city-buildable-cost`, `.trade-reason-why` …) and sits later in the
-   sheet, so a single class here loses the cascade to all of them — which is
-   exactly what happened to the rite's "Taught by" line the day it landed. The
-   doubled selector buys one point of specificity without moving this rule to
-   the foot of a stylesheet several surfaces are edited in at once. A host that
-   still outranks it (a descendant rule, `.city-buildable:disabled …`) excuses
-   the class with `:not(.wanting)` at its own rule rather than restating the
-   ink here — one vermilion, always this one. */
+   `.trade-reason-why` …) and sits later in the sheet, so a single class here
+   loses the cascade to all of them — which is exactly what happened to the
+   rite's "Taught by" line the day it landed. The doubled selector buys one
+   point of specificity without moving this rule to the foot of a stylesheet
+   several surfaces are edited in at once. A host that still outranks it (a
+   descendant rule) excuses the class with `:not(.wanting)` at its own rule
+   rather than restating the ink here — one vermilion, always this one. None
+   needs to today. */
 .wanting.wanting,
 .tile-requires.is-wanting {
   color: var(--vermilion);
@@ -5520,11 +5520,23 @@ body:has(.city-mode:not([hidden])) #hud-context {
 /* "Citizens 11: 8 on land · 2 specialists · 1 idle" (batch UX6), a line of its
    own under the Growth bar, in the qualifier's voice. */
 .city-citizens {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 3px 8px;
   margin: 3px 0 0;
   font-family: var(--face-num);
   font-size: 9.5px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
+}
+
+/* The levy on the population line (batch UX7): it spends one of the citizens
+   the line counts, so it stands at the line's end rather than in a card of its
+   own. */
+.city-citizens .city-levy-button {
+  width: auto;
 }
 
 /* --- the yield chips' card (batch UX6) ------------------------------------
@@ -6455,7 +6467,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   min-width: 0;
 }
 
-.city-buildable-row > .city-buildable {
+.city-buildable-row > .city-buildable-lead {
   flex: 1 1 0;
   min-width: 0;
 }
@@ -6706,29 +6718,20 @@ p.city-trade-link {
 /* The stripe down the left edge is what separates the two kinds: a city builds
    many more units than buildings, so the buildings are the quieter colour.
 
-   **The name column is floored and the figure column is capped**, which is one
-   rule stated twice: a name is what this list is read by, and no figure beside
-   it may take that width away. The figure column used to be `auto` — it took
-   whatever its content asked for — and the day a card paid every voice at once
-   (the Founding Oath, +1 of all six per capital building) the preview line under
-   the price grew six marks wide, ate the whole row, and left the buildings and
-   wonders as ellipses.
-
-   So the column holds *prices* and nothing else now. The two things that have no
-   width of their own take a line of the row instead — the yields
-   (`.city-buildable-preview`) and a refusal sentence (`.city-buildable-cost.is-reason`),
-   both spanning both tracks on the row below — which is what leaves the second
-   track a price's width and the name everything else. The floor and the cap are
-   the belt and braces: whatever anybody prints in either cell later, the name
-   keeps a name's worth of room and the figures keep a figure's. */
+   **One line** (batch UX7; the user's ruling of 2026-10-12 on shortening the
+   build list: "one-line rows, since the multi-line previews were most of the
+   height"). The name takes what is left and ends in an ellipsis before
+   anything else gives; then a building's one yield mark; then the hammers and
+   turns, floored so the figures line up down the list. What a row would add in
+   full is in its hover card over the work rail, never on a second line. */
 .city-buildable {
-  display: grid;
-  grid-template-columns: minmax(4.5em, 1fr) minmax(min-content, 6.4em);
+  display: flex;
   align-items: baseline;
-  /* Row gap is a line's breath, not a column's gutter: the yields sit *under*
-     the price they elaborate. */
-  gap: 2px 8px;
-  padding: 6px 8px;
+  gap: 6px;
+  min-width: 0;
+  /* Four, not six, above and below (batch UX7): a row is one line now, and the
+     price plate beside it sets the row's height anyway. */
+  padding: 4px 8px;
   border: var(--border-thin) solid var(--ink);
   border-left: 5px solid var(--y-prod);
   border-radius: var(--radius-sm);
@@ -6763,118 +6766,352 @@ p.city-trade-link {
 }
 
 /* Left, explicitly. A `<button>` centres its content by the platform's own
-   stylesheet, which never showed while the name was a flex item shrunk to its
-   own width — the moment the row became a grid and the name got a whole 1fr
-   track, every unit in the list started floating in the middle of its button
-   and the column of names stopped being a column. */
+   stylesheet, and a name centred in the space the figures leave stops the
+   column of names being a column. */
 .city-buildable-name {
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* The schedule column. `min-width` rather than a fixed track, because one row in
-   this list does not carry a schedule at all: an unbuildable unit prints "needs
-   improved ⛏ Iron" here instead, and a fixed column would either clip that
-   sentence or reserve its width on every row that has none. A floor wide enough
-   for the longest real figure ("120⚙ · 15t") is what makes the tabular numerals
-   worth having — every row's cost lands on the same column, so the list can be
-   read down as a column of prices. */
+/* A building's one yield mark: "+2⚙", the largest thing it would add here
+   (`mainYieldOf`). In the figures' face and the soft ink, never wider than a
+   figure. */
+.city-buildable-yield {
+  flex: 0 0 auto;
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* The hammers and the turns. A floor wide enough for the longest real figure
+   ("120⚙ · 15t") so every row's figures land on the same column. */
 .city-buildable-cost {
+  flex: 0 0 auto;
   min-width: 5.8em;
   text-align: right;
   font-family: var(--face-num);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
+  white-space: nowrap;
 }
 
-/* …and the one row in this list that carries a *sentence* there instead — "needs
-   improved ⛏ Iron", "The Oracle already stands in Uruk (Crimson)". It takes the
-   whole row on a line of its own: a sentence set in a price's column is a
-   sentence broken into six one-word lines, and it was the other half of what was
-   squeezing the names. Left, because it is prose. */
-.city-buildable-cost.is-reason {
-  grid-column: 1 / -1;
-  min-width: 0;
-  text-align: left;
-}
-
-/* A greyed row's figures grey with it — except the cell that has stopped being
-   a figure. `:not(.wanting)` is the one excuse: this rule outranks `.wanting`
-   by a descendant, and a "needs improved ⛏ Iron" in the row's own grey would be
-   the sweep's whole point missed on the row that needed it most. */
-.city-buildable:disabled .city-buildable-cost:not(.wanting),
-.city-buildable:disabled .city-buildable-preview {
+/* A greyed row's figures grey with it. */
+.city-buildable:disabled .city-buildable-cost,
+.city-buildable:disabled .city-buildable-yield {
   color: inherit;
 }
 
-/* The building row's second line: what this town would gain today, out of
-   `explainBuildingPreview` (Orders, beliefs, wonders — a barracks reading
-   "+1⚙" with God of the Forge held). A whole line of the row, under the price it
-   elaborates and in the price's own ink and numerals.
-
-   **The line that truncates.** A row of this list carries a name, a schedule
-   and — here — a bag of yields that has no ceiling: six voices under the
-   Founding Oath, and nothing says a later card cannot pay more. The name is what
-   the list is read by and the schedule is what the decision costs, so the yields
-   are the third thing and the one that ends in an ellipsis. Nothing is lost by
-   it: the row's hover card lists every preview line in full, labelled by the
-   source that pays it (`previewLineText`), which is where a player who wants the
-   whole bag was always going to read it — and never a `title`, which would
-   arrive a second after that card, on top of it, saying less. */
-.city-buildable-preview {
-  grid-column: 1 / -1;
+/* The left of a row: the build button, and the "Now" that sits over its
+   figures while the row is hovered or holds the keyboard (batch UX7). */
+.city-buildable-lead {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+.city-buildable-lead > .city-buildable,
+.city-buildable-lead > .city-offer-name {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* "Now": puts the row at the front of the queue. Present for the keyboard all
+   along and drawn only while the row is hovered or focused, over the hammers
+   and turns (which the row's hover card repeats). A plate in the build
+   button's own voice, so it reads as the same row's second verb. */
+.city-now {
+  position: absolute;
+  top: 50%;
+  right: 5px;
+  transform: translateY(-50%);
+  padding: 2px 7px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.city-buildable-row:hover .city-now,
+.city-buildable-row:focus-within .city-now {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.city-now:hover,
+.city-now:focus-visible {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+/* A building only ever bought, drawn as a label like the Faith shelf's
+   offers: its name, the "bought, not built" eyebrow and its yield mark. */
+.city-offer-name.is-building {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+/* --- the Supply strip (batch UX7) ------------------------------------------
+   Every strategic resource the empire holds, spare/held, at the head of the
+   build list. One line that wraps, in the figures' face; the count with none
+   spare is vermilion (`.res-copies.is-none`). */
+.city-supply {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  margin: 0 0 8px;
+  padding: 0 0 6px;
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--face-ui);
+  font-size: 10.5px;
+  color: var(--ink);
+}
+
+.city-supply-label {
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.city-supply-item {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
   white-space: nowrap;
-  text-align: right;
+}
+
+/* --- "Not yet" and the folded Faith shelf (batch UX7) ----------------------
+   A shelf's rows that wait on something the player can fix, folded under one
+   line, each with its reason in the wanting voice. The folded Faith shelf
+   wears the same summary. */
+.city-not-yet,
+.city-shelf-fold {
+  display: grid;
+  gap: 4px;
+}
+
+.city-not-yet > summary,
+.city-shelf-fold > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 2px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.city-not-yet > summary::-webkit-details-marker,
+.city-shelf-fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.city-not-yet > summary::after,
+.city-shelf-fold > summary::after {
+  content: '▸';
+  font-size: 9px;
+  color: var(--ink-soft);
+}
+
+.city-not-yet[open] > summary::after,
+.city-shelf-fold[open] > summary::after {
+  content: '▾';
+}
+
+.city-not-yet > summary:hover .city-not-yet-name,
+.city-not-yet > summary:focus-visible .city-not-yet-name {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.city-not-yet > summary .city-not-yet-name {
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.city-shelf-fold > summary .city-shelf-head {
+  margin: 0;
+}
+
+.city-not-yet-count {
   font-family: var(--face-num);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
 }
 
-/* --- the rites, on the town's own sheet ------------------------------------
-   A town's verb since the fewer-things pass, so the rows live where the town's
-   other standing facts do: a button, its price in tabular mono at the right,
-   and one line under it that is the reducer's own sentence when the row is
-   greyed and the rite's own promise when it is not. */
-.city-rite-row {
+/* One folded row: its name, and on the line under it what it waits on. */
+.city-not-yet-row {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 8px;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--rule);
+  gap: 1px;
+  padding: 3px 4px 3px 9px;
+  border-left: 3px solid var(--ink-faint);
 }
-.city-rite-row:last-child {
-  border-bottom: 0;
-}
-.city-rite-button {
-  justify-self: start;
-  font: inherit;
-  font-family: var(--face-display);
-  font-size: 14px;
-  color: var(--ink);
-  background: none;
-  border: 0;
-  border-bottom: 1px solid var(--rule);
-  padding: 0 0 1px;
-  cursor: pointer;
-  text-align: left;
-}
-.city-rite-button:disabled {
-  color: var(--ink-faint);
-  border-bottom-color: transparent;
-  cursor: default;
-}
-.city-rite-cost {
-  font-family: var(--face-num);
+
+.city-not-yet-row > .city-not-yet-name {
+  font-family: var(--face-ui);
   font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.city-not-yet-why {
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 10.5px;
+  line-height: 1.3;
+}
+
+/* --- the work rail's hover card (batch UX7) --------------------------------
+   What a build row is, what it would add and what it costs outright, standing
+   over the work rail at its width, in the half the hovered row is not in. A
+   note the pointer passes through. The chips' card's frame. */
+.city-row-card {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  z-index: 3;
+  width: 300px;
+  /* The rail's whole height at most: a long wonder may reach past the half it
+     starts in rather than lose its buy line at the foot. */
+  max-height: calc(100% - 12px - max(calc(14px + 46px), var(--end-turn-clearance)));
+  overflow: hidden;
+  padding: 8px 10px 9px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  box-shadow: 3px 3px 0 var(--ink);
+  pointer-events: none;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.city-row-card[hidden] {
+  display: none;
+}
+
+/* A row in the upper half of the rail: the card takes the lower half. */
+.city-row-card.is-low {
+  top: auto;
+  bottom: max(calc(14px + 46px), var(--end-turn-clearance));
+}
+
+/* "Buy outright · 356💰 · you have 437 gold", or why it is not sold here. */
+.city-row-card-buy {
+  margin: 6px 0 0;
+  padding-top: 5px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--face-num);
+  font-size: 10px;
   font-variant-numeric: tabular-nums;
   color: var(--ink-soft);
+}
+
+.city-row-card-buy + .city-row-card-buy {
+  margin-top: 2px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+/* "Would add +2⚙ +1🪙" over a building's preview lines: the whole of what the
+   row's one mark is the largest part of. */
+.info-card-adds {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 7px 0 0;
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.info-card-adds-label {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* A city-screen note in the hover card (batch UX7), where a native tooltip
+   used to be: a line or two of the copy face. */
+.info-card-note p {
+  margin: 0;
+}
+
+.info-card-note p + p {
+  margin-top: 2px;
+}
+
+/* The queue's names take the keyboard (batch UX7), so the work rail's card can
+   be raised without a pointer. */
+.city-queue-name:focus-visible,
+.city-prod-name:focus-visible {
+  outline: var(--border-thin) solid currentColor;
+  outline-offset: 2px;
+}
+
+/* --- the Faith card (batch UX7) ---------------------------------------------
+   What the town believes, then the rites it may keep: each rite a name on the
+   left and its price in faith on the right (`priceCell.ts`), the price being
+   the control. What a rite does is its hover note. */
+.city-faith-headline {
+  margin: 3px 0 4px;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
+.city-rite-kept {
+  margin: 4px 0;
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.city-rites {
+  display: grid;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.city-rite-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 8px;
+}
+
+/* The rite's name: in the display serif the rites have always worn, on one
+   line that ends in an ellipsis before the price gives way. */
+.city-rite-name {
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--face-display);
+  font-size: 13px;
+  color: var(--ink);
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 /* The rite's sentence is copy, so it wears the copy face: the rite's *name*
@@ -10120,13 +10357,14 @@ p.city-trade-link {
     width: 244px;
   }
 
-  /* The readout narrows with the town rail it stands under, and the yield
-     chips' card with the work rail it stands over. */
+  /* The readout narrows with the town rail it stands under, and the two cards
+     over the work rail with the rail. */
   body:has(.city-mode:not([hidden])) #hud-context {
     width: 196px;
   }
 
-  .city-chip-card {
+  .city-chip-card,
+  .city-row-card {
     width: 244px;
   }
 }
@@ -12379,8 +12617,8 @@ p.city-trade-link {
   border-left-color: var(--gilt);
 }
 
-.city-buildable.is-queued:disabled .city-buildable-cost:not(.wanting),
-.city-buildable.is-queued:disabled .city-buildable-preview,
+.city-buildable.is-queued:disabled .city-buildable-cost,
+.city-buildable.is-queued:disabled .city-buildable-yield,
 .city-buildable.is-queued:disabled .city-buildable-eyebrow.is-queued {
   color: var(--ink-soft);
 }

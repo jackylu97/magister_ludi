@@ -136,7 +136,9 @@ button bottom centre. Implementation notes binding the build:
   since revision 5 the citizen line replaces the working count) ·
   Buy tiles · the focus note when set · the specialists row · four
   disclosures, closed by default with the fold in the summary — Defence · N
-  (the fold of `defenseRows`), Built · N, Routes · N, Faith · N.
+  (the fold of `defenseRows`), Built · N, Routes · N, Faith · N. (Since
+  revision 6 the Faith and Rites disclosures are one Faith card, and the levy
+  sits on the Growth card's population line.)
 - **Work rail** (`.city-rail.is-right`, 264px): "Building now" card (name,
   bar, banked/cost · turns, contribute buttons, × to stop) · the queue rows
   after it, numbered from two · "Add to queue" tabbed by `queueCategory`
@@ -252,8 +254,8 @@ as buying outright.
   plain label, not a button; the price beside it is the control.
 - Things bought with gold and never built (the Company Guard) stay at the foot
   of the units, beside the bank they draw on.
-- The shelf stays open in this batch. Collapsing it when nothing in it is
-  affordable is batch UX7.
+- Since revision 6 the shelf folds on the All tab unless something on it can
+  be bought now.
 
 ### The treasury in the band
 
@@ -358,12 +360,12 @@ the user's rulings in `docs/flags.md` (ssssss) 2 and 3.
   - **Unhappy** (the empire's happiness is below nothing) → the Growth row,
     where the slower growth shows;
   - **No Iron spare** (a strategic resource with no spare copy, when a unit row
-    in this town wants one), with "spare/held" → that unit's row, switching
-    to the Units tab if needed. UX7's Supply strip will take this over.
+    in this town wants one), with "spare/held" → the Supply strip at the head
+    of the build list (since revision 6; it pointed at the unit's row before).
 - Nothing shows when the town is fine. The siege and unrest badges that sat
   beside the name are two of these chips now, so each problem is said once.
 - A chip is a button: it scrolls to the place it names, marks it for a moment
-  and moves the keyboard focus there. Its tooltip and spoken label say why.
+  and moves the keyboard focus there. Its hover note and spoken label say why.
 
 ### Stepping between towns
 
@@ -397,8 +399,133 @@ the user's rulings in `docs/flags.md` (ssssss) 2 and 3.
   `riteTurnsFor`, the figure the town is stamped with, so a seat holding
   Chichen Itza reads "lasts 15 turns" rather than the row's base 10
   (`riteOfferText`, `controls.ts`).
-- The tooltip on the town rail's Rites disclosure says "Rite of Plenty, 1 turn
-  left", not "1 more turns".
+- The rite a town keeps says "Rite of Plenty · 1 turn left", not "1 more
+  turns" (on the Faith card since revision 6).
+
+## Revision 6 — the build list, batch UX7 (shipped 2026-10-15)
+
+The plan is the city audit's step 3 (`docs/plans/city-screen-audit.md`), the
+user's rulings of 2026-10-12 in `docs/plans/hud-ux-decisions.md` (the five
+build-list rulings, the hover rule, "Strategic resources" under Settled, and
+A1's spending beside each bank), and `docs/plans/city-screen-iterations.md`
+A1 ("Spend presentation").
+
+### The Supply strip
+
+- At the head of the build list, above the tabs: every strategic resource the
+  empire holds or has spent, "⛏ Iron 0/4 · Copper 3/5 · Horses 1/2", as
+  spare/held. A count with none spare is vermilion (`renderSupply`, reading
+  `strategicHoldings` and `copiesFigureNode` from `resourceCopies.ts`).
+- The band's "No Iron spare" chip points here.
+
+### One line a row
+
+- A row is one line: the name, a building's one yield mark ("+2⚙", the largest
+  thing it would add here, `mainYieldOf`), the hammers and turns, and the
+  price. The second line of preview figures is gone.
+- Hovering or focusing a row raises its card over the work rail, in the half
+  of the rail the row is not in, never over the board (`bindRowCard`): what it
+  is, "Would add" with the preview in full by source, and a buy line per bank,
+  "Buy outright · 356💰 · you have 437 gold", or what the bank is short of, or
+  why it is not sold here. The queue rows and the "Building now" name raise the
+  same card.
+- A row kept in the list although it cannot be queued (because it can still be
+  bought) says why on a line under it.
+
+### "Not yet" and hidden rows
+
+- **Hidden**, because this town can never build or buy them: a ship in a town
+  not on the coast, a withdrawn unit, a building whose site the town will never
+  have (coast, river, mountain, the terrain beside it, the capital, a town
+  taken by force), a once-per-realm building already standing in another of
+  the empire's towns, and a piece only a card or another realm's leader opens
+  while nothing has opened it (the Knights Templar, the canoness). Rows no
+  technology has reached and obsolete units were hidden already.
+- **"Not yet · N"**, a fold at the foot of each shelf, for rows blocked for a
+  reason the player can fix: a strategic resource with none spare, too few
+  citizens, a building that must stand first, a site the town could still meet
+  (a pasture for the stable), the wonder or great work being raised in another
+  town, the beads the Magnum Opus asks for, and on the Faith shelf the
+  technology or building that opens a purchase. Each folded row says why, in
+  the gate's own words, or with the resource and its counts.
+- A row with a price that can be pressed, or that is only short of the bank,
+  stays in the list whatever its build says.
+- The folds remember being opened, as the disclosures do.
+
+### The Faith shelf and the tab
+
+- On the All tab the Faith shelf is one line, "faith · 3 ▸", unless something
+  on it can be bought now; opened or closed by the player, it stays that way.
+  On the Faith tab it is always open.
+- The chosen tab is remembered for each seat (`addTabFor`), not shared by a
+  hot-seat table. Still not in the save.
+
+### "Now" and ↓
+
+- "Now", shown over a row's figures while it is hovered or focused, puts it at
+  the front of the queue (`queueWithFront`); Shift-click on the row does the
+  same. A building already in the queue is moved to the front rather than
+  queued twice. A project has no "Now": it never leaves the queue and would
+  hold every row behind it.
+- Each queue row has ↓ beside ↑ and ×.
+
+### The levy on the population line
+
+- "Levy a citizen ▾" stands at the end of the Growth card's citizen line, and
+  its menu opens under the line. A greyed levy says why on a line under it.
+  The levy's own card in the town rail is gone.
+
+### The Faith card
+
+- One card in the town rail replaces the Faith and Rites disclosures: the
+  town's belief headline, with every faith that has a claim on the town one
+  click deeper; the rite the town keeps and the turns left; then each known
+  rite as a row with its price in faith in the price column. The price is the
+  control (the name is a label), and what the rite does is its hover note.
+- A refusal several rites share is said once ("Each of these asks 72 faith and
+  Ada has 51", the rite gate's own sentence). A rite the bank is short of is a
+  dash for now, not the "need 21" look: that needs `riteShortfall`, which batch
+  UX9 adds to `religion.ts`.
+- Rites the empire has not learnt fold under "Not yet", each with what teaches
+  it.
+- "Rites in every town →" opens the faith sheet's rites when the page passes
+  `onOpenRites` to `createCityPanel`.
+
+### No native tooltips
+
+- Every `title` in `cityPanel.ts` and `levyMenu.ts` became a note in the
+  panel's hover card on pointer rest or keyboard focus (`noteOn`), which also
+  gives the text to a screen reader as the element's description. A refusal
+  that was only in a tooltip is now a line: Annex and Raze, the queue floor,
+  the levy.
+- The contribute buttons' promise is a note too; their refusals were already
+  lines.
+
+### Smaller changes
+
+- The work rail and the town rail keep their scroll position when the panel
+  is rebuilt for the same town.
+- Escape takes a pinned yield list down first, wherever the keyboard is; the
+  next Escape leaves the town.
+- A building's own percentage reads "Building · Forum", not "Building · Forum
+  · forum" (`label` in `statecraft/evaluator.ts` drops a scope note that only
+  repeats its source's name; no figure changed).
+
+### Not built
+
+- The board's tile price plates in the three looks. "Short of the bank" needs
+  a reading the simulation does not have for tiles (`purchaseShortfall` covers
+  items only), so the plates keep their two looks.
+
+### How much shorter
+
+- An estimate, not a browser measurement: the rows each version draws for a
+  developed town, priced with the stylesheet's own sizes. Turn 90 of a
+  four-seat bot game (seed 4242), Hollowmere at size 8: before, 36 rows and
+  about 1,966 px of work rail; after, 27 rows (6 folded) and about 1,286 px.
+  That is 2.70 rail heights before and 1.77 after at 1440 × 900, 3.14 and 2.05
+  at 1280 × 800, and 3.30 and 2.16 at 1024 × 768. The audit's target is under
+  two rail heights with the folds closed.
 
 ## Citizen focus pane (ruled 2026-09-03, shipped)
 

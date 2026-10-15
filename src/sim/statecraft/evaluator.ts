@@ -2412,9 +2412,20 @@ function scopeNote(scope?: CityScope): string | null {
   }
 }
 
-/** A label that says which line of a card this is. `resourceEffects`' `label`. */
+/**
+ * A label that says which line of a card this is. `resourceEffects`' `label`.
+ *
+ * A scope note that only repeats the source's own name is left off (batch
+ * UX7): a building's clause scoped to the town holding that very building
+ * (`hasBuilding` naming itself) read "Building · Forum · forum" in the city
+ * screen's yield lists. A note that says something the source does not, as
+ * The Long Study's "library" does, is kept. A label only: no figure depends on
+ * it.
+ */
 function label(source: string, note: string | null): string {
-  return note === null ? source : `${source} · ${note}`;
+  if (note === null) return source;
+  const own = source.split(' · ').pop()?.toLowerCase();
+  return own === note ? source : `${source} · ${note}`;
 }
 
 // --- counts and rates -------------------------------------------------------

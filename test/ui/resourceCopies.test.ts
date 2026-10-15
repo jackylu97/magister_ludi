@@ -267,8 +267,11 @@ describe('who prints it', () => {
     // build row cannot print that string — it needs the drawn marks, which are
     // elements — so what it must do instead is use the same words and the same
     // gate. Anything else would be a second refusal for a player to reconcile.
+    // Since batch UX7 the words are on the line that says why a row waits under
+    // "Not yet", or why a row kept for its price cannot be queued (`reasonLine`).
     const panel = uiSource('cityPanel.ts');
-    expect(panel).toContain("price.append('needs improved ')");
+    expect(panel).toContain("line.append('needs improved ');");
+    expect(panel).toContain('line.append(requirementNodes(state, city.ownerId, reason.resources));');
     expect(panel).toContain('canSpareAnyOf');
     // And it must not have grown a sentence of its own about copies.
     expect(panel).not.toMatch(/already spoken for/);

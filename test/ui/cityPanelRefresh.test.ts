@@ -136,8 +136,11 @@ describe('a render with nothing new to say is skipped', () => {
     );
   });
 
-  it('keys on the build-list tab, which lives in the module', () => {
-    expect(braceBody(uiSource('cityPanel.ts'), 'export function panelRenderKey(')).toContain('addTab');
+  it('keys on the seat’s build-list tab, which lives in the module', () => {
+    // Kept per seat since batch UX7 (`addTabFor`), so the key asks the seat's.
+    expect(braceBody(uiSource('cityPanel.ts'), 'export function panelRenderKey(')).toContain(
+      'addTabFor(seat)',
+    );
   });
 
   it('checks the key and the state object before taking anything down', () => {

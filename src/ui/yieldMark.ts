@@ -129,7 +129,7 @@ export type YieldTextPart =
  * A composed figure, split into the runs of text and the marks between them.
  *
  * The pure half of the printer, and separated from the DOM for the reason
- * `yieldRowLayout` and `stageRows` are: this suite has no jsdom, and *where the
+ * `yieldRowLayout` and `chipLedgerRows` are: this suite has no jsdom, and *where the
  * marks are and which way they face* is the part that can be quietly wrong on
  * every surface at once. `yieldTextNodes` is this plus `document`.
  *

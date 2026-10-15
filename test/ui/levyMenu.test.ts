@@ -86,12 +86,29 @@ describe('the levy menu', () => {
 describe('the city panel wiring', () => {
   const PANEL = uiSource('cityPanel.ts');
 
-  it('mounts the levy control in the town rail', () => {
-    expect(braceBody(PANEL, 'function renderTownRail(')).toContain('renderLevy(city)');
+  it('mounts the levy control on the Growth card’s population line', () => {
+    // Since batch UX7 (A1: "the levy sits on the town's population line ...
+    // because it spends a citizen"), at the end of the citizen line, with its
+    // menu, or the reason it is greyed, under the line.
+    const growth = braceBody(PANEL, 'function renderGrowth(');
+    expect(growth).toContain('const levy = renderLevy(city);');
+    expect(growth).toContain('box.append(renderCitizens(city, levy?.trigger ?? null));');
+    expect(growth).toContain('if (levy?.below) box.append(levy.below);');
+    expect(braceBody(PANEL, 'function renderTownRail(')).not.toContain('renderLevy(city)');
+  });
+
+  it('says why a greyed levy is greyed on a line, never only in a tooltip', () => {
+    expect(PANEL).toContain(
+      "if (model.disabled) return { trigger, below: refusalLineElement(model.title, 'row') };",
+    );
+    expect(uiSource('levyMenu.ts')).not.toMatch(/\.title = /);
   });
 
   it('sends levyCitizen through its own reporter, never a dispatcher of the menu’s', () => {
-    const body = braceBody(PANEL, 'function renderLevy(');
+    const body = PANEL.slice(
+      PANEL.indexOf('  function renderLevy('),
+      PANEL.indexOf('  /** The quiet Dismiss beside one trade.'),
+    );
     expect(body).toContain("type: 'levyCitizen'");
     expect(body).toContain('report(command, dispatch(getGame(), command))');
     expect(uiSource('levyMenu.ts')).not.toMatch(/\bdispatch\(/);

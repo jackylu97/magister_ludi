@@ -266,8 +266,9 @@ describe('the city mode', () => {
     const text = panel();
     for (const call of [
       'container.append(renderBand(city, quote));',
-      'body.append(renderTownRail(city, locked, quote));',
-      'body.append(renderWorkRail(city, locked, puppet, quote, notice));',
+      'const townRail = renderTownRail(city, locked, quote);',
+      'const workRail = renderWorkRail(city, locked, puppet, quote, notice);',
+      'body.append(townRail, workRail);',
       'container.append(renderLeave());',
     ]) {
       expect(`${call}: ${text.includes(call)}`).toBe(`${call}: true`);
@@ -394,7 +395,7 @@ describe('the city mode', () => {
     }
     // The card stands over the work rail, never over the board: drawn inside the
     // rails' row and placed against the work rail's edge at its width.
-    expect(fn('cityPanel.ts', 'render')).toContain('body.append(chipCard);');
+    expect(fn('cityPanel.ts', 'render')).toContain('body.append(chipCard, rowCard);');
     expect(declaration('.city-body', 'position')).toBe('relative');
     expect(declaration('.city-chip-card', 'position')).toBe('absolute');
     expect(declaration('.city-chip-card', 'right')).toBe('14px');
@@ -419,16 +420,17 @@ describe('the city mode', () => {
   it('collapses the four standing facts without emptying any of them', () => {
     // Closed by default with the fold in the summary, and the section's own
     // contents inside. The four printers still exist and are still called.
+    // Since batch UX7 the faith's claims are one click deep in the Faith card
+    // rather than a disclosure of the rail's own (`renderFaithCard`).
     const text = panel();
     const rail = fn('cityPanel.ts', 'renderTownRail');
-    for (const call of [
-      "disclosure('Defence'",
-      "disclosure('Built'",
-      "disclosure('Routes'",
-      "disclosure('Faith'",
-    ]) {
+    for (const call of ["disclosure('Defence'", "disclosure('Built'", "disclosure('Routes'"]) {
       expect(`${call}: ${rail.includes(call)}`).toBe(`${call}: true`);
     }
+    expect(rail).toContain('const faith = renderFaithCard(city);');
+    expect(fn('cityPanel.ts', 'renderFaithCard')).toContain(
+      "disclosure('Every faith here', figure(claims.length), renderFollowers(city))",
+    );
     for (const printer of [
       'function renderDefense(',
       'function renderBuilt(',
@@ -452,28 +454,30 @@ describe('the city mode', () => {
    * blocker), the button is disabled with exactly that blocker, and the whole
    * shelf is absent from a panel built without a board — this suite builds one.
    */
-  it('offers the rites on the town’s own sheet, greyed with the sim’s sentence', () => {
-    const rail = fn('cityPanel.ts', 'renderTownRail');
-    expect(rail).toContain("disclosure('Rites'");
-    // The summary figure is the turns left on the one it holds, which is the
-    // only number a player wants without opening the shelf — and, while it
-    // holds none and one can be said, the price; the shelf then opens by
-    // itself until the player shuts it (2026-09-06: "looks like there's no
+  it('offers the rites on the town’s own sheet, priced, with the sim’s sentence said once', () => {
+    // Since batch UX7 the rites are rows of the Faith card in the town rail
+    // (A1, "a Faith card in the town rail, replacing the Faith and Rites
+    // disclosures"), each priced in faith in the price column, so a rite is
+    // never behind a closed shelf again (2026-09-06: "looks like there's no
     // option to purchase rites in cities" — there was, behind "Rites —").
-    expect(rail).toContain('cityRiteTurnsLeft(state, city)');
-    expect(rail).toContain('.filter((row) => row.blocked === null)');
-    expect(rail).toContain("disclosure('Rites', figures, riteRows, sayable.length > 0)");
-    const disc = fn('cityPanel.ts', 'disclosure');
-    expect(disc).toContain('(defaultOpen && !closedDisclosures.has(label))');
-    const rites = fn('cityPanel.ts', 'renderRites');
+    const card = fn('cityPanel.ts', 'renderFaithCard');
     // Every row is the sim's: nothing here names a rite or composes a refusal.
-    expect(rites).toContain('riteOptions(city.id)');
-    expect(rites).toContain('button.disabled = row.blocked !== null;');
-    expect(rites).toContain('performRite(city.id, row.id)');
-    expect(rites).toContain('row.requiredTechName');
-    expect(rites).not.toContain('omenReading');
-    // Optional, like the trade button: a panel with no board is still a panel.
-    expect(rites).toContain('if (!riteOptions || !performRite) return null;');
+    expect(card).toContain('options.riteOptions?.(city.id) ?? []');
+    expect(card).toContain(
+      "priceLook({ bank: 'faith', price: row.cost, refusal: row.blocked, shortfall: null })",
+    );
+    // The refusals, once per reason, and the turns left on the rite it keeps.
+    expect(card).toContain('const plan = planRefusals(refused);');
+    expect(card).toContain('cityRiteTurnsLeft(state, city)');
+    expect(card).toContain('performRite(city.id, row.id)');
+    // The rites not yet learnt fold away, each with what teaches it.
+    expect(card).toContain("row.requiredTechName !== null");
+    expect(card).not.toContain('omenReading');
+    // Optional, like the trade button: a panel with no board is still a panel,
+    // and its price is drawn but not pressable.
+    expect(card).toContain('performRite === undefined');
+    const memory = fn('cityPanel.ts', 'rememberOpen');
+    expect(memory).toContain('(defaultOpen && !closedDisclosures.has(key))');
   });
 
   /**
@@ -539,12 +543,15 @@ describe('the city mode', () => {
     expect((shelves![0].match(/label: '/g) ?? []).length).toBe(4);
   });
 
-  it('remembers the tab in module state, never in the game', () => {
+  it('remembers the tab in module state, per seat, never in the game', () => {
     // Which tab was last open is a fact about this sitting at the keyboard: a
     // save is `{config, log}` and replays, so a tab in the state would be a
-    // save that replayed differently.
+    // save that replayed differently. Since batch UX7 it is kept per seat (the
+    // user's ruling of 2026-10-12: "the chosen tab is remembered per player").
     const text = panel();
-    expect(text).toMatch(/^let addTab: AddTab = 'all';$/m);
+    expect(text).toMatch(/^const addTabs = new Map<number, AddTab>\(\);$/m);
+    expect(text).toContain("return addTabs.get(seat) ?? 'all';");
+    expect(fn('cityPanel.ts', 'renderBuildables')).toContain('addTabs.set(seat, which);');
     expect(text).not.toMatch(/city\.addTab|state\.addTab/);
   });
 
@@ -558,8 +565,8 @@ describe('the city mode', () => {
     // First in the list *is* first on screen: the tabs are printed by walking
     // `ADD_TABS` in order, so the row's order is this literal's order.
     expect(tabs![0]).toMatch(/\[\s*\{ tab: 'all', label: 'All' \},/);
-    // …and it is what a fresh sitting starts on.
-    expect(text).toMatch(/^let addTab: AddTab = 'all';$/m);
+    // …and it is what a fresh sitting starts on, for every seat.
+    expect(text).toContain("return addTabs.get(seat) ?? 'all';");
     expect(text).toContain('for (const { tab: which, label } of ADD_TABS)');
     // 'all' is a tab and never a shelf: no row is ever sorted into it, so it
     // must not be an answer `queueCategory` could be expected to give. The
@@ -588,12 +595,14 @@ describe('the city mode', () => {
     // The eyebrow over a group prints on the All tab only (a single-shelf tab
     // is named by the lit tab), and takes the shelf's own word rather than a
     // fresh spelling of "wonders".
-    expect(fn('cityPanel.ts', 'renderBuildables')).toContain(
-      "if (addTab === 'all') grid.append(element('h4', 'city-shelf-head', shelf.word));",
-    );
+    // Since batch UX7 the Faith shelf's eyebrow is the summary of its fold.
+    const list = fn('cityPanel.ts', 'renderBuildables');
+    expect(list).toContain("} else if (tab === 'all') {");
+    expect(list).toContain("grid.append(element('h4', 'city-shelf-head', shelf.word));");
+    expect(list).toContain("summary.append(element('span', 'city-shelf-head', shelf.word));");
     // A shelf with nothing on it is never filed, so no eyebrow stands over
     // nothing.
-    expect(text).toContain('if (rows.length === 0 && !caravans) return;');
+    expect(text).toContain('if (rows.length === 0 && notYet.length === 0 && !caravans) return;');
     // Every production shelf carries the word its eyebrow prints, and so does
     // the Faith shelf.
     const shelves = /export const ADD_SHELVES[\s\S]*?\n\];/.exec(text);
@@ -618,15 +627,20 @@ describe('the build list', () => {
     expect(declaration('.city-buildable-grid', 'grid-template-columns')).toBe('minmax(0, 1fr)');
   });
 
-  it('lays the row as a line with every price inline, and the button as a grid', () => {
+  it('lays the row as a line with every price inline, and the button as a line too', () => {
     // A row, not a two-column grid (the user, 2026-09-06: the unit purchase "is
     // breaking out into a second line"): a town with an open faith bank puts two
     // prices beside a unit, and a grid's second column wrapped the third cell.
     expect(declaration('.city-buildable-row', 'display')).toBe('flex');
-    expect(declaration('.city-buildable-row > .city-buildable', 'flex')).toBe('1 1 0');
-    expect(declaration('.city-buildable-row > .city-buildable', 'min-width')).toBe('0');
+    expect(declaration('.city-buildable-row > .city-buildable-lead', 'flex')).toBe('1 1 0');
+    expect(declaration('.city-buildable-row > .city-buildable-lead', 'min-width')).toBe('0');
     expect(declaration('.city-buildable-row > .price-cell', 'flex')).toBe('0 0 auto');
-    expect(declaration('.city-buildable', 'display')).toBe('grid');
+    // And since batch UX7 the button is one line too (the user's ruling of
+    // 2026-10-12: "one-line rows, since the multi-line previews were most of
+    // the height"): the name, a building's one yield mark, the figures.
+    expect(declaration('.city-buildable', 'display')).toBe('flex');
+    expect(declaration('.city-buildable-cost', 'white-space')).toBe('nowrap');
+    expect(declaration('.city-buildable-yield', 'white-space')).toBe('nowrap');
     // And a price is the figure alone — no "or" (the same ruling). Composed in
     // the price column's own module since batch UX5.
     const cell = source('priceCell.ts');
@@ -644,58 +658,47 @@ describe('the build list', () => {
     expect(declaration('.price-cell', 'min-width')).toBeDefined();
     // And the name is still the cell that gives: it, and only it, ellipsises.
     expect(declaration('.city-buildable-name', 'text-overflow')).toBe('ellipsis');
+    expect(declaration('.city-buildable-name', 'flex')).toBe('1 1 auto');
+    expect(declaration('.city-buildable-name', 'min-width')).toBe('0');
   });
 
-  it('never lets the yields take the name’s width — the name has a floor', () => {
-    // The Founding Oath (a card paying +1 of every yield per capital building)
-    // made the preview line under a price six marks wide, and an `auto` figure
-    // column handed it every pixel: the buildings and the wonders were left as
-    // ellipses on a list that is read by its names. The figure column is capped
-    // and the name column floored, which is the same rule stated from both ends.
-    // The name track is flexible and floored above zero; the figure track is
-    // capped, so nothing printed in it can grow past the cap.
-    const columns = declaration('.city-buildable', 'grid-template-columns') ?? '';
-    const tracks = /^minmax\((\d+(?:\.\d+)?)em, 1fr\) minmax\(min-content, (\d+(?:\.\d+)?)em\)$/.exec(
-      columns,
+  it('prints one yield mark on a building row, and the whole preview in its hover card', () => {
+    // The user's hover rule (2026-10-12): "Build rows keep one inline mark for
+    // the item's main yield", so buildings compare at a glance, and "the full
+    // 'would add' preview and the 'Buy outright' line are in the row's hover
+    // card". The mark is the largest voice of the same fold the card lists.
+    const list = fn('cityPanel.ts', 'renderBuildables');
+    expect(list).toContain(
+      'const main = mainYieldOf(foldBuildingPreview(buildingPreview(state, city, id, quote)));',
     );
-    expect(`${columns} → ${tracks !== null}`).toBe(`${columns} → true`);
-    expect(Number.parseFloat(tracks![1])).toBeGreaterThan(0);
-    expect(Number.parseFloat(tracks![2])).toBeGreaterThan(0);
-  });
-
-  it('truncates the yields line rather than the name beside it', () => {
-    // The third thing on the row and the one with no ceiling — a later card may
-    // pay more voices than the Oath does. One line, clipped, with the whole bag
-    // still readable in the row's own hover card (`previewLineText`), which is
-    // the refusal/preview idiom this panel already keeps. Not a `title`: a
-    // native tooltip would arrive on top of that card saying less (2026-08-28).
-    expect(declaration('.city-buildable-preview', 'overflow')).toBe('hidden');
-    expect(declaration('.city-buildable-preview', 'text-overflow')).toBe('ellipsis');
-    expect(declaration('.city-buildable-preview', 'white-space')).toBe('nowrap');
-    expect(declaration('.city-buildable-preview', 'min-width')).toBe('0');
-    // And it truncates on a line of its own rather than inside the price
-    // column, which is what leaves the price column a price's width.
-    expect(declaration('.city-buildable-preview', 'grid-column')).toBe('1 / -1');
-    expect(declaration('.city-buildable-cost.is-reason', 'grid-column')).toBe('1 / -1');
-    expect(source('cityPanel.ts')).toContain(
-      "element('span', 'city-buildable-preview', previewFigures(foldedPreview) || '—')",
-    );
-    // `wanting` rides beside `is-reason` since batch U3: the layout class gives
-    // the sentence the row, and the voice class gives it the vermilion italic
-    // every "you have not got X" on every surface wears (the user, 2026-09-08).
-    // Pinned together, because a cell that kept one without the other would be
-    // either a sentence in a price's width or a refusal in a price's ink —
-    // `test/ui/wantingVoice.test.ts` is the register for the second half.
-    expect(source('cityPanel.ts')).toContain("costSpan.classList.add('is-reason', 'wanting')");
-    expect(source('cityPanel.ts')).toContain("price.classList.add('is-reason', 'wanting')");
-    // The card behind the row is where the untruncated list lives, and it is
-    // bound on the button itself so a greyed row can still raise it. It is
-    // asked at the place the row would land, or, for a building already in the
-    // queue (batch UX5), the place it stands.
+    expect(list).toContain('if (main !== null) setYieldText(mark, `+${main.amount}${YIELD_GLYPH[main.key]}`);');
+    // The second line of figures is gone rather than merely hidden.
+    expect(source('cityPanel.ts')).not.toContain('city-buildable-preview');
+    // The card behind the row lists the preview in full, labelled by source,
+    // with its fold first, and the buy line under it. It is bound on the button
+    // itself so a greyed row can still raise it, and asked at the place the row
+    // would land, or, for a building already in the queue, the place it stands.
     const text = source('cityPanel.ts');
     expect(text).toContain('previewList.append(note(previewLineText(line)))');
-    expect(text).toContain("info.bind(button, () => itemCard(city, { kind: 'building', id }, at))");
+    expect(text).toContain("adds.append(element('span', 'info-card-adds-label', 'Would add'));");
+    expect(text).toContain('bindRowCard(button, () => rowCardContent(city, item, at, row.cells));');
     expect(text).toContain('const at = row.queued === null ? city.queue.length : row.queued - 1;');
+    expect(fn('cityPanel.ts', 'rowCardContent')).toContain('box.append(buyLine(cell.look));');
+  });
+
+  it('stands the rows’ card over the work rail, in the half the row is not in', () => {
+    // Over the right column and never over the board (city-screen iterations,
+    // "Settled"), at the rail's width; a row in the upper half gets the card in
+    // the lower half (`is-low`), so the card never covers the row it is about.
+    expect(declaration('.city-row-card', 'position')).toBe('absolute');
+    expect(declaration('.city-row-card', 'right')).toBe('14px');
+    expect(declaration('.city-row-card', 'width')).toBe(declaration('.city-rail.is-right', 'width'));
+    expect(declaration('.city-row-card', 'pointer-events')).toBe('none');
+    expect(declaration('.city-row-card.is-low', 'top')).toBe('auto');
+    const show = fn('cityPanel.ts', 'showRowCard');
+    expect(show).toContain(
+      "card.classList.toggle('is-low', row.top + row.height / 2 < frame.top + frame.height / 2);",
+    );
   });
 
   it('offers no row for a piece that is called rather than built', () => {
@@ -1076,8 +1079,11 @@ describe('the citizen focus line', () => {
     expect(focus).toBeGreaterThan(growth);
     // And the count is on the Growth row itself rather than in a section — the
     // one call, inside the one printer. Since batch UX6 it is the citizen line
-    // ("Citizens 11: 8 on land · 2 specialists · 1 idle") under the bar.
-    expect(fn('cityPanel.ts', 'renderGrowth')).toContain('box.append(renderCitizens(city));');
+    // ("Citizens 11: 8 on land · 2 specialists · 1 idle") under the bar, and
+    // since UX7 the levy stands at its end, because a levy spends a citizen.
+    expect(fn('cityPanel.ts', 'renderGrowth')).toContain(
+      'box.append(renderCitizens(city, levy?.trigger ?? null));',
+    );
   });
 });
 
@@ -1189,7 +1195,10 @@ describe('the citizen focus pane', () => {
     expect(pane).toContain('focusBlocker(state, localPlayerId(), city, locked)');
     expect(pane).toContain('button.disabled = blocker !== null');
     expect(pane).toContain('tick.disabled = blocker !== null');
-    expect(pane).toContain('button.title = blocker ??');
+    // Said on hover in the panel's own card since batch UX7, never a native
+    // tooltip: a puppet's and an ended turn's reasons are also said in the work
+    // rail's foot.
+    expect(pane).toContain('noteOn(button, blocker ?? focusHint(focus));');
     // And the blocker asks the simulation first, so a puppet is told it is a
     // puppet rather than something about the turn.
     const blocker = source('cityPanel.ts');
