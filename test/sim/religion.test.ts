@@ -22,7 +22,11 @@ import STATECRAFT_RAW from "../../data/statecraft.json";
 import GREAT_PEOPLE_RAW from "../../data/greatPeople.json";
 import LEADERS_RAW from "../../data/leaders.json";
 import { unitMatches } from "../../src/sim/statecraft";
-import type { UnitFilter } from "../../src/sim/statecraftData";
+import {
+  type OrderId,
+  type UnitFilter,
+  orderDef,
+} from "../../src/sim/statecraftData";
 import { describe, expect, it } from "vitest";
 
 import { type Command, applyCommand } from "../../src/sim/commands";
@@ -112,6 +116,8 @@ import {
   religionBlocker,
   riteError,
   ritePreview,
+  riteTeachingCard,
+  riteTurnsFor,
 } from "../../src/sim/religion";
 import {
   type PurchasableItem,
@@ -156,6 +162,7 @@ import { isWaterTerrain } from "../../src/sim/terrainData";
 import {
   type CardYieldLine,
   anyCardDef,
+  applyCharter,
   explainCardCityYields,
   cardCombatLines,
   explainCardEmpireYields,
@@ -1021,6 +1028,129 @@ describe("rites", () => {
     expect(
       city.timed!.every((entry) => entry.expiresTurn === done.expiresTurn),
     ).toBe(true);
+  });
+});
+
+// --- how long a rite runs, and which card teaches it -------------------------
+
+/**
+ * Two readings the faith screen prints (batch UX8a, items 5 and 7 of
+ * `docs/plans/faith-screen-audit.md`).
+ *
+ * `riteTurnsFor` is the number of turns `stampRite` stamps, moved out of it so
+ * the screen and the stamp use one figure. These tests check the two agree
+ * when nothing lengthens a rite, and when The Octave and Chichen Itza do.
+ * `riteTeachingCard` names the Order that teaches a card-taught rite, and the
+ * card it names must be the one that actually makes the rite known.
+ */
+describe("a rite's turns and its teacher", () => {
+  const OCTAVE = "devotionTheQuietHours" as OrderId;
+
+  /** A town with a deep faith bank. `performRiteAt` checks nothing itself. */
+  function town() {
+    const g = game();
+    learn(g.state, 0, "divination");
+    const city = found(g.state, 0);
+    // The offering is given to the front of the queue, so the town builds
+    // something, as `riteError` requires before the reducer would allow it.
+    city.queue = [{ kind: "unit", id: "warrior" }];
+    bumpRevision(g.state);
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 1000;
+    return { g, city, player };
+  }
+
+  /** Seats The Octave for seat 0, in a chair of its own. */
+  function seatOctave(state: GameState): void {
+    const player = playerById(state, 0)!;
+    player.statecraft.orders = [OCTAVE];
+    player.statecraft.slots = [{ card: OCTAVE, sealedUntil: 0 }];
+    bumpRevision(state);
+  }
+
+  it("is the row's duration when nothing lengthens it", () => {
+    const { g, city, player } = town();
+    expect(riteTurnsFor(g.state, 0, "omenReading")).toBe(
+      riteDef("omenReading").duration,
+    );
+    const done = performRiteAt(g.state, player, city, "omenReading");
+    expect(done.turns).toBe(riteTurnsFor(g.state, 0, "omenReading"));
+  });
+
+  it("matches what is stamped for every live rite with The Octave seated", () => {
+    for (const id of LIVE_RITE_IDS) {
+      const { g, city, player } = town();
+      seatOctave(g.state);
+      const base = riteDef(id).duration!;
+      const turns = riteTurnsFor(g.state, 0, id)!;
+      // Fifty percent longer, floored once, and never under one turn.
+      expect(turns, id).toBe(Math.max(1, Math.floor((base * 150) / 100)));
+      const done = performRiteAt(g.state, player, city, id);
+      expect(done.turns, id).toBe(turns);
+      expect(done.expiresTurn, id).toBe(g.state.turn + turns);
+      expect(
+        city.timed!.every((entry) => entry.expiresTurn === done.expiresTurn),
+        id,
+      ).toBe(true);
+    }
+  });
+
+  it("matches the prophet's rite over the realm with The Octave and Chichen Itza together", () => {
+    const { g, city, player } = town();
+    seatOctave(g.state);
+    city.buildings.push("chichenItza");
+    bumpRevision(g.state);
+    const turns = riteTurnsFor(g.state, 0, "omenReading")!;
+    // The two fifty percents add up before they multiply: twice the row's turns.
+    expect(turns).toBe(riteDef("omenReading").duration! * 2);
+    const prophet = createUnit(g.state, 0, "prophet", city.col, city.row);
+    const done = empireRiteAt(g.state, player, prophet, "omenReading");
+    expect(done.turns).toBe(turns);
+    expect(
+      city.timed!.every((entry) => entry.expiresTurn === g.state.turn + turns),
+    ).toBe(true);
+  });
+
+  it("is null for a withdrawn rite, which stamps nothing", () => {
+    const { g } = town();
+    expect(riteTurnsFor(g.state, 0, "thePreaching")).toBeNull();
+    expect(riteTurnsFor(g.state, 0, "recastingTheOmens")).toBeNull();
+  });
+
+  it("names an Order for each card-taught rite, and no card for the tree's", () => {
+    for (const id of LIVE_RITE_IDS) {
+      const card = riteTeachingCard(id);
+      if (riteDef(id).byCard !== true) {
+        expect(card, id).toBeNull();
+        continue;
+      }
+      expect(card, id).not.toBeNull();
+      expect(orderDef(card!).retired, id).not.toBe(true);
+    }
+    // The three the faith screen used to say a technology taught.
+    expect(riteTeachingCard("riteOfFasting")).toBe("theFast");
+    expect(riteTeachingCard("votiveOffering")).toBe("theVotiveGifts");
+    expect(riteTeachingCard("restoringOfTheHost")).toBe("theHostRestored");
+  });
+
+  it("names the card that actually teaches the rite", () => {
+    // Taking the named card is what makes the rite known: The Fast through its
+    // charter when it is drafted, the other two while they are seated.
+    for (const id of LIVE_RITE_IDS) {
+      const card = riteTeachingCard(id);
+      if (card === null) continue;
+      const g = game();
+      const player = playerById(g.state, 0)!;
+      expect(availableRites(g.state, 0), id).not.toContain(id);
+      if (orderDef(card).charter !== undefined) {
+        applyCharter(player, card);
+      } else {
+        player.statecraft.orders = [card];
+        player.statecraft.slots = [{ card, sealedUntil: 0 }];
+      }
+      bumpRevision(g.state);
+      expect(availableRites(g.state, 0), id).toContain(id);
+    }
   });
 });
 

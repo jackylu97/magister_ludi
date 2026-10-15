@@ -68,20 +68,48 @@ record and is sync-tested against the data.
 
 ## Rites (schema 74)
 
-A rite is a **city's verb**: `performRite {cityId, rite}`. The town must hold the
-(the tree is the only gate — no building opens the verb), the empire must have been taught
-the rite (`ABILITY_TECH`, the same five nodes), the town must not already be
-keeping one (`cityRite`, derived off `City.timed` — the seal *is* the ten turns),
-and the bank must cover `religion.rite.costByAge` for the empire's age
-(**40 · 56 · 72 · 90** — the faith ladder's rungs read by age).
+A rite is a **city's verb**: `performRite {cityId, rite}`, checked by `riteError`.
 
-Five rows, ten turns each, **pure blessing** — no instant grant anywhere:
-food (+1🌾 on every hex that feeds) · gold (+1💰 on seams) · science (+1🔬 per
-building here) · culture (+1🎵 on luxuries, +30% border growth) · military
-(+5 defence; the heal half is `deferred`).
-
-Recasting the Omens and The Preaching are `retired: true` — rows kept, abilities
-gone from the tree.
+- **The gate.** The empire must know the rite (`hasAbility`). No building opens
+  the verb; a Chapel only adds culture when a rite is said in its town. The town
+  must not already be keeping a rite (`cityRite`, derived off `City.timed`: the
+  running rite is the lock). The bank must cover `religion.rite.costByAge` for
+  the empire's age (**40 · 56 · 72 · 90**, the faith ladder's rungs read by
+  age). Votive Offering also needs something other than a wonder at the front
+  of the town's queue.
+- **Taught by the tree (five rows).** Each is an ability in its node's
+  `unlocks.abilities` (`ABILITY_TECH`): Rite of the Harvest and Omen Reading
+  (Divination), Consecration of the Bounds (Stonecraft), Blessing of Arms
+  (Bronzeworking), Rite of Plenty (Currency).
+- **Taught by a Devotion Order (three rows, `RiteDef.byCard`).** Rite of Fasting
+  by The Fast's charter, which writes it to `Player.charteredRites` when the
+  card is drafted. Votive Offering by The Votive Gifts, and Restoring of the
+  Host by The Host Restored, while the card is seated (a `grantsAbility`
+  effect). These rows' `tech` only dates them for the Compendium.
+- **Naming the teacher.** `riteTeachingCard(rite)` (`religion.ts`) finds the
+  Order in the data tables. `riteTeacherName` (`religionScreen.ts`) is the name
+  both the faith screen ("needs …") and the city screen ("Taught by …") print:
+  the Order for a card-taught rite, the technology for the others.
+- **How long.** The row's `duration` is the base: ten turns for the five tree
+  rites and Rite of Fasting, five for Restoring of the Host, one for Votive
+  Offering (so a city may offer it once a turn). `riteDuration` amplifiers
+  lengthen it: The Octave (while seated) and Chichen Itza (while held) add 50%
+  each, summed before they apply. `riteTurnsFor(state, seat, rite)` is the
+  result, floored once and never below one turn.
+- **One figure for the stamp and the screen.** `stampRite` stamps
+  `riteTurnsFor`'s figure as an absolute expiry turn, and the faith screen
+  prints the same figure, once. Losing an amplifier later does not shorten a
+  rite that is already running.
+- **What they pay.** The tree rites are lasting effects with nothing paid at
+  once: food (+1🌾 on every hex that yields food) · science (+1🔬 per building
+  in the town) · culture (+1🎵 on luxuries, +30% border growth) · defence (+10
+  city defence) · gold (+1💰 on every hex with a resource). Rite of Fasting stops
+  the town storing food toward growth and pays one faith per citizen. Votive
+  Offering and Restoring of the Host act at once (`RiteDef.atOnce`): the
+  offering turns the faith it cost into production, and the restoring heals
+  every unit of yours standing in land that follows your religion.
+- Recasting the Omens and The Preaching are `retired: true`: the rows are kept,
+  their abilities are gone from the tree, and no screen lists them.
 
 ## The relic
 

@@ -156,7 +156,15 @@ import {
   buildingRitePay,
   cityKeepsRelics,
 } from './buildingEffects';
-import { type CardEffect, type PressureRuleId, STATECRAFT, governmentDef } from './statecraftData';
+import {
+  type CardEffect,
+  type OrderId,
+  type PressureRuleId,
+  ORDER_IDS,
+  STATECRAFT,
+  governmentDef,
+  orderDef,
+} from './statecraftData';
 // The great-person dealer, for the heavy hand `settleReroll` redeals. A
 // function-level import (the documented exception): `greatPeople.ts` reaches
 // `cities.ts`, which reaches this module — the cycle `cities.ts` and this file
@@ -1373,6 +1381,35 @@ export function availableRites(state: GameState, playerId: number): RiteId[] {
 }
 
 /**
+ * The Order that teaches this rite, or `null` when no card does and the tree
+ * teaches it.
+ *
+ * A card can teach a rite in two ways, and both are written on the Order's
+ * row: a charter that lists the rite (`charter.unlocks.rites`, copied onto
+ * `Player.charteredRites` when the card is drafted), or a `grantsAbility`
+ * effect naming the rite's ability, which teaches it while the card is seated.
+ * Those are the two card clauses `hasAbility` folds beside the tree, so this
+ * names the same card that actually opens the rite. The rite row's own `tech`
+ * only dates a card-taught rite and must not be printed as its teacher.
+ *
+ * This reads the data tables, not a seat: whether an empire knows the rite is
+ * still `hasAbility`'s question. Orders are walked in file order and retired
+ * rows are skipped, as every pool skips them.
+ */
+export function riteTeachingCard(rite: RiteId): OrderId | null {
+  const ability = riteAbility(rite);
+  for (const id of ORDER_IDS) {
+    const def = orderDef(id);
+    if (def.retired === true) continue;
+    if (def.charter?.unlocks.rites?.includes(rite) === true) return id;
+    for (const effect of def.effects) {
+      if (effect.kind === 'grantsAbility' && effect.ability === ability) return id;
+    }
+  }
+  return null;
+}
+
+/**
  * **What a rite costs this empire**, in faith, right now.
  *
  * One reading — the button, the refusal and the charge are the same figure, the
@@ -1631,6 +1668,35 @@ function payRiteBuildings(state: GameState, player: Player, city: City): number 
   return paid;
 }
 
+/** The mark an instant rite leaves on its town. See `stampRite`. */
+const RITE_MARK: CardEffect = { kind: 'pays', where: 'city' };
+
+/**
+ * How many turns a rite this empire starts now will run, with every
+ * `riteDuration` amplifier folded in (The Octave and Chichen Itza add fifty
+ * percent each).
+ *
+ * `stampRite` stamps this figure and the faith screen prints it, so the
+ * duration a player reads is the duration the town gets. The row's `duration`
+ * is the base. The amplifiers' summed percentage is applied to it, the result
+ * is floored once, and the answer is never below one turn, because a rite that
+ * ran out the moment it was started would be faith spent on nothing.
+ *
+ * The figure is asked when a rite starts and written down as an absolute
+ * expiry turn, so seating or losing an amplifier later does not change a rite
+ * that is already running.
+ *
+ * `null` for a row with no duration, which is a withdrawn rite: nothing is
+ * stamped for it.
+ */
+export function riteTurnsFor(state: GameState, playerId: number, rite: RiteId): number | null {
+  const def = riteDef(rite);
+  if (def.duration === undefined) return null;
+  const percent = cardAmplifier(state, playerId, 'riteDuration');
+  const turns = Math.floor((Math.max(1, Math.floor(def.duration)) * (100 + percent)) / 100);
+  return Math.max(1, turns);
+}
+
 /**
  * Hangs a rite's lasting effects on a town, and answers when they run out.
  *
@@ -1640,19 +1706,11 @@ function payRiteBuildings(state: GameState, player: Player, city: City): number 
  * city that has never been blessed serialises exactly as it did before this
  * system existed (`City.timed`'s convention).
  *
- * **The `riteDuration` amplifier is read here, once, at the stamp** — Chichen
- * Itza's fifty percent. It lengthens the *duration* before the expiry is
- * computed, and the expiry is still an absolute turn nobody ever ticks
- * (`TimedEffect`): a blessing that got longer the day a wonder finished would be
- * re-deriving a fact the state already wrote down, and one that got shorter the
- * day the wonder was captured would be a countdown wearing a comparison's
- * clothes. Floored once, and never below a single turn — an amplifier may
- * lengthen a blessing or shorten it, but a rite that expired the instant it was
- * performed would be faith spent on nothing.
+ * The number of turns is `riteTurnsFor`'s, read once here. The expiry is an
+ * absolute turn that nothing ticks (`TimedEffect`): a rite that got longer the
+ * day a wonder was finished, or shorter the day it was captured, would be a
+ * countdown, and timed effects in this game are comparisons.
  */
-/** The mark an instant rite leaves on its town. See `stampRite`. */
-const RITE_MARK: CardEffect = { kind: 'pays', where: 'city' };
-
 function stampRite(
   state: GameState,
   playerId: number,
@@ -1668,9 +1726,11 @@ function stampRite(
   const effects: readonly CardEffect[] =
     def.effects.length > 0 ? def.effects : def.atOnce !== undefined ? [RITE_MARK] : [];
   if (effects.length === 0) return null;
-  const percent = cardAmplifier(state, playerId, 'riteDuration');
-  const turns = Math.floor((Math.max(1, Math.floor(def.duration)) * (100 + percent)) / 100);
-  const expiresTurn = state.turn + Math.max(1, turns);
+  // `def` is always `riteDef(rite)` (both callers look it up by the same id),
+  // and the duration was checked above, so this is never `null` here.
+  const turns = riteTurnsFor(state, playerId, rite);
+  if (turns === null) return null;
+  const expiresTurn = state.turn + turns;
   const list = city.timed ?? [];
   for (const effect of effects) list.push({ card: rite, effect, expiresTurn });
   city.timed = list;

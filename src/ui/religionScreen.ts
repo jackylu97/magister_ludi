@@ -11,10 +11,10 @@
  * does the next god arrive**. Below the cards, in this order and deliberately:
  * the tide (who follows, and what presses), then the clergy a player may call.
  *
- * **No retired piece is named on this sheet**, in a sentence or in a comment,
- * and `test/ui/religionScreen.test.ts` reads the source to say so. A screen that
- * still explained a mechanism the reducer refuses is a screen teaching a player
- * a rule that is not true.
+ * **No retired piece is named on this sheet**, in a sentence or in a comment.
+ * `test/ui/religionScreen.test.ts` checks this file and the sheet's own block
+ * in `index.html`, which holds its title and hint line. A screen that explained
+ * a mechanism the reducer refuses would teach a player a rule that is not true.
  *
  * The fourth full-screen overlay and the second parchment one, and it is
  * deliberately the Statecraft sheet's sibling rather than a new language: same
@@ -111,6 +111,8 @@ import {
   poolHeld,
   poolSlots,
   renameReligionError,
+  riteTeachingCard,
+  riteTurnsFor,
   RELIGION_NAME_LIMIT,
 } from '../sim/religion';
 import {
@@ -125,11 +127,12 @@ import {
   type ReligionBeliefPool,
   type RiteId,
   BELIEF_IDS,
-  RELIGION,
+  LIVE_RITE_IDS,
   RELIGION_BELIEF_POOLS,
   beliefDef,
   riteDef,
 } from '../sim/religionData';
+import { orderDef } from '../sim/statecraftData';
 import { drawPantheonWheel, pantheonWheelLayout } from './pantheonWheel';
 import { type CardYieldLine, explainCardEmpireYields, describeCard, stripRefs } from '../sim/statecraft';
 import {
@@ -185,26 +188,43 @@ export const AXIS_MARK: Record<BeliefAxis, { glyph: string }> = {
 const SLOT_GLYPH = '◇';
 
 /**
- * A rite's **instant** half in words — the bag it pays the moment it is
- * kept, as against the lasting clauses `describeCard` prints.
+ * How long a rite runs, in words: "Kept for 10 turns", or "Kept for 1 turn".
  *
- * Read off the row that will hang it — `RiteDef.duration`, which is what
- * `stampRite` reads — so the sentence and the blessing cannot drift. It is not
- * `describeCard`'s job and could not be: a clause is an ordinary `CardEffect`
- * and knows nothing about the rite it hangs on, while how long a rite runs is a
- * fact about the rite.
+ * `turns` is the figure for one empire, and this screen always passes it:
+ * `riteTurnsFor`, the same reading `stampRite` stamps, so the extra turns from
+ * The Octave or Chichen Itza are printed as well as given. Without it the
+ * figure is the row's own `duration`. The Compendium calls it that way,
+ * because it describes the table rather than any one empire.
  *
- * Exported because the Compendium prints the same sentence on its Rites shelf,
- * and two surfaces describing one rite two ways is precisely what every
- * describer in this codebase exists to prevent. This screen is where it lives
- * because this screen is where a rite is read about.
+ * `describeCard` cannot say this: a clause is an ordinary `CardEffect` and
+ * knows nothing about the rite it hangs on, while how long a rite runs is a
+ * fact about the rite. Exported because the Compendium prints the same
+ * sentence on its Rites shelf, so the two surfaces word it one way.
  *
- * Empty for a **withdrawn** rite, which hangs nothing at all.
+ * Empty for a withdrawn rite, which has no duration and hangs nothing.
  */
-export function riteGrantWords(id: RiteId): string {
+export function riteGrantWords(id: RiteId, turns?: number | null): string {
   const def = riteDef(id);
   if (def.duration === undefined) return '';
-  return `Kept for ${def.duration} turns`;
+  const kept = turns ?? def.duration;
+  return `Kept for ${kept} ${kept === 1 ? 'turn' : 'turns'}`;
+}
+
+/**
+ * What teaches a rite, as the name a rite row prints after "needs" or "Taught
+ * by": the Order for a card-taught rite (`riteTeachingCard`), and the
+ * technology on the row for every other rite.
+ *
+ * A card-taught row (`RiteDef.byCard`) still carries a `tech`, but it only
+ * dates the rite for the Compendium, so it is never printed as the teacher.
+ * Shared with the city screen's rite rows (`riteOptions` in `controls.ts`) so
+ * the two screens name the same teacher.
+ */
+export function riteTeacherName(id: RiteId): string {
+  const def = riteDef(id);
+  if (def.byCard !== true) return techDef(def.tech).name;
+  const card = riteTeachingCard(id);
+  return card === null ? 'a card' : `the Order ${orderDef(card).name}`;
 }
 
 // --- the religion, as the pane reads it -------------------------------------
@@ -1107,20 +1127,23 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
   }
 
   /**
-   * The rites, as a reference: what each does, and what it is waiting on.
+   * The rites, as a reference: what each does, how long it runs, and what
+   * teaches it.
    *
-   * Every rite in the table, not only the known ones, and the unknown ones say
-   * which node teaches them — a reference that hid what you have not learnt yet
-   * would be a reference you cannot plan against. Which are known is
-   * `hasAbility` through `availableRites`, so this list and the town's own
-   * panel cannot disagree about what is greyed.
+   * Every rite the table still teaches (`LIVE_RITE_IDS`), known or not, so a
+   * player can plan for the ones they have not learnt yet. Withdrawn rows are
+   * left out: no town may keep one, so listing them would describe rites that
+   * do not exist any more. Which rites are known is `availableRites`, the
+   * reading the city screen's rows use too, so the two agree about what is
+   * greyed. An unknown rite names its teacher with `riteTeacherName`: the
+   * technology, or the Order for a card-taught rite.
    */
   function drawRites(state: GameState, seat: number): HTMLElement {
     const block = element('section', 'rel-rites');
     block.append(element('p', 'eyebrow sc-eyebrow', 'rites · a town keeps one'));
     const known = new Set<RiteId>(availableRites(state, seat));
     const list = element('div', 'rel-rite-list');
-    for (const id of Object.keys(RELIGION.rites) as RiteId[]) {
+    for (const id of LIVE_RITE_IDS) {
       const def = riteDef(id);
       const row = element('div', known.has(id) ? 'rel-rite' : 'rel-rite rel-rite-locked');
       const head = element('p', 'rel-rite-head');
@@ -1129,20 +1152,15 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
         element(
           'span',
           'rel-rite-tech',
-          known.has(id) ? 'known' : `needs ${techDef(def.tech).name}`,
+          known.has(id) ? 'known' : `needs ${riteTeacherName(id)}`,
         ),
       );
       row.append(head);
       const clauses = describeCard(id);
-      const grantWords = riteGrantWords(id);
-      // **How long the lasting half lasts.** `describeCard` cannot say it: a
-      // clause is an ordinary `CardEffect` and knows nothing about the rite it
-      // hangs on, so the duration is the row's own (`RiteDef.duration`) and is
-      // printed here, beside the clauses it qualifies. Without it the reference
-      // promised Omen Reading's science for ever.
-      const lasting = clauses.length > 0 && def.duration !== undefined
-        ? `for ${def.duration} turns`
-        : '';
+      // The duration, said once and first. The figure is the one this empire's
+      // town would be stamped with (`riteTurnsFor`), so a seated The Octave or
+      // a held Chichen Itza is counted here as it is in the town.
+      const kept = riteGrantWords(id, riteTurnsFor(state, seat, id));
       // Composed as one sentence and **drawn as a descriptor**: a rite's row is
       // prose in a `<p>` and nothing on it answers a click, so the things its
       // clauses name are live keywords. The join is inside the call because the
@@ -1151,11 +1169,10 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
       const say = element('p', 'rel-rite-say');
       setDescriptorText(
         say,
-        // The row's **note** is the fourth part and the only one a rite with no
-        // grant and no clauses has (Recasting the Omens): player prose on the
-        // data row, printed rather than restated, which is where hard rule 7
-        // puts a rule the effect vocabulary has no shape for.
-        [grantWords, clauses.map((clause) => clause.text).join(' · '), def.note ?? '', lasting]
+        // The row's `note` is player prose from the data row, printed as it is
+        // written (hard rule 7): it carries what the effect list cannot say,
+        // such as which Order opens a card-taught rite.
+        [kept, clauses.map((clause) => clause.text).join(' · '), def.note ?? '']
           .filter((part) => part.length > 0)
           .join(' · '),
       );

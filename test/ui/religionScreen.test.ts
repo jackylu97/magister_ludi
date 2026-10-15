@@ -27,11 +27,18 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { riteGrantWords, riteTeacherName } from '../../src/ui/religionScreen';
+import { riteTeachingCard } from '../../src/sim/religion';
+import { LIVE_RITE_IDS, RITE_IDS, riteDef } from '../../src/sim/religionData';
+import { orderDef } from '../../src/sim/statecraftData';
+import { techDef } from '../../src/sim/techData';
+
 const SOURCES = import.meta.glob(
   [
     '../../src/ui/religionScreen.ts',
     '../../src/ui/statecraftScreen.ts',
     '../../src/ui/topBar.ts',
+    '../../src/ui/controls.ts',
     '../../src/style.css',
     '../../index.html',
   ],
@@ -89,6 +96,21 @@ function fn(file: string, name: string): string {
     }
   }
   throw new Error(`${file}'s ${name} never closes`);
+}
+
+/**
+ * The Religion sheet's own block in `index.html`: the banner comment above the
+ * overlay, down to the end of its header (the eyebrow, the title and the hint
+ * line). Everything under the header is built by `religionScreen.ts`.
+ */
+function religionSheetHeader(): string {
+  const html = source('index.html');
+  const overlay = html.indexOf('id="religion-overlay"');
+  if (overlay < 0) throw new Error('index.html has no religion overlay');
+  const start = html.lastIndexOf('<!--', overlay);
+  const end = html.indexOf('</header>', overlay);
+  if (start < 0 || end < 0) throw new Error('index.html has no Religion sheet header');
+  return html.slice(start, end);
 }
 
 /**
@@ -255,9 +277,72 @@ describe('the retired agent', () => {
     expect(/augur/i.test(source('religionScreen.ts'))).toBe(false);
   });
 
+  it('is named nowhere in the sheet’s header in index.html', () => {
+    // The title and the hint line are written in `index.html`, not in the
+    // module, so the check above never saw them. They named the augur until
+    // batch UX8a.
+    const header = religionSheetHeader();
+    expect(header).toContain('statecraft-title');
+    expect(header).toContain('statecraft-hint');
+    expect(/augur/i.test(header)).toBe(false);
+  });
+
   it('sells the three pieces that are still called, in the order they are met', () => {
     const text = source('religionScreen.ts');
     expect(text).toContain("const CLERGY: readonly UnitTypeId[] = ['prophet', 'apostle', 'inquisitor']");
+  });
+});
+
+/**
+ * The rites reference (batch UX8a, items 4, 5 and 7 of
+ * `docs/plans/faith-screen-audit.md`): only the rites a town can still keep,
+ * each naming what teaches it, and its duration said once with the figure the
+ * town would actually be stamped with.
+ */
+describe('the rites reference', () => {
+  it('lists only the rites the table still teaches', () => {
+    const rites = fn('religionScreen.ts', 'drawRites');
+    expect(rites).toContain('for (const id of LIVE_RITE_IDS)');
+    // The whole table includes the two withdrawn rows.
+    expect(rites).not.toContain('RELIGION.rites');
+    expect(RITE_IDS.length).toBeGreaterThan(LIVE_RITE_IDS.length);
+  });
+
+  it('names the Order that teaches a card-taught rite, and the technology for the rest', () => {
+    for (const id of LIVE_RITE_IDS) {
+      const def = riteDef(id);
+      const card = riteTeachingCard(id);
+      if (def.byCard === true) {
+        expect(card, id).not.toBeNull();
+        expect(riteTeacherName(id), id).toBe(`the Order ${orderDef(card!).name}`);
+        // The row's `tech` only dates a card-taught rite.
+        expect(riteTeacherName(id), id).not.toContain(techDef(def.tech).name);
+      } else {
+        expect(riteTeacherName(id), id).toBe(techDef(def.tech).name);
+      }
+    }
+  });
+
+  it('asks the same teacher on this sheet and on the city screen', () => {
+    expect(fn('religionScreen.ts', 'drawRites')).toContain('`needs ${riteTeacherName(id)}`');
+    const options = fn('controls.ts', 'riteOptions');
+    expect(options).toContain('riteTeacherName(id)');
+    expect(options).not.toContain('techDef(riteDef(id).tech)');
+  });
+
+  it('says the duration once, from the figure the town would be stamped with', () => {
+    const rites = fn('religionScreen.ts', 'drawRites');
+    expect(rites).toContain('riteGrantWords(id, riteTurnsFor(state, seat, id))');
+    // No second "for N turns" composed from the row's base figure.
+    expect(rites).not.toContain('def.duration');
+  });
+
+  it('says one turn, not one turns', () => {
+    expect(riteGrantWords('votiveOffering')).toBe('Kept for 1 turn');
+    expect(riteGrantWords('restoringOfTheHost', 1)).toBe('Kept for 1 turn');
+    expect(riteGrantWords('omenReading', 15)).toBe('Kept for 15 turns');
+    // Without a figure for an empire, the row's own duration.
+    expect(riteGrantWords('omenReading')).toBe(`Kept for ${riteDef('omenReading').duration} turns`);
   });
 });
 

@@ -314,6 +314,7 @@ import { triumphDef } from '../sim/triumphData';
 import type { BeadAge } from '../sim/beadData';
 import type { BeadAward } from '../sim/beads';
 import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
+import { riteTeacherName } from './religionScreen';
 import type { RouteMode, TraderPlunder } from '../sim/trade';
 import { autoExploreError } from '../sim/explore';
 import { type UnitDef, isExplorer, trades, unitDef, unitHp, unitMaxHp } from '../sim/unitData';
@@ -605,7 +606,10 @@ export interface RiteOption {
   blocked: string | null;
   /** What it would do, in one line. `ritePreview`'s. */
   preview: string | null;
-  /** The technology a greyed row is waiting on, or `null`. */
+  /**
+   * What teaches a greyed row (`riteTeacherName`): the technology, or the
+   * Order for a card-taught rite. `null` once the rite is known.
+   */
   requiredTechName: string | null;
   /** What it asks of the faith bank, in the age this empire stands in. */
   cost: number;
@@ -5822,11 +5826,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         name: riteDef(id).name,
         preview: ritePreview(id),
         blocked,
-        // Named off the row's own `tech` field rather than parsed back out of
-        // the sentence, exactly as a greyed improvement's is.
+        // The faith screen's own reading of the teacher, so the two screens
+        // agree: a card-taught rite names its Order, not the technology its
+        // row only uses to date it.
         requiredTechName: hasAbility(state, localPlayerId, riteAbility(id))
           ? null
-          : techDef(riteDef(id).tech).name,
+          : riteTeacherName(id),
         cost,
       };
     });
