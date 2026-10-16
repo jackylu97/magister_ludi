@@ -105,6 +105,7 @@ import {
   type CardId,
   type DeckId,
   type FirstKind,
+  type LevyUse,
   WORLD_FIRST_KINDS,
   isDeckId,
 } from "./statecraftData";
@@ -1325,8 +1326,34 @@ import {
  * different cards, and a seat command that put an Expansionist card in a
  * chair of another type is now refused. The branch migrates nothing, for the
  * reason given under v119.
+ *
+ * v135 (branch `decks`; Expansionist batch E1 of
+ * `docs/plans/expansionist-build-triage.md`, the levies): **twelve
+ * Expansionist cards about levies.** Ten join the Expansionist file; Seasonal
+ * Levies gains the levy gate, and The General Levy its free upkeep. What
+ * changes:
+ *
+ *   · four new things a levy can buy: a worker, a settler, science, and hammers
+ *     for the nearest other town building a world wonder;
+ *   · a deal gate, "Needs a levy" (`OrderDef.needsLevy`): a gated card is
+ *     dealt only to a seat holding a card that grants a levy;
+ *   · three fields join the state, each absent until it is first written:
+ *     `Player.citizensLevied`, the citizens an empire has spent on levies
+ *     (written only by `recordLevy`); `Unit.levied`, the levy that raised a
+ *     piece (written only by `createUnit`); and `CityLevyRecord.returns`, the
+ *     citizens due home to a town (written by `levyAt`, emptied by the new
+ *     phase);
+ *   · a new end-of-turn phase, `levyReturns`, before `collectYields`. It
+ *     raises the revision once more every turn;
+ *   · a stamp and an upkeep rebate can be narrowed to the pieces a levy
+ *     raised, and a citizen coming home through `settlePopulationWindfall`
+ *     pays no growth riders.
+ *
+ * **A v134 save is refused and does not replay.** The draft bags hold
+ * different cards, and every resolution runs one more phase. The branch
+ * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 134;
+export const SCHEMA_VERSION = 135;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2084,6 +2111,16 @@ export interface Player {
    */
   hexesPillaged?: number;
   /**
+   * **How many citizens this empire has ever spent on levies** (Expansionist
+   * batch E1): The Labour Rolls' count (`CountKind`'s `citizensLevied`).
+   *
+   * One for each levy, whatever it bought. Written in one place, `recordLevy`
+   * (`levies.ts`), which only `levyAt` calls, and only ever raised. Stored
+   * because a spent citizen leaves nothing on the board to count, and absent
+   * until the first levy.
+   */
+  citizensLevied?: number;
+  /**
    * **The losses this empire has suffered to other empires in war**, oldest
    * first (batch WC2, `docs/flags.md` (rrrrrr) part 2). War weariness is read
    * off this list (`src/sim/weariness.ts`).
@@ -2675,6 +2712,17 @@ export interface Unit {
    * fingerprint (`signUnits`): nothing about it is drawn.
    */
   firstAttackTurn?: number;
+  /**
+   * **Which levy raised this piece**, or the key is **absent** on a piece no
+   * levy raised (Expansionist batch E1). Two cards read it: The Trained Bands'
+   * Veteran start (`CardUnitStampEffect.levied`, asked at the birth) and The
+   * General Levy's free upkeep inside your borders
+   * (`CardUpkeepRebateEffect.levied`, asked every turn the payroll is drawn).
+   * Written only by `createUnit`, when the levy names it through
+   * `RealiseOptions.levied`, and never changed after. Not in the piece
+   * fingerprint (`signUnits`): nothing about it is drawn.
+   */
+  levied?: LevyUse;
   /**
    * The rest of a march this unit has been ordered on, or the key is **absent**
    * when it is standing where it was put. Presence is the state, like
@@ -3603,6 +3651,15 @@ export interface City {
 export interface CityLevyRecord {
   turn: number;
   after?: Partial<Record<CardId, number>>;
+  /**
+   * **Citizens due home** from earlier levies, for The Mit'a (Expansionist
+   * batch E1). Each entry is the absolute turn the citizen returns on and the empire
+   * that levied it, oldest first. Written by `levyAt`; read and emptied by the
+   * `levyReturns` phase, which gives a citizen back when its turn comes. An
+   * entry whose empire no longer holds the town is dropped, so a captured town
+   * gives its new owner nothing. Absent when nobody is due.
+   */
+  returns?: { turn: number; ownerId: number }[];
 }
 
 /**
@@ -4960,6 +5017,14 @@ export function createUnit(
    * every completion, every grant and every escort out of a ruin.
    */
   bought?: 'gold' | 'faith',
+  /**
+   * **Which levy raised this piece**, where one did (Expansionist batch E1).
+   * `bought`'s neighbour and the same argument for a parameter: only the levy
+   * knows it. Handed to `cardUnitStamp`, so a stamp narrowed to levied pieces
+   * reaches this one, and written as `Unit.levied`. Absent is every birth no
+   * levy made.
+   */
+  levied?: LevyUse,
 ): Unit {
   const def = unitDef(type);
   // **The stamp is decided before the piece exists**, because the maximum it is
@@ -4972,7 +5037,7 @@ export function createUnit(
   // existence — so "built in this city" is asked exactly where it can be
   // answered. A creation on open ground has no town and a scoped stamp is silent
   // there; see `CardUnitStampEffect.scope`.
-  const stamp = cardUnitStamp(state, ownerId, { col, row }, type, bought);
+  const stamp = cardUnitStamp(state, ownerId, { col, row }, type, bought, levied);
   // The caller's own mark, folded into the law's before anything is read off it:
   // one field, one writer, and a piece that is a veteran twice over carries the
   // sum. Voice by voice, because a mark on a levy and a mark on the whole army
@@ -5036,6 +5101,9 @@ export function createUnit(
   // for `chargesLeft`' reason exactly: a game with no such card in it serialises
   // byte-for-byte as it did before this field existed.
   if (stamped) unit.stamp = stamp;
+  // The levy that raised it, written last and only when there was one, for the
+  // same reason (Expansionist batch E1). See `Unit.levied`.
+  if (levied !== undefined) unit.levied = levied;
   state.units.push(unit);
   // **A piece standing in a town is a line of the empire's contentment** (batch
   // M3, `slate.ts`): The Long Watch pays "+1 happiness for each unit standing in

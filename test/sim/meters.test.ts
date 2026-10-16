@@ -989,7 +989,10 @@ describe('a captured city, end to end', () => {
     // 134 since E0: the Expansionist deck is typed and its cards that need
     // no new shape are built, so a v133 log's picks and seatings name cards
     // and chairs this build deals and fits differently.
-    expect(SCHEMA_VERSION).toBe(134);
+    // 135 since E1: the Expansionist levy cards, three new fields and a new
+    // end-of-turn phase, so a v134 log's picks name cards this build deals
+    // differently and its resolutions run one phase fewer.
+    expect(SCHEMA_VERSION).toBe(135);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

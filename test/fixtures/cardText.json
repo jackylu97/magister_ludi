@@ -3677,6 +3677,12 @@
     "text": "new cities are joined to your nearest city by road"
    }
   ],
+  "theWorkGangs": [
+   {
+    "raw": "a town of at least 3 citizens may spend one citizen for a worker (once every 5 turns)",
+    "text": "a town of at least 3 citizens may spend one citizen for a worker (once every 5 turns)"
+   }
+  ],
   "levyOfTheLand": [
    {
     "raw": "a town may spend one citizen for production equal to the food it took to grow that citizen (once every 5 turns)",
@@ -3820,6 +3826,24 @@
     "text": "+2 production in every city joined to your capital by road"
    }
   ],
+  "theBuildersLevy": [
+   {
+    "raw": "a town may spend one citizen for production equal to the food it took to grow that citizen, paid to your nearest other town building a world wonder (once every 5 turns)",
+    "text": "a town may spend one citizen for production equal to the food it took to grow that citizen, paid to your nearest other town building a world wonder (once every 5 turns)"
+   }
+  ],
+  "theLabourFeasts": [
+   {
+    "raw": "after a town spends a citizen on a levy, it gains +1 culture per unimproved hex worked here for 10 turns, at most once every 10 turns",
+    "text": "after a town spends a citizen on a levy, it gains +1 culture per unimproved hex worked here for 10 turns, at most once every 10 turns"
+   }
+  ],
+  "theGleaners": [
+   {
+    "raw": "after a town spends a citizen on a levy, it gains +3 food in this city for 10 turns, at most once every 10 turns",
+    "text": "after a town spends a citizen on a levy, it gains +3 food in this city for 10 turns, at most once every 10 turns"
+   }
+  ],
   "theWatercourses": [
    {
     "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside fresh water or beside a [[improvement:farm|Farm]] and beside fresh water",
@@ -3957,6 +3981,28 @@
    {
     "raw": "+1% food per 10 citizens (at most +30% food)",
     "text": "+1% food per 10 citizens (at most +30% food)"
+   }
+  ],
+  "theLabourRolls": [
+   {
+    "raw": "+1% production per 2 citizens you have levied this game (at most +30% production)",
+    "text": "+1% production per 2 citizens you have levied this game (at most +30% production)"
+   },
+   {
+    "raw": "+1% food per 2 citizens you have levied this game (at most +30% food)",
+    "text": "+1% food per 2 citizens you have levied this game (at most +30% food)"
+   }
+  ],
+  "theTerracesOfMoray": [
+   {
+    "raw": "a city beside a mountain may spend one citizen for science equal to the food it took to grow that citizen (once every 5 turns)",
+    "text": "a city beside a mountain may spend one citizen for science equal to the food it took to grow that citizen (once every 5 turns)"
+   }
+  ],
+  "theColonists": [
+   {
+    "raw": "a town of at least 6 citizens may spend one citizen for a settler (once every 5 turns)",
+    "text": "a town of at least 6 citizens may spend one citizen for a settler (once every 5 turns)"
    }
   ],
   "theWoodwrights": [
@@ -4110,6 +4156,24 @@
     "text": "+5% food in every city per tended hex there (at most +25% food)"
    }
   ],
+  "theMita": [
+   {
+    "raw": "a citizen spent on a levy comes home to its town 20 turns later",
+    "text": "a citizen spent on a levy comes home to its town 20 turns later"
+   }
+  ],
+  "theSlackSeason": [
+   {
+    "raw": "every 20th turn, your towns may levy however long ago they last did",
+    "text": "every 20th turn, your towns may levy however long ago they last did"
+   }
+  ],
+  "theTrainedBands": [
+   {
+    "raw": "military units raised by a levy start as Veterans",
+    "text": "military units raised by a levy start as Veterans"
+   }
+  ],
   "theLandsGreatWork": [
    {
     "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per 8 citizens (at most +40%)",
@@ -4177,6 +4241,10 @@
    {
     "raw": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)",
     "text": "a town may spend one citizen for the best melee unit you can build, which does not count as trained (once every 5 turns, or every turn while you are at war)"
+   },
+   {
+    "raw": "units raised by a conscription levy cost no gold in maintenance inside your territory",
+    "text": "units raised by a conscription levy cost no gold in maintenance inside your territory"
    }
   ],
   "theGreatMigration": [

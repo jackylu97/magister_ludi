@@ -2999,6 +2999,10 @@ export function countOf(
       // The same kind of record: a burnt farm leaves nothing to count. Written
       // in one place, `pillageAt` (`improvements.ts`).
       return Math.max(0, Math.floor(playerById(state, playerId)?.hexesPillaged ?? 0));
+    case 'citizensLevied':
+      // The same kind of record again (Expansionist batch E1): a citizen spent
+      // on a levy leaves nothing to count. Written in one place, `recordLevy`.
+      return Math.max(0, Math.floor(playerById(state, playerId)?.citizensLevied ?? 0));
     case 'tally': {
       // **What this card has watched happen** — the growing cards' counter, and
       // the one member of the union that is not a question about the board at
@@ -4812,6 +4816,9 @@ export function cardUpkeepRebateLines(
     for (const unit of state.units) {
       if (unit.ownerId !== playerId) continue;
       if (!unitMatches(unit.type, effect.class)) continue;
+      // The General Levy (Expansionist batch E1): only the pieces its levy
+      // raised, read off the piece's own mark.
+      if (effect.levied !== undefined && !leviedMatches(effect.levied, unit.levied)) continue;
       // The Soldiers' Purse (Dominion batch D2): the coin comes off once for
       // each rank the piece holds, and a piece with no rank is skipped.
       const helpings = effect.perRank === true ? ranksHeld(unit) : 1;
@@ -6021,6 +6028,7 @@ export function cardUnitStamp(
   at?: { col: number; row: number },
   type?: UnitTypeId,
   bought?: 'gold' | 'faith',
+  levied?: LevyUse,
 ): UnitStamp {
   let hp = 0;
   let strength = 0;
@@ -6051,6 +6059,9 @@ export function cardUnitStamp(
       if (!unitMatches(type, effect.class)) continue;
     }
     if (effect.bought !== undefined && effect.bought !== bought) continue;
+    // And which levy raised it, where the row narrows to levied pieces (The
+    // Trained Bands). A caller that named none is a birth no levy made.
+    if (effect.levied !== undefined && !leviedMatches(effect.levied, levied)) continue;
     if (effect.hp !== undefined) hp += effect.hp;
     if (effect.strength !== undefined) strength += effect.strength;
     // The third mark a birth can carry, folded beside the other two — see
@@ -6096,6 +6107,7 @@ export function cardBirthExperience(
   city: City,
   type: UnitTypeId,
   bought?: 'gold' | 'faith',
+  levied?: LevyUse,
 ): BirthExperience {
   const birth: BirthExperience = { experience: 0, rank: null };
   for (const { effect } of cityEffectsOfKind(state, city, 'unitStamp')) {
@@ -6105,10 +6117,22 @@ export function cardBirthExperience(
     }
     if (effect.class !== undefined && !unitMatches(type, effect.class)) continue;
     if (effect.bought !== undefined && effect.bought !== bought) continue;
+    // The Trained Bands' Veteran reaches only a unit a levy raised.
+    if (effect.levied !== undefined && !leviedMatches(effect.levied, levied)) continue;
     if (effect.experience !== undefined) birth.experience += effect.experience;
     if (effect.rank !== undefined) birth.rank = higherRank(birth.rank, effect.rank);
   }
   return birth;
+}
+
+/**
+ * Does a row narrowed to levied pieces (`levied`) reach a piece a levy of this
+ * use raised? `true` reaches any levy; a use reaches only its own. A piece no
+ * levy raised (`have` absent) is never reached. Expansionist batch E1.
+ */
+export function leviedMatches(want: true | LevyUse, have: LevyUse | undefined): boolean {
+  if (have === undefined) return false;
+  return want === true || want === have;
 }
 
 /** The higher of two ranks, `null` standing for no rank at all. */
@@ -7301,6 +7325,36 @@ export function cardLevyAftermaths(
   return list;
 }
 
+/**
+ * **When a levied citizen comes home**, for The Mit'a (Expansionist batch E1).
+ * The shortest `returnsAfter` among this empire's live levy rows, in turns, or
+ * `null` when no row says it. `levyAt` asks it once, at the levy.
+ */
+export function cardLevyReturnDelay(state: GameState, playerId: number): number | null {
+  let shortest: number | null = null;
+  for (const { effect } of effectsOfKind(state, playerId, 'levy')) {
+    if (effect.returnsAfter === undefined) continue;
+    const turns = Math.max(1, Math.floor(effect.returnsAfter));
+    if (shortest === null || turns < shortest) shortest = turns;
+  }
+  return shortest;
+}
+
+/**
+ * **Is this a turn with no levy wait** for this empire? The Slack Season asks
+ * it (Expansionist batch E1). True when one of its live levy rows names a
+ * `noWaitEvery` that divides the world's turn. The world's calendar, like the
+ * periodic musters, so every seat's slack turns fall together.
+ */
+export function cardLevyNoWait(state: GameState, playerId: number): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'levy')) {
+    if (effect.noWaitEvery === undefined) continue;
+    const every = Math.max(1, Math.floor(effect.noWaitEvery));
+    if (state.turn % every === 0) return true;
+  }
+  return false;
+}
+
 /** The shortest a periodic clock can ever be. See `CardPeriodShortenEffect`. */
 export const PERIODIC_FLOOR = 2;
 
@@ -8048,6 +8102,26 @@ export function holdsTendedUnlock(state: GameState, playerId: number): boolean {
     if (!isOrderId(id)) continue;
     const improvement = orderDef(id).charter?.unlocks.improvement;
     if (improvement !== undefined && isTendedWork(improvement)) return true;
+  }
+  return false;
+}
+
+/**
+ * Does this seat hold a card that **grants a levy**? The draft gate for the
+ * Expansionist cards marked "Needs a levy" (`OrderDef.needsLevy`, read in
+ * `eligibleFor`; Expansionist batch E1). A card grants a levy when one of its
+ * `levy` effects names a use. The whole collection is asked, seated or not, as
+ * `holdsTendedUnlock` asks it: a levy card waiting for a chair is a levy the
+ * seat can use.
+ */
+export function holdsLevyGrant(state: GameState, playerId: number): boolean {
+  const seat = playerById(state, playerId);
+  if (seat === undefined) return false;
+  for (const id of seat.statecraft.orders) {
+    if (!isOrderId(id)) continue;
+    for (const effect of orderDef(id).effects) {
+      if (effect.kind === 'levy' && effect.use !== undefined) return true;
+    }
   }
   return false;
 }

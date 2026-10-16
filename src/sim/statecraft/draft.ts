@@ -71,6 +71,7 @@ import {
   effectsOfKind,
   forgetTheLaw,
   helpings,
+  holdsLevyGrant,
   holdsTendedUnlock,
 } from './evaluator';
 import { bumpEconomy } from '../slate';
@@ -993,13 +994,17 @@ export function eligibleFor(
   const band = currentBandOf(player, drafts);
   const held = new Set(sc.orders);
   // Asked once: whether the seat holds a tended-work unlock decides every card
-  // marked "Needs tended land" (`OrderDef.needsTendedWork`) at once.
+  // marked "Needs tended land" (`OrderDef.needsTendedWork`) at once, and
+  // whether it holds a card granting a levy decides every card marked "Needs a
+  // levy" (`OrderDef.needsLevy`, Expansionist batch E1).
   const tends = holdsTendedUnlock(state, player.id);
+  const levies = holdsLevyGrant(state, player.id);
   return deckPoolOf(state, player).filter((id) => {
     if (held.has(id)) return false;
     const def = orderDef(id);
     if (def.band !== band) return false;
     if (def.needsTendedWork === true && !tends) return false;
+    if (def.needsLevy === true && !levies) return false;
     return def.fromAge === undefined || age >= def.fromAge;
   });
 }

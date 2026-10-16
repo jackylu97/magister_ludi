@@ -13,19 +13,19 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - `modify`: in the data, but needs work. The word after the colon says why: `revised` (changed by the builds or a ruling of 2026-10-16), `reworked` (a card no build used, reworked to serve one), `wording` (the text changes, the effect does not), `deferred` (not dealt, because it needs a new shape), `as built` (the game does something slightly different from the text), or `cut` (you removed the card; the build retires its data row). The ability shown is the target.
   - `add`: not in the data yet; a new card from the builds. `add: proposed` is one of the proposals of 2026-10-13 that a build uses.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch E0 the types are in the data: each Expansionist card fits only a chair of its own type or a Wildcard chair. The sync test checks this column for every row in the data, the shared table's included.
-- **Gates:** "Needs tended land" deals a card only to a seat holding a tended-work charter. "Needs a levy" (ruled 2026-10-16, not built yet) deals a card only to a seat holding a card that grants a levy.
-- **The build:** the triage is `docs/plans/expansionist-build-triage.md`. Batch E0 put the types into the data, retired The Forest Gardens and Daughter Towns, and built the 37 cards that needed no new shape. Batches E1 to E5 build the cards that need one.
+- **Gates:** "Needs tended land" deals a card only to a seat holding a tended-work charter. "Needs a levy" deals a card only to a seat holding a card that grants a levy, in a chair or not.
+- **The build:** the triage is `docs/plans/expansionist-build-triage.md`. Batch E0 put the types into the data, retired The Forest Gardens and Daughter Towns, and built the 37 cards that needed no new shape. Batch E1 built the twelve levy cards. Batches E2 to E5 build the rest.
 - **Doctrines:** none yet. Expansionist's Doctrines come next, one direction per flavour.
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
-| Tier 0 | 10 | 2 | 2 | 14 | none |
-| Tier I | 19 | 2 | 8 | 29 | none |
-| Tier II | 13 | 5 | 4 | 22 | none |
-| Tier III | 15 | 6 | 16 | 37 | none |
-| Tier IV | 7 | 8 | 3 | 18 | none |
-| **All** | **64** | **23** | **33** | **120** | **none** |
+| Tier 0 | 11 | 2 | 1 | 14 | none |
+| Tier I | 22 | 2 | 5 | 29 | none |
+| Tier II | 16 | 5 | 1 | 22 | none |
+| Tier III | 19 | 5 | 13 | 37 | none |
+| Tier IV | 8 | 7 | 3 | 18 | none |
+| **All** | **76** | **21** | **23** | **120** | **none** |
 | Shared | 14 | 0 | 2 | 16 |  |
 
 **By type** (the chair a card would fit):
@@ -56,7 +56,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Beating of the Bounds** | common | modify: as built | Each town you found claims one extra wild hex of your choice next to its borders. | Economic |
 | **The Pyramid Builders** | common | implemented | +25% production toward wonders in your capital. | Economic |
 | **The Road Home** | common | implemented | Each town you found is joined to your nearest town by road. | Economic |
-| **The Work Gangs** | common | add | Towns of at least three citizens may spend a citizen to raise a worker. This shares the town's levy wait. | Economic |
+| **The Work Gangs** | common | implemented | Towns of at least three citizens may spend a citizen to raise a worker. This shares the town's levy wait. | Economic |
 | **The Woodland Bands** | common | add | Your units ignore the extra movement cost of forest and jungle, and gain +2 strength while they stand in forest or jungle. | Military |
 
 ## Tier I
@@ -85,9 +85,9 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Grain Census** | uncommon | add | While seated, this card gains +1 production and +1 gold each time one of your towns grows past its largest size. It starts at +2 of each. | Economic |
 | **The Polis** | rare | implemented | While you hold at most four towns, every town gains +25% food. | Economic |
 | **The Public Fountains** | common | implemented | Towns beside a river or lake gain +1 happiness for every four citizens, at most +3. | Civic |
-| **The Builders' Levy** | uncommon | add | Towns may spend a citizen to send production equal to the food it took to grow it to a world wonder being built in another of your towns. | Economic |
-| **The Labour Feasts** | uncommon | add | Needs a levy. After a town spends a citizen on a levy, it gains +1 culture for every wild tile it works, for ten turns. At most once every ten turns. | Civic |
-| **The Gleaners** | common | add: proposed | Needs a levy. After a town spends a citizen on a levy, it gains +3 food for ten turns. At most once every ten turns. | Economic |
+| **The Builders' Levy** | uncommon | implemented | Towns may spend a citizen to send production equal to the food it took to grow it to a world wonder being built in another of your towns. | Economic |
+| **The Labour Feasts** | uncommon | implemented | Needs a levy. After a town spends a citizen on a levy, it gains +1 culture for every wild tile it works, for ten turns. At most once every ten turns. | Civic |
+| **The Gleaners** | common | implemented | Needs a levy. After a town spends a citizen on a levy, it gains +3 food for ten turns. At most once every ten turns. | Economic |
 | **The Wild Marches** | common | implemented | +1 culture for every four wild hexes you own. | Civic |
 | **The Quiet Provinces** | uncommon | implemented | Each town gains +1 production for every three points of spare authority, at most +3. | Economic |
 | **The Road Towns** | common | implemented | Towns joined to your capital by road gain +2 production. | Economic |
@@ -113,11 +113,11 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Hedgerows** | common | implemented | Needs tended land. Worked farms beside a tended tile gain +2 food, once per farm. | Economic |
 | **The Great Households** | uncommon | implemented | Each town gains +2% production for every citizen it has, at most +30%. | Economic |
 | **The Harbour Cities** | common | implemented | Coastal towns gain +1 culture for every two citizens. | Civic |
-| **The Labour Rolls** | uncommon | add | Needs a levy. +1% production and food for every two citizens you have levied this game, at most +30%. | Economic |
-| **The Terraces of Moray** | uncommon | add | Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen. | Civic |
+| **The Labour Rolls** | uncommon | implemented | Needs a levy. +1% production and food for every two citizens you have levied this game, at most +30%. | Economic |
+| **The Terraces of Moray** | uncommon | implemented | Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen. | Civic |
 | **The Book of Settlements** | uncommon | add | +3% production and gold for every town you have founded this game, at most +30%. | Economic |
 | **The Milestones** | uncommon | implemented | +1% production and gold for every three road hexes you have paved, at most +30%. | Economic |
-| **The Colonists** | uncommon | add | Towns of at least six citizens may spend a citizen to raise a settler. | Economic |
+| **The Colonists** | uncommon | implemented | Towns of at least six citizens may spend a citizen to raise a settler. | Economic |
 | **The Teeming Realm** | uncommon | implemented | +1% production and food for every ten citizens in your empire, at most +30%. | Economic |
 
 ## Tier III
@@ -126,7 +126,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 |---|---|---|---|---|
 | **The Woodwrights** | rare | implemented | Forest and jungle chops grant 150% more production. | Economic |
 | **The Common Domain** | uncommon | modify: deferred | Towns of at least ten population may work owned tiles one hex beyond their normal work radius. | Economic |
-| **Seasonal Levies** | uncommon | modify: revised | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. | Economic |
+| **Seasonal Levies** | uncommon | implemented | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. | Economic |
 | **The Long Tending** | rare | implemented | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. | Economic |
 | **The Mountain Schools** | uncommon | implemented | Towns beside a mountain gain +15% science. Worked mines and quarries beside a mountain gain +2 science. | Civic |
 | **The Polders** | rare | modify: reworked | Workers may raise a polder on a coast tile that touches at least three of your land tiles, for two charges. A polder yields as a farm on grassland. | Economic |
@@ -146,9 +146,9 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Coming of the Water** | uncommon | add | When a town finishes an Aqueduct, every farm in its borders gains +1 food for the rest of the game. | Economic |
 | **The Mill Wheels** | common | implemented | Towns with a Watermill gain +15% production. | Economic |
 | **The Topping Out** | uncommon | add | Finishing a wonder grants that town production equal to twenty times its population. | Economic |
-| **The Mit'a** | rare | add | Needs a levy. A citizen spent on a levy returns to its town twenty turns later. | Economic |
-| **The Slack Season** | uncommon | add | Needs a levy. Every twentieth turn, after the harvest, your towns may levy whatever their wait. | Economic |
-| **The Trained Bands** | uncommon | add | Needs a levy. Units raised by a levy start as Veterans. | Military |
+| **The Mit'a** | rare | implemented | Needs a levy. A citizen spent on a levy returns to its town twenty turns later. | Economic |
+| **The Slack Season** | uncommon | implemented | Needs a levy. Every twentieth turn, after the harvest, your towns may levy whatever their wait. | Economic |
+| **The Trained Bands** | uncommon | implemented | Needs a levy. Units raised by a levy start as Veterans. | Military |
 | **The Staked Claims** | uncommon | add | Each town you found claims every unowned hex within two hexes of it. | Economic |
 | **The Quitrents** | common | implemented | +1 gold for every two hexes you own. | Economic |
 | **The Hallowed Woods** | uncommon | implemented | Towns working at least five wild tiles gain +25% culture. | Civic |
@@ -176,7 +176,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Inheritance of Fields** | uncommon | implemented | Worked improvements and tended works that have stood for at least 60 turns gain +1 production. Tended ones also gain +1 culture. | Economic |
 | **The Measure of the Land** | rare | implemented | Every town gains +1 production for every 25 hexes your empire owns, at most +6. | Economic |
 | **The Mother City** | rare | implemented | Your capital gains +1 production for every citizen it has. | Economic |
-| **The General Levy** | rare | modify: as built | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. | Military |
+| **The General Levy** | rare | implemented | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. | Military |
 | **The Great Migration** | rare | modify: deferred | Every ten turns, each foreign town within three hexes of your border loses one citizen to your nearest town, if your town is happier and has room to grow. | Economic |
 | **The Encroaching Fields** | uncommon | modify: deferred | Once every ten turns, each of your towns of at least twelve citizens takes one hex from the borders of a foreign town next to it, if nobody works that hex and your town is larger than the town that owns it. | Economic |
 | **The Domesday Survey** | rare | modify: as built | Goal: own at least 150 hexes and work at least 50 improved or tended tiles at the same time. Reward: each town gains production equal to five times the improved or tended tiles it works, toward what it is building, and you gain a great engineer. The card then leaves its chair. | Wildcard |

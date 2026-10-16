@@ -420,8 +420,11 @@ describe('the schema, as landed', () => {
     // and two deferred rows were freed (The Rope Stretchers, and Garden Cities
     // in the shared file); the user's two cuts, The Forest Gardens and
     // Daughter Towns, were live and are retired.
-    expect(live).toBe(420);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(420);
+    // **And Expansionist batch E1** (the levies): ten more. Ten new
+    // Expansionist rows came live; Seasonal Levies and The General Levy were
+    // changed in place and were already live.
+    expect(live).toBe(430);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(430);
   });
 
   /**
@@ -610,7 +613,10 @@ describe('the schema, as landed', () => {
     // 134 since E0: the Expansionist deck is typed and its cards that need
     // no new shape are built, so a v133 log's picks and seatings name cards
     // and chairs this build deals and fits differently.
-    expect(SCHEMA_VERSION).toBe(134);
+    // 135 since E1: the Expansionist levy cards, three new fields and a new
+    // end-of-turn phase, so a v134 log's picks name cards this build deals
+    // differently and its resolutions run one phase fewer.
+    expect(SCHEMA_VERSION).toBe(135);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

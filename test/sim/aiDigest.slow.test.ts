@@ -605,10 +605,33 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * Charter unlocked it, so no seat could build one. The duel game adopts 11
  * governments and the standard one 16. Nothing stalled and no command was
  * refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E1 (schema 135): the levies.** Duel `f5591807:272724`
+ * → `213bf539:269774`, standard `54af715a:983935` → `ad0181de:983942`. Three
+ * things moved them:
+ *
+ *   · the cards. Ten Expansionist rows join the deck, and seven cards (six of
+ *     them new) are dealt only to a seat holding a card that grants a levy. From
+ *     the first draw that meets one of them, the seats hold different cards.
+ *     With the new data alone (the phase taken out, the version at 134), the
+ *     boards give duel `8cf341a1:269774` and standard `9c71ed3b:983942`;
+ *   · the new `levyReturns` phase, which raises the revision once more every
+ *     turn;
+ *   · the version, 134 to 135. These last two move the hash and not the
+ *     length.
+ *
+ * Bots do not levy yet, so no citizen is levied, no piece carries a levy mark
+ * and no citizen is due home on either board, and no seat holds an E1 card at
+ * turn 120. Checked by taking the movers out: the new code with the phase taken
+ * out and the old data gives E0's digests exactly on both boards. The duel game
+ * adopts 11 governments and the standard one 16. Nothing stalled and no
+ * command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'f5591807:272724',
-  standard: '54af715a:983935',
+  duel: '213bf539:269774',
+  standard: 'ad0181de:983942',
 };
 
 /**

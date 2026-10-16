@@ -730,10 +730,19 @@ describe('determinism', () => {
    * never reach this board. Checked twice: the types alone, at 133, give D3's
    * hashes exactly, and so does every E0 change with the version set back to
    * 133.
+   *
+   * **Expansionist batch E1 (the levies) moved the hash and not the length**
+   * at both seeds. Two things moved it: the version, 134 to 135, and the new
+   * `levyReturns` phase, which raises the revision once more a turn, twenty
+   * more over the sweep with the same number of digits. Nobody here drafts a
+   * card or levies a citizen, so the new cards and fields never reach this
+   * board. Checked twice: the new code with the phase taken out gives E0's
+   * hashes exactly, and so does the new data with the phase out and the
+   * version at 134.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '42ae59d6:188932',
-    2026: '57863117:188488',
+    11: 'b76ba94f:188932',
+    2026: '001ff18e:188488',
   };
 
   for (const seed of [11, 2026]) {

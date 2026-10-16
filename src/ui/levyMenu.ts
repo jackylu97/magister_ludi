@@ -16,6 +16,7 @@
  * module never dispatches — the city panel does, through its own reporter.
  */
 
+import { buildingDef, isBuildingId } from '../sim/buildingData';
 import { type LevyOption, levyOptions } from '../sim/levies';
 import { RULES } from '../sim/rulesData';
 import { type City, type GameState, cityById } from '../sim/state';
@@ -68,6 +69,22 @@ function sourceWords(state: GameState, option: LevyOption): string {
       return `${card}: your best melee unit, counted as trained`;
     case 'conscript':
       return `${card}: your best melee unit, not counted as trained`;
+    // Expansionist batch E1.
+    case 'worker':
+      return `${card}: a worker, not counted as trained`;
+    case 'settler':
+      return `${card}: a settler, not counted as trained`;
+    case 'science':
+      return `${card}: the food it took to grow this citizen, as science`;
+    case 'wonder': {
+      const target = option.targetCityId === null ? undefined : cityById(state, option.targetCityId);
+      const front = target?.queue[0];
+      const wonder =
+        front && front.kind === 'building' && isBuildingId(front.id) ? buildingDef(front.id).name : undefined;
+      return target === undefined || wonder === undefined
+        ? `${card}: to your nearest other town building a world wonder`
+        : `${card}: to ${target.name}, which is building ${wonder}`;
+    }
     default: {
       const unhandled: never = option.use;
       void unhandled;
@@ -79,6 +96,7 @@ function sourceWords(state: GameState, option: LevyOption): string {
 /** The figure on the right of a line. */
 function figureWords(option: LevyOption): string {
   if (option.hammers !== null) return `+${figure(option.hammers)}${YIELD_GLYPH.production}`;
+  if (option.science !== null) return `+${figure(option.science)}${YIELD_GLYPH.science}`;
   if (option.unit !== null) return unitDef(option.unit).name;
   return '—';
 }

@@ -193,6 +193,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Dominion batch D3: the hexes an empire has pillaged, which The Sagas'
   // `hexesPillaged` count reads.
   { field: 'hexesPillaged', pattern: /\.hexesPillaged\s*(=[^=]|\+=)/ },
+  // Expansionist batch E1: the citizens an empire has spent on levies, which
+  // The Labour Rolls' `citizensLevied` count reads.
+  { field: 'citizensLevied', pattern: /\.citizensLevied\s*(=[^=]|\+=)/ },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -306,6 +309,11 @@ const ANNOUNCING = new Set([
   // The Horde's extra hexes are paid the same way. It banks the salvage and is
   // the one writer of `Player.hexesPillaged`, which The Sagas' count reads.
   'improvements.ts#payPillage',
+  // Expansionist batch E1: the levy verb banks The Terraces of Moray's science,
+  // and `recordLevy` is the one writer of `Player.citizensLevied`, which The
+  // Labour Rolls' count reads.
+  'levies.ts#levyAt',
+  'levies.ts#recordLevy',
   'state.ts#claimWonder',
   'state.ts#createCity',
   'state.ts#createUnit',

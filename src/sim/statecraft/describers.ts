@@ -55,6 +55,7 @@ import {
   type CardEffect,
   type CardFlagRuleId,
   type CardLevyEffect,
+  type LevyUse,
   type CardId,
   type CardRule,
   type CityScope,
@@ -1516,7 +1517,11 @@ function describeEffect(
       // the roster's own word (`filterWords`) so "military units" and "mounted
       // units" are one clause; the bank trails, because a player reads *what is
       // stamped* first and *how it was paid for* second.
-      const who = effect.class === undefined ? 'units' : filterWords(effect.class);
+      // And **which levy raised it**, where the row narrows to levied pieces
+      // (The Trained Bands, Expansionist batch E1).
+      const who =
+        (effect.class === undefined ? 'units' : filterWords(effect.class)) +
+        (effect.levied === undefined ? '' : ` ${leviedWords(effect.levied)}`);
       const paid = effect.bought === undefined ? '' : ` bought with ${effect.bought}`;
       const born =
         effect.scope === undefined
@@ -1540,10 +1545,12 @@ function describeEffect(
       // starting rank. "You gain" rather than "newly created", because these two
       // are read when a town gains a unit (`realiseItem`) and never for a unit
       // from a ruin, which is a different set of units from the marks above.
+      // A levied piece is already said to be raised, so "you gain" is left off.
+      const gain = effect.levied === undefined ? ' you gain' : '';
       const gained =
         effect.scope === undefined
-          ? `${who} you gain${paid}`
-          : `${who} you gain${paid} in ${cityScopeWords(effect.scope)}`;
+          ? `${who}${gain}${paid}`
+          : `${who}${gain}${paid} in ${cityScopeWords(effect.scope)}`;
       if ((effect.experience ?? 0) > 0) {
         out.push({ text: `${gained} start with ${effect.experience} experience` });
       }
@@ -2322,7 +2329,14 @@ function describeEffect(
       return;
     }
     case 'upkeepRebate': {
-      const who = effect.class ? filterWords(effect.class) : 'all units';
+      // Only the pieces a levy raised, where the row says so (The General
+      // Levy, Expansionist batch E1).
+      const who =
+        effect.levied === undefined
+          ? effect.class
+            ? filterWords(effect.class)
+            : 'all units'
+          : `${effect.class ? filterWords(effect.class) : 'units'} ${leviedWords(effect.levied)}`;
       const where = WHERE_WORDS[effect.where ?? 'anywhere'];
       if (effect.free === true) {
         out.push({ text: `${who} cost no gold in maintenance${where}` });
@@ -2465,6 +2479,18 @@ function describeEffect(
 }
 
 /**
+ * "raised by a levy", "raised by a conscription levy": the words for a row
+ * narrowed to the pieces a levy raised (Expansionist batch E1). A use names its
+ * own levy; `true` is any levy.
+ */
+function leviedWords(levied: true | LevyUse): string {
+  if (levied === true) return 'raised by a levy';
+  if (levied === 'conscript') return 'raised by a conscription levy';
+  if (levied === 'muster') return 'raised by a muster levy';
+  return 'raised by a levy';
+}
+
+/**
  * A levy card's words (batch L): what a town may spend a citizen on, and what
  * a levy leaves behind. The shared waiting period is said on the use clause,
  * because it is the half of the rule a player plans around.
@@ -2492,10 +2518,39 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
   const use = effect.use;
   if (use !== undefined) {
     let what: string;
-    if (use === 'production') what = `${food}`;
-    else if (use === 'muster') what = `${melee}, which counts as trained`;
-    else if (use === 'opus') what = `${food}, paid to your other town building ${opus}`;
-    else what = `${melee}, which does not count as trained`;
+    switch (use) {
+      case 'production':
+        what = food;
+        break;
+      case 'muster':
+        what = `${melee}, which counts as trained`;
+        break;
+      case 'opus':
+        what = `${food}, paid to your other town building ${opus}`;
+        break;
+      case 'conscript':
+        what = `${melee}, which does not count as trained`;
+        break;
+      // Expansionist batch E1: the empire's own worker or settler, science, and
+      // hammers for a world wonder in another town.
+      case 'worker':
+        what = 'a worker';
+        break;
+      case 'settler':
+        what = 'a settler';
+        break;
+      case 'science':
+        what = 'science equal to the food it took to grow that citizen';
+        break;
+      case 'wonder':
+        what = `${food}, paid to your nearest other town building a world wonder`;
+        break;
+      default: {
+        const unhandled: never = use;
+        void unhandled;
+        what = '';
+      }
+    }
     const wait =
       effect.everyAtWar === undefined
         ? `once every ${levy.everyTurns} turns`
@@ -2503,6 +2558,19 @@ function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
             effect.everyAtWar === 1 ? 'turn' : `${effect.everyAtWar} turns`
           } while you are at war`;
     out.push({ text: `${town} may spend one citizen for ${what} (${wait})` });
+  }
+  // The Mit'a and The Slack Season (Expansionist batch E1).
+  if (effect.returnsAfter !== undefined) {
+    const turns = Math.max(1, Math.floor(effect.returnsAfter));
+    out.push({
+      text: `a citizen spent on a levy comes home to its town ${turns} ${turns === 1 ? 'turn' : 'turns'} later`,
+    });
+  }
+  if (effect.noWaitEvery !== undefined) {
+    const every = Math.max(1, Math.floor(effect.noWaitEvery));
+    out.push({
+      text: `every ${ordinalWords(every)} turn, your towns may levy however long ago they last did`,
+    });
   }
   const after = effect.after;
   if (after !== undefined) {
@@ -4108,9 +4176,9 @@ export function combatWhenWords(when: CombatCondition): string {
     case 'onFeature':
       return `${COMBAT_WORDS.onFeature} ${when.feature}`;
     case 'withinOfCity':
-      // Distance nought is the town's own hex, said the way `inCity` says it:
-      // "while standing in a city joined to your capital by road" (The
-      // Stationes), never "within 0 hexes of".
+      // A distance of zero is the town's own hex, so the words say it the way
+      // `inCity` does: "while standing in a city joined to your capital by
+      // road" (The Stationes), and not "within 0 hexes of".
       if (when.hexes <= 0) {
         return when.scope === undefined
           ? COMBAT_WORDS.inCity
@@ -4532,6 +4600,12 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   hexesPillaged: {
     one: 'hex you have pillaged this game',
     many: 'hexes you have pillaged this game',
+  },
+  // Expansionist batch E1, The Labour Rolls. "This game", for `ranksEarned`'
+  // reason: a citizen spent on a levy is gone from the board.
+  citizensLevied: {
+    one: 'citizen you have levied this game',
+    many: 'citizens you have levied this game',
   },
   followingCities: { one: 'city that follows you', many: 'cities that follow you' },
   followingForeign: {

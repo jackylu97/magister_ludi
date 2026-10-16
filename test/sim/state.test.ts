@@ -481,6 +481,10 @@ describe("end-of-turn pipeline", () => {
       // turn flies its new banner before `collectYields` pays anybody for it.
       // See `spreadReligion` (`docs/religion-v2.md`).
       "spreadReligion",
+      // Citizens a levy took come home when their turn comes (The Mit'a,
+      // Expansionist batch E1), before `collectYields`, so a returned citizen
+      // works this turn's yields. See `returnLeviedCitizens`.
+      "levyReturns",
       "collectYields",
       "growCities",
       // A town's own renown quietly takes a citizen out of the fields and puts
@@ -894,7 +898,10 @@ describe("the research queue field", () => {
     // 134 since E0: the Expansionist deck is typed and its cards that need
     // no new shape are built, so a v133 log's picks and seatings name cards
     // and chairs this build deals and fits differently.
-    expect(SCHEMA_VERSION).toBe(134);
+    // 135 since E1: the Expansionist levy cards, three new fields and a new
+    // end-of-turn phase, so a v134 log's picks name cards this build deals
+    // differently and its resolutions run one phase fewer.
+    expect(SCHEMA_VERSION).toBe(135);
   });
 });
 
