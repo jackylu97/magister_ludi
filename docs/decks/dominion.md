@@ -15,24 +15,24 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 18 | 1 | 7 | 26 | none |
-| Tier I | 17 | 0 | 6 | 23 | 5 |
+| Tier I | 17 | 0 | 5 | 22 | 5 |
 | Tier II | 18 | 4 | 9 | 31 | 5 |
 | Tier III | 17 | 1 | 6 | 24 | 3 |
 | Tier IV | 12 | 7 | 2 | 21 | 3 |
-| **All** | **82** | **13** | **30** | **125** | **16** |
-| Shared | 20 | 1 | 4 | 25 |  |
+| **All** | **82** | **13** | **29** | **124** | **16** |
+| Shared | 20 | 1 | 6 | 27 |  |
 
 **By type** (the chair a card fits):
 
 | Tier | Military | Economic | Civic | Wildcard |
 |---|---|---|---|---|
 | Tier 0 | 10 | 6 | 8 | 2 |
-| Tier I | 7 | 8 | 8 | 0 |
+| Tier I | 7 | 7 | 8 | 0 |
 | Tier II | 12 | 7 | 10 | 2 |
 | Tier III | 11 | 3 | 9 | 1 |
 | Tier IV | 9 | 3 | 5 | 4 |
-| **All** | **49** | **27** | **40** | **9** |
-| Shared | 10 | 7 | 7 | 1 |
+| **All** | **49** | **26** | **40** | **9** |
+| Shared | 11 | 8 | 7 | 1 |
 
 ## Tier 0
 
@@ -96,7 +96,6 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Art of War** | uncommon | implemented | Gaining a unit grants science equal to three quarters of its strength. | Civic |
 | **Songs of the Fallen** | rare | implemented | Killing or losing a unit grants science and culture equal to twice its strength. | Civic |
 | **Walled Towns** | common | implemented | Towns with a defensive building, such as a Palisade or walls, gain +15% food. | Economic |
-| **The Farming Garrisons** | common | add | Hexes with a fortified military unit gain +1 food and +1 production. | Economic |
 | **The Swift Riders** | uncommon | implemented | Mounted units may move after attacking. | Military |
 | **The Open Muster** | uncommon | add | Passing a draft hand grants the best melee unit you can build in your capital. | Military |
 | **The Captive Craftsmen** | uncommon | implemented | Gains +1 science and +1 production each time you pillage a hex. | Civic |
@@ -248,6 +247,8 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **The Sword of State** | common | Magisterial | I | add | On draft: the best melee unit you can build is trained in your capital. Seated, this card does nothing. | Military |
 | **Copying the Enemy** | uncommon | Scientific | I | add | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. | Civic |
 | **The Muster of the Fields** | uncommon | Expansionist | I | implemented | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. | Military |
+| **The Frontier Militia** | common | Expansionist | 0 | add | Each town you found starts with the best melee unit you can build standing in it. | Military |
+| **The Farming Garrisons** | common | Expansionist | I | add | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. | Economic |
 | **The Road Garrisons** | uncommon | Expansionist | II | implemented | Garrisoned cities with a road to your capital gain +5 food and +5 defence. | Economic |
 | **Marcher Lords** | uncommon | Expansionist | II | implemented | Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one. | Economic |
 | **Convert It or Tax It** | uncommon | Devotion | II | implemented | Captured cities that do not follow your religion gain +5 gold and +3 faith. Captured cities that follow it cost one less authority, minimum one. | Economic |
@@ -307,3 +308,4 @@ New names are placeholders; rename freely.
   - A unit raised by The General Levy counts as gained (*"conscripts should pay cards that pay 'gaining a unit'"*), so Muster Rites, The Art of War and Rites of Passage pay for it. It still does not count as trained.
   - A second declaration of war restarts The Arrière-ban's ten turns instead of stacking (*"just have arriere-ban refresh after declaring war twice instead of stacking"*).
   - Walled Towns counts any defensive building, the Palisade included (*"have it read defensive buildings (to include palisades and other defensive structures)"*).
+  - The Farming Garrisons also gives fortified units +2 strength, and becomes a card shared by Dominion and Expansionist, with The Frontier Militia (your notes on both sheets). Both are now in the shared table.
