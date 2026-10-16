@@ -369,3 +369,48 @@ Much of this is the intrinsic load of a 4X and a deckbuilder. The extraneous par
 **Where B adds to A:** the reduced-motion gap on two sheets, and the prose em-dashes, which the house Writing rules also discourage.
 
 **Still unconfirmed by a rendered look:** emoji colour on Windows, the top bar at 1024px, the small caps, and whether the draft offer shows chair fit. C2b has since added the chair fit to the hand line.
+
+---
+
+## The user's review of the Scholar's Study, iteration 1 (2026-10-16)
+
+The user left 42 comments on the canvas (https://claude.ai/artifact/48NaMcoLoubABSoqcVPkgw). These are the decisions, board by board. Iteration 2 applies them.
+
+**The direction (Main):**
+- Approved: the top bar and its colours; the news toasts; flat panels, with the hard shadow only on played things.
+- Approved: the new layout of the corner panel (the leader, the research and the next draft). Change: on hover, show all the menus (faith, leader, supply) at once. Do not require a click for each one.
+- Change: the seal under a seated card shows only the turn number. Remove the words "sealed to turn".
+- Approved: no eyebrow. Not decided: the fonts (see Type).
+
+**Icons and glyphs (Marks):**
+- Keep the old yield icons, with two exceptions. The new colours are approved.
+  - Gold: use a coin, not the bag. Make the coin simpler.
+  - Faith: use a candle, but make it simpler and give it a different flame.
+- The bead (plain glass, on its wire) is approved. It replaces `◉`.
+- The four cuts for the bead families are cancelled. Keep the current family marks.
+- Keep the old icons for the two meters, for the draft's two answers (ask again and pass), and for the manicule.
+- The news toast marks are approved.
+- The tech marks are deferred. The emoji stay for now. A later pass will use real art, not icons.
+
+**Type and labels (Type):**
+- Approved: no eyebrows; the board's structure.
+- The fonts are not approved. The user prefers the playful italic of the current display face (Instrument Serif). Make five font treatments to choose from, in a range from occult and serious to playful and silly.
+
+**Contrast and colour roles (Ink):**
+- Approved: the palette, the yield inks, the contrast values and the faint hint text.
+- End Turn: keep the old, wider button shape, with the new cinnabar colour.
+
+**The big moments (Moments):**
+- Approved: the age plate.
+- The Magnum Opus close:
+  - Approved: beat 1 (black ink, the city) and beat 2 (parchment, the builder).
+  - Remove beat 3 (gilt).
+  - Replace beat 4 with a full-screen page that animates the existing 3D Abacus.
+- Approved: the standings page.
+
+**Fewer ornaments (Ornament):**
+- Approved: the board as a whole, the commission chip's tab, and the war seal on a seat.
+- Keep the current look of Statecraft and of the Census.
+- The Ledger as an account book is approved. Make a full-page render, so the user can comment on details.
+- The Reliquary must change. It must feel like a deck of cards that you flip through.
+- The bead card: keep the change, but use the star mark for now.
