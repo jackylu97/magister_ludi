@@ -227,11 +227,14 @@ Reference: **`docs/units.md`** (the roster; generated) and
   lives through one earns `survive` (1), or `kill` (2) in its place for
   destroying the unit it fought, attacking or defending, and a ranged attacker
   with no counter-blow still survived. `Unit.experience` (presence is the
-  state) has one writer, `awardExperience`, paid only at the end of
-  `applyCombat`. The rank is derived (`rankOf`), never stored: Veteran from 4,
+  state) has one writer, `writeExperience` (`ranks.ts`), behind three callers:
+  `awardExperience` at the end of `applyCombat`, `grantExperience` for cards
+  (the drill phase, for example) and `raiseToRank` for a starting rank. Each
+  returns the ranks reached, and `settleRanksEarned` (`cities.ts`) pays the
+  "rank earned" moment and counts `Player.ranksEarned` (batch D1, 2026-10-16). The rank is derived (`rankOf`), never stored: Veteran from 4,
   Elite from 10, each **one flat strength line** on the ledger on both sides
   ("Veteran +3", "Elite +6", the Elite figure a total) and nothing else.
-  Barbarian fights raise experience up to Veteran and no further, barbarian
+  Barbarian fights raise experience up to Veteran and no further (a card's grant ignores that cap), barbarian
   units earn none, and a town earns none. Experience stays through an automatic
   upgrade and a change of owner. A card's birth stamp of strength now prints as
   "Training", so "Veteran" means only the rank. Every figure is
