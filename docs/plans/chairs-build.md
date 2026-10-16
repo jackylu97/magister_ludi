@@ -37,6 +37,19 @@ Each batch is one Opus agent, then the orchestrator's batch gate (typecheck, cor
 
 ### C2: typed chairs
 
+**C2a built, 2026-10-16** (`c4590a5c`, schema 129). The functions are `orderFitsSlot(order, chair)`, `reseatOrders` and `reseatCouncil` (keep-first, then the four passes), and `countedTypeOf(order, chair)`. Adoption returns `reseated` and `returned`, which `CommandResult` does not carry.
+
+**C2b, the screens** (the C2 bullets on the council and the Compendium, in detail):
+- **The council** (`src/ui/statecraftScreen.ts`): each chair shows its type, as on the A3 board's council. An empty chair keeps its ink, and the Wildcard chair is purple. The comments that say chairs are universal go, and `sc-slot-civic` gets its CSS.
+- **Seating:** while a card is being placed, only the chairs it fits accept it, and a chair that refuses says why, using the reducer's own sentence.
+- **The council's length:** at the board's seated size, eleven chairs run to about 1,300px. Choose a compact seated card or a council strip, and say which.
+- **Staging** (`statecraftStaging.ts`): a staged arrangement is re-taken whenever the chair layout changes, not only its count.
+- **Adoption:** the adoption sheet says that cards keep their chairs where they can. After an adoption, say what moved and what went back to the collection. Compute it on the screen from the council before and after; the batch does not change `CommandResult`.
+- **The government card** shows its chair mix (for example "2 Military · 1 Economic · 1 Civic · 1 Wildcard") in place of the one Wildcard emblem every government wears now.
+- **Marks:** a Civic chair mark joins `SLOT_MARKS`, and the flair gallery shows it.
+- **The Compendium:** "Any Order fits any chair" (`compendiumShelves.ts`, `compendiumText.ts`) becomes the typed rule, and `compendiumDecks.test`'s ban on the word "wildcard" there changes to match.
+- **Not in C2b:** no simulation file. The bots' seating of unsorted cards in chairs that count for a tier-18 government is a later bot follow-up.
+
 - Governments' mixes as above, replacing the all-Wildcard layout (`slotLayout`, `slotSpread`) and the old `slots` field. The chair counts still match the ladder: 3, 5, 5, 8 and 11 at tiers 0, 4, 10, 18 and 29.
 - The fit rule above, wherever a card is seated: the reducer's validation, the council screen, adoption's re-seating and the bots.
 - The council shows each chair's type, as on the A3 board's council: an empty chair keeps its ink, and the Wildcard chair is purple.
