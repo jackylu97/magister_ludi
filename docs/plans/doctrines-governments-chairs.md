@@ -2,6 +2,22 @@
 
 **Status:** ruled on 2026-10-15 and 2026-10-16, apart from the open points below. Nothing here is built.
 
+**Ruled, 2026-10-16: the user's third pass,** verbatim: *"lets revert chiefdom yeah. question answers: #1 the smaller reading, it should only affect orders. #2 yes #3 i remember now, tier 5 was meant for an age 5 that hasn't been implemented, just leave the last tier as unimplemented #4 lets have it count civic orders. Interior lines can be the same buff as the tech tree buff (50%) and keep the five citizen minimum town size."* The numbers answer the four questions in the reply before it: Double Time's yields, Wildcard cards, tier 10's Doctrines and Divine Mandate's count. So:
+- **The Chiefdom** goes back to its old mix: one Military, one Economic and one Wildcard chair (section 4).
+- **Double Time** repeats only what Orders do. An Order's effects that happen at the end of a turn or every few turns trigger twice, with any yields those effects pay. The empire's yields, and the yield lines cards add to towns every turn, are not doubled.
+- **A Wildcard card fits only a Wildcard chair,** as the sort on the sheet assumed.
+- **The fifth government tier was meant for a fifth age,** which the game does not have, and is left unimplemented. The tier-38 governments (The Empire, The Commonwealth and The Magisterium) get no chair mix. They are live today, offered from draft 38 with their old chairs and signatures, so the build that brings typed chairs retires them: their rows stay for saves, and nobody is offered them. The Commonwealth's great people bought with gold goes with it. Card Tier IV stays where it is: it opens at draft 38 (`docs/flags.md` (uuuuuu)), and its band already asks for the fourth age, "since there is no fifth age" (`docs/orders-and-doctrines.md`).
+- **Doctrine tiers pair one to one with the four government tiers left** (read from #3, to confirm): tier 4 offers the Tier I Doctrines, tier 10 Tier II, tier 18 Tier III and tier 29 Tier IV. That is how they were paired before the decks rework, when each government tier had its own Doctrine pool (tiers 4, 10, 18, 29 and 45, commit `3ed74e82`), which is what "as before" in the ruling of 2026-10-15 asked for. It answers tier 10, and no Doctrine waits for a fifth age. Each Doctrine now arrives one card tier earlier than the sheet table it sits in: Tier II's at draft 10, while Tier I cards are still dealt. The other reading pairs by draft count, as the sheets did until now: tiers 4 and 10 both offer Tier I, and Tier IV's Doctrines wait for a fifth age with their governments.
+- **Divine Mandate counts Civic Orders:** "+1 faith and +1 culture in your capital for each Civic Order you have in a slot". Its three Civic chairs and two Wildcard chairs hold at most five, the same cap as Imperium's and the Merchant League's counts.
+- **Interior Lines** takes Machinery's road rule at Machinery's size: a step along a road costs 40% less movement. The user wrote 50%, but Machinery's discount is 40% (`data/techs.json`). Road discounts add up before the price is taken (`pathfind.ts`, where the move profile's road step is set), so with both a road step costs a fifteenth of a move instead of a fifth, and a unit covers three times the road it does under Machinery alone.
+- **The merged levy keeps The Call to the Spear's floor:** only towns of at least five citizens may muster. The built The Muster of the Fields has no floor, so the shared card changes a built card.
+- **Still open:**
+  - The Doctrine pairing above.
+  - How the Doctrine offer mixes the two decks. The reward hands dealt one card from each deck and a third from both, and the same rule would suit the offer.
+  - The other five decks' Doctrines and card types.
+  - Combined Arms' new clause and the three endless host Doctrines (section 2), proposed and not yet ruled on.
+  - The other questions on the Dominion sheet.
+
 **Ruled, 2026-10-16: the user's second pass,** verbatim: *"wait why are there 5 tiers, was that changed recently? what is the serried ranks, we can make it a rare. Lets change the second clause of combined arms. #3 is intentional. marian reforms should reflect your description, towns build military units at half speed. could you add a few endless host doctrines? lets have double time be offered in both tier 2 and tier 3 as a rare, is that possible? new governments should stop giving rare reward hands, just the doctrine selection. Please go ahead and assign chair mixes for all governments, and please sort the dominion deck into military,economic,civic and wildcard"*. The answers the user wrote on the Dominion sheet the same day are listed there, under "Open for your pass". So:
 - **No reward hands.** A new government brings only its Doctrine offer. The reward hands were banked at the ladder's rungs (drafts 4, 18, 29 and 38), the same draft counts at which new governments come on offer, so this removes them: `REWARD_DRAFTS`, `PlayerStatecraft.rewardHands`, `openRewardHandAt`, the reward commands and `src/ui/rewardSheet.ts` go. That is a save-format change.
 - **Drawbacks that a pair of Doctrines cancels are intended** (*"#3 is intentional"*): The Marian Reforms makes Centurions' extra upkeep free, and The Soldiers' Share makes The Universal Monarchy's founding cost moot. That is the reward for committing to a build.
@@ -10,7 +26,7 @@
 - **The Serried Ranks** is rare. **Combined Arms** gets a new second clause, proposed on the sheet.
 - **The endless host** gets three Doctrines, in section 2.
 - **Chair mixes and card types** are assigned in section 4, and every Dominion card is sorted on its sheet.
-- **Still open:**
+- **Still open** after this pass: answered or carried forward in the third pass above. The list as it stood:
   - **Tier 10.** There have been five government tiers since 2026-08-28 (commit `3ed74e82`, from the user's master list, which put governments IV and V at 29 and 45; the last rung moved to 38 on 2026-10-15). The card tiers came later, with the decks rework, and open at four of those five rungs. Tier 10 is the only government rung with no card tier, and its governments have the same five chairs as tier 4. Options: deal the Tier I Doctrines again (recommended: Dominion has five there, so a second pick has room), give tier 10 its own set, offer none at tier 10, or drop the rung.
   - **Wildcard cards fit only Wildcard chairs.** This is the reading the sort uses, as in Civilization VI, where purple cards fit only purple slots. To confirm.
   - **Divine Mandate** pays for each seated "wildcard Order". The count reads the card's own type (`slottedOrdersOfSlot`), and before the rework the untyped cards were the science, culture and faith ones, which are Civic now. Recommended: count Civic Orders, or the ability pays only for the few Wildcard cards.
@@ -22,7 +38,7 @@
 - **When Doctrines are offered:** on adopting a government, as before the decks rework. The offer holds Doctrines of the government's tier, drawn from both of the seat's decks. Before the rework this was `drawDoctrineOffer` (`src/sim/statecraft/draft.ts`): a Doctrine already held is not offered again, and the offer's size is `offerSize`'s. The reward hands are not replaced and stay as they are.
 - **Which Doctrines:** Dominion's are the thirteen on its sheet, `docs/decks/dominion.md`, which replaces the fifteen candidates in section 2. The user kept and rewrote eight (The Marian Reforms, The Soldiers' Share, Centurions, The Plunder Economy, The Universal Monarchy, now at Tier III, Total Mobilisation, The Fortress Empire and The Scourge of God), dropped seven (all three at Tier 0, Conscription, The Tribute of Nations, Terror and Clementia), and added five (The Steppe Confederacy, The Consular Roads, The Strategoi, Combined Arms and The Landsturm). There are no Tier 0 Doctrines.
 - **Governments:** as before, with Civic added as a chair type. Each government has its own mix of Military, Economic, Civic and Wildcard chairs, as it had of Military, Economic and Wildcard before the rework, and keeps its signature ability. Section 3's option of replacing the abilities with council rules is not taken.
-- **Still open:** see the list under 2026-10-16 above. The reward hands named here were removed that day.
+- **Still open:** see the third pass of 2026-10-16 above. The reward hands named here were removed that day.
 
 **Ruled, 2026-10-15: typed chairs are option B** (section 4). The user: *"I think B makes sense."* Every card is Military, Economic or Civic, and every government has a mix of the three plus Open chairs. The user then asked how a card should show all three things it now carries, before ruling on the other questions: *"How should we display the cards? Right now they're colored based on deck type, ideally we have some design that incorporates the deck affinity, chair type, and rarity. Please do a couple design proposals (remembering, we're going for an occult, tarot inspired card design). I'll take a look at your proposals and respond to your ruling questions after"*. The three proposals are on the canvas at https://claude.ai/artifact/B6Nyi6ZKCjHtXcSZTNrDoB (private to the user), with their source in `docs/plans/mockups/card-faces/`: A · Suits (`Main.dc.html`), B · The Great Work (`Alchemy.dc.html`) and C · Niches (`Niches.dc.html`).
 
@@ -79,7 +95,7 @@ The endless host had no Doctrine before Tier III, and the user asked for more (*
 
 - **Sizes:**
   - The Servian Reforms' 25% off is worth about +33% production toward every unit, in every town, and the same off every purchase. War Foundries gives +38%, but only in towns with a Barracks.
-  - Weight of Numbers' fifth attack on one target hits at +12, against Total War's +8 on every attack at Tier III.
+  - Weight of Numbers' fifth attack on one target hits at +12, against Total War's +5 on every attack at Tier III (the user's revision of 2026-10-16).
   - The Laws of Lord Shang adds a town's food surplus, often 5 to 10 at Tier II, to the unit it is training.
 - **Shapes:**
   - The Servian Reforms: a cost line on a unit class, and the experience multiplier of the ranks family set to zero.
@@ -151,7 +167,7 @@ The other five decks would need their own fifteen once Dominion's direction is s
 
 ### What they do today
 
-- Sixteen governments: the Chiefdom, then three at each of tiers 4, 10, 18, 29 and 38. Each tier has a martial, a civic and a sacred one (for example War Chief, Council of Elders and Priest-King).
+- Sixteen governments: the Chiefdom, then three at each of tiers 4, 10, 18, 29 and 38 (the three at 38 are left for a fifth age, ruled 2026-10-16). Each tier has a martial, a civic and a sacred one (for example War Chief, Council of Elders and Priest-King).
 - Since the decks rework every government at a tier has the same number of chairs, so the only difference between the three is the signature ability. Most of these are small flat yields (+3 happiness, +2 faith in every city, +4 strength).
 - **The tier-18 three are broken by the wildcard chairs.** No card carries a chair type any more, so:
   - Merchant League's "+2 gold for each economic Order" pays nothing;
@@ -208,9 +224,9 @@ The old dynamic: Orders were military, economic or neither, and each government 
 
 ### Assigned, 2026-10-16: the four card types, and every government's chairs
 
-The user asked for both (*"Please go ahead and assign chair mixes for all governments, and please sort the dominion deck into military,economic,civic and wildcard"*). Both are proposals for the user's review.
+The user asked for both (*"Please go ahead and assign chair mixes for all governments, and please sort the dominion deck into military,economic,civic and wildcard"*). Both are proposals for the user's review. The Chiefdom's mix, the Wildcard rule, Divine Mandate's count and the tier-38 governments were ruled on 2026-10-16 (the third pass, at the top of this file).
 
-**Card types.** Every card is Military, Economic, Civic or Wildcard. A card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair. The rules used to sort Dominion, which the other five decks can follow:
+**Card types.** Every card is Military, Economic, Civic or Wildcard. A card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair (confirmed by the user, 2026-10-16). The rules used to sort Dominion, which the other five decks can follow:
 - A card is typed by what it pays or does, not by what it reads. Songs of the Fallen reads kills but pays science and culture, so it is Civic. Sword and Plough reads garrisons but pays mostly production, so it is Economic.
 - **Military:** combat strength, movement and unit rules; ranks and experience; units gained (levies, free units, and production toward units, as Civilization VI's Agoge is a military policy); unit upkeep.
 - **Economic:** food, production, gold, land and growth.
@@ -219,13 +235,13 @@ The user asked for both (*"Please go ahead and assign chair mixes for all govern
 - **A mixed card** takes the type of the half that pays more. When the halves are even and one is Civic, the card is Civic: those are the cards a civic government is for, and they are a military deck's road to science and culture.
 - A card that is never seated (a charter, an on-draft grant) still has a type, for its face. A shared card has the same type on both sheets.
 
-**Dominion, sorted** (`docs/decks/dominion.md`): 59 Military, 26 Economic, 36 Civic and 9 Wildcard, and 10, 7, 7 and 1 of the 25 shared cards. Tier I is even (7, 8 and 8). Tier III is not: 21 of its 29 cards are Military and 2 are Economic, so a Dominion seat under an economic government at tier 29 leans on its partner deck there.
+**Dominion, sorted** (`docs/decks/dominion.md`): 50 Military, 26 Economic, 41 Civic and 9 Wildcard, and 10, 7, 7 and 1 of the 25 shared cards. Tier I is even (7, 8 and 8). Tier III had 21 Military cards of 29 and 2 Economic; after the user's pass of 2026-10-16 it has 12 Military, 2 Economic and 10 Civic of 25, so a Dominion seat under an economic government still leans on its partner deck for Economic cards there.
 
 **The chairs:**
 
 | Tier | Government | Leads | Military | Economic | Civic | Wildcard | Chairs |
 |---|---|---|---|---|---|---|---|
-| 0 | Chiefdom | — | 0 | 0 | 0 | 3 | 3 |
+| 0 | Chiefdom | — | 1 | 1 | 0 | 1 | 3 |
 | 4 | War Chief | Military | 2 | 1 | 1 | 1 | 5 |
 | 4 | Council of Elders | Economic | 1 | 2 | 1 | 1 | 5 |
 | 4 | Priest-King | Civic | 1 | 1 | 2 | 1 | 5 |
@@ -238,15 +254,14 @@ The user asked for both (*"Please go ahead and assign chair mixes for all govern
 | 29 | The Sultanate | Military | 4 | 2 | 2 | 3 | 11 |
 | 29 | The Estates | Economic | 2 | 4 | 2 | 3 | 11 |
 | 29 | The Curia | Civic | 2 | 2 | 4 | 3 | 11 |
-| 38 | The Empire | Military | 5 | 3 | 1 | 2 | 11 |
-| 38 | The Commonwealth | Economic | 1 | 5 | 3 | 2 | 11 |
-| 38 | The Magisterium | Civic | 1 | 3 | 5 | 2 | 11 |
+
+The tier-38 governments are left for a fifth age (ruled 2026-10-16) and get no mix.
 
 How it was set:
-- **One government per type at every tier.** The martial governments lead Military, as before. The Council of Elders, the Republic, the Estates and the Commonwealth keep the economic lead of their old mixes. The sacred and learned governments (Priest-King, Theocracy, Divine Mandate, the Curia, the Magisterium) lead Civic, the new home of the faith, science and culture cards that used to fill their Wildcard chairs.
-- **A rung that adds chairs gives a broad council, and a rung that adds none gives a specialist one.** Tiers 4, 18 and 29 add chairs, and every type has a chair there. Tiers 10 and 38 add none (5 and 11, as at the rung before), so their governments lean harder: one more chair of their lead type, and one type thin or missing. A seat that has committed has a reason to move up, and a seat that has not can stay.
-- **Every government has a Wildcard chair,** so no card is ever left without a seat. The Chiefdom's three chairs are all Wildcard, so the first four drafts are unconstrained and typed chairs arrive with the first real government. The old Chiefdom had one Military, one Economic and one Wildcard chair, which can come back if the user prefers.
-- **The tier-18 abilities count seated Orders by type again:** Imperium's Military Orders and the Merchant League's Economic Orders, up to five each with their Wildcard chairs. Divine Mandate's count is an open question (see the top of this file).
+- **One government per type at every tier.** The martial governments lead Military, as before. The Council of Elders, the Republic and the Estates keep the economic lead of their old mixes. The sacred and learned governments (Priest-King, Theocracy, Divine Mandate and the Curia) lead Civic, the new home of the faith, science and culture cards that used to fill their Wildcard chairs.
+- **A rung that adds chairs gives a broad council, and a rung that adds none gives a specialist one.** Tiers 4, 18 and 29 add chairs, and every type has a chair there. Tier 10 adds none (5, as at tier 4), so its governments lean harder: one more chair of their lead type, and one type thin or missing. A seat that has committed has a reason to move up, and a seat that has not can stay.
+- **Every government has a Wildcard chair,** so no card is ever left without a seat. The Chiefdom keeps its old mix of one Military, one Economic and one Wildcard chair (the user, 2026-10-16: *"lets revert chiefdom yeah"*), so in the first four drafts a Civic card needs the Wildcard chair.
+- **The tier-18 abilities count seated Orders by type again:** Imperium's Military Orders and the Merchant League's Economic Orders, up to five each with their Wildcard chairs. Divine Mandate counts Civic Orders (ruled 2026-10-16), also up to five.
 - The old mixes are still on every government row as `slots` (military, economic and wildcard). Building this replaces them with the four-type mix and a save-format change.
 
 ## 5. Questions for the user

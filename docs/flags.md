@@ -53,11 +53,26 @@ the rulings in full. In short:
     the Fields become one card shared with Expansionist; a unit that starts as
     a Veteran counts as earning a rank; The Steppe Confederacy lifts the border
     freeze; The Strategoi doubles only the generals' strength aura.
-- Still open: the tier-10 governments' Doctrines; whether a Wildcard card fits
-  only a Wildcard chair (the reading the sort uses); what Divine Mandate
-  counts; Double Time's yields; the new Combined Arms clause and endless host
-  Doctrines; and the other five decks' Doctrines and types. Card faces: the
-  user chose A2 and asked for changes, now on the canvas as A3
+- **2026-10-16, the user's third pass** (quoted in full in the plan doc):
+  - the Chiefdom keeps its old mix of one Military, one Economic and one
+    Wildcard chair (*"lets revert chiefdom yeah"*);
+  - Double Time doubles only what Orders do at the end of a turn or every few
+    turns (*"the smaller reading, it should only affect orders"*);
+  - a Wildcard card fits only a Wildcard chair (*"#2 yes"*);
+  - the fifth government tier was meant for a fifth age and is left
+    unimplemented (*"tier 5 was meant for an age 5 that hasn't been
+    implemented, just leave the last tier as unimplemented"*): the tier-38
+    governments get no chair mix, and the build retires them. Card Tier IV
+    still opens at draft 38. Read from the same answer, to confirm: Doctrine
+    tiers I to IV come with the governments of tiers 4, 10, 18 and 29, one
+    each, as Doctrine pools did before the decks rework;
+  - Divine Mandate counts Civic Orders (*"lets have it count civic orders"*);
+  - Interior Lines' roads take Machinery's rule at Machinery's size (40%), and
+    the merged levy keeps the five-citizen floor.
+- Still open: the Doctrine pairing above; the new Combined Arms clause and
+  endless host Doctrines; how the Doctrine offer mixes the two decks; and the
+  other five decks' Doctrines and types. Card faces: the user chose A2 and
+  asked for changes, now on the canvas as A3
   (https://claude.ai/artifact/B6Nyi6ZKCjHtXcSZTNrDoB; source in
   `docs/plans/mockups/card-faces/`).
 

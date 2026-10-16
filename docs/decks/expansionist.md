@@ -157,7 +157,7 @@ The shelf is deep enough for eleven chairs (63 exclusive cards, 13 shared), and 
 
 An Expansionist seat may draw every one of these, and so may a seat holding the deck named beside it. A shared card is spent out of two shelves, so a change here is felt in two decks. Listed in tier order.
 
-**Ruled 2026-10-16: The Muster of the Fields becomes a card shared with Dominion.** Dominion's The Call to the Spear did the same job, and the user ruled on the Dominion sheet: *"Have these two be a single card that's shared between the two decks."* The built card is kept as it is, and The Call to the Spear leaves the Dominion sheet. Its row stays in Tier I above until it moves to `data/decks/common.json`, because the sync test reads it there.
+**Ruled 2026-10-16: The Muster of the Fields becomes a card shared with Dominion.** Dominion's The Call to the Spear did the same job, and the user ruled on the Dominion sheet: *"Have these two be a single card that's shared between the two decks."* The built card is kept, and The Call to the Spear leaves the Dominion sheet. The shared card keeps The Call to the Spear's floor: only towns of at least five citizens may muster (the user, 2026-10-16: *"keep the five citizen minimum town size"*). Its row stays in Tier I above, with the built text, until the change is built and the row moves to `data/decks/common.json`, because the sync test reads it there.
 
 | Card | Rarity | Also in | Status | The card | What the game does, or why not | Tier |
 |---|---|---|---|---|---|---|
