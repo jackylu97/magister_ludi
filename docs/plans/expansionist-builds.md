@@ -235,7 +235,7 @@ Tended land is no longer a build (ruled 2026-10-16). It is a splash any seat can
 | Card | Tier | Rarity | Text | Role | Raises / reads | Pays | Type | Status, shape |
 |---|---|---|---|---|---|---|---|---|
 | The Great Households | II | uncommon | (above) | carried scaler | reads citizens | production | Economic | proposed |
-| The Megalopolis | III | rare | Citizens beyond the twelfth in any of your towns ask no happiness. | the core's rule-breaker | reads citizens | happiness | Civic | **new**; new shape (a cap on a town's demand, beside `freeCitizens`) |
+| The Megalopolis | III | rare | Citizens beyond the twelfth in any of your towns ask no happiness. | the core's rule-breaker | reads citizens | happiness | Civic | **new**; new shape (a cap on a town's demand, beside `freeCitizens`) | [too strong, revise: cities with 10+ population gain +1 science and +1 production for each population]
 | The Freedom of the City | III | uncommon | The first time each of your towns reaches fifteen citizens, and again at twenty, it gains production equal to forty times its population. | the core's moment | reads growth | production | Economic | **new**; existing rider (`growth` with `atPopulation`) plus the largest-size mark, so a levy and a regrowth cannot pay twice |
 | The Mountain Schools | III | uncommon | Towns beside a mountain gain +15% science. | percentage on the flats | reads mountain towns | science | Civic | live (proposed trim) |
 | The Mother City | IV | rare | Your capital gains +1 production for every citizen it has. | finisher | reads the capital's citizens | production | Economic | live |
@@ -742,15 +742,25 @@ Every card on the sheet: the 62 Expansionist cards and the 14 in its shared tabl
 Each starts with the recommendation. Questions 1 to 7 carry over from the first draft; 8 to 10 are new.
 
 1. **The gap rule.** *Recommended: keep it strict.* Every build takes science and culture from terrain or from the happiness tier, never straight from a citizen, a levy or a founding. The breadbasket and the road network are the thinnest at both; terrain-gated cards (The Terraces of Moray, The Labour Feasts) and the shared Garden Provinces cover them.
+TBD, will review myself later.
 2. **The Economic lean under typed chairs.** *Recommended: accept it as the deck's steer toward the economic governments, and adopt the four Military cards (The Frontier Militia, The Trained Bands, The Road Patrols, The Theodosian Walls), so the Chiefdom's Military chair is never forced empty.* Today 42 of 62 cards are Economic and one is Military.
+defer
 3. **Shared types bind four unsorted decks.** *Recommended: confirm them now, so those decks' passes start from them.* This sort types nine cards that Commerce, Devotion, Scientific and Magisterial share and have not sorted: six Civic (Sacred Groves, The Flood Festival, Hydraulic Schools, Garden Cities, Garden Provinces, The Sculpted Landscape) and three Economic (Market Gardens, The Grain Exchange, The Provincial Fair).
+what does this mean, we can confirm any shared cards now yes.
 4. **The Burning Season as you designed it.** *Recommended: keep the per-tile charter at Tier I and build the town's burning as The Fire Mosaic, the splash's Tier III card.* You ruled that towns decide when to burn, on a cycle; D3 built burned country one tile at a time.
+remove burning, feels difficult to implement, maybe implement later
 5. **A "Needs a levy" deal gate.** *Recommended: yes,* for the cards that read levies (The Labour Feasts, Seasonal Levies, The Gleaners, The Labour Rolls), as "Needs tended land" gates the tended cards. Today two cards grant a levy by Tier I, three with The Work Gangs or The Builders' Levy.
+yes
 6. **A town's largest size.** *Recommended: add it.* The Grain Census and The Freedom of the City need the high-water mark the game deliberately lacks; without it a levy and a regrowth pay twice.
+yes
 7. **The Raising of the Land to Tier III,** as the great works' capstone, triggered by the engineer's existing Rush the Works. *Recommended: yes;* it needs no new act or button.
+sure
 8. **Tiles raised by workers.** *Recommended: yes.* The Marl Pits and The Deep Workings let a worker raise a farm or a mine for good, which is the improvement build's iterative verb. It is a new mechanic (a lasting mark on tiles) offered through the worker's existing build menu, and The Coming of the Water and The Raising of the Land share the mark.
+yes, i like it
 9. **Workable mountains.** *Recommended: yes, as the highlands' capstone (The Mountain Terraces).* The review cut The High Pastures because no other card used the rule; now it is the deck's science line at full size.
+yes, thats a cool mechanic
 10. **Who lays roads.** *Recommended: keep roads to caravans and foundings, and open the road network with The Road Home;* let workers build roads only if a playtest shows too few. Today `layRoad` has two callers, and neither is a worker.
+agree, maybe in the future a military unit can build it, but caravans only for now.
 
 After these, the deck pass goes on to putting the cards on the sheet, then Expansionist's Doctrines: one direction per flavour, so each of the seven has a Doctrine at most tiers.
 
@@ -773,3 +783,19 @@ So the deck is designed around three builds:
 - **The tall build** (the great city, with the people's levy folded in): core cards every tall empire wants, and three flavours, each with its own cards: **the waterworks** (rivers, irrigation, aqueducts, canals), **the great works** (engineers, wonders, manufactories) and **the breadbasket** (food stored and spent).
 - **The wide build** (the open frontier): core cards every wide empire wants, and three flavours, each with its own cards: **the highlands** (settling and working the hard country, the deck's science line), **the well-ordered realm** (authority, censuses, provinces) and **the road network** (roads and connected towns).
 - Adept players flex between wide and tall, so bridge cards reward a switch.
+
+## Rulings, 2026-10-16: the user's third pass, the open questions
+
+The user answered each open question in place (their words sit under each question above) and revised one card: *"these look good! i made one change and responded to the questions. Lets put these in the doc so i can review them in the aggregate, the builds look fun and engaging."* So:
+- **The Megalopolis** is revised (*"too strong, revise: cities with 10+ population gain +1 science and +1 production for each population"*): towns of ten or more citizens gain +1 science and +1 production for each citizen. It no longer lifts the happiness demand.
+- **1, the gap rule:** to be decided; the user will review it.
+- **2, the Economic lean and the four Military cards:** deferred.
+- **3, the shared types:** confirmed (*"we can confirm any shared cards now yes"*). Confirming means the types this sort gives the nine cards Expansionist shares with the four unsorted decks are final, so those decks' passes start from them instead of sorting them again.
+- **4, burning:** removed for now (*"remove burning, feels difficult to implement, maybe implement later"*). The Fire Mosaic, the town-wide burn, comes out of the builds. The built per-tile charter is unchanged.
+- **5, a "Needs a levy" deal gate:** yes.
+- **6, a town's largest size:** yes.
+- **7, The Raising of the Land at Tier III,** triggered by the engineer's existing act: yes.
+- **8, tiles raised by workers** (The Marl Pits, The Deep Workings): yes.
+- **9, workable mountains** (The Mountain Terraces): yes.
+- **10, roads:** caravans and foundings only, for now (*"maybe in the future a military unit can build it, but caravans only for now"*).
+- **Next:** every card goes on the deck sheet, `docs/decks/expansionist.md`, in the compact format Dominion's uses, so the user can review the deck in the aggregate.
