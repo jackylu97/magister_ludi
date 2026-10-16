@@ -27,6 +27,8 @@ Each batch is one Opus agent, then the orchestrator's batch gate (typecheck, cor
 
 ### C1: card types in the data, and the A3 faces
 
+**Built, 2026-10-16** (`0bc50049`). The accessor is `orderType(id)`, which answers `'unsorted'` for a row with no `type`. Nothing in the simulation reads it yet.
+
 - A type field on card rows, read through one accessor. Dominion's rows and the shared rows that name Dominion take the sheet's types; every other row is unsorted.
 - The Dominion sheet test reads the Type column and checks it against the data, for every row that has a data row (shared rows included).
 - The A3 face wherever an Order card is drawn: the hand, the council, the collection, the Compendium and any other surface that shows a card.
@@ -46,7 +48,7 @@ Each batch is one Opus agent, then the orchestrator's batch gate (typecheck, cor
   - then the unsorted cards go to whatever chairs are left, typed chairs before Wildcard ones.
   - Within each step, cards keep their old seat order. A card that fits no chair goes back to the collection, unseated, keeping its progress.
 - The tier-38 governments retired.
-- The three cut Dominion rows retired (Defensive Lines, Arsenals, Naval Supremacy), and the sheet's Cut table removed.
+- The three cut Dominion rows (Defensive Lines, Arsenals, Naval Supremacy) are retired in batch D0 instead, which edits the deck data and the sheet, so that C2a and D0 can run side by side.
 - The save-format change this needs, in the codebase's own way.
 - `docs/orders-and-doctrines.md`'s governments table follows the data (its sync test reads the live rows' printed words).
 - **Split in two:** C2a is the rules (data, the fit rule, re-seating, the reducer, the signatures, the retirements, the bots and their tests). C2b is the council screen and every other surface that seats a card or shows a chair, built on C2a's functions.
