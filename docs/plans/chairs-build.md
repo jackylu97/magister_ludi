@@ -71,6 +71,8 @@ Each batch is one Opus agent, then the orchestrator's batch gate (typecheck, cor
 
 ### C3: Doctrines come with a government, and the reward hands go
 
+**Built, 2026-10-16** (`0e145638`, schema 131). Deck Doctrines live in each deck file's `doctrines` map; The Steppe Confederacy is live. An adoption is refused while a Doctrine offer waits, so one offer cannot replace another; the user approved this rule the same day.
+
 - Adopting a government offers Doctrines of its tier from both of the seat's decks. The tiers pair one to one: tier 4 offers Tier I, tier 10 Tier II, tier 18 Tier III and tier 29 Tier IV. The user confirmed this pairing on 2026-10-16.
 - The reward hands are removed: `REWARD_DRAFTS`, `PlayerStatecraft.rewardHands`, `openRewardHandAt`, the reward commands and `src/ui/rewardSheet.ts`. This is a save-format change.
 - No Doctrine is in the data yet, so until the Doctrines are built the offer is empty and is skipped.

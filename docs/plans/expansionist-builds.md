@@ -801,3 +801,15 @@ The user answered each open question in place (their words sit under each questi
 - **9, workable mountains** (The Mountain Terraces): yes.
 - **10, roads:** caravans and foundings only, for now (*"maybe in the future a military unit can build it, but caravans only for now"*).
 - **Next:** every card goes on the deck sheet, `docs/decks/expansionist.md`, in the compact format Dominion's uses, so the user can review the deck in the aggregate.
+
+## Rulings, 2026-10-16: the user's fourth pass, build the deck
+
+The user, verbatim: *"these look good to me! let's implement the expansionist deck, deferring any that require a new UX/user interaction"*. That answered a status report with two open decisions, read as yes to both:
+- **The card types go into the game data.** After that, each Expansionist card fits only its own chair type, and an unsorted card no longer exists in this deck. Most of the deck is Economic. The four Military cards stay deferred.
+- **C3's adoption rule stays:** a player cannot adopt a government while a Doctrine offer waits.
+
+So:
+- **Build every card on the sheet,** `docs/decks/expansionist.md`, in batches like Dominion's (`docs/plans/chairs-build.md`, section D).
+- **Defer every card that needs a new UX or a new user interaction:** a new action or command, a new button, menu or screen, or a choice made when the card fires. A deferred card keeps its sheet row, and is listed with the decision it waits on.
+- **Build the cards as the sheet writes them.** The gap rule stays for the user's own review, so The Megalopolis is built with its revised text.
+- **The first step is a triage,** `docs/plans/expansionist-build-triage.md`, in the form of `docs/plans/dominion-build-triage.md`.
