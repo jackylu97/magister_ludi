@@ -165,12 +165,13 @@ import {
   type OfferRuleId,
   type OrderBeadOccasion,
   type RateSource,
-  type SlotType,
+  type ChairType,
   type TileCondition,
   type UnitFilter,
   type WindfallOccasion,
   STATECRAFT,
   cardDef,
+  countedTypeOf,
   doctrineDef,
   governmentDef,
   isDoctrineId,
@@ -216,7 +217,7 @@ import {
 } from '../unitData';
 import { isExploredBy, isVisibleTo } from '../visibility';
 import { isCoastal } from '../water';
-import { orderAtSlotPosition, settleCultureWindfall, tallyOf } from './draft';
+import { orderAtSlotPosition, settleCultureWindfall, slotTypesOf, tallyOf } from './draft';
 import { tileConditionWords } from './describers';
 import { statecraftOf } from './draft';
 import { bumpEconomy } from '../slate';
@@ -2960,11 +2961,12 @@ export function countOf(
       return total;
     }
     case 'slottedOrdersOfSlot':
-      // The deck-readers' count. **The card's own flavour, never the chair's**
-      // — a wildcard chair takes any card, so counting chairs would pay The
-      // Synod for a spearman that happened to be sitting in one. Through
-      // `slottedOrdersOfFlavour`, the one reading, so the Order screen and the
-      // combat preview cannot disagree about what a council is made of.
+      // The deck-readers' count. **The card's own type, never the chair's**
+      // (an unsorted card excepted, which counts as its chair's type): a
+      // Military card in a Wildcard chair is still a Military Order to
+      // Imperium. Through `slottedOrdersOfFlavour`, the one reading, so the
+      // Order screen and the combat preview cannot disagree about what a
+      // council is made of.
       return slottedOrdersOfFlavour(state, playerId, effect.slot);
     case 'clearedCamps':
       // The one count answered off a **record** rather than off the board: a
@@ -6813,37 +6815,40 @@ export function filledOrderSlots(state: GameState, playerId: number): number {
 }
 
 /**
- * **The deck-readers' reading**: how many Orders this empire has in a chair
- * whose own flavour is `flavour`. Absent counts every one, which is
- * `filledOrderSlots` and answered by it.
+ * **The deck-readers' reading**: how many seated Orders this empire has of the
+ * type `flavour`. Absent counts every one, which is `filledOrderSlots` and
+ * answered by it.
  *
  * The one place "what kind of council is this" is decided, because two readers
- * ask it — `countOf`'s `slottedOrdersOfSlot` (The Guild Charter's coin, The
- * Synod's candles) and `combatScaleCount`'s (The War Council's spears) — and two
- * implementations of it would be two answers to the question a player is
- * looking at on one screen.
+ * ask it — `countOf`'s `slottedOrdersOfSlot` (the tier-18 signatures, the
+ * buildings that read the council) and `combatScaleCount`'s (The War Council's
+ * spears) — and two implementations of it would be two answers to the question
+ * a player is looking at on one screen.
  *
- * **`OrderDef.slot`, never the chair's type** (the user's Senatus, verbatim:
- * *"not a wildcard slot filled, a wildcard card that is active"*). A wildcard
- * chair takes any card, so the chair says nothing about what was put in it; the
- * card's own flavour is the thing a player drafts toward. A reader therefore
- * **counts itself**, which is deliberate — the floor of a deck-reader is one
- * helping, and the card's whole promise is that the figure moves when a card
- * beside it is slotted.
+ * **The card's own type, never the chair's** (the user's Senatus, verbatim:
+ * *"not a wildcard slot filled, a wildcard card that is active"*), with one
+ * exception for the decks not sorted yet: an unsorted card counts as the type
+ * of the chair it sits in, a Wildcard chair included (`countedTypeOf`, batch
+ * C2). A reader therefore **counts itself**, which is deliberate — the
+ * floor of a deck-reader is one helping, and the card's whole promise is that
+ * the figure moves when a card beside it is seated.
  */
 export function slottedOrdersOfFlavour(
   state: GameState,
   playerId: number,
-  flavour?: SlotType,
+  flavour?: ChairType,
 ): number {
   const sc = statecraftOf(state, playerId);
   if (!sc) return 0;
+  const layout = slotTypesOf(sc);
   let count = 0;
-  for (const slot of sc.slots) {
-    if (slot === null) continue;
-    if (flavour !== undefined && orderDef(slot.card).slot !== flavour) continue;
+  sc.slots.forEach((slot, index) => {
+    if (slot === null) return;
+    if (flavour !== undefined && countedTypeOf(slot.card, layout[index] ?? 'wildcard') !== flavour) {
+      return;
+    }
     count += 1;
-  }
+  });
   return count;
 }
 

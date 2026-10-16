@@ -313,7 +313,7 @@ import {
   type DoctrineId,
   type GovernmentId,
   type OrderId,
-  type SlotType,
+  type ChairType,
   DECK_WORDS,
   doctrineDef,
   isDoctrineId,
@@ -2309,7 +2309,7 @@ function slottingDecision(
   const layout = slotTypesOf(sc);
   // How many held cards each office could take. Asked once for the whole table
   // rather than per pair, and it is the *scarcity* the placement sorts on.
-  const fits = new Map<SlotType, number>();
+  const fits = new Map<ChairType, number>();
   for (const type of layout) {
     if (fits.has(type)) continue;
     fits.set(type, sc.orders.filter((id) => orderFitsSlot(id, type)).length);
@@ -2365,7 +2365,7 @@ function slotPairTerms(
   player: Player,
   ctx: ValueContext,
   cardId: OrderId,
-  type: SlotType,
+  type: ChairType,
   fits: number,
 ): ValueTerm[] {
   const scarcity = Math.max(1, fits);
@@ -2423,7 +2423,7 @@ function reslotDecision(
   if (sealedThisTurn(state, player)) return null;
   const ctx = seatContext(state, player, sitting);
   const layout = slotTypesOf(sc);
-  const fits = new Map<SlotType, number>();
+  const fits = new Map<ChairType, number>();
   for (const type of layout) {
     if (fits.has(type)) continue;
     fits.set(type, sc.orders.filter((id) => orderFitsSlot(id, type)).length);
@@ -2520,11 +2520,13 @@ function sealedThisTurn(state: GameState, player: Player): boolean {
  * office takes the best held card still unspent.
  *
  * Greedy rather than optimal, deliberately: an exact assignment is a matching
- * problem over three offices and a handful of cards, and the difference between
- * greedy and optimal there is smaller than the difference between either and the
- * face-zero it replaces. The amnesty makes every held card available (adoption
- * rebuilds the slots array — CLAUDE.md), so nothing has to be excluded for being
- * already slotted.
+ * problem over a handful of chairs and cards, and the difference between greedy
+ * and optimal there is smaller than the difference between either and the
+ * face-zero it replaces. Every held card is available: an adoption re-seats the
+ * cards that fit the new chairs and lifts every seal (`reseatCouncil`), so the
+ * council can be laid out afresh and nothing has to be excluded for being
+ * already slotted. The fit is the simulation's own (`orderFitsSlot`), so a
+ * Wildcard card is only ever priced into a Wildcard chair.
  */
 function adoptionTable(
   state: GameState,

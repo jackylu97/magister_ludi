@@ -70,7 +70,7 @@ import {
   type OfferRuleId,
   type OrderBeadOccasion,
   type RateSource,
-  type SlotType,
+  type ChairType,
   type TallyOccasion,
   type TileCondition,
   type UnitFilter,
@@ -554,7 +554,7 @@ function greatWorkRunFold(effects: readonly CardEffect[], at: number, out: CardC
 function slotPositionFold(effects: readonly CardEffect[], at: number, out: CardClause[]): number {
   const head = effects[at];
   if (head === undefined || head.kind !== 'slotPosition' || head.slot === undefined) return 0;
-  const slots: SlotType[] = [];
+  const slots: ChairType[] = [];
   let run = 0;
   while (at + run < effects.length) {
     const next = effects[at + run];
@@ -2652,7 +2652,7 @@ const EMPTY_WORDS: PluralWords = { one: '', many: '' };
  * War Chief's multiplier and The Guild Charter's count read as the same thing
  * counted two ways.
  */
-function slotFlavourWords(flavour: SlotType): PluralWords {
+function slotFlavourWords(flavour: ChairType): PluralWords {
   return {
     one: `${flavour} Order you have in a slot`,
     many: `${flavour} Orders you have in a slot`,
@@ -4074,7 +4074,11 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   found: 'founding a city',
   completion: 'completing anything',
   buildingCompletion: 'completing a building',
-  unitCompletion: 'completing a unit',
+  // "Gaining", not "completing": a conscript a card raises (The General Levy)
+  // pays these riders too (the user, 2026-10-16, in
+  // `docs/plans/dominion-build-triage.md`: conscripts pay the cards that pay
+  // on gaining a unit).
+  unitCompletion: 'gaining a unit',
   capture: 'capturing a city',
   discovery: 'claiming a ruin',
   death: 'losing a unit',

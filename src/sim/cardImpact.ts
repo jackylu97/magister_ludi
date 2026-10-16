@@ -140,6 +140,7 @@ import {
   describeEffects,
   occasionWords,
   holdsOrder,
+  reseatCouncil,
   slotOf,
   slotTypesOf,
   stripRefs,
@@ -242,10 +243,10 @@ export interface CardImpactLine {
  *
  * A tagged union rather than a bare `CardId` because the *ghost* differs per
  * class and the difference is the whole of the answer: an Order is held **and
- * slotted**, a Doctrine is simply held, a charter empties every office (the
- * amnesty is what adoption is), a belief joins the pantheon or the religion's
- * own shelf (`beliefPoolOf` decides which), and a legacy joins
- * the honoured dead. A card has one face since the levelling ruling of
+ * slotted**, a Doctrine is simply held, a charter lays out new chairs and
+ * re-seats the cards that fit them (what adoption is), a belief joins the
+ * pantheon or the religion's own shelf (`beliefPoolOf` decides which), and a
+ * legacy joins the honoured dead. A card has one face since the levelling ruling of
  * 2026-09-04, so an Order is named by its id alone — there is no level left to
  * ask about.
  *
@@ -391,14 +392,19 @@ function ghostPair(
       return forward({ ...player, statecraft: { ...sc, doctrines: [...sc.doctrines, subject.id] } });
     }
     case 'government': {
-      // **The amnesty is the adoption** (`adoptGovernmentAt`): the new layout's
-      // offices are not the old one's, so every card comes out. Mirrored here
-      // rather than approximated, because a charter's stamp that quietly kept
-      // the old law slotted would be the one number on the sheet that lies
-      // about the most expensive decision in the game.
+      // **The re-seating is the adoption** (`adoptGovernmentAt`, batch C2): the
+      // new layout's chairs are not the old one's, so a card keeps its chair
+      // where that chair still fits it, the rest are seated again by type, and
+      // a card that fits no chair left comes out. Mirrored
+      // here by asking the very function the adoption asks (`reseatCouncil`),
+      // because a charter's stamp that seated the cards differently would be
+      // the one number on the sheet that lies about the most expensive decision
+      // in the game. The ghost's malices are copies, because the re-seating
+      // writes their chairs.
       if (sc.government === subject.id) return null;
-      return forward({
+      const ghost: Player = {
         ...player,
+        malices: player.malices.map((held) => ({ ...held })),
         statecraft: {
           ...sc,
           government: subject.id,
@@ -406,7 +412,9 @@ function ghostPair(
           // reason: a law that opens a chair opens it in every government.
           slots: new Array<null>(chairCount(state, player.id, subject.id)).fill(null),
         },
-      });
+      };
+      reseatCouncil(ghost, sc.slots, state.turn);
+      return forward(ghost);
     }
     case 'belief': {
       // **Which shelf a belief sits on decides which ghost it needs.** Three
@@ -1062,9 +1070,10 @@ function ghostDiffLines(
       realm.add(source, 'empire', key, now[key] - (before?.[key] ?? 0));
     }
   }
-  // A line the card **removed** entirely is a change too — a charter's amnesty
-  // takes a slotted Order's empire payout away with it, and a diff that only
-  // walked the new list would print the gain and hide the loss.
+  // A line the card **removed** entirely is a change too — a charter that
+  // returns a seated Order to the collection takes its empire payout away with
+  // it, and a diff that only walked the new list would print the gain and hide
+  // the loss.
   for (const [source, before] of empireWas) {
     if (empireNow.has(source)) continue;
     for (const key of CITY_YIELD_KEYS) realm.add(source, 'empire', key, -before[key]);
@@ -1073,8 +1082,8 @@ function ghostDiffLines(
 
   // 4. The meters, in the card's own hand: the points it pays into contentment
   //    and into the writ. A diff of the meters' own folds across the same two
-  //    ghosts — so a card that supplies happiness per city, or a charter whose
-  //    amnesty takes a slotted Order's writ away with it, is priced by
+  //    ghosts — so a card that supplies happiness per city, or a charter that
+  //    returns a seated Order and takes its writ away with it, is priced by
   //    `explainHappiness`/`explainAuthority` rather than by a second reading of
   //    the rows. These pay in no voice; they are the stamp's other figures.
   for (const meter of METER_ORDER) {

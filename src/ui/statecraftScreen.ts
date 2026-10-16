@@ -158,8 +158,8 @@ import {
   type CountKind,
   type GovernmentId,
   type OrderId,
-  type SlotType,
-  SLOT_TYPES,
+  type ChairType,
+  CHAIR_TYPES,
   cardDef,
   governmentDef,
   isOrderId,
@@ -281,7 +281,7 @@ function ordinal(rank: number): string {
  * office on every surface at once. Pure and exported, because an off-by-one here
  * would name every office one place too high and look perfectly reasonable.
  */
-export function slotPositionWord(layout: readonly SlotType[], index: number): string {
+export function slotPositionWord(layout: readonly ChairType[], index: number): string {
   const type = layout[index];
   if (type === undefined) return '';
   let rank = 0;
@@ -526,9 +526,9 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    *
    * Re-taken from the live slots whenever there is nothing staged, whenever the
    * chair has changed under it, and whenever the government's spread no longer
-   * has the same number of offices — an adoption rebuilds the slots array (the
-   * amnesty; see the seal trap in CLAUDE.md) and an arrangement indexed into the
-   * old spread would be putting cards in offices that no longer exist.
+   * has the same number of offices — an adoption rebuilds the slots array (and
+   * re-seats the cards that fit, `reseatCouncil`) and an arrangement indexed into
+   * the old spread would be putting cards in offices that no longer exist.
    */
   function ensureStaging(sc: PlayerStatecraft, seat: number): StagedSlots {
     if (staged === null || stagedSeat !== seat || staged.length !== sc.slots.length) {
@@ -941,11 +941,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     // has to guess the meaning of.
     if (held !== null) {
       const card = held;
-      // Which offices will take it, asked of `orderFitsSlot` rather than spelled
+      // Which chairs will take it, asked of `orderFitsSlot` rather than spelled
       // out — a military card fits military *or* wildcard, and a wildcard card
       // fits only wildcard, so a hand-written "X or wildcard" says "wildcard or
-      // wildcard" for a third of the deck.
-      const fits = SLOT_TYPES.filter((type) => orderFitsSlot(card, type)).map(
+      // wildcard" for a third of the deck. All four chair types since batch C2.
+      const fits = CHAIR_TYPES.filter((type) => orderFitsSlot(card, type)).map(
         (type) => SLOT_WORDS[type],
       );
       const hint = element('p', 'sc-hand');

@@ -692,10 +692,15 @@ describe('determinism', () => {
    * Nobody here drafts a card, so the new and changed cards never reach this
    * board. Checked by setting the version back to 127, which gives the old
    * hashes exactly.
+   *
+   * **Batch C2a (typed chairs) moved the hash and not the length** at both
+   * seeds: 128 became 129, and that is all. Nobody here drafts a card or
+   * adopts a government, so no chair is ever filled. Checked by setting the
+   * version back to 128, which gives D0's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'e6d3aeda:188983',
-    2026: 'e33733a9:188539',
+    11: '74a76737:188983',
+    2026: '5e2c11dc:188539',
   };
 
   for (const seed of [11, 2026]) {

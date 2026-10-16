@@ -290,6 +290,36 @@ export function stockStandardDecks(): () => void {
 }
 
 /**
+ * **Gives every pre-rework row its old office as a card type**, for a file's
+ * lifetime (batch C2).
+ *
+ * A pre-rework row carries an office (`OrderDef.slot`: military, economic or
+ * wildcard) and no `type`, so in the game it is unsorted and the cards that
+ * count the council by type count it as the chair it sits in
+ * (`countedTypeOf`). The legacy tests of those count shapes were written
+ * against the card's own office ("The Guild Charter counts economic cards, and
+ * counts itself"), and stamping the office as the type keeps them testing what
+ * a card's own type does. A row that already has a type keeps it. Restore is
+ * mandatory, for `stockDecks`' reason.
+ */
+export function typeRowsByOldOffice(): () => void {
+  forgetBuiltGames();
+  const undo: (() => void)[] = [];
+  for (const id of ORDER_IDS) {
+    const def = orderDef(id);
+    if (def.slot === undefined || def.type !== undefined) continue;
+    def.type = def.slot;
+    undo.push(() => {
+      delete def.type;
+    });
+  }
+  return () => {
+    for (const step of undo.reverse()) step();
+    forgetBuiltGames();
+  };
+}
+
+/**
  * **Un-retires Doctrine rows for a file's lifetime** — `stockDecks`' twin for
  * the other retired class. Every Doctrine row is `retired: true` since D1a (a
  * Doctrine is the reward hand now), and a test about a *shape* that deals a

@@ -38,7 +38,7 @@
  * that cannot pass.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import {
   chooseProduction,
@@ -77,8 +77,10 @@ import { cityBaseStrength, cityMaxHp, previewCombat } from '../../src/sim/combat
 import { buildingCityHp, buildingCityStat, foldBuildingCityStat } from '../../src/sim/buildingEffects';
 import { wrappedDistance, tileHex } from '../../src/sim/map';
 import { slotLayout } from '../../src/sim/statecraftData';
+import { chairMisfitRefusal } from '../../src/sim/statecraft';
 import { closeWar, openWar, setPeaceOffer } from '../../src/sim/wars';
 import { newGame } from './newGameHelpers';
+import { typeRowsByOldOffice } from './statecraftHelpers';
 
 // --- the bench --------------------------------------------------------------
 
@@ -916,6 +918,17 @@ describe('a puppet builds, and what it will not build', () => {
 // --- 7. the drafting hand ---------------------------------------------------
 
 describe('slotting is scored rather than first-fit', () => {
+  /**
+   * **The two cards typed by their old offices** (batch C2): the rows are
+   * unsorted in the game and would fit every chair, and the claim below is
+   * about a typed card and a Wildcard card contending for one chair.
+   */
+  let restoreTypes: () => void = () => {};
+  beforeAll(() => {
+    restoreTypes = typeRowsByOldOffice();
+  });
+  afterAll(() => restoreTypes());
+
   /** A seat holding two cards, with the chiefdom's three offices open. */
   function holding(): GameState {
     const state = bench();
@@ -946,12 +959,13 @@ describe('slotting is scored rather than first-fit', () => {
     }
     expect(decision?.command.type).toBe('slotOrder');
     const command = decision!.command as { cardId: string; slotIndex: number };
-    // **Re-cut for the decks rework** (D1a): every chair is universal, so
-    // `bloodedSpears` and `firstRites` both fit every office and the contention
-    // is even — the scarcity term still prints, the office chosen is a wildcard
-    // (there is no other kind), and the card taken is the seat's own best.
-    expect(['bloodedSpears', 'firstRites']).toContain(command.cardId);
-    expect(slotLayout(seat(state, 0).statecraft.government)[command.slotIndex]).toBe('wildcard');
+    // `bloodedSpears` is military and fits two offices (military, wildcard);
+    // `firstRites` is a wildcard card and fits only the wildcard. The military
+    // office is the one nothing else can use, so it is filled first. (The
+    // decks rework had made every chair universal; batch C2 brought the typed
+    // chairs back, and with them this claim.)
+    expect(command.cardId).toBe('bloodedSpears');
+    expect(slotLayout(seat(state, 0).statecraft.government)[command.slotIndex]).toBe('military');
     const chosen = decision!.candidates.find((row) => row.chosen)!;
     expect(chosen.terms.some((term) => term.label.includes('would also fit'))).toBe(true);
     expect(foldTerms(chosen.terms)).toBe(chosen.score);
@@ -965,8 +979,9 @@ describe('slotting is scored rather than first-fit', () => {
   it('compares a charter’s faces instead of taking the first', () => {
     const state = holding();
     const sc = seat(state, 0).statecraft;
-    // Two faces with very different layouts: one that opens three military
-    // offices, one that opens none. The empire holds a military card.
+    // Two faces with different layouts: War Chief opens two military chairs
+    // and the Council of Elders one (batch C2's mixes). The empire holds a
+    // military card.
     sc.pendingGovernment = { tier: 4, options: ['councilOfElders', 'warChief'] };
     const decision = nextBotDecision(state, 0);
     expect(decision?.command.type).toBe('adoptGovernment');
@@ -978,6 +993,50 @@ describe('slotting is scored rather than first-fit', () => {
     const chosen = decision!.candidates.find((row) => row.chosen)!;
     expect(Math.max(...decision!.candidates.map((row) => row.score))).toBe(chosen.score);
     expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('never offers a Wildcard card a typed office', () => {
+    // Batch C2: the bots seat by type, and the slotting arm's gate is the
+    // reducer's (`slotOrderError`), so a typed office is on the table only as
+    // a refused row carrying the reducer's sentence.
+    const state = holding();
+    seat(state, 0).statecraft.orders = ['firstRites'];
+    let decision = nextBotDecision(state, 0);
+    for (let guard = 0; guard < 4 && decision !== null && decision.command.type !== 'slotOrder'; guard++) {
+      expect(applyCommand(state, decision.command).ok).toBe(true);
+      decision = nextBotDecision(state, 0);
+    }
+    expect(decision?.command.type).toBe('slotOrder');
+    const command = decision!.command as { cardId: string; slotIndex: number };
+    const layout = slotLayout(seat(state, 0).statecraft.government);
+    expect(command.cardId).toBe('firstRites');
+    expect(layout[command.slotIndex]).toBe('wildcard');
+    layout.forEach((type, index) => {
+      if (type === 'wildcard') return;
+      const row = decision!.candidates.find((one) => one.label.startsWith(`First Rites → slot ${index + 1} `));
+      expect(row, `slot ${index + 1}`).toBeDefined();
+      expect(row!.rejected).toBe(chairMisfitRefusal('firstRites', index, type));
+    });
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('prices a charter’s offices by the fit rule', () => {
+    // Batch C2: a face is worth what the held cards would pay from inside its
+    // chairs, and a Wildcard card is priced into a Wildcard office only.
+    const state = holding();
+    const sc = seat(state, 0).statecraft;
+    sc.orders = ['firstRites'];
+    sc.pendingGovernment = { tier: 4, options: ['warChief'] };
+    const decision = nextBotDecision(state, 0);
+    expect(decision?.command.type).toBe('adoptGovernment');
+    const offices = decision!.candidates[0]!.terms.find((term) => term.label.includes('slot(s) would pay'))!.parts!;
+    // War Chief's five offices: four typed ones nothing held fits, and the
+    // Wildcard one, which First Rites would fill.
+    expect(offices).toHaveLength(5);
+    expect(offices.filter((part) => part.label.includes('nothing held that fits it'))).toHaveLength(4);
+    expect(offices.filter((part) => part.label.includes('First Rites')).map((part) => part.label)).toEqual([
+      'a wildcard office, which First Rites would fill',
+    ]);
   });
 });
 

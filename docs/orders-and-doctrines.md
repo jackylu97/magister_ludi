@@ -96,28 +96,38 @@ chairs.
 
 ## Governments
 
-| Tier | Government | Chairs | Signature |
-|---|---|---|---|
-| 0 | Chiefdom | 3 | Grants nothing of its own. |
-| 4 | Council of Elders | 5 | +3 happiness. +1 renown per turn for each city you hold. |
-|  | Priest-King | 5 | +2 faith in every city. |
-|  | War Chief | 5 | +3 authority capacity. +4 combat strength. Killing a unit grants +5 science and +5 culture for each Order you have in a slot. |
-| 10 | Republic | 5 | +1 culture for each 5 population in a city. −5% happiness demanded per citizen. |
-|  | Theocracy | 5 | +2 faith in every city. Your capital's faith is gained again as science and as culture, at a fifth of the rate. |
-|  | Tyranny | 5 | +5 authority capacity. +4 combat strength. Pillaging pays +50% and costs no movement. |
-| 18 | Divine Mandate | 8 | +1 faith and +1 culture in your capital for each wildcard Order you have in a slot · +10% faith in every city of 6 or more population. |
-|  | Imperium | 8 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
-|  | Merchant League | 8 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |
-| 29 | The Curia | 11 | +6 faith for each Cathedral. Faith buildings supply science equal to their faith. |
-|  | The Estates | 11 | +1 happiness in every city. +2 culture in every city of 8 or more population. |
-|  | The Sultanate | 11 | All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture. |
-| 38 | The Commonwealth | 11 | Great people may be bought with gold. Great-person improvements pay +50% more. |
-|  | The Empire | 11 | +6 authority capacity. +2 combat strength for each great general you have earned this game. |
-|  | The Magisterium | 11 | Every offer of every kind shows one more card. +3 renown per turn for each wonder you hold. |
+| Tier | Government | Military | Economic | Civic | Wildcard | Chairs | Signature |
+|---|---|---|---|---|---|---|---|
+| 0 | Chiefdom | 1 | 1 | 0 | 1 | 3 | Grants nothing of its own. |
+| 4 | Council of Elders | 1 | 2 | 1 | 1 | 5 | +3 happiness. +1 renown per turn for each city you hold. |
+|  | Priest-King | 1 | 1 | 2 | 1 | 5 | +2 faith in every city. |
+|  | War Chief | 2 | 1 | 1 | 1 | 5 | +3 authority capacity. +4 combat strength. Killing a unit grants +5 science and +5 culture for each Order you have in a slot. |
+| 10 | Republic | 0 | 3 | 1 | 1 | 5 | +1 culture for each 5 population in a city. −5% happiness demanded per citizen. |
+|  | Theocracy | 1 | 0 | 3 | 1 | 5 | +2 faith in every city. Your capital's faith is gained again as science and as culture, at a fifth of the rate. |
+|  | Tyranny | 3 | 1 | 0 | 1 | 5 | +5 authority capacity. +4 combat strength. Pillaging pays +50% and costs no movement. |
+| 18 | Divine Mandate | 2 | 1 | 3 | 2 | 8 | +1 faith and +1 culture in your capital for each civic Order you have in a slot · +10% faith in every city of 6 or more population. |
+|  | Imperium | 3 | 2 | 1 | 2 | 8 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
+|  | Merchant League | 1 | 3 | 2 | 2 | 8 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |
+| 29 | The Curia | 2 | 2 | 4 | 3 | 11 | +6 faith for each Cathedral. Faith buildings supply science equal to their faith. |
+|  | The Estates | 2 | 4 | 2 | 3 | 11 | +1 happiness in every city. +2 culture in every city of 8 or more population. |
+|  | The Sultanate | 4 | 2 | 2 | 3 | 11 | All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture. |
 
-The signatures are untouched by D1a — the simplification to three forms is a later ruling
-— so the three tier-18 signatures still count Orders by the old offices' flavour, which
-every chair now shares.
+- **Chairs have types** (batch C2; the mixes are `docs/plans/doctrines-governments-chairs.md`
+  section 4). The four type columns add up to Chairs, which is the rung's count.
+- **Which chair a card fits:** a Military, Economic or Civic chair takes a card of its own
+  type or an unsorted card; a Wildcard chair takes any card; a Wildcard card fits only a
+  Wildcard chair. A card from a deck not sorted yet is unsorted.
+- **Every chair beyond a government's mix** (a leader's, a card's) is a Wildcard chair.
+- **Adopting a government re-seats the seated cards** and keeps as many as possible in the
+  same chair: a card whose chair still exists and still fits it stays there. The rest move
+  to the free chairs: Wildcard cards first, then typed cards in chairs of their own type,
+  then typed cards in the Wildcard chairs left, then unsorted cards, typed chairs before
+  Wildcard ones. A card that fits no chair left goes back to the collection.
+- **The three tier-18 signatures count seated Orders by type.** An unsorted card counts as
+  the type of the chair it sits in, a Wildcard chair included.
+- **The tier-38 governments are retired** (The Commonwealth, The Empire and The
+  Magisterium): their rows are kept for saves and nobody is offered them. The ladder's
+  rung at draft 38 is unchanged; only the government offer there is gone.
 
 ## Decks
 

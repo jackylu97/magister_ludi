@@ -208,12 +208,10 @@ import {
 } from './sim/statecraft';
 import {
   type GovernmentId,
-  SLOT_TYPES,
   doctrineDef,
   governmentDef,
   orderDef,
   slotCount,
-  slotSpread,
 } from './sim/statecraftData';
 import { orderPayoff, orderSuitBadges, orderSuitFace } from './ui/deckBadges';
 import { type RewardSheet, createRewardSheet } from './ui/rewardSheet';
@@ -3327,10 +3325,11 @@ async function boot(initial: Game | null): Promise<void> {
             // A government joins no archetype thread, so its emblem is the
             // office it opens the most slots for. See `governmentEmblem`.
             ...governmentEmblem(id),
-            // The charter's stamp carries the **amnesty**: adoption empties
-            // every office, so the figure is the new law minus the old one's
-            // slotted cards. That is the honest reading of the one
-            // irreversible pick in the game.
+            // The charter's stamp carries the **re-seating**: adoption lays
+            // the new chairs out and re-seats the cards that fit them (batch
+            // C2, `reseatCouncil`), so the figure is the new law with the
+            // cards it keeps, minus the old law. That is the honest reading
+            // of the one irreversible pick in the game.
             ...cardStamp(seat, { kind: 'government', id }),
           })),
         },
@@ -3715,28 +3714,21 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
-   * A government's emblem: the mark of the office it opens the most slots for.
+   * A government's emblem, which was the mark of the office it opened the most
+   * slots for.
    *
    * The one card class with no archetype thread, so `cardFace` would give all
    * ten the same neutral seal and a charter triple would be three identical gold
-   * rectangles. The spread *is* a government's character — Tyranny is three
-   * military slots, Theocracy is three wildcards — and it is already the line
-   * printed in the eyebrow, so the picture and the words say one thing.
-   *
-   * Ties break in `SLOT_TYPES` order, which is the order every other list of the
-   * three is written in; there is no government where that decides anything
-   * today, and if one is added it decides it the same way twice.
+   * rectangles. Every government has worn the Wildcard mark since chairs became
+   * universal (D1a), and it still does until batch C2b draws the typed chairs on
+   * the government card.
    */
   function governmentEmblem(id: GovernmentId): Partial<OfferOption> {
-    // **Every chair is universal since the decks rework** (D1a): `slotSpread`
-    // answers wildcards alone, so the emblem is the wildcard's mark for every
-    // government and the tie-break decides nothing — kept in `SLOT_TYPES`
-    // order so that it decides it the same way twice.
-    const spread = slotSpread(id);
-    const dominant = SLOT_TYPES.reduce((best, type) =>
-      spread[type] > spread[best] ? type : best,
-    );
-    return { ...cardFace(governmentDef(id)), emblem: slotMarkUrl(dominant) };
+    // **The Wildcard mark for every government, as before typed chairs.**
+    // Since batch C2 `slotSpread` answers a four-type mix, and only three of
+    // the types have a drawn mark (`SLOT_MARKS`); the government card showing
+    // its chairs is batch C2b's, so until then the emblem stays what it was.
+    return { ...cardFace(governmentDef(id)), emblem: slotMarkUrl('wildcard') };
   }
 
   /** A government's chairs in words: "4 chairs" (D1a — the M/E/W spread is retired). */

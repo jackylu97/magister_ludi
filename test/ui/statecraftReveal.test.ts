@@ -34,8 +34,8 @@ import {
   explainLedger,
 } from '../../src/ui/ledgerScreen';
 import { deckReadsSlotPosition, slotPositionWord } from '../../src/ui/statecraftScreen';
-import { GOVERNMENT_IDS, ORDER_IDS, SLOT_TYPES, slotLayout } from '../../src/sim/statecraftData';
-import type { OrderId, SlotType } from '../../src/sim/statecraftData';
+import { CHAIR_TYPES, GOVERNMENT_IDS, ORDER_IDS, slotLayout } from '../../src/sim/statecraftData';
+import type { ChairType, OrderId } from '../../src/sim/statecraftData';
 import { YIELD_GLYPH } from '../../src/ui/figures';
 import { playerById } from '../../src/sim/state';
 import type { GameState } from '../../src/sim/state';
@@ -178,18 +178,19 @@ describe('the reveal', () => {
 describe('the offices are ordered, and the word says which', () => {
   /**
    * **The array index is the position.** `slotLayout` lays a government's spread
-   * out grouped by flavour in `SLOT_TYPES` order, so within a flavour the array
-   * order *is* the drawn order — which is what makes "the first economic slot"
-   * the topmost economic office on the screen and the same office in the sim.
+   * out grouped by type in `CHAIR_TYPES` order (Military, Economic, Civic,
+   * Wildcard since batch C2), so within a type the array order *is* the drawn
+   * order — which is what makes "the first economic slot" the topmost economic
+   * office on the screen and the same office in the sim.
    */
   it('groups every government’s spread by flavour, in the drawn order', () => {
     for (const id of GOVERNMENT_IDS) {
       const layout = slotLayout(id);
       let at = 0;
-      for (const type of SLOT_TYPES) {
+      for (const type of CHAIR_TYPES) {
         while (at < layout.length && layout[at] === type) at++;
       }
-      expect(at, `${id} — the spread is not grouped in SLOT_TYPES order`).toBe(layout.length);
+      expect(at, `${id} — the spread is not grouped in CHAIR_TYPES order`).toBe(layout.length);
     }
   });
 
@@ -205,21 +206,24 @@ describe('the offices are ordered, and the word says which', () => {
 
   /** The ordinal is counted within the flavour, and the teens are the teens. */
   it('names an office by its rank within its own flavour', () => {
-    const layout: SlotType[] = [
+    const layout: ChairType[] = [
       'military',
       'military',
       'economic',
       'economic',
       'economic',
+      'civic',
       'wildcard',
     ];
     expect(slotPositionWord(layout, 0)).toBe('1st military');
     expect(slotPositionWord(layout, 1)).toBe('2nd military');
     expect(slotPositionWord(layout, 2)).toBe('1st economic');
     expect(slotPositionWord(layout, 4)).toBe('3rd economic');
-    expect(slotPositionWord(layout, 5)).toBe('1st wildcard');
+    // The civic chair is batch C2's fourth type.
+    expect(slotPositionWord(layout, 5)).toBe('1st civic');
+    expect(slotPositionWord(layout, 6)).toBe('1st wildcard');
     expect(slotPositionWord(layout, 9)).toBe('');
-    const long: SlotType[] = Array.from({ length: 13 }, () => 'wildcard');
+    const long: ChairType[] = Array.from({ length: 13 }, () => 'wildcard');
     expect(slotPositionWord(long, 10)).toBe('11th wildcard');
     expect(slotPositionWord(long, 12)).toBe('13th wildcard');
   });

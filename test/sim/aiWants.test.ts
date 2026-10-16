@@ -1668,9 +1668,10 @@ describe('batch 8 — the arrangement, improved once a turn', () => {
     const fitting = ORDER_IDS.filter(
       (id) => orderFitsSlot(id, type) && orderDef(id).retired !== true,
     );
-    // **Re-cut for the decks rework** (D1a): every chair is universal, so the
-    // first two live rows in file order fit and the pair used to be whichever
-    // two the old chiefdom pool put first. A pair whose scores are a hair apart
+    // **Re-cut for the decks rework** (D1a): every chair was universal then,
+    // so the first two live rows in file order fit and the pair used to be
+    // whichever two the old chiefdom pool put first. Since batch C2 the first
+    // chair is a military one, and the filter above asks it which rows fit. A pair whose scores are a hair apart
     // in either direction — a card counts the council it sits in — is a pair
     // the arm swaps both ways, which is not the claim under test. The claim is
     // about a pair the seat's own appraisal ranks clearly, so the bench takes

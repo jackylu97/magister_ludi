@@ -22,6 +22,7 @@ import {
   describeCard,
   slotOrderAt,
   slotOrderError,
+  slotTypesOf,
   stripRefs,
   tallyOf,
   unslotOrderAt,
@@ -33,6 +34,7 @@ import {
   type OrderId,
   governmentsAtTier,
   orderDef,
+  orderFitsSlot,
   orderIsDealt,
 } from '../../src/sim/statecraftData';
 import {
@@ -66,11 +68,17 @@ function hold(state: GameState, id: OrderId): void {
   bumpRevision(state);
 }
 
-/** Seats a held card in the first empty chair, through the slot verb. */
+/**
+ * Seats a held card in the first empty chair it fits, through the slot verb.
+ * A Wildcard commission fits only a Wildcard chair (batch C2's fit rule).
+ */
 function seat(state: GameState, id: OrderId): number {
   hold(state, id);
   const player = playerById(state, 0)!;
-  const index = player.statecraft.slots.findIndex((slot) => slot === null);
+  const chairs = slotTypesOf(player.statecraft);
+  const index = player.statecraft.slots.findIndex(
+    (slot, at) => slot === null && orderFitsSlot(id, chairs[at]!),
+  );
   expect(index, 'an empty chair').toBeGreaterThanOrEqual(0);
   expect(slotOrderError(state, 0, id, index)).toBeNull();
   slotOrderAt(state, player, id, index);
@@ -159,11 +167,16 @@ describe('a counted goal', () => {
     clearCamp(g.state);
     expect(tallyOf(sc, FRONTIER)).toBe(1);
     expect(seatedCommissions(sc)).toEqual([]);
-    // An adoption rebuilds the chairs and leaves the card's count alone.
+    // An adoption rebuilds the chairs and leaves the card's count alone. Since
+    // batch C2 it also re-seats the card, in a Wildcard chair, the only kind a
+    // Wildcard card fits.
     seat(g.state, FRONTIER);
     sc.pendingGovernment = { tier: 4, options: [...governmentsAtTier(4)] };
     expect(adoptGovernmentAt(g.state, player, 0)).not.toBeNull();
     expect(tallyOf(sc, FRONTIER)).toBe(1);
+    const at = sc.slots.findIndex((held) => held?.card === FRONTIER);
+    expect(at).toBeGreaterThanOrEqual(0);
+    expect(slotTypesOf(sc)[at]).toBe('wildcard');
   });
 });
 

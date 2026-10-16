@@ -7,12 +7,12 @@
  * **The ladder.** Culture fills an escalating meter; each fill is a draft, and
  * *tier is the draft count* — one number, one ladder. A draft offers 3 new cards
  * and a pass (`skipOrderOffer`, which buys a rarer hand next time); a government
- * is offered at tiers 3, 7 and 15 as a fixed triple
- * whose adoption is bankable; adopting swaps the slot spread, amnesties every
- * seal, and opens a Doctrine draft. All of it is `state.rng` at the moment an
- * offer opens, an ordinary command to spend it, and both halves in the log —
- * which is `discoveries.ts`'s shape (Entry XV's first consumer) inherited rather
- * than re-invented.
+ * is offered at tiers 4, 10, 18 and 29 as a fixed triple whose adoption is
+ * bankable; adopting lays out new chairs, re-seats the cards that fit them,
+ * lifts every seal, and opens a Doctrine draft. All of it is `state.rng` at the
+ * moment an offer opens, an ordinary command to spend it, and both halves in
+ * the log — which is `discoveries.ts`'s shape (Entry XV's first consumer)
+ * inherited rather than re-invented.
  *
  * **The evaluator.** Governments, Doctrines and slotted Orders are *effect
  * sources* exactly as a luxury's signature is, and this module is the **only**
@@ -241,6 +241,7 @@ export {
   bandTierOf,
   cardRouteSlots,
   chairCount,
+  chairMisfitRefusal,
   commissionFulfilledTurn,
   currentBand,
   currentBandOf,
@@ -289,7 +290,9 @@ export {
   recordWorldScalingOccasion,
   refitSlots,
   researchAgeOf,
+  reseatCouncil,
   reseatMalices,
+  reseatOrders,
   rewardChoiceError,
   rewardOpenError,
   rewardPassError,

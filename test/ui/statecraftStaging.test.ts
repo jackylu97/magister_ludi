@@ -23,9 +23,9 @@ import { describe, expect, it } from 'vitest';
 import type { Command } from '../../src/sim/commands';
 import { dispatch } from '../../src/sim/game';
 import type { GameState } from '../../src/sim/state';
-import type { OrderId } from '../../src/sim/statecraftData';
-import { slotLayout } from '../../src/sim/statecraftData';
-import { sealRemaining } from '../../src/sim/statecraft';
+import type { GovernmentId, OrderId } from '../../src/sim/statecraftData';
+import { ORDER_IDS, orderIsDealt, orderType, slotLayout } from '../../src/sim/statecraftData';
+import { chairMisfitRefusal, sealRemaining } from '../../src/sim/statecraft';
 import {
   type StagedSlots,
   changedOffices,
@@ -45,18 +45,27 @@ function grant(state: GameState, playerId: number, id: OrderId): void {
 }
 
 /**
- * Seats the empire under a government carrying **two wildcard offices**.
+ * The fixture's government: one carrying **two wildcard offices**.
+ *
+ * The Priest-King until batch C2, when the typed chairs came back and every
+ * tier-4 and tier-10 government kept a single Wildcard chair; Imperium is a
+ * tier-18 government with two.
+ */
+const FIXTURE: GovernmentId = 'imperium';
+
+/**
+ * Seats the empire under the fixture's government.
  *
  * The chiefdom has typed offices and one wildcard, so nothing a player holds can
  * move between two of them, and "a move produces unslot then slot" is not a
  * sentence that can be said about it. Set directly rather than adopted, because
- * adoption also draws a Doctrine offer out of the rng and this is a fixture, not
- * a chapter break.
+ * adoption also re-seats the council and this is a fixture, not a chapter
+ * break.
  */
-function seatPriestKing(state: GameState, playerId: number): void {
+function seatFixture(state: GameState, playerId: number): void {
   const sc = state.players[playerId]!.statecraft;
-  sc.government = 'priestKing';
-  sc.slots = slotLayout('priestKing').map(() => null);
+  sc.government = FIXTURE;
+  sc.slots = slotLayout(FIXTURE).map(() => null);
 }
 
 /**
@@ -69,18 +78,16 @@ function seatPriestKing(state: GameState, playerId: number): void {
  * were about staging rather than about the table. What these tests need is "two
  * offices that take either card", so they ask the layout for them.
  */
-// **Re-cut for the decks rework** (D1a): every chair is universal, so every
-// office of the layout is a wildcard and the first would be "the wildcard" too.
-// The tests seat their subject in office 0 and move it to WILD[0], so the list
-// is the offices *other than the first* — still "offices that take either
-// card", still read off the layout.
-const WILD: number[] = slotLayout('priestKing')
-  .map((type, index) => (type === 'wildcard' && index > 0 ? index : -1))
+// **Typed again since batch C2.** The decks rework had made every office a
+// wildcard, so this list was the offices other than the first; with typed
+// chairs back it is the wildcard offices once more, which take any card.
+const WILD: number[] = slotLayout(FIXTURE)
+  .map((type, index) => (type === 'wildcard' ? index : -1))
   .filter((index) => index >= 0);
 
 /** An empty arrangement of the fixture's shape — what `occupants` compares to. */
 function emptySlots(): (OrderId | null)[] {
-  return slotLayout('priestKing').map(() => null);
+  return slotLayout(FIXTURE).map(() => null);
 }
 
 /** The live slots of one seat. What every function here is a diff against. */
@@ -96,7 +103,7 @@ function occupants(slots: StagedSlots | ReturnType<typeof live>): (OrderId | nul
 describe('staging an arrangement', () => {
   it('starts as a copy of the law, and a copy of the law is no change at all', () => {
     const g = game();
-    seatPriestKing(g.state, 0);
+    seatFixture(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: 0 } as Command);
 
@@ -113,7 +120,7 @@ describe('staging an arrangement', () => {
 
   it('empties and fills offices without touching the game', () => {
     const g = game();
-    seatPriestKing(g.state, 0);
+    seatFixture(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     const before = occupants(live(g.state));
 
@@ -135,7 +142,7 @@ describe('staging an arrangement', () => {
 describe('the diff', () => {
   it('moves a card between offices as unslot then slot, in that order', () => {
     const g = game();
-    seatPriestKing(g.state, 0);
+    seatFixture(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: 0 } as Command);
     // The seal has to be off before a card may leave — that is the sim's rule
@@ -156,7 +163,7 @@ describe('the diff', () => {
 
   it('puts every unslot before every slot, even when they interleave by office', () => {
     const g = game();
-    seatPriestKing(g.state, 0);
+    seatFixture(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     grant(g.state, 0, 'firstRites');
     // Both in wildcard offices, which is what makes a swap sayable: a wildcard
@@ -187,7 +194,7 @@ describe('the diff', () => {
 
   it('is empty for an arrangement nobody touched', () => {
     const g = game();
-    seatPriestKing(g.state, 0);
+    seatFixture(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: 0 } as Command);
     expect(diff(live(g.state), stage(live(g.state)), 0)).toEqual([]);
@@ -197,7 +204,7 @@ describe('the diff', () => {
 describe('the refusals are the reducer’s own', () => {
   it('refuses to empty a sealed office, with the sentence and the count', () => {
     const g = game();
-    seatPriestKing(g.state, 0);
+    seatFixture(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: 0 } as Command);
     expect(sealRemaining(g.state, live(g.state)[0])).toBeGreaterThan(0);
@@ -211,22 +218,30 @@ describe('the refusals are the reducer’s own', () => {
     expect(validate(g.state, 0, remove(staged, 0))).toBe(problem);
   });
 
-  it('takes any card in any office — every chair is universal', () => {
-    // **Re-cut for the decks rework** (D1a). This used to pin the reducer's
-    // "First Rites is wildcard and slot 1 is military" refusal; there is no
-    // typed office left to refuse into, so the claim is the opposite one, read
-    // off the same two gates: the guard and `validate` both answer null for a
-    // held card in the first chair.
+  it('refuses a card the office cannot take, in the reducer’s own sentence', () => {
+    // **Typed again since batch C2.** The decks rework had made every chair
+    // universal and this test pinned the opposite claim; with typed chairs
+    // back it pins the refusal once more. The chiefdom's first office is a
+    // military chair and a Wildcard card fits only a Wildcard chair.
     const g = game();
-    grant(g.state, 0, 'firstRites');
+    const wild = ORDER_IDS.find((id) => orderIsDealt(id) && orderType(id) === 'wildcard')!;
+    expect(wild, 'a dealt Wildcard card').toBeDefined();
+    grant(g.state, 0, wild);
     const staged = stage(live(g.state));
+    const sentence = chairMisfitRefusal(wild, 0, 'military');
+    expect(sentence).toContain('fits only a wildcard chair');
+    expect(placeError(g.state, 0, staged, wild, 0)).toBe(sentence);
+    // Staged past the guard anyway, `validate` is the same sentence again.
+    expect(validate(g.state, 0, place(staged, 0, wild, g.state.turn))).toBe(sentence);
+    // An unsorted card still takes any office, as every card did before.
+    grant(g.state, 0, 'firstRites');
+    expect(orderType('firstRites')).toBe('unsorted');
     expect(placeError(g.state, 0, staged, 'firstRites', 0)).toBeNull();
-    expect(validate(g.state, 0, place(staged, 0, 'firstRites', g.state.turn))).toBeNull();
   });
 
   it('refuses the same Order twice, and an office that is already occupied', () => {
     const g = game();
-    seatPriestKing(g.state, 0);
+    seatFixture(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     grant(g.state, 0, 'firstRites');
     const staged = place(stage(live(g.state)), WILD[0]!, 'bloodedSpears', g.state.turn);
@@ -239,7 +254,7 @@ describe('the refusals are the reducer’s own', () => {
 
   it('asks about the arrangement, not the law: an office emptied in staging takes a card', () => {
     const g = game();
-    seatPriestKing(g.state, 0);
+    seatFixture(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     grant(g.state, 0, 'firstRites');
     dispatch(g, { type: 'slotOrder', playerId: 0, cardId: 'bloodedSpears', slotIndex: WILD[0]! } as Command);
@@ -256,7 +271,7 @@ describe('the refusals are the reducer’s own', () => {
 describe('confirming', () => {
   it('applies to exactly the arrangement the player was looking at', () => {
     const g = game();
-    seatPriestKing(g.state, 0);
+    seatFixture(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     grant(g.state, 0, 'firstRites');
     grant(g.state, 0, 'campFollowers');
@@ -284,7 +299,7 @@ describe('confirming', () => {
 
   it('leaves the game untouched when nothing was staged', () => {
     const g = game();
-    seatPriestKing(g.state, 0);
+    seatFixture(g.state, 0);
     grant(g.state, 0, 'bloodedSpears');
     const before = occupants(live(g.state));
     const staged = stage(live(g.state));

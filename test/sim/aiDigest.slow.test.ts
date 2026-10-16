@@ -471,10 +471,32 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * Nothing stalled and no command was refused, which the assertion above this
  * one checks before the hash does.
+ *
+ * ---
+ *
+ * **D0 and C2a together (schemas 128 and 129).** Duel `d8a34333:278234` →
+ * `6f55a0da:270418`, standard `ab40e54f:956390` → `caf0dbef:987468`. D0 landed
+ * without re-cutting this pin, so the two batches are measured as one move.
+ *
+ *   · D0 changed what the decks deal: fourteen Dominion cards joined, seventeen
+ *     changed and three were retired, so from the first draw that meets one of
+ *     them the hands are different hands.
+ *   · C2a typed the chairs. A typed card fits only a chair of its own type or a
+ *     Wildcard chair, and the bots seat by type. Adopting a government keeps
+ *     every card whose chair still exists and still fits it and moves the rest,
+ *     where it used to empty every chair. The tier-18 governments count seated
+ *     Orders by type, an unsorted card counting as its chair's type. The
+ *     tier-38 governments are retired, which changes nothing here: no seat
+ *     reaches draft 38 (the most is 24).
+ *
+ * The duel game sends 10 adoptions, 75 seatings and 43 unseatings; the
+ * standard game 15, 127 and 85. The two chairs standing empty on the standard
+ * board at turn 120 are held by malices. Nothing stalled and no command was
+ * refused, which the assertion above this one checks before the hash does.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'd8a34333:278234',
-  standard: 'ab40e54f:956390',
+  duel: '6f55a0da:270418',
+  standard: 'caf0dbef:987468',
 };
 
 /**

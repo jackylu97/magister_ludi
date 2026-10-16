@@ -2540,7 +2540,10 @@ describe('improvements in the log', () => {
     // would fight weaker than this build makes them.
     // 128 since D0: the Dominion cards that needed no new shape change what a
     // draft deals, so a v127 log's picks would name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(128);
+    // 129 since C2a: chairs have types again, adoption re-seats the council,
+    // and the tier-38 governments are retired, so a v128 log can seat a card
+    // where this build refuses it.
+    expect(SCHEMA_VERSION).toBe(129);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

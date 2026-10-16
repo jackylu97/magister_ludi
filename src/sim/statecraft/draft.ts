@@ -4,10 +4,11 @@
  *
  * Culture fills an escalating meter; each fill is a draft, and *tier is the
  * draft count*. A draft offers three new cards and a pass; a government is
- * offered at the tier ladder's rungs; adopting swaps the slot spread, amnesties
- * every seal and opens a Doctrine draft. All of it is `state.rng` at the moment
- * an offer opens, an ordinary command to spend it, and both halves in the log —
- * `discoveries.ts`' shape inherited rather than re-invented.
+ * offered at the tier ladder's rungs; adopting swaps the chairs, re-seats the
+ * cards that fit the new ones, lifts every seal and opens a Doctrine draft. All
+ * of it is `state.rng` at the moment an offer opens, an ordinary command to
+ * spend it, and both halves in the log — `discoveries.ts`' shape inherited
+ * rather than re-invented.
  *
  * Split out of `statecraft.ts` in batch E3b (`docs/flags.md` item pp,
  * `docs/audit/evaluations.md` §4b step 9). It reads `evaluator.ts` for the
@@ -35,6 +36,7 @@ import {
   type OrderId,
   type OrderRarity,
   type OrderSlotGrant,
+  type ChairType,
   type SlotType,
   type TallyOccasion,
   GOVERNMENT_TIERS,
@@ -52,7 +54,7 @@ import {
   isOrderId,
   orderDef,
   orderFitsSlot,
-  orderSlot,
+  orderType,
   ordersForDecks,
   poolDoctrines,
   poolOrders,
@@ -753,19 +755,20 @@ export function commissionFulfilledTurn(sc: PlayerStatecraft, id: OrderId): numb
 }
 
 /**
- * The slot types this government opens, military first.
+ * The chair types this council has, Military first and Wildcard last.
  *
  * **THE slot-order contract**, stated once here because two systems now depend on
  * it (ruled 2026-09-06, `docs/history/fewer-things.md` §1's levers):
  *
  *   · this array and `PlayerStatecraft.slots` are **the same order, index for
  *     index** — `newPlayerStatecraft` and `adoptGovernmentAt` both build the
- *     slots by mapping over this list, so slot *i* has flavour `slotTypesOf()[i]`;
+ *     slots to this list's length, so slot *i* is a chair of type
+ *     `slotTypesOf()[i]`;
  *   · **the order is the order the screen draws**, top to bottom, and therefore
  *     the order a player counts in. "The first economic slot" is the
- *     lowest-indexed slot whose flavour here is `'economic'` — the *chair's*
- *     flavour and never the card's, so an economic Order placed in a wildcard
- *     chair is not sitting in an economic slot;
+ *     lowest-indexed slot whose type here is `'economic'` — the *chair's* type
+ *     and never the card's, so an economic Order placed in a Wildcard chair is
+ *     not sitting in an economic slot;
  *   · rearranging is a **placement**, so a position is a decision a player made
  *     and a card may be paid for it (`CardSlotPositionEffect`, read through
  *     `orderAtSlotPosition`).
@@ -774,11 +777,11 @@ export function commissionFulfilledTurn(sc: PlayerStatecraft, id: OrderId): numb
  * with it every position card; `src/ui/statecraftScreen.ts` draws them in this
  * order for that reason.
  */
-export function slotTypesOf(sc: PlayerStatecraft): SlotType[] {
+export function slotTypesOf(sc: PlayerStatecraft): ChairType[] {
   const layout = slotLayout(sc.government);
   // **The array is the standing fact about how many chairs there are**, and the
   // government is the fact about what *kind* each of the first ones is. A card
-  // may open more (`CardSlotRiderEffect`), and those are wildcards by
+  // may open more (`CardSlotRiderEffect`), and those are Wildcard chairs by
   // construction and appended at the end — so the contract above survives
   // untouched: chair *i* is still the same chair it was before the card was
   // taken, and no position card renumbers. Padded here rather than asked of the
@@ -809,17 +812,18 @@ export function chairCount(state: GameState, playerId: number, government: Gover
  *
  * The seam a card that widens a government has to have, and the one thing that
  * separates it from `adoptGovernmentAt`'s rebuild: an adoption is a *chapter
- * break* and amnesties every card by design (the new spread's chair 2 is not the
- * old one's), while a chair opened mid-reign changes nothing about the chairs
- * already occupied — the flavours are the same government's, index for index,
- * and the new one is appended. So this is a resize and not a rebuild, and a
- * player who takes The King's Friends does not lose the council they arranged.
+ * break* that lays the chairs out afresh and re-seats the cards that fit them
+ * (`reseatOrders`), while a chair opened mid-reign changes nothing about the
+ * chairs already occupied — the types are the same government's, index for
+ * index, and the new one, a Wildcard chair, is appended. So this is a resize
+ * and not a rebuild, and a player who takes The King's Friends does not lose
+ * the council they arranged.
  *
- * **Shrinking returns cards to the collection**, which is what an amnesty does
- * one seam over: a card cannot sit in a chair that no longer exists, and
- * `PlayerStatecraft.orders` is the collection it came from, so the row is still
- * held and still slottable the moment there is somewhere to put it. Nothing is
- * lost and nothing is sealed — a seal is a promise about a chair.
+ * **Shrinking returns cards to the collection**, as an adoption returns a card
+ * that fits no chair left: a card cannot sit in a chair that no longer exists,
+ * and `PlayerStatecraft.orders` is the collection it came from, so the row is
+ * still held and still slottable the moment there is somewhere to put it.
+ * Nothing is lost and nothing is sealed — a seal is a promise about a chair.
  *
  * Called wherever the law that opens chairs changes mid-reign:
  * `adoptGovernmentAt` builds to `chairCount` directly and needs nobody's help,
@@ -871,7 +875,7 @@ export function refitSlots(state: GameState, player: Player): OrderId[] {
 export function orderAtSlotPosition(
   sc: PlayerStatecraft,
   position: number,
-  slot?: SlotType,
+  slot?: ChairType,
 ): OrderId | null {
   if (position < 1) return null;
   const flavours = slotTypesOf(sc);
@@ -2129,8 +2133,9 @@ export function settleRewardPass(player: Player): boolean {
  *
  * Five refusals, and each is a rule rather than a guard: the player must hold
  * the card, the slot must exist, the card must not already be slotted, the slot
- * must be free, and the **type must match** — a wildcard slot takes anything and
- * a typed slot takes only its own (`orderFitsSlot`).
+ * must be free, and the **card must fit the chair** (`orderFitsSlot`, batch C2):
+ * a Wildcard chair takes any card, a typed chair takes a card of its own type
+ * or an unsorted one, and a Wildcard card fits only a Wildcard chair.
  *
  * There is deliberately no "swap" that empties an occupied slot: an occupied
  * slot is a sealed slot most of the time, and a verb that silently broke a seal
@@ -2172,21 +2177,46 @@ export function slotOrderError(
   // reducer contradicting the screen.
   const malice = maliceAt(player, index);
   if (malice !== null) return maliceChairRefusal(index, malice);
-  const type = layout[index]!;
-  if (!orderFitsSlot(cardId, type)) {
-    return `${orderDef(cardId).name} is ${SLOT_WORDS[orderSlot(cardId)]} and slot ${
-      index + 1
-    } is ${SLOT_WORDS[type]}`;
-  }
+  const chair = layout[index]!;
+  if (!orderFitsSlot(cardId, chair)) return chairMisfitRefusal(cardId, index, chair);
   return null;
 }
 
-/** How a slot type reads in a refusal and on the screen. One table, one voice. */
-export const SLOT_WORDS: Record<SlotType, string> = {
+/** How a chair type reads in a refusal and on the screen. One table, one voice. */
+export const SLOT_WORDS: Record<ChairType, string> = {
   military: 'military',
   economic: 'economic',
+  civic: 'civic',
   wildcard: 'wildcard',
 };
+
+/** The same words with their article, for a sentence: "an economic", "a civic". */
+const CHAIR_WITH_ARTICLE: Record<ChairType, string> = {
+  military: 'a military',
+  economic: 'an economic',
+  civic: 'a civic',
+  wildcard: 'a wildcard',
+};
+
+/**
+ * **Why a card does not fit a chair**, in plain words: what kind of card it is,
+ * which chairs it fits, and what kind of chair it was offered. The reducer's
+ * refusal for a pair `orderFitsSlot` turns down, and so also the sentence the
+ * council screen shows before the click.
+ */
+export function chairMisfitRefusal(cardId: OrderId, slotIndex: number, chair: ChairType): string {
+  const name = orderDef(cardId).name;
+  const type = orderType(cardId);
+  const offered = `chair ${slotIndex + 1} is ${CHAIR_WITH_ARTICLE[chair]} chair`;
+  if (type === 'wildcard') return `${name} is a wildcard card: it fits only a wildcard chair, and ${offered}`;
+  // An unsorted card fits every chair, so it never reaches this sentence; the
+  // line is here so the function answers honestly for any card it is handed.
+  if (type === 'unsorted') return `${name} fits any chair`;
+  return (
+    `${name} is ${CHAIR_WITH_ARTICLE[type]} card: it fits ${CHAIR_WITH_ARTICLE[type]} chair ` +
+    `or a wildcard chair, and ${offered}`
+  );
+}
 
 /**
  * Puts a card in a slot and **seals it**. Validates nothing — the rule is
@@ -2471,17 +2501,17 @@ export function shedMalices(state: GameState, player: Player, age: number): Mali
 /**
  * **A malice survives an adoption and re-seats itself** (§4, ruled).
  *
- * The amnesty is total for *Orders* — a new spread with the old cards pinned in
- * it would be a spread the player cannot use — and it is deliberately not for
- * this: the debt is owed to the next wager, not to the government that owed it,
- * and a realm that could shed a malice by adopting would have found the cheapest
- * comeback in the game.
+ * The debt is owed to the next wager, not to the government that owed it, and a
+ * realm that could shed a malice by adopting would have found the cheapest
+ * comeback in the game. On an adoption the malices take their chairs in the new
+ * layout **before** the Orders are re-seated (`reseatCouncil`), so a malice
+ * never has to turn a re-seated card out.
  *
  * Every chair is forgotten first and then re-taken in seating order, because
  * `maliceChairFor` reads the chairs already taken and a stale index from the old
  * spread would either point at a chair that no longer exists or let two malices
- * claim one. Called by `adoptGovernmentAt` after the array is rebuilt, and by
- * nothing else.
+ * claim one. Called on an adoption (through `reseatCouncil`) and by
+ * `refitSlots`.
  */
 export function reseatMalices(player: Player): void {
   for (const held of player.malices) delete held.chair;
@@ -2526,21 +2556,144 @@ export function governmentChoiceError(
 export interface GovernmentAdoption {
   id: GovernmentId;
   name: string;
-  /** Cards that came out of their slots. Every one of them, always. */
-  amnestied: OrderId[];
+  /** Cards that kept a chair in the new council, in their old seat order. */
+  reseated: OrderId[];
+  /** Cards that fitted no chair left and went back to the collection. */
+  returned: OrderId[];
   /** The Doctrine draft the adoption opened, or `null` when the pool is empty. */
   doctrines: DoctrineOffer | null;
+}
+
+/**
+ * **Re-seats a council's cards in a new layout** (batch C2, on the user's
+ * ruling of 2026-10-12 that adopting a government keeps the seated cards; the
+ * order is `docs/plans/chairs-build.md`'s).
+ *
+ * **As many cards as possible keep the same chair** (the user, 2026-10-16:
+ * *"lets have adoption keep as many slots the same as possible"*). First,
+ * every card whose chair index still exists in the new layout, is not held by
+ * a malice, and still fits the card stays exactly where it is. Then the cards
+ * that had to move are placed in the free chairs, in four passes:
+ *
+ *   1. Wildcard cards take Wildcard chairs, because nothing else takes them;
+ *   2. each typed card takes a chair of its own type;
+ *   3. the typed cards left take the Wildcard chairs left;
+ *   4. the unsorted cards take whatever chairs are left, typed chairs before
+ *      Wildcard ones.
+ *
+ * Within a pass the cards keep their old seat order and take the free chairs
+ * in index order. A chair a malice holds (`held`) is never free. A card that
+ * fits no free chair is **returned**: it stays in the collection, unseated, and
+ * its progress goes with it, because a card's tally lives on the card and never
+ * on the chair. Staying comes first even when it costs another card its seat:
+ * a typed card that stays in a Wildcard chair keeps it from a Wildcard card that
+ * has to move, because the ruling keeps the cards where they are before it
+ * places the rest.
+ *
+ * A re-seated card keeps its chair record, its periodic clock and its count of
+ * rerolls included, because it never left a chair; only its seal is lifted, as
+ * an adoption has always lifted every seal, so the player can re-lay the new
+ * council at once.
+ *
+ * Pure: it reads the old chairs and answers the new ones. `reseatCouncil` is
+ * where a game's council is written.
+ */
+export function reseatOrders(
+  previous: readonly (SlottedOrder | null)[],
+  layout: readonly ChairType[],
+  held: readonly boolean[],
+  turn: number,
+): { slots: (SlottedOrder | null)[]; reseated: OrderId[]; returned: OrderId[] } {
+  const slots: (SlottedOrder | null)[] = layout.map(() => null);
+  // The seated cards with the chair each sat in, in old seat order.
+  const cards: { slot: SlottedOrder; was: number }[] = [];
+  previous.forEach((slot, was) => {
+    if (slot !== null && isOrderId(slot.card)) cards.push({ slot, was });
+  });
+  const seated = new Set<number>();
+  const seat = (card: number, chair: number): void => {
+    const old = cards[card]!.slot;
+    slots[chair] = { ...old, sealedUntil: Math.min(old.sealedUntil, turn) };
+    seated.add(card);
+  };
+  // 0. Every card whose chair still exists, is free of a malice and still fits
+  // it stays where it is. Each old chair held one card, so no two cards can
+  // claim the same chair here.
+  cards.forEach(({ slot, was }, card) => {
+    if (was >= layout.length || held[was] === true) return;
+    if (orderFitsSlot(slot.card, layout[was]!)) seat(card, was);
+  });
+  const firstFree = (admits: (chair: ChairType) => boolean): number => {
+    for (let index = 0; index < layout.length; index++) {
+      if (slots[index] !== null || held[index] === true) continue;
+      if (admits(layout[index]!)) return index;
+    }
+    return -1;
+  };
+  const pass = (
+    takes: (type: ReturnType<typeof orderType>) => boolean,
+    admits: (type: ReturnType<typeof orderType>, chair: ChairType) => boolean,
+  ): void => {
+    cards.forEach(({ slot }, card) => {
+      if (seated.has(card)) return;
+      const type = orderType(slot.card);
+      if (!takes(type)) return;
+      const chair = firstFree((one) => admits(type, one));
+      if (chair >= 0) seat(card, chair);
+    });
+  };
+  const typed = (type: ReturnType<typeof orderType>): boolean =>
+    type !== 'wildcard' && type !== 'unsorted';
+  // 1. Wildcard cards first, because only a Wildcard chair takes them.
+  pass((type) => type === 'wildcard', (_type, chair) => chair === 'wildcard');
+  // 2. A typed card in a chair of its own type.
+  pass(typed, (type, chair) => chair === type);
+  // 3. The typed cards left, in the Wildcard chairs left.
+  pass(typed, (_type, chair) => chair === 'wildcard');
+  // 4. The unsorted cards, typed chairs before Wildcard ones.
+  pass((type) => type === 'unsorted', (_type, chair) => chair !== 'wildcard');
+  pass((type) => type === 'unsorted', (_type, chair) => chair === 'wildcard');
+
+  const reseated: OrderId[] = [];
+  const returned: OrderId[] = [];
+  cards.forEach(({ slot }, card) => (seated.has(card) ? reseated : returned).push(slot.card));
+  return { slots, reseated, returned };
+}
+
+/**
+ * **Seats a council again after its chairs were laid out afresh**: the malices
+ * first (`reseatMalices`), then the Orders that sat in `previous`, by
+ * `reseatOrders`. Writes `player.statecraft.slots`, which the caller has already
+ * built to the new council's length, and the malices' chairs.
+ *
+ * The one seating an adoption does. `adoptGovernmentAt` calls it on the live
+ * player, and `cardImpact.ts` on a ghost to price a charter, so the stamp on a
+ * government card and the adoption it prices seat the same cards.
+ */
+export function reseatCouncil(
+  player: Player,
+  previous: readonly (SlottedOrder | null)[],
+  turn: number,
+): { reseated: OrderId[]; returned: OrderId[] } {
+  reseatMalices(player);
+  const layout = slotTypesOf(player.statecraft);
+  const held = layout.map((_, index) => maliceAt(player, index) !== null);
+  const seating = reseatOrders(previous, layout, held, turn);
+  player.statecraft.slots = seating.slots;
+  return { reseated: seating.reseated, returned: seating.returned };
 }
 
 /**
  * Adopts a government: **the chapter break** (Entry XV.b).
  *
  * Three things happen in one breath, and they are one decision rather than
- * three. The **slot spread** changes, so the array is rebuilt to the new
- * government's layout. Every slotted card **returns to the collection
- * unsealed** — the amnesty, which is Civ VI's free-swap window derived rather
- * than ruled: a new spread with the old cards still pinned in it would be a
- * spread the player cannot use. And a **Doctrine draft opens**, drawn here
+ * three. The **chairs** change, so the array is rebuilt to the new
+ * government's layout. The seated cards are **re-seated** in it as far as they
+ * fit (`reseatCouncil`, batch C2): a card whose chair still exists and still
+ * fits it keeps that chair, the rest move to free chairs that fit them, and
+ * every seal is lifted so the player can re-lay the council at once; a card
+ * that fits no chair left goes back to the collection with its progress. And a
+ * **Doctrine draft opens**, drawn here
  * rather than at the next resolution because it belongs to *this* moment and a
  * draw taken later would be a draw taken from a moved generator.
  *
@@ -2566,10 +2719,8 @@ export function adoptGovernmentAt(
   // adoption would see a decision that has already been made.
   delete sc.pendingGovernment;
 
-  const amnestied: OrderId[] = [];
-  for (const slot of sc.slots) {
-    if (slot) amnestied.push(slot.card);
-  }
+  // The old council, kept to re-seat from once the new chairs are laid out.
+  const previous = sc.slots;
   sc.government = id;
   // **The charter has changed hands, and the chair count below reads it**
   // (batch R1). A government is the first source of `liveEffects`, and the walk
@@ -2586,8 +2737,8 @@ export function adoptGovernmentAt(
   // whole of the old charter.
   forgetTheLaw(state);
   // Rebuilt rather than resized: the new layout's slot 2 is not the old one's,
-  // so carrying anything across by index would seal the wrong card in the wrong
-  // kind of slot. The amnesty is total by construction.
+  // so carrying anything across by index would seat a card in the wrong kind
+  // of chair. The cards are re-seated by type below instead.
   //
   // **To `chairCount` and not to `slotLayout`**, so a law that opens chairs of
   // its own (The King's Friends) opens them under every government this realm
@@ -2606,12 +2757,13 @@ export function adoptGovernmentAt(
   // one place a government changes hands, and never a countdown — see the
   // field's own docblock for why a *pick* still does not reset it.
   sc.rerollsTaken = 0;
-  // **The amnesty is for Orders and never for a malice** (§4): the debt is owed
-  // to the next wager rather than to the government that owed it, so every one
-  // this realm carries takes a chair in the new spread. See `reseatMalices`.
-  reseatMalices(player);
-  // A government is the first source of `liveEffects` and the amnesty above
-  // emptied every slot — two writes the meters fold, announced together (batch
+  // **The malices take their chairs first, then the Orders are re-seated**
+  // (§4 and batch C2): the debt is owed to the next wager rather than to the
+  // government that owed it, so every malice this realm carries takes a chair
+  // in the new layout, and the cards fill the chairs left. See `reseatCouncil`.
+  const seating = reseatCouncil(player, previous, state.turn);
+  // A government is the first source of `liveEffects` and the re-seating above
+  // rewrote every chair — two writes the meters fold, announced together (batch
   // M3, `slate.ts`). **And the slate dropped** (`forgetTheLaw`'s register): the
   // chair count above read the law with the new government and the *old*
   // chairs, and a memo warmed mid-rebuild answered for a benched Order as if
@@ -2631,7 +2783,13 @@ export function adoptGovernmentAt(
     sc.pendingDoctrine = doctrines;
     opened = doctrines;
   }
-  return { id, name: governmentDef(id).name, amnestied, doctrines: opened };
+  return {
+    id,
+    name: governmentDef(id).name,
+    reseated: seating.reseated,
+    returned: seating.returned,
+    doctrines: opened,
+  };
 }
 
 /** Why this player cannot take this Doctrine, or `null`. `orderChoiceError`'s twin. */

@@ -499,9 +499,16 @@ describe('what each charter building does', () => {
     const two = foldCardYields(explainCardCityYields(state, city));
     expect(two.science).toBe(2);
     expect(two.culture).toBe(2);
-    // A military Order is not a wildcard one — the card's own slot flavour,
-    // never the chair it sits in.
-    slot(state, 0, 'vigilCharter');
+    // An Order in a Military chair is not a Wildcard one. These three rows
+    // belong to no sorted deck, so each counts as the type of the chair it sits
+    // in (batch C2's interim rule, `countedTypeOf`): the two above sit in
+    // Wildcard chairs past the chiefdom's three, and The Vigil Charter goes in
+    // the chiefdom's own Military chair.
+    const sc = playerById(state, 0)!.statecraft;
+    sc.orders.push('vigilCharter');
+    expect(sc.slots[0]).toBeNull();
+    sc.slots[0] = { card: 'vigilCharter', sealedUntil: state.turn };
+    bumpRevision(state);
     expect(foldCardYields(explainCardCityYields(state, city)).science).toBe(2);
   });
 

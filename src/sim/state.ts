@@ -1180,8 +1180,30 @@ import {
  * `chooseOrder` index would name a card this build never dealt, and a card a
  * v127 game held pays differently here. The branch migrates nothing, for the
  * reason given under v119.
+ *
+ * v129 (branch `decks`; batch C2a of `docs/plans/chairs-build.md`): **chairs
+ * have types again.** No field joined or left the state. In the data, each
+ * government row's `chairMix` replaces its old `slots`: a mix of Military,
+ * Economic, Civic and Wildcard chairs that adds up to the rung's chairs
+ * (`docs/plans/doctrines-governments-chairs.md` section 4), and every chair
+ * beyond the mix is a Wildcard chair. A typed chair takes a card of its own
+ * type or an unsorted card, a Wildcard chair takes any card, and a Wildcard
+ * card fits only a Wildcard chair (`orderFitsSlot`). Adopting a government now
+ * re-seats the cards already seated (`reseatOrders`) where it used to empty
+ * every chair: a card whose chair still exists and still fits it keeps that
+ * chair, and the rest move to free chairs that fit them. Imperium, the
+ * Merchant League and Divine Mandate count seated Orders by type (Divine
+ * Mandate counts Civic ones now), and an unsorted card counts as the type of
+ * its chair, a Wildcard chair included. The Empire, The Commonwealth and The
+ * Magisterium are retired, so nobody is offered a government at draft 38.
+ *
+ * **A v128 save is refused and does not replay.** A v128 log can seat a card
+ * in a chair this build refuses it, its adoptions emptied councils that this
+ * build keeps seated, and a seat that reached draft 38 adopted a government
+ * this build never offers. Each of those changes what the seat holds from that
+ * command on. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 128;
+export const SCHEMA_VERSION = 129;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

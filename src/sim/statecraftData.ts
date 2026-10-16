@@ -314,27 +314,19 @@ export interface CharterSpec {
 }
 
 /**
- * Which slot an Order fits, and therefore what a government's spread is counted
- * in.
+ * **The old three-word vocabulary of offices**: the office a pre-rework row
+ * fitted (`OrderDef.slot`, printed by the Compendium) and the chair a malice
+ * takes (`MaliceDef.chair`).
  *
- * **Unread by the draw and the chairs since the decks rework** (D1a): every
- * chair is universal now — a government supplies a *count* of chairs and no
- * layout — so `slotLayout` answers `'wildcard'` for every chair and
- * `orderFitsSlot` is true of every card. The type stays because the retired
- * rows still carry the field (the Compendium prints it, a save may hold a row
- * that pays by it — `slottedOrdersOfFlavour` reads the *card's* flavour, never
- * the chair's) and because a malice's row names the chair it takes in this
- * vocabulary. It joins nothing new: a row written after the rework carries no
- * `slot` at all.
- *
- * A card's **type** is a different field with a vocabulary of its own
- * (`CardType`, batch C1): four types where this has three, and an Order row
- * written after the rework carries a type and never a `slot`. The two are kept
- * apart so that adding the type changes nothing these readers count.
+ * Nothing seats a card by it any more. Since batch C2 a chair's type and a
+ * card's type are the four-word `CardType` (`ChairType` when it names a
+ * chair), and these three words are three of those four, so a malice's chair
+ * is read as the chair type of the same name (`maliceChairFor`). A row
+ * written after the decks rework carries no `slot`; it carries a `type`.
  */
 export type SlotType = 'military' | 'economic' | 'wildcard';
 
-/** The slot types in the order a spread is printed and a screen lays them out. */
+/** The old offices in the order the old spread printed them. See `SlotType`. */
 export const SLOT_TYPES: readonly SlotType[] = ['military', 'economic', 'wildcard'];
 
 /**
@@ -349,19 +341,39 @@ export const SLOT_TYPES: readonly SlotType[] = ['military', 'economic', 'wildcar
  *     weariness, renown and great people;
  *   · **wildcard**: commissions, and cards that act on other cards.
  *
- * Today the type decides only how a card is drawn: its face is printed in its
- * type's ink (`src/ui/suitFace.ts`). Batch C2 makes it decide which chair the
- * card fits. Until then every chair still takes every card (`orderFitsSlot`),
- * and nothing in the simulation reads the type.
+ * The type decides two things. Its face is printed in its type's ink
+ * (`src/ui/suitFace.ts`, batch C1), and since batch C2 it decides which chair
+ * the card fits (`orderFitsSlot`): a Military, Economic or Civic card fits a
+ * chair of its own type or a Wildcard chair, and a Wildcard card fits only a
+ * Wildcard chair. The tier-18 signatures count seated cards by type
+ * (`countedTypeOf`).
  *
  * Its own union rather than a fourth member of `SlotType`, because that union
- * is the retired rows' and the malices' vocabulary and several tables are keyed
- * on it. See `SlotType`.
+ * is the retired rows' and the malices' vocabulary and several tables outside
+ * the simulation are keyed on it. See `SlotType`.
  */
 export type CardType = 'military' | 'economic' | 'civic' | 'wildcard';
 
 /** The four types, in the order the A3 board's key prints them. */
 export const CARD_TYPES: readonly CardType[] = ['military', 'economic', 'civic', 'wildcard'];
+
+/**
+ * **A chair's type** (batch C2): the same four words as a card's type, because
+ * a chair is named by the cards it takes. A Military, Economic or Civic chair
+ * takes a card of its own type and an unsorted card; a Wildcard chair takes any
+ * card. The alias is for the reader: a layout is a list of chairs, not cards.
+ */
+export type ChairType = CardType;
+
+/** The chair types, in the order a government's chairs are laid out. */
+export const CHAIR_TYPES: readonly ChairType[] = CARD_TYPES;
+
+/**
+ * **How many chairs of each type a government opens** (batch C2): its row's
+ * `chairMix`, the table in `docs/plans/doctrines-governments-chairs.md`
+ * section 4. The four counts add up to the row's `chairs`.
+ */
+export type ChairMix = Record<ChairType, number>;
 
 /**
  * **A card's type as every reader sees it** (`orderType`): one of the four
@@ -371,10 +383,10 @@ export const CARD_TYPES: readonly CardType[] = ['military', 'economic', 'civic',
  * sorted yet: Dominion, with the cards it shares, is the only sorted deck, and
  * the user asked for the others to wait (2026-10-16: *"for decks outside of
  * dominion, we can just assign everything as a wildcard slot until we get to
- * them"*). It stays distinct from `'wildcard'` because the two will seat
- * differently in batch C2: a Wildcard card will fit only a Wildcard chair, and
- * an unsorted card will fit any chair (confirmed by the user, 2026-10-16). The
- * face draws an unsorted card in the Wildcard ink.
+ * them"*). It stays distinct from `'wildcard'` because the two seat
+ * differently: a Wildcard card fits only a Wildcard chair, and an unsorted card
+ * fits any chair (confirmed by the user, 2026-10-16). The face draws an
+ * unsorted card in the Wildcard ink.
  */
 export type CardTypeReading = CardType | 'unsorted';
 
@@ -1575,16 +1587,16 @@ export type CombatScaleCount =
    */
   | 'greatPeopleOfFamily'
   /**
-   * Orders in a chair whose own flavour is the one named in `CombatScale.slot` —
-   * The War Council, the deck-reader family's military member.
+   * Seated Orders of the type named in `CombatScale.slot` — The War Council,
+   * the deck-reader family's military member.
    *
    * `CountKind`'s member of the same name, asked of a *fight* rather than of a
    * ledger: the two unions share nothing but the word "count" (see
    * `combatScaleCount`), so a reader that pays strength and a reader that pays
    * yields each name the question in their own table. The reading is identical
-   * and deliberately so — the card's own `OrderDef.slot`, never the chair's — so
-   * the council a player can see on the Statecraft screen is the council that
-   * shows up in the combat preview.
+   * and deliberately so (`countedTypeOf`: the card's own type, or its chair's
+   * for an unsorted card), so the council a player can see on the Statecraft
+   * screen is the council that shows up in the combat preview.
    */
   | 'slottedOrdersOfSlot'
   /**
@@ -1634,13 +1646,13 @@ export interface CombatScale {
   /** Which family `greatPeopleOfFamily` counts. Ignored by the other counts. */
   family?: Family;
   /**
-   * Which flavour `slottedOrdersOfSlot` counts. Ignored by the other counts.
+   * Which type `slottedOrdersOfSlot` counts. Ignored by the other counts.
    *
    * `family`'s sibling one count over, and on the scale for that field's reason:
    * a count that needs an argument names it here rather than in the union, so
    * the union stays a list of questions.
    */
-  slot?: SlotType;
+  slot?: ChairType;
 }
 
 /**
@@ -2327,24 +2339,28 @@ export type CountKind =
    */
   | 'unslottedOrders'
   /**
-   * Orders sitting in a chair whose own **flavour** is the one named in
-   * `CardPaysEffect.slot` — the deck-readers (The Guild Charter's
-   * economic cards, The Synod's wildcards).
+   * Seated Orders of the **type** named in `CardPaysEffect.slot` — the
+   * deck-readers: the tier-18 signatures (Imperium's Military Orders, the
+   * Merchant League's Economic Orders, Divine Mandate's Civic Orders) and the
+   * buildings that read the council.
    *
    * `slottedOrders` counts how *full* the council is and this counts what kind
    * of council it is, which is the whole of what a deck-reader asks: a
    * draft stops being a shopping trip the moment a card is worth more beside its
    * own kind. It takes its argument on the effect exactly as `buildingsOfKind`
-   * does, so "per military Order" and "per wildcard Order" are one arm, one
-   * table entry and three data rows.
+   * does, so "per military Order" and "per civic Order" are one arm, one table
+   * entry and several data rows.
    *
-   * **The card's own flavour, not the chair's** (the user's Senatus, verbatim:
-   * *"not a wildcard slot filled, a wildcard card that is active"*). A wildcard
-   * chair takes any card, so counting chairs would have paid a military empire
-   * for its spearmen under a wildcard heading. Read off `OrderDef.slot` for
-   * every card in `PlayerStatecraft.slots`, which means a deck-reader **counts
-   * itself** — that is deliberate, and it is what makes the floor of the card
-   * one helping rather than nothing at all.
+   * **The card's own type, not the chair's** (the user's Senatus, verbatim:
+   * *"not a wildcard slot filled, a wildcard card that is active"*), so a
+   * Military card in a Wildcard chair counts as Military. The one exception is
+   * an unsorted card, which counts as the type of the chair it sits in, a
+   * Wildcard chair included (batch C2's interim rule, until every deck is
+   * sorted): a Commerce card in an Economic chair still counts for the Merchant
+   * League, and one in a Wildcard chair counts as a Wildcard Order for the
+   * Assembly Hall. `countedTypeOf` is the reading. A deck-reader **counts
+   * itself**, which is deliberate: it makes the floor of the card one helping
+   * rather than nothing at all.
    */
   | 'slottedOrdersOfSlot'
   /**
@@ -4613,11 +4629,11 @@ export interface CardPaysEffect extends CardYieldBag {
    */
   tile?: TileCondition;
   /**
-   * Which flavour `slottedOrdersOfSlot` counts. Absent counts every slotted
-   * Order whatever its flavour, which is the honest reading of an unnamed
-   * argument rather than a guard.
+   * Which type `slottedOrdersOfSlot` counts. Absent counts every seated Order
+   * whatever its type, which is the honest reading of an unnamed argument
+   * rather than a guard.
    */
-  slot?: SlotType;
+  slot?: ChairType;
   /**
    * Which moment `tally` counts. A `tally` row that names no occasion counts
    * nothing at all — the honest answer for a card that never said what it was
@@ -6873,8 +6889,8 @@ export interface CardBuildingYieldPercentEffect {
  */
 export interface CardSlotPositionEffect {
   kind: 'slotPosition';
-  /** Which flavour of chair is counted. Absent counts every chair. */
-  slot?: SlotType;
+  /** Which type of chair is counted. Absent counts every chair. */
+  slot?: ChairType;
   /** Which chair of that flavour, counting from one, in slot order. */
   position: number;
   /** What that Order's lines are multiplied by. 2 pays twice. */
@@ -6935,7 +6951,7 @@ export interface CardPeriodicEffect {
   building?: BuildingId;
   category?: BuildingCategory;
   categories?: BuildingCategory[];
-  slot?: SlotType;
+  slot?: ChairType;
   voice?: CityYieldKey;
   class?: UnitFilter;
   tally?: TallyOccasion;
@@ -7231,30 +7247,40 @@ export interface CardDefBase {
   effects: CardEffect[];
 }
 
-/** How many slots of each type a government opens. */
-export type SlotSpread = Record<SlotType, number>;
-
 export interface GovernmentDef extends CardDefBase {
   /** The culture tier at which this government is offered. 0 is the start. */
   tier: number;
   /**
-   * **How many chairs this government supplies** — the whole of what a
-   * government says about seating since the decks rework (D1a: *"chairs are
-   * universal"*). The number is its tier's rung on `tierLadder` (3 / 5 / 8 /
-   * 11 / 11 at draft counts 0 / 4 / 18 / 29 / 38; a tier between rungs takes
-   * the rung below it), written on the row so that the sixteen governments
-   * stay rows with a signature each and the count is a field somebody can retune.
+   * **How many chairs this government supplies.** The number is its tier's
+   * rung on `tierLadder` (3 / 5 / 8 / 11 / 11 at draft counts 0 / 4 / 18 / 29 /
+   * 38; a tier between rungs takes the rung below it), written on the row so
+   * that the count is a field somebody can retune.
    *
    * A leader's extra chair and a card's (`CardSlotRiderEffect`) are added on
-   * top by `chairCount`, exactly as they were added on top of the spread.
+   * top by `chairCount`, and every one of them is a Wildcard chair.
    */
   chairs: number;
   /**
-   * The old M/E/W spread, **left in place and read by nothing** (D1a). The
-   * rows keep it because a row is a record; `slotLayout` no longer derives
-   * anything from it. A government written after the rework carries none.
+   * **Which type each of those chairs is** (batch C2; the table in
+   * `docs/plans/doctrines-governments-chairs.md` section 4). The four counts
+   * add up to `chairs`, and `test/sim/statecraft.test.ts` pins that against
+   * the ladder. `slotLayout` lays the chairs out from it, Military first and
+   * Wildcard last.
+   *
+   * Absent on a retired row, which was never given a mix (the tier-38
+   * governments, ruled 2026-10-16): its chairs read as Wildcard chairs, which
+   * is how every chair read before typed chairs came back.
    */
-  slots?: SlotSpread;
+  chairMix?: ChairMix;
+  /**
+   * **Withdrawn from the offer** (batch C2): never offered at any tier, and
+   * still fully readable, for `OrderDef.retired`'s reason. The tier-38
+   * governments (The Empire, The Commonwealth and The Magisterium) were meant
+   * for a fifth age the game does not have, and the user left them
+   * unimplemented (2026-10-16). Their rows stay so the Compendium can print
+   * them; `GOVERNMENT_TIERS` and `governmentsAtTier` skip them.
+   */
+  retired?: boolean;
 }
 
 export interface DoctrineDef extends CardDefBase {
@@ -7714,10 +7740,12 @@ export interface StatecraftConfig {
    *     figure written onto each row's `chairs`).
    *
    * The governments are still *offered* at the rows' own tiers
-   * (`GOVERNMENT_TIERS`, read off the rows: 4 · 10 · 18 · 29 · 38), which is a
+   * (`GOVERNMENT_TIERS`, read off the live rows: 4 · 10 · 18 · 29), which is a
    * different question — a tier between two rungs keeps the rung below it, so
-   * the tier-10 rows supply five chairs. The ladder is the design doc's table
-   * and a sync test holds the two together.
+   * the tier-10 rows supply five chairs. No government is offered at 38 since
+   * batch C2 retired that tier's three, but the rung still opens the Tier IV
+   * cards. The ladder is the design doc's table and a sync test holds the two
+   * together.
    */
   tierLadder: TierRung[];
   governments: Record<GovernmentId, GovernmentDef>;
@@ -7926,45 +7954,68 @@ export function poolDoctrines(tier: number): DoctrineId[] {
 
 /**
  * The culture tiers at which a government is offered, ascending — 4, 10, 18
- * today, read off the rows rather than restated.
+ * and 29 today, read off the rows rather than restated. **Retired rows
+ * excluded** (batch C2): the tier-38 governments are offered to nobody, so 38
+ * is not on this list, though the ladder's rung at draft 38 still opens the
+ * Tier IV cards (`bandTierAt`).
  *
  * The **live** ladder, and it is deliberately narrower than `tierLadder`: this
  * is "where a triple actually exists", derived from the rows, while that is the
- * ratified pacing including the two rungs nothing has been written for yet.
+ * ratified pacing.
  */
 export const GOVERNMENT_TIERS: readonly number[] = [
-  ...new Set(GOVERNMENT_IDS.map((id) => governmentDef(id).tier).filter((tier) => tier > 0)),
+  ...new Set(
+    GOVERNMENT_IDS.filter((id) => governmentDef(id).retired !== true)
+      .map((id) => governmentDef(id).tier)
+      .filter((tier) => tier > 0),
+  ),
 ].sort((a, b) => a - b);
 
-/** The fixed triple offered at a tier, in file order. Deterministic — never rolled. */
+/**
+ * The fixed triple offered at a tier, in file order — **retired rows
+ * excluded**, which is what keeps the tier-38 governments off every offer.
+ * Deterministic — never rolled.
+ */
 export function governmentsAtTier(tier: number): GovernmentId[] {
-  return GOVERNMENT_IDS.filter((id) => governmentDef(id).tier === tier);
+  return GOVERNMENT_IDS.filter(
+    (id) => governmentDef(id).tier === tier && governmentDef(id).retired !== true,
+  );
 }
 
 /**
- * How many slots of each type a government opens — **every one of them a
- * wildcard since the decks rework** (D1a: chairs are universal). Derived from
- * `chairs` and never from the row's old `slots` field, so the one reading of a
- * government's seating is the count.
- */
-export function slotSpread(id: GovernmentId): SlotSpread {
-  return { military: 0, economic: 0, wildcard: slotCount(id) };
-}
-
-/**
- * The slot *layout* a government produces: one entry per chair, and every
- * entry `'wildcard'` since the decks rework.
+ * **How many chairs of each type a government opens** (batch C2): the row's
+ * `chairMix`, or every chair a Wildcard chair for a row with no mix (a retired
+ * row). The four counts add up to `slotCount`.
  *
- * A flat array still, because the state stores what is *in* each chair by
- * index and an index has to mean the same thing in every reading of it. The
- * three flavours went with the M/E/W spread (D1a); what a government says now
- * is *how many*, and this is that number said as a list so that every reader
- * of the layout — the screen's column, the malice's seating, the position
- * cards — keeps its shape.
+ * The mix is read as written and never trimmed to `chairs`;
+ * `test/sim/statecraft.test.ts` pins that the two agree, so a row edited in one
+ * field and not the other fails the build rather than seating a council of the
+ * wrong size.
  */
-export function slotLayout(id: GovernmentId): SlotType[] {
-  const layout: SlotType[] = [];
-  for (let i = 0; i < slotCount(id); i++) layout.push('wildcard');
+export function slotSpread(id: GovernmentId): ChairMix {
+  const mix = governmentDef(id).chairMix;
+  if (mix === undefined) return { military: 0, economic: 0, civic: 0, wildcard: slotCount(id) };
+  const spread = { military: 0, economic: 0, civic: 0, wildcard: 0 };
+  for (const type of CHAIR_TYPES) spread[type] = Math.max(0, Math.floor(mix[type] ?? 0));
+  return spread;
+}
+
+/**
+ * **The chairs a government lays out**: one entry per chair, grouped by type in
+ * `CHAIR_TYPES` order — Military, Economic, Civic, then Wildcard.
+ *
+ * A flat array, because the state stores what is *in* each chair by index and
+ * an index has to mean the same thing in every reading of it (the slot-order
+ * contract on `slotTypesOf`). Wildcard last, so the chairs a law adds on top
+ * (`chairCount`, all of them Wildcard chairs) extend the Wildcard run rather
+ * than splitting it.
+ */
+export function slotLayout(id: GovernmentId): ChairType[] {
+  const spread = slotSpread(id);
+  const layout: ChairType[] = [];
+  for (const type of CHAIR_TYPES) {
+    for (let i = 0; i < spread[type]; i++) layout.push(type);
+  }
   return layout;
 }
 
@@ -7974,36 +8025,51 @@ export function slotCount(id: GovernmentId): number {
 }
 
 /**
- * Does an Order fit a slot of this type?
+ * **Does an Order fit a chair of this type?** The fit rule of batch C2
+ * (`docs/plans/chairs-build.md`, ruled by the user 2026-10-16):
  *
- * A **wildcard slot takes anything** — and since the decks rework every chair
- * is one, so this answers `true` for every card in every chair. The typed
- * clause stays for the retired rows' sake: a row that still carries a `slot`
- * fits its own flavour as it always did, which matters to nothing live and
- * keeps the rule readable.
+ *   · a **Wildcard chair** takes any card;
+ *   · a **Military, Economic or Civic chair** takes a card of its own type, or
+ *     an unsorted card (`orderType` answers `'unsorted'` for a deck not sorted
+ *     yet, and such a card fits any chair so the other decks play as before);
+ *   · a **Wildcard card** therefore fits only a Wildcard chair.
+ *
+ * The one statement of the rule. The reducer's refusal (`slotOrderError`), the
+ * re-seating on adoption (`reseatOrders`), the bots and the screens all ask it.
  */
-export function orderFitsSlot(order: OrderId, slot: SlotType): boolean {
-  return slot === 'wildcard' || orderSlot(order) === slot;
+export function orderFitsSlot(order: OrderId, chair: ChairType): boolean {
+  if (chair === 'wildcard') return true;
+  const type = orderType(order);
+  return type === 'unsorted' || type === chair;
 }
 
 /**
- * The office a retired row fitted, or `'wildcard'` for a row written after the
- * rework — **the one reading of `OrderDef.slot`** for the surfaces that still
- * print it (the Compendium's shelf, the old collection grouping). Nothing that
- * deals or seats a card asks this.
+ * **The type a seated Order counts as** for the cards that count the council by
+ * type (`slottedOrdersOfSlot`): the card's own type, or, for an unsorted card,
+ * the type of the chair it sits in, a Wildcard chair included.
+ *
+ * The second half is batch C2's interim rule (`docs/plans/chairs-build.md`),
+ * in the spirit of the user's *"assign everything as a wildcard slot until we
+ * get to them"*: until every deck is sorted, a Commerce card in an Economic
+ * chair still counts for the Merchant League, and one in a Wildcard chair
+ * counts as a Wildcard Order for the Assembly Hall (a Magisterial building that
+ * pays per Wildcard Order). The first draft of the rule counted an unsorted
+ * card in a Wildcard chair as no type, which left the Assembly Hall paying
+ * nothing for the decks not sorted yet; the spec dropped that on 2026-10-16.
  */
-export function orderSlot(order: OrderId): SlotType {
-  return orderDef(order).slot ?? 'wildcard';
+export function countedTypeOf(order: OrderId, chair: ChairType): ChairType {
+  const type = orderType(order);
+  return type === 'unsorted' ? chair : type;
 }
 
 /**
  * **A card's type**: the row's `type`, or `'unsorted'` when the row carries
- * none. The one reading of `OrderDef.type`, so every reader (the card faces
- * today, the chairs from batch C2) gets the same answer for a row without one.
+ * none. The one reading of `OrderDef.type`, so every reader (the card faces,
+ * the chairs, the counts) gets the same answer for a row without one.
  *
- * Not `orderSlot`: that function answers `'wildcard'` for a row with no office,
- * and an unsorted card must stay distinguishable from a Wildcard one. See
- * `CardTypeReading`.
+ * Never the row's old `slot`: a retired row's office is history the Compendium
+ * prints, and a row with no type must stay unsorted rather than read as
+ * Wildcard. See `CardTypeReading`.
  */
 export function orderType(order: OrderId): CardTypeReading {
   return orderDef(order).type ?? 'unsorted';

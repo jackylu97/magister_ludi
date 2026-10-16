@@ -415,6 +415,10 @@ const EXCUSED = new Map<string, string>([
     'takes no state, as above; `applyChooseDoctrine` (`commands.ts`) announces beside it',
   ],
   [
+    'draft.ts#reseatCouncil',
+    'takes no state and writes the council it is handed (batch C2): `adoptGovernmentAt` announces after it on the live seat, and `cardImpact.ts` hands it a ghost seat that no tenant reads',
+  ],
+  [
     'weariness.ts#pruneWarLosses',
     'the broom: it deletes only war losses that are already outside the weariness window on this turn and every later one, and the weariness reading skips those, so no answer changes',
   ],

@@ -870,9 +870,12 @@ describe("the research queue field", () => {
     // log's losing empires would grow on turns this build holds them back.
     // 127 since WC3: units earn ranks in combat, so a v126 log's veterans
     // would fight weaker than this build makes them.
-    // 128 since D0: the Dominion cards that needed no new shape change what a
-    // draft deals, so a v127 log's picks would name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(128);
+    // 128 since D0: fourteen Dominion cards join the decks and three are
+    // retired, so a v127 log's picks name cards this build never dealt.
+    // 129 since C2a: chairs have types again, adoption re-seats the council,
+    // and the tier-38 governments are retired, so a v128 log can seat a card
+    // where this build refuses it.
+    expect(SCHEMA_VERSION).toBe(129);
   });
 });
 

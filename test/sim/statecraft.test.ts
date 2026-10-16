@@ -170,6 +170,14 @@ import {
   ordersForDecks,
   slotCount,
 } from "../../src/sim/statecraftData";
+// Typed chairs (batch C2): the four-type mixes, and the card's own type, which
+// the fit rule and the tier-18 counts both read. The rules themselves are
+// pinned in `typedChairs.test.ts`.
+import {
+  CHAIR_TYPES,
+  orderType,
+  slotSpread,
+} from "../../src/sim/statecraftData";
 import { type Tile, getTileAt, neighborTiles, tileHex } from "../../src/sim/map";
 import { isPassable } from "../../src/sim/pathfind";
 import { isCoastal } from "../../src/sim/water";
@@ -262,7 +270,14 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
 }
 
 /** A city for a player, on the tile their first unit is standing on. */
-import { found, game, keepTheRites, marchOut, stockStandardDecks } from "./statecraftHelpers";
+import {
+  found,
+  game,
+  keepTheRites,
+  marchOut,
+  stockStandardDecks,
+  typeRowsByOldOffice,
+} from "./statecraftHelpers";
 import { createGame } from './newGameHelpers';
 
 /**
@@ -278,10 +293,20 @@ import { createGame } from './newGameHelpers';
  * `ordersForDecks`, never the pool of a government — there is no such pool.
  */
 let restoreShelf: () => void = () => {};
+/**
+ * **And each pre-rework row typed by its old office** (batch C2), so the count
+ * shapes below still read a card's own type: the rows are unsorted in the game
+ * and would otherwise count as the chair they sit in. See `typeRowsByOldOffice`.
+ */
+let restoreTypes: () => void = () => {};
 beforeAll(() => {
   restoreShelf = stockStandardDecks();
+  restoreTypes = typeRowsByOldOffice();
 });
-afterAll(() => restoreShelf());
+afterAll(() => {
+  restoreTypes();
+  restoreShelf();
+});
 
 // --- the table --------------------------------------------------------------
 
@@ -304,9 +329,12 @@ describe("the card table", () => {
     // 4/10/18/29/38 and is written down whole in `STATECRAFT.tierLadder`; this
     // list is the live half — the rungs a triple actually exists for — so it is
     // its first three, and Gov IV's rows will extend it by themselves.
-    // Gov IV and Gov V were written on 2026-08-28, so the live ladder is now the
-    // whole ratified one and the two lists agree end to end.
-    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 29, 38]);
+    // Gov IV and Gov V were written on 2026-08-28, so the live ladder was the
+    // whole ratified one until batch C2 retired the tier-38 three (the user,
+    // 2026-10-16: *"just leave the last tier as unimplemented"*). Their rows
+    // stay for the Compendium, and nobody is offered them.
+    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 29]);
+    expect(governmentsAtTier(38)).toEqual([]);
     // `tierLadder` is the ladder of bands and chairs, read by the sim: four
     // rungs since the decks rework (D1a), and a fifth for band 4 since the
     // deck implementation's foundation batch, at 45 until the user's ruling of
@@ -370,18 +398,19 @@ describe("the card table", () => {
     }
   });
 
-  it("opens with a slot for every kind of card the chiefdom pool can deal", () => {
+  it("opens with a chair for every kind of card the shelf can deal", () => {
     // Playtest batch two, 8/27: "chiefdom should include 1 wildcard slot, or
-    // make all tier 1 orders non-wildcard". The first option — several of the
-    // chiefdom-pool Orders are wildcard-only (First Rites, Fire-Keepers, Hearth
-    // Songs, First Fruits), and a starting government that could never play a
-    // card its own pool deals is a draft that hands a seat a dead card.
-    // **Re-cut for the decks rework** (D1a): every chair is universal, so the
-    // chiefdom's three take any card the shelf deals.
+    // make all tier 1 orders non-wildcard". The first option — a starting
+    // government that could never play a card its own shelf deals is a draft
+    // that hands a seat a dead card.
+    // **Re-cut for typed chairs** (batch C2; the user, 2026-10-16: *"lets
+    // revert chiefdom yeah"*): the chiefdom is one Military, one Economic and
+    // one Wildcard chair again, and the Wildcard chair takes any card — so no
+    // card the shelf deals is ever without a chair at the start.
     const layout = slotLayout(STARTING_GOVERNMENT);
-    expect(layout).toEqual(["wildcard", "wildcard", "wildcard"]);
+    expect(layout).toEqual(["military", "economic", "wildcard"]);
     for (const id of ordersForDecks(DECK_IDS)) {
-      expect(layout.every((type) => orderFitsSlot(id, type)), id).toBe(true);
+      expect(layout.some((type) => orderFitsSlot(id, type)), id).toBe(true);
     }
   });
 
@@ -846,18 +875,25 @@ describe("the command matrix", () => {
     );
   });
 
-  it("takes any card in any chair — every chair is universal (D1a)", () => {
-    // **Re-cut for the decks rework.** This pinned "is military and slot 2 is
-    // economic"; there is no typed chair left to refuse into. The chiefdom's
-    // three are three wildcards and a held card goes in any of them.
+  it("seats a card by the fit rule, and refuses a misfit in plain words (C2)", () => {
+    // **Re-cut for typed chairs** (batch C2). The decks rework had made every
+    // chair universal; the chiefdom's three are typed again — Military,
+    // Economic, Wildcard — and the fit rule is back: a typed chair takes its
+    // own type, the Wildcard chair takes anything. Blooded Spears is a
+    // military card in this file (`typeRowsByOldOffice`).
     const g = game();
     const sc = g.state.players[0]!.statecraft;
-    expect(slotLayout(sc.government)).toEqual(["wildcard", "wildcard", "wildcard"]);
+    expect(slotLayout(sc.government)).toEqual(["military", "economic", "wildcard"]);
     grant(sc, "bloodedSpears");
+    refuses(
+      g,
+      { type: "slotOrder", playerId: 0, cardId: "bloodedSpears", slotIndex: 1 } as Command,
+      "is a military card: it fits a military chair or a wildcard chair, and chair 2 is an economic chair",
+    );
     expect(
-      dispatch(g, { type: "slotOrder", playerId: 0, cardId: "bloodedSpears", slotIndex: 1 } as Command).ok,
+      dispatch(g, { type: "slotOrder", playerId: 0, cardId: "bloodedSpears", slotIndex: 0 } as Command).ok,
     ).toBe(true);
-    expect(sc.slots[1]?.card).toBe("bloodedSpears");
+    expect(sc.slots[0]?.card).toBe("bloodedSpears");
   });
 
   it("refuses a slot index the government does not have", () => {
@@ -1061,7 +1097,7 @@ describe("adoption", () => {
     return player;
   }
 
-  it("swaps the spread, amnesties every seal, and opens a Doctrine draft", () => {
+  it("lays out the new chairs, re-seats the card with its seal lifted, and opens no Doctrine draft", () => {
     const g = game();
     const player = toFirstRung(g);
     const sc = player.statecraft;
@@ -1085,10 +1121,16 @@ describe("adoption", () => {
     ).toBe(true);
 
     expect(sc.government).toBe(choice);
-    // The new spread, all of it empty: the amnesty is total by construction.
+    // **The new chairs, and the card kept** (batch C2; the user's ruling of
+    // 2026-10-12 that adopting a government keeps the seated cards, in
+    // `docs/plans/chairs-build.md`). Blooded Spears is a military card here, so
+    // it takes the new council's first Military chair, and its seal is lifted
+    // so the council can be laid out afresh.
     expect(sc.slots).toHaveLength(slotLayout(choice).length);
-    expect(sc.slots.every((entry) => entry === null)).toBe(true);
-    // The card is back in the collection, unsealed.
+    const at = sc.slots.findIndex((entry) => entry?.card === "bloodedSpears");
+    expect(at).toBe(slotLayout(choice).indexOf("military"));
+    expect(sealRemaining(g.state, sc.slots[at]!)).toBe(0);
+    expect(sc.slots.filter((entry) => entry !== null)).toHaveLength(1);
     expect(sc.orders).toContain("bloodedSpears");
     // The offer is spent — and **no Doctrine draft opens** (D1a): every
     // Doctrine row is retired, the pool deals nothing, and an adoption blocks
@@ -1784,9 +1826,12 @@ describe("determinism", () => {
     // log's losing empires would grow on turns this build holds them back.
     // 127 since WC3: units earn ranks in combat, so a v126 log's veterans
     // would fight weaker than this build makes them.
-    // 128 since D0: the Dominion cards that needed no new shape change what a
-    // draft deals, so a v127 log's picks would name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(128);
+    // 128 since D0: fourteen Dominion cards join the decks and three are
+    // retired, so a v127 log's picks name cards this build never dealt.
+    // 129 since C2a: chairs have types again, adoption re-seats the council,
+    // and the tier-38 governments are retired, so a v128 log can seat a card
+    // where this build refuses it.
+    expect(SCHEMA_VERSION).toBe(129);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -3069,9 +3114,20 @@ describe("the master-list cut of 2026-08-28", () => {
     expect(sc.grantedOnSlot).toEqual([]);
   });
 
-  it("offers Gov IV and Gov V at their rungs, and deals a Doctrine pool for each", () => {
+  it("offers Gov IV at its rung and retires Gov V, keeping the Doctrine rows of both", () => {
+    // **Gov V is retired** (batch C2): the fifth tier waited on a fifth age
+    // the game does not have (`docs/plans/doctrines-governments-chairs.md`,
+    // the ruling of 2026-10-16), so its three rows stay for saves and the
+    // Compendium and nobody is offered them. Every claim below about the rows
+    // still holds; only the offer is gone.
+    expect(governmentsAtTier(38)).toEqual([]);
+    for (const id of ["theEmpire", "theCommonwealth", "theMagisterium"] as const) {
+      expect(governmentDef(id).tier, id).toBe(38);
+      expect(governmentDef(id).retired, id).toBe(true);
+    }
     for (const tier of [29, 38]) {
-      expect(governmentsAtTier(tier)).toHaveLength(3);
+      const rows = GOVERNMENT_IDS.filter((id) => governmentDef(id).tier === tier);
+      expect(rows).toHaveLength(3);
       // D1a: the Doctrine pools are retired shelves; the rows are kept.
       expect(poolDoctrines(tier)).toEqual([]);
       expect(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === tier).length).toBeGreaterThanOrEqual(
@@ -3080,7 +3136,7 @@ describe("the master-list cut of 2026-08-28", () => {
       // **Every rung opens its own shelf** (the cards pass of 2026-09-05). Both
       // top rungs dealt Government III's pool until then, so adopting The Curia
       // or The Empire widened the council and offered nothing new to seat in it.
-      for (const id of governmentsAtTier(tier)) {
+      for (const id of rows) {
         expect(poolOfGovernment(id)).toBe(
           tier === 29 ? "governmentIV" : "governmentV",
         );
@@ -3190,9 +3246,11 @@ describe("the master-list cut of 2026-08-28", () => {
       "capturing a city grants +50 gold",
       "capturing a city heals every one of your units",
     ]);
+    // Batch C2 (the user, 2026-10-16: *"lets have it count civic orders"*):
+    // Divine Mandate counts the civic bench now, where it counted wildcards.
     expect(said("divineMandate")).toEqual([
-      "+1 faith in your capital per wildcard Order you have in a slot",
-      "+1 culture in your capital per wildcard Order you have in a slot",
+      "+1 faith in your capital per civic Order you have in a slot",
+      "+1 culture in your capital per civic Order you have in a slot",
       "+10% faith in every city of 6 or more citizens",
     ]);
 
@@ -3321,8 +3379,10 @@ describe("the master-list cut of 2026-08-28", () => {
       "+4 happiness in your capital",
       "+2 culture in every city",
     ]);
+    // "Gaining" since D0: a conscript pays the unit riders too (the user,
+    // 2026-10-16, in `docs/plans/dominion-build-triage.md`).
     expect(said("ritesOfPassage")).toEqual([
-      "completing a unit grants +10 faith",
+      "gaining a unit grants +10 faith",
     ]);
     // The Themes Build's rework (sheet 09, the user): the trickle replaces the
     // one-off laureate, and the five works are untouched.
@@ -6718,25 +6778,49 @@ describe("the Æra III fork of 2026-09-05", () => {
     bumpRevision(state);
   }
 
-  it("Divine Mandate — the capital reads the wildcard bench, and the tithe rises", () => {
+  it("Divine Mandate — the capital reads the civic bench, and the tithe rises", () => {
     const g = game(901);
     const capital = found(g.state, 0);
     rule(g.state, 0, "divineMandate");
+    // **The civic bench since batch C2** (the user, 2026-10-16: *"lets have it
+    // count civic orders"*); it read the wildcard bench before. The council is
+    // laid out as Divine Mandate's own eight chairs so each card below sits in
+    // a chair of a known type.
+    const sc = playerById(g.state, 0)!.statecraft;
+    const layout = slotLayout("divineMandate");
+    sc.slots = new Array(layout.length).fill(null);
+    const put = (chair: "military" | "economic" | "civic" | "wildcard", id: OrderId): void => {
+      const index = layout.findIndex((type, at) => type === chair && sc.slots[at] === null);
+      expect(index, `${chair} chair for ${id}`).toBeGreaterThanOrEqual(0);
+      grant(sc, id);
+      sc.slots[index] = { card: id, sealedUntil: g.state.turn };
+      bumpRevision(g.state);
+    };
+    const civic = ORDER_IDS.filter((id) => orderType(id) === "civic");
+    const unsorted = ORDER_IDS.find((id) => orderType(id) === "unsorted")!;
+    expect(civic.length).toBeGreaterThanOrEqual(2);
+    expect(unsorted).toBeDefined();
     const paid = (city: City, key: CityYieldKey): number =>
       explainCardCityYields(g.state, city)
         .filter((line) => line.card === "divineMandate")
         .reduce((sum, line) => sum + line[key], 0);
     // An empty council pays nothing at all, and says so by having no line.
     expect(paid(capital, "faith")).toBe(0);
-    // A wildcard card in a chair is one helping of each voice; a military one is
-    // none, because the count is the **card's** flavour and not the chair's.
-    slot(g.state, 0, "festivalDays");
+    // A civic card in a chair is one helping of each voice, and it counts by
+    // its own type, so it counts in a Wildcard chair too.
+    put("civic", civic[0]!);
     expect(paid(capital, "faith")).toBe(1);
     expect(paid(capital, "culture")).toBe(1);
-    slot(g.state, 0, "bloodedSpears");
-    expect(paid(capital, "faith")).toBe(1);
-    slot(g.state, 0, "waysideShrines");
+    put("wildcard", civic[1]!);
     expect(paid(capital, "faith")).toBe(2);
+    // A military card and a wildcard card are none of the civic bench.
+    put("military", "bloodedSpears");
+    put("wildcard", "festivalDays");
+    expect(paid(capital, "faith")).toBe(2);
+    // **An unsorted card counts as its chair's type** (the interim rule until
+    // its deck is sorted), so in a Civic chair it is one more helping.
+    put("civic", unsorted);
+    expect(paid(capital, "faith")).toBe(3);
     // One town only: `where: 'capital'` is the payout that lands in a single
     // named city.
     const second = foundCityAt(
@@ -7984,17 +8068,24 @@ describe("the engine shapes", () => {
     const g = game();
     const sc = playerById(g.state, 0)!.statecraft;
     expect(slotTypesOf(sc)).toHaveLength(sc.slots.length);
-    seat(g.state, 0, 1, "waysideShrines");
-    // **Every chair is universal** (D1a): the second chair is the second
-    // chair, a flavour names no chair at all, and the position card is paid for
-    // where the player put it.
-    expect(slotTypesOf(sc)[1]).toBe("wildcard");
-    expect(orderAtSlotPosition(sc, 2)).toBe("waysideShrines");
-    expect(orderAtSlotPosition(sc, 2, "wildcard")).toBe("waysideShrines");
+    // **Typed chairs again** (batch C2): the chiefdom's three are Military,
+    // Economic and Wildcard, index for index, so a position counted within a
+    // type counts that type's chairs only, and a position with no type named
+    // counts every chair.
+    expect(slotTypesOf(sc)).toEqual(["military", "economic", "wildcard"]);
+    seat(g.state, 0, 2, "waysideShrines");
+    expect(orderAtSlotPosition(sc, 3)).toBe("waysideShrines");
+    expect(orderAtSlotPosition(sc, 1, "wildcard")).toBe("waysideShrines");
+    expect(orderAtSlotPosition(sc, 2, "wildcard")).toBeNull();
     expect(orderAtSlotPosition(sc, 1, "economic")).toBeNull();
     expect(orderAtSlotPosition(sc, 1, "military")).toBeNull();
     expect(orderAtSlotPosition(sc, 1)).toBeNull();
     expect(orderAtSlotPosition(sc, 9)).toBeNull();
+    // A chair past the government's mix (a leader's, a card's) is a Wildcard
+    // chair, appended after the government's own.
+    sc.slots.push(null);
+    expect(slotTypesOf(sc)).toEqual(["military", "economic", "wildcard", "wildcard"]);
+    expect(orderAtSlotPosition(sc, 1, "wildcard")).toBe("waysideShrines");
   });
 
   it("pays the Order in the second chair twice over", () => {
@@ -9091,51 +9182,88 @@ describe("the cadence and the chairs, as ruled on the third pass", () => {
     expect(OLD(19)).toBe(879);
   });
 
-  it("takes a quarter off the chairs at tiers 18, 29 and 38, and leaves the early ones alone", () => {
-    /** A government's spread, M/E/W, as the doc's Slots column prints it. */
-    const spread = (id: GovernmentId): [number, number, number] => {
-      const slots = governmentDef(id).slots!;
-      return [slots.military, slots.economic, slots.wildcard];
+  it("lays every live government's chairs out of its ruled mix, and each mix fills its rung (C2)", () => {
+    // **Replaced by batch C2.** This test pinned the third pass's quarter cut
+    // of the old three-flavour spreads (`GovernmentDef.slots`), a field the
+    // decks rework had stopped reading and C2 removed. What stands in its
+    // place is the four-type mix of `docs/plans/doctrines-governments-chairs.md`
+    // section 4, assigned on 2026-10-16, with the Chiefdom's mix, the Wildcard
+    // rule and the tier-38 retirement ruled by the user the same day.
+    /** A government's mix, M/E/C/W, as the plan's chair table prints it. */
+    const mix = (id: GovernmentId): [number, number, number, number] => {
+      const spread = slotSpread(id);
+      return [spread.military, spread.economic, spread.civic, spread.wildcard];
     };
-    const chairs = (id: GovernmentId): number =>
-      spread(id).reduce((sum, n) => sum + n, 0);
+    expect(mix(STARTING_GOVERNMENT)).toEqual([1, 1, 0, 1]);
+    expect(mix("warChief")).toEqual([2, 1, 1, 1]);
+    expect(mix("councilOfElders")).toEqual([1, 2, 1, 1]);
+    expect(mix("priestKing")).toEqual([1, 1, 2, 1]);
+    expect(mix("tyranny")).toEqual([3, 1, 0, 1]);
+    expect(mix("republic")).toEqual([0, 3, 1, 1]);
+    expect(mix("theocracy")).toEqual([1, 0, 3, 1]);
+    expect(mix("imperium")).toEqual([3, 2, 1, 2]);
+    expect(mix("merchantLeague")).toEqual([1, 3, 2, 2]);
+    expect(mix("divineMandate")).toEqual([2, 1, 3, 2]);
+    expect(mix("theSultanate")).toEqual([4, 2, 2, 3]);
+    expect(mix("theEstates")).toEqual([2, 4, 2, 3]);
+    expect(mix("theCuria")).toEqual([2, 2, 4, 3]);
 
-    // **Untouched**: the ruling names Government III and up, and the early
-    // governments were never the crowded ones — three chairs, then five, then
-    // seven, exactly as they stood.
-    expect(chairs(STARTING_GOVERNMENT)).toBe(3);
-    for (const id of governmentsAtTier(4)) expect(chairs(id), id).toBe(5);
-    for (const id of governmentsAtTier(10)) expect(chairs(id), id).toBe(7);
+    // **Each mix adds up to its rung's chairs**: 3, 5, 5, 8 and 11 at tiers 0,
+    // 4, 10, 18 and 29. The row's `chairs` and the ladder must agree with the
+    // mix, or a council would lay out more chairs than it has types for.
+    const RUNG_CHAIRS = new Map<number, number>([
+      [0, 3],
+      [4, 5],
+      [10, 5],
+      [18, 8],
+      [29, 11],
+    ]);
+    const live = GOVERNMENT_IDS.filter((id) => governmentDef(id).retired !== true);
+    expect(live).toHaveLength(13);
+    for (const id of live) {
+      const tier = governmentDef(id).tier;
+      const total = mix(id).reduce((sum, n) => sum + n, 0);
+      expect(total, id).toBe(RUNG_CHAIRS.get(tier));
+      expect(total, id).toBe(slotCount(id));
+      expect(total, id).toBe(chairsAtTier(tier));
+      expect(slotLayout(id), id).toHaveLength(total);
+      // **Every government has a Wildcard chair**, so no card the shelf deals
+      // is ever without somewhere to sit.
+      expect(mix(id)[3], id).toBeGreaterThanOrEqual(1);
+    }
 
-    // **Cut a quarter**: 11 → 8, 13 → 10, 16 → 12. Each is `round(0.75 × old)`,
-    // and each government's own M/E/W shape is apportioned off three quarters of
-    // its old spread by largest remainder — so the Sultanate is still the
-    // soldiers' government and the Merchant League still the counting-house.
-    for (const id of governmentsAtTier(18)) expect(chairs(id), id).toBe(8);
-    for (const id of governmentsAtTier(29)) expect(chairs(id), id).toBe(10);
-    for (const id of governmentsAtTier(38)) expect(chairs(id), id).toBe(12);
+    // **One government leads each type at every rung above the first**: the
+    // martial one Military, the mercantile one Economic, the sacred and
+    // learned one Civic.
+    for (const tier of GOVERNMENT_TIERS) {
+      const leads = governmentsAtTier(tier).map((id) => {
+        const [m, e, c] = mix(id);
+        const top = Math.max(m, e, c);
+        return [m, e, c].indexOf(top);
+      });
+      expect([...leads].sort(), `tier ${tier}`).toEqual([0, 1, 2]);
+    }
 
-    // The nine triples, before → after, printed here because they are the
-    // ruling's own answer to "commensurately" and the doc table mirrors them
-    // (`docs/orders-and-doctrines.md`, pinned by `statecraftDocSync.test.ts`).
-    expect(spread("merchantLeague")).toEqual([1, 4, 3]); // 2/5/4
-    expect(spread("imperium")).toEqual([4, 2, 2]); // 5/3/3
-    expect(spread("divineMandate")).toEqual([2, 2, 4]); // 3/3/5
-    expect(spread("theEstates")).toEqual([2, 4, 4]); // 3/5/5
-    expect(spread("theSultanate")).toEqual([5, 2, 3]); // 6/3/4
-    expect(spread("theCuria")).toEqual([3, 3, 4]); // 4/4/5
-    expect(spread("theCommonwealth")).toEqual([2, 5, 5]); // 3/7/6
-    expect(spread("theEmpire")).toEqual([5, 3, 4]); // 7/4/5
-    expect(spread("theMagisterium")).toEqual([3, 4, 5]); // 4/5/7
+    // **The layout groups the chairs by type**, Military first and Wildcard
+    // last, so a chair a card or a leader adds extends the Wildcard run.
+    expect(slotLayout("divineMandate")).toEqual([
+      "military",
+      "military",
+      "economic",
+      "civic",
+      "civic",
+      "civic",
+      "wildcard",
+      "wildcard",
+    ]);
+    expect(CHAIR_TYPES).toEqual(["military", "economic", "civic", "wildcard"]);
 
-    // **Every flavour keeps a chair** at the cut tiers, which is the half of the
-    // ruling a total cannot express: "rounded, every group ≥ 1". The Council of
-    // Elders' nought is older than this pass and sits at tier 4, untouched.
-    for (const tier of [18, 29, 38]) {
-      for (const id of governmentsAtTier(tier)) {
-        for (const count of spread(id))
-          expect(count, id).toBeGreaterThanOrEqual(1);
-      }
+    // **The retired three carry no mix**; their chairs read as Wildcard chairs,
+    // which is how every chair read before typed chairs came back, and nobody
+    // is offered them.
+    for (const id of ["theEmpire", "theCommonwealth", "theMagisterium"] as const) {
+      expect(governmentDef(id).chairMix, id).toBeUndefined();
+      expect(slotLayout(id).every((chair) => chair === "wildcard"), id).toBe(true);
     }
   });
 });

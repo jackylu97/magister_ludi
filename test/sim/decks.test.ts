@@ -45,6 +45,7 @@ import {
   type HandPosition,
   adoptGovernmentAt,
   bandOpen,
+  chairMisfitRefusal,
   currentBand,
   currentBandOf,
   deckPoolOf,
@@ -86,9 +87,11 @@ import {
   governmentsAtTier,
   isDeckId,
   orderDef,
+  orderFitsSlot,
   orderIsDealt,
   ordersForDecks,
   slotCount,
+  slotLayout,
 } from '../../src/sim/statecraftData';
 import { hasAbility, isUnlocked, researchError } from '../../src/sim/tech';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
@@ -435,8 +438,8 @@ describe('the schema, as landed', () => {
       expect(orderDef(id).slot, id).toBeUndefined();
     }
     // The register: nothing under `src/sim/statecraft/` reads `.pool` or `.slot`
-    // to deal a card. The one reading of the office is `orderSlot`, for the
-    // surfaces that still print it.
+    // to deal a card. Seating reads a card's `type` since batch C2
+    // (`orderFitsSlot`), and the Compendium prints a retired row's old office.
     const sources = import.meta.glob('../../src/sim/statecraft/draft.ts', {
       eager: true,
       query: '?raw',
@@ -447,11 +450,13 @@ describe('the schema, as landed', () => {
     expect(draft).not.toMatch(/poolOfGovernment\(/);
   });
 
-  it('is a five-rung ladder with universal chairs, and every government carries its rung’s count', () => {
+  it('is a five-rung ladder, and every government carries its rung’s count', () => {
     // Chairs 3 / 5 / 8 / 11 are the user's ruling (docs/decks/deck-design.md
     // "More chairs"); the fifth rung (band 4) sits where the tier-38
-    // governments are offered and keeps eleven. The rung was 45 until the
-    // user's ruling of 2026-10-15 (docs/flags.md (uuuuuu)).
+    // governments were offered and keeps eleven. The rung was 45 until the
+    // user's ruling of 2026-10-15 (docs/flags.md (uuuuuu)). The three were
+    // retired in batch C2 and their rows still carry the rung's count; which
+    // type each chair is, is `statecraft.test.ts`' and `typedChairs.test.ts`'.
     expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29, 38]);
     expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 8, 11, 11]);
     expect(TIER_LADDER).toHaveLength(BANDS.length);
@@ -494,15 +499,21 @@ describe('the schema, as landed', () => {
     expect(many.common + many.uncommon + many.rare).toBeCloseTo(100, 6);
   });
 
-  it('opens every council with three universal chairs, and the rainbow’s with four', () => {
+  it('opens every council with the chiefdom’s three typed chairs, and the Guest’s with a fourth', () => {
     const fresh = newPlayerStatecraft();
     expect(fresh.slots).toHaveLength(3);
     expect(fresh.rewardHands).toEqual([]);
-    expect(slotTypesOf(fresh).every((type) => type === 'wildcard')).toBe(true);
+    // **Typed again since batch C2** (the user, 2026-10-16: *"lets revert
+    // chiefdom yeah"*): one Military, one Economic and one Wildcard chair,
+    // where the decks rework had made all three universal.
+    expect(slotTypesOf(fresh)).toEqual(['military', 'economic', 'wildcard']);
     const g = seated();
     expect(playerById(g.state, 0)!.statecraft.slots).toHaveLength(3);
-    // A Guest at Every Court: one more chair, additive on top of the count.
-    expect(playerById(g.state, 1)!.statecraft.slots).toHaveLength(4);
+    // A Guest at Every Court: one more chair, additive on top of the count, and
+    // a Wildcard chair like every chair beyond a government's mix.
+    const guest = playerById(g.state, 1)!.statecraft;
+    expect(guest.slots).toHaveLength(4);
+    expect(slotTypesOf(guest)).toEqual(['military', 'economic', 'wildcard', 'wildcard']);
   });
 
   it('bumps the schema: a pre-rework save is refused, and the seat carries the four new fields', () => {
@@ -519,9 +530,12 @@ describe('the schema, as landed', () => {
     // log's losing empires would grow on turns this build holds them back.
     // 127 since WC3: units earn ranks in combat, so a v126 log's veterans
     // would fight weaker than this build makes them.
-    // 128 since D0: the Dominion cards that needed no new shape change what a
-    // draft deals, so a v127 log's picks would name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(128);
+    // 128 since D0: fourteen Dominion cards join the decks and three are
+    // retired, so a v127 log's picks name cards this build never dealt.
+    // 129 since C2a: chairs have types again, adoption re-seats the council,
+    // and the tier-38 governments are retired, so a v128 log can seat a card
+    // where this build refuses it.
+    expect(SCHEMA_VERSION).toBe(129);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1214,21 +1228,28 @@ describe('with the shelf stocked', () => {
     expect(sc.pendingReward).toBeUndefined();
   });
 
-  it('seats a hand’s cards in any chair — universal — and adoption widens the council to its tier’s count', () => {
+  it('seats a hand’s card in every chair it fits and refuses the rest, and adoption widens the council to its tier’s count', () => {
     const g = seated();
     const ada = playerById(g.state, 0)!;
     const sc = ada.statecraft;
     const dealt = dealTo(g.state, ada)!;
     const id = dealt.offer.options[0]!;
     expect(applyCommand(g.state, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    // **Typed chairs** (batch C2; the decks rework had made every chair
+    // universal): the fit rule decides chair by chair, a misfit is refused in
+    // the reducer's own sentence, and the Wildcard chair takes anything.
+    const chairs = slotTypesOf(sc);
     for (let chair = 0; chair < sc.slots.length; chair++) {
-      expect(slotOrderError(g.state, 0, id, chair), `chair ${chair}`).toBeNull();
+      const error = slotOrderError(g.state, 0, id, chair);
+      if (orderFitsSlot(id, chairs[chair]!)) expect(error, `chair ${chair}`).toBeNull();
+      else expect(error, `chair ${chair}`).toBe(chairMisfitRefusal(id, chair, chairs[chair]!));
     }
+    expect(slotOrderError(g.state, 0, id, chairs.indexOf('wildcard'))).toBeNull();
     sc.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     adoptGovernmentAt(g.state, ada, 0);
     expect(sc.slots).toHaveLength(chairsAtTier(4));
     expect(sc.slots).toHaveLength(5);
-    expect(slotTypesOf(sc).every((type) => type === 'wildcard')).toBe(true);
+    expect(slotTypesOf(sc)).toEqual(slotLayout(governmentsAtTier(4)[0]!));
   });
 
   it('replays a sequence of drafts, a reward opened and taken, and a reward passed, byte for byte', () => {

@@ -241,17 +241,26 @@ describe('the counter', () => {
     for (let i = 0; i < 4; i++) recordScalingOccasion(g.state, 0, 'barbarianKill');
     expect(tallyOf(sc, 'theBalladWeavers')).toBe(4);
 
-    // Adoption is a total amnesty: `slots` is rebuilt from scratch. The tally
-    // lives on the *owned order*, so it is not in that array and cannot be
-    // swept with it.
+    // Adoption rebuilds `slots` from scratch and re-seats the cards that fit
+    // the new chairs (batch C2; it emptied every chair before). The tally
+    // lives on the *owned order*, so it is not in that array and is neither
+    // swept nor copied with it: the card keeps its four however it comes out
+    // of the rebuild.
     const tier = 4;
     sc.pendingGovernment = { tier, options: [...governmentsAtTier(tier)] };
-    expect(adoptGovernmentAt(g.state, player, 0)).not.toBeNull();
-    expect(sc.slots.every((held) => held === null)).toBe(true);
+    const adoption = adoptGovernmentAt(g.state, player, 0);
+    expect(adoption).not.toBeNull();
+    // An unsorted card fits any chair, so this one is re-seated and pays the
+    // four it remembers on the spot.
+    expect(adoption!.reseated).toEqual(['theBalladWeavers']);
+    expect(sc.slots.filter((held) => held !== null).map((held) => held!.card)).toEqual(['theBalladWeavers']);
     expect(tallyOf(sc, 'theBalladWeavers')).toBe(4);
-    // Benched by the rebuild, so it pays nothing until it is placed again — and
-    // then it pays the four it remembers.
+    expect(empirePays(g.state, 0, 'culture')).toBe(8);
+    // Benched, it pays nothing and still remembers; placed again, it pays the
+    // four once more.
+    bench(g.state, 0, 'theBalladWeavers');
     expect(empirePays(g.state, 0, 'culture')).toBe(0);
+    expect(tallyOf(sc, 'theBalladWeavers')).toBe(4);
     slot(g.state, 0, 'theBalladWeavers');
     expect(empirePays(g.state, 0, 'culture')).toBe(8);
   });

@@ -23,9 +23,10 @@
       "tier": 0,
       "chairs": 3,
       "flavor": "Whoever speaks last at the fire, speaks for all.",
-      "slots": {
+      "chairMix": {
         "military": 1,
         "economic": 1,
+        "civic": 0,
         "wildcard": 1
       },
       "effects": [],
@@ -37,10 +38,11 @@
       "tier": 4,
       "chairs": 5,
       "flavor": "Slow counsel, and no one hanged for it.",
-      "slots": {
-        "military": 0,
+      "chairMix": {
+        "military": 1,
         "economic": 2,
-        "wildcard": 3
+        "civic": 1,
+        "wildcard": 1
       },
       "effects": [
         {
@@ -60,9 +62,10 @@
       "tier": 4,
       "chairs": 5,
       "flavor": "The spear chooses; the rest agree.",
-      "slots": {
-        "military": 3,
+      "chairMix": {
+        "military": 2,
         "economic": 1,
+        "civic": 1,
         "wildcard": 1
       },
       "effects": [
@@ -104,10 +107,11 @@
       "tier": 4,
       "chairs": 5,
       "flavor": "The gods speak. He translates.",
-      "slots": {
+      "chairMix": {
         "military": 1,
-        "economic": 2,
-        "wildcard": 2
+        "economic": 1,
+        "civic": 2,
+        "wildcard": 1
       },
       "effects": [
         {
@@ -123,10 +127,11 @@
       "tier": 10,
       "chairs": 5,
       "flavor": "A crowd that learned to sign its name.",
-      "slots": {
-        "military": 1,
+      "chairMix": {
+        "military": 0,
         "economic": 3,
-        "wildcard": 3
+        "civic": 1,
+        "wildcard": 1
       },
       "effects": [
         {
@@ -152,10 +157,11 @@
       "tier": 10,
       "chairs": 5,
       "flavor": "One will, and the roads run straight.",
-      "slots": {
+      "chairMix": {
         "military": 3,
         "economic": 1,
-        "wildcard": 3
+        "civic": 0,
+        "wildcard": 1
       },
       "effects": [
         {
@@ -192,10 +198,11 @@
       "tier": 10,
       "chairs": 5,
       "flavor": "Law is what the altar remembers.",
-      "slots": {
+      "chairMix": {
         "military": 1,
-        "economic": 2,
-        "wildcard": 4
+        "economic": 0,
+        "civic": 3,
+        "wildcard": 1
       },
       "effects": [
         {
@@ -229,10 +236,11 @@
       "tier": 18,
       "chairs": 8,
       "flavor": "Every treaty has a ledger underneath.",
-      "slots": {
+      "chairMix": {
         "military": 1,
-        "economic": 4,
-        "wildcard": 3
+        "economic": 3,
+        "civic": 2,
+        "wildcard": 2
       },
       "effects": [
         {
@@ -261,9 +269,10 @@
       "tier": 18,
       "chairs": 8,
       "flavor": "The map is a claim; the legion is the proof.",
-      "slots": {
-        "military": 4,
+      "chairMix": {
+        "military": 3,
         "economic": 2,
+        "civic": 1,
         "wildcard": 2
       },
       "effects": [
@@ -298,10 +307,11 @@
       "tier": 18,
       "chairs": 8,
       "flavor": "Heaven approves. It was asked.",
-      "slots": {
+      "chairMix": {
         "military": 2,
-        "economic": 2,
-        "wildcard": 4
+        "economic": 1,
+        "civic": 3,
+        "wildcard": 2
       },
       "effects": [
         {
@@ -311,7 +321,7 @@
           "to": "faith",
           "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "wildcard"
+          "slot": "civic"
         },
         {
           "kind": "pays",
@@ -320,7 +330,7 @@
           "to": "culture",
           "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "wildcard"
+          "slot": "civic"
         },
         {
           "kind": "percentYields",
@@ -332,7 +342,7 @@
           }
         }
       ],
-      "text": "+1 faith and +1 culture in your capital for each wildcard Order you have in a slot · +10% faith in every city of 6 or more population.",
+      "text": "+1 faith and +1 culture in your capital for each civic Order you have in a slot · +10% faith in every city of 6 or more population.",
       "note": "The tithe rises in your larger cities: nothing yet can ask whether a city is content."
     },
     "theEstates": {
@@ -340,10 +350,11 @@
       "tier": 29,
       "chairs": 11,
       "flavor": "Three orders, one hall, and the hall keeps the minutes.",
-      "slots": {
+      "chairMix": {
         "military": 2,
         "economic": 4,
-        "wildcard": 4
+        "civic": 2,
+        "wildcard": 3
       },
       "text": "+1 happiness in every city. +2 culture in every city of 8 or more population.",
       "effects": [
@@ -368,9 +379,10 @@
       "tier": 29,
       "chairs": 11,
       "flavor": "The road is short for those the Sultan sends.",
-      "slots": {
-        "military": 5,
+      "chairMix": {
+        "military": 4,
         "economic": 2,
+        "civic": 2,
         "wildcard": 3
       },
       "text": "All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture.",
@@ -408,10 +420,11 @@
       "tier": 29,
       "chairs": 11,
       "flavor": "What is written in the register is what heaven remembers.",
-      "slots": {
-        "military": 3,
-        "economic": 3,
-        "wildcard": 4
+      "chairMix": {
+        "military": 2,
+        "economic": 2,
+        "civic": 4,
+        "wildcard": 3
       },
       "text": "+6 faith for each Cathedral. Faith buildings supply science equal to their faith.",
       "effects": [
@@ -439,11 +452,7 @@
       "tier": 38,
       "chairs": 11,
       "flavor": "The estate is common; the ledger is not.",
-      "slots": {
-        "military": 2,
-        "economic": 5,
-        "wildcard": 5
-      },
+      "retired": true,
       "text": "Great people may be bought with gold. Great-person improvements pay +50% more.",
       "effects": [
         {
@@ -465,11 +474,7 @@
       "tier": 38,
       "chairs": 11,
       "flavor": "One frontier, and it is wherever the last courier stopped.",
-      "slots": {
-        "military": 5,
-        "economic": 3,
-        "wildcard": 4
-      },
+      "retired": true,
       "text": "+6 authority capacity. +2 combat strength for each great general you have earned this game.",
       "effects": [
         {
@@ -504,11 +509,7 @@
       "tier": 38,
       "chairs": 11,
       "flavor": "The Magister does not rule. He sets the rules.",
-      "slots": {
-        "military": 3,
-        "economic": 4,
-        "wildcard": 5
-      },
+      "retired": true,
       "text": "Every offer of every kind shows one more card. +3 renown per turn for each wonder you hold.",
       "effects": [
         {

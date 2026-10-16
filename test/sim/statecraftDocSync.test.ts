@@ -14,6 +14,7 @@ import {
   governmentDef,
   orderDef,
   orderIsDealt,
+  slotSpread,
 } from '../../src/sim/statecraftData';
 
 /**
@@ -30,7 +31,9 @@ import {
  * pool tables are deck tables now — one a deck, then the cross-types and the
  * generic pool — with a Band column beside Rarity and Role, the Governments
  * table prints a chair count in place of the M/E/W spread, and the ladder is
- * a table of its own. Every pre-rework Order and Doctrine row is retired, so
+ * a table of its own. Batch C2 put the chair types back beside the count: the
+ * Governments table prints each government's Military, Economic, Civic and
+ * Wildcard chairs. Every pre-rework Order and Doctrine row is retired, so
  * in D1a the deck tables are empty on both sides and this test holds them
  * empty: the pre-rework tables moved verbatim to
  * `docs/history/orders-and-doctrines-retired.md`, which mirrors nothing. D1b
@@ -252,41 +255,72 @@ describe('the orders and doctrines doc mirrors the data', () => {
     });
   });
 
-  /** Every row of the Governments table as `name → { chairs, signature }`. */
-  function governmentRows(): Map<string, { chairs: string; signature: string }> {
+  /** One row of the Governments table: the four chair types, the total, the words. */
+  interface GovernmentRow {
+    military: string;
+    economic: string;
+    civic: string;
+    wildcard: string;
+    chairs: string;
+    signature: string;
+  }
+
+  /**
+   * Every row of the Governments table, by name. The columns are Tier,
+   * Government, Military, Economic, Civic, Wildcard, Chairs and Signature
+   * (batch C2 added the four type columns).
+   */
+  function governmentRows(): Map<string, GovernmentRow> {
     const heading = '## Governments';
     const start = DOC.indexOf(heading);
     expect(start).toBeGreaterThanOrEqual(0);
     const end = DOC.indexOf('\n## ', start + heading.length);
     const section = DOC.slice(start, end === -1 ? undefined : end);
-    const rows = new Map<string, { chairs: string; signature: string }>();
+    const rows = new Map<string, GovernmentRow>();
     for (const line of section.split('\n')) {
       const cells = line.split('|').map((cell: string) => cell.trim());
-      if (cells.length < 5 || cells[0] !== '' || cells[2] === '') continue;
+      if (cells.length < 9 || cells[0] !== '' || cells[2] === '') continue;
       if (cells[2] === 'Government' || /^-+$/.test(cells[2])) continue;
-      rows.set(cells[2], { chairs: cells[3] ?? '', signature: cells[4] ?? '' });
+      rows.set(cells[2], {
+        military: cells[3] ?? '',
+        economic: cells[4] ?? '',
+        civic: cells[5] ?? '',
+        wildcard: cells[6] ?? '',
+        chairs: cells[7] ?? '',
+        signature: cells[8] ?? '',
+      });
     }
     return rows;
   }
 
+  /** The governments the table mirrors: every row but the retired ones. */
+  const LIVE_GOVERNMENTS = GOVERNMENT_IDS.filter((id) => governmentDef(id).retired !== true);
+
   /**
-   * **The chairs** (D1a, universal chairs): the Governments table's Chairs
-   * column is `GovernmentDef.chairs`, the one number a government says about
-   * seating now. Both directions, as ever.
+   * **The chairs** (batch C2, typed chairs): the Governments table prints each
+   * government's mix of Military, Economic, Civic and Wildcard chairs
+   * (`slotSpread`, read off the row's `chairMix`) and the total
+   * (`GovernmentDef.chairs`). Both directions, as ever. A retired government
+   * (the tier-38 three) has no row, by the rule at the top of this file.
    */
   it('prints every government’s chairs as the data counts them', () => {
-    const doc = new Map([...governmentRows()].map(([name, row]) => [name, row.chairs]));
-    for (const id of GOVERNMENT_IDS) {
+    const doc = governmentRows();
+    for (const id of LIVE_GOVERNMENTS) {
       const def = governmentDef(id);
       const printed = doc.get(def.name);
       expect(printed, `the Governments table has no row for "${def.name}"`).toBeDefined();
-      expect(Number(printed), `${def.name} (${id}) — the data counts`).toBe(def.chairs);
+      const mix = slotSpread(id);
+      expect(Number(printed!.military), `${def.name} (${id}) — military chairs`).toBe(mix.military);
+      expect(Number(printed!.economic), `${def.name} (${id}) — economic chairs`).toBe(mix.economic);
+      expect(Number(printed!.civic), `${def.name} (${id}) — civic chairs`).toBe(mix.civic);
+      expect(Number(printed!.wildcard), `${def.name} (${id}) — wildcard chairs`).toBe(mix.wildcard);
+      expect(Number(printed!.chairs), `${def.name} (${id}) — the data counts`).toBe(def.chairs);
     }
-    const names = new Set(GOVERNMENT_IDS.map((id) => governmentDef(id).name));
+    const names = new Set(LIVE_GOVERNMENTS.map((id) => governmentDef(id).name));
     for (const name of doc.keys()) {
-      expect(names.has(name), `the Governments table row "${name}" names no government`).toBe(true);
+      expect(names.has(name), `the Governments table row "${name}" names no live government`).toBe(true);
     }
-    expect(doc.size).toBe(GOVERNMENT_IDS.length);
+    expect(doc.size).toBe(LIVE_GOVERNMENTS.length);
   });
 
   /**
@@ -296,7 +330,7 @@ describe('the orders and doctrines doc mirrors the data', () => {
    */
   it('prints every government’s signature in the row’s own ratified words', () => {
     const doc = governmentRows();
-    for (const id of GOVERNMENT_IDS) {
+    for (const id of LIVE_GOVERNMENTS) {
       const def = governmentDef(id);
       const printed = doc.get(def.name)?.signature;
       expect(printed, `the Governments table has no row for "${def.name}"`).toBeDefined();

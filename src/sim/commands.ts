@@ -1046,10 +1046,12 @@ export interface UnslotOrderCommand extends PlayerCommand {
  * The offer is a fixed triple and it is **banked** (Entry XV: adoption is
  * bankable), so this command may be sent turns after the tier that opened it —
  * which is exactly why a banked government does not block End Turn. Taking it
- * does three things in one breath, because they are one decision: the slot
- * spread changes, **every slotted card returns to the collection unsealed** (the
- * amnesty — Civ VI's free-swap window derived rather than ruled), and a Doctrine
- * draft opens, drawn at this instant from `state.rng`.
+ * does three things in one breath, because they are one decision: the chairs
+ * change, **the seated cards are re-seated in the new chairs as far as they
+ * fit, with every seal lifted** (batch C2: a card whose chair still exists and
+ * still fits it keeps that chair, and a card that fits no chair left goes back
+ * to the collection), and a Doctrine draft opens, drawn at this instant from
+ * `state.rng`.
  *
  * A choice index, never an id, for `chooseOrder`'s reason. There is no way back:
  * Entry XV settles the open question at "a government pick cannot be revisited
@@ -3611,10 +3613,10 @@ function applyUnslotOrder(state: GameState, command: UnslotOrderCommand): Comman
 /**
  * Adopts a government. See `AdoptGovernmentCommand`.
  *
- * The three things adoption does — the spread, the amnesty, the Doctrine draw —
- * are all `adoptGovernmentAt`'s, because they are one decision and a reducer
- * that did any of them itself would be a second implementation of the chapter
- * break. This handler owns only the seat's questions.
+ * The three things adoption does — the chairs, the re-seating, the Doctrine
+ * draw — are all `adoptGovernmentAt`'s, because they are one decision and a
+ * reducer that did any of them itself would be a second implementation of the
+ * chapter break. This handler owns only the seat's questions.
  */
 function applyAdoptGovernment(
   state: GameState,

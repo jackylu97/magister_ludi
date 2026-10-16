@@ -45,7 +45,7 @@ import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import { empireResourceYields } from '../../src/sim/resourceEffects';
 import { explainEmpireGold } from '../../src/sim/empireGold';
 import { senderRouteYields } from '../../src/sim/routeYields';
-import { found, game } from './statecraftHelpers';
+import { found, game, typeRowsByOldOffice } from './statecraftHelpers';
 import { foundReligion } from '../../src/sim/religion';
 import { getTileAt } from '../../src/sim/map';
 import { isCoastal } from '../../src/sim/water';
@@ -319,13 +319,22 @@ describe('a card that pays a meter', () => {
    * counts itself is worth one clerk on an empty council.
    */
   it('reports the card\'s own authority as its own line', () => {
-    const { state } = bench();
-    const lines = explainCardImpact(state, 0, { kind: 'order', id: 'provincialGovernors' });
-    const meters = lines.filter((line) => line.kind === 'meter');
-    expect(meters).toHaveLength(1);
-    expect(meters[0]!.meter).toBe('authority');
-    expect(meters[0]!.source).toBe('Authority');
-    expect(meters[0]!.amount).toBe(1);
+    // **Typed by its old office** (batch C2): the row is unsorted in the game,
+    // and an unsorted card counts as the type of the chair the ghost seats it
+    // in, which here is the chiefdom's military one. Typed economic, the ghost
+    // seats it in the economic chair and it counts itself, as it was written to.
+    const restore = typeRowsByOldOffice();
+    try {
+      const { state } = bench();
+      const lines = explainCardImpact(state, 0, { kind: 'order', id: 'provincialGovernors' });
+      const meters = lines.filter((line) => line.kind === 'meter');
+      expect(meters).toHaveLength(1);
+      expect(meters[0]!.meter).toBe('authority');
+      expect(meters[0]!.source).toBe('Authority');
+      expect(meters[0]!.amount).toBe(1);
+    } finally {
+      restore();
+    }
   });
 
   /**
@@ -530,24 +539,32 @@ describe('the evaluator itself', () => {
    * draft's before/after asks.
    */
   it('prices a deepening as the step, not the card', () => {
-    const { state } = bench();
-    // First Rites pays the capital two candles, and its authored increment pays
-    // it a third. Held at one and slotted, the level-2 face is worth the step
-    // alone — one candle — and never the whole card again.
-    const fresh = foldCardImpact(explainCardImpact(state, 0, { kind: 'order', id: 'firstRites' }));
-    expect(fresh.faith).toBe(2);
-    const sc = state.players[0]!.statecraft;
-    sc.orders.push('firstRites');
-    sc.slots[sc.slots.findIndex((slot) => slot === null)] = {
-      card: 'firstRites',
-      sealedUntil: state.turn,
-    };
-    bumpRevision(state);
-    // Held and slotted, so the reading is what taking it *out* would cost —
-    // the same figure with the same sign, which is the clause the ladder's
-    // level argument used to sit beside (2026-09-04).
-    const held = explainCardImpact(state, 0, { kind: 'order', id: 'firstRites' });
-    expect(foldCardImpact(held).faith).toBe(2);
+    // **Typed by its old office** (batch C2), for the reason the authority
+    // test above gives: First Rites counts the wildcard Orders seated, itself
+    // included, and only a wildcard-typed First Rites is one wherever it sits.
+    const restore = typeRowsByOldOffice();
+    try {
+      const { state } = bench();
+      // First Rites pays the capital two candles, and its authored increment pays
+      // it a third. Held at one and slotted, the level-2 face is worth the step
+      // alone — one candle — and never the whole card again.
+      const fresh = foldCardImpact(explainCardImpact(state, 0, { kind: 'order', id: 'firstRites' }));
+      expect(fresh.faith).toBe(2);
+      const sc = state.players[0]!.statecraft;
+      sc.orders.push('firstRites');
+      sc.slots[sc.slots.findIndex((slot) => slot === null)] = {
+        card: 'firstRites',
+        sealedUntil: state.turn,
+      };
+      bumpRevision(state);
+      // Held and slotted, so the reading is what taking it *out* would cost —
+      // the same figure with the same sign, which is the clause the ladder's
+      // level argument used to sit beside (2026-09-04).
+      const held = explainCardImpact(state, 0, { kind: 'order', id: 'firstRites' });
+      expect(foldCardImpact(held).faith).toBe(2);
+    } finally {
+      restore();
+    }
   });
 });
 

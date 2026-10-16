@@ -115,12 +115,12 @@
   ],
   "divineMandate": [
    {
-    "raw": "+1 faith in your capital per wildcard Order you have in a slot",
-    "text": "+1 faith in your capital per wildcard Order you have in a slot"
+    "raw": "+1 faith in your capital per civic Order you have in a slot",
+    "text": "+1 faith in your capital per civic Order you have in a slot"
    },
    {
-    "raw": "+1 culture in your capital per wildcard Order you have in a slot",
-    "text": "+1 culture in your capital per wildcard Order you have in a slot"
+    "raw": "+1 culture in your capital per civic Order you have in a slot",
+    "text": "+1 culture in your capital per civic Order you have in a slot"
    },
    {
     "raw": "+10% faith in every city of 6 or more citizens",
@@ -908,8 +908,8 @@
   ],
   "ritesOfPassage": [
    {
-    "raw": "completing a unit grants +10 faith",
-    "text": "completing a unit grants +10 faith"
+    "raw": "gaining a unit grants +10 faith",
+    "text": "gaining a unit grants +10 faith"
    }
   ],
   "theLooseRein": [
@@ -2298,12 +2298,12 @@
   ],
   "musterRites": [
    {
-    "raw": "completing a unit grants +8 faith",
-    "text": "completing a unit grants +8 faith"
+    "raw": "gaining a unit grants +8 faith",
+    "text": "gaining a unit grants +8 faith"
    },
    {
-    "raw": "completing a unit grants +8 food",
-    "text": "completing a unit grants +8 food"
+    "raw": "gaining a unit grants +8 food",
+    "text": "gaining a unit grants +8 food"
    }
   ],
   "theWarChronicle": [
@@ -2596,8 +2596,8 @@
   ],
   "theArtOfWar": [
    {
-    "raw": "completing a unit grants science equal to 75% of its strength",
-    "text": "completing a unit grants science equal to 75% of its strength"
+    "raw": "gaining a unit grants science equal to 75% of its strength",
+    "text": "gaining a unit grants science equal to 75% of its strength"
    }
   ],
   "soldierSettlers": [
@@ -6912,8 +6912,8 @@
   ],
   "commonRitesOfPassage": [
    {
-    "raw": "for military units alone, completing a unit grants +12 faith",
-    "text": "for military units alone, completing a unit grants +12 faith"
+    "raw": "for military units alone, gaining a unit grants +12 faith",
+    "text": "for military units alone, gaining a unit grants +12 faith"
    }
   ],
   "theSacredHost": [
