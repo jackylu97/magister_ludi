@@ -167,7 +167,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Motte and Bailey** | rare | add | Workers may build a Motte, one in each town. A Motte gains the yields of every tile around it, and units on its tile gain +5 strength. | Economic |
+| **The Keeps** | rare | add | Workers may build a Keep, one in each town. A Keep gains the yields of every tile around it, and units on its tile gain +5 strength. | Economic |
 | **The Land's Great Work** | rare | modify: as built | The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%. | Economic |
 | **The Garden of the World** | rare | implemented | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. | Economic |
 | **The Heartland** | rare | modify: deferred | Goal: one of your towns works twelve improved or tended tiles that each yield 5 or more in total. Reward: for the rest of the game that town costs no authority and gains +3 happiness and +20% food. The card then leaves its chair. | Wildcard |
@@ -250,7 +250,8 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
   - **The Wild Marches:** +1 culture for every four wild hexes, not five.
   - **Removed before it reached the sheet:** your new faith card (+1 faith on unimproved forest and jungle), because Sacred Groves already does that job (*"ah i forgot about sacred groves, axe my new card please"*).
 - **Your third pass of 2026-10-16:**
-  - **New, Tier IV:** The Motte and Bailey, after the Norman castle on its mound, which held the land around it. Workers may build one Motte in each town. It gains the yields of every tile around it, and units on its tile gain +5 strength. The name The Manors was taken by a Tier III card.
+  - **New, Tier IV:** The Keeps. Workers may build one Keep in each town. A Keep gains the yields of every tile around it, and units on its tile gain +5 strength. You chose the name (*"lets call it a 'keep' instead of a manor"*).
+  - **A name clash:** the game already has a Keep building. Only The Vigil Charter unlocks it, and that card is retired, so no one can build the building now. Recommended: the build retires the old building row, so that the game has one Keep.
   - **The Theodosian Walls:** +1 defence for every two citizens, not every citizen.
   - **The Road Patrols** becomes The Stationes, after the Roman posts along the roads: land units gain +3 strength while they stand in a town connected to your capital by road.
   - I read your changes to these cards as the end of their deferral, so all four Military cards (The Frontier Militia, The Trained Bands, The Stationes and The Theodosian Walls) go into the build. Say if any should stay deferred.
