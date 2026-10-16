@@ -58,6 +58,22 @@ user will tell us about more changes to it.
 - Two exceptions: a card's flavour line (always labelled Flavour), and the
   user's own words in quotes.
 
+**Orwell's six rules apply too.** The user, 2026-10-16: *"could you also
+incorporate orwell's six rules for writing in your style rules?"* From
+"Politics and the English Language" (1946), in short:
+1. Do not use a figure of speech that you often see in print.
+2. Do not use a long word where a short one will do.
+3. If you can cut a word, cut it.
+4. Do not use the passive where you can use the active.
+5. Do not use a foreign phrase, a scientific word or jargon if an everyday
+   word exists.
+6. Break any of these rules before you write something awkward.
+
+Where they meet STE: rule 3 cuts padding, not grammar, so keep the articles
+and small words that make a sentence clear. Under rule 5, the game's names
+(Order, chair, Doctrine) and the code's names are the right words when you
+mean those things.
+
 ## Spec workflow (how rulings become code)
 - A user ruling lands in a FILE before any agent flies: `docs/flags.md` for
   open/resolved rulings, or the system's reference doc. Agent briefs point at
