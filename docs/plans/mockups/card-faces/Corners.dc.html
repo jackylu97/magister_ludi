@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Card faces: Corners</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Fraunces:opsz,wght@9..144,400..700&amp;family=Instrument+Sans:wght@400..700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.ab{font-family:'Instrument Sans',system-ui,sans-serif;color:#1d1a20}
+.eb{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:#56505a}
+.n{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:500;font-size:.92em;font-variant-numeric:tabular-nums}
+.panel{background:#f7f2e1;border:3px solid #1d1a20;border-radius:10px;box-shadow:5px 5px 0 #1d1a20;box-sizing:border-box}
+.kl{font-weight:600;font-size:12.5px;line-height:1;color:#1d1a20}
+.ks{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:#56505a;line-height:1}
+.g{fill:none;stroke:currentColor;stroke-width:6.5;stroke-linecap:round;stroke-linejoin:round}
+.g .s{fill:currentColor;stroke-width:5.2}
+.cc{position:relative;flex:none;width:200px;height:310px}
+.cs{position:absolute;left:0;top:0;width:200px;height:310px;overflow:visible;filter:drop-shadow(4px 4px 0 #1d1a20)}
+.o{fill:#f7f2e1;stroke:currentColor;stroke-width:3;stroke-linejoin:round}
+.o.w{fill:#faf1d7}
+.ri{fill:none;stroke:rgba(29,26,32,.42);stroke-width:1}
+.p1{fill:none;stroke:#56505a;stroke-width:1.3}
+.p2{fill:none;stroke:#56505a;stroke-width:1;opacity:.7}
+.q1{fill:none;stroke:#c8901f;stroke-width:2.2}
+.q2{fill:none;stroke:#c8901f;stroke-width:1}
+.sp{fill:#c8901f;stroke:#8a6212;stroke-width:.6}
+.m1{fill:none;stroke:currentColor;stroke-width:1.5}
+.m2{fill:none;stroke:currentColor;stroke-width:4;stroke-dasharray:.9 2.46;opacity:.45}
+.m3{fill:currentColor;fill-opacity:.07;stroke:currentColor;stroke-width:1}
+.tb{position:absolute;left:0;right:0;display:flex;justify-content:center;align-items:center}
+.pt{gap:6px}
+.pt i{display:block;width:14px;height:1px;background:rgba(29,26,32,.42)}
+.rb1{fill:#e7e3da;stroke:#56505a;stroke-width:1.2;stroke-linejoin:round}
+.rb2{fill:#f7f2e1;stroke:#56505a;stroke-width:1.2}
+.tx{font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:500;letter-spacing:1.5px;fill:#1d1a20}
+.ct1{fill:#fbf4df;stroke:#c8901f;stroke-width:2;stroke-linejoin:round}
+.ct2{fill:none;stroke:#c8901f;stroke-width:.8}
+.cx{font-family:Fraunces,Georgia,serif;font-size:15px;font-weight:600;fill:#1d1a20}
+.cb{position:absolute;left:15px;right:15px;top:116px;bottom:14px;display:flex;flex-direction:column;align-items:center}
+.nm{font-family:Fraunces,Georgia,serif;font-weight:600;font-size:16.5px;line-height:1.14;text-align:center;color:#1d1a20}
+.rl{margin-top:7px;font-size:12.5px;line-height:1.4;text-align:center;color:#1d1a20}
+.ft{margin-top:auto;display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;font-weight:500;letter-spacing:.2em;text-transform:uppercase}
+.ft span{color:#56505a}
+.ft i{display:block;width:12px;height:1.5px;background:currentColor}
+.cm{position:absolute;left:8px;top:12.5px;width:120px;height:186px}
+.cm .cs{width:120px;height:186px;filter:drop-shadow(3px 3px 0 #1d1a20)}
+.cm .o{stroke-width:4}.cm .p1{stroke-width:1.8}.cm .p2{stroke-width:1.4}.cm .q1{stroke-width:3}.cm .q2{stroke-width:1.5}.cm .ri{stroke-width:1.6}
+.cm .cb{left:9px;right:9px;top:72px;bottom:12px}
+.cm .nm{font-size:15px;line-height:1.1}
+.cm .ft i{width:26px;height:2px}
+.fcol{display:flex;flex-direction:column;align-items:center;gap:10px;width:136px}
+.frm{position:relative;flex:none;width:136px;height:211px}
+.fs{position:absolute;left:0;top:0;width:136px;height:211px}
+.fo{fill:#d6ccb1;stroke:#1d1a20;stroke-width:3;stroke-linejoin:round}
+.fi{fill:#e8e0cb;stroke:rgba(29,26,32,.35);stroke-width:1.2}
+.plate{display:flex;align-items:center;gap:6px;height:24px;padding:0 10px 0 8px;box-sizing:border-box;border:1.5px solid #1d1a20;border-radius:999px;background:#efe8d4}
+.plate .ks{color:#1d1a20}
+.row{display:flex;align-items:center;gap:11px;height:36px;padding:0 6px;border-top:1px solid rgba(29,26,32,.14)}
+.ln{flex:1;font-family:Fraunces,Georgia,serif;font-weight:600;font-size:15px}
+.tile{width:24px;height:24px;flex:none;box-sizing:border-box;border:2px solid;border-radius:5px;background:#f7f2e1;display:flex;align-items:center;justify-content:center}
+.kc{display:flex;flex-direction:column;align-items:center;gap:6px;width:70px}
+.kd{display:flex;align-items:center;gap:9px}
+.sil{display:flex;flex-direction:column;align-items:center;gap:7px;width:64px}
+</style>
+</helmet>
+<div class="ab" style="width: 1440px; height: 1100px; box-sizing: border-box; padding: 40px 60px 44px; background: radial-gradient(120% 90% at 50% 32%, #efe9d9 0%, #e9e2cf 55%, #e1d8c1 100%); display: flex; flex-direction: column; gap: 30px; overflow: hidden;">
+
+  <div style="display: flex; gap: 28px; height: 170px; flex: none;">
+    <div style="width: 300px; flex: none; display: flex; flex-direction: column; gap: 7px;">
+      <div class="eb" style="color: #a8361b;">Proposal C3</div>
+      <div style="font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-size: 64px; line-height: 0.92; letter-spacing: -0.01em;">Corners</div>
+      <div style="font-size: 13.5px; line-height: 1.45; color: #3a353e;">The cut of the four corners is the chair type, and each chair is a frame with the same corners. The deck is its ink and emblem. Rarity is the frame's material.</div>
+    </div>
+    <div class="panel" style="flex: 1; display: grid; grid-template-columns: 300px 1px 236px 1px 1fr; column-gap: 22px; padding: 16px 22px;">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="eb">Chair type · the corners</div>
+        <div style="display: flex; justify-content: space-between;">
+          <div class="kc"><svg width="28" height="42" viewBox="0 0 28 42" aria-hidden="true"><path d="M8 1H20L27 8V34L20 41H8L1 34V8Z" fill="#efe8d4" stroke="#1d1a20" stroke-width="2" stroke-linejoin="round"></path></svg><div class="kl">Military</div><div class="ks">Clipped</div></div>
+          <div class="kc"><svg width="28" height="42" viewBox="0 0 28 42" aria-hidden="true"><path d="M9 1H19A8 8 0 0 1 27 9V33A8 8 0 0 1 19 41H9A8 8 0 0 1 1 33V9A8 8 0 0 1 9 1Z" fill="#efe8d4" stroke="#1d1a20" stroke-width="2"></path></svg><div class="kl">Economic</div><div class="ks">Round</div></div>
+          <div class="kc"><svg width="28" height="42" viewBox="0 0 28 42" aria-hidden="true"><path d="M8 1H20A7 7 0 0 0 27 8V34A7 7 0 0 0 20 41H8A7 7 0 0 0 1 34V8A7 7 0 0 0 8 1Z" fill="#efe8d4" stroke="#1d1a20" stroke-width="2"></path></svg><div class="kl">Civic</div><div class="ks">Cusped</div></div>
+          <div class="kc"><svg width="28" height="42" viewBox="0 0 28 42" aria-hidden="true"><path d="M1 1H27V41H1Z" fill="#d6ccb1" stroke="#1d1a20" stroke-width="2"></path><path d="M5 5H23V37H5Z" fill="none" stroke="#1d1a20" stroke-width="1" stroke-dasharray="2 2" opacity="0.5"></path></svg><div class="kl">Open</div><div class="ks">Plain frame</div></div>
+        </div>
+        <div style="font-size: 12px; line-height: 1.4; color: #3a353e;">A card fits a frame with its own corners, or a plain one.</div>
+      </div>
+      <div style="background: rgba(29,26,32,0.14);"></div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="eb">Rarity · the material</div>
+        <div style="display: flex; justify-content: space-between;">
+          <div class="kc"><svg width="40" height="62" viewBox="0 0 40 62" aria-hidden="true"><path d="M1 1H39V61H1Z" fill="#f7f2e1" stroke="#1d1a20" stroke-width="2"></path><path d="M5 5H35V57H5Z" fill="none" stroke="rgba(29,26,32,0.5)" stroke-width="1"></path></svg><div class="kl">Common</div><div class="ks">Ink</div></div>
+          <div class="kc"><svg width="40" height="62" viewBox="0 0 40 62" aria-hidden="true"><path d="M1 1H39V61H1Z" fill="#f7f2e1" stroke="#1d1a20" stroke-width="2"></path><path d="M4 4H36V58H4Z" fill="none" stroke="#56505a" stroke-width="1.1"></path><path d="M6.5 6.5H33.5V55.5H6.5Z" fill="none" stroke="#56505a" stroke-width="0.9" opacity="0.75"></path></svg><div class="kl">Uncommon</div><div class="ks">Pewter</div></div>
+          <div class="kc"><svg width="40" height="62" viewBox="0 0 40 62" aria-hidden="true" style="overflow: visible;"><path d="M1 1H39V61H1Z" fill="#fbf3da" stroke="#1d1a20" stroke-width="2"></path><path d="M4 4H36V58H4Z" fill="none" stroke="#c8901f" stroke-width="1.6"></path><path d="M6.5 6.5H33.5V55.5H6.5Z" fill="none" stroke="#c8901f" stroke-width="0.9"></path><path d="M4 0.5L5 3L7.5 4L5 5L4 7.5L3 5L0.5 4L3 3Z M36 0.5L37 3L39.5 4L37 5L36 7.5L35 5L32.5 4L35 3Z M4 54.5L5 57L7.5 58L5 59L4 61.5L3 59L0.5 58L3 57Z M36 54.5L37 57L39.5 58L37 59L36 61.5L35 59L32.5 58L35 57Z" fill="#c8901f" stroke="#8a6212" stroke-width="0.4"></path></svg><div class="kl">Rare</div><div class="ks">Gilt</div></div>
+        </div>
+        <div style="font-size: 12px; line-height: 1.4; color: #3a353e;">The tier sits at the head, as in A.</div>
+      </div>
+      <div style="background: rgba(29,26,32,0.14);"></div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="eb">Deck · ink and emblem</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 9px 14px;">
+          <div class="kd"><div class="tile" style="width: 26px; height: 26px; color: #c2452a;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g class="g"><path d="M12 54L44 18"></path><path class="s" d="M54 8L47.5 21.5L40.5 14.5Z"></path><path d="M52 54L20 18"></path><path class="s" d="M10 8L23.5 14.5L16.5 21.5Z"></path></g></svg></div><div class="kl">Dominion</div></div>
+          <div class="kd"><div class="tile" style="width: 26px; height: 26px; color: #4e7c3f;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g class="g"><path d="M10 34L32 15L54 34"></path><path d="M18 34H46V55H18Z"></path><path d="M27 43H37V55H27Z"></path></g></svg></div><div class="kl">Expansionist</div></div>
+          <div class="kd"><div class="tile" style="width: 26px; height: 26px; color: #b07f12;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g class="g"><path d="M22 27Q7 43 14 53Q21 59 32 59Q43 59 50 53Q57 43 42 27Z"></path><path d="M22 27H42"></path><path d="M24 27L27 15H37L40 27"></path></g></svg></div><div class="kl">Commerce</div></div>
+          <div class="kd"><div class="tile" style="width: 26px; height: 26px; color: #7b3fa8;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g class="g"><path d="M18 46Q18 19 32 17Q46 19 46 46"></path><path d="M12 46H52"></path><path d="M32 17V12"></path><path d="M28 9a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z"></path><path class="s" d="M27 53a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z"></path></g></svg></div><div class="kl">Devotion</div></div>
+          <div class="kd"><div class="tile" style="width: 26px; height: 26px; color: #3f639f;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g class="g"><path d="M32 16L13 53"></path><path d="M32 16L51 53"></path><path class="s" d="M27 13a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z"></path><path d="M25 24H39"></path></g></svg></div><div class="kl">Scientific</div></div>
+          <div class="kd"><div class="tile" style="width: 26px; height: 26px; color: #a04a63;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g class="g"><path d="M28 15L32 6L36 15"></path><path d="M28 15H36L39 45H25Z"></path><path d="M17 45H47V56H17Z"></path></g></svg></div><div class="kl">Magisterial</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; flex: none;">
+    <div class="eb">The hand · offer size <span class="n">200 × 310</span></div>
+    <div style="display: flex; gap: 24px; height: 314px;">
+
+      <div class="cc" style="color: #c2452a;">
+        <svg class="cs" viewBox="0 0 200 310" role="img" aria-label="Military card, clipped corners"><path class="o" d="M33.5 1.5H166.5L198.5 33.5V276.5L166.5 308.5H33.5L1.5 276.5V33.5Z"></path><path class="p1" d="M35.4 6H164.6L194 35.4V274.6L164.6 304H35.4L6 274.6V35.4Z"></path><path class="p2" d="M37 10H163L190 37V273L163 300H37L10 273V37Z"></path><svg x="60" y="30" width="80" height="80" viewBox="0 0 92 92"><circle class="m1" cx="46" cy="46" r="42.5"></circle><circle class="m2" cx="46" cy="46" r="38.5"></circle><circle class="m3" cx="46" cy="46" r="34.5"></circle><svg x="21" y="21" width="50" height="50" viewBox="0 0 64 64"><g class="g"><path d="M12 54L44 18"></path><path class="s" d="M54 8L47.5 21.5L40.5 14.5Z"></path><path d="M52 54L20 18"></path><path class="s" d="M10 8L23.5 14.5L16.5 21.5Z"></path></g></svg></svg></svg>
+        <div class="tb" style="top: 5px;"><svg width="78" height="20" viewBox="0 0 78 20" aria-hidden="true"><path class="rb1" d="M15 6L3 6L8 11L3 16L15 16Z"></path><path class="rb1" d="M63 6L75 6L70 11L75 16L63 16Z"></path><path class="rb2" d="M11 2.5H67V14.5H11Z"></path><text class="tx" x="39" y="12" text-anchor="middle">III</text></svg></div>
+        <div class="cb"><div class="nm">The Tagmata</div><div class="rl">Veteran and Elite units gain <span class="n">+5</span> strength.</div><div class="ft"><i></i><span>Dominion</span><i></i></div></div>
+      </div>
+
+      <div class="cc" style="color: #c2452a;">
+        <svg class="cs" viewBox="0 0 200 310" role="img" aria-label="Civic card, cusped corners"><path class="o" d="M29.5 1.5H170.5A28 28 0 0 0 198.5 29.5V280.5A28 28 0 0 0 170.5 308.5H29.5A28 28 0 0 0 1.5 280.5V29.5A28 28 0 0 0 29.5 1.5Z"></path><path class="p1" d="M33.7 6H166.3A32.5 32.5 0 0 0 194 33.7V276.3A32.5 32.5 0 0 0 166.3 304H33.7A32.5 32.5 0 0 0 6 276.3V33.7A32.5 32.5 0 0 0 33.7 6Z"></path><path class="p2" d="M37 10H163A36.5 36.5 0 0 0 190 37V273A36.5 36.5 0 0 0 163 300H37A36.5 36.5 0 0 0 10 273V37A36.5 36.5 0 0 0 37 10Z"></path><svg x="60" y="30" width="80" height="80" viewBox="0 0 92 92"><circle class="m1" cx="46" cy="46" r="42.5"></circle><circle class="m2" cx="46" cy="46" r="38.5"></circle><circle class="m3" cx="46" cy="46" r="34.5"></circle><svg x="21" y="21" width="50" height="50" viewBox="0 0 64 64"><g class="g"><path d="M12 54L44 18"></path><path class="s" d="M54 8L47.5 21.5L40.5 14.5Z"></path><path d="M52 54L20 18"></path><path class="s" d="M10 8L23.5 14.5L16.5 21.5Z"></path></g></svg></svg></svg>
+        <div class="tb" style="top: 5px;"><svg width="78" height="20" viewBox="0 0 78 20" aria-hidden="true"><path class="rb1" d="M15 6L3 6L8 11L3 16L15 16Z"></path><path class="rb1" d="M63 6L75 6L70 11L75 16L63 16Z"></path><path class="rb2" d="M11 2.5H67V14.5H11Z"></path><text class="tx" x="39" y="12" text-anchor="middle">I</text></svg></div>
+        <div class="cb"><div class="nm">Honours of the Legion</div><div class="rl">Each time one of your units earns a rank, gain science and culture equal to its strength.</div><div class="ft"><i></i><span>Dominion</span><i></i></div></div>
+      </div>
+
+      <div class="cc" style="color: #c2452a;">
+        <svg class="cs" viewBox="0 0 200 310" role="img" aria-label="Military card, clipped corners"><path class="o w" d="M33.5 1.5H166.5L198.5 33.5V276.5L166.5 308.5H33.5L1.5 276.5V33.5Z"></path><path class="q1" d="M35.4 6H164.6L194 35.4V274.6L164.6 304H35.4L6 274.6V35.4Z"></path><path class="q2" d="M37 10H163L190 37V273L163 300H37L10 273V37Z"></path><path class="sp" d="M21 15.5L22.5 19.5L26.5 21L22.5 22.5L21 26.5L19.5 22.5L15.5 21L19.5 19.5Z M179 15.5L180.5 19.5L184.5 21L180.5 22.5L179 26.5L177.5 22.5L173.5 21L177.5 19.5Z M21 283.5L22.5 287.5L26.5 289L22.5 290.5L21 294.5L19.5 290.5L15.5 289L19.5 287.5Z M179 283.5L180.5 287.5L184.5 289L180.5 290.5L179 294.5L177.5 290.5L173.5 289L177.5 287.5Z"></path><svg x="60" y="30" width="80" height="80" viewBox="0 0 92 92"><circle class="m1" cx="46" cy="46" r="42.5"></circle><circle class="m2" cx="46" cy="46" r="38.5"></circle><circle class="m3" cx="46" cy="46" r="34.5"></circle><svg x="21" y="21" width="50" height="50" viewBox="0 0 64 64"><g class="g"><path d="M12 54L44 18"></path><path class="s" d="M54 8L47.5 21.5L40.5 14.5Z"></path><path d="M52 54L20 18"></path><path class="s" d="M10 8L23.5 14.5L16.5 21.5Z"></path></g></svg></svg></svg>
+        <div class="tb" style="top: 2px;"><svg width="72" height="27" viewBox="0 0 72 27" aria-hidden="true"><path class="ct1" d="M12 2H60Q60 9 69 9V18Q60 18 60 25H12Q12 18 3 18V9Q12 9 12 2Z"></path><path class="ct2" d="M15 5H57Q57.5 11.5 65.5 12V15Q57.5 15.5 57 22H15Q14.5 15.5 6.5 15V12Q14.5 11.5 15 5Z"></path><text class="cx" x="36" y="18.6" text-anchor="middle">III</text></svg></div>
+        <div class="cb"><div class="nm">Knightly Ransom</div><div class="rl">When a Veteran or Elite unit of yours would die, it returns to your nearest town with <span class="n">1</span> hit point, for gold equal to half its cost.</div><div class="ft"><i></i><span>Dominion</span><i></i></div></div>
+      </div>
+
+      <div class="cc" style="color: #b07f12;">
+        <svg class="cs" viewBox="0 0 200 310" role="img" aria-label="Economic card, round corners"><path class="o" d="M37.5 1.5H162.5A36 36 0 0 1 198.5 37.5V272.5A36 36 0 0 1 162.5 308.5H37.5A36 36 0 0 1 1.5 272.5V37.5A36 36 0 0 1 37.5 1.5Z"></path><path class="ri" d="M37.5 7.5H162.5A30 30 0 0 1 192.5 37.5V272.5A30 30 0 0 1 162.5 302.5H37.5A30 30 0 0 1 7.5 272.5V37.5A30 30 0 0 1 37.5 7.5Z"></path><svg x="60" y="30" width="80" height="80" viewBox="0 0 92 92"><circle class="m1" cx="46" cy="46" r="42.5"></circle><circle class="m2" cx="46" cy="46" r="38.5"></circle><circle class="m3" cx="46" cy="46" r="34.5"></circle><svg x="21" y="21" width="50" height="50" viewBox="0 0 64 64"><g class="g"><path d="M22 27Q7 43 14 53Q21 59 32 59Q43 59 50 53Q57 43 42 27Z"></path><path d="M22 27H42"></path><path d="M24 27L27 15H37L40 27"></path></g></svg></svg></svg>
+        <div class="tb pt" style="top: 13px;"><i></i><span class="ks" style="letter-spacing: 0.08em;">0</span><i></i></div>
+        <div class="cb"><div class="nm">Salt Tithes</div><div class="rl">Gain <span class="n">+3</span> gold per distinct accessible improved luxury you produce. Worked luxury tiles gain <span class="n">+1</span> food.</div><div class="ft"><i></i><span>Commerce</span><i></i></div></div>
+      </div>
+
+      <div class="cc" style="color: #7b3fa8;">
+        <svg class="cs" viewBox="0 0 200 310" role="img" aria-label="Civic card, cusped corners"><path class="o w" d="M29.5 1.5H170.5A28 28 0 0 0 198.5 29.5V280.5A28 28 0 0 0 170.5 308.5H29.5A28 28 0 0 0 1.5 280.5V29.5A28 28 0 0 0 29.5 1.5Z"></path><path class="q1" d="M33.7 6H166.3A32.5 32.5 0 0 0 194 33.7V276.3A32.5 32.5 0 0 0 166.3 304H33.7A32.5 32.5 0 0 0 6 276.3V33.7A32.5 32.5 0 0 0 33.7 6Z"></path><path class="q2" d="M37 10H163A36.5 36.5 0 0 0 190 37V273A36.5 36.5 0 0 0 163 300H37A36.5 36.5 0 0 0 10 273V37A36.5 36.5 0 0 0 37 10Z"></path><path class="sp" d="M24.5 19L26 23L30 24.5L26 26L24.5 30L23 26L19 24.5L23 23Z M175.5 19L177 23L181 24.5L177 26L175.5 30L174 26L170 24.5L174 23Z M24.5 280L26 284L30 285.5L26 287L24.5 291L23 287L19 285.5L23 284Z M175.5 280L177 284L181 285.5L177 287L175.5 291L174 287L170 285.5L174 284Z"></path><svg x="60" y="30" width="80" height="80" viewBox="0 0 92 92"><circle class="m1" cx="46" cy="46" r="42.5"></circle><circle class="m2" cx="46" cy="46" r="38.5"></circle><circle class="m3" cx="46" cy="46" r="34.5"></circle><svg x="21" y="21" width="50" height="50" viewBox="0 0 64 64"><g class="g"><path d="M18 46Q18 19 32 17Q46 19 46 46"></path><path d="M12 46H52"></path><path d="M32 17V12"></path><path d="M28 9a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z"></path><path class="s" d="M27 53a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z"></path></g></svg></svg></svg>
+        <div class="tb" style="top: 2px;"><svg width="72" height="27" viewBox="0 0 72 27" aria-hidden="true"><path class="ct1" d="M12 2H60Q60 9 69 9V18Q60 18 60 25H12Q12 18 3 18V9Q12 9 12 2Z"></path><path class="ct2" d="M15 5H57Q57.5 11.5 65.5 12V15Q57.5 15.5 57 22H15Q14.5 15.5 6.5 15V12Q14.5 11.5 15 5Z"></path><text class="cx" x="36" y="18.6" text-anchor="middle">II</text></svg></div>
+        <div class="cb"><div class="nm">The Lay Brothers</div><div class="rl">Cities with a Temple may buy ordinary buildings with faith, at the faith rate.</div><div class="ft"><i></i><span>Devotion</span><i></i></div></div>
+      </div>
+
+      <div class="cc" style="color: #4e7c3f;">
+        <svg class="cs" viewBox="0 0 200 310" role="img" aria-label="Economic card, round corners"><path class="o w" d="M37.5 1.5H162.5A36 36 0 0 1 198.5 37.5V272.5A36 36 0 0 1 162.5 308.5H37.5A36 36 0 0 1 1.5 272.5V37.5A36 36 0 0 1 37.5 1.5Z"></path><path class="q1" d="M37.5 6H162.5A31.5 31.5 0 0 1 194 37.5V272.5A31.5 31.5 0 0 1 162.5 304H37.5A31.5 31.5 0 0 1 6 272.5V37.5A31.5 31.5 0 0 1 37.5 6Z"></path><path class="q2" d="M37.5 10H162.5A27.5 27.5 0 0 1 190 37.5V272.5A27.5 27.5 0 0 1 162.5 300H37.5A27.5 27.5 0 0 1 10 272.5V37.5A27.5 27.5 0 0 1 37.5 10Z"></path><path class="sp" d="M16.5 11L18 15L22 16.5L18 18L16.5 22L15 18L11 16.5L15 15Z M183.5 11L185 15L189 16.5L185 18L183.5 22L182 18L178 16.5L182 15Z M16.5 288L18 292L22 293.5L18 295L16.5 299L15 295L11 293.5L15 292Z M183.5 288L185 292L189 293.5L185 295L183.5 299L182 295L178 293.5L182 292Z"></path><svg x="60" y="30" width="80" height="80" viewBox="0 0 92 92"><circle class="m1" cx="46" cy="46" r="42.5"></circle><circle class="m2" cx="46" cy="46" r="38.5"></circle><circle class="m3" cx="46" cy="46" r="34.5"></circle><svg x="21" y="21" width="50" height="50" viewBox="0 0 64 64"><g class="g"><path d="M10 34L32 15L54 34"></path><path d="M18 34H46V55H18Z"></path><path d="M27 43H37V55H27Z"></path></g></svg></svg></svg>
+        <div class="tb" style="top: 2px;"><svg width="72" height="27" viewBox="0 0 72 27" aria-hidden="true"><path class="ct1" d="M12 2H60Q60 9 69 9V18Q60 18 60 25H12Q12 18 3 18V9Q12 9 12 2Z"></path><path class="ct2" d="M15 5H57Q57.5 11.5 65.5 12V15Q57.5 15.5 57 22H15Q14.5 15.5 6.5 15V12Q14.5 11.5 15 5Z"></path><text class="cx" x="36" y="18.6" text-anchor="middle">0</text></svg></div>
+        <div class="cb"><div class="nm">The Patient Harvest</div><div class="rl">Cities retain <span class="n">30%</span> of the food spent on growth, but produce military units <span class="n">15%</span> more slowly.</div><div class="ft"><i></i><span>Expansionist</span><i></i></div></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 28px; flex: 1; min-height: 0;">
+    <div class="panel" style="width: 793px; flex: none; align-self: flex-start; padding: 16px 22px 18px; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div class="eb">The council · seated <span class="n">120 × 186</span></div>
+        <div style="font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; line-height: 1.1;">War Chief: <span class="n">3</span> Military, <span class="n">1</span> Economic, <span class="n">1</span> Open</div>
+      </div>
+      <div style="display: flex; gap: 10px; padding: 12px 10px 10px; border: 1.5px solid #1d1a20; border-radius: 4px; background: #ebe3cf;">
+
+        <div class="fcol">
+          <div class="frm">
+            <svg class="fs" viewBox="0 0 200 310" preserveAspectRatio="none" aria-hidden="true"><path class="fo" d="M33.5 1.5H166.5L198.5 33.5V276.5L166.5 308.5H33.5L1.5 276.5V33.5Z"></path><path class="fi" d="M37 10H163L190 37V273L163 300H37L10 273V37Z"></path></svg>
+            <div class="cm" style="color: #c2452a;">
+              <svg class="cs" viewBox="0 0 200 310" role="img" aria-label="The Tagmata, a Military card"><path class="o" d="M33.5 1.5H166.5L198.5 33.5V276.5L166.5 308.5H33.5L1.5 276.5V33.5Z"></path><path class="p1" d="M35.4 6H164.6L194 35.4V274.6L164.6 304H35.4L6 274.6V35.4Z"></path><path class="p2" d="M37 10H163L190 37V273L163 300H37L10 273V37Z"></path><svg x="60" y="30" width="80" height="80" viewBox="0 0 92 92"><circle class="m1" cx="46" cy="46" r="42.5" style="stroke-width: 2.5;"></circle><circle class="m3" cx="46" cy="46" r="34.5" style="stroke-width: 1.6;"></circle><svg x="19" y="19" width="54" height="54" viewBox="0 0 64 64"><g class="g"><path d="M12 54L44 18"></path><path class="s" d="M54 8L47.5 21.5L40.5 14.5Z"></path><path d="M52 54L20 18"></path><path class="s" d="M10 8L23.5 14.5L16.5 21.5Z"></path></g></svg></svg></svg>
+              <div class="cb"><div class="nm">The Tagmata</div><div class="ft"><i></i></div></div>
+            </div>
+          </div>
+          <div class="plate"><svg width="11" height="16" viewBox="0 0 16 24" aria-hidden="true"><path d="M5 1H11L15 5V19L11 23H5L1 19V5Z" fill="#1d1a20"></path></svg><span class="ks">Military</span></div>
+        </div>
+
+        <div class="fcol">
+          <div class="frm">
+            <svg class="fs" viewBox="0 0 200 310" preserveAspectRatio="none" aria-hidden="true"><path class="fo" d="M33.5 1.5H166.5L198.5 33.5V276.5L166.5 308.5H33.5L1.5 276.5V33.5Z"></path><path class="fi" d="M37 10H163L190 37V273L163 300H37L10 273V37Z"></path></svg>
+            <div class="cm" style="color: #c2452a;">
+              <svg class="cs" viewBox="0 0 200 310" role="img" aria-label="Knightly Ransom, a Military card"><path class="o w" d="M33.5 1.5H166.5L198.5 33.5V276.5L166.5 308.5H33.5L1.5 276.5V33.5Z"></path><path class="q1" d="M35.4 6H164.6L194 35.4V274.6L164.6 304H35.4L6 274.6V35.4Z"></path><path class="q2" d="M37 10H163L190 37V273L163 300H37L10 273V37Z"></path><path class="sp" d="M21 13L23.2 18.8L29 21L23.2 23.2L21 29L18.8 23.2L13 21L18.8 18.8Z M179 13L181.2 18.8L187 21L181.2 23.2L179 29L176.8 23.2L171 21L176.8 18.8Z M21 281L23.2 286.8L29 289L23.2 291.2L21 297L18.8 291.2L13 289L18.8 286.8Z M179 281L181.2 286.8L187 289L181.2 291.2L179 297L176.8 291.2L171 289L176.8 286.8Z"></path><svg x="60" y="30" width="80" height="80" viewBox="0 0 92 92"><circle class="m1" cx="46" cy="46" r="42.5" style="stroke-width: 2.5;"></circle><circle class="m3" cx="46" cy="46" r="34.5" style="stroke-width: 1.6;"></circle><svg x="19" y="19" width="54" height="54" viewBox="0 0 64 64"><g class="g"><path d="M12 54L44 18"></path><path class="s" d="M54 8L47.5 21.5L40.5 14.5Z"></path><path d="M52 54L20 18"></path><path class="s" d="M10 8L23.5 14.5L16.5 21.5Z"></path></g></svg></svg></svg>
+              <div class="cb"><div class="nm">Knightly Ransom</div><div class="ft"><i></i></div></div>
+            </div>
+          </div>
+          <div class="plate"><svg width="11" height="16" viewBox="0 0 16 24" aria-hidden="true"><path d="M5 1H11L15 5V19L11 23H5L1 19V5Z" fill="#1d1a20"></path></svg><span class="ks">Military</span></div>
+        </div>
+
+        <div class="fcol">
+          <div class="frm">
+            <svg class="fs" viewBox="0 0 200 310" preserveAspectRatio="none" aria-hidden="true"><path class="fo" d="M33.5 1.5H166.5L198.5 33.5V276.5L166.5 308.5H33.5L1.5 276.5V33.5Z"></path><path class="fi" d="M37 10H163L190 37V273L163 300H37L10 273V37Z"></path></svg>
+            <div class="cm">
+              <svg style="position: absolute; left: 0; top: 0; width: 120px; height: 186px;" viewBox="0 0 200 310" aria-hidden="true"><path d="M33.5 1.5H166.5L198.5 33.5V276.5L166.5 308.5H33.5L1.5 276.5V33.5Z" fill="rgba(29,26,32,0.04)" stroke="#1d1a20" stroke-opacity="0.38" stroke-width="3.5" stroke-dasharray="11 8" stroke-linejoin="round"></path></svg>
+              <div class="ks" style="position: absolute; left: 0; right: 0; top: 88px; text-align: center;">Empty</div>
+            </div>
+          </div>
+          <div class="plate"><svg width="11" height="16" viewBox="0 0 16 24" aria-hidden="true"><path d="M5 1H11L15 5V19L11 23H5L1 19V5Z" fill="#1d1a20"></path></svg><span class="ks">Military</span></div>
+        </div>
+
+        <div class="fcol">
+          <div class="frm">
+            <svg class="fs" viewBox="0 0 200 310" preserveAspectRatio="none" aria-hidden="true"><path class="fo" d="M37.5 1.5H162.5A36 36 0 0 1 198.5 37.5V272.5A36 36 0 0 1 162.5 308.5H37.5A36 36 0 0 1 1.5 272.5V37.5A36 36 0 0 1 37.5 1.5Z"></path><path class="fi" d="M37.5 10H162.5A27.5 27.5 0 0 1 190 37.5V272.5A27.5 27.5 0 0 1 162.5 300H37.5A27.5 27.5 0 0 1 10 272.5V37.5A27.5 27.5 0 0 1 37.5 10Z"></path></svg>
+            <div class="cm" style="color: #b07f12;">
+              <svg class="cs" viewBox="0 0 200 310" role="img" aria-label="Salt Tithes, an Economic card"><path class="o" d="M37.5 1.5H162.5A36 36 0 0 1 198.5 37.5V272.5A36 36 0 0 1 162.5 308.5H37.5A36 36 0 0 1 1.5 272.5V37.5A36 36 0 0 1 37.5 1.5Z"></path><path class="ri" d="M37.5 7.5H162.5A30 30 0 0 1 192.5 37.5V272.5A30 30 0 0 1 162.5 302.5H37.5A30 30 0 0 1 7.5 272.5V37.5A30 30 0 0 1 37.5 7.5Z"></path><svg x="60" y="30" width="80" height="80" viewBox="0 0 92 92"><circle class="m1" cx="46" cy="46" r="42.5" style="stroke-width: 2.5;"></circle><circle class="m3" cx="46" cy="46" r="34.5" style="stroke-width: 1.6;"></circle><svg x="19" y="19" width="54" height="54" viewBox="0 0 64 64"><g class="g"><path d="M22 27Q7 43 14 53Q21 59 32 59Q43 59 50 53Q57 43 42 27Z"></path><path d="M22 27H42"></path><path d="M24 27L27 15H37L40 27"></path></g></svg></svg></svg>
+              <div class="cb"><div class="nm">Salt Tithes</div><div class="ft"><i></i></div></div>
+            </div>
+          </div>
+          <div class="plate"><svg width="11" height="16" viewBox="0 0 16 24" aria-hidden="true"><path d="M6 1H10A5 5 0 0 1 15 6V18A5 5 0 0 1 10 23H6A5 5 0 0 1 1 18V6A5 5 0 0 1 6 1Z" fill="#1d1a20"></path></svg><span class="ks">Economic</span></div>
+        </div>
+
+        <div class="fcol">
+          <div class="frm">
+            <svg class="fs" viewBox="0 0 200 310" preserveAspectRatio="none" aria-hidden="true"><path class="fo" d="M1.5 1.5H198.5V308.5H1.5Z"></path><path class="fi" d="M10 10H190V300H10Z"></path></svg>
+            <div class="cm" style="color: #c2452a;">
+              <svg class="cs" viewBox="0 0 200 310" role="img" aria-label="Honours of the Legion, a Civic card"><path class="o" d="M29.5 1.5H170.5A28 28 0 0 0 198.5 29.5V280.5A28 28 0 0 0 170.5 308.5H29.5A28 28 0 0 0 1.5 280.5V29.5A28 28 0 0 0 29.5 1.5Z"></path><path class="p1" d="M33.7 6H166.3A32.5 32.5 0 0 0 194 33.7V276.3A32.5 32.5 0 0 0 166.3 304H33.7A32.5 32.5 0 0 0 6 276.3V33.7A32.5 32.5 0 0 0 33.7 6Z"></path><path class="p2" d="M37 10H163A36.5 36.5 0 0 0 190 37V273A36.5 36.5 0 0 0 163 300H37A36.5 36.5 0 0 0 10 273V37A36.5 36.5 0 0 0 37 10Z"></path><svg x="60" y="30" width="80" height="80" viewBox="0 0 92 92"><circle class="m1" cx="46" cy="46" r="42.5" style="stroke-width: 2.5;"></circle><circle class="m3" cx="46" cy="46" r="34.5" style="stroke-width: 1.6;"></circle><svg x="19" y="19" width="54" height="54" viewBox="0 0 64 64"><g class="g"><path d="M12 54L44 18"></path><path class="s" d="M54 8L47.5 21.5L40.5 14.5Z"></path><path d="M52 54L20 18"></path><path class="s" d="M10 8L23.5 14.5L16.5 21.5Z"></path></g></svg></svg></svg>
+              <div class="cb"><div class="nm">Honours of the Legion</div><div class="ft"><i></i></div></div>
+            </div>
+          </div>
+          <div class="plate" style="border-color: #8a6212; background: #f6e6bd;"><svg width="11" height="16" viewBox="0 0 16 24" aria-hidden="true"><path d="M1 1H15V23H1Z" fill="#1d1a20"></path></svg><span class="ks">Open</span></div>
+        </div>
+
+      </div>
+      <div style="font-size: 12.5px; line-height: 1.4; color: #3a353e;">Each frame has the corners it takes. The plain frame takes any card, so a cusped Civic card hangs there. The empty frame keeps the outline of its clipped corners.</div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px;">
+      <div class="panel" style="flex: none; padding: 16px 20px 10px; display: flex; flex-direction: column; gap: 8px;">
+        <div class="eb">The collection list · <span class="n">36</span> px rows</div>
+        <div style="display: flex; flex-direction: column;">
+          <div class="row" style="border-top: none;"><svg width="16" height="24" viewBox="0 0 16 24" role="img" aria-label="Military"><path d="M5 1H11L15 5V19L11 23H5L1 19V5Z" fill="#1d1a20"></path></svg><div class="tile" style="color: #c2452a;"><svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><g class="g" style="stroke-width: 7;"><path d="M12 54L44 18"></path><path class="s" d="M54 8L47.5 21.5L40.5 14.5Z"></path><path d="M52 54L20 18"></path><path class="s" d="M10 8L23.5 14.5L16.5 21.5Z"></path></g></svg></div><svg width="13" height="13" viewBox="0 0 14 14" role="img" aria-label="Uncommon"><rect x="1.5" y="1.5" width="11" height="11" rx="1.5" fill="#56505a"></rect></svg><div class="ln">The Tagmata</div><div class="ks">Dominion · III</div></div>
+          <div class="row"><svg width="16" height="24" viewBox="0 0 16 24" role="img" aria-label="Economic"><path d="M6 1H10A5 5 0 0 1 15 6V18A5 5 0 0 1 10 23H6A5 5 0 0 1 1 18V6A5 5 0 0 1 6 1Z" fill="#1d1a20"></path></svg><div class="tile" style="color: #b07f12;"><svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><g class="g" style="stroke-width: 7;"><path d="M22 27Q7 43 14 53Q21 59 32 59Q43 59 50 53Q57 43 42 27Z"></path><path d="M22 27H42"></path><path d="M24 27L27 15H37L40 27"></path></g></svg></div><svg width="13" height="13" viewBox="0 0 14 14" role="img" aria-label="Common"><rect x="1.5" y="1.5" width="11" height="11" rx="1.5" fill="#f7f2e1" stroke="#7a747d" stroke-width="1.3"></rect></svg><div class="ln">Salt Tithes</div><div class="ks">Commerce · 0</div></div>
+          <div class="row"><svg width="16" height="24" viewBox="0 0 16 24" role="img" aria-label="Civic"><path d="M5 1H11A4 4 0 0 0 15 5V19A4 4 0 0 0 11 23H5A4 4 0 0 0 1 19V5A4 4 0 0 0 5 1Z" fill="#1d1a20"></path></svg><div class="tile" style="color: #7b3fa8;"><svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><g class="g" style="stroke-width: 7;"><path d="M18 46Q18 19 32 17Q46 19 46 46"></path><path d="M12 46H52"></path><path d="M32 17V12"></path><path d="M28 9a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z"></path><path class="s" d="M27 53a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z"></path></g></svg></div><svg width="13" height="13" viewBox="0 0 14 14" role="img" aria-label="Rare"><rect x="1.5" y="1.5" width="11" height="11" rx="1.5" fill="#c8901f" stroke="#7a5712" stroke-width="1.1"></rect></svg><div class="ln">The Lay Brothers</div><div class="ks">Devotion · II</div></div>
+          <div class="row"><svg width="16" height="24" viewBox="0 0 16 24" role="img" aria-label="Economic"><path d="M6 1H10A5 5 0 0 1 15 6V18A5 5 0 0 1 10 23H6A5 5 0 0 1 1 18V6A5 5 0 0 1 6 1Z" fill="#1d1a20"></path></svg><div class="tile" style="color: #4e7c3f;"><svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><g class="g" style="stroke-width: 7;"><path d="M10 34L32 15L54 34"></path><path d="M18 34H46V55H18Z"></path><path d="M27 43H37V55H27Z"></path></g></svg></div><svg width="13" height="13" viewBox="0 0 14 14" role="img" aria-label="Rare"><rect x="1.5" y="1.5" width="11" height="11" rx="1.5" fill="#c8901f" stroke="#7a5712" stroke-width="1.1"></rect></svg><div class="ln">The Patient Harvest</div><div class="ks">Expansionist · 0</div></div>
+        </div>
+      </div>
+
+      <div class="panel" style="flex: 1; min-height: 0; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;">
+        <div class="eb">The hand in silhouette</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; padding: 0 6px;">
+          <div class="sil"><svg width="40" height="62" viewBox="0 0 40 62" aria-hidden="true"><path d="M7.4 1H32.6L39 7.4V54.6L32.6 61H7.4L1 54.6V7.4Z" fill="#1d1a20"></path></svg><div class="ks" style="font-size: 8.5px;">Military</div></div>
+          <div class="sil"><svg width="40" height="62" viewBox="0 0 40 62" aria-hidden="true"><path d="M6.6 1H33.4A5.6 5.6 0 0 0 39 6.6V55.4A5.6 5.6 0 0 0 33.4 61H6.6A5.6 5.6 0 0 0 1 55.4V6.6A5.6 5.6 0 0 0 6.6 1Z" fill="#1d1a20"></path></svg><div class="ks" style="font-size: 8.5px;">Civic</div></div>
+          <div class="sil"><svg width="40" height="62" viewBox="0 0 40 62" aria-hidden="true"><path d="M7.4 1H32.6L39 7.4V54.6L32.6 61H7.4L1 54.6V7.4Z" fill="#1d1a20"></path></svg><div class="ks" style="font-size: 8.5px;">Military</div></div>
+          <div class="sil"><svg width="40" height="62" viewBox="0 0 40 62" aria-hidden="true"><path d="M8.2 1H31.8A7.2 7.2 0 0 1 39 8.2V53.8A7.2 7.2 0 0 1 31.8 61H8.2A7.2 7.2 0 0 1 1 53.8V8.2A7.2 7.2 0 0 1 8.2 1Z" fill="#1d1a20"></path></svg><div class="ks" style="font-size: 8.5px;">Economic</div></div>
+          <div class="sil"><svg width="40" height="62" viewBox="0 0 40 62" aria-hidden="true"><path d="M6.6 1H33.4A5.6 5.6 0 0 0 39 6.6V55.4A5.6 5.6 0 0 0 33.4 61H6.6A5.6 5.6 0 0 0 1 55.4V6.6A5.6 5.6 0 0 0 6.6 1Z" fill="#1d1a20"></path></svg><div class="ks" style="font-size: 8.5px;">Civic</div></div>
+          <div class="sil"><svg width="40" height="62" viewBox="0 0 40 62" aria-hidden="true"><path d="M8.2 1H31.8A7.2 7.2 0 0 1 39 8.2V53.8A7.2 7.2 0 0 1 31.8 61H8.2A7.2 7.2 0 0 1 1 53.8V8.2A7.2 7.2 0 0 1 8.2 1Z" fill="#1d1a20"></path></svg><div class="ks" style="font-size: 8.5px;">Economic</div></div>
+        </div>
+        <div style="font-size: 12.5px; line-height: 1.45; color: #3a353e;">With no colour and no words, the corners still name the chair, though only just at this size. Clipped and round are the closest pair, so the cuts are drawn deep.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
