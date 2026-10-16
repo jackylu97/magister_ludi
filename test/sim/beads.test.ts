@@ -352,7 +352,10 @@ describe("the bead catalogue", () => {
     // 130 since D1: eleven Dominion cards that give units experience or pay
     // when a unit earns a rank, a new end-of-turn phase and a new record, so
     // a v129 log's picks name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(130);
+    // 131 since D2: nine Dominion cards that read a unit's rank or change a
+    // rule of combat, and a new unit field, so a v130 log's picks name cards
+    // this build never dealt.
+    expect(SCHEMA_VERSION).toBe(131);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

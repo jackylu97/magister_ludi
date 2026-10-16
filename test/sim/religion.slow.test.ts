@@ -385,7 +385,10 @@ describe('determinism', () => {
     // 130 since D1: eleven Dominion cards that give units experience or pay
     // when a unit earns a rank, a new end-of-turn phase and a new record, so
     // a v129 log's picks name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(130);
+    // 131 since D2: nine Dominion cards that read a unit's rank or change a
+    // rule of combat, and a new unit field, so a v130 log's picks name cards
+    // this build never dealt.
+    expect(SCHEMA_VERSION).toBe(131);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

@@ -220,9 +220,16 @@ import { isExploredBy, isVisibleTo } from '../visibility';
 import { isCoastal } from '../water';
 // Ranks (Dominion batch D1): a leaf over the rule book, the unit table and the
 // state, so the edge is one way.
-import { type RankId, grantExperience, rankThreshold } from '../ranks';
+import {
+  type RankId,
+  grantExperience,
+  holdsRank,
+  rankName,
+  rankThreshold,
+  ranksHeld,
+} from '../ranks';
 import { orderAtSlotPosition, settleCultureWindfall, slotTypesOf, tallyOf } from './draft';
-import { tileConditionWords } from './describers';
+import { indefinite, tileConditionWords } from './describers';
 import { statecraftOf } from './draft';
 import { bumpEconomy } from '../slate';
 
@@ -2115,6 +2122,10 @@ export function cityScopeAdmits(
       // asks whether there is a garrison and a card that counts one cannot
       // disagree. Boolean, so three spearmen admit it once.
       return garrisonOf(state, city).length > 0;
+    case 'garrisonRank':
+      // The Fabricae (Dominion batch D2): the same sweep, and one of the units
+      // in it holds the rank. An Elite holds Veteran too.
+      return garrisonOf(state, city).some((unit) => holdsRank(unit, scope.rank));
     case 'connected': {
       // The gold ledger's own fill, asked of the same board (`roads.ts`, the
       // leaf both readers can see). The capital is what the others are joined
@@ -2367,6 +2378,8 @@ function scopeNote(scope?: CityScope): string | null {
       return `${improvementDef(scope.improvement).name.toLowerCase()} in its borders`;
     case 'garrisoned':
       return 'a unit stationed there';
+    case 'garrisonRank':
+      return `${indefinite(rankName(scope.rank))} ${rankName(scope.rank)} or better stationed there`;
     case 'newest':
       return 'newest city';
     case 'follows':
@@ -4794,6 +4807,10 @@ export function cardUpkeepRebateLines(
     for (const unit of state.units) {
       if (unit.ownerId !== playerId) continue;
       if (!unitMatches(unit.type, effect.class)) continue;
+      // The Soldiers' Purse (Dominion batch D2): the coin comes off once for
+      // each rank the piece holds, and a piece with no rank is skipped.
+      const helpings = effect.perRank === true ? ranksHeld(unit) : 1;
+      if (helpings === 0) continue;
       if (effect.where === 'ownTerritory') {
         if (tileOwnerPlayerId(state, unit.col, unit.row) !== playerId) continue;
       }
@@ -4814,7 +4831,7 @@ export function cardUpkeepRebateLines(
       }
       const cost = costOf(unit);
       if (cost <= 0) continue;
-      gold += off === null ? cost : Math.min(off, cost);
+      gold += off === null ? cost : Math.min(off * helpings, cost);
     }
     if (gold <= 0) continue;
     list.push({ card, source, gold });
@@ -5336,6 +5353,14 @@ export interface CombatSituation {
    */
   vsStrength?: number;
   /**
+   * True when this side's piece still has its **full movement allowance** —
+   * Interior Lines' "a unit that has not moved this turn" (Dominion batch D2,
+   * `CombatCondition`'s `unmoved`). Filled by `planCombat`, which can ask
+   * `fullMovement`; a comparison from another hex imagines the turn still
+   * ahead, so it is true there.
+   */
+  unmoved?: boolean;
+  /**
    * **Whose** the other side is — the seat `vsWiderEmpire` compares realms with.
    *
    * `vsType`'s sibling one question wider, and filled by the same rule from the
@@ -5411,6 +5436,13 @@ function combatConditionHolds(
       // it is in: a dug-in unit that sallies is still dug in until the reducer
       // breaks the fortification, and `breakFortify` is what decides that.
       return situation.unit.fortifiedTurns !== undefined;
+    case 'hasRank':
+      // The Tagmata (Dominion batch D2): the piece's own experience.
+      return holdsRank(situation.unit, when.rank);
+    case 'unmoved':
+      // Interior Lines (Dominion batch D2): `planCombat` decides it, because
+      // the full allowance is `units.ts`' figure. Absent is no.
+      return situation.unmoved === true;
     case 'withinOfCity': {
       // A distance rather than a border: Deborah judges within sight of her own
       // people, which reaches ground nobody has claimed and stops short of a
@@ -5777,6 +5809,7 @@ export function cardCombatPercent(
   for (const { effect } of effectsOfKind(state, unit.ownerId, 'unitStat')) {
     if (effect.stat !== 'combatPercent') continue;
     if (!unitMatches(unit.type, effect.class)) continue;
+    if (effect.rank !== undefined && !holdsRank(unit, effect.rank)) continue;
     if (effect.when !== undefined) {
       if (!situation) continue;
       if (!combatConditionHolds(state, situation, effect.when)) continue;
@@ -5859,6 +5892,10 @@ export function cardUnitStat(
   for (const { effect } of effectsOfKind(state, unit.ownerId, 'unitStat')) {
     if (effect.stat !== stat) continue;
     if (!unitMatches(unit.type, effect.class)) continue;
+    // The Keshik's Veterans and Elites (Dominion batch D2): a fact about the
+    // piece in hand, so it is read here and in `cardCombatPercent`, and a row
+    // naming a rank adds no charge at a birth (`cardExtraCharges`).
+    if (effect.rank !== undefined && !holdsRank(unit, effect.rank)) continue;
     if (effect.where === 'ownTerritory') {
       if (tileOwnerPlayerId(state, unit.col, unit.row) !== unit.ownerId) continue;
     }
@@ -5927,6 +5964,8 @@ export function cardExtraCharges(
   for (const { effect } of effectsOfKind(state, playerId, 'unitStat')) {
     if (effect.stat !== 'charges') continue;
     if (!unitMatches(type, effect.class)) continue;
+    // A piece being born holds no rank yet, so a row naming one adds nothing.
+    if (effect.rank !== undefined) continue;
     // The scope asks about the town, and "my religion" asks about the empire
     // reading the card — the same `viewerId` a follower belief is admitted by.
     if (effect.scope !== undefined) {
@@ -7502,6 +7541,12 @@ function cardRuleHolds(
   playerId: number,
   rule: CardFlagRuleId,
   type?: UnitTypeId,
+  /**
+   * The whole piece, where the caller has one (`cardBehaviorRuleFor`). A row
+   * naming a `rank` is asked only then, and skipped otherwise, for `class`'
+   * reason below.
+   */
+  piece?: Unit,
 ): boolean {
   for (const { effect } of effectsOfKind(state, playerId, 'rule')) {
     if (effect.rule !== rule) continue;
@@ -7514,6 +7559,12 @@ function cardRuleHolds(
     if (effect.class !== undefined) {
       if (type === undefined) continue;
       if (!unitMatches(type, effect.class)) continue;
+    }
+    // The Varangian Guard's Elites (Dominion batch D2): a rank is a fact about
+    // the piece, so a row naming one needs the piece itself.
+    if (effect.rank !== undefined) {
+      if (piece === undefined) continue;
+      if (!holdsRank(piece, effect.rank)) continue;
     }
     return true;
   }
@@ -7592,6 +7643,16 @@ export function cardBehaviorRule(
   type?: UnitTypeId,
 ): boolean {
   return cardRuleHolds(state, playerId, rule, type);
+}
+
+/**
+ * **Is this behaviour rule true of this piece?** (Dominion batch D2.)
+ * `cardBehaviorRule` asked with the whole piece, so a row may narrow by its
+ * `class` and by the `rank` the piece holds (The Varangian Guard's Elites).
+ * The piece's owner is the empire whose cards are asked.
+ */
+export function cardBehaviorRuleFor(state: GameState, unit: Unit, rule: BehaviorRuleId): boolean {
+  return cardRuleHolds(state, unit.ownerId, rule, unit.type, unit);
 }
 
 /**

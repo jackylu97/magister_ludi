@@ -1228,8 +1228,31 @@ import {
  * dealt, the new phase raises the revision once more every turn, and a unit
  * that earns a rank writes the new record. The branch migrates nothing, for the
  * reason given under v119.
+ *
+ * v131 (branch `decks`; batch D2 of `docs/plans/dominion-build-triage.md`,
+ * ranks read, and combat rules): **nine Dominion cards that read a unit's rank
+ * or change a rule of combat.** Seven join the Dominion file; The Soldiers'
+ * Purse is reworked, and The Marching Camps takes over March Discipline's row,
+ * keeping its id. One field joins the state: `Unit.firstAttackTurn`, the turn an
+ * Elite under The Varangian Guard made the first of its two attacks. It is
+ * written only by `applyCombat`, compared against `state.turn` and never reset,
+ * and absent in any game without the card. The rules that change:
+ *
+ *   · a card can read a unit's rank: a combat condition (`hasRank`), a narrowing
+ *     on a unit stat and on a flag rule (`rank`), a town scope (`garrisonRank`)
+ *     and an upkeep rebate taken once per rank (`perRank`);
+ *   · four new behaviour rules: an attack keeps fortification, a land unit may
+ *     move after attacking, an Elite may attack twice, and a siege unit takes a
+ *     town's walls to the floor in one blow;
+ *   · a combat condition for a unit that has not moved this turn (`unmoved`);
+ *   · every write of a unit's experience is announced on the economy clock,
+ *     because a town scope now reads it.
+ *
+ * **A v130 save is refused and does not replay.** The draft bags hold
+ * different cards, so a v130 log's picks would name cards this build never
+ * dealt. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 130;
+export const SCHEMA_VERSION = 131;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2551,6 +2574,22 @@ export interface Unit {
    * healing rule reads it on every unit in the game every turn.
    */
   hasAttacked: boolean;
+  /**
+   * **The turn this unit made the first of two attacks** — The Varangian
+   * Guard's Elites, which may attack twice a turn (Dominion batch D2,
+   * `BehaviorRuleId`'s `secondAttack`).
+   *
+   * The first attack leaves `hasAttacked` unset and writes the turn here; an
+   * attack made while this equals `state.turn` is the second, and ends the turn
+   * as any attack does. It is an absolute turn compared against `state.turn`,
+   * never a countdown, so nothing resets it and a stale value from an earlier
+   * turn simply means the next attack is a first again.
+   *
+   * Written in one place, `applyCombat`, and only for a piece the rule is true
+   * of, so it is absent in every game without the card. Not in the piece
+   * fingerprint (`signUnits`): nothing about it is drawn.
+   */
+  firstAttackTurn?: number;
   /**
    * The rest of a march this unit has been ordered on, or the key is **absent**
    * when it is standing where it was put. Presence is the state, like

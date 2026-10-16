@@ -705,10 +705,16 @@ describe('determinism', () => {
    * 11's scout earns one experience), so no drill fires and no
    * `Player.ranksEarned` key is written. Checked by setting the version back
    * to 129 and taking the phase out, which gives C2a's hashes exactly.
+   *
+   * **Dominion batch D2 (ranks read, and combat rules) moved the hash and not
+   * the length** at both seeds: 130 became 131, and that is all. Nobody here
+   * drafts a card, no unit is an Elite and nobody fights twice, so the new
+   * rules and `Unit.firstAttackTurn` never reach this board. Checked by setting
+   * the version back to 130, which gives D1's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '54cffdcb:188983',
-    2026: '207b9e20:188539',
+    11: '37a00dd6:188983',
+    2026: '85f18485:188539',
   };
 
   for (const seed of [11, 2026]) {

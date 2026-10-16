@@ -513,10 +513,31 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * version at 129, the phase removed and the record not written), which gives
  * C2a's digests exactly on both boards. Nothing stalled and no command was
  * refused.
+ *
+ * ---
+ *
+ * **Dominion batch D2 (schema 131), ranks read, and combat rules.** Duel
+ * `b8469a41:274868` → `9fbcd543:269226`, standard `c4b52563:951785` →
+ * `26e408cb:978767`. Two things moved them:
+ *
+ *   · the version, 130 to 131;
+ *   · the nine cards: seven new rows join the Dominion pool, The Soldiers'
+ *     Purse is reworked and The Marching Camps takes over March Discipline's
+ *     row, so from the first draw that meets one of them the hands are
+ *     different hands. At turn 120 no seat on the duel board holds a D2 card,
+ *     and on the standard board two seats hold The Soldiers' Purse and two The
+ *     Swift Riders, none of them seated; no unit took a second attack.
+ *
+ * The new rules (a rank read by a card, the four attack rules, the `unmoved`
+ * condition) do nothing without their cards, and the experience announcement
+ * changes the economy clock, which is not in the state. Checked by taking both
+ * movers back out (the deck file as D1 left it and the version at 130), which
+ * gives D1's digests exactly on both boards. Nothing stalled and no command was
+ * refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'b8469a41:274868',
-  standard: 'c4b52563:951785',
+  duel: '9fbcd543:269226',
+  standard: '26e408cb:978767',
 };
 
 /**

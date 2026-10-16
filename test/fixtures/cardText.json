@@ -2476,8 +2476,8 @@
   ],
   "dominionMarchDiscipline": [
    {
-    "raw": "military units: +1 movement inside your territory",
-    "text": "military units: +1 movement inside your territory"
+    "raw": "attacking does not break your units’ fortification",
+    "text": "attacking does not break your units’ fortification"
    }
   ],
   "dominionFieldSurgeons": [
@@ -2526,8 +2526,8 @@
   ],
   "theSoldiersPurse": [
    {
-    "raw": "military units cost 1 less gold in maintenance",
-    "text": "military units cost 1 less gold in maintenance"
+    "raw": "military units cost 1 less gold in maintenance for each rank they hold",
+    "text": "military units cost 1 less gold in maintenance for each rank they hold"
    }
   ],
   "veteransRest": [
@@ -2728,6 +2728,12 @@
    {
     "raw": "+15% food in every city per fortification there (at most +15% food)",
     "text": "+15% food in every city per fortification there (at most +15% food)"
+   }
+  ],
+  "theSwiftRiders": [
+   {
+    "raw": "mounted units may move after attacking",
+    "text": "mounted units may move after attacking"
    }
   ],
   "siegeWorks": [
@@ -3116,6 +3122,12 @@
     "text": "one of your units earning a rank grants +15 science"
    }
   ],
+  "theFabricae": [
+   {
+    "raw": "+25% production in every city with a Veteran or better standing in it",
+    "text": "+25% production in every city with a Veteran or better standing in it"
+   }
+  ],
   "standingGarrisons": [
    {
     "raw": "+12% production in every city per combat unit standing there",
@@ -3333,6 +3345,28 @@
     "text": "+2 science in every city per combat unit standing there"
    }
   ],
+  "theTagmata": [
+   {
+    "raw": "+5 combat strength as a Veteran or better",
+    "text": "+5 combat strength as a Veteran or better"
+   }
+  ],
+  "theKeshik": [
+   {
+    "raw": "mounted units that are a Veteran or better: +1 movement",
+    "text": "mounted units that are a Veteran or better: +1 movement"
+   }
+  ],
+  "interiorLines": [
+   {
+    "raw": "roads carry units 40% further",
+    "text": "roads carry units 40% further"
+   },
+   {
+    "raw": "+4 combat strength when it has not moved this turn",
+    "text": "+4 combat strength when it has not moved this turn"
+   }
+  ],
   "dominionImperium": [
    {
     "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per captured city you hold (at most +40%)",
@@ -3475,6 +3509,18 @@
    {
     "raw": "then this card leaves its chair and is never seated again",
     "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theVarangianGuard": [
+   {
+    "raw": "Elite units may attack twice a turn",
+    "text": "Elite units may attack twice a turn"
+   }
+  ],
+  "theGreatBombards": [
+   {
+    "raw": "siege units break a town’s walls in one blow",
+    "text": "siege units break a town’s walls in one blow"
    }
   ],
   "smallholdings": [

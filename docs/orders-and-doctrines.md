@@ -169,9 +169,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Armed Colony | 0 | ● | S | A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran. |
 | The Campaign Annals | 0 | ○ | P | While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science. |
 | The Training Cadre | 1 | ● | S | Units gained in a town with a Barracks start with 2 experience. |
-| March Discipline | 1 | ● | S | Military units gain +1 movement when starting their turn in your territory. |
+| The Marching Camps | 1 | ● | S | Attacking does not break your units' fortification. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +3 food and +3 production. |
-| The Soldiers' Purse | 1 | ● | S | Military units cost 1 less upkeep. |
+| The Soldiers' Purse | 1 | ● | S | Military units cost 1 less upkeep for each rank they hold. |
 | Honours of the Legion | 1 | ◆ | S | Each time one of your units earns a rank, gain science and culture equal to its strength. |
 | The Marshals | 1 | ◆ | S | +2 strength per adjacent friendly combat unit, at most +6. |
 | The Pacified Marches | 1 | ◆ | P | Gains +1 authority capacity and +5 culture for every barbarian camp cleared this game, at most +8 authority and +40 culture. |
@@ -183,6 +183,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Soldier-Farmers | 1 | ● | S | While at peace, garrisoned cities gain +2 food and +2 production on each worked pasture and camp. |
 | Martial Law | 1 | ● | P | Each garrisoned unit grants its city +2 happiness and +4 food. |
 | Walled Towns | 1 | ● | P | Towns with a defensive building, such as a Palisade or walls, gain +15% food. |
+| The Swift Riders | 1 | ◆ | S | Mounted units may move after attacking. |
 | Siege Works | 2 | ● | S | +38% production toward siege units. Siege units gain +4 strength against cities. |
 | Armoury Guilds | 2 | ● | P | Armouries give +5 science and +5 culture. Cities with one gain +15% production toward buildings. |
 | Conquered Archives | 2 | ● | P | Captured cities gain +6 science and +6 culture. |
@@ -201,6 +202,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Conscription Rolls | 2 | ◆ | S | Every ten turns, each town of at least eight citizens raises the best melee unit you can build. |
 | The Veterans' Roll | 2 | ◆ | P | +1% science and culture for every rank your units have earned this game, at most +30%. |
 | The Tactica | 2 | ◆ | S | At the end of your turn, great generals give 1 experience to every unit beside them. Each time one of your units earns a rank, gain 15 science. |
+| The Fabricae | 2 | ● | P | Towns whose garrison is a Veteran or Elite gain +25% production. |
 | Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +12% production and +12% culture. |
 | The Siege Train | 3 | ◆ | S | Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities. |
 | Reserve Officers | 3 | ◆ | S | While at war, cities with a Barracks produce military units 60% faster; while at peace, those cities gain +30% production toward buildings. |
@@ -212,6 +214,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Up Through the Ranks | 3 | ◆ | S | Each time one of your units becomes an Elite, gain 250 renown, favouring great generals. |
 | The Devshirme | 3 | ○ | S | Captured towns of at least six citizens may spend a citizen to raise the best melee unit you can build, as a Veteran. |
 | The Regimental Schools | 3 | ● | P | At the end of your turn, each garrisoned unit gains 1 experience and gives its town +2 science. |
+| The Tagmata | 3 | ◆ | S | Veteran and Elite units gain +5 strength. |
+| The Keshik | 3 | ◆ | S | Mounted Veteran and Elite units gain +1 movement. |
+| Interior Lines | 3 | ◆ | S | A step along a road costs 40% less movement. A unit that has not moved this turn gains +4 strength when attacking. |
 | Imperium | 4 | ○ | S | Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%. |
 | Commission: Hold the Capitals | 4 | ○ | S | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. |
 | Spolia | 4 | ○ | S | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. |
@@ -225,6 +230,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Proconsuls | 4 | ◆ | S | Captured cities with a garrison cost no authority and gain +10 defence. |
 | Commission: The Grand Campaign | 4 | ◆ | S | Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair. |
 | Commission: The Captured Marvel | 4 | ○ | S | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair. |
+| The Varangian Guard | 4 | ○ | S | Elite units may attack twice a turn. |
+| The Great Bombards | 4 | ○ | S | Your siege units break a town's walls in one blow. |
 
 ### Expansionist
 

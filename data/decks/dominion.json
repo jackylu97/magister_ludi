@@ -616,7 +616,7 @@
       ]
     },
     "dominionMarchDiscipline": {
-      "name": "March Discipline",
+      "name": "The Marching Camps",
       "decks": [
         "dominion"
       ],
@@ -624,17 +624,12 @@
       "line": "none",
       "rarity": "common",
       "type": "military",
-      "flavor": "Home ground is quicker ground.",
-      "text": "Military units gain +1 movement when starting their turn in your territory.",
+      "flavor": "Every night the legion digs a camp, and every morning it fights from one.",
+      "text": "Attacking does not break your units' fortification.",
       "effects": [
         {
-          "kind": "unitStat",
-          "stat": "movement",
-          "amount": 1,
-          "class": {
-            "category": "military"
-          },
-          "where": "ownTerritory"
+          "kind": "rule",
+          "rule": "attackKeepsFortification"
         }
       ]
     },
@@ -813,14 +808,15 @@
       "rarity": "common",
       "type": "military",
       "flavor": "A soldier who feeds himself costs the crown less.",
-      "text": "Military units cost 1 less upkeep.",
+      "text": "Military units cost 1 less upkeep for each rank they hold.",
       "effects": [
         {
           "kind": "upkeepRebate",
           "amount": 1,
           "class": {
             "category": "military"
-          }
+          },
+          "perRank": true
         }
       ]
     },
@@ -1407,6 +1403,27 @@
           "stage": "city",
           "count": "defensiveBuildings",
           "max": 1
+        }
+      ]
+    },
+    "theSwiftRiders": {
+      "name": "The Swift Riders",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "Strike, wheel away, and strike again somewhere else.",
+      "text": "Mounted units may move after attacking.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "moveAfterAttack",
+          "class": {
+            "modelClass": "mounted"
+          }
         }
       ]
     },
@@ -2489,6 +2506,29 @@
         }
       ]
     },
+    "theFabricae": {
+      "name": "The Fabricae",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The old soldiers know what a good blade is worth, and the smiths listen.",
+      "text": "Towns whose garrison is a Veteran or Elite gain +25% production.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 25,
+          "scope": {
+            "test": "garrisonRank",
+            "rank": "veteran"
+          }
+        }
+      ]
+    },
     "standingGarrisons": {
       "name": "Standing Garrisons",
       "decks": [
@@ -3202,6 +3242,79 @@
         }
       ]
     },
+    "theTagmata": {
+      "name": "The Tagmata",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The professional regiments, kept close to the capital and paid on time.",
+      "text": "Veteran and Elite units gain +5 strength.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "both",
+          "when": {
+            "test": "hasRank",
+            "rank": "veteran"
+          }
+        }
+      ]
+    },
+    "theKeshik": {
+      "name": "The Keshik",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The guard rides with the khan, and rides further than anyone.",
+      "text": "Mounted Veteran and Elite units gain +1 movement.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "class": {
+            "modelClass": "mounted"
+          },
+          "rank": "veteran"
+        }
+      ]
+    },
+    "interiorLines": {
+      "name": "Interior Lines",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The army that holds the centre can reach any part of the front first.",
+      "text": "A step along a road costs 40% less movement. A unit that has not moved this turn gains +4 strength when attacking.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "roadStepCost",
+          "percent": -40
+        },
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "attack",
+          "when": {
+            "test": "unmoved"
+          }
+        }
+      ]
+    },
     "dominionImperium": {
       "name": "Imperium",
       "decks": [
@@ -3697,6 +3810,46 @@
           }
         ]
       }
+    },
+    "theVarangianGuard": {
+      "name": "The Varangian Guard",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "Foreign axemen sworn to the emperor himself, and the last to leave a field.",
+      "text": "Elite units may attack twice a turn.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "secondAttack",
+          "rank": "elite"
+        }
+      ]
+    },
+    "theGreatBombards": {
+      "name": "The Great Bombards",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "Walls that stood for a thousand years came down in an afternoon.",
+      "text": "Your siege units break a town's walls in one blow.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "breachInOneBlow",
+          "class": {
+            "modelClass": "siege"
+          }
+        }
+      ]
     }
   }
 }

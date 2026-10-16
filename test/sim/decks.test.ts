@@ -369,8 +369,11 @@ describe('the schema, as landed', () => {
     // Dominion rows came live; The Training Cadre and Honours of the Legion
     // took over two rows that were already live (Drill Manuals and The War
     // Hall Schools), so they add nothing to the count.
-    expect(live).toBe(378);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(378);
+    // **And Dominion batch D2** (ranks read, and combat rules): seven more.
+    // Seven new Dominion rows came live; The Soldiers' Purse was reworked and
+    // The Marching Camps took over March Discipline's row, both already live.
+    expect(live).toBe(385);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(385);
   });
 
   /**
@@ -542,7 +545,10 @@ describe('the schema, as landed', () => {
     // 130 since D1: eleven Dominion cards that give units experience or pay
     // when a unit earns a rank, a new end-of-turn phase and a new record, so
     // a v129 log's picks name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(130);
+    // 131 since D2: nine Dominion cards that read a unit's rank or change a
+    // rule of combat, and a new unit field, so a v130 log's picks name cards
+    // this build never dealt.
+    expect(SCHEMA_VERSION).toBe(131);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

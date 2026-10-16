@@ -4,8 +4,11 @@
  * A unit earns experience by fighting, and at fixed amounts of experience it
  * holds a rank: Veteran, then Elite. Each rank is worth a flat amount of combat
  * strength, as one labelled line on the combat ledger (`planCombat`,
- * `combat.ts`) on whichever side the unit fights. Ranks do nothing else for now:
- * no choices, no extra health, no extra movement (the user's ruling).
+ * `combat.ts`) on whichever side the unit fights. A rank does nothing else by
+ * itself: no choices, no extra health, no extra movement (the user's ruling).
+ * Cards may read it (Dominion batch D2): The Tagmata's strength, The Keshik's
+ * movement, The Soldiers' Purse's upkeep, The Fabricae's town scope and The
+ * Varangian Guard's second attack all ask `holdsRank` or `ranksHeld` below.
  *
  * The strength is flat rather than a share of the unit's own strength (the
  * user, 2026-10-14). The damage curve reads the difference between two
@@ -63,12 +66,13 @@
  * (`applyUpgrade`, `tech.ts`), and a change of owner (`captureUnit`, `state.ts`)
  * changes only the owner, so neither touches it.
  *
- * A leaf over the rule book, the unit table and `state.ts`, like `weariness.ts`:
- * `combat.ts`, the renderer and the interface all read it, and it imports none
- * of them.
+ * A leaf over the rule book, the unit table, the slate's clock and `state.ts`,
+ * like `weariness.ts`: `combat.ts`, the renderer and the interface all read it,
+ * and it imports none of them.
  */
 
 import { type RankId, RULES } from './rulesData';
+import { bumpEconomy } from './slate';
 import { type GameState, isBarbarian } from './state';
 import { type UnitTypeId, isCombatant, unitDef } from './unitData';
 
@@ -138,6 +142,27 @@ export function rankFor(experience: number): RankId | null {
 /** The rank a unit holds, read from its experience. Never stored. */
 export function rankOf(unit: ExperiencedUnit): RankId | null {
   return rankFor(experienceOf(unit));
+}
+
+/**
+ * Does this unit hold at least this rank? An Elite holds Veteran too, so The
+ * Tagmata's "Veteran and Elite units" is `holdsRank(unit, 'veteran')`.
+ */
+export function holdsRank(unit: ExperiencedUnit, rank: RankId): boolean {
+  return experienceOf(unit) >= rankThreshold(rank);
+}
+
+/**
+ * How many ranks this unit holds, counting up the ladder: none, one for a
+ * Veteran, two for an Elite. The Soldiers' Purse takes its coin off once for
+ * each (Dominion batch D2).
+ */
+export function ranksHeld(unit: ExperiencedUnit): number {
+  let held = 0;
+  for (const id of RANK_IDS) {
+    if (holdsRank(unit, id)) held += 1;
+  }
+  return held;
 }
 
 /**
@@ -213,15 +238,17 @@ export function ranksReached(before: number, after: number): RankId[] {
  * the barbarian cap from its very first fight (a cap of nothing) stays without
  * one, and a unit that has never earned any always serialises without one.
  *
- * Nothing on the economy clock reads experience (`slate.ts`): a unit's strength
- * is folded fresh by `planCombat` every time it is asked. So, unlike
- * `recordWarLoss`, the write needs no announcement of its own. What a rank pays
- * is announced where it is paid (`settleRanksEarned`, `cities.ts`).
+ * **The write is announced** (`bumpEconomy`, the slate register) since
+ * Dominion batch D2: The Fabricae asks whether a town's garrison holds a rank
+ * (`CityScope`'s `garrisonRank`), and a town scope can reach the meters through
+ * any card that pays happiness or authority in such towns. What a rank pays is
+ * announced where it is paid (`settleRanksEarned`, `cities.ts`).
  */
-function writeExperience(unit: ExperiencedUnit, next: number): RankId[] {
+function writeExperience(state: GameState, unit: ExperiencedUnit, next: number): RankId[] {
   const current = experienceOf(unit);
   if (next <= current) return [];
   unit.experience = next;
+  bumpEconomy(state);
   return ranksReached(current, next);
 }
 
@@ -243,7 +270,7 @@ export function awardExperience(
   if (isBarbarian(state, unit.ownerId)) return [];
   const current = experienceOf(unit);
   const next = experienceAfter(current, event, isBarbarian(state, opponentOwnerId));
-  return writeExperience(unit, next);
+  return writeExperience(state, unit, next);
 }
 
 /**
@@ -270,7 +297,7 @@ export function grantExperience(state: GameState, unit: DrilledUnit, amount: num
   const whole = Math.floor(amount);
   if (whole <= 0) return [];
   if (!canEarn(state, unit)) return [];
-  return writeExperience(unit, experienceOf(unit) + whole);
+  return writeExperience(state, unit, experienceOf(unit) + whole);
 }
 
 /**
@@ -283,5 +310,5 @@ export function grantExperience(state: GameState, unit: DrilledUnit, amount: num
  */
 export function raiseToRank(state: GameState, unit: DrilledUnit, rank: RankId): RankId[] {
   if (!canEarn(state, unit)) return [];
-  return writeExperience(unit, Math.max(experienceOf(unit), rankThreshold(rank)));
+  return writeExperience(state, unit, Math.max(experienceOf(unit), rankThreshold(rank)));
 }

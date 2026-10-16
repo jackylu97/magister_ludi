@@ -15,11 +15,11 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 17 | 1 | 8 | 26 | none |
-| Tier I | 13 | 2 | 8 | 23 | 5 |
-| Tier II | 15 | 5 | 11 | 31 | 5 |
-| Tier III | 11 | 1 | 12 | 24 | 3 |
-| Tier IV | 8 | 7 | 6 | 21 | 3 |
-| **All** | **64** | **16** | **45** | **125** | **16** |
+| Tier I | 16 | 0 | 7 | 23 | 5 |
+| Tier II | 16 | 5 | 10 | 31 | 5 |
+| Tier III | 14 | 1 | 9 | 24 | 3 |
+| Tier IV | 10 | 7 | 4 | 21 | 3 |
+| **All** | **73** | **14** | **38** | **125** | **16** |
 | Shared | 20 | 1 | 4 | 25 |  |
 
 **By type** (the chair a card fits):
@@ -89,15 +89,15 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Martial Law** | common | implemented | Each garrisoned unit grants its city +2 happiness and +4 food. | Civic |
 | **The General Staff** | common | implemented | Cities with a Barracks give +3 production and +2 renown a turn, favouring great generals. | Economic |
 | **The Training Cadre** | common | implemented | Units gained in a town with a Barracks start with 2 experience. | Military |
-| **The Marching Camps** (was March Discipline) | common | modify: reworked | Attacking does not break your units' fortification. | Military |
-| **The Soldiers' Purse** | common | modify: reworked | Military units cost 1 less upkeep for each rank they hold. | Military |
+| **The Marching Camps** | common | implemented | Attacking does not break your units' fortification. | Military |
+| **The Soldiers' Purse** | common | implemented | Military units cost 1 less upkeep for each rank they hold. | Military |
 | **Honours of the Legion** | uncommon | implemented | Each time one of your units earns a rank, gain science and culture equal to its strength. | Civic |
 | **The Pacified Marches** | uncommon | implemented | Gains +1 authority capacity and +5 culture for every barbarian camp cleared this game, at most +8 authority and +40 culture. | Civic |
 | **The Art of War** | uncommon | implemented | Gaining a unit grants science equal to three quarters of its strength. | Civic |
 | **Songs of the Fallen** | rare | implemented | Killing or losing a unit grants science and culture equal to twice its strength. | Civic |
 | **Walled Towns** | common | implemented | Towns with a defensive building, such as a Palisade or walls, gain +15% food. | Economic |
 | **The Farming Garrisons** | common | add | Hexes with a fortified military unit gain +1 food and +1 production. | Economic |
-| **The Swift Riders** | uncommon | add | Mounted units may move after attacking. | Military |
+| **The Swift Riders** | uncommon | implemented | Mounted units may move after attacking. | Military |
 | **The Open Muster** | uncommon | add | Passing a draft hand grants the best melee unit you can build in your capital. | Military |
 | **The Captive Craftsmen** | uncommon | add | Gains +1 science and +1 production each time you pillage a hex. | Civic |
 | **The Satraps** | uncommon | add | Garrisoned towns in unrest pacify twice as fast. | Civic |
@@ -135,7 +135,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Relay Stations** | uncommon | modify: deferred | Once a turn, a military unit that starts its turn in a city connected to your capital may move to any other connected city, ending its move there. | Military |
 | **War Reparations** | uncommon | modify: deferred | Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture. | Economic |
 | **Commission: Take the City** | uncommon | modify: as built | Commission. Capture a city with at least five citizens. Then gain culture and science equal to twenty-three times its population, and a free Barracks in that city. The card leaves its chair. | Wildcard |
-| **The Fabricae** | common | add | Towns whose garrison is a Veteran or Elite gain +25% production. | Economic |
+| **The Fabricae** | common | implemented | Towns whose garrison is a Veteran or Elite gain +25% production. | Economic |
 | **The Valetudinaria** | common | implemented | Units in your territory heal 15 more hit points a turn. | Military |
 | **Living off the Land** | common | implemented | Military units outside your territory cost no upkeep. | Military |
 | **The Longbowmen** | common | add | Ranged units gain +4 strength and +4 ranged strength. +5 culture each time they attack from range. | Military |
@@ -177,14 +177,14 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Drill Masters** | common | implemented | Units you gain start as Veterans. | Military |
 | **The Plunder Trains** | common | add | Pillaging grants 30 production and 15 food to your capital. | Economic |
 | **The Yam** | uncommon | add | Mounted units heal fully when they pillage. | Military |
-| **The Tagmata** | uncommon | add | Veteran and Elite units gain +5 strength. | Military |
+| **The Tagmata** | uncommon | implemented | Veteran and Elite units gain +5 strength. | Military |
 | **Up Through the Ranks** | uncommon | implemented | Each time one of your units becomes an Elite, gain 250 renown, favouring great generals. | Civic |
 | **The Arrière-ban** | uncommon | implemented | Declaring war gives every city +50% production for ten turns. Declaring war again restarts the ten turns. | Economic |
-| **The Keshik** | uncommon | add | Mounted Veteran and Elite units gain +1 movement. | Military |
+| **The Keshik** | uncommon | implemented | Mounted Veteran and Elite units gain +1 movement. | Military |
 | **The Mural Crown** | uncommon | add | +10 renown each turn, favouring great generals. Each time you gain a great person, gain 100 science and 100 culture for each great general you have gained this game. | Civic |
 | **The Victory Mint** | uncommon | implemented | Capturing a city grants gold equal to thirty times its population. | Economic |
 | **The Bakufu** (was The King's Peace) | uncommon | add | A great general standing in a town gives it +25% science and +25% culture, and pacifies it at once. | Civic |
-| **Interior Lines** | uncommon | add | A step along a road costs 40% less movement. A unit that has not moved this turn gains +4 strength when attacking. | Military |
+| **Interior Lines** | uncommon | implemented | A step along a road costs 40% less movement. A unit that has not moved this turn gains +4 strength when attacking. | Military |
 | **Rally to the Standard** | uncommon | add: rule-breaker | Units you gain may appear beside any of your great generals. | Military |
 | **Valhalla** | rare | add | When one of your units dies, gain 25 culture for each Monument in your empire. | Civic |
 | **The Chevauchée** | rare | add | Pillaging a hex damages enemy cities within three hexes with 50% of the pillaging unit's strength. | Military |
@@ -227,10 +227,10 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Commission: The Captured Marvel** | rare | modify: as built | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair. | Wildcard |
 | **The Horde** | rare | add | Pillaging a hex also pillages every enemy improvement beside it. | Military |
 | **Vae Victis** | rare | add | Your capture rewards are paid twice. | Wildcard |
-| **The Varangian Guard** | rare | add: rule-breaker | Elite units may attack twice a turn. | Military |
+| **The Varangian Guard** | rare | implemented | Elite units may attack twice a turn. | Military |
 | **The Glorious Dead** | rare | add: rule-breaker | Your losses never count toward war weariness. | Civic |
 | **The Harrying** | rare | add: rule-breaker | Pillaging a hex beside a rival town with no garrison throws that town into unrest. | Military |
-| **The Great Bombards** | rare | add: rule-breaker | Your siege units break a town's walls in one blow. | Military |
+| **The Great Bombards** | rare | implemented | Your siege units break a town's walls in one blow. | Military |
 
 ## Shared with another deck
 

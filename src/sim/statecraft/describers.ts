@@ -86,7 +86,7 @@ import { beadGrantDef } from '../beadData';
 import { ABILITY_TECH, abilityDef, techDef } from '../techData';
 import { type ModelClass, unitDef } from '../unitData';
 // A rank's name as every surface prints it (Dominion batch D1). A leaf.
-import { rankName } from '../ranks';
+import { RANK_IDS, type RankId, rankName } from '../ranks';
 import { SLOT_WORDS } from './draft';
 import { anyCardDef } from './evaluator';
 import { CITY_SCOPED_COUNTS, PERIODIC_FLOOR, PERIODIC_PROBE, VOICES, oneOfAKind } from './evaluator';
@@ -1467,7 +1467,11 @@ function describeEffect(
       return;
     }
     case 'unitStat': {
-      const who = effect.class ? filterWords(effect.class) : 'all units';
+      // A rank narrows the pieces too (The Keshik, Dominion batch D2): "mounted
+      // units that are a Veteran or better".
+      const who =
+        (effect.class ? filterWords(effect.class) : 'all units') +
+        (effect.rank === undefined ? '' : ` that are ${rankOrBetter(effect.rank)}`);
       const where = WHERE_WORDS[effect.where ?? 'anywhere'];
       const amount = effect.amount;
       if (effect.stat === 'combatPercent') {
@@ -1564,11 +1568,14 @@ function describeEffect(
       // A rule narrowed to some towns says which, at the end ("in every city
       // with a Temple"). Only the faith-purchase rules carry a scope.
       const inTowns = effect.scope === undefined ? '' : ` in ${scopeWordsFor(subject, effect.scope)}`;
-      if (effect.class === undefined) {
+      if (effect.class === undefined && effect.rank === undefined) {
         out.push({ text: `${FLAG_RULE_WORDS[effect.rule]}${inTowns}` });
         return;
       }
-      const who = filterWords(effect.class);
+      // A rank leads the line it narrows (The Varangian Guard's "Elite units",
+      // Dominion batch D2).
+      const ranked = effect.rank === undefined ? '' : `${rankName(effect.rank)} `;
+      const who = `${ranked}${effect.class === undefined ? 'units' : filterWords(effect.class)}`;
       const narrowed = FLAG_RULE_CLASS_WORDS[effect.rule];
       out.push({
         text: `${narrowed ? narrowed(who) : `${who}: ${FLAG_RULE_WORDS[effect.rule]}`}${inTowns}`,
@@ -2303,7 +2310,9 @@ function describeEffect(
         return;
       }
       const off = (effect.amount ?? 0);
-      out.push({ text: `${who} cost ${off} less gold in maintenance${where}` });
+      // The Soldiers' Purse (Dominion batch D2): once for each rank held.
+      const per = effect.perRank === true ? ' for each rank they hold' : '';
+      out.push({ text: `${who} cost ${off} less gold in maintenance${per}${where}` });
       return;
     }
     // The same sentence with the sign turned round — "more" where the rebate
@@ -3168,6 +3177,10 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // defines, and what the rule stands for is a soldier standing in the town.
       into.qualifiers.push('with a unit standing in it');
       return;
+    case 'garrisonRank':
+      // The Fabricae (Dominion batch D2), in `garrisoned`'s words.
+      into.qualifiers.push(`with ${rankOrBetter(scope.rank)} standing in it`);
+      return;
     case 'keepingRite':
       // The plain words again: a town "keeping a rite" is a town where one is
       // being performed, which is the sentence the rite panel itself uses.
@@ -3424,6 +3437,16 @@ function anyPhrase(scopes: readonly CityScope[]): string {
  */
 export function indefinite(name: string): string {
   return /^[aeiou]/i.test(name) ? 'an' : 'a';
+}
+
+/**
+ * A rank as the least a piece must hold — "a Veteran or better" (Dominion
+ * batch D2). An Elite holds Veteran too, so "or better" is the honest reading
+ * of every rank narrowing in the vocabulary.
+ */
+function rankOrBetter(rank: RankId): string {
+  const name = rankName(rank);
+  return rank === RANK_IDS[RANK_IDS.length - 1] ? `${indefinite(name)} ${name}` : `${indefinite(name)} ${name} or better`;
 }
 
 /**
@@ -4010,6 +4033,10 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   all: '',
   vsOpusBuilder: 'against an empire raising the Magnum Opus',
   notFollowingTerritory: 'inside cities that do not follow your religion',
+  // Dominion batch D2. The rank is printed by `combatWhenWords`, `onFeature`'s
+  // bargain; the movement condition is a whole phrase.
+  hasRank: 'as',
+  unmoved: 'when it has not moved this turn',
 };
 
 /** The `followingTerritory` line narrowed to somebody else's towns. */
@@ -4041,6 +4068,8 @@ export function combatWhenWords(when: CombatCondition): string {
       return when.foreign === true ? FOREIGN_FOLLOWING_WORDS : COMBAT_WORDS.followingTerritory;
     case 'beside':
       return `${COMBAT_WORDS.beside} ${filterWords(when.class)}`;
+    case 'hasRank':
+      return `${COMBAT_WORDS.hasRank} ${rankOrBetter(when.rank)}`;
     case 'all':
       return when.of
         .map((inner) => combatWhenWords(inner))
@@ -4836,6 +4865,12 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // for the whole army, and `FLAG_RULE_CLASS_WORDS` says it of a line.
   borders: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',
   ignored: 'your units ignore enemy zone of control',
+  // Dominion batch D2. Three of the four are written for a line of soldiers
+  // too, in `FLAG_RULE_CLASS_WORDS`.
+  attackKeepsFortification: 'attacking does not break your units’ fortification',
+  moveAfterAttack: 'your units may move after attacking',
+  secondAttack: 'your units may attack twice a turn',
+  breachInOneBlow: 'your units break a town’s walls in one blow',
 };
 
 /**
@@ -4852,6 +4887,10 @@ const FLAG_RULE_CLASS_WORDS: Partial<Record<CardFlagRuleId, (who: string) => str
   freePillage: (who) => `${who} pillage without spending movement`,
   ignored: (who) => `${who} ignore enemy zone of control`,
   faithBuysUnits: (who) => `${who} may be bought with faith`,
+  // Dominion batch D2.
+  moveAfterAttack: (who) => `${who} may move after attacking`,
+  secondAttack: (who) => `${who} may attack twice a turn`,
+  breachInOneBlow: (who) => `${who} break a town’s walls in one blow`,
 };
 
 /**

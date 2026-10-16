@@ -187,6 +187,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Dominion batch D1: the ranks an empire's units have earned, which the
   // `ranksEarned` count reads. A new count kind is a new row of this register.
   { field: 'ranksEarned', pattern: /\.ranksEarned\s*(=[^=]|\+=)/ },
+  // Dominion batch D2: a unit's experience, which The Fabricae's town scope
+  // (`garrisonRank`) reads. A scope can reach the meters, so a write announces.
+  { field: 'experience', pattern: /\.experience\s*=[^=]/ },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -293,6 +296,9 @@ const ANNOUNCING = new Set([
   // Dominion batch D1: the one writer of `Player.ranksEarned`, which the
   // `ranksEarned` count reads.
   'cities.ts#settleRanksEarned',
+  // Dominion batch D2: the one writer of `Unit.experience`, which a town scope
+  // reads since The Fabricae (`garrisonRank`).
+  'ranks.ts#writeExperience',
   'state.ts#claimWonder',
   'state.ts#createCity',
   'state.ts#createUnit',

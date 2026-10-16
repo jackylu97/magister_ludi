@@ -340,6 +340,9 @@ import {
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
+// Straight from the evaluator: a rule asked of the whole piece, which may name
+// a rank (Dominion batch D2, The Varangian Guard).
+import { cardBehaviorRuleFor } from './statecraft/evaluator';
 import {
   type City,
   type GameState,
@@ -1492,6 +1495,13 @@ interface CombatPlan {
   baseToAttacker: number;
   /** Hit points the defender cannot be taken below. 1 for a bombarded city. */
   defenderFloor: number;
+  /**
+   * True when this blow takes the town's walls to the floor whatever the roll —
+   * The Great Bombards (Dominion batch D2, `BehaviorRuleId`'s
+   * `breachInOneBlow`). The forecast and `applyCombat` both read it, so the
+   * card and the fight agree.
+   */
+  breaches: boolean;
 }
 
 /** The curve. One line, and the only place it is written down. */
@@ -1851,6 +1861,13 @@ function planCombat(
     // above: walls have no silhouette and no base strength, but a town has an
     // owner, and the realms are what this one compares.
     vsOwnerId: side === 'attacker' ? defenderOwnerId : attacker.ownerId,
+    // Interior Lines (Dominion batch D2): the piece still has its whole
+    // allowance. A comparison from another hex (`stance`) imagines the
+    // attacker's turn still ahead of it, so it has not moved there.
+    unmoved:
+      side === 'attacker' && stance !== undefined
+        ? true
+        : unit.movesLeft >= fullMovement(unit, state),
   });
   for (const line of cardCombatLines(state, situationFor(attacker, 'attacker'))) {
     bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });
@@ -2287,9 +2304,22 @@ function planCombat(
   }
   const baseToAttacker = counters ? curve(defenderStrength - attackerStrength) * counterFactor : 0;
 
+  /**
+   * **The walls fall in one blow** — The Great Bombards (Dominion batch D2):
+   * at the `walls` beat, a piece the rule is true of (the row narrows it to
+   * siege units) takes the town to its floor whatever the roll. Everything
+   * else about the beat is unchanged: the town still hits back while its walls
+   * stand, and the garrison and the capture are still blows of their own.
+   */
+  const breaches =
+    target.city !== null &&
+    cityPhase === 'walls' &&
+    cardBehaviorRule(state, attacker.ownerId, 'breachInOneBlow', attacker.type);
   const band = COMBAT.rollBand;
   const dealt = (roll: number): number =>
-    clampDamage(damageAtRoll(baseToDefender, roll), defenderHp, defenderFloor);
+    breaches
+      ? Math.max(0, defenderHp - defenderFloor)
+      : clampDamage(damageAtRoll(baseToDefender, roll), defenderHp, defenderFloor);
 
   /**
    * The no-mutual-death rule as a forecast (see the module docblock, and
@@ -2353,7 +2383,16 @@ function planCombat(
 
   return {
     ok: true,
-    plan: { forecast, attacker, target, tile, baseToDefender, baseToAttacker, defenderFloor },
+    plan: {
+      forecast,
+      attacker,
+      target,
+      tile,
+      baseToDefender,
+      baseToAttacker,
+      defenderFloor,
+      breaches,
+    },
   };
 }
 
@@ -2495,7 +2534,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
   const planned = planCombat(state, attackerId, cell);
   if (!planned.ok) return { ok: false, error: planned.error };
 
-  const { forecast, attacker, target, tile, baseToDefender, baseToAttacker, defenderFloor } =
+  const { forecast, attacker, target, tile, baseToDefender, baseToAttacker, defenderFloor, breaches } =
     planned.plan;
   const band = COMBAT.rollBand;
   // Read before anything can change hands: a captured civilian and a captured
@@ -2581,11 +2620,12 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
      * change hands together (`arriveOnTile`). Written as "not a capture" rather
      * than as an empty branch so there is nothing for a later hand to fill in.
      */
-    const dealt = clampDamage(
-      damageAtRoll(baseToDefender, nextRange(state.rng, 1 - band, 1 + band)),
-      forecast.defenderHp,
-      defenderFloor,
-    );
+    // The die is drawn even when The Great Bombards decide the blow, so the
+    // sequence of rolls a replay draws is the same either way.
+    const rolled = damageAtRoll(baseToDefender, nextRange(state.rng, 1 - band, 1 + band));
+    const dealt = breaches
+      ? Math.max(0, forecast.defenderHp - defenderFloor)
+      : clampDamage(rolled, forecast.defenderHp, defenderFloor);
     outcome.damageToDefender = dealt;
     // Rolled here, applied below: the counter's *size* is decided by the board
     // before either blow lands, but how much of it the attacker may actually be
@@ -2777,7 +2817,27 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
      * age adds inherits it without this line moving. `snapMovement` because a
      * purse is exact thirds and a hull may have walked a road to get here.
      */
-    attacker.movesLeft = unitDef(attacker.type).hitAndRun === true
+    /**
+     * **The Varangian Guard** (Dominion batch D2): a piece the `secondAttack`
+     * rule is true of (the row narrows it to Elites) may attack twice a turn.
+     * The first attack pays the hull's price below and leaves `hasAttacked`
+     * unset, and the turn is written into `Unit.firstAttackTurn`, this
+     * function being its one writer. An attack made while that equals the
+     * turn is the second, and ends the turn as any attack does.
+     */
+    const firstOfTwo =
+      attacker.firstAttackTurn !== state.turn &&
+      cardBehaviorRuleFor(state, attacker, 'secondAttack');
+    /**
+     * **The Swift Riders** (Dominion batch D2): the `moveAfterAttack` rule
+     * gives a land piece the light hull's price — one point, the rest kept —
+     * for its reason (reading 21). `hasAttacked` is still set below.
+     */
+    const keepsMoving =
+      unitDef(attacker.type).hitAndRun === true ||
+      cardBehaviorRule(state, attacker.ownerId, 'moveAfterAttack', attacker.type) ||
+      firstOfTwo;
+    attacker.movesLeft = keepsMoving
       ? Math.max(0, snapMovement(attacker.movesLeft - RULES.naval.hitAndRunCost))
       : 0;
     /**
@@ -2799,8 +2859,14 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     if (defenderDied && cardBehaviorRule(state, attacker.ownerId, 'moveAfterKill', attacker.type)) {
       attacker.movesLeft = fullMovement(attacker, state);
     }
-    attacker.hasAttacked = true;
-    breakFortify(attacker);
+    if (firstOfTwo) attacker.firstAttackTurn = state.turn;
+    else attacker.hasAttacked = true;
+    // **The Marching Camps** (Dominion batch D2): an attack does not break this
+    // empire's fortification. A melee winner that advances still breaks it, by
+    // moving.
+    if (!cardBehaviorRule(state, attacker.ownerId, 'attackKeepsFortification', attacker.type)) {
+      breakFortify(attacker);
+    }
     // The route the player approved ended in a fight. Resuming it next turn
     // would be the unit deciding to walk into whatever is still standing there.
     delete attacker.path;

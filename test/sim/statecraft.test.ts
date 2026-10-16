@@ -1838,7 +1838,10 @@ describe("determinism", () => {
     // 130 since D1: eleven Dominion cards that give units experience or pay
     // when a unit earns a rank, a new end-of-turn phase and a new record, so
     // a v129 log's picks name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(130);
+    // 131 since D2: nine Dominion cards that read a unit's rank or change a
+    // rule of combat, and a new unit field, so a v130 log's picks name cards
+    // this build never dealt.
+    expect(SCHEMA_VERSION).toBe(131);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

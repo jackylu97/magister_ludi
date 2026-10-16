@@ -615,6 +615,18 @@ export type CityScope =
    */
   | { test: 'garrisoned' }
   /**
+   * **A unit standing in the town holds at least this rank** — The Fabricae's
+   * "towns whose garrison is a Veteran or Elite" (Dominion batch D2).
+   *
+   * `garrisoned`'s question asked of the same sweep (`garrisonOf`, the town's
+   * own combat units on its hex) with one more clause: at least one of them
+   * holds the rank, and an Elite holds Veteran too (`holdsRank`, `ranks.ts`).
+   * Boolean, so two Veterans admit it once. Because the answer moves with a
+   * unit's experience, every experience write is announced on the economy
+   * clock (`writeExperience`).
+   */
+  | { test: 'garrisonRank'; rank: RankId }
+  /**
    * The town has finished this building.
    *
    * Entry XXVIII's addition, and the shape that makes "granaries supply +1
@@ -1459,6 +1471,26 @@ export type CombatCondition =
    * condition asks about the side the line pays, exactly as `class` does.
    */
   | { test: 'fortified' }
+  /**
+   * **This piece holds at least this rank** — The Tagmata's "Veteran and Elite
+   * units" (Dominion batch D2). A fact about the piece, read off its experience
+   * (`holdsRank`, `ranks.ts`), and a condition rather than a `UnitFilter` field
+   * for `fortified`'s reason. An Elite holds Veteran too.
+   */
+  | { test: 'hasRank'; rank: RankId }
+  /**
+   * **This piece has not moved this turn** — Interior Lines' "a unit that has
+   * not moved this turn gains +4 strength when attacking" (Dominion batch D2).
+   *
+   * Read as the piece still having its full movement allowance, which is the
+   * triage's reading 22 (`docs/plans/dominion-build-triage.md`): nothing new is
+   * recorded, because a piece that walked has spent movement and a piece that
+   * has not walked has not. `planCombat` fills it in on the situation
+   * (`CombatSituation.unmoved`), since the allowance is `units.ts`' figure. A
+   * comparison from a hex the piece is not on imagines its turn still ahead of
+   * it (`CombatStance`), so there it holds.
+   */
+  | { test: 'unmoved' }
   /**
    * The contested hex is within `hexes` of one of this player's **cities** —
    * Deborah under the palm, judging Israel within sight of her own people.
@@ -3779,7 +3811,52 @@ export type BehaviorRuleId =
    * route**, because it is derived from the live routes every time it is asked
    * and there is nowhere for it to be written down.
    */
-  | 'routesImportLuxuries';
+  | 'routesImportLuxuries'
+  /**
+   * **An attack does not break this empire's fortification** — The Marching
+   * Camps (Dominion batch D2).
+   *
+   * Read in the one place an attack spends a turn (`applyCombat`, the surviving
+   * attacker's bookkeeping), where the attack would otherwise call
+   * `breakFortify`. Moving still breaks it: a melee winner that advances into
+   * the hex it took has moved, and `advanceAlongPath` breaks the trench as it
+   * always has.
+   */
+  | 'attackKeepsFortification'
+  /**
+   * **A piece may move after it attacks** — The Swift Riders' mounted units
+   * (Dominion batch D2), narrowed by the row's `class`.
+   *
+   * The light hull's hit-and-run, given to a land piece: the attack costs
+   * `rules.naval.hitAndRunCost` (one point) and the rest of the allowance is
+   * kept, which is the triage's reading 21. `hasAttacked` is still set, so it is
+   * somewhere to be afterwards and never a second attack. Read in `applyCombat`
+   * beside the hull's own marker.
+   */
+  | 'moveAfterAttack'
+  /**
+   * **This empire's pieces may attack twice a turn** — The Varangian Guard's
+   * Elite units (Dominion batch D2), narrowed by the row's `rank`.
+   *
+   * The first attack is the hull's price (reading 20): one point of movement,
+   * the rest kept, and `hasAttacked` left unset, with the turn written into
+   * `Unit.firstAttackTurn`. The second attack ends the turn as any attack does.
+   * The turn is compared rather than counted down, so nothing resets it, and a
+   * third attack is never possible: Blitz's refill and the hull's
+   * hit-and-run both keep `hasAttacked` set on the second.
+   */
+  | 'secondAttack'
+  /**
+   * **A blow on a town's walls takes the town to its floor at once** — The
+   * Great Bombards' siege units (Dominion batch D2), narrowed by the row's
+   * `class`.
+   *
+   * Read in `planCombat` at the `walls` beat: the damage to the town is
+   * whatever it has above the floor, so the forecast and the fight agree that
+   * one blow breaks the walls. The town still hits back while its walls stand,
+   * and the garrison and the capture are still two more blows.
+   */
+  | 'breachInOneBlow';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId = 'sealTurns';
@@ -5285,6 +5362,17 @@ export interface CardUnitStatEffect {
    * so a row written `{ test: 'vsCity' }` pays on the assault and nowhere else.
    */
   when?: CombatCondition;
+  /**
+   * **Only pieces holding at least this rank** — The Keshik's "mounted Veteran
+   * and Elite units" (Dominion batch D2).
+   *
+   * Read by the per-piece readings (`cardUnitStat`, which every allowance and
+   * every heal goes through, and `cardCombatPercent`), which all hold the piece
+   * itself. `cardExtraCharges` is asked at a birth, before a piece has any
+   * experience, so a row naming a rank never adds a charge. An Elite holds
+   * Veteran too.
+   */
+  rank?: RankId;
 }
 
 /**
@@ -6050,6 +6138,17 @@ export interface CardRuleEffect {
    * every town.
    */
   scope?: CityScope;
+  /**
+   * **The rank a piece must hold for the rule to be true of it** — The
+   * Varangian Guard's Elite units (Dominion batch D2).
+   *
+   * `class`' sibling, but a fact about the piece rather than its type, so it is
+   * read only where a whole piece is in hand (`cardBehaviorRuleFor`). A row
+   * carrying it is skipped by a caller that has only a type or nothing at all,
+   * which is `class`' own rule for a narrowing nobody can evaluate. An Elite
+   * holds Veteran too.
+   */
+  rank?: RankId;
 }
 
 /**
@@ -6876,6 +6975,14 @@ export interface CardUpkeepRebateEffect {
    *     were an army like any other.
    */
   where?: 'ownTerritory' | 'foreignTerritory' | 'garrison';
+  /**
+   * **The amount is taken once for each rank the piece holds** — The Soldiers'
+   * Purse's "1 less upkeep for each rank they hold" (Dominion batch D2): once
+   * for a Veteran, twice for an Elite, and not at all for a piece with no rank
+   * (`ranksHeld`, `ranks.ts`). Still never more than the piece costs.
+   * Meaningless beside `free`.
+   */
+  perRank?: true;
 }
 
 /**
