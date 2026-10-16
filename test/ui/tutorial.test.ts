@@ -1,5 +1,5 @@
 /**
- * The tutorial: the four things about it that could be quietly wrong.
+ * The tutorial: the five things about it that could be quietly wrong.
  *
  * There is no jsdom in this suite (`controls.test.ts`'s note), which is why
  * `src/ui/tutorial.ts` is split the way `confirmCard.ts` is — the prose tables,
@@ -23,6 +23,11 @@
  *      sweep, one surface over), and no bare digit — every number in this prose
  *      is spelled, because the only figure the guide is allowed to name is the
  *      one that *is* a rule.
+ *   5. **Skip lasts one game** (the user's ruling of 2026-10-16). It ends the
+ *      sequence and leaves the guide switched on, so the notes keep coming and
+ *      the next new game walks through again. And it is a small link in the
+ *      card's top corner, apart from the primary button, because as a button
+ *      beside Next it was easy to press by accident.
  *
  * And the two source pins that keep the module where the brief put it: it never
  * reaches into `src/sim`, and `main.ts` feeds it from the commit funnel rather
@@ -35,6 +40,7 @@ import {
   BEAD_THRESHOLD,
   FIRST_PROGRESS,
   FRESH_MEMORY,
+  SKIP_LABEL,
   STEPS,
   TIPS,
   TUTORIAL_KEY,
@@ -43,12 +49,14 @@ import {
   type TutorialStorage,
   cornerCard,
   advanceKey,
+  newGameMemory,
   nextStep,
   placeCard,
   readTutorialMemory,
   signalKey,
   stepAt,
   stepCount,
+  stepMemory,
   tipFor,
   writeTutorialMemory,
 } from '../../src/ui/tutorial';
@@ -65,7 +73,13 @@ import { numberWords } from '../../src/ui/numberWords';
 import { stripRefs } from '../../src/sim/statecraft';
 
 const SOURCES = import.meta.glob(
-  ['../../src/ui/*.ts', '../../src/main.ts', '../../src/sim/commands.ts', '../../index.html'],
+  [
+    '../../src/ui/*.ts',
+    '../../src/ui/tutorial.css',
+    '../../src/main.ts',
+    '../../src/sim/commands.ts',
+    '../../index.html',
+  ],
   { eager: true, query: '?raw', import: 'default' },
 ) as Record<string, string>;
 
@@ -78,9 +92,9 @@ function source(name: string): string {
   return text;
 }
 
-/** Every string a player actually reads, from both tables. */
+/** Every string a player actually reads, from both tables and the Skip link. */
 function prose(): string[] {
-  const lines: string[] = [];
+  const lines: string[] = [SKIP_LABEL];
   for (const step of STEPS) lines.push(step.title, step.body);
   for (const tip of TIPS) for (const page of tip.pages) lines.push(page.title, page.body);
   return lines;
@@ -394,6 +408,88 @@ describe('the memory', () => {
   });
 });
 
+/**
+ * Skip, as the user ruled it on 2026-10-16 (`docs/plans/tutorial.md` section
+ * 10): *"the walkthrough should show if it's unfinished."* It ends the sequence
+ * for the current game only, and the next new game walks through it again. The
+ * notes are not part of it. Before the ruling, Skip switched the whole guide off
+ * for every later game, from a button so close to Next that it was easy to press
+ * by accident.
+ */
+describe('Skip', () => {
+  it('ends the sequence for this game and leaves the guide switched on', () => {
+    const skipped = stepMemory(FRESH_MEMORY, { kind: 'skip' });
+    expect(stepAt(skipped.progress)).toBeNull();
+    expect(skipped.enabled).toBe(true);
+    // Nothing moves a skipped sequence again in this game.
+    expect(stepMemory(skipped, { kind: 'command', command: 'foundCity' })).toBe(skipped);
+    expect(stepMemory(skipped, { kind: 'next' })).toBe(skipped);
+  });
+
+  it('leaves the notes to come when their moment does', () => {
+    const skipped = stepMemory(FRESH_MEMORY, { kind: 'skip' });
+    expect(skipped.seen).toEqual(FRESH_MEMORY.seen);
+    expect(tipFor({ kind: 'event', event: 'bead' }, skipped.seen)?.id).toBe('beads');
+  });
+
+  it('walks through again from the first step when the next game starts', () => {
+    // Skipped on the second step, after the welcome.
+    const skipped = stepMemory(stepMemory(FRESH_MEMORY, { kind: 'next' }), { kind: 'skip' });
+    expect(skipped.progress).toEqual({ step: 1, done: true, satisfied: [] });
+    const next = newGameMemory(skipped);
+    expect(next.enabled).toBe(true);
+    expect(stepAt(next.progress)?.id).toBe(STEPS[0]?.id);
+  });
+
+  it('never switches the guide off', () => {
+    const text = source('ui/tutorial.ts');
+    // Only the player's own setting does that: the landing's checkbox writes its
+    // answer through `setEnabled`. No line of the module writes "off" itself.
+    expect(text).not.toMatch(/enabled:\s*false/);
+    // The card's signals reach the memory through `stepMemory`, and only while
+    // a sequence is running in this game.
+    expect(text).toMatch(/if \(running\) \{\s*const after = stepMemory\(memory, signal\);/);
+    expect(text).toContain("skipLink.addEventListener('click', () => note({ kind: 'skip' }));");
+  });
+
+  it('is a small text link, apart from the primary button and after it for the keyboard', () => {
+    const text = source('ui/tutorial.ts');
+    // Still a button element, so the keyboard reaches it and Enter presses it,
+    // but with none of the `btn` look.
+    expect(text).toContain("const skipLink = doc.createElement('button');");
+    expect(text).toContain("skipLink.className = 'tutorial-skip';");
+    expect(text).not.toMatch(/'btn[^']*tutorial-skip/);
+    // Not in the primary button's row, and after it in the markup.
+    expect(text).toContain('actions.append(goButton);');
+    expect(text).toContain('card.append(eyebrow, title, body, actions, skipLink);');
+    // The module's own stylesheet lifts it into the top row, beside the step
+    // counter, while the primary button's row spans the card below the body.
+    expect(text).toContain("import './tutorial.css';");
+    const css = source('ui/tutorial.css');
+    const rule = (selector: string): string => {
+      const at = css.indexOf(`\n${selector} {`);
+      expect(at, selector).toBeGreaterThanOrEqual(0);
+      return css.slice(at, css.indexOf('}', at));
+    };
+    const link = rule('.tutorial-skip');
+    expect(link).toContain('grid-row: 1;');
+    expect(link).toContain('border: 0;');
+    expect(link).toContain('background: none;');
+    expect(link).toContain('font-size: 11px;');
+    expect(css).toMatch(/\.tutorial-card > \.tutorial-actions \{\s*grid-column: 1 \/ -1;/);
+    // A step with no button hides its row. The row has a `display` of its own,
+    // so the stylesheet has to restate that a hidden row is not drawn.
+    expect(text).toContain('actions.hidden = goButton.hidden;');
+    expect(css).toMatch(/\.tutorial-actions\[hidden\] \{\s*display: none;/);
+    expect(css).toMatch(/\.tutorial-card\[hidden\],/);
+  });
+
+  it('says how long a skip lasts', () => {
+    expect(SKIP_LABEL).toMatch(/^Skip /);
+    expect(SKIP_LABEL).toContain('for this game');
+  });
+});
+
 describe('placeCard', () => {
   const view = { width: 1280, height: 720 };
   const card = { width: 320, height: 200 };
@@ -677,7 +773,20 @@ describe('the wiring', () => {
     // one-time notes are a different kind of memory and stand, except on the
     // one edge where the player switched the guide off and on again.
     const text = source('ui/tutorial.ts');
-    expect(text).toMatch(/begin\(\) \{[\s\S]*?progress: FIRST_PROGRESS/);
+    expect(text).toMatch(
+      /begin\(\) \{[\s\S]*?memory = newGameMemory\(memory\);\s*save\(\);\s*running = memory\.enabled;/,
+    );
+    // Whatever the last game did with the sequence: finished, skipped or left
+    // halfway, the new game starts it at the first step, with the notes and
+    // the setting kept.
+    const finished: TutorialMemory = {
+      enabled: true,
+      progress: { step: STEPS.length, done: true, satisfied: ['build'] },
+      seen: ['beads'],
+    };
+    expect(newGameMemory(finished)).toEqual({ ...finished, progress: FIRST_PROGRESS });
+    const off: TutorialMemory = { ...finished, enabled: false };
+    expect(newGameMemory(off).enabled).toBe(false);
     expect(text).toMatch(/const rekindled = on && !memory\.enabled;/);
     expect(text).toMatch(/rekindled\s*\?\s*\{ enabled: true, progress: FIRST_PROGRESS, seen: \[\] \}/);
     // And a loaded save never starts it — `resume` sets nothing running.

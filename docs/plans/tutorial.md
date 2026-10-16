@@ -266,7 +266,7 @@ Each batch has a fence and narrow tests. The orchestrator runs the gate (typeche
 
 T0 can go now. T1 to T4 do not depend on the layout and can start before the interface rework. T5 to T9 follow it.
 
-**Started 2026-10-16:** T2, and a fix to Skip (section 10).
+**Started 2026-10-16:** T2. **Built 2026-10-16:** the fix to Skip (section 10). In the live tutorial (`src/ui/tutorial.ts`, styled by the new `src/ui/tutorial.css`), Skip is a small text link in the card's top-right corner, away from the primary button, and it ends the walkthrough for the current game only. The new engine (`guideSchedule.ts`, with docblocks in `guideModel.ts` and `guideStorage.ts`) records a skip on the game's run and no longer turns the walkthrough switch off.
 
 **Built, 2026-10-15:**
 - **T0** (`84893853`): the bead note, the tips and the pamphlet match the current rules, and `test/ui/guideCopy.test.ts` fails on a retired system or a typed bead count. A follow-up (`eef4ee47`) fixed the same stale text in the Compendium and on the beads screen, and moved the number-word helpers into `src/ui/numberWords.ts`. T0 also found that the bead rod drew one slot too few for the threshold; that fix is a separate batch.

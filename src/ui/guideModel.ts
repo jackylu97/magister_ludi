@@ -49,6 +49,9 @@ export const GUIDE_MODES: readonly GuideMode[] = ['newcomer', 'civ', 'explore'];
  * The three kinds of help, each switched on and off on its own (§5.1, after
  * Civ VII and Humankind). Warnings are batch T7's channel; the switch is kept
  * here so the preferences are complete from the start.
+ *
+ * Only the player's own choices change a switch: the landing's question and the
+ * options. Skipping the walkthrough in one game does not (`walkthroughSkipped`).
  */
 export type GuideSwitch = 'walkthrough' | 'lessons' | 'warnings';
 
@@ -460,7 +463,11 @@ export type GuideMoment =
   | { readonly kind: 'acknowledged'; readonly lessonId: string }
   /** The player put the card away for now ("Later", or the card's close button). */
   | { readonly kind: 'dismissed'; readonly lessonId: string }
-  /** The player chose to skip the walkthrough. */
+  /**
+   * The player skipped the walkthrough. It ends for the current game only: the
+   * walkthrough switch stays as it was, and the next new game shows an
+   * unfinished walkthrough again (`guideSchedule.ts`).
+   */
   | { readonly kind: 'walkthroughSkipped' };
 
 /** True for a moment that comes from replaying a saved log. Replays change nothing in the guide. */

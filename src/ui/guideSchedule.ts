@@ -57,6 +57,9 @@
  * - The options change the preferences with `answerGuideQuestion` and
  *   `setGuideSwitch`, and "Reset lessons" is `resetLessons`; the landing asks
  *   its question while `preferences.asked` is false.
+ * - Skip on a walkthrough card reports `walkthroughSkipped`. It ends the
+ *   walkthrough for the current game only and leaves the switches alone; the
+ *   next new game shows an unfinished walkthrough again.
  */
 
 import {
@@ -66,7 +69,6 @@ import {
   conditionHolds,
   formFor,
   isReplayed,
-  setGuideSwitch,
   type GuideFacts,
   type GuideHost,
   type GuideMode,
@@ -83,7 +85,6 @@ import {
   runOf,
   setRunWalkthrough,
   startRun,
-  withPreferences,
   type GuideMemory,
   type RunProgress,
 } from './guideStorage';
@@ -326,11 +327,14 @@ function applyMoment(
       return { memory, session: hide(session, moment.lessonId) };
     }
     case 'walkthroughSkipped': {
-      // Skipping ends the walkthrough in this game and switches it off for the
-      // games after, as version 1's Skip switched the whole tutorial off. The
-      // options can switch it back on.
+      // Skipping ends the walkthrough in this game only (the user's ruling of
+      // 2026-10-16, `docs/plans/tutorial.md` section 10). It is recorded on
+      // this game's run and never on the walkthrough switch, which is the
+      // player's setting. The next new game therefore starts a run with the
+      // walkthrough running, and an unfinished walkthrough shows again from its
+      // first lesson not yet completed; a finished one has nothing left to
+      // show. A reload of this game finds its run still skipped.
       if (session.runKey !== null) memory = setRunWalkthrough(memory, session.runKey, 'skipped');
-      memory = withPreferences(memory, setGuideSwitch(memory.preferences, 'walkthrough', false));
       const showing = session.visible === null ? undefined : lessonById(session.visible, catalogue);
       return {
         memory,

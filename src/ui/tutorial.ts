@@ -10,7 +10,9 @@
  *      settler" to "end the turn". A parchment coach card sits beside a highlighted
  *      element with the rest of the screen dimmed, and an *action* step is
  *      advanced by the player's own deed rather than by a button. Nobody is ever
- *      told to press Next to found a city.
+ *      told to press Next to found a city. Every step carries a small Skip link,
+ *      which ends the sequence for the current game only: the next new game
+ *      walks through it again (the user's ruling of 2026-10-16).
  *   2. **The triggered notes** — one card each, shown once ever, the first time
  *      the thing they are about happens: the first draft, the first ruin, the
  *      first forecast, the first caravan, the first bead. They have no
@@ -62,6 +64,7 @@
 
 import beadsJson from '../../data/beads.json';
 import { numberWords } from './numberWords';
+import './tutorial.css';
 
 // --- the figures -------------------------------------------------------------
 
@@ -153,8 +156,8 @@ export interface TutorialStep {
  * Eleven steps, and the shape of them is the argument: the eight that ask for a
  * deed (`select`, `command`, and the star chart's two `event`s) have **no Next
  * button at all**, so the only way past one is to do the thing. The three that
- * merely explain something have nothing to do and take the button. Skip is on
- * every one of them.
+ * merely explain something have nothing to do and take the button. The Skip
+ * link (`SKIP_LABEL`) is on every one of them.
  */
 export const STEPS: readonly TutorialStep[] = [
   {
@@ -269,6 +272,16 @@ export const STEPS: readonly TutorialStep[] = [
     advance: { kind: 'next' },
   },
 ];
+
+/**
+ * The words on the Skip link that every step carries.
+ *
+ * They say how long a skip lasts. Skip ends the sequence for this game only, and
+ * the next new game walks through it again (the user's ruling of 2026-10-16), so
+ * a player who wants no tutorial at all is not misled into thinking this is the
+ * switch for that. The switch is the checkbox on the landing screen.
+ */
+export const SKIP_LABEL = 'Skip the tutorial for this game';
 
 /** One card of a note. A note with several is read with Next, like a leaflet. */
 export interface TutorialPage {
@@ -499,7 +512,11 @@ export function advanceKey(advance: StepAdvance): string | null {
 export interface TutorialProgress {
   /** How far along `STEPS` the player is. */
   step: number;
-  /** True once the sequence is finished or skipped — nothing more is shown. */
+  /**
+   * True once the sequence is finished or skipped in this game. Nothing more of
+   * it is shown until a new game starts it again from the first step
+   * (`newGameMemory`).
+   */
   done: boolean;
   /**
    * Ids of steps whose deed the player has *already* done, ahead of being asked.
@@ -626,7 +643,11 @@ export interface TutorialStorage {
 export const TUTORIAL_KEY = 'magisterludi:tutorial:v1';
 
 export interface TutorialMemory {
-  /** Whether the guide is wanted at all. On for a browser that has never said. */
+  /**
+   * Whether the guide is wanted at all. On for a browser that has never said.
+   * The player's own setting: the landing's checkbox and the menu's "Show the
+   * tutorial again" change it, and Skip does not.
+   */
   enabled: boolean;
   progress: TutorialProgress;
   seen: readonly string[];
@@ -638,6 +659,40 @@ export const FRESH_MEMORY: TutorialMemory = {
   progress: FIRST_PROGRESS,
   seen: [],
 };
+
+/**
+ * The memory after one signal moves the sequence. Only the progress changes,
+ * and the same object comes back when nothing moved.
+ *
+ * This is where Skip's rule lives (the user's ruling of 2026-10-16,
+ * `docs/plans/tutorial.md` section 10). Skip marks the sequence done, which
+ * hides it for the rest of this game, and leaves `enabled` alone. The guide
+ * therefore stays switched on: the notes still come when their moment does, and
+ * the next new game starts the sequence again from the first step. Skip used to
+ * switch the whole guide off for every later game, and a press meant for the
+ * button beside it lost the player the tutorial for good.
+ */
+export function stepMemory(memory: TutorialMemory, signal: TutorialSignal): TutorialMemory {
+  const progress = nextStep(memory.progress, signal);
+  return progress === memory.progress ? memory : { ...memory, progress };
+}
+
+/**
+ * A new game's memory: the sequence from its first step, with the setting and
+ * the notes kept.
+ *
+ * The sequence starts again whatever the last game did with it: finished,
+ * skipped or left halfway (the user, 2026-08-30). Its progress is about one
+ * game's opening turns, which settler and which capital, so carrying it into a
+ * new game would drop somebody into "end the turn" on a board with no city on
+ * it. This is also what makes a skip last one game. The notes are a different
+ * kind of memory, one lesson each about a mechanic, learned once, so they stand;
+ * `setEnabled` is where a player asking for the guide back gets those cleared
+ * too.
+ */
+export function newGameMemory(memory: TutorialMemory): TutorialMemory {
+  return { ...memory, progress: FIRST_PROGRESS };
+}
 
 /**
  * Reads the memory, tolerating everything a shelf can do to it.
@@ -806,7 +861,11 @@ export interface Tutorial {
   enabled(): boolean;
   /** The landing's checkbox writes it. Turning it off puts everything away. */
   setEnabled(on: boolean): void;
-  /** A brand new game: the opening sequence, from wherever it last got to. */
+  /**
+   * A brand new game: the opening sequence from its first step
+   * (`newGameMemory`), whether the last game finished it, skipped it or left it
+   * halfway. Nothing is drawn while the guide is switched off.
+   */
   begin(): void;
   /**
    * A loaded game: no opening sequence, ever.
@@ -902,12 +961,21 @@ export function createTutorial(options: TutorialOptions): Tutorial {
   const goButton = doc.createElement('button');
   goButton.type = 'button';
   goButton.className = 'btn btn-primary tutorial-go';
-  const skipButton = doc.createElement('button');
-  skipButton.type = 'button';
-  skipButton.className = 'btn btn-quiet tutorial-skip';
-  skipButton.textContent = 'Skip tutorial';
-  actions.append(goButton, skipButton);
-  card.append(eyebrow, title, body, actions);
+  actions.append(goButton);
+  // **Skip is a small text link in the card's top-right corner** (the user,
+  // 2026-10-16: "it's very easy to click it on accident"). It used to be a
+  // button the same size as Next, eight pixels from it, and on a step with no
+  // Next it was the only button on the card. It is still a `<button>`, because
+  // it acts rather than goes somewhere, so the keyboard reaches it and Enter
+  // presses it; it just carries none of the `btn` look. It comes last in the
+  // markup, so the keyboard reaches the primary button first, and
+  // `tutorial.css` seats it beside the step counter, as far from the primary
+  // button as the card allows.
+  const skipLink = doc.createElement('button');
+  skipLink.type = 'button';
+  skipLink.className = 'tutorial-skip';
+  skipLink.textContent = SKIP_LABEL;
+  card.append(eyebrow, title, body, actions, skipLink);
 
   root.append(scrim, card);
 
@@ -918,7 +986,7 @@ export function createTutorial(options: TutorialOptions): Tutorial {
     }
     note({ kind: 'next' });
   });
-  skipButton.addEventListener('click', () => note({ kind: 'skip' }));
+  skipLink.addEventListener('click', () => note({ kind: 'skip' }));
 
   /**
    * Escape dismisses a **note** and nothing else.
@@ -927,7 +995,7 @@ export function createTutorial(options: TutorialOptions): Tutorial {
    * backs out move mode, then a popover, then the selection) never sees the same
    * keystroke — a player putting a card away has not asked to drop their
    * selection. The opening sequence deliberately has no Escape: it has a Skip
-   * button that says what it does, and Escape is the key people press without
+   * link that says what it does, and Escape is the key people press without
    * reading.
    */
   const onKey = (event: KeyboardEvent): void => {
@@ -952,16 +1020,16 @@ export function createTutorial(options: TutorialOptions): Tutorial {
     // putting the note away comes back to the step the deed had already reached.
     const raised = tip === null ? tipFor(signal, memory.seen) : null;
 
+    // The sequence moves only while it runs in this game. Skip is one of the
+    // signals that moves it: it ends this game's sequence and changes nothing
+    // else (`stepMemory`), so with no sequence running there is nothing for it
+    // to do.
     if (running) {
-      const after = nextStep(memory.progress, signal);
-      if (after !== memory.progress) {
-        memory = { ...memory, progress: after };
-        if (signal.kind === 'skip') memory = { ...memory, enabled: false };
+      const after = stepMemory(memory, signal);
+      if (after !== memory) {
+        memory = after;
         save();
       }
-    } else if (signal.kind === 'skip') {
-      memory = { ...memory, enabled: false };
-      save();
     }
 
     if (raised !== null) {
@@ -1006,7 +1074,8 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       body.textContent = page.body;
       goButton.textContent = tip.page + 1 < tip.tip.pages.length ? 'Next' : 'Got it';
       goButton.hidden = false;
-      skipButton.hidden = true;
+      actions.hidden = false;
+      skipLink.hidden = true;
       card.hidden = false;
       scrim.hidden = true;
       place();
@@ -1024,10 +1093,12 @@ export function createTutorial(options: TutorialOptions): Tutorial {
     title.textContent = step.title;
     body.textContent = step.body;
     // An action step has no button past it on purpose: the deed is the button.
+    // Its row goes with it, so the card ends with the step's last sentence.
     goButton.hidden = step.advance.kind !== 'next';
+    actions.hidden = goButton.hidden;
     goButton.textContent =
       memory.progress.step === STEPS.length - 1 ? 'Begin' : 'Next';
-    skipButton.hidden = false;
+    skipLink.hidden = false;
     card.hidden = false;
     // `place` has the last word on the dimmer — it is the half that knows
     // whether there turned out to be anything to cut a hole in.
@@ -1139,14 +1210,9 @@ export function createTutorial(options: TutorialOptions): Tutorial {
       draw();
     },
     begin() {
-      // **A new game restarts the sequence** (the user, 2026-08-30). Progress is
-      // about *this* game's opening turns — which settler, which capital — so
-      // carrying it across a restart would drop somebody into "end the turn" on
-      // a board with no city on it. The one-time notes are the opposite kind of
-      // memory: each is a lesson about a mechanic, learned once, so they stand.
-      // (`setEnabled` is where a player asking for the guide back gets those
-      // cleared too.)
-      memory = { ...memory, progress: FIRST_PROGRESS };
+      // **A new game restarts the sequence**, and a skip in the last game does
+      // not carry over. The reasons are on `newGameMemory`.
+      memory = newGameMemory(memory);
       save();
       running = memory.enabled;
       draw();

@@ -30,7 +30,9 @@
  * walkthrough runs at all in a given game: it starts for a new game when the
  * walkthrough switch is on, and never starts by itself in a loaded game that
  * this browser has no record of, so an established empire is never asked to
- * found its first town.
+ * found its first town. Skip is recorded on the run too, never on the switch,
+ * so it lasts one game: the next new game's run starts the walkthrough again,
+ * from its first lesson not yet completed (the user's ruling of 2026-10-16).
  *
  * Failure and versions
  * --------------------
@@ -80,7 +82,8 @@ export const TUTORIAL_V1_KEY = 'magisterludi:tutorial:v1';
 /**
  * Whether the walkthrough runs in a game:
  * - `running`: it runs while the walkthrough switch is on;
- * - `skipped`: the player skipped it in this game;
+ * - `skipped`: the player skipped it in this game. This game only: a new game
+ *   gets a run of its own, which starts `running` while the switch is on;
  * - `none`: the game began without it (the switch was off, or this browser
  *   did not know the loaded game). "Replay the walkthrough" in the lesson
  *   library starts it (`restartWalkthrough`).
@@ -441,7 +444,10 @@ export const V1_NOTE_LESSONS: readonly (readonly [string, GuideLessonId])[] = [
  * - **"Off" becomes "Let me explore"**, already asked, so a player who opted
  *   out is never switched back on by the upgrade. "On" was version 1's default
  *   for a browser that had never said, so it keeps the newcomer default and the
- *   landing asks the new question once.
+ *   landing asks the new question once. Until 2026-10-16 version 1's Skip
+ *   stored "off" as well, so an older "off" may be a Skip rather than an opt-out;
+ *   the stored memory cannot tell the two apart, and both migrate as "off". A
+ *   Skip since then stores "on", and migrates as an unfinished walkthrough.
  * - **Completed steps** are every step before `progress.step` (a finished
  *   walkthrough stands at the end of the list, a skipped one where it was
  *   skipped) plus the steps in `satisfied`, done ahead of their turn. Each one

@@ -36,7 +36,14 @@ import {
   type GuideMemory,
   type GuideStorage,
 } from '../../src/ui/guideStorage';
-import { STEPS, TIPS, TUTORIAL_KEY, writeTutorialMemory } from '../../src/ui/tutorial';
+import {
+  FRESH_MEMORY,
+  STEPS,
+  TIPS,
+  TUTORIAL_KEY,
+  stepMemory,
+  writeTutorialMemory,
+} from '../../src/ui/tutorial';
 import { brokenStorage, fakeStorage } from './guideHelpers';
 
 /** A memory with something in every field. */
@@ -251,9 +258,17 @@ describe('migrating version 1', () => {
   it('marks every matching lesson for a finished walkthrough, and the steps before the skip for a skipped one', () => {
     const finished = migrateTutorialV1(v1({ step: V1_STEP_IDS.length, done: true }));
     expect(finished?.completed).toEqual(V1_STEP_LESSONS.map(([, lesson]) => lesson));
-    const skipped = migrateTutorialV1(v1({ enabled: false, step: 3, done: true }));
+    // A skip leaves the guide on (since 2026-10-16), so the walkthrough is
+    // unfinished rather than unwanted: the newcomer default, with the rest of
+    // it still to teach.
+    const skipped = migrateTutorialV1(v1({ step: 3, done: true }));
     expect(skipped?.completed).toEqual(['selectSettler', 'foundCapital']);
-    expect(skipped?.preferences.mode).toBe('explore');
+    expect(skipped?.preferences).toEqual(FRESH_PREFERENCES);
+    // Before then a skip also stored "off", which reads as an opt-out: the two
+    // cannot be told apart.
+    const olderSkip = migrateTutorialV1(v1({ enabled: false, step: 3, done: true }));
+    expect(olderSkip?.completed).toEqual(['selectSettler', 'foundCapital']);
+    expect(olderSkip?.preferences.mode).toBe('explore');
     // A position past the end is read as the end.
     expect(migrateTutorialV1(v1({ step: 99 }))?.completed).toEqual(finished?.completed);
   });
@@ -320,5 +335,19 @@ describe('version 1 as tutorial.ts writes it', () => {
     expect(memory.preferences.mode).toBe('explore');
     expect(memory.completed).toEqual(['selectSettler', 'foundCapital', 'chooseProduction']);
     expect(memory.seen).toEqual(['caravan']);
+  });
+
+  it('migrates a version 1 Skip as an unfinished walkthrough, with the guide still on', () => {
+    // Version 1's own reducer: the welcome read, the settler selected, then Skip.
+    let v1Memory = stepMemory(FRESH_MEMORY, { kind: 'next' });
+    v1Memory = stepMemory(v1Memory, { kind: 'select', unit: 'settler' });
+    v1Memory = stepMemory(v1Memory, { kind: 'skip' });
+    expect(v1Memory.enabled).toBe(true);
+    const storage = fakeStorage();
+    writeTutorialMemory(storage, v1Memory);
+    const memory = readGuideMemory(storage);
+    expect(memory.preferences).toEqual(FRESH_PREFERENCES);
+    expect(memory.preferences.switches.walkthrough).toBe(true);
+    expect(memory.completed).toEqual(['selectSettler']);
   });
 });

@@ -1,0 +1,65 @@
+/* The tutorial's coach card: where its Skip link sits (src/ui/tutorial.ts). The
+   card's other rules are the tutorial block in src/style.css.
+
+   The user, 2026-10-16: "it's very easy to click it on accident." Skip was a
+   button the same size as the one that moves the walkthrough on, eight pixels
+   from it, and on a step with no Next it was the only button on the card. It is
+   now a small text link in the card's top-right corner, on the step counter's
+   line, and the primary button sits at the foot of the card. The link is the
+   last thing in the card's markup, so the keyboard reaches the primary button
+   first; the grid below is what lifts it into the corner. */
+
+/* Two columns. The step counter and the Skip link share the first row, and
+   everything else spans the card. */
+.tutorial-card {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+}
+
+/* The card's grid above, and the button row's flex in src/style.css, both
+   outrank the browser's own rule for `hidden`, so a hidden card or row has to
+   be hidden again here. The row is hidden on a step with no button, so the card
+   ends with the step's last sentence. */
+.tutorial-card[hidden],
+.tutorial-actions[hidden] {
+  display: none;
+}
+
+.tutorial-card > .tutorial-title,
+.tutorial-card > .tutorial-body,
+.tutorial-card > .tutorial-actions {
+  grid-column: 1 / -1;
+}
+
+/* The link: small, in the soft ink, with a faint underline at rest so it still
+   reads as something to press, and the full ink under the pointer or the
+   keyboard. Sentence case, because it is a control. When the card is too narrow
+   for it on one line beside the counter, it wraps and stays right-aligned
+   rather than running into the counter. */
+.tutorial-skip {
+  grid-row: 1;
+  grid-column: 2;
+  justify-self: end;
+  margin: 0 0 4px 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.3;
+  text-align: right;
+  text-decoration: underline;
+  text-decoration-color: var(--ink-faint);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.tutorial-skip:hover,
+.tutorial-skip:focus-visible {
+  color: var(--ink);
+  text-decoration-color: currentColor;
+}

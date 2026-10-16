@@ -6,7 +6,8 @@
  * rule of §5.4 and §6 of `docs/plans/tutorial.md` is checked on rows built for
  * it: deeds count only when accepted, local and live; facts complete lessons
  * out of order; at most one lesson shows; a mandatory choice owns the screen;
- * stale contexts are dropped; nothing replays after a load. The last block
+ * stale contexts are dropped; nothing replays after a load; a skipped
+ * walkthrough is gone for that game only (§10). The last block
  * walks the real catalogue through a newcomer's, a Civilization player's and
  * an explorer's opening.
  */
@@ -27,7 +28,13 @@ import {
   type LessonTrigger,
 } from '../../src/ui/guideModel';
 import { EMPTY_SESSION, guideStep, restartWalkthrough } from '../../src/ui/guideSchedule';
-import { FRESH_GUIDE_MEMORY, runOf, withPreferences, type GuideMemory } from '../../src/ui/guideStorage';
+import {
+  FRESH_GUIDE_MEMORY,
+  markCompleted,
+  runOf,
+  withPreferences,
+  type GuideMemory,
+} from '../../src/ui/guideStorage';
 import {
   ARRIVED,
   LOCAL,
@@ -273,17 +280,36 @@ describe('the walkthrough', () => {
     expect(guide.step(TURN_SETTLED, factsWith(TOWN, { counts: { turnsPlayed: 1 } }))).toBe('wResearch');
   });
 
-  it('is skipped for this game and switched off for the next', () => {
+  it('is skipped for this game only, and shows again in the next game while unfinished', () => {
+    // The user's ruling of 2026-10-16 (`docs/plans/tutorial.md` section 10).
     const guide = started(FRESH_GUIDE_MEMORY, SETTLER);
     guide.step(accepted('foundCity'), TOWN);
     expect(guide.step({ kind: 'walkthroughSkipped' }, TOWN)).toBeNull();
     expect(runOf(guide.memory(), 'run-1')?.walkthrough).toBe('skipped');
-    expect(guide.memory().preferences.switches.walkthrough).toBe(false);
+    // The skip is this game's, recorded on its run. The switch is the player's
+    // setting, and stays on.
+    expect(guide.memory().preferences.switches.walkthrough).toBe(true);
     // With the walkthrough gone, the first hand is taught by its own lesson.
     expect(guide.step(SCREEN_CHANGED, factsWith(TOWN, { host: 'orderOffer' }))).toBe('cHand');
-    // The next game starts without it.
+    // A reload of this game finds it still skipped. (Its research lesson would
+    // show here if the run were still running.)
+    const reloaded = driveGuide(TEST_LESSONS, guide.memory());
+    expect(reloaded.step({ kind: 'resumedGame', runKey: 'run-1' }, TOWN)).toBeNull();
+    // The next game runs it again, from the first lesson not yet completed:
+    // the founding was done, so it asks for research once there is a town.
     expect(guide.step({ kind: 'newGame', runKey: 'run-2' }, SETTLER)).toBeNull();
-    expect(runOf(guide.memory(), 'run-2')?.walkthrough).toBe('none');
+    expect(runOf(guide.memory(), 'run-2')?.walkthrough).toBe('running');
+    expect(guide.step(accepted('foundCity'), TOWN)).toBe('wResearch');
+  });
+
+  it('keeps a finished walkthrough finished in the next game', () => {
+    const walkthrough = TEST_LESSONS.filter((lesson) => lesson.switch === 'walkthrough');
+    const finished = markCompleted(FRESH_GUIDE_MEMORY, walkthrough.map((lesson) => lesson.id));
+    const guide = started(finished, SETTLER);
+    expect(runOf(guide.memory(), 'run-1')?.walkthrough).toBe('running');
+    const ready = factsWith(TOWN, { counts: { turnsPlayed: 1 } });
+    expect(guide.step(accepted('foundCity'), ready)).toBeNull();
+    expect(guide.step(TURN_SETTLED, ready)).toBeNull();
   });
 
   it('continues in a loaded game this browser knows, and never starts in one it does not', () => {
@@ -630,6 +656,16 @@ describe('the real catalogue', () => {
     expect(guide.step(gotIt('walkthroughEnd'), facts)).toBeNull();
     // Lesson 8 is kept, and waits for the first hand.
     expect(guide.step(SCREEN_CHANGED, factsWith(facts, { host: 'orderOffer' }))).toBe('firstCard');
+  });
+
+  it('brings a walkthrough skipped in one game back at the start of the next', () => {
+    const guide = driveGuide(undefined);
+    const start = factsOf({ counts: { settlersOwned: 1 } });
+    expect(guide.step(NEW_GAME, start)).toBe('selectSettler');
+    expect(guide.step({ kind: 'walkthroughSkipped' }, start)).toBeNull();
+    expect(guide.step(SELECTION_CHANGED, start)).toBeNull();
+    // Nothing of it was done, so the next game starts it at the first lesson.
+    expect(guide.step({ kind: 'newGame', runKey: 'run-2' }, start)).toBe('selectSettler');
   });
 
   it('leaves an explorer alone', () => {

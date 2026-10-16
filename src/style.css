@@ -17533,11 +17533,8 @@ body.compendium-page {
   margin-top: 10px;
 }
 
-/* Skip is always reachable and never the loud one; it takes the far end so a
-   fast Next never lands on it. */
-.tutorial-skip {
-  margin-left: auto;
-}
+/* The Skip link and the grid that seats it in the card's top-right corner are
+   in src/ui/tutorial.css. */
 
 /* The landing's checkbox row: the one place the guide is switched on and off
    before a game exists. It wears the shared `.row.check` recipe — native box,
