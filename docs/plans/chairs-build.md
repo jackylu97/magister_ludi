@@ -54,4 +54,10 @@ Each batch is one Opus agent, then the orchestrator's batch gate (typecheck, cor
 
 - The sheet's `add` and `modify` rows, and its Doctrines, in batches grouped by the shapes they need. A card whose text needs a new shape gets the shape, unless the shape needs a determination about UX or player interaction.
 - **Deferred under the user's rule** (*"defer any that require a determination around UX or user interaction"*): any card that needs a new player action, a choice made when it fires, a new button or menu, or a new screen. Such a card keeps its sheet row, gains a data row with a stated deferral where the sheet test needs one, and is listed in this file with the determination it waits on.
-- The triage, card by card, is written here before the first D batch starts.
+- **The triage** is `docs/plans/dominion-build-triage.md`: 126 cards (the sheet's 101 `add` and `modify` rows, 9 shared rows and 16 Doctrines). 34 need only data, 87 need a new shape, and 5 are deferred. It proposes three data batches (D0a to D0c) and seven shape batches (D1 to D7), each landed before the next starts, because they all edit `statecraftData.ts`, `statecraft/evaluator.ts`, `statecraft/describers.ts` and `data/decks/dominion.json`. Its "Rule ambiguities" section holds the readings the build will use unless the user changes them.
+- **Deferred, each waiting on a determination:**
+  - **The Longships:** how a player points a ship at the shore hex it pillages (the pillage command names no target today).
+  - **The Relay Stations:** what the new order looks like (a button on a unit in a connected city, or a pick on the map).
+  - **Rally to the Standard:** how a player chooses where a gained unit appears.
+  - **Circumvallation:** how rival towns raising one are shown.
+  - **Mercenary Contracts:** how hiring is offered on the purchase rail, and how a hired unit shows the turns until it leaves.
