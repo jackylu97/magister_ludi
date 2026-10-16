@@ -6,6 +6,12 @@
 
 **The user on the card faces, 2026-10-15:** *"i like A and C. Could we try a version of A where the suit corresponds to deck type and colour corresponds to military/economic/civic/wild. Could we do C with some other sillouettes? It's reading too middle eastern currently."* A second round adds three boards: A with one suit per deck and one colour per chair type, and C with two other silhouette sets (banner tails and corner cuts) in place of the arches.
 
+**On round two, 2026-10-15:** *"A2 is great. I was about to mention the rare frame yellow too, could we make the ornamentation for rare an entirely separate color, lets try black? Let's rename the open to 'wildcard' and have it be purple. Also, it feels kind of superfluous to have the icon in the center and the corners. The three pips for salt tithes feels a bit awkward, it can just be one big coin."* The direction is A2: the suit shows the deck, and the colour shows the chair type. The changes go on a new board, A3:
+- the rare ornament is black, not gilt;
+- Open chairs are called **Wildcard** and drawn in purple;
+- one large suit symbol in the centre, with no corner indexes;
+- a common card shows its suit once, not as pips.
+
 The user, verbatim:
 
 > *"i miss doctrines. We should have permanent, strong bonuses in the game. Could we create 3 candidates for each tier in the dominion tree based around our builds? They should be somewhat game-warping like before. I think we also need to rework the government abilities, either change them up or remove them entirely, what do you think? How could we create better differentiation between the government types? I somewhat miss the dynamic of having different types of chairs (military, economic, wildcard), do you have any ideas about how that could be implemented?"*
