@@ -251,7 +251,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
   - **Removed before it reached the sheet:** your new faith card (+1 faith on unimproved forest and jungle), because Sacred Groves already does that job (*"ah i forgot about sacred groves, axe my new card please"*).
 - **Your third pass of 2026-10-16:**
   - **New, Tier IV:** The Keeps. Workers may build one Keep in each town. A Keep gains the yields of every tile around it, and units on its tile gain +5 strength. You chose the name (*"lets call it a 'keep' instead of a manor"*).
-  - **A name clash:** the game already has a Keep building. Only The Vigil Charter unlocks it, and that card is retired, so no one can build the building now. Recommended: the build retires the old building row, so that the game has one Keep.
+  - **A name clash:** the game already has a Keep building. Only The Vigil Charter unlocks it, and that card is retired, so no one can build the building now. Ruled: the build retires the old building row, so that the game has one Keep (*"yup, retire the old building"*).
   - **The Theodosian Walls:** +1 defence for every two citizens, not every citizen.
   - **The Road Patrols** becomes The Stationes, after the Roman posts along the roads: land units gain +3 strength while they stand in a town connected to your capital by road.
   - I read your changes to these cards as the end of their deferral, so all four Military cards (The Frontier Militia, The Trained Bands, The Stationes and The Theodosian Walls) go into the build. Say if any should stay deferred.
