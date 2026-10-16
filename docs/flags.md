@@ -63,13 +63,13 @@ the rulings in full. In short:
     unimplemented (*"tier 5 was meant for an age 5 that hasn't been
     implemented, just leave the last tier as unimplemented"*): the tier-38
     governments get no chair mix, and the build retires them. Card Tier IV
-    still opens at draft 38. Read from the same answer, to confirm: Doctrine
+    still opens at draft 38. Read from the same answer and confirmed: Doctrine
     tiers I to IV come with the governments of tiers 4, 10, 18 and 29, one
     each, as Doctrine pools did before the decks rework;
   - Divine Mandate counts Civic Orders (*"lets have it count civic orders"*);
   - Interior Lines' roads take Machinery's rule at Machinery's size (40%), and
     the merged levy keeps the five-citizen floor.
-- Still open: the Doctrine pairing above; the new Combined Arms clause and
+- Still open: the new Combined Arms clause and
   endless host Doctrines; how the Doctrine offer mixes the two decks; and the
   other five decks' Doctrines and types. Card faces: the user chose A2 and
   asked for changes, now on the canvas as A3

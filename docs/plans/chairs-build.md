@@ -7,7 +7,7 @@
 ## What the build rests on
 
 - **Card types.** Every card is Military, Economic, Civic or Wildcard. A Dominion card's type is the Type column of `docs/decks/dominion.md`. That includes the shared cards in its "Shared with another deck" table, whose rows live in `data/decks/common.json`.
-- **Unsorted cards.** Every other card is unsorted until its deck is sorted (*"assign everything as a wildcard slot until we get to them"*). An unsorted card is drawn in the Wildcard ink and fits any chair, so the other five decks play as they do today. This is the orchestrator's reading: if unsorted cards fitted only Wildcard chairs, a seat without Dominion could seat one card under War Chief.
+- **Unsorted cards.** Every other card is unsorted until its deck is sorted (*"assign everything as a wildcard slot until we get to them"*). An unsorted card is drawn in the Wildcard ink and fits any chair, so the other five decks play as they do today. Confirmed by the user on 2026-10-16. If unsorted cards fitted only Wildcard chairs, a seat without Dominion could seat one card under War Chief.
 - **Which chair a card fits:**
   - a Military, Economic or Civic card fits a chair of its own type or a Wildcard chair;
   - a Wildcard card fits only a Wildcard chair (the user, 2026-10-16);
@@ -45,7 +45,7 @@ Each batch is one Opus agent, then the orchestrator's batch gate (typecheck, cor
 
 ### C3: Doctrines come with a government, and the reward hands go
 
-- Adopting a government offers Doctrines of its tier from both of the seat's decks. The tiers pair one to one: tier 4 offers Tier I, tier 10 Tier II, tier 18 Tier III and tier 29 Tier IV. The pairing is the orchestrator's reading of the user's answer on the fifth tier, marked "to confirm" in the plan doc.
+- Adopting a government offers Doctrines of its tier from both of the seat's decks. The tiers pair one to one: tier 4 offers Tier I, tier 10 Tier II, tier 18 Tier III and tier 29 Tier IV. The user confirmed this pairing on 2026-10-16.
 - The reward hands are removed: `REWARD_DRAFTS`, `PlayerStatecraft.rewardHands`, `openRewardHandAt`, the reward commands and `src/ui/rewardSheet.ts`. This is a save-format change.
 - No Doctrine is in the data yet, so until the Doctrines are built the offer is empty and is skipped.
 - The offer's mix of the two decks is an open question. Until it is ruled, use the reward hands' old rule: one Doctrine from each deck, then a third from either.

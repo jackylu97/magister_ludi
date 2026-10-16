@@ -7,7 +7,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
   - `modify`: in the data, but needs work. The word after the colon says why: `revised` (your revision), `replaced` (a new card takes over the row), `reworked` (ruling 6 of 2026-10-15), `wording` (the text changes, the effect does not), `deferred` (not dealt, because it needs a new shape), `merged` (two cards become one shared card, whose row moves to `data/decks/common.json`), `cut` (you removed the card, and the build retires its data row; these rows sit in a table of their own and are not counted), or `as built` (the game does something slightly different from the text). The ability shown is the target.
   - `add`: not in the data yet. `add: reworked` is one of your ideas reworked for ruling 6; `add: rule-breaker` is one of the rule-breaking cards added for ruling 4.
   - **(was …)** names the data row a renamed card takes over, or your earlier name for a reworked idea.
-- **Doctrines:** tiers I to IV each list Dominion's Doctrines for one government tier. A Doctrine is held for the whole game and takes no chair. Adopting a government offers Doctrines of that government's tier, drawn from both of the seat's decks (ruled 2026-10-15, `docs/flags.md` (vvvvvv)). Since 2026-10-16 that offer is all a new government brings: it no longer comes with a hand of rare cards. Tier I's Doctrines come with the tier-4 governments, Tier II's with tier 10, Tier III's with tier 18 and Tier IV's with tier 29. The tier-38 governments were meant for a fifth age and are left unimplemented (ruled 2026-10-16; the pairing is read from that ruling, to confirm). None is in the data yet. Their tables have three columns, and the sync test skips rows with fewer than four cells, so it reads only the card tables.
+- **Doctrines:** tiers I to IV each list Dominion's Doctrines for one government tier. A Doctrine is held for the whole game and takes no chair. Adopting a government offers Doctrines of that government's tier, drawn from both of the seat's decks (ruled 2026-10-15, `docs/flags.md` (vvvvvv)). Since 2026-10-16 that offer is all a new government brings: it no longer comes with a hand of rare cards. Tier I's Doctrines come with the tier-4 governments, Tier II's with tier 10, Tier III's with tier 18 and Tier IV's with tier 29. The tier-38 governments were meant for a fifth age and are left unimplemented (ruled 2026-10-16, and the pairing confirmed the same day). None is in the data yet. Their tables have three columns, and the sync test skips rows with fewer than four cells, so it reads only the card tables.
 - **Type:** the last column of each card table says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard**. A card fits a chair of its own type or a Wildcard chair, and a Wildcard card fits only a Wildcard chair. The sorting rules and every government's chairs are in `docs/plans/doctrines-governments-chairs.md`, section 4. The data carries no types yet, so the sync test does not read this column.
 - **Why each card is here:** `docs/plans/dominion-builds.md`: the four builds, the rulings of 2026-10-15, and the reworks and new rule-breakers.
 - **The long form** (the old notes, the "built as" details, the synergy section): `docs/decks/reference/dominion-2026-10-15.md`. Ideas not on the sheet: `docs/plans/dominion-ideas.md`.
@@ -29,9 +29,9 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier 0 | 10 | 6 | 8 | 2 |
 | Tier I | 7 | 8 | 8 | 0 |
 | Tier II | 12 | 7 | 10 | 2 |
-| Tier III | 12 | 2 | 10 | 1 |
+| Tier III | 12 | 3 | 9 | 1 |
 | Tier IV | 9 | 3 | 5 | 4 |
-| **All** | **50** | **26** | **41** | **9** |
+| **All** | **50** | **27** | **40** | **9** |
 | Shared | 10 | 7 | 7 | 1 |
 
 ## Tier 0
@@ -180,7 +180,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Yam** | uncommon | add | Mounted units heal fully when they pillage. | Military |
 | **The Tagmata** | uncommon | add | Veteran and Elite units gain +5 strength. | Military |
 | **Up Through the Ranks** | uncommon | add | Each time one of your units becomes an Elite, gain 250 renown, favouring great generals. | Civic |
-| **The Arrière-ban** | uncommon | add | Declaring war gives every city +50% production for ten turns. | Civic |
+| **The Arrière-ban** | uncommon | add | Declaring war gives every city +50% production for ten turns. | Economic |
 | **The Keshik** | uncommon | add | Mounted Veteran and Elite units gain +1 movement. | Military |
 | **The Mural Crown** | uncommon | add | +10 renown each turn, favouring great generals. Each time you gain a great person, gain 100 science and 100 culture for each great general you have gained this game. | Civic |
 | **The Victory Mint** | uncommon | add | Capturing a city grants gold equal to thirty times its population. | Economic |
@@ -278,7 +278,6 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 New names are placeholders; rename freely.
 
 - **Still open:**
-  - **Which Doctrines each government offers.** I read your answer on the fifth tier as pairing the four Doctrine tiers with the four government tiers left, as Doctrine pools were paired before the decks rework: Tier I with tier 4, Tier II with tier 10, Tier III with tier 18 and Tier IV with tier 29. The Doctrine headings above now say so. Each Doctrine then arrives one card tier early: Tier II's at draft 10, while Tier I cards are still dealt. The other reading pairs them by draft count: tiers 4 and 10 both offer Tier I, and Tier IV's Doctrines wait for a fifth age.
   - **Combined Arms' second clause** (my proposal, since the old one repeated The Siege Train and The Engineer Corps): siege units beside one of your melee units cannot be attacked in melee. The infantry screens the guns. It is the same kind of rule as The Testudo's.
   - **The endless host's new Doctrines** (my proposal): The Servian Reforms at Tier I, and Weight of Numbers and The Laws of Lord Shang at Tier II. The reasoning is in `docs/plans/doctrines-governments-chairs.md`, section 2.
   - **The Plunder Economy and The Consular Roads** are unchanged since my notes of 2026-10-15: the first pays every city for every pillage, and the second's "pacified at once" does Pax Romana's job from Tier I.
@@ -297,7 +296,7 @@ New names are placeholders; rename freely.
   - **Cut:** Defensive Lines, The Captured Arsenals, The Landing Parties, The Feudal Obligation, The Testudo and Knightly Ransom. The first three have data rows, listed under "Cut" until the build retires them.
   - **Revised:** Total War to +5 strength, so it is `modify: revised` until the data changes. A Victor's Peace now pays a Wildcard chair for the rest of the game. New texts for The Plunder Trains, The Arrière-ban, The Mural Crown, Valhalla, The Chevauchée and Pax Romana. The Yam is uncommon.
   - **Named:** your unnamed general card is The Bakufu (Japan's military government, literally "tent government"), and your two new commons are The Regimental Schools (the schools British regiments ran for their soldiers) and The Board of Ordnance (England's arms office, which also ran the Woolwich military academy).
-  - **Types:** The Arrière-ban, The Mural Crown and Valhalla moved to Civic as you set them. By the sort's own rules a production card is Economic, so The Arrière-ban is the one exception; say if it should be Economic.
+  - **Types:** The Mural Crown and Valhalla moved to Civic as you set them. The Arrière-ban is Economic, as the sort's rules make a production card (you agreed in chat).
   - **The Chevauchée,** as I read it: each enemy city within three hexes takes a strike at half the pillaging unit's strength, with no damage back.
 - **Ruled in chat on 2026-10-16** (written into the rows above):
   - The Serried Ranks and Double Time are rare, and Double Time is dealt in Tiers II and III.
@@ -311,3 +310,4 @@ New names are placeholders; rename freely.
   - Interior Lines takes Machinery's road rule at Machinery's size: a step along a road costs 40% less movement. Machinery's discount is 40%, not 50%. The two add, so with both a road step costs a fifteenth of a move instead of a fifth.
   - The merged levy keeps The Call to the Spear's floor of five citizens. The built card has none, so this changes it.
   - Divine Mandate counts Civic Orders, and the Chiefdom keeps its old chairs (`docs/plans/doctrines-governments-chairs.md`).
+  - Doctrine tiers pair one to one with the four government tiers left: Tier I with tier 4, Tier II with tier 10, Tier III with tier 18 and Tier IV with tier 29, as Doctrine pools were paired before the decks rework (*"2 yes"*). Each Doctrine arrives one card tier earlier than the table it sits in.
