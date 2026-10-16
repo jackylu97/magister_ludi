@@ -41,12 +41,15 @@ Each batch is one Opus agent, then the orchestrator's batch gate (typecheck, cor
 - The fit rule above, wherever a card is seated: the reducer's validation, the council screen, adoption's re-seating and the bots.
 - The council shows each chair's type, as on the A3 board's council: an empty chair keeps its ink, and the Wildcard chair is purple.
 - The tier-18 signatures count by type: Imperium's Military Orders, the Merchant League's Economic Orders, and Divine Mandate's **Civic** Orders (the user, 2026-10-16). Divine Mandate's text changes to match. Until the other decks are sorted, **an unsorted card counts as the type of the chair it sits in, a Wildcard chair included**, so a Commerce card in an Economic chair counts for the Merchant League, and one in a Wildcard chair counts as a Wildcard Order for the Assembly Hall (a Magisterial building that pays per Wildcard Order). This is the orchestrator's interim rule, in the spirit of "assign everything as a wildcard slot". The first draft said "as no type in a Wildcard chair"; the C2a gate showed that left the Assembly Hall paying nothing, so it was dropped on 2026-10-16.
-- **Adopting a government re-seats the cards already seated** (the user, 2026-10-12: adopting a government keeps the seated cards). It keeps as many as fit, in a fixed order:
-  - Wildcard cards go to Wildcard chairs first, because nothing else takes them;
-  - then each typed card goes to a chair of its own type;
-  - then the remaining typed cards go to the Wildcard chairs left;
-  - then the unsorted cards go to whatever chairs are left, typed chairs before Wildcard ones.
-  - Within each step, cards keep their old seat order. A card that fits no chair goes back to the collection, unseated, keeping its progress.
+- **Adopting a government re-seats the cards already seated** (the user, 2026-10-12: adopting a government keeps the seated cards). **As many cards as possible keep the same chair** (the user, 2026-10-16: *"lets have adoption keep as many slots the same as possible"*):
+  - first, every card whose chair still exists under the new government and still fits it stays exactly where it is;
+  - then the cards that had to move are placed in the free chairs, in this order:
+    - Wildcard cards go to Wildcard chairs first, because nothing else takes them;
+    - then each typed card goes to a free chair of its own type;
+    - then the remaining typed cards go to the free Wildcard chairs;
+    - then the unsorted cards go to whatever chairs are left, typed chairs before Wildcard ones.
+  - Within each step, cards keep their old seat order. A card that fits no free chair goes back to the collection, unseated, keeping its progress.
+  - The first draft (the four steps alone) moved cards that could have stayed. It was replaced before C2a landed.
 - The tier-38 governments retired.
 - The three cut Dominion rows (Defensive Lines, Arsenals, Naval Supremacy) are retired in batch D0 instead, which edits the deck data and the sheet, so that C2a and D0 can run side by side.
 - The save-format change this needs, in the codebase's own way.

@@ -283,8 +283,11 @@ briefs, agent reports, test names, and any new player-facing prose.
   border culture (`City.culture`) is a separate channel. Anything paying culture
   calls `settleCultureWindfall`. A draft's size is `explainOfferSize` asked when
   the offer opens (never on sight); offers are drawn once and spent by a command;
-  a pick names an index. Adoption rebuilds the slots array (total amnesty);
-  seals are absolute turns.
+  a pick names an index. Adoption re-seats the council (`reseatCouncil`,
+  batch C2): every card whose chair still exists and still fits it keeps that
+  chair, the rest move to free chairs that fit them, and a card that fits
+  nowhere returns to the collection with its progress (the user, 2026-10-16:
+  keep as many slots the same as possible); seals are absolute turns.
 - **Cards**: `statecraft/evaluator.ts` is the ONLY module switching on
   `CardEffect.kind` (`statecraft.ts` is the index over it, the words and the draft);
   a new card is a JSON row, a new *shape* is a design decision, and a shape
@@ -351,7 +354,10 @@ briefs, agent reports, test names, and any new player-facing prose.
   reducer's one refusal that mutates (redraw on a taken name). The three card
   clauses that buy a great person are `OFFER_PURCHASES` — the Academy's scholar
   draft (`buys`, not currency; charges faith, moves no renown) beside the two
-  tier-45 governments' — issued by `purchaseGreatPersonOffer` from the rail at
+  tier-38 governments' (The Commonwealth's gold, The Magisterium's faith).
+  **Both governments are currently unimplemented**: retired since batch C2,
+  left for a fifth age the game does not have, so only Commerce's Merchant
+  Princes still grants the gold clause — issued by `purchaseGreatPersonOffer` from the rail at
   the foot of the Reliquary (`src/ui/reliquaryScreen.ts`, the only surface that
   constructs it). A work stands anywhere but water/mountain and opens
   the seam it covers ("Iron · academy"); a citadel is a flat defender line.

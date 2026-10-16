@@ -285,7 +285,7 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   `12 + 5n + n^2.2` (B1, measured — `docs/orders-and-doctrines.md` "The draft pass").
   The faith reroll's count (`rerollsTaken`) is zeroed by adopting a government.
   Offers are drawn once and spent by a command; a pick names
-  an index. Adoption rebuilds the slots (total amnesty). Seals are absolute turns.
+  an index. Adopting a government re-seats the council: a card keeps its chair if that chair still fits it, the rest move to free chairs that fit, and a card that fits nowhere returns to the collection with its progress. Seals are absolute turns.
 - **No levels**: an Order is what its row prints, held once. A draft is take one
   or **pass** — a skip spends the hand and raises `orderSkips`, and each banked
   skip adds pity to the uncommon and rare weights of the next draw. Rarity
