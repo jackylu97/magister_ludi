@@ -339,3 +339,33 @@ Much of this is the intrinsic load of a 4X and a deckbuilder. The extraneous par
 - Whether the draft offer shows the council's chairs.
 - Whether a finished wonder gets more than the general completion toast.
 - Whether the take-a-card flip and the Confirm count-up can be skipped.
+
+---
+
+## Assessment B (detector), and where it meets Assessment A
+
+**Method:** the plugin's detector (Impeccable 0.1.15) ran as a separate agent, isolated from A, on the eight root pages, on `src/ui`, and on all of `src` (409 files), since `src/style.css` reaches the page only through a TypeScript import. It reads `.ts` and `.css` by pattern only. It cannot see the DOM the TypeScript builds, so it does not check contrast, tiny text or type hierarchy there; "an undercount, not a clean bill of health". **The browser half did not run:** the Claude in Chrome extension was not connected, and the permission system refused a headless Chrome fallback. So there were no screenshots and no in-page overlay, and the rendered checks below are worked out from the CSS and data, not seen.
+
+**What it found:**
+- **Bounce easing, 9:** all real overshoot curves. Worked out from each curve:
+  - only **the great-person card** visibly bounces (about 9px and 2% in scale over 500ms);
+  - **the turn card** pops to 1.011×;
+  - **the sheets** overshoot by 0.12px, which no one will see;
+  - **the stamp's** overshoot is intended.
+- **Side stripes, 18:**
+  - **ten are decorative stripes shown at rest:** `.stale-notice`, the lens rows, `.commission-chip`, `.city-buildable`, `.city-not-yet-row`, `.faith-rite-chip`, `.diplo-seat.is-war`, `.bead-card`, `.wager-card` and `.abacus-wager`;
+  - four mark a state (hover, focus, selected);
+  - four are not the pattern (an underline, a block-quote rule, two status bands inside a card).
+- **Em-dashes:** about 19 real prose em-dashes in `index.html` (the controls, setup and chronicle text). The other 21 are placeholders for figures. On `mapgen.html` it is a false positive.
+- **Flat type hierarchy** on four pages: a false positive, because the scan read the pages without their imported CSS.
+- **A real accessibility bug:** `.statecraft-sheet` and `.pamphlet-sheet` are in none of the 28 `prefers-reduced-motion` blocks, so they still rise for a player who asked for reduced motion.
+- **Emoji:** 36 of the 50 tech glyphs default to emoji presentation, with no variation selector and no `font-variant-emoji`, so they draw in full colour on macOS. The other 14 depend on font fallback.
+
+**Where A and B agree:**
+- A's springs are B's bounce easing, and B measures them: only the great-person card bounces visibly.
+- A's fourteen left stripes are B's ten decorative stripes plus four state markers.
+- A's colour emoji are confirmed by the glyphs' default presentation.
+
+**Where B adds to A:** the reduced-motion gap on two sheets, and the prose em-dashes, which the house Writing rules also discourage.
+
+**Still unconfirmed by a rendered look:** emoji colour on Windows, the top bar at 1024px, the small caps, and whether the draft offer shows chair fit. C2b has since added the chair fit to the hand line.
