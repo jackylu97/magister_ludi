@@ -578,34 +578,67 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * ---
  *
- * **Dominion batch D4 (schema 134), unrest, authority, and "this game"
- * counts.** Duel `3ba9ba41:270645` → `3583df65:268144`, standard
- * `b5305be8:966741` → `37ce3d15:948656`. Four things moved them:
+ * **Expansionist batch E0 (schema 134): the types, and the cards that need no
+ * new shape.** Duel `3ba9ba41:270645` → `f5591807:272724`, standard
+ * `b5305be8:966741` → `54af715a:983935`. Three things moved them:
  *
- *   · the version, 133 to 134;
+ *   · the types. Every Expansionist row, and nine shared rows, now carry the
+ *     sheet's type, so an Expansionist card fits only a chair of its own type
+ *     or a Wildcard chair. The bots seat through `slotOrderError`, so they
+ *     follow the rule with no code change. With the types alone, at schema
+ *     133, the boards give duel `0293413f:276537` and standard
+ *     `cbd1f152:940662`;
+ *   · the cards. Twenty-seven Expansionist rows join the deck, eight rows
+ *     change to the sheet's text, two deferred rows are freed (The Rope
+ *     Stretchers, Garden Cities) and two rows are retired (The Forest
+ *     Gardens, Daughter Towns). From the first draw that meets one of them,
+ *     the seats hold different cards. At turn 120 the duel board has one
+ *     seat with an E0 card seated (Hydraulic Schools), and the standard
+ *     board has three: The Ambarvalia on one seat, and The Plough Teams and
+ *     Hydraulic Schools on two each;
+ *   · the version, 133 to 134, which moves the hash and not the length. With
+ *     every E0 change but the version set back to 133, the boards give duel
+ *     `38abf0da:272724` and standard `769b92e9:983935`: the same games, the same
+ *     lengths.
+ *
+ * The retired Keep building changes nothing here: only the retired Vigil
+ * Charter unlocked it, so no seat could build one. The duel game adopts 11
+ * governments and the standard one 16. Nothing stalled and no command was
+ * refused.
+ *
+ * ---
+ *
+ * **Dominion batch D4 (schema 135), unrest, authority, and "this game"
+ * counts, merged after E0.** Duel `f5591807:272724` → `6b98d500:290747`,
+ * standard `54af715a:983935` → `baf6c127:961721`. D4 was built on a side
+ * branch at schema 134, without E0, and the literals it pinned there (duel
+ * `3583df65:268144`, standard `37ce3d15:948656`) do not apply to this tree.
+ * Four things moved the digests:
+ *
+ *   · the version, 134 to 135;
  *   · the twelve cards. Nine Orders join the Dominion pool, The Proconsuls is
  *     reworked, and two Doctrines join the pools: The Consular Roads at tier 4
  *     and The Universal Monarchy at tier 18. Every tier-4 adoption now offers
- *     two Doctrines, and on both boards three seats take The Consular Roads
- *     and three The Steppe Confederacy. At turn 120 one seat on the duel board
- *     holds The Garrison Captains, not seated;
+ *     two Doctrines. At turn 120 the duel board has three seats with The
+ *     Consular Roads and three with The Steppe Confederacy, and the standard
+ *     board four and two. On the standard board one seat has The Acropolis
+ *     seated and one holds The Satraps, not seated;
  *   · the new record `Player.enemiesKilled`, written for every empire whose
- *     units kill, the wild's raiders included. Every kill on both boards is a
- *     barbarian's;
+ *     units kill, the wild's raiders included;
  *   · the bots' new readings (`src/ai/value.ts`): D3's pillage extras, the
  *     places a grant can land, and D4's new shapes, so they price cards
  *     differently.
  *
  * The settlement of every town that a camp's or a discovery's grants feed is a
  * fifth mover, and it is taken out with the others. Checked by taking all five
- * back out (the deck file as D3 left it, the version at 133, the record not
- * written, the bot's readings and the two settlements as they were), which
- * gives the merged D3 digests exactly on both boards. Nothing stalled and no
- * command was refused.
+ * back out (the deck file as E0 left it, the version at 134, the record not
+ * written, and the bot's readings and the two settlements as they were), which
+ * gives E0's digests exactly on both boards. Nothing stalled and no command
+ * was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '3583df65:268144',
-  standard: '37ce3d15:948656',
+  duel: '6b98d500:290747',
+  standard: 'baf6c127:961721',
 };
 
 /**

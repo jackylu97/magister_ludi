@@ -724,15 +724,23 @@ describe('determinism', () => {
    * board. Checked by setting the version back to 131, which gives C3's hashes
    * exactly.
    *
-   * **Dominion batch D4 moved the hash and not the length** at both seeds: 133
-   * became 134, and that is all. Nobody here drafts a card, takes a town or
-   * kills a unit, so the new cards and `Player.enemiesKilled` never reach this
-   * board. Checked by setting the version back to 133, which gives the merged
-   * D3 hashes exactly.
+   * **Expansionist batch E0 moved the hash and not the length** at both
+   * seeds: 133 became 134, and that is the whole change. Nobody here drafts a
+   * card or founds a town, so the types, the new cards and the retired rows
+   * never reach this board. Checked twice: the types alone, at 133, give D3's
+   * hashes exactly, and so does every E0 change with the version set back to
+   * 133.
+   *
+   * **Dominion batch D4 moved the hash and not the length** at both seeds. It
+   * was built on a side branch at schema 134 and merged after E0, which
+   * renumbered it to 135, so the version here went from 134 to 135, and that
+   * is all. Nobody here drafts a card, takes a town or kills a unit, so the new
+   * cards and `Player.enemiesKilled` never reach this board. Checked by setting
+   * the version back to 134, which gives E0's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '42ae59d6:188932',
-    2026: '57863117:188488',
+    11: '6b0fdec5:188932',
+    2026: 'b75cd9cc:188488',
   };
 
   for (const seed of [11, 2026]) {

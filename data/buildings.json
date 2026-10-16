@@ -2230,7 +2230,8 @@
       "unlockedByCard": true,
       "cityHp": 25,
       "healsAdjacent": 5,
-      "note": "The town takes longer to empty, and your own units resting in it or beside it mend faster."
+      "note": "The town takes longer to empty, and your own units resting in it or beside it mend faster.",
+      "retired": true
     },
     "scriptorium": {
       "name": "Scriptorium",

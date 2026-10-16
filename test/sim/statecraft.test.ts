@@ -1939,10 +1939,13 @@ describe("determinism", () => {
     // 133 since D3: nine Dominion cards about pillaging and where a grant
     // lands, and a new record, so a v132 log's picks name cards this build
     // never dealt.
-    // 134 since D4: twelve Dominion cards about unrest, the writ and the game's
-    // records, and a new record, so a v133 log's picks name cards this build
+    // 134 since E0: the Expansionist deck is typed and its cards that need
+    // no new shape are built, so a v133 log's picks and seatings name cards
+    // and chairs this build deals and fits differently.
+    // 135 since D4: twelve Dominion cards about unrest, the writ and the game's
+    // records, and a new record, so a v134 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(134);
+    expect(SCHEMA_VERSION).toBe(135);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -7428,8 +7431,14 @@ describe("a charter carries the description of the building it opens", () => {
         .find((text) => text.includes("unlocks "));
       expect(clause, card).toBeDefined();
       // The building is **named as a keyword**, so a reader can open its page
-      // from the card and the Compendium resolves the mark to a real entry.
-      expect(clause, card).toContain(`[[building:${building}|`);
+      // from the card and the Compendium resolves the mark to a real entry. A
+      // retired building has no page, so its name prints plain: the Keep, which
+      // the retired Vigil Charter names, since Expansionist batch E0.
+      if (buildingDef(building).retired === true) {
+        expect(clause, card).not.toContain(`[[building:${building}|`);
+      } else {
+        expect(clause, card).toContain(`[[building:${building}|`);
+      }
       // And every live clause of the row's own description is in the sentence,
       // word for word: the card does not paraphrase the building.
       const said = stripRefs(clause!);

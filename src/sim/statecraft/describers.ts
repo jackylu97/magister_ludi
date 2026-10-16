@@ -3561,7 +3561,12 @@ function namedWithThe(id: BuildingId): boolean {
 
 /** A building's bare name, marked. `buildingWords` without the article. */
 function buildingName(id: BuildingId): string {
-  return ref(isWonder(id) ? 'wonder' : 'building', id, buildingDef(id).name);
+  const def = buildingDef(id);
+  // A retired row has no page in the Compendium, so its name prints plain: a
+  // mark would point at nothing. The retired Vigil Charter names the Keep,
+  // retired in Expansionist batch E0 so that the game has one Keep.
+  if (def.retired === true) return def.name;
+  return ref(isWonder(id) ? 'wonder' : 'building', id, def.name);
 }
 
 /**
@@ -3846,15 +3851,20 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
     case 'greatWork':
       into.qualifiers.push("carrying a great person's work");
       return;
-    case 'standingSince':
+    case 'standingSince': {
       // A qualifier about the *works*, not an adjective about the ground: "old
       // hex" is not a kind of country. It reads after whatever names what stands
       // there ("every academy hex that has stood at least 20 turns"), which is
       // the order `all` pushes its parts in.
-      into.qualifiers.push(
-        `that has stood at least ${on.turns} turn${on.turns === 1 ? '' : 's'}`,
-      );
+      const stood = `that has stood at least ${on.turns} turn${on.turns === 1 ? '' : 's'}`;
+      // With nothing before it, no work is named for the age to belong to, so
+      // the words name one: "hex with a work that has stood …" (The Old Fields,
+      // The Inheritance of Fields). This also keeps the verb right when a count
+      // makes the hex plural ("hexes with a work that has stood").
+      const alone = into.adjectives.length === 0 && into.qualifiers.length === 0;
+      into.qualifiers.push(alone ? `with a work ${stood}` : stood);
       return;
+    }
     case 'terrain':
       into.adjectives.push(on.terrain);
       return;
@@ -3911,6 +3921,10 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       into.adjectives.push('surveyed');
       return;
     case 'any': {
+      // A condition that admits every hex, improved or not, says nothing, so a
+      // count over it reads "per 2 hexes in your borders" (The Quitrents).
+      const members = new Set(on.of.map((inner) => inner.test));
+      if (members.has('improved') && members.has('unimproved')) return;
       // Each part phrased on its own and joined with the "or" it means: "hill
       // or mountain", "improved or tended". A part that is only adjectives
       // stays an adjective; a part with a qualifier makes the whole a
@@ -4125,6 +4139,14 @@ export function combatWhenWords(when: CombatCondition): string {
     case 'onFeature':
       return `${COMBAT_WORDS.onFeature} ${when.feature}`;
     case 'withinOfCity':
+      // Distance nought is the town's own hex, said the way `inCity` says it:
+      // "while standing in a city joined to your capital by road" (The
+      // Stationes), never "within 0 hexes of".
+      if (when.hexes <= 0) {
+        return when.scope === undefined
+          ? COMBAT_WORDS.inCity
+          : `while standing in ${cityScopeWords(when.scope).replace(/^every /, 'a ')}`;
+      }
       return (
         `${COMBAT_WORDS.withinOfCity} ${when.hexes} ` +
         `${when.hexes === 1 ? 'hex' : 'hexes'} of ` +
