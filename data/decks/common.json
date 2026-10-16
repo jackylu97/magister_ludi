@@ -349,6 +349,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "The cabbage that reaches the road is worth two in the field.",
       "text": "Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination.",
       "effects": [
@@ -373,6 +374,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "Once a year the province remembers it is one.",
       "text": "Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold.",
       "effects": [
@@ -414,6 +416,7 @@
       "band": 0,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Some trees were here before the altar, and knew it.",
       "text": "Worked, unimproved forests gain +1 food and +1 faith.",
       "effects": [
@@ -452,9 +455,17 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Water taught us the level, and the level taught us everything.",
-      "text": "Cities with an Aqueduct gain +2 science per three citizens and +30% production toward science buildings.",
+      "text": "Cities with an Aqueduct gain +20% production toward science buildings. Those beside a mountain also gain +1 science per three citizens.",
       "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "buildingCategory": "science",
+          "percent": 20,
+          "scope": { "test": "hasBuilding", "building": "aqueduct" }
+        },
         {
           "kind": "pays",
           "where": "city",
@@ -463,15 +474,14 @@
           "within": "city",
           "per": 3,
           "to": "science",
-          "amount": 2,
-          "scope": { "test": "hasBuilding", "building": "aqueduct" }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "buildingCategory": "science",
-          "percent": 30,
-          "scope": { "test": "hasBuilding", "building": "aqueduct" }
+          "amount": 1,
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "hasBuilding", "building": "aqueduct" },
+              { "test": "mountainAdjacent" }
+            ]
+          }
         }
       ]
     },
@@ -492,10 +502,34 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Plant the square, and the square will plant the town.",
-      "text": "Cities with a Monument gain +1 culture per three worked farms, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness.",
-      "deferred": ["the farms a town actually works are counted, and paid in song"],
-      "effects": []
+      "text": "Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "count": "workedUnimprovedTiles",
+          "to": "culture",
+          "amount": 1,
+          "per": 3,
+          "max": 3,
+          "scope": { "test": "hasBuilding", "building": "monument" }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "all",
+            "of": [
+              { "test": "populationAtLeast", "value": 8 },
+              { "test": "hasBuilding", "building": "aqueduct" }
+            ]
+          }
+        }
+      ]
     },
     "theSculptedLandscape": {
       "name": "The Sculpted Landscape",
@@ -503,6 +537,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "The master left, and the valley kept the habit.",
       "text": "Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works.",
       "effects": [
@@ -939,6 +974,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "A full granary is a promise other towns can eat.",
       "text": "Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness.",
       "effects": [
@@ -1010,6 +1046,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "The road brought the seed, and the square brought the song.",
       "text": "Connected cities with a Monument gain +3 food and +3 culture.",
       "effects": [
@@ -1371,6 +1408,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "The fields are burned, and the smoke is an offering.",
       "text": "Each tile your workers turn into burned country grants 8 faith.",
       "effects": [

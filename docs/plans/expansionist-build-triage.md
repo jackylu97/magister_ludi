@@ -224,6 +224,7 @@ Facts the cells rely on:
 Every batch edits `src/sim/statecraftData.ts`, `src/sim/statecraft/evaluator.ts`, `src/sim/statecraft/describers.ts`, `data/decks/expansionist.json`, `docs/decks/expansionist.md` and `test/sim/decks/expansionist.test.ts`. Most also touch `test/fixtures/cardText.json`, `docs/orders-and-doctrines.md` (it lists every live Order) and the digests. The batches cannot run side by side: land each one before the next starts.
 
 **E0, the types and the data (37 cards):**
+- **Built, 2026-10-16** (schema 134). Beyond the plan, four describers changed so that the new cards read correctly: a distance of zero prints as "while standing in" (The Stationes), an age with no work named prints "with a work that has stood" (The Old Fields, and The Inheritance of Fields with it), a count over every hex drops the "improved or unimproved" words (The Quitrents), and a retired building prints as a plain name with no link.
 - **Types:** as in "Plan for the types".
 - **Retirements:** The Forest Gardens and Daughter Towns (`modify: cut`).
 - **The old Keep building, ruled by the user** (*"yup, retire the old building"*): set `retired: true` on `keep` in `data/buildings.json`. What it touches:

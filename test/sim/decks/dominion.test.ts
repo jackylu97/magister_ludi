@@ -20,9 +20,10 @@
  *     against `docs/orders-and-doctrines.md`;
  *   · **the Type column matches the data** (batch C1): every sheet row with a
  *     data row, the shared table's included, carries the type the sheet gives
- *     it (`orderType`). Rows marked `add` have no data row and are skipped. No
- *     other row in the game carries a type: every other deck is unsorted until
- *     its own sheet is sorted;
+ *     it (`orderType`). Rows marked `add` have no data row and are skipped. A
+ *     row carries a type only if a sorted sheet lists it (Dominion's, and
+ *     Expansionist's since batch E0; `sortedSheets.ts`): every other deck is
+ *     unsorted until its own sheet is sorted;
  *   · **one deck, one band, one rarity** on every row of the file;
  *   · **live or deferred, never half**: a row either carries effects and is
  *     dealt, or carries a stated deferral, no effects, and is in no pool
@@ -72,6 +73,7 @@ import {
   orderType,
 } from '../../../src/sim/statecraftData';
 import { createGame } from '../newGameHelpers';
+import { SORTED_DECKS, rowsListedOnSortedSheets } from './sortedSheets';
 
 // --- the deck sheet, read ----------------------------------------------------
 
@@ -319,33 +321,35 @@ describe('the Dominion deck — the file', () => {
     expect(checked, 'the shared rows were checked at all').toBeGreaterThan(0);
   });
 
-  it('types only the rows its sheet lists, and leaves every other row unsorted', () => {
-    // The rows this sheet speaks for: its own file's live rows, and the rows of
-    // common.json its shared table lists.
+  it('types a row only if a sorted sheet lists it, and leaves every other row unsorted', () => {
+    // The rows the sorted sheets speak for (Dominion's and, since batch E0,
+    // Expansionist's): each deck's own live and deferred rows, and the rows of
+    // common.json each shared table lists (`sortedSheets.ts`).
+    const sorted = rowsListedOnSortedSheets();
+    // This sheet's own rows, and the shared rows its table lists, are among them.
     const sharedNames = new Set(
       sharedCards()
         .filter((card) => card.status !== 'add')
         .map(dataNameOf),
     );
-    const sorted = new Set<OrderId>([
-      ...SHEET_ROWS,
-      ...DECK_FILE_ORDERS.common.filter((id) => sharedNames.has(orderDef(id).name)),
-    ]);
-    expect(sorted.size).toBeGreaterThan(SHEET_ROWS.length);
+    for (const id of SHEET_ROWS) expect(sorted.has(id), id).toBe(true);
+    for (const id of DECK_FILE_ORDERS.common) {
+      if (sharedNames.has(orderDef(id).name)) expect(sorted.has(id), id).toBe(true);
+    }
     for (const id of ORDER_IDS) {
       if (sorted.has(id)) {
-        expect(CARD_TYPES, `${id} is on the sheet and has no type`).toContain(orderDef(id).type);
+        expect(CARD_TYPES, `${id} is on a sorted sheet and has no type`).toContain(orderDef(id).type);
         expect(orderType(id), id).toBe(orderDef(id).type);
         continue;
       }
-      // Every other deck, the generic rows, the shared rows Dominion's sheet
-      // does not list, and every retired row: unsorted until a sheet sorts them.
+      // The decks not sorted yet, the generic rows, the shared rows no sorted
+      // sheet lists, and every retired row: unsorted until a sheet sorts them.
       expect(orderDef(id).type, `${id} carries a type no sorted sheet gives it`).toBeUndefined();
       expect(orderType(id), id).toBe('unsorted');
     }
-    // And the other five deck files are untouched by this sheet.
+    // And the deck files no sorted sheet speaks for are untouched.
     for (const file of DECK_FILES) {
-      if (file === 'dominion' || file === 'common') continue;
+      if (file === 'common' || (SORTED_DECKS as readonly string[]).includes(file)) continue;
       for (const id of DECK_FILE_ORDERS[file]) expect(orderType(id), id).toBe('unsorted');
     }
   });

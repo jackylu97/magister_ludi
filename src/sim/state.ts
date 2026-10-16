@@ -1303,8 +1303,30 @@ import {
  * **A v132 save is refused and does not replay.** The draft bags hold
  * different cards, and every pillage now writes the new record. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v134 (branch `decks`; Expansionist batch E0 of
+ * `docs/plans/expansionist-build-triage.md`, the types and the data): **the
+ * Expansionist deck is sorted, and the cards that need no new shape are
+ * built.** No field joins the state and no rule changes. What changes:
+ *
+ *   · every Expansionist row on the deck's sheet carries the sheet's type, and
+ *     so do the nine shared rows its shared table lists that had none. An
+ *     Expansionist card now fits only a chair of its own type or a Wildcard
+ *     chair, as Dominion's cards have since C2a;
+ *   · twenty-seven new Expansionist rows. Eight rows change to the sheet's
+ *     text: six Expansionist rows and two shared ones. The Rope Stretchers
+ *     and Garden Cities were deferred and are now dealt. The Spirits of Place
+ *     is renamed The Ambarvalia and keeps its id;
+ *   · The Forest Gardens and Daughter Towns are retired, and so is the Keep
+ *     building, which only the retired Vigil Charter unlocked. Each row stays
+ *     in the data, so a town or a collection that holds one keeps it.
+ *
+ * **A v133 save is refused and does not replay.** The draft bags hold
+ * different cards, and a seat command that put an Expansionist card in a
+ * chair of another type is now refused. The branch migrates nothing, for the
+ * reason given under v119.
  */
-export const SCHEMA_VERSION = 133;
+export const SCHEMA_VERSION = 134;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

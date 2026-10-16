@@ -284,41 +284,66 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Granary Levies | 0 | ● | S | When a city grows in population, gain 15 production |
 | The Naturalists | 0 | ◆ | P | Each city gains +1 science for every two hills or mountains in its borders, at most +3. |
 | The Patient Harvest | 0 | ○ | S | Cities retain 30% of the food spent on growth, but produce military units 15% more slowly. |
-| The Forest Gardens | 0 | ● | S | Once drafted, workers may tend a forest or jungle into a forest garden for one charge: +1 food. The forest stays standing and can still be chopped, which removes the garden. No chair required. |
 | The Fish Traps | 0 | ● | S | Once drafted, workers may tend a lake or coastal tile into fish traps for one charge: +1 food and +1 production. No chair required. |
 | Sweet Water | 0 | ● | S | Towns beside a river or lake gain +1 happiness. Worked freshwater tiles gain +1 food. |
 | The Seed Grain | 0 | ◆ | S | Towns you found start with one extra citizen. |
-| The Spirits of Place | 0 | ● | P | Your capital gains +1 faith. Towns working at least two wild tiles gain +1 faith. |
+| The Ambarvalia | 0 | ● | P | Your capital gains +1 faith. Each town gains +1 faith for every two improved tiles in its borders. |
+| The Rope Stretchers | 0 | ● | S | Worked mines, quarries and lumber mills gain +1 production. |
 | The Beating of the Bounds | 0 | ● | S | Each town you found claims one extra wild hex of your choice next to its borders. |
+| The Pyramid Builders | 0 | ● | S | +25% production toward wonders in your capital. |
+| The Road Home | 0 | ● | S | Each town you found is joined to your nearest town by road. |
 | Levy of the Land | 1 | ◆ | S | Cities may spend one citizen to gain production equal to the food it took to grow that citizen. A city may levy once every five turns. |
 | Tinkers' Guild | 1 | ● | S | Workers you produce or purchase gain +1 charge. |
 | The Old Songs | 1 | ● | S | Worked unimproved land gains +2 culture. |
 | The Local Census | 1 | ● | S | A town working at least four improved or tended tiles costs one less authority, minimum one. |
 | The Wild Orchards | 1 | ● | S | Once drafted, workers may tend a forest or jungle tile into a wild orchard for one charge: +1 food and +1 gold. No chair required. |
-| The Burning Season | 1 | ◆ | S | Once drafted, each town may burn its wild grassland and plains once every 30 turns. They become burned country, a tended work worth +1 food. After each burning they yield 1 less food for 3 turns, then +1 food and +1 production for 20 turns. No chair required. |
+| The Burning Season | 1 | ◆ | S | Once drafted, workers may tend wild grassland or plains into burned country for one charge: +1 food. No chair required. |
 | Dark Earth | 1 | ◆ | S | Worked farms gain +2 food once they have stood for 20 turns, and another +2 food once they have stood for 50 turns. |
 | The Three Sisters | 1 | ● | S | Worked farms beside a plantation or a pasture gain +2 food and +2 production, once per farm. |
 | The Commons | 1 | ◆ | P | Each town gains +1 happiness for every two wild tiles it works, at most +3. |
 | The Hard Country | 1 | ● | S | Worked desert and tundra tiles gain +1 food and +1 production. |
 | The Master Builders | 1 | ● | S | Towns working at least three mines, quarries or lumber mills give +1 renown a turn, favouring great engineers. |
 | The Prospectors | 1 | ● | S | Prospecting costs workers and explorers no charge. Worked mines on a seam you surfaced gain +3 production. |
-| Daughter Towns | 1 | ◆ | P | While a town you found has fewer than five citizens, the town that trained its settler gains +3 food. |
-| Six Gardens | 1 | ◆ | S | Needs tended land. Goal: have six tended tiles. Reward: every town gains 50 food, your capital gains a free worker, and a free Order hand. The card then leaves its chair. |
+| Six Gardens | 1 | ◆ | S | Needs tended land. Goal: have six tended tiles. Reward: culture equal to fifteen times the tended tiles you hold. The card then leaves its chair. |
+| The Forest Keepers | 1 | ● | S | Lumber mills that have stood for twenty turns gain +2 culture. |
+| The Plough Teams | 1 | ● | P | Each town gains +1 food for every two improved tiles in its borders. |
+| The Polis | 1 | ○ | S | While you hold at most four towns, every town gains +25% food. |
+| The Public Fountains | 1 | ● | P | Towns beside a river or lake gain +1 happiness for every four citizens, at most +3. |
+| The Wild Marches | 1 | ● | P | +1 culture for every four wild hexes you own. |
+| The Quiet Provinces | 1 | ◆ | P | Each town gains +1 production for every three points of spare authority, at most +3. |
+| The Road Towns | 1 | ● | P | Towns joined to your capital by road gain +2 production. |
 | The Watercourses | 2 | ◆ | S | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step. |
-| The Highlands | 2 | ● | S | mines and quarries on hills gain +2 science and +1 production. |
+| The Highlands | 2 | ● | S | Mines and quarries on hills gain +2 science and +1 production. |
 | The Coast | 2 | ● | S | Worked fishing boats gain +3 food and +3 culture. |
 | Provincial Councils | 2 | ◆ | S | Connected towns other than the capital cost one less authority, minimum one, and gain +1 happiness. |
 | The Grain Dole | 2 | ● | S | Cities of at least ten population gain +4 happiness and retain an additional 20% of food spent on growth. |
 | The Waterworks | 2 | ◆ | P | Aqueducts cost 33% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3. |
 | The Landscape Garden | 2 | ◆ | S | Needs tended land. Tended tiles beside a great-person work or a wonder gain +3 culture. |
 | The Engineers' Yards | 2 | ● | S | Manufactories gain +3 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +2 production. |
-| The Tended Country | 2 | ◆ | S | Needs tended land. Tended tiles gain +2 production. Each worked farm gains +2 food if a tended tile stands beside it, once per farm. |
+| The Tended Country | 2 | ◆ | S | Needs tended land. Tended tiles gain +2 production. |
+| The Old Fields | 2 | ◆ | P | +1% food and production for every three works that have stood thirty turns, at most +30%. |
+| The Hedgerows | 2 | ● | S | Needs tended land. Worked farms beside a tended tile gain +2 food, once per farm. |
+| The Great Households | 2 | ◆ | P | Each town gains +2% production for every citizen it has, at most +30%. |
+| The Harbour Cities | 2 | ● | P | Coastal towns gain +1 culture for every two citizens. |
+| The Milestones | 2 | ◆ | P | +1% production and gold for every three road hexes you have paved, at most +30%. |
+| The Teeming Realm | 2 | ◆ | P | +1% production and food for every ten citizens in your empire, at most +30%. |
 | The Woodwrights | 3 | ○ | S | Forest and jungle chops grant 150% more production. |
 | Seasonal Levies | 3 | ◆ | S | After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. |
 | The Long Tending | 3 | ○ | S | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. |
 | The Mountain Schools | 3 | ◆ | P | Towns beside a mountain gain +15% science. Worked mines and quarries beside a mountain gain +2 science. |
 | A Court of Engineers | 3 | ○ | S | Gain +50% renown, but great-person offers contain only great engineers. |
 | The Wide Country | 3 | ◆ | S | Goal: while this card is seated, claim twelve hexes by outposts, cleared camps or buying. Reward: your three smallest towns each gain two citizens, and every town gains +2 happiness for 30 turns. The card then leaves its chair. |
+| Old Workings | 3 | ● | S | Worked mines, quarries and lumber mills that have stood for twenty turns gain +3 production. |
+| The Manors | 3 | ● | P | Each town gains +1 production for every two improved tiles in its borders. |
+| The Royal Forests | 3 | ◆ | P | Towns working at least three lumber mills gain +25% culture. |
+| The Megalopolis | 3 | ○ | P | Towns of ten or more citizens gain +1 science and +1 production for each citizen. |
+| Plenty | 3 | ● | S | When a town grows, it gains production equal to eight times its new population. |
+| The Mill Wheels | 3 | ● | P | Towns with a Watermill gain +15% production. |
+| The Quitrents | 3 | ● | P | +1 gold for every two hexes you own. |
+| The Hallowed Woods | 3 | ◆ | P | Towns working at least five wild tiles gain +25% culture. |
+| The Assay Office | 3 | ◆ | S | Each seam you surface grants 60 science. |
+| The Stationes | 3 | ◆ | S | Land units gain +3 strength while they stand in a town connected to your capital by road. |
+| The Managed Wild | 3 | ◆ | P | Needs tended land. Each town gains +5% food for every tended tile in its borders, at most +25%. |
 | The Land's Great Work | 4 | ○ | S | The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%. |
 | The Garden of the World | 4 | ○ | S | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. |
 | The Corvée | 4 | ○ | S | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. |
@@ -329,6 +354,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Mother City | 4 | ○ | P | Your capital gains +1 production for every citizen it has. |
 | The General Levy | 4 | ○ | S | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. |
 | The Domesday Survey | 4 | ○ | S | Goal: own at least 150 hexes and work at least 50 improved or tended tiles at the same time. Reward: each town gains production equal to five times the improved or tended tiles it works, toward what it is building, and you gain a great engineer. The card then leaves its chair. |
+| The Theodosian Walls | 4 | ◆ | S | Your towns gain +1 defence for every two citizens. |
 
 ### Commerce
 
@@ -563,7 +589,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Market Gardens | Expansionist · Commerce | 0 | ● | S | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. |
 | The Provincial Fair | Expansionist · Commerce | 2 | ◆ | P | Connected noncapital cities with a Market gain +3 food. Their worked plantations, camps and pastures gain +2 gold. |
 | Sacred Groves | Expansionist · Devotion | 0 | ◆ | S | Worked, unimproved forests gain +1 food and +1 faith. |
-| Hydraulic Schools | Expansionist · Scientific | 1 | ● | P | Cities with an Aqueduct gain +2 science per three citizens and +30% production toward science buildings. |
+| Hydraulic Schools | Expansionist · Scientific | 1 | ● | P | Cities with an Aqueduct gain +20% production toward science buildings. Those beside a mountain also gain +1 science per three citizens. |
 | The Sculpted Landscape | Expansionist · Magisterial | 3 | ◆ | S | Farms beside a great-person improvement gain +2 food and +2 culture. Each farm receives this once regardless of the number of adjacent works. |
 | The Tithe | Commerce · Devotion | 2 | ○ | P | Cities with a Temple gain gold equal to 25% of their base faith, and +25% gold. |
 | Merchant Scholars | Commerce · Scientific | 1 | ◆ | S | Foreign routes from a city with a Library gain +5 science. |
@@ -578,6 +604,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Letters of Marque | Dominion · Commerce | 3 | ○ | P | Naval combat kills grant 60 gold. Cities with a Harbour gain +38% gold, but produce naval combat units 20% more slowly. |
 | The Exchange of Discoveries | Commerce · Scientific | 3 | ◆ | S | +2 science on mines and quarries on a resource. Additional +2 if the city has a market. |
 | Garden Provinces | Expansionist · Magisterial | 2 | ● | P | Connected cities with a Monument gain +3 food and +3 culture. |
+| Garden Cities | Expansionist · Magisterial | 1 | ◆ | P | Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness. |
 | Pilgrim Markets | Commerce · Devotion | 1 | ◆ | S | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. |
 | The Grain Exchange | Expansionist · Commerce | 1 | ◆ | S | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. |
 | The Cosmopolitan Court | Commerce · Magisterial | 3 | ○ | S | Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +3 gold. |
@@ -624,14 +651,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Legions' Labour** — † Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder.
 - **Circumvallation** — † Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet.
 - **The Fish Traps** — The traps go on coastal water, which a worker reaches by boat. A lake cannot be reached yet, so traps on a lake wait.
-- **The Rope Stretchers** — The game does not yet announce the moment a worker finishes a work, so no card can pay for it. † a town is paid in labour when a worker finishes a mine, a quarry or a lumber mill on its ground
 - **The Beating of the Bounds** — For now the town takes the hex its borders would have grown into next, rather than one you choose.
 - **The Old Songs** — Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.
-- **The Burning Season** — For now a worker burns one grassland or plains hex at a time into burned country, and the season of lean and rich years after a burning is not built.
 - **Outposts** — No work can yet be raised outside your borders, and only a town or a great general can claim ground. † a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town
 - **The Prospectors** — Prospecting already costs no charge. The mine bonus is paid on any surveyed hill that carries a resource, whoever surveyed it.
-- **Daughter Towns** — For now the small town itself gains the food, because the game does not remember which town trained a settler.
-- **Six Gardens** — For now the food arrives over several turns rather than all at once, and the free Order hand is not built.
 - **The Watercourses** — For now any fresh water counts as a river, and a farm standing on fresh water counts as irrigated too.
 - **The Waterworks** — The saving on the aqueduct is paid as extra production toward it, which comes to the same price.
 - **The Breadbasket** — A town told to stop growing moves its people off food, so it has no spare grain for this card to read. † a town that has stopped growing turns its spare grain into contentment and into settlers
@@ -751,7 +774,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **The Hydraulic Commonwealth** — † a share of the grain a town has left over is gained again as learning
-- **Garden Cities** — † the farms a town actually works are counted, and paid in song
 - **Pilgrim Markets** — † a road pays when either of its two ends keeps a holy site
 - **The Exchange of Discoveries** — † a town counts the distinct realms its own caravans reach
 - **Sacred Patronage** — Half built and therefore not built: a gift may now be held to once a turn, but the moment the world announces is a great one spending themselves on their boon — so a card written on the spending would pay for one of the ways a person may be spent and stay silent for the others. † spending a great person pays faith, but never more than once in a turn

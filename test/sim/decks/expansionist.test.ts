@@ -16,13 +16,14 @@
  *     Every data row that is not retired is on the tier tables once; a retired
  *     row is on none. The shared table's rows live in `common.json` and name
  *     this deck and the deck beside them. The two counts tables count the rows;
- *   · **the Type column is checked only where a data row carries a type.** The
- *     deck is still unsorted in play (its rows carry no type until the user
- *     rules), so its own rows are skipped; the shared rows Dominion's sheet
- *     typed are checked. Every Type cell must still be one of the four types;
+ *   · **every listed row carries the sheet's type.** Since batch E0 the deck
+ *     is sorted in play: each row the sheet lists, and each shared row in its
+ *     shared table, has the Type cell's type in the data. A retired row has no
+ *     type. Every Type cell must be one of the four types;
  *   · every row names this deck and carries a band, rarity, name, flavour and
- *     text; the only charters are the four tended-work unlocks;
- *   · the sheet's proposed cuts are retired and dealt to nobody;
+ *     text; the only charters are the four tended-work unlocks, one of them
+ *     (The Forest Gardens) retired;
+ *   · the sheet's cuts are retired and dealt to nobody;
  *   · every dealt row describes itself in words with no raw reference, and
  *     every deferred row carries a plain sentence and a note;
  *   · a seeded draft under Pachacuti (the Expansionist leader) deals only rows
@@ -267,7 +268,11 @@ const RETIRED = ROWS.filter((id) => orderDef(id).retired === true);
 const LIVE = ROWS.filter(isLive);
 const DEFERRED = ROWS.filter((id) => !isLive(id) && orderDef(id).retired !== true);
 
-/** The four tended-work unlocks, the only charters this deck carries. */
+/**
+ * The four tended-work unlocks, the only charters this deck carries. The
+ * Forest Gardens is retired (the user's cut of 2026-10-16), but its row stays,
+ * so a game that already holds it keeps its gardens.
+ */
 const TENDED_UNLOCKS: Readonly<Record<string, string>> = {
   theForestGardens: 'forestGarden',
   theFishTraps: 'fishTraps',
@@ -310,11 +315,13 @@ describe('the Expansionist deck, as entered', () => {
     }
   });
 
-  it('retires the sheet\'s proposed cuts and deals none of them', () => {
-    expect(RETIRED.length).toBe(31);
+  it('retires the sheet\'s cuts, deals none of them, and types none of them', () => {
+    // 31 proposed cuts, and since batch E0 The Forest Gardens and Daughter Towns.
+    expect(RETIRED.length).toBe(33);
     for (const id of RETIRED) {
       expect(orderIsDealt(id), id).toBe(false);
       expect(ordersForDecks(['expansionist']), id).not.toContain(id);
+      expect(orderDef(id).type, `${id} is retired and carries a type`).toBeUndefined();
     }
   });
 
@@ -357,9 +364,8 @@ describe('the Expansionist deck — the sheet', () => {
       }
       const id = byName.get(dataNameOf(card));
       expect(id, `the deck file has no row for "${dataNameOf(card)}"`).toBeDefined();
-      // The deck is unsorted in play: a type is checked only where the row carries one.
-      const type = orderDef(id!).type;
-      if (type !== undefined) expect(type, `${card.name}: the sheet's type`).toBe(card.type);
+      // Sorted since batch E0: every listed row carries the sheet's type.
+      expect(orderDef(id!).type, `${card.name}: the sheet's type`).toBe(card.type);
       if (card.status === 'modify') {
         // A row the sheet calls deferred is one the game does not deal yet.
         if (card.reason === 'deferred') {
@@ -408,10 +414,10 @@ describe('the Expansionist deck — the sheet', () => {
       const def = orderDef(id!);
       expect(def.decks, name).toContain('expansionist');
       expect(def.decks, name).toContain(card.alsoIn);
-      if (def.type !== undefined) {
-        expect(def.type, `${name}: the sheet's type`).toBe(card.type);
-        typed += 1;
-      }
+      // Every shared row carries the sheet's type (batch E0 typed the nine
+      // shared with the four decks not yet sorted; C1 typed Dominion's five).
+      expect(def.type, `${name}: the sheet's type`).toBe(card.type);
+      typed += 1;
       if (card.status === 'modify') {
         if (card.reason === 'deferred') {
           expect(orderIsDealt(id!), `${name} is marked deferred but is dealt`).toBe(false);
@@ -423,8 +429,10 @@ describe('the Expansionist deck — the sheet', () => {
       expect(def.band, `${name}: the sheet's tier`).toBe(card.band);
       expect(def.text, `${name}: the sheet's ability`).toBe(card.text);
     }
-    // The five cards shared with Dominion carry the types its sheet gave them.
-    expect(typed, 'the typed shared rows were checked at all').toBeGreaterThan(0);
+    expect(typed, 'every shared row in the data was checked').toBe(
+      shared.filter((card) => card.status !== 'add').length,
+    );
+    expect(typed, 'the shared rows were checked at all').toBeGreaterThan(0);
   });
 
   it('keeps every retired row off the sheet’s tables, and deals none of them', () => {
@@ -662,12 +670,17 @@ function hold(state: GameState, id: OrderId): void {
   bumpRevision(state);
 }
 
-/** Seats a card for seat 0 in the first empty chair, through the slot verb. */
+/**
+ * Seats a card for seat 0 in the first empty chair it fits, through the slot
+ * verb. The deck is typed since batch E0, so a chair of another type refuses it.
+ */
 function seatCard(state: GameState, id: OrderId): void {
   hold(state, id);
   const player = playerById(state, 0)!;
-  const index = player.statecraft.slots.findIndex((slot) => slot === null);
-  expect(slotOrderError(state, 0, id, index)).toBeNull();
+  const index = player.statecraft.slots.findIndex(
+    (slot, at) => slot === null && slotOrderError(state, 0, id, at) === null,
+  );
+  expect(index, `${id} fits no empty chair`).toBeGreaterThanOrEqual(0);
   slotOrderAt(state, player, id, index);
   bumpRevision(state);
 }
@@ -675,22 +688,32 @@ function seatCard(state: GameState, id: OrderId): void {
 describe('the tended works', () => {
   it('opens a tended work only to a seat holding its charter, and names the card when it refuses', () => {
     const { state, worker, tile } = woodedWorker();
-    expect(improvementErrorAt(state, 0, tile, 'forestGarden')).toBe(
-      'A forest garden needs the card The Forest Gardens',
+    expect(improvementErrorAt(state, 0, tile, 'wildOrchard')).toBe(
+      'A wild orchard needs the card The Wild Orchards',
     );
+    hold(state, 'theWildOrchards' as OrderId);
+    expect(cardUnlocksImprovement(state, 0, 'wildOrchard')).toBe(true);
+    expect(improvementErrorAt(state, 0, tile, 'wildOrchard')).toBeNull();
+    // The charter names one row; its siblings stay shut.
+    expect(improvementErrorAt(state, 0, tile, 'forestGarden')).not.toBeNull();
+    buildImprovementAt(state, worker, tile, 'wildOrchard');
+    expect(tile.improvement).toBe('wildOrchard');
+    expect(tile.feature).toBe('forest');
+  });
+
+  it('keeps the retired Forest Gardens working for a seat that already holds it', () => {
+    // The user cut the card on 2026-10-16. It is dealt to nobody now, but its
+    // row stays, so a collection that already holds it still opens the work.
+    const { state, tile } = woodedWorker();
+    expect(orderIsDealt('theForestGardens' as OrderId)).toBe(false);
     hold(state, 'theForestGardens' as OrderId);
     expect(cardUnlocksImprovement(state, 0, 'forestGarden')).toBe(true);
     expect(improvementErrorAt(state, 0, tile, 'forestGarden')).toBeNull();
-    // The charter names one row; its siblings stay shut.
-    expect(improvementErrorAt(state, 0, tile, 'wildOrchard')).not.toBeNull();
-    buildImprovementAt(state, worker, tile, 'forestGarden');
-    expect(tile.improvement).toBe('forestGarden');
-    expect(tile.feature).toBe('forest');
   });
 
   it('counts a tended hex as wild: unimproved, tended, and not improved', () => {
     const { state, tile } = woodedWorker();
-    raiseImprovement(tile, 'forestGarden', state.turn);
+    raiseImprovement(tile, 'wildOrchard', state.turn);
     expect(tileConditionHolds(tile, { test: 'unimproved' })).toBe(true);
     expect(tileConditionHolds(tile, { test: 'improved' })).toBe(false);
     expect(tileConditionHolds(tile, { test: 'tended' })).toBe(true);
@@ -705,7 +728,7 @@ describe('the tended works', () => {
 
   it('cannot be pillaged, though a road on the same hex can', () => {
     const { state, tile } = woodedWorker();
-    raiseImprovement(tile, 'forestGarden', state.turn);
+    raiseImprovement(tile, 'wildOrchard', state.turn);
     const raider = createUnit(state, 1, 'warrior', tile.col, tile.row);
     bumpRevision(state);
     expect(pillageError(state, raider.id)).toBe(`There is nothing to pillage on (${tile.col}, ${tile.row})`);
@@ -714,13 +737,13 @@ describe('the tended works', () => {
     const report = pillageAt(state, raider, tile);
     expect(report.road).toBe(true);
     expect(report.improvement).toBeUndefined();
-    expect(tile.improvement).toBe('forestGarden');
+    expect(tile.improvement).toBe('wildOrchard');
     expect(tile.road).toBeUndefined();
   });
 
   it('goes with the wood when the forest is felled', () => {
     const { state, worker, tile } = woodedWorker();
-    raiseImprovement(tile, 'forestGarden', state.turn);
+    raiseImprovement(tile, 'wildOrchard', state.turn);
     chopFeatureAt(state, worker, tile);
     expect(tile.feature).toBe('none');
     expect(tile.improvement).toBeUndefined();
@@ -729,7 +752,7 @@ describe('the tended works', () => {
   it('counts the tended hexes inside the borders for Six Gardens', () => {
     const { state, tile } = woodedWorker();
     expect(commissionFigure(state, 0, 'tendedTiles')).toBe(0);
-    raiseImprovement(tile, 'forestGarden', state.turn);
+    raiseImprovement(tile, 'wildOrchard', state.turn);
     expect(commissionFigure(state, 0, 'tendedTiles')).toBe(1);
     expect(commissionFigure(state, 1, 'tendedTiles')).toBe(0);
   });
@@ -777,7 +800,7 @@ describe('the deck’s other shapes', () => {
   it('admits a town by the hexes its citizens work, through any hex condition', () => {
     const { state, city, tile } = woodedWorker();
     const scope: CityScope = { test: 'workingTiles', on: { test: 'tended' } };
-    raiseImprovement(tile, 'forestGarden', state.turn);
+    raiseImprovement(tile, 'wildOrchard', state.turn);
     city.workedTiles = city.workedTiles.filter((cell) => !(cell.col === tile.col && cell.row === tile.row));
     bumpRevision(state);
     expect(cityScopeAdmits(state, city, scope)).toBe(false);

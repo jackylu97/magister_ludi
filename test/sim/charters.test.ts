@@ -306,8 +306,16 @@ describe('the charters as a family', () => {
     // the eleven stand on no node at all, so "needs a technology" would be false.
     expect(buildError(state, 0, 'building', 'chapel', city)).toContain('in one of your slots');
     // And it says so for every charter building, because none of them stands on
-    // a node: the refusal is read off `unlockedByCard`, not typed per row.
+    // a node: the refusal is read off `unlockedByCard`, not typed per row. A
+    // retired building is refused as retired before any card is asked: the
+    // Keep, retired in Expansionist batch E0 so that the game has one Keep.
     for (const { building } of CHARTERS) {
+      if (buildingDef(building).retired === true) {
+        expect(buildError(state, 0, 'building', building, city), building).toContain(
+          'no longer built',
+        );
+        continue;
+      }
       expect(buildError(state, 0, 'building', building, city), building).toContain(
         'in one of your slots',
       );

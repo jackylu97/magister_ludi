@@ -1628,7 +1628,7 @@
   ],
   "vigilCharter": [
    {
-    "raw": "unlocks the [[building:keep|Keep]] — +25 to how much punishment the city can take; +5 healing for your units resting in this city or beside it",
+    "raw": "unlocks the Keep — +25 to how much punishment the city can take; +5 healing for your units resting in this city or beside it",
     "text": "unlocks the Keep — +25 to how much punishment the city can take; +5 healing for your units resting in this city or beside it"
    }
   ],
@@ -3621,12 +3621,6 @@
     "text": "-15% production toward military units"
    }
   ],
-  "theForestGardens": [
-   {
-    "raw": "once drafted, opens the [[improvement:forestGarden|Forest Garden]] for your workers to build; this card takes no chair",
-    "text": "once drafted, opens the Forest Garden for your workers to build; this card takes no chair"
-   }
-  ],
   "theFishTraps": [
    {
     "raw": "once drafted, opens the [[improvement:fishTraps|Fish Traps]] for your workers to build; this card takes no chair",
@@ -3655,21 +3649,32 @@
     "text": "+1 faith in your capital"
    },
    {
-    "raw": "+1 faith in every city per 2 unimproved hexes worked there (at most +1 faith)",
-    "text": "+1 faith in every city per 2 unimproved hexes worked there (at most +1 faith)"
+    "raw": "+1 faith in every city per 2 improved hexes there",
+    "text": "+1 faith in every city per 2 improved hexes there"
    }
   ],
   "theRopeStretchers": [
    {
-    "raw": "a town is paid in labour when a worker finishes a mine, a quarry or a lumber mill on its ground — not built yet",
-    "text": "a town is paid in labour when a worker finishes a mine, a quarry or a lumber mill on its ground — not built yet",
-    "deferred": true
+    "raw": "+1 production on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]]",
+    "text": "+1 production on every hex with a Mine or Quarry or Lumbermill"
    }
   ],
   "theBeatingOfTheBounds": [
    {
     "raw": "new cities claim 1 more hex beside their borders at once",
     "text": "new cities claim 1 more hex beside their borders at once"
+   }
+  ],
+  "thePyramidBuilders": [
+   {
+    "raw": "+25% production toward wonders, in your capital",
+    "text": "+25% production toward wonders, in your capital"
+   }
+  ],
+  "theRoadHome": [
+   {
+    "raw": "new cities are joined to your nearest city by road",
+    "text": "new cities are joined to your nearest city by road"
    }
   ],
   "levyOfTheLand": [
@@ -3759,24 +3764,60 @@
     "text": "+3 production on every surveyed hex with a Mine carrying a resource"
    }
   ],
-  "daughterTowns": [
-   {
-    "raw": "+3 food in every city of 4 or fewer citizens",
-    "text": "+3 food in every city of 4 or fewer citizens"
-   }
-  ],
   "sixGardens": [
    {
     "raw": "Commission. Goal: have 6 tended tiles inside your borders, while this card is seated",
     "text": "Commission. Goal: have 6 tended tiles inside your borders, while this card is seated"
    },
    {
-    "raw": "Reward: for 10 turns, +5 food in every city, and a [[unit:worker|Worker]], trained in your capital free of upkeep",
-    "text": "Reward: for 10 turns, +5 food in every city, and a Worker, trained in your capital free of upkeep"
+    "raw": "Reward: culture equal to 15 times your tended tiles at that moment",
+    "text": "Reward: culture equal to 15 times your tended tiles at that moment"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
     "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
+  "theForestKeepers": [
+   {
+    "raw": "+2 culture on every hex with a [[improvement:lumbermill|Lumbermill]] that has stood at least 20 turns",
+    "text": "+2 culture on every hex with a Lumbermill that has stood at least 20 turns"
+   }
+  ],
+  "thePloughTeams": [
+   {
+    "raw": "+1 food in every city per 2 improved hexes there",
+    "text": "+1 food in every city per 2 improved hexes there"
+   }
+  ],
+  "thePolis": [
+   {
+    "raw": "while you hold at most 4 cities: +25% food in every city",
+    "text": "while you hold at most 4 cities: +25% food in every city"
+   }
+  ],
+  "thePublicFountains": [
+   {
+    "raw": "+1 happiness in every city on fresh water per 4 citizens there (at most +3 happiness)",
+    "text": "+1 happiness in every city on fresh water per 4 citizens there (at most +3 happiness)"
+   }
+  ],
+  "theWildMarches": [
+   {
+    "raw": "+1 culture per 4 unimproved hexes in your borders",
+    "text": "+1 culture per 4 unimproved hexes in your borders"
+   }
+  ],
+  "theQuietProvinces": [
+   {
+    "raw": "+1 production in every city per 3 spare authority (at most +3 production)",
+    "text": "+1 production in every city per 3 spare authority (at most +3 production)"
+   }
+  ],
+  "theRoadTowns": [
+   {
+    "raw": "+2 production in every city joined to your capital by road",
+    "text": "+2 production in every city joined to your capital by road"
    }
   ],
   "theWatercourses": [
@@ -3868,10 +3909,54 @@
    {
     "raw": "+2 production on every tended hex",
     "text": "+2 production on every tended hex"
+   }
+  ],
+  "theOldFields": [
+   {
+    "raw": "+1% food per 3 hexes with a work that has stood at least 30 turns in your borders (at most +30% food)",
+    "text": "+1% food per 3 hexes with a work that has stood at least 30 turns in your borders (at most +30% food)"
    },
+   {
+    "raw": "+1% production per 3 hexes with a work that has stood at least 30 turns in your borders (at most +30% production)",
+    "text": "+1% production per 3 hexes with a work that has stood at least 30 turns in your borders (at most +30% production)"
+   }
+  ],
+  "theHedgerows": [
    {
     "raw": "+2 food on every hex with a [[improvement:farm|Farm]] beside a tended hex",
     "text": "+2 food on every hex with a Farm beside a tended hex"
+   }
+  ],
+  "theGreatHouseholds": [
+   {
+    "raw": "+2% production in every city per citizen there (at most +30% production)",
+    "text": "+2% production in every city per citizen there (at most +30% production)"
+   }
+  ],
+  "theHarbourCities": [
+   {
+    "raw": "+1 culture in every coastal city per 2 citizens there",
+    "text": "+1 culture in every coastal city per 2 citizens there"
+   }
+  ],
+  "theMilestones": [
+   {
+    "raw": "+1% production per 3 road hexes you have laid (at most +30% production)",
+    "text": "+1% production per 3 road hexes you have laid (at most +30% production)"
+   },
+   {
+    "raw": "+1% gold per 3 road hexes you have laid (at most +30% gold)",
+    "text": "+1% gold per 3 road hexes you have laid (at most +30% gold)"
+   }
+  ],
+  "theTeemingRealm": [
+   {
+    "raw": "+1% production per 10 citizens (at most +30% production)",
+    "text": "+1% production per 10 citizens (at most +30% production)"
+   },
+   {
+    "raw": "+1% food per 10 citizens (at most +30% food)",
+    "text": "+1% food per 10 citizens (at most +30% food)"
    }
   ],
   "theWoodwrights": [
@@ -3955,6 +4040,76 @@
     "text": "then this card leaves its chair and is never seated again"
    }
   ],
+  "oldWorkings": [
+   {
+    "raw": "+3 production on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] or [[improvement:lumbermill|Lumbermill]] that has stood at least 20 turns",
+    "text": "+3 production on every hex with a Mine or Quarry or Lumbermill that has stood at least 20 turns"
+   }
+  ],
+  "theManors": [
+   {
+    "raw": "+1 production in every city per 2 improved hexes there",
+    "text": "+1 production in every city per 2 improved hexes there"
+   }
+  ],
+  "theRoyalForests": [
+   {
+    "raw": "+25% culture in every city working 3 or more hexes with a [[improvement:lumbermill|Lumbermill]]",
+    "text": "+25% culture in every city working 3 or more hexes with a Lumbermill"
+   }
+  ],
+  "theMegalopolis": [
+   {
+    "raw": "+1 science in every city of 10 or more citizens per citizen there",
+    "text": "+1 science in every city of 10 or more citizens per citizen there"
+   },
+   {
+    "raw": "+1 production in every city of 10 or more citizens per citizen there",
+    "text": "+1 production in every city of 10 or more citizens per citizen there"
+   }
+  ],
+  "plenty": [
+   {
+    "raw": "a city growing grants production equal to 8 times its population",
+    "text": "a city growing grants production equal to 8 times its population"
+   }
+  ],
+  "theMillWheels": [
+   {
+    "raw": "+15% production in every city with a [[building:watermill|Watermill]]",
+    "text": "+15% production in every city with a Watermill"
+   }
+  ],
+  "theQuitrents": [
+   {
+    "raw": "+1 gold per 2 hexes in your borders",
+    "text": "+1 gold per 2 hexes in your borders"
+   }
+  ],
+  "theHallowedWoods": [
+   {
+    "raw": "+25% culture in every city working 5 or more unimproved hexes",
+    "text": "+25% culture in every city working 5 or more unimproved hexes"
+   }
+  ],
+  "theAssayOffice": [
+   {
+    "raw": "surfacing a vein grants +60 science",
+    "text": "surfacing a vein grants +60 science"
+   }
+  ],
+  "theStationes": [
+   {
+    "raw": "+3 combat strength for military units while standing in a city joined to your capital by road",
+    "text": "+3 combat strength for military units while standing in a city joined to your capital by road"
+   }
+  ],
+  "theManagedWild": [
+   {
+    "raw": "+5% food in every city per tended hex there (at most +25% food)",
+    "text": "+5% food in every city per tended hex there (at most +25% food)"
+   }
+  ],
   "theLandsGreatWork": [
    {
     "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per 8 citizens (at most +40%)",
@@ -3998,8 +4153,8 @@
   ],
   "theInheritanceOfFields": [
    {
-    "raw": "+1 production on every hex that has stood at least 60 turns",
-    "text": "+1 production on every hex that has stood at least 60 turns"
+    "raw": "+1 production on every hex with a work that has stood at least 60 turns",
+    "text": "+1 production on every hex with a work that has stood at least 60 turns"
    },
    {
     "raw": "+1 culture on every tended hex that has stood at least 60 turns",
@@ -4066,6 +4221,12 @@
     "deferred": true
    }
   ],
+  "theTheodosianWalls": [
+   {
+    "raw": "every city: +1 city defence per 2 citizens",
+    "text": "every city: +1 city defence per 2 citizens"
+   }
+  ],
   "theGrovesAndTheStones": [
    {
     "raw": "+1 faith on every unimproved forest hex, in every city with a [[building:shrine|Shrine]]",
@@ -4108,6 +4269,12 @@
     "raw": "the name, the rarity and the wording are the designer's to settle — not built yet",
     "text": "the name, the rarity and the wording are the designer's to settle — not built yet",
     "deferred": true
+   }
+  ],
+  "theForestGardens": [
+   {
+    "raw": "once drafted, opens the [[improvement:forestGarden|Forest Garden]] for your workers to build; this card takes no chair",
+    "text": "once drafted, opens the Forest Garden for your workers to build; this card takes no chair"
    }
   ],
   "plantedForests": [
@@ -4221,6 +4388,12 @@
     "raw": "the name, the rarity and the wording are the designer's to settle — not built yet",
     "text": "the name, the rarity and the wording are the designer's to settle — not built yet",
     "deferred": true
+   }
+  ],
+  "daughterTowns": [
+   {
+    "raw": "+3 food in every city of 4 or fewer citizens",
+    "text": "+3 food in every city of 4 or fewer citizens"
    }
   ],
   "theCuratorsRoll": [
@@ -7187,12 +7360,12 @@
   ],
   "hydraulicSchools": [
    {
-    "raw": "+2 science in every city with an [[building:aqueduct|Aqueduct]] per 3 citizens there",
-    "text": "+2 science in every city with an Aqueduct per 3 citizens there"
+    "raw": "+20% production toward science buildings, in every city with an [[building:aqueduct|Aqueduct]]",
+    "text": "+20% production toward science buildings, in every city with an Aqueduct"
    },
    {
-    "raw": "+30% production toward science buildings, in every city with an [[building:aqueduct|Aqueduct]]",
-    "text": "+30% production toward science buildings, in every city with an Aqueduct"
+    "raw": "+1 science in every city with an [[building:aqueduct|Aqueduct]] beside a mountain per 3 citizens there",
+    "text": "+1 science in every city with an Aqueduct beside a mountain per 3 citizens there"
    }
   ],
   "theHydraulicCommonwealth": [
@@ -7204,9 +7377,12 @@
   ],
   "gardenCities": [
    {
-    "raw": "the farms a town actually works are counted, and paid in song — not built yet",
-    "text": "the farms a town actually works are counted, and paid in song — not built yet",
-    "deferred": true
+    "raw": "+1 culture in every city with a [[building:monument|Monument]] per 3 unimproved hexes worked there (at most +3 culture)",
+    "text": "+1 culture in every city with a Monument per 3 unimproved hexes worked there (at most +3 culture)"
+   },
+   {
+    "raw": "+1 happiness in every city of 8 or more citizens with an [[building:aqueduct|Aqueduct]]",
+    "text": "+1 happiness in every city of 8 or more citizens with an Aqueduct"
    }
   ],
   "theSculptedLandscape": [
@@ -8151,7 +8327,7 @@
   ],
   "reliquary": [
    {
-    "raw": "+10% faith in every city with [[building:reliquary|The Reliquary]]",
+    "raw": "+10% faith in every city with The Reliquary",
     "text": "+10% faith in every city with The Reliquary"
    },
    {

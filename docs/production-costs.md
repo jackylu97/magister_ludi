@@ -177,7 +177,6 @@ reading for a once-per-empire row.
 | `theAlchemicalCodex` | The Alchemical Codex | large | 12 | 1169 |
 | `theMagnumOpus` | The Magnum Opus | wonder | 12 | 2534 |
 | `chapel` | Chapel | medium | 2 | 52 |
-| `keep` | Keep | medium | 2 | 52 |
 | `scriptorium` | Scriptorium | large | 4 | 134 |
 | `assayHouse` | Assay House | large | 4 | 134 |
 | `cistern` | Cistern | medium | 4 | 89 |

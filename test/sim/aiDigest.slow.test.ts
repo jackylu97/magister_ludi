@@ -575,10 +575,40 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * file as C3 left it, the version at 131, the record not written, no raider
  * named and no settlement), which gives C3's digests exactly on both boards.
  * Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E0 (schema 134): the types, and the cards that need no
+ * new shape.** Duel `3ba9ba41:270645` → `f5591807:272724`, standard
+ * `b5305be8:966741` → `54af715a:983935`. Three things moved them:
+ *
+ *   · the types. Every Expansionist row, and nine shared rows, now carry the
+ *     sheet's type, so an Expansionist card fits only a chair of its own type
+ *     or a Wildcard chair. The bots seat through `slotOrderError`, so they
+ *     follow the rule with no code change. With the types alone, at schema
+ *     133, the boards give duel `0293413f:276537` and standard
+ *     `cbd1f152:940662`;
+ *   · the cards. Twenty-seven Expansionist rows join the deck, eight rows
+ *     change to the sheet's text, two deferred rows are freed (The Rope
+ *     Stretchers, Garden Cities) and two rows are retired (The Forest
+ *     Gardens, Daughter Towns). From the first draw that meets one of them,
+ *     the seats hold different cards. At turn 120 the duel board has one
+ *     seat with an E0 card seated (Hydraulic Schools), and the standard
+ *     board has three: The Ambarvalia on one seat, and The Plough Teams and
+ *     Hydraulic Schools on two each;
+ *   · the version, 133 to 134, which moves the hash and not the length. With
+ *     every E0 change but the version set back to 133, the boards give duel
+ *     `38abf0da:272724` and standard `769b92e9:983935`: the same games, the same
+ *     lengths.
+ *
+ * The retired Keep building changes nothing here: only the retired Vigil
+ * Charter unlocked it, so no seat could build one. The duel game adopts 11
+ * governments and the standard one 16. Nothing stalled and no command was
+ * refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '3ba9ba41:270645',
-  standard: 'b5305be8:966741',
+  duel: 'f5591807:272724',
+  standard: '54af715a:983935',
 };
 
 /**
