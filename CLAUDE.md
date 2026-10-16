@@ -34,31 +34,27 @@ briefs, agent reports, test names, and any new player-facing prose.
 - Plain does not mean vague or shorter. Keep the precision, the file and
   symbol names, the numbers, and the reasoning. Drop only the costume.
 
-**ASD-STE100 Simplified Technical English is the baseline style.** The user's
-ruling, 2026-10-16: *"lets try ASD-STE100 moving forward"*. It applies to
-messages to the user and to all the text above. The user will tell us about
-changes to it.
-- Write 20 words or fewer in an instruction, and 25 words or fewer in a
-  description.
-- Give each sentence one topic. Give each instruction its own sentence.
-- Give each paragraph one topic, in six sentences or fewer.
-- Use the active voice. Use simple tenses: the present, the past, and the
-  future with "will".
-- Do not use the "-ing" form of a verb. Write "the test fails", not "the test
-  is failing". A technical name can keep it ("landing party").
-- Use one word for one thing, and always use the same word. Do not change
-  between "batch", "pass" and "job" for one thing.
-- Use simple, common words. Use the game's names (Order, chair, Doctrine) and
-  the code's names (files, functions) when you must. Explain a new term the
-  first time you use it.
-- Keep the articles ("the", "a") and the small words. Do not remove words to
-  make a sentence shorter.
-- Do not make a chain of more than three nouns.
-- Put a condition at the start of a sentence: "If the test fails, stop."
-- Write an instruction as a command. Write the most important instruction
-  first.
-- Use a vertical list for steps, options and decisions.
-- Do not use idioms, metaphors, slang or em dashes.
+**ASD-STE100 Simplified Technical English is the baseline style, at about
+75%.** The user's rulings, 2026-10-16: *"lets try ASD-STE100 moving forward"*,
+then *"please keep to ~75% of the standard, as it might be a bit too
+stringent"*. It applies to messages to the user and to all the text above. The
+user will tell us about more changes to it.
+- Keep these rules:
+  - short sentences, each with one topic;
+  - the active voice;
+  - simple, common words, and one word for one thing (never "batch", "pass"
+    and "job" for the same thing). Use the game's names (Order, chair,
+    Doctrine) and the code's names when you must, and explain a new term the
+    first time;
+  - a condition at the start of a sentence: "If the test fails, stop.";
+  - an instruction as a command, with the most important one first;
+  - a vertical list for steps, options and decisions;
+  - no idioms, metaphors, slang or em dashes.
+- Use these as guides, not hard limits:
+  - about 20 words in an instruction and 25 in a description;
+  - simple tenses, with "-ing" forms where they read naturally;
+  - short paragraphs with one topic;
+  - the articles and small words kept, and no chain of more than three nouns.
 - Two exceptions: a card's flavour line (always labelled Flavour), and the
   user's own words in quotes.
 
