@@ -549,6 +549,12 @@ export type CityScope =
   /** The town was taken by force, ever (`City.captured`). */
   | { test: 'captured' }
   /**
+   * The town was **never taken by force** (`City.captured` is false): the towns
+   * an empire founded, for The Universal Monarchy (Dominion batch D4). It is
+   * `captured`'s negation, as `notCapital` is `capital`'s.
+   */
+  | { test: 'notCaptured' }
+  /**
    * The town is a **puppet** — taken and never taken in (`City.puppet`) — The
    * Heavenly Khagan's vassals and The Tribute of the Han's.
    *
@@ -644,6 +650,15 @@ export type CityScope =
    * clock (`writeExperience`).
    */
   | { test: 'garrisonRank'; rank: RankId }
+  /**
+   * **A great general of this town's owner stands on the town's own hex**: The
+   * Bakufu (Dominion batch D4). The general's reach for pacification
+   * (`rules.war.unrest.generalReach`) does not count here, because the card
+   * says "standing in a town". Read through `generalPresent` in the evaluator,
+   * which asks the unit's own `greatWork` marker and family, as
+   * `unrestGeneral` does.
+   */
+  | { test: 'generalPresent' }
   /**
    * The town has finished this building.
    *
@@ -2461,6 +2476,26 @@ export type CountKind =
    */
   | 'citizensLevied'
   /**
+   * **Units this empire's units have killed in the game, barbarians included**:
+   * The Captured Arms (Dominion batch D4, the triage's reading 7).
+   *
+   * It reads a record of its own (`Player.enemiesKilled`), not
+   * `Player.unitsKilled`. That one leaves out the wild, so a Tier 0 card would
+   * pay almost nothing. The record is written in one place, `tallyFall`
+   * (`combat.ts`).
+   */
+  | 'enemiesKilled'
+  /**
+   * **Units this empire has lost in battle in the game**: The Hall of the Slain
+   * (Dominion batch D4). It reads `Player.unitsLost`, which counts every fall.
+   */
+  | 'unitsLost'
+  /**
+   * **Towns this empire has taken by force in the game**: Spear-won Land
+   * (Dominion batch D4). It reads `Player.citiesCaptured`.
+   */
+  | 'citiesCaptured'
+  /**
    * Wonders standing **anywhere in the world**, yours and everybody's — The
    * Grand Tour's "seen or not".
    *
@@ -3230,6 +3265,13 @@ export type RateSource =
 export type CardRule =
   /** What a citizen demands (`happinessDemand`). */
   | 'happinessDemand'
+  /**
+   * **How fast a town in unrest is pacified**: The Satraps' "twice as fast" in
+   * garrisoned towns (Dominion batch D4). A positive percentage is faster. It
+   * is read in `explainPacification` (`unrest.ts`) as one labelled line for
+   * each card: that percentage of the town's other lines.
+   */
+  | 'pacificationRate'
   /** What the next border tile costs (`borderCostFor`). */
   | 'borderCost'
   /** What a city keeps of its basket on growing (`growthCarryover`). */
@@ -3419,6 +3461,14 @@ export type MeterRuleId =
    * `prospectAuthorityCost` prices the ladder alone and the town's real line
    * moves the turn it is founded, which is the honest direction to be wrong in:
    * the writ a settler is quoted is never cheaper than the writ it costs.
+   *
+   * **A row may also set or scale the price** (Dominion batch D4). A `value`
+   * sets the price of the towns the scope admits, and the lowest value wins;
+   * The Proconsuls and The Universal Monarchy use it to make a town cost
+   * nothing. A `percent` scales the ladder's price before the deltas; The
+   * Universal Monarchy doubles what a founded town costs. The order in
+   * `explainAuthority` is: the ladder's price, then the percentages, then the
+   * deltas with the two-sided floor above. A set price replaces all three.
    */
   | 'cityCost';
 
@@ -3426,6 +3476,13 @@ export type MeterRuleId =
 export type ActionRuleId =
   /** A chop spends no worker charge. */
   | 'freeChop'
+  /**
+   * **A town this empire captures is pacified at once**: Pax Romana (Dominion
+   * batch D4, the triage's reading 27). Read in `captureCity` (`combat.ts`).
+   * The unrest ends at the moment of capture, so the pacified moment pays at
+   * once (The Provincial Census).
+   */
+  | 'pacifyOnCapture'
   /** Production overflow from a completion is doubled. */
   | 'doubleOverflow'
   /** A unit further down the queue completes ahead of an unaffordable building. */
@@ -4274,7 +4331,14 @@ export type WindfallOccasion =
    * the unit's stamp. Food and production a rider pays land in the town nearest
    * the unit.
    */
-  | 'rankEarned';
+  | 'rankEarned'
+  /**
+   * **A town's unrest ended** (Dominion batch D4): The Provincial Census. Paid
+   * by `endUnrest` (`unrest.ts`) in three cases: the town's pacification
+   * filled, a card pacified it at once (The Bakufu, The Consular Roads), or it
+   * was pacified at capture (Pax Romana). It carries the town's `population`.
+   */
+  | 'pacified';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
@@ -5659,7 +5723,17 @@ export interface CardUnitStampEffect {
  * survives is the id union, which is the typed door `cityHasFreshwater` knocks
  * on.
  */
-export type CityRuleId = 'freshwater';
+export type CityRuleId =
+  | 'freshwater'
+  /**
+   * **A town that the rule's scope admits is pacified at once** (Dominion batch
+   * D4): The Bakufu's general and The Consular Roads' garrisoned, connected
+   * towns. Read by `runUnrest` (`unrest.ts`) through `cardCityRuleAt`, which
+   * asks the scope (`CardRuleEffect.scope`). The unrest ends in the unrest
+   * phase at the end of the turn in which the scope admits the town (the
+   * triage's reading 27).
+   */
+  | 'pacified';
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
 export interface CardWindfallRiderEffect {
@@ -6167,8 +6241,20 @@ export interface CardEffectAmplifierEffect {
 export interface CardMeterRuleEffect {
   kind: 'meterRule';
   rule: MeterRuleId;
+  /**
+   * Replaces the constant. On `cityCost` (Dominion batch D4) it sets the price
+   * of the towns the scope admits outright: The Proconsuls and The Universal
+   * Monarchy make a town cost no authority. If two rows set a price for one
+   * town, the lower one applies, and no percentage or delta changes it.
+   */
   value?: number;
   delta?: number;
+  /**
+   * **`cityCost` only: scales the town's price** before any delta, in whole
+   * percent (Dominion batch D4). +100 is twice the price: The Universal
+   * Monarchy's founded towns. Percentages from several rows add up first.
+   */
+  percent?: number;
   /**
    * **Which towns the rewrite reaches** — `rule: 'cityCost'` only, and required
    * there in spirit if not in the type: a row naming none reprices every town,

@@ -163,6 +163,8 @@ first; the reward hands are gone.
 | Doctrine | Decks | Tier | Offered with | Effect |
 |---|---|---|---|---|
 | The Steppe Confederacy | Dominion | I | tier 4 | Negative authority no longer stops your borders growing. While authority is negative, gain +50% production toward mounted units. |
+| The Consular Roads | Dominion | I | tier 4 | Cities connected to your capital by road and holding a garrison gain +5 science and +5 culture, and are pacified at once. |
+| The Universal Monarchy | Dominion | III | tier 18 | Towns you capture cost no authority. Towns you found cost twice as much. |
 
 ## Decks
 
@@ -204,6 +206,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Armed Colony | 0 | ● | S | A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran. |
 | The Campaign Annals | 0 | ○ | P | While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science. |
 | The Outriders | 0 | ● | S | Claiming a discovery or clearing a barbarian camp grants 8 production to every town. |
+| The Garrison Captains | 0 | ● | P | +1 authority for each garrisoned unit. |
+| The Captured Arms | 0 | ● | P | +1 science for every unit you have killed this game, no cap. |
 | The Training Cadre | 1 | ● | S | Units gained in a town with a Barracks start with 2 experience. |
 | The Marching Camps | 1 | ● | S | Attacking does not break your units' fortification. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +3 food and +3 production. |
@@ -221,6 +225,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Walled Towns | 1 | ● | P | Towns with a defensive building, such as a Palisade or walls, gain +15% food. |
 | The Swift Riders | 1 | ◆ | S | Mounted units may move after attacking. |
 | The Captive Craftsmen | 1 | ◆ | P | Gains +1 science and +1 production each time you pillage a hex. |
+| The Satraps | 1 | ◆ | S | Garrisoned towns in unrest pacify twice as fast. |
+| The Acropolis | 1 | ◆ | P | +1 authority for each building in your capital. |
 | Siege Works | 2 | ● | S | +38% production toward siege units. Siege units gain +4 strength against cities. |
 | Armoury Guilds | 2 | ● | S | When one of your units falls, your nearest town with an Armoury gains production equal to its strength. |
 | Conquered Archives | 2 | ● | P | Captured cities gain +6 science and +6 culture. |
@@ -241,6 +247,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Tactica | 2 | ◆ | S | At the end of your turn, great generals give 1 experience to every unit beside them. Each time one of your units earns a rank, gain 15 science. |
 | The Fabricae | 2 | ● | P | Towns whose garrison is a Veteran or Elite gain +25% production. |
 | The Sagas | 2 | ◆ | P | +1% culture and gold for every three hexes you have pillaged this game, at most +30%. |
+| The Hall of the Slain | 2 | ◆ | P | +1% production and culture for every two units you have lost this game, at most +30%. |
+| The Provincial Census | 2 | ◆ | S | Pacifying a town grants science equal to twenty times its population. |
+| Spear-won Land | 2 | ◆ | P | +3% production and science for every town you have captured this game, at most +30%. |
 | Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +12% production and +12% culture. |
 | The Siege Train | 3 | ◆ | S | Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities. |
 | Reserve Officers | 3 | ◆ | S | While at war, cities with a Barracks produce military units 60% faster; while at peace, those cities gain +30% production toward buildings. |
@@ -258,6 +267,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Plunder Trains | 3 | ● | S | Pillaging grants 30 production and 15 food to your capital. |
 | The Yam | 3 | ◆ | S | Mounted units heal fully when they pillage. |
 | The Chevauchée | 3 | ○ | S | Pillaging a hex damages enemy cities within three hexes with 50% of the pillaging unit's strength. |
+| The Bakufu | 3 | ◆ | P | A great general standing in a town gives it +25% science and +25% culture, and pacifies it at once. |
+| Pax Romana | 3 | ○ | S | Towns you capture are pacified at once, and each costs 1 less authority to hold. |
 | Imperium | 4 | ○ | S | Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%. |
 | Commission: Hold the Capitals | 4 | ○ | S | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. |
 | Spolia | 4 | ○ | S | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. |

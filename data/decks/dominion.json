@@ -625,6 +625,50 @@
         }
       ]
     },
+    "theGarrisonCaptains": {
+      "name": "The Garrison Captains",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "A captain in every town, and every captain answers to the throne.",
+      "text": "+1 authority for each garrisoned unit.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
+          "count": "garrison"
+        }
+      ]
+    },
+    "theCapturedArms": {
+      "name": "The Captured Arms",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Every blade taken from the field is studied before it is melted down.",
+      "text": "+1 science for every unit you have killed this game, no cap.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "enemiesKilled"
+        }
+      ]
+    },
     "drillManuals": {
       "name": "The Training Cadre",
       "decks": [
@@ -1488,6 +1532,53 @@
           "amount": 1,
           "count": "tally",
           "tally": "hexPillaged",
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
+    "theSatraps": {
+      "name": "The Satraps",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The governor rules the province, and the garrison makes sure of it.",
+      "text": "Garrisoned towns in unrest pacify twice as fast.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "pacificationRate",
+          "percent": 100,
+          "scope": {
+            "test": "garrisoned"
+          }
+        }
+      ]
+    },
+    "theAcropolis": {
+      "name": "The Acropolis",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The high city holds the temples, the treasury and the will of the state.",
+      "text": "+1 authority for each building in your capital.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
+          "count": "buildingsInCity",
           "scope": {
             "test": "capital"
           }
@@ -2626,6 +2717,99 @@
         }
       ]
     },
+    "theHallOfTheSlain": {
+      "name": "The Hall of the Slain",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every name on the wall is a reason to keep fighting.",
+      "text": "+1% production and culture for every two units you have lost this game, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "production",
+          "percent": 1,
+          "stage": "empire",
+          "count": "unitsLost",
+          "per": 2,
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "percent": 1,
+          "stage": "empire",
+          "count": "unitsLost",
+          "per": 2,
+          "max": 30
+        }
+      ]
+    },
+    "theProvincialCensus": {
+      "name": "The Provincial Census",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Count the people, and you know what the province can give.",
+      "text": "Pacifying a town grants science equal to twenty times its population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pacified",
+          "grant": {
+            "yield": "science",
+            "amount": 20,
+            "fromOccasion": "population"
+          }
+        }
+      ]
+    },
+    "spearWonLand": {
+      "name": "Spear-won Land",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Land taken by the spear is held by the spear.",
+      "text": "+3% production and science for every town you have captured this game, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "production",
+          "percent": 3,
+          "stage": "empire",
+          "count": "citiesCaptured",
+          "max": 10
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "percent": 3,
+          "stage": "empire",
+          "count": "citiesCaptured",
+          "max": 10
+        }
+      ]
+    },
     "standingGarrisons": {
       "name": "Standing Garrisons",
       "decks": [
@@ -3492,6 +3676,66 @@
         }
       ]
     },
+    "theBakufu": {
+      "name": "The Bakufu",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The government of the tent: where the general camps, the realm is ruled.",
+      "text": "A great general standing in a town gives it +25% science and +25% culture, and pacifies it at once.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 25,
+          "scope": {
+            "test": "generalPresent"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 25,
+          "scope": {
+            "test": "generalPresent"
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "pacified",
+          "scope": {
+            "test": "generalPresent"
+          }
+        }
+      ]
+    },
+    "paxRomana": {
+      "name": "Pax Romana",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "They make a desert and call it peace, but the roads are safe.",
+      "text": "Towns you capture are pacified at once, and each costs 1 less authority to hold.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "pacifyOnCapture"
+        },
+        {
+          "kind": "meterRule",
+          "rule": "capturedCityCost",
+          "delta": -1
+        }
+      ]
+    },
     "dominionImperium": {
       "name": "Imperium",
       "decks": [
@@ -3874,9 +4118,9 @@
       "text": "Captured cities with a garrison cost no authority and gain +10 defence.",
       "effects": [
         {
-          "kind": "authority",
-          "amount": 4,
-          "per": "city",
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "value": 0,
           "scope": {
             "test": "all",
             "of": [
@@ -4100,6 +4344,78 @@
               "modelClass": "mounted"
             }
           ]
+        }
+      ]
+    },
+    "theConsularRoads": {
+      "name": "The Consular Roads",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "The road brings the legion, and the legion brings the law.",
+      "text": "Cities connected to your capital by road and holding a garrison gain +5 science and +5 culture, and are pacified at once.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "science": 5,
+          "culture": 5,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "connected"
+              },
+              {
+                "test": "garrisoned"
+              }
+            ]
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "pacified",
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "connected"
+              },
+              {
+                "test": "garrisoned"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "theUniversalMonarchy": {
+      "name": "The Universal Monarchy",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "One crown over every people, and every people under one crown.",
+      "text": "Towns you capture cost no authority. Towns you found cost twice as much.",
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "value": 0,
+          "scope": {
+            "test": "captured"
+          }
+        },
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "percent": 100,
+          "scope": {
+            "test": "notCaptured"
+          }
         }
       ]
     }

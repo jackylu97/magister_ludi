@@ -420,11 +420,15 @@ describe('the schema, as landed', () => {
     // and two deferred rows were freed (The Rope Stretchers, and Garden Cities
     // in the shared file); the user's two cuts, The Forest Gardens and
     // Daughter Towns, were live and are retired.
+    // **And Dominion batch D4** (unrest, authority, and "this game" counts):
+    // nine more. Nine new Dominion Orders came live. The Proconsuls was
+    // reworked in place and was already live. Its two Doctrines are not
+    // Orders, so they add nothing here.
     // **And Expansionist batch E1** (the levies): ten more. Ten new
     // Expansionist rows came live; Seasonal Levies and The General Levy were
     // changed in place and were already live.
-    expect(live).toBe(430);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(430);
+    expect(live).toBe(439);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(439);
   });
 
   /**
@@ -613,10 +617,13 @@ describe('the schema, as landed', () => {
     // 134 since E0: the Expansionist deck is typed and its cards that need
     // no new shape are built, so a v133 log's picks and seatings name cards
     // and chairs this build deals and fits differently.
-    // 135 since E1: the Expansionist levy cards, three new fields and a new
-    // end-of-turn phase, so a v134 log's picks name cards this build deals
+    // 135 since D4: twelve Dominion cards about unrest, the writ and the game's
+    // records, and a new record, so a v134 log's picks name cards this build
+    // never dealt.
+    // 136 since E1: the Expansionist levy cards, three new fields and a new
+    // end-of-turn phase, so a v135 log's picks name cards this build deals
     // differently and its resolutions run one phase fewer.
-    expect(SCHEMA_VERSION).toBe(135);
+    expect(SCHEMA_VERSION).toBe(136);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1263,12 +1270,15 @@ describe('with the shelf stocked', () => {
     const taizong = playerById(d.state, 0)!;
     taizong.statecraft.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     const adopted = adoptGovernmentAt(d.state, taizong, 0)!;
-    expect(adopted.doctrines?.options).toEqual(['theSteppeConfederacy']);
-    expect(taizong.statecraft.pendingDoctrine?.options).toEqual(['theSteppeConfederacy']);
+    // Since Dominion batch D4 Dominion has two Tier I Doctrines (The Consular
+    // Roads joined The Steppe Confederacy), so the offer holds both.
+    const offered = adopted.doctrines?.options ?? [];
+    expect([...offered].sort()).toEqual(['theConsularRoads', 'theSteppeConfederacy']);
+    expect(taizong.statecraft.pendingDoctrine?.options).toEqual(offered);
     // It blocks the turn until it is answered, as a draft does.
     expect(statecraftBlocker(taizong)).toBe('a Doctrine offer is waiting');
     expect(applyCommand(d.state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
-    expect(taizong.statecraft.doctrines).toEqual(['theSteppeConfederacy']);
+    expect(taizong.statecraft.doctrines).toEqual([offered[0]]);
     expect(taizong.statecraft.pendingDoctrine).toBeUndefined();
   });
 

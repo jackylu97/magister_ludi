@@ -3631,6 +3631,11 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // nothing for one, which is `tilePurchase`'s reading of a habit not yet
       // started.
       return (player?.ranksEarned ?? 0) / turns;
+    case 'pacified':
+      // **A town leaves unrest about as often as one is taken** (Dominion batch
+      // D4): almost every town in unrest is a capture, so the rate is the
+      // capture's own reading, the threat over the horizon.
+      return war;
     default:
       return unreadOccasion(occasion);
   }
@@ -3757,10 +3762,38 @@ function windfallGrantWorth(
         ? grant.amount
         : grant.amount * rateSourceValue(grant.fromRate, ctx);
     bag[grant.yield as Voice] = figure;
-    worth += explainLump(bag, ctx).total;
+    // **Where the food and hammers land** (Dominion batch D3). A grant to every
+    // town pays once for each town. A grant to the nearest town a scope admits
+    // pays one town at most, and nothing until a town qualifies; the count is
+    // `townsAdmitting`'s, so a town a chain has promised the building to counts
+    // as part of one, as it does for every scoped clause. A banked voice lands
+    // in the treasury whatever the row says, so only food and production are
+    // scaled.
+    const landed = grant.yield === 'food' || grant.yield === 'production';
+    const towns =
+      !landed
+        ? 1
+        : grant.toEveryTown === true
+          ? ctx.cities
+          : grant.toNearest !== undefined
+            ? Math.min(1, townsAdmitting(ctx, grant.toNearest))
+            : 1;
+    worth += explainLump(bag, ctx).total * towns;
   }
   if (grant.heal !== undefined) worth += ctx.ai.score.unknownEffect;
   if (grant.healAll === true) worth += ctx.ai.score.unknownEffect;
+  // **Dominion batch D3's four pillage extras**, each read close to the heal
+  // above. A full heal is one piece made whole, which `healAll` already prices
+  // as the stand-in. A strike is a blow on enemy walls, priced as military
+  // strength at the share of the raider it strikes with. Unrest in a rival
+  // town and the spread to the works beside the hex are real and hard to
+  // forecast, so each is the stand-in, as `pressure` below is.
+  if (grant.healFull === true) worth += ctx.ai.score.unknownEffect;
+  if (grant.strike !== undefined) {
+    worth += (grant.strike.percent / 100) * ctx.ai.weights.military * (1 + ctx.threat);
+  }
+  if (grant.unrestBeside === true) worth += ctx.ai.score.unknownEffect;
+  if (grant.pillageBeside === true) worth += ctx.ai.score.unknownEffect;
   if (grant.unit !== undefined) {
     // `explainBuildingRow`'s own reading of a gifted piece, so a wonder's spear
     // and a card's spear are worth the same thing — divided into a rate for the
@@ -3887,6 +3920,12 @@ function ruleRewriteValue(
       // cheaper reroll and a deeper faith contribution are worth the faith they
       // save, and the bot prices neither verb off a rate today.
       return ctx.ai.score.unknownEffect;
+    case 'pacificationRate':
+      // **Faster pacification is worth something only while at war** (The
+      // Satraps, Dominion batch D4). Read as a share of the stand-in, scaled by
+      // how often a town is taken (`occasionRate`'s capture reading), because
+      // the bot does not forecast how long its towns will stay in unrest.
+      return share * ctx.ai.score.unknownEffect * occasionRate('capture', ctx);
     default:
       return unreadRule(rule, ctx);
   }
@@ -4092,7 +4131,7 @@ function scoreMeterRule(
         meterWeight(ctx, 'authority')
       );
     }
-    case 'cityCost':
+    case 'cityCost': {
       // **What the towns a scope admits cost, rewritten** (D2b). The three arms
       // above price one *kind of ground* apiece off a frozen scope; this one
       // carries its own, so the very same arithmetic reads it straight off the
@@ -4103,7 +4142,19 @@ function scoreMeterRule(
       // The two-sided floor the meter applies is deliberately **not** modelled:
       // an appraisal is a rate and the floor bites only in the towns that were
       // already free, which are the capital and a relieved puppet.
-      return -(effect.delta ?? 0) * townsAdmitting(ctx, effect.scope) * meterWeight(ctx, 'authority');
+      //
+      // **A set price and a percentage** (Dominion batch D4) are read the same
+      // way, off the founded town's price as the stand-in for what a town
+      // costs: a town set to cost nothing hands that price back, and +100%
+      // spends it again.
+      const towns = townsAdmitting(ctx, effect.scope);
+      const standing = authority.foundedCity;
+      if (effect.value !== undefined) {
+        return (standing - effect.value) * towns * meterWeight(ctx, 'authority');
+      }
+      const scaled = -(standing * (effect.percent ?? 0)) / 100;
+      return (scaled - (effect.delta ?? 0)) * towns * meterWeight(ctx, 'authority');
+    }
     case 'borderFreezeExempt':
       // Borders that keep growing through a writ deficit. What that is worth is
       // ground, and ground is the settle table's currency — `borderCulture`'s

@@ -2,7 +2,7 @@
 
 **Status:** written 2026-10-16 by a read-only triage agent, before any E batch. It is the plan for the user's ruling of 2026-10-16 (*"let's implement the expansionist deck, deferring any that require a new UX/user interaction"*, recorded at the end of `docs/plans/expansionist-builds.md`). The readings in "Rule ambiguities" are the ones the build will use unless the user changes them here. Mark any you disagree with, as on the deck sheets.
 
-**Built:** E0 (the types and the 37 data-only cards, `39cfb0ba`) and E1 (the twelve levy cards, branch `e-work`). The readings each batch applied are below; a reading a batch added is marked with the batch.
+**Built:** E0 (the types and the 37 data-only cards, `39cfb0ba`) and E1 (the twelve levy cards, `cd48080b`). The readings each batch applied are below; a reading a batch added is marked with the batch.
 
 Source: `docs/decks/expansionist.md` as of commit `96681fb4` (branch `decks`), which holds the user's three passes of 2026-10-16 and the Keep ruling. Shapes were checked against `src/sim/statecraftData.ts` and `src/sim/statecraft/evaluator.ts` as D3 left them (branch `d2-work`, merged into `decks` as `e9fed7be`), the sim modules they read (`levies.ts`, `cities.ts`, `improvements.ts`, `commissions.ts`, `census.ts`, `meters.ts`, `pathfind.ts`, `terrainData.ts`, `buildingData.ts`), and `src/ai/bot.ts` and `src/ai/value.ts` for the seating.
 

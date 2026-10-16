@@ -11,8 +11,10 @@
  * Where each part of the rule lives:
  *
  *   · **the record** is `City.unrest` (`state.ts`), written by `startUnrest`
- *     from `captureCity` (`combat.ts`) and deleted by the `unrest` phase when
- *     the town is pacified. Presence is the state.
+ *     from `captureCity` (`combat.ts`), and by The Harrying's pillage since
+ *     Dominion batch D3. It is deleted by `endUnrest` when the town is
+ *     pacified: in the `unrest` phase, or at capture under Pax Romana (batch
+ *     D4). Presence is the state.
  *   · **the lost yields** are the unrest gate, the last step of a town's yields
  *     (`explainUnrestGate` in `yields/town.ts`, `docs/yields.md` step 13). It
  *     runs after both percentage stages, because percentages sum inside a stage
@@ -37,13 +39,33 @@
 
 import { buildingDef } from './buildingData';
 import { buildingsEasingUnrest } from './buildingEffects';
-import { turnsToFill } from './cities';
+import { settleGrowthWindfall, settleProductionWindfall, turnsToFill } from './cities';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { type Tile, getTileAt, tileHex, tileIndex, tileNeighbors, wrappedDistance } from './map';
 import { isPassable } from './pathfind';
 import { nextInt } from './rng';
 import { RULES } from './rulesData';
-import { type City, type GameState, type Unit, barbarianPlayer, createUnit } from './state';
+import {
+  type City,
+  type GameState,
+  type Unit,
+  barbarianPlayer,
+  createUnit,
+  playerById,
+} from './state';
+// Dominion batch D4: the cards that change pacification, and the moment it
+// pays. Every one of these is called inside a function, never at the top
+// level, so the import cycle through `cities.ts` stays a function-level one
+// (`test/mapgen/moduleCycles.test.ts`).
+import {
+  cardCityRuleAt,
+  cardRulePercent,
+  payWindfallGrants,
+  settleCultureWindfall,
+  windfallPayout,
+  windfallPayoutIsEmpty,
+} from './statecraft';
+import { settleResearchWindfall } from './tech';
 import { type UnitTypeId, isFieldSoldier, unitDef } from './unitData';
 
 /** Every figure of the rule. See `UnrestRules`. */
@@ -142,6 +164,11 @@ export interface PacificationLine {
  * rate. One garrison line however many soldiers stand there, and one general
  * line however many generals do. A reason worth nothing prints no line.
  *
+ * A fifth reason since Dominion batch D4: a card's percentage on the rate
+ * (`CardRule` `pacificationRate`, The Satraps' "twice as fast" in garrisoned
+ * towns). Each card adds one line, worth its percentage of the four reasons
+ * above, rounded down. The row's scope is asked of this town.
+ *
  * It reads the board as it stands and does not ask whether the town is in
  * unrest; `runUnrest` and the panel only ask it of a town that is.
  */
@@ -160,6 +187,13 @@ export function explainPacification(state: GameState, city: City): PacificationL
   if (UNREST.buildingRate !== 0) {
     for (const id of buildingsEasingUnrest(city)) {
       lines.push({ source: buildingDef(id).name, amount: UNREST.buildingRate });
+    }
+  }
+  const base = foldPacification(lines);
+  if (base > 0) {
+    for (const rule of cardRulePercent(state, city.ownerId, 'pacificationRate', city)) {
+      const amount = Math.floor((base * rule.percent) / 100);
+      if (amount !== 0) lines.push({ source: rule.source, amount });
     }
   }
   return lines;
@@ -273,6 +307,44 @@ function raiseRebel(
 }
 
 /**
+ * **A town's unrest ends, and the moment pays** (Dominion batch D4).
+ *
+ * The record is deleted, the town is reported pacified when the caller keeps
+ * a list of reports, and the `pacified` windfall occasion pays its riders to
+ * the town's owner: The Provincial Census' science, twenty for each citizen
+ * (`population` is the town's size now). Food and production settle in the
+ * towns they land in, and culture and science settle at once, as every
+ * windfall's do.
+ *
+ * Three callers, which are the three ways a town is pacified: `runUnrest` when
+ * the pacification fills, `runUnrest` when a card pacifies the town at once
+ * (`CityRuleId` `pacified`), and `captureCity` (`combat.ts`) under Pax Romana.
+ * A town not in unrest is left alone, and the wild is paid nothing.
+ */
+export function endUnrest(state: GameState, city: City, reports?: UnrestReport[]): void {
+  if (city.unrest === undefined) return;
+  delete city.unrest;
+  reports?.push({
+    kind: 'pacified',
+    cityId: city.id,
+    ownerId: city.ownerId,
+    col: city.col,
+    row: city.row,
+  });
+  const owner = playerById(state, city.ownerId);
+  if (!owner || owner.barbarian === true) return;
+  const payout = windfallPayout(state, owner.id, 'pacified', 0, 0, {
+    population: city.population,
+  });
+  if (windfallPayoutIsEmpty(payout)) return;
+  for (const town of payWindfallGrants(state, owner, payout, { col: city.col, row: city.row })) {
+    if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
+  }
+  settleCultureWindfall(state, owner);
+  settleResearchWindfall(state, owner);
+}
+
+/**
  * **The `unrest` phase**: every town in unrest is settled a turn's worth, and
  * an unguarded one may raise a rebel.
  *
@@ -280,9 +352,12 @@ function raiseRebel(
  * order every other phase sweeps in. For each town in unrest, two steps, in
  * this order:
  *
- *   1. **Pacification.** The basket gains the fold of `explainPacification`.
- *      When it reaches the target the record is deleted, the town is reported
- *      pacified, and nothing else happens to it this turn.
+ *   1. **Pacification.** If a card pacifies the town at once (`CityRuleId`
+ *      `pacified`, Dominion batch D4: The Bakufu and The Consular Roads), the
+ *      unrest ends now; this is the triage's reading 27, the end of the turn
+ *      in which the card's condition holds. Otherwise the basket gains the
+ *      fold of `explainPacification`. When it reaches the target the unrest
+ *      ends (`endUnrest`), and nothing else happens to the town this turn.
  *   2. **Rebels.** A town still in unrest with no military unit of its owner
  *      inside counts the turn as unguarded. When that count reaches a multiple
  *      of `rules.war.unrest.rebelEveryTurns`, a rebel rises beside the town.
@@ -292,9 +367,9 @@ function raiseRebel(
  *
  * Its place in `END_OF_TURN_PHASES` is the phase entry's docblock (`turn.ts`).
  * It writes nothing the yields memo or the meters fold except through
- * `createUnit`, which announces itself, so it owes the seating register
- * nothing: a town's citizens are placed by their tiles' own yields, which the
- * gate does not touch.
+ * `createUnit` and the windfall that `endUnrest` pays, which announce
+ * themselves, so it owes the seating register nothing: a town's citizens are
+ * placed by their tiles' own yields, which the gate does not touch.
  */
 export function runUnrest(
   state: GameState,
@@ -304,16 +379,13 @@ export function runUnrest(
   for (const city of state.cities) {
     const unrest = city.unrest;
     if (unrest === undefined) continue;
+    if (cardCityRuleAt(state, city, 'pacified')) {
+      endUnrest(state, city, reports);
+      continue;
+    }
     unrest.progress += foldPacification(explainPacification(state, city));
     if (unrest.progress >= unrest.target) {
-      delete city.unrest;
-      reports.push({
-        kind: 'pacified',
-        cityId: city.id,
-        ownerId: city.ownerId,
-        col: city.col,
-        row: city.row,
-      });
+      endUnrest(state, city, reports);
       continue;
     }
     if (unrestGarrison(state, city) !== null) continue;

@@ -2167,6 +2167,12 @@ function chooseCitizens(
  *      does the same, or it is a hand-rolled completion.
  *   4. `buildImprovementAt` (`improvements.ts`) — the farm pays this instant.
  *   5. `pillageAt` (`improvements.ts`) — and so does its absence, to its victim.
+ *      Since Dominion batch D3 one raid can reach more than one town. The Horde
+ *      burns the enemy works beside the hex, and each hex burnt refreshes its
+ *      own town through `refreshTileDerived`. The Harrying puts an ungarrisoned
+ *      town beside the hex into unrest, which stops its production, science
+ *      and culture, so that town is refreshed too. The food and production the
+ *      raid's riders pay settle through entries 3 and 8.
  *   6. `chopFeatureAt` (`improvements.ts`) — the felled wood changes the ground
  *      under the citizen whether or not the timber finished anything.
  *   7. `foundCityAt` — the odd one out, and included on purpose: it *creates*

@@ -1286,7 +1286,13 @@ function countPlace(effect: CardPaysEffect, subject: ClauseSubject): CountPlace 
         : '';
   if (!cityScoped) return { paidIn, counted: '' };
   if (subject === 'here') return { paidIn, counted: 'in this city' };
-  return { paidIn, counted: effect.where === 'empire' ? 'in your cities' : 'there' };
+  if (effect.where !== 'empire') return { paidIn, counted: 'there' };
+  // A scope names which towns the empire's sum walks (The Acropolis' capital,
+  // Dominion batch D4), so the words name them too.
+  return {
+    paidIn,
+    counted: effect.scope === undefined ? 'in your cities' : `in ${scopeWordsFor(subject, effect.scope)}`,
+  };
 }
 
 /** The one place an effect becomes a sentence. Every arm, no default silence. */
@@ -2026,6 +2032,18 @@ function describeEffect(
       // is said that way — "the authority a captured city costs falls by 1" —
       // rather than as a bare signed number hanging off a noun phrase.
       const delta = effect.delta ?? 0;
+      // A percentage on a town's price (The Universal Monarchy, Dominion batch
+      // D4) is said the same way, as a rise or a fall. +100% is "doubles".
+      if (effect.value === undefined && effect.percent !== undefined) {
+        const percent = effect.percent;
+        out.push({
+          text:
+            percent === 100
+              ? `${words} doubles`
+              : `${words} ${percent < 0 ? 'falls' : 'rises'} by ${Math.abs(percent)}%`,
+        });
+        return;
+      }
       out.push({
         text:
           effect.value !== undefined
@@ -3174,6 +3192,10 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'captured':
       into.adjectives.push('captured');
       return;
+    case 'notCaptured':
+      // The Universal Monarchy (Dominion batch D4): a town nobody took by force.
+      into.qualifiers.push('you founded');
+      return;
     case 'puppet':
       // The game's own word for the arrangement, and the one a player reads on
       // the city panel. An adjective, because "every puppet city" is the phrase
@@ -3267,6 +3289,10 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'garrisonRank':
       // The Fabricae (Dominion batch D2), in `garrisoned`'s words.
       into.qualifiers.push(`with ${rankOrBetter(scope.rank)} standing in it`);
+      return;
+    case 'generalPresent':
+      // The Bakufu (Dominion batch D4), in `garrisoned`'s words.
+      into.qualifiers.push('with a great general standing in it');
       return;
     case 'keepingRite':
       // The plain words again: a town "keeping a rite" is a town where one is
@@ -4054,6 +4080,11 @@ export function tileConditionWords(on: TileCondition): string {
  */
 const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
   happinessDemand: (percent) => `${signed(percent)}% happiness demanded per citizen`,
+  // The Satraps (Dominion batch D4). Said as the speed, which is what the card
+  // promises: "twice as fast" is +100%. The row's scope follows as ", in
+  // every city with ...", so the words name no town themselves.
+  pacificationRate: (percent) =>
+    percent === 100 ? 'unrest ends twice as fast' : `unrest ends ${signed(percent)}% faster`,
   borderCost: (percent) => `${signed(percent)}% culture for the next border hex`,
   growthCarryover: (percent) => `${signed(percent)}% of the stored food kept when a city grows`,
   // A price, said as the saving. "−25% the price of buying a hex" is a discount
@@ -4319,6 +4350,8 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   // Dominion batch D1. The windfall rider's rank filter rewrites "earning a
   // rank" to name the rank ("becoming an Elite"), so the phrase keeps it.
   rankEarned: 'one of your units earning a rank',
+  // Dominion batch D4, The Provincial Census.
+  pacified: 'pacifying a city',
 };
 
 /**
@@ -4606,6 +4639,16 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   citizensLevied: {
     one: 'citizen you have levied this game',
     many: 'citizens you have levied this game',
+  },
+  // Dominion batch D4: The Captured Arms, The Hall of the Slain, Spear-won Land.
+  enemiesKilled: {
+    one: 'unit you have killed this game',
+    many: 'units you have killed this game',
+  },
+  unitsLost: { one: 'unit you have lost this game', many: 'units you have lost this game' },
+  citiesCaptured: {
+    one: 'city you have captured this game',
+    many: 'cities you have captured this game',
   },
   followingCities: { one: 'city that follows you', many: 'cities that follow you' },
   followingForeign: {
@@ -4920,6 +4963,8 @@ const METER_RULE_SWITCHES: readonly MeterRuleId[] = [
 const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Verbs whose behaviour a card changes. `ActionRuleId`.
   freeChop: 'clearing a forest or jungle costs no worker charge',
+  // Pax Romana (Dominion batch D4).
+  pacifyOnCapture: 'a city you capture is pacified at once',
   doubleOverflow: 'leftover production from a completed item is doubled',
   unitJumpsQueue: 'a unit that would finish sooner jumps ahead of a building in the queue',
   buyGreatPersonWithGold: 'a great person waiting to be called may be bought with gold',
@@ -4965,6 +5010,9 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
     'your sea routes may join two cities that both hold your trading post however far apart they are',
   // Facts a card declares true of every town. `CityRuleId`.
   freshwater: 'every city of yours counts as being on fresh water',
+  // The Bakufu and The Consular Roads (Dominion batch D4). The row's scope
+  // follows as "in every city with ...".
+  pacified: 'unrest ends at once',
   // Things about the world that stop being true — or start. `BehaviorRuleId`.
   barbariansPassive: 'barbarians never attack you',
   // "At full health" since the user's card pass of 2026-09-03, which is the

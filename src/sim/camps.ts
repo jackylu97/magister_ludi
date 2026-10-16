@@ -41,6 +41,7 @@ import {
   nearestOwnedCity,
   refreshCityDerived,
   settleGrowthWindfall,
+  settleProductionWindfall,
 } from './cities';
 import { getTileAt, mapRange, tileHex, wrappedDistance } from './map';
 import {
@@ -233,9 +234,20 @@ export function settleCampBounty(
   // Camp Followers' stray and anything else a rider grants, into the same
   // town the provisions went to (`nearestOwnedCity`, one rule); the pieces
   // that actually found ground land in `bounty.units` for the announcement.
-  payWindfallGrants(state, player, payout, at, bounty.units);
+  const touched = payWindfallGrants(state, player, payout, at, bounty.units);
   const grown = settleGrowthWindfall(state, city);
   if (grown) bounty.grownTo = grown.population;
+  // **Every town a grant fed settles at once**, not only the town fed above
+  // (the follow-up to Dominion batch D3): The Outriders pay hammers to every
+  // town. Food first, through `settleGrowthWindfall`, which settles the
+  // hammers too when the town grows; otherwise the hammers alone.
+  for (const town of touched) {
+    if (town === city) {
+      if (!grown) settleProductionWindfall(state, town);
+    } else if (!settleGrowthWindfall(state, town)) {
+      settleProductionWindfall(state, town);
+    }
+  }
   settleCultureWindfall(state, player);
   return bounty;
 }

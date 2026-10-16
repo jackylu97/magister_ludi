@@ -608,30 +608,61 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * ---
  *
- * **Expansionist batch E1 (schema 135): the levies.** Duel `f5591807:272724`
- * → `213bf539:269774`, standard `54af715a:983935` → `ad0181de:983942`. Three
- * things moved them:
+ * **Dominion batch D4 (schema 135), unrest, authority, and "this game"
+ * counts, merged after E0.** Duel `f5591807:272724` → `6b98d500:290747`,
+ * standard `54af715a:983935` → `baf6c127:961721`. D4 was built on a side
+ * branch at schema 134, without E0, and the literals it pinned there (duel
+ * `3583df65:268144`, standard `37ce3d15:948656`) do not apply to this tree.
+ * Four things moved the digests:
+ *
+ *   · the version, 134 to 135;
+ *   · the twelve cards. Nine Orders join the Dominion pool, The Proconsuls is
+ *     reworked, and two Doctrines join the pools: The Consular Roads at tier 4
+ *     and The Universal Monarchy at tier 18. Every tier-4 adoption now offers
+ *     two Doctrines. At turn 120 the duel board has three seats with The
+ *     Consular Roads and three with The Steppe Confederacy, and the standard
+ *     board four and two. On the standard board one seat has The Acropolis
+ *     seated and one holds The Satraps, not seated;
+ *   · the new record `Player.enemiesKilled`, written for every empire whose
+ *     units kill, the wild's raiders included;
+ *   · the bots' new readings (`src/ai/value.ts`): D3's pillage extras, the
+ *     places a grant can land, and D4's new shapes, so they price cards
+ *     differently.
+ *
+ * The settlement of every town that a camp's or a discovery's grants feed is a
+ * fifth mover, and it is taken out with the others. Checked by taking all five
+ * back out (the deck file as E0 left it, the version at 134, the record not
+ * written, and the bot's readings and the two settlements as they were), which
+ * gives E0's digests exactly on both boards. Nothing stalled and no command
+ * was refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E1 (schema 136): the levies, merged after D4.** Duel
+ * `6b98d500:290747` → `1b08ba49:270185`, standard `baf6c127:961721` →
+ * `430a6ef2:959302`. E1 was built on a side branch at schema 135, without D4,
+ * and the literals it pinned there (duel `213bf539:269774`, standard
+ * `ad0181de:983942`) do not apply to this tree. Three things moved the
+ * digests:
  *
  *   · the cards. Ten Expansionist rows join the deck, and seven cards (six of
- *     them new) are dealt only to a seat holding a card that grants a levy. From
- *     the first draw that meets one of them, the seats hold different cards.
- *     With the new data alone (the phase taken out, the version at 134), the
- *     boards give duel `8cf341a1:269774` and standard `9c71ed3b:983942`;
+ *     them new) are dealt only to a seat holding a card that grants a levy.
+ *     From the first draw that meets one of them, the seats hold different
+ *     cards;
  *   · the new `levyReturns` phase, which raises the revision once more every
  *     turn;
- *   · the version, 134 to 135. These last two move the hash and not the
- *     length.
+ *   · the version, 135 to 136.
  *
  * Bots do not levy yet, so no citizen is levied, no piece carries a levy mark
  * and no citizen is due home on either board, and no seat holds an E1 card at
- * turn 120. Checked by taking the movers out: the new code with the phase taken
- * out and the old data gives E0's digests exactly on both boards. The duel game
- * adopts 11 governments and the standard one 16. Nothing stalled and no
- * command was refused.
+ * turn 120. Checked by taking E1's movers out (the deck file as D4 left it, the
+ * phase removed, the version at 135), which gives D4's digests exactly on both
+ * boards. The duel game adopts 12 governments and the standard one 15.
+ * Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '213bf539:269774',
-  standard: 'ad0181de:983942',
+  duel: '1b08ba49:270185',
+  standard: '430a6ef2:959302',
 };
 
 /**

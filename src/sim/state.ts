@@ -1327,7 +1327,41 @@ import {
  * chair of another type is now refused. The branch migrates nothing, for the
  * reason given under v119.
  *
- * v135 (branch `decks`; Expansionist batch E1 of
+ * v135 (branch `decks`; Dominion batch D4 of
+ * `docs/plans/dominion-build-triage.md`, unrest, authority, and "this game"
+ * counts): **twelve Dominion cards about unrest, the writ and the game's
+ * records.** Nine Orders join the Dominion file, The Proconsuls is reworked in
+ * place, and two Doctrines join its `doctrines` map: The Consular Roads at
+ * Tier I and The Universal Monarchy at Tier III. One field joins the state:
+ * `Player.enemiesKilled`, the number of units the empire's units have killed
+ * in the game, the wild's included. Only `tallyFall` (`combat.ts`) writes it.
+ * The wild never keeps it, and it is absent until the first kill. The rules
+ * that change:
+ *
+ *   · a card can add a line to a town's pacification (`CardRule`
+ *     `pacificationRate`), end a town's unrest at once in the unrest phase
+ *     (`CityRuleId` `pacified`), or end it at the moment of capture
+ *     (`ActionRuleId` `pacifyOnCapture`);
+ *   · the end of a town's unrest is a moment the cards pay on (the `pacified`
+ *     windfall occasion, with the town's population), paid by `endUnrest`
+ *     (`unrest.ts`);
+ *   · a card can set a town's writ price or scale it (`cityCost` with a
+ *     `value` or a `percent`);
+ *   · the writ sums a town-by-town count over the towns a row's scope admits.
+ *     Before, such a row paid nothing;
+ *   · three counts over the game's records (`enemiesKilled`, `unitsLost`,
+ *     `citiesCaptured`), and two town scopes (`generalPresent`,
+ *     `notCaptured`);
+ *   · every town that The Outriders' hammers land in settles at once, after a
+ *     camp and after a discovery;
+ *   · the bots price D3's pillage extras and the places a grant can land, so
+ *     they draft differently.
+ *
+ * **A v134 save is refused and does not replay.** The draft bags hold
+ * different cards, every kill now writes the new record, and the bots draft
+ * differently. The branch migrates nothing, for the reason given under v119.
+ *
+ * v136 (branch `decks`; Expansionist batch E1 of
  * `docs/plans/expansionist-build-triage.md`, the levies): **twelve
  * Expansionist cards about levies.** Ten join the Expansionist file; Seasonal
  * Levies gains the levy gate, and The General Levy its free upkeep. What
@@ -1349,11 +1383,11 @@ import {
  *     raised, and a citizen coming home through `settlePopulationWindfall`
  *     pays no growth riders.
  *
- * **A v134 save is refused and does not replay.** The draft bags hold
+ * **A v135 save is refused and does not replay.** The draft bags hold
  * different cards, and every resolution runs one more phase. The branch
  * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 135;
+export const SCHEMA_VERSION = 136;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2120,6 +2154,18 @@ export interface Player {
    * until the first levy.
    */
   citizensLevied?: number;
+  /**
+   * **How many units this empire's units have killed in the game, barbarians
+   * included** (Dominion batch D4): The Captured Arms' count (`CountKind`'s
+   * `enemiesKilled`, the triage's reading 7).
+   *
+   * `unitsKilled` leaves out the wild, for The Field of Glory's reason. This
+   * record counts every kill, so a Tier 0 card pays from the first camp's
+   * raiders. It is written in one place, `tallyFall` (`combat.ts`), and only
+   * for an empire: the wild keeps no such record. It is only ever raised, and
+   * it is absent until the first kill.
+   */
+  enemiesKilled?: number;
   /**
    * **The losses this empire has suffered to other empires in war**, oldest
    * first (batch WC2, `docs/flags.md` (rrrrrr) part 2). War weariness is read

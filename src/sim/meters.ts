@@ -103,6 +103,8 @@ import {
   cardAuthority,
   cardBuildingHappiness,
   cardCityCostDelta,
+  cardCityCostPercent,
+  cardCityCostValue,
   cardHappiness,
   cardMeterRule,
   cardRuleIsScoped,
@@ -716,10 +718,26 @@ export function explainAuthority(
     // puppet may too, and a naïve floor at one would have made a gift raise
     // their price. Written as `max(min(cost, 1), cost + delta)`, which is those
     // two sentences and nothing else.
-    const delta = cardCityCostDelta(state, city);
-    if (delta !== 0) {
-      const cost = -line.value;
-      line.value = -Math.max(Math.min(cost, 1), cost + delta);
+    //
+    // **A set price replaces all of it** (Dominion batch D4): The Proconsuls'
+    // garrisoned conquests and The Universal Monarchy's captured towns cost
+    // no authority. Otherwise a percentage scales the ladder's price first
+    // (The Universal Monarchy's founded towns cost twice as much), floored
+    // once, and the deltas apply to the result with the two-sided floor.
+    const set = cardCityCostValue(state, city);
+    if (set !== null) {
+      line.value = set > 0 ? -set : 0;
+    } else {
+      const percent = cardCityCostPercent(state, city);
+      if (percent !== 0) {
+        const scaled = Math.floor((-line.value * (100 + percent)) / 100);
+        line.value = scaled > 0 ? -scaled : 0;
+      }
+      const delta = cardCityCostDelta(state, city);
+      if (delta !== 0) {
+        const cost = -line.value;
+        line.value = -Math.max(Math.min(cost, 1), cost + delta);
+      }
     }
     list.push(line);
   }

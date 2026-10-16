@@ -731,18 +731,26 @@ describe('determinism', () => {
    * hashes exactly, and so does every E0 change with the version set back to
    * 133.
    *
+   * **Dominion batch D4 moved the hash and not the length** at both seeds. It
+   * was built on a side branch at schema 134 and merged after E0, which
+   * renumbered it to 135, so the version here went from 134 to 135, and that
+   * is all. Nobody here drafts a card, takes a town or kills a unit, so the new
+   * cards and `Player.enemiesKilled` never reach this board. Checked by setting
+   * the version back to 134, which gives E0's hashes exactly.
+   *
    * **Expansionist batch E1 (the levies) moved the hash and not the length**
-   * at both seeds. Two things moved it: the version, 134 to 135, and the new
-   * `levyReturns` phase, which raises the revision once more a turn, twenty
-   * more over the sweep with the same number of digits. Nobody here drafts a
-   * card or levies a citizen, so the new cards and fields never reach this
-   * board. Checked twice: the new code with the phase taken out gives E0's
-   * hashes exactly, and so does the new data with the phase out and the
-   * version at 134.
+   * at both seeds. It was built on a side branch at schema 135 and merged after
+   * D4, which renumbered it to 136. Two things moved the hash: the version, 135
+   * to 136, and the new `levyReturns` phase, which raises the revision once
+   * more a turn, twenty more over the sweep with the same number of digits.
+   * Nobody here drafts a card or levies a citizen, so the new cards and fields
+   * never reach this board. Checked by taking E1's movers out (the deck file as
+   * D4 left it, the phase removed, the version at 135), which gives D4's hashes
+   * exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'b76ba94f:188932',
-    2026: '001ff18e:188488',
+    11: '3b2c1bda:188932',
+    2026: '10a5f41b:188488',
   };
 
   for (const seed of [11, 2026]) {
