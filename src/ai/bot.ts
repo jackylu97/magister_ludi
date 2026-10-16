@@ -1391,42 +1391,6 @@ function housekeeping(
   sitting?: BotSitting,
 ): BotDecision | null {
   const sc = player.statecraft;
-  // **A reward hand** (the decks rework, D1a) blocks nothing, like a banked
-  // charter, so it is answered here: a hand on the table is read through the
-  // same appraisal a draft is (`pickCard`) and taken, or passed when nothing
-  // on it scores at all — a pass costs nothing and buys nothing, so the bar is
-  // only that the card is worth having. A banked count is opened first.
-  if (sc.pendingReward !== undefined) {
-    const ids: (OrderId | undefined)[] = [...sc.pendingReward.options];
-    const picked = pickCard(player, ids, seatContext(state, player, sitting));
-    const best = picked.candidates.find((candidate) => candidate.chosen) ?? null;
-    const taken = ids[picked.index];
-    if (best === null || best.score <= 0 || taken === undefined || sc.orders.includes(taken)) {
-      return {
-        kind: 'draft',
-        command: { type: 'passReward', playerId: player.id },
-        subject: seatName(state, player.id),
-        summary: 'Passes the reward hand: nothing on it is worth a chair.',
-        candidates: picked.candidates,
-      };
-    }
-    return {
-      kind: 'draft',
-      command: { type: 'chooseReward', playerId: player.id, optionIndex: picked.index },
-      subject: seatName(state, player.id),
-      summary: `Takes ${cardName(taken)} from the reward hand — the best of ${picked.candidates.length} rares.`,
-      candidates: picked.candidates,
-    };
-  }
-  if (sc.rewardHands.length > 0) {
-    return {
-      kind: 'draft',
-      command: { type: 'openRewardHand', playerId: player.id },
-      subject: seatName(state, player.id),
-      summary: `Opens the reward hand banked at draft ${sc.rewardHands[0]}.`,
-      candidates: [],
-    };
-  }
   if (sc.pendingGovernment !== undefined) {
     const faces = adoptionTable(state, player, sc.pendingGovernment.options, sitting);
     return {
@@ -2882,19 +2846,38 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
   return { label: 'pass the hand', score: foldOf(terms), chosen: false, terms };
 }
 
-/** The best-scoring Doctrine of an adoption's triple. `orderDecision`'s twin. */
+/**
+ * **The best-scoring Doctrine of an adoption's offer, or a pass** (batch C3:
+ * *"the bots take a Doctrine, priced by the existing effect scoring, or
+ * pass"*). The offer is read through the same appraisal a draft is
+ * (`pickCard`), and the best Doctrine is taken when it scores above nothing.
+ * When none does — every Doctrine on the table costs this empire more than it
+ * pays — the offer is passed: a pass costs nothing and buys nothing, and a
+ * Doctrine is held for the whole game, so the bar is only that it is worth
+ * holding.
+ */
 function doctrineDecision(state: GameState, player: Player, sitting?: BotSitting): BotDecision {
   const playerId = player.id;
   const options = player.statecraft.pendingDoctrine?.options ?? [];
   const picked = pickCard(player, options, seatContext(state, player, sitting));
+  const best = picked.candidates.find((candidate) => candidate.chosen) ?? null;
+  if (options.length === 0 || best === null || best.score <= 0) {
+    return {
+      kind: 'draft',
+      command: { type: 'skipDoctrineOffer', playerId },
+      subject: seatName(state, player.id),
+      summary:
+        options.length === 0
+          ? 'Passes: there is no Doctrine on the offer.'
+          : 'Passes on the Doctrine offer: none of them is worth holding for the rest of the game.',
+      candidates: picked.candidates,
+    };
+  }
   return {
     kind: 'draft',
     command: { type: 'chooseDoctrine', playerId, optionIndex: picked.index },
     subject: seatName(state, player.id),
-    summary:
-      options.length === 0
-        ? 'Takes the first option: there is no offer to read.'
-        : `Adopts ${cardName(options[picked.index]!)} — the best-scoring of the triple.`,
+    summary: `Takes ${cardName(options[picked.index]!)}, the best-scoring of the ${options.length} offered.`,
     candidates: picked.candidates,
   };
 }

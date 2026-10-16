@@ -13,7 +13,7 @@ UI language: `docs/design-specimen.html` (ink/parchment; every number tabular mo
 The RNG separator `hashSeed('webciv:gameplay:…')` (`src/sim/state.ts`) must NEVER
 be renamed — it would change every seeded outcome. No further rename passes.
 
-## Writing (docs, comments, commit messages, reports)
+## Writing (messages to the user, docs, comments, commit messages, reports)
 **Write in plain English.** The user's ruling, 2026-09-17: *"I'm not sure why the
 text always comes out in medieval game-voice, but lets just axe that entirely."*
 This governs everything we write — docs, docblocks, commit messages, agent
@@ -33,6 +33,46 @@ briefs, agent reports, test names, and any new player-facing prose.
   plain and old text is left alone.
 - Plain does not mean vague or shorter. Keep the precision, the file and
   symbol names, the numbers, and the reasoning. Drop only the costume.
+
+**ASD-STE100 Simplified Technical English is the baseline style, at about
+75%.** The user's rulings, 2026-10-16: *"lets try ASD-STE100 moving forward"*,
+then *"please keep to ~75% of the standard, as it might be a bit too
+stringent"*. It applies to messages to the user and to all the text above. The
+user will tell us about more changes to it.
+- Keep these rules:
+  - short sentences, each with one topic;
+  - the active voice;
+  - simple, common words, and one word for one thing (never "batch", "pass"
+    and "job" for the same thing). Use the game's names (Order, chair,
+    Doctrine) and the code's names when you must, and explain a new term the
+    first time;
+  - a condition at the start of a sentence: "If the test fails, stop.";
+  - an instruction as a command, with the most important one first;
+  - a vertical list for steps, options and decisions;
+  - no idioms, metaphors, slang or em dashes.
+- Use these as guides, not hard limits:
+  - about 20 words in an instruction and 25 in a description;
+  - simple tenses, with "-ing" forms where they read naturally;
+  - short paragraphs with one topic;
+  - the articles and small words kept, and no chain of more than three nouns.
+- Two exceptions: a card's flavour line (always labelled Flavour), and the
+  user's own words in quotes.
+
+**Orwell's six rules apply too.** The user, 2026-10-16: *"could you also
+incorporate orwell's six rules for writing in your style rules?"* From
+"Politics and the English Language" (1946), in short:
+1. Do not use a figure of speech that you often see in print.
+2. Do not use a long word where a short one will do.
+3. If you can cut a word, cut it.
+4. Do not use the passive where you can use the active.
+5. Do not use a foreign phrase, a scientific word or jargon if an everyday
+   word exists.
+6. Break any of these rules before you write something awkward.
+
+Where they meet STE: rule 3 cuts padding, not grammar, so keep the articles
+and small words that make a sentence clear. Under rule 5, the game's names
+(Order, chair, Doctrine) and the code's names are the right words when you
+mean those things.
 
 ## Spec workflow (how rulings become code)
 - A user ruling lands in a FILE before any agent flies: `docs/flags.md` for

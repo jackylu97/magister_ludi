@@ -2446,9 +2446,9 @@ describe('the faith book', () => {
 
     // Now put a Doctrine draft on the table beside it. The verb would redeal
     // *that*, so the belief arm stands down and the seat answers the Doctrine.
-    // A Doctrine on the table: the rows are retired (D1a — a Doctrine is the
-    // reward hand now), so the pool deals none, and the bench sets three of the
-    // tier-4 rows itself; a retired row is still a `DoctrineId` the pick takes.
+    // A Doctrine on the table: the bench sets three of the retired tier-4 rows
+    // itself (the deck files hold one live Doctrine so far, batch C3); a
+    // retired row is still a `DoctrineId` the pick takes.
     player.statecraft.pendingDoctrine = {
       options: DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === 4).slice(0, 3),
     };

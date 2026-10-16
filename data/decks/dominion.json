@@ -4070,5 +4070,38 @@
         }
       ]
     }
+  },
+  "doctrines": {
+    "theSteppeConfederacy": {
+      "name": "The Steppe Confederacy",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "No writ reaches the open steppe, and no border waits for one.",
+      "text": "Negative authority no longer stops your borders growing. While authority is negative, gain +50% production toward mounted units.",
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "borderFreezeExempt",
+          "value": 1
+        },
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "authorityNegative"
+          },
+          "then": [
+            {
+              "kind": "productionBonus",
+              "category": "unit",
+              "percent": 50,
+              "modelClass": "mounted"
+            }
+          ]
+        }
+      ]
+    }
   }
 }

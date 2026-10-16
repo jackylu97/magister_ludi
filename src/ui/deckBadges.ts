@@ -5,9 +5,9 @@
  * mark where a row is one"*; finished in D1c).
  *
  * Four readers and one table: the draft sheet's eyebrow and chips
- * (`main.ts`, `showStatecraftOffer`), the reward sheet (`rewardSheet.ts`), the
- * collection's grouping (`statecraftScreen.ts`) and the Compendium's shelf
- * (`compendium.ts`). All of them print a deck's name through `DECK_WORDS` —
+ * (`main.ts`, `showStatecraftOffer`), the Doctrine offer's face
+ * (`doctrineFaceOf`), the collection's grouping (`statecraftScreen.ts`) and
+ * the Compendium's shelf (`compendium.ts`). All of them print a deck's name through `DECK_WORDS` —
  * the simulation's own word table — so the badge on a dealt card, the heading
  * it is filed under afterwards and the shelf it is read on are one string.
  * Nothing here invents a word for a deck.
@@ -45,8 +45,10 @@
  * at the top show its rarity. `orderSuitFace` below is the one place an Order
  * row becomes that face, and every surface that draws an Order asks it: the
  * draft, the council, the collection, the Compendium and the commission chips.
- * The U1 pieces above stay for the reward sheet (`rewardSheet.ts`), which batch
- * C3 removes, and for the eyebrow and the charter chip, which the A3 face keeps.
+ * The U1 pieces above stayed for the reward sheet until batch C3 removed it,
+ * and stay for the eyebrow and the charter chip, which the A3 face keeps.
+ * `deckFaceOf` stays too: since batch C3 a deck's Doctrine is offered on the
+ * emblem face, inked by the deck (`doctrineFaceOf`).
  */
 
 import {
@@ -54,13 +56,15 @@ import {
   type CardTypeReading,
   DECK_WORDS,
   type DeckId,
+  type DoctrineId,
   type OrderId,
   type OrderRarity,
+  doctrineDef,
   orderDef,
   orderType,
 } from '../sim/statecraftData';
 import { type DeckFace } from './cardLine';
-import { type InkId, type SuitFace, type SuitId } from './suitFace';
+import { type InkId, type SuitFace, type SuitId, suitMarkDataUri } from './suitFace';
 
 export type { DeckFace };
 
@@ -149,6 +153,9 @@ export const RARITY_WORD: Readonly<Record<OrderRarity, string>> = {
  * cross-type painted in the first of its decks would be a card wearing half of
  * its own answer, with the half chosen by nothing but the order the row happens
  * to list them in.
+ *
+ * Read by the Doctrine face since batch C3 (`doctrineFaceOf`); an Order wears
+ * the A3 face instead.
  */
 export function deckFaceOf(def: { decks: readonly DeckId[] }): DeckFace {
   if (def.decks.length === 0) return 'generic';
@@ -242,11 +249,45 @@ export function orderSuitFace(id: OrderId): SuitFace {
 /**
  * **The chips an A3 hand card keeps**: the charter's sentence and nothing else.
  * The rarity chip is gone from the hand because the card's frame and ornament
- * now show the rarity. The reward sheet keeps `orderBadges`' full row until it
- * is removed.
+ * now show the rarity.
  */
 export function orderSuitBadges(id: OrderId): OrderBadge[] {
   return orderBadges(id).filter((badge) => badge.tone === 'charter');
+}
+
+/**
+ * **A deck Doctrine's face** (batch C3), for the Doctrine offer. A Doctrine
+ * takes no chair, so it has no chair ink and does not wear the A3 Order face;
+ * it keeps the emblem face Doctrines have always worn, with its deck where the
+ * archetype thread used to be:
+ *
+ *   · the eyebrow says the deck or decks and the tier ("Dominion · doctrine ·
+ *     tier I");
+ *   · the emblem is the deck's suit (the first deck's, for a Doctrine two
+ *     decks share, whose eyebrow names both);
+ *   · the accent key is `deckFaceOf`'s, so a one-deck Doctrine is inked in its
+ *     deck's colour and a shared one in plain ink, for the reason the
+ *     `[data-line='shared']` rule in `style.css` gives.
+ *
+ * The Statecraft screen's shelf draws the same face (`drawDeckDoctrineFace`).
+ *
+ * Plain strings, for `offerCard.ts`. `null` for a pre-rework Doctrine, which
+ * has no deck and keeps its thread's face (`cardFace` in `main.ts`).
+ */
+export function doctrineFaceOf(
+  id: DoctrineId,
+): { payoff: string; emblem: string; line: DeckFace; lineName: string } | null {
+  const def = doctrineDef(id);
+  const first = def.decks[0];
+  if (first === undefined) return null;
+  const decks = def.decks.map(deckWord).join(' · ');
+  const line = deckFaceOf(def);
+  return {
+    payoff: `${decks} · doctrine · tier ${BAND_NUMERAL[def.band]}`,
+    emblem: `url("${suitMarkDataUri(DECK_SUIT[first])}")`,
+    line,
+    lineName: `${decks} Doctrine, Tier ${BAND_NUMERAL[def.band]}`,
+  };
 }
 
 /**
@@ -283,10 +324,10 @@ export function orderBadges(id: OrderId): OrderBadge[] {
 /**
  * **The chips, drawn** — for the two surfaces that may be handed a node.
  *
- * The reward sheet and the collection both build a card face out of elements
- * and both want the same row of chips; a copy each is how a rare comes to look
- * like one thing on the sheet that offered it and another in the hand that
- * holds it. `offerCard.ts` keeps its own copy and keeps it deliberately: that
+ * The collection builds a card face out of elements and wants this row of
+ * chips; the reward sheet did too until batch C3 removed it, which is why the
+ * row is printed here once rather than in each. `offerCard.ts` keeps its own
+ * copy and keeps it deliberately: that
  * component's whole contract is that no simulation type crosses its boundary,
  * so it is handed labels and opaque tones and builds the row itself. Two
  * renderers, not three, and the second one is a stated boundary rather than an

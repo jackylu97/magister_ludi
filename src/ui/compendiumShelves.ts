@@ -128,9 +128,10 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'Each entry below gives an Order’s deck, its band, how often it turns up, and exactly what it does.',
   ]),
   doctrine: lead('doctrine', 'About Doctrines', '✦', [
-    'A Doctrine was a permanent bonus for your whole empire — the reward for adopting a new form of government, chosen from the Doctrines offered at that government’s tier rather than drafted with culture. It needed no chair and could never be lost or replaced.',
-    'The class is withdrawn. No government offers one any more, and the reward for reforming is a hand of the rarest Orders instead: cards your own decks hold back, dealt free at a few points along the ladder, taken into the collection like any other. The pages below are kept because an empire that took a Doctrine before they went keeps it, and it still pays exactly what it says.',
-    'Each entry below gives the government tier a Doctrine belonged to and exactly what it does. The words these cards use are explained on the Orders shelf.',
+    'A Doctrine is a permanent bonus for your whole empire. It takes no chair, it is held for the rest of the game, and it can never be lost or replaced.',
+    'Doctrines come with a new form of government. When you adopt one, you are offered Doctrines of that government’s tier from your own two decks: one from each deck, and a third from either. You take one, or pass and take none. Each tier of governments is paired with one tier of Doctrines: the governments of the first tier offer the first tier of Doctrines, the governments of the second tier the second, and so on. A Doctrine you already hold is never offered again.',
+    'Every deck has its own Doctrines, written on its sheet, and only those whose rules the game can already carry out are offered so far. The older Doctrines from before the decks are withdrawn and offered to nobody; their pages are kept because an empire that took one keeps it, and it still pays exactly what it says.',
+    'Each entry below gives a Doctrine’s deck, its tier and exactly what it does. The words these cards use are explained on the Orders shelf.',
   ]),
   belief: lead('belief', 'About beliefs', '◈', [
     'A belief is a permanent card your religion or your pantheon keeps. They are drawn from three separate pools, and the eyebrow on every card below says which pool it belongs to, because the three are drawn by different units and paid to different people.',

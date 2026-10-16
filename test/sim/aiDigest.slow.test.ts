@@ -516,50 +516,69 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * ---
  *
- * **Dominion batch D2 (schema 131), ranks read, and combat rules.** Duel
- * `b8469a41:274868` → `9fbcd543:269226`, standard `c4b52563:951785` →
- * `26e408cb:978767`. Two things moved them:
+ * **Batch C3 (schema 131): Doctrines come with a government, and the reward
+ * hands go.** Duel `b8469a41:274868` → `2f3f0a7e:292377`, standard
+ * `c4b52563:951785` → `cf4d90d5:967120`. Three things moved them:
  *
- *   · the version, 130 to 131;
- *   · the nine cards: seven new rows join the Dominion pool, The Soldiers'
- *     Purse is reworked and The Marching Camps takes over March Discipline's
- *     row, so from the first draw that meets one of them the hands are
- *     different hands. At turn 120 no seat on the duel board holds a D2 card,
- *     and on the standard board two seats hold The Soldiers' Purse and two The
- *     Swift Riders, none of them seated; no unit took a second attack.
+ *   · the version, 130 to 131, and the empty `rewardHands` field gone from
+ *     every seat;
+ *   · the reward hands themselves. Under D1 the duel game opened six and took
+ *     a rare from each, the standard game nine; those rares are no longer
+ *     dealt, so every seat that took one holds a different collection from
+ *     its fourth draft on;
+ *   · the Doctrine offers. Every seat here holds all six decks, so each
+ *     tier-4 adoption offers The Steppe Confederacy, the one Doctrine in the
+ *     data, and every one of the six seats takes it on both boards (scored
+ *     above nothing by its border rule). Its other half is live while a
+ *     seat's authority is negative: on twelve seat-turns in the duel game and
+ *     sixty-five in the standard one.
  *
- * The new rules (a rank read by a card, the four attack rules, the `unmoved`
- * condition) do nothing without their cards, and the experience announcement
- * changes the economy clock, which is not in the state. Checked by taking both
- * movers back out (the deck file as D1 left it and the version at 130), which
- * gives D1's digests exactly on both boards. Nothing stalled and no command was
- * refused.
+ * Measured apart: D1's tree reproduces D1's digests; this tree with the
+ * Steppe's row withheld from every pool (the reward hands gone, no Doctrine
+ * offered) gives duel `67496c7a:295285` and standard `69f3a11a:952512`; and
+ * this tree as it is gives the literals below. The duel game adopts 11
+ * governments, the standard one 15.
+ *
+ * In the duel game seat 3 is eliminated on turn 108 during an earlier seat's
+ * turn. The driver read its seat list before the first seat moved, drove the
+ * fallen seat anyway and warned when its End Turn was refused, which failed
+ * the no-warnings check above the hash. `driveBots` now skips a seat that has
+ * been eliminated or has ended its turn by the time its own turn in the pass
+ * comes, as the stepper already did (`aiDriverEliminated.test.ts`). That
+ * changes no state, since the refused commands never did. Nothing stalled and
+ * no command was refused.
  *
  * ---
  *
- * **Dominion batch D3 (schema 132), pillage and grant delivery.** Duel
- * `9fbcd543:269226` → `b376efbc:278839`, standard `26e408cb:978767` →
- * `184d350b:950167`. Two things moved them:
+ * **Dominion batches D2 and D3 (schemas 132 and 133), merged after C3.** Duel
+ * `2f3f0a7e:292377` → `3ba9ba41:270645`, standard `cf4d90d5:967120` →
+ * `b5305be8:966741`. D2 and D3 were built on a side branch at schemas 131 and
+ * 132, without C3. The literals they pinned there (D2: duel `9fbcd543:269226`,
+ * standard `26e408cb:978767`; D3: duel `b376efbc:278839`, standard
+ * `184d350b:950167`) do not apply to this tree. Two things moved the digests:
  *
- *   · the version, 131 to 132;
- *   · the nine cards: eight new rows join the Dominion pool and Armoury Guilds
- *     is reworked, so from the first draw that meets one of them the hands are
- *     different hands. At turn 120 one seat on the duel board holds The
- *     Outriders and has it seated, and one seat on the standard board holds
- *     The Captive Craftsmen, not seated.
+ *   · the version, 131 to 133;
+ *   · the eighteen cards. D2 adds seven Dominion rows, reworks The Soldiers'
+ *     Purse, and gives March Discipline's row to The Marching Camps. D3 adds
+ *     eight rows and reworks Armoury Guilds. From the first draw that deals
+ *     one of them, the seats hold different cards. At turn 120 the duel board
+ *     has one seat with The Soldiers' Purse and one with The Captive
+ *     Craftsmen, and the standard board has one seat with The Soldiers' Purse
+ *     and one with The Swift Riders. None of them is seated.
  *
- * Three other changes could move a game and move neither of these: the new
- * record `Player.hexesPillaged`; the raider now named on the pillage occasion
- * (which lets the Mandekalu's own salvage rider pay); and the food and hammers
- * a pillage's riders pay now settling at once. No empire pillages a hex in
- * either game and no seat has a leader, so none of them is reached. Checked by
- * taking the movers back out (the deck file as D2 left it, the version at
- * 131, the record not written and no raider named), which gives D2's digests
- * exactly on both boards. Nothing stalled and no command was refused.
+ * Other changes could move a game and move neither of these: D2's new attack
+ * rules and `Unit.firstAttackTurn`; D3's record `Player.hexesPillaged`, the
+ * raider named on the pillage occasion (which lets the Mandekalu's own salvage
+ * rider pay), and the food and production of a pillage settling at once. No
+ * unit attacks twice, no empire pillages a hex, and no seat has a leader, so
+ * none of them is reached. Checked by taking the movers back out (the deck
+ * file as C3 left it, the version at 131, the record not written, no raider
+ * named and no settlement), which gives C3's digests exactly on both boards.
+ * Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'b376efbc:278839',
-  standard: '184d350b:950167',
+  duel: '3ba9ba41:270645',
+  standard: 'b5305be8:966741',
 };
 
 /**

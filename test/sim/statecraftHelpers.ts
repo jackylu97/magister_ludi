@@ -236,8 +236,8 @@ export function stockDecks(rows: Readonly<Record<string, StockedRow>>): () => vo
  *
  * Per deck, the eight are, in order: common · common · uncommon · rare at band
  * 0; common · uncommon at band 1; common at band 2; rare at band 3 — so every
- * deck has a rare on the opening shelf (the reward hand's pin) and something
- * behind every band gate (the band pin).
+ * deck has a rare on the opening shelf (the reward hands' pin until batch C3
+ * removed them) and something behind every band gate (the band pin).
  */
 export function stockStandardDecks(): () => void {
   // **Only rows D1a retired**, never a row the design withdrew before it: every
@@ -321,21 +321,33 @@ export function typeRowsByOldOffice(): () => void {
 
 /**
  * **Un-retires Doctrine rows for a file's lifetime** — `stockDecks`' twin for
- * the other retired class. Every Doctrine row is `retired: true` since D1a (a
- * Doctrine is the reward hand now), and a test about a *shape* that deals a
- * Doctrine draft — a wonder's completion grant — needs a tier with rows on it.
- * The rows keep everything else; restore is mandatory for `stockDecks`' reason.
+ * the other retired class. Every pre-rework Doctrine row is `retired: true`
+ * since D1a, and the deck files hold only one live Doctrine so far (batch C3,
+ * The Steppe Confederacy), so a test about a *shape* that deals a Doctrine
+ * offer (a wonder's completion grant, a widening rider) needs a tier with rows
+ * on it.
+ *
+ * Since batch C3 a seat is offered only the Doctrines of its own decks, and a
+ * pre-rework row names none, so a stocked row with no deck is lent `decks`
+ * (every deck unless the caller names some). The rows keep everything else;
+ * restore is mandatory for `stockDecks`' reason.
  */
-export function stockDoctrines(ids: readonly DoctrineId[]): () => void {
+export function stockDoctrines(
+  ids: readonly DoctrineId[],
+  decks: readonly DeckId[] = DECK_IDS,
+): () => void {
   forgetBuiltGames();
   const undo: (() => void)[] = [];
   for (const id of ids) {
     const def = doctrineDef(id);
     const before = def.retired;
+    const beforeDecks = def.decks;
     delete def.retired;
+    if (def.decks.length === 0) def.decks = [...decks];
     undo.push(() => {
       if (before === undefined) delete def.retired;
       else def.retired = before;
+      def.decks = beforeDecks;
     });
   }
   return () => {

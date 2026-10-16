@@ -706,21 +706,27 @@ describe('determinism', () => {
    * `Player.ranksEarned` key is written. Checked by setting the version back
    * to 129 and taking the phase out, which gives C2a's hashes exactly.
    *
-   * **Dominion batch D2 (ranks read, and combat rules) moved the hash and not
-   * the length** at both seeds: 130 became 131, and that is all. Nobody here
-   * drafts a card, no unit is an Elite and nobody fights twice, so the new
-   * rules and `Unit.firstAttackTurn` never reach this board. Checked by setting
-   * the version back to 130, which gives D1's hashes exactly.
+   * **Batch C3 (Doctrines come with a government; the reward hands go) moved
+   * the hash and shortened the print by fifty-one bytes** at both seeds: 130
+   * became 131, and each of the three seats (the two empires and the wild)
+   * lost its empty `"rewardHands":[]` and the comma before it, seventeen
+   * characters a seat. Nobody here drafts a card or adopts a government, so no
+   * Doctrine offer is ever dealt. Checked by setting the version back to 130
+   * and putting the empty field back after `yieldTallies` on every seat, which
+   * gives D1's hashes exactly.
    *
-   * **Dominion batch D3 (pillage and grant delivery) moved the hash and not
-   * the length** at both seeds: 131 became 132, and that is all. Nobody here
-   * drafts a card or orders a pillage, so the new cards and
-   * `Player.hexesPillaged` never reach this board. Checked by setting the
-   * version back to 131, which gives D2's hashes exactly.
+   * **Dominion batches D2 and D3 moved the hash and not the length** at both
+   * seeds. They were built on a side branch at schemas 131 and 132, and the
+   * merge after C3 renumbered them to 132 and 133. So the version here went
+   * from 131 to 133, and that is the whole change. Nobody here drafts a card,
+   * no unit is an Elite, nobody fights twice and no empire pillages, so the new
+   * cards, `Unit.firstAttackTurn` and `Player.hexesPillaged` never reach this
+   * board. Checked by setting the version back to 131, which gives C3's hashes
+   * exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'b80338d9:188983',
-    2026: '786b4a16:188539',
+    11: 'd7f5d2b7:188932',
+    2026: '881aa796:188488',
   };
 
   for (const seed of [11, 2026]) {

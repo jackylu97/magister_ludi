@@ -146,6 +146,15 @@ export interface SeatDriveReport {
 export function driveBots(game: Game, options: DriveOptions = {}): SeatDriveReport[] {
   const reports: SeatDriveReport[] = [];
   for (const playerId of botSeatsToDrive(game.state)) {
+    // **Asked again at the seat's own moment.** The list is read before the
+    // first seat moves, and an earlier seat's turn can knock a later one out
+    // (its last town taken, its last unit killed). Elimination marks that
+    // seat's turn ended, so it has nothing to drive and its End Turn would be
+    // refused three times and warned about. The stepper's `nextSeat` asks the
+    // same question at the same point, so the two loops still drive the same
+    // seats. Found in batch C3's six-seat duel, where seat 3 falls on turn 108.
+    const player = playerById(game.state, playerId);
+    if (player === undefined || player.eliminated || hasEndedTurn(game.state, playerId)) continue;
     reports.push(driveSeat(game, playerId, options));
   }
   return reports;

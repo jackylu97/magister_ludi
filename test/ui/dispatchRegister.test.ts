@@ -93,11 +93,13 @@ describe('the page dispatches in exactly one place', () => {
     const types = [...MAIN.matchAll(/\bsend\(\s*\{\s*type: '(\w+)'/g)].map((m) => m[1]).sort();
     expect(types).toEqual(
       [
-        // The three hands an offer card answers, and the pass beside the first.
+        // The three hands an offer card answers, and the pass beside the
+        // first and the third (the Doctrine's pass, batch C3).
         'chooseOrder',
         'skipOrderOffer',
         'adoptGovernment',
         'chooseDoctrine',
+        'skipDoctrineOffer',
         // The ruin or the village, and the belief a prophet bought.
         'chooseDiscovery',
         'chooseBelief',
@@ -117,9 +119,10 @@ describe('the page dispatches in exactly one place', () => {
         'dismissCensus',
       ].sort(),
     );
-    // One more site is a whole class rather than one verb: the reward sheet
-    // hands its command down already built, so the page sends it unopened.
-    expect(MAIN).toContain('const result = send(command)');
+    // The reward sheet handed its command down already built, and the page
+    // sent it unopened. It went with the reward hands in batch C3, so every
+    // command the page sends is now named at its call.
+    expect(MAIN).not.toContain('send(command)');
   });
 
   /**

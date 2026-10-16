@@ -1229,56 +1229,82 @@ import {
  * that earns a rank writes the new record. The branch migrates nothing, for the
  * reason given under v119.
  *
- * v131 (branch `decks`; batch D2 of `docs/plans/dominion-build-triage.md`,
- * ranks read, and combat rules): **nine Dominion cards that read a unit's rank
- * or change a rule of combat.** Seven join the Dominion file; The Soldiers'
- * Purse is reworked, and The Marching Camps takes over March Discipline's row,
- * keeping its id. One field joins the state: `Unit.firstAttackTurn`, the turn an
- * Elite under The Varangian Guard made the first of its two attacks. It is
- * written only by `applyCombat`, compared against `state.turn` and never reset,
- * and absent in any game without the card. The rules that change:
+ * v131 (branch `decks`; batch C3 of `docs/plans/chairs-build.md`): **Doctrines
+ * come with a government, and the reward hands go.** Two fields leave the
+ * state: `PlayerStatecraft.rewardHands` and `PlayerStatecraft.pendingReward`,
+ * with the three commands that used them (`openRewardHand`, `chooseReward`,
+ * `passReward`). One command joins: `skipDoctrineOffer`, which passes on a
+ * Doctrine offer. Adopting a government now opens a Doctrine offer of that
+ * government's tier (tier 4 offers the Tier I Doctrines, tier 10 Tier II, tier
+ * 18 Tier III and tier 29 Tier IV), drawn from the seat's two decks: one from
+ * each deck, then a third from either. A Doctrine already held is never
+ * offered again, and with nothing to offer no offer opens. A waiting Doctrine
+ * offer must be answered before another government is adopted. A deck's
+ * Doctrines live in its file's new `doctrines` map; the first is Dominion's
+ * The Steppe Confederacy, and with it the border freeze's exemption
+ * (`meterRule` `borderFreezeExempt`) lifts the freeze's own line and lets a
+ * border claim, where before it only cleared the flag.
  *
- *   · a card can read a unit's rank: a combat condition (`hasRank`), a narrowing
- *     on a unit stat and on a flag rule (`rank`), a town scope (`garrisonRank`)
- *     and an upkeep rebate taken once per rank (`perRank`);
- *   · four new behaviour rules: an attack keeps fortification, a land unit may
- *     move after attacking, an Elite may attack twice, and a siege unit takes a
- *     town's walls to the floor in one blow;
+ * **A v130 save is refused and does not replay.** A v130 seat carries the two
+ * reward fields this build no longer reads, a v130 log may name the three
+ * reward commands this build refuses, and from the first adoption on this
+ * build deals a Doctrine offer the v130 game never dealt, which spends
+ * randomness and blocks the turn until it is answered. The branch migrates
+ * nothing, for the reason given under v119.
+ *
+ * v132 (branch `decks`; Dominion batch D2 of
+ * `docs/plans/dominion-build-triage.md`, ranks read, and combat rules): **nine
+ * Dominion cards that read a unit's rank or change a rule of combat.** Seven
+ * join the Dominion file. The Soldiers' Purse is reworked, and The Marching
+ * Camps takes over March Discipline's row and keeps its id. One field joins
+ * the state: `Unit.firstAttackTurn`, the turn an Elite under The Varangian
+ * Guard made the first of its two attacks. Only `applyCombat` writes it. It is
+ * compared against `state.turn`, never reset, and absent in any game without
+ * the card. The rules that change:
+ *
+ *   · a card can read a unit's rank: a combat condition (`hasRank`), a
+ *     narrowing on a unit stat and on a flag rule (`rank`), a town scope
+ *     (`garrisonRank`) and an upkeep rebate for each rank (`perRank`);
+ *   · four new behaviour rules: an attack keeps fortification, a land unit
+ *     may move after attacking, an Elite may attack twice, and a siege unit
+ *     takes a town's walls to the floor in one blow;
  *   · a combat condition for a unit that has not moved this turn (`unmoved`);
  *   · every write of a unit's experience is announced on the economy clock,
  *     because a town scope now reads it.
  *
- * **A v130 save is refused and does not replay.** The draft bags hold
- * different cards, so a v130 log's picks would name cards this build never
+ * **A v131 save is refused and does not replay.** The draft bags hold
+ * different cards, so a v131 log's picks would name cards this build never
  * dealt. The branch migrates nothing, for the reason given under v119.
  *
- * v132 (branch `decks`; batch D3 of `docs/plans/dominion-build-triage.md`,
- * pillage and grant delivery): **nine Dominion cards about pillaging and about
- * where a grant lands.** Eight join the Dominion file and Armoury Guilds is
- * reworked in place. One field joins the state: `Player.hexesPillaged`, the
- * number of hexes the empire's units have ever pillaged, written only by
- * `pillageAt` (`improvements.ts`), never for the wild, and absent until the
- * first pillage. The rules that change:
+ * v133 (branch `decks`; Dominion batch D3 of
+ * `docs/plans/dominion-build-triage.md`, pillage and grant delivery): **nine
+ * Dominion cards about pillaging and about where a grant lands.** Eight join
+ * the Dominion file, and Armoury Guilds is reworked in place. One field joins
+ * the state: `Player.hexesPillaged`, the number of hexes the empire's units
+ * have pillaged in the game. Only the pillage verb writes it (`payPillage`,
+ * which only `pillageAt` calls, in `improvements.ts`). The wild never writes
+ * it, and it is absent until the first pillage. The rules that change:
  *
  *   · a pillage tells its riders which unit type did it, counts a tally
- *     (`hexPillaged`) and keeps the record above. Naming the raider also
- *     lets the Mandekalu's own salvage rider (`data/units.json`) pay, which
- *     it never did before because no raider was named;
+ *     (`hexPillaged`) and keeps the record above. Because the raider is now
+ *     named, the Mandekalu's own salvage rider (`data/units.json`) pays. It
+ *     never paid before;
  *   · a pillage rider can heal the raider fully, strike the enemy towns near
- *     the hex (`strikeTownsNear`, `combat.ts`: one roll from `state.rng` for
- *     each town struck, in founding order), throw an ungarrisoned enemy town
- *     beside the hex into unrest (`startUnrest`'s second caller), and spread
- *     the pillage to the enemy works beside the hex, each a full pillage;
- *   · a grant's food and production can land in the capital, in every town or
- *     in the nearest town a scope admits;
- *   · the food and production a pillage's riders pay settle the instant they
- *     land. Spoils of War's hammers used to wait for the end of the turn.
+ *     the hex, put an ungarrisoned enemy town beside the hex into unrest
+ *     (`startUnrest`'s second caller), and spread the pillage to the enemy
+ *     improvements beside the hex. Each extra hex is a full pillage;
+ *   · a strike (`strikeTownsNear`, `combat.ts`) takes one roll from
+ *     `state.rng` for each town it hits, in founding order;
+ *   · a grant's food and production can go to the capital, to every town, or
+ *     to the nearest town that a scope admits;
+ *   · the food and production that a pillage's riders pay settle at once.
+ *     Before, Spoils of War's production waited for the end of the turn.
  *
- * **A v131 save is refused and does not replay.** The draft bags hold
+ * **A v132 save is refused and does not replay.** The draft bags hold
  * different cards, and every pillage now writes the new record. The branch
  * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 132;
+export const SCHEMA_VERSION = 133;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -230,7 +230,16 @@ import { hasStackingRoom } from './units';
 import { siegeField, underSiege } from './combat';
 import { recomputeVisibility } from './visibility';
 import { isCoastal } from './water';
-import { borderFactor, borderPercent, bordersFrozen, growthPercent, meterEffects } from './meters';
+import {
+  type MeterEffect,
+  authorityOf,
+  borderFactor,
+  borderFreezePercent,
+  borderPercent,
+  bordersFrozen,
+  growthPercent,
+  meterEffects,
+} from './meters';
 import { foldRulePercent, resourceRulePercent } from './resourceEffects';
 import { buildingUnitUpkeepRebate, cityIsWatered } from './buildingEffects';
 // A leaf, like `roads.ts` and `routeYields.ts`, and imported for the same
@@ -2542,7 +2551,8 @@ export function turnsToFill(remaining: number, perTurn: number): number | null {
  *   2. the writ's border factor multiplies it (`borderFactor`) — the same
  *      ±10/20% tier the meters already compute, summed-then-applied like every
  *      other percentage in this game;
- *   3. a writ in deficit freezes it outright, at any deficit at all;
+ *   3. a writ in deficit freezes it outright, at any deficit at all, unless
+ *      the empire's law lifts the freeze (`bordersFrozenFor`);
  *   4. a town in unrest banks none of it (`unrest`, batch WC1), whatever the
  *      writ says.
  *
@@ -2590,17 +2600,45 @@ export interface BorderGrowth {
   turns: number | null;
 }
 
+/**
+ * **Is this empire's border frozen, its law included?** The meters' freeze
+ * (`bordersFrozen`), unless a card lifts it: the `meterRule`
+ * `borderFreezeExempt` (The Steppe Confederacy, batch C3: *"Negative authority
+ * no longer stops your borders growing"*).
+ *
+ * The one question the three growth paths ask: the accrual (`borderGrowth`),
+ * the end-of-turn claim (`expandBorders`) and a border windfall
+ * (`settleBorderWindfall`). Until batch C3 only the accrual's flag read the
+ * exemption, so a lifted border reported itself unfrozen and still grew by
+ * nothing. Buying ground (`tileFreeze`) is not growth and keeps its own lift
+ * (`goldBuysFrozenTiles`).
+ */
+function bordersFrozenFor(
+  state: GameState,
+  playerId: number,
+  effects: readonly MeterEffect[] = meterEffects(state, playerId),
+): boolean {
+  return bordersFrozen(effects) && !cardMeterFlag(state, playerId, 'borderFreezeExempt');
+}
+
 export function borderGrowth(
   state: GameState,
   city: City,
   yields: CityYields = foldCity(state, city),
 ): BorderGrowth {
   const effects = meterEffects(state, city.ownerId);
-  // The one card family that can thaw a frozen border: Emergency Powers, gated
-  // on the writ being torn in the first place. A `meterRule` flag rather than a
-  // percentage, because "borders do not freeze" is not a rate.
+  // The one card family that can thaw a frozen border (The Steppe
+  // Confederacy), gated on the writ being torn in the first place. A
+  // `meterRule` flag rather than a percentage, because "borders do not freeze"
+  // is not a rate.
   const exempt = cardMeterFlag(state, city.ownerId, 'borderFreezeExempt');
-  const frozen = bordersFrozen(effects) && !exempt;
+  const frozen = bordersFrozenFor(state, city.ownerId, effects);
+  // **A lifted freeze takes its line with it** (batch C3). The freeze is a
+  // line of its own on the meters' border channel (`borderFreezePercent`), so
+  // the exemption adds that line back and the border grows at whatever the
+  // rest of the law says. Zero for an empire not in deficit, and for one with
+  // no exemption, so the factor below is unchanged for both.
+  const lifted = exempt ? -borderFreezePercent(authorityOf(state, city.ownerId)) : 0;
   // Border culture is its **own channel** (Entry XVII: not in the two-stage
   // pipeline), so a card's percentage on it sums with the meter's and is applied
   // once, here — never in `cityYieldPercents`, which is about a yield.
@@ -2620,8 +2658,11 @@ export function borderGrowth(
   // exactly as Entry XVII has it inside a stage. Floored at zero for
   // `borderFactor`'s own reason: the worst a modifier can do is stop a border,
   // never march it backwards.
-  const factor =
-    frozen || unrest ? 0 : Math.max(0, borderFactor(effects) + cardPercent / 100);
+  // `borderFactor` is `max(0, 1 + borderPercent / 100)`; the lifted line joins
+  // the meters' percent inside that floor, as the line it cancels was.
+  const meterFactor =
+    lifted === 0 ? borderFactor(effects) : Math.max(0, 1 + (borderPercent(effects) + lifted) / 100);
+  const factor = frozen || unrest ? 0 : Math.max(0, meterFactor + cardPercent / 100);
   const base = yields.culture;
   // Exact since batch X — a +10% on 3 culture is 3.3 and the third of a point is
   // banked, where the old floor made the writ's bonus invisible to every town
@@ -2630,7 +2671,7 @@ export function borderGrowth(
   const cost = borderCostFor(state, city);
   return {
     base,
-    percent: borderPercent(effects) + (frozen ? 0 : cardPercent),
+    percent: borderPercent(effects) + lifted + (frozen ? 0 : cardPercent),
     frozen,
     unrest,
     perTurn,
@@ -5258,7 +5299,7 @@ export function expandBorders(state: GameState): void {
   const grew = new Set<number>();
   const frozen = new Map<number, boolean>();
   for (const player of state.players) {
-    frozen.set(player.id, bordersFrozen(meterEffects(state, player.id)));
+    frozen.set(player.id, bordersFrozenFor(state, player.id));
   }
   for (const city of state.cities) {
     if (frozen.get(city.ownerId) === true) continue;
@@ -5326,7 +5367,7 @@ export interface BorderCompletion {
  * for a town hemmed in by its neighbours.
  */
 export function settleBorderWindfall(state: GameState, city: City): BorderCompletion | null {
-  if (bordersFrozen(meterEffects(state, city.ownerId))) return null;
+  if (bordersFrozenFor(state, city.ownerId)) return null;
   // Nor out of a town in unrest (batch WC1): the culture stays banked, and the
   // phase spends it once the town is pacified.
   if (city.unrest !== undefined) return null;

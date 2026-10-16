@@ -1596,13 +1596,15 @@ describe('research in the log', () => {
     // 130 since D1: eleven Dominion cards that give units experience or pay
     // when a unit earns a rank, a new end-of-turn phase and a new record, so
     // a v129 log's picks name cards this build never dealt.
-    // 131 since D2: nine Dominion cards that read a unit's rank or change a
-    // rule of combat, and a new unit field, so a v130 log's picks name cards
+    // 131 since C3: the reward hands go and an adoption opens a Doctrine
+    // offer, so a v130 seat carries fields this build no longer reads.
+    // 132 since D2: nine Dominion cards that read a unit's rank or change a
+    // rule of combat, and a new unit field, so a v131 log's picks name cards
     // this build never dealt.
-    // 132 since D3: nine Dominion cards about pillaging and where a grant
-    // lands, and a new record, so a v131 log's picks name cards this build
+    // 133 since D3: nine Dominion cards about pillaging and where a grant
+    // lands, and a new record, so a v132 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(132);
+    expect(SCHEMA_VERSION).toBe(133);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

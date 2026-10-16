@@ -235,7 +235,7 @@ describe('the screen registry beside the disposal register', () => {
       ['abacus', 'abacus'],
       ['beads', 'beadLedger'],
       ['statecraft', 'statecraft'],
-      ['rewardSheet', 'rewards'],
+      // The reward sheet stood here until batch C3 removed the reward hands.
       ['religion', 'religion'],
       ['trade', 'trade'],
       ['wagerSheet', 'wager'],

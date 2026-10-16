@@ -5,10 +5,10 @@
  * Culture fills an escalating meter; each fill is a draft, and *tier is the
  * draft count*. A draft offers three new cards and a pass; a government is
  * offered at the tier ladder's rungs; adopting swaps the chairs, re-seats the
- * cards that fit the new ones, lifts every seal and opens a Doctrine draft. All
- * of it is `state.rng` at the moment an offer opens, an ordinary command to
- * spend it, and both halves in the log — `discoveries.ts`' shape inherited
- * rather than re-invented.
+ * cards that fit the new ones, lifts every seal and opens a Doctrine offer of
+ * the government's tier from the seat's decks. All of it is `state.rng` at the
+ * moment an offer opens, an ordinary command to spend it, and both halves in
+ * the log — `discoveries.ts`' shape inherited rather than re-invented.
  *
  * Split out of `statecraft.ts` in batch E3b (`docs/flags.md` item pp,
  * `docs/audit/evaluations.md` §4b step 9). It reads `evaluator.ts` for the
@@ -41,7 +41,6 @@ import {
   type TallyOccasion,
   GOVERNMENT_TIERS,
   LAST_BAND,
-  REWARD_DRAFTS,
   STARTING_GOVERNMENT,
   STATECRAFT,
   bandTierAt,
@@ -312,20 +311,6 @@ export interface OrderOffer {
 }
 
 /**
- * **A reward hand on the table** — three rares (or fewer) dealt when a banked
- * reward was opened (`openRewardHandAt`), and the draft count it was banked
- * at. Spent by `chooseReward` or `passReward`; blocks nothing.
- */
-export interface RewardOffer {
-  /** The regular draft count this reward was banked at — 4, 18 or 29. */
-  drafts: number;
-  /** The rares dealt, in draw order — position for position with `positions`. */
-  options: OrderId[];
-  /** `OrderOffer.positions`' twin: the deck each position came from. */
-  positions?: HandPosition[];
-}
-
-/**
  * **What category one position of a hand is dealt from** — the vocabulary of
  * the design doc's "Normal three-card hands", rules 1 and 2.
  *
@@ -394,7 +379,14 @@ export interface CardYieldTally {
 }
 
 /** Three Doctrines from one adoption's pool, drawn without replacement. */
+/**
+ * **The Doctrines an adoption offers** (batch C3): Doctrines of the adopted
+ * government's tier from the seat's own decks, dealt by `drawDoctrineOffer`.
+ * Spent by `chooseDoctrine` or passed by `skipDoctrineOffer`, and it blocks
+ * End Turn until it is answered, as a draft does.
+ */
 export interface DoctrineOffer {
+  /** The Doctrines dealt, in draw order. A pick names an index into this list. */
   options: DoctrineId[];
   /**
    * **This hand has already had its free redraw** — the Rihla's stamp (batch
@@ -446,7 +438,11 @@ export interface PlayerStatecraft {
    * slots is a fact about the government and the array's length says so.
    */
   slots: (SlottedOrder | null)[];
-  /** Doctrines held, in the order they were taken. Permanent, slotless. */
+  /**
+   * Doctrines held, in the order they were taken. Permanent and slotless: a
+   * Doctrine is held for the whole game, takes no chair, and is the second
+   * source of `liveEffects`, after the government.
+   */
   doctrines: DoctrineId[];
   /**
    * The Orders whose `onSlot` grant has already been paid, in the order it was
@@ -567,22 +563,6 @@ export interface PlayerStatecraft {
    */
   riderTurns?: { card: CardId; turn: number }[];
   /**
-   * **The reward hands this empire has banked and not yet opened**, as the
-   * regular draft counts they were banked at (the decks rework, D1a; the
-   * design doc's "Doctrine reward hands": *"the player may bank or pass the
-   * reward; a banked reward does not block End Turn"*).
-   *
-   * **Counts and not hands**, and that is the rule's own shape: the hand is
-   * dealt when the reward is *opened* (`openRewardHandAt`, a command), from
-   * the shelf as it stands then — so a rare taken in a normal draft between
-   * the banking and the opening is simply not in it, which is the doc's
-   * *"taking any rare in a normal draft removes that same ID from future
-   * doctrine hands"* with nothing to remove. An absolute count in every
-   * other timed fact's register: written by `settleDraft`, spent by the open,
-   * ticked by nothing. Always present, never optional.
-   */
-  rewardHands: number[];
-  /**
    * **The commissions this empire has fulfilled**, in the order they were
    * fulfilled, with the turn each goal was met on (batch C,
    * `docs/plans/deck-implementation.md`). Written in exactly one place,
@@ -595,16 +575,13 @@ export interface PlayerStatecraft {
   commissionsFulfilled?: { card: OrderId; turn: number }[];
   /** A draft awaiting a pick, or the key is absent. Blocks End Turn. */
   pendingOrder?: OrderOffer;
-  /** A Doctrine draft awaiting a pick, or absent. Blocks End Turn. */
+  /**
+   * The Doctrine offer an adoption opened, awaiting a pick or a pass, or
+   * absent. Blocks End Turn.
+   */
   pendingDoctrine?: DoctrineOffer;
   /** A banked government offer, or absent. Deliberately does **not** block. */
   pendingGovernment?: GovernmentOffer;
-  /**
-   * **A reward hand opened and on the table**, or absent. Deliberately does
-   * **not** block — a reward is a gift the empire may take or leave, and a
-   * hand left on the table across a turn is a hand it has not yet answered.
-   */
-  pendingReward?: RewardOffer;
 }
 
 /** A brand-new empire's Statecraft: the chiefdom, one slot spread, nothing held. */
@@ -620,7 +597,6 @@ export function newPlayerStatecraft(): PlayerStatecraft {
     rerollsTaken: 0,
     tallies: [],
     yieldTallies: [],
-    rewardHands: [],
   };
 }
 
@@ -1609,22 +1585,66 @@ export function draftExhausted(state: GameState, player: Player): boolean {
 }
 
 /**
- * Deals one Doctrine draft from a tier's pool, **without replacement within a
- * game** — a Doctrine already held is not offered again (Entry XV.b).
+ * **The Doctrines this seat may be offered at an adoption of this tier** (batch
+ * C3): the tier's live Doctrines (`poolDoctrines`, which pairs the tier with a
+ * Doctrine tier) that belong to one of the seat's decks, less the ones it
+ * already holds — a Doctrine is offered at most once a game (Entry XV.b). In
+ * file order.
+ */
+export function doctrineBagFor(player: Player, tier: number): DoctrineId[] {
+  const held = new Set<DoctrineId>(player.statecraft.doctrines);
+  return poolDoctrines(tier).filter(
+    (id) => !held.has(id) && doctrineDef(id).decks.some((deck) => player.decks.includes(deck)),
+  );
+}
+
+/**
+ * **The Doctrine offer an adoption opens** (batch C3; the user, 2026-10-15:
+ * *"doctrines offered with the government, as before. Show a combination of
+ * the two deck's doctrines"*). The offer holds Doctrines of the adopted
+ * government's tier from both of the seat's decks.
  *
- * `offerSize`'s second caller, and it takes the player for `drawOrderOffer`'s
- * reason: how wide a triple is dealt is a fact about the empire, not about its
- * collection. A pool shorter than the size deals the pool — a late tier whose
- * Doctrines are all held is a smaller hand, never a blocked adoption.
+ * **One from each deck, then a third from either** — the reward hands' old
+ * rule, used until the user rules the mix (`docs/plans/chairs-build.md`, C3).
+ * The positions are `drawDoctrinePositions`'; each is dealt evenly from the
+ * Doctrines of its deck, and a position whose deck has none left falls back
+ * to the whole bag. A rider that widens a Doctrine offer (`offerSize`) adds
+ * cards from the whole bag after the base three. A bag smaller than the offer
+ * deals the bag, and an empty bag deals nothing and spends no randomness, so
+ * the caller can skip the offer.
+ *
+ * `tier` is the government tier the offer is for. The adoption passes its own
+ * offer's tier; a wonder's Doctrine grant and the faith reroll pass the
+ * current government's.
  */
 export function drawDoctrineOffer(
   state: GameState,
   player: Player,
   tier: number,
 ): DoctrineOffer {
-  const held = new Set<DoctrineId>(player.statecraft.doctrines);
-  const pool = poolDoctrines(tier).filter((id) => !held.has(id));
-  return { options: drawWithoutReplacement(state, pool, offerSize(state, player.id, 'doctrine')) };
+  const bag = doctrineBagFor(player, tier);
+  if (bag.length === 0) return { options: [] };
+  const size = Math.max(HAND_POSITIONS, offerSize(state, player.id, 'doctrine'));
+  const options: DoctrineId[] = [];
+  const take = (from: readonly DoctrineId[]): void => {
+    const [pick] = drawWithoutReplacement(state, from, 1);
+    if (pick !== undefined) options.push(pick);
+  };
+  const left = (): DoctrineId[] => bag.filter((id) => !options.includes(id));
+  for (const position of drawDoctrinePositions(state, player)) {
+    if (options.length >= size) break;
+    const remaining = left();
+    if (remaining.length === 0) break;
+    const ofDeck =
+      position.kind === 'deck' ? remaining.filter((id) => doctrineDef(id).decks.includes(position.deck)) : [];
+    take(ofDeck.length > 0 ? ofDeck : remaining);
+  }
+  while (options.length < size) {
+    const remaining = left();
+    if (remaining.length === 0) break;
+    take(remaining);
+  }
+  return { options };
 }
 
 // --- the ladder -------------------------------------------------------------
@@ -1715,11 +1735,6 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
   sc.drafts = plan.tier;
   const offer = drawOrderOffer(state, player);
   sc.pendingOrder = offer;
-  // **A reward hand is banked at the ladder's rungs** (the design doc's
-  // "Doctrine reward hands": 4, 18, 29 and 38) — a count, never a hand, and never a
-  // blocker. See `PlayerStatecraft.rewardHands` for why the deal waits for the
-  // open.
-  if (REWARD_DRAFTS.includes(plan.tier)) sc.rewardHands.push(plan.tier);
 
   let government: GovernmentOffer | null = null;
   if (plan.offersGovernment) {
@@ -1895,9 +1910,10 @@ export function settleOrderChoice(player: Player, optionIndex: number): OrderCho
  * (`CharterSpec` carries the whole argument for why a charter is a grant on
  * the pick and never a chair).
  *
- * Called by the two verbs that take a card into the collection
- * (`settleOrderChoice`, `settleRewardChoice`) and by nothing else, so a third
- * way to draft a card would call this or not grant at all. A row that is no
+ * Called by the verb that takes a card into the collection
+ * (`settleOrderChoice`) and by nothing else, so a second way to draft a card
+ * would call this or not grant at all. (The reward hand's pick was the other
+ * caller until batch C3 removed the reward hands.) A row that is no
  * charter writes nothing and answers `false`. Every list is grown by presence
  * — an id already there is left there — so a grant is idempotent and a save
  * that replays it lands on the same bytes.
@@ -1951,67 +1967,18 @@ export function settleOrderSkip(state: GameState, player: Player): OrderSkip | n
   return { skips: sc.orderSkips };
 }
 
-// --- the reward hand ----------------------------------------------------------
+// --- the Doctrine offer's positions --------------------------------------------
 
 /**
- * **The reward hand** (`docs/six-decks-first-cut.md` "Doctrine reward hands";
- * the decks rework, D1a): at regular draft counts 4, 18, 29 and 38 an empire is
- * owed *"three distinct unowned rare cards from the same currently unlocked,
- * leader-eligible catalogue"* — a bonus draw of rares, and what the Doctrine
- * draft became. The Doctrine rows are retired; the rare-only hand is dealt
- * from the Orders, and a rare taken here is an Order in the collection like
- * any other (a charter grants; an ordinary rare waits for a chair).
- *
- * Three verbs, and the shape follows the draft's with one deliberate
- * difference: the reward is **banked as a count and dealt on the open**.
- *
- *   · `openRewardHand` spends one banked count and deals the hand from the
- *     shelf *as it stands then* — three positions, the seat's two decks and
- *     then the union (rainbow: two decks sampled distinct), rares only, every
- *     position falling back to the union of eligible rares, extras by
- *     `explainOfferSize` after the base three. An empty shelf resolves the
- *     reward as **exhausted at no cost**: the count is spent, nothing is
- *     dealt, and the open reports it.
- *   · `chooseReward` takes one into the collection and applies a charter.
- *   · `passReward` forfeits the hand for nothing — no pity, no refund; there
- *     was no price.
- *
- * None of the three blocks End Turn (`statecraftBlocker` leaves them out), and
- * a hand opened and not answered stays on the table. A rare taken in a normal
- * draft between the banking and the open is simply not dealt (the bag is
- * "what is eligible and unowned" at the open) — the doc's *"vice versa"*
- * clause, kept by construction rather than by a second list.
+ * **The three positions of a Doctrine offer** (batch C3): one of the seat's
+ * decks, its other deck, then either — *"one Doctrine from each deck, then a
+ * third from either"*, the rule the reward hands dealt by until they were
+ * removed. A rainbow seat, which holds every deck, samples two distinct decks
+ * for the first two positions, exactly as its normal hand does. The third
+ * position names no deck (`cross`, as the reward hands named it) and is dealt
+ * from the whole bag.
  */
-
-/** Why this player cannot open a reward hand, or `null` when they can. */
-export function rewardOpenError(state: GameState, playerId: number): string | null {
-  const player = playerById(state, playerId);
-  if (!player) return `No player with id ${String(playerId)}`;
-  const sc = player.statecraft;
-  if (sc.rewardHands.length === 0) return `${player.name} has no reward hand banked`;
-  if (sc.pendingReward !== undefined) return `${player.name} already has a reward hand on the table`;
-  return null;
-}
-
-/**
- * **The rares this seat may be dealt in a reward hand**: the eligible bag
- * (the current band only, held excluded) narrowed to the rare rung. The same one bag the
- * normal draft deals from, which is what makes *"the same rare can appear in
- * normal drafts and cannot be owned twice"* true without a second register.
- */
-export function eligibleRaresFor(state: GameState, player: Player): OrderId[] {
-  return eligibleFor(state, player).filter((id) => orderDef(id).rarity === 'rare');
-}
-
-/**
- * **The three positions of a reward hand**: the seat's two decks, then the
- * union — *"prefer a single-type rare from each leader deck, then another
- * eligible rare, including cross-types"*. A rainbow seat samples two distinct
- * decks (two rolls), exactly as its normal hand does; the third position is
- * `cross` here as a name for "anything eligible", and `positionBag` on a rare
- * bag falls back to the union in the draw whenever the ask is not met.
- */
-export function drawRewardPositions(state: GameState, player: Player): HandPosition[] {
+export function drawDoctrinePositions(state: GameState, player: Player): HandPosition[] {
   const decks = player.decks;
   let first: DeckId | undefined;
   let second: DeckId | undefined;
@@ -2027,103 +1994,6 @@ export function drawRewardPositions(state: GameState, player: Player): HandPosit
   if (second !== undefined) positions.push({ kind: 'deck', deck: second });
   positions.push({ kind: 'cross' });
   return positions;
-}
-
-/** What opening a reward did, for the announcement. */
-export interface RewardOpening {
-  /** The draft count the reward was banked at. */
-  drafts: number;
-  /** The hand dealt, or `null` when the shelf held no rare — exhausted, at no cost. */
-  offer: RewardOffer | null;
-}
-
-/**
- * Spends one banked reward and deals its hand. Validates nothing — the rule is
- * `rewardOpenError`'s. The oldest banked count is the one opened, because the
- * list is in banking order and a reward is a reward whichever rung it came
- * from. The rares are dealt with **no pity**: a pass on a reward buys nothing
- * (`settleRewardPass`), so there is no count to read.
- */
-export function openRewardHandAt(state: GameState, player: Player): RewardOpening | null {
-  const sc = player.statecraft;
-  if (sc.rewardHands.length === 0 || sc.pendingReward !== undefined) return null;
-  const drafts = sc.rewardHands.shift()!;
-  const rares = eligibleRaresFor(state, player);
-  if (rares.length === 0) return { drafts, offer: null };
-  const positions = drawRewardPositions(state, player);
-  const options = drawOrderOptions(
-    state,
-    rares,
-    positions,
-    // The base three, and whatever a rider adds to an Order draft — *"extra-
-    // offer effects … apply to these hands too"*.
-    Math.max(HAND_POSITIONS, offerSize(state, player.id, 'order')),
-    0,
-    player.decks,
-  );
-  if (options.length === 0) return { drafts, offer: null };
-  const offer: RewardOffer = { drafts, options, positions };
-  sc.pendingReward = offer;
-  return { drafts, offer };
-}
-
-/** Why this player cannot take this reward option, or `null`. `orderChoiceError`'s twin. */
-export function rewardChoiceError(
-  state: GameState,
-  playerId: number,
-  optionIndex: unknown,
-): string | null {
-  const player = playerById(state, playerId);
-  if (!player) return `No player with id ${String(playerId)}`;
-  const offer = player.statecraft.pendingReward;
-  if (!offer) return `${player.name} has no reward hand on the table`;
-  if (!Number.isInteger(optionIndex)) {
-    return `chooseReward needs an integer optionIndex, got ${String(optionIndex)}`;
-  }
-  const index = optionIndex as number;
-  const size = offer.options.length;
-  if (index < 0 || index >= size) return `Option ${index} is not one of the ${size} offered`;
-  const id = offer.options[index];
-  if (!isOrderId(id)) return `Option ${index} names no known Order`;
-  // Reachable only across turns: a hand left open while a normal draft took
-  // the same rare. The card is the seat's already; the answer is to pass.
-  if (player.statecraft.orders.includes(id)) {
-    return `${player.name} already holds ${orderDef(id).name}`;
-  }
-  return null;
-}
-
-/** Takes one rare from the reward hand. `settleOrderChoice`'s shape; no pity to zero. */
-export function settleRewardChoice(player: Player, optionIndex: number): OrderChoice | null {
-  const sc = player.statecraft;
-  const offer = sc.pendingReward;
-  if (!offer) return null;
-  const id = offer.options[optionIndex];
-  if (id === undefined || !isOrderId(id)) return null;
-  delete sc.pendingReward;
-  if (!sc.orders.includes(id)) sc.orders.push(id);
-  const chartered = applyCharter(player, id);
-  return { id, name: orderDef(id).name, chartered };
-}
-
-/** Why this player cannot pass on their reward hand, or `null`. */
-export function rewardPassError(state: GameState, playerId: number): string | null {
-  const player = playerById(state, playerId);
-  if (!player) return `No player with id ${String(playerId)}`;
-  if (!player.statecraft.pendingReward) return `${player.name} has no reward hand to pass on`;
-  return null;
-}
-
-/**
- * Forfeits the reward hand. **For nothing**: no pity, because no pity was
- * read to deal it, and no bead — a reward was a gift, and passing a gift is
- * not the pass the Last Laurels pays for.
- */
-export function settleRewardPass(player: Player): boolean {
-  const sc = player.statecraft;
-  if (!sc.pendingReward) return false;
-  delete sc.pendingReward;
-  return true;
 }
 
 // --- the slots --------------------------------------------------------------
@@ -2531,6 +2401,11 @@ export function reseatMalices(player: Player): void {
  * all and whether the index names one of its three. There is no tier check
  * beyond that: an empire that climbed to tier 9 holding an unclaimed tier-7
  * triple may still take it, which is exactly what "bankable" means.
+ *
+ * **A Doctrine offer that is waiting is answered first** (batch C3). An
+ * adoption opens a Doctrine offer, and one written over a waiting offer (a
+ * wonder's grant, or an earlier offer still unanswered) would throw that offer
+ * away. `settleDraft` holds a draft back for the same reason.
  */
 export function governmentChoiceError(
   state: GameState,
@@ -2541,6 +2416,9 @@ export function governmentChoiceError(
   if (!player) return `No player with id ${String(playerId)}`;
   const offer = player.statecraft.pendingGovernment;
   if (!offer) return `${player.name} has no government offer to claim`;
+  if (player.statecraft.pendingDoctrine !== undefined) {
+    return `${player.name} must answer the waiting Doctrine offer before adopting a government`;
+  }
   if (!Number.isInteger(choiceIndex)) {
     return `adoptGovernment needs an integer choiceIndex, got ${String(choiceIndex)}`;
   }
@@ -2560,7 +2438,7 @@ export interface GovernmentAdoption {
   reseated: OrderId[];
   /** Cards that fitted no chair left and went back to the collection. */
   returned: OrderId[];
-  /** The Doctrine draft the adoption opened, or `null` when the pool is empty. */
+  /** The Doctrine offer the adoption opened, or `null` when no Doctrine was left to offer. */
   doctrines: DoctrineOffer | null;
 }
 
@@ -2693,9 +2571,11 @@ export function reseatCouncil(
  * fits it keeps that chair, the rest move to free chairs that fit them, and
  * every seal is lifted so the player can re-lay the council at once; a card
  * that fits no chair left goes back to the collection with its progress. And a
- * **Doctrine draft opens**, drawn here
- * rather than at the next resolution because it belongs to *this* moment and a
- * draw taken later would be a draw taken from a moved generator.
+ * **Doctrine offer opens** (batch C3: Doctrines of this government's tier from
+ * the seat's decks, `drawDoctrineOffer`), drawn here rather than at the next
+ * resolution because it belongs to *this* moment and a draw taken later would
+ * be a draw taken from a moved generator. With no Doctrine left to offer, none
+ * opens.
  *
  * The banked offer is spent (the key deleted), so a tier's triple is claimed
  * once. Entry XV settles the open question: a government pick cannot be
@@ -2801,7 +2681,7 @@ export function doctrineChoiceError(
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
   const offer = player.statecraft.pendingDoctrine;
-  if (!offer) return `${player.name} has no Doctrine draft awaiting a pick`;
+  if (!offer) return `${player.name} has no Doctrine offer awaiting a pick`;
   if (!Number.isInteger(optionIndex)) {
     return `chooseDoctrine needs an integer optionIndex, got ${String(optionIndex)}`;
   }
@@ -2828,13 +2708,35 @@ export function settleDoctrineChoice(
   return { id, name: doctrineDef(id).name };
 }
 
+/** Why this player cannot pass on their Doctrine offer, or `null`. `orderSkipError`'s twin. */
+export function doctrineSkipError(state: GameState, playerId: number): string | null {
+  const player = playerById(state, playerId);
+  if (!player) return `No player with id ${String(playerId)}`;
+  if (!player.statecraft.pendingDoctrine) return `${player.name} has no Doctrine offer to pass on`;
+  return null;
+}
+
+/**
+ * **Passes on the Doctrine offer** (batch C3: *"the player takes one or
+ * passes"*). The offer is spent and nothing is given back: there is no pity
+ * and no bead, because a Doctrine offer is not a draft and nothing was paid to
+ * deal it. A Doctrine passed over is not held, so a later offer of the same
+ * tier (a wonder's Doctrine grant) may deal it again.
+ */
+export function settleDoctrineSkip(player: Player): boolean {
+  const sc = player.statecraft;
+  if (!sc.pendingDoctrine) return false;
+  delete sc.pendingDoctrine;
+  return true;
+}
+
 // --- what the interface asks ------------------------------------------------
 
 /**
  * Is this empire owed a decision that must be made before the turn can end?
  *
  * Two of the three offers block and one deliberately does not: a draft and a
- * Doctrine draw are decisions the empire *owes the game*, exactly as a claimed
+ * Doctrine offer are decisions the empire *owes the game*, exactly as a claimed
  * ruin is, while a banked government is a decision the empire is **allowed to
  * defer** — Entry XV makes adoption bankable on purpose, and a blocker on it
  * would delete the only reason banking exists.
@@ -2842,7 +2744,7 @@ export function settleDoctrineChoice(
 export function statecraftBlocker(player: Player): string | null {
   const sc = player.statecraft;
   if (sc.pendingOrder !== undefined) return 'an Order draft is waiting';
-  if (sc.pendingDoctrine !== undefined) return 'a Doctrine draft is waiting';
+  if (sc.pendingDoctrine !== undefined) return 'a Doctrine offer is waiting';
   return null;
 }
 
@@ -2852,11 +2754,7 @@ export function hasStatecraftOffer(player: Player): boolean {
   return (
     sc.pendingOrder !== undefined ||
     sc.pendingDoctrine !== undefined ||
-    sc.pendingGovernment !== undefined ||
-    // A banked or opened reward hand is a card waiting too (D1a) — it blocks
-    // nothing, and the badge is how a player finds out it is there.
-    sc.pendingReward !== undefined ||
-    sc.rewardHands.length > 0
+    sc.pendingGovernment !== undefined
   );
 }
 

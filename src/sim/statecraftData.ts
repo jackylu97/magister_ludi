@@ -95,7 +95,25 @@ import type { ModelClass, UnitCategory, UnitStamp, UnitTypeId } from './unitData
 // --- ids --------------------------------------------------------------------
 
 export type GovernmentId = keyof typeof statecraftJson.governments & string;
-export type DoctrineId = keyof typeof statecraftJson.doctrines & string;
+/** The keys of a deck file's `doctrines` map, or none for a file that has no map. */
+type DeckDoctrineKey<T> = T extends { doctrines: infer D } ? keyof D : never;
+/**
+ * A Doctrine's id — a key of the retired shelf's `doctrines` map in
+ * `statecraft.json`, or of any deck file's `doctrines` map (batch C3), so a
+ * Doctrine written into `data/decks/dominion.json` is a `DoctrineId` with no
+ * edit here.
+ */
+export type DoctrineId = (
+  | keyof typeof statecraftJson.doctrines
+  | DeckDoctrineKey<typeof dominionDeck>
+  | DeckDoctrineKey<typeof expansionistDeck>
+  | DeckDoctrineKey<typeof commerceDeck>
+  | DeckDoctrineKey<typeof devotionDeck>
+  | DeckDoctrineKey<typeof scientificDeck>
+  | DeckDoctrineKey<typeof magisterialDeck>
+  | DeckDoctrineKey<typeof commonDeck>
+) &
+  string;
 /**
  * An Order's id — a key of **any** of the eight files' `orders` maps (the
  * retired shelf in `statecraft.json`, the six decks, the commons), so a row
@@ -7648,17 +7666,33 @@ export interface GovernmentDef extends CardDefBase {
 }
 
 export interface DoctrineDef extends CardDefBase {
-  /** Which adoption's pool this belongs to. 0 means *no live pool* — deferred. */
+  /**
+   * **Which adoption offers this Doctrine**: the government tier (4, 10, 18 or
+   * 29) whose adoption deals it. 0 means *no live pool* — deferred.
+   *
+   * On a pre-rework row (`statecraft.json`) it is written in the data. On a
+   * deck's row (batch C3) it is **derived when the files are folded**, from
+   * the row's `band`, by the one-to-one pairing the user ruled on 2026-10-16:
+   * the Tier I Doctrines come with the tier-4 governments, Tier II with tier
+   * 10, Tier III with tier 18 and Tier IV with tier 29
+   * (`governmentTierForDoctrineBand`). A deck row therefore says only its own
+   * tier, as its deck sheet does, and the pairing lives in one place.
+   */
   tier: number;
   /**
-   * The deck memberships and the band, in the shape every Order row carries
-   * (see `OrderDef.decks`). **Every Doctrine row is retired** since the decks
-   * rework — a Doctrine is a rare-only reward *draft* now, not a card class —
-   * and the two fields are here so that the schema is one schema across the
-   * card table: a row of either class says which deck it belongs to and when
-   * it may be dealt, whether or not anything deals it.
+   * **The decks this Doctrine belongs to** — one, or two for a Doctrine two
+   * decks share — in the shape every Order row carries (see
+   * `OrderDef.decks`). A seat is offered the Doctrines of its own decks
+   * (`drawDoctrineOffer`). Empty on the pre-rework rows, which are retired and
+   * dealt to nobody.
    */
   decks: DeckId[];
+  /**
+   * **The Doctrine's tier on its deck sheet**, I to IV as 1 to 4 — the same
+   * numbering an Order's `band` uses for its tier. There are no Tier 0
+   * Doctrines. On a deck's row it decides which adoption offers it (`tier`,
+   * above); on a pre-rework row it is the band it would have been dealt in.
+   */
   band: Band;
   /**
    * **Withdrawn from the pool**: never dealt, and still fully readable.
@@ -8094,14 +8128,16 @@ export interface StatecraftConfig {
    * of 2026-10-15 (`docs/flags.md` (uuuuuu)), which moved the rung and the
    * tiers of the governments and doctrines offered there to 38 together, so
    * that Tier IV is reached more often. The ladder is **read by the
-   * simulation in three places**:
+   * simulation in two places**:
    *
    *   · a **band** opens at its rung's draft count (`bandTierAt`, the tier
    *     half of `bandOpen`);
-   *   · a **reward hand** is banked when a seat's regular draft count reaches
-   *     any rung but the first (`REWARD_DRAFTS`, read by `settleDraft`);
    *   · a government's **chairs** are its tier's rung (`chairsAtTier`, the
    *     figure written onto each row's `chairs`).
+   *
+   * It banked a reward hand at every rung but the first until batch C3 removed
+   * the reward hands (the user, 2026-10-16: a new government brings only its
+   * Doctrine offer).
    *
    * The governments are still *offered* at the rows' own tiers
    * (`GOVERNMENT_TIERS`, read off the live rows: 4 · 10 · 18 · 29), which is a
@@ -8127,7 +8163,7 @@ export type DeckFile = DeckId | 'common';
 /** The deck files in fold order. `common` last. See `DeckFile`. */
 export const DECK_FILES: readonly DeckFile[] = [...DECK_IDS, 'common'];
 
-const DECK_FILE_JSON: Record<DeckFile, { orders: Record<string, unknown> }> = {
+const DECK_FILE_JSON: Record<DeckFile, { orders: Record<string, unknown>; doctrines?: Record<string, unknown> }> = {
   dominion: dominionDeck,
   expansionist: expansionistDeck,
   commerce: commerceDeck,
@@ -8164,9 +8200,55 @@ function foldOrders(): Record<string, unknown> {
   return folded;
 }
 
+/**
+ * **The government tier that offers a Doctrine tier** (batch C3; the user's
+ * pairing of 2026-10-16): the first live government tier offers the Tier I
+ * Doctrines, the second Tier II, and so on — 4, 10, 18 and 29 today. Read off
+ * the government rows in `statecraft.json` (retired rows and the tier-0
+ * chiefdom excluded), because it is needed while the table is still being
+ * folded, before `GOVERNMENT_TIERS` exists. 0 for a band no live government
+ * tier pairs with, which no adoption offers.
+ */
+export function governmentTierForDoctrineBand(band: number): number {
+  const rows = Object.values(statecraftJson.governments) as { tier: number; retired?: boolean }[];
+  const tiers = [...new Set(rows.filter((row) => row.retired !== true && row.tier > 0).map((row) => row.tier))].sort(
+    (a, b) => a - b,
+  );
+  return Number.isInteger(band) && band >= 1 ? (tiers[band - 1] ?? 0) : 0;
+}
+
+/**
+ * **One registry of Doctrines from every file** (batch C3): the retired shelf
+ * in `statecraft.json` first, then each deck file's `doctrines` map in
+ * `DECK_FILES` order — `foldOrders`' shape, and its collision check. A deck
+ * row's `tier` is filled in here from its `band`
+ * (`governmentTierForDoctrineBand`), so the data says each Doctrine's tier as
+ * its sheet does and the pairing is written once.
+ */
+function foldDoctrines(): Record<string, unknown> {
+  const folded: Record<string, unknown> = {};
+  const from: Record<string, string> = {};
+  const add = (file: string, rows: Record<string, unknown>, derive: boolean): void => {
+    for (const [id, row] of Object.entries(rows)) {
+      if (Object.prototype.hasOwnProperty.call(folded, id)) {
+        throw new Error(
+          `Doctrine "${id}" is written twice: in ${from[id]} and in ${file}. An id is one row.`,
+        );
+      }
+      const def = row as { band?: number };
+      folded[id] = derive ? { ...def, tier: governmentTierForDoctrineBand(def.band ?? 0) } : row;
+      from[id] = file;
+    }
+  };
+  add('data/statecraft.json', statecraftJson.doctrines, false);
+  for (const file of DECK_FILES) add(`data/decks/${file}.json`, DECK_FILE_JSON[file].doctrines ?? {}, true);
+  return folded;
+}
+
 export const STATECRAFT = {
   ...statecraftJson,
   orders: foldOrders(),
+  doctrines: foldDoctrines(),
 } as unknown as StatecraftConfig;
 
 /**
@@ -8178,6 +8260,15 @@ export const STATECRAFT = {
 export const DECK_FILE_ORDERS: Readonly<Record<DeckFile, readonly OrderId[]>> = Object.fromEntries(
   DECK_FILES.map((file) => [file, Object.keys(DECK_FILE_JSON[file].orders) as OrderId[]]),
 ) as unknown as Record<DeckFile, readonly OrderId[]>;
+
+/**
+ * **The Doctrine ids each deck file carries**, in that file's order (batch
+ * C3) — `DECK_FILE_ORDERS`' twin, for the sheet tests: a Doctrine with a data
+ * row must match its sheet row.
+ */
+export const DECK_FILE_DOCTRINES: Readonly<Record<DeckFile, readonly DoctrineId[]>> = Object.fromEntries(
+  DECK_FILES.map((file) => [file, Object.keys(DECK_FILE_JSON[file].doctrines ?? {}) as DoctrineId[]]),
+) as unknown as Record<DeckFile, readonly DoctrineId[]>;
 
 // --- ordered id lists -------------------------------------------------------
 
@@ -8301,8 +8392,9 @@ export function poolOfGovernment(id: GovernmentId): OrderPool {
 }
 
 /**
- * The Doctrines offered at one adoption tier, in file order — **retired rows
- * excluded**. Never tier 0.
+ * The Doctrines offered at one adoption tier, in file order — **retired and
+ * deferred rows excluded**. Never tier 0. Every deck's Doctrines are here; the
+ * offer narrows them to the seat's own decks (`drawDoctrineOffer`).
  *
  * `poolOrders`' opposite number, and the one reader of `DoctrineDef.retired`
  * for the same reason: every draw and every screen that lists a tier comes
@@ -8311,9 +8403,10 @@ export function poolOfGovernment(id: GovernmentId): OrderPool {
  */
 export function poolDoctrines(tier: number): DoctrineId[] {
   if (tier <= 0) return [];
-  return DOCTRINE_IDS.filter(
-    (id) => doctrineDef(id).tier === tier && doctrineDef(id).retired !== true,
-  );
+  return DOCTRINE_IDS.filter((id) => {
+    const def = doctrineDef(id);
+    return def.tier === tier && def.retired !== true && def.deferred === undefined;
+  });
 }
 
 /**
@@ -8454,8 +8547,8 @@ export const TIER_LADDER: readonly TierRung[] = [...STATECRAFT.tierLadder]
  * Read off the **draft count** and never off the adopted government, and that
  * is a decision worth stating: adoption is bankable (Entry XV), so a seat may
  * sit at twenty drafts under the chiefdom with a triple it has not claimed, and
- * a shelf held shut by an unclaimed charter would be a shelf the reward hand at
- * draft eighteen could not deal from. The design doc says the thresholds *"are
+ * a shelf held shut by an unclaimed charter would be a shelf the draft at
+ * eighteen could not deal from. The design doc says the thresholds *"are
  * culture-draft counts, not turns, ages or technology requirements"*, and
  * *"reaching Government I through culture alone"* is the case its age check
  * exists to answer — so culture alone is what reaches it.
@@ -8472,13 +8565,6 @@ export function bandTierAt(drafts: number): Band {
 export function chairsAtTier(tier: number): number {
   return TIER_LADDER[bandTierAt(tier)]?.chairs ?? 0;
 }
-
-/**
- * **The regular draft counts at which a reward hand is banked** — every rung of
- * the ladder but the first (the design doc's "Doctrine reward hands": 4, 18,
- * 29 and, since band 4 was added, 38). Read by `settleDraft`.
- */
-export const REWARD_DRAFTS: readonly number[] = TIER_LADDER.slice(1).map((rung) => rung.drafts);
 
 /** Is this row a charter — drafted for its grant, never seated? */
 export function isCharter(id: OrderId): boolean {

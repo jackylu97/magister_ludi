@@ -8,7 +8,8 @@
  * and for the rainbow; the bands gated on the ladder tier **and** the research
  * age; the draw's positions and cadence over twenty seeded hands; the
  * rarity-first odds within tolerance; a charter pick that grants and seats
- * nothing; the reward hands at the three counts; the retired rows in no pool;
+ * nothing; the Doctrine offer that replaced the reward hands (batch C3); the
+ * retired rows in no pool;
  * a replayed log byte-identical; and the design doc's structure paragraphs
  * sync-tested where they state a number (chairs, counts, probabilities, the
  * leader pools).
@@ -54,7 +55,6 @@ import {
   drawOrderOptions,
   drawRarityFirst,
   eligibleFor,
-  eligibleRaresFor,
   expectedHandBags,
   isRainbowSeat,
   newPlayerStatecraft,
@@ -69,20 +69,22 @@ import {
 } from '../../src/sim/statecraft';
 import {
   type DeckId,
+  type DoctrineId,
   BANDS,
   DECK_FILES,
+  DECK_FILE_DOCTRINES,
   DECK_FILE_ORDERS,
   DECK_IDS,
   DECK_WORDS,
   DOCTRINE_IDS,
   GOVERNMENT_IDS,
   ORDER_IDS,
-  REWARD_DRAFTS,
   STATECRAFT,
   TIER_LADDER,
   bandTierAt,
   chairsAtTier,
   doctrineDef,
+  governmentTierForDoctrineBand,
   governmentDef,
   governmentsAtTier,
   isDeckId,
@@ -108,6 +110,15 @@ const docFiles = import.meta.glob('../../docs/six-decks-first-cut.md', {
   import: 'default',
 });
 const DOC = Object.values(docFiles)[0] as string;
+
+/** The Doctrines plan, whose rulings fix how government tiers pair with Doctrine tiers. */
+const PLAN = Object.values(
+  import.meta.glob('../../docs/plans/doctrines-governments-chairs.md', {
+    eager: true,
+    query: '?raw',
+    import: 'default',
+  }),
+)[0] as string;
 
 /** The rows of the first table under a heading, cells trimmed, header and rule skipped. */
 function docTable(heading: string): string[][] {
@@ -139,6 +150,22 @@ function seated(seed = 11): Game {
     players: [
       { name: 'Ada', color: '#d4502e', isHuman: true, leader: 'pachacuti' },
       { name: 'Bors', color: '#3a7fe8', leader: 'ibnBattutaOfTangier' },
+    ],
+  });
+}
+
+/**
+ * Two Dominion seats (Taizong, Dominion and Magisterial; Modu, Dominion and
+ * Devotion): the only deck with a Doctrine in the data so far (batch C3), so an
+ * adoption here opens a Doctrine offer.
+ */
+function dominionSeats(seed = 11): Game {
+  return createGame({
+    seed,
+    sizeName: 'duel',
+    players: [
+      { name: 'Ada', color: '#d4502e', isHuman: true, leader: 'taizong' },
+      { name: 'Bors', color: '#3a7fe8', leader: 'modu' },
     ],
   });
 }
@@ -189,13 +216,26 @@ describe('the schema, as landed', () => {
       for (const deck of def.decks) expect(isDeckId(deck), `${id}: ${deck}`).toBe(true);
       expect(BANDS, id).toContain(def.band);
     }
+    // The Doctrines split along the file a row lives in, as the Orders do
+    // below. The rows in `data/statecraft.json` are the old ones, all retired
+    // and kept for saves. The rows in the deck files (batch C3) are live: each
+    // names its decks and a sheet tier from I to IV, and is offered with the
+    // government tier that pairs with it.
+    const deckDoctrines = new Set<DoctrineId>(Object.values(DECK_FILE_DOCTRINES).flat());
+    expect(deckDoctrines.size).toBeGreaterThan(0);
     for (const id of DOCTRINE_IDS) {
       const def = doctrineDef(id);
       expect(Array.isArray(def.decks), id).toBe(true);
       expect(BANDS, id).toContain(def.band);
-      // A Doctrine is the reward hand now; D1b wrote no Doctrine rows, so the
-      // whole class is still the withdrawn one.
-      expect(def.retired, id).toBe(true);
+      if (!deckDoctrines.has(id)) {
+        expect(def.retired, id).toBe(true);
+        continue;
+      }
+      expect(def.retired, id).toBeUndefined();
+      expect(def.decks.length, id).toBeGreaterThan(0);
+      for (const deck of def.decks) expect(isDeckId(deck), `${id}: ${deck}`).toBe(true);
+      expect([1, 2, 3, 4], id).toContain(def.band);
+      expect(def.tier, id).toBe(governmentTierForDoctrineBand(def.band));
     }
   });
 
@@ -470,7 +510,11 @@ describe('the schema, as landed', () => {
     expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29, 38]);
     expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 8, 11, 11]);
     expect(TIER_LADDER).toHaveLength(BANDS.length);
-    expect(REWARD_DRAFTS).toEqual([4, 18, 29, 38]);
+    // The later rungs banked a reward hand until batch C3 removed the reward
+    // hands. What pairs with a government tier now is a Doctrine tier, one to
+    // one: Tier I with tier 4, II with 10, III with 18 and IV with 29.
+    expect([1, 2, 3, 4].map(governmentTierForDoctrineBand)).toEqual([4, 10, 18, 29]);
+    expect(governmentTierForDoctrineBand(5)).toBe(0);
     for (const id of GOVERNMENT_IDS) {
       const def = governmentDef(id);
       expect(def.chairs, id).toBe(chairsAtTier(def.tier));
@@ -512,7 +556,9 @@ describe('the schema, as landed', () => {
   it('opens every council with the chiefdom’s three typed chairs, and the Guest’s with a fourth', () => {
     const fresh = newPlayerStatecraft();
     expect(fresh.slots).toHaveLength(3);
-    expect(fresh.rewardHands).toEqual([]);
+    // No reward hands since batch C3: the two fields are gone from the seat.
+    expect(fresh).not.toHaveProperty('rewardHands');
+    expect(fresh).not.toHaveProperty('pendingReward');
     // **Typed again since batch C2** (the user, 2026-10-16: *"lets revert
     // chiefdom yeah"*): one Military, one Economic and one Wildcard chair,
     // where the decks rework had made all three universal.
@@ -548,13 +594,15 @@ describe('the schema, as landed', () => {
     // 130 since D1: eleven Dominion cards that give units experience or pay
     // when a unit earns a rank, a new end-of-turn phase and a new record, so
     // a v129 log's picks name cards this build never dealt.
-    // 131 since D2: nine Dominion cards that read a unit's rank or change a
-    // rule of combat, and a new unit field, so a v130 log's picks name cards
+    // 131 since C3: the reward hands go and an adoption opens a Doctrine
+    // offer, so a v130 seat carries fields this build no longer reads.
+    // 132 since D2: nine Dominion cards that read a unit's rank or change a
+    // rule of combat, and a new unit field, so a v131 log's picks name cards
     // this build never dealt.
-    // 132 since D3: nine Dominion cards about pillaging and where a grant
-    // lands, and a new record, so a v131 log's picks name cards this build
+    // 133 since D3: nine Dominion cards about pillaging and where a grant
+    // lands, and a new record, so a v132 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(132);
+    expect(SCHEMA_VERSION).toBe(133);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -652,11 +700,18 @@ describe('the design doc’s numbers', () => {
     });
   });
 
-  it('reward hands: the milestones of "Doctrine reward hands" are the ladder’s later rungs', () => {
-    const section = DOC.slice(DOC.indexOf('### Doctrine reward hands'));
-    const match = /milestones \*\*(\d+), (\d+), (\d+) and (\d+)\*\*/.exec(section);
+  it('Doctrines: the pairing the user ruled is the one the offer deals by', () => {
+    // The reward hands this test used to sync against the design doc's
+    // milestones went in batch C3 (the user, 2026-10-16: a new government
+    // brings only its Doctrine offer). What stands in their place is the
+    // ruled pairing of government tiers with Doctrine tiers, read off the plan
+    // doc's sentence.
+    const match =
+      /tier (\d+) offers the Tier I Doctrines, tier (\d+) Tier II, tier (\d+) Tier III and tier (\d+) Tier IV/.exec(
+        PLAN,
+      );
     expect(match).not.toBeNull();
-    expect(REWARD_DRAFTS).toEqual([Number(match![1]), Number(match![2]), Number(match![3]), Number(match![4])]);
+    expect([1, 2, 3, 4].map(governmentTierForDoctrineBand)).toEqual(match!.slice(1).map(Number));
   });
 
   it('the cadence of rule 2 — generic, cross-type, generic, single-type — is the third position’s', () => {
@@ -916,12 +971,11 @@ describe('with the shelf stocked', () => {
       const bag = eligibleFor(g.state, player);
       expect(bag.length).toBeGreaterThan(0);
       for (const id of bag) expect(orderDef(id).band, id).toBe(2);
-      // Twenty seeded hands, normal and reward: every card dealt is band 2.
+      // Twenty seeded hands: every card dealt is band 2.
       for (let n = 0; n < 20; n++) {
         delete player.statecraft.pendingOrder;
         for (const id of drawOrderOffer(g.state, player).options) expect(orderDef(id).band, id).toBe(2);
       }
-      for (const id of eligibleRaresFor(g.state, player)) expect(orderDef(id).band, id).toBe(2);
     }
   });
 
@@ -982,7 +1036,7 @@ describe('with the shelf stocked', () => {
     expect(settleDraft(g.state, ada)).toBeNull();
     expect(snapshotState(g.state)).toBe(before);
     expect(expectedHandBags(g.state, ada)).toEqual([]);
-    expect(eligibleRaresFor(g.state, ada)).toEqual([]);
+    expect(eligibleFor(g.state, ada).filter((id) => orderDef(id).rarity === 'rare')).toEqual([]);
   });
 
   it('reads the waiting draft at its own count, so the draft that reaches a rung is dealt from the new band', () => {
@@ -1175,76 +1229,52 @@ describe('with the shelf stocked', () => {
     expect(again.positions).toEqual(first.positions);
   });
 
-  it('banks a reward hand at 4, 18 and 29 that blocks nothing, and deals rares only when opened', () => {
+  it('opens a Doctrine offer on adoption from the seat’s own decks, and none where its decks have no Doctrine of the tier', () => {
+    // Batch C3: the reward hands are gone, and an adoption brings the Doctrine
+    // offer instead. Only Dominion has a Doctrine in the data so far (The
+    // Steppe Confederacy, Tier I), so Ada (Expansionist and Commerce) is
+    // offered nothing at tier 4 and a Dominion seat is offered it.
     const g = seated();
     const ada = playerById(g.state, 0)!;
     const sc = ada.statecraft;
-    for (let n = 1; n <= 4; n++) {
-      const dealt = dealTo(g.state, ada);
-      expect(dealt, `draft ${n}`).not.toBeNull();
-      expect(sc.drafts).toBe(n);
-      expect(sc.rewardHands).toEqual(n < 4 ? [] : [4]);
-      expect(applyCommand(g.state, { type: 'skipOrderOffer', playerId: 0 }).ok).toBe(true);
-    }
+    sc.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
+    expect(adoptGovernmentAt(g.state, ada, 0)?.doctrines).toBeNull();
+    expect(sc.pendingDoctrine).toBeUndefined();
     expect(statecraftBlocker(ada)).toBeNull();
-    // Opening: a command, taken; the count spent; three rares from the seat's
-    // decks on the table.
-    expect(applyCommand(g.state, { type: 'openRewardHand', playerId: 0 }).ok).toBe(true);
-    expect(sc.rewardHands).toEqual([]);
-    const offer = sc.pendingReward!;
-    expect(offer.drafts).toBe(4);
-    expect(offer.options.length).toBeGreaterThan(0);
-    expect(offer.options.length).toBeLessThanOrEqual(3);
-    for (const id of offer.options) {
-      expect(orderDef(id).rarity, id).toBe('rare');
-      expect(sc.orders).not.toContain(id);
-    }
-    expect(offer.positions![0]).toEqual({ kind: 'deck', deck: 'expansionist' });
-    expect(offer.positions![1]).toEqual({ kind: 'deck', deck: 'commerce' });
-    expect(statecraftBlocker(ada)).toBeNull();
-    // A second open is refused byte-identically while one is on the table.
-    const before = snapshotState(g.state);
-    expect(applyCommand(g.state, { type: 'openRewardHand', playerId: 0 }).ok).toBe(false);
-    expect(snapshotState(g.state)).toBe(before);
-    // The pick lands in the collection and clears the hand.
-    const taken = offer.options[0]!;
-    expect(applyCommand(g.state, { type: 'chooseReward', playerId: 0, optionIndex: 0 }).ok).toBe(true);
-    expect(sc.orders).toContain(taken);
-    expect(sc.pendingReward).toBeUndefined();
-    // And a rare taken here is out of every later normal hand.
-    for (let n = 0; n < 10; n++) {
-      delete sc.pendingOrder;
-      expect(drawOrderOffer(g.state, ada).options).not.toContain(taken);
-    }
+
+    const d = dominionSeats();
+    const taizong = playerById(d.state, 0)!;
+    taizong.statecraft.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
+    const adopted = adoptGovernmentAt(d.state, taizong, 0)!;
+    expect(adopted.doctrines?.options).toEqual(['theSteppeConfederacy']);
+    expect(taizong.statecraft.pendingDoctrine?.options).toEqual(['theSteppeConfederacy']);
+    // It blocks the turn until it is answered, as a draft does.
+    expect(statecraftBlocker(taizong)).toBe('a Doctrine offer is waiting');
+    expect(applyCommand(d.state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+    expect(taizong.statecraft.doctrines).toEqual(['theSteppeConfederacy']);
+    expect(taizong.statecraft.pendingDoctrine).toBeUndefined();
   });
 
-  it('passes a reward for nothing, refuses the three verbs with nothing on the table, and resolves an empty shelf as exhausted', () => {
-    const g = seated();
-    const ada = playerById(g.state, 0)!;
-    const sc = ada.statecraft;
-    for (const verb of ['openRewardHand', 'chooseReward', 'passReward'] as const) {
-      const before = snapshotState(g.state);
-      const command = verb === 'chooseReward'
-        ? { type: verb, playerId: 0, optionIndex: 0 }
-        : { type: verb, playerId: 0 };
-      expect(applyCommand(g.state, command).ok, verb).toBe(false);
-      expect(snapshotState(g.state), verb).toBe(before);
+  it('passes a Doctrine offer for nothing, and refuses both verbs with nothing on the table', () => {
+    const d = dominionSeats();
+    const seat = playerById(d.state, 0)!;
+    const sc = seat.statecraft;
+    for (const command of [
+      { type: 'chooseDoctrine' as const, playerId: 0, optionIndex: 0 },
+      { type: 'skipDoctrineOffer' as const, playerId: 0 },
+    ]) {
+      const before = snapshotState(d.state);
+      expect(applyCommand(d.state, command).ok, command.type).toBe(false);
+      expect(snapshotState(d.state), command.type).toBe(before);
     }
-    sc.rewardHands.push(4);
-    expect(applyCommand(g.state, { type: 'openRewardHand', playerId: 0 }).ok).toBe(true);
+    sc.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
+    adoptGovernmentAt(d.state, seat, 0);
     const skipsBefore = sc.orderSkips;
-    expect(applyCommand(g.state, { type: 'passReward', playerId: 0 }).ok).toBe(true);
-    expect(sc.pendingReward).toBeUndefined();
+    expect(applyCommand(d.state, { type: 'skipDoctrineOffer', playerId: 0 }).ok).toBe(true);
+    expect(sc.pendingDoctrine).toBeUndefined();
+    expect(sc.doctrines).toEqual([]);
+    // No pity moves: a Doctrine offer is not a draft.
     expect(sc.orderSkips).toBe(skipsBefore);
-    // Every rare held: the reward comes to nothing, at no cost.
-    sc.orders.push(...eligibleRaresFor(g.state, ada));
-    expect(eligibleRaresFor(g.state, ada)).toEqual([]);
-    sc.rewardHands.push(18);
-    const result = applyCommand(g.state, { type: 'openRewardHand', playerId: 0 });
-    expect(result.ok).toBe(true);
-    expect(result.ok && result.rewardExhausted).toBe(true);
-    expect(sc.rewardHands).toEqual([]);
-    expect(sc.pendingReward).toBeUndefined();
   });
 
   it('seats a hand’s card in every chair it fits and refuses the rest, and adoption widens the council to its tier’s count', () => {
@@ -1271,51 +1301,46 @@ describe('with the shelf stocked', () => {
     expect(slotTypesOf(sc)).toEqual(slotLayout(governmentsAtTier(4)[0]!));
   });
 
-  it('replays a sequence of drafts, a reward opened and taken, and a reward passed, byte for byte', () => {
+  it('replays a sequence of drafts, an adoption, a Doctrine taken and a Doctrine passed, byte for byte', () => {
     // `statecraft.slow.test.ts`'s shape: the same script on two fresh games
     // — culture the duel would never earn written in at the same points, every
     // decision a dispatched command — and the two boards compared byte for
-    // byte. The script drafts to the first reward, opens it, takes a rare,
-    // drafts on, and passes the next hand.
+    // byte. Two Dominion seats draft to the first rung, adopt the first
+    // government on offer, and answer the Doctrine offer that follows: the
+    // first seat takes it and the second passes. (Until batch C3 this script
+    // opened, took and passed reward hands.)
     const play = () => {
-      const g = seated(5);
-      const ada = playerById(g.state, 0)!;
-      const bors = playerById(g.state, 1)!;
-      let opened = 0;
+      const g = dominionSeats(5);
+      const seats = [playerById(g.state, 0)!, playerById(g.state, 1)!];
       for (let turn = 0; turn < 8; turn++) {
-        ada.culturePool += 10_000;
-        bors.culturePool += 10_000;
+        for (const seat of seats) seat.culturePool += 10_000;
         expect(dispatch(g, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
         expect(dispatch(g, { type: 'endTurn', playerId: 1 }).ok).toBe(true);
-        if (ada.statecraft.pendingOrder !== undefined) {
-          expect(dispatch(g, { type: 'chooseOrder', playerId: 0, optionIndex: 0 }).ok).toBe(true);
-        }
-        if (bors.statecraft.pendingOrder !== undefined) {
-          expect(dispatch(g, { type: 'skipOrderOffer', playerId: 1 }).ok).toBe(true);
-        }
-        if (ada.statecraft.rewardHands.length > 0) {
-          expect(dispatch(g, { type: 'openRewardHand', playerId: 0 }).ok).toBe(true);
-          opened += 1;
-          if (ada.statecraft.pendingReward !== undefined) {
-            expect(dispatch(g, { type: 'chooseReward', playerId: 0, optionIndex: 0 }).ok).toBe(true);
+        for (const seat of seats) {
+          if (seat.statecraft.pendingOrder !== undefined) {
+            expect(dispatch(g, { type: 'chooseOrder', playerId: seat.id, optionIndex: 0 }).ok).toBe(true);
           }
-        }
-        if (bors.statecraft.rewardHands.length > 0) {
-          expect(dispatch(g, { type: 'openRewardHand', playerId: 1 }).ok).toBe(true);
-          if (bors.statecraft.pendingReward !== undefined) {
-            expect(dispatch(g, { type: 'passReward', playerId: 1 }).ok).toBe(true);
+          if (seat.statecraft.pendingGovernment !== undefined) {
+            expect(dispatch(g, { type: 'adoptGovernment', playerId: seat.id, choiceIndex: 0 }).ok).toBe(true);
+          }
+          if (seat.statecraft.pendingDoctrine !== undefined) {
+            const command =
+              seat.id === 0
+                ? { type: 'chooseDoctrine' as const, playerId: seat.id, optionIndex: 0 }
+                : { type: 'skipDoctrineOffer' as const, playerId: seat.id };
+            expect(dispatch(g, command).ok).toBe(true);
           }
         }
       }
-      return { snapshot: snapshotState(g.state), log: g.log, opened, drafts: ada.statecraft.drafts };
+      return { snapshot: snapshotState(g.state), log: g.log, drafts: seats[0]!.statecraft.drafts };
     };
     const a = play();
     const b = play();
     expect(b.snapshot).toBe(a.snapshot);
     expect(a.drafts).toBeGreaterThanOrEqual(4);
-    expect(a.opened).toBeGreaterThanOrEqual(1);
-    expect(a.log.filter((command) => command.type === 'chooseReward').length).toBeGreaterThanOrEqual(1);
-    expect(a.log.filter((command) => command.type === 'passReward').length).toBeGreaterThanOrEqual(1);
+    expect(a.log.filter((command) => command.type === 'adoptGovernment').length).toBeGreaterThanOrEqual(2);
+    expect(a.log.filter((command) => command.type === 'chooseDoctrine').length).toBeGreaterThanOrEqual(1);
+    expect(a.log.filter((command) => command.type === 'skipDoctrineOffer').length).toBeGreaterThanOrEqual(1);
   });
 
   it('reads the bot’s expectation off the deal’s own bags', () => {

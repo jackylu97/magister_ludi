@@ -31,7 +31,12 @@
  *   · **every live row speaks**: `describeCard` says a clause for it, and no
  *     surface is handed a raw keyword ref;
  *   · **a seeded draft deals this deck's live rows and nothing else**: no
- *     deferred row, and nothing off the seat's own shelf.
+ *     deferred row, and nothing off the seat's own shelf;
+ *   · **a Doctrine with a data row matches its sheet row** (batch C3): its
+ *     name, its tier and its text, and the government tier the sheet says
+ *     offers it. The sheet's Doctrine tables have three columns and no status,
+ *     so a Doctrine with no data row yet is simply not checked; every data
+ *     row must be on the sheet.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -54,10 +59,13 @@ import {
   type OrderRarity,
   BANDS,
   CARD_TYPES,
+  DECK_FILE_DOCTRINES,
   DECK_FILE_ORDERS,
   DECK_FILES,
   DECK_WORDS,
   ORDER_IDS,
+  doctrineDef,
+  governmentTierForDoctrineBand,
   isCardType,
   orderDef,
   orderIsDealt,
@@ -462,5 +470,100 @@ describe('the Dominion deck — the draw', () => {
     expect(dealt(b.state, playerById(b.state, 0)!, 8)).toEqual(
       dealt(a.state, playerById(a.state, 0)!, 8),
     );
+  });
+});
+
+// --- the Doctrines -------------------------------------------------------------
+
+/** One Doctrine the sheet's tier tables list (batch C3). */
+interface DocDoctrine {
+  name: string;
+  /** The tier heading the table sits under, as a band. */
+  band: Band;
+  /** The government tier the line above the table says offers it. */
+  offeredAt: number;
+  text: string;
+}
+
+/**
+ * **The Doctrine tables of the sheet**: under each tier heading, the table
+ * after "**Doctrines,** offered with the tier-N governments:", up to the next
+ * bold line (the "**Orders:**" label) or heading. Three columns: Doctrine,
+ * Build and Text.
+ */
+function docDoctrines(): DocDoctrine[] {
+  const start = DOC.indexOf('\n## Tier 0');
+  expect(start, 'the sheet has a Tier 0 table').toBeGreaterThanOrEqual(0);
+  const doctrines: DocDoctrine[] = [];
+  let band: Band | null = null;
+  let offeredAt: number | null = null;
+  for (const line of DOC.slice(start + 1).split('\n')) {
+    const heading = /^## Tier (0|I|II|III|IV)$/.exec(line);
+    if (heading) {
+      band = TIERS[heading[1]!]!;
+      offeredAt = null;
+      continue;
+    }
+    if (line.startsWith('## ')) break;
+    const offered = /^\*\*Doctrines,\*\* offered with the tier-(\d+) governments:/.exec(line);
+    if (offered) {
+      offeredAt = Number(offered[1]);
+      continue;
+    }
+    if (line.startsWith('**')) {
+      offeredAt = null;
+      continue;
+    }
+    if (offeredAt === null || band === null || !line.startsWith('|')) continue;
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    if (cells[0] === 'Doctrine' || cells.every((cell) => /^-+$/.test(cell))) continue;
+    doctrines.push({ name: namesOf(cells[0]!).name, band, offeredAt, text: cells[2]! });
+  }
+  return doctrines;
+}
+
+describe('the Dominion deck — its Doctrines', () => {
+  const SHEET = docDoctrines();
+
+  it('reads a Doctrine table under every tier from I to IV, each offered with its paired government tier', () => {
+    for (const band of [1, 2, 3, 4] as const) {
+      expect(SHEET.some((doctrine) => doctrine.band === band), `Tier ${band}`).toBe(true);
+    }
+    // There are no Tier 0 Doctrines (the user, 2026-10-15).
+    expect(SHEET.some((doctrine) => doctrine.band === 0)).toBe(false);
+    for (const doctrine of SHEET) {
+      expect(doctrine.offeredAt, doctrine.name).toBe(governmentTierForDoctrineBand(doctrine.band));
+    }
+    // Names are unique across the tables.
+    expect(new Set(SHEET.map((doctrine) => doctrine.name)).size).toBe(SHEET.length);
+  });
+
+  it('matches every Doctrine with a data row to its sheet row: name, tier and text', () => {
+    const rows = DECK_FILE_DOCTRINES.dominion;
+    expect(rows.length).toBeGreaterThan(0);
+    for (const id of rows) {
+      const def = doctrineDef(id);
+      const sheet = SHEET.find((doctrine) => doctrine.name === def.name);
+      expect(sheet, `${id} ("${def.name}") is not on the sheet`).toBeDefined();
+      expect(def.band, `${id}'s tier`).toBe(sheet!.band);
+      expect(def.text, `${id}'s text`).toBe(sheet!.text);
+      // The adoption that offers it is the sheet's, through the one pairing.
+      expect(def.tier, `${id}'s government tier`).toBe(sheet!.offeredAt);
+      expect(def.decks, id).toEqual(['dominion']);
+      expect(def.retired, id).toBeUndefined();
+      expect(def.deferred, id).toBeUndefined();
+      expect(def.effects.length, `${id} has no effects`).toBeGreaterThan(0);
+      expect(def.flavor, id).toBeTruthy();
+      // Every live Doctrine speaks, in clauses with no raw keyword ref.
+      const clauses = describeCard(id);
+      expect(clauses.length, id).toBeGreaterThan(0);
+      for (const clause of clauses) expect(stripRefs(clause.text), id).not.toContain('[[');
+    }
+  });
+
+  it('holds The Steppe Confederacy, the first Doctrine built (batch C3)', () => {
+    expect(DECK_FILE_DOCTRINES.dominion).toContain('theSteppeConfederacy');
+    expect(doctrineDef('theSteppeConfederacy').band).toBe(1);
+    expect(doctrineDef('theSteppeConfederacy').tier).toBe(4);
   });
 });

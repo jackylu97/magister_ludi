@@ -221,7 +221,8 @@ const REGISTER: readonly (readonly [string, SurfaceKind])[] = [
   ['starChart', 'screen'],
   ['abacus', 'screen'],
   ['statecraft', 'screen'],
-  ['rewards', 'screen'],
+  // `rewards` (the reward sheet) left the register with the reward hands in
+  // batch C3.
   ['religion', 'screen'],
   ['trade', 'screen'],
   ['wager', 'screen'],

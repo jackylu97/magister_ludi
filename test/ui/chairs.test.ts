@@ -226,12 +226,14 @@ describe('the government card and the adoption, read off the source', () => {
   });
 
   it('says on the sheet that cards keep their chairs where they can', () => {
-    const offer = between(MAIN, 'if (sc.pendingGovernment !== undefined) {', 'if (sc.pendingDoctrine !== undefined) {');
+    // The government block, brace-matched: since batch C3 a waiting Doctrine
+    // offer is shown before it, so it is the last block of the chain.
+    const offer = braceBody(MAIN, 'if (sc.pendingGovernment !== undefined) {');
     expect(offer).toContain('Your seated Orders keep their chairs where they still fit');
   });
 
   it('announces what moved and what went back, from the council before and after', () => {
-    const offer = between(MAIN, 'if (sc.pendingGovernment !== undefined) {', 'if (sc.pendingDoctrine !== undefined) {');
+    const offer = braceBody(MAIN, 'if (sc.pendingGovernment !== undefined) {');
     expect(offer).toContain('const before = [...(playerById(game.state, seat)?.statecraft.slots ?? [])];');
     expect(offer).toContain('councilChange(before, after.slots)');
     expect(offer).toContain('adoptionWords(');

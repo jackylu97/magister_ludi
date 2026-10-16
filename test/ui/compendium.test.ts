@@ -1620,15 +1620,21 @@ describe('what opens a thing', () => {
         }
       }
     }
-    // **Re-cut for the decks rework** (D1a, re-cut again at D1b): a card is
-    // linked from a page it opens, and every Order and Doctrine row was retired
-    // until D1b landed the deck files — so each card kind is required only
-    // while a live row of *that* kind can be linked at all. D1b filled the six
-    // decks with Orders and wrote no Doctrine (a Doctrine is the reward hand
-    // now), so the two halves part company here and are asked separately.
+    // **Re-cut for the decks rework** (D1a, re-cut again at D1b and C3): a
+    // card is linked from a page it opens, and every Order and Doctrine row was
+    // retired until D1b landed the deck files — so each card kind is required
+    // only while a live row of *that* kind can be linked at all. D1b filled the
+    // six decks with Orders. C3 wrote the first deck Doctrine (The Steppe
+    // Confederacy), which opens no building and no unit, so no page has a
+    // reason to link it: a Doctrine is required here once a live one opens a
+    // row.
+    const opensARow = (effects: readonly { kind: string }[]): boolean =>
+      effects.some((effect) => effect.kind === 'unlocksBuilding' || effect.kind === 'unlocksUnit');
     const cardKinds = [
       ...(ORDER_IDS.some((id) => orderIsDealt(id)) ? ['order'] : []),
-      ...(DOCTRINE_IDS.some((id) => doctrineDef(id).retired !== true) ? ['doctrine'] : []),
+      ...(DOCTRINE_IDS.some((id) => doctrineDef(id).retired !== true && opensARow(doctrineDef(id).effects))
+        ? ['doctrine']
+        : []),
     ];
     for (const kind of ['tech', 'leader', 'belief', ...cardKinds]) {
       expect(kinds, `the book links a ${kind}`).toContain(kind);

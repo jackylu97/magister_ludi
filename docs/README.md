@@ -294,10 +294,22 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   skip adds pity to the uncommon and rare weights of the next draw. Rarity
   (● common ◆ uncommon ○ rare) is weighed 4/2/1 inside each sub-bag of the
   guaranteed military/economic/wildcard spread.
-- Pools: Chiefdom → Government I/II/III (tier 18 is the last new pool). Doctrine
-  tiers ride the ladder 4/10/18/29/38. 2026-10-15: the fifth rung moved from 45
-  to 38 drafts (`docs/flags.md` (uuuuuu)). Chairs by tier are the doc's
-  Governments table, sync-tested.
+- Pools: Chiefdom → Government I/II/III (tier 18 is the last new pool).
+  2026-10-15: the fifth rung moved from 45 to 38 drafts (`docs/flags.md`
+  (uuuuuu)). Chairs by tier are the doc's Governments table, sync-tested.
+- **Doctrines** (batch C3, `docs/orders-and-doctrines.md` "Doctrines"):
+  adopting a government opens a Doctrine offer of its tier. Tier 4 offers the
+  Tier I Doctrines, 10 Tier II, 18 Tier III and 29 Tier IV
+  (`governmentTierForDoctrineBand`). The offer is one Doctrine from each of the
+  seat's two decks, then a third from either (`drawDoctrineOffer`; interim until
+  the user rules the mix), never one already held; an empty bag opens nothing.
+  The seat takes one (`chooseDoctrine`) or passes (`skipDoctrineOffer`), and a
+  waiting offer must be answered before another adoption. A Doctrine is held
+  for the whole game, takes no chair, and is `liveEffects`' second source. Rows
+  live in the deck files' `doctrines` maps with `decks` and `band` (the sheet
+  tier); the pre-rework rows in `data/statecraft.json` stay retired. The reward
+  hands D1a banked at draft counts 4, 18 and 29 were removed in the same batch
+  (schema 131).
 - **`statecraft/evaluator.ts` is the ONLY module switching on `CardEffect.kind`.**
   A new card is a JSON row; a new *shape* is a design decision, and a shape
   declared but never read fails a register test. The eight ways to pay a voice
