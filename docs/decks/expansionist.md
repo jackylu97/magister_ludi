@@ -23,8 +23,8 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier I | 10 | 5 | 15 | 30 | none |
 | Tier II | 5 | 7 | 10 | 22 | none |
 | Tier III | 4 | 6 | 27 | 37 | none |
-| Tier IV | 6 | 8 | 3 | 17 | none |
-| **All** | **31** | **31** | **59** | **121** | **none** |
+| Tier IV | 6 | 8 | 4 | 18 | none |
+| **All** | **31** | **31** | **60** | **122** | **none** |
 | Shared | 12 | 2 | 2 | 16 |  |
 
 **By type** (the chair a card would fit):
@@ -35,8 +35,8 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier I | 1 | 19 | 8 | 2 |
 | Tier II | 0 | 14 | 8 | 0 |
 | Tier III | 2 | 24 | 9 | 2 |
-| Tier IV | 2 | 12 | 1 | 2 |
-| **All** | **6** | **81** | **28** | **6** |
+| Tier IV | 2 | 13 | 1 | 2 |
+| **All** | **6** | **82** | **28** | **6** |
 | Shared | 2 | 8 | 6 | 0 |
 
 ## Tier 0
@@ -159,7 +159,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Tax Rolls** | uncommon | add | When the world takes a census, gain gold equal to five times your citizens. | Economic |
 | **The Imperial Roads** | rare | add | Towns joined to your capital by road cost no authority. | Civic |
 | **The Opening of the Roads** | uncommon | add | When one of your towns is first joined to your capital by road, it gains production equal to twenty times its population. | Economic |
-| **The Road Patrols** | uncommon | add | Your land units gain +1 movement in your own territory. | Military |
+| **The Stationes** (was The Road Patrols) | uncommon | add | Land units gain +3 strength while they stand in a town connected to your capital by road. | Military |
 | **The Great Colonies** | rare | add | Towns you found start with a third of the citizens of your largest town. | Economic |
 | **The Managed Wild** | uncommon | add: proposed | Needs tended land. Each town gains +5% food for every tended tile in its borders, at most +25%. | Economic |
 
@@ -167,6 +167,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
+| **The Motte and Bailey** | rare | add | Workers may build a Motte, one in each town. A Motte gains the yields of every tile around it, and units on its tile gain +5 strength. | Economic |
 | **The Land's Great Work** | rare | modify: as built | The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%. | Economic |
 | **The Garden of the World** | rare | implemented | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. | Economic |
 | **The Heartland** | rare | modify: deferred | Goal: one of your towns works twelve improved or tended tiles that each yield 5 or more in total. Reward: for the rest of the game that town costs no authority and gains +3 happiness and +20% food. The card then leaves its chair. | Wildcard |
@@ -183,7 +184,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Two Harvests** | rare | modify: deferred | Needs tended land. A worked farm, mine or lumber mill may also be tended, with any tended work the tile allows. It keeps the improvement, adds the tended work's yield, and counts as both improved and tended, but not as wild. Cards that pay culture on tended tiles do not pay it on these. | Economic |
 | **The Great Aqueducts** | rare | add | The town raising the Magnum Opus gains +5% production toward it for each of your towns with an Aqueduct, at most +40%. | Economic |
 | **The Imperial Highways** | rare | add | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. | Economic |
-| **The Theodosian Walls** | uncommon | add | Your towns gain +1 defence for every citizen. | Military |
+| **The Theodosian Walls** | uncommon | add | Your towns gain +1 defence for every two citizens. | Military |
 
 ## Shared with another deck
 
@@ -248,3 +249,8 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
   - **New:** The Woodland Bands (Tier 0): your units ignore the movement cost of forest and jungle, and gain +2 strength there. The Burhs (Tier I), after Alfred's fortified towns: +3 defence for each defensive building in a town, and +100% production toward defensive buildings.
   - **The Wild Marches:** +1 culture for every four wild hexes, not five.
   - **Removed before it reached the sheet:** your new faith card (+1 faith on unimproved forest and jungle), because Sacred Groves already does that job (*"ah i forgot about sacred groves, axe my new card please"*).
+- **Your third pass of 2026-10-16:**
+  - **New, Tier IV:** The Motte and Bailey, after the Norman castle on its mound, which held the land around it. Workers may build one Motte in each town. It gains the yields of every tile around it, and units on its tile gain +5 strength. The name The Manors was taken by a Tier III card.
+  - **The Theodosian Walls:** +1 defence for every two citizens, not every citizen.
+  - **The Road Patrols** becomes The Stationes, after the Roman posts along the roads: land units gain +3 strength while they stand in a town connected to your capital by road.
+  - I read your changes to these cards as the end of their deferral, so all four Military cards (The Frontier Militia, The Trained Bands, The Stationes and The Theodosian Walls) go into the build. Say if any should stay deferred.
