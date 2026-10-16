@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Card faces: The Great Work</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=Fraunces:opsz,wght@9..144,400..700&amp;family=Instrument+Sans:wght@400..700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+.ab{font-family:'Instrument Sans',system-ui,sans-serif;color:#1d1a20}
+.eb{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:10.5px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:#56505a}
+.n{font-family:'IBM Plex Mono',ui-monospace,monospace;font-weight:500;font-size:.92em;font-variant-numeric:tabular-nums}
+.panel{background:#f7f2e1;border:3px solid #1d1a20;border-radius:10px;box-shadow:5px 5px 0 #1d1a20;box-sizing:border-box}
+.card{position:relative;flex:none;width:200px;height:310px;box-sizing:border-box;border:3px solid #1d1a20;border-radius:9px;background:#f7f2e1;box-shadow:4px 4px 0 #1d1a20}
+.mini{position:relative;flex:none;width:120px;height:186px;box-sizing:border-box;border:2.5px solid #1d1a20;border-radius:7px;background:#f7f2e1;box-shadow:3px 3px 0 #1d1a20}
+.rub{box-shadow:0 0 0 2px #d9a441,5px 5px 0 2px #8f2418}
+.mini.rub{box-shadow:0 0 0 1.5px #d9a441,4px 4px 0 1.5px #8f2418}
+.fr{position:absolute;pointer-events:none;border-style:solid;box-sizing:border-box}
+.seal{position:absolute;left:50%;top:4px;width:48px;height:48px;margin-left:-24px;filter:drop-shadow(1.5px 2px 0 rgba(29,26,32,0.3))}
+.mini .seal{width:34px;height:34px;margin-left:-17px;top:2px}
+.bd{position:absolute;left:0;top:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;padding:44px 13px 10px;box-sizing:border-box}
+.vs{flex:none;width:100px;height:96px}
+.nm{margin-top:4px;font-family:Fraunces,Georgia,serif;font-weight:600;font-size:16.5px;line-height:1.14;text-align:center}
+.rl{margin-top:6px;font-size:12.5px;line-height:1.4;text-align:center}
+.ft{margin-top:auto;align-self:stretch;display:flex;align-items:center;justify-content:space-between;gap:6px;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:#56505a}
+.ft .tr{min-width:16px;text-align:right;letter-spacing:.06em;font-size:9.5px;color:#1d1a20}
+.sg{flex:none;width:16px;height:16px}
+.mini .bd{padding:31px 8px 8px}
+.mini .vs{width:66px;height:64px}
+.mini .nm{margin-top:3px;font-size:15px;line-height:1.1}
+.mini .sg{width:13px;height:13px}
+.row{display:flex;align-items:center;gap:11px;height:36px;padding:0 6px;border-top:1px solid rgba(29,26,32,.14)}
+.kl{font-weight:600;font-size:12.5px;line-height:1}
+.ks{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:9.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:#56505a;line-height:1}
+</style>
+</helmet>
+<div class="ab" style="width: 1440px; height: 1100px; box-sizing: border-box; padding: 40px 60px 44px; background: radial-gradient(120% 90% at 50% 32%, #efe9d9 0%, #e9e2cf 55%, #e1d8c1 100%); display: flex; flex-direction: column; gap: 30px; overflow: hidden;">
+
+  <!-- Header and key -->
+  <div style="display: flex; gap: 28px; height: 170px; flex: none;">
+    <div style="width: 300px; flex: none; display: flex; flex-direction: column; gap: 7px;">
+      <div class="eb" style="color: #a8361b;">Proposal B</div>
+      <div style="font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-size: 56px; line-height: 0.95; letter-spacing: -0.01em;">The Great Work</div>
+      <div style="font-size: 13.5px; line-height: 1.45; color: #3a353e;">The wax seal names the chair. The deck is a planetary metal, its sigil in the foot. Rarity is a stage of the Opus: black, white, red.</div>
+    </div>
+
+    <div class="panel" style="flex: 1; display: grid; grid-template-columns: 300px 1px 236px 1px 1fr; column-gap: 22px; padding: 16px 22px;">
+      <!-- Chair type -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="eb">Chair type · the Tria Prima</div>
+        <div style="display: flex; justify-content: space-between;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 70px;">
+            <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#efe8d4" stroke="#1d1a20" stroke-width="1.4"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#56505a" stroke-width="1"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg></svg>
+            <div class="kl">Military</div>
+            <div class="ks">Sulphur</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 70px;">
+            <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#efe8d4" stroke="#1d1a20" stroke-width="1.4"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#56505a" stroke-width="1"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 32a25 25 0 1 0 50 0a25 25 0 1 0 -50 0Z"></path><path d="M7 32L57 32"></path></g></svg></svg>
+            <div class="kl">Economic</div>
+            <div class="ks">Salt</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 70px;">
+            <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#efe8d4" stroke="#1d1a20" stroke-width="1.4"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#56505a" stroke-width="1"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5Q32 22 45 5"></path><path d="M21 28a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z"></path><path d="M32 39L32 61"></path><path d="M23 51L41 51"></path></g></svg></svg>
+            <div class="kl">Civic</div>
+            <div class="ks">Mercury</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 70px;">
+            <svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#efe8d4" stroke="#1d1a20" stroke-width="1.4"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#56505a" stroke-width="1"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 32a27 27 0 1 0 54 0a27 27 0 1 0 -54 0Z"></path><path d="M13 13L51 13L51 51L13 51Z" stroke-width="5"></path><path d="M19 32a13 13 0 1 0 26 0a13 13 0 1 0 -26 0Z" stroke-width="5"></path></g></svg></svg>
+            <div class="kl">Open</div>
+            <div class="ks">The Stone</div>
+          </div>
+        </div>
+        <div style="font-size: 12px; line-height: 1.4; color: #3a353e;">A card fits a chair of its principle, or the Stone.</div>
+      </div>
+      <div style="background: rgba(29,26,32,0.14);"></div>
+
+      <!-- Rarity -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="eb">Rarity · the stage</div>
+        <div style="display: flex; justify-content: space-between;">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 70px;">
+            <div style="position: relative; width: 40px; height: 62px; box-sizing: border-box; border: 2px solid #1d1a20; border-radius: 4px; background: #f7f2e1; box-shadow: 2px 2px 0 #1d1a20;">
+              <div class="fr" style="inset: 2.5px; border-width: 1px; border-color: #1d1a20; border-radius: 2px;"></div>
+              <svg style="position: absolute; left: 11px; top: 2px;" width="14" height="14" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#2b2630" stroke="#1d1a20" stroke-width="1.5"></path></svg>
+            </div>
+            <div class="kl">Common</div>
+            <div class="ks">Nigredo</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 70px;">
+            <div style="position: relative; width: 40px; height: 62px; box-sizing: border-box; border: 2px solid #1d1a20; border-radius: 4px; background: #f7f2e1; box-shadow: 2px 2px 0 #1d1a20;">
+              <div class="fr" style="inset: 1.5px; border-width: 1px; border-color: #9fa6af; border-radius: 3px;"></div>
+              <div class="fr" style="inset: 3.5px; border-width: 1px; border-color: #c3c8cf; border-radius: 2px;"></div>
+              <div class="fr" style="left: 5px; right: 5px; top: 5px; height: 28px; border-width: 1px; border-color: #b4bac2; border-radius: 2px; background: linear-gradient(160deg, #f7f8f9 0%, #e1e4e8 45%, #f3f4f6 65%, #d8dce1 100%);"></div>
+              <svg style="position: absolute; left: 11px; top: 2px;" width="14" height="14" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#e8eaed" stroke="#7d848d" stroke-width="2"></path></svg>
+            </div>
+            <div class="kl">Uncommon</div>
+            <div class="ks">Albedo</div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; width: 70px;">
+            <div style="position: relative; width: 40px; height: 62px; box-sizing: border-box; border: 2px solid #1d1a20; border-radius: 4px; background: radial-gradient(120% 60% at 50% 15%, #fbecd8 0%, #f7f2e1 70%); box-shadow: 0 0 0 1.5px #d9a441, 3px 3px 0 1.5px #8f2418;">
+              <div class="fr" style="inset: 1px; border-width: 1.5px; border-color: #c8901f; border-radius: 3px;"></div>
+              <div class="fr" style="inset: 4px; border-width: 1px; border-color: #c8901f; border-radius: 2px;"></div>
+              <div style="position: absolute; left: 9px; right: 9px; top: 36px; height: 2.5px; background: #9e2a1e;"></div>
+              <svg style="position: absolute; left: 11px; top: 2px;" width="14" height="14" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#a3231a" stroke="#7a160f" stroke-width="1.5"></path></svg>
+            </div>
+            <div class="kl">Rare</div>
+            <div class="ks">Rubedo</div>
+          </div>
+        </div>
+        <div style="font-size: 12px; line-height: 1.4; color: #3a353e;">The seal's wax follows the stage too.</div>
+      </div>
+      <div style="background: rgba(29,26,32,0.14);"></div>
+
+      <!-- Deck -->
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="eb">Deck · the planetary metal</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px;">
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <div style="width: 26px; height: 26px; flex: none; box-sizing: border-box; border: 2px solid #c2452a; border-radius: 5px; background: #f7f2e1; display: flex; align-items: center; justify-content: center; color: #c2452a;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 54L44 18"></path><path d="M54 8L47.5 21.5L40.5 14.5Z" fill="currentColor" stroke-width="5.2"></path><path d="M52 54L20 18"></path><path d="M10 8L23.5 14.5L16.5 21.5Z" fill="currentColor" stroke-width="5.2"></path></g></svg></div>
+            <svg width="18" height="18" viewBox="0 0 64 64" style="flex: none; color: #c2452a;" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 40a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M36 29L54 11"></path><path d="M39 10L54 10L54 25"></path></g></svg>
+            <div style="display: flex; flex-direction: column; gap: 3px;"><div class="kl">Dominion</div><div class="ks" style="font-size: 8.5px;">Mars · iron</div></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <div style="width: 26px; height: 26px; flex: none; box-sizing: border-box; border: 2px solid #4e7c3f; border-radius: 5px; background: #f7f2e1; display: flex; align-items: center; justify-content: center; color: #4e7c3f;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 34L32 15L54 34"></path><path d="M18 34L46 34L46 55L18 55Z"></path><path d="M27 43L37 43L37 55L27 55Z"></path></g></svg></div>
+            <svg width="18" height="18" viewBox="0 0 64 64" style="flex: none; color: #4e7c3f;" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 22a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M32 37L32 60"></path><path d="M22 50L42 50"></path></g></svg>
+            <div style="display: flex; flex-direction: column; gap: 3px;"><div class="kl">Expansionist</div><div class="ks" style="font-size: 8.5px;">Venus · copper</div></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <div style="width: 26px; height: 26px; flex: none; box-sizing: border-box; border: 2px solid #b07f12; border-radius: 5px; background: #f7f2e1; display: flex; align-items: center; justify-content: center; color: #b07f12;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 27Q7 43 14 53Q21 59 32 59Q43 59 50 53Q57 43 42 27Z"></path><path d="M22 27L42 27"></path><path d="M24 27L27 15L37 15L40 27"></path></g></svg></div>
+            <svg width="18" height="18" viewBox="0 0 64 64" style="flex: none; color: #b07f12;" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 20Q19 8 28 12Q36 17 27 31L16 45L54 45"></path><path d="M44 30L44 60"></path></g></svg>
+            <div style="display: flex; flex-direction: column; gap: 3px;"><div class="kl">Commerce</div><div class="ks" style="font-size: 8.5px;">Jupiter · tin</div></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <div style="width: 26px; height: 26px; flex: none; box-sizing: border-box; border: 2px solid #7b3fa8; border-radius: 5px; background: #f7f2e1; display: flex; align-items: center; justify-content: center; color: #7b3fa8;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 46Q18 19 32 17Q46 19 46 46"></path><path d="M12 46L52 46"></path><path d="M32 17L32 12"></path><path d="M28 9a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z"></path><path d="M27 53a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z" fill="currentColor" stroke-width="5.2"></path></g></svg></div>
+            <svg width="18" height="18" viewBox="0 0 64 64" style="flex: none; color: #7b3fa8;" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M42 8A24 24 0 0 0 42 56A30 30 0 0 1 42 8Z"></path></g></svg>
+            <div style="display: flex; flex-direction: column; gap: 3px;"><div class="kl">Devotion</div><div class="ks" style="font-size: 8.5px;">Moon · silver</div></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <div style="width: 26px; height: 26px; flex: none; box-sizing: border-box; border: 2px solid #3f639f; border-radius: 5px; background: #f7f2e1; display: flex; align-items: center; justify-content: center; color: #3f639f;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M32 16L13 53"></path><path d="M32 16L51 53"></path><path d="M27 13a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z" fill="currentColor" stroke-width="5.2"></path><path d="M25 24L39 24"></path></g></svg></div>
+            <svg width="18" height="18" viewBox="0 0 64 64" style="flex: none; color: #3f639f;" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 6L22 46"></path><path d="M12 16L32 16"></path><path d="M22 34Q30 25 39 29Q47 35 41 46Q37 54 47 58"></path></g></svg>
+            <div style="display: flex; flex-direction: column; gap: 3px;"><div class="kl">Scientific</div><div class="ks" style="font-size: 8.5px;">Saturn · lead</div></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 7px;">
+            <div style="width: 26px; height: 26px; flex: none; box-sizing: border-box; border: 2px solid #a04a63; border-radius: 5px; background: #f7f2e1; display: flex; align-items: center; justify-content: center; color: #a04a63;"><svg width="18" height="18" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M28 15L32 6L36 15"></path><path d="M28 15L36 15L39 45L25 45Z"></path><path d="M17 45L47 45L47 56L17 56Z"></path></g></svg></div>
+            <svg width="18" height="18" viewBox="0 0 64 64" style="flex: none; color: #a04a63;" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 32a22 22 0 1 0 44 0a22 22 0 1 0 -44 0Z"></path><path d="M28 32a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z" fill="currentColor" stroke-width="4"></path></g></svg>
+            <div style="display: flex; flex-direction: column; gap: 3px;"><div class="kl">Magisterial</div><div class="ks" style="font-size: 8.5px;">Sun · gold</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- The hand -->
+  <div style="display: flex; flex-direction: column; gap: 12px; flex: none;">
+    <div class="eb">The hand · offer size <span class="n">200 × 310</span></div>
+    <div style="display: flex; gap: 24px; height: 314px;">
+      <!-- 1 · The Tagmata · Dominion (Mars) · Albedo · Sulphur -->
+      <div class="card" style="border-color: #c2452a;">
+        <div class="fr" style="inset: 3px; border-width: 1.5px; border-color: #9fa6af; border-radius: 6px;"></div>
+        <div class="fr" style="inset: 6px; border-width: 1px; border-color: #c3c8cf; border-radius: 4px;"></div>
+        <div class="fr" style="left: 9px; right: 9px; top: 9px; height: 131px; border-width: 1px; border-color: #b4bac2; border-radius: 4px; background: linear-gradient(160deg, #f7f8f9 0%, #e3e6ea 40%, #f4f5f6 62%, #dadee3 100%);"></div>
+        <div class="bd">
+          <svg class="vs" viewBox="0 0 100 96" aria-hidden="true" style="color: #c2452a;"><circle cx="50" cy="52" r="40" fill="none" stroke="#8d949d" stroke-width="8" stroke-dasharray="0.7 4.5" opacity="0.5"></circle><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="#f7f2e1" fill-opacity="0.6" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="currentColor" fill-opacity="0.08"></path><path d="M38.5 4.5L61.5 4.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path><path d="M29.5 38Q25.5 51 29.5 65" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" opacity="0.85"></path><svg x="31" y="35" width="38" height="38" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 54L44 18"></path><path d="M54 8L47.5 21.5L40.5 14.5Z" fill="currentColor" stroke-width="5.2"></path><path d="M52 54L20 18"></path><path d="M10 8L23.5 14.5L16.5 21.5Z" fill="currentColor" stroke-width="5.2"></path></g></svg><path d="M33 89.5L67 89.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.55"></path></svg>
+          <div class="nm">The Tagmata</div>
+          <div class="rl">Veteran and Elite units gain <span class="n">+5</span> strength.</div>
+          <div class="ft"><svg class="sg" viewBox="0 0 64 64" role="img" aria-label="Mars" style="color: #c2452a;"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 40a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M36 29L54 11"></path><path d="M39 10L54 10L54 25"></path></g></svg><span>Dominion</span><span class="tr">III</span></div>
+        </div>
+        <svg class="seal" viewBox="0 0 48 48" role="img" aria-label="Military chair: Sulphur"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#e8eaed" stroke="#7d848d" stroke-width="1.2"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#a3aab3" stroke-width="1.2"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg></svg>
+      </div>
+
+      <!-- 2 · Honours of the Legion · Dominion (Mars) · Albedo · Mercury -->
+      <div class="card" style="border-color: #c2452a;">
+        <div class="fr" style="inset: 3px; border-width: 1.5px; border-color: #9fa6af; border-radius: 6px;"></div>
+        <div class="fr" style="inset: 6px; border-width: 1px; border-color: #c3c8cf; border-radius: 4px;"></div>
+        <div class="fr" style="left: 9px; right: 9px; top: 9px; height: 131px; border-width: 1px; border-color: #b4bac2; border-radius: 4px; background: linear-gradient(160deg, #f7f8f9 0%, #e3e6ea 40%, #f4f5f6 62%, #dadee3 100%);"></div>
+        <div class="bd">
+          <svg class="vs" viewBox="0 0 100 96" aria-hidden="true" style="color: #c2452a;"><circle cx="50" cy="52" r="40" fill="none" stroke="#8d949d" stroke-width="8" stroke-dasharray="0.7 4.5" opacity="0.5"></circle><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="#f7f2e1" fill-opacity="0.6" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="currentColor" fill-opacity="0.08"></path><path d="M38.5 4.5L61.5 4.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path><path d="M29.5 38Q25.5 51 29.5 65" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" opacity="0.85"></path><svg x="31" y="35" width="38" height="38" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 54L44 18"></path><path d="M54 8L47.5 21.5L40.5 14.5Z" fill="currentColor" stroke-width="5.2"></path><path d="M52 54L20 18"></path><path d="M10 8L23.5 14.5L16.5 21.5Z" fill="currentColor" stroke-width="5.2"></path></g></svg><path d="M33 89.5L67 89.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.55"></path></svg>
+          <div class="nm">Honours of the Legion</div>
+          <div class="rl">Each time one of your units earns a rank, gain science and culture equal to its strength.</div>
+          <div class="ft"><svg class="sg" viewBox="0 0 64 64" role="img" aria-label="Mars" style="color: #c2452a;"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 40a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M36 29L54 11"></path><path d="M39 10L54 10L54 25"></path></g></svg><span>Dominion</span><span class="tr">I</span></div>
+        </div>
+        <svg class="seal" viewBox="0 0 48 48" role="img" aria-label="Civic chair: Mercury"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#e8eaed" stroke="#7d848d" stroke-width="1.2"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#a3aab3" stroke-width="1.2"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5Q32 22 45 5"></path><path d="M21 28a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z"></path><path d="M32 39L32 61"></path><path d="M23 51L41 51"></path></g></svg></svg>
+      </div>
+
+      <!-- 3 · Knightly Ransom · Dominion (Mars) · Rubedo · Sulphur -->
+      <div class="card rub" style="border-color: #c2452a; background: radial-gradient(120% 55% at 50% 16%, #fbecd8 0%, #f7f2e1 70%);">
+        <div class="fr" style="inset: 2px; border-width: 2.5px; border-color: #c8901f; border-radius: 6px;"></div>
+        <div class="fr" style="inset: 7.5px; border-width: 1px; border-color: #c8901f; border-radius: 3px;"></div>
+        <div class="bd">
+          <svg class="vs" viewBox="0 0 100 96" aria-hidden="true" style="color: #c2452a;"><circle cx="50" cy="52" r="40" fill="none" stroke="#c8901f" stroke-width="8" stroke-dasharray="0.7 4.5" opacity="0.65"></circle><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="#f7f2e1" fill-opacity="0.6" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="currentColor" fill-opacity="0.08"></path><path d="M38.5 4.5L61.5 4.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path><path d="M29.5 38Q25.5 51 29.5 65" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" opacity="0.85"></path><svg x="31" y="35" width="38" height="38" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 54L44 18"></path><path d="M54 8L47.5 21.5L40.5 14.5Z" fill="currentColor" stroke-width="5.2"></path><path d="M52 54L20 18"></path><path d="M10 8L23.5 14.5L16.5 21.5Z" fill="currentColor" stroke-width="5.2"></path></g></svg><path d="M33 89.5L67 89.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.55"></path></svg>
+          <div class="nm" style="color: #9e2a1e;">Knightly Ransom</div>
+          <div class="rl">When a Veteran or Elite unit of yours would die, it returns to your nearest town with <span class="n">1</span> hit point, for gold equal to half its cost.</div>
+          <div class="ft"><svg class="sg" viewBox="0 0 64 64" role="img" aria-label="Mars" style="color: #c2452a;"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 40a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M36 29L54 11"></path><path d="M39 10L54 10L54 25"></path></g></svg><span>Dominion</span><span class="tr">III</span></div>
+        </div>
+        <svg class="seal" viewBox="0 0 48 48" role="img" aria-label="Military chair: Sulphur"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#a3231a" stroke="#6e140d" stroke-width="1.2"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#e2b04f" stroke-width="1.2"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#fbefd6" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg></svg>
+      </div>
+      <!-- 4 · Salt Tithes · Commerce (Jupiter) · Nigredo · Salt -->
+      <div class="card" style="border-color: #b07f12;">
+        <div class="fr" style="inset: 4px; border-width: 1.5px; border-color: #1d1a20; border-radius: 5px;"></div>
+        <div class="bd">
+          <svg class="vs" viewBox="0 0 100 96" aria-hidden="true" style="color: #b07f12;"><circle cx="50" cy="52" r="40" fill="none" stroke="#1d1a20" stroke-width="8" stroke-dasharray="0.7 4.5" opacity="0.2"></circle><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="#f7f2e1" fill-opacity="0.6" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="currentColor" fill-opacity="0.08"></path><path d="M38.5 4.5L61.5 4.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path><path d="M29.5 38Q25.5 51 29.5 65" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" opacity="0.85"></path><svg x="31" y="35" width="38" height="38" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 27Q7 43 14 53Q21 59 32 59Q43 59 50 53Q57 43 42 27Z"></path><path d="M22 27L42 27"></path><path d="M24 27L27 15L37 15L40 27"></path></g></svg><path d="M33 89.5L67 89.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.55"></path></svg>
+          <div class="nm">Salt Tithes</div>
+          <div class="rl">Gain <span class="n">+3</span> gold per distinct accessible improved luxury you produce. Worked luxury tiles gain <span class="n">+1</span> food.</div>
+          <div class="ft"><svg class="sg" viewBox="0 0 64 64" role="img" aria-label="Jupiter" style="color: #b07f12;"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 20Q19 8 28 12Q36 17 27 31L16 45L54 45"></path><path d="M44 30L44 60"></path></g></svg><span>Commerce</span><span class="tr">0</span></div>
+        </div>
+        <svg class="seal" viewBox="0 0 48 48" role="img" aria-label="Economic chair: Salt"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#2b2630" stroke="#1d1a20" stroke-width="1.2"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#6e6774" stroke-width="1.2"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#f7f2e1" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 32a25 25 0 1 0 50 0a25 25 0 1 0 -50 0Z"></path><path d="M7 32L57 32"></path></g></svg></svg>
+      </div>
+
+      <!-- 5 · The Lay Brothers · Devotion (Moon) · Rubedo · Mercury -->
+      <div class="card rub" style="border-color: #7b3fa8; background: radial-gradient(120% 55% at 50% 16%, #fbecd8 0%, #f7f2e1 70%);">
+        <div class="fr" style="inset: 2px; border-width: 2.5px; border-color: #c8901f; border-radius: 6px;"></div>
+        <div class="fr" style="inset: 7.5px; border-width: 1px; border-color: #c8901f; border-radius: 3px;"></div>
+        <div class="bd">
+          <svg class="vs" viewBox="0 0 100 96" aria-hidden="true" style="color: #7b3fa8;"><circle cx="50" cy="52" r="40" fill="none" stroke="#c8901f" stroke-width="8" stroke-dasharray="0.7 4.5" opacity="0.65"></circle><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="#f7f2e1" fill-opacity="0.6" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="currentColor" fill-opacity="0.08"></path><path d="M38.5 4.5L61.5 4.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path><path d="M29.5 38Q25.5 51 29.5 65" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" opacity="0.85"></path><svg x="31" y="35" width="38" height="38" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 46Q18 19 32 17Q46 19 46 46"></path><path d="M12 46L52 46"></path><path d="M32 17L32 12"></path><path d="M28 9a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z"></path><path d="M27 53a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z" fill="currentColor" stroke-width="5.2"></path></g></svg><path d="M33 89.5L67 89.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.55"></path></svg>
+          <div class="nm" style="color: #9e2a1e;">The Lay Brothers</div>
+          <div class="rl">Cities with a Temple may buy ordinary buildings with faith, at the faith rate.</div>
+          <div class="ft"><svg class="sg" viewBox="0 0 64 64" role="img" aria-label="The Moon" style="color: #7b3fa8;"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M42 8A24 24 0 0 0 42 56A30 30 0 0 1 42 8Z"></path></g></svg><span>Devotion</span><span class="tr">II</span></div>
+        </div>
+        <svg class="seal" viewBox="0 0 48 48" role="img" aria-label="Civic chair: Mercury"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#a3231a" stroke="#6e140d" stroke-width="1.2"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#e2b04f" stroke-width="1.2"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#fbefd6" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5Q32 22 45 5"></path><path d="M21 28a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z"></path><path d="M32 39L32 61"></path><path d="M23 51L41 51"></path></g></svg></svg>
+      </div>
+
+      <!-- 6 · The Patient Harvest · Expansionist (Venus) · Rubedo · Salt -->
+      <div class="card rub" style="border-color: #4e7c3f; background: radial-gradient(120% 55% at 50% 16%, #fbecd8 0%, #f7f2e1 70%);">
+        <div class="fr" style="inset: 2px; border-width: 2.5px; border-color: #c8901f; border-radius: 6px;"></div>
+        <div class="fr" style="inset: 7.5px; border-width: 1px; border-color: #c8901f; border-radius: 3px;"></div>
+        <div class="bd">
+          <svg class="vs" viewBox="0 0 100 96" aria-hidden="true" style="color: #4e7c3f;"><circle cx="50" cy="52" r="40" fill="none" stroke="#c8901f" stroke-width="8" stroke-dasharray="0.7 4.5" opacity="0.65"></circle><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="#f7f2e1" fill-opacity="0.6" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"></path><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="currentColor" fill-opacity="0.08"></path><path d="M38.5 4.5L61.5 4.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path><path d="M29.5 38Q25.5 51 29.5 65" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" opacity="0.85"></path><svg x="31" y="35" width="38" height="38" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 34L32 15L54 34"></path><path d="M18 34L46 34L46 55L18 55Z"></path><path d="M27 43L37 43L37 55L27 55Z"></path></g></svg><path d="M33 89.5L67 89.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.55"></path></svg>
+          <div class="nm" style="color: #9e2a1e;">The Patient Harvest</div>
+          <div class="rl">Cities retain <span class="n">30%</span> of the food spent on growth, but produce military units <span class="n">15%</span> more slowly.</div>
+          <div class="ft"><svg class="sg" viewBox="0 0 64 64" role="img" aria-label="Venus" style="color: #4e7c3f;"><g fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 22a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M32 37L32 60"></path><path d="M22 50L42 50"></path></g></svg><span>Expansionist</span><span class="tr">0</span></div>
+        </div>
+        <svg class="seal" viewBox="0 0 48 48" role="img" aria-label="Economic chair: Salt"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#a3231a" stroke="#6e140d" stroke-width="1.2"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#e2b04f" stroke-width="1.2"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#fbefd6" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 32a25 25 0 1 0 50 0a25 25 0 1 0 -50 0Z"></path><path d="M7 32L57 32"></path></g></svg></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Council and the small size -->
+  <div style="display: flex; gap: 28px; flex: 1; min-height: 0;">
+    <!-- The council -->
+    <div class="panel" style="width: 724px; flex: none; align-self: flex-start; padding: 16px 22px 20px; display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div class="eb">The council · seated <span class="n">120 × 186</span></div>
+        <div style="font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 21px; line-height: 1.1;">War Chief: <span class="n">3</span> Military, <span class="n">1</span> Economic, <span class="n">1</span> Open</div>
+      </div>
+      <div style="display: flex; gap: 18px; align-items: flex-start;">
+
+        <!-- Military chair · The Tagmata (Albedo) -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 120px;">
+          <div class="mini" style="border-color: #c2452a;">
+            <div class="fr" style="inset: 2px; border-width: 1px; border-color: #9fa6af; border-radius: 5px;"></div>
+            <div class="fr" style="inset: 4px; border-width: 1px; border-color: #c3c8cf; border-radius: 3px;"></div>
+            <div class="fr" style="left: 6px; right: 6px; top: 6px; height: 88px; border-width: 1px; border-color: #b4bac2; border-radius: 3px; background: linear-gradient(160deg, #f7f8f9 0%, #e3e6ea 40%, #f4f5f6 62%, #dadee3 100%);"></div>
+            <div class="bd">
+              <svg class="vs" viewBox="0 0 100 96" aria-hidden="true" style="color: #c2452a;"><circle cx="50" cy="52" r="40" fill="none" stroke="#8d949d" stroke-width="9" stroke-dasharray="1 6" opacity="0.5"></circle><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="#f7f2e1" fill-opacity="0.6" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"></path><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="currentColor" fill-opacity="0.08"></path><svg x="29" y="33" width="42" height="42" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 54L44 18"></path><path d="M54 8L47.5 21.5L40.5 14.5Z" fill="currentColor" stroke-width="5.2"></path><path d="M52 54L20 18"></path><path d="M10 8L23.5 14.5L16.5 21.5Z" fill="currentColor" stroke-width="5.2"></path></g></svg></svg>
+              <div class="nm">The Tagmata</div>
+              <div class="ft"><svg class="sg" viewBox="0 0 64 64" role="img" aria-label="Mars" style="color: #c2452a;"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 40a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M36 29L54 11"></path><path d="M39 10L54 10L54 25"></path></g></svg><span class="tr">III</span></div>
+            </div>
+            <svg class="seal" viewBox="0 0 48 48" role="img" aria-label="Military chair: Sulphur"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#e8eaed" stroke="#7d848d" stroke-width="1.4"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#a3aab3" stroke-width="1.2"></circle><svg x="12" y="12" width="24" height="24" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg></svg>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px 0 8px; box-sizing: border-box; border: 1.5px solid #1d1a20; border-radius: 999px; background: #efe8d4;">
+            <svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#1d1a20" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg>
+            <span class="ks" style="color: #1d1a20;">Military</span>
+          </div>
+        </div>
+
+        <!-- Military chair · Knightly Ransom (Rubedo) -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 120px;">
+          <div class="mini rub" style="border-color: #c2452a; background: radial-gradient(120% 55% at 50% 16%, #fbecd8 0%, #f7f2e1 70%);">
+            <div class="fr" style="inset: 1.5px; border-width: 2px; border-color: #c8901f; border-radius: 5px;"></div>
+            <div class="fr" style="inset: 5px; border-width: 1px; border-color: #c8901f; border-radius: 2px;"></div>
+            <div class="bd">
+              <svg class="vs" viewBox="0 0 100 96" aria-hidden="true" style="color: #c2452a;"><circle cx="50" cy="52" r="40" fill="none" stroke="#c8901f" stroke-width="9" stroke-dasharray="1 6" opacity="0.65"></circle><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="#f7f2e1" fill-opacity="0.6" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"></path><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="currentColor" fill-opacity="0.08"></path><svg x="29" y="33" width="42" height="42" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 54L44 18"></path><path d="M54 8L47.5 21.5L40.5 14.5Z" fill="currentColor" stroke-width="5.2"></path><path d="M52 54L20 18"></path><path d="M10 8L23.5 14.5L16.5 21.5Z" fill="currentColor" stroke-width="5.2"></path></g></svg></svg>
+              <div class="nm" style="color: #9e2a1e;">Knightly Ransom</div>
+              <div class="ft"><svg class="sg" viewBox="0 0 64 64" role="img" aria-label="Mars" style="color: #c2452a;"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 40a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M36 29L54 11"></path><path d="M39 10L54 10L54 25"></path></g></svg><span class="tr">III</span></div>
+            </div>
+            <svg class="seal" viewBox="0 0 48 48" role="img" aria-label="Military chair: Sulphur"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#a3231a" stroke="#6e140d" stroke-width="1.4"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#e2b04f" stroke-width="1.2"></circle><svg x="12" y="12" width="24" height="24" viewBox="0 0 64 64"><g fill="none" stroke="#fbefd6" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg></svg>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px 0 8px; box-sizing: border-box; border: 1.5px solid #1d1a20; border-radius: 999px; background: #efe8d4;">
+            <svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#1d1a20" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg>
+            <span class="ks" style="color: #1d1a20;">Military</span>
+          </div>
+        </div>
+
+        <!-- Military chair · empty -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 120px;">
+          <div style="position: relative; width: 120px; height: 186px; box-sizing: border-box; border: 2px dashed rgba(29,26,32,0.34); border-radius: 7px; background: rgba(29,26,32,0.035); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;">
+            <svg width="62" height="62" viewBox="0 0 48 48" aria-hidden="true" style="opacity: 0.3;"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="none" stroke="#1d1a20" stroke-width="1.2" stroke-dasharray="2 1.6"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#1d1a20" stroke-width="0.8"></circle><svg x="13" y="13" width="22" height="22" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg></svg>
+            <div class="ks">Empty</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px 0 8px; box-sizing: border-box; border: 1.5px solid #1d1a20; border-radius: 999px; background: #efe8d4;">
+            <svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#1d1a20" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg>
+            <span class="ks" style="color: #1d1a20;">Military</span>
+          </div>
+        </div>
+
+        <!-- Economic chair · Salt Tithes (Nigredo) -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 120px;">
+          <div class="mini" style="border-color: #b07f12;">
+            <div class="fr" style="inset: 3px; border-width: 1.2px; border-color: #1d1a20; border-radius: 4px;"></div>
+            <div class="bd">
+              <svg class="vs" viewBox="0 0 100 96" aria-hidden="true" style="color: #b07f12;"><circle cx="50" cy="52" r="40" fill="none" stroke="#1d1a20" stroke-width="9" stroke-dasharray="1 6" opacity="0.2"></circle><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="#f7f2e1" fill-opacity="0.6" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"></path><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="currentColor" fill-opacity="0.08"></path><svg x="29" y="33" width="42" height="42" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 27Q7 43 14 53Q21 59 32 59Q43 59 50 53Q57 43 42 27Z"></path><path d="M22 27L42 27"></path><path d="M24 27L27 15L37 15L40 27"></path></g></svg></svg>
+              <div class="nm">Salt Tithes</div>
+              <div class="ft"><svg class="sg" viewBox="0 0 64 64" role="img" aria-label="Jupiter" style="color: #b07f12;"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 20Q19 8 28 12Q36 17 27 31L16 45L54 45"></path><path d="M44 30L44 60"></path></g></svg><span class="tr">0</span></div>
+            </div>
+            <svg class="seal" viewBox="0 0 48 48" role="img" aria-label="Economic chair: Salt"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#2b2630" stroke="#1d1a20" stroke-width="1.4"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#6e6774" stroke-width="1.2"></circle><svg x="12" y="12" width="24" height="24" viewBox="0 0 64 64"><g fill="none" stroke="#f7f2e1" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 32a25 25 0 1 0 50 0a25 25 0 1 0 -50 0Z"></path><path d="M7 32L57 32"></path></g></svg></svg>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px 0 8px; box-sizing: border-box; border: 1.5px solid #1d1a20; border-radius: 999px; background: #efe8d4;">
+            <svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#1d1a20" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 32a25 25 0 1 0 50 0a25 25 0 1 0 -50 0Z"></path><path d="M7 32L57 32"></path></g></svg>
+            <span class="ks" style="color: #1d1a20;">Economic</span>
+          </div>
+        </div>
+
+        <!-- Open chair · Honours of the Legion (a Mercury card, Albedo) -->
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 120px;">
+          <div class="mini" style="border-color: #c2452a;">
+            <div class="fr" style="inset: 2px; border-width: 1px; border-color: #9fa6af; border-radius: 5px;"></div>
+            <div class="fr" style="inset: 4px; border-width: 1px; border-color: #c3c8cf; border-radius: 3px;"></div>
+            <div class="fr" style="left: 6px; right: 6px; top: 6px; height: 88px; border-width: 1px; border-color: #b4bac2; border-radius: 3px; background: linear-gradient(160deg, #f7f8f9 0%, #e3e6ea 40%, #f4f5f6 62%, #dadee3 100%);"></div>
+            <div class="bd">
+              <svg class="vs" viewBox="0 0 100 96" aria-hidden="true" style="color: #c2452a;"><circle cx="50" cy="52" r="40" fill="none" stroke="#8d949d" stroke-width="9" stroke-dasharray="1 6" opacity="0.5"></circle><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="#f7f2e1" fill-opacity="0.6" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"></path><path d="M43 4L43 20.9A30 32 0 1 0 57 20.9L57 4Z" fill="currentColor" fill-opacity="0.08"></path><svg x="29" y="33" width="42" height="42" viewBox="0 0 64 64"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 54L44 18"></path><path d="M54 8L47.5 21.5L40.5 14.5Z" fill="currentColor" stroke-width="5.2"></path><path d="M52 54L20 18"></path><path d="M10 8L23.5 14.5L16.5 21.5Z" fill="currentColor" stroke-width="5.2"></path></g></svg></svg>
+              <div class="nm">Honours of the Legion</div>
+              <div class="ft"><svg class="sg" viewBox="0 0 64 64" role="img" aria-label="Mars" style="color: #c2452a;"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 40a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M36 29L54 11"></path><path d="M39 10L54 10L54 25"></path></g></svg><span class="tr">I</span></div>
+            </div>
+            <svg class="seal" viewBox="0 0 48 48" role="img" aria-label="Civic chair: Mercury"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#e8eaed" stroke="#7d848d" stroke-width="1.4"></path><circle cx="24" cy="24" r="14.5" fill="none" stroke="#a3aab3" stroke-width="1.2"></circle><svg x="12" y="12" width="24" height="24" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5Q32 22 45 5"></path><path d="M21 28a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z"></path><path d="M32 39L32 61"></path><path d="M23 51L41 51"></path></g></svg></svg>
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px 0 8px; box-sizing: border-box; border: 1.5px solid #8a6212; border-radius: 999px; background: #f6e6bd;">
+            <svg width="14" height="14" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#1d1a20" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 32a27 27 0 1 0 54 0a27 27 0 1 0 -54 0Z"></path><path d="M13 13L51 13L51 51L13 51Z" stroke-width="5"></path><path d="M19 32a13 13 0 1 0 26 0a13 13 0 1 0 -26 0Z" stroke-width="5"></path></g></svg>
+            <span class="ks" style="color: #1d1a20;">Open</span>
+          </div>
+        </div>
+
+      </div>
+      <div style="font-size: 12.5px; line-height: 1.4; color: #3a353e;">The Stone takes any principle, so a Mercury card sits there. The empty chair shows the seal it is waiting for.</div>
+    </div>
+
+    <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px;">
+      <!-- The small size -->
+      <div class="panel" style="flex: none; padding: 16px 20px 10px; display: flex; flex-direction: column; gap: 8px;">
+        <div class="eb">The collection list · <span class="n">36</span> px rows</div>
+        <div style="display: flex; flex-direction: column;">
+          <div class="row" style="border-top: none;">
+            <svg width="26" height="26" viewBox="0 0 48 48" role="img" aria-label="Military, Albedo"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#e8eaed" stroke="#7d848d" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg></svg>
+            <div style="width: 24px; height: 24px; flex: none; box-sizing: border-box; border: 2px solid #c2452a; border-radius: 5px; background: #f7f2e1; display: flex; align-items: center; justify-content: center; color: #c2452a;"><svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 54L44 18"></path><path d="M54 8L47.5 21.5L40.5 14.5Z" fill="currentColor" stroke-width="5.2"></path><path d="M52 54L20 18"></path><path d="M10 8L23.5 14.5L16.5 21.5Z" fill="currentColor" stroke-width="5.2"></path></g></svg></div>
+            <svg width="12" height="12" viewBox="-7 -7 14 14" role="img" aria-label="Uncommon"><circle cx="0" cy="0" r="5" fill="#e8eaed" stroke="#6e757e" stroke-width="1.4"></circle></svg>
+            <div style="flex: 1; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 15px;">The Tagmata</div>
+            <svg width="15" height="15" viewBox="0 0 64 64" role="img" aria-label="Mars" style="color: #c2452a;"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 40a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M36 29L54 11"></path><path d="M39 10L54 10L54 25"></path></g></svg>
+            <div class="ks" style="width: 30px;">III</div>
+          </div>
+          <div class="row">
+            <svg width="26" height="26" viewBox="0 0 48 48" role="img" aria-label="Economic, Nigredo"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#2b2630" stroke="#1d1a20" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#f7f2e1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 32a25 25 0 1 0 50 0a25 25 0 1 0 -50 0Z"></path><path d="M7 32L57 32"></path></g></svg></svg>
+            <div style="width: 24px; height: 24px; flex: none; box-sizing: border-box; border: 2px solid #b07f12; border-radius: 5px; background: #f7f2e1; display: flex; align-items: center; justify-content: center; color: #b07f12;"><svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 27Q7 43 14 53Q21 59 32 59Q43 59 50 53Q57 43 42 27Z"></path><path d="M22 27L42 27"></path><path d="M24 27L27 15L37 15L40 27"></path></g></svg></div>
+            <svg width="12" height="12" viewBox="-7 -7 14 14" role="img" aria-label="Common"><circle cx="0" cy="0" r="5.4" fill="#2b2630"></circle></svg>
+            <div style="flex: 1; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 15px;">Salt Tithes</div>
+            <svg width="15" height="15" viewBox="0 0 64 64" role="img" aria-label="Jupiter" style="color: #b07f12;"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 20Q19 8 28 12Q36 17 27 31L16 45L54 45"></path><path d="M44 30L44 60"></path></g></svg>
+            <div class="ks" style="width: 30px;">0</div>
+          </div>
+          <div class="row">
+            <svg width="26" height="26" viewBox="0 0 48 48" role="img" aria-label="Civic, Rubedo"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#a3231a" stroke="#6e140d" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#fbefd6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5Q32 22 45 5"></path><path d="M21 28a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z"></path><path d="M32 39L32 61"></path><path d="M23 51L41 51"></path></g></svg></svg>
+            <div style="width: 24px; height: 24px; flex: none; box-sizing: border-box; border: 2px solid #7b3fa8; border-radius: 5px; background: #f7f2e1; display: flex; align-items: center; justify-content: center; color: #7b3fa8;"><svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 46Q18 19 32 17Q46 19 46 46"></path><path d="M12 46L52 46"></path><path d="M32 17L32 12"></path><path d="M28 9a4 4 0 1 0 8 0a4 4 0 1 0 -8 0Z"></path><path d="M27 53a5 5 0 1 0 10 0a5 5 0 1 0 -10 0Z" fill="currentColor" stroke-width="5.2"></path></g></svg></div>
+            <svg width="12" height="12" viewBox="-7 -7 14 14" role="img" aria-label="Rare"><circle cx="0" cy="0" r="5" fill="#a3231a" stroke="#d9a441" stroke-width="1.6"></circle></svg>
+            <div style="flex: 1; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 15px; color: #9e2a1e;">The Lay Brothers</div>
+            <svg width="15" height="15" viewBox="0 0 64 64" role="img" aria-label="The Moon" style="color: #7b3fa8;"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M42 8A24 24 0 0 0 42 56A30 30 0 0 1 42 8Z"></path></g></svg>
+            <div class="ks" style="width: 30px;">II</div>
+          </div>
+          <div class="row">
+            <svg width="26" height="26" viewBox="0 0 48 48" role="img" aria-label="Economic, Rubedo"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#a3231a" stroke="#6e140d" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#fbefd6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 32a25 25 0 1 0 50 0a25 25 0 1 0 -50 0Z"></path><path d="M7 32L57 32"></path></g></svg></svg>
+            <div style="width: 24px; height: 24px; flex: none; box-sizing: border-box; border: 2px solid #4e7c3f; border-radius: 5px; background: #f7f2e1; display: flex; align-items: center; justify-content: center; color: #4e7c3f;"><svg width="16" height="16" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 34L32 15L54 34"></path><path d="M18 34L46 34L46 55L18 55Z"></path><path d="M27 43L37 43L37 55L27 55Z"></path></g></svg></div>
+            <svg width="12" height="12" viewBox="-7 -7 14 14" role="img" aria-label="Rare"><circle cx="0" cy="0" r="5" fill="#a3231a" stroke="#d9a441" stroke-width="1.6"></circle></svg>
+            <div style="flex: 1; font-family: Fraunces, Georgia, serif; font-weight: 600; font-size: 15px; color: #9e2a1e;">The Patient Harvest</div>
+            <svg width="15" height="15" viewBox="0 0 64 64" role="img" aria-label="Venus" style="color: #4e7c3f;"><g fill="none" stroke="currentColor" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 22a15 15 0 1 0 30 0a15 15 0 1 0 -30 0Z"></path><path d="M32 37L32 60"></path><path d="M22 50L42 50"></path></g></svg>
+            <div class="ks" style="width: 30px;">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- The seals at small size -->
+      <div class="panel" style="flex: 1; min-height: 0; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px;">
+        <div class="eb">Every seal at <span class="n">28</span> px</div>
+        <div style="display: flex; gap: 26px; align-items: flex-start;">
+          <div style="display: grid; grid-template-columns: 74px repeat(3, 56px); row-gap: 7px; align-items: center; justify-items: center;">
+            <div></div>
+            <div class="ks" style="font-size: 8.5px;">Sulphur</div>
+            <div class="ks" style="font-size: 8.5px;">Salt</div>
+            <div class="ks" style="font-size: 8.5px;">Mercury</div>
+
+            <div class="ks" style="justify-self: start; font-size: 8.5px;">Nigredo</div>
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#2b2630" stroke="#1d1a20" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#f7f2e1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg></svg>
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#2b2630" stroke="#1d1a20" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#f7f2e1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 32a25 25 0 1 0 50 0a25 25 0 1 0 -50 0Z"></path><path d="M7 32L57 32"></path></g></svg></svg>
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#2b2630" stroke="#1d1a20" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#f7f2e1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5Q32 22 45 5"></path><path d="M21 28a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z"></path><path d="M32 39L32 61"></path><path d="M23 51L41 51"></path></g></svg></svg>
+
+            <div class="ks" style="justify-self: start; font-size: 8.5px;">Albedo</div>
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#e8eaed" stroke="#7d848d" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg></svg>
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#e8eaed" stroke="#7d848d" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 32a25 25 0 1 0 50 0a25 25 0 1 0 -50 0Z"></path><path d="M7 32L57 32"></path></g></svg></svg>
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#e8eaed" stroke="#7d848d" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5Q32 22 45 5"></path><path d="M21 28a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z"></path><path d="M32 39L32 61"></path><path d="M23 51L41 51"></path></g></svg></svg>
+
+            <div class="ks" style="justify-self: start; font-size: 8.5px;">Rubedo</div>
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#a3231a" stroke="#6e140d" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#fbefd6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M32 6L51 38L13 38Z"></path><path d="M32 38L32 60"></path><path d="M21 50L43 50"></path></g></svg></svg>
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#a3231a" stroke="#6e140d" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#fbefd6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 32a25 25 0 1 0 50 0a25 25 0 1 0 -50 0Z"></path><path d="M7 32L57 32"></path></g></svg></svg>
+            <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#a3231a" stroke="#6e140d" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#fbefd6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5Q32 22 45 5"></path><path d="M21 28a11 11 0 1 0 22 0a11 11 0 1 0 -22 0Z"></path><path d="M32 39L32 61"></path><path d="M23 51L41 51"></path></g></svg></svg>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 20px; width: 180px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <svg width="28" height="28" viewBox="0 0 48 48" aria-hidden="true" style="flex: none;"><path d="M43 24A5.5 5.5 0 0 1 40.45 33.5A5.5 5.5 0 0 1 33.5 40.45A5.5 5.5 0 0 1 24 43A5.5 5.5 0 0 1 14.5 40.45A5.5 5.5 0 0 1 7.55 33.5A5.5 5.5 0 0 1 5 24A5.5 5.5 0 0 1 7.55 14.5A5.5 5.5 0 0 1 14.5 7.55A5.5 5.5 0 0 1 24 5A5.5 5.5 0 0 1 33.5 7.55A5.5 5.5 0 0 1 40.45 14.5A5.5 5.5 0 0 1 43 24Z" fill="#f6e6bd" stroke="#8a6212" stroke-width="2"></path><svg x="11" y="11" width="26" height="26" viewBox="0 0 64 64"><g fill="none" stroke="#1d1a20" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 32a27 27 0 1 0 54 0a27 27 0 1 0 -54 0Z"></path><path d="M13 13L51 13L51 51L13 51Z" stroke-width="5.5"></path><path d="M19 32a13 13 0 1 0 26 0a13 13 0 1 0 -26 0Z" stroke-width="5.5"></path></g></svg></svg>
+              <div class="kl">The Stone</div>
+            </div>
+            <div style="font-size: 12.5px; line-height: 1.45; color: #3a353e;">Marks Open chairs only. No card carries it. Glyph shape gives the chair; wax lightness gives the stage, so neither needs colour.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

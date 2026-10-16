@@ -26,7 +26,8 @@ Economic or Civic, and governments mix the three with Open chairs. Open: when
 Doctrines are offered, the fifteen Dominion candidates, and whether
 governments become a chair mix plus one rule. The user will answer those after
 seeing card face proposals that show deck, chair type and rarity together
-(`docs/plans/mockups/card-faces.html`).
+(the canvas https://claude.ai/artifact/B6Nyi6ZKCjHtXcSZTNrDoB; source in
+`docs/plans/mockups/card-faces/`).
 
 **(uuuuuu) Dominion's four builds, and Tier IV at draft 38 — RULED, 2026-10-15.**
 The user answered the questions in `docs/plans/dominion-builds.md`, where the
