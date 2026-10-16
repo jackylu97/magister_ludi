@@ -38,10 +38,18 @@ Each batch is one Opus agent, then the orchestrator's batch gate (typecheck, cor
 - Governments' mixes as above, replacing the all-Wildcard layout (`slotLayout`, `slotSpread`) and the old `slots` field. The chair counts still match the ladder: 3, 5, 5, 8 and 11 at tiers 0, 4, 10, 18 and 29.
 - The fit rule above, wherever a card is seated: the reducer's validation, the council screen, adoption's re-seating and the bots.
 - The council shows each chair's type, as on the A3 board's council: an empty chair keeps its ink, and the Wildcard chair is purple.
-- The tier-18 signatures count by type: Imperium's Military Orders, the Merchant League's Economic Orders, and Divine Mandate's **Civic** Orders (the user, 2026-10-16). Divine Mandate's text changes to match.
+- The tier-18 signatures count by type: Imperium's Military Orders, the Merchant League's Economic Orders, and Divine Mandate's **Civic** Orders (the user, 2026-10-16). Divine Mandate's text changes to match. Until the other decks are sorted, **an unsorted card counts as the type of the chair it sits in**, and as no type in a Wildcard chair, so a Commerce card in an Economic chair still counts for the Merchant League. This is the orchestrator's interim rule, in the spirit of "assign everything as a wildcard slot".
+- **Adopting a government re-seats the cards already seated** (the user, 2026-10-12: adopting a government keeps the seated cards). It keeps as many as fit, in a fixed order:
+  - Wildcard cards go to Wildcard chairs first, because nothing else takes them;
+  - then each typed card goes to a chair of its own type;
+  - then the remaining typed cards go to the Wildcard chairs left;
+  - then the unsorted cards go to whatever chairs are left, typed chairs before Wildcard ones.
+  - Within each step, cards keep their old seat order. A card that fits no chair goes back to the collection, unseated, keeping its progress.
 - The tier-38 governments retired.
 - The three cut Dominion rows retired (Defensive Lines, Arsenals, Naval Supremacy), and the sheet's Cut table removed.
 - The save-format change this needs, in the codebase's own way.
+- `docs/orders-and-doctrines.md`'s governments table follows the data (its sync test reads the live rows' printed words).
+- **Split in two:** C2a is the rules (data, the fit rule, re-seating, the reducer, the signatures, the retirements, the bots and their tests). C2b is the council screen and every other surface that seats a card or shows a chair, built on C2a's functions.
 
 ### C3: Doctrines come with a government, and the reward hands go
 
