@@ -6,14 +6,22 @@
  * byte-identical; the shared waiting period, read off an absolute stamp; each
  * use's payment (production here, a trained melee unit, hammers sent to the
  * town building the Magnum Opus, an untrained melee unit that may be raised
- * every turn at war); Seasonal Levies' aftermath and its twenty-turn limit; and
- * that the same setup and the same commands always reach the same state.
+ * every turn at war); that an untrained unit still pays the cards for a unit
+ * gained but stays off the trained tally and the escalation ladder; Seasonal
+ * Levies' aftermath and its twenty-turn limit; and that the same setup and the
+ * same commands always reach the same state.
  */
 
 import { describe, expect, it } from 'vitest';
 
 import { applyCommand, type Command } from '../../src/sim/commands';
-import { bestMeleeFor, foundCityAt, growthThreshold, refreshCityDerived } from '../../src/sim/cities';
+import {
+  bestMeleeFor,
+  foundCityAt,
+  growthThreshold,
+  realiseItem,
+  refreshCityDerived,
+} from '../../src/sim/cities';
 import { dispatch, type Game } from '../../src/sim/game';
 import { levyError, levyOptions } from '../../src/sim/levies';
 import { getTileAt } from '../../src/sim/map';
@@ -167,8 +175,8 @@ describe('The Muster of the Fields — a trained melee unit', () => {
     expect(raised.type).toBe(type);
     expect(raised.ownerId).toBe(0);
     expect(raised.freeUpkeep).toBeUndefined();
-    // Muster Rites: "training a unit grants 6 faith" (the Dominion sheet raised it from 5).
-    expect(playerById(g.state, 0)!.faithPool).toBe(faith + 6);
+    // Muster Rites: "gaining a unit grants 8 faith" (Dominion batch D0).
+    expect(playerById(g.state, 0)!.faithPool).toBe(faith + 8);
     expect(city.population).toBe(5);
   });
 
@@ -182,16 +190,55 @@ describe('The Muster of the Fields — a trained melee unit', () => {
 });
 
 describe('The General Levy — an untrained melee unit', () => {
-  it('raises a unit the training cards do not pay for', () => {
+  // The user's ruling of 2026-10-16 (Dominion batch D0): a conscript is a unit
+  // gained, so every card that pays for gaining a unit pays for it. It is still
+  // not trained: it adds nothing to the trained tally and does not make the
+  // next unit of its type dearer.
+
+  /** How many trained units a seated card has counted, or 0 before the first. */
+  function trainedTally(g: Game, card: string): number {
+    const row = playerById(g.state, 0)!.statecraft.tallies.find((held) => held.card === card);
+    return row?.count ?? 0;
+  }
+
+  it('raises a unit that the cards for a unit gained pay for, and that is not trained', () => {
     const { g, city } = bench(6);
     seat(g, 'theGeneralLevy');
     seat(g, 'musterRites');
+    // The Muster Rolls is retired, but it is the one card that keeps the
+    // trained tally, so seating it is how this test reads that tally.
+    seat(g, 'dominionTheMusterRolls');
     const faith = playerById(g.state, 0)!.faithPool;
     expect(levy(g, city, 'conscript').ok).toBe(true);
     const raised = g.state.units[g.state.units.length - 1]!;
     expect(raised.type).toBe(bestMeleeFor(g.state, 0));
     expect(raised.freeUpkeep).toBeUndefined();
-    expect(playerById(g.state, 0)!.faithPool).toBe(faith);
+    // Muster Rites: "Gaining a unit grants 8 faith and 8 food."
+    expect(playerById(g.state, 0)!.faithPool).toBe(faith + 8);
+    expect(trainedTally(g, 'dominionTheMusterRolls')).toBe(0);
+  });
+
+  it('keeps an untrained unit off the escalation ladder and the trained tally', () => {
+    // Straight through `realiseItem`, because a levy always raises the best
+    // melee unit and no melee unit has an escalation ladder. A settler has one.
+    const { g, city } = bench(6);
+    seat(g, 'musterRites');
+    seat(g, 'dominionTheMusterRolls');
+    const player = playerById(g.state, 0)!;
+    const tile = getTileAt(g.state.map, city.col, city.row)!;
+    const faith = player.faithPool;
+    const built = player.unitsBuilt.settler ?? 0;
+
+    realiseItem(g.state, city, { kind: 'unit', id: 'settler', tile }, { untrained: true });
+    expect(player.faithPool).toBe(faith + 8);
+    expect(player.unitsBuilt.settler ?? 0).toBe(built);
+    expect(trainedTally(g, 'dominionTheMusterRolls')).toBe(0);
+
+    // A trained settler moves both, which shows the two checks above can fail.
+    realiseItem(g.state, city, { kind: 'unit', id: 'settler', tile });
+    expect(player.faithPool).toBe(faith + 16);
+    expect(player.unitsBuilt.settler ?? 0).toBe(built + 1);
+    expect(trainedTally(g, 'dominionTheMusterRolls')).toBe(1);
   });
 
   it('waits five turns at peace and one at war', () => {

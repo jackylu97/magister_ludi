@@ -44,7 +44,6 @@ import { purchaseItemAt } from '../../src/sim/purchase';
 import { settleCampBounty } from '../../src/sim/camps';
 import {
   type PlayerStatecraft,
-  cardAuthority,
   explainCardEmpireYields,
   foldCardYields,
   describeCard,
@@ -203,22 +202,18 @@ describe('the moments a growing card may now count', () => {
     expect(tallyOf(sc, 'dominionTheMusterRolls')).toBe(1);
   });
 
-  it('campCleared — the marches count a burnt camp', () => {
+  it('campCleared — a seated commission counts a burnt camp', () => {
     // Through `settleCampBounty`, the one routine that pays for a camp burnt
-    // out — the seam the counter rides, exactly as the kill counter rides
+    // out, which is the seam the counter rides, as the kill counter rides
     // `payBattleRiders`. The lifetime record beside it (`Player.campsCleared`,
-    // raised in `arriveOnTile`) is a second counter of one act and is pinned
-    // where the march is; what this file owns is the chair's own book.
+    // raised in `arriveOnTile`) counts the same act for the whole game, and The
+    // Pacified Marches reads that record since batch D0. What this file owns is
+    // the chair's own book, which Commission: Clear the Frontier keeps.
     const g = wildGame(9);
-    const sc = slot(g.state, 0, 'thePacifiedMarches');
+    const sc = slot(g.state, 0, 'dominionClearTheFrontier');
     const city = found(g.state, 0);
     settleCampBounty(g.state, 0, { col: city.col, row: city.row });
-    expect(tallyOf(sc, 'thePacifiedMarches')).toBe(1);
-    // Five culture a camp, and the writ the same counter widens — one tally
-    // feeding two folds, which is what made this the first growing card to
-    // reach a meter.
-    expect(empirePays(g.state, 0, 'culture')).toBe(5);
-    expect(cardAuthority(g.state, 0).reduce((sum, line) => sum + line.amount, 0)).toBe(1);
+    expect(tallyOf(sc, 'dominionClearTheFrontier')).toBe(1);
   });
 
   it('says what each of them counts, in a first-time player’s words', () => {
@@ -262,17 +257,20 @@ describe('a windfall grant scaled by the occasion’s own facts', () => {
     // What the shape promises is the *printed figure*, and this is it.
     const g = game();
     slot(g.state, 0, 'songsOfTheFallen');
-    // A death pays only for the piece that was defending (the Dominion sheet's
-    // revision of Songs of the Fallen), so the death is asked as a defence.
-    for (const occasion of ['kill', 'death'] as const) {
-      const payout = windfallPayout(g.state, 0, occasion, 0, 0, { strength: 11, defending: true });
+    // Every loss pays, the attacker killed by the counter-blow as well as the
+    // piece that was defending (the user's ruling of 2026-10-13: feeding units
+    // to die is a way to play), so the death is asked both ways.
+    for (const [occasion, defending] of [
+      ['kill', false],
+      ['death', true],
+      ['death', false],
+    ] as const) {
+      const payout = windfallPayout(g.state, 0, occasion, 0, 0, { strength: 11, defending });
       expect(payout.grants.map((line) => [line.yield, line.amount])).toEqual([
         ['science', 22],
         ['culture', 22],
       ]);
     }
-    // An attacker killed by the counter-blow pays nothing.
-    expect(windfallPayout(g.state, 0, 'death', 0, 0, { strength: 11 }).grants).toEqual([]);
     // A strength of nought is a real nought and pays nothing — the zero line
     // every fold in this file drops rather than printing.
     expect(windfallPayout(g.state, 0, 'kill', 0, 0, { strength: 0 }).grants).toEqual([]);

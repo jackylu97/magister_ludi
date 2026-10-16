@@ -358,8 +358,12 @@ describe('the schema, as landed', () => {
     // It or Tax It, War Bonds, Professional Soldiers and The Chartered
     // Company's charter), and Frontier Garrisons was retired. The Holy Army
     // moved from the Devotion file to the shared one and is live in both counts.
-    expect(live).toBe(358);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(358);
+    // **And Dominion batch D0** (the cards that needed no new shape): eleven
+    // more. Thirteen new Dominion rows and Carried-Off Scholars in the shared
+    // file came live, and the sheet's three cuts (Defensive Lines, Arsenals and
+    // Naval Supremacy) were retired.
+    expect(live).toBe(369);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(369);
   });
 
   /**
@@ -515,7 +519,9 @@ describe('the schema, as landed', () => {
     // log's losing empires would grow on turns this build holds them back.
     // 127 since WC3: units earn ranks in combat, so a v126 log's veterans
     // would fight weaker than this build makes them.
-    expect(SCHEMA_VERSION).toBe(127);
+    // 128 since D0: the Dominion cards that needed no new shape change what a
+    // draft deals, so a v127 log's picks would name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(128);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -717,10 +723,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // fourth (Harvest Offerings, cut by both its sheets) and wrote Mercenary
       // Contracts deferred (− 3 − 1 + 1); it retired Frontier Garrisons and
       // Harvest Offerings (+ 2 retired).
+      // **Dominion batch D0** retired the sheet's three cuts (+ 3 retired).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
       ).toHaveLength(72);
-      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(131);
+      expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(134);
     }
   });
 

@@ -4097,9 +4097,10 @@ export interface RealiseOptions {
   /**
    * The piece was raised from a citizen and **not trained** — The General
    * Levy's soldier (batch L, `levies.ts`). It goes on the payroll like a built
-   * piece, but it does not count toward the trained tally, does not climb the
-   * escalation ladder, and the riders that pay for a unit completed (Muster
-   * Rites, The Art of War) do not pay for it. Ignored for a building.
+   * piece, but it does not count toward the trained tally and does not climb
+   * the escalation ladder. It is still a unit gained, so the riders that pay
+   * for a unit gained (Muster Rites, The Art of War, Rites of Passage) pay for
+   * it: the user's ruling of 2026-10-16, batch D0. Ignored for a building.
    */
   untrained?: boolean;
 }
@@ -4362,9 +4363,9 @@ export function realiseItem(
   ) {
     recordScalingOccasion(state, city.ownerId, 'unitTrained');
   }
-  // A levied conscript was not trained, so nothing that pays for training
-  // pays for it (`RealiseOptions.untrained`).
-  if (options.untrained === true) return { unitId: unit.id };
+  // The riders pay for every unit gained, a levied conscript included
+  // (`RealiseOptions.untrained`). A conscript is kept out of the trained tally
+  // and the escalation ladder above, and nowhere else.
   payCompletionRiders(state, city, 'unit', {
     // The roster's own figure plus whatever the stamp was worth, which is the
     // reading `planCombat` opens its ledger with — The Art of War is paid for

@@ -686,10 +686,16 @@ describe('determinism', () => {
    * 188968 to 188983. One experience is no rank, so nothing fights differently
    * and no later turn moves. At seed 2026 nobody fights, so only the version
    * moved there.
+   *
+   * **Batch D0 (the Dominion cards that needed no new shape) moved the hash
+   * and not the length** at both seeds: 127 became 128, and that is all.
+   * Nobody here drafts a card, so the new and changed cards never reach this
+   * board. Checked by setting the version back to 127, which gives the old
+   * hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '509126d9:188983',
-    2026: '2df81816:188539',
+    11: 'e6d3aeda:188983',
+    2026: 'e33733a9:188539',
   };
 
   for (const seed of [11, 2026]) {

@@ -293,7 +293,6 @@ describe('the Dominion deck — the file', () => {
     const shared = sharedCards();
     expect(shared.length, 'the shared table lists cards').toBeGreaterThan(0);
     const common = new Map(DECK_FILE_ORDERS.common.map((id) => [orderDef(id).name, id] as const));
-    const everyName = new Set(ORDER_IDS.map((id) => orderDef(id).name));
     let checked = 0;
     for (const card of shared) {
       const name = dataNameOf(card);
@@ -302,18 +301,11 @@ describe('the Dominion deck — the file', () => {
         continue;
       }
       const id = common.get(name);
-      if (id === undefined) {
-        // A merged card keeps its row in its old deck file until the merge is
-        // built, which moves the row here (the sheet's `merged` status). Its type
-        // is checked from then on; until then the row must exist somewhere.
-        expect(card.reason, `common.json has no row for "${name}"`).toBe('merged');
-        expect(everyName.has(name), `no deck file has a row for "${name}"`).toBe(true);
-        continue;
-      }
+      expect(id, `common.json has no row for "${name}"`).toBeDefined();
       // The row is the one the sheet means: shared by Dominion and the deck named.
-      expect(orderDef(id).decks, name).toContain('dominion');
-      expect(orderDef(id).decks, name).toContain(card.alsoIn);
-      expect(orderType(id), `${name}: the sheet's type`).toBe(card.type);
+      expect(orderDef(id!).decks, name).toContain('dominion');
+      expect(orderDef(id!).decks, name).toContain(card.alsoIn);
+      expect(orderType(id!), `${name}: the sheet's type`).toBe(card.type);
       checked += 1;
     }
     expect(checked, 'the shared rows were checked at all').toBeGreaterThan(0);

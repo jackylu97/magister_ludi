@@ -28,6 +28,7 @@ import { claimClearedCampGround } from '../../../src/sim/camps';
 import { foundCityAt } from '../../../src/sim/cities';
 import { type Game } from '../../../src/sim/game';
 import { buildImprovementAt } from '../../../src/sim/improvements';
+import { levyError } from '../../../src/sim/levies';
 import {
   type Tile,
   getTileAt,
@@ -172,6 +173,7 @@ describe('the shared cards of the four approved decks', () => {
       'theCharteredCompany',
       'lettersOfMarque',
       'commonTheTithe',
+      'theMusterOfTheFields',
     ];
     for (const id of live) {
       expect(COMMON, id).toContain(id);
@@ -181,6 +183,10 @@ describe('the shared cards of the four approved decks', () => {
     // The Holy Army moved out of the Devotion file, keeping its id.
     expect(DECK_FILE_ORDERS.devotion).not.toContain('theHolyArmy');
     expect(orderDef('theHolyArmy' as OrderId).decks).toEqual(['dominion', 'devotion']);
+    // So did The Muster of the Fields out of the Expansionist file (Dominion
+    // batch D0, the merge of 2026-10-16).
+    expect(DECK_FILE_ORDERS.expansionist).not.toContain('theMusterOfTheFields');
+    expect(orderDef('theMusterOfTheFields' as OrderId).decks).toEqual(['dominion', 'expansionist']);
   });
 
   it('retires the two shared cuts and defers Mercenary Contracts with its reason', () => {
@@ -476,5 +482,17 @@ describe('The Chartered Company: the Company Guard', () => {
     expect(ask('faith')).not.toBeNull();
     // Never trained.
     expect(buildError(g.state, 0, 'unit', 'companyGuard', city)).not.toBeNull();
+  });
+});
+
+describe('The Muster of the Fields, shared since the merge (Dominion batch D0)', () => {
+  it("keeps The Call to the Spear's floor: a town needs five citizens to muster", () => {
+    const g = duel();
+    const city = capital(g);
+    seat(g.state, ['theMusterOfTheFields']);
+    city.population = 4;
+    expect(levyError(g.state, 0, city, 'muster')).toMatch(/at least 5 citizens/);
+    city.population = 5;
+    expect(levyError(g.state, 0, city, 'muster')).toBeNull();
   });
 });

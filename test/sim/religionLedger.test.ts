@@ -215,19 +215,19 @@ describe("the founder's share", () => {
 });
 
 describe('the faith headline', () => {
-  /** The fixture with The Camp Chaplains seated: an Order paying faith. */
-  function withChaplains(): GameState {
+  /** The fixture with Household Altars seated: an Order paying faith every turn. */
+  function withAltars(): GameState {
     const { state } = world();
     const player = playerById(state, 0)!;
-    const chaplains = 'dominionTheCampChaplains' as OrderId;
-    player.statecraft.orders = [chaplains];
-    player.statecraft.slots = [{ card: chaplains, sealedUntil: 0 }];
+    const altars = 'householdAltars' as OrderId;
+    player.statecraft.orders = [altars];
+    player.statecraft.slots = [{ card: altars, sealedUntil: 0 }];
     bumpRevision(state);
     return state;
   }
 
   it("folds to the top bar's faith figure", () => {
-    const state = withChaplains();
+    const state = withAltars();
     expect(foldFaithLedger(explainFaithLedger(state, 0))).toBeCloseTo(
       readEmpire(state, 0).totals.faith,
       9,
@@ -235,10 +235,10 @@ describe('the faith headline', () => {
   });
 
   it('opens the Religion class into its sources and keeps every Order in one deck slice', () => {
-    const state = withChaplains();
+    const state = withAltars();
     const faith = explainFaithLedger(state, 0);
-    // The deck is one slice, and it is paying: The Camp Chaplains counts the
-    // seat's units.
+    // The deck is one slice, and it is paying: Household Altars pays faith in
+    // the capital.
     const deck = faith.filter((line) => line.kind === 'class' && line.class === 'deck');
     expect(deck).toHaveLength(1);
     expect(deck[0]!.faith).toBeGreaterThan(0);
@@ -261,7 +261,7 @@ describe('the faith headline', () => {
   });
 
   it('reads the board and changes nothing', () => {
-    const state = withChaplains();
+    const state = withAltars();
     const before = JSON.stringify(state);
     explainFaithLedger(state, 0);
     explainReligionLedger(state, 0);

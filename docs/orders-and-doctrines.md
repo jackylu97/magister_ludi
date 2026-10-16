@@ -140,30 +140,36 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 | Order | Band | Rarity | Role | Effect |
 |---|---|---|---|---|
-| Blooded Spears | 0 | ● | S | +4 strength against barbarians. Clearing a camp grants 25 production and 25 food to your nearest city. |
-| Martial Law | 0 | ● | P | Each garrisoned unit grants its city +1 happiness and +2 food. |
-| Muster Rites | 0 | ● | S | Training a unit grants 6 faith and 6 food. |
-| The Standing Army | 0 | ○ | S | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
+| Blooded Spears | 0 | ● | S | Military units gain +2 strength, doubled against barbarians. |
+| Muster Rites | 0 | ● | S | Gaining a unit grants 8 faith and 8 food. |
+| The Standing Army | 0 | ◆ | S | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
 | Blood Brothers | 0 | ○ | S | A barbarian unit you kill joins your side. |
-| The King's Levy | 0 | ○ | S | Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep. |
+| The King's Levy | 0 | ○ | S | Every fifteen turns your capital raises a melee unit for free. It costs no upkeep. |
 | Commission: Clear the Frontier | 0 | ● | S | Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
-| The Horse Herds | 0 | ● | S | Worked pastures and camps give +1 production. +20% production toward mounted units. |
-| Battle Honours | 0 | ● | S | Your first kill each turn grants 6 renown, and clearing a barbarian camp grants 12 renown, both favouring great generals. |
-| Sword and Plough | 0 | ● | S | While at peace, each city with a garrison gains +2 culture. While at war, each gains +2 production instead. |
-| The Camp Chaplains | 0 | ● | P | +1 faith for every unit you control. |
+| The Horse Herds | 0 | ● | S | Worked pastures and camps give +1 food and +1 production. |
+| Battle Honours | 0 | ● | S | Commission. Kill ten units while this card is seated. Then choose a great general from a draft. The card leaves its chair. |
+| Sword and Plough | 0 | ● | P | Each city with a garrison gains +1 culture and +2 production. |
+| The Camp Chaplains | 0 | ● | S | Killing a unit grants faith equal to its strength. |
+| The Grain Tribute | 0 | ● | S | +1 food and +1 production in every city. |
+| The Scaling Ladders | 0 | ● | S | Melee units gain +4 strength against towns. |
+| The Funeral Games | 0 | ● | S | When one of your units falls, gain faith equal to its strength. |
+| The Bards' Praise | 0 | ● | S | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture. |
+| The Cattle Raid | 0 | ● | S | Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns. |
 | Drill Manuals | 1 | ● | P | Barracks and Stables give +3 science. +30% production toward Barracks and Stables. |
 | March Discipline | 1 | ● | S | Military units gain +1 movement when starting their turn in your territory. |
 | The Quartermasters | 1 | ● | S | Worked strategic resources gain +3 food and +3 production. |
 | The Soldiers' Purse | 1 | ● | S | Military units cost 1 less upkeep. |
 | The War Hall Schools | 1 | ● | P | War Halls give +5 science and +5 culture. |
 | The Marshals | 1 | ◆ | S | +2 strength per adjacent friendly combat unit, at most +6. |
-| The Pacified Marches | 1 | ◆ | P | While slotted, gains +1 authority capacity and +5 culture for every barbarian camp cleared, at most +8 authority and +40 culture. |
-| The Art of War | 1 | ◆ | S | Training a unit grants science equal to three quarters of its strength. |
+| The Pacified Marches | 1 | ◆ | P | Gains +1 authority capacity and +5 culture for every barbarian camp cleared this game, at most +8 authority and +40 culture. |
+| The Art of War | 1 | ◆ | S | Gaining a unit grants science equal to three quarters of its strength. |
 | War Foundries | 1 | ○ | P | Cities with a Barracks gain gold equal to 30% of their base production and +38% production toward military units. |
-| Songs of the Fallen | 1 | ○ | S | Killing a unit grants science and culture equal to twice its strength. Losing a unit while it defends grants the same. |
+| Songs of the Fallen | 1 | ○ | S | Killing or losing a unit grants science and culture equal to twice its strength. |
 | Horse Lords | 1 | ○ | S | Mounted units gain +3 strength and +1 movement. |
-| The General Staff | 1 | ● | S | Cities with a Barracks give +2 renown a turn, favouring great generals. |
+| The General Staff | 1 | ● | P | Cities with a Barracks give +3 production and +2 renown a turn, favouring great generals. |
 | The Soldier-Farmers | 1 | ● | S | While at peace, garrisoned cities gain +2 food and +2 production on each worked pasture and camp. |
+| Martial Law | 1 | ● | P | Each garrisoned unit grants its city +2 happiness and +4 food. |
+| Walled Towns | 1 | ● | P | Towns with a defensive building, such as a Palisade or walls, gain +15% food. |
 | Siege Works | 2 | ● | S | +38% production toward siege units. Siege units gain +4 strength against cities. |
 | Armoury Guilds | 2 | ● | P | Armouries give +5 science and +5 culture. Cities with one gain +15% production toward buildings. |
 | Conquered Archives | 2 | ● | P | Captured cities gain +6 science and +6 culture. |
@@ -176,13 +182,17 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Master Bowyers | 2 | ○ | S | Ranged and siege units gain +1 range. |
 | The Citadel Works | 2 | ● | S | Citadels gain +5 science. Each citadel inside your borders gives +1 renown a turn, favouring great generals. |
 | Commission: Take the City | 2 | ◆ | S | Commission. Capture a city with at least five citizens. Then gain culture and science equal to twenty-three times its population, and a free Barracks in that city. The card leaves its chair. |
+| The Valetudinaria | 2 | ● | S | Units in your territory heal 15 more hit points a turn. |
+| Living off the Land | 2 | ● | S | Military units outside your territory cost no upkeep. |
+| The Serried Ranks | 2 | ○ | S | Melee units beside another melee unit gain +10 strength when defending. |
+| The Conscription Rolls | 2 | ◆ | S | Every ten turns, each town of at least eight citizens raises the best melee unit you can build. |
 | Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +12% production and +12% culture. |
-| Arsenals | 3 | ● | P | Cities with an Armoury gain +30% production and produce ships 75% faster. |
 | The Siege Train | 3 | ◆ | S | Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities. |
 | Reserve Officers | 3 | ◆ | S | While at war, cities with a Barracks produce military units 60% faster; while at peace, those cities gain +30% production toward buildings. |
-| Defensive Lines | 3 | ◆ | S | Land combat units gain +3 strength beside a friendly city. Cities with walls gain +3 defence per garrisoned unit. |
-| Naval Supremacy | 3 | ◆ | P | Naval units gain +1 sight and +1 range. Coastal cities gain +30% gold; coastal captured cities +60%. |
-| Total War | 3 | ○ | S | All your military units gain +8 strength and +1 movement. Every city demands +3 more happiness. |
+| Total War | 3 | ○ | S | All your military units gain +5 strength and +1 movement. Every city demands +3 more happiness. |
+| The Arrière-ban | 3 | ◆ | S | Declaring war gives every city +50% production for ten turns. Declaring war again restarts the ten turns. |
+| The Victory Mint | 3 | ◆ | S | Capturing a city grants gold equal to thirty times its population. |
+| The Board of Ordnance | 3 | ● | S | While at war, each city with a Barracks gains +1 production and +1 science for every three citizens. |
 | Imperium | 4 | ○ | S | Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%. |
 | Commission: Hold the Capitals | 4 | ○ | S | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. |
 | Spolia | 4 | ○ | S | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. |
@@ -191,7 +201,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Annexed Provinces | 4 | ○ | P | Each captured city you hold gives +5% science and +5% culture in every city, at most +25%. |
 | The Marshalate | 4 | ○ | S | Each great general you have called gives your military units +1 strength, at most +5. Citadels give +3 culture and +3 production. |
 | The Military Frontier | 4 | ○ | P | Each unit garrisoned in a city gives it +3 science and +3 culture, at most three units per city. |
-| The Nation in Arms | 4 | ○ | S | Every ten turns, each city with an Armoury raises the best melee unit you can build. They count as trained and cost no upkeep. |
+| The Nation in Arms | 4 | ○ | S | Every ten turns, each city with an Armoury raises the best melee unit you can build. They cost no upkeep. |
 | The Grand Coalition | 4 | ○ | S | While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster. |
 | The Proconsuls | 4 | ◆ | S | Captured cities with a garrison cost no authority and gain +10 defence. |
 | Commission: The Grand Campaign | 4 | ◆ | S | Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair. |
@@ -213,7 +223,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Beating of the Bounds | 0 | ● | S | Each town you found claims one extra wild hex of your choice next to its borders. |
 | Levy of the Land | 1 | ◆ | S | Cities may spend one citizen to gain production equal to the food it took to grow that citizen. A city may levy once every five turns. |
 | Tinkers' Guild | 1 | ● | S | Workers you produce or purchase gain +1 charge. |
-| The Muster of the Fields | 1 | ◆ | S | Cities may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. |
 | The Old Songs | 1 | ● | S | Worked unimproved land gains +2 culture. |
 | The Local Census | 1 | ● | S | A town working at least four improved or tended tiles costs one less authority, minimum one. |
 | The Wild Orchards | 1 | ● | S | Once drafted, workers may tend a forest or jungle tile into a wild orchard for one charge: +1 food and +1 gold. No chair required. |
@@ -503,7 +512,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Pilgrim Markets | Commerce · Devotion | 1 | ◆ | S | Routes gain +3 gold and +3 faith if either endpoint contains a Holy Site. This pays once per route even when both endpoints qualify. |
 | The Grain Exchange | Expansionist · Commerce | 1 | ◆ | S | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. |
 | The Cosmopolitan Court | Commerce · Magisterial | 3 | ○ | S | Cities with a culture building gain +1 renown per outgoing foreign route, at most +3 per city. Great-person improvements worked by such cities gain +3 gold. |
-| Rites of Passage | Dominion · Devotion | 0 | ● | S | Completing a military unit grants 12 faith. |
+| Rites of Passage | Dominion · Devotion | 0 | ● | S | Gaining a military unit grants 12 faith. |
 | The Sacred Host | Dominion · Devotion | 1 | ○ | S | Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 15 faith. |
 | The Crusader Orders | Dominion · Devotion | 2 | ◆ | S | Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it. |
 | The Holy Army | Dominion · Devotion | 3 | ◆ | S | Worked Holy Sites and citadels that stand beside each other each gain +3 faith and +3 culture. |
@@ -515,6 +524,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | War Bonds | Dominion · Commerce | 3 | ◆ | S | Military units gain +1 strength for every 150 gold in your treasury, at most +5. |
 | Professional Soldiers | Dominion · Commerce | 3 | ◆ | S | Units you purchase gain +3 combat strength. |
 | The Chartered Company | Dominion · Commerce | 3 | ◆ | S | Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required. |
+| The Muster of the Fields | Dominion · Expansionist | 1 | ◆ | S | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. |
+| Carried-Off Scholars | Dominion · Scientific | 2 | ● | S | Capturing a city grants science equal to ten times its population. |
 
 ### Generic
 
@@ -536,13 +547,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 
 ### Notes and deferred halves (from the data rows)
 
-- **Muster Rites** — A unit bought outright counts as trained, and pays this once.
-- **The King's Levy** — The levy is raised, not bought: it goes on no payroll, and everything that rewards a unit finished rewards this one.
 - **Marine Drill** — The blessing is hung on the piece the moment it wades ashore, and lasts the turn it landed.
 - **Riders of the Steppe** — A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.
 - **The Relay Stations** — † Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet.
 - **War Reparations** — † The game does not yet pay anything when a peace is signed, or remember which cities each side took during a war.
-- **Naval Supremacy** — The second share is paid only where both are true, so a coastal town taken in war keeps both lines.
 - **Commission: A Victor's Peace** — † The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war.
 - **The Legions' Labour** — † Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder.
 - **Circumvallation** — † Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet.
@@ -672,7 +680,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Imperial Pageant** — † Soldiers defending near your marvels and your great people's works fight harder. A strength line can be told whose ground the fight is on, but not what stands two hexes away from it.; Towns that keep several culture buildings raise soldiers faster.
 - **The Last Commission** — † Spending a great person pours production into whichever town is building the Great Work. A windfall's supplies go to the nearest town to where the deed happened, and cannot be sent to the town that is building a named thing.
 - **Letters of Marque** — The coin is for a kill made by one of your ships, wherever it happens. The extra gold and the slower shipyards both belong to the cities that have a Harbour.
-- **Rites of Passage** — A soldier you buy counts as completed, so it pays too.
 - **The Sacred Host** — A soldier bought with faith costs what it would cost to build, converted at the faith rate.
 - **The Hydraulic Commonwealth** — † a share of the grain a town has left over is gained again as learning
 - **Garden Cities** — † the farms a town actually works are counted, and paid in song

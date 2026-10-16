@@ -10,61 +10,29 @@
       "rarity": "common",
       "type": "military",
       "flavor": "First blood is the cheapest lesson the wild ever sells.",
-      "text": "+4 strength against barbarians. Clearing a camp grants 25 production and 25 food to your nearest city.",
+      "text": "Military units gain +2 strength, doubled against barbarians.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 4,
+          "amount": 2,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "vsBarbarians"
+          },
+          "class": {
+            "category": "military"
           }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "camp",
-          "grant": {
-            "yield": "production",
-            "amount": 25
-          }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "camp",
-          "grant": {
-            "yield": "food",
-            "amount": 25
-          }
-        }
-      ]
-    },
-    "martialLaw": {
-      "name": "Martial Law",
-      "decks": [
-        "dominion"
-      ],
-      "band": 0,
-      "line": "none",
-      "rarity": "common",
-      "type": "civic",
-      "flavor": "The garrison eats first, and the town sleeps sound for it.",
-      "text": "Each garrisoned unit grants its city +1 happiness and +2 food.",
-      "effects": [
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "happiness",
-          "amount": 1,
-          "count": "garrison"
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "food",
-          "amount": 2,
-          "count": "garrison"
         }
       ]
     },
@@ -106,15 +74,14 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "A sword blessed, a bowl filled, a name on the roll.",
-      "text": "Training a unit grants 6 faith and 6 food.",
-      "note": "A unit bought outright counts as trained, and pays this once.",
+      "text": "Gaining a unit grants 8 faith and 8 food.",
       "effects": [
         {
           "kind": "windfallRider",
           "occasion": "unitCompletion",
           "grant": {
             "yield": "faith",
-            "amount": 6
+            "amount": 8
           }
         },
         {
@@ -122,7 +89,7 @@
           "occasion": "unitCompletion",
           "grant": {
             "yield": "food",
-            "amount": 6
+            "amount": 8
           }
         }
       ]
@@ -233,7 +200,7 @@
       ],
       "band": 0,
       "line": "none",
-      "rarity": "rare",
+      "rarity": "uncommon",
       "type": "military",
       "flavor": "Not raised for a war. Simply raised.",
       "text": "Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units.",
@@ -285,8 +252,7 @@
       "rarity": "rare",
       "type": "military",
       "flavor": "The king remembers the villages, and the villages remember the king.",
-      "text": "Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep.",
-      "note": "The levy is raised, not bought: it goes on no payroll, and everything that rewards a unit finished rewards this one.",
+      "text": "Every fifteen turns your capital raises a melee unit for free. It costs no upkeep.",
       "effects": [
         {
           "kind": "periodicMuster",
@@ -337,11 +303,12 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "The herd is counted before the harvest.",
-      "text": "Worked pastures and camps give +1 production. +20% production toward mounted units.",
+      "text": "Worked pastures and camps give +1 food and +1 production.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
+          "food": 1,
           "production": 1,
           "on": {
             "test": "anyImprovement",
@@ -350,12 +317,6 @@
               "camp"
             ]
           }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "unit",
-          "percent": 20,
-          "modelClass": "mounted"
         }
       ]
     },
@@ -369,26 +330,22 @@
       "rarity": "common",
       "type": "wildcard",
       "flavor": "The names go on the standard, one by one.",
-      "text": "Your first kill each turn grants 6 renown, and clearing a barbarian camp grants 12 renown, both favouring great generals.",
-      "effects": [
-        {
-          "kind": "windfallRider",
-          "occasion": "kill",
-          "oncePerTurn": true,
-          "grant": {
-            "renown": 6,
-            "renownFamily": "general"
+      "text": "Commission. Kill ten units while this card is seated. Then choose a great general from a draft. The card leaves its chair.",
+      "effects": [],
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "unitKilled",
+            "count": 10
           }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "camp",
-          "grant": {
-            "renown": 12,
-            "renownFamily": "general"
+        ],
+        "reward": [
+          {
+            "greatPerson": "general"
           }
-        }
-      ]
+        ]
+      }
     },
     "dominionSwordAndPlough": {
       "name": "Sword and Plough",
@@ -400,39 +357,16 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "The same hands hold both, one season at a time.",
-      "text": "While at peace, each city with a garrison gains +2 culture. While at war, each gains +2 production instead.",
+      "text": "Each city with a garrison gains +1 culture and +2 production.",
       "effects": [
         {
-          "kind": "conditionRule",
-          "when": {
-            "test": "atPeace"
-          },
-          "then": [
-            {
-              "kind": "pays",
-              "where": "city",
-              "culture": 2,
-              "scope": {
-                "test": "garrisoned"
-              }
-            }
-          ]
-        },
-        {
-          "kind": "conditionRule",
-          "when": {
-            "test": "atWar"
-          },
-          "then": [
-            {
-              "kind": "pays",
-              "where": "city",
-              "production": 2,
-              "scope": {
-                "test": "garrisoned"
-              }
-            }
-          ]
+          "kind": "pays",
+          "where": "city",
+          "culture": 1,
+          "production": 2,
+          "scope": {
+            "test": "garrisoned"
+          }
         }
       ]
     },
@@ -446,15 +380,146 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "Every tent has a prayer said over it.",
-      "text": "+1 faith for every unit you control.",
+      "text": "Killing a unit grants faith equal to its strength.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "yield": "faith",
+            "amount": 1,
+            "fromOccasion": "strength"
+          }
+        }
+      ]
+    },
+    "theGrainTribute": {
+      "name": "The Grain Tribute",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The villages feed the army that guards them.",
+      "text": "+1 food and +1 production in every city.",
       "effects": [
         {
           "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "faith",
-          "amount": 1,
-          "count": "unitsInField"
+          "where": "city",
+          "food": 1,
+          "production": 1
+        }
+      ]
+    },
+    "theScalingLadders": {
+      "name": "The Scaling Ladders",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "A wall is only as tall as the longest ladder.",
+      "text": "Melee units gain +4 strength against towns.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "attack",
+          "when": {
+            "test": "vsCity"
+          },
+          "class": {
+            "modelClass": "melee"
+          }
+        }
+      ]
+    },
+    "theFuneralGames": {
+      "name": "The Funeral Games",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The games are held for the dead, and the living come to watch.",
+      "text": "When one of your units falls, gain faith equal to its strength.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "faith",
+            "amount": 1,
+            "fromOccasion": "strength"
+          }
+        }
+      ]
+    },
+    "theBardsPraise": {
+      "name": "The Bards' Praise",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Every fight becomes a song, and every song finds a crowd.",
+      "text": "Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "yield": "culture",
+            "amount": 1,
+            "fromOccasion": "strength"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": {
+            "yield": "culture",
+            "amount": 15
+          }
+        }
+      ]
+    },
+    "theCattleRaid": {
+      "name": "The Cattle Raid",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "Burn the camp, and drive its cattle home.",
+      "text": "Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                {
+                  "kind": "pays",
+                  "where": "city",
+                  "food": 3
+                }
+              ],
+              "renews": true
+            }
+          }
         }
       ]
     },
@@ -928,7 +993,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "A burnt camp is a quiet border.",
-      "text": "While slotted, gains +1 authority capacity and +5 culture for every barbarian camp cleared, at most +8 authority and +40 culture.",
+      "text": "Gains +1 authority capacity and +5 culture for every barbarian camp cleared this game, at most +8 authority and +40 culture.",
       "effects": [
         {
           "kind": "pays",
@@ -936,8 +1001,7 @@
           "basis": "count",
           "to": "authority",
           "amount": 1,
-          "count": "tally",
-          "tally": "campCleared",
+          "count": "clearedCamps",
           "max": 8
         },
         {
@@ -946,8 +1010,7 @@
           "basis": "count",
           "to": "culture",
           "amount": 5,
-          "count": "tally",
-          "tally": "campCleared",
+          "count": "clearedCamps",
           "max": 8
         }
       ]
@@ -962,7 +1025,7 @@
       "rarity": "uncommon",
       "type": "civic",
       "flavor": "Every sword teaches the smith something.",
-      "text": "Training a unit grants science equal to three quarters of its strength.",
+      "text": "Gaining a unit grants science equal to three quarters of its strength.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1076,7 +1139,7 @@
       "rarity": "rare",
       "type": "civic",
       "flavor": "We lose them twice: once in the field, once in the song.",
-      "text": "Killing a unit grants science and culture equal to twice its strength. Losing a unit while it defends grants the same.",
+      "text": "Killing or losing a unit grants science and culture equal to twice its strength.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -1103,8 +1166,7 @@
             "yield": "science",
             "amount": 2,
             "fromOccasion": "strength"
-          },
-          "defending": true
+          }
         },
         {
           "kind": "windfallRider",
@@ -1113,8 +1175,7 @@
             "yield": "culture",
             "amount": 2,
             "fromOccasion": "strength"
-          },
-          "defending": true
+          }
         }
       ]
     },
@@ -1178,8 +1239,17 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "The maps are kept here, and so are the men who read them.",
-      "text": "Cities with a Barracks give +2 renown a turn, favouring great generals.",
+      "text": "Cities with a Barracks give +3 production and +2 renown a turn, favouring great generals.",
       "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "production": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "barracks"
+          }
+        },
         {
           "kind": "renown",
           "amount": 2,
@@ -1227,6 +1297,60 @@
               }
             }
           ]
+        }
+      ]
+    },
+    "martialLaw": {
+      "name": "Martial Law",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The garrison eats first, and the town sleeps sound for it.",
+      "text": "Each garrisoned unit grants its city +2 happiness and +4 food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 2,
+          "count": "garrison"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "food",
+          "amount": 4,
+          "count": "garrison"
+        }
+      ]
+    },
+    "walledTowns": {
+      "name": "Walled Towns",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "Inside the walls, a farmer plants without looking over his shoulder.",
+      "text": "Towns with a defensive building, such as a Palisade or walls, gain +15% food.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "food",
+          "percent": 15,
+          "stage": "city",
+          "count": "defensiveBuildings",
+          "max": 1
         }
       ]
     },
@@ -2154,6 +2278,100 @@
         ]
       }
     },
+    "theValetudinaria": {
+      "name": "The Valetudinaria",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "A soldier mended at home is a soldier who marches again.",
+      "text": "Units in your territory heal 15 more hit points a turn.",
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "heal",
+          "amount": 15,
+          "where": "ownTerritory"
+        }
+      ]
+    },
+    "livingOffTheLand": {
+      "name": "Living off the Land",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The army eats what it finds.",
+      "text": "Military units outside your territory cost no upkeep.",
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "free": true,
+          "class": {
+            "category": "military"
+          },
+          "where": "foreignTerritory"
+        }
+      ]
+    },
+    "theSerriedRanks": {
+      "name": "The Serried Ranks",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "Shoulder to shoulder, the line does not break.",
+      "text": "Melee units beside another melee unit gain +10 strength when defending.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 10,
+          "side": "defend",
+          "when": {
+            "test": "beside",
+            "class": {
+              "modelClass": "melee"
+            }
+          },
+          "class": {
+            "modelClass": "melee"
+          }
+        }
+      ]
+    },
+    "theConscriptionRolls": {
+      "name": "The Conscription Rolls",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "Every large town owes the army its share of men.",
+      "text": "Every ten turns, each town of at least eight citizens raises the best melee unit you can build.",
+      "effects": [
+        {
+          "kind": "periodicMuster",
+          "every": 10,
+          "unit": "bestMelee",
+          "where": "city",
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 8
+          }
+        }
+      ]
+    },
     "standingGarrisons": {
       "name": "Standing Garrisons",
       "decks": [
@@ -2250,7 +2468,6 @@
       "band": 3,
       "line": "none",
       "rarity": "common",
-      "type": "military",
       "flavor": "One yard, every weapon, all year.",
       "text": "Cities with an Armoury gain +30% production and produce ships 75% faster.",
       "effects": [
@@ -2275,7 +2492,8 @@
             "building": "armoury"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "dominionTheSiegeTrain": {
       "name": "The Siege Train",
@@ -2396,7 +2614,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The country itself is fortified now.",
       "text": "Land combat units gain +3 strength beside a friendly city. Cities with walls gain +3 defence per garrisoned unit.",
       "effects": [
@@ -2422,7 +2639,8 @@
             "building": "stoneWalls"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "warColleges": {
       "name": "War Colleges",
@@ -2485,7 +2703,6 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
-      "type": "military",
       "flavor": "The sea is a province, and we hold it.",
       "text": "Naval units gain +1 sight and +1 range. Coastal cities gain +30% gold; coastal captured cities +60%.",
       "note": "The second share is paid only where both are true, so a coastal town taken in war keeps both lines.",
@@ -2530,7 +2747,8 @@
             ]
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theLongPeace": {
       "name": "The Long Peace",
@@ -2628,11 +2846,11 @@
       "rarity": "rare",
       "type": "military",
       "flavor": "Everything is for the war. Everything.",
-      "text": "All your military units gain +8 strength and +1 movement. Every city demands +3 more happiness.",
+      "text": "All your military units gain +5 strength and +1 movement. Every city demands +3 more happiness.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 8,
+          "amount": 5,
           "side": "both",
           "when": {
             "test": "always"
@@ -2670,6 +2888,110 @@
       "effects": [],
       "deferred": [
         "The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war."
+      ]
+    },
+    "theArriereBan": {
+      "name": "The Arrière-ban",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "When the king calls the whole realm to arms, every forge answers.",
+      "text": "Declaring war gives every city +50% production for ten turns. Declaring war again restarts the ten turns.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "declareWar",
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                {
+                  "kind": "percentYields",
+                  "yield": "production",
+                  "percent": 50
+                }
+              ],
+              "renews": true
+            }
+          }
+        }
+      ]
+    },
+    "theVictoryMint": {
+      "name": "The Victory Mint",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The conquered city's silver is struck into our coins.",
+      "text": "Capturing a city grants gold equal to thirty times its population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "yield": "gold",
+            "amount": 30,
+            "fromOccasion": "population"
+          }
+        }
+      ]
+    },
+    "theBoardOfOrdnance": {
+      "name": "The Board of Ordnance",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "In wartime the arsenal and the academy keep the same hours.",
+      "text": "While at war, each city with a Barracks gains +1 production and +1 science for every three citizens.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atWar"
+          },
+          "then": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "production",
+              "amount": 1,
+              "count": "population",
+              "within": "city",
+              "per": 3,
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              }
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "science",
+              "amount": 1,
+              "count": "population",
+              "within": "city",
+              "per": 3,
+              "scope": {
+                "test": "hasBuilding",
+                "building": "barracks"
+              }
+            }
+          ]
+        }
       ]
     },
     "dominionImperium": {
@@ -2966,7 +3288,7 @@
       "rarity": "rare",
       "type": "military",
       "flavor": "Every armoury opens its doors on the same morning.",
-      "text": "Every ten turns, each city with an Armoury raises the best melee unit you can build. They count as trained and cost no upkeep.",
+      "text": "Every ten turns, each city with an Armoury raises the best melee unit you can build. They cost no upkeep.",
       "effects": [
         {
           "kind": "periodicMuster",

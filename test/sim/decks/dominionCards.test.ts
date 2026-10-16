@@ -12,8 +12,16 @@
  *   · "the city raising the Magnum Opus" as a city scope, a strength line near
  *     it (The Praetorian Guard), and a strength line and a war condition
  *     against the empire raising one (The Grand Coalition);
- *   · Songs of the Fallen pays a loss only for a piece that was defending;
- *   · Battle Honours' renown favours great generals;
+ *   · Songs of the Fallen pays every loss, attacking or defending;
+ *   · Battle Honours is a commission: ten kills while it is seated deal a
+ *     great general;
+ *   · The Pacified Marches reads the camps cleared this game, seated or not;
+ *   · The Cattle Raid feeds every city for ten turns, and a second camp
+ *     restarts the ten turns instead of stacking;
+ *   · The Arrière-ban gives every city +50% production for ten turns, and a
+ *     second declaration restarts the ten turns instead of stacking;
+ *   · Walled Towns feeds a town with any defensive building, a Palisade
+ *     included, and pays once however many it has;
  *   · The Nation in Arms musters in every town with an Armoury;
  *   · The Soldier-Farmers' hex line, gated on peace and on a garrison.
  */
@@ -34,9 +42,16 @@ import {
   realPlayers,
 } from '../../../src/sim/state';
 import {
+  cardAuthority,
   cardProduction,
   cityScopeAdmits,
+  explainCardCityYields,
+  explainCardEmpireYields,
+  explainCardPercentYields,
+  foldCardYields,
   musterPeriodicUnits,
+  payWindfallGrants,
+  recordScalingOccasion,
   scopedCardTileLines,
   tallyOf,
   windfallPayout,
@@ -45,6 +60,7 @@ import { type OrderId } from '../../../src/sim/statecraftData';
 import { resetVisibility } from '../../../src/sim/visibility';
 import { openWar } from '../../../src/sim/wars';
 import { newGame } from '../newGameHelpers';
+import { keepTheRites } from '../statecraftHelpers';
 
 const OPUS = { kind: 'building', id: 'theMagnumOpus' } as City['queue'][number];
 
@@ -198,20 +214,117 @@ describe('the Dominion batch — the city raising the Magnum Opus', () => {
 });
 
 describe('the Dominion batch — riders and musters', () => {
-  it('Songs of the Fallen pays a loss only while the piece defends', () => {
+  it('Songs of the Fallen pays every loss, attacking or defending', () => {
+    // The user's ruling of 2026-10-13: feeding units to die is a way to play.
     const state = flat();
     slot(state, 0, 'songsOfTheFallen');
-    expect(windfallPayout(state, 0, 'death', 0, 0, { strength: 8 }).grants).toEqual([]);
+    expect(windfallPayout(state, 0, 'death', 0, 0, { strength: 8 }).grants).toHaveLength(2);
     expect(windfallPayout(state, 0, 'death', 0, 0, { strength: 8, defending: true }).grants).toHaveLength(2);
   });
 
-  it('Battle Honours pays renown that favours great generals', () => {
+  it('Battle Honours deals a great general once ten kills are counted while it is seated', () => {
     const state = flat();
+    keepTheRites(state);
+    foundCityAt(state, 0, at(state, 4, 3));
     slot(state, 0, 'dominionBattleHonours');
-    const payout = windfallPayout(state, 0, 'camp');
-    expect(payout.renown).toEqual([
-      expect.objectContaining({ amount: 12, family: 'general' }),
-    ]);
+    const sc = playerById(state, 0)!.statecraft;
+    for (let kill = 1; kill <= 9; kill++) recordScalingOccasion(state, 0, 'unitKilled');
+    expect(tallyOf(sc, 'dominionBattleHonours' as OrderId)).toBe(9);
+    expect(runCommissions(state)).toEqual([]);
+    recordScalingOccasion(state, 0, 'unitKilled');
+    const reports = runCommissions(state);
+    expect(reports.map((report) => report.card)).toEqual(['dominionBattleHonours']);
+    expect(reports[0]!.lines).toEqual(['a great general to call']);
+    expect(playerById(state, 0)!.greatPersonOffer?.family).toBe('general');
+  });
+
+  it('The Pacified Marches reads the camps cleared this game, whether or not it was seated', () => {
+    const state = flat();
+    const player = playerById(state, 0)!;
+    // Cleared before the card was drafted: the count is the empire's record,
+    // not a tally the chair keeps.
+    player.campsCleared = 3;
+    slot(state, 0, 'thePacifiedMarches');
+    const culture = (): number => foldCardYields(explainCardEmpireYields(state, 0)).culture;
+    const writ = (): number => cardAuthority(state, 0).reduce((sum, line) => sum + line.amount, 0);
+    expect(culture()).toBe(15);
+    expect(writ()).toBe(3);
+    // At most eight camps count: +8 authority and +40 culture.
+    player.campsCleared = 11;
+    bumpRevision(state);
+    expect(culture()).toBe(40);
+    expect(writ()).toBe(8);
+  });
+
+  it('The Cattle Raid feeds every city for ten turns, and a second camp restarts them', () => {
+    const state = flat();
+    const city = foundCityAt(state, 0, at(state, 4, 3))!;
+    slot(state, 0, 'theCattleRaid');
+    const player = playerById(state, 0)!;
+    const food = (): number =>
+      explainCardCityYields(state, city).reduce((sum, line) => sum + line.food, 0);
+    expect(food()).toBe(0);
+    payWindfallGrants(state, player, windfallPayout(state, 0, 'camp'));
+    bumpRevision(state);
+    expect(food()).toBe(3);
+    const first = (player.timed ?? []).filter((entry) => entry.card === 'theCattleRaid');
+    expect(first).toHaveLength(1);
+    expect(first[0]!.expiresTurn).toBe(state.turn + 10);
+    state.turn += 4;
+    payWindfallGrants(state, player, windfallPayout(state, 0, 'camp'));
+    const second = (player.timed ?? []).filter((entry) => entry.card === 'theCattleRaid');
+    expect(second).toHaveLength(1);
+    expect(second[0]!.expiresTurn).toBe(state.turn + 10);
+  });
+
+  it('The Arrière-ban speeds every city for ten turns, and a second declaration restarts them', () => {
+    // The user's ruling of 2026-10-16: the ten turns restart instead of
+    // stacking to +100%.
+    const state = flat(false);
+    const city = foundCityAt(state, 0, at(state, 4, 3))!;
+    slot(state, 0, 'theArriereBan');
+    const player = playerById(state, 0)!;
+    const production = (): number =>
+      explainCardPercentYields(state, city)
+        .filter((line) => line.yield === 'production')
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(production()).toBe(0);
+    payWindfallGrants(state, player, windfallPayout(state, 0, 'declareWar'));
+    bumpRevision(state);
+    expect(production()).toBe(50);
+    const first = (player.timed ?? []).filter((entry) => entry.card === 'theArriereBan');
+    expect(first).toHaveLength(1);
+    expect(first[0]!.expiresTurn).toBe(state.turn + 10);
+    state.turn += 4;
+    payWindfallGrants(state, player, windfallPayout(state, 0, 'declareWar'));
+    bumpRevision(state);
+    const second = (player.timed ?? []).filter((entry) => entry.card === 'theArriereBan');
+    expect(second).toHaveLength(1);
+    expect(second[0]!.expiresTurn).toBe(state.turn + 10);
+    expect(production()).toBe(50);
+  });
+
+  it('Walled Towns feeds a town with any defensive building, once however many it has', () => {
+    // The user's ruling of 2026-10-16: a Palisade counts, and so does every
+    // other building that raises a town's defence or hit points.
+    const state = flat(false);
+    const city = foundCityAt(state, 0, at(state, 4, 3))!;
+    const bare = foundCityAt(state, 0, at(state, 11, 3))!;
+    slot(state, 0, 'walledTowns');
+    const food = (town: City): number =>
+      explainCardPercentYields(state, town)
+        .filter((line) => line.yield === 'food')
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(food(city)).toBe(0);
+    city.buildings.push('palisade' as never);
+    bumpRevision(state);
+    expect(food(city)).toBe(15);
+    // A second defensive building adds nothing.
+    city.buildings.push('stoneWalls' as never);
+    bumpRevision(state);
+    expect(food(city)).toBe(15);
+    // A town with none gains nothing.
+    expect(food(bare)).toBe(0);
   });
 
   it('The Nation in Arms musters in every town with an Armoury', () => {

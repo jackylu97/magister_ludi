@@ -1158,8 +1158,30 @@ import {
  * its fights end differently and a later command can name a unit that is no
  * longer where the log expects it. The branch migrates nothing, for the reason
  * given under v119.
+ *
+ * v128 (branch `decks`; batch D0 of `docs/plans/chairs-build.md`, the Dominion
+ * cards that need no new shape): **fourteen cards join the decks, seventeen
+ * change, and three are retired.** No field joined or left the state. The
+ * Dominion file gains thirteen rows, and the shared file gains Carried-Off
+ * Scholars and The Muster of the Fields, which moves out of the Expansionist
+ * file under its own id and now needs a town of five citizens. The sheet's
+ * three cut cards (Defensive Lines, Arsenals and Naval Supremacy) are retired.
+ * Among the changed cards: Battle Honours becomes a commission, The Camp
+ * Chaplains pays on kills, Songs of the Fallen pays every loss, The Pacified
+ * Marches counts the camps cleared this game, and Martial Law moves to Tier I.
+ * The user's rulings of 2026-10-16 are part of the same version: a unit raised
+ * by The General Levy now pays the cards that pay for a unit gained (it still
+ * does not count as trained), a second declaration of war restarts The
+ * Arrière-ban's ten turns instead of stacking, and Walled Towns counts any
+ * defensive building, the Palisade included.
+ *
+ * **A v127 save is refused and does not replay.** The draft bags hold
+ * different cards, so the same roll deals a different hand and a v127 log's
+ * `chooseOrder` index would name a card this build never dealt, and a card a
+ * v127 game held pays differently here. The branch migrates nothing, for the
+ * reason given under v119.
  */
-export const SCHEMA_VERSION = 127;
+export const SCHEMA_VERSION = 128;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

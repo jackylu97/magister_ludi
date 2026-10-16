@@ -1588,7 +1588,9 @@ describe('research in the log', () => {
     // log's losing empires would grow on turns this build holds them back.
     // 127 since WC3: units earn ranks in combat, so a v126 log's veterans
     // would fight weaker than this build makes them.
-    expect(SCHEMA_VERSION).toBe(127);
+    // 128 since D0: the Dominion cards that needed no new shape change what a
+    // draft deals, so a v127 log's picks would name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(128);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

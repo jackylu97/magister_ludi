@@ -52,8 +52,8 @@ export interface FaithTabsWorld {
  *     the founder's share pays;
  *   - Omen Reading kept in Uruk;
  *   - Eridu following seat 1's religion, whose Tithe Houses pay seat 0 there;
- *   - an Order that pays faith (The Camp Chaplains) with two warriors to count,
- *     so the headline has a Statecraft slice.
+ *   - an Order that pays faith every turn (Household Altars, in the capital),
+ *     so the headline has a Statecraft slice, and two warriors.
  *
  * Seat 0 knows Divination and The High Temple, so its pantheon has places and a
  * prophet can be called. The names are set outright, since a generated name is
@@ -109,9 +109,9 @@ export function faithTabsWorld(): FaithTabsWorld {
   uruk.buildings.push('granary');
   createUnit(state, 0, 'warrior', 3, 3);
   createUnit(state, 0, 'warrior', 5, 5);
-  const chaplains = 'dominionTheCampChaplains' as OrderId;
-  azure.statecraft.orders = [chaplains];
-  azure.statecraft.slots = [{ card: chaplains, sealedUntil: 0 }];
+  const altars = 'householdAltars' as OrderId;
+  azure.statecraft.orders = [altars];
+  azure.statecraft.slots = [{ card: altars, sealedUntil: 0 }];
   azure.faithPool = 1000;
   bumpRevision(state);
   performRiteAt(state, azure, uruk, 'omenReading');

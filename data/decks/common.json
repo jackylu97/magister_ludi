@@ -139,7 +139,7 @@
       "rarity": "common",
       "type": "civic",
       "flavor": "The boy kneels, the soldier stands.",
-      "text": "Completing a military unit grants 12 faith.",
+      "text": "Gaining a military unit grants 12 faith.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -152,8 +152,7 @@
             "amount": 12
           }
         }
-      ],
-      "note": "A soldier you buy counts as completed, so it pays too."
+      ]
     },
     "theSacredHost": {
       "name": "The Sacred Host",
@@ -1578,6 +1577,36 @@
       ],
       "effects": [],
       "note": "Not built yet: a unit that leaves the game on its own after a set time is a new kind of unit, and this card needs one."
+    },
+    "theMusterOfTheFields": {
+      "name": "The Muster of the Fields",
+      "decks": ["dominion", "expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "Put down the sickle and pick up the other thing.",
+      "text": "Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained.",
+      "effects": [
+        { "kind": "levy", "use": "muster", "minPopulation": 5 }
+      ]
+    },
+    "carriedOffScholars": {
+      "name": "Carried-Off Scholars",
+      "decks": ["dominion", "scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "The conqueror carried the scholars home with the treasure.",
+      "text": "Capturing a city grants science equal to ten times its population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": { "yield": "science", "amount": 10, "fromOccasion": "population" }
+        }
+      ]
     }
   }
 }

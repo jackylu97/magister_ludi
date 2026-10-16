@@ -2278,26 +2278,12 @@
   ],
   "dominionBloodedSpears": [
    {
-    "raw": "+4 combat strength against barbarians",
-    "text": "+4 combat strength against barbarians"
+    "raw": "+2 combat strength for military units",
+    "text": "+2 combat strength for military units"
    },
    {
-    "raw": "clearing a barbarian camp grants +25 production",
-    "text": "clearing a barbarian camp grants +25 production"
-   },
-   {
-    "raw": "clearing a barbarian camp grants +25 food",
-    "text": "clearing a barbarian camp grants +25 food"
-   }
-  ],
-  "martialLaw": [
-   {
-    "raw": "+1 happiness per combat unit standing in your cities",
-    "text": "+1 happiness per combat unit standing in your cities"
-   },
-   {
-    "raw": "+2 food in every city per combat unit standing there",
-    "text": "+2 food in every city per combat unit standing there"
+    "raw": "+2 combat strength for military units against barbarians",
+    "text": "+2 combat strength for military units against barbarians"
    }
   ],
   "paymasters": [
@@ -2312,12 +2298,12 @@
   ],
   "musterRites": [
    {
-    "raw": "completing a unit grants +6 faith",
-    "text": "completing a unit grants +6 faith"
+    "raw": "completing a unit grants +8 faith",
+    "text": "completing a unit grants +8 faith"
    },
    {
-    "raw": "completing a unit grants +6 food",
-    "text": "completing a unit grants +6 food"
+    "raw": "completing a unit grants +8 food",
+    "text": "completing a unit grants +8 food"
    }
   ],
   "theWarChronicle": [
@@ -2392,38 +2378,68 @@
   ],
   "dominionTheHorseHerds": [
    {
-    "raw": "+1 production on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]]",
-    "text": "+1 production on every hex with a Pasture or Camp"
-   },
-   {
-    "raw": "+20% production toward mounted units",
-    "text": "+20% production toward mounted units"
+    "raw": "+1 food, +1 production on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]]",
+    "text": "+1 food, +1 production on every hex with a Pasture or Camp"
    }
   ],
   "dominionBattleHonours": [
    {
-    "raw": "killing a unit (at most once a turn) grants +6 renown, favouring a great general",
-    "text": "killing a unit (at most once a turn) grants +6 renown, favouring a great general"
+    "raw": "Commission. Goal: kill 10 enemy units, while this card is seated",
+    "text": "Commission. Goal: kill 10 enemy units, while this card is seated"
    },
    {
-    "raw": "clearing a barbarian camp grants +12 renown, favouring a great general",
-    "text": "clearing a barbarian camp grants +12 renown, favouring a great general"
+    "raw": "Reward: a great general to call",
+    "text": "Reward: a great general to call"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
    }
   ],
   "dominionSwordAndPlough": [
    {
-    "raw": "while you are at peace: +2 culture in every city with a unit standing in it",
-    "text": "while you are at peace: +2 culture in every city with a unit standing in it"
-   },
-   {
-    "raw": "while you are at war: +2 production in every city with a unit standing in it",
-    "text": "while you are at war: +2 production in every city with a unit standing in it"
+    "raw": "+2 production, +1 culture in every city with a unit standing in it",
+    "text": "+2 production, +1 culture in every city with a unit standing in it"
    }
   ],
   "dominionTheCampChaplains": [
    {
-    "raw": "+1 faith per unit in the field",
-    "text": "+1 faith per unit in the field"
+    "raw": "killing a unit grants faith equal to its strength",
+    "text": "killing a unit grants faith equal to its strength"
+   }
+  ],
+  "theGrainTribute": [
+   {
+    "raw": "+1 food, +1 production in every city",
+    "text": "+1 food, +1 production in every city"
+   }
+  ],
+  "theScalingLadders": [
+   {
+    "raw": "+4 combat strength for melee units against cities",
+    "text": "+4 combat strength for melee units against cities"
+   }
+  ],
+  "theFuneralGames": [
+   {
+    "raw": "losing a unit grants faith equal to its strength",
+    "text": "losing a unit grants faith equal to its strength"
+   }
+  ],
+  "theBardsPraise": [
+   {
+    "raw": "killing a unit grants culture equal to its strength",
+    "text": "killing a unit grants culture equal to its strength"
+   },
+   {
+    "raw": "clearing a barbarian camp grants +15 culture",
+    "text": "clearing a barbarian camp grants +15 culture"
+   }
+  ],
+  "theCattleRaid": [
+   {
+    "raw": "clearing a barbarian camp grants +3 food in every city for the next 10 turns, however often it happens",
+    "text": "clearing a barbarian camp grants +3 food in every city for the next 10 turns, however often it happens"
    }
   ],
   "drillManuals": [
@@ -2570,12 +2586,12 @@
   ],
   "thePacifiedMarches": [
    {
-    "raw": "+1 authority capacity per barbarian camp you have cleared (at most +8 authority capacity), counted while this Order stands in a slot",
-    "text": "+1 authority capacity per barbarian camp you have cleared (at most +8 authority capacity), counted while this Order stands in a slot"
+    "raw": "+1 authority capacity per barbarian camp you have cleared (at most +8 authority capacity)",
+    "text": "+1 authority capacity per barbarian camp you have cleared (at most +8 authority capacity)"
    },
    {
-    "raw": "+5 culture per barbarian camp you have cleared (at most +40 culture), counted while this Order stands in a slot",
-    "text": "+5 culture per barbarian camp you have cleared (at most +40 culture), counted while this Order stands in a slot"
+    "raw": "+5 culture per barbarian camp you have cleared (at most +40 culture)",
+    "text": "+5 culture per barbarian camp you have cleared (at most +40 culture)"
    }
   ],
   "theArtOfWar": [
@@ -2634,12 +2650,12 @@
     "text": "killing a unit grants culture equal to 2 times its strength"
    },
    {
-    "raw": "losing a unit (only while it defends) grants science equal to 2 times its strength",
-    "text": "losing a unit (only while it defends) grants science equal to 2 times its strength"
+    "raw": "losing a unit grants science equal to 2 times its strength",
+    "text": "losing a unit grants science equal to 2 times its strength"
    },
    {
-    "raw": "losing a unit (only while it defends) grants culture equal to 2 times its strength",
-    "text": "losing a unit (only while it defends) grants culture equal to 2 times its strength"
+    "raw": "losing a unit grants culture equal to 2 times its strength",
+    "text": "losing a unit grants culture equal to 2 times its strength"
    }
   ],
   "universalConscription": [
@@ -2666,6 +2682,10 @@
   ],
   "dominionTheGeneralStaff": [
    {
+    "raw": "+3 production in every city with a [[building:barracks|Barracks]]",
+    "text": "+3 production in every city with a Barracks"
+   },
+   {
     "raw": "+2 renown per turn in every city with a [[building:barracks|Barracks]], favouring generals",
     "text": "+2 renown per turn in every city with a Barracks, favouring generals"
    }
@@ -2674,6 +2694,22 @@
    {
     "raw": "while you are at peace: +2 food, +2 production on every hex with a [[improvement:pasture|Pasture]] or [[improvement:camp|Camp]], in every city with a unit standing in it",
     "text": "while you are at peace: +2 food, +2 production on every hex with a Pasture or Camp, in every city with a unit standing in it"
+   }
+  ],
+  "martialLaw": [
+   {
+    "raw": "+2 happiness per combat unit standing in your cities",
+    "text": "+2 happiness per combat unit standing in your cities"
+   },
+   {
+    "raw": "+4 food in every city per combat unit standing there",
+    "text": "+4 food in every city per combat unit standing there"
+   }
+  ],
+  "walledTowns": [
+   {
+    "raw": "+15% food in every city per fortification there (at most +15% food)",
+    "text": "+15% food in every city per fortification there (at most +15% food)"
    }
   ],
   "siegeWorks": [
@@ -3018,6 +3054,30 @@
     "text": "then this card leaves its chair and is never seated again"
    }
   ],
+  "theValetudinaria": [
+   {
+    "raw": "all units: +15 healing per turn inside your territory",
+    "text": "all units: +15 healing per turn inside your territory"
+   }
+  ],
+  "livingOffTheLand": [
+   {
+    "raw": "military units cost no gold in maintenance outside your territory",
+    "text": "military units cost no gold in maintenance outside your territory"
+   }
+  ],
+  "theSerriedRanks": [
+   {
+    "raw": "+10 combat strength for melee units while standing beside melee units",
+    "text": "+10 combat strength for melee units while standing beside melee units"
+   }
+  ],
+  "theConscriptionRolls": [
+   {
+    "raw": "every 10 turns, the best melee unit you can build musters in every city of 8 or more citizens",
+    "text": "every 10 turns, the best melee unit you can build musters in every city of 8 or more citizens"
+   }
+  ],
   "standingGarrisons": [
    {
     "raw": "+12% production in every city per combat unit standing there",
@@ -3170,8 +3230,8 @@
   ],
   "totalWar": [
    {
-    "raw": "+8 combat strength for military units",
-    "text": "+8 combat strength for military units"
+    "raw": "+5 combat strength for military units",
+    "text": "+5 combat strength for military units"
    },
    {
     "raw": "military units: +1 movement",
@@ -3187,6 +3247,24 @@
     "raw": "The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war. — not built yet",
     "text": "The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war. — not built yet",
     "deferred": true
+   }
+  ],
+  "theArriereBan": [
+   {
+    "raw": "declaring war grants +50% production in every city for the next 10 turns, however often it happens",
+    "text": "declaring war grants +50% production in every city for the next 10 turns, however often it happens"
+   }
+  ],
+  "theVictoryMint": [
+   {
+    "raw": "capturing a city grants gold equal to 30 times its population",
+    "text": "capturing a city grants gold equal to 30 times its population"
+   }
+  ],
+  "theBoardOfOrdnance": [
+   {
+    "raw": "while you are at war: +1 production in every city with a [[building:barracks|Barracks]] per 3 citizens there; +1 science in every city with a [[building:barracks|Barracks]] per 3 citizens there",
+    "text": "while you are at war: +1 production in every city with a Barracks per 3 citizens there; +1 science in every city with a Barracks per 3 citizens there"
    }
   ],
   "dominionImperium": [
@@ -3422,12 +3500,6 @@
    {
     "raw": "newly created workers gain +1 charge",
     "text": "newly created workers gain +1 charge"
-   }
-  ],
-  "theMusterOfTheFields": [
-   {
-    "raw": "a town may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)",
-    "text": "a town may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)"
    }
   ],
   "theOldSongs": [
@@ -7317,6 +7389,18 @@
     "raw": "hired soldiers who serve for a set time and then leave — not built yet",
     "text": "hired soldiers who serve for a set time and then leave — not built yet",
     "deferred": true
+   }
+  ],
+  "theMusterOfTheFields": [
+   {
+    "raw": "a town of at least 5 citizens may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)",
+    "text": "a town of at least 5 citizens may spend one citizen for the best melee unit you can build, which counts as trained (once every 5 turns)"
+   }
+  ],
+  "carriedOffScholars": [
+   {
+    "raw": "capturing a city grants science equal to 10 times its population",
+    "text": "capturing a city grants science equal to 10 times its population"
    }
   ]
  },

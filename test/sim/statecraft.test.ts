@@ -1784,7 +1784,9 @@ describe("determinism", () => {
     // log's losing empires would grow on turns this build holds them back.
     // 127 since WC3: units earn ranks in combat, so a v126 log's veterans
     // would fight weaker than this build makes them.
-    expect(SCHEMA_VERSION).toBe(127);
+    // 128 since D0: the Dominion cards that needed no new shape change what a
+    // draft deals, so a v127 log's picks would name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(128);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

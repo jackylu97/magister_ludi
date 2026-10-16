@@ -226,18 +226,6 @@
         }
       ]
     },
-    "theMusterOfTheFields": {
-      "name": "The Muster of the Fields",
-      "decks": ["expansionist"],
-      "band": 1,
-      "line": "none",
-      "rarity": "uncommon",
-      "flavor": "Put down the sickle and pick up the other thing.",
-      "text": "Cities may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained.",
-      "effects": [
-        { "kind": "levy", "use": "muster" }
-      ]
-    },
     "theOldSongs": {
       "name": "The Old Songs",
       "decks": ["expansionist"],
