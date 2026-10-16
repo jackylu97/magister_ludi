@@ -381,6 +381,19 @@ describe('the flair gallery', () => {
     expect(faces).toContain('orderSuitFace(id)');
     expect(gallery('main.ts')).toContain('drawCardFaces(');
   });
+
+  it('shows the council’s typed chairs and a government’s chairs through the same builders (C2b)', () => {
+    const faces = gallery('cardFaces.ts');
+    // The four types, empty, as the council draws them.
+    expect(faces).toContain("for (const type of CHAIR_TYPES) empties.append(chairNode(type, emptyChairNode(type, 'empty')).button);");
+    // The lit and the refusing states the council puts on a chair.
+    expect(faces).toContain("lit.button.classList.add('sc-slot-open');");
+    expect(faces).toContain("dim.button.classList.add('sc-slot-refuses');");
+    // A government's chairs, as its card draws them.
+    expect(faces).toContain('offerChairsNode(offerChairsOf(id))');
+    // The Civic chair's mark joins the chair marks, which the marks page walks.
+    expect(gallery('marks.ts')).toContain('for (const [id, mark] of Object.entries(SLOT_MARKS))');
+  });
 });
 
 describe('what C1 leaves alone', () => {

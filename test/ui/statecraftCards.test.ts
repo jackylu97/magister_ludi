@@ -29,10 +29,10 @@ import {
 } from '../../src/art/lineMarks';
 import { CARD_LINE_ACCENT, CARD_LINE_NAME, lineOf } from '../../src/ui/cardLine';
 import {
+  CHAIR_TYPES,
   DOCTRINE_IDS,
   GOVERNMENT_IDS,
   ORDER_IDS,
-  SLOT_TYPES,
   cardDef,
 } from '../../src/sim/statecraftData';
 
@@ -72,11 +72,16 @@ describe('every card the data can deal has a face', () => {
     expect(new Set(drawn).size).toBe(drawn.length);
   });
 
-  it('draws the three offices an empty slot ghosts', () => {
-    for (const slot of SLOT_TYPES) {
-      expect(SLOT_MARKS[slot].paths.length).toBeGreaterThan(0);
-      expect(lineMarkSvg(SLOT_MARKS[slot])).toContain('<svg');
+  it('draws the four chair types an empty chair ghosts, no two alike', () => {
+    // Batch C2b added the Civic chair's mark, a wreath, beside the sword, the
+    // balance and the spark.
+    expect(Object.keys(SLOT_MARKS).sort()).toEqual([...CHAIR_TYPES].sort());
+    for (const type of CHAIR_TYPES) {
+      expect(SLOT_MARKS[type].paths.length, type).toBeGreaterThan(0);
+      expect(lineMarkSvg(SLOT_MARKS[type]), type).toContain('<svg');
     }
+    const drawn = CHAIR_TYPES.map((type) => lineMarkSvg(SLOT_MARKS[type]));
+    expect(new Set(drawn).size).toBe(drawn.length);
   });
 
   /**

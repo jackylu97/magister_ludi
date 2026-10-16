@@ -180,7 +180,8 @@ export const DECK_SUIT: Readonly<Record<DeckId, SuitId>> = {
  * **The ink each type is drawn in.** An unsorted card takes the Wildcard ink:
  * the user asked for the decks that are not sorted yet to be treated as
  * wildcard until they are (2026-10-16). Unsorted stays its own reading in the
- * data (`orderType`), because from batch C2 it will seat differently.
+ * data (`orderType`), because it seats differently: an unsorted card fits any
+ * chair, and a Wildcard card only a Wildcard chair (batch C2).
  */
 export const TYPE_INK: Readonly<Record<CardTypeReading, InkId>> = {
   military: 'military',
@@ -192,8 +193,9 @@ export const TYPE_INK: Readonly<Record<CardTypeReading, InkId>> = {
 
 /**
  * **A type in words.** An unsorted card says so, rather than borrowing the
- * Wildcard word its ink borrows: the two will fit different chairs from batch
- * C2, and the word is how a player can tell them apart.
+ * Wildcard word its ink borrows: the two fit different chairs (batch C2), and
+ * the word is how a player can tell them apart. A chair's plate says its type
+ * in the same words (`chairWord`, `chairs.ts`).
  */
 export const TYPE_WORD: Readonly<Record<CardTypeReading, string>> = {
   military: 'Military',

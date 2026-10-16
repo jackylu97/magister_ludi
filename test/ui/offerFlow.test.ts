@@ -113,7 +113,7 @@ describe('every statecraft offer carries a stamp', () => {
   it('reads the figure from explainCardImpact and nowhere else', () => {
     const helper = MAIN.slice(
       MAIN.indexOf('function cardStamp(seat: number'),
-      MAIN.indexOf('function governmentEmblem('),
+      MAIN.indexOf('function governmentFace('),
     );
     expect(helper).toContain('stampReading(explainCardImpact(game.state, seat, subject))');
     // Nothing to say is nothing shown: the flourish stands rather than a nought.
@@ -301,7 +301,13 @@ describe('every draft deals a tarot face', () => {
     expect(offerSource('showStatecraftOffer')).toContain('suit: orderSuitFace(id)');
     // And the face counts as a card from a deck, so the hand is still dealt.
     expect(OFFER_CARD).toContain('option.suit !== undefined');
-    expect(offerSource('showStatecraftOffer')).toContain('...governmentEmblem(id)');
+    // A government's card shows its chairs where an emblem would be (batch
+    // C2b), and the chairs count as a card from a deck too, so the charter
+    // triple is still dealt.
+    expect(offerSource('showStatecraftOffer')).toContain('...governmentFace(id)');
+    expect(offerSource('governmentFace')).toContain('chairs: offerChairsOf(id)');
+    expect(offerSource('governmentFace')).not.toContain('emblem:');
+    expect(OFFER_CARD).toContain('option.chairs !== undefined');
     expect(offerSource('showStatecraftOffer')).toContain('...cardFace(doctrineDef(id))');
     expect(offerSource('showGreatPersonOffer')).toContain(
       'emblem: cardLineMarkUrl(FAMILY_EMBLEM[def.family])',

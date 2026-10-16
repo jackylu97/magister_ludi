@@ -35,7 +35,7 @@ import {
   deckMarkDataUri,
   slotMarkDataUri,
 } from '../art/lineMarks';
-import type { CardLine, SlotType } from '../sim/statecraftData';
+import type { CardLine, ChairType } from '../sim/statecraftData';
 
 export type { AnyCardLine, DeckFace };
 
@@ -143,8 +143,11 @@ export function cardLineMarkUrl(id: AnyCardLine): string {
   return `url("${cardLineMarkDataUri(id)}")`;
 }
 
-/** The same, for a slot's office. See `governmentEmblem` in `main.ts`. */
-export function slotMarkUrl(slot: SlotType): string {
+/**
+ * The same, for a chair's type: the mark an empty chair ghosts in its ink
+ * (`chairs.ts`), and the flair gallery's chair row.
+ */
+export function slotMarkUrl(slot: ChairType): string {
   return `url("${slotMarkDataUri(slot)}")`;
 }
 

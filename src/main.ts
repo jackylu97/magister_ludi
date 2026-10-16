@@ -199,13 +199,15 @@ import {
   createGreatPersonCeremony,
 } from './ui/greatPersonCeremony';
 import { type CaptureSheet, createCaptureSheet } from './ui/captureSheet';
-import { CARD_LINE_NAME, cardLineMarkUrl, lineOf, slotMarkUrl } from './ui/cardLine';
+import { CARD_LINE_NAME, cardLineMarkUrl, lineOf } from './ui/cardLine';
 import {
   type OfferKind,
   describeCard,
   explainOfferSize,
   rarityDrawWeight,
+  slotTypesOf,
 } from './sim/statecraft';
+import { adoptionWords, councilChange, offerChairsOf } from './ui/chairs';
 import {
   type GovernmentId,
   doctrineDef,
@@ -3311,20 +3313,21 @@ async function boot(initial: Game | null): Promise<void> {
         {
           eyebrow: `tier ${offer.tier} · a charter is ready`,
           title: 'Swear a government',
-          // The three consequences, said before the choice rather than
-          // discovered after it. This is the one irreversible pick in the game.
+          // The consequences, said before the choice rather than discovered
+          // after it. This is the one irreversible pick in the game.
           note:
-            'Adopting swaps your slot spread, lifts every seal so your Orders can be re-laid, ' +
-            'and opens a Doctrine — which is permanent.',
+            'Adopting lays out new chairs. Your seated Orders keep their chairs where they still fit; ' +
+            'the rest move to free chairs that fit them, any that fit none go back to your collection, ' +
+            'and every seal lifts so you can re-lay the council.',
           weight: 'heavy',
           options: offer.options.map((id) => ({
             title: governmentDef(id).name,
             payoff: slotWords(id),
             note: describeCard(id).map((clause) => clause.text).join(' · ') || 'No signature',
             flavor: governmentDef(id).flavor,
-            // A government joins no archetype thread, so its emblem is the
-            // office it opens the most slots for. See `governmentEmblem`.
-            ...governmentEmblem(id),
+            // A government joins no archetype thread, so the middle of its
+            // card shows its chairs instead. See `governmentFace`.
+            ...governmentFace(id),
             // The charter's stamp carries the **re-seating**: adoption lays
             // the new chairs out and re-seats the cards that fit them (batch
             // C2, `reseatCouncil`), so the figure is the new law with the
@@ -3334,12 +3337,26 @@ async function boot(initial: Game | null): Promise<void> {
           })),
         },
         (index) => {
+          // The council before the adoption, kept so the notice after it can
+          // say what moved and what went back to the collection (batch C2b).
+          // The command's result does not carry that, so it is worked out
+          // here from the two councils (`councilChange`).
+          const before = [...(playerById(game.state, seat)?.statecraft.slots ?? [])];
           // The result is *checked* (the deployed bug of 2026-08-30): a refused
           // pick used to re-deal the same card forever with no word said — the
           // one reachable case being a seat that Shift-ended its turn with the
           // draft still up, which the reducer refuses until the next turn.
           const result = send({ type: 'adoptGovernment', playerId: seat, choiceIndex: index });
           if (!result.ok) controls.guide(`☞ ${result.error}`);
+          else {
+            const after = playerById(game.state, seat)?.statecraft;
+            if (after) {
+              controls.announce(
+                adoptionWords(governmentDef(after.government).name, councilChange(before, after.slots), slotTypesOf(after)),
+                { openStatecraft: true },
+              );
+            }
+          }
           statecraft?.refresh();
           if (!hasEndedTurn(game.state, seat)) showStatecraftOffer();
         },
@@ -3714,24 +3731,23 @@ async function boot(initial: Game | null): Promise<void> {
   }
 
   /**
-   * A government's emblem, which was the mark of the office it opened the most
-   * slots for.
+   * **A government card's face** (batch C2b): its chairs in the middle of the
+   * card, where an emblem would be — one small chair per chair, in its type's
+   * ink, and the mix in words, "2 Military · 1 Economic · 1 Civic · 1 Wildcard"
+   * (`offerChairsOf`, `chairs.ts`).
    *
    * The one card class with no archetype thread, so `cardFace` would give all
-   * ten the same neutral seal and a charter triple would be three identical gold
-   * rectangles. Every government has worn the Wildcard mark since chairs became
-   * universal (D1a), and it still does until batch C2b draws the typed chairs on
-   * the government card.
+   * ten the same neutral seal and a charter triple would be three identical
+   * cards. Since batch C2 a government is its chairs, so the chairs are what
+   * tells the three apart. The thread's accent and name stay, and its emblem
+   * does not.
    */
-  function governmentEmblem(id: GovernmentId): Partial<OfferOption> {
-    // **The Wildcard mark for every government, as before typed chairs.**
-    // Since batch C2 `slotSpread` answers a four-type mix, and only three of
-    // the types have a drawn mark (`SLOT_MARKS`); the government card showing
-    // its chairs is batch C2b's, so until then the emblem stays what it was.
-    return { ...cardFace(governmentDef(id)), emblem: slotMarkUrl('wildcard') };
+  function governmentFace(id: GovernmentId): Partial<OfferOption> {
+    const { line, lineName } = cardFace(governmentDef(id));
+    return { line, lineName, chairs: offerChairsOf(id) };
   }
 
-  /** A government's chairs in words: "4 chairs" (D1a — the M/E/W spread is retired). */
+  /** A government's chairs counted: "5 chairs". The card's middle says which types. */
   function slotWords(id: GovernmentId): string {
     const chairs = slotCount(id);
     return `${chairs} chair${chairs === 1 ? '' : 's'}`;

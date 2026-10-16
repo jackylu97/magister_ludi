@@ -225,6 +225,19 @@ export interface OfferOption {
    */
   emblemGlyph?: string;
   /**
+   * **A government's chairs** (batch C2b), drawn in the middle of the card in
+   * place of an emblem: one small chair for each chair it lays out, in its
+   * type's ink, and the mix in words under them — "2 Military · 1 Economic ·
+   * 1 Civic · 1 Wildcard". The chairs are what a government *is* since batch
+   * C2, so they are the picture.
+   *
+   * Plain strings and numbers, like everything else that crosses this
+   * boundary: `ink` is the chair type's key, which `style.css` resolves through
+   * `data-ink`, and `word` is the type in words. The caller builds them
+   * (`offerChairsOf` in `chairs.ts`). Never beside an emblem.
+   */
+  chairs?: readonly { ink: string; count: number; word: string }[];
+  /**
    * What the accent *is*, in words — "The Wild Hunt". It becomes the card's
    * `title`, so the one thing a colour cannot do (say its own name) is done by
    * the platform's own tooltip rather than by a legend nobody would read.
@@ -282,7 +295,7 @@ export interface Offer {
   weight?: 'heavy';
   /**
    * One line under the heading, for a choice that needs a sentence of its own —
-   * "adopting swaps your slots and lifts every seal". Absent on most cards.
+   * "adopting lays out new chairs and lifts every seal". Absent on most cards.
    */
   note?: string;
   /**
@@ -715,6 +728,34 @@ function faceBody(option: OfferOption): HTMLElement[] {
 }
 
 /**
+ * **A government's chairs, drawn** (batch C2b): a row of small chairs in their
+ * types' inks, grouped by type in the order the government lays them out, and
+ * the mix in words under them. The row is a picture and hidden from a screen
+ * reader; the words are what it reads.
+ */
+export function offerChairsNode(
+  chairs: readonly { ink: string; count: number; word: string }[],
+): HTMLElement {
+  const block = element('span', 'offer-chairs');
+  const row = element('span', 'offer-chair-row');
+  row.setAttribute('aria-hidden', 'true');
+  for (const entry of chairs) {
+    const group = element('span', 'offer-chair-group');
+    for (let index = 0; index < entry.count; index++) {
+      const chair = element('span', 'offer-chair');
+      chair.dataset.ink = entry.ink;
+      group.append(chair);
+    }
+    row.append(group);
+  }
+  block.append(row);
+  block.append(
+    element('span', 'offer-chair-words', chairs.map((entry) => `${entry.count} ${entry.word}`).join(' · ')),
+  );
+  return block;
+}
+
+/**
  * **An Order's A3 hand card**, as the draft deals it (batch C1): the ordinal,
  * then the rank, the medallion and the foot that `dressSuitFace` lays around
  * the name and the card's body (`faceBody`). The face's caption is the hover
@@ -1105,11 +1146,15 @@ export function createOfferCard(
      *
      * **An A3 face counts too** (batch C1). An Order's option carries a `suit`
      * rather than an emblem, and it is still a card from a deck: dealt face
-     * down, turned over and taken once.
+     * down, turned over and taken once. So does a government's chair mix
+     * (batch C2b), which stands where its emblem stood.
      */
     const tarot = offer.options.some(
       (option) =>
-        option.emblem !== undefined || option.emblemGlyph !== undefined || option.suit !== undefined,
+        option.emblem !== undefined ||
+        option.emblemGlyph !== undefined ||
+        option.suit !== undefined ||
+        option.chairs !== undefined,
     );
     if (tarot) list.dataset.face = 'tarot';
 
@@ -1190,6 +1235,8 @@ export function createOfferCard(
         emblem.setAttribute('aria-hidden', 'true');
         emblem.textContent = option.emblemGlyph;
         button.append(emblem);
+      } else if (option.chairs !== undefined) {
+        button.append(offerChairsNode(option.chairs));
       }
       button.append(element('span', 'offer-option-title', option.title));
       if (!tarot) button.append(element('span', 'offer-payoff', option.payoff));

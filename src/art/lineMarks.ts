@@ -32,11 +32,12 @@
  * Two tables, one grid
  * --------------------
  * A **line** is an archetype thread a card belongs to (`CardLine`) and its mark
- * is a picture of the *fantasy* — a bow, a dune, a sprig. A **slot type** is
- * what a government opens a hole for (`SlotType`) and its mark is a picture of
- * the *office* — a sword, a balance, a star. They are different questions and
- * they are drawn differently on purpose: a line mark is the emblem in the middle
- * of a card, a slot mark is the faint ghost inside an empty slot.
+ * is a picture of the *fantasy* — a bow, a dune, a sprig. A **chair type** is
+ * what a government opens a chair for (`ChairType`: Military, Economic, Civic
+ * or Wildcard) and its mark is a picture of the *office* — a sword, a balance,
+ * a wreath, a star. They are different questions and they are drawn
+ * differently on purpose: a line mark is the emblem in the middle of a card, a
+ * chair mark is the faint ghost inside an empty chair.
  *
  * Both unions are closed and declared in TypeScript, so both records are
  * exhaustive and there is no "a member nobody drew" case — `siteMarks.ts`'s
@@ -57,7 +58,7 @@ import {
   solid,
   spark,
 } from './resourceMarks';
-import type { CardLine, DeckId, SlotType } from '../sim/statecraftData';
+import type { CardLine, ChairType, DeckId } from '../sim/statecraftData';
 
 /** One mark, plus the sentence that says what it depicts. Structurally `SiteMark`. */
 export interface LineMark {
@@ -367,15 +368,25 @@ export const DECK_MARKS: Readonly<Record<DeckFace, LineMark>> = {
 };
 
 /**
- * The three offices a slot can be, drawn.
+ * A path drawn lighter than the house weight: the wreath's leaves. At the house
+ * weight a leaf this small closes up into a blot, and the outline is what makes
+ * it read as a leaf.
+ */
+function leafLine(d: string): MarkPath {
+  return { d, width: 3.5 };
+}
+
+/**
+ * The four chair types, drawn.
  *
- * These are *ghosts* before they are pictures — an empty slot prints its own
- * mark at low contrast, which is what makes a row of slots read as a row rather
+ * These are *ghosts* before they are pictures — an empty chair prints its own
+ * mark at low contrast, which is what makes a row of chairs read as a row rather
  * than as a list of unrelated boxes (the argument the wax glyph was making
  * before there was a drawing to make it with). So each one is a silhouette that
- * survives being faded to a third of its ink.
+ * survives being faded to a third of its ink. The Civic mark joined in batch C2b,
+ * when the chairs took their four types.
  */
-export const SLOT_MARKS: Readonly<Record<SlotType, LineMark>> = {
+export const SLOT_MARKS: Readonly<Record<ChairType, LineMark>> = {
   military: {
     note: 'a sword, point up: tip, blade, crossguard, grip and pommel',
     paths: [
@@ -397,6 +408,25 @@ export const SLOT_MARKS: Readonly<Record<SlotType, LineMark>> = {
       ink(line(20, 52, 44, 52)),
       ink('M4 20L12 36L20 20'),
       ink('M44 20L52 36L60 20'),
+    ],
+  },
+  civic: {
+    note: 'a wreath of two leafy branches tied at the foot — the civic crown',
+    paths: [
+      // Two branches bent into a ring that stays open at the top, which is what
+      // makes it a wreath and not a closed ring like the Wildcard's.
+      ink('M25.6 45.8A17 17 0 0 1 26.2 14'),
+      ink('M38.4 45.8A17 17 0 0 0 37.8 14'),
+      // Three leaves outside each branch, pointing up it.
+      leafLine(leaf(12.5, 42.2, 13, 9, -87)),
+      leafLine(leaf(51.5, 42.2, 13, 9, -93)),
+      leafLine(leaf(9.2, 26.8, 13, 9, -47)),
+      leafLine(leaf(54.8, 26.8, 13, 9, -133)),
+      leafLine(leaf(16, 13.5, 13, 9, -9)),
+      leafLine(leaf(48, 13.5, 13, 9, -171)),
+      // The tie at the foot.
+      ink(line(32, 49, 26, 56)),
+      ink(line(32, 49, 38, 56)),
     ],
   },
   wildcard: {
@@ -446,8 +476,8 @@ export function cardLineMarkDataUri(id: AnyCardLine, color = '#000'): string {
   return markUri(`line|${id}|${color}`, CARD_LINE_MARKS[id], color);
 }
 
-/** The slot office's ghost, as a `data:` URI. */
-export function slotMarkDataUri(slot: SlotType, color = '#000'): string {
+/** A chair type's ghost, as a `data:` URI. */
+export function slotMarkDataUri(slot: ChairType, color = '#000'): string {
   return markUri(`slot|${slot}|${color}`, SLOT_MARKS[slot], color);
 }
 

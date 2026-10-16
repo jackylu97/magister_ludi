@@ -10047,6 +10047,54 @@ p.city-trade-link {
   color: var(--line-ink, var(--ink));
 }
 
+/* **A government's chairs** (batch C2b), where its emblem stood: one small
+   chair for each chair it lays out, in its type's ink and ground (`data-ink`,
+   the card faces' four tokens), grouped by type, and the mix in words under
+   them in the mono, because they are numbers. The row is as tall as the emblem
+   it replaces, so the card keeps its proportions. */
+.offer-chairs {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  align-self: center;
+  min-height: var(--offer-emblem, 56px);
+  margin: 6px 0 2px;
+}
+
+.offer-chair-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.offer-chair-group {
+  display: flex;
+  gap: 3px;
+}
+
+.offer-chair {
+  display: block;
+  box-sizing: border-box;
+  width: calc(var(--offer-emblem, 56px) * 0.24);
+  height: calc(var(--offer-emblem, 56px) * 0.37);
+  border: 2px solid var(--card-ink, var(--ink));
+  border-radius: 2px;
+  background: var(--card-ground, var(--parchment));
+}
+
+.offer-chair-words {
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
 /* --- the A3 card face (batch C1) ------------------------------------------
    An Order's face (`src/ui/suitFace.ts`; the board is
    `docs/plans/mockups/card-faces/SuitsRevised.dc.html`). The suit in the
@@ -11468,12 +11516,23 @@ p.city-trade-link {
 
 /* --- the slots ----------------------------------------------------------- */
 
-/* Two chairs to a row (batch C1): see "the chairs" below. */
+/* Three chairs to a row (batch C2b): see "the chairs" below. */
 .sc-slot-row {
   display: grid;
-  grid-template-columns: repeat(2, 120px);
-  justify-content: space-evenly;
-  gap: 14px 12px;
+  grid-template-columns: repeat(3, 92px);
+  justify-content: space-between;
+  gap: 12px 6px;
+}
+
+/* The council's types in words, under its heading: "2 Military · 1 Economic ·
+   1 Civic · 1 Wildcard". Numbers, so the mono. */
+.sc-council-mix {
+  margin: -4px 0 10px;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
 }
 
 /* An office is a **line**, not a card-shaped hole.
@@ -11595,16 +11654,29 @@ p.city-trade-link {
   color: var(--ink-faint);
 }
 
-.sc-slot-military .sc-slot-type {
-  color: var(--vermilion);
+/* **The chair types' inks** (batch C2b). Each chair carries its type's ink as
+   `--chair-ink` and the type's pale ground as `--chair-ground`, from the four
+   tokens the card faces are drawn in, so a chair and the cards that fit it
+   share one ink. The plate's swatch, an empty chair's dashed outline and its
+   ghost, and the lit ring of a chair the card in hand fits all read these. */
+.sc-slot-military {
+  --chair-ink: var(--type-military);
+  --chair-ground: var(--type-military-ground);
 }
 
-.sc-slot-economic .sc-slot-type {
-  color: var(--y-gold);
+.sc-slot-economic {
+  --chair-ink: var(--type-economic);
+  --chair-ground: var(--type-economic-ground);
 }
 
-.sc-slot-wildcard .sc-slot-type {
-  color: var(--grape);
+.sc-slot-civic {
+  --chair-ink: var(--type-civic);
+  --chair-ground: var(--type-civic-ground);
+}
+
+.sc-slot-wildcard {
+  --chair-ink: var(--type-wildcard);
+  --chair-ground: var(--type-wildcard-ground);
 }
 
 .sc-slot-card {
@@ -11632,13 +11704,19 @@ p.city-trade-link {
   margin: 0;
 }
 
-/* --- the chairs (batch C1) ------------------------------------------------
+/* --- the chairs (batch C1, typed in C2) -----------------------------------
    The council as the A3 board draws it: each chair holds its card as the A3
-   seated card (120 × 186, `.suit-seat`), with a plate under it naming the
-   chair and the seal beside the plate. Two chairs to a row in the 320px
-   column. The office states above (open, filled, staged, malice) are kept on
-   the button, and drawn here on the card rather than on a line. Every chair is
-   the same until batch C2 types them, so the plate carries no ink yet. */
+   seated card (`.suit-seat`), with a plate under it naming the chair's type and
+   the seal beside the plate. The office states above (open, filled, staged,
+   malice) are kept on the button, and drawn here on the card rather than on a
+   line. Each chair is in its type's ink (`--chair-ink`, above): an empty chair
+   keeps its ink, and the Wildcard chair's plate is purple, as on the board.
+
+   **Compact** (batch C2b): the seated card is three quarters of the board's
+   120 × 186, at 92 × 142, so three chairs fit the 320px column and an
+   eleven-chair council is four rows rather than six. Every length of the face
+   that is set in pixels is restated below at that scale; the lengths in `em`
+   follow the smaller font size by themselves. */
 .sc-slot.sc-chair,
 .sc-slot.sc-chair.sc-slot-filled,
 .sc-slot.sc-chair.sc-slot-open,
@@ -11661,45 +11739,94 @@ p.city-trade-link {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  width: 120px;
-  height: 186px;
-  border-radius: 7px;
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  width: 92px;
+  height: 142px;
+  border-radius: 6px;
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+/* The seated card at the council's size. The face's own rules are written for
+   120 × 186 (`.suit-seat`, the board's seated card); these restate its pixel
+   lengths at three quarters. */
+.sc-chair .suit-seat {
+  font-size: 8.6px;
+  width: 92px;
+  height: 142px;
+  border-width: 2px;
+  border-radius: 6px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.sc-chair .suit-seat .suit-body {
+  padding: 17px 6px 7px;
+}
+
+.sc-chair .suit-seat .suit-plate {
+  width: 48px;
+  height: 48px;
+}
+
+.sc-chair .suit-seat .suit-rank-numeral,
+.sc-chair .suit-seat .suit-ribbon-numeral {
+  font-size: 7.5px;
+}
+
+.sc-chair .suit-seat .suit-cartouche-numeral {
+  font-size: 11px;
+}
+
+.sc-chair .suit-seat .suit-foot i {
+  width: 20px;
 }
 
 .sc-chair:hover .sc-chair-card.suit-seat,
 .sc-chair:focus-visible .sc-chair-card.suit-seat {
-  box-shadow: 4px 4px 0 var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
   transform: translate(-1px, -1px);
 }
 
-/* The name on a seated card, against the office rule above that zeroes it. */
+/* The name on a seated card, against the office rule above that zeroes it, at
+   the council's size. */
 .sc-chair .suit-seat .suit-name {
-  margin-top: 6px;
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.1;
   text-align: center;
+  -webkit-line-clamp: 3;
 }
 
-/* An empty chair: a dashed outline with the ghost of a card in it. */
+/* An empty chair: a dashed outline in its type's ink, with the ghost of a card
+   in it and the type's mark inside the ghost. */
 .sc-chair-empty {
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  border: 2.5px dashed var(--ink-faint);
-  background: rgba(29, 26, 32, 0.04);
+  gap: 8px;
+  border: 2px dashed color-mix(in srgb, var(--chair-ink, var(--ink)) 55%, transparent);
+  background: color-mix(in srgb, var(--chair-ink, var(--ink)) 6%, transparent);
 }
 
 .sc-chair-ghost {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   box-sizing: border-box;
-  width: 44px;
-  height: 66px;
-  border: 3px solid rgba(29, 26, 32, 0.2);
-  border-radius: 5px;
+  width: 34px;
+  height: 51px;
+  border: 2.5px solid color-mix(in srgb, var(--chair-ink, var(--ink)) 38%, transparent);
+  border-radius: 4px;
+  color: color-mix(in srgb, var(--chair-ink, var(--ink)) 45%, transparent);
+}
+
+/* The type's mark, faint inside the ghost: the slot marks are drawn to survive
+   being faded (`SLOT_MARKS`), and this is what they were drawn for. */
+.sc-chair-ghost .sc-chair-mark {
+  width: 22px;
+  height: 22px;
 }
 
 .sc-chair-empty .sc-slot-empty {
   font-family: var(--face-num);
-  font-size: 9.5px;
+  font-size: 8.5px;
   font-style: normal;
   font-weight: 500;
   letter-spacing: 0.12em;
@@ -11708,15 +11835,34 @@ p.city-trade-link {
 }
 
 .sc-chair:hover .sc-chair-empty {
-  border-color: var(--ink-soft);
+  border-color: var(--chair-ink, var(--ink-soft));
 }
 
-/* A chair the held card can go in: the office's vermilion, on the chair. */
+/* A chair the card in hand fits: lit in its own ink, solid and ringed. */
 .sc-chair.sc-slot-open .sc-chair-empty {
   border-style: solid;
-  border-color: var(--vermilion);
-  background: rgba(212, 80, 46, 0.08);
-  box-shadow: 0 0 0 2px rgba(212, 80, 46, 0.25);
+  border-color: var(--chair-ink, var(--vermilion));
+  background: var(--chair-ground, rgba(212, 80, 46, 0.08));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--chair-ink, var(--vermilion)) 30%, transparent);
+}
+
+/* An empty chair the card in hand does not fit: dimmed, and its pointer says
+   no. The reason is the reducer's sentence, in the chair's tooltip and in the
+   manicule line when it is clicked. */
+.sc-chair.sc-slot-refuses {
+  cursor: not-allowed;
+}
+
+.sc-chair.sc-slot-refuses .sc-chair-card {
+  opacity: 0.45;
+}
+
+.sc-chair.sc-slot-refuses .sc-chair-plate {
+  opacity: 0.6;
+}
+
+.sc-chair.sc-slot-refuses:hover .sc-chair-empty {
+  border-color: color-mix(in srgb, var(--chair-ink, var(--ink)) 55%, transparent);
 }
 
 /* A chair this session changed and has not signed: the office's gilt, as a
@@ -11730,8 +11876,8 @@ p.city-trade-link {
 .sc-chair-malice {
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 8px;
   border: 2.5px solid var(--vermilion);
   background: rgba(212, 80, 46, 0.1);
   box-shadow: 3px 3px 0 var(--ink);
@@ -11740,12 +11886,12 @@ p.city-trade-link {
 }
 
 .sc-chair-malice .sc-slot-card {
-  font-size: 14px;
+  font-size: 12px;
   text-align: center;
 }
 
 .sc-chair-malice .sc-slot-struck {
-  font-size: 22px;
+  font-size: 18px;
 }
 
 /* The plate and the seal share a line when they fit in the chair's width,
@@ -11756,15 +11902,17 @@ p.city-trade-link {
   align-items: center;
   justify-content: center;
   gap: 4px 5px;
-  max-width: 132px;
+  max-width: 100px;
 }
 
+/* The plate: the type's swatch and word, in ink on the table's ground. The
+   word stays in ink, as on the board — the swatch carries the colour. */
 .sc-chair-plate {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 24px;
-  padding: 0 8px 0 6px;
+  gap: 4px;
+  height: 22px;
+  padding: 0 7px 0 5px;
   box-sizing: border-box;
   border: 1.5px solid var(--ink);
   border-radius: 999px;
@@ -11773,14 +11921,22 @@ p.city-trade-link {
 
 .sc-chair-swatch {
   display: block;
-  width: 9px;
-  height: 14px;
+  width: 8px;
+  height: 12px;
   border-radius: 2px;
-  background: var(--ink-faint);
+  background: var(--chair-ink, var(--ink-faint));
+}
+
+/* The Wildcard chair's plate is purple, ring and ground, as the board draws it:
+   it is the one chair any card may sit in, and it says so from across the
+   column. */
+.sc-chair.sc-slot-wildcard .sc-chair-plate {
+  border-color: var(--type-wildcard);
+  background: var(--type-wildcard-ground);
 }
 
 .sc-chair-plate .sc-slot-type {
-  font-size: 9.5px;
+  font-size: 9px;
   font-weight: 500;
   color: var(--ink);
 }

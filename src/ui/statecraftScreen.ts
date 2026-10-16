@@ -34,10 +34,19 @@
  *
  * An office was a **line** in that column until batch C1. It is a **chair**
  * now, as on the A3 board's council: the card in it is drawn as the A3 seated
- * card (120 × 186), with a plate under it naming the chair and carrying its
- * seal. Two chairs sit side by side in the column, so a large council makes the
- * column scroll; the column scrolls on its own, and the collection beside it
- * does not move.
+ * card, with a plate under it naming the chair's type and carrying its seal.
+ * Since batch C2 the chairs have types (Military, Economic, Civic, Wildcard),
+ * and each chair is drawn in its type's ink: an empty chair keeps its ink, and
+ * the Wildcard chair is purple. The chairs are built by `chairs.ts`, which the
+ * flair gallery draws from as well.
+ *
+ * **The council is compact** (batch C2b): the seated card is drawn at three
+ * quarters of the board's 120 × 186, three chairs to a row, so an eleven-chair
+ * council is four rows (about 700px) rather than six rows of two (about
+ * 1,300px). A strip that scrolled sideways was the other choice and was turned
+ * down: seating a card means comparing it against every chair's type, and a
+ * strip hides the chairs it has scrolled past. The column still scrolls on its
+ * own when it must, and the collection beside it does not move.
  *
  * A hand is a working list
  * ------------------------
@@ -101,7 +110,7 @@
  * Ordered offices, and the word on one
  * ------------------------------------
  * `PlayerStatecraft.slots` is indexed by `slotLayout`, which lays the government's
- * spread out grouped by flavour in `SLOT_TYPES` order — so **the array index is
+ * chairs out grouped by type in `CHAIR_TYPES` order — so **the array index is
  * the position**, and this screen draws the column in array index order, which is
  * what makes "the first economic slot" a fact rather than an opinion (the Slot
  * order ruling, `docs/history/fewer-things.md` §1). The position word is printed on the
@@ -166,6 +175,7 @@ import {
   orderDef,
   orderFitsSlot,
 } from '../sim/statecraftData';
+import { chairMixOfLayout, chairMixWords, chairNode, chairWord, emptyChairNode } from './chairs';
 import {
   cardStampNode,
   landCardStamp,
@@ -202,6 +212,7 @@ import {
   placeError,
   remove,
   removeError,
+  sameChairs,
   stage,
   validate,
 } from './statecraftStaging';
@@ -289,6 +300,19 @@ export function slotPositionWord(layout: readonly ChairType[], index: number): s
     if (layout[at] === type) rank++;
   }
   return `${ordinal(rank)} ${SLOT_WORDS[type]}`;
+}
+
+/**
+ * The chair types a card fits, as a phrase: "a Military or Wildcard",
+ * "an Economic or Wildcard", "a Military, Economic, Civic or Wildcard". The
+ * article is the first word's.
+ */
+export function fitsWords(words: readonly string[]): string {
+  if (words.length === 0) return 'no';
+  const first = words[0]!;
+  const article = /^[AEIOU]/.test(first) ? 'an' : 'a';
+  if (words.length === 1) return `${article} ${first}`;
+  return `${article} ${words.slice(0, -1).join(', ')} or ${words[words.length - 1]!}`;
 }
 
 export interface StatecraftScreen {
@@ -484,6 +508,16 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    */
   let stagedSeat = -1;
   /**
+   * **The chairs the arrangement was laid out against**, one type per chair
+   * (`slotTypesOf` when it was taken), or `null` with no arrangement.
+   *
+   * An arrangement is indexed by chair, so it means something only against the
+   * chairs it was made for. An adoption can keep the count and change the types
+   * (War Chief's five to Tyranny's five), and an arrangement carried across that
+   * would put a card in a chair it does not fit. See `ensureStaging`.
+   */
+  let stagedChairs: readonly ChairType[] | null = null;
+  /**
    * The cards **Confirm just made law**, waiting for their stamps to be played
    * once the redraw has put them back on the screen — and, with them, the
    * aggregate.
@@ -517,6 +551,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   function discardStaging(): void {
     staged = null;
     stagedSeat = -1;
+    stagedChairs = null;
     held = null;
     justConfirmed = [];
   }
@@ -525,15 +560,18 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * The arrangement this draw is about.
    *
    * Re-taken from the live slots whenever there is nothing staged, whenever the
-   * chair has changed under it, and whenever the government's spread no longer
-   * has the same number of offices — an adoption rebuilds the slots array (and
-   * re-seats the cards that fit, `reseatCouncil`) and an arrangement indexed into
-   * the old spread would be putting cards in offices that no longer exist.
+   * seat has changed under it, and whenever **the chairs** have changed: their
+   * number or the type of any one of them (`sameChairs`). An adoption rebuilds
+   * the slots array and re-seats the cards that fit (`reseatCouncil`), and an
+   * arrangement indexed into the old chairs would be putting cards in chairs
+   * that no longer exist, or no longer take them.
    */
   function ensureStaging(sc: PlayerStatecraft, seat: number): StagedSlots {
-    if (staged === null || stagedSeat !== seat || staged.length !== sc.slots.length) {
+    const chairs = slotTypesOf(sc);
+    if (staged === null || stagedSeat !== seat || !sameChairs(stagedChairs, chairs)) {
       staged = stage(sc.slots);
       stagedSeat = seat;
+      stagedChairs = chairs;
       held = null;
       return staged;
     }
@@ -744,7 +782,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         'sc-banner-body',
         `Tier ${offer.tier} offers ${offer.options
           .map((id: GovernmentId) => governmentDef(id).name)
-          .join(', ')} — adopting swaps your slots, lifts every seal, and opens a Doctrine.`,
+          .join(', ')} — adopting lays out new chairs, keeps your Orders in their chairs where they still fit, and lifts every seal.`,
       ),
     );
     if (options.adopt) {
@@ -818,12 +856,18 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   /**
    * **The council**: one chair per slot, with what is in it and its seal.
    *
-   * A chair is drawn as on the A3 board's council (batch C1): the card in it
-   * as the A3 seated card, 120 × 186, and a plate under it naming the chair,
-   * with the seal beside the plate. An empty chair is a dashed outline with a
-   * ghost of a card in it, so the column still reads as a row of *places a card
-   * goes* before any of the words are read. Every chair is the same until batch
-   * C2 gives chairs their types, so the plate says "chair" and carries no ink.
+   * A chair is drawn as on the A3 board's council (batch C1, typed in C2): the
+   * card in it as the A3 seated card, compact (see the module docblock), and a
+   * plate under it naming the chair's type in its ink, with the seal beside
+   * the plate. An empty chair is a dashed outline in its type's ink with the
+   * ghost of a card in it and the type's mark inside the ghost, so the column
+   * reads as a row of typed places before any of the words are read.
+   *
+   * **While a card is in hand**, the chairs it fits are lit and every empty
+   * chair it does not fit is dimmed and says so. Both are the reducer's own
+   * answer about the staged arrangement (`placeError`, which is
+   * `slotOrderError`): the dimmed chair's tooltip is the reducer's sentence, and
+   * clicking it says the same sentence in the manicule line (`drop`).
    */
   function drawSlots(
     state: GameState,
@@ -840,15 +884,18 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     // The seat itself, for the one thing that is not in the statecraft record: a
     // malice holds a chair from `Player.malices` (batch G3, `maliceAt`).
     const player = playerById(state, seat);
-    block.append(element('p', 'eyebrow sc-eyebrow', `${layout.length} slots`));
+    block.append(element('p', 'eyebrow sc-eyebrow', `council · ${layout.length} chairs`));
+    // The council's types in words, under the heading: the plates say each
+    // chair's type, and this says the whole mix at a glance.
+    block.append(element('p', 'sc-council-mix', chairMixWords(chairMixOfLayout(layout))));
     const row = element('div', 'sc-slot-row');
     // Whether the *position* of an office is a fact anything reads. See
     // `deckReadsSlotPosition` and the module docblock: the word is printed where
     // a position engine could read it, and nowhere else.
     const positions = deckReadsSlotPosition(sc);
     // **Array index order**, which is the position order — `slotLayout` groups the
-    // spread by flavour, so the topmost economic office is the first economic
-    // office and the column and the sim agree without either being told.
+    // chairs by type, so the topmost economic chair is the first economic chair
+    // and the column and the sim agree without either being told.
     layout.forEach((type, index) => {
       const filled = arrangement[index] ?? null;
       // **The chair a malice holds** (batch G3, `docs/wager.md` §4). It is asked
@@ -856,59 +903,61 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       // session does can move one: a malice is not staged, not slotted and not
       // unslottable, so the staging layer has nothing to say about it.
       const malice = player === undefined ? null : maliceAt(player, index);
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = `sc-slot sc-chair sc-slot-${type}`;
-      // The one hint while a card is in hand, and it is the reducer's own answer
-      // about the *staged* arrangement rather than a guess about the live one:
-      // an office this session emptied will take a card, and the highlight says
-      // so before the arrangement is signed.
-      const takeable = held !== null && filled === null && placeError(state, seat, arrangement, held, index) === null;
-      if (takeable) button.classList.add('sc-slot-open');
-      if (filled) button.classList.add('sc-slot-filled');
-      // What this session changed about this office — a card put in, or one
-      // taken out. Both are "unconfirmed", and both are drawn as such.
-      const moved = (sc.slots[index]?.card ?? null) !== (filled?.card ?? null);
-      if (moved) button.classList.add('sc-slot-staged');
-      // The plate under the chair, and the seal beside it.
-      const foot = element('span', 'sc-chair-foot');
-      const plate = element('span', 'sc-chair-plate');
-      const swatch = element('b', 'sc-chair-swatch');
-      swatch.setAttribute('aria-hidden', 'true');
-      plate.append(swatch);
-      // **Every chair is universal since the decks rework** (D1a): the layout
-      // answers wildcards alone, so the word is "chair" and not the flavour —
-      // a flavour every office shares says nothing a player can act on. Batch C2
-      // types the chairs, and the plate takes the chair's type and ink then.
-      void type;
-      plate.append(element('span', 'sc-slot-type', 'chair'));
-      // The eyebrow, and only where it means something. Every number in this
-      // interface is tabular mono, an ordinal included.
-      if (positions) {
-        plate.append(element('span', 'sc-slot-position', slotPositionWord(layout, index)));
-      }
-      foot.append(plate);
+      // The reducer's answer for the card in hand, asked once per chair: `null`
+      // is a chair that takes it, and anything else is the sentence it refuses
+      // with. Asked only of an empty chair, because an occupied chair's click is
+      // the *take it out* gesture whatever is in hand.
+      const empty = filled === null && malice === null;
+      const refusal = held !== null && empty ? placeError(state, seat, arrangement, held, index) : null;
+      let card: HTMLElement;
       if (malice !== null) {
         // **The bad face.** A chair a malice holds is not empty and is not
         // takeable: it is drawn struck through in vermilion, wears the malice's
         // own name, and says in the reducer's own sentence why it will not move
         // (`maliceChairRefusal` — the tooltip and the rejection are one string,
         // which is this screen's oldest promise).
-        button.classList.add('sc-slot-malice');
-        const card = element('span', 'sc-chair-card sc-chair-malice');
-        const struck = element('span', 'sc-slot-struck', '\u2715');
+        card = element('span', 'sc-chair-card sc-chair-malice');
+        const struck = element('span', 'sc-slot-struck', '✕');
         struck.setAttribute('aria-hidden', 'true');
         card.append(struck, element('span', 'sc-slot-card', maliceDef(malice).name));
-        button.append(card, foot);
-        button.title = `${maliceChairRefusal(index, malice)} \u2014 ${maliceDef(malice).note}`;
       } else if (filled) {
         // The card in the chair, as the A3 seated card: the same suit, ink and
         // rank it wears in the hand and in the collection beside it.
-        const card = element('span', 'sc-chair-card');
+        card = element('span', 'sc-chair-card');
         const name = element('span', 'sc-slot-card suit-name', isOrderId(filled.card) ? orderDef(filled.card).name : String(filled.card));
         if (isOrderId(filled.card)) dressSuitFace(card, orderSuitFace(filled.card), 'seat', [name]);
         else card.append(name);
-        button.append(card, foot);
+      } else {
+        // An empty chair keeps its ink. With a card in hand that does not fit
+        // it, it says so in two words; the reason is the tooltip, below.
+        card = emptyChairNode(type, refusal !== null ? 'won’t fit' : 'empty');
+      }
+      const { button, foot, plate } = chairNode(type, card);
+      // The one hint while a card is in hand, and it is the reducer's own answer
+      // about the *staged* arrangement rather than a guess about the live one:
+      // a chair this session emptied will take a card, and the highlight says
+      // so before the arrangement is signed.
+      if (held !== null && empty && refusal === null) button.classList.add('sc-slot-open');
+      // An empty chair the card in hand does not fit: dimmed, and marked as
+      // refusing for the reading that has no colour in it.
+      if (refusal !== null) {
+        button.classList.add('sc-slot-refuses');
+        button.setAttribute('aria-disabled', 'true');
+      }
+      if (filled) button.classList.add('sc-slot-filled');
+      // What this session changed about this office — a card put in, or one
+      // taken out. Both are "unconfirmed", and both are drawn as such.
+      const moved = (sc.slots[index]?.card ?? null) !== (filled?.card ?? null);
+      if (moved) button.classList.add('sc-slot-staged');
+      // The eyebrow, and only where it means something. Every number in this
+      // interface is tabular mono, an ordinal included.
+      if (positions) {
+        plate.append(element('span', 'sc-slot-position', slotPositionWord(layout, index)));
+      }
+      if (malice !== null) {
+        button.classList.add('sc-slot-malice');
+        button.title = `${maliceChairRefusal(index, malice)} — ${maliceDef(malice).note}`;
+      } else if (filled) {
         if (filled.staged) {
           // Nothing has sealed it — see `sealStamp`. The chair's rim says it is
           // unconfirmed and the Confirm block counts it.
@@ -918,43 +967,34 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
           button.title = stamp.title;
           foot.append(stamp);
         }
-      } else {
-        const card = element('span', 'sc-chair-card sc-chair-empty');
-        const ghost = element('span', 'sc-chair-ghost');
-        ghost.setAttribute('aria-hidden', 'true');
-        card.append(ghost, element('span', 'sc-slot-empty', 'empty'));
-        button.append(card, foot);
+      } else if (held !== null) {
         // The refusal, before it is provoked: the same sentence the reducer
         // would answer with, so the tooltip and the rejection are one string.
-        if (held !== null) {
-          button.title =
-            placeError(state, seat, arrangement, held, index) ?? `Slot ${orderDef(held).name} here`;
-        }
+        button.title = refusal ?? `Seat ${orderDef(held).name} in this ${chairWord(type)} chair`;
+      } else {
+        button.title = `An empty ${chairWord(type)} chair`;
       }
       button.addEventListener('click', () => drop(index));
       row.append(button);
     });
     block.append(row);
-    // The other half of "which office": the column highlights what will take the
+    // The other half of "which chair": the column lights what will take the
     // card (`sc-slot-open`, which is the reducer's own answer), and this says in
     // words what is in hand. A highlight with no sentence is a colour a player
     // has to guess the meaning of.
     if (held !== null) {
       const card = held;
       // Which chairs will take it, asked of `orderFitsSlot` rather than spelled
-      // out — a military card fits military *or* wildcard, and a wildcard card
-      // fits only wildcard, so a hand-written "X or wildcard" says "wildcard or
-      // wildcard" for a third of the deck. All four chair types since batch C2.
-      const fits = CHAIR_TYPES.filter((type) => orderFitsSlot(card, type)).map(
-        (type) => SLOT_WORDS[type],
-      );
+      // out — a military card fits military *or* wildcard, a wildcard card fits
+      // only wildcard, and an unsorted card fits all four.
+      const fits = CHAIR_TYPES.filter((type) => orderFitsSlot(card, type)).map((type) => chairWord(type));
       const hint = element('p', 'sc-hand');
       hint.append(element('span', 'sc-hand-name', orderDef(card).name));
       hint.append(
         element(
           'span',
           'sc-hand-say',
-          `in hand — drop it in an empty ${fits.join(' or ')} slot, or click it again to put it back`,
+          `in hand — it fits ${fitsWords(fits)} chair. Seat it in an empty one, or click it again to put it back.`,
         ),
       );
       block.append(hint);
@@ -1046,6 +1086,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     revert.addEventListener('click', () => {
       staged = stage(sc.slots);
       stagedSeat = seat;
+      stagedChairs = slotTypesOf(sc);
       held = null;
       draw();
     });

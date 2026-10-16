@@ -274,7 +274,8 @@ describe('the offices are ordered, and the word says which', () => {
     expect(SCREEN).toContain('if (positions) {');
     expect(SCREEN).toContain("element('span', 'sc-slot-position', slotPositionWord(layout, index))");
     // Every number in this interface is tabular mono — an ordinal included.
-    const rule = STYLE.slice(STYLE.indexOf('.sc-slot-position {'), STYLE.indexOf('.sc-slot-military .sc-slot-type'));
+    const rule = STYLE.slice(STYLE.indexOf('.sc-slot-position {'), STYLE.indexOf('.sc-slot-military {'));
+    expect(rule.length).toBeGreaterThan(0);
     expect(rule).toContain('font-family: var(--face-num)');
     expect(rule).toContain('font-variant-numeric: tabular-nums');
   });

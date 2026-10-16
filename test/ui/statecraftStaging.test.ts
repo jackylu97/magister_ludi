@@ -34,6 +34,7 @@ import {
   placeError,
   remove,
   removeError,
+  sameChairs,
   stage,
   validate,
 } from '../../src/ui/statecraftStaging';
@@ -305,5 +306,25 @@ describe('confirming', () => {
     const staged = stage(live(g.state));
     expect(diff(live(g.state), staged, 0)).toEqual([]);
     expect(occupants(live(g.state))).toEqual(before);
+  });
+});
+
+describe('an arrangement belongs to the chairs it was laid out against', () => {
+  /**
+   * Batch C2b: the screen re-takes a staged arrangement when the chairs change,
+   * and the count alone is not the question. War Chief and Tyranny both seat
+   * five, in different types, so an arrangement carried from one to the other
+   * would put cards in chairs they may not fit.
+   */
+  it('is the same council only with the same types, chair by chair', () => {
+    const warChief = slotLayout('warChief');
+    const tyranny = slotLayout('tyranny');
+    expect(warChief).toHaveLength(tyranny.length);
+    expect(sameChairs(warChief, [...warChief])).toBe(true);
+    expect(sameChairs(warChief, tyranny)).toBe(false);
+    // A chair a leader or a card opens is a chair more, and that is a change.
+    expect(sameChairs(warChief, [...warChief, 'wildcard'])).toBe(false);
+    // Nothing recorded is never the same as a council.
+    expect(sameChairs(null, warChief)).toBe(false);
   });
 });

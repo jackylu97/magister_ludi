@@ -43,7 +43,7 @@
 import type { SlotOrderCommand, UnslotOrderCommand } from '../sim/commands';
 import { type SlottedOrder, slotOrderError, unslotOrderError } from '../sim/statecraft';
 import type { GameState } from '../sim/state';
-import type { OrderId } from '../sim/statecraftData';
+import type { ChairType, OrderId } from '../sim/statecraftData';
 import { playerById } from '../sim/state';
 
 /**
@@ -82,6 +82,26 @@ export function stage(live: readonly (SlottedOrder | null)[]): StagedSlots {
   return live.map((slot) =>
     slot === null ? null : { card: slot.card, sealedUntil: slot.sealedUntil, staged: false },
   );
+}
+
+/**
+ * **Are these the same chairs?** The same number, and the same type at every
+ * index — the question the screen asks before it trusts an arrangement it
+ * staged earlier (batch C2b).
+ *
+ * An arrangement is indexed by chair, so it is only an arrangement *of these
+ * chairs*. The count alone is not enough since chairs have types: War Chief and
+ * Tyranny both seat five, and a card staged into War Chief's second Military
+ * chair would be sitting in Tyranny's second Military chair by luck, or in an
+ * Economic chair it does not fit by the next government. `null` is "no chairs
+ * recorded", which is never the same as any council.
+ */
+export function sameChairs(
+  before: readonly ChairType[] | null,
+  after: readonly ChairType[],
+): boolean {
+  if (before === null || before.length !== after.length) return false;
+  return before.every((type, index) => type === after[index]);
 }
 
 /**

@@ -12,20 +12,31 @@
  * `suitRowNode`, the inks are `style.css`'s tokens through `data-ink`, and a
  * real card's face is `orderSuitFace`, the one function every surface draws an
  * Order from.
+ *
+ * **The council** (batch C2b) is drawn the same way: the chairs are the
+ * Statecraft screen's own (`chairNode` and `emptyChairNode`, `chairs.ts`), in
+ * the four types, with the lit and the refusing states the screen puts on them
+ * while a card is in hand, and each government's chairs are the government
+ * card's own drawing (`offerChairsNode`).
  */
 
 import { describeCard } from '../sim/statecraft';
 import {
+  CHAIR_TYPES,
   DECK_IDS,
   DECK_WORDS,
+  GOVERNMENT_IDS,
   ORDER_IDS,
   type OrderId,
+  governmentDef,
   orderDef,
+  orderFitsSlot,
   orderIsDealt,
   orderType,
 } from '../sim/statecraftData';
+import { chairNode, chairWord, emptyChairNode, offerChairsOf } from '../ui/chairs';
 import { DECK_SUIT, orderSuitFace } from '../ui/deckBadges';
-import { type OfferOption, suitHandCard } from '../ui/offerCard';
+import { type OfferOption, offerChairsNode, suitHandCard } from '../ui/offerCard';
 import {
   INK_IDS,
   type InkId,
@@ -258,4 +269,65 @@ export function drawCardFaces(into: HTMLElement): void {
   const list = element('div', 'face-list');
   for (const id of picks) list.append(suitRowNode(orderSuitFace(id), orderDef(id).name));
   real.append(list);
+
+  drawCouncil(into, picks);
+}
+
+/**
+ * **The council's chairs** (batch C2b): the four types empty, then a chair
+ * holding a real card, then the two states a chair takes while a card is in
+ * hand, then each live government's chairs as its card draws them.
+ */
+function drawCouncil(into: HTMLElement, picks: readonly OrderId[]): void {
+  const council = block(
+    into,
+    'The council — src/ui/chairs.ts and style.css',
+    'The four chair types, drawn by the council’s own builders: an empty chair keeps its type’s ink and shows its type’s mark faint inside the ghost of a card, and the Wildcard chair’s plate is purple. Then a chair holding a real card at the council’s compact size, and the two states a chair takes while a card is in hand: lit where the card fits, dimmed where it does not.',
+  );
+  const empties = element('div', 'face-council');
+  for (const type of CHAIR_TYPES) empties.append(chairNode(type, emptyChairNode(type, 'empty')).button);
+  council.append(empties);
+
+  const states = element('div', 'face-council');
+  // A real card in a chair of its own type: the first typed card of the picks,
+  // or the first card at all, seated in the first chair it fits.
+  const sample = picks.find((id) => orderType(id) !== 'unsorted') ?? picks[0];
+  if (sample !== undefined) {
+    const type = CHAIR_TYPES.find((one) => orderFitsSlot(sample, one)) ?? 'wildcard';
+    const card = element('span', 'sc-chair-card');
+    dressSuitFace(card, orderSuitFace(sample), 'seat', [element('span', 'sc-slot-card suit-name', orderDef(sample).name)]);
+    const seated = chairNode(type, card);
+    seated.button.classList.add('sc-slot-filled');
+    states.append(seated.button);
+    // The same card in hand: lit over a chair it fits, dimmed over one it does not.
+    const fits = CHAIR_TYPES.find((one) => one !== 'wildcard' && orderFitsSlot(sample, one)) ?? 'wildcard';
+    const lit = chairNode(fits, emptyChairNode(fits, 'empty'));
+    lit.button.classList.add('sc-slot-open');
+    lit.button.title = `${orderDef(sample).name} fits this ${chairWord(fits)} chair`;
+    states.append(lit.button);
+    const refuses = CHAIR_TYPES.find((one) => !orderFitsSlot(sample, one));
+    if (refuses !== undefined) {
+      const dim = chairNode(refuses, emptyChairNode(refuses, 'won’t fit'));
+      dim.button.classList.add('sc-slot-refuses');
+      dim.button.title = `${orderDef(sample).name} does not fit this ${chairWord(refuses)} chair`;
+      states.append(dim.button);
+    }
+  }
+  council.append(states);
+
+  const governments = block(
+    into,
+    'A government’s chairs — offerChairsNode, offerCard.ts',
+    'What the middle of a government card shows, for every government a seat can be offered: one small chair for each chair it lays out, in its type’s ink, and the mix in words.',
+  );
+  const row = element('div', 'face-council');
+  for (const id of GOVERNMENT_IDS) {
+    const def = governmentDef(id);
+    if (def.retired === true) continue;
+    const cell = element('div', 'face-government');
+    cell.append(element('b', undefined, def.name));
+    cell.append(offerChairsNode(offerChairsOf(id)));
+    row.append(cell);
+  }
+  governments.append(row);
 }

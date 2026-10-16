@@ -229,7 +229,11 @@ function lineFamily(into: HTMLElement): void {
   }
 
   const slots = markGrid(
-    block(into, 'Slot marks — the same file', 'What kind of place a card goes in, on the government’s slot row.'),
+    block(
+      into,
+      'Chair marks — the same file',
+      'The four chair types, Military, Economic, Civic and Wildcard: what an empty chair on the council shows, faint, inside the ghost of a card.',
+    ),
   );
   for (const [id, mark] of Object.entries(SLOT_MARKS)) {
     markCell(slots, id, slotMarkDataUri(id as keyof typeof SLOT_MARKS), mark.note);
