@@ -1977,6 +1977,9 @@ export function cityScopeAdmits(
       return isFrontierCity(state, city, scope.radius ?? FRONTIER_RADIUS);
     case 'captured':
       return city.captured;
+    case 'notCaptured':
+      // The Universal Monarchy's founded towns (Dominion batch D4).
+      return !city.captured;
     case 'puppet':
       // **Presence is the state** (`City.puppet`), so the question is asked of
       // the key and never of `captured`: a conquest the captor annexed is a
@@ -2127,6 +2130,9 @@ export function cityScopeAdmits(
       // The Fabricae (Dominion batch D2): the same sweep, and one of the units
       // in it holds the rank. An Elite holds Veteran too.
       return garrisonOf(state, city).some((unit) => holdsRank(unit, scope.rank));
+    case 'generalPresent':
+      // The Bakufu (Dominion batch D4): a great general on the town's own hex.
+      return generalPresent(state, city);
     case 'connected': {
       // The gold ledger's own fill, asked of the same board (`roads.ts`, the
       // leaf both readers can see). The capital is what the others are joined
@@ -2311,6 +2317,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'near a rival';
     case 'captured':
       return 'captured city';
+    case 'notCaptured':
+      return 'founded city';
     case 'puppet':
       return 'puppet';
     case 'capital':
@@ -2381,6 +2389,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'a unit stationed there';
     case 'garrisonRank':
       return `${indefinite(rankName(scope.rank))} ${rankName(scope.rank)} or better stationed there`;
+    case 'generalPresent':
+      return 'a great general stationed there';
     case 'newest':
       return 'newest city';
     case 'follows':
@@ -3239,6 +3249,14 @@ export function countOf(
       }
       return longest;
     }
+    // Dominion batch D4: three lifetime records. A fallen unit or a taken town
+    // leaves nothing on the board to count, so each is a counter on the player.
+    case 'enemiesKilled':
+      return Math.max(0, Math.floor(playerById(state, playerId)?.enemiesKilled ?? 0));
+    case 'unitsLost':
+      return Math.max(0, Math.floor(playerById(state, playerId)?.unitsLost ?? 0));
+    case 'citiesCaptured':
+      return Math.max(0, Math.floor(playerById(state, playerId)?.citiesCaptured ?? 0));
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -3351,6 +3369,24 @@ function improvedResources(
 }
 
 /** The combat units standing in a city, in `state.units` order. */
+/**
+ * Does a great general of this town's owner stand on the town's own hex? The
+ * `generalPresent` scope (The Bakufu, Dominion batch D4). It reads a unit the
+ * way `unrestGeneral` (`unrest.ts`) does: by the row's `greatWork` marker and
+ * the person's family, never by a type name.
+ */
+function generalPresent(state: GameState, city: City): boolean {
+  for (const unit of state.units) {
+    if (unit.ownerId !== city.ownerId) continue;
+    if (unit.col !== city.col || unit.row !== city.row) continue;
+    if (unitDef(unit.type).greatWork !== true) continue;
+    const person = unit.person;
+    if (person === undefined || !isGreatPersonId(person)) continue;
+    if (greatPersonDef(person).family === 'general') return true;
+  }
+  return false;
+}
+
 function garrisonOf(state: GameState, city: City): Unit[] {
   const list: Unit[] = [];
   for (const unit of state.units) {
@@ -5221,7 +5257,21 @@ export function cardAuthority(state: GameState, playerId: number): CardMeterLine
     if (effect.basis !== 'count' || effect.to !== 'authority') continue;
     const each = effect.amount ?? 0;
     if (each === 0) continue;
-    const times = helpings(countOf(state, playerId, card, effect), effect.per, effect.max);
+    // **A town-by-town count is summed over the towns** (Dominion batch D4: The
+    // Garrison Captains' garrisoned units, The Acropolis' buildings in the
+    // capital). `cardHappiness`' reading, for its reason: `countOf` answers 0
+    // for a town count with no town, so this row used to pay nothing. The scope
+    // names which towns are counted.
+    let times = 0;
+    if (isCityScopedCount(effect)) {
+      for (const city of state.cities) {
+        if (city.ownerId !== playerId) continue;
+        if (!cityScopeAdmits(state, city, effect.scope)) continue;
+        times += helpings(countOf(state, playerId, card, effect, city), effect.per, effect.max);
+      }
+    } else {
+      times = helpings(countOf(state, playerId, card, effect), effect.per, effect.max);
+    }
     if (times === 0) continue;
     list.push({ card, source: label(source, `×${times}`), amount: each * times });
   }
@@ -5307,6 +5357,43 @@ export function cardCityCostDelta(state: GameState, city: City): number {
     delta += effect.delta;
   }
   return delta;
+}
+
+/**
+ * **The price this empire's law sets for one town**, or `null` when no row
+ * sets one (Dominion batch D4): The Proconsuls' garrisoned conquests and The
+ * Universal Monarchy's captured towns cost no authority.
+ *
+ * A `cityCost` row with a `value`, asked of the town's scope. If two rows set a
+ * price, the lower one applies: two cards that both make a town cheap cannot
+ * both be honoured, and the lower price is the one each of them promises at
+ * least. The caller (`explainAuthority` in `meters.ts`) uses the price in place
+ * of the ladder, the percentages and the deltas.
+ */
+export function cardCityCostValue(state: GameState, city: City): number | null {
+  let value: number | null = null;
+  for (const { effect } of effectsOfKind(state, city.ownerId, 'meterRule')) {
+    if (effect.rule !== 'cityCost' || effect.value === undefined) continue;
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
+    value = value === null ? effect.value : Math.min(value, effect.value);
+  }
+  return value;
+}
+
+/**
+ * **The percentage this empire's law puts on one town's price** (Dominion batch
+ * D4): The Universal Monarchy's founded towns cost twice as much (+100). The
+ * `cityCost` rows with a `percent` that the town's scope admits, summed. The
+ * caller applies it to the ladder's price before the deltas.
+ */
+export function cardCityCostPercent(state: GameState, city: City): number {
+  let percent = 0;
+  for (const { effect } of effectsOfKind(state, city.ownerId, 'meterRule')) {
+    if (effect.rule !== 'cityCost' || effect.percent === undefined) continue;
+    if (!cityScopeAdmits(state, city, effect.scope)) continue;
+    percent += effect.percent;
+  }
+  return percent;
 }
 
 /** Is a meter rule declared at all? The reading for a flag-shaped rule. */
@@ -7747,6 +7834,22 @@ export function cardActionRuleAt(
     if (effect.class !== undefined) {
       if (type === undefined || !unitMatches(type, effect.class)) continue;
     }
+    if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope)) continue;
+    return true;
+  }
+  return false;
+}
+
+/**
+ * **Does this city rule hold in this town?** The reader for the city rules
+ * that carry a `scope` (`CardRuleEffect.scope`), asked with the town in hand:
+ * `pacified` (The Bakufu, The Consular Roads, Dominion batch D4), which
+ * `runUnrest` asks of each town in unrest. A row with no scope holds in every
+ * town of the town's owner.
+ */
+export function cardCityRuleAt(state: GameState, city: City, rule: CityRuleId): boolean {
+  for (const { effect } of effectsOfKind(state, city.ownerId, 'rule')) {
+    if (effect.rule !== rule) continue;
     if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope)) continue;
     return true;
   }

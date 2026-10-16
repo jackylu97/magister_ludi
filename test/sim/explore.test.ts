@@ -723,10 +723,16 @@ describe('determinism', () => {
    * cards, `Unit.firstAttackTurn` and `Player.hexesPillaged` never reach this
    * board. Checked by setting the version back to 131, which gives C3's hashes
    * exactly.
+   *
+   * **Dominion batch D4 moved the hash and not the length** at both seeds: 133
+   * became 134, and that is all. Nobody here drafts a card, takes a town or
+   * kills a unit, so the new cards and `Player.enemiesKilled` never reach this
+   * board. Checked by setting the version back to 133, which gives the merged
+   * D3 hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'd7f5d2b7:188932',
-    2026: '881aa796:188488',
+    11: '42ae59d6:188932',
+    2026: '57863117:188488',
   };
 
   for (const seed of [11, 2026]) {

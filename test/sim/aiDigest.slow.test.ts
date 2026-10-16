@@ -575,10 +575,37 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * file as C3 left it, the version at 131, the record not written, no raider
  * named and no settlement), which gives C3's digests exactly on both boards.
  * Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **Dominion batch D4 (schema 134), unrest, authority, and "this game"
+ * counts.** Duel `3ba9ba41:270645` → `3583df65:268144`, standard
+ * `b5305be8:966741` → `37ce3d15:948656`. Four things moved them:
+ *
+ *   · the version, 133 to 134;
+ *   · the twelve cards. Nine Orders join the Dominion pool, The Proconsuls is
+ *     reworked, and two Doctrines join the pools: The Consular Roads at tier 4
+ *     and The Universal Monarchy at tier 18. Every tier-4 adoption now offers
+ *     two Doctrines, and on both boards three seats take The Consular Roads
+ *     and three The Steppe Confederacy. At turn 120 one seat on the duel board
+ *     holds The Garrison Captains, not seated;
+ *   · the new record `Player.enemiesKilled`, written for every empire whose
+ *     units kill, the wild's raiders included. Every kill on both boards is a
+ *     barbarian's;
+ *   · the bots' new readings (`src/ai/value.ts`): D3's pillage extras, the
+ *     places a grant can land, and D4's new shapes, so they price cards
+ *     differently.
+ *
+ * The settlement of every town that a camp's or a discovery's grants feed is a
+ * fifth mover, and it is taken out with the others. Checked by taking all five
+ * back out (the deck file as D3 left it, the version at 133, the record not
+ * written, the bot's readings and the two settlements as they were), which
+ * gives the merged D3 digests exactly on both boards. Nothing stalled and no
+ * command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '3ba9ba41:270645',
-  standard: 'b5305be8:966741',
+  duel: '3583df65:268144',
+  standard: '37ce3d15:948656',
 };
 
 /**

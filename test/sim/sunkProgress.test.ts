@@ -118,7 +118,10 @@ describe('the schema says so', () => {
     // 133 since D3: nine Dominion cards about pillaging and where a grant
     // lands, and a new record, so a v132 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(133);
+    // 134 since D4: twelve Dominion cards about unrest, the writ and the game's
+    // records, and a new record, so a v133 log's picks name cards this build
+    // never dealt.
+    expect(SCHEMA_VERSION).toBe(134);
   });
 
   it('says in the changelog what a v110 log does now', () => {

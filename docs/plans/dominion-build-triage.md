@@ -214,10 +214,10 @@ Every group-2 batch edits `src/sim/statecraftData.ts`, `src/sim/statecraft/evalu
 1. **What counts as gaining a unit** **Ruled by the user, 2026-10-16:** conscripts count (*"conscripts should pay cards that pay 'gaining a unit'"*). A unit raised by The General Levy pays every card that pays on gaining a unit; it still does not count as trained. The note as written: (Muster Rites, The Art of War, Rites of Passage, The Gathering Host, the rank cards). Today a conscript from The General Levy pays no completion riders, and a unit taken from someone else (Blood Brothers, a captured civilian) is not gained. **Recommend:** a conscript counts as gained (it still does not count as trained); a unit taken from someone else does not. Civilians count, as Muster Rites pays for them today.
 2. **Upkeep on units a card raises when the text is silent** (The Conscription Rolls, The State Forges, The Open Muster, The Armourers' Secret, The Landsturm, Total Mobilisation, The Sword of State, The Cleruchy). Today every unit a card raises for free costs no upkeep. **Recommend:** keep that rule, and add "It costs no upkeep" to those texts, as The King's Levy and The Nation in Arms already say it.
 3. **Double Time: which effects repeat.** **Recommend:** periodic boons, periodic musters (The King's Levy, The Conscription Rolls, The Nation in Arms) and the new end-of-turn Order effects (The Drill Grounds, The Regimental Schools, The Tactica's experience, War Feeds Itself). Not repeated: per-turn renown trickles (The General Staff, The Mural Crown), yields, timed effects, commissions and Doctrines. A muster that triggers twice raises two units.
-4. **The Chevauchée: how the damage is done.** The sheet's own reading is "a strike at half the pillaging unit's strength, with no damage back". **Recommend:** each city of an empire you are at war with, within three hexes, takes a blow through the normal combat damage sum with the raider at half strength; no counter-blow; it can wear the walls down to the floor but never takes the town.
-5. **The Horde: do the extra hexes count as pillages?** **Recommend:** yes. Each neighbouring improvement torn out counts for the pillage tally, The Sagas and Danegeld, and pays the pillage riders, as the builds doc's "multiplies every pillage pay-off" says. The raider's movement and heal are spent and paid once.
+4. **The Chevauchée: how the damage is done.** The sheet's own reading is "a strike at half the pillaging unit's strength, with no damage back". **Recommend:** each city of an empire you are at war with, within three hexes, takes a blow through the normal combat damage sum with the raider at half strength; no counter-blow; it can wear the walls down to the floor but never takes the town. **Applied in D3** (`strikeTownsNear`, `combat.ts`): the raider's figure is its roster strength, its training and its rank, at half. One roll from `state.rng` for each town struck, in founding order; a town already on its floor is skipped and draws nothing.
+5. **The Horde: do the extra hexes count as pillages?** **Recommend:** yes. Each neighbouring improvement torn out counts for the pillage tally, The Sagas and Danegeld, and pays the pillage riders, as the builds doc's "multiplies every pillage pay-off" says. The raider's movement and heal are spent and paid once. **Applied in D3:** the raider's movement and heal are spent once, and the hexes the raid spreads to do not spread again. Only works on ground an empire at war with the raider owns are burnt.
 6. **Vae Victis: which capture rewards double.** **Recommend:** every windfall rider on the capture (yields, renown, pressure, Spolia's hammers). Not doubled: timed effects (Hegemony's +30% would stack), commission rewards, and Doctrine effects (The Soldiers' Share).
-7. **The Captured Arms: do barbarian kills count?** `Player.unitsKilled` leaves them out. **Recommend:** count them, with a record of its own, since a Tier 0 card would otherwise pay almost nothing. The risk is farming camps with no cap.
+7. **The Captured Arms: do barbarian kills count?** `Player.unitsKilled` leaves them out. **Recommend:** count them, with a record of its own, since a Tier 0 card would otherwise pay almost nothing. The risk is farming camps with no cap. **Applied in D4:** a record of its own, `Player.enemiesKilled`, counts every kill, the wild's raiders included. The wild keeps no such record.
 8. **The Hunting Grounds: what spawns faster.** New camps appearing (`campEveryTurns`, a world clock with a camp cap) or each camp raising its raiders (`unitEveryTurns`). The 2026-10-15 note reads it as more camps. **Recommend:** camps within ten hexes raise their units 50% faster. That can be done camp by camp; new-camp placement is world-wide.
 9. **The Armed Colony: which unit, and where.** **Recommend:** a military unit of yours on the founding hex or one of the six around it; only the first in unit order becomes a Veteran; a unit already Veteran or Elite gains nothing.
 10. **The Armourers' Secret:** a technology that unlocks two military units, or a unit needing a resource you lack. **Recommend:** one of each military unit it unlocks, granted even without the resource, in the capital.
@@ -236,18 +236,29 @@ Every group-2 batch edits `src/sim/statecraftData.ts`, `src/sim/statecraft/evalu
 23. **War Feeds Itself.** **Recommend:** your military units on hexes owned by an empire you are at war with; the hex's yield read as your empire sees it; gold, science, culture and faith to your banks, food and production to your nearest town; the owner loses nothing.
 24. **The Funeral Oration and The Glorious Dead.** **Recommend:** both change only your own weariness reading, not the enemy's offset. The Funeral Oration halves unit losses only; The Glorious Dead removes unit and town losses ("your losses").
 25. **The Farming Garrisons and The Castra: the town's own hex.** **Recommend:** a fortified garrison in a town counts for the town's centre hex.
-26. **The Captive Craftsmen: where its production goes.** An empire line has no hammer basket. **Recommend:** the capital.
-27. **The Bakufu and The Consular Roads: "pacified at once".** **Recommend:** the unrest ends in the unrest phase at the end of the turn in which the condition holds, as the earlier King's Peace draft read it. Pax Romana ends it at the moment of capture, which fires The Provincial Census at once.
+26. **The Captive Craftsmen: where its production goes.** An empire line has no hammer basket. **Recommend:** the capital. **Applied in D3.**
+27. **The Bakufu and The Consular Roads: "pacified at once".** **Recommend:** the unrest ends in the unrest phase at the end of the turn in which the condition holds, as the earlier King's Peace draft read it. Pax Romana ends it at the moment of capture, which fires The Provincial Census at once. **Applied in D4:** The Bakufu and The Consular Roads end the unrest in the unrest phase (`CityRuleId` `pacified`); Pax Romana ends it in `captureCity` (`ActionRuleId` `pacifyOnCapture`). Every way unrest ends goes through `endUnrest`, which pays The Provincial Census.
 28. **The Strategoi: "citadel yields".** The existing hex percentage doubles only the citadel's own +2 production, not the lines cards put on citadels. **Recommend:** double everything the citadel hex pays, which needs a hex-wide doubler instead.
 29. **The Drill Grounds: the cadence.** **Recommend:** the world calendar (every fourth turn, for military units standing in a town at that end of turn), like the periodic musters.
 30. **Commission: Take the City: which population.** A capture halves the town. **Recommend:** the floor and the reward both read the town as it stood before the capture.
 31. **War Reparations, Danegeld and A Victor's Peace.** **Recommend:** "cities taken in that war" are towns of that empire you took by force during the war and still hold at the peace; "hexes pillaged" are that empire's hexes; "destroy it" means it was eliminated while you were at war with it.
 32. **The Crusader Orders: press or convert.** Built as a 30-pressure lump. **Recommend:** keep the lump and change the status to implemented; converting the town outright would be a new grant.
 33. **The Mural Crown: is the new general counted?** **Recommend:** yes, a general gained now counts toward its own payout.
-34. **The Harrying.** **Recommend:** "beside" means next to the town's centre hex; a town already in unrest keeps its current record.
+34. **The Harrying.** **Recommend:** "beside" means next to the town's centre hex; a town already in unrest keeps its current record. **Applied in D3:** the town's owner must be at war with the raider, and "no garrison" is the unrest rule's own reading (`unrestGarrison`).
 35. **The Arrière-ban: two declarations in ten turns.** **Ruled by the user, 2026-10-16:** a second declaration restarts the ten turns instead of stacking (*"just have arriere-ban refresh after declaring war twice instead of stacking"*). The note as written: **Recommend:** the window renews instead of stacking to +100%.
 36. **Copying the Enemy: "cannot yet build".** **Recommend:** the technology that unlocks it is not yet researched; a unit no technology unlocks pays nothing.
 37. **The Landsturm: "beside a great general".** **Recommend:** the six hexes around a great general, which is what "beside" means elsewhere on the sheet, not the aura's two-hex reach.
+
+38. **The Plunder Trains: where the grant lands.** **Recommend:** the capital, as the user's text says. **Applied in D3** (`WindfallGrantSpec.toCapital`).
+39. **The Garrison Captains: what a garrisoned unit is.** **Recommend:** a combat unit of the owner's standing in one of the owner's towns, the `garrison` count Martial Law reads. **Applied in D4.**
+40. **The Acropolis: what a building in the capital is.** **Recommend:** every building the capital holds, the Palace and wonders included. **Applied in D4.**
+41. **The Hall of the Slain and Spear-won Land: what counts.** **Recommend:** the existing records: a unit lost in battle to anyone, the wild included (`Player.unitsLost`), and a town taken by force (`Player.citiesCaptured`). A disbanded unit, a captured civilian and a town ceded at a peace do not count. **Applied in D4.**
+42. **The Satraps: "twice as fast".** **Recommend:** one card line worth the town's other pacification lines, rounded down. **Applied in D4.**
+43. **The Provincial Census: which population.** **Recommend:** the town's population when its unrest ends, so a town pacified at capture reads the population the capture left. **Applied in D4.**
+44. **The Bakufu: "standing in a town".** **Recommend:** the general is on the town's own hex. The general's pacification reach (two hexes) does not count. **Applied in D4.**
+45. **The Proconsuls and The Universal Monarchy: "cost no authority".** **Recommend:** the town's line costs nothing, whatever else the cards say: a set price replaces the percentages and the deltas. "Towns you capture" includes puppets. **Applied in D4.**
+46. **The Universal Monarchy: "towns you found".** **Recommend:** towns never taken by force. The doubling applies to the ladder's price before any delta. The settler's preview does not show it, which is the stated cut for every scoped city price. **Applied in D4.**
+47. **Pax Romana: "1 less authority".** **Recommend:** the captured price falls by one (`capturedCityCost`), never below one, so a puppet's price falls by one too. **Applied in D4.**
 
 **Not yet ruled** (the sheet's "Still open" list, not ambiguities): Combined Arms' second clause; the endless host's three Doctrines (The Servian Reforms, Weight of Numbers, The Laws of Lord Shang); The Plunder Economy and The Consular Roads; The Captured Arms against The Art of War; and the Doctrine-to-government pairing (C3). Their texts may change before the build.
 
@@ -265,3 +276,32 @@ Every group-2 batch edits `src/sim/statecraftData.ts`, `src/sim/statecraft/evalu
 | **All** | **33** | **87** | **5** | **125** |
 
 The 125 are the sheet's 33 `modify` rows (cut rows excluded) and 67 `add` rows (The Fyrd was removed after the triage), the shared table's 4 `modify` and 5 `add` rows, and 16 Doctrines.
+
+## Follow-ups
+
+What is still open after batches D1 to D4, and who it belongs to. A batch that closes an item removes it from this list.
+
+**The UI track** (`src/ui/`):
+- The pillage notice (`pillageSentence` in `src/ui/controls.ts`) does not mention D3's extras. `PillageReport.strikes`, `.unrest` and `.spread` carry them.
+- The capture notice does not say that Pax Romana pacified the town at once. The unrest phase reports a `pacified` event for The Bakufu and The Consular Roads, as for any town pacified.
+- A town's writ line changes in place under a `cityCost` rule (a set price, a percentage or a delta) and does not name the card that changed it. The ledger shows the new figure with the town's own label.
+
+**The bot track** (`src/ai/`, `data/ai.json`):
+- D1: the bot gives nothing for a unit's starting experience or rank, or for The Armed Colony's escort rank. `data/ai.json` has no forecast for the `rankEarned` tally, so The Campaign Annals' growth is unpriced. Bots do not levy.
+- D4: the bot prices the new shapes with stand-ins. `pacificationRate` is a share of the stand-in at the capture rate. A set or scaled town price is read off the founded town's price. The `pacified` occasion uses the capture rate.
+
+**The simulation and its words** (`src/sim/`):
+- D2: the generated words for a strength line leave out the side it applies to, so Interior Lines' +4 does not say "when attacking". The card's own text does.
+- D4: the settler's founding preview does not show a scoped city price, such as The Universal Monarchy's doubled price. This is the stated cut in `prospectAuthorityCost` (`meters.ts`) for every scoped `cityCost` row.
+- D1 and D2: `cities.ts`, `levies.ts` and `combat.ts` import a few evaluator functions from `statecraft/evaluator` directly instead of through the `statecraft.ts` index.
+
+**Dominion cards still to build:**
+- D3's two Doctrines, The Plunder Economy and The Scourge of God, waited for C3's Doctrine model. C3 has landed, so a later batch can build them.
+- The five group-3 cards stay deferred until the user reworks them.
+
+**The user's rulings:**
+- The sheet's "Still open" list still names The Consular Roads (beside The Plunder Economy) and The Captured Arms (beside The Art of War). D4 built both as their current texts.
+
+**Notes for later batches:**
+- C3's Doctrine tests (`test/sim/doctrineOffer.test.ts`, and the Doctrine pools in `test/sim/statecraft.test.ts` and `test/sim/decks.test.ts`) pin the exact Doctrines in each tier. A batch that adds a Doctrine updates those pins, as D4 did.
+- The D2 and D3 docblocks were written before the ASD-STE100 rule and still contain some em dashes. The user schedules the rewrite pass.

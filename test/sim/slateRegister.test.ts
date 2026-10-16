@@ -193,6 +193,12 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Dominion batch D3: the hexes an empire has pillaged, which The Sagas'
   // `hexesPillaged` count reads.
   { field: 'hexesPillaged', pattern: /\.hexesPillaged\s*(=[^=]|\+=)/ },
+  // Dominion batch D4: three lifetime records that counts read. The Captured
+  // Arms reads `enemiesKilled`, The Hall of the Slain `unitsLost` and
+  // Spear-won Land `citiesCaptured`.
+  { field: 'enemiesKilled', pattern: /\.enemiesKilled\s*(=[^=]|\+=)/ },
+  { field: 'unitsLost', pattern: /\.unitsLost\s*(=[^=]|\+=)/ },
+  { field: 'citiesCaptured', pattern: /\.citiesCaptured\s*(=[^=]|\+=)/ },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -306,6 +312,11 @@ const ANNOUNCING = new Set([
   // The Horde's extra hexes are paid the same way. It banks the salvage and is
   // the one writer of `Player.hexesPillaged`, which The Sagas' count reads.
   'improvements.ts#payPillage',
+  // Dominion batch D4: the two writers of the records the new counts read.
+  // `tallyFall` writes `unitsLost` and `enemiesKilled`; `captureCity` writes
+  // `citiesCaptured`.
+  'combat.ts#tallyFall',
+  'combat.ts#captureCity',
   'state.ts#claimWonder',
   'state.ts#createCity',
   'state.ts#createUnit',

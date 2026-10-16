@@ -415,8 +415,12 @@ describe('the schema, as landed', () => {
     // **And Dominion batch D3** (pillage and grant delivery): eight more.
     // Eight new Dominion rows came live; Armoury Guilds was reworked in place
     // and was already live.
-    expect(live).toBe(393);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(393);
+    // **And Dominion batch D4** (unrest, authority, and "this game" counts):
+    // nine more. Nine new Dominion Orders came live. The Proconsuls was
+    // reworked in place and was already live. Its two Doctrines are not
+    // Orders, so they add nothing here.
+    expect(live).toBe(402);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(402);
   });
 
   /**
@@ -602,7 +606,10 @@ describe('the schema, as landed', () => {
     // 133 since D3: nine Dominion cards about pillaging and where a grant
     // lands, and a new record, so a v132 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(133);
+    // 134 since D4: twelve Dominion cards about unrest, the writ and the game's
+    // records, and a new record, so a v133 log's picks name cards this build
+    // never dealt.
+    expect(SCHEMA_VERSION).toBe(134);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1246,12 +1253,15 @@ describe('with the shelf stocked', () => {
     const taizong = playerById(d.state, 0)!;
     taizong.statecraft.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     const adopted = adoptGovernmentAt(d.state, taizong, 0)!;
-    expect(adopted.doctrines?.options).toEqual(['theSteppeConfederacy']);
-    expect(taizong.statecraft.pendingDoctrine?.options).toEqual(['theSteppeConfederacy']);
+    // Since Dominion batch D4 Dominion has two Tier I Doctrines (The Consular
+    // Roads joined The Steppe Confederacy), so the offer holds both.
+    const offered = adopted.doctrines?.options ?? [];
+    expect([...offered].sort()).toEqual(['theConsularRoads', 'theSteppeConfederacy']);
+    expect(taizong.statecraft.pendingDoctrine?.options).toEqual(offered);
     // It blocks the turn until it is answered, as a draft does.
     expect(statecraftBlocker(taizong)).toBe('a Doctrine offer is waiting');
     expect(applyCommand(d.state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
-    expect(taizong.statecraft.doctrines).toEqual(['theSteppeConfederacy']);
+    expect(taizong.statecraft.doctrines).toEqual([offered[0]]);
     expect(taizong.statecraft.pendingDoctrine).toBeUndefined();
   });
 

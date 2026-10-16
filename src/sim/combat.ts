@@ -329,6 +329,7 @@ import { RULES } from './rulesData';
 import {
   type CombatSituation,
   type WindfallOccasionFacts,
+  cardActionRule,
   cardBehaviorRule,
   cardCityStat,
   cardCombatLines,
@@ -395,7 +396,7 @@ import { awardOccasion } from './triumphs';
 import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
 import { bumpEconomy } from './slate';
-import { startUnrest } from './unrest';
+import { endUnrest, startUnrest } from './unrest';
 import { recordWarLoss } from './weariness';
 // A leaf over the rule book and `state.ts`, like `weariness.ts`, so this edge
 // cannot make a cycle either.
@@ -3400,6 +3401,9 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // hands rather than at `awardOccasion`.
   const captor = playerById(state, ownerId);
   if (captor) captor.citiesCaptured += 1;
+  // Since Dominion batch D4 a count reads the record (Spear-won Land), and a
+  // count can reach the meters, so the write is announced (the slate register).
+  bumpEconomy(state);
   // **When** it was taken, beside **whether** (`City.capturedOn`, batch G2). The
   // stamp is written here rather than in `handOverCity` because that seam also
   // carries a town handed over at a treaty table, and The Taken Town asks for a
@@ -3414,6 +3418,10 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // founder who takes its own town back is in unrest too. Written after the
   // handover, because the target is read off the population the captor holds.
   startUnrest(city);
+  // **Pax Romana** (Dominion batch D4, the triage's reading 27): a captor
+  // whose law pacifies a captured town ends the unrest at the moment of
+  // capture, so the pacified moment pays now (The Provincial Census).
+  if (cardActionRule(state, ownerId, 'pacifyOnCapture')) endUnrest(state, city);
   // **War weariness** (batch WC2, `docs/flags.md` (rrrrrr) part 2): a town
   // taken by force is a loss to the empire that held it. Here and not in
   // `handOverCity`, for `capturedOn`'s reason: a town handed over in a peace
@@ -3444,9 +3452,19 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
 function tallyFall(state: GameState, killerId: number | null, fallenId: number): void {
   const fallen = playerById(state, fallenId);
   if (fallen) fallen.unitsLost += 1;
+  // Since Dominion batch D4 cards count these records (The Hall of the Slain
+  // reads `unitsLost`, The Captured Arms `enemiesKilled`), and a count can
+  // reach the meters, so the writes are announced (the slate register).
+  bumpEconomy(state);
   if (killerId === null || killerId === fallenId) return;
-  if (fallen?.barbarian === true) return;
   const killer = playerById(state, killerId);
+  // **Every kill, the wild's raiders included** (the triage's reading 7): The
+  // Captured Arms' record. Only an empire keeps it. It is written before the
+  // rival-only rule below, which it does not follow.
+  if (killer && killer.barbarian !== true) {
+    killer.enemiesKilled = (killer.enemiesKilled ?? 0) + 1;
+  }
+  if (fallen?.barbarian === true) return;
   if (killer) killer.unitsKilled += 1;
 }
 

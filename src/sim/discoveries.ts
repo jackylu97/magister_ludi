@@ -556,7 +556,11 @@ export function settleDiscovery(
   // what was found.
   const rider = windfallPayout(state, player.id, 'discovery');
   if (rider.grants.length > 0) {
-    payWindfallGrants(state, player, rider, { col: offer.col, row: offer.row });
+    // Every town a grant fed settles at once (the follow-up to Dominion batch
+    // D3): The Outriders pay hammers to every town.
+    for (const town of payWindfallGrants(state, player, rider, { col: offer.col, row: offer.row })) {
+      if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
+    }
     settleCultureWindfall(state, player);
   }
   const def = discoveryDef(id);

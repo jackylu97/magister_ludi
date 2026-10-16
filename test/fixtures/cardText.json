@@ -695,6 +695,26 @@
     "raw": "while your authority is negative: +50% production toward mounted units",
     "text": "while your authority is negative: +50% production toward mounted units"
    }
+  ],
+  "theConsularRoads": [
+   {
+    "raw": "+5 science, +5 culture in every city joined to your capital by road with a unit standing in it",
+    "text": "+5 science, +5 culture in every city joined to your capital by road with a unit standing in it"
+   },
+   {
+    "raw": "unrest ends at once in every city joined to your capital by road with a unit standing in it",
+    "text": "unrest ends at once in every city joined to your capital by road with a unit standing in it"
+   }
+  ],
+  "theUniversalMonarchy": [
+   {
+    "raw": "the authority a captured city costs is 0",
+    "text": "the authority a captured city costs is 0"
+   },
+   {
+    "raw": "the authority a city you founded costs doubles",
+    "text": "the authority a city you founded costs doubles"
+   }
   ]
  },
  "order": {
@@ -2488,6 +2508,18 @@
     "text": "clearing a barbarian camp grants +8 production to every city"
    }
   ],
+  "theGarrisonCaptains": [
+   {
+    "raw": "+1 authority capacity per combat unit standing in your cities",
+    "text": "+1 authority capacity per combat unit standing in your cities"
+   }
+  ],
+  "theCapturedArms": [
+   {
+    "raw": "+1 science per unit you have killed this game",
+    "text": "+1 science per unit you have killed this game"
+   }
+  ],
   "drillManuals": [
    {
     "raw": "units you gain in every city with a [[building:barracks|Barracks]] start with 2 experience",
@@ -2764,6 +2796,18 @@
    {
     "raw": "+1 production in your capital per hex you have pillaged, counted while this Order stands in a slot",
     "text": "+1 production in your capital per hex you have pillaged, counted while this Order stands in a slot"
+   }
+  ],
+  "theSatraps": [
+   {
+    "raw": "unrest ends twice as fast, in every city with a unit standing in it",
+    "text": "unrest ends twice as fast, in every city with a unit standing in it"
+   }
+  ],
+  "theAcropolis": [
+   {
+    "raw": "+1 authority capacity per building in your capital",
+    "text": "+1 authority capacity per building in your capital"
    }
   ],
   "siegeWorks": [
@@ -3164,6 +3208,32 @@
     "text": "+1% gold per 3 hexes you have pillaged this game (at most +30% gold)"
    }
   ],
+  "theHallOfTheSlain": [
+   {
+    "raw": "+1% production per 2 units you have lost this game (at most +30% production)",
+    "text": "+1% production per 2 units you have lost this game (at most +30% production)"
+   },
+   {
+    "raw": "+1% culture per 2 units you have lost this game (at most +30% culture)",
+    "text": "+1% culture per 2 units you have lost this game (at most +30% culture)"
+   }
+  ],
+  "theProvincialCensus": [
+   {
+    "raw": "pacifying a city grants science equal to 20 times its population",
+    "text": "pacifying a city grants science equal to 20 times its population"
+   }
+  ],
+  "spearWonLand": [
+   {
+    "raw": "+3% production per city you have captured this game (at most +30% production)",
+    "text": "+3% production per city you have captured this game (at most +30% production)"
+   },
+   {
+    "raw": "+3% science per city you have captured this game (at most +30% science)",
+    "text": "+3% science per city you have captured this game (at most +30% science)"
+   }
+  ],
   "standingGarrisons": [
    {
     "raw": "+12% production in every city per combat unit standing there",
@@ -3425,6 +3495,30 @@
     "text": "pillaging strikes every enemy city within 3 hexes with 50% of the unit’s strength, and never takes it"
    }
   ],
+  "theBakufu": [
+   {
+    "raw": "+25% science in every city with a great general standing in it",
+    "text": "+25% science in every city with a great general standing in it"
+   },
+   {
+    "raw": "+25% culture in every city with a great general standing in it",
+    "text": "+25% culture in every city with a great general standing in it"
+   },
+   {
+    "raw": "unrest ends at once in every city with a great general standing in it",
+    "text": "unrest ends at once in every city with a great general standing in it"
+   }
+  ],
+  "paxRomana": [
+   {
+    "raw": "a city you capture is pacified at once",
+    "text": "a city you capture is pacified at once"
+   },
+   {
+    "raw": "the authority a captured city costs falls by 1",
+    "text": "the authority a captured city costs falls by 1"
+   }
+  ],
   "dominionImperium": [
    {
     "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per captured city you hold (at most +40%)",
@@ -3533,8 +3627,8 @@
   ],
   "dominionTheProconsuls": [
    {
-    "raw": "+4 authority capacity per captured city with a unit standing in it",
-    "text": "+4 authority capacity per captured city with a unit standing in it"
+    "raw": "the authority a captured city with a unit standing in it costs is 0",
+    "text": "the authority a captured city with a unit standing in it costs is 0"
    },
    {
     "raw": "every captured city with a unit standing in it: +10 city defence",

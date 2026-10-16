@@ -206,6 +206,17 @@ Reference: **`docs/units.md`** (the roster; generated) and
   the flag fly a torch (`CityLook.unrest`). Bots keep a soldier in such a town
   (`military.unrestGarrison`), weigh a target's unrest in a declaration
   (`war.unrestDrag`) and raze one they cannot hold (`war.razeUnrestTurns`).
+  - **Cards that touch unrest** (Dominion batches D3 and D4):
+    - The Harrying's pillage puts an ungarrisoned enemy town into unrest
+      (`startUnrest`'s second caller).
+    - A card can add a line to pacification (`CardRule` `pacificationRate`, The
+      Satraps).
+    - A card can end the unrest at once: in the `unrest` phase for a town its
+      scope admits (`CityRuleId` `pacified`, The Bakufu and The Consular Roads),
+      or at the moment of capture (`ActionRuleId` `pacifyOnCapture`, Pax
+      Romana).
+    - Every way unrest ends goes through `endUnrest`, which pays the `pacified`
+      windfall occasion with the town's population (The Provincial Census).
 - **Losing a war costs happiness** (batch WC2, `src/sim/weariness.ts`;
   reference `docs/war-diplomacy.md` §6a). Every unit an empire loses to another
   empire (killed, captured, or a caravan plundered) and every town taken from it
@@ -231,7 +242,12 @@ Reference: **`docs/units.md`** (the roster; generated) and
   `awardExperience` at the end of `applyCombat`, `grantExperience` for cards
   (the drill phase, for example) and `raiseToRank` for a starting rank. Each
   returns the ranks reached, and `settleRanksEarned` (`cities.ts`) pays the
-  "rank earned" moment and counts `Player.ranksEarned` (batch D1, 2026-10-16). The rank is derived (`rankOf`), never stored: Veteran from 4,
+  "rank earned" moment and counts `Player.ranksEarned` (batch D1, 2026-10-16).
+  Cards read a rank in four places (Dominion batch D2): a combat condition
+  (`hasRank`), a `rank` narrowing on a unit stat and on a flag rule, a town
+  scope (`garrisonRank`), and an upkeep rebate for each rank (`perRank`). An
+  Elite under The Varangian Guard may attack twice a turn, and
+  `Unit.firstAttackTurn` holds the turn of its first attack. The rank is derived (`rankOf`), never stored: Veteran from 4,
   Elite from 10, each **one flat strength line** on the ledger on both sides
   ("Veteran +3", "Elite +6", the Elite figure a total) and nothing else.
   Barbarian fights raise experience up to Veteran and no further (a card's grant ignores that cap), barbarian
