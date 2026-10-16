@@ -998,6 +998,77 @@ export function cityBaseStrength(state: GameState, city: City): number {
 }
 
 /**
+ * **What a town defends its walls with**: its own strength, the walls its
+ * law raised and the walls it built. These are the same three lists
+ * `planCombat` folds into the defender's strength at the `walls` beat, summed
+ * here for a blow that is not a fight (The Chevauchée's strike). A test in
+ * `test/sim/decks/dominionPillage.test.ts` checks that the two agree.
+ */
+export function cityWallsStrength(state: GameState, city: City): number {
+  let total = cityBaseStrength(state, city);
+  for (const line of cardCityStat(state, city, 'defense')) total += line.amount;
+  for (const line of buildingCityStat(city, 'defense')) total += line.amount;
+  return total;
+}
+
+/** One town a strike reached, and what it took. See `strikeTownsNear`. */
+export interface TownStrike {
+  cityId: number;
+  damage: number;
+}
+
+/**
+ * **A blow on every enemy town near a hex** — The Chevauchée's, struck when its
+ * raider pillages (Dominion batch D3, the triage's reading 4).
+ *
+ * Every town of an empire the raider's owner is at war with, whose own hex is
+ * within `range` of `at` and whose walls still stand, takes one blow through
+ * the ordinary damage curve: the raider's own strength (its roster figure, its
+ * training and its rank, at `percent`) against the town's walls
+ * (`cityWallsStrength`). It is not a fight, so nothing comes back and nothing
+ * earns experience. The town never drops below its floor, and the strike
+ * never takes it.
+ *
+ * **One roll from `state.rng` for each town struck**, in `state.cities` order
+ * (founding order), which is what makes a replay identical. A town already on
+ * its floor is skipped and draws nothing.
+ */
+export function strikeTownsNear(
+  state: GameState,
+  raider: Unit,
+  at: Cell,
+  range: number,
+  percent: number,
+): TownStrike[] {
+  const struck: TownStrike[] = [];
+  const centre = getTileAt(state.map, at.col, at.row);
+  if (!centre || percent <= 0 || range <= 0) return struck;
+  const own =
+    unitDef(raider.type).combatStrength +
+    unitStampStrength(raider) +
+    rankStrengthLines(raider).reduce((sum, line) => sum + line.amount, 0);
+  const strength = Math.floor((own * percent) / 100);
+  const band = COMBAT.rollBand;
+  for (const city of state.cities) {
+    if (city.ownerId === raider.ownerId) continue;
+    if (!atWar(state, raider.ownerId, city.ownerId)) continue;
+    if (cityBeatenDown(city)) continue;
+    const there = getTileAt(state.map, city.col, city.row);
+    if (!there) continue;
+    if (wrappedDistance(state.map, tileHex(centre), tileHex(there)) > range) continue;
+    const base = curve(strength - cityWallsStrength(state, city));
+    const damage = clampDamage(
+      damageAtRoll(base, nextRange(state.rng, 1 - band, 1 + band)),
+      city.hp,
+      CITY_FLOOR_HP,
+    );
+    city.hp -= damage;
+    struck.push({ cityId: city.id, damage });
+  }
+  return struck;
+}
+
+/**
  * How many hit points this city has at full health, line by line.
  *
  * `combat.cityBaseHp` and then every wall the town has built

@@ -68,7 +68,9 @@
 
 import {
   nearestOwnedCity,
+  refreshCityDerived,
   refreshTileDerived,
+  settleGrowthWindfall,
   settleProductionWindfall,
   tileOwnerCityId,
   tileOwnerPlayerId,
@@ -93,7 +95,15 @@ import {
 // chart, which this module does not import back — the same bargain `tech.ts`
 // strikes for the soldier and the hall.
 import { leaderOpensImprovement, leaderThatOpensImprovement } from './leaderData';
-import { type Tile, getTileAt, raiseImprovement, razeImprovement, tileNeighbors } from './map';
+import {
+  type Tile,
+  getTileAt,
+  raiseImprovement,
+  razeImprovement,
+  tileHex,
+  tileNeighbors,
+  wrappedDistance,
+} from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
 import { charterThatOpensImprovement, orderDef } from './statecraftData';
@@ -104,6 +114,7 @@ import {
   cardBehaviorRule,
   cardUnlocksImprovement,
   payWindfallGrants,
+  recordScalingOccasion,
   settleCultureWindfall,
   windfallPayout,
   windfallPayoutIsEmpty,
@@ -111,12 +122,17 @@ import {
 import {
   type City,
   type GameState,
+  type Player,
   type Unit,
   cityById,
   playerById,
   removeUnit,
   unitById,
 } from './state';
+// Dominion batch D3: The Chevauchée's strike and The Harrying's unrest, both
+// paid where a pillage is paid.
+import { type TownStrike, strikeTownsNear } from './combat';
+import { inUnrest, startUnrest, unrestGarrison } from './unrest';
 import { atWar } from './wars';
 import { hasTech, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
@@ -1561,6 +1577,19 @@ export interface PillageReport {
   heal: number;
   /** Why the salvage was forfeited, or `null`. */
   warning: string | null;
+  /**
+   * The towns The Chevauchée's strike reached from this hex and the hexes the
+   * raid spread to, and what each took (Dominion batch D3). Absent when nothing
+   * was struck.
+   */
+  strikes?: TownStrike[];
+  /** The towns The Harrying threw into unrest (Dominion batch D3). Absent when none. */
+  unrest?: number[];
+  /**
+   * The enemy works beside the hex that The Horde burnt too, each a full
+   * pillage with its own salvage (Dominion batch D3). Absent when none.
+   */
+  spread?: { col: number; row: number; improvement: ImprovementId; gold: number }[];
 }
 
 /**
@@ -1604,6 +1633,16 @@ export interface PillageReport {
  * nothing to pay them from: the wild holds no cards, so both are empty anyway
  * and skipping them keeps this verb from calling into Statecraft on behalf of a
  * seat that has none.
+ *
+ * **Dominion batch D3 added four things a pillage can do, and the wild does
+ * none of them.** An empire's pillage also raises its record
+ * (`Player.hexesPillaged`) and its tally, and its riders can heal the raider
+ * fully (The Yam), strike the enemy towns nearby (The Chevauchée), throw an
+ * ungarrisoned enemy town beside the hex into unrest (The Harrying) and burn
+ * the enemy works beside the hex (The Horde). All of it is paid in
+ * `payPillage` and the spread below, and both are reached only when the
+ * raider is not the wild's, so a barbarian raid moves no empire's record or
+ * tally whatever cards are in play.
  */
 export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageReport {
   const report: PillageReport = {
@@ -1656,21 +1695,63 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   // all riders on `windfallPayout`. The salvage and the bandage are both bases:
   // the gold grants add to the first as ordinary lines, a rider's `heal` adds to
   // the second, and neither is a multiplication after the fact.
+  //
+  // **The raider travels with the occasion** since Dominion batch D3, so a
+  // rider may name the pieces it pays for (`CardWindfallRiderEffect.class`):
+  // The Yam's full heal is for mounted raiders. Before D3 no raider was named,
+  // and a rider that asks for a class and is handed no actor does not ride, so
+  // this is also what makes the Mandekalu's own salvage rider
+  // (`data/units.json`) pay for the first time.
+  const facts = { actor: unit.type };
   const payout = windfallPayout(
     state,
     player.id,
     'pillage',
     IMPROVEMENTS.pillageGold,
     IMPROVEMENTS.pillageHeal,
+    facts,
   );
-  if (player.barbarian === true) {
+  const wild = player.barbarian === true;
+  if (wild) {
     report.warning = 'the wild has no treasury to carry the salvage to';
   } else {
-    report.gold = payout.amount;
-    player.gold += payout.amount;
-    // The banks are a line of the meters too — see `collectYields` (batch M3).
-    bumpEconomy(state);
-    payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row });
+    // The towns the riders' food and hammers landed in, settled once below.
+    const touched: City[] = [];
+    report.gold = payPillage(state, player, unit, tile, payout, report, touched);
+    // **The Horde** (Dominion batch D3, the triage's reading 5): every enemy
+    // work beside the hex is pillaged too, each a full pillage with its
+    // salvage, its riders, its tally and its record, while the raider's
+    // movement (above) and its heal (below) are spent once. The hexes it
+    // spreads to do not spread again. Neighbours in the map's own order, so a
+    // replay burns them in the same order.
+    if (payout.pillageBeside === true) {
+      for (const near of tileNeighbors(state.map, tile)) {
+        if (near.improvement === undefined || isTendedWork(near.improvement)) continue;
+        const owner = tileOwnerPlayerId(state, near.col, near.row);
+        if (owner === null || owner === unit.ownerId) continue;
+        if (!atWar(state, unit.ownerId, owner)) continue;
+        const burnt = near.improvement;
+        razeImprovement(near);
+        delete near.road;
+        delete near.roadFree;
+        bumpEconomy(state);
+        // The victim's town is refreshed for every hex burnt, as for the raid's
+        // own hex (`refreshCityDerived`'s register, entry 5).
+        refreshTileDerived(state, near);
+        const more = windfallPayout(state, player.id, 'pillage', IMPROVEMENTS.pillageGold, 0, facts);
+        const gold = payPillage(state, player, unit, near, more, report, touched);
+        (report.spread ??= []).push({ col: near.col, row: near.row, improvement: burnt, gold });
+      }
+    }
+    // **Food and hammers settle the instant they land** (the register in
+    // CLAUDE.md): The Plunder Trains' grain and hammers in the capital, Spoils
+    // of War's hammers in the nearest town. Food through `settleGrowthWindfall`,
+    // which settles the hammers too when the town grows; otherwise the hammers
+    // alone. Before Dominion batch D3 the pillage settled neither, so Spoils of
+    // War's hammers waited for the end of the turn.
+    for (const town of touched) {
+      if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
+    }
     settleCultureWindfall(state, player);
     // **And the beakers settle too** (The Saddle, the user's tree pass of
     // 2026-09-10: *"pillaging tiles yield science and culture"*). A grant that
@@ -1681,7 +1762,13 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     // routine, never a second one.
     settleResearchWindfall(state, player);
   }
-  if (payout.heal > 0) {
+  if (!wild && payout.healFull === true) {
+    // The Yam (Dominion batch D3): the raider is made whole, and the heal is
+    // reported the same way as the bandage below, as what the bar moved by.
+    const before = unit.hp;
+    unit.hp = unitMaxHp(unit, unitHealthBonus(state, unit.ownerId));
+    report.heal = unit.hp - before;
+  } else if (payout.heal > 0) {
     // Capped at the type's maximum, like every other heal in the game: a raid
     // patches a column up, it does not make it new. Reported as what the bar
     // actually moved by rather than as what was offered, so a full-strength
@@ -1691,5 +1778,65 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     report.heal = unit.hp - before;
   }
   return report;
+}
+
+/**
+ * **What an empire's pillage of one hex pays**, and its salvage in gold
+ * (Dominion batch D3 split it out of `pillageAt` so The Horde's extra hexes are
+ * paid exactly as the raid's own hex is).
+ *
+ *   · the salvage into the treasury and the riders' grants
+ *     (`payWindfallGrants`);
+ *   · the lifetime record (`Player.hexesPillaged`, The Sagas; this is its one
+ *     writer) and the tally (`hexPillaged`, The Captive Craftsmen);
+ *   · The Chevauchée's strike on the enemy towns near the hex
+ *     (`strikeTownsNear`, `combat.ts`);
+ *   · The Harrying's unrest in each ungarrisoned enemy town beside the hex.
+ *
+ * Never called for the wild. The towns a grant's food or hammers landed in are
+ * added to `touched`; settling them, and the culture and research
+ * settlements, are the caller's, once for the whole raid.
+ */
+function payPillage(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  tile: Tile,
+  payout: WindfallPayout,
+  report: PillageReport,
+  touched: City[],
+): number {
+  player.gold += payout.amount;
+  // The lifetime record and the tally, one each for every hex burnt.
+  player.hexesPillaged = (player.hexesPillaged ?? 0) + 1;
+  // The bank and the record are both lines of the meters (`collectYields`,
+  // batch M3, and the `hexesPillaged` count), so the write is announced.
+  bumpEconomy(state);
+  recordScalingOccasion(state, player.id, 'hexPillaged');
+  for (const town of payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row })) {
+    if (!touched.includes(town)) touched.push(town);
+  }
+  for (const strike of payout.strikes ?? []) {
+    const hits = strikeTownsNear(state, unit, tile, strike.range, strike.percent);
+    if (hits.length > 0) (report.strikes ??= []).push(...hits);
+  }
+  if (payout.unrestBeside === true) {
+    for (const city of state.cities) {
+      if (city.ownerId === player.id) continue;
+      if (!atWar(state, player.id, city.ownerId)) continue;
+      const there = getTileAt(state.map, city.col, city.row);
+      if (!there || wrappedDistance(state.map, tileHex(tile), tileHex(there)) !== 1) continue;
+      if (inUnrest(city)) continue;
+      if (unrestGarrison(state, city) !== null) continue;
+      startUnrest(city);
+      bumpEconomy(state);
+      // Unrest stops the town's production, science and culture now
+      // (`explainUnrestGate`), so the town is re-seated on the raid's own path
+      // (`refreshCityDerived`'s register, entry 5), as the burnt hex's is.
+      refreshCityDerived(state, city);
+      (report.unrest ??= []).push(city.id);
+    }
+  }
+  return payout.amount;
 }
 

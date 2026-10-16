@@ -68,10 +68,16 @@ export function unrestTarget(population: number): number {
  * Puts a town into unrest: a fresh record, with the target read off the
  * population it has now.
  *
- * Called by `captureCity` and nothing else, after the town has changed hands.
- * A town already in unrest is given a new record rather than keeping the old
- * one, which is the ruling for a town taken again while still in unrest: the
- * new owner starts from nothing, and the cadence of rebels starts over with it.
+ * Two callers:
+ *
+ *   · `captureCity`, after the town has changed hands. A town already in
+ *     unrest is given a new record rather than keeping the old one, which is
+ *     the ruling for a town taken again while still in unrest: the new owner
+ *     starts from nothing, and the cadence of rebels starts over with it.
+ *   · The pillage verb (`pillageAt`, through its helper `payPillage` in
+ *     `improvements.ts`), since Dominion batch D3, when The Harrying burns a
+ *     hex beside an ungarrisoned enemy town. It never calls this on a town
+ *     already in unrest, so that town keeps the record it has.
  */
 export function startUnrest(city: City): void {
   city.unrest = { target: unrestTarget(city.population), progress: 0, unguarded: 0 };

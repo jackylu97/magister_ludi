@@ -169,6 +169,7 @@ import {
   type ChairType,
   type TileCondition,
   type UnitFilter,
+  type WindfallGrantSpec,
   type WindfallOccasion,
   STATECRAFT,
   cardDef,
@@ -2994,6 +2995,10 @@ export function countOf(
       // `clearedCamps`' twin: a record, because a rank leaves the board with
       // the unit that held it. Written in one place, `settleRanksEarned`.
       return Math.max(0, Math.floor(playerById(state, playerId)?.ranksEarned ?? 0));
+    case 'hexesPillaged':
+      // The same kind of record: a burnt farm leaves nothing to count. Written
+      // in one place, `pillageAt` (`improvements.ts`).
+      return Math.max(0, Math.floor(playerById(state, playerId)?.hexesPillaged ?? 0));
     case 'tally': {
       // **What this card has watched happen** — the growing cards' counter, and
       // the one member of the union that is not a question about the board at
@@ -6205,8 +6210,21 @@ export function foldCityStat(list: readonly CardCityStatLine[]): number {
 export interface WindfallPayout {
   /** The occasion's own figure with every percentage rider folded in. */
   amount: number;
-  /** Extra voices the riders add outright, keyed by yield. */
-  grants: { card: CardId; source: string; yield: CityYieldKey; amount: number; toOpus?: true }[];
+  /**
+   * Extra voices the riders add outright, keyed by yield. The four delivery
+   * marks say where food and production land (`WindfallGrantSpec.toOpus`,
+   * `toCapital`, `toEveryTown`, `toNearest`); absent is the nearest town.
+   */
+  grants: {
+    card: CardId;
+    source: string;
+    yield: CityYieldKey;
+    amount: number;
+    toOpus?: true;
+    toCapital?: true;
+    toEveryTown?: true;
+    toNearest?: CityScope;
+  }[];
   /** Hit points a rider restores to the acting unit. */
   heal: number;
   /**
@@ -6260,6 +6278,34 @@ export interface WindfallPayout {
    * nothing, which is the same silence a grant with no city to receive it keeps.
    */
   pressure: { card: CardId; source: string; amount: number; range: number }[];
+  /*
+   * Dominion batch D3's four, optional because a payout composed outside
+   * `windfallPayout` (a commission's reward, `commissions.ts`) carries none of
+   * them. `windfallPayout` always writes all four.
+   */
+  /**
+   * True when a rider heals **the piece that acted** to full — The Yam's
+   * (`WindfallGrantSpec.healFull`). Acted on by `pillageAt`.
+   */
+  healFull?: boolean;
+  /**
+   * Blows on the enemy towns near the occasion's hex — The Chevauchée's
+   * (`WindfallGrantSpec.strike`). Struck by `pillageAt` through
+   * `strikeTownsNear` (`combat.ts`), one entry a rider.
+   */
+  strikes?: { card: CardId; source: string; range: number; percent: number }[];
+  /**
+   * True when a rider throws an ungarrisoned enemy town beside the hex into
+   * unrest — The Harrying's (`WindfallGrantSpec.unrestBeside`). Acted on by
+   * `pillageAt`.
+   */
+  unrestBeside?: boolean;
+  /**
+   * True when a rider spreads the pillage to the enemy works beside the hex —
+   * The Horde's (`WindfallGrantSpec.pillageBeside`). Acted on by `pillageAt`,
+   * for the raid's own hex and never for the hexes it spreads to.
+   */
+  pillageBeside?: boolean;
   /** Every rider that touched this payout, for the announcement. */
   lines: { card: CardId; source: string; note: string }[];
   /**
@@ -6430,7 +6476,11 @@ export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
     payout.units.length === 0 &&
     !payout.healAll &&
     payout.timed.length === 0 &&
-    payout.renown.length === 0
+    payout.renown.length === 0 &&
+    payout.healFull !== true &&
+    (payout.strikes ?? []).length === 0 &&
+    payout.unrestBeside !== true &&
+    payout.pillageBeside !== true
   );
 }
 
@@ -6473,6 +6523,10 @@ export function windfallPayout(
     timed: [],
     renown: [],
     pressure: [],
+    healFull: false,
+    strikes: [],
+    unrestBeside: false,
+    pillageBeside: false,
     lines: [],
     claims: [],
   };
@@ -6623,6 +6677,32 @@ export function windfallPayout(
       payout.healAll = true;
       payout.lines.push({ card, source, note: 'your units are healed' });
     }
+    // Dominion batch D3: the acting piece healed whole (The Yam), a blow on
+    // the towns near the hex (The Chevauchée), unrest beside it (The
+    // Harrying) and the pillage spread to the works beside it (The Horde).
+    // Composed here with everything else and acted on by the seam that holds
+    // the piece and the hex (`pillageAt`).
+    if (grant.healFull === true) {
+      payout.healFull = true;
+      payout.lines.push({ card, source, note: 'healed fully' });
+    }
+    if (grant.strike !== undefined && grant.strike.percent > 0 && grant.strike.range > 0) {
+      (payout.strikes ??= []).push({
+        card,
+        source,
+        range: grant.strike.range,
+        percent: grant.strike.percent,
+      });
+      payout.lines.push({ card, source, note: 'strikes the enemy towns nearby' });
+    }
+    if (grant.unrestBeside === true) {
+      payout.unrestBeside = true;
+      payout.lines.push({ card, source, note: 'stirs unrest beside the hex' });
+    }
+    if (grant.pillageBeside === true) {
+      payout.pillageBeside = true;
+      payout.lines.push({ card, source, note: 'burns the works beside the hex' });
+    }
     if (grant.timed !== undefined && grant.timed.effects.length > 0) {
       // The *turns* are the card's own and the effects travel untouched:
       // `timedLive` reads them the way it reads a rite's, because a bill is a
@@ -6689,6 +6769,11 @@ export function windfallPayout(
       }
     }
     if (grant.yield !== undefined && grant.amount !== undefined) {
+      // Food or hammers with no town to land in pay nothing and print nothing
+      // (Dominion batch D3): Armoury Guilds in an empire with no Armoury, or
+      // The Plunder Trains in one with no capital. Asked here so the payout's
+      // lines say only what `payWindfallGrants` will deliver.
+      if (!grantHasTown(state, playerId, grant)) continue;
       // **A figure quoted in turns** — The Lyceum's extra turn of culture. The
       // rate is read here, with every other figure on this payout, because Entry
       // XVIII.5's whole rule is that the number is composed once before anything
@@ -6704,7 +6789,7 @@ export function windfallPayout(
         // of a turn in an empire making four science.
         const amount = turns * rate;
         if (amount !== 0) {
-          payout.grants.push({ card, source, yield: grant.yield, amount });
+          payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
         }
         continue;
@@ -6737,13 +6822,7 @@ export function windfallPayout(
           (effect.perAge === true ? era : 1) *
           (effect.perSlottedOrder === true ? slotted : 1);
         if (amount !== 0) {
-          payout.grants.push({
-            card,
-            source,
-            yield: grant.yield,
-            amount,
-            ...(grant.toOpus === true ? { toOpus: true as const } : {}),
-          });
+          payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
         }
         continue;
@@ -6760,7 +6839,7 @@ export function windfallPayout(
         (effect.perAge === true ? era : 1) *
         (effect.perSlottedOrder === true ? slotted : 1);
       if (amount !== 0) {
-        payout.grants.push({ card, source, yield: grant.yield, amount });
+        payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
         payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
       }
     }
@@ -7375,6 +7454,83 @@ function payPeriodicBoon(
 }
 
 /**
+ * False when a grant's food or hammers have no town to land in: no capital for
+ * `toCapital`, or no town the `toNearest` scope admits. Every other grant,
+ * and every banked voice, has somewhere to go. `grantTowns` is the delivery
+ * this agrees with.
+ */
+function grantHasTown(state: GameState, playerId: number, grant: WindfallGrantSpec): boolean {
+  if (grant.yield !== 'food' && grant.yield !== 'production') return true;
+  if (grant.toCapital === true) return Boolean(capitalCityOf(state, playerId));
+  if (grant.toNearest !== undefined) {
+    const scope = grant.toNearest;
+    return citiesOf(state, playerId).some((city) => cityScopeAdmits(state, city, scope, playerId));
+  }
+  return true;
+}
+
+/** The delivery marks a grant spec carries onto its payout line. */
+function deliveryOf(
+  grant: WindfallGrantSpec,
+): { toOpus?: true; toCapital?: true; toEveryTown?: true; toNearest?: CityScope } {
+  if (grant.toOpus === true) return { toOpus: true };
+  if (grant.toCapital === true) return { toCapital: true };
+  if (grant.toEveryTown === true) return { toEveryTown: true };
+  if (grant.toNearest !== undefined) return { toNearest: grant.toNearest };
+  return {};
+}
+
+/**
+ * **The towns a grant's food or hammers land in** (Dominion batch D3), in
+ * founding order: every town (The Outriders), the capital (The Plunder Trains),
+ * the nearest town a scope admits (Armoury Guilds), the town raising the
+ * Magnum Opus (Spolia), or by default the town nearest the occasion (the
+ * capital when there is no hex). An empty list pays nothing.
+ */
+function grantTowns(
+  state: GameState,
+  playerId: number,
+  grant: WindfallPayout['grants'][number],
+  at?: { col: number; row: number },
+): City[] {
+  if (grant.toEveryTown === true) return citiesOf(state, playerId);
+  if (grant.toCapital === true) {
+    const capital = capitalCityOf(state, playerId);
+    return capital ? [capital] : [];
+  }
+  if (grant.toNearest !== undefined) {
+    const scope = grant.toNearest;
+    const admitted = citiesOf(state, playerId).filter((city) =>
+      cityScopeAdmits(state, city, scope, playerId),
+    );
+    if (admitted.length === 0) return [];
+    if (!at) return [admitted[0]!];
+    const from = getTileAt(state.map, at.col, at.row);
+    if (!from) return [admitted[0]!];
+    let best = admitted[0]!;
+    let bestDistance = Infinity;
+    for (const city of admitted) {
+      const there = getTileAt(state.map, city.col, city.row);
+      if (!there) continue;
+      const distance = wrappedDistance(state.map, tileHex(from), tileHex(there));
+      // Strictly nearer, so the first in founding order keeps a tie.
+      if (distance < bestDistance) {
+        best = city;
+        bestDistance = distance;
+      }
+    }
+    return [best];
+  }
+  const city =
+    grant.toOpus === true
+      ? (opusCityOf(state, playerId) ?? capitalCityOf(state, playerId) ?? null)
+      : at
+        ? nearestOwnedCity(state, playerId, at)
+        : (capitalCityOf(state, playerId) ?? null);
+  return city ? [city] : [];
+}
+
+/**
  * Pays a windfall's *grants* — the voices a rider adds outright — into the
  * empire's banks and the nearest city's baskets.
  *
@@ -7445,17 +7601,14 @@ export function payWindfallGrants(
     // The banks are a line of the meters too — see `collectYields` (batch M3).
     else if (grant.yield === 'faith') player.faithPool += grant.amount;
     else {
-      // Spolia's hammers go to the town raising the Opus, or to the capital.
-      const city =
-        grant.toOpus === true
-          ? (opusCityOf(state, player.id) ?? capitalCityOf(state, player.id) ?? null)
-          : at
-            ? nearestOwnedCity(state, player.id, at)
-            : (capitalCityOf(state, player.id) ?? null);
-      if (!city) continue;
-      if (grant.yield === 'food') city.foodBasket += grant.amount;
-      else city.hammerBasket += grant.amount;
-      if (!touched.includes(city)) touched.push(city);
+      // Where the food and the hammers land (Dominion batch D3 added three
+      // places): every town, the capital, the nearest town a scope admits,
+      // Spolia's Opus town, or by default the town nearest the occasion.
+      for (const city of grantTowns(state, player.id, grant, at)) {
+        if (grant.yield === 'food') city.foodBasket += grant.amount;
+        else city.hammerBasket += grant.amount;
+        if (!touched.includes(city)) touched.push(city);
+      }
     }
     bumpEconomy(state);
   }

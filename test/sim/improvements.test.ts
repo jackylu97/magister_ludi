@@ -2549,7 +2549,10 @@ describe('improvements in the log', () => {
     // 131 since D2: nine Dominion cards that read a unit's rank or change a
     // rule of combat, and a new unit field, so a v130 log's picks name cards
     // this build never dealt.
-    expect(SCHEMA_VERSION).toBe(131);
+    // 132 since D3: nine Dominion cards about pillaging and where a grant
+    // lands, and a new record, so a v131 log's picks name cards this build
+    // never dealt.
+    expect(SCHEMA_VERSION).toBe(132);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

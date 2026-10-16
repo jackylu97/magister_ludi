@@ -367,8 +367,10 @@ describe('Dominion D2 — the words', () => {
     ]);
     expect(said('theTagmata')).toEqual(['+5 combat strength as a Veteran or better']);
     expect(said('theKeshik')).toEqual(['mounted units that are a Veteran or better: +1 movement']);
+    // The road clause is said as the price of a step since D3 (the
+    // coordinator's fix to the `roadStepCost` words).
     expect(said('interiorLines')).toEqual([
-      'roads carry units 40% further',
+      'a step along a road costs 40% less movement',
       '+4 combat strength when it has not moved this turn',
     ]);
     expect(said('theVarangianGuard')).toEqual(['Elite units may attack twice a turn']);

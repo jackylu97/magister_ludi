@@ -593,6 +593,38 @@
         }
       ]
     },
+    "theOutriders": {
+      "name": "The Outriders",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The scouts ride ahead, and every town hears what they found.",
+      "text": "Claiming a discovery or clearing a barbarian camp grants 8 production to every town.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "discovery",
+          "grant": {
+            "yield": "production",
+            "amount": 8,
+            "toEveryTown": true
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "camp",
+          "grant": {
+            "yield": "production",
+            "amount": 8,
+            "toEveryTown": true
+          }
+        }
+      ]
+    },
     "drillManuals": {
       "name": "The Training Cadre",
       "decks": [
@@ -1427,6 +1459,41 @@
         }
       ]
     },
+    "theCaptiveCraftsmen": {
+      "name": "The Captive Craftsmen",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The smiths came home with the army, though not by choice.",
+      "text": "Gains +1 science and +1 production each time you pillage a hex.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "tally",
+          "tally": "hexPillaged"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
+          "count": "tally",
+          "tally": "hexPillaged",
+          "scope": {
+            "test": "capital"
+          }
+        }
+      ]
+    },
     "siegeWorks": {
       "name": "Siege Works",
       "decks": [
@@ -1498,25 +1565,19 @@
       "rarity": "common",
       "type": "economic",
       "flavor": "The smiths keep books as carefully as they keep fires.",
-      "text": "Armouries give +5 science and +5 culture. Cities with one gain +15% production toward buildings.",
+      "text": "When one of your units falls, your nearest town with an Armoury gains production equal to its strength.",
       "effects": [
         {
-          "kind": "pays",
-          "where": "city",
-          "science": 5,
-          "culture": 5,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "armoury"
-          }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "percent": 15,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "armoury"
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "production",
+            "amount": 1,
+            "fromOccasion": "strength",
+            "toNearest": {
+              "test": "hasBuilding",
+              "building": "armoury"
+            }
           }
         }
       ]
@@ -2529,6 +2590,42 @@
         }
       ]
     },
+    "theSagas": {
+      "name": "The Sagas",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every burnt farmstead became a verse.",
+      "text": "+1% culture and gold for every three hexes you have pillaged this game, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "percent": 1,
+          "stage": "empire",
+          "count": "hexesPillaged",
+          "per": 3,
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "percent": 1,
+          "stage": "empire",
+          "count": "hexesPillaged",
+          "per": 3,
+          "max": 30
+        }
+      ]
+    },
     "standingGarrisons": {
       "name": "Standing Garrisons",
       "decks": [
@@ -3315,6 +3412,86 @@
         }
       ]
     },
+    "thePlunderTrains": {
+      "name": "The Plunder Trains",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The carts went out empty and came home full.",
+      "text": "Pillaging grants 30 production and 15 food to your capital.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "yield": "production",
+            "amount": 30,
+            "toCapital": true
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "yield": "food",
+            "amount": 15,
+            "toCapital": true
+          }
+        }
+      ]
+    },
+    "theYam": {
+      "name": "The Yam",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "A fresh horse waits at every post station.",
+      "text": "Mounted units heal fully when they pillage.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "class": {
+            "modelClass": "mounted"
+          },
+          "grant": {
+            "healFull": true
+          }
+        }
+      ]
+    },
+    "theChevauchee": {
+      "name": "The Chevauchée",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "Burn the countryside, and the towns go hungry behind their walls.",
+      "text": "Pillaging a hex damages enemy cities within three hexes with 50% of the pillaging unit's strength.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "strike": {
+              "range": 3,
+              "percent": 50
+            }
+          }
+        }
+      ]
+    },
     "dominionImperium": {
       "name": "Imperium",
       "decks": [
@@ -3847,6 +4024,48 @@
           "rule": "breachInOneBlow",
           "class": {
             "modelClass": "siege"
+          }
+        }
+      ]
+    },
+    "theHorde": {
+      "name": "The Horde",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "Where the horde passes, the whole valley burns.",
+      "text": "Pillaging a hex also pillages every enemy improvement beside it.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "pillageBeside": true
+          }
+        }
+      ]
+    },
+    "theHarrying": {
+      "name": "The Harrying",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "An unguarded town that watches its fields burn does not stay loyal for long.",
+      "text": "Pillaging a hex beside a rival town with no garrison throws that town into unrest.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "unrestBeside": true
           }
         }
       ]

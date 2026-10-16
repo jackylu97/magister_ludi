@@ -74,6 +74,7 @@ import {
   type TallyOccasion,
   type TileCondition,
   type UnitFilter,
+  type WindfallGrantSpec,
   type WindfallOccasion,
   STATECRAFT,
   isOrderId,
@@ -1706,15 +1707,13 @@ function describeEffect(
           // *how much at most* second — the duration clause's own order, one
           // grant shape over.
           const cap = grant.max === undefined ? '' : `, at most ${Math.abs(grant.max)}`;
-          // Spolia's hammers go to the Opus town rather than the nearest one.
-          const where =
-            grant.toOpus === true
-              ? ' to your city raising the Magnum Opus, or your capital if none is'
-              : '';
+          // Where the food and hammers land, where the row says (Spolia's Opus
+          // town, and Dominion batch D3's three).
+          const where = grantDeliveryWords(grant);
           out.push({ text: `${occasion} grants ${figure}${where}${cap}${per}` });
         } else {
           out.push({
-            text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${per}`,
+            text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${grantDeliveryWords(grant)}${per}`,
           });
         }
       }
@@ -1737,6 +1736,26 @@ function describeEffect(
         out.push({
           text: `${occasion} heals ${further}${grant.heal}${per}`,
         });
+      }
+      // Dominion batch D3's four things a pillage can do besides pay.
+      if (grant?.healFull === true) {
+        out.push({ text: `${occasion} heals the unit fully${per}` });
+      }
+      if (grant?.strike !== undefined) {
+        const hexes = grant.strike.range === 1 ? 'hex' : 'hexes';
+        out.push({
+          text:
+            `${occasion} strikes every enemy city within ${grant.strike.range} ${hexes} ` +
+            `with ${grant.strike.percent}% of the unit’s strength, and never takes it`,
+        });
+      }
+      if (grant?.unrestBeside === true) {
+        out.push({
+          text: `${occasion} throws each enemy city beside the hex that has no garrison into unrest`,
+        });
+      }
+      if (grant?.pillageBeside === true) {
+        out.push({ text: `${occasion} also pillages every enemy improvement beside the hex` });
       }
       if (grant?.timed !== undefined && grant.timed.effects.length > 0) {
         // Said in the **nested clauses' own words**, so a bill and a blessing
@@ -3440,6 +3459,21 @@ export function indefinite(name: string): string {
 }
 
 /**
+ * Where a grant's food and hammers land, as the tail of its clause — Spolia's
+ * Opus town, and Dominion batch D3's capital, every city and nearest town a
+ * scope admits. Empty for the default, the town nearest the occasion, and for
+ * a banked voice, which lands in the treasury whatever the row says.
+ */
+function grantDeliveryWords(grant: WindfallGrantSpec): string {
+  if (grant.yield !== 'food' && grant.yield !== 'production') return '';
+  if (grant.toOpus === true) return ' to your city raising the Magnum Opus, or your capital if none is';
+  if (grant.toCapital === true) return ' to your capital';
+  if (grant.toEveryTown === true) return ' to every city';
+  if (grant.toNearest !== undefined) return ` to your nearest ${eachWords(grant.toNearest)}`;
+  return '';
+}
+
+/**
  * A rank as the least a piece must hold — "a Veteran or better" (Dominion
  * batch D2). An Elite holds Veteran too, so "or better" is the honest reading
  * of every rank narrowing in the vocabulary.
@@ -3960,12 +3994,15 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
       : percent < 0
         ? `your units cost ${-percent}% less gold in maintenance`
         : `your units cost ${percent}% more gold in maintenance`,
-  // Said as the **distance**, not as the price: a cheaper step is further
-  // marching, and that is the half a player plans around.
+  // Said as the **price of a step**, the figure the rule changes. The
+  // legibility pass worded it as distance ("roads carry units 40% further",
+  // `docs/audit/legibility.md`), but that was wrong: a step that costs 40%
+  // less carries a unit about two thirds further, not 40% further. The
+  // coordinator's brief for Dominion batch D3 replaced the words.
   roadStepCost: (percent) =>
     percent < 0
-      ? `roads carry units ${-percent}% further`
-      : `roads carry units ${percent}% less far`,
+      ? `a step along a road costs ${-percent}% less movement`
+      : `a step along a road costs ${percent}% more movement`,
   // Said as the **term**, which is the length it is: a longer road-life is a
   // gain, so the figure keeps its sign in front the way every other gain does.
   routeTerm: (percent) =>
@@ -4469,6 +4506,11 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'rank your units have earned this game',
     many: 'ranks your units have earned this game',
   },
+  // Dominion batch D3, The Sagas. "This game", for `ranksEarned`' reason.
+  hexesPillaged: {
+    one: 'hex you have pillaged this game',
+    many: 'hexes you have pillaged this game',
+  },
   followingCities: { one: 'city that follows you', many: 'cities that follow you' },
   followingForeign: {
     one: 'foreign city that follows you',
@@ -4591,6 +4633,8 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   // Dominion batch D1, The Campaign Annals. One a rank: a unit that goes from
   // no rank to Elite in one step is two.
   rankEarned: { one: 'rank your units have earned', many: 'ranks your units have earned' },
+  // Dominion batch D3, The Captive Craftsmen.
+  hexPillaged: { one: 'hex you have pillaged', many: 'hexes you have pillaged' },
 };
 
 /**
@@ -4981,6 +5025,7 @@ const COMMISSION_COUNTED_WORDS: Record<
   },
   // Dominion batch D1. No commission counts ranks yet; the table is total.
   rankEarned: { verb: 'earn', one: 'rank with your units', many: 'ranks with your units', counter: 'ranks earned' },
+  hexPillaged: { verb: 'pillage', one: 'hex', many: 'hexes', counter: 'hexes pillaged' },
 };
 
 /**

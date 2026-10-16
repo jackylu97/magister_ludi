@@ -372,8 +372,11 @@ describe('the schema, as landed', () => {
     // **And Dominion batch D2** (ranks read, and combat rules): seven more.
     // Seven new Dominion rows came live; The Soldiers' Purse was reworked and
     // The Marching Camps took over March Discipline's row, both already live.
-    expect(live).toBe(385);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(385);
+    // **And Dominion batch D3** (pillage and grant delivery): eight more.
+    // Eight new Dominion rows came live; Armoury Guilds was reworked in place
+    // and was already live.
+    expect(live).toBe(393);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(393);
   });
 
   /**
@@ -548,7 +551,10 @@ describe('the schema, as landed', () => {
     // 131 since D2: nine Dominion cards that read a unit's rank or change a
     // rule of combat, and a new unit field, so a v130 log's picks name cards
     // this build never dealt.
-    expect(SCHEMA_VERSION).toBe(131);
+    // 132 since D3: nine Dominion cards about pillaging and where a grant
+    // lands, and a new record, so a v131 log's picks name cards this build
+    // never dealt.
+    expect(SCHEMA_VERSION).toBe(132);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

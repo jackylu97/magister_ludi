@@ -311,7 +311,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 - **Divine Right** — *A city you have taken by force costs one less authority.*
 - **Geomancy** — +1 production, +1 faith on every hex with a Mine carrying a resource
 - **Geomancy** — *Every mine your cities work gives up a further hammer, and a mine sunk into a named seam gives up more still — and a little devotion with it, for the earth is asked before it is taken.*
-- **Machinery** — roads carry units 40% further
+- **Machinery** — a step along a road costs 40% less movement
 - **Machinery** — *Cranks, rollers and a good axle: an army marches further along your paving in a day than it used to.*
 - **Paper Money** — *Notes, ledgers and a floor to shout them across: the realm's coin can be turned into song at the Bourse.*
 - **Castellany** — +10 combat strength against ranged units

@@ -190,6 +190,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Dominion batch D2: a unit's experience, which The Fabricae's town scope
   // (`garrisonRank`) reads. A scope can reach the meters, so a write announces.
   { field: 'experience', pattern: /\.experience\s*=[^=]/ },
+  // Dominion batch D3: the hexes an empire has pillaged, which The Sagas'
+  // `hexesPillaged` count reads.
+  { field: 'hexesPillaged', pattern: /\.hexesPillaged\s*(=[^=]|\+=)/ },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -299,6 +302,10 @@ const ANNOUNCING = new Set([
   // Dominion batch D2: the one writer of `Unit.experience`, which a town scope
   // reads since The Fabricae (`garrisonRank`).
   'ranks.ts#writeExperience',
+  // Dominion batch D3: what one pillaged hex pays, split out of `pillageAt` so
+  // The Horde's extra hexes are paid the same way. It banks the salvage and is
+  // the one writer of `Player.hexesPillaged`, which The Sagas' count reads.
+  'improvements.ts#payPillage',
   'state.ts#claimWonder',
   'state.ts#createCity',
   'state.ts#createUnit',

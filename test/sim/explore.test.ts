@@ -711,10 +711,16 @@ describe('determinism', () => {
    * drafts a card, no unit is an Elite and nobody fights twice, so the new
    * rules and `Unit.firstAttackTurn` never reach this board. Checked by setting
    * the version back to 130, which gives D1's hashes exactly.
+   *
+   * **Dominion batch D3 (pillage and grant delivery) moved the hash and not
+   * the length** at both seeds: 131 became 132, and that is all. Nobody here
+   * drafts a card or orders a pillage, so the new cards and
+   * `Player.hexesPillaged` never reach this board. Checked by setting the
+   * version back to 131, which gives D2's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '37a00dd6:188983',
-    2026: '85f18485:188539',
+    11: 'b80338d9:188983',
+    2026: '786b4a16:188539',
   };
 
   for (const seed of [11, 2026]) {

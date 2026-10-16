@@ -1251,8 +1251,34 @@ import {
  * **A v130 save is refused and does not replay.** The draft bags hold
  * different cards, so a v130 log's picks would name cards this build never
  * dealt. The branch migrates nothing, for the reason given under v119.
+ *
+ * v132 (branch `decks`; batch D3 of `docs/plans/dominion-build-triage.md`,
+ * pillage and grant delivery): **nine Dominion cards about pillaging and about
+ * where a grant lands.** Eight join the Dominion file and Armoury Guilds is
+ * reworked in place. One field joins the state: `Player.hexesPillaged`, the
+ * number of hexes the empire's units have ever pillaged, written only by
+ * `pillageAt` (`improvements.ts`), never for the wild, and absent until the
+ * first pillage. The rules that change:
+ *
+ *   · a pillage tells its riders which unit type did it, counts a tally
+ *     (`hexPillaged`) and keeps the record above. Naming the raider also
+ *     lets the Mandekalu's own salvage rider (`data/units.json`) pay, which
+ *     it never did before because no raider was named;
+ *   · a pillage rider can heal the raider fully, strike the enemy towns near
+ *     the hex (`strikeTownsNear`, `combat.ts`: one roll from `state.rng` for
+ *     each town struck, in founding order), throw an ungarrisoned enemy town
+ *     beside the hex into unrest (`startUnrest`'s second caller), and spread
+ *     the pillage to the enemy works beside the hex, each a full pillage;
+ *   · a grant's food and production can land in the capital, in every town or
+ *     in the nearest town a scope admits;
+ *   · the food and production a pillage's riders pay settle the instant they
+ *     land. Spoils of War's hammers used to wait for the end of the turn.
+ *
+ * **A v131 save is refused and does not replay.** The draft bags hold
+ * different cards, and every pillage now writes the new record. The branch
+ * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 131;
+export const SCHEMA_VERSION = 132;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1998,6 +2024,17 @@ export interface Player {
    * earned none serialises the way it did before the field existed.
    */
   ranksEarned?: number;
+  /**
+   * **How many hexes this empire's units have ever pillaged** (Dominion batch
+   * D3): The Sagas' count (`CountKind`'s `hexesPillaged`).
+   *
+   * One for each hex torn up, so a raid that also burns the works beside it
+   * (The Horde) counts every hex it burnt. Written in one place, `payPillage`
+   * (`improvements.ts`), which only `pillageAt` calls; only for an empire (the
+   * wild keeps no record), and only ever raised. Stored because a burnt farm
+   * leaves nothing on the board to count, and absent until the first pillage.
+   */
+  hexesPillaged?: number;
   /**
    * **The losses this empire has suffered to other empires in war**, oldest
    * first (batch WC2, `docs/flags.md` (rrrrrr) part 2). War weariness is read

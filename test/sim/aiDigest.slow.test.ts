@@ -534,10 +534,32 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * movers back out (the deck file as D1 left it and the version at 130), which
  * gives D1's digests exactly on both boards. Nothing stalled and no command was
  * refused.
+ *
+ * ---
+ *
+ * **Dominion batch D3 (schema 132), pillage and grant delivery.** Duel
+ * `9fbcd543:269226` → `b376efbc:278839`, standard `26e408cb:978767` →
+ * `184d350b:950167`. Two things moved them:
+ *
+ *   · the version, 131 to 132;
+ *   · the nine cards: eight new rows join the Dominion pool and Armoury Guilds
+ *     is reworked, so from the first draw that meets one of them the hands are
+ *     different hands. At turn 120 one seat on the duel board holds The
+ *     Outriders and has it seated, and one seat on the standard board holds
+ *     The Captive Craftsmen, not seated.
+ *
+ * Three other changes could move a game and move neither of these: the new
+ * record `Player.hexesPillaged`; the raider now named on the pillage occasion
+ * (which lets the Mandekalu's own salvage rider pay); and the food and hammers
+ * a pillage's riders pay now settling at once. No empire pillages a hex in
+ * either game and no seat has a leader, so none of them is reached. Checked by
+ * taking the movers back out (the deck file as D2 left it, the version at
+ * 131, the record not written and no raider named), which gives D2's digests
+ * exactly on both boards. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '9fbcd543:269226',
-  standard: '26e408cb:978767',
+  duel: 'b376efbc:278839',
+  standard: '184d350b:950167',
 };
 
 /**

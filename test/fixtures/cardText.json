@@ -2468,6 +2468,16 @@
     "text": "+1 science per rank your units have earned, counted while this Order stands in a slot"
    }
   ],
+  "theOutriders": [
+   {
+    "raw": "claiming a ruin grants +8 production to every city",
+    "text": "claiming a ruin grants +8 production to every city"
+   },
+   {
+    "raw": "clearing a barbarian camp grants +8 production to every city",
+    "text": "clearing a barbarian camp grants +8 production to every city"
+   }
+  ],
   "drillManuals": [
    {
     "raw": "units you gain in every city with a [[building:barracks|Barracks]] start with 2 experience",
@@ -2736,6 +2746,16 @@
     "text": "mounted units may move after attacking"
    }
   ],
+  "theCaptiveCraftsmen": [
+   {
+    "raw": "+1 science per hex you have pillaged, counted while this Order stands in a slot",
+    "text": "+1 science per hex you have pillaged, counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+1 production in your capital per hex you have pillaged, counted while this Order stands in a slot",
+    "text": "+1 production in your capital per hex you have pillaged, counted while this Order stands in a slot"
+   }
+  ],
   "siegeWorks": [
    {
     "raw": "+38% production toward siege units",
@@ -2758,12 +2778,8 @@
   ],
   "armouryGuilds": [
    {
-    "raw": "+5 science, +5 culture in every city with an [[building:armoury|Armoury]]",
-    "text": "+5 science, +5 culture in every city with an Armoury"
-   },
-   {
-    "raw": "+15% production toward buildings, in every city with an [[building:armoury|Armoury]]",
-    "text": "+15% production toward buildings, in every city with an Armoury"
+    "raw": "losing a unit grants production equal to its strength to your nearest city with an [[building:armoury|Armoury]]",
+    "text": "losing a unit grants production equal to its strength to your nearest city with an Armoury"
    }
   ],
   "veteransBoroughs": [
@@ -3128,6 +3144,16 @@
     "text": "+25% production in every city with a Veteran or better standing in it"
    }
   ],
+  "theSagas": [
+   {
+    "raw": "+1% culture per 3 hexes you have pillaged this game (at most +30% culture)",
+    "text": "+1% culture per 3 hexes you have pillaged this game (at most +30% culture)"
+   },
+   {
+    "raw": "+1% gold per 3 hexes you have pillaged this game (at most +30% gold)",
+    "text": "+1% gold per 3 hexes you have pillaged this game (at most +30% gold)"
+   }
+  ],
   "standingGarrisons": [
    {
     "raw": "+12% production in every city per combat unit standing there",
@@ -3359,12 +3385,34 @@
   ],
   "interiorLines": [
    {
-    "raw": "roads carry units 40% further",
-    "text": "roads carry units 40% further"
+    "raw": "a step along a road costs 40% less movement",
+    "text": "a step along a road costs 40% less movement"
    },
    {
     "raw": "+4 combat strength when it has not moved this turn",
     "text": "+4 combat strength when it has not moved this turn"
+   }
+  ],
+  "thePlunderTrains": [
+   {
+    "raw": "pillaging grants +30 production to your capital",
+    "text": "pillaging grants +30 production to your capital"
+   },
+   {
+    "raw": "pillaging grants +15 food to your capital",
+    "text": "pillaging grants +15 food to your capital"
+   }
+  ],
+  "theYam": [
+   {
+    "raw": "for mounted units alone, pillaging heals the unit fully",
+    "text": "for mounted units alone, pillaging heals the unit fully"
+   }
+  ],
+  "theChevauchee": [
+   {
+    "raw": "pillaging strikes every enemy city within 3 hexes with 50% of the unit’s strength, and never takes it",
+    "text": "pillaging strikes every enemy city within 3 hexes with 50% of the unit’s strength, and never takes it"
    }
   ],
   "dominionImperium": [
@@ -3521,6 +3569,18 @@
    {
     "raw": "siege units break a town’s walls in one blow",
     "text": "siege units break a town’s walls in one blow"
+   }
+  ],
+  "theHorde": [
+   {
+    "raw": "pillaging also pillages every enemy improvement beside the hex",
+    "text": "pillaging also pillages every enemy improvement beside the hex"
+   }
+  ],
+  "theHarrying": [
+   {
+    "raw": "pillaging throws each enemy city beside the hex that has no garrison into unrest",
+    "text": "pillaging throws each enemy city beside the hex that has no garrison into unrest"
    }
   ],
   "smallholdings": [
@@ -9629,8 +9689,8 @@
   "banking": [],
   "machinery": [
    {
-    "raw": "roads carry units 40% further",
-    "text": "roads carry units 40% further"
+    "raw": "a step along a road costs 40% less movement",
+    "text": "a step along a road costs 40% less movement"
    }
   ],
   "theAstrolabe": [],

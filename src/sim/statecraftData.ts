@@ -2422,6 +2422,16 @@ export type CountKind =
    */
   | 'ranksEarned'
   /**
+   * **Hexes this empire's units have pillaged, across the whole game** — The
+   * Sagas (Dominion batch D3).
+   *
+   * Answered off a record (`Player.hexesPillaged`), for `clearedCamps`' reason:
+   * a burnt farm leaves nothing on the board to count. One for each hex, so a
+   * raid that also tears up the works beside it (The Horde) counts every hex it
+   * burnt. Written in one place, `pillageAt` (`improvements.ts`).
+   */
+  | 'hexesPillaged'
+  /**
    * Wonders standing **anywhere in the world**, yours and everybody's — The
    * Grand Tour's "seen or not".
    *
@@ -3102,7 +3112,14 @@ export type TallyOccasion =
    * on the moment and a card that reads the record each ask their own question
    * about it.
    */
-  | 'rankEarned';
+  | 'rankEarned'
+  /**
+   * One of this empire's units **pillaged a hex** — The Captive Craftsmen
+   * (Dominion batch D3). Written in `pillageAt` (`improvements.ts`), once for
+   * each hex, so a raid that also tears up the works beside it (The Horde)
+   * counts every hex it burnt. The wild keeps no tally.
+   */
+  | 'hexPillaged';
 // **There is deliberately no `cityGrew`**, and the audit asked for one: every
 // growth card in the six decks is bound by the design doc's standing clause
 // that natural-growth rewards *count only growth beyond the town's historical
@@ -3130,6 +3147,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'riteStarted',
   'foreignCityConverted',
   'rankEarned',
+  'hexPillaged',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -4465,6 +4483,74 @@ export interface WindfallGrantSpec {
    * silence a grant with no city to receive it keeps.
    */
   pressure?: { amount: number; range: number };
+  /**
+   * **Food and production from this grant go to the capital** — The Plunder
+   * Trains (Dominion batch D3). Absent sends them where every other grant's go:
+   * the town nearest the occasion, or the capital when the occasion has no hex.
+   * Ignored for the four voices an empire banks (gold, science, culture,
+   * faith). One of `toOpus`, `toCapital`, `toEveryTown` and `toNearest` at most.
+   */
+  toCapital?: true;
+  /**
+   * **Food and production from this grant go to every town of the empire**,
+   * the whole figure to each — The Outriders' 8 production (Dominion batch D3).
+   * Paid in founding order. Ignored for the banked voices, as `toCapital` is.
+   */
+  toEveryTown?: true;
+  /**
+   * **Food and production from this grant go to the nearest town this scope
+   * admits** — Armoury Guilds' nearest town with an Armoury (Dominion batch
+   * D3). Nearest to the occasion's hex, the first in founding order on a tie;
+   * with no hex it is the first admitted town in founding order. When no town
+   * qualifies, the grant pays nothing. Ignored for the banked voices.
+   */
+  toNearest?: CityScope;
+  /**
+   * **The piece that acted is healed to full** — The Yam's mounted raiders
+   * (Dominion batch D3).
+   *
+   * `healAll`'s narrow sibling: a flag rather than a figure, because the
+   * ratified text is *heal fully*. Acted on by the seam that holds the acting
+   * piece, which today is `pillageAt` alone; the windfall rider's `class` is
+   * what narrows it to the mounted.
+   */
+  healFull?: true;
+  /**
+   * **A blow on every enemy town within `range` hexes, at `percent` of the
+   * acting piece's strength** — The Chevauchée (Dominion batch D3, the
+   * triage's reading 4).
+   *
+   * Struck by `strikeTownsNear` (`combat.ts`) through the ordinary damage
+   * curve: the piece's own strength (its roster figure, its stamp and its
+   * rank) at `percent`, against the town's defending strength at its walls.
+   * One roll from `state.rng` for each town struck, in founding order. No blow
+   * comes back, the town never drops below its floor, and the strike never
+   * takes it. "Enemy" is an empire this one is at war with. Acted on by
+   * `pillageAt` alone today.
+   */
+  strike?: { range: number; percent: number };
+  /**
+   * **An ungarrisoned enemy town beside the occasion's hex falls into unrest**
+   * — The Harrying (Dominion batch D3, the triage's reading 34).
+   *
+   * "Beside" is a town whose own hex is next to the occasion's. "Ungarrisoned"
+   * is the unrest rule's own reading (`unrestGarrison`, no soldier of the
+   * owner's standing in it). A town already in unrest keeps the record it has.
+   * "Enemy" is an empire this one is at war with. Acted on by `pillageAt`
+   * alone.
+   */
+  unrestBeside?: true;
+  /**
+   * **Every enemy improvement beside the occasion's hex is pillaged too** — The
+   * Horde (Dominion batch D3, the triage's reading 5).
+   *
+   * Each extra hex is a full pillage: its improvement and road are torn up, the
+   * salvage and every pillage rider are paid, and it counts toward the tally and
+   * the lifetime record. What the raid spends once is the raider's: one movement
+   * point and one heal. The extra hexes do not spread again. Acted on by
+   * `pillageAt` alone.
+   */
+  pillageBeside?: true;
 }
 
 // --- the vocabulary ---------------------------------------------------------
