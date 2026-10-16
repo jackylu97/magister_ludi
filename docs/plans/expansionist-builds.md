@@ -678,3 +678,13 @@ Each starts with the recommendation.
 8. **Six Gardens' reward.** *Recommended: culture equal to fifteen times the tended tiles you hold,* in place of the free Order hand that reward hands' removal leaves unbuildable.
 
 After these, the deck pass goes on to Expansionist's Doctrines, one direction per build. No leader points at the managed wild or the levy, which the leader pass should know; Pachacuti fits the levy by history.
+
+## Rulings, 2026-10-16: the user's first pass on the builds
+
+The user, verbatim: *"hmm the expansionist builds aren't necessarily doing it for me. I'm unsure if the tended lands should be a full build in of itself, or merely a theme to splash into. I like the second build, but some of the cards don't seem to fulfill the vision/fantasy which should be slowly improving the yields of your empire. Let's combine the first two builds into one, which is iteratively improving your land with workers and orders. tended lands can be used in addition to improvements, but the 'default' focus should be to improve your lands with improvements. I also think of the expansionist as having two flavors, one very wide and one very tall, with adept players flexing between the two to create large empires. The people's levy should fall within the tall build (the great city). What other gameplay themes could we create builds around?"*
+
+So:
+- **One improvement build replaces the managed wild and the old fields.** Its fantasy is slowly improving the yields of your empire, iteratively, with workers and Orders. Improvements are the default engine. Tended land is a theme a seat can splash into, beside improvements, not a build of its own. Cards in the old fields that do not serve "slowly improving the empire's yields" are to be reworked or moved.
+- **Two flavours, wide and tall,** with adept players flexing between them to build large empires. The open frontier is the wide build. The great city is the tall build, and **the people's levy folds into it.** Bridge cards that reward a switch from one to the other are wanted.
+- **More builds:** the user asked what other gameplay themes could carry a build. The candidates are in the reply of 2026-10-16. The builds are rewritten once the user picks.
+- The eight open questions above wait for the rewrite.
