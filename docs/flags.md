@@ -19,7 +19,7 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(vvvvvv) Doctrines, governments and typed chairs — RULED, 2026-10-15.**
+**(vvvvvv) Doctrines, governments and typed chairs — RULED, 2026-10-15 and 2026-10-16.**
 The proposal is `docs/plans/doctrines-governments-chairs.md`, which records
 the rulings in full. In short:
 - **Typed chairs are option B** (*"I think B makes sense."*): every card is
@@ -36,10 +36,28 @@ the rulings in full. In short:
   with an extra civics category"*): their chair mixes come back with Civic as a
   third type, and their signature abilities stay. The three tier-18
   abilities that count Orders by chair type work again once chairs are typed.
-- Still open: whether the tier-10 governments deal Tier I Doctrines again or
-  get their own set; the four-type chair mix of each of the sixteen
-  governments; and the other five decks' Doctrines. Card faces: the user chose
-  A2 and asked for changes, now on the canvas as A3
+- **2026-10-16, the user's second pass** (quoted in full in the plan doc):
+  - a new government brings only its Doctrine offer, and the rare reward
+    hands are removed (*"new governments should stop giving rare reward
+    hands, just the doctrine selection"*);
+  - Doctrine pairs that cancel each other's drawbacks are intended (*"#3 is
+    intentional"*);
+  - The Marian Reforms: towns build military units at half speed;
+  - Double Time is rare and dealt in Tiers II and III (one optional field on
+    the row); The Serried Ranks is rare; Combined Arms gets a new second
+    clause (proposed on the sheet);
+  - three endless host Doctrines are proposed, every government has a
+    four-type chair mix, and every Dominion card has a type (all in the plan
+    doc, section 4, and on the sheet);
+  - the user's answers on the sheet: The Call to the Spear and The Muster of
+    the Fields become one card shared with Expansionist; a unit that starts as
+    a Veteran counts as earning a rank; The Steppe Confederacy lifts the border
+    freeze; The Strategoi doubles only the generals' strength aura.
+- Still open: the tier-10 governments' Doctrines; whether a Wildcard card fits
+  only a Wildcard chair (the reading the sort uses); what Divine Mandate
+  counts; Double Time's yields; the new Combined Arms clause and endless host
+  Doctrines; and the other five decks' Doctrines and types. Card faces: the
+  user chose A2 and asked for changes, now on the canvas as A3
   (https://claude.ai/artifact/B6Nyi6ZKCjHtXcSZTNrDoB; source in
   `docs/plans/mockups/card-faces/`).
 

@@ -157,6 +157,8 @@ The shelf is deep enough for eleven chairs (63 exclusive cards, 13 shared), and 
 
 An Expansionist seat may draw every one of these, and so may a seat holding the deck named beside it. A shared card is spent out of two shelves, so a change here is felt in two decks. Listed in tier order.
 
+**Ruled 2026-10-16: The Muster of the Fields becomes a card shared with Dominion.** Dominion's The Call to the Spear did the same job, and the user ruled on the Dominion sheet: *"Have these two be a single card that's shared between the two decks."* The built card is kept as it is, and The Call to the Spear leaves the Dominion sheet. Its row stays in Tier I above until it moves to `data/decks/common.json`, because the sync test reads it there.
+
 | Card | Rarity | Also in | Status | The card | What the game does, or why not | Tier |
 |---|---|---|---|---|---|---|
 | **Market Gardens** | common | Commerce | built | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | +1 gold on every hex with a Farm beside a road · +1 food on every trade route between two of your own cities | 0 |
