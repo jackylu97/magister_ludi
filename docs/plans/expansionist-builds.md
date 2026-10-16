@@ -688,3 +688,13 @@ So:
 - **Two flavours, wide and tall,** with adept players flexing between them to build large empires. The open frontier is the wide build. The great city is the tall build, and **the people's levy folds into it.** Bridge cards that reward a switch from one to the other are wanted.
 - **More builds:** the user asked what other gameplay themes could carry a build. The candidates are in the reply of 2026-10-16. The builds are rewritten once the user picks.
 - The eight open questions above wait for the rewrite.
+
+## Rulings, 2026-10-16: the user's second pass, the shape of the builds
+
+The user, verbatim: *"lets have the waterworks and great works and breadbasket be flavors of the tall build, the highlands and well-ordered realm and road network be flavours of the wide build. Let's rework the builds doc to have one build for the improvements, and then 3 versions of both the tall build and wide build with core cards, and flavor-specific cards. That seems reasonable to me to design around."*
+
+So the deck is designed around three builds:
+- **The improvement build:** slowly improving the empire's yields with workers and Orders; improvements are the default engine, and tended land is a splash.
+- **The tall build** (the great city, with the people's levy folded in): core cards every tall empire wants, and three flavours, each with its own cards: **the waterworks** (rivers, irrigation, aqueducts, canals), **the great works** (engineers, wonders, manufactories) and **the breadbasket** (food stored and spent).
+- **The wide build** (the open frontier): core cards every wide empire wants, and three flavours, each with its own cards: **the highlands** (settling and working the hard country, the deck's science line), **the well-ordered realm** (authority, censuses, provinces) and **the road network** (roads and connected towns).
+- Adept players flex between wide and tall, so bridge cards reward a switch.
