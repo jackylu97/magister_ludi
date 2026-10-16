@@ -3,6 +3,23 @@
  * against its sheet (`docs/decks/expansionist.md`).
  *
  * What is pinned here:
+ *   · **the sheet matches the data.** Since 2026-10-16 the sheet is a compact
+ *     list in Dominion's format: five tier tables (Card | Rarity | Status |
+ *     Ability | Type) and a shared table. The status says how a row relates to
+ *     the data:
+ *       - `implemented`: a data row of that name exists, is dealt, and has the
+ *         same rarity, tier and text;
+ *       - `modify`: a data row exists but needs work, so only its presence is
+ *         checked, and a row marked `modify: deferred` is not dealt;
+ *       - `add`: no data row of that name exists yet, in this file or in
+ *         `common.json`.
+ *     Every data row that is not retired is on the tier tables once; a retired
+ *     row is on none. The shared table's rows live in `common.json` and name
+ *     this deck and the deck beside them. The two counts tables count the rows;
+ *   · **the Type column is checked only where a data row carries a type.** The
+ *     deck is still unsorted in play (its rows carry no type until the user
+ *     rules), so its own rows are skipped; the shared rows Dominion's sheet
+ *     typed are checked. Every Type cell must still be one of the four types;
  *   · every row names this deck and carries a band, rarity, name, flavour and
  *     text; the only charters are the four tended-work unlocks;
  *   · the sheet's proposed cuts are retired and dealt to nobody;
@@ -56,15 +73,19 @@ import { explainTileYield, yieldContextFor } from '../../../src/sim/yields/hex';
 import { at, bareState, woodedWorker } from '../improvementHelpers';
 import {
   type Band,
+  type CardType,
   type CityScope,
   type CardEffect,
   type CardEffectKind,
+  type DeckId,
   type OrderId,
   type OrderRarity,
   BANDS,
   DECK_FILE_ORDERS,
+  DECK_WORDS,
   TIER_LADDER,
   ORDER_IDS,
+  isCardType,
   orderDef,
   orderIsDealt,
   ordersForDecks,
@@ -74,6 +95,163 @@ import { createGame } from '../newGameHelpers';
 
 /** The deck's own rows, in file order — what every draw and every screen walks. */
 const ROWS: readonly OrderId[] = DECK_FILE_ORDERS.expansionist;
+
+// --- the deck sheet, read ----------------------------------------------------
+
+/** The deck sheet, the spec of record for the deck's cards. */
+const docFiles = import.meta.glob('../../../docs/decks/expansionist.md', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+});
+const DOC = Object.values(docFiles)[0] as string;
+
+/** The sheet's tier headings, which are the bands. */
+const TIERS: Record<string, Band> = { '0': 0, I: 1, II: 2, III: 3, IV: 4 };
+
+/** How a sheet row relates to the data: the first word of its Status cell. */
+type DocStatus = 'implemented' | 'modify' | 'add';
+const DOC_STATUSES: readonly DocStatus[] = ['implemented', 'modify', 'add'];
+
+/** One card the sheet's tier tables list. */
+interface DocCard {
+  /** The name the sheet prints, without the bold and the "(was …)" note. */
+  name: string;
+  /** The name in the "(was …)" note, when the sheet gives one. */
+  was?: string;
+  rarity: OrderRarity;
+  band: Band;
+  status: DocStatus;
+  /** The word after the colon in the Status cell ("deferred", "revised" …), if any. */
+  reason?: string;
+  text: string;
+  /** The Type cell, lowercased. */
+  type: CardType;
+}
+
+/** One card the sheet's shared table lists. Its row lives in `data/decks/common.json`. */
+interface SharedCard extends DocCard {
+  /** The other deck that may draw it, from the "Also in" cell. */
+  alsoIn: DeckId;
+}
+
+/** The Type cell read as a type. A row without one fails here, by name. */
+function typeOf(card: string, cell: string | undefined): CardType {
+  const type = (cell ?? '').toLowerCase();
+  expect(isCardType(type), `"${card}" has no type the game knows ("${cell ?? ''}")`).toBe(true);
+  return type as CardType;
+}
+
+/** A table row's cells, or `null` for a header, a rule or a line that is not a row. */
+function cellsOf(line: string): string[] | null {
+  if (!line.startsWith('|')) return null;
+  const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+  if (cells[0] === 'Card' || cells.every((cell) => /^-+$/.test(cell))) return null;
+  return cells;
+}
+
+/** A Card cell read into the printed name and the "(was …)" name, if any. */
+function namesOf(cell: string): { name: string; was?: string } {
+  const plain = cell.replace(/\*\*/g, '').trim();
+  const match = /^(.*?)\s*\(was (.+)\)$/.exec(plain);
+  if (match === null) return { name: plain };
+  return { name: match[1]!.trim(), was: match[2]!.trim() };
+}
+
+/** A Status cell read into its first word and the reason after the colon. */
+function statusOf(card: string, cell: string): { status: DocStatus; reason?: string } {
+  const [head, reason] = cell.split(':').map((part) => part.trim());
+  expect(DOC_STATUSES, `"${card}" has an unknown status "${cell}"`).toContain(head);
+  return { status: head as DocStatus, ...(reason ? { reason } : {}) };
+}
+
+/**
+ * **The five tier tables of the sheet**, in the sheet's own order: from the
+ * first tier heading to the first level-two heading that is not a tier, so the
+ * shared table and the open section after it are not read here.
+ */
+function docCards(): DocCard[] {
+  const start = DOC.indexOf('\n## Tier 0');
+  expect(start, 'the sheet has a Tier 0 table').toBeGreaterThanOrEqual(0);
+  const cards: DocCard[] = [];
+  let band: Band | null = null;
+  for (const line of DOC.slice(start + 1).split('\n')) {
+    const heading = /^## Tier (0|I|II|III|IV)$/.exec(line);
+    if (heading) {
+      band = TIERS[heading[1]!]!;
+      continue;
+    }
+    if (line.startsWith('## ')) break;
+    const cells = cellsOf(line);
+    if (cells === null || band === null || cells.length < 5) continue;
+    cards.push({
+      ...namesOf(cells[0]!),
+      rarity: cells[1] as OrderRarity,
+      band,
+      ...statusOf(cells[0]!, cells[2]!),
+      text: cells[3]!,
+      type: typeOf(cells[0]!, cells[4]),
+    });
+  }
+  return cards;
+}
+
+/**
+ * **The shared table** ("Shared with another deck"): Card, Rarity, Also in,
+ * Tier, Status, Ability and Type. Its rows live in `data/decks/common.json`.
+ */
+function sharedCards(): SharedCard[] {
+  const start = DOC.indexOf('\n## Shared with another deck');
+  expect(start, 'the sheet has a shared table').toBeGreaterThanOrEqual(0);
+  const deckByWord = new Map(
+    (Object.entries(DECK_WORDS) as [DeckId, string][]).map(([deck, word]) => [word, deck] as const),
+  );
+  const cards: SharedCard[] = [];
+  // From the line after the heading to the next level-two heading.
+  for (const line of DOC.slice(start + 1).split('\n').slice(1)) {
+    if (line.startsWith('## ')) break;
+    const cells = cellsOf(line);
+    if (cells === null || cells.length < 7) continue;
+    const alsoIn = deckByWord.get(cells[2]!);
+    expect(alsoIn, `"${cells[0]}" is shared with an unknown deck "${cells[2]}"`).toBeDefined();
+    expect(Object.keys(TIERS), `"${cells[0]}" has an unknown tier "${cells[3]}"`).toContain(cells[3]);
+    cards.push({
+      ...namesOf(cells[0]!),
+      rarity: cells[1] as OrderRarity,
+      alsoIn: alsoIn!,
+      band: TIERS[cells[3]!]!,
+      ...statusOf(cells[0]!, cells[4]!),
+      text: cells[5]!,
+      type: typeOf(cells[0]!, cells[6]),
+    });
+  }
+  return cards;
+}
+
+/**
+ * **A counts table** of the sheet, read by its header row: each body row's
+ * first cell (with the bold taken off) against its number cells, in order.
+ */
+function countsTable(header: string): Map<string, number[]> {
+  const start = DOC.indexOf(header);
+  expect(start, `the sheet has the table "${header}"`).toBeGreaterThanOrEqual(0);
+  const rows = new Map<string, number[]>();
+  for (const line of DOC.slice(start).split('\n').slice(2)) {
+    if (!line.startsWith('|')) break;
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.replace(/\*\*/g, '').trim());
+    rows.set(
+      cells[0]!,
+      cells.slice(1).filter((cell) => /^\d+$/.test(cell)).map(Number),
+    );
+  }
+  return rows;
+}
+
+/** The name of the data row a sheet row stands for: the "(was …)" name if given. */
+const dataNameOf = (card: { name: string; was?: string }): string => card.was ?? card.name;
+
+/** The rows the sheet's tier tables must list: every row that is not retired. */
+const SHEET_ROWS: readonly OrderId[] = ROWS.filter((id) => orderDef(id).retired !== true);
 
 /**
  * A row the draft deals: one with effects, a commission (a goal and a reward)
@@ -158,6 +336,129 @@ describe('the Expansionist deck, as entered', () => {
     const bands = new Set(ROWS.map((id) => orderDef(id).band));
     // Band 4 is Tier IV (batch F); The Corvée and The General Levy sit there.
     expect([...bands].sort()).toEqual([0, 1, 2, 3, 4]);
+  });
+});
+
+describe('the Expansionist deck — the sheet', () => {
+  it('mirrors the deck sheet’s five tier tables, card for card', () => {
+    const doc = docCards();
+    expect(doc.length, 'the sheet lists cards under every tier heading').toBeGreaterThan(0);
+    const byName = new Map(SHEET_ROWS.map((id) => [orderDef(id).name, id] as const));
+    // Every name in this file, retired rows included, and every name in
+    // common.json: a card still to be added may reuse none of them.
+    const taken = new Set([
+      ...ROWS.map((id) => orderDef(id).name),
+      ...DECK_FILE_ORDERS.common.map((id) => orderDef(id).name),
+    ]);
+    for (const card of doc) {
+      if (card.status === 'add') {
+        expect(taken.has(card.name), `"${card.name}" is marked add but the data has it`).toBe(false);
+        continue;
+      }
+      const id = byName.get(dataNameOf(card));
+      expect(id, `the deck file has no row for "${dataNameOf(card)}"`).toBeDefined();
+      // The deck is unsorted in play: a type is checked only where the row carries one.
+      const type = orderDef(id!).type;
+      if (type !== undefined) expect(type, `${card.name}: the sheet's type`).toBe(card.type);
+      if (card.status === 'modify') {
+        // A row the sheet calls deferred is one the game does not deal yet.
+        if (card.reason === 'deferred') {
+          expect(orderIsDealt(id!), `${card.name} is marked deferred but is dealt`).toBe(false);
+        }
+        continue;
+      }
+      // Implemented: in the data, dealt, and printed exactly as the sheet prints it.
+      const def = orderDef(id!);
+      expect(card.was, `${card.name} is implemented and renamed`).toBeUndefined();
+      expect(orderIsDealt(id!), `${card.name} is marked implemented but is not dealt`).toBe(true);
+      expect(def.rarity, `${card.name}: the sheet's rarity`).toBe(card.rarity);
+      expect(def.band, `${card.name}: the sheet's tier`).toBe(card.band);
+      expect(def.text, `${card.name}: the sheet's ability`).toBe(card.text);
+    }
+    // Every row that is not retired is on the sheet once, as implemented or modify.
+    const listed = doc.filter((card) => card.status !== 'add').map(dataNameOf);
+    expect(new Set(listed).size, 'a data row is listed twice').toBe(listed.length);
+    for (const name of byName.keys()) {
+      expect(listed.includes(name), `"${name}" is a row the sheet's tier tables do not list`).toBe(true);
+    }
+    expect(listed.length).toBe(SHEET_ROWS.length);
+    // And the sheet prints no name twice, the shared table's included.
+    const printed = [...doc, ...sharedCards()].map((card) => card.name);
+    expect(new Set(printed).size, 'the sheet prints a name twice').toBe(printed.length);
+  });
+
+  it('mirrors the shared table onto its rows in common.json', () => {
+    const shared = sharedCards();
+    expect(shared.length, 'the shared table lists cards').toBeGreaterThan(0);
+    const common = new Map(
+      DECK_FILE_ORDERS.common
+        .filter((id) => orderDef(id).retired !== true)
+        .map((id) => [orderDef(id).name, id] as const),
+    );
+    let typed = 0;
+    for (const card of shared) {
+      const name = dataNameOf(card);
+      if (card.status === 'add') {
+        expect(common.has(name), `"${name}" is marked add but common.json has it`).toBe(false);
+        continue;
+      }
+      const id = common.get(name);
+      expect(id, `common.json has no row for "${name}"`).toBeDefined();
+      // The row is the one the sheet means: shared by Expansionist and the deck named.
+      const def = orderDef(id!);
+      expect(def.decks, name).toContain('expansionist');
+      expect(def.decks, name).toContain(card.alsoIn);
+      if (def.type !== undefined) {
+        expect(def.type, `${name}: the sheet's type`).toBe(card.type);
+        typed += 1;
+      }
+      if (card.status === 'modify') {
+        if (card.reason === 'deferred') {
+          expect(orderIsDealt(id!), `${name} is marked deferred but is dealt`).toBe(false);
+        }
+        continue;
+      }
+      expect(orderIsDealt(id!), `${name} is marked implemented but is not dealt`).toBe(true);
+      expect(def.rarity, `${name}: the sheet's rarity`).toBe(card.rarity);
+      expect(def.band, `${name}: the sheet's tier`).toBe(card.band);
+      expect(def.text, `${name}: the sheet's ability`).toBe(card.text);
+    }
+    // The five cards shared with Dominion carry the types its sheet gave them.
+    expect(typed, 'the typed shared rows were checked at all').toBeGreaterThan(0);
+  });
+
+  it('keeps every retired row off the sheet’s tables, and deals none of them', () => {
+    const listed = new Set(docCards().flatMap((card) => [card.name, dataNameOf(card)]));
+    for (const id of ROWS) {
+      if (orderDef(id).retired !== true) continue;
+      expect(listed.has(orderDef(id).name), `${id} is retired and still on the sheet`).toBe(false);
+      expect(orderIsDealt(id), `${id} is retired and still dealt`).toBe(false);
+    }
+  });
+
+  it('counts its rows in the two counts tables', () => {
+    const doc = docCards();
+    const shared = sharedCards();
+    const tierWords = Object.keys(TIERS);
+    const status = countsTable('| Tier | Implemented | Modify | Add | All |');
+    const types = countsTable('| Tier | Military | Economic | Civic | Wildcard |');
+    const byStatus = (cards: readonly DocCard[]): number[] => {
+      const counts = DOC_STATUSES.map((s) => cards.filter((card) => card.status === s).length);
+      return [...counts, cards.length];
+    };
+    const byType = (cards: readonly DocCard[]): number[] =>
+      (['military', 'economic', 'civic', 'wildcard'] as const).map(
+        (t) => cards.filter((card) => card.type === t).length,
+      );
+    for (const word of tierWords) {
+      const cards = doc.filter((card) => card.band === TIERS[word]);
+      expect(status.get(`Tier ${word}`), `Tier ${word}'s status counts`).toEqual(byStatus(cards));
+      expect(types.get(`Tier ${word}`), `Tier ${word}'s type counts`).toEqual(byType(cards));
+    }
+    expect(status.get('All'), 'the status totals').toEqual(byStatus(doc));
+    expect(types.get('All'), 'the type totals').toEqual(byType(doc));
+    expect(status.get('Shared'), 'the shared status counts').toEqual(byStatus(shared));
+    expect(types.get('Shared'), 'the shared type counts').toEqual(byType(shared));
   });
 });
 

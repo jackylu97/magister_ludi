@@ -2,6 +2,8 @@
 
 **Status:** second draft, 2026-10-16, rewritten around the user's two passes on the first (the rulings at the end of this file, verbatim). Nothing here is built, and the deck sheet (`docs/decks/expansionist.md`) is unchanged. Once the user rules, the builds go into the skill's deck map (`.claude/skills/card-design/references/deck-maps.md`) and the Type column goes onto the sheet.
 
+**The sheet:** since 2026-10-16 every card of these builds is on the deck sheet, `docs/decks/expansionist.md`, which is the spec of record for card text, status and type. This file keeps the reasoning behind the builds.
+
 The user's request that started the pass, 2026-10-16, verbatim:
 
 > *"ok, i'm feeling much better about the dominion deck. Could you do a similar pass as everything we did for the dominion deck for the expansionist deck? Start by analyzing the themes and playstyles for the deck, then create five 'builds' for the early and late game. Sort all existing cards into military/economic/civic/wildcard."*
