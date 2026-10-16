@@ -30,6 +30,7 @@ import {
   realiseItem,
   resourceCopies,
   settleGrowthWindfall,
+  settleRanksEarned,
   spawnTileFor,
   tileOwnerCityId,
   tileOwnerPlayerId,
@@ -217,6 +218,9 @@ import {
 } from '../unitData';
 import { isExploredBy, isVisibleTo } from '../visibility';
 import { isCoastal } from '../water';
+// Ranks (Dominion batch D1): a leaf over the rule book, the unit table and the
+// state, so the edge is one way.
+import { type RankId, grantExperience, rankThreshold } from '../ranks';
 import { orderAtSlotPosition, settleCultureWindfall, slotTypesOf, tallyOf } from './draft';
 import { tileConditionWords } from './describers';
 import { statecraftOf } from './draft';
@@ -2973,6 +2977,10 @@ export function countOf(
       // camp that has been burnt out leaves nothing to sweep, which is exactly
       // what clearing one means. Written at the single seam that clears one.
       return Math.max(0, Math.floor(playerById(state, playerId)?.campsCleared ?? 0));
+    case 'ranksEarned':
+      // `clearedCamps`' twin: a record, because a rank leaves the board with
+      // the unit that held it. Written in one place, `settleRanksEarned`.
+      return Math.max(0, Math.floor(playerById(state, playerId)?.ranksEarned ?? 0));
     case 'tally': {
       // **What this card has watched happen** — the growing cards' counter, and
       // the one member of the union that is not a question about the board at
@@ -6013,6 +6021,59 @@ export function cardUnitStamp(
   return stamp;
 }
 
+/** What a unit is gained with, in experience. See `cardBirthExperience`. */
+export interface BirthExperience {
+  /** Flat experience, summed over every row that reaches the unit. */
+  experience: number;
+  /** The highest rank any row names, or `null` when none does. */
+  rank: RankId | null;
+}
+
+/**
+ * **The experience this empire's law gives a unit it gains in this town** —
+ * The Training Cadre's two points and The Drill Masters' Veteran start
+ * (Dominion batch D1, `CardUnitStampEffect.experience` and `.rank`).
+ *
+ * Read by `realiseItem` alone, when a town gains a unit (trained, bought, given
+ * free or raised by a levy), which is the set of units the cards that pay on
+ * gaining a unit pay for. `createUnit` never reads it, so a unit from a ruin or
+ * a great person is not drilled.
+ *
+ * Narrowed the way `cardUnitStamp` narrows a stamp, with one difference: the
+ * scope is asked of **the town that gained the unit**, handed in, rather than of
+ * the town on the unit's birth hex. A unit gained in a town whose own hex is
+ * occupied appears beside it, and it was still gained in that town.
+ *
+ * Several `experience` rows add up. Several `rank` rows give the highest rank,
+ * never a sum of thresholds. `realiseItem` adds the two together.
+ */
+export function cardBirthExperience(
+  state: GameState,
+  city: City,
+  type: UnitTypeId,
+  bought?: 'gold' | 'faith',
+): BirthExperience {
+  const birth: BirthExperience = { experience: 0, rank: null };
+  for (const { effect } of cityEffectsOfKind(state, city, 'unitStamp')) {
+    if (effect.experience === undefined && effect.rank === undefined) continue;
+    if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope, city.ownerId)) {
+      continue;
+    }
+    if (effect.class !== undefined && !unitMatches(type, effect.class)) continue;
+    if (effect.bought !== undefined && effect.bought !== bought) continue;
+    if (effect.experience !== undefined) birth.experience += effect.experience;
+    if (effect.rank !== undefined) birth.rank = higherRank(birth.rank, effect.rank);
+  }
+  return birth;
+}
+
+/** The higher of two ranks, `null` standing for no rank at all. */
+export function higherRank(a: RankId | null, b: RankId | null): RankId | null {
+  if (a === null) return b;
+  if (b === null) return a;
+  return rankThreshold(b) > rankThreshold(a) ? b : a;
+}
+
 /**
  * A counted `cityStat` row read as the count it is asking — `payPeriodicBoon`'s
  * probe one ledger over, and here for that one's reason exactly: `countOf` is
@@ -6308,6 +6369,11 @@ export interface WindfallOccasionFacts {
    * attacker killed by the counter-blow (Songs of the Fallen).
    */
   defending?: boolean;
+  /**
+   * The rank just earned, on the `rankEarned` occasion (Up Through the Ranks'
+   * Elite). Filled by `settleRanksEarned` (`cities.ts`), once for each rank.
+   */
+  rank?: RankId;
 }
 
 
@@ -6468,6 +6534,9 @@ export function windfallPayout(
     if (effect.oncePerTurn === true && riderRodeThisTurn(state, playerId, card)) return false;
     // Songs of the Fallen: a loss counts only when the piece was defending.
     if (effect.defending === true && facts.defending !== true) return false;
+    // Up Through the Ranks pays for an Elite and not for a Veteran. Only the
+    // `rankEarned` occasion carries a rank, so the filter is silent elsewhere.
+    if (effect.rank !== undefined && facts.rank !== effect.rank) return false;
     return true;
   };
   // **The occasion's own figure, folded first.** The percentages sum and apply
@@ -6957,7 +7026,106 @@ export function musterPeriodicUnits(state: GameState): void {
   }
 }
 
-/** One thing this empire's cards let a levy buy. See `cardLevyGrants`. */
+/**
+ * **The drill phase** (Dominion batch D1): at the end of a turn, the units each
+ * empire's `drill` effects reach gain experience — The Drill Grounds, The
+ * Regimental Schools and The Tactica.
+ *
+ * For each empire, its fighting units are listed first, in `state.units`
+ * order. Each drill that fires this turn adds its experience to every unit on
+ * the list it reaches, and then each unit's total is written once, through
+ * `grantExperience` (`ranks.ts`), and the ranks it reached go to
+ * `settleRanksEarned` (`cities.ts`), which pays the cards that pay when a unit
+ * earns a rank. Writing once per unit is what lets two drills on the same turn
+ * add up without a rank being announced twice.
+ *
+ * A drill fires on the turns where `turn % every === 0`, `musterPeriodicUnits`'
+ * calendar, and on every turn when it names no `every`. The wild is skipped: it
+ * holds no cards.
+ */
+export function drillUnits(state: GameState): void {
+  for (const player of realPlayers(state)) {
+    const drills = effectsOfKind(state, player.id, 'drill');
+    if (drills.length === 0) continue;
+    const units = state.units.filter(
+      (unit) => unit.ownerId === player.id && isCombatant(unitDef(unit.type)),
+    );
+    const gains = units.map(() => 0);
+    // Who each kind of drill reaches, asked at most once a turn. Sets of ids,
+    // read for membership only; the outcome is decided by `units`' order.
+    let garrisoned: Set<number> | null = null;
+    let nearGeneral: Set<number> | null = null;
+    for (const { effect } of drills) {
+      const every = Math.floor(effect.every ?? 1);
+      if (every <= 0 || state.turn % every !== 0) continue;
+      let reached: Set<number>;
+      if (effect.where === 'garrison') {
+        garrisoned ??= garrisonedUnitIds(state, player.id);
+        reached = garrisoned;
+      } else {
+        nearGeneral ??= unitIdsNearGenerals(state, player.id);
+        reached = nearGeneral;
+      }
+      units.forEach((unit, index) => {
+        if (reached.has(unit.id)) gains[index] = (gains[index] ?? 0) + effect.experience;
+      });
+    }
+    units.forEach((unit, index) => {
+      const gain = gains[index] ?? 0;
+      if (gain <= 0) return;
+      settleRanksEarned(state, unit, grantExperience(state, unit, gain));
+    });
+  }
+}
+
+/**
+ * The ids of this empire's units standing in one of its towns, as `garrisonOf`
+ * reads a garrison: fighting units on the town's own hex.
+ */
+function garrisonedUnitIds(state: GameState, playerId: number): Set<number> {
+  const ids = new Set<number>();
+  for (const city of citiesOf(state, playerId)) {
+    for (const unit of garrisonOf(state, city)) ids.add(unit.id);
+  }
+  return ids;
+}
+
+/**
+ * The ids of this empire's fighting units on the hex of one of its great
+ * generals or on one of the six hexes around it (The Tactica's "beside them").
+ * A great general is recognised the way `generalAuraLines` (`combat.ts`)
+ * recognises one: a great-person piece whose person is of the general family.
+ */
+function unitIdsNearGenerals(state: GameState, playerId: number): Set<number> {
+  const generals: { col: number; row: number }[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    if (unitDef(unit.type).greatWork !== true) continue;
+    const person = unit.person;
+    if (person === undefined || !isGreatPersonId(person)) continue;
+    if (greatPersonDef(person).family !== 'general') continue;
+    generals.push({ col: unit.col, row: unit.row });
+  }
+  const ids = new Set<number>();
+  if (generals.length === 0) return ids;
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    if (!isCombatant(unitDef(unit.type))) continue;
+    const stands = getTileAt(state.map, unit.col, unit.row);
+    if (!stands) continue;
+    const eye = tileHex(stands);
+    for (const general of generals) {
+      const there = getTileAt(state.map, general.col, general.row);
+      if (!there) continue;
+      if (wrappedDistance(state.map, eye, tileHex(there)) > 1) continue;
+      ids.add(unit.id);
+      break;
+    }
+  }
+  return ids;
+}
+
+/** One row of this empire's law that lets a levy buy something. See `cardLevyGrants`. */
 export interface LevyGrant {
   use: LevyUse;
   card: CardId;
@@ -6966,23 +7134,33 @@ export interface LevyGrant {
   minPopulation?: number;
   /** The row's waiting period while at war, if it has one (The General Levy). */
   everyAtWar?: number;
+  /** The rank a unit raised under this row starts at (The Devshirme's Veteran). */
+  rank?: RankId;
 }
 
 /**
- * **What a levy may buy for this empire** — one entry per use, in the law's own
- * order (batch L). Two cards granting the same use give one entry, named after
- * the first, so the city panel never lists one choice twice. An empire holding
- * no levy card answers the empty list, and the panel shows no button.
+ * **What a levy may buy in this town** — every row of the law that grants a use
+ * and whose `scope` admits the town, in the law's own order (batch L; scopes
+ * since Dominion batch D1).
+ *
+ * Two cards granting the same use are both listed. The city panel still shows
+ * one line per use: `levyGrantFor` (`levies.ts`) picks the row that governs it
+ * in this town, which is where the town's size is read. An empire holding no
+ * levy card, or none whose scope admits this town, answers the empty list, and
+ * the panel shows no button.
  */
-export function cardLevyGrants(state: GameState, playerId: number): LevyGrant[] {
+export function cardLevyGrants(state: GameState, playerId: number, city: City): LevyGrant[] {
   const grants: LevyGrant[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'levy')) {
     const use = effect.use;
     if (use === undefined) continue;
-    if (grants.some((grant) => grant.use === use)) continue;
+    if (effect.scope !== undefined && !cityScopeAdmits(state, city, effect.scope, playerId)) {
+      continue;
+    }
     const grant: LevyGrant = { use, card, source };
     if (effect.minPopulation !== undefined) grant.minPopulation = effect.minPopulation;
     if (effect.everyAtWar !== undefined) grant.everyAtWar = effect.everyAtWar;
+    if (effect.rank !== undefined) grant.rank = effect.rank;
     grants.push(grant);
   }
   return grants;
@@ -8562,6 +8740,12 @@ export interface FoundingRider {
   roads: boolean;
   /** Extra hexes claimed at once beyond the first ring. See the shape's `claims`. */
   claims: number;
+  /**
+   * Units the founding raises to a rank, in the law's order — The Armed
+   * Colony's escort (Dominion batch D1). `foundCityAt` raises each through
+   * `raiseToRank`. Empty unless a row with an `escort` found one.
+   */
+  ranks: { unitId: number; rank: RankId }[];
 }
 
 /**
@@ -8571,20 +8755,63 @@ export interface FoundingRider {
  * reading The Founders' Road's text asks for ("your first 5 cities") and the
  * only one that does not need a counter on the player: the fifth city is founded
  * while four stand, and a sixth is not.
+ *
+ * `at` is the founding hex, which a row with an `escort` needs (The Armed
+ * Colony, Dominion batch D1). Such a row applies only when one of this empire's
+ * units of that class stands on the hex or beside it, and is skipped when no
+ * hex is given.
  */
-export function cardFoundingRider(state: GameState, playerId: number): FoundingRider {
-  const rider: FoundingRider = { population: 0, buildings: [], roads: false, claims: 0 };
+export function cardFoundingRider(
+  state: GameState,
+  playerId: number,
+  at?: { col: number; row: number },
+): FoundingRider {
+  const rider: FoundingRider = { population: 0, buildings: [], roads: false, claims: 0, ranks: [] };
   const held = cityCount(state, playerId);
   for (const { effect } of effectsOfKind(state, playerId, 'foundingRider')) {
     if (effect.maxCities !== undefined && held >= effect.maxCities) continue;
+    let escort: Unit | null = null;
+    if (effect.escort !== undefined) {
+      if (at === undefined) continue;
+      escort = escortAt(state, playerId, at, effect.escort);
+      if (escort === null) continue;
+    }
     if (effect.population !== undefined) rider.population += effect.population;
     if (effect.building !== undefined && !rider.buildings.includes(effect.building)) {
       rider.buildings.push(effect.building);
     }
     if (effect.roads === true) rider.roads = true;
     if (effect.claims !== undefined) rider.claims += effect.claims;
+    if (escort !== null && effect.rank !== undefined) {
+      rider.ranks.push({ unitId: escort.id, rank: effect.rank });
+    }
   }
   return rider;
+}
+
+/**
+ * The unit that meets a founding rider's `escort` condition: the first of this
+ * empire's units in `state.units` order that matches the filter and stands on
+ * the founding hex or one of the six around it. `null` when there is none.
+ */
+function escortAt(
+  state: GameState,
+  playerId: number,
+  at: { col: number; row: number },
+  filter: UnitFilter,
+): Unit | null {
+  const centre = getTileAt(state.map, at.col, at.row);
+  if (!centre) return null;
+  const eye = tileHex(centre);
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    if (!unitMatches(unit.type, filter)) continue;
+    const stands = getTileAt(state.map, unit.col, unit.row);
+    if (!stands) continue;
+    if (wrappedDistance(state.map, eye, tileHex(stands)) > 1) continue;
+    return unit;
+  }
+  return null;
 }
 
 /**

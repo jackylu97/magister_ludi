@@ -184,6 +184,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
     field: 'warLosses',
     pattern: /\.warLosses\s*=[^=]|\.warLosses\.(push|splice)\(|delete\s+\w+(\.\w+)*\.warLosses/,
   },
+  // Dominion batch D1: the ranks an empire's units have earned, which the
+  // `ranksEarned` count reads. A new count kind is a new row of this register.
+  { field: 'ranksEarned', pattern: /\.ranksEarned\s*(=[^=]|\+=)/ },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -287,6 +290,9 @@ const ANNOUNCING = new Set([
   // Batch WC2: the one writer of `Player.warLosses`, which the happiness
   // meter's war weariness lines count.
   'weariness.ts#recordWarLoss',
+  // Dominion batch D1: the one writer of `Player.ranksEarned`, which the
+  // `ranksEarned` count reads.
+  'cities.ts#settleRanksEarned',
   'state.ts#claimWonder',
   'state.ts#createCity',
   'state.ts#createUnit',

@@ -579,6 +579,9 @@ describe("the card table", () => {
       // Batch L: a town spends a citizen on what the card names (Levy of the
       // Land and the other Expansionist levy cards).
       "levy",
+      // Dominion batch D1: units gain experience at the end of a turn (The
+      // Drill Grounds, The Regimental Schools, The Tactica).
+      "drill",
     ];
     for (const kind of expected) expect(used.has(kind), kind).toBe(true);
   });
@@ -1557,6 +1560,7 @@ describe("every hook family, end to end", () => {
       buildings: [],
       roads: false,
       claims: 0,
+      ranks: [],
     });
     const city = found(g.state, 0);
     expect(city.population).toBe(2);
@@ -1831,7 +1835,10 @@ describe("determinism", () => {
     // 129 since C2a: chairs have types again, adoption re-seats the council,
     // and the tier-38 governments are retired, so a v128 log can seat a card
     // where this build refuses it.
-    expect(SCHEMA_VERSION).toBe(129);
+    // 130 since D1: eleven Dominion cards that give units experience or pay
+    // when a unit earns a rank, a new end-of-turn phase and a new record, so
+    // a v129 log's picks name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(130);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -4255,6 +4262,7 @@ describe("the Orders pass of 2026-08-29", () => {
       buildings: ["granary"],
       roads: false,
       claims: 0,
+      ranks: [],
     });
     const unit =
       g.state.units.find((u) => u.ownerId === 0 && u.type === "settler") ??

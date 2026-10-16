@@ -305,7 +305,7 @@ import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { blockadedWaterAround, blockades } from './blockade';
 import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from './buildingData';
 import { buildingCityHp, buildingCityStat } from './buildingEffects';
-import { assignCitizens, cityAt, settleProductionWindfall } from './cities';
+import { assignCitizens, cityAt, settleProductionWindfall, settleRanksEarned } from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
   type GameMap,
@@ -2942,18 +2942,28 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     !forecast.plundersUnit &&
     (forecast.cityPhase === 'walls' ||
       (target.unit !== null && isCombatant(unitDef(target.unit.type))));
+  // **A rank earned here is a moment the cards pay on** (Dominion batch D1):
+  // each award returns the ranks it reached, and `settleRanksEarned` keeps the
+  // record and pays the owner's cards, the defender's owner included.
   if (fought && defenderOwnerBefore !== null) {
     const defenderFell = target.unit !== null && defenderDied;
     if (outcome.attackerSurvived) {
-      awardExperience(state, attacker, defenderFell ? 'kill' : 'survived', defenderOwnerBefore);
+      const ranks = awardExperience(
+        state,
+        attacker,
+        defenderFell ? 'kill' : 'survived',
+        defenderOwnerBefore,
+      );
+      settleRanksEarned(state, attacker, ranks);
     }
     if (target.unit !== null && !defenderFell) {
-      awardExperience(
+      const ranks = awardExperience(
         state,
         target.unit,
         outcome.attackerSurvived ? 'survived' : 'kill',
         attacker.ownerId,
       );
+      settleRanksEarned(state, target.unit, ranks);
     }
   }
 

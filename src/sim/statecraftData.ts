@@ -73,6 +73,8 @@ import type { ModifierStage } from './yields/stages';
 import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, ConsecrationId, RiteId } from './religionData';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
+// Type-only: a rank is named on a card the way the rule book names it.
+import type { RankId } from './rulesData';
 import type { TerrainId } from './terrainData';
 // Type-only, so no load-time edge: a route's medium is one vocabulary and the
 // card table names it rather than respelling it. See `CardPaysEffect.mode`.
@@ -2376,6 +2378,18 @@ export type CountKind =
    */
   | 'clearedCamps'
   /**
+   * **Ranks this empire's units have earned, across the whole game** — The
+   * Veterans' Roll (Dominion batch D1).
+   *
+   * `clearedCamps`' twin: answered off a record (`Player.ranksEarned`) rather
+   * than off the board, because a Veteran who dies takes its rank off the board
+   * with it and the card counts every rank ever earned. A unit that earns
+   * Veteran and then Elite counts twice. The record is written in one place,
+   * `settleRanksEarned` (`cities.ts`), so a rank earned in a fight, at a drill,
+   * at a founding or by a unit gained as a Veteran all count alike.
+   */
+  | 'ranksEarned'
+  /**
    * Wonders standing **anywhere in the world**, yours and everybody's — The
    * Grand Tour's "seen or not".
    *
@@ -3046,7 +3060,17 @@ export type TallyOccasion =
    * A foreign town turned to a religion this empire is paid by — The Mission.
    * Written where the first-conversion record is written, on every conversion.
    */
-  | 'foreignCityConverted';
+  | 'foreignCityConverted'
+  /**
+   * One of this empire's units **earned a rank** — The Campaign Annals
+   * (Dominion batch D1). Written in `settleRanksEarned` (`cities.ts`), once for
+   * each rank, so a unit that goes from nothing to Elite in one step counts
+   * twice. The same moment as `WindfallOccasion`'s `rankEarned` and the
+   * lifetime record `Player.ranksEarned`: a card in a chair, a card that pays
+   * on the moment and a card that reads the record each ask their own question
+   * about it.
+   */
+  | 'rankEarned';
 // **There is deliberately no `cityGrew`**, and the audit asked for one: every
 // growth card in the six decks is bound by the design doc's standing clause
 // that natural-growth rewards *count only growth beyond the town's historical
@@ -3073,6 +3097,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'buildingBoughtWithGold',
   'riteStarted',
   'foreignCityConverted',
+  'rankEarned',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -4107,7 +4132,25 @@ export type WindfallOccasion =
    * own docblock states, and `TallyOccasion`'s `greatPersonSpent` already counts
    * both for the cards that mean to.
    */
-  | 'greatPersonAct';
+  | 'greatPersonAct'
+  /**
+   * **One of this empire's units earned a rank** — Honours of the Legion, The
+   * Tactica and Up Through the Ranks (Dominion batch D1).
+   *
+   * Fired by `settleRanksEarned` (`cities.ts`) once for each rank reached, so a
+   * unit that goes from no rank to Elite in one step pays twice: once as a
+   * Veteran and once as an Elite. Every way a unit gains experience reaches it:
+   * a fight, a drill at the end of a turn, The Armed Colony's escort, and a unit
+   * that is gained already holding a rank. The last is the user's ruling of
+   * 2026-10-16: a unit that starts as a Veteran counts as earning the rank.
+   *
+   * It carries the rank reached (`WindfallOccasionFacts.rank`, which
+   * `CardWindfallRiderEffect.rank` narrows on), the unit's type as the actor and
+   * its strength, read the way a completion reads it: the roster's figure plus
+   * the unit's stamp. Food and production a rider pays land in the town nearest
+   * the unit.
+   */
+  | 'rankEarned';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
@@ -5348,6 +5391,37 @@ export interface CardUnitStampEffect {
    * every birth, bought or built.
    */
   bought?: 'gold' | 'faith';
+  /**
+   * **Experience the unit is gained with** — The Training Cadre's "units gained
+   * in a town with a Barracks start with 2 experience" (Dominion batch D1).
+   *
+   * Unlike the three marks above, experience is not kept on the stamp: it is
+   * written into `Unit.experience` (through `grantExperience`, `ranks.ts`) and
+   * grows from there like any unit's. And it is read at a different moment:
+   * `cardBirthExperience`, called by `realiseItem` when a town **gains** a unit
+   * (trained, bought, given free or raised by a levy), and never by
+   * `createUnit`. That is the same set of units the cards that pay on gaining a
+   * unit pay for (the user's ruling of 2026-10-16), so a unit from a ruin or a
+   * great person starts with nothing. `scope` is asked of the town that gained
+   * the unit, `class` and `bought` as above. Only an empire's fighting units
+   * hold experience (`ranks.ts`), so a settler gains none.
+   *
+   * Experience from several rows adds up, and it adds on top of `rank` below.
+   */
+  experience?: number;
+  /**
+   * **The rank the unit is gained at** — The Drill Masters' "units you gain
+   * start as Veterans" (Dominion batch D1).
+   *
+   * Read with `experience`, at the same moment and with the same narrowing. The
+   * unit starts with the rank's threshold of experience, plus whatever
+   * `experience` rows add: a Veteran start and The Training Cadre's two make a
+   * Veteran two points closer to Elite. Several rows naming ranks give the
+   * highest of them, never the sum. A unit gained at a rank counts as earning
+   * it (the user's ruling of 2026-10-16), so it pays the cards that pay when a
+   * unit earns a rank.
+   */
+  rank?: RankId;
 }
 
 /**
@@ -5616,6 +5690,13 @@ export interface CardWindfallRiderEffect {
    * an attacker killed by the counter-blow.
    */
   defending?: boolean;
+  /**
+   * The rider fires only when the rank just earned is **this one** — Up Through
+   * the Ranks, which pays for an Elite and not for a Veteran (Dominion batch
+   * D1). Read off `WindfallOccasionFacts.rank`, which only the `rankEarned`
+   * occasion carries, so a rider written onto any other occasion never pays.
+   */
+  rank?: RankId;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -5650,6 +5731,34 @@ export interface CardFoundingRiderEffect {
    * next (`bestExpansionTile`), claimed in `foundCityAt`.
    */
   claims?: number;
+  /**
+   * **The row applies only to a town founded beside one of your units of this
+   * class** — The Armed Colony's "a town founded beside one of your military
+   * units" (Dominion batch D1).
+   *
+   * "Beside" is the founding hex itself or one of the six around it, the reading
+   * recorded in `docs/plans/dominion-build-triage.md`, item 9. The unit that
+   * meets the condition is the first one in `state.units` order: that is the
+   * unit `rank` below speaks of, and a replay finds the same one. Without this
+   * field a row applies to every founding, as every row written before it does.
+   *
+   * It is a condition on the whole row, so every other field on the row (the
+   * extra hexes, a building, citizens) waits for it too. A caller that names no
+   * founding hex (`cardFoundingRider` asked without one) reads such a row as not
+   * applying.
+   */
+  escort?: UnitFilter;
+  /**
+   * **The escort becomes at least this rank** — The Armed Colony's "and that
+   * unit becomes a Veteran" (Dominion batch D1).
+   *
+   * Read only with `escort`, because it speaks of the unit that met that
+   * condition; a row carrying it alone names no unit and raises nobody. A unit
+   * that already holds the rank, or a higher one, gains nothing (item 9 of the
+   * triage). Raised through `raiseToRank` (`ranks.ts`), so a rank earned this
+   * way pays the cards that pay when a unit earns a rank.
+   */
+  rank?: RankId;
 }
 
 /** A payout scaled by a count. See `CountKind` and `CardPayout`. */
@@ -6076,6 +6185,43 @@ export interface CardPeriodicMusterEffect {
 }
 
 /**
+ * **A drill**: at the end of a turn, some of this empire's units gain
+ * experience (Dominion batch D1). The Drill Grounds (units standing in your
+ * towns, every four turns), The Regimental Schools (garrisoned units, every
+ * turn) and The Tactica (units beside a great general, every turn).
+ *
+ * Read by the `drill` phase (`drillUnits` in `statecraft/evaluator.ts`), which
+ * runs after the periodic muster. Each unit's experience from every drill that
+ * reaches it that turn is added together and written once, through
+ * `grantExperience` (`ranks.ts`), so only an empire's fighting units are
+ * drilled and a rank reached this way pays the cards that pay when a unit
+ * earns a rank.
+ *
+ * `periodicMuster`'s sibling in how it keeps time: a drill with `every` fires
+ * on the turns where `turn % every === 0`, the world's own calendar, so two
+ * empires holding The Drill Grounds drill on the same turns.
+ */
+export interface CardDrillEffect {
+  kind: 'drill';
+  /** Experience each unit reached gains when the drill fires. */
+  experience: number;
+  /**
+   * Which units are drilled:
+   *
+   *   · `'garrison'` — the fighting units standing in one of your towns, the
+   *     same units the `garrison` count and the `garrisoned` scope read
+   *     (`garrisonOf`). "Units standing in your towns" and "each garrisoned
+   *     unit" are this one set.
+   *   · `'general'` — your fighting units on the hex of one of your great
+   *     generals or on one of the six hexes around it. A unit beside two
+   *     generals is drilled once.
+   */
+  where: 'garrison' | 'general';
+  /** Turns between drills. A turn drills when `turn % every === 0`. Absent: every turn. */
+  every?: number;
+}
+
+/**
  * What a levy can buy. A levy is the `levyCitizen` command: a town gives up one
  * citizen and gets something for it. Which of these a town may choose depends
  * on the cards its owner holds.
@@ -6113,6 +6259,14 @@ export const LEVY_USES: readonly LevyUse[] = ['production', 'muster', 'opus', 'c
  * `everyAtWar` shortens it for this use while the empire is at war with another
  * empire (The General Levy: every turn). `minPopulation` raises the town size a
  * levy under this use needs (The Corvée: ten).
+ *
+ * **Two cards may grant the same use** (The Muster of the Fields and The
+ * Devshirme both grant `muster`). The town's menu still shows one line for the
+ * use, and `levyGrantFor` (`levies.ts`) decides which card's row governs it in
+ * that town: among the rows whose `scope` admits the town and whose floor the
+ * town meets, the one with the highest `rank`, then the first in the law's
+ * order. If the town meets no row's floor, the row with the lowest floor speaks,
+ * so the refusal names the smallest town that would do.
  */
 export interface CardLevyEffect {
   kind: 'levy';
@@ -6121,6 +6275,21 @@ export interface CardLevyEffect {
   minPopulation?: number;
   /** Turns between levies for this use while the empire is at war. */
   everyAtWar?: number;
+  /**
+   * **Which towns this row lets levy** — The Devshirme's captured towns
+   * (Dominion batch D1). Asked of the levying town through `cityScopeAdmits`,
+   * the predicate every scoped clause uses. Absent lets every town levy, as
+   * every row written before it does.
+   */
+  scope?: CityScope;
+  /**
+   * **The rank a unit raised under this row starts at** — The Devshirme's "as a
+   * Veteran" (Dominion batch D1). Read only by the two uses that raise a unit
+   * (`muster`, `conscript`), handed to `realiseItem` as `RealiseOptions.rank`,
+   * and combined there with the cards' own starting experience
+   * (`CardUnitStampEffect.rank`): the higher of the two ranks applies.
+   */
+  rank?: RankId;
   /** What a levy leaves on the town that raised it. */
   after?: { turns: number; every: number; effects: CardEffect[] };
 }
@@ -7195,6 +7364,8 @@ export type CardEffect =
   | CardRuleEffect
   | CardPeriodicOfferEffect
   | CardPeriodicMusterEffect
+  // Dominion batch D1: units gain experience at the end of a turn.
+  | CardDrillEffect
   // Batch L: a town may spend one citizen on what the card names.
   | CardLevyEffect
   // E4b's one new shape: a moment in a piece's life that is not its birth.

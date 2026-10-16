@@ -13,7 +13,9 @@
  *   · the strength line: one flat line per rank, on both sides, the same in
  *     every age, folded into the forecast and the fight alike;
  *   · persistence: an automatic upgrade and a change of owner keep it;
- *   · the register: one writer of `Unit.experience`, paid from one place;
+ *   · the register: one writer of `Unit.experience`, the three ways to raise
+ *     it (a fight, a card's grant, a rank a card names) and who calls each, and
+ *     that every caller hands the ranks reached to `settleRanksEarned`;
  *   · the interface's readouts of it (the unit panel's figures);
  *   · the bots, which keep a wounded veteran out of a fight it is likely to
  *     lose;
@@ -35,12 +37,15 @@ import {
   RANK_IDS,
   awardExperience,
   experienceAfter,
+  grantExperience,
   nextRankOf,
+  raiseToRank,
   rankFor,
   rankOf,
   rankStrength,
   rankStrengthLines,
   rankThreshold,
+  ranksReached,
 } from '../../src/sim/ranks';
 import { RULES } from '../../src/sim/rulesData';
 import {
@@ -450,6 +455,53 @@ describe('the strength line', () => {
 
 // --- persistence ------------------------------------------------------------
 
+// --- experience from a card (Dominion batch D1) ------------------------------
+
+describe('experience from a card', () => {
+  it('names the ranks a raise reaches, lowest first', () => {
+    expect(ranksReached(0, VETERAN - 1)).toEqual([]);
+    expect(ranksReached(0, VETERAN)).toEqual(['veteran']);
+    expect(ranksReached(VETERAN - 1, ELITE)).toEqual(['veteran', 'elite']);
+    expect(ranksReached(VETERAN, ELITE)).toEqual(['elite']);
+    expect(ranksReached(ELITE, ELITE + 5)).toEqual([]);
+    expect(ranksReached(ELITE, 0)).toEqual([]);
+  });
+
+  it('adds a card’s experience with no barbarian cap, and says what it reached', () => {
+    const state = bench(true);
+    const piece = createUnit(state, 0, 'warrior', 4, 4);
+    expect(grantExperience(state, piece, VETERAN)).toEqual(['veteran']);
+    // A card's grant is not a fight with the wild, so the cap does not stop it.
+    expect(grantExperience(state, piece, ELITE - VETERAN)).toEqual(['elite']);
+    expect(piece.experience).toBe(ELITE);
+    // Nothing below one point is written.
+    expect(grantExperience(state, piece, 0.5)).toEqual([]);
+    expect(piece.experience).toBe(ELITE);
+  });
+
+  it('gives a civilian and a barbarian unit nothing', () => {
+    const state = bench(true);
+    const worker = createUnit(state, 0, 'worker', 4, 4);
+    expect(grantExperience(state, worker, ELITE)).toEqual([]);
+    expect(raiseToRank(state, worker, 'veteran')).toEqual([]);
+    expect(worker.experience).toBeUndefined();
+    const raider = createUnit(state, wildId(state), 'warrior', 6, 6);
+    expect(grantExperience(state, raider, ELITE)).toEqual([]);
+    expect(raider.experience).toBeUndefined();
+  });
+
+  it('raises a unit to a rank, and leaves one already there alone', () => {
+    const state = bench();
+    const fresh = createUnit(state, 0, 'warrior', 4, 4);
+    expect(raiseToRank(state, fresh, 'veteran')).toEqual(['veteran']);
+    expect(fresh.experience).toBe(VETERAN);
+    const seasoned = createUnit(state, 0, 'warrior', 6, 4);
+    seasoned.experience = VETERAN + 2;
+    expect(raiseToRank(state, seasoned, 'veteran')).toEqual([]);
+    expect(seasoned.experience).toBe(VETERAN + 2);
+  });
+});
+
 describe('experience stays with the unit', () => {
   it('survives an automatic upgrade, and so does the rank', () => {
     const state = bench();
@@ -522,15 +574,49 @@ function sitesOf(pattern: RegExp): string[] {
 describe('the register', () => {
   it('writes a unit’s experience in one place', () => {
     const writes = sitesOf(/\.experience\s*=[^=]|delete\s+\w+(\.\w+)*\.experience\b/);
-    expect(writes).toEqual(['ranks.ts#awardExperience']);
+    expect(writes).toEqual(['ranks.ts#writeExperience']);
+    // And the writer is reached only through the three ways to raise it.
+    expect(sitesOf(/(?<!function )\bwriteExperience\(/)).toEqual([
+      'ranks.ts#awardExperience',
+      'ranks.ts#grantExperience',
+      'ranks.ts#raiseToRank',
+    ]);
   });
 
-  it('pays experience from the fight and nowhere else', () => {
+  it('pays a fight’s experience from the fight and nowhere else', () => {
     // One for the attacker and one for a defending unit, both at the end of
     // `applyCombat`. A new way to fight joins this list, or it is a fight
     // nobody learns from.
     const callers = sitesOf(/(?<!function )\bawardExperience\(/);
     expect(callers).toEqual(['combat.ts#applyCombat', 'combat.ts#applyCombat']);
+  });
+
+  it('pays a card’s experience from the drill and the gaining of a unit, and a rank from a founding', () => {
+    // Dominion batch D1. The drill phase (The Drill Grounds, The Regimental
+    // Schools, The Tactica) and `realiseItem` (The Training Cadre, The Drill
+    // Masters, The Devshirme) grant experience; a founding (The Armed Colony)
+    // raises its escort to a rank. A new way for a card to hand out experience
+    // joins one of these lists.
+    expect(sitesOf(/(?<!function )\bgrantExperience\(/)).toEqual([
+      'cities.ts#realiseItem',
+      'evaluator.ts#drillUnits',
+    ]);
+    expect(sitesOf(/(?<!function )\braiseToRank\(/)).toEqual(['cities.ts#foundCityAt']);
+  });
+
+  it('settles the ranks reached wherever experience rises, and keeps the record in one place', () => {
+    // Every caller of the three raises hands what it reached to
+    // `settleRanksEarned`, so a rank earned in any of the four ways pays the
+    // cards that pay on the moment. The lifetime record is written there and
+    // nowhere else.
+    expect(sitesOf(/(?<!function )\bsettleRanksEarned\(/)).toEqual([
+      'cities.ts#foundCityAt',
+      'cities.ts#realiseItem',
+      'combat.ts#applyCombat',
+      'combat.ts#applyCombat',
+      'evaluator.ts#drillUnits',
+    ]);
+    expect(sitesOf(/\.ranksEarned\s*(=[^=]|\+=)/)).toEqual(['cities.ts#settleRanksEarned']);
   });
 });
 

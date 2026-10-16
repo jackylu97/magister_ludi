@@ -493,10 +493,30 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * standard game 15, 127 and 85. The two chairs standing empty on the standard
  * board at turn 120 are held by malices. Nothing stalled and no command was
  * refused, which the assertion above this one checks before the hash does.
+ *
+ * ---
+ *
+ * **Dominion batch D1 (schema 130), ranks: earning them.** Duel
+ * `6f55a0da:270418` → `b8469a41:274868`, standard `caf0dbef:987468` →
+ * `c4b52563:951785`. Four things moved them:
+ *
+ *   · the version, 129 to 130;
+ *   · the new `drill` phase, which raises the revision once more every turn;
+ *   · the new record `Player.ranksEarned`, written for every seat whose units
+ *     earn a rank, in a fight or otherwise;
+ *   · the eleven cards: nine new rows join the Dominion pool and two rows are
+ *     replaced (The Training Cadre takes over Drill Manuals, Honours of the
+ *     Legion takes over The War Hall Schools), so from the first draw that
+ *     meets one of them the hands are different hands.
+ *
+ * Checked by taking all four back out (the deck file as C2a left it, the
+ * version at 129, the phase removed and the record not written), which gives
+ * C2a's digests exactly on both boards. Nothing stalled and no command was
+ * refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '6f55a0da:270418',
-  standard: 'caf0dbef:987468',
+  duel: 'b8469a41:274868',
+  standard: 'c4b52563:951785',
 };
 
 /**

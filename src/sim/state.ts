@@ -1202,8 +1202,34 @@ import {
  * build keeps seated, and a seat that reached draft 38 adopted a government
  * this build never offers. Each of those changes what the seat holds from that
  * command on. The branch migrates nothing, for the reason given under v119.
+ *
+ * v130 (branch `decks`; batch D1 of `docs/plans/dominion-build-triage.md`,
+ * ranks: earning them): **eleven Dominion cards that give units experience or
+ * pay when a unit earns a rank.** Nine join the Dominion file and two take over
+ * existing rows: The Training Cadre replaces Drill Manuals and Honours of the
+ * Legion replaces The War Hall Schools, each keeping its id. One field joins
+ * the state: `Player.ranksEarned`, the number of ranks the empire's units have
+ * ever earned, absent until the first and raised only by `settleRanksEarned`
+ * (`cities.ts`). The rules that change:
+ *
+ *   · experience no longer comes from fighting alone. A new end-of-turn phase,
+ *     `drill`, runs after `muster` (The Drill Grounds, The Regimental Schools,
+ *     The Tactica); a unit gained in a town can start with experience or a
+ *     rank (The Training Cadre, The Drill Masters, and The Devshirme's levy);
+ *     and a town founded beside a military unit can make it a Veteran (The
+ *     Armed Colony). Civilians and barbarians still earn nothing;
+ *   · earning a rank is a moment the cards pay on: the `rankEarned` windfall
+ *     occasion and tally, and the `ranksEarned` count over the new record;
+ *   · two cards may grant one levy use, and the row that governs it in a town
+ *     is chosen by the town (`levyGrantFor`, `levies.ts`).
+ *
+ * **A v129 save is refused and does not replay.** The draft bags hold
+ * different cards, so a v129 log's picks would name cards this build never
+ * dealt, the new phase raises the revision once more every turn, and a unit
+ * that earns a rank writes the new record. The branch migrates nothing, for the
+ * reason given under v119.
  */
-export const SCHEMA_VERSION = 129;
+export const SCHEMA_VERSION = 130;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1935,6 +1961,20 @@ export interface Player {
    */
   unitsKilled: number;
   unitsLost: number;
+  /**
+   * **How many ranks this empire's units have ever earned** (Dominion batch
+   * D1): The Veterans' Roll's count (`CountKind`'s `ranksEarned`).
+   *
+   * One for each rank, however it was earned: in a fight, at a drill, at a
+   * founding (The Armed Colony) or by a unit gained already holding one. A unit
+   * that goes from no rank to Elite counts two. Written in one place,
+   * `settleRanksEarned` (`cities.ts`), and only ever raised.
+   *
+   * Stored rather than derived because a rank leaves the board with the unit
+   * that held it. Absent until the first rank, so an empire whose units have
+   * earned none serialises the way it did before the field existed.
+   */
+  ranksEarned?: number;
   /**
    * **The losses this empire has suffered to other empires in war**, oldest
    * first (batch WC2, `docs/flags.md` (rrrrrr) part 2). War weariness is read

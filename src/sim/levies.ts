@@ -21,6 +21,10 @@
  *   · `levyError` — the one refusal, asked by the panel and by the command;
  *   · `levyAt` — the mutation, called only after `levyError` said yes.
  *
+ * All three ask `levyGrantFor` which card's row governs a use in a town, since
+ * Dominion batch D1 made a row's reach depend on the town (The Devshirme's
+ * captured towns) and gave a row a starting rank for the unit it raises.
+ *
  * Bots ignore levies for now.
  */
 
@@ -47,6 +51,7 @@ import {
 import { type CardId, type LevyUse, LEVY_USES } from './statecraftData';
 import { type Tile } from './map';
 import { type UnitTypeId, unitDef } from './unitData';
+import { rankThreshold } from './ranks';
 
 const LEVY = RULES.cities.levy;
 
@@ -85,6 +90,53 @@ export interface LevyReport {
 /** Is the empire at war with another empire? The wild does not count. */
 function atWarWithAnEmpire(state: GameState, playerId: number): boolean {
   return state.wars.some((war) => war.a === playerId || war.b === playerId);
+}
+
+/** The smallest town a row lets levy: its own floor, never below the rule's. */
+function floorOf(grant: LevyGrant): number {
+  return Math.max(LEVY.minPopulation, Math.floor(grant.minPopulation ?? 0));
+}
+
+/** A row's starting rank as a number to compare: its threshold, or 0 for none. */
+function rankWeight(grant: LevyGrant): number {
+  return grant.rank === undefined ? 0 : rankThreshold(grant.rank);
+}
+
+/**
+ * **The row that governs this use in this town**, or `undefined` when no card
+ * the empire holds lets this town levy for it (Dominion batch D1).
+ *
+ * Two cards may grant the same use: The Muster of the Fields lets any town of
+ * five muster a melee unit, and The Devshirme lets a captured town of six muster
+ * one as a Veteran. The town's menu shows one line for the use, so one row has
+ * to govern it, and the choice must not depend on the order the cards sit in:
+ *
+ *   · among the rows whose floor this town meets, the one whose unit starts at
+ *     the highest rank, then the first in the law's order;
+ *   · when the town meets no row's floor, the row with the lowest floor, then
+ *     the first in the law's order, so the refusal names the smallest town that
+ *     would do.
+ *
+ * Rows whose scope does not admit the town never reach this function
+ * (`cardLevyGrants`).
+ */
+export function levyGrantFor(
+  state: GameState,
+  playerId: number,
+  city: City,
+  use: LevyUse,
+): LevyGrant | undefined {
+  const rows = cardLevyGrants(state, playerId, city).filter((row) => row.use === use);
+  let best: LevyGrant | undefined;
+  for (const row of rows) {
+    if (city.population < floorOf(row)) continue;
+    if (best === undefined || rankWeight(row) > rankWeight(best)) best = row;
+  }
+  if (best !== undefined) return best;
+  for (const row of rows) {
+    if (best === undefined || floorOf(row) < floorOf(best)) best = row;
+  }
+  return best;
 }
 
 /** Turns a town waits after a levy of this use. */
@@ -184,14 +236,14 @@ export function levyError(
   if (city.ownerId !== playerId) return `${city.name} does not belong to you`;
   if (hasEndedTurn(state, playerId)) return `You have ended turn ${state.turn}`;
   if (city.puppet === true) return `${city.name} is a puppet and chooses for itself`;
-  const grant = cardLevyGrants(state, playerId).find((row) => row.use === use);
-  if (grant === undefined) return 'None of your cards lets a town levy for that';
+  const grant = levyGrantFor(state, playerId, city, use);
+  if (grant === undefined) return `None of your cards lets ${city.name} levy for that`;
   return grantError(state, city, grant);
 }
 
 /** The refusals that depend on the town and on the granting card. */
 function grantError(state: GameState, city: City, grant: LevyGrant): string | null {
-  const least = Math.max(LEVY.minPopulation, Math.floor(grant.minPopulation ?? 0));
+  const least = floorOf(grant);
   if (city.population < least) {
     return `A town needs at least ${least} citizens to levy for this`;
   }
@@ -221,10 +273,9 @@ function grantError(state: GameState, city: City, grant: LevyGrant): string | nu
  * no card grants a levy, which is the panel's signal to show no button.
  */
 export function levyOptions(state: GameState, playerId: number, city: City): LevyOption[] {
-  const grants = cardLevyGrants(state, playerId);
   const options: LevyOption[] = [];
   for (const use of LEVY_USES) {
-    const grant = grants.find((row) => row.use === use);
+    const grant = levyGrantFor(state, playerId, city, use);
     if (grant === undefined) continue;
     const plan = planLevy(state, city, use);
     options.push({
@@ -255,12 +306,18 @@ export function levyOptions(state: GameState, playerId: number, city: City): Lev
  *   4. the payment lands: hammers through `settleProductionWindfall` (into this
  *      town, or into the town building the Magnum Opus), a piece through
  *      `realiseItem` — counted as trained for The Muster of the Fields, not for
- *      The General Levy;
+ *      The General Levy, and at the rank the governing row names (The
+ *      Devshirme's Veteran);
  *   5. any card that reacts to a levy hangs its effects on the town;
  *   6. the town is re-seated (`refreshCityDerived`, register entry 23).
+ *
+ * The governing row is read before the citizen leaves, like the payment in
+ * step 1, so The Devshirme's floor of six is checked against the town as it
+ * was when it chose to levy.
  */
 export function levyAt(state: GameState, city: City, use: LevyUse): LevyReport {
   const plan = planLevy(state, city, use);
+  const rank = levyGrantFor(state, city.ownerId, city, use)?.rank;
   city.levy = { ...city.levy, turn: state.turn };
   loseCitizen(state, city);
 
@@ -276,7 +333,10 @@ export function levyAt(state: GameState, city: City, use: LevyUse): LevyReport {
       state,
       city,
       { kind: 'unit', id: plan.unit, tile: plan.tile },
-      use === 'conscript' ? { untrained: true } : {},
+      {
+        ...(use === 'conscript' ? { untrained: true } : {}),
+        ...(rank !== undefined ? { rank } : {}),
+      },
     );
     if (realised.unitId !== undefined) report.unitId = realised.unitId;
   }

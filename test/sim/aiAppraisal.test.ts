@@ -187,6 +187,7 @@ import { buildError, gatingTech, researchExpansion } from '../../src/sim/tech';
 import { PROJECT_IDS, projectDef } from '../../src/sim/projectData';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { isExploredBy, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
+import { RULES } from '../../src/sim/rulesData';
 import { newGame } from './newGameHelpers';
 
 /**
@@ -1135,7 +1136,11 @@ describe('the delay discount', () => {
     const ctx = valueContext(state, player);
     const id = growingCard();
     const known = TALLY_OCCASIONS[0]!;
-    const forecast = aiJson.score.tallyForecast[known] ?? 0;
+    // The sheet need not forecast every occasion (`AiConfig`'s `tallyForecast`
+    // is a partial record; Dominion batch D1's `rankEarned` has no entry), so it
+    // is read through that type.
+    const forecasts: Partial<Record<TallyOccasion, number>> = aiJson.score.tallyForecast;
+    const forecast = forecasts[known] ?? 0;
     expect(forecast).toBeGreaterThan(0);
     const appraisal = explainCounted(
       {
@@ -2904,6 +2909,39 @@ describe('the whole deck, priced (batch H2)', () => {
       ctx,
     );
     expect(aged).toBe(plain * Math.max(1, ctx.age));
+  });
+
+  it('prices a rank earned off the seat’s own record of ranks (Dominion batch D1)', () => {
+    // `unitCompletion`'s reading one moment over: ranks earned over turns
+    // played, through `explainLump`. A seat whose units have earned no rank is
+    // paid nothing for one.
+    const { state, player } = board();
+    state.turn = 40;
+    bumpRevision(state);
+    const rider: CardEffect[] = [
+      { kind: 'windfallRider', occasion: 'rankEarned', grant: { yield: 'culture', amount: 15 } },
+    ];
+    expect(scoreEffects(rider, valueContext(state, player))).toBe(0);
+    player.ranksEarned = 10;
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const lump = (15 * ctx.prices.culture) / ctx.ai.score.lumpTurns;
+    expect(scoreEffects(rider, ctx)).toBe(lump * (10 / 40));
+  });
+
+  it('prices a drill as strength paid in instalments (Dominion batch D1)', () => {
+    // A point of experience is worth the top rank's strength over the
+    // experience it takes, priced as a strength line is, and the cadence
+    // divides it.
+    const { state, player } = board();
+    const ctx = valueContext(state, player);
+    const elite = RULES.combat.ranks.ladder.elite;
+    const point = (elite.strength / elite.experience) * ctx.ai.weights.military * (1 + ctx.threat);
+    expect(scoreEffects([{ kind: 'drill', experience: 1, where: 'garrison' }], ctx)).toBe(point);
+    expect(scoreEffects([{ kind: 'drill', experience: 1, where: 'garrison', every: 4 }], ctx)).toBe(
+      point / 4,
+    );
+    expect(point).toBeGreaterThan(0);
   });
 
   it('prices the payroll rules off the payroll itself', () => {

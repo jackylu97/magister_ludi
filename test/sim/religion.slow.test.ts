@@ -382,7 +382,10 @@ describe('determinism', () => {
     // 129 since C2a: chairs have types again, adoption re-seats the council,
     // and the tier-38 governments are retired, so a v128 log can seat a card
     // where this build refuses it.
-    expect(SCHEMA_VERSION).toBe(129);
+    // 130 since D1: eleven Dominion cards that give units experience or pay
+    // when a unit earns a rank, a new end-of-turn phase and a new record, so
+    // a v129 log's picks name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(130);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

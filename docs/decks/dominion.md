@@ -14,12 +14,12 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
-| Tier 0 | 14 | 1 | 11 | 26 | none |
-| Tier I | 11 | 4 | 8 | 23 | 5 |
-| Tier II | 13 | 5 | 13 | 31 | 5 |
-| Tier III | 7 | 1 | 16 | 24 | 3 |
+| Tier 0 | 17 | 1 | 8 | 26 | none |
+| Tier I | 13 | 2 | 8 | 23 | 5 |
+| Tier II | 15 | 5 | 11 | 31 | 5 |
+| Tier III | 11 | 1 | 12 | 24 | 3 |
 | Tier IV | 8 | 7 | 6 | 21 | 3 |
-| **All** | **53** | **18** | **54** | **125** | **16** |
+| **All** | **64** | **16** | **45** | **125** | **16** |
 | Shared | 20 | 1 | 4 | 25 |  |
 
 **By type** (the chair a card fits):
@@ -49,21 +49,21 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Standing Army** | uncommon | implemented | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. | Military |
 | **The King's Levy** | rare | implemented | Every fifteen turns your capital raises a melee unit for free. It costs no upkeep. | Military |
 | **The Grain Tribute** | common | implemented | +1 food and +1 production in every city. | Economic |
-| **The Drill Grounds** | common | add | Units standing in your towns gain 1 experience every 4 turns. | Military |
+| **The Drill Grounds** | common | implemented | Units standing in your towns gain 1 experience every 4 turns. | Military |
 | **The Scaling Ladders** | common | implemented | Melee units gain +4 strength against towns. | Military |
 | **The Funeral Games** | common | implemented | When one of your units falls, gain faith equal to its strength. | Civic |
 | **The Bards' Praise** | common | implemented | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture. | Civic |
 | **The Cattle Raid** | common | implemented | Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns. | Economic |
 | **The Garrison Captains** | common | add | +1 authority for each garrisoned unit. | Civic |
 | **The Spear Makers** | common | add | +30% production toward first- and second-age military units. | Military |
-| **The Armed Colony** | common | add: reworked | A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran. | Economic |
+| **The Armed Colony** | common | implemented | A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran. | Economic |
 | **The Outriders** | common | add: reworked | Claiming a discovery or clearing a barbarian camp grants 8 production to every town. | Economic |
 | **The Captured Arms** | common | add: reworked | +1 science for every unit you have killed this game, no cap. | Civic |
 | **The Gathering Host** | uncommon | add | While seated, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture. | Civic |
 | **The Armourers' Secret** | uncommon | add | While seated, researching a technology that unlocks a military unit grants one of that unit. | Military |
 | **The Defiant Kingdom** | uncommon | add | While another empire holds more towns than you, you train military units 25% faster. | Military |
 | **The Hunting Grounds** | uncommon | add | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. | Military |
-| **The Campaign Annals** (was The Bronze Smiths) | rare | add: reworked | While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science. | Civic |
+| **The Campaign Annals** | rare | implemented | While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science. | Civic |
 
 ## Tier I
 
@@ -88,10 +88,10 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Horse Lords** | rare | implemented | Mounted units gain +3 strength and +1 movement. | Military |
 | **Martial Law** | common | implemented | Each garrisoned unit grants its city +2 happiness and +4 food. | Civic |
 | **The General Staff** | common | implemented | Cities with a Barracks give +3 production and +2 renown a turn, favouring great generals. | Economic |
-| **The Training Cadre** (was Drill Manuals) | common | modify: replaced | Units gained in a town with a Barracks start with 2 experience. | Military |
+| **The Training Cadre** | common | implemented | Units gained in a town with a Barracks start with 2 experience. | Military |
 | **The Marching Camps** (was March Discipline) | common | modify: reworked | Attacking does not break your units' fortification. | Military |
 | **The Soldiers' Purse** | common | modify: reworked | Military units cost 1 less upkeep for each rank they hold. | Military |
-| **Honours of the Legion** (was The War Hall Schools) | uncommon | modify: replaced | Each time one of your units earns a rank, gain science and culture equal to its strength. | Civic |
+| **Honours of the Legion** | uncommon | implemented | Each time one of your units earns a rank, gain science and culture equal to its strength. | Civic |
 | **The Pacified Marches** | uncommon | implemented | Gains +1 authority capacity and +5 culture for every barbarian camp cleared this game, at most +8 authority and +40 culture. | Civic |
 | **The Art of War** | uncommon | implemented | Gaining a unit grants science equal to three quarters of its strength. | Civic |
 | **Songs of the Fallen** | rare | implemented | Killing or losing a unit grants science and culture equal to twice its strength. | Civic |
@@ -140,7 +140,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Living off the Land** | common | implemented | Military units outside your territory cost no upkeep. | Military |
 | **The Longbowmen** | common | add | Ranged units gain +4 strength and +4 ranged strength. +5 culture each time they attack from range. | Military |
 | **The Serried Ranks** | rare | implemented | Melee units beside another melee unit gain +10 strength when defending. | Military |
-| **The Veterans' Roll** | uncommon | add | +1% science and culture for every rank your units have earned this game, at most +30%. | Civic |
+| **The Veterans' Roll** | uncommon | implemented | +1% science and culture for every rank your units have earned this game, at most +30%. | Civic |
 | **The Conscription Rolls** | uncommon | implemented | Every ten turns, each town of at least eight citizens raises the best melee unit you can build. | Military |
 | **The Hall of the Slain** | uncommon | add | +1% production and culture for every two units you have lost this game, at most +30%. | Civic |
 | **The Funeral Oration** | uncommon | add | Units you lose count half toward war weariness. | Civic |
@@ -148,7 +148,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Provincial Census** | uncommon | add | Pacifying a town grants science equal to twenty times its population. | Civic |
 | **Spear-won Land** | uncommon | add | +3% production and science for every town you have captured this game, at most +30%. | Civic |
 | **The Castra** | uncommon | add | Your own hexes with a fortified military unit gain +1 science and +1 production. Citadels gain +3 production and +3 science. | Civic |
-| **The Tactica** | uncommon | add | At the end of your turn, great generals give 1 experience to every unit beside them. Each time one of your units earns a rank, gain 15 science. | Military |
+| **The Tactica** | uncommon | implemented | At the end of your turn, great generals give 1 experience to every unit beside them. Each time one of your units earns a rank, gain 15 science. | Military |
 | **Double Time** | rare | add | Your Orders' effects that happen at the end of a turn or every few turns trigger twice. | Wildcard |
 | **The State Forges** | rare | add | Each time you research a technology, your capital raises the best melee unit you can build. | Military |
 | **War Feeds Itself** | rare | add | At the end of your turn, each of your units in enemy territory yields you its hex's yields. | Economic |
@@ -174,11 +174,11 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Reserve Officers** | uncommon | implemented | While at war, cities with a Barracks produce military units 60% faster; while at peace, those cities gain +30% production toward buildings. | Military |
 | **Total War** | rare | implemented | All your military units gain +5 strength and +1 movement. Every city demands +3 more happiness. | Military |
 | **Commission: A Victor's Peace** | rare | modify: deferred | Commission. Make peace with an empire, or destroy it, after taking at least two of its cities in that war. Then gain one extra Wildcard chair for the rest of the game. | Wildcard |
-| **The Drill Masters** | common | add | Units you gain start as Veterans. | Military |
+| **The Drill Masters** | common | implemented | Units you gain start as Veterans. | Military |
 | **The Plunder Trains** | common | add | Pillaging grants 30 production and 15 food to your capital. | Economic |
 | **The Yam** | uncommon | add | Mounted units heal fully when they pillage. | Military |
 | **The Tagmata** | uncommon | add | Veteran and Elite units gain +5 strength. | Military |
-| **Up Through the Ranks** | uncommon | add | Each time one of your units becomes an Elite, gain 250 renown, favouring great generals. | Civic |
+| **Up Through the Ranks** | uncommon | implemented | Each time one of your units becomes an Elite, gain 250 renown, favouring great generals. | Civic |
 | **The Arrière-ban** | uncommon | implemented | Declaring war gives every city +50% production for ten turns. Declaring war again restarts the ten turns. | Economic |
 | **The Keshik** | uncommon | add | Mounted Veteran and Elite units gain +1 movement. | Military |
 | **The Mural Crown** | uncommon | add | +10 renown each turn, favouring great generals. Each time you gain a great person, gain 100 science and 100 culture for each great general you have gained this game. | Civic |
@@ -189,9 +189,9 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Valhalla** | rare | add | When one of your units dies, gain 25 culture for each Monument in your empire. | Civic |
 | **The Chevauchée** | rare | add | Pillaging a hex damages enemy cities within three hexes with 50% of the pillaging unit's strength. | Military |
 | **Danegeld** | rare | add | Making peace with an empire you pillaged in that war grants 40 gold and 40 culture for each hex you pillaged. | Civic |
-| **The Devshirme** | rare | add | Captured towns of at least six citizens may spend a citizen to raise the best melee unit you can build, as a Veteran. | Military |
+| **The Devshirme** | rare | implemented | Captured towns of at least six citizens may spend a citizen to raise the best melee unit you can build, as a Veteran. | Military |
 | **Pax Romana** | rare | add | Towns you capture are pacified at once, and each costs 1 less authority to hold. | Civic |
-| **The Regimental Schools** | common | add | At the end of your turn, each garrisoned unit gains 1 experience and gives its town +2 science. | Civic |
+| **The Regimental Schools** | common | implemented | At the end of your turn, each garrisoned unit gains 1 experience and gives its town +2 science. | Civic |
 | **The Board of Ordnance** | common | implemented | While at war, each city with a Barracks gains +1 production and +1 science for every three citizens. | Civic |
 
 **Also dealt here:** Double Time, from Tier II (ruled 2026-10-16).

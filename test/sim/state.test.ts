@@ -515,6 +515,11 @@ describe("end-of-turn pipeline", () => {
       // because a levy is not a draft: nothing is spent, nothing is chosen, and
       // nothing blocks End Turn. See `musterPeriodicUnits`.
       "muster",
+      // The cards' drills (Dominion batch D1): units in towns, garrisoned units
+      // and units beside a great general gain experience. After `muster`, so a
+      // unit raised this turn in a town is drilled too, and before `renown`, so
+      // renown a rank pays is banked before that sweep. See `drillUnits`.
+      "drill",
       // Buildings and wonders pay their renown trickle, standing Triumphs are
       // claimed, and a filled ladder deals a great person — the same shape a
       // fifth currency over, and after `advanceProduction` so a wonder finished
@@ -875,7 +880,10 @@ describe("the research queue field", () => {
     // 129 since C2a: chairs have types again, adoption re-seats the council,
     // and the tier-38 governments are retired, so a v128 log can seat a card
     // where this build refuses it.
-    expect(SCHEMA_VERSION).toBe(129);
+    // 130 since D1: eleven Dominion cards that give units experience or pay
+    // when a unit earns a rank, a new end-of-turn phase and a new record, so
+    // a v129 log's picks name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(130);
   });
 });
 

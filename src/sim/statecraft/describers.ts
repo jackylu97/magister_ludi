@@ -85,6 +85,8 @@ import type { RouteMode } from '../routes';
 import { beadGrantDef } from '../beadData';
 import { ABILITY_TECH, abilityDef, techDef } from '../techData';
 import { type ModelClass, unitDef } from '../unitData';
+// A rank's name as every surface prints it (Dominion batch D1). A leaf.
+import { rankName } from '../ranks';
 import { SLOT_WORDS } from './draft';
 import { anyCardDef } from './evaluator';
 import { CITY_SCOPED_COUNTS, PERIODIC_FLOOR, PERIODIC_PROBE, VOICES, oneOfAKind } from './evaluator';
@@ -1529,6 +1531,20 @@ function describeEffect(
       if (movement !== 0) {
         out.push({ text: `newly created ${born} gain ${signed(movement)} movement` });
       }
+      // **What a unit is gained with** (Dominion batch D1): experience and a
+      // starting rank. "You gain" rather than "newly created", because these two
+      // are read when a town gains a unit (`realiseItem`) and never for a unit
+      // from a ruin, which is a different set of units from the marks above.
+      const gained =
+        effect.scope === undefined
+          ? `${who} you gain${paid}`
+          : `${who} you gain${paid} in ${cityScopeWords(effect.scope)}`;
+      if ((effect.experience ?? 0) > 0) {
+        out.push({ text: `${gained} start with ${effect.experience} experience` });
+      }
+      if (effect.rank !== undefined) {
+        out.push({ text: `${gained} start as ${rankName(effect.rank)}s` });
+      }
       return;
     }
     case 'rule': {
@@ -1600,13 +1616,23 @@ function describeEffect(
       // the occasion's own phrase rather than glued on, and an occasion with no
       // such phrase is left alone — which keeps a row written onto the wrong
       // occasion silent rather than wrong.
-      const said = occasionWords(
+      const occasionSaid = occasionWords(
         effect.occasion,
         effect.vsBarbarians === true,
         effect.capturedWonder === true,
         effect.wonder === true,
         effect.family,
       );
+      // Up Through the Ranks names the rank it pays for, inside the occasion's
+      // own phrase (Dominion batch D1): "one of your units becoming an Elite".
+      // An occasion with no rank in its phrase is left as it was.
+      const said =
+        effect.rank === undefined
+          ? occasionSaid
+          : occasionSaid.replace(
+              'earning a rank',
+              `becoming ${indefinite(rankName(effect.rank))} ${rankName(effect.rank)}`,
+            );
       // The Flood Festival names the improvement it pays for, inside the
       // occasion's own phrase, the way "a building" narrows "anything" above.
       const named =
@@ -1800,7 +1826,14 @@ function describeEffect(
       return;
     }
     case 'foundingRider': {
-      const limit = effect.maxCities === undefined ? '' : ` (first ${effect.maxCities} cities)`;
+      // **The escort condition** (Dominion batch D1, The Armed Colony) is a
+      // condition on the whole row, so every clause below says it at its end.
+      const beside =
+        effect.escort === undefined
+          ? ''
+          : `, when founded beside one of your ${filterWords(effect.escort)}`;
+      const limit =
+        (effect.maxCities === undefined ? '' : ` (first ${effect.maxCities} cities)`) + beside;
       if (effect.population !== undefined) {
         // "Citizens", never "population" (batch L1, §1b): the Compendium's word
         // for a town's people is the one every clause uses now, and a figure
@@ -1824,6 +1857,13 @@ function describeEffect(
         const hexes = effect.claims === 1 ? 'hex' : 'hexes';
         out.push({
           text: `new cities claim ${effect.claims} more ${hexes} beside their borders at once${limit}`,
+        });
+      }
+      if (effect.escort !== undefined && effect.rank !== undefined) {
+        const rank = rankName(effect.rank);
+        const first = effect.maxCities === undefined ? '' : ` (first ${effect.maxCities} cities)`;
+        out.push({
+          text: `a new city founded beside one of your ${filterWords(effect.escort)} makes that unit ${indefinite(rank)} ${rank}${first}`,
         });
       }
       return;
@@ -2375,6 +2415,19 @@ function describeEffect(
     case 'levy':
       describeLevy(effect, out);
       return;
+    case 'drill': {
+      // Dominion batch D1. Who is drilled, how much, and how often; "combat
+      // units" because only an empire's fighting units hold experience
+      // (`ranks.ts`), and the garrison's words are the `garrison` count's.
+      const who =
+        effect.where === 'garrison'
+          ? 'your combat units standing in one of your cities'
+          : 'your combat units on or beside the hex of one of your great generals';
+      const every = Math.floor(effect.every ?? 1);
+      const when = every <= 1 ? 'at the end of every turn' : `every ${every} turns`;
+      out.push({ text: `${who} gain ${effect.experience} experience ${when}` });
+      return;
+    }
     default: {
       const unhandled: never = kind;
       void unhandled;
@@ -2391,11 +2444,23 @@ function describeEffect(
 function describeLevy(effect: CardLevyEffect, out: CardClause[]): void {
   const levy = RULES.cities.levy;
   const size = Math.max(levy.minPopulation, Math.floor(effect.minPopulation ?? 0));
-  const town = size > levy.minPopulation ? `a town of at least ${size} citizens` : 'a town';
+  // Which towns, where the row narrows them (Dominion batch D1): The
+  // Devshirme's "captured towns", in the scope's own words.
+  const noun = effect.scope === undefined ? 'town' : eachWords(effect.scope);
+  const town =
+    size > levy.minPopulation
+      ? `${indefinite(noun)} ${noun} of at least ${size} citizens`
+      : `${indefinite(noun)} ${noun}`;
   const food = 'production equal to the food it took to grow that citizen';
   const opusId = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true);
   const opus = opusId === undefined ? 'the Magnum Opus' : theBuilding(opusId);
-  const melee = 'the best melee unit you can build';
+  // The rank the unit starts at, where the row names one (The Devshirme's
+  // Veteran). Only the two uses that raise a unit say it.
+  const rank =
+    effect.rank === undefined
+      ? ''
+      : ` as ${indefinite(rankName(effect.rank))} ${rankName(effect.rank)}`;
+  const melee = `the best melee unit you can build${rank}`;
   const use = effect.use;
   if (use !== undefined) {
     let what: string;
@@ -4095,6 +4160,9 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   periodic: 'a boon coming round',
   greatPersonAct: 'a great person spending themselves on their boon',
   improvementBuilt: 'building an improvement',
+  // Dominion batch D1. The windfall rider's rank filter rewrites "earning a
+  // rank" to name the rank ("becoming an Elite"), so the phrase keeps it.
+  rankEarned: 'one of your units earning a rank',
 };
 
 /**
@@ -4366,6 +4434,12 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'barbarian camp you have cleared',
     many: 'barbarian camps you have cleared',
   },
+  // Dominion batch D1, The Veterans' Roll. "This game", because the record
+  // keeps the ranks of units that have since died.
+  ranksEarned: {
+    one: 'rank your units have earned this game',
+    many: 'ranks your units have earned this game',
+  },
   followingCities: { one: 'city that follows you', many: 'cities that follow you' },
   followingForeign: {
     one: 'foreign city that follows you',
@@ -4485,6 +4559,9 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     one: 'foreign city you have converted',
     many: 'foreign cities you have converted',
   },
+  // Dominion batch D1, The Campaign Annals. One a rank: a unit that goes from
+  // no rank to Elite in one step is two.
+  rankEarned: { one: 'rank your units have earned', many: 'ranks your units have earned' },
 };
 
 /**
@@ -4863,6 +4940,8 @@ const COMMISSION_COUNTED_WORDS: Record<
     many: 'foreign cities to your religion',
     counter: 'foreign cities converted',
   },
+  // Dominion batch D1. No commission counts ranks yet; the table is total.
+  rankEarned: { verb: 'earn', one: 'rank with your units', many: 'ranks with your units', counter: 'ranks earned' },
 };
 
 /**

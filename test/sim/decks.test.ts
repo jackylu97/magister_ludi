@@ -365,8 +365,12 @@ describe('the schema, as landed', () => {
     // more. Thirteen new Dominion rows and Carried-Off Scholars in the shared
     // file came live, and the sheet's three cuts (Defensive Lines, Arsenals and
     // Naval Supremacy) were retired.
-    expect(live).toBe(369);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(369);
+    // **And Dominion batch D1** (ranks: earning them): nine more. Nine new
+    // Dominion rows came live; The Training Cadre and Honours of the Legion
+    // took over two rows that were already live (Drill Manuals and The War
+    // Hall Schools), so they add nothing to the count.
+    expect(live).toBe(378);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(378);
   });
 
   /**
@@ -535,7 +539,10 @@ describe('the schema, as landed', () => {
     // 129 since C2a: chairs have types again, adoption re-seats the council,
     // and the tier-38 governments are retired, so a v128 log can seat a card
     // where this build refuses it.
-    expect(SCHEMA_VERSION).toBe(129);
+    // 130 since D1: eleven Dominion cards that give units experience or pay
+    // when a unit earns a rank, a new end-of-turn phase and a new record, so
+    // a v129 log's picks name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(130);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

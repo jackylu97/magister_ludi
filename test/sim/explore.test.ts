@@ -697,10 +697,18 @@ describe('determinism', () => {
    * seeds: 128 became 129, and that is all. Nobody here drafts a card or
    * adopts a government, so no chair is ever filled. Checked by setting the
    * version back to 128, which gives D0's hashes exactly.
+   *
+   * **Dominion batch D1 (ranks: earning them) moved the hash and not the
+   * length** at both seeds: 129 became 130, and the new `drill` phase raises
+   * the revision once more a turn, twenty more over the sweep with the same
+   * number of digits. Nobody here drafts a card and no unit earns a rank (seed
+   * 11's scout earns one experience), so no drill fires and no
+   * `Player.ranksEarned` key is written. Checked by setting the version back
+   * to 129 and taking the phase out, which gives C2a's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '74a76737:188983',
-    2026: '5e2c11dc:188539',
+    11: '54cffdcb:188983',
+    2026: '207b9e20:188539',
   };
 
   for (const seed of [11, 2026]) {

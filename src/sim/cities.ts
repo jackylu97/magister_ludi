@@ -141,6 +141,12 @@ import {
   type WindfallOccasionFacts,
   windfallPayout,
 } from './statecraft';
+// Dominion batch D1's readers, straight from the evaluator: the experience a
+// unit is gained with, and the empty-payout check the rank's riders use. The
+// same function-level edge the index above already is.
+import { cardBirthExperience, higherRank, windfallPayoutIsEmpty } from './statecraft/evaluator';
+// Ranks: a leaf over the rule book, the unit table and the state.
+import { type RankId, grantExperience, raiseToRank, rankThreshold } from './ranks';
 import {
   type City,
   type GameState,
@@ -164,6 +170,7 @@ import {
   shrinkFollowers,
   spendGold,
   tileOwnerField,
+  unitById,
   wonderClaim,
 } from './state';
 // **Re-exported, not re-implemented.** `capitalCityOf` and `tileOwnerField` are
@@ -1450,8 +1457,10 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // What this empire's law founds a city *with* (`foundingRider`): Homestead
   // Charters' extra citizen, The Founders' Road's monument. Written before the
   // refresh below, and that ordering is the point — a city founded at size 2 has
-  // two citizens to place, and a refresh run first would seat one.
-  const rider = cardFoundingRider(state, ownerId);
+  // two citizens to place, and a refresh run first would seat one. The hex goes
+  // with the question since Dominion batch D1: The Armed Colony's row applies
+  // only to a town founded beside one of the empire's military units.
+  const rider = cardFoundingRider(state, ownerId, { col: tile.col, row: tile.row });
   if (rider.population > 0) city.population += rider.population;
   // The Beating of the Bounds: extra hexes beyond the first ring, each the one
   // the town's borders would grow into next. A town hemmed in claims fewer.
@@ -1507,6 +1516,16 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
       settleGrowthWindfall(state, paid);
     }
     settleCultureWindfall(state, founder);
+  }
+  // **The escort's rank** — The Armed Colony's "that unit becomes a Veteran"
+  // (Dominion batch D1). Raised last, after the founding bounty and for the same
+  // reason: a rank earned here pays the cards that pay when a unit earns one,
+  // and any food they pay lands in the nearest town, usually this one, which
+  // has to be finished first.
+  for (const { unitId, rank } of rider.ranks) {
+    const escort = unitById(state, unitId);
+    if (!escort) continue;
+    settleRanksEarned(state, escort, raiseToRank(state, escort, rank));
   }
   return city;
 }
@@ -4103,6 +4122,16 @@ export interface RealiseOptions {
    * it: the user's ruling of 2026-10-16, batch D0. Ignored for a building.
    */
   untrained?: boolean;
+  /**
+   * **The rank the piece starts at**, from the levy that raised it — The
+   * Devshirme's Veteran (Dominion batch D1, `CardLevyEffect.rank`).
+   *
+   * A parameter for `bought`'s reason: only the levy knows which card's row it
+   * raised the piece under. Combined with the cards' own starting experience
+   * (`cardBirthExperience`): the higher of the two ranks applies, and the flat
+   * experience adds on top. Ignored for a building.
+   */
+  rank?: RankId;
 }
 
 export interface RealisedItem {
@@ -4328,6 +4357,19 @@ export function realiseItem(
       unit.stamp = { ...unit.stamp, strength: (unit.stamp?.strength ?? 0) + lift };
     }
   }
+  // **The experience the unit is gained with** (Dominion batch D1): The
+  // Training Cadre's two points, The Drill Masters' Veteran and The
+  // Devshirme's, which the levy hands down as `options.rank`. The unit starts
+  // with the higher rank's threshold plus the flat experience. It is done here
+  // because every unit a town gains passes through this function and no other
+  // unit does: a unit from a ruin or a great person starts with nothing. The
+  // ranks it reached are settled below, after the completion riders, because a
+  // unit gained as a Veteran counts as earning the rank (the user's ruling of
+  // 2026-10-16).
+  const birth = cardBirthExperience(state, city, item.id, options.bought);
+  const startRank = higherRank(birth.rank, options.rank ?? null);
+  const startExperience = (startRank === null ? 0 : rankThreshold(startRank)) + birth.experience;
+  const ranksAtBirth = grantExperience(state, unit, startExperience);
   // The ladder climbs at completion, so the next one of this *same type* —
   // anywhere in the empire — is dearer from the very next resolution. Its own
   // key in `Player.unitsBuilt`, not a shared counter (schema 31). A free grant
@@ -4376,7 +4418,59 @@ export function realiseItem(
     // completion rider carried a class before this, so nothing else moves.
     actor: item.id,
   });
+  settleRanksEarned(state, unit, ranksAtBirth);
   return { unitId: unit.id };
+}
+
+/**
+ * **One of this empire's units earned a rank** (Dominion batch D1): the
+ * lifetime record, the tally and the cards that pay on the moment, once for
+ * each rank reached, lowest first.
+ *
+ * Every function in `ranks.ts` that raises experience returns the ranks it
+ * reached, and every caller hands them here: the fight (`applyCombat`, for each
+ * side), the drill phase (`drillUnits`), a unit gained already holding a rank
+ * (`realiseItem`) and The Armed Colony's escort (`foundCityAt`).
+ * `test/sim/ranks.test.ts` pins that list.
+ *
+ *   · `Player.ranksEarned` rises by the number of ranks. This is the one writer
+ *     of that record (The Veterans' Roll), so the record counts every rank ever
+ *     earned, however it was earned.
+ *   · The `rankEarned` tally is counted for the growing cards in a chair (The
+ *     Campaign Annals).
+ *   · The riders on the `rankEarned` occasion are paid once for each rank, with
+ *     the rank, the unit's type and its strength as the facts (Honours of the
+ *     Legion, The Tactica, Up Through the Ranks). The strength is read the way a
+ *     completion reads it: the roster's figure plus the unit's stamp.
+ *
+ * Food and production a rider pays land in the town nearest the unit, and food
+ * settles into growth at once. Hammers wait for the next production phase, for
+ * `payCompletionRiders`' reason: this can run inside a completion. Culture
+ * settles the draft basket.
+ */
+export function settleRanksEarned(state: GameState, unit: Unit, ranks: readonly RankId[]): void {
+  if (ranks.length === 0) return;
+  const player = playerById(state, unit.ownerId);
+  if (!player) return;
+  player.ranksEarned = (player.ranksEarned ?? 0) + ranks.length;
+  // A `count` may read the record (`ranksEarned`), and a count can reach the
+  // meters, so the write is announced (the slate register).
+  bumpEconomy(state);
+  recordScalingOccasion(state, player.id, 'rankEarned', ranks.length);
+  const at = { col: unit.col, row: unit.row };
+  const strength = Math.max(0, unitDef(unit.type).combatStrength + unitStampStrength(unit));
+  for (const rank of ranks) {
+    const payout = windfallPayout(state, player.id, 'rankEarned', 0, 0, {
+      rank,
+      strength,
+      actor: unit.type,
+    });
+    if (windfallPayoutIsEmpty(payout)) continue;
+    for (const paid of payWindfallGrants(state, player, payout, at)) {
+      settleGrowthWindfall(state, paid);
+    }
+  }
+  settleCultureWindfall(state, player);
 }
 
 /**

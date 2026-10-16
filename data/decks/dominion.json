@@ -523,8 +523,78 @@
         }
       ]
     },
+    "theDrillGrounds": {
+      "name": "The Drill Grounds",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "Every fourth morning, the whole garrison drills in the square.",
+      "text": "Units standing in your towns gain 1 experience every 4 turns.",
+      "effects": [
+        {
+          "kind": "drill",
+          "experience": 1,
+          "where": "garrison",
+          "every": 4
+        }
+      ]
+    },
+    "theArmedColony": {
+      "name": "The Armed Colony",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The soldiers marked out the walls before the farmers marked out the fields.",
+      "text": "A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran.",
+      "effects": [
+        {
+          "kind": "foundingRider",
+          "claims": 3,
+          "escort": {
+            "category": "military"
+          },
+          "rank": "veteran"
+        }
+      ]
+    },
+    "theCampaignAnnals": {
+      "name": "The Campaign Annals",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "Every promotion is written down, with the battle that earned it.",
+      "text": "While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "science": 3
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "tally",
+          "tally": "rankEarned"
+        }
+      ]
+    },
     "drillManuals": {
-      "name": "Drill Manuals",
+      "name": "The Training Cadre",
       "decks": [
         "dominion"
       ],
@@ -532,38 +602,16 @@
       "line": "none",
       "rarity": "common",
       "type": "military",
-      "flavor": "Written by men who were tired of explaining it twice.",
-      "text": "Barracks and Stables give +3 science. +30% production toward Barracks and Stables.",
+      "flavor": "The recruits arrive already knowing how to stand in line.",
+      "text": "Units gained in a town with a Barracks start with 2 experience.",
       "effects": [
         {
-          "kind": "pays",
-          "where": "city",
-          "science": 3,
+          "kind": "unitStamp",
+          "experience": 2,
           "scope": {
             "test": "hasBuilding",
             "building": "barracks"
           }
-        },
-        {
-          "kind": "pays",
-          "where": "city",
-          "science": 3,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "stable"
-          }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "building": "barracks",
-          "percent": 30
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "building": "stable",
-          "percent": 30
         }
       ]
     },
@@ -793,25 +841,33 @@
       "retired": true
     },
     "theWarHallSchools": {
-      "name": "The War Hall Schools",
+      "name": "Honours of the Legion",
       "decks": [
         "dominion"
       ],
       "band": 1,
       "line": "none",
-      "rarity": "common",
+      "rarity": "uncommon",
       "type": "civic",
-      "flavor": "Between campaigns, the hall teaches.",
-      "text": "War Halls give +5 science and +5 culture.",
+      "flavor": "Each new honour is read out in front of the whole legion.",
+      "text": "Each time one of your units earns a rank, gain science and culture equal to its strength.",
       "effects": [
         {
-          "kind": "pays",
-          "where": "city",
-          "science": 5,
-          "culture": 5,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "warHall"
+          "kind": "windfallRider",
+          "occasion": "rankEarned",
+          "grant": {
+            "yield": "science",
+            "amount": 1,
+            "fromOccasion": "strength"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "rankEarned",
+          "grant": {
+            "yield": "culture",
+            "amount": 1,
+            "fromOccasion": "strength"
           }
         }
       ]
@@ -2372,6 +2428,67 @@
         }
       ]
     },
+    "theVeteransRoll": {
+      "name": "The Veterans' Roll",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every name on the roll has served, and the roll grows longer every year.",
+      "text": "+1% science and culture for every rank your units have earned this game, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "percent": 1,
+          "stage": "empire",
+          "count": "ranksEarned",
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "percent": 1,
+          "stage": "empire",
+          "count": "ranksEarned",
+          "max": 30
+        }
+      ]
+    },
+    "theTactica": {
+      "name": "The Tactica",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The manual says where every officer should stand, and why.",
+      "text": "At the end of your turn, great generals give 1 experience to every unit beside them. Each time one of your units earns a rank, gain 15 science.",
+      "effects": [
+        {
+          "kind": "drill",
+          "experience": 1,
+          "where": "general"
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "rankEarned",
+          "grant": {
+            "yield": "science",
+            "amount": 15
+          }
+        }
+      ]
+    },
     "standingGarrisons": {
       "name": "Standing Garrisons",
       "decks": [
@@ -2991,6 +3108,97 @@
               }
             }
           ]
+        }
+      ]
+    },
+    "theDrillMasters": {
+      "name": "The Drill Masters",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "No recruit leaves the yard until the sergeant says so.",
+      "text": "Units you gain start as Veterans.",
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "rank": "veteran"
+        }
+      ]
+    },
+    "upThroughTheRanks": {
+      "name": "Up Through the Ranks",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The best of them will lead armies one day.",
+      "text": "Each time one of your units becomes an Elite, gain 250 renown, favouring great generals.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "rankEarned",
+          "rank": "elite",
+          "grant": {
+            "renown": 250,
+            "renownFamily": "general"
+          }
+        }
+      ]
+    },
+    "theDevshirme": {
+      "name": "The Devshirme",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "Recruited in the conquered provinces, trained for years in the capital.",
+      "text": "Captured towns of at least six citizens may spend a citizen to raise the best melee unit you can build, as a Veteran.",
+      "effects": [
+        {
+          "kind": "levy",
+          "use": "muster",
+          "minPopulation": 6,
+          "scope": {
+            "test": "captured"
+          },
+          "rank": "veteran"
+        }
+      ]
+    },
+    "theRegimentalSchools": {
+      "name": "The Regimental Schools",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "common",
+      "type": "civic",
+      "flavor": "Between campaigns, the regiment teaches its soldiers to read.",
+      "text": "At the end of your turn, each garrisoned unit gains 1 experience and gives its town +2 science.",
+      "effects": [
+        {
+          "kind": "drill",
+          "experience": 1,
+          "where": "garrison"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 2,
+          "count": "garrison"
         }
       ]
     },

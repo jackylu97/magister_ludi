@@ -2442,22 +2442,36 @@
     "text": "clearing a barbarian camp grants +3 food in every city for the next 10 turns, however often it happens"
    }
   ],
+  "theDrillGrounds": [
+   {
+    "raw": "your combat units standing in one of your cities gain 1 experience every 4 turns",
+    "text": "your combat units standing in one of your cities gain 1 experience every 4 turns"
+   }
+  ],
+  "theArmedColony": [
+   {
+    "raw": "new cities claim 3 more hexes beside their borders at once, when founded beside one of your military units",
+    "text": "new cities claim 3 more hexes beside their borders at once, when founded beside one of your military units"
+   },
+   {
+    "raw": "a new city founded beside one of your military units makes that unit a Veteran",
+    "text": "a new city founded beside one of your military units makes that unit a Veteran"
+   }
+  ],
+  "theCampaignAnnals": [
+   {
+    "raw": "+3 science to the empire",
+    "text": "+3 science to the empire"
+   },
+   {
+    "raw": "+1 science per rank your units have earned, counted while this Order stands in a slot",
+    "text": "+1 science per rank your units have earned, counted while this Order stands in a slot"
+   }
+  ],
   "drillManuals": [
    {
-    "raw": "+3 science in every city with a [[building:barracks|Barracks]]",
-    "text": "+3 science in every city with a Barracks"
-   },
-   {
-    "raw": "+3 science in every city with a [[building:stable|Stable]]",
-    "text": "+3 science in every city with a Stable"
-   },
-   {
-    "raw": "+30% production toward [[building:barracks|Barrackses]]",
-    "text": "+30% production toward Barrackses"
-   },
-   {
-    "raw": "+30% production toward [[building:stable|Stables]]",
-    "text": "+30% production toward Stables"
+    "raw": "units you gain in every city with a [[building:barracks|Barracks]] start with 2 experience",
+    "text": "units you gain in every city with a Barracks start with 2 experience"
    }
   ],
   "dominionMarchDiscipline": [
@@ -2525,8 +2539,12 @@
   ],
   "theWarHallSchools": [
    {
-    "raw": "+5 science, +5 culture in every city with a [[building:warHall|War Hall]]",
-    "text": "+5 science, +5 culture in every city with a War Hall"
+    "raw": "one of your units earning a rank grants science equal to its strength",
+    "text": "one of your units earning a rank grants science equal to its strength"
+   },
+   {
+    "raw": "one of your units earning a rank grants culture equal to its strength",
+    "text": "one of your units earning a rank grants culture equal to its strength"
    }
   ],
   "shorePatrols": [
@@ -3078,6 +3096,26 @@
     "text": "every 10 turns, the best melee unit you can build musters in every city of 8 or more citizens"
    }
   ],
+  "theVeteransRoll": [
+   {
+    "raw": "+1% science per rank your units have earned this game (at most +30% science)",
+    "text": "+1% science per rank your units have earned this game (at most +30% science)"
+   },
+   {
+    "raw": "+1% culture per rank your units have earned this game (at most +30% culture)",
+    "text": "+1% culture per rank your units have earned this game (at most +30% culture)"
+   }
+  ],
+  "theTactica": [
+   {
+    "raw": "your combat units on or beside the hex of one of your great generals gain 1 experience at the end of every turn",
+    "text": "your combat units on or beside the hex of one of your great generals gain 1 experience at the end of every turn"
+   },
+   {
+    "raw": "one of your units earning a rank grants +15 science",
+    "text": "one of your units earning a rank grants +15 science"
+   }
+  ],
   "standingGarrisons": [
    {
     "raw": "+12% production in every city per combat unit standing there",
@@ -3265,6 +3303,34 @@
    {
     "raw": "while you are at war: +1 production in every city with a [[building:barracks|Barracks]] per 3 citizens there; +1 science in every city with a [[building:barracks|Barracks]] per 3 citizens there",
     "text": "while you are at war: +1 production in every city with a Barracks per 3 citizens there; +1 science in every city with a Barracks per 3 citizens there"
+   }
+  ],
+  "theDrillMasters": [
+   {
+    "raw": "units you gain start as Veterans",
+    "text": "units you gain start as Veterans"
+   }
+  ],
+  "upThroughTheRanks": [
+   {
+    "raw": "one of your units becoming an Elite grants +250 renown, favouring a great general",
+    "text": "one of your units becoming an Elite grants +250 renown, favouring a great general"
+   }
+  ],
+  "theDevshirme": [
+   {
+    "raw": "a captured city of at least 6 citizens may spend one citizen for the best melee unit you can build as a Veteran, which counts as trained (once every 5 turns)",
+    "text": "a captured city of at least 6 citizens may spend one citizen for the best melee unit you can build as a Veteran, which counts as trained (once every 5 turns)"
+   }
+  ],
+  "theRegimentalSchools": [
+   {
+    "raw": "your combat units standing in one of your cities gain 1 experience at the end of every turn",
+    "text": "your combat units standing in one of your cities gain 1 experience at the end of every turn"
+   },
+   {
+    "raw": "+2 science in every city per combat unit standing there",
+    "text": "+2 science in every city per combat unit standing there"
    }
   ],
   "dominionImperium": [

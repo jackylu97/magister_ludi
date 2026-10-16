@@ -141,6 +141,8 @@ import {
   runPeriodicBoons,
   runStatecraft,
 } from "./statecraft";
+// Straight from the evaluator: the drill phase (Dominion batch D1).
+import { drillUnits } from "./statecraft/evaluator";
 import { type PeaceOutcome, settlePeace } from "./diplomacy";
 import { pruneTruces } from "./wars";
 // The bargains' own broom, beside the truces': both sweep rows whose absolute
@@ -721,6 +723,16 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // cannot both claim the same doorstep hex. It skips the wild for
     // `runStatecraft`'s reason. See `musterPeriodicUnits`.
     run: musterPeriodicUnits,
+  },
+  {
+    name: "drill",
+    // The cards' drills (Dominion batch D1): units in towns, garrisoned units
+    // and units beside a great general gain experience at the end of the turn.
+    // Directly after `muster`, so a unit mustered or trained this turn in a
+    // town is drilled with the rest, and before `renown`, so renown a rank pays
+    // (Up Through the Ranks) is banked before the renown sweep. It skips the
+    // wild for `runStatecraft`'s reason. See `drillUnits`.
+    run: drillUnits,
   },
   {
     name: "renown",

@@ -3373,6 +3373,22 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // Bots do not levy yet (batch L), so a levy card does nothing for one and
       // is worth nothing to it.
       return 0;
+    case 'drill': {
+      // **Experience is strength paid in instalments** (Dominion batch D1). A
+      // point of experience is priced at what the rank ladder pays for it: the
+      // top rank's strength over the experience it takes to reach (an Elite's
+      // six over ten points). A drill hands every unit it reaches that many
+      // points each time it fires, so the price is `combatLine`'s, scaled by
+      // the points a turn. That the drill reaches part of the army and that the
+      // ladder stops at Elite are both left out, which is the same rough price
+      // `unitStat` gives a point of a piece's own quality.
+      const top = RULES.combat.ranks.ladder.elite;
+      const perPoint = top.experience > 0 ? top.strength / top.experience : 0;
+      const every = Math.max(1, Math.floor(effect.every ?? 1));
+      return (
+        ((effect.experience * perPoint) / every) * ctx.ai.weights.military * (1 + ctx.threat)
+      );
+    }
     default:
       return unreadEffect(kind, ctx);
   }
@@ -3602,6 +3618,13 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // `scoreWindfallRider`, which is where the narrowing belongs because it is
       // the only reader holding the row.
       return 1 / Math.max(1, ctx.ai.score.lumpTurns);
+    case 'rankEarned':
+      // **Ranks earned over turns played** (Dominion batch D1): the seat's own
+      // record (`Player.ranksEarned`), read the way `unitCompletion` reads the
+      // units it has built. A seat whose units have earned no rank yet is paid
+      // nothing for one, which is `tilePurchase`'s reading of a habit not yet
+      // started.
+      return (player?.ranksEarned ?? 0) / turns;
     default:
       return unreadOccasion(occasion);
   }

@@ -318,6 +318,9 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     'pantheonSlots',
     'landfall',
     'periodicMuster',
+    // Dominion batch D1: experience for units at the end of a turn. It pays no
+    // voice; what a rank pays is a `windfallRider` on `rankEarned`.
+    'drill',
     'periodicOffer',
     'periodShorten',
     'pressure',
