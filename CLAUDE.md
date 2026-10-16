@@ -13,7 +13,7 @@ UI language: `docs/design-specimen.html` (ink/parchment; every number tabular mo
 The RNG separator `hashSeed('webciv:gameplay:…')` (`src/sim/state.ts`) must NEVER
 be renamed — it would change every seeded outcome. No further rename passes.
 
-## Writing (docs, comments, commit messages, reports)
+## Writing (messages to the user, docs, comments, commit messages, reports)
 **Write in plain English.** The user's ruling, 2026-09-17: *"I'm not sure why the
 text always comes out in medieval game-voice, but lets just axe that entirely."*
 This governs everything we write — docs, docblocks, commit messages, agent
@@ -33,6 +33,34 @@ briefs, agent reports, test names, and any new player-facing prose.
   plain and old text is left alone.
 - Plain does not mean vague or shorter. Keep the precision, the file and
   symbol names, the numbers, and the reasoning. Drop only the costume.
+
+**ASD-STE100 Simplified Technical English is the baseline style.** The user's
+ruling, 2026-10-16: *"lets try ASD-STE100 moving forward"*. It applies to
+messages to the user and to all the text above. The user will tell us about
+changes to it.
+- Write 20 words or fewer in an instruction, and 25 words or fewer in a
+  description.
+- Give each sentence one topic. Give each instruction its own sentence.
+- Give each paragraph one topic, in six sentences or fewer.
+- Use the active voice. Use simple tenses: the present, the past, and the
+  future with "will".
+- Do not use the "-ing" form of a verb. Write "the test fails", not "the test
+  is failing". A technical name can keep it ("landing party").
+- Use one word for one thing, and always use the same word. Do not change
+  between "batch", "pass" and "job" for one thing.
+- Use simple, common words. Use the game's names (Order, chair, Doctrine) and
+  the code's names (files, functions) when you must. Explain a new term the
+  first time you use it.
+- Keep the articles ("the", "a") and the small words. Do not remove words to
+  make a sentence shorter.
+- Do not make a chain of more than three nouns.
+- Put a condition at the start of a sentence: "If the test fails, stop."
+- Write an instruction as a command. Write the most important instruction
+  first.
+- Use a vertical list for steps, options and decisions.
+- Do not use idioms, metaphors, slang or em dashes.
+- Two exceptions: a card's flavour line (always labelled Flavour), and the
+  user's own words in quotes.
 
 ## Spec workflow (how rulings become code)
 - A user ruling lands in a FILE before any agent flies: `docs/flags.md` for
