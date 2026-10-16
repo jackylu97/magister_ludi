@@ -146,6 +146,7 @@ import {
   orderType,
 } from '../sim/statecraftData';
 import {
+  BAND_NUMERAL,
   RARITY_MARK,
   RARITY_WORD,
   TYPE_WORD,
@@ -1376,8 +1377,8 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   if (def.unlockedByCard === true) {
     // **Which kind of card, and so which sentence** (C1): the opening line
     // above names the card; this one says what its coming and going means for
-    // the stones. An Order lives in a slot and leaves it; a Doctrine is the
-    // government's and stays while the government does; a belief's rule is
+    // the stones. An Order lives in a slot and leaves it; a Doctrine is held
+    // for the whole game once taken (batch C3); a belief's rule is
     // the town's, and the row's own describer already says it
     // (`followingOnly`, "only in a city that keeps the faith that opened it"),
     // so a second sentence here would be the drift this module exists to
@@ -1391,7 +1392,7 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
       });
     } else if (card?.kind === 'doctrine') {
       clauses.push({
-        text: `You can build this only while your government keeps that Doctrine.${lasting}`,
+        text: `You can build this once you hold that Doctrine, which you keep for the whole game.${lasting}`,
         note: true,
       });
     } else if (card === null) {
@@ -2039,24 +2040,31 @@ function orderEntry(id: OrderId): CompendiumEntry {
 
 function doctrineEntry(id: DoctrineId): CompendiumEntry {
   const def = doctrineDef(id);
+  // **A deck's Doctrine** (batch C3) says its deck and its tier, the way its
+  // sheet does; the adoption that offers it is read off the row (`tier`, the
+  // government tier its band pairs with). **A pre-rework Doctrine** is
+  // withdrawn — it was taken at an adoption before the decks — and its page
+  // says so, read off the row like every other standing.
+  const deck = def.decks.length > 0;
+  const decks = def.decks.map(deckWord).join(' · ');
   return {
     id: compendiumId('doctrine', id),
     section: 'doctrine',
     name: def.name,
-    // **Every Doctrine is withdrawn** (the decks rework, D1a): the class was a
-    // permanent card chosen at an adoption, and the reward hand replaced it —
-    // so the shelf is a shelf of history, and each page says so rather than
-    // leaving a reader to wonder why no government ever offers one. Read off
-    // the row like every other standing, so the day a Doctrine comes back the
-    // word goes with it.
-    eyebrow: def.retired === true ? 'doctrine — withdrawn' : 'doctrine',
+    eyebrow: def.retired === true ? 'doctrine — withdrawn' : deck ? `${decks.toLowerCase()} doctrine` : 'doctrine',
     mark: { kind: 'glyph', glyph: '✦' },
-    rows: [...row('Government tier', figure(def.tier)), ...lineRow(def)],
+    rows: deck
+      ? [
+          ...row('Deck', decks),
+          ...row('Tier', BAND_NUMERAL[def.band]),
+          ...row('Offered when you adopt', `a tier ${def.tier} government`),
+        ]
+      : [...row('Government tier', figure(def.tier)), ...lineRow(def)],
     clauses: [
       ...(def.retired === true
         ? [
             {
-              text: 'Withdrawn: Doctrines are no longer offered at an adoption. An empire that took one before they were withdrawn keeps it, and it still pays what it says.',
+              text: 'Withdrawn: this Doctrine is from before the decks and is offered to nobody. An empire that took it keeps it, and it still pays what it says.',
               standing: true,
             },
           ]

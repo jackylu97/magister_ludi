@@ -22,8 +22,11 @@
  *   6. **The flair gallery shows the suits and the faces**, in the pass that
  *      ships them (CLAUDE.md).
  *
- * And two things that do not change in C1: a Doctrine keeps its thread's face,
- * and the reward sheet keeps the U1 deck face until batch C3 removes it.
+ * And two things that do not change in C1: a pre-rework Doctrine keeps its
+ * thread's face, and the reward sheet kept the U1 deck face until batch C3
+ * removed it. Since C3 a deck's Doctrine is offered on the emblem face with its
+ * deck's suit and ink (`doctrineFaceOf`), which is the one card that still
+ * reads `deckFaceOf`.
  *
  * This suite has no jsdom (`sourceHelpers.ts`), so the face's data is checked
  * as data and its wiring is read from the source.
@@ -53,6 +56,7 @@ import {
   TYPE_INK,
   TYPE_WORD,
   deckFaceOf,
+  doctrineFaceOf,
   orderBadges,
   orderPayoff,
   orderSuitBadges,
@@ -251,10 +255,12 @@ describe('every surface draws an Order from orderSuitFace', () => {
     const draft = braceBody(uiSource('main.ts'), 'function showStatecraftOffer()');
     expect(draft).toContain('suit: orderSuitFace(id)');
     expect(draft).toContain('badges: orderSuitBadges(id)');
-    // The U1 deck face is gone from the draft; a Doctrine still reads its thread.
+    // The U1 deck face is gone from the draft. A deck's Doctrine wears its
+    // deck (batch C3), and a pre-rework Doctrine still reads its thread.
     expect(draft).not.toContain('orderFace(');
-    expect(draft).toContain('...cardFace(doctrineDef(id))');
-    expect(draft).not.toContain('...cardFace(orderDef(id))');
+    expect(draft).toContain('const face = doctrineFaceOf(id);');
+    expect(draft).toContain('? cardFace(doctrineDef(id))');
+    expect(draft).not.toContain('cardFace(orderDef(id))');
     const offer = uiSource('offerCard.ts');
     expect(offer).toContain("dressSuitFace(button, suit, 'hand', [");
     expect(offer).toContain('option.suit !== undefined ? suitHandCard(option, option.suit, index)');
@@ -302,7 +308,9 @@ describe('every surface draws an Order from orderSuitFace', () => {
     expect(rail).not.toContain('deckFaceOf(');
   });
 
-  it('draws no deck emblem for an Order anywhere but the reward sheet', () => {
+  it('draws no deck emblem for an Order anywhere', () => {
+    // The reward sheet was the last surface that did, and it went in batch C3.
+    expect(() => uiSource('rewardSheet.ts')).toThrow();
     for (const file of ['offerCard.ts', 'statecraftScreen.ts', 'compendium.ts', 'commissionRail.ts']) {
       const source = uiSource(file);
       expect(source, file).not.toContain('deckMarkNode(');
@@ -351,7 +359,7 @@ describe('the chips', () => {
     );
   });
 
-  it('keeps the rarity chip and its marks for the reward sheet and the book', () => {
+  it('keeps the rarity chip and its marks for the book', () => {
     // `docs/orders-and-doctrines.md` §Rarity, whose column IS `OrderDef.rarity`.
     expect(RARITY_MARK).toEqual({ common: '●', uncommon: '◆', rare: '○' });
     for (const id of ORDER_IDS) {
@@ -397,12 +405,14 @@ describe('the flair gallery', () => {
 });
 
 describe('what C1 leaves alone', () => {
-  it('leaves a Doctrine reading its archetype thread', () => {
-    // A Doctrine carries `decks` too (the empty list every pre-rework row got),
-    // so the class is decided by the caller and never by the row's shape.
+  it('leaves a pre-rework Doctrine reading its archetype thread', () => {
+    // A Doctrine carries `decks` too: the empty list every pre-rework row got,
+    // or the deck it was written in (batch C3). The class is decided by the
+    // caller and never by the row's shape.
     let threaded = 0;
     for (const id of DOCTRINE_IDS) {
-      expect(doctrineDef(id).decks, id).toEqual([]);
+      if (doctrineDef(id).decks.length > 0) continue;
+      expect(doctrineDef(id).retired, id).toBe(true);
       if ((doctrineDef(id).line ?? 'none') !== 'none') threaded += 1;
     }
     expect(threaded).toBeGreaterThan(0);
@@ -411,16 +421,41 @@ describe('what C1 leaves alone', () => {
     expect(braceBody(screen, 'function drawCardFace(')).toContain('cardLineMarkNode(id)');
   });
 
-  it('leaves the reward sheet on the U1 deck face until batch C3 removes it', () => {
-    const hand = braceBody(uiSource('rewardSheet.ts'), 'function drawHand(');
-    expect(hand).toContain('deckFaceOf(def)');
-    expect(hand).toContain('deckMarkNode(face)');
-    expect(hand).toContain('orderChipsNode(id)');
-    expect(hand).toContain('orderPayoff(id)');
-    // So every deck face the reward sheet can ask for is still drawn.
+  it('offers a deck’s Doctrine on the emblem face, with its deck’s suit, ink and tier (C3)', () => {
+    // The face the Doctrine offer and the Statecraft shelf both draw: the
+    // emblem face Doctrines have always worn, with the deck where the thread
+    // was. A Doctrine takes no chair, so it never wears the A3 Order face.
+    let decked = 0;
+    for (const id of DOCTRINE_IDS) {
+      const def = doctrineDef(id);
+      const face = doctrineFaceOf(id);
+      if (def.decks.length === 0) {
+        expect(face, id).toBeNull();
+        continue;
+      }
+      decked += 1;
+      expect(face, id).not.toBeNull();
+      expect(face!.line, id).toBe(deckFaceOf(def));
+      expect(face!.emblem, id).toBe(`url("${suitMarkDataUri(DECK_SUIT[def.decks[0]!])}")`);
+      expect(face!.payoff, id).toContain(`tier ${BAND_NUMERAL[def.band as Band]}`);
+      for (const deck of def.decks) expect(face!.payoff, id).toContain(DECK_WORDS[deck]);
+    }
+    expect(decked).toBeGreaterThan(0);
+    const steppe = doctrineFaceOf('theSteppeConfederacy')!;
+    expect(steppe.line).toBe('dominion');
+    expect(steppe.payoff).toBe('Dominion · doctrine · tier I');
+    // The offer and the shelf both ask the one helper.
+    const draft = braceBody(uiSource('main.ts'), 'function showStatecraftOffer()');
+    expect(draft).toContain('line: face.line, emblem: face.emblem, lineName: face.lineName');
+    const screen = uiSource('statecraftScreen.ts');
+    expect(screen).toContain('const face = isDoctrineId(id) ? doctrineFaceOf(id) : null;');
+    expect(braceBody(screen, 'function drawDeckDoctrineFace(')).toContain('into.dataset.line = face.line;');
+    // Every deck face still has its own mark: the flair gallery shows them,
+    // and a one-deck Doctrine's accent resolves through the same key.
     const faces: DeckFace[] = [...DECK_IDS, 'generic', 'shared'];
     expect(Object.keys(DECK_MARKS).sort()).toEqual([...faces].sort());
-    expect(new Set(faces.map((face) => deckMarkDataUri(face))).size).toBe(faces.length);
-    for (const id of ORDER_IDS) expect(DECK_MARKS[deckFaceOf(orderDef(id))], id).toBeDefined();
+    expect(new Set(faces.map((one) => deckMarkDataUri(one))).size).toBe(faces.length);
+    const style = uiSource('style.css');
+    for (const deck of DECK_IDS) expect(style, deck).toContain(`[data-line='${deck}']`);
   });
 });

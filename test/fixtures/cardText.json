@@ -685,6 +685,16 @@
     "raw": "+2 combat strength for mounted units",
     "text": "+2 combat strength for mounted units"
    }
+  ],
+  "theSteppeConfederacy": [
+   {
+    "raw": "your borders keep growing",
+    "text": "your borders keep growing"
+   },
+   {
+    "raw": "while your authority is negative: +50% production toward mounted units",
+    "text": "while your authority is negative: +50% production toward mounted units"
+   }
   ]
  },
  "order": {

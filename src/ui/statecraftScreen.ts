@@ -165,12 +165,15 @@ import {
   type CardEffect,
   type CardId,
   type CountKind,
+  type DoctrineId,
   type GovernmentId,
   type OrderId,
   type ChairType,
   CHAIR_TYPES,
   cardDef,
+  doctrineDef,
   governmentDef,
+  isDoctrineId,
   isOrderId,
   orderDef,
   orderFitsSlot,
@@ -193,9 +196,11 @@ import {
 } from '../sim/cardImpact';
 import { CARD_LINE_NAME, cardLineMarkNode, lineOf } from './cardLine';
 import {
+  BAND_NUMERAL,
   DECK_SUIT,
   GENERIC_WORD,
   deckWord,
+  doctrineFaceOf,
   orderChipsNode,
   orderSuitBadges,
   orderSuitFace,
@@ -355,12 +360,6 @@ export interface StatecraftScreenOptions {
   send: (commands: readonly SlotCommand[]) => string | null;
   /** Opens the banked government offer's card. */
   adopt?: () => void;
-  /**
-   * Opens the reward sheet (`rewardSheet.ts`) — the second sheet the decks
-   * rework adds (D1a), reached from this screen's banner because a reward
-   * blocks nothing and a banner is how a banked thing is found.
-   */
-  rewards?: () => void;
   /** Said in the manicule line — a refusal, in the reducer's own words. */
   onRefuse?: (message: string) => void;
   /** Called when this screen opens, so the others can close. */
@@ -450,6 +449,35 @@ function drawCardFace(
   // A Doctrine's face is an `<article>` and an Order's is a `<button>`, which is
   // exactly the difference between "read this" and "pick this up" — and
   // therefore exactly the question the keyword rule asks.
+  into.append(clauseList(clauses, keywordsAllowedIn(into)));
+}
+
+/**
+ * **A deck's Doctrine on the shelf** (batch C3): `drawCardFace`'s shape, with
+ * the deck's suit where the archetype thread's emblem would be, the deck and
+ * tier in the eyebrow, and the deck's ink as the accent. A Doctrine takes no
+ * chair, so it wears no chair ink. The offer draws the same face
+ * (`doctrineFaceOf`).
+ */
+function drawDeckDoctrineFace(
+  into: HTMLElement,
+  id: DoctrineId,
+  face: NonNullable<ReturnType<typeof doctrineFaceOf>>,
+  clauses: readonly CardClause[],
+): void {
+  const def = doctrineDef(id);
+  const decks = def.decks.map(deckWord).join(' · ');
+  const tier = `Tier ${BAND_NUMERAL[def.band]}`;
+  // Inked by its deck, as the offer draws it.
+  into.dataset.line = face.line;
+  into.title = `${def.name} · ${face.lineName}`;
+  const head = element('div', 'sc-card-head');
+  const emblem = suitGlyphNode(DECK_SUIT[def.decks[0]!]);
+  emblem.classList.add('sc-card-emblem', 'sc-card-suit');
+  head.append(emblem);
+  head.append(element('span', 'sc-card-type', `${decks} · ${tier} · permanent`));
+  into.append(head);
+  into.append(element('h4', 'sc-card-name', def.name));
   into.append(clauseList(clauses, keywordsAllowedIn(into)));
 }
 
@@ -795,41 +823,6 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   }
 
   /**
-   * **A reward hand, banked or on the table**, said out loud until it is
-   * answered (D1a). The button opens the reward sheet — a second sheet on the
-   * shell — because a hand of three rares wants faces, and a banner is a door.
-   */
-  function drawRewardBanner(sc: PlayerStatecraft): HTMLElement | null {
-    const banked = sc.rewardHands.length;
-    const open = sc.pendingReward !== undefined;
-    if (banked === 0 && !open) return null;
-    const banner = element('section', 'sc-banner sc-banner-reward');
-    banner.append(
-      element(
-        'p',
-        'sc-banner-title',
-        open ? 'A reward hand is on the table.' : `A reward hand is banked${banked > 1 ? ` (${banked})` : ''}.`,
-      ),
-    );
-    banner.append(
-      element(
-        'p',
-        'sc-banner-body',
-        open
-          ? 'Three rares your decks can deal — take one into your collection, or pass for nothing.'
-          : 'Three rares your decks can deal, opened when you choose. It blocks nothing and costs nothing.',
-      ),
-    );
-    if (options.rewards) {
-      const button = element('button', 'btn btn-primary sc-banner-button', open ? 'See the hand' : 'Open the reward hand');
-      (button as HTMLButtonElement).type = 'button';
-      button.addEventListener('click', () => options.rewards?.());
-      banner.append(button);
-    }
-    return banner;
-  }
-
-  /**
    * **The exhausted pool** (D1a; the design doc's rule 7): the meter is full
    * and the seat's decks have no card left to deal, so no draft is charged and
    * the culture stays banked. Said here because the draft sheet never opens
@@ -1139,6 +1132,10 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   /**
    * The Doctrines, permanent and slotless. Beneath the offices: there are few.
    *
+   * A deck's Doctrine (batch C3) wears its deck's suit as its emblem and says
+   * its deck and tier in the eyebrow, "Dominion · Tier I"; a pre-rework
+   * Doctrine keeps its archetype thread's face (`drawCardFace`).
+   *
    * Each face wears the standing stamp exactly as an Order in an office does
    * (the ruling of 2026-09-05, `docs/flags.md` note 6: "doctrines that give
    * yields should also give an indicator of the yields they're supplying"). It
@@ -1153,14 +1150,18 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     block.append(element('p', 'eyebrow sc-eyebrow', 'doctrines · permanent'));
     if (sc.doctrines.length === 0) {
       block.append(
-        element('p', 'sc-none', 'None yet. A Doctrine is taken on the day a government is sworn.'),
+        element('p', 'sc-none', 'None yet. Adopting a government offers you Doctrines from your decks.'),
       );
       return block;
     }
     const row = element('div', 'sc-doctrine-row');
     for (const id of sc.doctrines) {
       const card = element('article', 'sc-card sc-card-doctrine');
-      drawCardFace(card, cardDef(id), 'permanent', describeCard(id));
+      // A deck's Doctrine (batch C3) wears its deck; a pre-rework one, which
+      // nothing deals any more, keeps its thread's face.
+      const face = isDoctrineId(id) ? doctrineFaceOf(id) : null;
+      if (face !== null) drawDeckDoctrineFace(card, id, face, describeCard(id));
+      else drawCardFace(card, cardDef(id), 'permanent', describeCard(id));
       // The same seat the hand's cards keep, built whichever face it shows, so
       // a shelf of Doctrines is a column of one card shape rather than two.
       const stamp = cardStampNode();
@@ -1342,11 +1343,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
 
     const banner = drawPendingGovernment(sc);
     if (banner) body.append(banner);
-    // The decks rework's two banners (D1a): a reward hand banked or on the
-    // table, and the exhausted pool — both facts a player has to be told,
-    // because neither blocks the turn and neither opens a card by itself.
-    const reward = drawRewardBanner(sc);
-    if (reward) body.append(reward);
+    // The exhausted pool (D1a): a fact a player has to be told, because it
+    // blocks nothing and opens no card by itself.
     const dry = drawExhausted(state, seat);
     if (dry) body.append(dry);
 

@@ -8,9 +8,11 @@ import {
   DECK_FILE_ORDERS,
   DECK_IDS,
   DECK_WORDS,
+  DOCTRINE_IDS,
   GOVERNMENT_IDS,
   ORDER_IDS,
   TIER_LADDER,
+  doctrineDef,
   governmentDef,
   orderDef,
   orderIsDealt,
@@ -336,6 +338,47 @@ describe('the orders and doctrines doc mirrors the data', () => {
       expect(printed, `the Governments table has no row for "${def.name}"`).toBeDefined();
       expect(def.text, `${def.name} (${id}) carries no ratified text`).toBeDefined();
       expect(printed, `${def.name} (${id}) — the row's own words are`).toBe(def.text);
+    }
+  });
+
+  /**
+   * **The Doctrines** (batch C3): the doc's Doctrines table mirrors the live
+   * Doctrine rows, both directions. A row prints its name, its decks in words,
+   * its sheet tier as a numeral, the government tier that offers it, and its
+   * own ratified `text`. The pre-rework rows are retired and have no row here,
+   * by the rule at the top of this file.
+   */
+  it('prints every live Doctrine with its decks, tier, government and words', () => {
+    const heading = '## Doctrines';
+    const start = DOC.indexOf(heading);
+    expect(start, heading).toBeGreaterThanOrEqual(0);
+    const end = DOC.indexOf('\n## ', start + heading.length);
+    const section = DOC.slice(start, end === -1 ? undefined : end);
+    const printed = new Map<string, string[]>();
+    for (const line of section.split('\n')) {
+      if (!line.startsWith('|')) continue;
+      const cells = line.split('|').slice(1, -1).map((cell: string) => cell.trim());
+      if (cells[0] === 'Doctrine' || cells.every((cell) => /^-+$/.test(cell))) continue;
+      expect(printed.has(cells[0]!), `"${cells[0]}" is printed twice`).toBe(false);
+      printed.set(cells[0]!, cells);
+    }
+    const NUMERAL: Record<number, string> = { 1: 'I', 2: 'II', 3: 'III', 4: 'IV' };
+    const live = DOCTRINE_IDS.filter(
+      (id) => doctrineDef(id).retired !== true && doctrineDef(id).deferred === undefined,
+    );
+    expect(live.length).toBeGreaterThan(0);
+    for (const id of live) {
+      const def = doctrineDef(id);
+      const cells = printed.get(def.name);
+      expect(cells, `the Doctrines table has no row for "${def.name}"`).toBeDefined();
+      expect(cells![1], `${def.name} — decks`).toBe(def.decks.map((deck) => DECK_WORDS[deck]).join(' · '));
+      expect(cells![2], `${def.name} — tier`).toBe(NUMERAL[def.band]);
+      expect(cells![3], `${def.name} — offered with`).toBe(`tier ${def.tier}`);
+      expect(cells![4], `${def.name} — the row's own words are`).toBe(def.text);
+    }
+    const names = new Set(live.map((id) => doctrineDef(id).name));
+    for (const name of printed.keys()) {
+      expect(names.has(name), `the Doctrines table row "${name}" names no live Doctrine`).toBe(true);
     }
   });
 });

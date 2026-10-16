@@ -1269,11 +1269,12 @@ describe('a completion grant', () => {
   });
 
   it('opens a Doctrine draft, and never a second on top of one already owed', () => {
-    // **Re-cut for the decks rework** (D1a): every Doctrine row is retired — a
-    // Doctrine is the reward hand now — so the shape under test (a completion
-    // grant that deals a draft, and never a second over one owed) is exercised
-    // on a tier the bench un-retires for the test's lifetime. The shape is the
-    // sim's; the empty catalogue is D1a's honest state.
+    // **Re-cut for the decks rework** (D1a) and again for batch C3: the
+    // pre-rework Doctrine rows are retired, and the deck files hold one live
+    // Doctrine so far, so the shape under test (a completion grant that deals
+    // a draft, and never a second over one owed) is exercised on a tier the
+    // bench stocks for the test's lifetime (`stockDoctrines` lends the rows
+    // every deck, since a seat is offered only its own decks' Doctrines).
     const restore = stockDoctrines(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === 4));
     try {
       openTheDraft();

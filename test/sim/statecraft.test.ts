@@ -376,14 +376,25 @@ describe("the card table", () => {
     }
   });
 
-  it("deals no Doctrine pool at any tier (D1a), and keeps the deferred one out of all of them", () => {
-    // **Re-cut for the decks rework**: every Doctrine row is retired — a
-    // Doctrine is the reward hand now — so every tier's pool is empty and the
-    // rows are kept for saves and the Compendium.
+  it("deals each tier's pool from the deck Doctrines alone, and keeps the deferred one out of all of them", () => {
+    // **Re-cut for batch C3.** The decks rework (D1a) retired every Doctrine
+    // row, and the old rows stay retired, kept for saves and the Compendium.
+    // The pools are dealt from the Doctrines in the deck files, each offered
+    // at the government tier its sheet tier pairs with. The data holds one so
+    // far, The Steppe Confederacy at Tier I, so tier 4's pool is that one card
+    // and the later tiers' pools are empty.
     for (const tier of GOVERNMENT_TIERS) {
-      expect(poolDoctrines(tier), `tier ${tier}`).toEqual([]);
+      for (const id of poolDoctrines(tier)) {
+        expect(doctrineDef(id).retired, id).toBeUndefined();
+        expect(doctrineDef(id).decks.length, id).toBeGreaterThan(0);
+        expect(doctrineDef(id).tier, id).toBe(tier);
+      }
       expect(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === tier).length, `tier ${tier}`)
         .toBeGreaterThanOrEqual(RULES.offers.doctrine);
+    }
+    expect(poolDoctrines(GOVERNMENT_TIERS[0]!)).toEqual(["theSteppeConfederacy"]);
+    for (const tier of GOVERNMENT_TIERS.slice(1)) {
+      expect(poolDoctrines(tier), `tier ${tier}`).toEqual([]);
     }
     // Religious Mandate awaits religion, a war state and the beads. It sits at
     // tier 0, which is not a live pool, so it can never be dealt.
@@ -981,17 +992,24 @@ describe("the command matrix", () => {
     }
   });
 
-  it("refuses an adoption with nothing banked, and a Doctrine with no draft", () => {
+  it("refuses an adoption with nothing banked, and a Doctrine pick or pass with no offer", () => {
     const g = game();
     refuses(
       g,
       { type: "adoptGovernment", playerId: 0, choiceIndex: 0 } as Command,
       "no government offer",
     );
+    // Since batch C3 an adoption opens a Doctrine *offer*: no culture is spent
+    // on it, so the refusals call it an offer rather than a draft.
     refuses(
       g,
       { type: "chooseDoctrine", playerId: 0, optionIndex: 0 } as Command,
-      "no Doctrine draft",
+      "no Doctrine offer",
+    );
+    refuses(
+      g,
+      { type: "skipDoctrineOffer", playerId: 0 } as Command,
+      "no Doctrine offer to pass on",
     );
   });
 
@@ -1100,7 +1118,7 @@ describe("adoption", () => {
     return player;
   }
 
-  it("lays out the new chairs, re-seats the card with its seal lifted, and opens no Doctrine draft", () => {
+  it("lays out the new chairs, re-seats the card with its seal lifted, and opens the tier's Doctrine offer", () => {
     const g = game();
     const player = toFirstRung(g);
     const sc = player.statecraft;
@@ -1135,12 +1153,13 @@ describe("adoption", () => {
     expect(sealRemaining(g.state, sc.slots[at]!)).toBe(0);
     expect(sc.slots.filter((entry) => entry !== null)).toHaveLength(1);
     expect(sc.orders).toContain("bloodedSpears");
-    // The offer is spent — and **no Doctrine draft opens** (D1a): every
-    // Doctrine row is retired, the pool deals nothing, and an adoption blocks
-    // nothing afterwards. The reward hand is the Doctrine now.
+    // The offer is spent, and **the Doctrine offer of the tier opens** (batch
+    // C3). This seat holds every deck, and the one Tier I Doctrine in the data
+    // so far is Dominion's, so the offer is that one card. It blocks the turn
+    // until it is answered, and nothing is held until it is.
     expect(sc.pendingGovernment).toBeUndefined();
-    expect(sc.pendingDoctrine).toBeUndefined();
-    expect(statecraftBlocker(player)).toBeNull();
+    expect(sc.pendingDoctrine?.options).toEqual(["theSteppeConfederacy"]);
+    expect(statecraftBlocker(player)).toBe("a Doctrine offer is waiting");
     expect(sc.doctrines).toHaveLength(0);
   });
 
@@ -1188,15 +1207,16 @@ describe("adoption", () => {
     ).toBe(true);
   });
 
-  it("deals no Doctrine at any adoption — the reward hand is the Doctrine now (D1a)", () => {
-    // **Re-cut for the decks rework.** This drafted to every rung of the ladder
-    // and pinned that no Doctrine was ever dealt twice. Every Doctrine row is
-    // retired — a Doctrine is the rare-only reward hand now, not a card class —
-    // so an adoption at any tier opens no Doctrine draft and blocks nothing,
-    // and the collection of Doctrines stays empty for the game. The rungs are
-    // reached by writing the count rather than drafting the stocked shelf dry:
-    // a seat that has drafted everything its decks can deal is an exhausted
-    // hand, which is the other rule this file pins.
+  it("offers each adoption the Doctrines of its tier, never one already held", () => {
+    // **Re-cut for batch C3.** The decks rework (D1a) retired every Doctrine
+    // row, and this pinned that an adoption at any tier dealt nothing. Since
+    // C3 an adoption offers the Doctrines of its tier from the seat's decks.
+    // The data holds one so far (The Steppe Confederacy, Tier I, offered with
+    // the tier-4 governments), so the tier-4 adoption offers it and the later
+    // ones offer nothing and block nothing. The rungs are reached by writing
+    // the count rather than drafting the stocked shelf dry: a seat that has
+    // drafted everything its decks can deal is an exhausted hand, which is the
+    // other rule this file pins.
     const g = game();
     const player = g.state.players[0]!;
     for (const tier of GOVERNMENT_TIERS) {
@@ -1205,13 +1225,50 @@ describe("adoption", () => {
       expect(
         dispatch(g, { type: "adoptGovernment", playerId: 0, choiceIndex: 0 } as Command).ok,
       ).toBe(true);
-      expect(player.statecraft.pendingDoctrine).toBeUndefined();
-      expect(statecraftBlocker(player)).toBeNull();
       expect(player.statecraft.slots).toHaveLength(
         chairsAtTier(tier) + cardExtraChairs(g.state, 0),
       );
+      if (tier === GOVERNMENT_TIERS[0]) {
+        expect(player.statecraft.pendingDoctrine?.options).toEqual(["theSteppeConfederacy"]);
+        expect(
+          dispatch(g, { type: "chooseDoctrine", playerId: 0, optionIndex: 0 } as Command).ok,
+        ).toBe(true);
+      }
+      expect(player.statecraft.pendingDoctrine, `tier ${tier}`).toBeUndefined();
+      expect(statecraftBlocker(player), `tier ${tier}`).toBeNull();
     }
-    expect(player.statecraft.doctrines).toEqual([]);
+    expect(player.statecraft.doctrines).toEqual(["theSteppeConfederacy"]);
+    // A Doctrine already held is never offered again: a second tier-4
+    // adoption finds the pool spent and opens nothing.
+    const tier = GOVERNMENT_TIERS[0]!;
+    player.statecraft.pendingGovernment = { tier, options: governmentsAtTier(tier) };
+    expect(
+      dispatch(g, { type: "adoptGovernment", playerId: 0, choiceIndex: 0 } as Command).ok,
+    ).toBe(true);
+    expect(player.statecraft.pendingDoctrine).toBeUndefined();
+    expect(player.statecraft.doctrines).toEqual(["theSteppeConfederacy"]);
+  });
+
+  it("refuses an adoption while a Doctrine offer waits, so the waiting offer is never written over", () => {
+    // Batch C3. An adoption opens a Doctrine offer, and one written over a
+    // waiting offer (a wonder's grant, say) would throw that offer away; the
+    // reducer asks for the waiting one to be answered first, byte-identically.
+    const g = game();
+    const player = g.state.players[0]!;
+    const tier = GOVERNMENT_TIERS[0]!;
+    player.statecraft.drafts = tier;
+    player.statecraft.pendingGovernment = { tier, options: governmentsAtTier(tier) };
+    player.statecraft.pendingDoctrine = { options: ["theSteppeConfederacy"] };
+    const before = snapshotState(g.state);
+    const refused = dispatch(g, { type: "adoptGovernment", playerId: 0, choiceIndex: 0 } as Command);
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) expect(refused.error).toContain("must answer the waiting Doctrine offer");
+    expect(snapshotState(g.state)).toEqual(before);
+    // Answered, the adoption goes through.
+    expect(dispatch(g, { type: "skipDoctrineOffer", playerId: 0 } as Command).ok).toBe(true);
+    expect(
+      dispatch(g, { type: "adoptGovernment", playerId: 0, choiceIndex: 0 } as Command).ok,
+    ).toBe(true);
   });
 });
 
@@ -1838,7 +1895,9 @@ describe("determinism", () => {
     // 130 since D1: eleven Dominion cards that give units experience or pay
     // when a unit earns a rank, a new end-of-turn phase and a new record, so
     // a v129 log's picks name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(130);
+    // 131 since C3: the reward hands go and an adoption opens a Doctrine
+    // offer, so a v130 seat carries fields this build no longer reads.
+    expect(SCHEMA_VERSION).toBe(131);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

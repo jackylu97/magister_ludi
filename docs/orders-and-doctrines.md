@@ -1,6 +1,6 @@
 # Orders and Doctrines — the master list
 
-Every Order and government in one place, tables only. The tables ARE the balance
+Every Order, government and Doctrine in one place, tables only. The tables ARE the balance
 worksheet: edit a cell here, edit the matching field in `data/statecraft.json`, and
 `test/sim/statecraftDocSync.test.ts` fails the build if the two ever disagree — every live
 row appears in its own deck's table and every table row names a live row, retired rows
@@ -44,18 +44,17 @@ structure paragraphs are sync-tested where they state a number):
   uncommon and rare for the next hand; taking a card zeroes it. The faith reroll keeps the
   hand's positions. An exhausted pool charges nothing: the meter stays full and no draft is
   counted until there is a card to deal.
-- **Reward hands.** At regular draft counts 4, 18 and 29 a rare-only hand is banked
-  (`rewardHands`, absolute counts); it blocks nothing, is dealt when opened — one rare from
-  each deck then one from the union — taken for nothing into the collection, or passed for
-  nothing, and resolves as exhausted at no cost when every rare is held. A rare taken in
-  either kind of hand is out of the other.
+- **No reward hands.** D1a banked a rare-only hand at draft counts 4, 18 and 29. Batch C3
+  removed them (the user, 2026-10-16): a new government brings only its Doctrine offer
+  (see Doctrines below). Schema 131.
 - **Charters.** A row with `charter` grants on the pick — a technology made researchable, a
   building made buildable, rites made learnable — and never sits in a chair. It grants no
   free technology and no free building.
 - **Nothing deleted.** Every pre-rework Order and Doctrine row is `retired: true`: in the data
-  and the Compendium, in no pool. A Doctrine is the reward hand now, not a card class. A row
-  whose text needs a shape the vocabulary lacks is `deferred` in plain words, with no
-  effects, and is in no pool either. Schema 119; a pre-rework save is refused.
+  and the Compendium, in no pool. The live Doctrines are the decks' own, written in batch C3
+  (see Doctrines below). A row whose text needs a shape the vocabulary lacks is `deferred` in
+  plain words, with no effects, and is in no pool either. Schema 119; a pre-rework save is
+  refused.
 
 **Rarity** — the mark in an Order's Rarity column **is** `OrderDef.rarity`: ● common ·
 ◆ uncommon · ○ rare, blank reads as common. The draw takes it as a *probability target,
@@ -88,9 +87,10 @@ dagger are what the row does *not* do.
 | Government III | 3 | 29 | 11 |
 | Government IV | 4 | 38 | 11 |
 
-A reward hand is banked at every rung but the first. A government is offered at its row's
-own tier (4 · 10 · 18 · 29 · 38); a tier between two rungs takes the rung below it for its
-chairs.
+A government is offered at its row's own tier (4 · 10 · 18 · 29); a tier between two rungs
+takes the rung below it for its chairs. Adopting one opens a Doctrine offer of the paired
+tier (see Doctrines below). Until batch C3 a reward hand was banked at every rung but the
+first; the reward hands are gone.
 
 2026-10-15: the fifth rung moved from 45 to 38 drafts (`docs/flags.md` (uuuuuu)).
 
@@ -128,6 +128,41 @@ chairs.
 - **The tier-38 governments are retired** (The Commonwealth, The Empire and The
   Magisterium): their rows are kept for saves and nobody is offered them. The ladder's
   rung at draft 38 is unchanged; only the government offer there is gone.
+
+## Doctrines
+
+- **What a Doctrine is.** A card held for the whole game. It takes no chair, is never given
+  up, and its effects apply from the turn it is taken (`liveEffects`' second source,
+  `PlayerStatecraft.doctrines`).
+- **Where the rows live.** In the deck files, beside the Orders: each `data/decks/<deck>.json`
+  has a `doctrines` map, folded into the one Doctrine table with the same id-collision check
+  the Orders get. A row carries its `decks` (one or two), its sheet tier as `band` (Tier I to
+  IV, written 1 to 4), its `text` and its `effects`. The pre-rework rows in
+  `data/statecraft.json` stay retired.
+- **Which government offers it.** Each Doctrine tier pairs with one government tier, in
+  order: tier 4 offers the Tier I Doctrines, tier 10 Tier II, tier 18 Tier III and tier 29
+  Tier IV. A row's `tier` field is that government tier, derived from `band` when the tables
+  are folded (`governmentTierForDoctrineBand`), never written on a deck row.
+- **The offer.** Adopting a government opens a Doctrine offer of its tier, drawn from the
+  seat's two decks: one Doctrine from each deck, then a third from either (`drawDoctrineOffer`,
+  `drawDoctrinePositions`; the interim rule until the user rules the mix). A rainbow seat
+  samples two of its decks. A deck with no Doctrine left gives its place to the rest of the
+  bag; a rider that widens Doctrine offers adds cards from the whole bag. A Doctrine the seat
+  holds is never offered again. An empty bag opens no offer and spends no randomness.
+- **The answer.** Take one (`chooseDoctrine`) or pass (`skipDoctrineOffer`). A pass costs
+  nothing and banks nothing; a Doctrine passed on is not held, so it can be offered again.
+  The offer blocks End Turn until it is answered, and a waiting offer must be answered before
+  another government is adopted (`governmentChoiceError`), so an adoption never writes over
+  it. The faith reroll may redeal it. The bots take the best-scoring Doctrine when it scores
+  above nothing, and pass otherwise.
+- **The spec of record** is each deck's sheet (`docs/decks/<deck>.md`), whose Doctrine tables
+  list a deck's sixteen Doctrines, four a tier. A Doctrine with a data row matches its sheet
+  row in name, tier and text (`test/sim/decks/<deck>.test.ts`). The table below mirrors the
+  live rows (`statecraftDocSync.test.ts`).
+
+| Doctrine | Decks | Tier | Offered with | Effect |
+|---|---|---|---|---|
+| The Steppe Confederacy | Dominion | I | tier 4 | Negative authority no longer stops your borders growing. While authority is negative, gain +50% production toward mounted units. |
 
 ## Decks
 

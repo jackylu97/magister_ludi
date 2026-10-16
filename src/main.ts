@@ -215,8 +215,7 @@ import {
   orderDef,
   slotCount,
 } from './sim/statecraftData';
-import { orderPayoff, orderSuitBadges, orderSuitFace } from './ui/deckBadges';
-import { type RewardSheet, createRewardSheet } from './ui/rewardSheet';
+import { doctrineFaceOf, orderPayoff, orderSuitBadges, orderSuitFace } from './ui/deckBadges';
 import { createTurnSplash } from './ui/turnSplash';
 // A type only: the Compendium's code is imported on first open (see below).
 import type { Compendium } from './ui/compendium';
@@ -898,8 +897,6 @@ let victory: VictoryScreen | null = null;
 /* Declared before `controls` for `techTree`'s reason exactly: the controls reach
    it (the End Turn blocker steers here), and it reaches the controls. */
 let statecraft: StatecraftScreen | null = null;
-/** The reward sheet (D1a) — the statecraft screen's second sheet, reached from its banner. */
-let rewardSheet: RewardSheet | null = null;
 /**
  * What must unbind before another boot replaces these screen instances.
  * Restart and load go through `adoptGame`, which reuses them: those journeys
@@ -1189,7 +1186,6 @@ screens.register(held('saves', 'screen', () => savesPanel));
 screens.register(held('starChart', 'screen', () => techTree));
 screens.register(held('abacus', 'screen', () => abacus));
 screens.register(held('statecraft', 'screen', () => statecraft));
-screens.register(held('rewards', 'screen', () => rewardSheet));
 screens.register(held('religion', 'screen', () => religion));
 screens.register(held('trade', 'screen', () => trade));
 screens.register(held('wager', 'screen', () => wagerSheet));
@@ -3307,6 +3303,77 @@ async function boot(initial: Game | null): Promise<void> {
       return;
     }
 
+    // **A waiting Doctrine offer comes before a banked government** (batch
+    // C3). The reducer refuses an adoption while one waits, because the
+    // adoption's own offer would be written over it, so the chain shows the
+    // Doctrine first and the charter after it is answered. In the usual order
+    // the two never wait together: the Doctrine offer opens on the adoption.
+    if (sc.pendingDoctrine !== undefined) {
+      const offer = sc.pendingDoctrine;
+      offerCard.show(
+        {
+          eyebrow: 'a doctrine · held for the whole game, in no chair',
+          title: 'What this age will be remembered for',
+          note:
+            'A Doctrine takes no chair and is never given up. The offer holds Doctrines of your ' +
+            'government\'s tier, one from each of your decks and a third from either. Take one, or pass.',
+          weight: 'heavy',
+          widening: wideningLines('doctrine'),
+          // **The Doctrine hand may be asked again, at twice the Order price**
+          // (ruling q, 2026-09-07) — the same ladder, the same door, the same
+          // lifetime count, and the doubling printed as a line of the fold.
+          ...(rerollControl(seat, 'doctrine') === undefined
+            ? {}
+            : { reroll: rerollControl(seat, 'doctrine')! }),
+          // **The pass** (batch C3: *"the player takes one or passes"*). It
+          // spends the offer for nothing; there is no pity to bank.
+          pass: {
+            label: 'Pass',
+            figure: 'No Doctrine',
+            note: 'Take no Doctrine from this offer. Nothing is spent, and the Doctrines on it stay unheld.',
+          },
+          options: offer.options.map((id) => {
+            const face = doctrineFaceOf(id);
+            return {
+              title: doctrineDef(id).name,
+              payoff: face?.payoff ?? 'permanent doctrine',
+              note: describeCard(id).map((clause) => clause.text).join(' · '),
+              flavor: doctrineDef(id).flavor,
+              // A deck's Doctrine wears its deck's suit and its deck's ink; a
+              // pre-rework row keeps its archetype thread's emblem. See
+              // `doctrineFaceOf`.
+              ...(face === null
+                ? cardFace(doctrineDef(id))
+                : { line: face.line, emblem: face.emblem, lineName: face.lineName }),
+              ...cardStamp(seat, { kind: 'doctrine', id }),
+            };
+          }),
+        },
+        (index) => {
+          // The result is *checked* (the deployed bug of 2026-08-30): a refused
+          // pick used to re-deal the same card forever with no word said — the
+          // one reachable case being a seat that Shift-ended its turn with the
+          // draft still up, which the reducer refuses until the next turn.
+          const result = send({ type: 'chooseDoctrine', playerId: seat, optionIndex: index });
+          if (!result.ok) controls.guide(`☞ ${result.error}`);
+          statecraft?.refresh();
+          if (!hasEndedTurn(game.state, seat)) showStatecraftOffer();
+        },
+        () => {
+          // Checked like every answer, and refused for the same one reachable
+          // reason: a seat that Shift-ended its turn with the offer still up.
+          const result = send({ type: 'skipDoctrineOffer', playerId: seat });
+          if (!result.ok) controls.guide(`☞ ${result.error}`);
+          statecraft?.refresh();
+          if (!hasEndedTurn(game.state, seat)) showStatecraftOffer();
+        },
+        () => {
+          rerollOffer(seat, showStatecraftOffer);
+        },
+      );
+      return;
+    }
+
     if (sc.pendingGovernment !== undefined) {
       const offer = sc.pendingGovernment;
       offerCard.show(
@@ -3318,7 +3385,8 @@ async function boot(initial: Game | null): Promise<void> {
           note:
             'Adopting lays out new chairs. Your seated Orders keep their chairs where they still fit; ' +
             'the rest move to free chairs that fit them, any that fit none go back to your collection, ' +
-            'and every seal lifts so you can re-lay the council.',
+            'and every seal lifts so you can re-lay the council. ' +
+            'Then you are offered Doctrines of this government\'s tier from your decks: take one or pass.',
           weight: 'heavy',
           options: offer.options.map((id) => ({
             title: governmentDef(id).name,
@@ -3362,48 +3430,6 @@ async function boot(initial: Game | null): Promise<void> {
         },
       );
       return;
-    }
-
-    if (sc.pendingDoctrine !== undefined) {
-      const offer = sc.pendingDoctrine;
-      offerCard.show(
-        {
-          eyebrow: 'a doctrine · permanent, and slotless',
-          title: 'What this age will be remembered for',
-          note: 'A Doctrine occupies no slot and is never given up. One per government.',
-          weight: 'heavy',
-          widening: wideningLines('doctrine'),
-          // **The Doctrine hand may be asked again, at twice the Order price**
-          // (ruling q, 2026-09-07) — the same ladder, the same door, the same
-          // lifetime count, and the doubling printed as a line of the fold. There
-          // is no pass: a Doctrine draft is a decision the empire owes the game,
-          // and passing on one was never an answer it had.
-          ...(rerollControl(seat, 'doctrine') === undefined
-            ? {}
-            : { reroll: rerollControl(seat, 'doctrine')! }),
-          options: offer.options.map((id) => ({
-            title: doctrineDef(id).name,
-            payoff: 'permanent doctrine',
-            note: describeCard(id).map((clause) => clause.text).join(' · '),
-            flavor: doctrineDef(id).flavor,
-            ...cardFace(doctrineDef(id)),
-            ...cardStamp(seat, { kind: 'doctrine', id }),
-          })),
-        },
-        (index) => {
-          // The result is *checked* (the deployed bug of 2026-08-30): a refused
-          // pick used to re-deal the same card forever with no word said — the
-          // one reachable case being a seat that Shift-ended its turn with the
-          // draft still up, which the reducer refuses until the next turn.
-          const result = send({ type: 'chooseDoctrine', playerId: seat, optionIndex: index });
-          if (!result.ok) controls.guide(`☞ ${result.error}`);
-          statecraft?.refresh();
-        },
-        undefined,
-        () => {
-          rerollOffer(seat, showStatecraftOffer);
-        },
-      );
     }
   }
 
@@ -4467,25 +4493,6 @@ async function boot(initial: Game | null): Promise<void> {
    */
   gameDisposers.push(() => techTree?.dispose());
 
-  // **The reward sheet** (the decks rework, D1a): the second sheet on the
-  // shell, reached from the statecraft screen's banner. Every press on it is
-  // a command through the one dispatcher, checked, and refused in the
-  // reducer's own words on the manicule line.
-  rewardSheet = createRewardSheet({
-    getState: () => game.state,
-    getPlayerId: () => controls.localPlayerId(),
-    send: (command) => {
-      const result = send(command);
-      statecraft?.refresh();
-      return result.ok ? null : result.error;
-    },
-    onRefuse: (message) => controls.guide(message),
-    // It takes Statecraft's place: the registry closes that screen as this
-    // one opens.
-    onOpen: () => screens.opening('rewards'),
-  });
-  gameDisposers.push(() => rewardSheet?.dispose());
-
   statecraft = createStatecraftScreen({
     overlay: statecraftOverlayEl,
     body: statecraftBodyEl,
@@ -4493,7 +4500,6 @@ async function boot(initial: Game | null): Promise<void> {
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
     send: (commands) => controls.sendStatecraft(commands),
-    rewards: () => rewardSheet?.open(),
     adopt: () => {
       // The charter is a *card*, not a panel: the same offer surface the draft
       // and the Doctrine use, so an irreversible choice always arrives the same

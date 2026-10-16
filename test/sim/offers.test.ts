@@ -41,13 +41,15 @@ import {
   explainOfferSize,
   offerSize,
 } from '../../src/sim/statecraft';
-import { stockStandardDecks } from './statecraftHelpers';
+import { stockDoctrines, stockStandardDecks } from './statecraftHelpers';
 
 import {
   type CardEffect,
   type CardOfferRiderEffect,
+  DOCTRINE_IDS,
   GOVERNMENT_TIERS,
   ORDER_IDS,
+  doctrineDef,
   orderDef,
 } from '../../src/sim/statecraftData';
 import { type GameState, claimWonder, bumpRevision } from '../../src/sim/state';
@@ -271,18 +273,27 @@ describe('every generator draws offerSize cards', () => {
     const player = g.state.players[0]!;
     // The **first rung** of the government ladder, read off the rows rather than
     // written here: a Doctrine pool is keyed to an adoption tier and the ladder
-    // is a pacing dial (4/10/18 since 2026-08-27).
+    // is a pacing dial (4/10/18/29 since batch C2).
     const rung = GOVERNMENT_TIERS[0]!;
-    // **Re-cut for the decks rework** (D1a): every Doctrine row is retired —
-    // a Doctrine is the rare-only reward hand now, not a card class — so the
-    // triple deals nothing at any rung, widened or not, and the generator
-    // still asks `offerSize` (the register pin below reads the source for it).
-    expect(drawDoctrineOffer(g.state, player, rung).options).toHaveLength(0);
-    withEffects(buildingDef('theOracle'), [rider('doctrine')], () => {
-      raiseOracle(g.state, 0);
-      expect(offerSize(g.state, 0, 'doctrine')).toBe(4);
-      expect(drawDoctrineOffer(g.state, player, rung).options).toHaveLength(0);
-    });
+    // **Re-cut for batch C3.** An adoption deals Doctrines from the seat's
+    // decks again. The data holds one Tier I Doctrine so far (The Steppe
+    // Confederacy, Dominion), so this seat, which holds every deck, is dealt
+    // that one card, and a widening cannot add what the bag does not hold.
+    expect(drawDoctrineOffer(g.state, player, rung).options).toEqual(['theSteppeConfederacy']);
+    // Stock the rung with the retired tier-4 rows, lent to every deck, and the
+    // offer is the base three, widened to four by The Oracle's rider: the
+    // generator asks `offerSize` (the register pin below reads the source).
+    const restore = stockDoctrines(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === rung));
+    try {
+      expect(drawDoctrineOffer(g.state, player, rung).options).toHaveLength(3);
+      withEffects(buildingDef('theOracle'), [rider('doctrine')], () => {
+        raiseOracle(g.state, 0);
+        expect(offerSize(g.state, 0, 'doctrine')).toBe(4);
+        expect(drawDoctrineOffer(g.state, player, rung).options).toHaveLength(4);
+      });
+    } finally {
+      restore();
+    }
   });
 
   it('the consecration', () => {

@@ -514,9 +514,42 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * C2a's digests exactly on both boards. Nothing stalled and no command was
  * refused.
  */
+/**
+ * **Batch C3 (schema 131): Doctrines come with a government, and the reward
+ * hands go.** Duel `b8469a41:274868` → `2f3f0a7e:292377`, standard
+ * `c4b52563:951785` → `cf4d90d5:967120`. Three things moved them:
+ *
+ *   · the version, 130 to 131, and the empty `rewardHands` field gone from
+ *     every seat;
+ *   · the reward hands themselves. Under D1 the duel game opened six and took
+ *     a rare from each, the standard game nine; those rares are no longer
+ *     dealt, so every seat that took one holds a different collection from
+ *     its fourth draft on;
+ *   · the Doctrine offers. Every seat here holds all six decks, so each
+ *     tier-4 adoption offers The Steppe Confederacy, the one Doctrine in the
+ *     data, and every one of the six seats takes it on both boards (scored
+ *     above nothing by its border rule). Its other half is live while a
+ *     seat's authority is negative: on twelve seat-turns in the duel game and
+ *     sixty-five in the standard one.
+ *
+ * Measured apart: D1's tree reproduces D1's digests; this tree with the
+ * Steppe's row withheld from every pool (the reward hands gone, no Doctrine
+ * offered) gives duel `67496c7a:295285` and standard `69f3a11a:952512`; and
+ * this tree as it is gives the literals below. The duel game adopts 11
+ * governments, the standard one 15.
+ *
+ * In the duel game seat 3 is eliminated on turn 108 during an earlier seat's
+ * turn. The driver read its seat list before the first seat moved, drove the
+ * fallen seat anyway and warned when its End Turn was refused, which failed
+ * the no-warnings check above the hash. `driveBots` now skips a seat that has
+ * been eliminated or has ended its turn by the time its own turn in the pass
+ * comes, as the stepper already did (`aiDriverEliminated.test.ts`). That
+ * changes no state, since the refused commands never did. Nothing stalled and
+ * no command was refused.
+ */
 const DIGESTS: Record<string, string> = {
-  duel: 'b8469a41:274868',
-  standard: 'c4b52563:951785',
+  duel: '2f3f0a7e:292377',
+  standard: 'cf4d90d5:967120',
 };
 
 /**

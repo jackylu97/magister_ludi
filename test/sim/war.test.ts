@@ -952,6 +952,8 @@ describe('the schema witness', () => {
     // 130 since D1: eleven Dominion cards that give units experience or pay
     // when a unit earns a rank, a new end-of-turn phase and a new record, so
     // a v129 log's picks name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(130);
+    // 131 since C3: the reward hands go and an adoption opens a Doctrine
+    // offer, so a v130 seat carries fields this build no longer reads.
+    expect(SCHEMA_VERSION).toBe(131);
   });
 });

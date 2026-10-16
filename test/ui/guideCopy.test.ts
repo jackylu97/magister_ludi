@@ -261,8 +261,11 @@ function retiredNames(): { pattern: RegExp; why: string }[] {
       why: `the ${name} is a retired row in data/units.json`,
     });
   }
-  // A whole card class can be withdrawn too. The Doctrines are, until their
-  // rework (A4) brings live rows back, and then this stops refusing the word.
+  // A whole card class can be withdrawn too. The Doctrines were from the
+  // decks rework (D1a) until batch C3 wrote the first deck Doctrine, so the
+  // word is refused only while every Doctrine row is retired. (The Doctrines
+  // shelf's lead was a historical allowance below while it described the
+  // withdrawn class; since C3 it describes the live one and needs none.)
   if (DOCTRINE_IDS.length > 0 && DOCTRINE_IDS.every((id) => doctrineDef(id).retired === true)) {
     names.push({
       pattern: /\bdoctrines?\b/i,
@@ -292,16 +295,6 @@ const HISTORICAL: readonly { file: string; starts: readonly string[]; why: strin
     file: 'compendiumShelves.ts',
     starts: ['There used to be more.'],
     why: 'the Bead Race shelf says which kinds were withdrawn, above their kept pages',
-  },
-  {
-    file: 'compendiumShelves.ts',
-    starts: [
-      'About Doctrines',
-      'A Doctrine was a permanent bonus',
-      'The class is withdrawn.',
-      'Each entry below gives the government tier a Doctrine belonged to',
-    ],
-    why: 'the Doctrines shelf heads the withdrawn Doctrine pages, which are kept for games that took one',
   },
   {
     file: 'beadsScreen.ts',

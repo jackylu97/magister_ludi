@@ -170,8 +170,8 @@ export function mayPeek(at: PeekConditions): boolean {
 // --- what is owed ------------------------------------------------------------
 
 /**
- * Is Statecraft waiting on this seat? A draft, a Doctrine, a reward hand or a
- * charter to swear.
+ * Is Statecraft waiting on this seat? A draft, a Doctrine offer or a charter to
+ * swear.
  *
  * Delegates to `hasStatecraftOffer`, the simulation's own definition of
  * "something is waiting". This function only adds what a missing seat means:
@@ -196,8 +196,8 @@ export function beliefOwed(player: Player | undefined): boolean {
 
 /**
  * The four things that light the banner's red dot (spec §3): a card to pick (a
- * draft, a Doctrine or a reward hand), a charter to swear, a belief to choose,
- * and a strategic resource with no spare copy.
+ * draft or a Doctrine offer), a charter to swear, a belief to choose, and a
+ * strategic resource with no spare copy.
  */
 export type OwedDecision = 'card' | 'charter' | 'belief' | 'supply';
 

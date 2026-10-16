@@ -32,7 +32,6 @@ import {
   type AnyCardLine,
   type DeckFace,
   cardLineMarkDataUri,
-  deckMarkDataUri,
   slotMarkDataUri,
 } from '../art/lineMarks';
 import type { CardLine, ChairType } from '../sim/statecraftData';
@@ -149,30 +148,4 @@ export function cardLineMarkUrl(id: AnyCardLine): string {
  */
 export function slotMarkUrl(slot: ChairType): string {
   return `url("${slotMarkDataUri(slot)}")`;
-}
-
-/**
- * **The deck's emblem** — what a dealt Order wears in the middle of its frame
- * since U1, in place of the archetype thread's mark.
- *
- * Here beside the thread's printers rather than in `deckBadges.ts`, and the
- * split is the one this file has always drawn: *what a card looks like* is the
- * interface's opinion and lives here; *which face a row is entitled to* is a
- * fact about decks and lives with the words (`deckFaceOf`). So this takes a
- * face and hands back a picture, and knows nothing about how one was chosen.
- *
- * The accent key is the face's own id — `data-line="dominion"` — which is why
- * no deck id may ever collide with a `CardLine` id: one block of `style.css`
- * resolves both, exactly as it has since there were only threads.
- *
- * Since batch C1 an Order's face shows its deck as a suit instead
- * (`suitFace.ts`), and this emblem is drawn only by the reward sheet, which
- * batch C3 removes.
- */
-export function deckMarkNode(face: DeckFace): HTMLSpanElement {
-  const span = document.createElement('span');
-  span.setAttribute('aria-hidden', 'true');
-  span.className = 'line-mark';
-  span.style.setProperty('--line-mark', `url("${deckMarkDataUri(face)}")`);
-  return span;
 }

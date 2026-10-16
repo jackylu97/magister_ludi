@@ -444,7 +444,9 @@ body {
    its deck now, not its archetype thread — every row written after the decks
    rework carries `line: 'none'` — so `deckFaceOf` sets a deck id here where a
    thread id used to stand, and one block still answers for both. No deck id may
-   ever collide with a `CardLine` id for exactly this reason. */
+   ever collide with a `CardLine` id for exactly this reason. Since batch C3 the
+   card that reads this is a deck's Doctrine (`doctrineFaceOf`); an Order wears
+   the A3 face and its type's ink. */
 [data-line='dominion'] {
   --line-ink: var(--deck-dominion);
 }
@@ -3934,8 +3936,8 @@ kbd {
 
 /* --- a commission's counter on a card face ---------------------------------
    `src/ui/goalCounter.ts`. Pips for a small count, a bar for a large one, in
-   the card's own deck ink. Shared by the collection, the draft hand, the
-   reward hand and the chip's popover. */
+   the card's own deck ink. Shared by the collection, the draft hand and the
+   chip's popover. */
 .goal-counter {
   display: flex;
   flex-direction: column;
@@ -11421,99 +11423,6 @@ p.city-trade-link {
   flex: 0 0 auto;
 }
 
-/* --- the reward sheet (D1a's second sheet, finished in D1c) ---------------
-   The rare-only hand banked at a few points along the ladder of reforms. D1a
-   built it on the statecraft sheet's own classes and left the styling here, so
-   what follows is only what that sheet has no rule for: the hand's own width,
-   the mark that says which kind of hand this is, and the pass beneath it.
-
-   A hand of three, laid in the middle of the sheet rather than flush to the
-   left in a grid meant for a collection of thirty. Three cards is a *hand*, and
-   a hand is dealt in front of you. */
-.reward-body {
-  overflow-y: auto;
-}
-
-.reward-hand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-/* The one thing a card cannot say about itself: that this hand is not the
-   ordinary draft. Set as a rule across the sheet in the accent, because the
-   whole point of it is to be read before the cards are. */
-.reward-mark {
-  align-self: stretch;
-  margin: 0;
-  padding-bottom: 5px;
-  border-bottom: var(--border-thin) solid var(--vermilion);
-  color: var(--vermilion);
-}
-
-/* `.sc-banner-body` is `flex: 1 1 320px`, which is right in the banner it was
-   written for — a *row* whose sentence takes the room the button leaves — and
-   grows to three hundred empty pixels the moment it is reused in a column. It
-   is borrowed here for its voice and told to take the height it needs. */
-.reward-lede {
-  flex: 0 0 auto;
-  align-self: stretch;
-  max-width: 62ch;
-  margin: 0;
-}
-
-/* Named twice on purpose: `.sc-card-grid` is written further down the sheet and
-   would otherwise win on source order with the collection's `1fr` columns,
-   which fill the width and leave `justify-content` nothing to centre. A hand of
-   three is dealt in front of you, not filed down the left margin. */
-.reward-hand .reward-grid {
-  grid-template-columns: repeat(auto-fit, minmax(210px, 240px));
-  justify-content: center;
-  width: 100%;
-}
-
-/* A rare in a rare-only hand: the frame carries the deck's accent like every
-   other card, and the sheet adds the lift a dealt card has and a collection's
-   card does not. */
-.reward-card {
-  min-height: 260px;
-}
-
-/* The flavour at the foot of a dealt rare — pinned down so three cards of
-   unequal rules still rule their epigrams on one baseline. */
-.sc-card-flavor {
-  margin: 8px 0 0;
-  padding-top: 6px;
-  border-top: 1px solid var(--rule);
-  font-family: var(--face-name);
-  font-size: 11px;
-  font-style: italic;
-  line-height: 1.35;
-  color: var(--ink-soft);
-}
-
-.sc-card .sc-card-flavor {
-  margin-top: auto;
-  align-self: stretch;
-}
-
-.reward-pass {
-  margin-top: 4px;
-}
-
-.reward-banked {
-  flex-direction: column;
-  align-items: flex-start;
-  align-self: start;
-  gap: 8px;
-}
-
-.reward-exhausted,
-.reward-nothing {
-  max-width: 62ch;
-}
-
 /* --- the slots ----------------------------------------------------------- */
 
 /* Three chairs to a row (batch C2b): see "the chairs" below. */
@@ -12318,6 +12227,14 @@ p.city-trade-link {
 .sc-group-head .sc-group-mark {
   --suit-stroke: 7;
   color: var(--ink-soft);
+}
+
+/* A deck's Doctrine on the shelf (batch C3) wears its deck's suit as the
+   emblem chip, drawn in ink at the heading's weight: a Doctrine takes no chair,
+   so it has no chair ink. */
+.sc-card-emblem.sc-card-suit {
+  --suit-stroke: 7;
+  color: var(--ink);
 }
 
 /* --- an Order in the collection (batch C1) --------------------------------
@@ -14818,10 +14735,10 @@ button.faith-rite-chip:hover:not(.is-on) {
   border-width: 1.5px;
 }
 
-/* On a listed card — the collection's compact face and the reward sheet's — the
-   chips sit under the name at the card's own left edge rather than centred: the
-   whole of those two faces is left-ruled, and a centred chip row on a left-ruled
-   card reads as a caption for the line above it. */
+/* On a listed card — the collection's compact face — the chips sit under the
+   name at the card's own left edge rather than centred: the whole of that face
+   is left-ruled, and a centred chip row on a left-ruled card reads as a caption
+   for the line above it. */
 .sc-card .offer-badges {
   justify-content: flex-start;
   margin: 3px 0 1px;

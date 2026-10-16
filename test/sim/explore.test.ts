@@ -705,10 +705,19 @@ describe('determinism', () => {
    * 11's scout earns one experience), so no drill fires and no
    * `Player.ranksEarned` key is written. Checked by setting the version back
    * to 129 and taking the phase out, which gives C2a's hashes exactly.
+   *
+   * **Batch C3 (Doctrines come with a government; the reward hands go) moved
+   * the hash and shortened the print by fifty-one bytes** at both seeds: 130
+   * became 131, and each of the three seats (the two empires and the wild)
+   * lost its empty `"rewardHands":[]` and the comma before it, seventeen
+   * characters a seat. Nobody here drafts a card or adopts a government, so no
+   * Doctrine offer is ever dealt. Checked by setting the version back to 130
+   * and putting the empty field back after `yieldTallies` on every seat, which
+   * gives D1's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '54cffdcb:188983',
-    2026: '207b9e20:188539',
+    11: '884a6541:188932',
+    2026: '337c9868:188488',
   };
 
   for (const seed of [11, 2026]) {

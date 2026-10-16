@@ -29,7 +29,6 @@ import {
   GOVERNMENT_IDS,
   GOVERNMENT_TIERS,
   ORDER_IDS,
-  REWARD_DRAFTS,
   bandTierAt,
   countedTypeOf,
   governmentDef,
@@ -567,7 +566,7 @@ describe('the tier-38 governments', () => {
     expect(governmentsAtTier(38)).toEqual([]);
   });
 
-  it('leave the rung at draft 38 opening its band and banking its reward hand', () => {
+  it('leave the rung at draft 38 opening its band, with no government and nothing banked', () => {
     const g = game();
     const player = playerById(g.state, 0)!;
     player.statecraft.drafts = 37;
@@ -579,8 +578,10 @@ describe('the tier-38 governments', () => {
     expect(done.tier).toBe(38);
     expect(done.government).toBeNull();
     expect(player.statecraft.pendingGovernment).toBeUndefined();
-    expect(REWARD_DRAFTS).toContain(38);
-    expect(player.statecraft.rewardHands).toContain(38);
+    // The reward hand this rung used to bank went with the reward hands in
+    // batch C3: a new government brings only its Doctrine offer, and no
+    // government is offered here.
+    expect(player.statecraft).not.toHaveProperty('rewardHands');
     // The last band opens at the rung, as it did before the retirement.
     expect(bandTierAt(37)).toBe(3);
     expect(bandTierAt(38)).toBe(4);

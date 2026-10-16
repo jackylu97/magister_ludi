@@ -1228,8 +1228,31 @@ import {
  * dealt, the new phase raises the revision once more every turn, and a unit
  * that earns a rank writes the new record. The branch migrates nothing, for the
  * reason given under v119.
+ *
+ * v131 (branch `decks`; batch C3 of `docs/plans/chairs-build.md`): **Doctrines
+ * come with a government, and the reward hands go.** Two fields leave the
+ * state: `PlayerStatecraft.rewardHands` and `PlayerStatecraft.pendingReward`,
+ * with the three commands that used them (`openRewardHand`, `chooseReward`,
+ * `passReward`). One command joins: `skipDoctrineOffer`, which passes on a
+ * Doctrine offer. Adopting a government now opens a Doctrine offer of that
+ * government's tier (tier 4 offers the Tier I Doctrines, tier 10 Tier II, tier
+ * 18 Tier III and tier 29 Tier IV), drawn from the seat's two decks: one from
+ * each deck, then a third from either. A Doctrine already held is never
+ * offered again, and with nothing to offer no offer opens. A waiting Doctrine
+ * offer must be answered before another government is adopted. A deck's
+ * Doctrines live in its file's new `doctrines` map; the first is Dominion's
+ * The Steppe Confederacy, and with it the border freeze's exemption
+ * (`meterRule` `borderFreezeExempt`) lifts the freeze's own line and lets a
+ * border claim, where before it only cleared the flag.
+ *
+ * **A v130 save is refused and does not replay.** A v130 seat carries the two
+ * reward fields this build no longer reads, a v130 log may name the three
+ * reward commands this build refuses, and from the first adoption on this
+ * build deals a Doctrine offer the v130 game never dealt, which spends
+ * randomness and blocks the turn until it is answered. The branch migrates
+ * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 130;
+export const SCHEMA_VERSION = 131;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

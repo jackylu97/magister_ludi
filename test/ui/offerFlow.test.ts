@@ -308,7 +308,10 @@ describe('every draft deals a tarot face', () => {
     expect(offerSource('governmentFace')).toContain('chairs: offerChairsOf(id)');
     expect(offerSource('governmentFace')).not.toContain('emblem:');
     expect(OFFER_CARD).toContain('option.chairs !== undefined');
-    expect(offerSource('showStatecraftOffer')).toContain('...cardFace(doctrineDef(id))');
+    // A deck's Doctrine wears its deck's suit and ink (batch C3,
+    // `doctrineFaceOf`); a pre-rework Doctrine still reads its thread.
+    expect(offerSource('showStatecraftOffer')).toContain('const face = doctrineFaceOf(id);');
+    expect(offerSource('showStatecraftOffer')).toContain('? cardFace(doctrineDef(id))');
     expect(offerSource('showGreatPersonOffer')).toContain(
       'emblem: cardLineMarkUrl(FAMILY_EMBLEM[def.family])',
     );
