@@ -1,6 +1,16 @@
 # Doctrines, governments and chairs (proposal)
 
-**Status:** proposal, 2026-10-15. One part is ruled (below); the rest waits for the user. Nothing here is built.
+**Status:** ruled, 2026-10-15, apart from the open points below. Nothing here is built.
+
+**Ruled, 2026-10-15: the user's answers to section 5,** verbatim: *"doctrines offered with the government, as before. Show a combination of the two deck's doctrines. #2 answered with the doc. #3 governments are like they were before, just with an extra civics category"*. So:
+- **When Doctrines are offered:** on adopting a government, as before the decks rework. The offer holds Doctrines of the government's tier, drawn from both of the seat's decks. Before the rework this was `drawDoctrineOffer` (`src/sim/statecraft/draft.ts`): a Doctrine already held is not offered again, and the offer's size is `offerSize`'s. The reward hands are not replaced and stay as they are.
+- **Which Doctrines:** Dominion's are the thirteen on its sheet, `docs/decks/dominion.md`, which replaces the fifteen candidates in section 2. The user kept and rewrote eight (The Marian Reforms, The Soldiers' Share, Centurions, The Plunder Economy, The Universal Monarchy, now at Tier III, Total Mobilisation, The Fortress Empire and The Scourge of God), dropped seven (all three at Tier 0, Conscription, The Tribute of Nations, Terror and Clementia), and added five (The Steppe Confederacy, The Consular Roads, The Strategoi, Combined Arms and The Landsturm). There are no Tier 0 Doctrines.
+- **Governments:** as before, with Civic added as a chair type. Each government has its own mix of Military, Economic, Civic and Wildcard chairs, as it had of Military, Economic and Wildcard before the rework, and keeps its signature ability. Section 3's option of replacing the abilities with council rules is not taken.
+- **Still open:**
+  - Governments come at five tiers (4, 10, 18, 29 and 38), and the sheet has Doctrines for four. The tier-10 adoption could deal from the Tier I Doctrines again, or tier 10 could get its own set.
+  - The four-type chair mix of each of the sixteen governments.
+  - How the offer mixes the two decks. The reward hands deal one card from each deck, then a third from both.
+  - The other five decks' Doctrines.
 
 **Ruled, 2026-10-15: typed chairs are option B** (section 4). The user: *"I think B makes sense."* Every card is Military, Economic or Civic, and every government has a mix of the three plus Open chairs. The user then asked how a card should show all three things it now carries, before ruling on the other questions: *"How should we display the cards? Right now they're colored based on deck type, ideally we have some design that incorporates the deck affinity, chair type, and rarity. Please do a couple design proposals (remembering, we're going for an occult, tarot inspired card design). I'll take a look at your proposals and respond to your ruling questions after"*. The three proposals are on the canvas at https://claude.ai/artifact/B6Nyi6ZKCjHtXcSZTNrDoB (private to the user), with their source in `docs/plans/mockups/card-faces/`: A · Suits (`Main.dc.html`), B · The Great Work (`Alchemy.dc.html`) and C · Niches (`Niches.dc.html`).
 
@@ -34,6 +44,8 @@ Today the governments mostly hand out small flat yields, which is the same job t
 
 ### When a Doctrine is offered
 
+**Ruled, 2026-10-15:** on adopting a government, the last option below, with the offer drawn from both decks (see the top of this file). The recommendation that follows was not taken.
+
 **Recommended:** one Doctrine per band, offered as the band opens: Tier 0 with the first draft, then at drafts 4, 18, 29 and 38. The Doctrine offers take the place of the reward hands at those four draft counts.
 - **The offer** shows three of the seat's candidates for that tier, drawn from both of its decks. A seat with Dominion and a partner deck has six candidates per tier, three from each deck, so it sees a different three each game and cannot force a particular Doctrine.
 - **No chair, never lost.** A Doctrine is held for the whole game. The government does not change it.
@@ -44,6 +56,8 @@ Other ways it could work:
 - **On adopting a government,** as before the rework. That ties Doctrines to governments, but governments are offered at tier 10 as well, which no band opens at.
 
 ### Dominion's candidates: three per tier
+
+**Superseded, 2026-10-15:** the user's list on `docs/decks/dominion.md` replaces these. They are kept here as the first draft, with the notes on what each does to a game.
 
 The text of each card is written for the deck sheet's voice. Each one changes how the empire plays, and most pay for it with a drawback, as the old Doctrines did (Blitz: units that kill may move again, but cannot fortify). Each tier's three serve three different builds. Over the five tiers, the drilled legions, the steppe raiders and the conqueror get four each, and the endless host gets three.
 
@@ -100,6 +114,8 @@ They lean on the shape families the user approved for the builds (ranks and expe
 The other five decks would need their own fifteen once Dominion's direction is settled.
 
 ## 3. Governments
+
+**Ruled, 2026-10-15:** governments stay as they were before the decks rework, with Civic added as a chair type, and keep their signature abilities (see the top of this file). None of the options below was taken as written.
 
 ### What they do today
 

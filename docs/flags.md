@@ -19,15 +19,29 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(vvvvvv) Doctrines, governments and typed chairs — PARTLY RULED, 2026-10-15.**
-The proposal is `docs/plans/doctrines-governments-chairs.md`. Ruled: **typed
-chairs are option B** (*"I think B makes sense."*): every card is Military,
-Economic or Civic, and governments mix the three with Open chairs. Open: when
-Doctrines are offered, the fifteen Dominion candidates, and whether
-governments become a chair mix plus one rule. The user will answer those after
-seeing card face proposals that show deck, chair type and rarity together
-(the canvas https://claude.ai/artifact/B6Nyi6ZKCjHtXcSZTNrDoB; source in
-`docs/plans/mockups/card-faces/`).
+**(vvvvvv) Doctrines, governments and typed chairs — RULED, 2026-10-15.**
+The proposal is `docs/plans/doctrines-governments-chairs.md`, which records
+the rulings in full. In short:
+- **Typed chairs are option B** (*"I think B makes sense."*): every card is
+  Military, Economic or Civic, and governments mix the three with Wildcard
+  chairs (the name the card faces use for the old Open chairs).
+- **Doctrines come with the government** (*"doctrines offered with the
+  government, as before. Show a combination of the two deck's doctrines."*):
+  adopting a government offers Doctrines of that government's tier, drawn
+  from both of the seat's decks.
+- **The Dominion Doctrines are the ones on the sheet** (*"#2 answered with the
+  doc."*): `docs/decks/dominion.md` lists thirteen, four at Tier I and three at
+  each of Tiers II to IV, and none at Tier 0.
+- **Governments are as before** (*"governments are like they were before, just
+  with an extra civics category"*): their chair mixes come back with Civic as a
+  third type, and their signature abilities stay. The three tier-18
+  abilities that count Orders by chair type work again once chairs are typed.
+- Still open: whether the tier-10 governments deal Tier I Doctrines again or
+  get their own set; the four-type chair mix of each of the sixteen
+  governments; and the other five decks' Doctrines. Card faces: the user chose
+  A2 and asked for changes, now on the canvas as A3
+  (https://claude.ai/artifact/B6Nyi6ZKCjHtXcSZTNrDoB; source in
+  `docs/plans/mockups/card-faces/`).
 
 **(uuuuuu) Dominion's four builds, and Tier IV at draft 38 — RULED, 2026-10-15.**
 The user answered the questions in `docs/plans/dominion-builds.md`, where the

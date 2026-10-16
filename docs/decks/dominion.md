@@ -7,61 +7,73 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
   - `modify`: in the data, but needs work. The word after the colon says why: `revised` (your revision), `replaced` (a new card takes over the row), `reworked` (ruling 6 of 2026-10-15), `wording` (the text changes, the effect does not), `deferred` (not dealt, because it needs a new shape), or `as built` (the game does something slightly different from the text). The ability shown is the target.
   - `add`: not in the data yet. `add: reworked` is one of your ideas reworked for ruling 6; `add: rule-breaker` is one of the rule-breaking cards added for ruling 4.
   - **(was …)** names the data row a renamed card takes over, or your earlier name for a reworked idea.
+- **Doctrines:** tiers I to IV open with Dominion's Doctrines for that tier. A Doctrine is held for the whole game and takes no chair. Adopting a government offers Doctrines of that government's tier, drawn from both of the seat's decks (ruled 2026-10-15, `docs/flags.md` (vvvvvv)). None is in the data yet. Their tables have three columns, and the sync test reads only the four-column card tables.
 - **Why each card is here:** `docs/plans/dominion-builds.md`: the four builds, the rulings of 2026-10-15, and the reworks and new rule-breakers.
 - **The long form** (the old notes, the "built as" details, the synergy section): `docs/decks/reference/dominion-2026-10-15.md`. Ideas not on the sheet: `docs/plans/dominion-ideas.md`.
 
-| Tier | Implemented | Modify | Add | All |
-|---|---|---|---|---|
-| Tier 0 | 3 | 8 | 16 | 27 |
-| Tier I | 6 | 7 | 9 | 22 |
-| Tier II | 9 | 5 | 10 | 24 |
-| Tier III | 5 | 3 | 20 | 28 |
-| Tier IV | 7 | 8 | 6 | 21 |
-| **All** | **30** | **31** | **61** | **122** |
-| Shared | 16 | 3 | 5 | 24 |
+| Tier | Implemented | Modify | Add | All | Doctrines |
+|---|---|---|---|---|---|
+| Tier 0 | 1 | 9 | 16 | 26 | none |
+| Tier I | 5 | 9 | 10 | 24 | 4 |
+| Tier II | 9 | 5 | 17 | 31 | 3 |
+| Tier III | 5 | 3 | 21 | 29 | 3 |
+| Tier IV | 7 | 8 | 6 | 21 | 3 |
+| **All** | **27** | **34** | **70** | **131** | **13** |
+| Shared | 16 | 3 | 5 | 24 | |
 
 ## Tier 0
 
 | Card | Rarity | Status | Ability |
 |---|---|---|---|
-| **Commission: Clear the Frontier** | common | implemented | Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
-| **The Standing Army** | rare | implemented | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
 | **Blood Brothers** | rare | implemented | A barbarian unit you kill joins your side. |
+| **Commission: Clear the Frontier** | common | modify: revised | Commission. Clear two barbarian camps while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
 | **Blooded Spears** | common | modify: revised | Military units gain +2 strength, doubled against barbarians. |
-| **Martial Law** | common | modify: revised | Each garrisoned unit grants its city +1 happiness and +3 food. |
 | **Muster Rites** | common | modify: revised | Gaining a unit grants 8 faith and 8 food. |
 | **The Horse Herds** | common | modify: revised | Worked pastures and camps give +1 food and +1 production. |
 | **Battle Honours** | common | modify: revised | Commission. Kill ten units while this card is seated. Then choose a great general from a draft. The card leaves its chair. |
-| **Sword and Plough** | common | modify: revised | Each city with a garrison gains +2 culture and +2 production. |
+| **Sword and Plough** | common | modify: revised | Each city with a garrison gains +1 culture and +2 production. |
 | **The Camp Chaplains** | common | modify: reworked | Killing a unit grants faith equal to its strength. |
+| **The Standing Army** | uncommon | modify: revised | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
 | **The King's Levy** | rare | modify: wording | Every fifteen turns your capital raises a melee unit for free. It costs no upkeep. |
+| **The Grain Tribute** | common | add | +1 food and +1 production in every city. |
 | **The Drill Grounds** | common | add | Units standing in your towns gain 1 experience every 4 turns. |
 | **The Scaling Ladders** | common | add | Melee units gain +4 strength against towns. |
 | **The Funeral Games** | common | add | When one of your units falls, gain faith equal to its strength. |
 | **The Bards' Praise** | common | add | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture. |
 | **The Cattle Raid** | common | add | Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns. |
-| **The Farming Garrisons** | common | add | Hexes with a fortified military unit gain +1 food and +1 production. |
 | **The Garrison Captains** | common | add | +1 authority for each garrisoned unit. |
 | **The Spear Makers** | common | add | +30% production toward first- and second-age military units. |
 | **The Armed Colony** | common | add: reworked | A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran. |
 | **The Outriders** | common | add: reworked | Claiming a discovery or clearing a barbarian camp grants 8 production to every town. |
-| **The Captured Arms** | common | add: reworked | +1 science for every unit you have killed this game, at most +20. |
+| **The Captured Arms** | common | add: reworked | +1 science for every unit you have killed this game, no cap. |
 | **The Gathering Host** | uncommon | add | While seated, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture. |
-| **The Armourers' Secret** | uncommon | add | Researching a technology that unlocks a military unit grants one of that unit. |
+| **The Armourers' Secret** | uncommon | add | While seated, researching a technology that unlocks a military unit grants one of that unit. |
 | **The Defiant Kingdom** | uncommon | add | While another empire holds more towns than you, you train military units 25% faster. |
 | **The Hunting Grounds** | uncommon | add | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. |
 | **The Campaign Annals** (was The Bronze Smiths) | rare | add: reworked | While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science. |
 
 ## Tier I
 
+**Doctrines,** offered with the tier-4 governments:
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **The Marian Reforms** | drilled legions | Your military units cost no upkeep, but cost 100% more to produce. Buying them, levies and units granted by cards are unaffected, so the army is bought more than built. |
+| **The Steppe Confederacy** | steppe raiders | Negative authority no longer stops your towns growing. While authority is negative, gain +50% production toward mounted units. |
+| **The Soldiers' Share** | conqueror | Capturing a town fully heals every unit of yours within three hexes and raises each by one rank. You can no longer found new cities. |
+| **The Consular Roads** | conqueror | Cities connected to your capital by road and holding a garrison gain +5 science and +5 culture, and are pacified at once. |
+
+**Orders:**
+
 | Card | Rarity | Status | Ability |
 |---|---|---|---|
 | **The Quartermasters** | common | implemented | Worked strategic resources gain +3 food and +3 production. |
-| **The General Staff** | common | implemented | Cities with a Barracks give +2 renown a turn, favouring great generals. |
 | **The Soldier-Farmers** | common | implemented | While at peace, garrisoned cities gain +2 food and +2 production on each worked pasture and camp. |
 | **The Marshals** | uncommon | implemented | +2 strength per adjacent friendly combat unit, at most +6. |
 | **War Foundries** | rare | implemented | Cities with a Barracks gain gold equal to 30% of their base production and +38% production toward military units. |
 | **Horse Lords** | rare | implemented | Mounted units gain +3 strength and +1 movement. |
+| **Martial Law** | common | modify: revised | Each garrisoned unit grants its city +2 happiness and +4 food. |
+| **The General Staff** | common | modify: revised | Cities with a Barracks give +3 production and +2 renown a turn, favouring great generals. |
 | **The Training Cadre** (was Drill Manuals) | common | modify: replaced | Units gained in a town with a Barracks start with 2 experience. |
 | **The Marching Camps** (was March Discipline) | common | modify: reworked | Attacking does not break your units' fortification. |
 | **The Soldiers' Purse** | common | modify: reworked | Military units cost 1 less upkeep for each rank they hold. |
@@ -70,16 +82,27 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Art of War** | uncommon | modify: revised | Gaining a unit grants science equal to three quarters of its strength. |
 | **Songs of the Fallen** | rare | modify: revised | Killing or losing a unit grants science and culture equal to twice its strength. |
 | **Walled Towns** | common | add | Towns with walls gain +15% food. |
+| **The Farming Garrisons** | common | add | Hexes with a fortified military unit gain +1 food and +1 production. |
 | **The Call to the Spear** | uncommon | add | Towns of at least five citizens may spend a citizen to raise the best melee unit you can build. |
 | **The Swift Riders** | uncommon | add | Mounted units may move after attacking. |
 | **The Open Muster** | uncommon | add | Passing a draft hand grants the best melee unit you can build in your capital. |
 | **The Captive Craftsmen** | uncommon | add | Gains +1 science and +1 production each time you pillage a hex. |
 | **The Satraps** | uncommon | add | Garrisoned towns in unrest pacify twice as fast. |
 | **The Sack** | uncommon | add | Razing a town you captured grants production, gold and culture equal to fifteen times its population. |
-| **The Sally Port** | rare | add | Your units attacking out of a town stay inside it after a kill. |
-| **The Wooden Horse** | rare | add | Once every twenty turns, one of your units may attack a town as though its walls had fallen. |
+| **The Cleruchy** | uncommon | add | When drafted, gain a free settler in your capital. |
+| **The Acropolis** | uncommon | add | +1 authority for each building in your capital. |
 
 ## Tier II
+
+**Doctrines,** offered with the tier-18 governments:
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **Centurions** | drilled legions | Each Elite unit gives +3 strength to your units beside it, and costs 2 more upkeep. |
+| **The Plunder Economy** | steppe raiders | Pillaging a hex yields production equal to 50% of your unit's strength in every city. Your units lose 4 strength when attacking cities. |
+| **The Strategoi** | drilled legions | +30% renown. Citadel yields and great general effects are doubled. |
+
+**Orders:**
 
 | Card | Rarity | Status | Ability |
 |---|---|---|---|
@@ -100,15 +123,32 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Fabricae** | common | add | Towns whose garrison is a Veteran or Elite gain +25% production. |
 | **The Valetudinaria** | common | add | Units in your territory heal 15 more hit points a turn. |
 | **Living off the Land** | common | add | Military units outside your territory cost no upkeep. |
+| **The Longbowmen** | common | add | Ranged units gain +4 strength and +4 ranged strength. +5 strength each time they attack from range. |
+| **The Serried Ranks** | common | add | Melee units beside another melee unit gain +10 strength when defending. |
 | **The Veterans' Roll** | uncommon | add | +1% science and culture for every rank your units have earned this game, at most +30%. |
 | **The Conscription Rolls** | uncommon | add | Every ten turns, each town of at least eight citizens raises the best melee unit you can build. |
 | **The Hall of the Slain** | uncommon | add | +1% production and culture for every two units you have lost this game, at most +30%. |
 | **The Funeral Oration** | uncommon | add | Units you lose count half toward war weariness. |
 | **The Sagas** | uncommon | add | +1% culture and gold for every three hexes you have pillaged this game, at most +30%. |
 | **The Provincial Census** | uncommon | add | Pacifying a town grants science equal to twenty times its population. |
-| **Spear-won Land** | uncommon | add | +2% production and science for every town you have captured this game, at most +30%. |
+| **Spear-won Land** | uncommon | add | +3% production and science for every town you have captured this game, at most +30%. |
+| **The Castra** | uncommon | add | Your own hexes with a fortified military unit gain +1 science and +1 production. Citadels gain +3 production and +3 science. |
+| **The Tactica** | uncommon | add | At the end of your turn, great generals give 1 experience to every unit beside them. Each time one of your units earns a rank, gain 15 science. |
+| **Double Time** | uncommon | add | Your end-of-turn effects, and effects that happen every few turns, trigger twice. |
+| **The State Forges** | rare | add | Each time you research a technology, your capital raises the best melee unit you can build. |
+| **War Feeds Itself** | rare | add | At the end of your turn, each of your units in enemy territory yields you its hex's yields. |
 
 ## Tier III
+
+**Doctrines,** offered with the tier-29 governments:
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **Total Mobilisation** | endless host | While at war, each town of six or more citizens raises the best melee unit you can build every five turns, for a citizen. While at peace, your towns grow 25% faster. |
+| **Combined Arms** | conqueror | Your units gain +3 strength, doubled beside one of your siege units. Siege units gain +1 movement. |
+| **The Universal Monarchy** | conqueror | Towns you capture cost no authority. Towns you found cost twice as much. |
+
+**Orders:**
 
 | Card | Rarity | Status | Ability |
 |---|---|---|---|
@@ -132,6 +172,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Mural Crown** | uncommon | add | The unit that captures a town becomes an Elite. |
 | **The Victory Mint** | uncommon | add | Capturing a city grants gold equal to thirty times its population. |
 | **The King's Peace** | uncommon | add | A great general standing in a town in unrest pacifies it at the start of the next turn. |
+| **Interior Lines** | uncommon | add | Roads are 50% more effective. A unit attacking with movement points left gains +4 strength. |
 | **Rally to the Standard** | uncommon | add: rule-breaker | Units you gain may appear beside any of your great generals. |
 | **The Testudo** | uncommon | add: rule-breaker | Your units cannot be killed by a ranged attack. |
 | **Knightly Ransom** | rare | add | When a Veteran or Elite unit of yours would die, it returns to your nearest town with 1 hit point, for gold equal to half its cost. |
@@ -142,6 +183,16 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Pax Romana** | rare | add | Towns you capture are pacified at once. |
 
 ## Tier IV
+
+**Doctrines,** offered with the tier-38 governments:
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **The Fortress Empire** | drilled legions | Units gain +5 strength when fortified. Each city gains +5% science and production for each fortified military unit inside its borders, at most +30%. |
+| **The Scourge of God** | steppe raiders | Units that have pillaged in the last five turns gain +6 strength. Pillaging gives your capital +100% production for five turns, which does not stack. |
+| **The Landsturm** | endless host | After you pass a draft, each city of five or more citizens raises the best melee unit you can build. Melee units gain +3 strength, doubled beside a great general. |
+
+**Orders:**
 
 | Card | Rarity | Status | Ability |
 |---|---|---|---|
@@ -200,6 +251,14 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 
 ## Open for your pass
 
+- **From your pass of 2026-10-15** (new names are placeholders; rename freely):
+  - **The Longbowmen:** what does "+5 strength each time they attack from range" do? It could add +5 to the shot itself (+9 in all), protect the unit after it shoots (+5 until your next turn), or stack with every shot (a grower).
+  - **Interior Lines:** every unit that attacks has some movement left. Did you mean a unit that has not moved this turn, one with at least half its movement left, or one that arrived by road? And for "50% more effective": a road step costs a third of a move today (a fifth after Machinery). Should it cost a fifth (a seventh after Machinery)?
+  - **Double Time:** which effects count? Suggested: effects that come every few turns (levies, The Drill Grounds) and the experience a unit gains at the end of a turn (The Tactica). Not yields, which are also paid at the end of a turn.
+  - **The Steppe Confederacy:** negative authority does not stop towns growing today; unhappiness does. Below zero, authority freezes borders and bars buying land, and at −5 it cuts production, science and culture. Which of these should the Doctrine lift?
+  - **The Strategoi:** "great general effects": the +3 strength aura and the general's rally? Generals also speed pacification; does that double too?
+  - **The Grain Tribute** had no rarity; it is set to common.
+  - **The tier-10 governments:** governments come at five tiers (4, 10, 18, 29 and 38), and the sheet has Doctrines for four. Does the tier-10 adoption deal from the Tier I Doctrines again, or does tier 10 get its own set?
 - **The two duplicates** (ruling 7, not answered yet):
   - your "gaining a unit grants science equal to its strength" did the same job as The Art of War. It is reworked above as The Captured Arms (science from kills this game). Say if you would rather keep yours and change The Art of War instead;
   - The Call to the Spear does the same job as Expansionist's The Muster of the Fields, and a Dominion + Expansionist seat is dealt both in Tier I. One of the two should change.
