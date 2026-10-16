@@ -215,7 +215,7 @@ import {
   slotCount,
   slotSpread,
 } from './sim/statecraftData';
-import { orderBadges, orderFace, orderPayoff } from './ui/deckBadges';
+import { orderPayoff, orderSuitBadges, orderSuitFace } from './ui/deckBadges';
 import { type RewardSheet, createRewardSheet } from './ui/rewardSheet';
 import { createTurnSplash } from './ui/turnSplash';
 // A type only: the Compendium's code is imported on first open (see below).
@@ -3229,18 +3229,17 @@ async function boot(initial: Game | null): Promise<void> {
       const offer = sc.pendingOrder;
       const options: OfferOption[] = offer.options.map((id) => ({
         title: orderDef(id).name,
-        // **The deck once in words, once as a mark** (U1): the eyebrow names
-        // the deck — or says the card is generic, or names both decks of a
-        // cross-type — and `orderFace` gives the frame that deck's drawing and
-        // that deck's ink. The chips under the name carry the rarity and, where
-        // the row is one, the charter's own sentence.
+        // **The A3 face** (batch C1, `ui/suitFace.ts`): the suit shows the
+        // deck, the ink shows the card's type and the rank shows its rarity, so
+        // the rarity chip is gone and only a charter keeps its chip. The
+        // eyebrow is not drawn on this face; the foot names the deck.
         payoff: orderPayoff(id),
-        badges: orderBadges(id),
+        badges: orderSuitBadges(id),
+        suit: orderSuitFace(id),
         note: describeCard(id).map((clause) => clause.text).join(' · '),
         flavor: orderDef(id).flavor,
         // A commission's counter, so the hand shows where its goal starts.
         progress: commissionCounters(game.state, seat, id),
-        ...orderFace(orderDef(id)),
         ...cardStamp(seat, { kind: 'order', id }),
       }));
       offerCard.show(
@@ -3678,9 +3677,9 @@ async function boot(initial: Game | null): Promise<void> {
    *
    * **The archetype thread answers for the two classes that have no deck** —
    * a Doctrine and a government — and for nothing else since U1. An Order is
-   * drawn by its deck (`orderFace`, `ui/deckBadges.ts`), because every row
-   * written after the decks rework carries `line: 'none'` and this would give
-   * all four hundred of them the same lozenge.
+   * drawn as the A3 face since batch C1 (`orderSuitFace`, `ui/deckBadges.ts`),
+   * because every row written after the decks rework carries `line: 'none'`
+   * and this would give all four hundred of them the same lozenge.
    */
   function cardFace(def: Parameters<typeof lineOf>[0]): Partial<OfferOption> {
     const id = lineOf(def);

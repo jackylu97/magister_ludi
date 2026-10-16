@@ -8,8 +8,10 @@
  * What a chip shows
  * -----------------
  * A ring that fills, the card's name, and the count in words ("1 / 2 camps
- * cleared"), on a see-through parchment ground with a solid left edge in the
- * deck's ink so it reads over any terrain. Hovering or focusing it opens the
+ * cleared"), on a see-through parchment ground with a solid left edge so it
+ * reads over any terrain. Since batch C1 the edge and the ring are in the card's
+ * type's ink, and the deck's suit stands before the name, as on every other
+ * face of the card (`suitFace.ts`). Hovering or focusing it opens the
  * full goal and reward beside it; on a touch screen the first tap opens that
  * and the second opens the sheet. A click opens the government sheet at the
  * card.
@@ -50,8 +52,9 @@ import { describeCard, stripRefs } from '../sim/statecraft';
 import { type OrderId, orderDef } from '../sim/statecraftData';
 import { seatedCommissions } from '../sim/commissions';
 import { commissionCounters } from './commissionGoal';
-import { deckFaceOf } from './deckBadges';
+import { orderSuitFace } from './deckBadges';
 import { element } from './dom';
+import { type InkId, type SuitId, suitGlyphNode } from './suitFace';
 import { type GoalCounter, counterFigure, counterShare, goalCounterNode } from './goalCounter';
 
 export interface CommissionRail {
@@ -108,8 +111,10 @@ export const FULFILLED_WORDS = 'Fulfilled · reward paid';
 export interface CommissionChip {
   card: OrderId;
   name: string;
-  /** The deck face key, for `data-line`. */
-  line: string;
+  /** The card's type's ink, for `data-ink` (batch C1). */
+  ink: InkId;
+  /** The card's decks' suits, drawn before its name. None for a card of no deck. */
+  suits: readonly SuitId[];
   counters: GoalCounter[];
   fulfilled: boolean;
 }
@@ -134,10 +139,12 @@ export function commissionChips(state: GameState, playerId: number): CommissionC
 
 function chipFor(state: GameState, playerId: number, card: OrderId, fulfilled: boolean): CommissionChip {
   const def = orderDef(card);
+  const face = orderSuitFace(card);
   return {
     card,
     name: chipName(def.name),
-    line: deckFaceOf(def),
+    ink: face.ink,
+    suits: face.suits,
     counters: commissionCounters(state, playerId, card),
     fulfilled,
   };
@@ -191,7 +198,7 @@ export function createCommissionRail(options: CommissionRailOptions): Commission
     const item = element('li', 'commission-item');
     const button = element('button', chip.fulfilled ? 'commission-chip is-done' : 'commission-chip');
     button.type = 'button';
-    button.dataset.line = chip.line;
+    button.dataset.ink = chip.ink;
     button.dataset.card = chip.card;
     const popId = `commission-pop-${index}`;
     button.setAttribute('aria-describedby', popId);
@@ -199,7 +206,14 @@ export function createCommissionRail(options: CommissionRailOptions): Commission
     ring.style.setProperty('--p', String(chipRing(chip)));
     ring.setAttribute('aria-hidden', 'true');
     const text = element('span', 'commission-text');
-    text.append(element('span', 'commission-name', chip.name));
+    const name = element('span', 'commission-name');
+    for (const suit of chip.suits.length === 0 ? (['seal'] as const) : chip.suits) {
+      const glyph = suitGlyphNode(suit);
+      glyph.classList.add('commission-suit');
+      name.append(glyph);
+    }
+    name.append(document.createTextNode(chip.name));
+    text.append(name);
     text.append(element('span', 'commission-count', chipCountWords(chip)));
     button.append(ring, text);
 
@@ -208,7 +222,7 @@ export function createCommissionRail(options: CommissionRailOptions): Commission
     const pop = element('div', 'commission-pop');
     pop.id = popId;
     pop.setAttribute('role', 'tooltip');
-    pop.dataset.line = chip.line;
+    pop.dataset.ink = chip.ink;
     pop.append(element('p', 'commission-pop-name', orderDef(chip.card).name));
     for (const clause of describeCard(chip.card)) {
       pop.append(element('p', 'commission-pop-clause', stripRefs(clause.text)));

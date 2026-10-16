@@ -53,6 +53,7 @@ import {
   seatTinctures,
 } from './marks';
 import { drawCaravan } from './caravan';
+import { drawCardFaces } from './cardFaces';
 import { drawPieceInks } from './pieceInks';
 import { drawRankStall } from './ranks';
 import { block, checkbox, controls, element, section, select, slider } from './sheet';
@@ -105,6 +106,18 @@ drawFlourishes(
     'flourishes',
     'Flourishes',
     'Entry VII’s ratified ornament set, each alone on the surface it wears so nothing else competes for the judgement.',
+  ),
+);
+
+// --- 3b. the card faces -----------------------------------------------------
+
+// Batch C1: an Order's A3 face, at the draft's, the council's and the
+// collection's sizes, drawn by the game's own builders.
+drawCardFaces(
+  open(
+    'card-faces',
+    'Card Faces',
+    'An Order as the draft deals it, the council seats it and the collection lists it: the suit shows the deck, the ink shows the type, and the frame and the ornament at the top show the rarity.',
   ),
 );
 

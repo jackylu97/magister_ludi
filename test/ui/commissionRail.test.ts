@@ -83,7 +83,13 @@ describe('the chips', () => {
     const chips = commissionChips(state, 0);
     expect(chips.map((chip) => chip.card)).toEqual([FRONTIER, STRONGROOM]);
     expect(chips[0]!.name).toBe('Clear the Frontier');
-    expect(chips[0]!.line).toBe('dominion');
+    // The A3 face's ink and suit (batch C1): Clear the Frontier is a Dominion
+    // commission, typed Wildcard on its deck's sheet; The Strongroom's deck is
+    // not sorted yet, so it borrows the Wildcard ink too.
+    expect(chips[0]!.ink).toBe('wildcard');
+    expect(chips[0]!.suits).toEqual(['swords']);
+    expect(chips[1]!.ink).toBe('wildcard');
+    expect(chips[1]!.suits).toEqual(['coins']);
     expect(chipCountWords(chips[0]!)).toBe('1 / 2 camps cleared');
     expect(chipRing(chips[0]!)).toBe(50);
     expect(chipCountWords(chips[1]!)).toBe('500 / 2000 gold in the treasury');

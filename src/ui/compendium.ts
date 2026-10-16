@@ -143,13 +143,15 @@ import {
   doctrineDef,
   orderDef,
   orderIsDealt,
+  orderType,
 } from '../sim/statecraftData';
 import {
   RARITY_MARK,
   RARITY_WORD,
-  deckFaceOf,
+  TYPE_WORD,
   deckWord,
   orderPayoff,
+  orderSuitFace,
 } from './deckBadges';
 import { gatingTech } from '../sim/tech';
 import { ABILITY_TECH, TECH_IDS, type TechId, isAbilityId, techDef } from '../sim/techData';
@@ -176,7 +178,8 @@ import {
   unitDef,
 } from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
-import { CARD_LINE_NAME, type DeckFace, deckMarkNode, lineOf } from './cardLine';
+import { CARD_LINE_NAME, lineOf } from './cardLine';
+import { type SuitFace, suitMarksNode } from './suitFace';
 import { setDescriptorText } from './keywords';
 import { renderPamphletBody } from './pamphlet';
 import { SHELF_INTROS } from './compendiumShelves';
@@ -266,11 +269,12 @@ export type CompendiumSectionId =
 export type CompendiumMark =
   | { kind: 'badge'; badge: string }
   | { kind: 'resource'; resource: ResourceId }
-  // A card's deck, drawn by the one printer a deck is ever drawn by (U1) — the
-  // same emblem the card wears in a hand and in the collection. Still no new
-  // icon: the six drawings exist because a dealt card needed them, and the book
-  // borrows them rather than keeping a shelf glyph of its own.
-  | { kind: 'deck'; deck: DeckFace }
+  // An Order's A3 marks (batch C1, `suitFace.ts`): its type's ink as a stripe,
+  // its deck's suit and its rarity's small mark — the collection row's own
+  // marks, so a card reads the same in the book as in the hand that holds it.
+  // Still no new icon: the suits exist because a dealt card needed them, and
+  // the book borrows them rather than keeping a shelf glyph of its own.
+  | { kind: 'suit'; face: SuitFace }
   | { kind: 'glyph'; glyph: string };
 
 /** One figure of an entry: a label and the number, as it is written. */
@@ -2001,13 +2005,16 @@ function orderEntry(id: OrderId): CompendiumEntry {
       orderPayoff(id).toLowerCase(),
       ...(def.retired === true ? ['withdrawn'] : orderIsDealt(id) ? [] : ['not dealt yet']),
     ].join(' — '),
-    // **The deck's own drawing** (U1), in place of the printer's fleuron every
-    // Order wore. The shelf mark is the same emblem the card carries in the hand
-    // and in the collection, out of the same table — a card two decks share
-    // wears the doubled seal here as it does there, and a card of nobody's deck
-    // the single one.
-    mark: { kind: 'deck', deck: deckFaceOf(def) },
+    // **The card's A3 marks** (batch C1): the type's ink, the deck's suit and
+    // the rarity's mark, out of the one function every surface draws an Order
+    // from. A card two decks share shows both suits here as it does in a hand,
+    // and a card of no deck the seal.
+    mark: { kind: 'suit', face: orderSuitFace(id) },
     rows: [
+      // **Its type** (batch C1), which is the ink its face is drawn in. A
+      // withdrawn row has none and says nothing here; a live row of a deck not
+      // yet sorted says "Unsorted", because its ink borrows Wildcard's.
+      ...(def.retired === true ? [] : row('Type', TYPE_WORD[orderType(id)])),
       // The deck is the eyebrow's and the shelf's; what the row adds is the two
       // facts about the draw that are nowhere else — when the card can first
       // turn up, and how often it does when it can.
@@ -3024,13 +3031,11 @@ function markNode(mark: CompendiumMark): HTMLElement {
     box.append(img);
     return box;
   }
-  if (mark.kind === 'deck') {
-    // The accent key rides the box, so the drawing inside it takes the deck's
-    // ink from the one stylesheet block that resolves `data-line` — the same
-    // colour the card wears on the sheet that dealt it.
-    const box = element('span', 'cmp-mark cmp-mark-deck');
-    box.dataset.line = mark.deck;
-    box.append(deckMarkNode(mark.deck));
+  if (mark.kind === 'suit') {
+    // The row's marks, drawn by the one printer (`suitMarksNode`): the ink
+    // stripe, the suit and the rarity's mark, the same as the collection row.
+    const box = element('span', 'cmp-mark cmp-mark-suit');
+    box.append(suitMarksNode(mark.face));
     return box;
   }
   const box = element('span', 'cmp-mark');

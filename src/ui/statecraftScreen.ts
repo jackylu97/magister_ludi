@@ -14,8 +14,9 @@
  *
  * The naming bible (Entry X) is load-bearing here and nowhere else in the
  * interface: the slottable cards are **Orders**, the permanent ones are
- * **Doctrines**, and the screen never says "policy", "civic" or "card" at the
- * player. The word "card" appears in this file only in identifiers.
+ * **Doctrines**, and the screen never says "policy" or "card" at the player.
+ * The word "card" appears in this file only in identifiers. ("Civic" was on
+ * the same list until the user made it the name of a card type, 2026-10-15.)
  *
  * Two panes, and the offices never leave
  * --------------------------------------
@@ -31,24 +32,24 @@
  * card-shaped slots would have eaten the hand it was pinned above. On a short
  * viewport the hand scrolls and the offices do not move at all.
  *
- * An office is a **line** rather than a card-shaped hole for the same reason: in
- * a fixed column the name of what is in it has to be readable, and a row can
- * carry the office, the card, its accent and its seal on one line at any slot
- * count. It keeps the line's emblem, so it is still visibly the same object as
- * the card in the hand that fills it.
+ * An office was a **line** in that column until batch C1. It is a **chair**
+ * now, as on the A3 board's council: the card in it is drawn as the A3 seated
+ * card (120 × 186), with a plate under it naming the chair and carrying its
+ * seal. Two chairs sit side by side in the column, so a large council makes the
+ * column scroll; the column scrolls on its own, and the collection beside it
+ * does not move.
  *
  * A hand is a working list
  * ------------------------
- * The cards in the collection are **compact**: the mono eyebrow, the emblem
- * shrunk to a chip beside it, the name, and the clauses at reading size. The
- * tarot proportion is a *ceremony* and it stays where the ceremony is — the
- * draft spread (`offerCard.ts`), which is where a card is dealt and turned over.
- * The hand is where a player compares thirty of them, and thirty tarot plates is
- * a scroll. Three things still carry the accent — the frame rule, the emblem
- * chip and the eyebrow — so a hand reads as coloured at a glance without any of
- * the colour landing on the parchment itself, and since U1 the accent is the
- * card's **deck** rather than its archetype thread. The table of what a face
- * looks like is `cardLine.ts`; the drawings are `src/art/lineMarks.ts`.
+ * The cards in the collection are **compact**: the A3 row (the type's ink as a
+ * stripe, the deck's suit, the rarity's small mark, the name, the deck and
+ * tier) and then the clauses at reading size. The tarot proportion is a
+ * *ceremony* and it stays where the ceremony is — the draft spread
+ * (`offerCard.ts`), which is where a card is dealt and turned over. The hand is
+ * where a player compares thirty of them, and thirty tarot plates is a scroll.
+ * The card's frame is in its type's ink too. Since batch C1 an Order's face is
+ * `suitFace.ts` (the suit shows the deck, the ink the type, the rank the
+ * rarity), and `orderSuitFace` (`deckBadges.ts`) is where a row becomes one.
  *
  * A Doctrine wears a **heavier** frame — a gilt double rule — for the reason the
  * Doctrine offer does (`offerCard.ts`'s `weight`): adoption day is the one
@@ -155,7 +156,6 @@ import {
   type CardEffect,
   type CardId,
   type CountKind,
-  type DeckId,
   type GovernmentId,
   type OrderId,
   type SlotType,
@@ -181,15 +181,16 @@ import {
   cardImpactSheet,
   explainCardImpact,
 } from '../sim/cardImpact';
+import { CARD_LINE_NAME, cardLineMarkNode, lineOf } from './cardLine';
 import {
-  CARD_LINE_NAME,
-  type DeckFace,
-  cardLineMarkNode,
-  deckMarkNode,
-  lineOf,
-  slotMarkNode,
-} from './cardLine';
-import { GENERIC_WORD, deckFaceOf, deckWord, orderChipsNode, orderPayoff } from './deckBadges';
+  DECK_SUIT,
+  GENERIC_WORD,
+  deckWord,
+  orderChipsNode,
+  orderSuitBadges,
+  orderSuitFace,
+} from './deckBadges';
+import { dressSuitFace, suitGlyphNode, suitRowNode } from './suitFace';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import { createModalShell } from './modalShell';
 import {
@@ -385,13 +386,14 @@ function sealStamp(left: number): HTMLElement {
 }
 
 /**
- * The face every card on this screen wears, whichever class it is.
+ * **A Doctrine's face**: the archetype thread's emblem and accent, the eyebrow,
+ * the name and the clauses.
  *
- * One builder rather than three, because the two uses of it differ only in what
- * goes in the eyebrow: an Order says its slot type, a Doctrine says "permanent".
- * Everything else — the accent, the emblem chip, the name in the name face, the
- * clauses — is the same card, and a second copy of it is how a Doctrine and an
- * Order come to disagree about where a card's name sits.
+ * It used to draw an Order as well, with the deck's emblem in place of the
+ * thread's. Since batch C1 an Order wears the A3 face instead (`drawOrderFace`),
+ * so this draws only the classes with no deck. A Doctrine carries `decks` too
+ * (the empty list every row before the decks rework got), which is why the class
+ * is decided by the caller and never read off the row's shape.
  *
  * **Compact**, and what that cost: the flavour line is off the hand's cards. It
  * is the one thing on a card that says nothing about what the card does, it is
@@ -399,60 +401,55 @@ function sealStamp(left: number): HTMLElement {
  * offer that deals the card, which is the ceremony (`offerCard.ts`).
  *
  * `into` is filled rather than returned so the caller can decide whether the
- * card is an `<article>` or a `<button>`, which is the one real difference
- * between a Doctrine (nothing to do to it) and an Order (pick it up).
- *
- * **An Order is drawn by its deck** (U1) and everything else by its archetype
- * thread, and which it is arrives as a parameter rather than being sniffed off
- * the row. The two classes both carry a `decks` field — a Doctrine's is the
- * empty list every pre-rework row got — so a builder that guessed from the
- * shape would quietly strip every Doctrine of the thread it was drawn for and
- * hand it the seal instead. The caller knows what class it is holding; this
- * does not, and must not start guessing.
+ * card is an `<article>` or a `<button>`.
  */
 function drawCardFace(
   into: HTMLElement,
   def: CardDefBase,
   eyebrow: string,
   clauses: readonly CardClause[],
-  /**
-   * The deck's face, for an Order. Absent draws the archetype thread's.
-   *
-   * `chips` rides with it because only an Order has any: the rarity, and the
-   * charter's sentence where the row is one. A Doctrine is never dealt and has
-   * no rarity to state.
-   */
-  deck?: { face: DeckFace; decks: readonly DeckId[]; chips?: HTMLElement },
 ): void {
   const id = lineOf(def);
-  into.dataset.line = deck === undefined ? id : deck.face;
+  into.dataset.line = id;
   // The accent's own name, for the one thing a colour cannot do: say what it is.
-  // A deck's name for a card that has one, the thread's for a card that does
-  // not, and the card's name alone where neither has anything to say.
-  const accent =
-    deck === undefined
-      ? id === 'none'
-        ? ''
-        : CARD_LINE_NAME[id]
-      : deck.decks.map(deckWord).join(' · ');
-  into.title = accent === '' ? def.name : `${def.name} · ${accent}`;
+  // The card's name alone where the thread has nothing to say.
+  into.title = id === 'none' ? def.name : `${def.name} · ${CARD_LINE_NAME[id]}`;
   const head = element('div', 'sc-card-head');
   // The emblem is a **chip** in the eyebrow rather than a plate in the middle of
-  // the card: the drawing is kept (it is how a deck is recognised) and the
-  // whitespace around it is what went.
-  const emblem = deck === undefined ? cardLineMarkNode(id) : deckMarkNode(deck.face);
+  // the card: the drawing is kept and the whitespace around it is what went.
+  const emblem = cardLineMarkNode(id);
   emblem.classList.add('sc-card-emblem');
   head.append(emblem);
   head.append(element('span', 'sc-card-type', eyebrow));
   into.append(head);
   into.append(element('h4', 'sc-card-name', def.name));
-  // The chips under the name, where the hand that dealt the card puts them: a
-  // card has to read the same in the collection as it did on the sheet, and
-  // rarity is the one field a player looks a held card up for.
-  if (deck?.chips !== undefined) into.append(deck.chips);
   // A Doctrine's face is an `<article>` and an Order's is a `<button>`, which is
   // exactly the difference between "read this" and "pick this up" — and
   // therefore exactly the question the keyword rule asks.
+  into.append(clauseList(clauses, keywordsAllowedIn(into)));
+}
+
+/**
+ * **An Order in the collection** (batch C1): the A3 row at its head, then the
+ * charter's chip where the row is one, then the rules at reading size.
+ *
+ * The row is the board's: the type's ink as a stripe (and on the card's frame),
+ * the deck's suit, the rarity's small mark, the name, and the deck and tier in
+ * mono. A collection card is narrower than the board's list, so the marks and
+ * the deck and tier share the first line and the name takes the second. The
+ * rarity chip the collection used to print is gone, because the small mark says
+ * the rarity; the charter keeps its chip, because "takes no chair" is the one
+ * fact a player cannot read off the rules.
+ */
+function drawOrderFace(into: HTMLElement, id: OrderId, clauses: readonly CardClause[]): void {
+  const def = orderDef(id);
+  const face = orderSuitFace(id);
+  into.classList.add('suit-entry');
+  into.dataset.ink = face.ink;
+  into.title = `${def.name} · ${face.caption}`;
+  into.append(suitRowNode(face, def.name, true));
+  const charter = orderSuitBadges(id);
+  if (charter.length > 0) into.append(orderChipsNode(id, charter));
   into.append(clauseList(clauses, keywordsAllowedIn(into)));
 }
 
@@ -819,11 +816,14 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   }
 
   /**
-   * The offices: one line per slot, typed, with what is in it and its seal.
+   * **The council**: one chair per slot, with what is in it and its seal.
    *
-   * A line rather than a card-shaped hole — see the module docblock. An empty
-   * office keeps the office's mark, ghosted, so the column still reads as a row
-   * of *places a card goes* before any of the words are read.
+   * A chair is drawn as on the A3 board's council (batch C1): the card in it
+   * as the A3 seated card, 120 × 186, and a plate under it naming the chair,
+   * with the seal beside the plate. An empty chair is a dashed outline with a
+   * ghost of a card in it, so the column still reads as a row of *places a card
+   * goes* before any of the words are read. Every chair is the same until batch
+   * C2 gives chairs their types, so the plate says "chair" and carries no ink.
    */
   function drawSlots(
     state: GameState,
@@ -858,7 +858,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       const malice = player === undefined ? null : maliceAt(player, index);
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = `sc-slot sc-slot-${type}`;
+      button.className = `sc-slot sc-chair sc-slot-${type}`;
       // The one hint while a card is in hand, and it is the reducer's own answer
       // about the *staged* arrangement rather than a guess about the live one:
       // an office this session emptied will take a card, and the highlight says
@@ -870,17 +870,24 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       // taken out. Both are "unconfirmed", and both are drawn as such.
       const moved = (sc.slots[index]?.card ?? null) !== (filled?.card ?? null);
       if (moved) button.classList.add('sc-slot-staged');
-      const text = element('span', 'sc-slot-text');
+      // The plate under the chair, and the seal beside it.
+      const foot = element('span', 'sc-chair-foot');
+      const plate = element('span', 'sc-chair-plate');
+      const swatch = element('b', 'sc-chair-swatch');
+      swatch.setAttribute('aria-hidden', 'true');
+      plate.append(swatch);
       // **Every chair is universal since the decks rework** (D1a): the layout
       // answers wildcards alone, so the word is "chair" and not the flavour —
-      // a flavour every office shares says nothing a player can act on.
+      // a flavour every office shares says nothing a player can act on. Batch C2
+      // types the chairs, and the plate takes the chair's type and ink then.
       void type;
-      text.append(element('span', 'sc-slot-type', 'chair'));
+      plate.append(element('span', 'sc-slot-type', 'chair'));
       // The eyebrow, and only where it means something. Every number in this
       // interface is tabular mono, an ordinal included.
       if (positions) {
-        text.append(element('span', 'sc-slot-position', slotPositionWord(layout, index)));
+        plate.append(element('span', 'sc-slot-position', slotPositionWord(layout, index)));
       }
+      foot.append(plate);
       if (malice !== null) {
         // **The bad face.** A chair a malice holds is not empty and is not
         // takeable: it is drawn struck through in vermilion, wears the malice's
@@ -888,40 +895,35 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         // (`maliceChairRefusal` — the tooltip and the rejection are one string,
         // which is this screen's oldest promise).
         button.classList.add('sc-slot-malice');
-        button.dataset.line = 'none';
-        text.append(element('span', 'sc-slot-card', maliceDef(malice).name));
-        button.append(text);
-        const stamp = element('span', 'sc-slot-struck', '\u2715');
-        stamp.setAttribute('aria-hidden', 'true');
-        button.append(stamp);
+        const card = element('span', 'sc-chair-card sc-chair-malice');
+        const struck = element('span', 'sc-slot-struck', '\u2715');
+        struck.setAttribute('aria-hidden', 'true');
+        card.append(struck, element('span', 'sc-slot-card', maliceDef(malice).name));
+        button.append(card, foot);
         button.title = `${maliceChairRefusal(index, malice)} \u2014 ${maliceDef(malice).note}`;
       } else if (filled) {
-        // A slotted card keeps its own accent, so the column of offices is the
-        // same hand of colours the collection beside it is.
-        button.dataset.line = isOrderId(filled.card) ? lineOf(orderDef(filled.card)) : 'none';
-        if (isOrderId(filled.card)) {
-          const emblem = cardLineMarkNode(lineOf(orderDef(filled.card)));
-          emblem.classList.add('sc-slot-emblem');
-          button.append(emblem);
-        }
-        const name = element('span', 'sc-slot-card', isOrderId(filled.card) ? orderDef(filled.card).name : String(filled.card));
-        text.append(name);
-        button.append(text);
+        // The card in the chair, as the A3 seated card: the same suit, ink and
+        // rank it wears in the hand and in the collection beside it.
+        const card = element('span', 'sc-chair-card');
+        const name = element('span', 'sc-slot-card suit-name', isOrderId(filled.card) ? orderDef(filled.card).name : String(filled.card));
+        if (isOrderId(filled.card)) dressSuitFace(card, orderSuitFace(filled.card), 'seat', [name]);
+        else card.append(name);
+        button.append(card, foot);
         if (filled.staged) {
-          // Nothing has sealed it — see `sealStamp`. The office's rim says it is
+          // Nothing has sealed it — see `sealStamp`. The chair's rim says it is
           // unconfirmed and the Confirm block counts it.
           button.title = `${orderDef(filled.card).name} — unconfirmed`;
         } else {
           const stamp = sealStamp(sealRemaining(state, filled));
           button.title = stamp.title;
-          button.append(stamp);
+          foot.append(stamp);
         }
       } else {
-        const ghost = slotMarkNode(type);
-        ghost.classList.add('sc-slot-ghost');
-        button.append(ghost);
-        text.append(element('span', 'sc-slot-empty', 'empty'));
-        button.append(text);
+        const card = element('span', 'sc-chair-card sc-chair-empty');
+        const ghost = element('span', 'sc-chair-ghost');
+        ghost.setAttribute('aria-hidden', 'true');
+        card.append(ghost, element('span', 'sc-slot-empty', 'empty'));
+        button.append(card, foot);
         // The refusal, before it is provoked: the same sentence the reducer
         // would answer with, so the tooltip and the rejection are one string.
         if (held !== null) {
@@ -1197,31 +1199,30 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     for (const { key, name, owned } of groups) {
       const group = element('div', `sc-group sc-group-${key}`);
       const heading = element('p', 'sc-group-head');
+      // The deck's suit before its name (batch C1), the same suit its cards
+      // wear; the generic shelf takes the seal a card of no deck wears.
+      const suit = key === 'generic' ? 'seal' : DECK_SUIT[key as keyof typeof DECK_SUIT];
+      const mark = suitGlyphNode(suit);
+      mark.classList.add('sc-group-mark');
+      heading.append(mark);
       heading.append(element('span', 'sc-group-name', name));
       heading.append(element('span', 'sc-group-count', String(owned.length)));
       group.append(heading);
       const grid = element('div', 'sc-card-grid');
       for (const id of owned) {
-        const def = orderDef(id);
         const button = document.createElement('button');
         button.type = 'button';
-        // **The shelf it is filed on does not decide its ink** (U1). It used to
-        // carry `sc-card-<deck>` off the group key, which inked a cross-type in
-        // whichever of its two decks the seat happened to hold first. The card's
-        // accent is the card's face now — `data-line`, set by `drawCardFace` off
-        // the row's own decks — and the group class stays on the heading alone.
+        // **The shelf it is filed on does not decide its ink** (U1). The card's
+        // ink is its type's (batch C1), set by `drawOrderFace` off the row
+        // itself, and the group class stays on the heading alone.
         button.className = 'sc-card sc-card-order';
         if (slotted.has(id)) button.classList.add('sc-card-slotted');
         if (held === id) button.classList.add('sc-card-held');
         // The card's own face, from the one describer — the collection and the
         // offer that dealt it read identically because there is one reading of
-        // a row and no second one to drift from it. The eyebrow names the deck
-        // in words and the emblem draws it (U1).
-        drawCardFace(button, def, orderPayoff(id), describeCard(id), {
-          face: deckFaceOf(def),
-          decks: def.decks,
-          chips: orderChipsNode(id),
-        });
+        // a row and no second one to drift from it. The A3 row says the type,
+        // the deck, the rarity and the tier (`drawOrderFace`).
+        drawOrderFace(button, id, describeCard(id));
         // A commission carries its goal's counter on its face (batch C), and an
         // unseated one says its progress is kept.
         const goal = commissionGoalNode(state, seat, id);

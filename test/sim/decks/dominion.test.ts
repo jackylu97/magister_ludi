@@ -18,6 +18,11 @@
  *     `implemented` or `modify`. A retired row is on no table and dealt by
  *     nobody. `statecraftDocSync.test.ts` checks the live rows' printed words
  *     against `docs/orders-and-doctrines.md`;
+ *   · **the Type column matches the data** (batch C1): every sheet row with a
+ *     data row, the shared table's included, carries the type the sheet gives
+ *     it (`orderType`). Rows marked `add` have no data row and are skipped. No
+ *     other row in the game carries a type: every other deck is unsorted until
+ *     its own sheet is sorted;
  *   · **one deck, one band, one rarity** on every row of the file;
  *   · **live or deferred, never half**: a row either carries effects and is
  *     dealt, or carries a stated deferral, no effects, and is in no pool
@@ -43,12 +48,20 @@ import {
 } from '../../../src/sim/statecraft';
 import {
   type Band,
+  type CardType,
+  type DeckId,
   type OrderId,
   type OrderRarity,
   BANDS,
+  CARD_TYPES,
   DECK_FILE_ORDERS,
+  DECK_FILES,
+  DECK_WORDS,
+  ORDER_IDS,
+  isCardType,
   orderDef,
   orderIsDealt,
+  orderType,
 } from '../../../src/sim/statecraftData';
 import { createGame } from '../newGameHelpers';
 
@@ -84,6 +97,15 @@ interface DocCard {
   /** The word after the colon in the Status cell ("deferred", "revised" …), if any. */
   reason?: string;
   text: string;
+  /** The Type cell, lowercased: the chair the card fits once batch C2 lands. */
+  type: CardType;
+}
+
+/** The Type cell read as a type. A row without one fails here, by name. */
+function typeOf(card: string, cell: string | undefined): CardType {
+  const type = (cell ?? '').toLowerCase();
+  expect(isCardType(type), `"${card}" has no type the game knows ("${cell ?? ''}")`).toBe(true);
+  return type as CardType;
 }
 
 /** A table row's cells, or `null` for a header, a rule or a line that is not a row. */
@@ -132,13 +154,58 @@ function docCards(): DocCard[] {
       status,
       ...(reason ? { reason } : {}),
       text: cells[3]!,
+      type: typeOf(cells[0]!, cells[4]),
+    });
+  }
+  return cards;
+}
+
+/** One card the sheet's shared table lists. Its row lives in `data/decks/common.json`. */
+interface SharedCard {
+  name: string;
+  was?: string;
+  /** The other deck that may draw it, from the "Also in" cell. */
+  alsoIn: DeckId;
+  status: DocStatus;
+  reason?: string;
+  type: CardType;
+}
+
+/**
+ * **The shared table** ("Shared with another deck"): the cards Dominion shares
+ * with one other deck. Its columns are Card, Rarity, Also in, Tier, Status,
+ * Ability and Type, and its rows live in `data/decks/common.json`.
+ */
+function sharedCards(): SharedCard[] {
+  const start = DOC.indexOf('\n## Shared with another deck');
+  expect(start, 'the sheet has a shared table').toBeGreaterThanOrEqual(0);
+  const deckByWord = new Map(
+    (Object.entries(DECK_WORDS) as [DeckId, string][]).map(([deck, word]) => [word, deck] as const),
+  );
+  const cards: SharedCard[] = [];
+  // From the line after the heading to the next level-two heading.
+  for (const line of DOC.slice(start + 1).split('\n').slice(1)) {
+    if (line.startsWith('## ')) break;
+    const cells = cellsOf(line);
+    if (cells === null || cells.length < 7) continue;
+    const [head, reason] = cells[4]!.split(':').map((part) => part.trim());
+    const status = head as DocStatus;
+    expect(DOC_STATUSES, `"${cells[0]}" has an unknown status "${cells[4]}"`).toContain(status);
+    const alsoIn = deckByWord.get(cells[2]!);
+    expect(alsoIn, `"${cells[0]}" is shared with an unknown deck "${cells[2]}"`).toBeDefined();
+    cards.push({
+      ...namesOf(cells[0]!),
+      alsoIn: alsoIn!,
+      status,
+      ...(reason ? { reason } : {}),
+      type: typeOf(cells[0]!, cells[6]),
     });
   }
   return cards;
 }
 
 /** The name of the data row a sheet row stands for: the "(was …)" name if given. */
-const dataNameOf = (card: DocCard): string => card.was ?? card.name;
+const dataNameOf = (card: { name: string; was?: string }): string => card.was ?? card.name;
 
 /** The rows of `data/decks/dominion.json`, in file order. */
 const ROWS: readonly OrderId[] = DECK_FILE_ORDERS.dominion;
@@ -193,6 +260,8 @@ describe('the Dominion deck — the file', () => {
       }
       const id = byName.get(dataNameOf(card));
       expect(id, `the deck file has no row for "${dataNameOf(card)}"`).toBeDefined();
+      // Every row the sheet speaks for carries the sheet's type, whatever its status.
+      expect(orderType(id!), `${card.name}: the sheet's type`).toBe(card.type);
       if (card.status === 'modify') {
         // A row the sheet calls deferred is one the game does not deal yet.
         if (card.reason === 'deferred') {
@@ -218,6 +287,67 @@ describe('the Dominion deck — the file', () => {
     // And the sheet prints no name twice.
     const printed = doc.map((card) => card.name);
     expect(new Set(printed).size, 'the sheet prints a name twice').toBe(printed.length);
+  });
+
+  it('mirrors the shared table’s Type column onto its rows in common.json', () => {
+    const shared = sharedCards();
+    expect(shared.length, 'the shared table lists cards').toBeGreaterThan(0);
+    const common = new Map(DECK_FILE_ORDERS.common.map((id) => [orderDef(id).name, id] as const));
+    const everyName = new Set(ORDER_IDS.map((id) => orderDef(id).name));
+    let checked = 0;
+    for (const card of shared) {
+      const name = dataNameOf(card);
+      if (card.status === 'add') {
+        expect(common.has(name), `"${name}" is marked add but common.json has it`).toBe(false);
+        continue;
+      }
+      const id = common.get(name);
+      if (id === undefined) {
+        // A merged card keeps its row in its old deck file until the merge is
+        // built, which moves the row here (the sheet's `merged` status). Its type
+        // is checked from then on; until then the row must exist somewhere.
+        expect(card.reason, `common.json has no row for "${name}"`).toBe('merged');
+        expect(everyName.has(name), `no deck file has a row for "${name}"`).toBe(true);
+        continue;
+      }
+      // The row is the one the sheet means: shared by Dominion and the deck named.
+      expect(orderDef(id).decks, name).toContain('dominion');
+      expect(orderDef(id).decks, name).toContain(card.alsoIn);
+      expect(orderType(id), `${name}: the sheet's type`).toBe(card.type);
+      checked += 1;
+    }
+    expect(checked, 'the shared rows were checked at all').toBeGreaterThan(0);
+  });
+
+  it('types only the rows its sheet lists, and leaves every other row unsorted', () => {
+    // The rows this sheet speaks for: its own file's live rows, and the rows of
+    // common.json its shared table lists.
+    const sharedNames = new Set(
+      sharedCards()
+        .filter((card) => card.status !== 'add')
+        .map(dataNameOf),
+    );
+    const sorted = new Set<OrderId>([
+      ...SHEET_ROWS,
+      ...DECK_FILE_ORDERS.common.filter((id) => sharedNames.has(orderDef(id).name)),
+    ]);
+    expect(sorted.size).toBeGreaterThan(SHEET_ROWS.length);
+    for (const id of ORDER_IDS) {
+      if (sorted.has(id)) {
+        expect(CARD_TYPES, `${id} is on the sheet and has no type`).toContain(orderDef(id).type);
+        expect(orderType(id), id).toBe(orderDef(id).type);
+        continue;
+      }
+      // Every other deck, the generic rows, the shared rows Dominion's sheet
+      // does not list, and every retired row: unsorted until a sheet sorts them.
+      expect(orderDef(id).type, `${id} carries a type no sorted sheet gives it`).toBeUndefined();
+      expect(orderType(id), id).toBe('unsorted');
+    }
+    // And the other five deck files are untouched by this sheet.
+    for (const file of DECK_FILES) {
+      if (file === 'dominion' || file === 'common') continue;
+      for (const id of DECK_FILE_ORDERS[file]) expect(orderType(id), id).toBe('unsorted');
+    }
   });
 
   it('keeps every retired row off the sheet’s tables, and deals none of them', () => {

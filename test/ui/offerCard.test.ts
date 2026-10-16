@@ -65,6 +65,9 @@ describe('the spread fits the stage', () => {
         expect(spread.scale, what).toBeGreaterThanOrEqual(0.74);
         expect(spread.scale, what).toBeLessThanOrEqual(1);
         expect(spread.emblem, what).toBeGreaterThanOrEqual(28);
+        // The A3 hand card's own scale (batch C1) keeps the same floor and cap.
+        expect(spread.suitScale, what).toBeGreaterThanOrEqual(0.74);
+        expect(spread.suitScale, what).toBeLessThanOrEqual(1);
       });
     }
   }
@@ -106,6 +109,45 @@ describe('the spread narrows as the hand widens', () => {
     const small = offerSpread(3, STAGES.small);
     expect(small.total).toBeLessThanOrEqual(STAGES.small.height);
     expect(small.card).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * **The A3 hand card** (batch C1, `suitFace.ts`) was drawn at 200 wide, not
+ * the emblem face's 265, and carries more above its name, so it has a scale of
+ * its own. Its content has to fit the height the spread grants, as the emblem
+ * face's does.
+ */
+describe('the A3 hand card fits the spread', () => {
+  /** The A3 card's content at scale 1, as `offerCard.ts` estimates it. */
+  const SUIT_CONTENT_AT_ONE = 360;
+
+  it('draws the ordinary three-card draft at the board’s size where there is room', () => {
+    expect(offerSpread(3, STAGES.large).suitScale).toBe(1);
+  });
+
+  it('shrinks with a wider hand, and never past the floor', () => {
+    for (const stage of Object.values(STAGES)) {
+      let previous = Number.POSITIVE_INFINITY;
+      for (const count of COUNTS) {
+        const spread = offerSpread(count, stage);
+        expect(spread.suitScale).toBeLessThanOrEqual(previous);
+        previous = spread.suitScale;
+      }
+    }
+  });
+
+  it('fits its content in the height the spread grants, unless held at the floor', () => {
+    for (const stage of Object.values(STAGES)) {
+      for (const count of COUNTS) {
+        const spread = offerSpread(count, stage);
+        if (spread.suitScale === 0.74) continue;
+        // Within the rounding to two places: half a hundredth of the content.
+        expect(spread.suitScale * SUIT_CONTENT_AT_ONE, `${count} cards`).toBeLessThanOrEqual(
+          spread.height + SUIT_CONTENT_AT_ONE * 0.005,
+        );
+      }
+    }
   });
 });
 

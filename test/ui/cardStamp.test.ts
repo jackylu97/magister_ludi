@@ -404,11 +404,20 @@ describe('the offer\'s draft flow', () => {
    * `landCardStamp`, and neither is called while the hand is on the table.
    */
   it('builds the stamp wearing the flourish and prints no digit until a pick', () => {
+    // Since batch C1 the card's body is built in one place for both faces
+    // (`faceBody`, beside the A3 card's `suitHandCard`), and `face` only deals
+    // the card it is handed. Neither may write a figure.
+    const body = OFFER.slice(
+      OFFER.indexOf('function faceBody('),
+      OFFER.indexOf('export function createOfferCard('),
+    );
     const face = OFFER.slice(OFFER.indexOf('function face('), OFFER.indexOf('const layout = orderOfferLayout'));
-    expect(face).toContain('cardStampNode()');
-    expect(face).not.toContain('playCardStamp');
-    expect(face).not.toContain('landCardStamp');
-    expect(face).not.toContain('stampText');
+    expect(body).toContain('cardStampNode()');
+    for (const part of [body, face]) {
+      expect(part).not.toContain('playCardStamp');
+      expect(part).not.toContain('landCardStamp');
+      expect(part).not.toContain('stampText');
+    }
   });
 
   /**

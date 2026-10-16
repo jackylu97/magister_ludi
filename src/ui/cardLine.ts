@@ -131,15 +131,6 @@ export function cardLineMarkNode(id: AnyCardLine): HTMLSpanElement {
   return span;
 }
 
-/** The same, for a slot's office — the ghost inside an empty slot. */
-export function slotMarkNode(slot: SlotType): HTMLSpanElement {
-  const span = document.createElement('span');
-  span.setAttribute('aria-hidden', 'true');
-  span.className = 'slot-mark';
-  span.style.setProperty('--line-mark', `url("${slotMarkDataUri(slot)}")`);
-  return span;
-}
-
 /**
  * The emblem as a bare CSS `url(…)` value, for a surface that takes strings.
  *
@@ -170,6 +161,10 @@ export function slotMarkUrl(slot: SlotType): string {
  * The accent key is the face's own id — `data-line="dominion"` — which is why
  * no deck id may ever collide with a `CardLine` id: one block of `style.css`
  * resolves both, exactly as it has since there were only threads.
+ *
+ * Since batch C1 an Order's face shows its deck as a suit instead
+ * (`suitFace.ts`), and this emblem is drawn only by the reward sheet, which
+ * batch C3 removes.
  */
 export function deckMarkNode(face: DeckFace): HTMLSpanElement {
   const span = document.createElement('span');
@@ -177,9 +172,4 @@ export function deckMarkNode(face: DeckFace): HTMLSpanElement {
   span.className = 'line-mark';
   span.style.setProperty('--line-mark', `url("${deckMarkDataUri(face)}")`);
   return span;
-}
-
-/** The same, as a bare CSS `url(…)` value. See `cardLineMarkUrl`. */
-export function deckMarkUrl(face: DeckFace): string {
-  return `url("${deckMarkDataUri(face)}")`;
 }

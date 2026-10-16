@@ -39,24 +39,33 @@
  *   · the **charter keeps its own chip**. A charter is a kind, not a deck, and
  *     that it takes no chair is the one fact a player cannot work out from the
  *     clauses.
+ *
+ * **Since batch C1 an Order's face is the A3 face** (`suitFace.ts`): the suit
+ * shows the deck, the ink shows the card's type, and the frame and the ornament
+ * at the top show its rarity. `orderSuitFace` below is the one place an Order
+ * row becomes that face, and every surface that draws an Order asks it: the
+ * draft, the council, the collection, the Compendium and the commission chips.
+ * The U1 pieces above stay for the reward sheet (`rewardSheet.ts`), which batch
+ * C3 removes, and for the eyebrow and the charter chip, which the A3 face keeps.
  */
 
 import {
+  type Band,
+  type CardTypeReading,
   DECK_WORDS,
   type DeckId,
   type OrderId,
   type OrderRarity,
   orderDef,
+  orderType,
 } from '../sim/statecraftData';
-import { type DeckFace, deckMarkUrl } from './cardLine';
+import { type DeckFace } from './cardLine';
+import { type InkId, type SuitFace, type SuitId } from './suitFace';
 
 export type { DeckFace };
 
 /** The word the badge wears for a row with no deck at all. */
 export const GENERIC_WORD = 'Generic';
-
-/** What a card of nobody's deck is called when the face has to *say* it. */
-export const NO_DECK_WORD = 'no deck';
 
 /** The mark a charter row wears beside its deck. */
 export const CHARTER_WORD = 'Charter';
@@ -148,47 +157,94 @@ export function deckFaceOf(def: { decks: readonly DeckId[] }): DeckFace {
 }
 
 /**
- * How a card's face reaches a surface: the accent key, the picture and the
- * name of what the colour is.
- *
- * Structurally the half of `OfferOption` that `cardFace` fills in `main.ts`,
- * and deliberately not typed as one — `offerCard.ts` holds the line that no
- * simulation type crosses its boundary, and this side of that line is where a
- * `DeckId` is allowed to exist.
- */
-export interface CardFace {
-  /** Reaches the DOM as `data-line`, resolved to ink by one block of `style.css`. */
-  line: string;
-  /** The emblem, as a ready CSS `url(…)` value for the mask. */
-  emblem: string;
-  /** What the accent *is*, in words — the card's `title`. */
-  lineName: string;
-}
-
-/**
- * **A dealt Order's face**: the deck's mark, the deck's ink and the deck's
- * name, from the row alone.
- *
- * The four readers all call this rather than `cardFace` (`main.ts`), which
- * still answers for the two card classes that have no deck — a Doctrine and a
- * government — off the archetype thread. That is the whole of the split: a row
- * with `decks` is drawn by its deck, a row without one by its thread.
- */
-export function orderFace(def: { decks: readonly DeckId[] }): CardFace {
-  const face = deckFaceOf(def);
-  return {
-    line: face,
-    emblem: deckMarkUrl(face),
-    lineName: def.decks.length === 0 ? NO_DECK_WORD : def.decks.map(deckWord).join(' · '),
-  };
-}
-
-/**
  * A deck's name for a badge. One door for every surface, so the leader's face
  * and the card's chip agree on the spelling.
  */
 export function deckWord(deck: DeckId): string {
   return DECK_WORDS[deck];
+}
+
+// --- the A3 face (batch C1) ---------------------------------------------------
+
+/** **Which suit each deck is** (the A3 board's "Deck · the suit"). */
+export const DECK_SUIT: Readonly<Record<DeckId, SuitId>> = {
+  dominion: 'swords',
+  expansionist: 'wands',
+  commerce: 'coins',
+  devotion: 'cups',
+  scientific: 'spheres',
+  magisterial: 'crowns',
+};
+
+/**
+ * **The ink each type is drawn in.** An unsorted card takes the Wildcard ink:
+ * the user asked for the decks that are not sorted yet to be treated as
+ * wildcard until they are (2026-10-16). Unsorted stays its own reading in the
+ * data (`orderType`), because from batch C2 it will seat differently.
+ */
+export const TYPE_INK: Readonly<Record<CardTypeReading, InkId>> = {
+  military: 'military',
+  economic: 'economic',
+  civic: 'civic',
+  wildcard: 'wildcard',
+  unsorted: 'wildcard',
+};
+
+/**
+ * **A type in words.** An unsorted card says so, rather than borrowing the
+ * Wildcard word its ink borrows: the two will fit different chairs from batch
+ * C2, and the word is how a player can tell them apart.
+ */
+export const TYPE_WORD: Readonly<Record<CardTypeReading, string>> = {
+  military: 'Military',
+  economic: 'Economic',
+  civic: 'Civic',
+  wildcard: 'Wildcard',
+  unsorted: 'Unsorted',
+};
+
+/** **The tier numeral** a card's rank carries: its band, numbered as the deck sheets number their tiers. */
+export const BAND_NUMERAL: Readonly<Record<Band, string>> = {
+  0: '0',
+  1: 'I',
+  2: 'II',
+  3: 'III',
+  4: 'IV',
+};
+
+/** The words at a face's foot: its deck, both of its decks, or "Generic" for a card of none. */
+export function orderDeckWords(def: { decks: readonly DeckId[] }): string {
+  return def.decks.length === 0 ? GENERIC_WORD : def.decks.map(deckWord).join(' · ');
+}
+
+/**
+ * **An Order's A3 face**, from the row alone: its decks' suits, its type's ink,
+ * its rarity, its tier and the words for each. The one place an Order row
+ * becomes a face; every surface that draws an Order asks this.
+ */
+export function orderSuitFace(id: OrderId): SuitFace {
+  const def = orderDef(id);
+  const type = orderType(id);
+  const deck = orderDeckWords(def);
+  const numeral = BAND_NUMERAL[def.band];
+  return {
+    suits: def.decks.map((one) => DECK_SUIT[one]),
+    ink: TYPE_INK[type],
+    rank: def.rarity,
+    numeral,
+    deck,
+    caption: `${TYPE_WORD[type]} · ${RARITY_WORD[def.rarity]} · ${deck} · Tier ${numeral}`,
+  };
+}
+
+/**
+ * **The chips an A3 hand card keeps**: the charter's sentence and nothing else.
+ * The rarity chip is gone from the hand because the card's frame and ornament
+ * now show the rarity. The reward sheet keeps `orderBadges`' full row until it
+ * is removed.
+ */
+export function orderSuitBadges(id: OrderId): OrderBadge[] {
+  return orderBadges(id).filter((badge) => badge.tone === 'charter');
 }
 
 /**
@@ -237,11 +293,18 @@ export function orderBadges(id: OrderId): OrderBadge[] {
  * The mark is `aria-hidden` for `OrderBadge.mark`'s reason, and the label is a
  * text node beside it rather than the chip's own text, so the two can be sized
  * apart by the stylesheet.
+ *
+ * `badges` defaults to the full row. The A3 collection card passes
+ * `orderSuitBadges(id)`, the charter's chip alone, because its row already
+ * shows the rarity.
  */
-export function orderChipsNode(id: OrderId): HTMLElement {
+export function orderChipsNode(
+  id: OrderId,
+  badges: readonly OrderBadge[] = orderBadges(id),
+): HTMLElement {
   const chips = document.createElement('p');
   chips.className = 'offer-badges';
-  for (const badge of orderBadges(id)) {
+  for (const badge of badges) {
     const chip = document.createElement('span');
     chip.className = 'offer-badge';
     if (badge.tone !== undefined) chip.dataset.tone = badge.tone;

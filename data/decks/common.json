@@ -38,6 +38,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "The drill yard empties into the furrow.",
       "text": "Cities with a Barracks gain +45% production toward settlers and workers.",
       "effects": [
@@ -60,6 +61,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "Where the guard walks, the merchant does not hurry.",
       "text": "Routes whose origin has a garrison gain +5 gold. Naval units gain +2 strength while adjacent to one of your traders.",
       "effects": [
@@ -87,6 +89,7 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "A signature turns a pirate into a patriot.",
       "text": "Naval combat kills grant 60 gold. Cities with a Harbour gain +38% gold, but produce naval combat units 20% more slowly.",
       "effects": [
@@ -134,6 +137,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "The boy kneels, the soldier stands.",
       "text": "Completing a military unit grants 12 faith.",
       "effects": [
@@ -160,6 +164,7 @@
       "band": 1,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "An army that prays is an army twice fed.",
       "text": "Military units may be purchased with faith in cities with a Temple at the escalating conversion price. Combat kills grant 15 faith.",
       "effects": [
@@ -191,6 +196,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Every campaign is a lecture somebody survived.",
       "text": "Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster.",
       "effects": [
@@ -215,6 +221,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The wall falls to arithmetic before it falls to stone.",
       "text": "Siege units gain +1 movement. Cities with a Workshop gain +30% production toward siege units and +3 science while at war.",
       "effects": [
@@ -297,6 +304,7 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "The realm asks its questions in writing, and keeps the answers.",
       "text": "Cities with a Monument and a garrison gain +2 science and +2 culture per three citizens. Ungarrisoned cities receive no bonus.",
       "effects": [
@@ -843,6 +851,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "The border is a place, and somebody has to live there.",
       "text": "Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one.",
       "effects": [
@@ -897,6 +906,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "They took vows, and then they took the coast.",
       "text": "Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it.",
       "effects": [
@@ -1255,6 +1265,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "The relic goes at the head of the column and the column keeps up.",
       "text": "Worked Holy Sites and citadels that stand beside each other each gain +3 faith and +3 culture.",
       "effects": [
@@ -1313,6 +1324,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "Where the raiders camped, the farmers follow.",
       "text": "Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes.",
       "effects": [
@@ -1331,6 +1343,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The banner goes where the priest goes, and the army goes with both.",
       "text": "Military units beside one of your religious units gain +4 strength.",
       "effects": [
@@ -1383,6 +1396,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "A soldier at every gate, and a road home from each.",
       "text": "Garrisoned cities with a road to your capital gain +5 food and +5 defence.",
       "effects": [
@@ -1429,6 +1443,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "Pray as we pray, or pay as we ask.",
       "text": "Captured cities that do not follow your religion gain +5 gold and +3 faith. Captured cities that follow it cost one less authority, minimum one.",
       "effects": [
@@ -1478,6 +1493,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The treasury is the army that has not yet been hired.",
       "text": "Military units gain +1 strength for every 150 gold in your treasury, at most +5.",
       "effects": [
@@ -1508,6 +1524,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "A man paid to fight has practised.",
       "text": "Units you purchase gain +3 combat strength.",
       "effects": [
@@ -1533,6 +1550,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "A company with a charter, a flag and its own soldiers.",
       "text": "Once drafted, unlock the Company Guard, a unique gunpowder-age melee unit that can only be bought with gold, in cities with a Barracks. No chair required.",
       "effects": [],
@@ -1552,6 +1570,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The captain signs for fifteen turns, and not one more.",
       "text": "Cities with a Barracks may hire the best melee or mounted unit you can build for half its gold price. A hired unit costs no upkeep and leaves after fifteen turns.",
       "deferred": [

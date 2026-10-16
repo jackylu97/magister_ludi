@@ -326,11 +326,61 @@ export interface CharterSpec {
  * the chair's) and because a malice's row names the chair it takes in this
  * vocabulary. It joins nothing new: a row written after the rework carries no
  * `slot` at all.
+ *
+ * A card's **type** is a different field with a vocabulary of its own
+ * (`CardType`, batch C1): four types where this has three, and an Order row
+ * written after the rework carries a type and never a `slot`. The two are kept
+ * apart so that adding the type changes nothing these readers count.
  */
 export type SlotType = 'military' | 'economic' | 'wildcard';
 
 /** The slot types in the order a spread is printed and a screen lays them out. */
 export const SLOT_TYPES: readonly SlotType[] = ['military', 'economic', 'wildcard'];
+
+/**
+ * **The four card types** (batch C1 of `docs/plans/chairs-build.md`). A card's
+ * type is what it mainly pays or does, sorted by the rules in
+ * `docs/plans/doctrines-governments-chairs.md` section 4:
+ *
+ *   · **military**: combat strength, movement and unit rules, ranks and
+ *     experience, units gained, and unit upkeep;
+ *   · **economic**: food, production, gold, land and growth;
+ *   · **civic**: science, culture, faith, happiness, authority, unrest, war
+ *     weariness, renown and great people;
+ *   · **wildcard**: commissions, and cards that act on other cards.
+ *
+ * Today the type decides only how a card is drawn: its face is printed in its
+ * type's ink (`src/ui/suitFace.ts`). Batch C2 makes it decide which chair the
+ * card fits. Until then every chair still takes every card (`orderFitsSlot`),
+ * and nothing in the simulation reads the type.
+ *
+ * Its own union rather than a fourth member of `SlotType`, because that union
+ * is the retired rows' and the malices' vocabulary and several tables are keyed
+ * on it. See `SlotType`.
+ */
+export type CardType = 'military' | 'economic' | 'civic' | 'wildcard';
+
+/** The four types, in the order the A3 board's key prints them. */
+export const CARD_TYPES: readonly CardType[] = ['military', 'economic', 'civic', 'wildcard'];
+
+/**
+ * **A card's type as every reader sees it** (`orderType`): one of the four
+ * types, or `'unsorted'` for a row that carries none.
+ *
+ * Unsorted is a state, not a fifth type. It means the card's deck has not been
+ * sorted yet: Dominion, with the cards it shares, is the only sorted deck, and
+ * the user asked for the others to wait (2026-10-16: *"for decks outside of
+ * dominion, we can just assign everything as a wildcard slot until we get to
+ * them"*). It stays distinct from `'wildcard'` because the two will seat
+ * differently in batch C2: a Wildcard card will fit only a Wildcard chair, and
+ * an unsorted card will fit any chair (confirmed by the user, 2026-10-16). The
+ * face draws an unsorted card in the Wildcard ink.
+ */
+export type CardTypeReading = CardType | 'unsorted';
+
+export function isCardType(value: unknown): value is CardType {
+  return typeof value === 'string' && (CARD_TYPES as readonly string[]).includes(value);
+}
 
 /**
  * Which pool an Order is drafted from. **Pool power steps per government, not
@@ -7488,6 +7538,17 @@ export interface OrderDef extends CardDefBase {
    * quietly answers for. The pity a skip buys is `skipPity`.
    */
   rarity: OrderRarity;
+  /**
+   * **The card's type** (`CardType`). Read through `orderType` and nowhere
+   * else, so that a row without one reads as `'unsorted'` in one place.
+   *
+   * Written on Dominion's live rows and on the shared rows that Dominion's sheet
+   * lists, from the Type column of `docs/decks/dominion.md`;
+   * `test/sim/decks/dominion.test.ts` checks the two against each other. Every
+   * other row carries none until its deck's sheet is sorted, and so do the
+   * retired rows, which no sheet lists.
+   */
+  type?: CardType;
   /** True for a card with no archetype thread. Presentation only. */
   neutral?: boolean;
   /** What slotting this hands over, once per game. See `OrderSlotGrant`. */
@@ -7933,6 +7994,19 @@ export function orderFitsSlot(order: OrderId, slot: SlotType): boolean {
  */
 export function orderSlot(order: OrderId): SlotType {
   return orderDef(order).slot ?? 'wildcard';
+}
+
+/**
+ * **A card's type**: the row's `type`, or `'unsorted'` when the row carries
+ * none. The one reading of `OrderDef.type`, so every reader (the card faces
+ * today, the chairs from batch C2) gets the same answer for a row without one.
+ *
+ * Not `orderSlot`: that function answers `'wildcard'` for a row with no office,
+ * and an unsorted card must stay distinguishable from a Wildcard one. See
+ * `CardTypeReading`.
+ */
+export function orderType(order: OrderId): CardTypeReading {
+  return orderDef(order).type ?? 'unsorted';
 }
 
 // --- the decks ---------------------------------------------------------------

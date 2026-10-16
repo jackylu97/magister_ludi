@@ -29,6 +29,7 @@ import {
   tradeMarkDataUri,
 } from '../art/dockMarks';
 import { type HeraldryId, HERALDRY_IDS, heraldryMarkDataUri } from '../art/heraldryMarks';
+import { SEAL_MARK, SUIT_IDS, SUIT_MARKS, suitMarkDataUri } from '../ui/suitFace';
 import {
   CARD_LINE_MARKS,
   DECK_MARKS,
@@ -189,14 +190,26 @@ function dockFamily(into: HTMLElement): void {
 }
 
 function lineFamily(into: HTMLElement): void {
-  // The decks first, because they are what a dealt card wears: the threads
-  // below them are dead for every row written after the decks rework, and a
-  // gallery that led with them would be leading with the retired set.
+  // The suits first, because they are what a dealt card wears since batch C1:
+  // the deck emblems below them are the reward sheet's alone now, and the
+  // threads below those are dead for every row written after the decks rework.
+  const suits = markGrid(
+    block(
+      into,
+      'Suits — src/ui/suitFace.ts',
+      'The deck on an Order’s A3 face (batch C1), one suit a deck: Dominion Swords, Expansionist Wands, Commerce Coins, Devotion Cups, Scientific Spheres and Magisterial Crowns. `seal` is what a card of no deck shows instead; a card two decks share shows both of its suits. The faces themselves are in the Card Faces section.',
+    ),
+  );
+  for (const suit of SUIT_IDS) {
+    markCell(suits, suit, suitMarkDataUri(suit), SUIT_MARKS[suit].note);
+  }
+  markCell(suits, 'seal', suitMarkDataUri('seal'), SEAL_MARK.note);
+
   const decks = markGrid(
     block(
       into,
       'Decks — src/art/lineMarks.ts',
-      'The emblem in the middle of a dealt card (U1). One drawing a deck, each a picture of what that deck rewards; `generic` is the lozenge seal a card of nobody’s deck keeps, and `shared` is that seal doubled for a card two decks split between them.',
+      'The emblem in the middle of a dealt card from U1 until batch C1, and the reward sheet’s until batch C3 removes it. One drawing a deck, each a picture of what that deck rewards; `generic` is the lozenge seal a card of nobody’s deck keeps, and `shared` is that seal doubled for a card two decks split between them.',
     ),
   );
   for (const [id, mark] of Object.entries(DECK_MARKS)) {

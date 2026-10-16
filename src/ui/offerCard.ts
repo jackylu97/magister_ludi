@@ -94,6 +94,7 @@ import { STAMP_TIMING, type StampReading, cardStampNode, playCardStamp, stampIsE
 import { DEAL_MS, DEAL_STAGGER_MS, cardBack } from './cardDeal';
 import { type GoalCounter, goalCounterNode } from './goalCounter';
 import { setDescriptorText } from './keywords';
+import { type SuitFace, dressSuitFace } from './suitFace';
 import { yieldElement as element } from './yieldMark';
 import { wantsMotion } from './motion';
 
@@ -245,6 +246,20 @@ export interface OfferOption {
    * in `cardStamp.ts`) and this component still knows nothing about cards.
    */
   stamp?: StampReading;
+  /**
+   * **The A3 face** (batch C1, `suitFace.ts`): the suit that shows the deck,
+   * the ink that shows the type and the rank that shows the rarity. An Order's
+   * option carries one, and the card is then drawn as the A3 hand card instead
+   * of the emblem face: the rank's frame and ornament, the suit in its
+   * medallion, the name and the rules, and the deck at the foot.
+   *
+   * Plain strings, like everything else that crosses this boundary: the caller
+   * builds it (`orderSuitFace` in `deckBadges.ts`) and this component only draws
+   * it. An option with a face needs no `emblem`, `line` or `lineName`, and its
+   * `payoff` eyebrow is not drawn, because the foot names the deck and the
+   * face's caption says the rest.
+   */
+  suit?: SuitFace;
 }
 
 /** What the card is asking about. */
@@ -448,6 +463,14 @@ export interface OfferSpread {
   emblem: number;
   /** Type scale, 1 at the designed three. */
   scale: number;
+  /**
+   * **The A3 hand card's scale** (batch C1): 1 at the board's 200 × 310, held
+   * down by the card's width and by the room the spread has for its height.
+   * Its own figure rather than `scale`, because the A3 card was drawn at 200
+   * wide and the emblem face at 265, and the A3 card carries more above its
+   * name (the rank and a larger medallion).
+   */
+  suitScale: number;
   /** What the spread stands, overlay padding to overlay padding. */
   total: number;
 }
@@ -501,6 +524,15 @@ const CARD_DESIGNED = 265;
  * card wants *is* the scale that makes it fit.
  */
 const CONTENT_AT_ONE = 290;
+/** The A3 hand card's designed width: the board's 200 × 310. */
+const SUIT_DESIGNED = 200;
+/**
+ * What an A3 hand card's content stands at scale 1, estimated from the board's
+ * metrics: the rank band and medallion (128), a two-line name, three lines of
+ * rules, the stamp, a two-line flavour and the foot. The board's own cards carry
+ * no stamp and no flavour and stand 310; this is the height the scale has to fit.
+ */
+const SUIT_CONTENT_AT_ONE = 360;
 const SCALE_MIN = 0.74;
 const TAROT_RATIO = 1.55;
 const HEIGHT_MIN = 210;
@@ -567,6 +599,10 @@ export function offerSpread(count: number, stage: OfferStage): OfferSpread {
       Math.round(
         clamp(SCALE_MIN, Math.min(card / CARD_DESIGNED, height / CONTENT_AT_ONE), 1) * 100,
       ) / 100,
+    suitScale:
+      Math.round(
+        clamp(SCALE_MIN, Math.min(card / SUIT_DESIGNED, height / SUIT_CONTENT_AT_ONE), 1) * 100,
+      ) / 100,
     total: OVERLAY_PAD * 2 + SHEET_PAD_Y + HEAD + height + FOOT,
   };
 }
@@ -582,6 +618,128 @@ export interface OfferCardOptions {
    * that reason.
    */
   onPhase?: (phase: OfferPhase) => void;
+}
+
+/**
+ * **Everything a face prints under its name**, in reading order: the chips,
+ * the rules, a commission's counter, a warning, the stamp's seat, the flavour
+ * and the footnote. The emblem face and the A3 face both print it, so a
+ * card's body reads the same whichever face it wears.
+ */
+function faceBody(option: OfferOption): HTMLElement[] {
+  const nodes: HTMLElement[] = [];
+  // The rarity and the charter mark (U1), one chip each, under the name.
+  // Drawn only when the caller handed some over; the tone is set as a data
+  // attribute and inked by one block of `style.css`, the way the accent on
+  // the frame already is.
+  if (option.badges !== undefined && option.badges.length > 0) {
+    const chips = element('span', 'offer-badges');
+    for (const badge of option.badges) {
+      const chip = element('span', 'offer-badge');
+      if (badge.tone !== undefined) chip.dataset.tone = badge.tone;
+      // The mark is set rather than written through the yield printer, for
+      // the votive plate's reason: a character here stands for the card's
+      // standing and must not be mistaken for a yield's glyph and swapped
+      // for a drawing of one. Hidden from the reading — the label beside it
+      // says the word out loud.
+      if (badge.mark !== undefined) {
+        const mark = element('span', 'offer-badge-mark');
+        mark.setAttribute('aria-hidden', 'true');
+        mark.textContent = badge.mark;
+        chip.append(mark);
+      }
+      chip.append(element('span', 'offer-badge-label', badge.label));
+      chips.append(chip);
+    }
+    nodes.push(chips);
+  }
+  if (option.note !== undefined) {
+    // A card's clauses joined into one line — a descriptor, so the things it
+    // names come out bold. Never links: this whole face is a `<button>` and
+    // the click picks the card. See the clause list below, and `keywords.ts`.
+    const note = element('span', 'offer-note');
+    setDescriptorText(note, option.note, { linked: false });
+    nodes.push(note);
+  }
+  // The clause list, when the caller had one to give: a line each, and the
+  // ones the game has not built greyed and struck through rather than
+  // silently printed as promises. Same class the Statecraft screen's card
+  // faces use, so a clause reads identically wherever it appears.
+  if (option.notes !== undefined && option.notes.length > 0) {
+    const list = element('span', 'offer-clauses');
+    for (const clause of option.notes) {
+      const line = element(
+        'span',
+        clause.deferred ? 'offer-clause is-deferred' : 'offer-clause',
+      );
+      // **Bold, never a link.** An option's face is a `<button>` and the
+      // click picks the card — irreversibly — so a keyword inside it may
+      // not also be clickable (the ruling's middle clause, and here it is a
+      // safety rule rather than a style one). The words are still marked,
+      // because the same thing is being named.
+      setDescriptorText(line, clause.text, { linked: false });
+      if (clause.deferred) line.title = 'Declared, and not built yet';
+      list.append(line);
+    }
+    nodes.push(list);
+  }
+  if (option.progress !== undefined && option.progress.length > 0) {
+    nodes.push(goalCounterNode(option.progress));
+  }
+  if (option.warning !== undefined) {
+    nodes.push(element('span', 'offer-warning', option.warning));
+  }
+  // The stamp's seat, **between the clauses and the flavour** (the design of
+  // record). It is built wearing the flourish and never filled in here: the
+  // number arrives on the pick and nowhere else.
+  if (option.stamp !== undefined && !stampIsEmpty(option.stamp)) {
+    nodes.push(cardStampNode());
+  }
+  // **Labelled, not merely italic** (copy pass, 2026-08-28 — the
+  // Compendium's ruling applied wherever a flavour field is printed). The
+  // clause list directly above is the card's rules, in the same column and
+  // the same reading order, so an unlabelled sentence at the foot is read
+  // as one more rule. Only the label is added; the line itself is still
+  // exactly what the data row wrote. Absent for a card with no flavour, so
+  // a discovery's plain face gains nothing.
+  if (option.flavor.length > 0) {
+    const flavor = element('span', 'offer-flavor');
+    flavor.append(element('span', 'flavor-label', 'Flavour'));
+    flavor.append(document.createTextNode(option.flavor));
+    nodes.push(flavor);
+  }
+  if (option.footnote !== undefined) {
+    nodes.push(element('span', 'offer-footnote', option.footnote));
+  }
+  return nodes;
+}
+
+/**
+ * **An Order's A3 hand card**, as the draft deals it (batch C1): the ordinal,
+ * then the rank, the medallion and the foot that `dressSuitFace` lays around
+ * the name and the card's body (`faceBody`). The face's caption is the hover
+ * title as well, because the ink and the rank say the type and the rarity in a
+ * colour and a shape, and the title says them in words. The `payoff` eyebrow
+ * is not drawn: the foot names the deck and the caption says the rest.
+ *
+ * At module level, and exported, so the flair gallery can show the draft's own
+ * card rather than a copy of it. The draft adds the deal and the click (`face`,
+ * inside `show`).
+ */
+export function suitHandCard(option: OfferOption, suit: SuitFace, index: number): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.className = 'offer-option';
+  button.type = 'button';
+  // The index the reducer is told, as on the emblem face.
+  button.dataset.index = String(index);
+  button.title = suit.caption;
+  // The shortcut, made visible. The A3 card's CSS sets it on the foot's edge.
+  button.append(element('span', 'offer-ordinal', String(index + 1)));
+  dressSuitFace(button, suit, 'hand', [
+    element('span', 'offer-option-title', option.title),
+    ...faceBody(option),
+  ]);
+  return button;
 }
 
 export function createOfferCard(
@@ -641,12 +799,13 @@ export function createOfferCard(
   let spreadOf: { count: number } | null = null;
 
   /**
-   * Hands the stylesheet the four numbers and the count.
+   * Hands the stylesheet the spread's numbers and the count.
    *
    * The count is a custom property rather than a class because it is a
    * *quantity* — CSS reads it in the grid's `repeat()` — and the rest are
-   * lengths the arithmetic in `offerSpread` decided. Nothing here draws; the
-   * `.offer-*` block does all of it off these five.
+   * lengths and scales the arithmetic in `offerSpread` decided. Nothing here
+   * draws; the `.offer-*` block (and the A3 card's, for `--offer-suit-scale`)
+   * does all of it off these.
    */
   function applySpread(): void {
     if (!spreadOf) return;
@@ -660,6 +819,7 @@ export function createOfferCard(
     container.style.setProperty('--offer-card-height', `${spread.height}px`);
     container.style.setProperty('--offer-emblem', `${spread.emblem}px`);
     container.style.setProperty('--offer-scale', String(spread.scale));
+    container.style.setProperty('--offer-suit-scale', String(spread.suitScale));
   }
 
   function onResize(): void {
@@ -942,9 +1102,14 @@ export function createOfferCard(
      * a drawing, and it is a card from a deck in every way that matters: it is
      * dealt three at a time, turned over, and taken once. The flag stays read
      * off the options for its own reason; what widened is what an emblem *is*.
+     *
+     * **An A3 face counts too** (batch C1). An Order's option carries a `suit`
+     * rather than an emblem, and it is still a card from a deck: dealt face
+     * down, turned over and taken once.
      */
     const tarot = offer.options.some(
-      (option) => option.emblem !== undefined || option.emblemGlyph !== undefined,
+      (option) =>
+        option.emblem !== undefined || option.emblemGlyph !== undefined || option.suit !== undefined,
     );
     if (tarot) list.dataset.face = 'tarot';
 
@@ -964,8 +1129,30 @@ export function createOfferCard(
     const dealing = tarot && wantsMotion();
 
     /**
-     * One card face, top to bottom: the ordinal, the type in the mono eyebrow,
-     * the emblem, the name, what it does, and the flavour at the foot.
+     * One card, dealt: the face, then the deal and the click.
+     *
+     * An Order's option carries the A3 face (batch C1) and is built by
+     * `suitHandCard`; every other card wears the emblem face (`emblemCard`).
+     */
+    function face(option: OfferOption, index: number): HTMLButtonElement {
+      const button =
+        option.suit !== undefined ? suitHandCard(option, option.suit, index) : emblemCard(option, index);
+      // The back goes on last, so it is the last child and covers the face.
+      // Only a deck's cards get one — see `dealing` — and the delay is the
+      // card's own place in the row, so a hand is turned over rather than
+      // revealed all at once.
+      if (dealing) {
+        button.classList.add('is-dealing');
+        button.style.setProperty('--deal-delay', `${index * DEAL_STAGGER_MS}ms`);
+        button.append(cardBack());
+      }
+      button.addEventListener('click', () => take(index));
+      return button;
+    }
+
+    /**
+     * The emblem face, top to bottom: the ordinal, the type in the mono
+     * eyebrow, the emblem, the name, what it does, and the flavour at the foot.
      *
      * The order is the reading order *and* the accessible order — a card
      * announces as "1, military order, Blooded Spears, +3 combat against
@@ -974,7 +1161,7 @@ export function createOfferCard(
      * eyebrow is a payoff instead ("+20⚙ to Uruk"), which belongs *after* the
      * name it is the price of, so the two swap.
      */
-    function face(option: OfferOption, index: number): HTMLButtonElement {
+    function emblemCard(option: OfferOption, index: number): HTMLButtonElement {
       const button = document.createElement('button');
       button.className = 'offer-option';
       button.type = 'button';
@@ -1006,99 +1193,7 @@ export function createOfferCard(
       }
       button.append(element('span', 'offer-option-title', option.title));
       if (!tarot) button.append(element('span', 'offer-payoff', option.payoff));
-      // The rarity and the charter mark (U1), one chip each, under the name.
-      // Drawn only when the caller handed some over; the tone is set as a data
-      // attribute and inked by one block of `style.css`, the way the accent on
-      // the frame already is.
-      if (option.badges !== undefined && option.badges.length > 0) {
-        const chips = element('span', 'offer-badges');
-        for (const badge of option.badges) {
-          const chip = element('span', 'offer-badge');
-          if (badge.tone !== undefined) chip.dataset.tone = badge.tone;
-          // The mark is set rather than written through the yield printer, for
-          // the votive plate's reason: a character here stands for the card's
-          // standing and must not be mistaken for a yield's glyph and swapped
-          // for a drawing of one. Hidden from the reading — the label beside it
-          // says the word out loud.
-          if (badge.mark !== undefined) {
-            const mark = element('span', 'offer-badge-mark');
-            mark.setAttribute('aria-hidden', 'true');
-            mark.textContent = badge.mark;
-            chip.append(mark);
-          }
-          chip.append(element('span', 'offer-badge-label', badge.label));
-          chips.append(chip);
-        }
-        button.append(chips);
-      }
-      if (option.note !== undefined) {
-        // A card's clauses joined into one line — a descriptor, so the things it
-        // names come out bold. Never links: this whole face is a `<button>` and
-        // the click picks the card. See the clause list below, and `keywords.ts`.
-        const note = element('span', 'offer-note');
-        setDescriptorText(note, option.note, { linked: false });
-        button.append(note);
-      }
-      // The clause list, when the caller had one to give: a line each, and the
-      // ones the game has not built greyed and struck through rather than
-      // silently printed as promises. Same class the Statecraft screen's card
-      // faces use, so a clause reads identically wherever it appears.
-      if (option.notes !== undefined && option.notes.length > 0) {
-        const list = element('span', 'offer-clauses');
-        for (const clause of option.notes) {
-          const line = element(
-            'span',
-            clause.deferred ? 'offer-clause is-deferred' : 'offer-clause',
-          );
-          // **Bold, never a link.** An option's face is a `<button>` and the
-          // click picks the card — irreversibly — so a keyword inside it may
-          // not also be clickable (the ruling's middle clause, and here it is a
-          // safety rule rather than a style one). The words are still marked,
-          // because the same thing is being named.
-          setDescriptorText(line, clause.text, { linked: false });
-          if (clause.deferred) line.title = 'Declared, and not built yet';
-          list.append(line);
-        }
-        button.append(list);
-      }
-      if (option.progress !== undefined && option.progress.length > 0) {
-        button.append(goalCounterNode(option.progress));
-      }
-      if (option.warning !== undefined) {
-        button.append(element('span', 'offer-warning', option.warning));
-      }
-      // The stamp's seat, **between the clauses and the flavour** (the design of
-      // record). It is built wearing the flourish and never filled in here: the
-      // number arrives on the pick and nowhere else.
-      if (option.stamp !== undefined && !stampIsEmpty(option.stamp)) {
-        button.append(cardStampNode());
-      }
-      // **Labelled, not merely italic** (copy pass, 2026-08-28 — the
-      // Compendium's ruling applied wherever a flavour field is printed). The
-      // clause list directly above is the card's rules, in the same column and
-      // the same reading order, so an unlabelled sentence at the foot is read
-      // as one more rule. Only the label is added; the line itself is still
-      // exactly what the data row wrote. Absent for a card with no flavour, so
-      // a discovery's plain face gains nothing.
-      if (option.flavor.length > 0) {
-        const flavor = element('span', 'offer-flavor');
-        flavor.append(element('span', 'flavor-label', 'Flavour'));
-        flavor.append(document.createTextNode(option.flavor));
-        button.append(flavor);
-      }
-      if (option.footnote !== undefined) {
-        button.append(element('span', 'offer-footnote', option.footnote));
-      }
-      // The back goes on last, so it is the last child and covers the face.
-      // Only a deck's cards get one — see `dealing` — and the delay is the
-      // card's own place in the row, so a hand is turned over rather than
-      // revealed all at once.
-      if (dealing) {
-        button.classList.add('is-dealing');
-        button.style.setProperty('--deal-delay', `${index * DEAL_STAGGER_MS}ms`);
-        button.append(cardBack());
-      }
-      button.addEventListener('click', () => take(index));
+      button.append(...faceBody(option));
       return button;
     }
 

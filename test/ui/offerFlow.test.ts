@@ -293,11 +293,14 @@ describe('every draft deals a tarot face', () => {
   });
 
   it('leaves the other three classes dealing a drawing, as they always have', () => {
-    // An Order's drawing is its **deck's** since U1 — `cardFace` reads the
-    // archetype thread, and every row written after the decks rework carries
-    // none, so it would deal four hundred identical lozenges. The two classes
-    // with no deck, a Doctrine and a government, still read the thread.
-    expect(offerSource('showStatecraftOffer')).toContain('...orderFace(orderDef(id))');
+    // An Order is dealt as the A3 face since batch C1 (`suitFace.ts`): its
+    // suit is its deck's and its ink its type's. `cardFace` reads the archetype
+    // thread, and every row written after the decks rework carries none, so it
+    // would deal four hundred identical lozenges. The two classes with no deck,
+    // a Doctrine and a government, still read the thread.
+    expect(offerSource('showStatecraftOffer')).toContain('suit: orderSuitFace(id)');
+    // And the face counts as a card from a deck, so the hand is still dealt.
+    expect(OFFER_CARD).toContain('option.suit !== undefined');
     expect(offerSource('showStatecraftOffer')).toContain('...governmentEmblem(id)');
     expect(offerSource('showStatecraftOffer')).toContain('...cardFace(doctrineDef(id))');
     expect(offerSource('showGreatPersonOffer')).toContain(

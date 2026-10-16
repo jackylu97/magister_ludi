@@ -127,6 +127,29 @@
   --rarity-uncommon: #56505a;
   --rarity-rare: #c8901f;
 
+  /* --- the four card types (batch C1) ------------------------------------- */
+  /* The A3 board's inks (`docs/plans/mockups/card-faces/SuitsRevised.dc.html`):
+     a card's frame, suit and medallion are drawn in its type's ink, and the
+     ground is the pale tint the board keys each ink on. Light to dark: ochre,
+     lapis, vermilion, purple. A card of a deck not yet sorted takes the
+     Wildcard ink (`TYPE_INK`, `src/ui/deckBadges.ts`). */
+  --type-military: #a8361b;
+  --type-military-ground: #f2ddd2;
+  --type-economic: #b5791b;
+  --type-economic-ground: #f3e5c8;
+  --type-civic: #4f78be;
+  --type-civic-ground: #dfe6f3;
+  --type-wildcard: #4a2a72;
+  --type-wildcard-ground: #e6dfee;
+
+  /* The A3 rank's own two inks: rarity on the face has no colour of its own,
+     so it never meets a type's ink. Pewter draws the uncommon double rule and
+     its ribbon; the darker grey is a common card's dot in a list row. A rare
+     card's frame, stars and cartouche are plain ink. */
+  --rank-pewter: #56505a;
+  --rank-pewter-fill: #e7e3da;
+  --rank-common-dot: #7a747d;
+
   /* --- yield voices ----------------------------------------------------- */
   --y-food: #3f9636;
   --y-prod: #c26a1d;
@@ -327,9 +350,10 @@ body {
   mask-position: center;
 }
 
-/* The Statecraft marks: an archetype line's emblem and a slot's office, drawn
-   from `src/art/lineMarks.ts` and printed by `src/ui/cardLine.ts` through
-   `--line-mark`.
+/* The Statecraft marks: an archetype line's emblem, drawn from
+   `src/art/lineMarks.ts` and printed by `src/ui/cardLine.ts` through
+   `--line-mark`. (A slot's office used this class too until batch C1 drew the
+   council's chairs as cards.)
 
    Same mechanism as the two above and one difference that matters: these are
    sized in **pixels** rather than in `em`. A yield mark is a unit on a figure
@@ -340,8 +364,7 @@ body {
 
    Both paint `currentColor`, so the accent is set once on the card (as `color`)
    and the mark, the rule and the eyebrow are all wearing it. */
-.line-mark,
-.slot-mark {
+.line-mark {
   flex: none;
   display: block;
   width: 100%;
@@ -455,6 +478,37 @@ body {
 [data-line='generic'],
 [data-line='shared'] {
   --line-ink: var(--line-none);
+}
+
+/* **The four card types resolve here** (batch C1). Every A3 face, row and
+   chip sets `data-ink` to its type's ink and reads `--card-ink` and
+   `--card-ground`. It sets `--line-ink` to the same ink as well, so the parts
+   of a card that were written for the old accent (the stamp's glow, the
+   collection card's frame, the commission chip's ring) take the type's ink
+   with no rule of their own. An element carries `data-ink` or `data-line`,
+   never both. */
+[data-ink='military'] {
+  --card-ink: var(--type-military);
+  --card-ground: var(--type-military-ground);
+  --line-ink: var(--type-military);
+}
+
+[data-ink='economic'] {
+  --card-ink: var(--type-economic);
+  --card-ground: var(--type-economic-ground);
+  --line-ink: var(--type-economic);
+}
+
+[data-ink='civic'] {
+  --card-ink: var(--type-civic);
+  --card-ground: var(--type-civic-ground);
+  --line-ink: var(--type-civic);
+}
+
+[data-ink='wildcard'] {
+  --card-ink: var(--type-wildcard);
+  --card-ground: var(--type-wildcard-ground);
+  --line-ink: var(--type-wildcard);
 }
 
 /* A mark that *leads* a figure (`⚙ +10%`, the modifier voice) wants its air on
@@ -3801,6 +3855,16 @@ kbd {
   color: var(--ink-soft);
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.commission-suit {
+  --suit-stroke: 7;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 4px;
+  vertical-align: -1px;
+  color: var(--ink-soft);
 }
 
 .commission-chip.is-done .commission-count {
@@ -9983,6 +10047,610 @@ p.city-trade-link {
   color: var(--line-ink, var(--ink));
 }
 
+/* --- the A3 card face (batch C1) ------------------------------------------
+   An Order's face (`src/ui/suitFace.ts`; the board is
+   `docs/plans/mockups/card-faces/SuitsRevised.dc.html`). The suit in the
+   middle shows the deck, the ink of the frame and the suit shows the type, and
+   the frame and the ornament at the top show the rarity, in ink and pewter
+   only. Two card sizes share these rules: the hand (`.suit-hand`, the draft)
+   and the seat (`.suit-seat`, a card in a chair, 120 × 186). The row is at the
+   foot of this block.
+
+   Every length on a card is in `em`, against the card's own font size, so a
+   card drawn smaller (a five-card hand, a seat) keeps its proportions: the
+   hand is 16px at scale 1, as the board was drawn, and the seat is 0.7 of
+   that, which is where the board's seated card lands. The board's hairlines
+   stay in pixels. */
+.suit-face {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  background: var(--parchment);
+  color: var(--card-ink, var(--ink));
+  text-align: center;
+}
+
+.suit-hand {
+  font-size: calc(16px * var(--suit-scale, 1));
+  border: 3px solid var(--card-ink, var(--ink));
+  border-radius: 9px;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.suit-seat {
+  font-size: 11.2px;
+  width: 120px;
+  height: 186px;
+  border: 2.5px solid var(--card-ink, var(--ink));
+  border-radius: 7px;
+  box-shadow: 3px 3px 0 var(--ink);
+  overflow: hidden;
+}
+
+/* The rarity's frame: drawn over the card's own border, and never in the way
+   of a click. A common card has one faint rule, an uncommon one a pewter
+   double rule, and a rare one a black double rule with a star in each corner. */
+.suit-frame {
+  position: absolute;
+  box-sizing: border-box;
+  border-style: solid;
+  pointer-events: none;
+}
+
+.suit-frame-pip {
+  inset: 0.3125em;
+  border-width: 1px;
+  border-color: var(--ink-faint);
+  border-radius: 4px;
+}
+
+.suit-frame-court {
+  inset: 0.1875em;
+  border-width: 1.5px;
+  border-color: var(--rank-pewter);
+  border-radius: 6px;
+}
+
+.suit-frame-court-inner {
+  inset: 0.4375em;
+  border-width: 1px;
+  border-color: var(--rank-pewter);
+  border-radius: 3px;
+  opacity: 0.7;
+}
+
+.suit-frame-trump {
+  inset: 0.125em;
+  border-width: 2.5px;
+  border-color: var(--ink);
+  border-radius: 6px;
+}
+
+.suit-frame-trump-inner {
+  inset: 0.47em;
+  border-width: 1px;
+  border-color: var(--ink);
+  border-radius: 3px;
+}
+
+.suit-seat .suit-frame-pip {
+  border-radius: 3px;
+}
+
+.suit-seat .suit-frame-court {
+  border-width: 1px;
+  border-radius: 5px;
+}
+
+.suit-seat .suit-frame-court-inner,
+.suit-seat .suit-frame-trump-inner {
+  border-radius: 2px;
+}
+
+.suit-seat .suit-frame-trump {
+  border-width: 2px;
+  border-radius: 5px;
+}
+
+.suit-star {
+  position: absolute;
+  width: 0.8125em;
+  height: 0.8125em;
+  fill: var(--ink);
+  pointer-events: none;
+}
+
+.suit-star.is-tl { top: 1px; left: 1px; }
+.suit-star.is-tr { top: 1px; right: 1px; }
+.suit-star.is-bl { bottom: 1px; left: 1px; }
+.suit-star.is-br { right: 1px; bottom: 1px; }
+
+.suit-seat .suit-star.is-tl { top: 0; left: 0; }
+.suit-seat .suit-star.is-tr { top: 0; right: 0; }
+.suit-seat .suit-star.is-bl { bottom: 0; left: 0; }
+.suit-seat .suit-star.is-br { right: 0; bottom: 0; }
+
+/* The ornament at the top, carrying the tier numeral: two short rules for a
+   common card, a pewter ribbon for an uncommon one, a black cartouche for a
+   rare one. The numeral is a number, so it is set in the mono; only the hand's
+   cartouche sets it in the name face, as the board does. */
+.suit-rank {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.suit-rank svg {
+  display: block;
+  overflow: visible;
+}
+
+.suit-rank-common {
+  top: 0.6875em;
+  gap: 0.375em;
+}
+
+.suit-rank-common i {
+  display: block;
+  width: 0.875em;
+  height: 1px;
+  background: var(--ink-faint);
+}
+
+.suit-rank-numeral {
+  font-family: var(--face-num);
+  font-size: 0.594em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  color: var(--ink-soft);
+}
+
+.suit-seat .suit-rank-numeral {
+  font-size: 9px;
+}
+
+.suit-rank-uncommon {
+  top: 0.25em;
+}
+
+.suit-ribbon {
+  width: 4.875em;
+  height: 1.25em;
+}
+
+.suit-ribbon-tail {
+  fill: var(--rank-pewter-fill);
+  stroke: var(--rank-pewter);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.suit-ribbon-box {
+  fill: var(--parchment);
+  stroke: var(--rank-pewter);
+  stroke-width: 1.2;
+}
+
+.suit-ribbon-numeral {
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  fill: var(--ink);
+}
+
+.suit-rank-rare {
+  top: 0.0625em;
+}
+
+.suit-cartouche {
+  width: 4.5em;
+  height: 1.6875em;
+}
+
+.suit-cartouche-ground {
+  fill: var(--ink);
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.suit-cartouche-rule {
+  fill: none;
+  stroke: var(--parchment);
+  stroke-width: 0.8;
+}
+
+.suit-cartouche-numeral {
+  font-family: var(--face-name);
+  font-size: 15px;
+  font-weight: 600;
+  fill: var(--parchment);
+}
+
+.suit-seat .suit-cartouche-numeral {
+  font-family: var(--face-num);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* The body: the medallion, whatever the surface prints, and the foot. */
+.suit-body {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 2em 0.9375em 0.75em;
+}
+
+.suit-seat .suit-body {
+  padding: 22px 9px 10px;
+}
+
+/* The medallion. Ringed on an uncommon or rare card; a common card shows its
+   suit larger and alone, at a lighter weight so its strokes match. */
+.suit-plate {
+  --suit-stroke: 6.5;
+  flex: none;
+  display: block;
+  width: 6em;
+  height: 6em;
+  color: var(--card-ink, var(--ink));
+}
+
+/* The outer drawing only: each suit inside it is a nested `<svg>` placed by its
+   own `x`, `y`, `width` and `height`, which a size set here would override. */
+.suit-plate > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.suit-hand[data-rank='common'] .suit-plate {
+  --suit-stroke: 5;
+}
+
+.suit-seat .suit-plate {
+  width: 64px;
+  height: 64px;
+}
+
+.suit-seat[data-rank='common'] .suit-plate {
+  --suit-stroke: 5.5;
+}
+
+.suit-ring-outer {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.suit-ring-dots {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 4;
+  stroke-dasharray: 0.9 2.46;
+  opacity: 0.45;
+}
+
+.suit-ring-inner {
+  fill: currentColor;
+  fill-opacity: 0.07;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.suit-ring-points {
+  fill: currentColor;
+}
+
+.suit-seat .suit-ring-outer {
+  stroke-width: 2;
+}
+
+.suit-seat .suit-ring-inner {
+  stroke-width: 1.4;
+}
+
+/* A suit's strokes. A path drawn lighter or filled carries its own share of
+   `--suit-stroke` (`suitFace.ts`), so a size that changes the weight moves the
+   whole drawing together. */
+.suit-g {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: var(--suit-stroke, 6.5);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The name, in ink, as are the rules under it on a hand card: the type's
+   colour is on the frame, the suit and the foot, and nowhere near the
+   sentences a player has to read. */
+.suit-name {
+  margin-top: 0.5em;
+  font-family: var(--face-name);
+  font-size: 1.03em;
+  font-weight: 600;
+  line-height: 1.14;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.suit-seat .suit-name {
+  display: -webkit-box;
+  margin-top: 6px;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.1;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+
+/* The foot: the deck between two short rules in the type's ink. A seated card
+   keeps one longer rule and no words. */
+.suit-foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 0.5em;
+  font-family: var(--face-num);
+  font-size: max(7px, 0.5625em);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--card-ink, var(--ink));
+}
+
+.suit-foot i {
+  display: block;
+  width: 12px;
+  height: 1.5px;
+  background: currentColor;
+}
+
+.suit-foot-deck {
+  color: var(--ink-soft);
+}
+
+.suit-seat .suit-foot i {
+  width: 26px;
+  height: 2px;
+}
+
+/* --- the A3 face on the draft's hand -------------------------------------
+   The offer card's own children (`offerCard.ts`) inside the A3 hand card. The
+   tarot face's rules are written against `.offer-options[data-face='tarot']`,
+   so these name it too, to outrank them. */
+.offer-options[data-face='tarot'] .offer-option.suit-hand {
+  --suit-scale: var(--offer-suit-scale, 1);
+  gap: 0;
+  padding: 0;
+  border-width: 3px;
+  border-radius: 9px;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.offer-options[data-face='tarot'] .offer-option.suit-hand::before {
+  content: none;
+}
+
+.offer-options[data-face='tarot'] .offer-option.suit-hand:hover,
+.offer-options[data-face='tarot'] .offer-option.suit-hand:focus-visible {
+  box-shadow: 6px 6px 0 var(--ink);
+}
+
+.offer-options[data-face='tarot'] .offer-option.suit-hand:active {
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+/* The tarot face lifts every child above its inner rule; the A3 card's frames,
+   stars and ornament are drawn in place over the border instead. */
+.offer-options[data-face='tarot'] .offer-option.suit-hand > .suit-frame,
+.offer-options[data-face='tarot'] .offer-option.suit-hand > .suit-star {
+  position: absolute;
+  z-index: 0;
+}
+
+.offer-options[data-face='tarot'] .offer-option.suit-hand > .suit-rank {
+  position: absolute;
+  z-index: 1;
+}
+
+/* The ordinal sits on the foot's edge rather than at the top-left corner,
+   where it would cover a rare card's star. It is still the shortcut, made
+   visible. */
+.offer-options[data-face='tarot'] .offer-option.suit-hand > .offer-ordinal {
+  position: absolute;
+  z-index: 2;
+  top: auto;
+  bottom: -11px;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.66rem;
+  transform: translateX(-50%);
+}
+
+.offer-options[data-face='tarot'] .suit-hand .offer-option-title {
+  margin-top: 0.5em;
+  font-family: var(--face-name);
+  font-size: 1.03em;
+  font-weight: 600;
+  line-height: 1.14;
+  color: var(--ink);
+}
+
+.offer-options[data-face='tarot'] .suit-hand .offer-note,
+.offer-options[data-face='tarot'] .suit-hand .offer-warning {
+  margin-top: 0.56em;
+  font-size: 0.78em;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.offer-options[data-face='tarot'] .suit-hand .offer-clauses {
+  margin-top: 0.56em;
+  font-size: 0.78em;
+}
+
+.suit-hand .offer-badges {
+  justify-content: center;
+  margin-top: 0.4em;
+}
+
+.suit-hand .card-stamp,
+.suit-hand .goal-counter {
+  margin-top: 0.4em;
+}
+
+/* The flavour keeps its label and sits just above the foot; the board's card
+   has none, and the hand keeps it because the draft is where a card's flavour
+   is read. Its top margin takes the free space, so the foot follows it. */
+.offer-options[data-face='tarot'] .suit-hand .offer-flavor {
+  margin-top: auto;
+  padding-top: 0.6em;
+  border-top: 0;
+  font-size: 0.875em;
+  line-height: 1.25;
+}
+
+.suit-hand .offer-flavor ~ .suit-foot {
+  margin-top: 0;
+}
+
+/* --- the A3 row ------------------------------------------------------------
+   The board's 36px list row: the type's ink as a stripe, the suit in ink, the
+   rarity's small mark, the name, and the deck and tier in mono. The marks on
+   their own are an Order's mark in the Compendium. */
+.suit-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 36px;
+  padding: 0 6px;
+  box-sizing: border-box;
+}
+
+.suit-marks {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+}
+
+.suit-stripe {
+  display: block;
+  flex: none;
+  width: 13px;
+  height: 19px;
+  border-radius: 3px;
+  background: var(--card-ink, var(--ink));
+}
+
+.suit-row-glyph {
+  --suit-stroke: 7;
+  display: block;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.suit-row-glyph.is-pair {
+  width: 16px;
+  height: 16px;
+}
+
+.suit-pip {
+  display: block;
+  flex: none;
+  width: 12px;
+  height: 12px;
+}
+
+.suit-pip-common {
+  fill: var(--rank-common-dot);
+}
+
+.suit-pip-uncommon {
+  fill: var(--rank-pewter);
+}
+
+.suit-pip-rare {
+  fill: var(--ink);
+}
+
+.suit-row-text {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 11px;
+  min-width: 0;
+}
+
+.suit-row-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--face-name);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ink);
+}
+
+.suit-row-meta {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* Narrower than the board's list (a collection card): the marks and the deck
+   and tier share the first line, and the name takes the whole second line, so
+   a long name wraps across the card rather than down a narrow column. */
+.suit-row.is-stacked {
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-height: 0;
+  padding: 0;
+}
+
+.suit-row.is-stacked .suit-row-text {
+  display: contents;
+}
+
+.suit-row.is-stacked .suit-row-meta {
+  order: 1;
+  margin-left: auto;
+}
+
+.suit-row.is-stacked .suit-row-name {
+  order: 2;
+  flex: 1 1 100%;
+}
+
 /* --- the deepen card ------------------------------------------------------
    The one card that changes something already on the table. It is landscape
    where the others are portrait, because what it has to show is a *change* —
@@ -10800,10 +11468,12 @@ p.city-trade-link {
 
 /* --- the slots ----------------------------------------------------------- */
 
+/* Two chairs to a row (batch C1): see "the chairs" below. */
 .sc-slot-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, 120px);
+  justify-content: space-evenly;
+  gap: 14px 12px;
 }
 
 /* An office is a **line**, not a card-shaped hole.
@@ -10829,16 +11499,6 @@ p.city-trade-link {
   font: inherit;
   text-align: left;
   cursor: pointer;
-}
-
-/* The office and its occupant, stacked: the small caps word above the name, so
-   a column of offices reads down its own left edge. */
-.sc-slot-text {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
 }
 
 .sc-slot-filled {
@@ -10947,23 +11607,6 @@ p.city-trade-link {
   color: var(--grape);
 }
 
-/* The office's mark, ghosted: the head of an empty office, and faint enough to
-   read as an absence rather than as a thing already there. Its filled sibling is
-   the archetype line's own emblem at the same size, so the two rows line up
-   whatever is in them. */
-.sc-slot-ghost {
-  flex: none;
-  width: 24px;
-  height: 24px;
-  opacity: 0.22;
-}
-
-.sc-slot-emblem {
-  flex: none;
-  width: 26px;
-  height: 26px;
-}
-
 .sc-slot-card {
   font-family: var(--face-name);
   font-size: 13px;
@@ -10987,6 +11630,174 @@ p.city-trade-link {
 .sc-slot .sc-slot-card,
 .sc-slot .sc-slot-empty {
   margin: 0;
+}
+
+/* --- the chairs (batch C1) ------------------------------------------------
+   The council as the A3 board draws it: each chair holds its card as the A3
+   seated card (120 × 186, `.suit-seat`), with a plate under it naming the
+   chair and the seal beside the plate. Two chairs to a row in the 320px
+   column. The office states above (open, filled, staged, malice) are kept on
+   the button, and drawn here on the card rather than on a line. Every chair is
+   the same until batch C2 types them, so the plate carries no ink yet. */
+.sc-slot.sc-chair,
+.sc-slot.sc-chair.sc-slot-filled,
+.sc-slot.sc-chair.sc-slot-open,
+.sc-slot.sc-chair.sc-slot-staged,
+.sc-slot.sc-chair.sc-slot-malice {
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+}
+
+.sc-chair-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 120px;
+  height: 186px;
+  border-radius: 7px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.sc-chair:hover .sc-chair-card.suit-seat,
+.sc-chair:focus-visible .sc-chair-card.suit-seat {
+  box-shadow: 4px 4px 0 var(--ink);
+  transform: translate(-1px, -1px);
+}
+
+/* The name on a seated card, against the office rule above that zeroes it. */
+.sc-chair .suit-seat .suit-name {
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* An empty chair: a dashed outline with the ghost of a card in it. */
+.sc-chair-empty {
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 2.5px dashed var(--ink-faint);
+  background: rgba(29, 26, 32, 0.04);
+}
+
+.sc-chair-ghost {
+  display: block;
+  box-sizing: border-box;
+  width: 44px;
+  height: 66px;
+  border: 3px solid rgba(29, 26, 32, 0.2);
+  border-radius: 5px;
+}
+
+.sc-chair-empty .sc-slot-empty {
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.sc-chair:hover .sc-chair-empty {
+  border-color: var(--ink-soft);
+}
+
+/* A chair the held card can go in: the office's vermilion, on the chair. */
+.sc-chair.sc-slot-open .sc-chair-empty {
+  border-style: solid;
+  border-color: var(--vermilion);
+  background: rgba(212, 80, 46, 0.08);
+  box-shadow: 0 0 0 2px rgba(212, 80, 46, 0.25);
+}
+
+/* A chair this session changed and has not signed: the office's gilt, as a
+   dashed ring around whatever is in the chair now. */
+.sc-chair.sc-slot-staged .sc-chair-card {
+  outline: 2px dashed var(--gilt);
+  outline-offset: 3px;
+}
+
+/* A chair a malice holds: the office's struck vermilion face, at card size. */
+.sc-chair-malice {
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  border: 2.5px solid var(--vermilion);
+  background: rgba(212, 80, 46, 0.1);
+  box-shadow: 3px 3px 0 var(--ink);
+  color: var(--vermilion);
+  cursor: not-allowed;
+}
+
+.sc-chair-malice .sc-slot-card {
+  font-size: 14px;
+  text-align: center;
+}
+
+.sc-chair-malice .sc-slot-struck {
+  font-size: 22px;
+}
+
+/* The plate and the seal share a line when they fit in the chair's width,
+   and the seal drops under the plate when they do not. */
+.sc-chair-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 5px;
+  max-width: 132px;
+}
+
+.sc-chair-plate {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px 0 6px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--table);
+}
+
+.sc-chair-swatch {
+  display: block;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--ink-faint);
+}
+
+.sc-chair-plate .sc-slot-type {
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.sc-chair-foot .sc-stamp {
+  margin-left: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-chair-card {
+    transition: none;
+  }
+
+  .sc-chair:hover .sc-chair-card.suit-seat,
+  .sc-chair:focus-visible .sc-chair-card.suit-seat {
+    transform: none;
+  }
 }
 
 /* The wax stamp, at the end of the office's line and still pressed on at an
@@ -11344,25 +12155,30 @@ p.city-trade-link {
   --line-ink: var(--grape);
 }
 
-/* The six decks (D1c), **on the heading alone** since U1. The collection groups
-   by deck — `sc-group-<deck>` on the block — and each face under it used to
-   carry the same class, which inked a cross-type in whichever of its two decks
-   the seat happened to hold first. A card's accent is the card's own face now
-   (`data-line`, off the row's decks), and the shelf it is filed on no longer
-   decides its colour. The three offices above are the retired M/E/W spread,
-   kept because a saved seat's chairs still name them. */
-.sc-group-dominion { --line-ink: var(--deck-dominion); }
-.sc-group-expansionist { --line-ink: var(--deck-expansionist); }
-.sc-group-commerce { --line-ink: var(--deck-commerce); }
-.sc-group-devotion { --line-ink: var(--deck-devotion); }
-.sc-group-scientific { --line-ink: var(--deck-scientific); }
-.sc-group-magisterial { --line-ink: var(--deck-magisterial); }
-/* A card of no deck keeps plain ink, and that is the point of it: a collection
-   where every card shouts has no accent. */
-.sc-group-generic { --line-ink: var(--line-none); }
-
+/* The six decks' headings (D1c). Since batch C1 a deck has no colour of its
+   own: the heading wears the deck's suit in ink, and each card under it wears
+   its own type's ink (`data-ink`). The three offices above are the retired
+   M/E/W spread, kept because a saved seat's chairs still name them. */
 .sc-group-head .sc-group-mark {
-  color: var(--line-ink, var(--ink-soft));
+  --suit-stroke: 7;
+  color: var(--ink-soft);
+}
+
+/* --- an Order in the collection (batch C1) --------------------------------
+   The A3 row at the head of the card (`drawOrderFace`): the type's ink as a
+   stripe, the suit, the rarity's small mark, the name, and the deck and tier
+   under it. The card's frame takes the type's ink through `data-ink`, and the
+   inner rule goes, because the row's small mark already says the rarity. */
+.sc-card.suit-entry::before {
+  content: none;
+}
+
+.sc-card.suit-entry .suit-row {
+  margin-bottom: 3px;
+}
+
+.sc-card.suit-entry .suit-row-name {
+  font-size: 13.5px;
 }
 
 /* A card that lifts when you point at it is the whole of this screen's motion,
@@ -14406,17 +15222,30 @@ button.faith-rite-chip:hover:not(.is-on) {
   height: 20px;
 }
 
-/* A card's deck, drawn (U1): the same emblem the card wears in a hand, at the
-   shelf mark's size and in the deck's own ink — which `data-line` on this box
-   has already resolved to `--line-ink`. `color` rather than a fill, because the
-   drawing inside is a mask painting `currentColor`. */
-.cmp-mark-deck {
-  color: var(--line-ink, var(--ink-soft));
+/* An Order's A3 marks (batch C1): the collection row's stripe, suit and rarity
+   mark, a size down so they sit beside the page's title. Wider than the other
+   marks, so the box takes the width they need. */
+.cmp-mark-suit {
+  flex: 0 0 auto;
 }
 
-.cmp-mark-deck .line-mark {
-  width: 19px;
-  height: 19px;
+.cmp-mark-suit .suit-marks {
+  gap: 5px;
+}
+
+.cmp-mark-suit .suit-stripe {
+  width: 9px;
+  height: 17px;
+}
+
+.cmp-mark-suit .suit-row-glyph {
+  width: 18px;
+  height: 18px;
+}
+
+.cmp-mark-suit .suit-row-glyph.is-pair {
+  width: 15px;
+  height: 15px;
 }
 
 /* The figures. Every number in this interface is tabular mono (the specimen's

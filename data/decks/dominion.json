@@ -8,6 +8,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "military",
       "flavor": "First blood is the cheapest lesson the wild ever sells.",
       "text": "+4 strength against barbarians. Clearing a camp grants 25 production and 25 food to your nearest city.",
       "effects": [
@@ -45,6 +46,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "The garrison eats first, and the town sleeps sound for it.",
       "text": "Each garrisoned unit grants its city +1 happiness and +2 food.",
       "effects": [
@@ -102,6 +104,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "A sword blessed, a bowl filled, a name on the roll.",
       "text": "Training a unit grants 6 faith and 6 food.",
       "note": "A unit bought outright counts as trained, and pays this once.",
@@ -231,6 +234,7 @@
       "band": 0,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "Not raised for a war. Simply raised.",
       "text": "Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units.",
       "effects": [
@@ -261,6 +265,7 @@
       "band": 0,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "Beaten once, fed twice, and loyal ever after.",
       "text": "A barbarian unit you kill joins your side.",
       "effects": [
@@ -278,6 +283,7 @@
       "band": 0,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "The king remembers the villages, and the villages remember the king.",
       "text": "Every fifteen turns your capital raises a melee unit for free. It counts as trained and costs no upkeep.",
       "note": "The levy is raised, not bought: it goes on no payroll, and everything that rewards a unit finished rewards this one.",
@@ -298,6 +304,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "wildcard",
       "flavor": "A young state wins its first war against the camps at its edge.",
       "text": "Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
       "effects": [],
@@ -328,6 +335,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "The herd is counted before the harvest.",
       "text": "Worked pastures and camps give +1 production. +20% production toward mounted units.",
       "effects": [
@@ -359,6 +367,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "wildcard",
       "flavor": "The names go on the standard, one by one.",
       "text": "Your first kill each turn grants 6 renown, and clearing a barbarian camp grants 12 renown, both favouring great generals.",
       "effects": [
@@ -389,6 +398,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "The same hands hold both, one season at a time.",
       "text": "While at peace, each city with a garrison gains +2 culture. While at war, each gains +2 production instead.",
       "effects": [
@@ -434,6 +444,7 @@
       "band": 0,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Every tent has a prayer said over it.",
       "text": "+1 faith for every unit you control.",
       "effects": [
@@ -455,6 +466,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "military",
       "flavor": "Written by men who were tired of explaining it twice.",
       "text": "Barracks and Stables give +3 science. +30% production toward Barracks and Stables.",
       "effects": [
@@ -498,6 +510,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "military",
       "flavor": "Home ground is quicker ground.",
       "text": "Military units gain +1 movement when starting their turn in your territory.",
       "effects": [
@@ -543,6 +556,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "The iron and the horses are counted before the men are.",
       "text": "Worked strategic resources gain +3 food and +3 production.",
       "effects": [
@@ -684,6 +698,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "military",
       "flavor": "A soldier who feeds himself costs the crown less.",
       "text": "Military units cost 1 less upkeep.",
       "effects": [
@@ -720,6 +735,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Between campaigns, the hall teaches.",
       "text": "War Halls give +5 science and +5 culture.",
       "effects": [
@@ -783,6 +799,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "Nobody in the line is alone, and the enemy can count.",
       "text": "+2 strength per adjacent friendly combat unit, at most +6.",
       "effects": [
@@ -909,6 +926,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "A burnt camp is a quiet border.",
       "text": "While slotted, gains +1 authority capacity and +5 culture for every barbarian camp cleared, at most +8 authority and +40 culture.",
       "effects": [
@@ -942,6 +960,7 @@
       "band": 1,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "Every sword teaches the smith something.",
       "text": "Training a unit grants science equal to three quarters of its strength.",
       "effects": [
@@ -1017,6 +1036,7 @@
       "band": 1,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "The forges run whether the war does or not.",
       "text": "Cities with a Barracks gain gold equal to 30% of their base production and +38% production toward military units.",
       "effects": [
@@ -1054,6 +1074,7 @@
       "band": 1,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "We lose them twice: once in the field, once in the song.",
       "text": "Killing a unit grants science and culture equal to twice its strength. Losing a unit while it defends grants the same.",
       "effects": [
@@ -1122,6 +1143,7 @@
       "band": 1,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "They were born in the saddle and see no reason to leave it.",
       "text": "Mounted units gain +3 strength and +1 movement.",
       "effects": [
@@ -1154,6 +1176,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "The maps are kept here, and so are the men who read them.",
       "text": "Cities with a Barracks give +2 renown a turn, favouring great generals.",
       "effects": [
@@ -1177,6 +1200,7 @@
       "band": 1,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "In spring they drill, in summer they reap.",
       "text": "While at peace, garrisoned cities gain +2 food and +2 production on each worked pasture and camp.",
       "effects": [
@@ -1214,6 +1238,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "military",
       "flavor": "Walls are patient. The engines are not.",
       "text": "+38% production toward siege units. Siege units gain +4 strength against cities.",
       "effects": [
@@ -1274,6 +1299,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "The smiths keep books as carefully as they keep fires.",
       "text": "Armouries give +5 science and +5 culture. Cities with one gain +15% production toward buildings.",
       "effects": [
@@ -1356,6 +1382,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Their records are ours now, and they were good records.",
       "text": "Captured cities gain +6 science and +6 culture.",
       "effects": [
@@ -1378,6 +1405,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "economic",
       "flavor": "Walls are no use to a hungry town.",
       "text": "Cities gain +8 food per defensive building.",
       "effects": [
@@ -1445,6 +1473,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "They will speak of the day the gates opened.",
       "text": "Capturing a city grants culture equal to fifteen times its population.",
       "effects": [
@@ -1551,6 +1580,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The men who come off the boats come off them running.",
       "text": "Naval melee units gain +4 strength. Land units attacking on the turn they disembark gain +3 strength.",
       "note": "The blessing is hung on the piece the moment it wades ashore, and lasts the turn it landed.",
@@ -1593,6 +1623,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "They burn the farm without slowing to a walk.",
       "text": "Mounted units ignore enemy zone of control. Pillaging costs them one less movement point, minimum zero.",
       "note": "A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.",
@@ -1784,6 +1815,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "The wagons come home heavier than they went.",
       "text": "Pillaging grants 15 production to your city nearest the pillaged hex. The first pillage each turn also grants 30 culture.",
       "effects": [
@@ -1897,6 +1929,7 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "They keep their walls. We keep the keys.",
       "text": "Captured cities you hold cost one less authority. Capturing a city grants +30% production in every city for ten turns.",
       "effects": [
@@ -1970,6 +2003,7 @@
       "band": 2,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "A longer arm wins more arguments.",
       "text": "Ranged and siege units gain +1 range.",
       "effects": [
@@ -2029,6 +2063,7 @@
       "band": 2,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "Each fortress keeps a library of its own sieges.",
       "text": "Citadels gain +5 science. Each citadel inside your borders gives +1 renown a turn, favouring great generals.",
       "effects": [
@@ -2061,6 +2096,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "Fresh horses wait at every post.",
       "text": "Once a turn, a military unit that starts its turn in a city connected to your capital may move to any other connected city, ending its move there.",
       "effects": [],
@@ -2076,6 +2112,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "economic",
       "flavor": "The loser pays, and the winner counts it twice.",
       "text": "Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture.",
       "effects": [],
@@ -2091,6 +2128,7 @@
       "band": 2,
       "line": "none",
       "rarity": "uncommon",
+      "type": "wildcard",
       "flavor": "One city taken is a lesson for the rest.",
       "text": "Commission. Capture a city with at least five citizens. Then gain culture and science equal to twenty-three times its population, and a free Barracks in that city. The card leaves its chair.",
       "effects": [],
@@ -2124,6 +2162,7 @@
       "band": 3,
       "line": "none",
       "rarity": "common",
+      "type": "civic",
       "flavor": "The soldiers have been here so long they are townsfolk.",
       "text": "Per garrisoned unit, the city gains +12% production and +12% culture.",
       "effects": [
@@ -2211,6 +2250,7 @@
       "band": 3,
       "line": "none",
       "rarity": "common",
+      "type": "military",
       "flavor": "One yard, every weapon, all year.",
       "text": "Cities with an Armoury gain +30% production and produce ships 75% faster.",
       "effects": [
@@ -2245,6 +2285,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The engines go ahead, and the infantry follow the ruts.",
       "text": "Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities.",
       "effects": [
@@ -2288,6 +2329,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "In peace they build. In war they do not.",
       "text": "While at war, cities with a Barracks produce military units 60% faster; while at peace, those cities gain +30% production toward buildings.",
       "effects": [
@@ -2354,6 +2396,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The country itself is fortified now.",
       "text": "Land combat units gain +3 strength beside a friendly city. Cities with walls gain +3 defence per garrisoned unit.",
       "effects": [
@@ -2442,6 +2485,7 @@
       "band": 3,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "The sea is a province, and we hold it.",
       "text": "Naval units gain +1 sight and +1 range. Coastal cities gain +30% gold; coastal captured cities +60%.",
       "note": "The second share is paid only where both are true, so a coastal town taken in war keeps both lines.",
@@ -2582,6 +2626,7 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "Everything is for the war. Everything.",
       "text": "All your military units gain +8 strength and +1 movement. Every city demands +3 more happiness.",
       "effects": [
@@ -2619,6 +2664,7 @@
       "band": 3,
       "line": "none",
       "rarity": "rare",
+      "type": "wildcard",
       "flavor": "A war is won at the table, after it is won in the field.",
       "text": "Commission. Make peace with an empire, or destroy it, after taking at least two of its cities in that war. Then gain 300 gold and 300 culture, and every city gains +2 happiness for twenty turns. The card leaves its chair.",
       "effects": [],
@@ -2634,6 +2680,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "The provinces pay for the great work.",
       "text": "Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%.",
       "effects": [
@@ -2655,6 +2702,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "wildcard",
       "flavor": "Two thrones, and neither of them yours by birth.",
       "text": "Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair.",
       "effects": [],
@@ -2693,6 +2741,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "Their columns hold up our roof now.",
       "text": "Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do.",
       "effects": [
@@ -2716,6 +2765,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "economic",
       "flavor": "Between wars, the legions build walls and roads.",
       "text": "Disbanding a military unit in a city building a wonder or the Magnum Opus adds half the unit's production cost toward it. Units raised for free add nothing.",
       "effects": [],
@@ -2731,6 +2781,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "The great work has its own guard, and the guard has its own walls.",
       "text": "The city raising your Magnum Opus gains +5 defence for each unit garrisoned there. Your military units within two hexes of it gain +6 strength.",
       "effects": [
@@ -2768,6 +2819,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "Every regiment sends its reports to the capital.",
       "text": "Your capital gains +1 science and +1 culture for every military unit you have, at most +30 of each.",
       "effects": [
@@ -2805,6 +2857,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "What they built, the whole empire now uses.",
       "text": "Each captured city you hold gives +5% science and +5% culture in every city, at most +25%.",
       "effects": [
@@ -2838,6 +2891,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "Each baton was earned on a field with a name.",
       "text": "Each great general you have called gives your military units +1 strength, at most +5. Citadels give +3 culture and +3 production.",
       "effects": [
@@ -2878,6 +2932,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "civic",
       "flavor": "Every household keeps a musket over the door.",
       "text": "Each unit garrisoned in a city gives it +3 science and +3 culture, at most three units per city.",
       "effects": [
@@ -2909,6 +2964,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "Every armoury opens its doors on the same morning.",
       "text": "Every ten turns, each city with an Armoury raises the best melee unit you can build. They count as trained and cost no upkeep.",
       "effects": [
@@ -2932,6 +2988,7 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
+      "type": "military",
       "flavor": "A wall facing in, and a wall facing out.",
       "text": "While a rival city is under siege with at least one of your units beside it, it adds no production toward a Magnum Opus. You can see which rival cities are raising one.",
       "effects": [],
@@ -2947,6 +3004,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "military",
       "flavor": "Old enemies march together against the one who would end the age.",
       "text": "While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster.",
       "effects": [
@@ -2991,6 +3049,7 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
+      "type": "civic",
       "flavor": "A governor with a legion behind him needs no other argument.",
       "text": "Captured cities with a garrison cost no authority and gain +10 defence.",
       "effects": [
@@ -3036,6 +3095,7 @@
       "band": 4,
       "line": "none",
       "rarity": "uncommon",
+      "type": "wildcard",
       "flavor": "Three cities, one season, one name on every banner.",
       "text": "Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair.",
       "effects": [],
@@ -3072,6 +3132,7 @@
       "band": 4,
       "line": "none",
       "rarity": "rare",
+      "type": "wildcard",
       "flavor": "The marvel was theirs to build and ours to keep.",
       "text": "Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair.",
       "effects": [],
