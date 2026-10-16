@@ -17,9 +17,9 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier 0 | 1 | 9 | 16 | 26 | none |
 | Tier I | 5 | 9 | 9 | 23 | 5 |
 | Tier II | 9 | 5 | 17 | 31 | 5 |
-| Tier III | 3 | 2 | 20 | 25 | 3 |
+| Tier III | 3 | 2 | 19 | 24 | 3 |
 | Tier IV | 7 | 8 | 6 | 21 | 3 |
-| **All** | **25** | **33** | **68** | **126** | **16** |
+| **All** | **25** | **33** | **67** | **125** | **16** |
 | Shared | 16 | 4 | 5 | 25 |  |
 
 **By type** (the chair a card fits):
@@ -29,9 +29,9 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier 0 | 10 | 6 | 8 | 2 |
 | Tier I | 7 | 8 | 8 | 0 |
 | Tier II | 12 | 7 | 10 | 2 |
-| Tier III | 12 | 3 | 9 | 1 |
+| Tier III | 11 | 3 | 9 | 1 |
 | Tier IV | 9 | 3 | 5 | 4 |
-| **All** | **50** | **27** | **40** | **9** |
+| **All** | **49** | **27** | **40** | **9** |
 | Shared | 10 | 7 | 7 | 1 |
 
 ## Tier 0
@@ -175,7 +175,6 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Total War** | rare | modify: revised | All your military units gain +5 strength and +1 movement. Every city demands +3 more happiness. | Military |
 | **Commission: A Victor's Peace** | rare | modify: deferred | Commission. Make peace with an empire, or destroy it, after taking at least two of its cities in that war. Then gain one extra Wildcard chair for the rest of the game. | Wildcard |
 | **The Drill Masters** | common | add | Units you gain start as Veterans. | Military |
-| **The Fyrd** | common | add | Towns of at least eight citizens may spend a citizen to raise the best melee unit you can build. | Military |
 | **The Plunder Trains** | common | add | Pillaging grants 30 production and 15 food to your capital. | Economic |
 | **The Yam** | uncommon | add | Mounted units heal fully when they pillage. | Military |
 | **The Tagmata** | uncommon | add | Veteran and Elite units gain +5 strength. | Military |
@@ -310,4 +309,6 @@ New names are placeholders; rename freely.
   - Interior Lines takes Machinery's road rule at Machinery's size: a step along a road costs 40% less movement. Machinery's discount is 40%, not 50%. The two add, so with both a road step costs a fifteenth of a move instead of a fifth.
   - The merged levy keeps The Call to the Spear's floor of five citizens. The built card has none, so this changes it.
   - Divine Mandate counts Civic Orders, and the Chiefdom keeps its old chairs (`docs/plans/doctrines-governments-chairs.md`).
+  - The Fyrd is removed for now (*"let's remove the fyrd for now"*): beside The Muster of the Fields and its five-citizen floor, it added nothing.
+  - The five cards that wait on a UX decision stay deferred, for you to rework later (*"Defer all 5 UX cards, i'll probably rework them later"*): The Longships, The Relay Stations, Rally to the Standard, Circumvallation and Mercenary Contracts.
   - Doctrine tiers pair one to one with the four government tiers left: Tier I with tier 4, Tier II with tier 10, Tier III with tier 18 and Tier IV with tier 29, as Doctrine pools were paired before the decks rework (*"2 yes"*). Each Doctrine arrives one card tier earlier than the table it sits in.

@@ -234,7 +234,7 @@ The user asked for both (*"Please go ahead and assign chair mixes for all govern
 - **A mixed card** takes the type of the half that pays more. When the halves are even and one is Civic, the card is Civic: those are the cards a civic government is for, and they are a military deck's road to science and culture.
 - A card that is never seated (a charter, an on-draft grant) still has a type, for its face. A shared card has the same type on both sheets.
 
-**Dominion, sorted** (`docs/decks/dominion.md`): 50 Military, 27 Economic, 40 Civic and 9 Wildcard, and 10, 7, 7 and 1 of the 25 shared cards. Tier I is even (7, 8 and 8). Tier III had 21 Military cards of 29 and 2 Economic; after the user's pass of 2026-10-16 it has 12 Military, 3 Economic and 9 Civic of 25, so a Dominion seat under an economic government still leans on its partner deck for Economic cards there.
+**Dominion, sorted** (`docs/decks/dominion.md`): 49 Military, 27 Economic, 40 Civic and 9 Wildcard, and 10, 7, 7 and 1 of the 25 shared cards. Tier I is even (7, 8 and 8). Tier III had 21 Military cards of 29 and 2 Economic; after the user's pass of 2026-10-16 it has 11 Military, 3 Economic and 9 Civic of 24, so a Dominion seat under an economic government still leans on its partner deck for Economic cards there.
 
 **The chairs:**
 

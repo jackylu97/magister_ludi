@@ -1,6 +1,6 @@
 # Batch D triage: the Dominion `add` and `modify` cards, and its Doctrines
 
-**Status:** written 2026-10-16 by a read-only triage agent, before any D batch. It is the plan for batch D in `docs/plans/chairs-build.md`. The readings in "Rule ambiguities" are the ones the build will use unless the user changes them here. Mark any you disagree with, as on the deck sheets.
+**Status:** written 2026-10-16 by a read-only triage agent, before any D batch. It is the plan for batch D in `docs/plans/chairs-build.md`. The readings in "Rule ambiguities" are the ones the build will use unless the user changes them here. Mark any you disagree with, as on the deck sheets. The user removed The Fyrd after it was written, and confirmed the five deferrals (*"Defer all 5 UX cards, i'll probably rework them later"*).
 
 Source: `docs/decks/dominion.md` as of commit `f6718f07` (branch `decks`). Rows marked `modify: cut` are left out. Shapes were checked against `src/sim/statecraftData.ts`, `src/sim/statecraft/evaluator.ts` and the sim modules they read (`ranks.ts`, `unrest.ts`, `weariness.ts`, `wars.ts`, `levies.ts`, `improvements.ts`, `combat.ts`, `commissions.ts`).
 
@@ -104,7 +104,6 @@ Facts the cells rely on:
 | Total War | modify: revised | 1 | `combatLine` 8 to 5. |
 | Commission: A Victor's Peace | modify: deferred | 2 | A goal "peace with, or destruction of, an empire you took two towns from in that war" (war record, peace and elimination moments), and a reward of a permanent Wildcard chair read by `chairCount`. |
 | The Drill Masters | add | 2 | A starting rank on `unitStamp` (Veteran), which fires "rank earned". |
-| The Fyrd | add | 1 | `levy` `use: 'muster'`, `minPopulation: 8` (see ambiguities). |
 | The Plunder Trains | add | 2 | Delivery to the capital; pillage grants land in the town nearest the hex today. |
 | The Yam | add | 2 | The pillage occasion carries no actor, so a `class` filter cannot ride; and a full heal of the acting unit. |
 | The Tagmata | add | 2 | A `CombatCondition` on the piece's rank. |
@@ -189,7 +188,7 @@ Every group-2 batch edits `src/sim/statecraftData.ts`, `src/sim/statecraft/evalu
 **Data batches (group 1, 34 cards):**
 - **D0a, Tier 0 (13):** Blooded Spears, Muster Rites, The Horse Herds, Battle Honours, Sword and Plough, The Camp Chaplains, The Standing Army, The King's Levy, The Grain Tribute, The Scaling Ladders, The Funeral Games, The Bards' Praise, The Cattle Raid.
 - **D0b, Tiers I and II (10):** Martial Law, The General Staff, The Pacified Marches, The Art of War, Songs of the Fallen, Walled Towns, The Valetudinaria, Living off the Land, The Serried Ranks, The Conscription Rolls.
-- **D0c, Tiers III and IV, shared, one Doctrine (11):** Total War, The Fyrd, The Arrière-ban, The Victory Mint, The Board of Ordnance, The Nation in Arms, Rites of Passage, The Muster of the Fields, The Crusader Orders, Carried-Off Scholars, The Steppe Confederacy (after C3). D0c also edits `common.json` and `expansionist.json` (the levy row moves).
+- **D0c, Tiers III and IV, shared, one Doctrine (10):** Total War, The Arrière-ban, The Victory Mint, The Board of Ordnance, The Nation in Arms, Rites of Passage, The Muster of the Fields, The Crusader Orders, Carried-Off Scholars, The Steppe Confederacy (after C3). D0c also edits `common.json` and `expansionist.json` (the levy row moves).
 
 **Shape batches (group 2, 87 cards), in the suggested order:**
 
@@ -225,7 +224,7 @@ Every group-2 batch edits `src/sim/statecraftData.ts`, `src/sim/statecraft/evalu
 11. **The Defiant Kingdom: which empires are compared.** **Recommend:** only empires you have met, so the card does not reveal unmet empires.
 12. **The Spear Makers: a unit's age.** **Recommend:** the age of the technology that unlocks it; a unit no technology unlocks is first-age.
 13. **Walled Towns: is a Palisade a wall?** Stone Walls needs a Palisade, and the user moved the card to Tier I because "walls unlock later". **Recommend:** Stone Walls, as Defensive Lines used.
-14. **The Fyrd beside The Muster of the Fields.** Both are the same levy use; the levy menu keeps the first card's town floor, so held together the result depends on chair order, and The Fyrd adds nothing. **Recommend:** the lowest floor among held cards applies, and ask whether The Fyrd should differ (no waiting period, or a Veteran unit).
+14. **The Fyrd beside The Muster of the Fields.** Removed by the user on 2026-10-16 (*"let's remove the fyrd for now"*), so this needs no reading. The note as written: both are the same levy use; the levy menu keeps the first card's town floor, so held together the result depends on chair order, and The Fyrd adds nothing. **Recommend:** the lowest floor among held cards applies, and ask whether The Fyrd should differ (no waiting period, or a Veteran unit).
 15. **The Cleruchy: does it take a chair?** **Recommend:** treat it like The Sword of State: the settler arrives on draft, and seated the card does nothing.
 16. **The New Code: is the free draft a draft?** `PlayerStatecraft.drafts` is the tier ladder. **Recommend:** it does not raise the draft count or the next draft's cost. If a draft is already open, it is skipped and the ten-turn stamp is not written.
 17. **The Soldiers' Share:** settlers, Elites, and "earned". **Recommend:** settlers cannot be trained or bought while it is held; an Elite gains nothing; a rank raised this way counts as earned (it pays Honours of the Legion).
@@ -259,10 +258,10 @@ Every group-2 batch edits `src/sim/statecraftData.ts`, `src/sim/statecraft/evalu
 | Tier 0 | 13 | 12 | 0 | 25 |
 | Tier I | 6 | 12 | 0 | 18 |
 | Tier II | 4 | 16 | 2 | 22 |
-| Tier III | 5 | 16 | 1 | 22 |
+| Tier III | 4 | 16 | 1 | 21 |
 | Tier IV | 1 | 12 | 1 | 14 |
 | Shared | 4 | 4 | 1 | 9 |
 | Doctrines | 1 | 15 | 0 | 16 |
-| **All** | **34** | **87** | **5** | **126** |
+| **All** | **33** | **87** | **5** | **125** |
 
-The 126 are the sheet's 33 `modify` rows (cut rows excluded) and 68 `add` rows, the shared table's 4 `modify` and 5 `add` rows, and 16 Doctrines.
+The 125 are the sheet's 33 `modify` rows (cut rows excluded) and 67 `add` rows (The Fyrd was removed after the triage), the shared table's 4 `modify` and 5 `add` rows, and 16 Doctrines.
