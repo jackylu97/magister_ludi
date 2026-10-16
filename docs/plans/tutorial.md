@@ -266,6 +266,8 @@ Each batch has a fence and narrow tests. The orchestrator runs the gate (typeche
 
 T0 can go now. T1 to T4 do not depend on the layout and can start before the interface rework. T5 to T9 follow it.
 
+**Started 2026-10-16:** T2, and a fix to Skip (section 10).
+
 **Built, 2026-10-15:**
 - **T0** (`84893853`): the bead note, the tips and the pamphlet match the current rules, and `test/ui/guideCopy.test.ts` fails on a retired system or a typed bead count. A follow-up (`eef4ee47`) fixed the same stale text in the Compendium and on the beads screen, and moved the number-word helpers into `src/ui/numberWords.ts`. T0 also found that the bead rod drew one slot too few for the threshold; that fix is a separate batch.
 - **T1** (`1d73131b`): `src/ui/guideModel.ts`, `guideLessons.ts` (37 lessons, IDs and triggers as data, working titles only), `guideSchedule.ts` and `guideStorage.ts` (version 2 memory and migration from version 1). Nothing is wired into the game yet; the wiring notes for T5 and T6 are in `guideSchedule.ts`'s header.
@@ -294,7 +296,15 @@ Answered by the user, 2026-10-15 (their words in quotes):
 - **Teaching the wager and bead endgame:** teach it now. *"yes"*, read as yes to "stable enough to teach now".
 - **Hotseat and multiplayer:** deferred. *"defer multiplayer"*. Lessons are built for the one local seat.
 
-Raised while building T1 (2026-10-15). Each is built as shown below until the user rules; each is a small change:
+Raised while building T1 (2026-10-15), and ruled by the user on 2026-10-16: *"We need to make 'skip tutorial' less prominent in the title card, it's very easy to click it on accident. 1 is fine for now, 2 revert, the walkthrough should show if it's unfinished. 3 is fine to me. Let's start T2"*.
+
+- **Ruled:**
+  - **Walkthrough lessons across games:** kept as built, for now.
+  - **Skip:** reverted. Skip ends the walkthrough for the current game only. A walkthrough that is unfinished shows again in the next game. This applies to the live tutorial (`src/ui/tutorial.ts`, where Skip today switches the walkthrough off for good) and to the new engine.
+  - **What "I've played Civilization" skips:** kept as built.
+  - **"Skip tutorial" is less prominent** on the walkthrough's card. Today it is a button beside the primary one, and it is easy to press by accident.
+
+As they were raised:
 
 - **Walkthrough lessons across games.** A walkthrough lesson finished in one game is skipped in later games. The old tutorial replayed all eleven steps in every new game.
 - **Skip.** Pressing Skip also switches the walkthrough off for later games, as the old tutorial did.
