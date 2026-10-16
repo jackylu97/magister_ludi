@@ -212,6 +212,9 @@ const REGISTER: readonly (readonly [string, SurfaceKind])[] = [
   // The empire drawer (batch UX3): a card, so pinning it closes the other cards
   // and any card or screen opening closes it.
   ['drawer', 'card'],
+  // The hover cards on keywords (batch T2): a card, so any card or screen
+  // opening closes them.
+  ['keywordCards', 'card'],
   // Screens: everything that covers the window and takes the keyboard.
   ['compendium', 'screen'],
   ['saves', 'screen'],
@@ -274,9 +277,11 @@ describe('the register in main.ts', () => {
     for (const name of told) expect(names.has(name), `${name} is not registered`).toBe(true);
     // The incoming-offers list is the one surface with no open hook of its own:
     // its button lives in `diplomacyOffers.ts`, and a press there is already a
-    // press outside every other card.
+    // press outside every other card. The hover cards on keywords never tell the
+    // registry they are opening, on purpose: they open inside the sheet that
+    // holds the keyword, and announcing would close that sheet.
     for (const [name] of REGISTER) {
-      if (name === 'offers') continue;
+      if (name === 'offers' || name === 'keywordCards') continue;
       expect(told.has(name), `${name} never calls screens.opening`).toBe(true);
     }
   });

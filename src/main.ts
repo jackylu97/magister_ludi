@@ -222,6 +222,7 @@ import { createTurnSplash } from './ui/turnSplash';
 import type { Compendium } from './ui/compendium';
 import { type LazyOverlay, lazyOverlay, whenIdle } from './ui/lazyScreen';
 import { setKeywordOpener } from './ui/keywords';
+import { mountKeywordCards } from './ui/keywordCards';
 import { createStaleDeployNotice } from './ui/staleDeploy';
 import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
 import { type WagerSheet, createWagerSheet, wagerBoards } from './ui/wagerSheet';
@@ -1104,6 +1105,11 @@ whenIdle(() => compendium.prefetch());
    a rite's line all open the same book. The overlay's `open` already shuts
    whatever else was up, so a keyword clicked over the star chart closes it. */
 setKeywordOpener((entryId) => compendium.open(entryId));
+/* The hover cards on keyword links (`src/ui/keywordCards.ts`, batch T2). Mounted
+   once, here, before any sheet is built, so its Escape runs ahead of every
+   sheet's. It belongs to the page, like the Compendium, so it is never in
+   `gameDisposers`. */
+const keywordCards = mountKeywordCards();
 /* The menu's door to the book. The menu shuts first, so it goes at once even
    while the book is still loading on its first open, and the keyboard is back
    on ☰ before the book takes it. */
@@ -1173,6 +1179,10 @@ screens.register({ name: 'offers', kind: 'card', close: () => diplomacyOffers?.c
 // closes no other card. A peek still reports as open, so Escape closes it
 // before the selection and any card or screen opening takes it down.
 screens.register(held('drawer', 'card', () => empireDrawer));
+// The hover cards on keywords (batch T2). A card, so any card or screen opening
+// closes them, but they never call `screens.opening`: they open inside the
+// sheet that holds the keyword, and announcing would close that sheet.
+screens.register(held('keywordCards', 'card', () => keywordCards));
 // The screens.
 screens.register(held('compendium', 'screen', () => compendium));
 screens.register(held('saves', 'screen', () => savesPanel));

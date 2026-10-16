@@ -1,0 +1,270 @@
+/* --- the hover cards on keyword links -----------------------------------------
+   `src/ui/keywordCards.ts` (batch T2). The house card: parchment, an ink border,
+   a solid ink shadow, Fraunces for the name, the mono eyebrow over it, and every
+   figure in tabular mono (`docs/design-specimen.html`). The rows and the clause
+   list copy the Compendium entry's own (`.cmp-rows`, `.cmp-clauses` in
+   `style.css`), a size down, so a card reads as a cut of the entry it opens.
+
+   The z-index is above every overlay a keyword can sit on, the Compendium over
+   the title screen (60) and the war dispatch (1100) included: a card only exists
+   while the pointer or the keyboard is on a keyword, so there is nothing on the
+   page it should ever be under. */
+.kwc {
+  position: fixed;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  width: 288px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  padding: 9px 12px 8px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  box-shadow: var(--shadow-sm);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: 0;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+  /* A preview is a note: the pointer passes through it to whatever is under
+     it, so it can never take a click meant for the page. */
+  pointer-events: none;
+}
+
+/* A locked card can be entered, which is the whole point of locking it. */
+.kwc.is-locked {
+  pointer-events: auto;
+}
+
+/* Pinned by a click or Enter, so it stays until it is closed: a heavier
+   shadow, as a card lifted off the page. A card locked by holding keeps the
+   lighter one, and goes when the pointer leaves it. */
+.kwc.is-pinned {
+  box-shadow: var(--shadow);
+}
+
+.kwc-head {
+  padding-right: 20px;
+}
+
+.kwc-eyebrow {
+  margin: 0;
+}
+
+.kwc-name {
+  margin: 1px 0 0;
+  font-family: var(--face-name);
+  font-variation-settings: 'opsz' 90;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+/* Last in the card for Tab's sake, drawn in the top corner. Only a locked
+   card has it: a preview cannot be clicked, so a button on it would be a
+   control nobody can press. */
+.kwc-close {
+  display: none;
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-family: var(--face-ui);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.kwc.is-locked .kwc-close {
+  display: block;
+}
+
+.kwc-close:hover {
+  background: rgba(29, 26, 32, 0.08);
+  color: var(--ink);
+}
+
+/* The body scrolls when a card is cut short to stay off its keyword
+   (`placeKeywordCard`); the head and the footer stay where they are. */
+.kwc-body {
+  min-height: 0;
+  margin-top: 6px;
+  overflow: auto;
+}
+
+.kwc-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kwc-rows > li + li {
+  border-top: 1px solid var(--rule);
+}
+
+.kwc-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 2px 0;
+}
+
+.kwc-row-label {
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.kwc-row-value {
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.kwc-lines {
+  margin: 0;
+  padding: 0 0 0 12px;
+  list-style: none;
+}
+
+.kwc-rows + .kwc-lines,
+.kwc-rows + .kwc-prose {
+  margin-top: 6px;
+}
+
+.kwc-line {
+  position: relative;
+}
+
+.kwc-line + .kwc-line {
+  margin-top: 2px;
+}
+
+.kwc-line::before {
+  position: absolute;
+  left: -10px;
+  content: '·';
+  color: var(--ink-faint);
+}
+
+/* Designed and not built: struck through, as the book prints it. */
+.kwc-line.is-deferred {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+
+/* Withdrawn, or not dealt yet: the line to read before the rules under it,
+   banded in the accent as the book bands it. */
+.kwc-line.is-standing {
+  margin: 0 0 4px -12px;
+  padding: 3px 7px;
+  border-left: 3px solid var(--vermilion);
+  background: rgba(212, 80, 46, 0.07);
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.kwc-line.is-standing::before {
+  content: none;
+}
+
+.kwc-prose {
+  margin: 0;
+}
+
+.kwc-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule);
+}
+
+.kwc-foot[hidden] {
+  display: none;
+}
+
+.kwc-hint {
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+
+.kwc-back,
+.kwc-entry {
+  padding: 2px 8px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  background: var(--parchment);
+  box-shadow: 2px 2px 0 var(--ink);
+  color: var(--ink);
+  font-family: var(--face-ui);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.kwc-entry {
+  margin-left: auto;
+}
+
+.kwc-back:hover,
+.kwc-entry:hover {
+  background: var(--table);
+}
+
+.kwc-back:active,
+.kwc-entry:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* The hold: a rule along the card's foot that fills while the pointer stays
+   on the keyword, and the card locks as it reaches the end. Its length is the
+   hold timer's own (`KEYWORD_HOLD_MS`, written onto it as `--kwc-hold-ms`), so
+   the bar and the lock cannot disagree. */
+.kwc-hold {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--vermilion);
+  transform-origin: left center;
+  animation: kwc-hold var(--kwc-hold-ms, 900ms) linear forwards;
+}
+
+@keyframes kwc-hold {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Motion off: the rule is drawn whole and faint rather than filling. The hint
+   under the definition still says what holding does. */
+@media (prefers-reduced-motion: reduce) {
+  .kwc-hold {
+    animation: none;
+    opacity: 0.35;
+  }
+}

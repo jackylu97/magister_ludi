@@ -55,6 +55,25 @@
  * degraded path but the **standalone page's** whole mechanism (`compendium.html`
  * listens for `hashchange`), so a keyword in the reference book works with no
  * wiring at all.
+ *
+ * Hover cards (batch T2)
+ * ----------------------
+ * Every keyword, linked or not, carries `data-keyword` with the entry it names.
+ * That is what the hover cards (`keywordCards.ts`, `docs/plans/tutorial.md`
+ * section 5.6) look for. Their hover and focus listeners are delegated from the
+ * document, so a keyword node carries no listener it did not carry before.
+ *
+ * A page that mounts the cards registers them here with `setKeywordCardLayer`,
+ * and one thing then changes: a click or Enter on a linked keyword locks its
+ * card instead of opening the book. The card has a "Full entry" button that
+ * calls `openKeyword`. When the layer cannot show the card (its definitions
+ * failed to load, or the click took the keyword off the page before a card was
+ * showing), it declines and the book opens as before.
+ *
+ * A keyword inside a control gets `data-keyword` and nothing more: no
+ * `data-ref`, no tab stop, no handler. Its card can show on hover, but a click
+ * on it belongs to the button underneath, so the click never locks, opens or
+ * picks anything extra.
  */
 
 import { stripRefs } from '../sim/statecraft';
@@ -133,6 +152,43 @@ export function openKeyword(entryId: string): void {
   if (typeof window !== 'undefined') window.location.hash = entryId;
 }
 
+/** How a linked keyword was activated: a click (or tap), or Enter or Space. */
+export type KeywordActivation = 'pointer' | 'keyboard';
+
+/** The hover cards, as the keyword renderer sees them. See the module docblock. */
+export interface KeywordCardLayer {
+  /**
+   * A click or Enter on a linked keyword. Returns true when the layer took it
+   * (it locks the keyword's card), and false when it cannot, in which case the
+   * book opens instead.
+   */
+  activate(node: HTMLElement, entryId: string, how: KeywordActivation): boolean;
+}
+
+let cardLayer: KeywordCardLayer | null = null;
+
+/**
+ * Registers the hover cards, or clears them with `null`. Called by
+ * `mountKeywordCards` and by its `dispose`, never by a surface.
+ */
+export function setKeywordCardLayer(layer: KeywordCardLayer | null): void {
+  cardLayer = layer;
+}
+
+/** The registered hover cards, or null. For the layer's own `dispose`. */
+export function keywordCardLayer(): KeywordCardLayer | null {
+  return cardLayer;
+}
+
+/**
+ * What a click or Enter on a linked keyword does: lock its card when the
+ * hover cards are mounted and can show it, and open the book otherwise.
+ */
+function activateKeyword(node: HTMLElement, entryId: string, how: KeywordActivation): void {
+  if (cardLayer !== null && cardLayer.activate(node, entryId, how)) return;
+  openKeyword(entryId);
+}
+
 // --- drawing ----------------------------------------------------------------
 
 export interface DescriptorOptions {
@@ -154,10 +210,16 @@ export interface DescriptorOptions {
  * already has up. What it needs is the *affordance*, which is the bold and the
  * hover underline the stylesheet gives it, plus the two things a keyboard needs:
  * a tab stop and Enter.
+ *
+ * `data-keyword` is on every keyword and `data-ref` only on a linked one. The
+ * first says which entry the hover card defines; the second says the word is
+ * a link, and the stylesheet's underline and the star chart's card both key on
+ * it.
  */
 export function keywordNode(entryId: string, name: string, linked = true): HTMLElement {
   const node = document.createElement('b');
   node.className = 'kw';
+  node.dataset.keyword = entryId;
   if (!linked) {
     node.textContent = name;
     return node;
@@ -172,13 +234,13 @@ export function keywordNode(entryId: string, name: string, linked = true): HTMLE
     // whatever it was standing on top of.
     event.preventDefault();
     event.stopPropagation();
-    openKeyword(entryId);
+    activateKeyword(node, entryId, 'pointer');
   });
   node.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
     event.stopPropagation();
-    openKeyword(entryId);
+    activateKeyword(node, entryId, 'keyboard');
   });
   return node;
 }
