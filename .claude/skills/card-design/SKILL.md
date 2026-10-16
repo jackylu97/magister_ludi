@@ -1,6 +1,6 @@
 ---
 name: card-design
-description: Use when proposing, revising or reviewing Order cards for the six decks (Dominion, Expansionist, Commerce, Devotion, Scientific, Magisterial) in Magister Ludi. Covers the user's card principles, how synergy is built, finished builds (an early and a late version of each), themes and throughlines (the deck map), floor and ceiling roles, composition and variety, leaders, tedium against investment, what each age's player is trying to do, and how strong a card dealt at each band must be.
+description: Use when proposing, revising or reviewing Order cards or Doctrines for the six decks (Dominion, Expansionist, Commerce, Devotion, Scientific, Magisterial) in Magister Ludi, or when running a deck pass (map, builds, the deck sheet and the user's passes on it, rulings, Doctrines, card types and chairs, triage for the build). Covers the user's card principles, how synergy is built, finished builds (an early and a late version of each), themes and throughlines (the deck map), floor and ceiling roles, composition and variety, leaders, tedium against investment, what each age's player is trying to do, and how strong a card dealt at each band must be.
 ---
 
 # Designing deck cards
@@ -16,12 +16,28 @@ This skill is how we write and judge Order cards. It gathers the user's rulings,
 
 **The goal for a deck** (the user, 2026-10-13): every game should feel slightly different, and a player cannot force a specific build. Cards have synergy and clear throughlines across the game, so playing into a style is rewarded, and each card is also worth taking on its own.
 
-**Design from finished builds** (the user, 2026-10-14: *"we need an idea of a few 'finished builds' (i.e. what a complete set of chairs should look like in the endgame). I think we have too many cards that are individually useful"*). Each deck is designed toward three or four finished builds; see "Finished builds" below. A card's own floor is real but modest, and most of its value is the build it joins. Each build has two versions (the user, 2026-10-15): an early build of Tier 0 to II cards, and a late build of Tier III and IV cards plus one or two early cards that scale. New cards are welcome.
+**Design from finished builds** (the user, 2026-10-14: *"we need an idea of a few 'finished builds' (i.e. what a complete set of chairs should look like in the endgame). I think we have too many cards that are individually useful"*). Each deck is designed toward four or five finished builds (Dominion has four, and the user asked for five for Expansionist, 2026-10-16); see "Finished builds" below. A card's own floor is real but modest, and most of its value is the build it joins. Each build has two versions (the user, 2026-10-15): an early build of Tier 0 to II cards, and a late build of Tier III and IV cards plus one or two early cards that scale. New cards are welcome.
+
+## The deck pass: the order we work in
+
+Dominion went through this in October 2026, and every deck is worked the same way (the user, 2026-10-16: *"could you edit the card-design skill to fold in this process that we're using?"*). Each stage ends with the user's review, and their words are recorded, verbatim and dated, before the next stage starts.
+
+1. **Map the deck:** its themes, the playstyles a player can lean into, how each reaches science, culture and production through the four ages, its pairs with the other five decks, its leaders, and where its sheet is thin. See "Themes and throughlines". It is written at the top of `docs/plans/<deck>-builds.md`, and goes into `references/deck-maps.md` once the user approves it.
+2. **Design four or five finished builds,** each in an early and a late version. See "Finished builds". The model is `docs/plans/dominion-builds.md`.
+3. **Put every card on the deck sheet,** the spec of record. See "The deck sheet". The builds' new cards go on it as `add` rows.
+4. **The user's passes on the sheet.** The user edits the sheet by hand, and each pass is folded in. See "Folding in the user's pass".
+5. **Questions and rulings.** See "Questions and rulings".
+6. **Doctrines:** three to five per tier, Tiers I to IV. See "Doctrines".
+7. **Card types:** every card is Military, Economic, Civic or Wildcard. See "Card types and chairs".
+8. **Triage, then build:** every `add` and `modify` row and every Doctrine sorted by what it needs, then built in batches. See "From the sheet to the game".
 
 ## Specs of record (read before proposing)
 
 - `docs/decks/deck-design.md`: the goals, the rules (three essentials, one mechanic per deck, a real gap, each deck's currency), each deck's section, the pair grid, and the dated rulings: "Card design principles", the note that levies, tended works, commissions and charters stay, "Dominion is the tempo deck", "Only the current band is dealt", and what was declined (tags, a smaller pool per game).
-- `docs/decks/<deck>.md`: the deck's current cards, tier tables 0 to IV. On a reorganised sheet (Dominion, 2026-10-13) each row says whether it is live, changing (the user's revision, not built yet), deferred or new, and the user's new card ideas have their own section. The user's revisions and ideas outrank everything else. Ideas still under discussion live in `docs/plans/<deck>-ideas.md` (Dominion's exists).
+- `docs/decks/<deck>.md`: the deck's current cards, tier tables 0 to IV, with each row's status and type (see "The deck sheet"). The user's revisions and ideas outrank everything else. Ideas still under discussion live in `docs/plans/<deck>-ideas.md` (Dominion's exists).
+- `docs/plans/<deck>-builds.md`: the deck's map and its finished builds, with the user's rulings at the end.
+- `docs/plans/doctrines-governments-chairs.md`: Doctrines, the governments' chair mixes and the card type rules, with the rulings in date order at the top.
+- `docs/plans/<deck>-build-triage.md` and `docs/plans/chairs-build.md`: what each card needs before it can be built, and the build order.
 - `docs/plans/card-measurements-2026-10-13.md`: what cards actually paid in bot games.
 - `docs/plans/card-synergy-research.md`: what Balatro, Slay the Spire, TFT, Battlegrounds, Monster Train, Hades and Against the Storm do.
 - `docs/plans/deck-midgame-changes.md`: the current list of changes and its rulings.
@@ -75,7 +91,7 @@ Synergy is what makes a draft feel like building something. Here it comes from *
 
 ## Finished builds: an early and a late version
 
-A **finished build** is what a seat's chairs look like once a plan has come together. Each deck has three or four, written in `references/deck-maps.md` (Dominion's, approved 2026-10-15, are in `docs/plans/dominion-builds.md`). They are the target the deck is designed toward: every card belongs to at least one of them, or is deliberately glue.
+A **finished build** is what a seat's chairs look like once a plan has come together. Each deck has four or five, written in `references/deck-maps.md` (Dominion's, approved 2026-10-15, are in `docs/plans/dominion-builds.md`). They are the target the deck is designed toward: every card belongs to at least one of them, or is deliberately glue.
 
 **Two versions of each build.** The user, 2026-10-15: *"lets do two versions, an early game build composed of tier 0/1/2 cards and a late game build composed of tier 3/4 cards (with possibly 1-2 earlier cards that scale throughout the game). You're not limited to cards that already exist or are proposed, focus on creating a satisfying playstyle and synergistic bonuses, with a mix of utility that fits with the build theme"*.
 - **The early build** is made of Tier 0, I and II cards.
@@ -216,6 +232,105 @@ Each band needs three kinds of card:
 2. **A few cards that pay off earlier play** (growers, "this game" counters).
 3. **War cards strong enough to hold a chair through peace** (about 10 to 15% of that age's unit strength, or a siege 30 to 50% faster).
 
+## The deck sheet: `docs/decks/<deck>.md`
+
+The sheet is the spec of record for a deck's cards. Dominion's is the model.
+- **Layout:**
+  - a header that explains the columns and statuses;
+  - two counts tables, by status and by type;
+  - one section per tier, `## Tier 0` to `## Tier IV`. Each section has a Doctrine table (Doctrine | Build | Text, Tiers I to IV only) and an Orders table (Card | Rarity | Status | Ability | Type);
+  - the shared table: cards shared with another deck, whose rows live in `data/decks/common.json`;
+  - "Open for your pass".
+- **Statuses:**
+  - `implemented`: in the data, dealt, and plays as written;
+  - `modify: <why>`: in the data but needs work. `revised` is the user's revision. The others are `replaced`, `reworked`, `wording`, `deferred` (not dealt, because it needs a new shape), `merged` (it becomes a shared card), `as built` (the game does something slightly different), and `cut` (the user removed it; it sits in a Cut table until the build retires its data row);
+  - `add`: not in the data yet. `add: reworked` and `add: rule-breaker` say where it came from;
+  - "(was …)" names the data row a renamed card takes over.
+- **The sync test** (`test/sim/decks/<deck>.test.ts`) reads the tier tables:
+  - an `implemented` row's rarity, tier and text equal the data row's exactly;
+  - a `modify` row's data row exists, and an `add` row's does not;
+  - every live data row is listed once;
+  - the Type column matches the data wherever the row has a data row.
+  - Doctrine tables have three cells, and the test skips them.
+  - So a sheet edit that would break the test is a status change, not only a text change: an `implemented` card the user rewrites becomes `modify: revised`.
+- **The counts tables** are recomputed from the rows after every edit. Cut rows are not counted.
+- **"Open for your pass,"** at the foot, has three lists:
+  - still open, each with a recommendation;
+  - answered in the user's pass, with their words;
+  - ruled in chat, with their words.
+
+## Folding in the user's pass
+
+The user marks up the sheet by hand: rewritten abilities, changed rarities and types, deleted rows, answers written into the open section, new cards as loose lines ("common: … civic"), and placeholder names ("rename"). Their edits outrank everything else.
+- **Wait until the file is quiet.** Check `git diff` and the file's modification time. While the user is still editing, work on other files and say so. Start once the file has not changed for about three minutes.
+- **One scripted read-modify-write.** Every replacement asserts that it matches exactly once. Dry-run it on a copy first and diff the result. Never lose or quietly change a user edit.
+- **Tidy without changing the meaning:**
+  - use the sheet's own words: "chair", not "slot"; "gain" a unit; "+" on a bonus; full sentences;
+  - keep every number as the user wrote it.
+- **Name the placeholders.** Pick a period-flavoured name for a real institution, as with The Bakufu, The Regimental Schools and The Board of Ordnance. Check it for collisions in `data/` and `docs/`, and avoid crowded words (there are many Granaries). Say in the open section what the name refers to.
+- **Turn loose lines into rows,** with a name, the status `add`, and the rarity and type the user gave.
+- **Keep the sync test green:**
+  - an `implemented` card whose text changed becomes `modify: revised`;
+  - a cut card with a data row moves to the Cut table as `modify: cut` until the build retires it;
+  - a cut `add` row simply goes.
+- **Flag, don't override.** If the user's type or rule contradicts the sort rules or another card, keep their version and ask in one line. Two examples: a production card typed Civic, and a card another card makes redundant.
+- **Record the pass** in the open section: what was cut, revised, named and retyped, and any reading you took. Then recompute the counts and run the sheet tests.
+- **If the user is still editing when you must commit,** commit only your own hunks:
+  - write HEAD's file plus your changes to a copy;
+  - stage that copy (`git hash-object -w`, then `git update-index --cacheinfo`);
+  - leave their edits in the working tree.
+
+## Questions and rulings
+
+- End a reply that needs decisions with **numbered questions,** each with your recommendation first. Ask only what changes the next step. A design decision is the user's to make; a question that the files, the code or a sensible default can answer is not asked.
+- When the user answers ("#1 the smaller reading…"), record the answer verbatim, with the date, where the work lives: the plan doc, `docs/flags.md`, and the sheet's "Ruled in chat" list. Rulings land in files before any agent acts (CLAUDE.md).
+- When an answer can be read two ways, apply the reading that answers the question asked, mark it "to confirm" in the docs, and say so in one line.
+  - The example is the fifth government tier, 2026-10-16. The user said *"tier 5 was meant for an age 5 that hasn't been implemented"*.
+  - That was read as pairing the four Doctrine tiers with the four government tiers left, and the user confirmed it.
+
+## Doctrines
+
+- **What a Doctrine is.** It is a permanent rule, strong and game-warping, held for the whole game, and it takes no chair. The user, 2026-10-15: *"We should have permanent, strong bonuses in the game… They should be somewhat game-warping like before."*
+- **How many:** three to five per deck at each of Tiers I to IV, and none at Tier 0. Each is written for one of the deck's builds (the Build column), so each build gains a Doctrine at most tiers.
+- **When they are offered:** with a government, one Doctrine tier per government tier. Tier 4 offers Tier I, tier 10 Tier II, tier 18 Tier III and tier 29 Tier IV (ruled 2026-10-16).
+  - The offer draws from both of the seat's decks.
+  - It is all a new government brings: the reward hands are gone.
+  - The tier-38 governments are left for a fifth age.
+- **Drawbacks.** Most Doctrines carry one. The Marian Reforms makes units free of upkeep, but towns build them at half speed. Two Doctrines whose drawbacks cancel each other are intended, as the reward for committing to a build (the user, 2026-10-16: *"#3 is intentional"*).
+- **Where to look:** the Dominion sheet's Doctrine tables are the model, and `docs/plans/doctrines-governments-chairs.md` holds the rulings.
+
+## Card types and chairs
+
+Every card has a type, which its face shows by its ink (the A3 face): **Military**, **Economic**, **Civic** or **Wildcard**. Each government seats a mix of the four kinds of chair; the table is in `docs/plans/doctrines-governments-chairs.md`, section 4.
+- **Which chair a card fits:**
+  - a Military, Economic or Civic card fits a chair of its own type, or a Wildcard chair;
+  - a Wildcard card fits only a Wildcard chair;
+  - a card of a deck not sorted yet ("unsorted") fits any chair, and counts as the type of the chair it sits in.
+- **The sorting rules.** A card is typed by what it pays or does, not by what it reads. Songs of the Fallen reads kills but pays science and culture, so it is Civic.
+  - **Military:** combat strength, movement and unit rules, ranks and experience, units gained (levies, free units, production toward units), and unit upkeep.
+  - **Economic:** food, production, gold, land and growth.
+  - **Civic:** science, culture, faith, happiness, authority, unrest and pacification, war weariness, renown and great people.
+  - **Wildcard:** commissions, and cards that act on other cards (Double Time, Vae Victis, The New Code).
+  - A mixed card takes the type of the half that pays more. When the halves are even and one is Civic, the card is Civic.
+  - A shared card has the same type on both decks' sheets.
+- **Design with the types in view.** Each tier of a deck should give every kind of government something to seat, so count each tier's types after a pass.
+  - Before the user's pass of 2026-10-16, Dominion's Tier III held 21 Military cards of 29, which left a seat under an economic government leaning on its partner deck.
+  - The user fixed it by cutting and rewriting cards toward Civic and Economic.
+
+## From the sheet to the game: triage and build
+
+- **Triage first.** Before any build batch, sort every `add` and `modify` row and every Doctrine into three groups, in a doc of its own. `docs/plans/dominion-build-triage.md` is the model.
+  1. **Data only:** the text fits shapes that exist. Name the effect kind and its fields.
+  2. **New shape, no UX decision:** the behaviour is automatic, or uses UI that already exists (the levy menu, the commission rail). Name exactly what is missing.
+  3. **Deferred:** the card needs a decision about UX or player interaction, such as a new action, a choice made when it fires, or a new button, menu or screen. The user's rule, 2026-10-16: *"defer any that require a determination around UX or user interaction"*. Name the question it waits on. The user may rework the card instead.
+- **Rule ambiguities.** List every text that can be read two ways as a rule, each with a recommended reading. The build uses those readings unless the user marks them, so put them where the user will see them.
+- **Batches:**
+  - the data-only cards go in one or a few batches;
+  - the new-shape cards go in batches of ten to fifteen that share shapes;
+  - they all edit the same files (`statecraftData.ts`, `statecraft/evaluator.ts`, `statecraft/describers.ts`, `data/decks/<deck>.json`, the sheet and its test), so each batch lands before the next starts;
+  - a row becomes `implemented` only when its data text equals the sheet's Ability cell.
+- **How agents land a batch** (fences, the gate, the save schema) is in CLAUDE.md and `docs/plans/chairs-build.md`. This skill covers what to build.
+
 ## The effect vocabulary
 
 - Prefer shapes that exist. The effect union is `CardEffect` in `src/sim/statecraftData.ts`; the one reader is `src/sim/statecraft/evaluator.ts` (use `grep -a`; BSD grep treats it as binary). Moments: `WindfallOccasion`, `TallyOccasion` (both in `statecraftData.ts`) and `Occasion` in `src/sim/occasions.ts`. Counts: `CountKind`. Conditions: `EmpireCondition`. Read the existing card rows in `data/decks/*.json` to see how a shape is written.
@@ -241,6 +356,7 @@ For each card:
 | Displaces | What kind of seated card it pushes out, and why a player would make that swap |
 | Condition or drawback | If it is powerful, what holds it back |
 | Shape | The existing effect kind and fields, or **New shape** and what is missing |
+| Type | Military, Economic, Civic or Wildcard, by the rules in "Card types and chairs" |
 
 Then a short note on the combinations the batch opens, each stated through a general quantity or moment.
 
@@ -259,4 +375,6 @@ Then a short note on the combinations the batch opens, each stated through a gen
 - Culture paid in bands 0 and 1 is priced as scarce.
 - War cards say what they do to a war, in that age's unit strengths and costs.
 - The user's own edits in the deck sheet were read and are not contradicted silently.
+- Each card has a type, and each tier still gives every kind of government something to seat.
+- Each new name was checked for collisions in `data/` and `docs/`.
 - Plain English throughout (CLAUDE.md "Writing").

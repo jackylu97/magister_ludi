@@ -73,10 +73,12 @@ Rulings that shape the builds (2026-10-15):
 - The Legions' Labour is the host's way to win, and levied units count toward it.
 - Cards no build uses are reworked to serve a build, not cut.
 
+**Since then (2026-10-16):** the user's Tier III pass cut Knightly Ransom and reworked Valhalla and The Chevauchée, so three of the capstones above have changed. The sheet, `docs/decks/dominion.md`, is current; this table is not until the builds are revisited.
+
 ### Cards placed
 
 The builds doc places each card in one or more builds ("Also fits" under each build, and "Bridges and pivots"). The sheet lists every card by tier with its status. A full placement table (themes, throughlines, role, essential, shape for every card) waits until the user's revision pass settles the list.
 
 ## Other decks
 
-Not written yet. Build each from its section in `docs/decks/deck-design.md` and its sheet, in the same shape, and show the user before relying on it.
+Not written yet. Build each from its section in `docs/decks/deck-design.md` and its sheet, in the same shape, and show the user before relying on it. Expansionist's pass started on 2026-10-16: its map, five builds and type sort are being drafted in `docs/plans/expansionist-builds.md`.
