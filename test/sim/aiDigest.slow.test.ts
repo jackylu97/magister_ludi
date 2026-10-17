@@ -786,10 +786,34 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * version at 140), which gives E3's digests exactly on both boards. The duel
  * game adopts 11 governments and the standard one 17. Nothing stalled and no
  * command was refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E5 (schema 142): meters, commissions and the shared
+ * militia.** Duel `63f7db4c:289000` → `26886ed7:276670`, standard
+ * `d1e861fb:1013915` → `1b906911:989041`. Two things moved them:
+ *
+ *   · the cards. Four Expansionist rows join the deck (The Burhs, Commission:
+ *     Break the Sod, The Sovereign Writ, The Imperial Roads), one shared row
+ *     joins the shared file (The Frontier Militia), The Heartland is freed, and
+ *     The Domesday Survey and The Master of Works change. From the first draw
+ *     that meets one of them, the seats hold different cards. At turn 120 one
+ *     duel seat has The Frontier Militia seated; on the standard board one seat
+ *     has The Burhs seated and another holds Commission: Break the Sod, not
+ *     seated;
+ *   · the version, 141 to 142.
+ *
+ * Checked by taking both out (the Expansionist and shared deck files as E4
+ * left them, and the version at 141), which gives E4's digests exactly on both
+ * boards. Everything else E5 changed stayed in for that run, and it changes
+ * nothing without the cards: the writ's open ceiling, the town marks and the
+ * lasting effects, the new figures, the founding unit, the fortification
+ * filter and the act's town. The duel game adopts 11 governments and the
+ * standard one 17. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '63f7db4c:289000',
-  standard: 'd1e861fb:1013915',
+  duel: '26886ed7:276670',
+  standard: '1b906911:989041',
 };
 
 /**

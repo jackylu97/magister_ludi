@@ -4103,6 +4103,30 @@
     "text": "your workers may lay tended works on unowned wild hexes up to 2 hexes beyond your borders, and a hex worked there joins your nearest city"
    }
   ],
+  "theBurhs": [
+   {
+    "raw": "every city: +3 city defence per fortification in this city",
+    "text": "every city: +3 city defence per fortification in this city"
+   },
+   {
+    "raw": "+100% production toward defensive buildings",
+    "text": "+100% production toward defensive buildings"
+   }
+  ],
+  "commissionBreakTheSod": [
+   {
+    "raw": "Commission. Goal: work 12 improved tiles at the same time, not counting tended tiles, while this card is seated",
+    "text": "Commission. Goal: work 12 improved tiles at the same time, not counting tended tiles, while this card is seated"
+   },
+   {
+    "raw": "Reward: for 20 turns, +3 food in every city, and a [[unit:worker|Worker]], trained in your capital free of upkeep",
+    "text": "Reward: for 20 turns, +3 food in every city, and a Worker, trained in your capital free of upkeep"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
   "theWatercourses": [
    {
     "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside a river or beside a [[improvement:farm|Farm]] and beside a river",
@@ -4518,6 +4542,18 @@
     "text": "new cities claim every unowned hex within 2 hexes of them at once"
    }
   ],
+  "theSovereignWrit": [
+   {
+    "raw": "spare authority's bonus to production and border growth has no ceiling: +10% for every 5 points",
+    "text": "spare authority's bonus to production and border growth has no ceiling: +10% for every 5 points"
+   }
+  ],
+  "theImperialRoads": [
+   {
+    "raw": "the authority a city joined to your capital by road costs is 0",
+    "text": "the authority a city joined to your capital by road costs is 0"
+   }
+  ],
   "theLandsGreatWork": [
    {
     "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per city of 8 or more citizens (at most +40%)",
@@ -4536,9 +4572,16 @@
   ],
   "theHeartland": [
    {
-    "raw": "one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good — not built yet",
-    "text": "one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good — not built yet",
-    "deferred": true
+    "raw": "Commission. Goal: have one of your cities work 12 improved or tended tiles that each yield 5 or more in total, while this card is seated",
+    "text": "Commission. Goal: have one of your cities work 12 improved or tended tiles that each yield 5 or more in total, while this card is seated"
+   },
+   {
+    "raw": "Reward: that city is marked, and for the rest of the game, the authority a city marked by [[order:theHeartland|The Heartland]] costs is 0 and +3 happiness in every city marked by [[order:theHeartland|The Heartland]] and +20% food in every city marked by [[order:theHeartland|The Heartland]]",
+    "text": "Reward: that city is marked, and for the rest of the game, the authority a city marked by The Heartland costs is 0 and +3 happiness in every city marked by The Heartland and +20% food in every city marked by The Heartland"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
    }
   ],
   "theCorvee": [
@@ -4549,8 +4592,8 @@
   ],
   "theMasterOfWorks": [
    {
-    "raw": "a great engineer's act pays +50%",
-    "text": "a great engineer's act pays +50%"
+    "raw": "a great engineer spending themselves on their boon in your city raising the Magnum Opus grants production equal to the production per turn of your other cities with a [[improvement:manufactory|Manufactory]]",
+    "text": "a great engineer spending themselves on their boon in your city raising the Magnum Opus grants production equal to the production per turn of your other cities with a Manufactory"
    }
   ],
   "thePhilosophersPeaks": [
@@ -4609,8 +4652,8 @@
     "text": "Commission. Goal: own 150 hexes and work 50 improved tiles at the same time, while this card is seated"
    },
    {
-    "raw": "Reward: production in your capital equal to 5 times the improved tiles you work at that moment, and a great engineer to call",
-    "text": "Reward: production in your capital equal to 5 times the improved tiles you work at that moment, and a great engineer to call"
+    "raw": "Reward: each city gains production equal to 5 times the improved or tended tiles it works, toward what it is building, and a great engineer to call",
+    "text": "Reward: each city gains production equal to 5 times the improved or tended tiles it works, toward what it is building, and a great engineer to call"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -8034,6 +8077,12 @@
    {
     "raw": "+20% border expansion, in every city with a [[building:monument|Monument]]",
     "text": "+20% border expansion, in every city with a Monument"
+   }
+  ],
+  "theFrontierMilitia": [
+   {
+    "raw": "new cities start with the best melee unit you can build standing in them, free of upkeep",
+    "text": "new cities start with the best melee unit you can build standing in them, free of upkeep"
    }
   ],
   "publicWells": [

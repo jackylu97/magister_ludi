@@ -14,19 +14,19 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - `add`: not in the data yet; a new card from the builds. `add: proposed` is one of the proposals of 2026-10-13 that a build uses.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch E0 the types are in the data: each Expansionist card fits only a chair of its own type or a Wildcard chair. The sync test checks this column for every row in the data, the shared table's included.
 - **Gates:** "Needs tended land" deals a card only to a seat holding a tended-work charter. "Needs a levy" deals a card only to a seat holding a card that grants a levy, in a chair or not.
-- **The build:** the triage is `docs/plans/expansionist-build-triage.md`. Batch E0 put the types into the data, retired The Forest Gardens and Daughter Towns, and built the 37 cards that needed no new shape. Batch E1 built the twelve levy cards, batch E2 ten cards about moments, records and counts, batch E3 ten cards about the land, and batch E4 ten cards about works, claims and borders. The Frontier Militia moved to batch E5, which uses the unit grant Dominion batch D5 built. Batch E5 builds the rest.
+- **The build:** the triage is `docs/plans/expansionist-build-triage.md`. Batch E0 put the types into the data, retired The Forest Gardens and Daughter Towns, and built the 37 cards that needed no new shape. Batch E1 built the twelve levy cards, batch E2 ten cards about moments, records and counts, batch E3 ten cards about the land, batch E4 ten cards about works, claims and borders, and batch E5 eight cards about meters, commissions and the shared The Frontier Militia. The Breadbasket and Veteran Colonies wait for Dominion batch D7, which builds the shapes they need, and move to batch E6. The Farming Garrisons is built by D7.
 - **Doctrines:** none yet. Expansionist's Doctrines come next, one direction per flavour.
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 13 | 1 | 0 | 14 | none |
-| Tier I | 26 | 0 | 3 | 29 | none |
+| Tier I | 28 | 0 | 1 | 29 | none |
 | Tier II | 19 | 3 | 0 | 22 | none |
-| Tier III | 33 | 1 | 3 | 37 | none |
-| Tier IV | 14 | 4 | 0 | 18 | none |
-| **All** | **105** | **9** | **6** | **120** | **none** |
-| Shared | 14 | 0 | 2 | 16 |  |
+| Tier III | 35 | 1 | 1 | 37 | none |
+| Tier IV | 17 | 1 | 0 | 18 | none |
+| **All** | **112** | **6** | **2** | **120** | **none** |
+| Shared | 15 | 0 | 1 | 16 |  |
 
 **By type** (the chair a card would fit):
 
@@ -63,7 +63,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Burhs** | common | add | Towns gain +3 defence for every defensive building in them, and +100% production toward defensive buildings. | Military |
+| **The Burhs** | common | implemented | Towns gain +3 defence for every defensive building in them, and +100% production toward defensive buildings. | Military |
 | **Levy of the Land** | uncommon | implemented | Cities may spend one citizen to gain production equal to the food it took to grow that citizen. A city may levy once every five turns. | Economic |
 | **Tinkers' Guild** | common | implemented | Workers you produce or purchase gain +1 charge. | Economic |
 | **The Old Songs** | common | implemented | Worked unimproved land gains +2 culture. | Civic |
@@ -81,7 +81,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Marl Pits** | uncommon | add | Your workers may marl a worked farm or pasture for one charge. A marled tile gains +1 food for the rest of the game, and can be marled twice. | Economic |
 | **The Forest Keepers** | common | implemented | Lumber mills that have stood for twenty turns gain +2 culture. | Civic |
 | **The Plough Teams** | common | implemented | Each town gains +1 food for every two improved tiles in its borders. | Economic |
-| **Commission: Break the Sod** | common | add: proposed | Commission. Work twelve improved tiles at the same time. Then every town gains +3 food for twenty turns, and your capital gains a free worker. The card leaves its chair. | Wildcard |
+| **Commission: Break the Sod** | common | implemented | Commission. Work twelve improved tiles at the same time. Then every town gains +3 food for twenty turns, and your capital gains a free worker. The card leaves its chair. | Wildcard |
 | **The Grain Census** | uncommon | implemented | While seated, this card gains +1 production and +1 gold each time one of your towns grows past its largest size. It starts at +2 of each. | Economic |
 | **The Polis** | rare | implemented | While you hold at most four towns, every town gains +25% food. | Economic |
 | **The Public Fountains** | common | implemented | Towns beside a river or lake gain +1 happiness for every four citizens, at most +3. | Civic |
@@ -154,9 +154,9 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Hallowed Woods** | uncommon | implemented | Towns working at least five wild tiles gain +25% culture. | Civic |
 | **The Mountain Terraces** | rare | implemented | Your towns may work the mountains in their borders. A worked mountain yields 2 science and 1 production. | Civic |
 | **The Assay Office** | uncommon | implemented | Each seam you surface grants 60 science. | Civic |
-| **The Sovereign Writ** | rare | add | Spare authority's bonus to production and border growth has no ceiling: +10% for every five points. | Civic |
+| **The Sovereign Writ** | rare | implemented | Spare authority's bonus to production and border growth has no ceiling: +10% for every five points. | Civic |
 | **The Tax Rolls** | uncommon | implemented | When the world takes a census, gain gold equal to five times your citizens. | Economic |
-| **The Imperial Roads** | rare | add | Towns joined to your capital by road cost no authority. | Civic |
+| **The Imperial Roads** | rare | implemented | Towns joined to your capital by road cost no authority. | Civic |
 | **The Opening of the Roads** | uncommon | implemented | When one of your towns is first joined to your capital by road, it gains production equal to twenty times its population. | Economic |
 | **The Stationes** | uncommon | implemented | Land units gain +3 strength while they stand in a town connected to your capital by road. | Military |
 | **The Great Colonies** | rare | implemented | Towns you found start with a third of the citizens of your largest town. | Economic |
@@ -169,9 +169,9 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Keeps** | rare | implemented | Workers may build a Keep, one in each town. A Keep gains the yields of every tile around it, and units on its tile gain +5 strength. | Economic |
 | **The Land's Great Work** | rare | implemented | The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%. | Economic |
 | **The Garden of the World** | rare | implemented | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. | Economic |
-| **The Heartland** | rare | modify: deferred | Goal: one of your towns works twelve improved or tended tiles that each yield 5 or more in total. Reward: for the rest of the game that town costs no authority and gains +3 happiness and +20% food. The card then leaves its chair. | Wildcard |
+| **The Heartland** | rare | implemented | Goal: one of your towns works twelve improved or tended tiles that each yield 5 or more in total. Reward: for the rest of the game that town costs no authority and gains +3 happiness and +20% food. The card then leaves its chair. | Wildcard |
 | **The Corvée** | rare | implemented | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. | Economic |
-| **The Master of Works** | rare | modify: as built | When a great engineer rushes the works in the city building the Magnum Opus, each of your towns with a manufactory also sends that city one turn of its own production. | Economic |
+| **The Master of Works** | rare | implemented | When a great engineer rushes the works in the city building the Magnum Opus, each of your towns with a manufactory also sends that city one turn of its own production. | Economic |
 | **The Philosophers' Peaks** | uncommon | implemented | Each town gains +2 science for every mountain in its borders, at most +6. | Civic |
 | **The Inheritance of Fields** | uncommon | implemented | Worked improvements and tended works that have stood for at least 60 turns gain +1 production. Tended ones also gain +1 culture. | Economic |
 | **The Measure of the Land** | rare | implemented | Every town gains +1 production for every 25 hexes your empire owns, at most +6. | Economic |
@@ -179,7 +179,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The General Levy** | rare | implemented | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. | Military |
 | **The Great Migration** | rare | implemented | Every ten turns, each foreign town within three hexes of your border loses one citizen to your nearest town, if your town is happier and has room to grow. | Economic |
 | **The Encroaching Fields** | uncommon | implemented | Once every ten turns, each of your towns of at least twelve citizens takes one hex from the borders of a foreign town next to it, if nobody works that hex and your town is larger than the town that owns it. | Economic |
-| **The Domesday Survey** | rare | modify: as built | Goal: own at least 150 hexes and work at least 50 improved or tended tiles at the same time. Reward: each town gains production equal to five times the improved or tended tiles it works, toward what it is building, and you gain a great engineer. The card then leaves its chair. | Wildcard |
+| **The Domesday Survey** | rare | implemented | Goal: own at least 150 hexes and work at least 50 improved or tended tiles at the same time. Reward: each town gains production equal to five times the improved or tended tiles it works, toward what it is building, and you gain a great engineer. The card then leaves its chair. | Wildcard |
 | **The Two Harvests** | rare | modify: deferred | Needs tended land. A worked farm, mine or lumber mill may also be tended, with any tended work the tile allows. It keeps the improvement, adds the tended work's yield, and counts as both improved and tended, but not as wild. Cards that pay culture on tended tiles do not pay it on these. | Economic |
 | **The Great Aqueducts** | rare | implemented | The town raising the Magnum Opus gains +5% production toward it for each of your towns with an Aqueduct, at most +40%. | Economic |
 | **The Imperial Highways** | rare | implemented | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. | Economic |
@@ -193,7 +193,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 |---|---|---|---|---|---|---|
 | **Market Gardens** | common | Commerce | 0 | implemented | Farms beside a road gain +1 gold. Domestic routes grant an additional +1 food to their destination. | Economic |
 | **Sacred Groves** | uncommon | Devotion | 0 | implemented | Worked, unimproved forests gain +1 food and +1 faith. | Civic |
-| **The Frontier Militia** | common | Dominion | 0 | add | Each town you found starts with the best melee unit you can build standing in it. | Military |
+| **The Frontier Militia** | common | Dominion | 0 | implemented | Each town you found starts with the best melee unit you can build standing in it. | Military |
 | **Military Colonies** | uncommon | Dominion | I | implemented | Cities with a Barracks gain +45% production toward settlers and workers. | Economic |
 | **The Muster of the Fields** | uncommon | Dominion | I | implemented | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. | Military |
 | **The Barbarian Frontier** | uncommon | Dominion | I | implemented | Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes. | Economic |

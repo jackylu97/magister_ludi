@@ -225,6 +225,18 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     The Imperial Highways).
   - A founding rider's `claimRadius` claims every unowned hex within that
     many hexes of the new town (The Staked Claims, Expansionist batch E4).
+  - A founding rider's `unit` raises a unit in the new town, free of upkeep,
+    through `raiseFreeUnit` (the shared The Frontier Militia, Expansionist
+    batch E5).
+- **Other Expansionist batch E5 shapes.** The meter rule `writUncapped` (The
+  Sovereign Writ) pays the writ's first bonus rung once for every step of its
+  size, with no ceiling (`uncappedTierPercent`, `meters.ts`). A production
+  bonus marked `defensive` reaches fortifications only (`isFortification`,
+  `buildingData.ts`; The Burhs), the same reading the `defensiveBuildings`
+  count takes. A windfall rider's `inTown` names the town the moment happened
+  in, and a grant's `fromTowns` reads the production per turn of the empire's
+  other towns a scope admits (The Master of Works); a great person's act
+  carries its town as `WindfallOccasionFacts.cityId`.
 
 ## Units, movement, combat, siege
 
@@ -450,6 +462,14 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     citizens (`citizens`, to the capital or the smallest towns), or add
     Wildcard chairs for the rest of the game (`wildcardChairs`, kept on
     `PlayerStatecraft.chairsWon` and counted by `chairCount`).
+  - Since Expansionist batch E5 a reward may also pay each town from its own
+    figure (`eachTown`, `townFigure`; The Domesday Survey), mark the town that
+    met the goal (`markTown`, written on `City.markedBy` by `markGoalTown`, read
+    by the `markedBy` town scope; The Heartland), and hand over effects for
+    the rest of the game (`lasting`, read by `liveEffects` from the fulfilled
+    commissions, its thirteenth source). A reached goal may set a floor on each
+    hex it counts (`hexYieldAtLeast`), and a goal one town meets names its town
+    in `commissionGoalTown` (`oneTownWorkedHexes`, `bestTownFor`).
 - **Units a card raises, and the moments it pays on** (Dominion batch D5):
   - A grant can raise the best melee unit (`bestMeleeFor`) or each military
     unit a technology unlocks, in the capital or in each town a scope admits.

@@ -780,10 +780,16 @@ describe('determinism', () => {
    * this board. Checked by taking E4's movers out (the deck file, the
    * improvement table and `data/ai.json` as E3 left them, the two phases
    * removed and the version at 140), which gives E3's hashes exactly.
+   *
+   * **Expansionist batch E5 moved the hash and not the length** at both seeds:
+   * 141 became 142, and that is the whole change here. Nobody here drafts a
+   * card or founds a town, so the new cards never reach this board. Checked by
+   * setting the two deck files back to E4's and the version to 141, which gives
+   * E4's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '40c8f4d5:188932',
-    2026: 'b8a1c39c:188488',
+    11: '6d33f49c:188932',
+    2026: '9aaa14e5:188488',
   };
 
   for (const seed of [11, 2026]) {

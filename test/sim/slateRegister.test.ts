@@ -211,6 +211,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Expansionist batch E2: the towns an empire has founded, which The Book of
   // Settlements' `citiesFounded` count reads. `foundCityAt` is its one writer.
   { field: 'citiesFounded', pattern: /\.citiesFounded\s*(=[^=]|\+=)/ },
+  // Expansionist batch E5: the commissions that marked a town, which the
+  // `markedBy` town scope reads (The Heartland). `markGoalTown` is its one writer.
+  { field: 'markedBy', pattern: /\.markedBy\s*=[^=]|\.markedBy\.(push|splice)\(/ },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -270,6 +273,8 @@ const ANNOUNCING = new Set([
   // between two empires' towns. Both write the owner array and announce.
   'cities.ts#takeOutpostLand',
   'frontiers.ts#runEncroachment',
+  // Expansionist batch E5: a commission marks the town that met its goal.
+  'commissions.ts#markGoalTown',
   // Batch L: famine and a levy both take a citizen through `loseCitizen`.
   'cities.ts#loseCitizen',
   // Batch L: Seasonal Levies hangs timed effects on the town that levied.

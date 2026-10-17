@@ -1344,7 +1344,10 @@ function describeEffect(
       // The plural is composed off the **plain** name and then marked, exactly
       // as `countNoun` does it: pluralising a marked string would put the `s`
       // after the closing brackets.
-      const what = effect.empireBuilding === true
+      const what = effect.defensive === true
+        ? // The Burhs (Expansionist batch E5): the fortifications.
+          'defensive buildings'
+        : effect.empireBuilding === true
         ? // The class, ahead of the category and behind the named row: a rider
           // that says "empire buildings" is narrower than one that says
           // "culture buildings" and wider than one that names the Forum.
@@ -1731,9 +1734,13 @@ function describeEffect(
       // Enemy), for the same reason "a building" narrows "anything".
       const unbuilt =
         effect.fallenUnbuilt === true ? named.replace('a unit', 'a unit you cannot build yet') : named;
+      // The town the moment happened in (Expansionist batch E5, The Master of
+      // Works): "a great engineer's act in your city raising the Magnum Opus".
+      const placed =
+        effect.inTown === undefined ? unbuilt : `${unbuilt} in your ${eachWords(effect.inTown)}`;
       const occasion =
         only +
-        (effect.anyBuilding === true ? unbuilt.replace('anything', 'a building') : unbuilt) +
+        (effect.anyBuilding === true ? placed.replace('anything', 'a building') : placed) +
         (narrowings.length > 0 ? ` (${narrowings.join(', ')})` : '');
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
@@ -1764,6 +1771,14 @@ function describeEffect(
               ? `${turns === 1 ? 'an extra turn' : `${turns} extra turns`} of ${grant.yield}`
               : `${Math.round(turns * 100)}% of a turn's ${grant.yield}`;
           out.push({ text: `${occasion} grants ${figure}${per}` });
+        } else if (grant.fromTowns !== undefined) {
+          // The Master of Works (Expansionist batch E5): the other towns' own
+          // turn of production, read when the moment comes.
+          const towns = eachWords(grant.fromTowns).replace(/\bcity\b/, 'cities');
+          const share = grant.amount === 1 ? '' : `${grant.amount} times `;
+          out.push({
+            text: `${occasion} grants ${grant.yield} equal to ${share}the production per turn of your other ${towns}${grantDeliveryWords(grant)}${per}`,
+          });
         } else if (grant.fromOccasion !== undefined) {
           // **A share of the moment reads as a share of the moment**, for the
           // reason the turn above it reads as turns: "culture equal to ten times
@@ -2022,6 +2037,15 @@ function describeEffect(
         out.push({
           text: `new cities claim every unowned hex within ${effect.claimRadius} hexes of them at once${limit}`,
         });
+      }
+      if (effect.unit !== undefined) {
+        // The Frontier Militia (Expansionist batch E5), in the commission
+        // reward's own words for a unit.
+        const what =
+          effect.unit === 'bestMelee'
+            ? 'the best melee unit you can build'
+            : `${indefinite(unitDef(effect.unit).name)} ${ref('unit', effect.unit, unitDef(effect.unit).name)}`;
+        out.push({ text: `new cities start with ${what} standing in them, free of upkeep${limit}` });
       }
       return;
     }
@@ -3596,6 +3620,10 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     case 'raisingOpus':
       into.qualifiers.push('raising the Magnum Opus');
+      return;
+    case 'markedBy':
+      // The Heartland (Expansionist batch E5): the town its goal marked.
+      into.qualifiers.push(`marked by ${ref('order', scope.card, orderDef(scope.card).name)}`);
       return;
     case 'ownerAtWar':
       into.qualifiers.push('whose owner is at war with another empire');
@@ -5298,6 +5326,24 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
   captureRewards: (amount) => `what your Orders pay for capturing a city is ${signed(amount)} more`,
 };
 
+/**
+ * The Sovereign Writ's sentence (Expansionist batch E5): the bonus ladder's
+ * first rung, paid once for every step of its size. Read off the rule book's
+ * own ladder (`rules.meters.tiers`), the one `uncappedTierPercent` reads.
+ */
+const WRIT_UNCAPPED_WORDS: string = (() => {
+  let points = 0;
+  let percent = 0;
+  for (const step of RULES.meters.tiers) {
+    if (step.whenAtOrAbove === undefined || step.whenAtOrAbove <= 0 || step.percent <= 0) continue;
+    if (points === 0 || step.whenAtOrAbove < points) {
+      points = step.whenAtOrAbove;
+      percent = step.percent;
+    }
+  }
+  return `spare authority's bonus to production and border growth has no ceiling: +${percent}% for every ${points} points`;
+})();
+
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {
   capturedCityCost: 'the authority a captured city costs',
   coastalCityCost: 'the authority a coastal city costs',
@@ -5309,6 +5355,9 @@ const METER_RULE_WORDS: Record<MeterRuleId, string> = {
   freeCitizens: 'the citizens in every city who demand no happiness',
   borderFreezeExempt: 'your borders keep growing',
   authorityUnitProductionExempt: 'negative authority no longer slows production toward units',
+  // Expansionist batch E5, The Sovereign Writ: the ladder's own first rung,
+  // read off the rule book, so a retuned ladder re-words the card.
+  writUncapped: WRIT_UNCAPPED_WORDS,
   // The noun is the **scope's**, so this entry is only the half the table can
   // write — the `meterRule` arm builds the rest off `eachWords`, exactly as the
   // `authority` arm builds "per city holding an empire building". A row with no
@@ -5329,6 +5378,7 @@ const METER_RULE_WORDS: Record<MeterRuleId, string> = {
 const METER_RULE_SWITCHES: readonly MeterRuleId[] = [
   'borderFreezeExempt',
   'authorityUnitProductionExempt',
+  'writUncapped',
 ];
 
 /**
@@ -5621,6 +5671,19 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'improved tiles worked',
     noun: 'the improved tiles you work',
   },
+  // Expansionist batch E5, Commission: Break the Sod (the triage's reading 2).
+  improvedOnlyTilesWorked: {
+    goal: (count) => `work ${count} improved tiles at the same time, not counting tended tiles`,
+    counter: 'improved tiles worked',
+    noun: 'the improved tiles you work',
+  },
+  // Expansionist batch E5, The Heartland. The goal's floor on each hex is said
+  // by `commissionGoalWords`.
+  oneTownWorkedHexes: {
+    goal: (count) => `have one of your cities work ${count} improved or tended tiles`,
+    counter: 'rich tiles worked by one city',
+    noun: 'the improved or tended tiles your best city works',
+  },
   originalCapitalsHeld: {
     goal: (count) => `hold ${count} original capitals other than your own at the same time`,
     counter: 'original capitals held',
@@ -5664,8 +5727,20 @@ export function commissionGoalWords(goal: CommissionGoal): string {
         : `, after taking ${goal.minTownsTaken} or more of its cities in that war`);
     return `${words.verb} ${goal.count} ${goal.count === 1 ? words.one : words.many}${floor}`;
   }
-  return COMMISSION_FIGURE_WORDS[goal.figure].goal(goal.count);
+  // The floor on each hex (Expansionist batch E5, The Heartland).
+  const each = goal.hexYieldAtLeast === undefined ? '' : ` that each yield ${goal.hexYieldAtLeast} or more in total`;
+  return `${COMMISSION_FIGURE_WORDS[goal.figure].goal(goal.count)}${each}`;
 }
+
+/**
+ * What a figure counts in one town, for a reward paid to each town from its own
+ * figure (Expansionist batch E5, The Domesday Survey). Only the figures with a
+ * town reading (`townFigure`, `commissions.ts`).
+ */
+const TOWN_FIGURE_WORDS: Partial<Record<CommissionFigure, string>> = {
+  improvedTilesWorked: 'the improved or tended tiles it works',
+  improvedOnlyTilesWorked: 'the improved tiles it works',
+};
 
 /** The short label a counter prints beside its figure: "camps cleared". */
 export function commissionCounterWords(goal: CommissionGoal): string {
@@ -5682,7 +5757,15 @@ export function commissionCounterWords(goal: CommissionGoal): string {
 export function commissionRewardWords(reward: CommissionReward, towns = 1): string[] {
   const out: string[] = [];
   const one = towns <= 1;
-  if (reward.yield !== undefined && reward.amount !== undefined) {
+  if (reward.eachTown === true && reward.yield !== undefined && reward.amount !== undefined) {
+    // The Domesday Survey (Expansionist batch E5): each town from its own count.
+    const counted = reward.fromFigure === undefined ? undefined : TOWN_FIGURE_WORDS[reward.fromFigure];
+    out.push(
+      counted === undefined
+        ? `${signed(reward.amount)} ${reward.yield} in each city`
+        : `each city gains ${reward.yield} equal to ${reward.amount} times ${counted}, toward what it is building`,
+    );
+  } else if (reward.yield !== undefined && reward.amount !== undefined) {
     const where = reward.yield === 'food' || reward.yield === 'production' ? ' in your capital' : '';
     if (reward.fromGoal === 'population') {
       // "culture equal to 23 times its population", "science equal to 10 times
@@ -5740,6 +5823,13 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1): stri
         ? 'one more Wildcard chair for the rest of the game'
         : `${reward.wildcardChairs} more Wildcard chairs for the rest of the game`,
     );
+  }
+  // Expansionist batch E5, The Heartland: the town is marked, and what the
+  // mark brings holds for the rest of the game.
+  if (reward.markTown === true) out.push(`${one ? 'that city' : 'the last of those cities'} is marked`);
+  if (reward.lasting !== undefined && reward.lasting.length > 0) {
+    const said = describeEffects(reward.lasting, 'empire').map((clause) => clause.text);
+    out.push(`for the rest of the game, ${said.join(' and ')}`);
   }
   return out;
 }

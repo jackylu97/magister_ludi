@@ -4316,6 +4316,12 @@ function scoreMeterRule(
       // army this empire fields would otherwise spend, which is nothing today
       // because no rule charges one.
       return ctx.ai.score.unknownEffect;
+    case 'writUncapped':
+      // The Sovereign Writ (Expansionist batch E5): the writ's bonus past its
+      // top rung. What that is worth is the authority this empire would hold
+      // past ten points, which is the plan's arithmetic and not a card's. The
+      // stand-in, named.
+      return ctx.ai.score.unknownEffect;
     default:
       return unreadMeterRule(rule, ctx);
   }

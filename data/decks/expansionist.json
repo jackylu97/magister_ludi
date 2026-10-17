@@ -827,6 +827,61 @@
         { "kind": "worksBeyond", "works": "tended", "reach": 2 }
       ]
     },
+    "theBurhs": {
+      "name": "The Burhs",
+      "decks": ["expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "A wall for every town, and a town for every wall.",
+      "text": "Towns gain +3 defence for every defensive building in them, and +100% production toward defensive buildings.",
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 3,
+          "count": "defensiveBuildings"
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 100,
+          "defensive": true
+        }
+      ]
+    },
+    "commissionBreakTheSod": {
+      "name": "Commission: Break the Sod",
+      "decks": ["expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "wildcard",
+      "flavor": "The first furrow is the hardest, and the rest follow it.",
+      "text": "Commission. Work twelve improved tiles at the same time. Then every town gains +3 food for twenty turns, and your capital gains a free worker. The card leaves its chair.",
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "improvedOnlyTilesWorked",
+            "count": 12
+          }
+        ],
+        "reward": [
+          {
+            "timed": {
+              "turns": 20,
+              "effects": [
+                { "kind": "pays", "where": "city", "food": 3 }
+              ]
+            }
+          },
+          { "unit": "worker" }
+        ]
+      },
+      "effects": []
+    },
     "theWatercourses": {
       "name": "The Watercourses",
       "decks": ["expansionist"],
@@ -2122,6 +2177,37 @@
         { "kind": "foundingRider", "claimRadius": 2 }
       ]
     },
+    "theSovereignWrit": {
+      "name": "The Sovereign Writ",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "The more the law reaches, the further it can reach.",
+      "text": "Spare authority's bonus to production and border growth has no ceiling: +10% for every five points.",
+      "effects": [
+        { "kind": "meterRule", "rule": "writUncapped", "value": 1 }
+      ]
+    },
+    "theImperialRoads": {
+      "name": "The Imperial Roads",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "Where the road goes, the governor need not.",
+      "text": "Towns joined to your capital by road cost no authority.",
+      "effects": [
+        {
+          "kind": "meterRule",
+          "rule": "cityCost",
+          "value": 0,
+          "scope": { "test": "connected" }
+        }
+      ]
+    },
     "theLandsGreatWork": {
       "name": "The Land's Great Work",
       "decks": ["expansionist"],
@@ -2184,10 +2270,41 @@
       "flavor": "Every empire has one valley it would never give up.",
       "text": "Goal: one of your towns works twelve improved or tended tiles that each yield 5 or more in total. Reward: for the rest of the game that town costs no authority and gains +3 happiness and +20% food. The card then leaves its chair.",
       "effects": [],
-      "deferred": [
-        "one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good"
-      ],
-      "note": "A reward cannot yet mark one town for the rest of the game."
+      "commission": {
+        "goals": [
+          {
+            "kind": "reached",
+            "figure": "oneTownWorkedHexes",
+            "count": 12,
+            "hexYieldAtLeast": 5
+          }
+        ],
+        "reward": [
+          { "markTown": true },
+          {
+            "lasting": [
+              {
+                "kind": "meterRule",
+                "rule": "cityCost",
+                "value": 0,
+                "scope": { "test": "markedBy", "card": "theHeartland" }
+              },
+              {
+                "kind": "happiness",
+                "amount": 3,
+                "per": "city",
+                "scope": { "test": "markedBy", "card": "theHeartland" }
+              },
+              {
+                "kind": "percentYields",
+                "yield": "food",
+                "percent": 20,
+                "scope": { "test": "markedBy", "card": "theHeartland" }
+              }
+            ]
+          }
+        ]
+      }
     },
     "theCorvee": {
       "name": "The Corvée",
@@ -2213,13 +2330,20 @@
       "text": "When a great engineer rushes the works in the city building the Magnum Opus, each of your towns with a manufactory also sends that city one turn of its own production.",
       "effects": [
         {
-          "kind": "effectAmplifier",
-          "target": "greatPersonAct",
+          "kind": "windfallRider",
+          "occasion": "greatPersonAct",
           "family": "engineer",
-          "percent": 50
+          "inTown": { "test": "raisingOpus" },
+          "grant": {
+            "yield": "production",
+            "amount": 1,
+            "fromTowns": {
+              "test": "hasImprovement",
+              "improvement": "manufactory"
+            }
+          }
         }
-      ],
-      "note": "For now a great engineer's act simply pays half as much again, wherever it is spent."
+      ]
     },
     "thePhilosophersPeaks": {
       "name": "The Philosophers' Peaks",
@@ -2377,12 +2501,16 @@
           { "kind": "reached", "figure": "improvedTilesWorked", "count": 50 }
         ],
         "reward": [
-          { "yield": "production", "amount": 5, "fromFigure": "improvedTilesWorked" },
+          {
+            "yield": "production",
+            "amount": 5,
+            "fromFigure": "improvedTilesWorked",
+            "eachTown": true
+          },
           { "greatPerson": "engineer" }
         ]
       },
-      "effects": [],
-      "note": "For now the whole production reward lands in your capital rather than in each town."
+      "effects": []
     },
     "theTwoHarvests": {
       "name": "The Two Harvests",

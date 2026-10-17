@@ -1612,6 +1612,12 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
     if (!escort) continue;
     settleRanksEarned(state, escort, raiseToRank(state, escort, rank));
   }
+  // **The units the law founds a town with** (The Frontier Militia,
+  // Expansionist batch E5): raised free of upkeep in the finished town, through
+  // `raiseFreeUnit` (Dominion batch D5), so each counts as gained and pays the
+  // cards that pay for a unit gained. A unit with no room to stand is not
+  // raised (the triage's reading 45).
+  for (const unit of rider.units ?? []) raiseFreeUnit(state, city, unit);
   return city;
 }
 

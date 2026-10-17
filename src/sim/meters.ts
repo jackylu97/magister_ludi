@@ -113,6 +113,10 @@ import {
   foldCardRulePercent,
 } from './statecraft';
 import { type City, type GameState, playerById } from './state';
+// Expansionist batch E5, straight from the evaluator rather than through the
+// index above: the build splits a re-export across a cycle into chunks it warns
+// about.
+import { cardMeterFlag } from './statecraft/evaluator';
 import { eraNumeral, highestAge } from './techData';
 import { isCoastal } from './water';
 import { explainWeariness } from './weariness';
@@ -966,6 +970,23 @@ export function tierPercent(value: number, boost = 0): number {
 }
 
 /**
+ * **The writ's bonus with no top rung** (The Sovereign Writ, Expansionist batch
+ * E5; the triage's reading 39): the ladder's first bonus rung, paid once for
+ * every step of its size. With the ladder's +10% at five points, fifteen spare
+ * points pay +30%. Below the first rung it pays nothing, as the ladder does, and
+ * a deficit is never read here.
+ */
+export function uncappedTierPercent(value: number): number {
+  let first: MeterStep | undefined;
+  for (const step of METERS.tiers) {
+    if (step.whenAtOrAbove === undefined || step.whenAtOrAbove <= 0 || step.percent <= 0) continue;
+    if (first === undefined || step.whenAtOrAbove < first.whenAtOrAbove!) first = step;
+  }
+  if (first === undefined || value < first.whenAtOrAbove!) return 0;
+  return Math.floor(value / first.whenAtOrAbove!) * first.percent;
+}
+
+/**
  * The growth stifle a happiness total earns, on its own steeper ladder:
  * any deficit −50%, −10 → −80%, −20 → −100% (design ledger, Entry XIV.D.4).
  *
@@ -1121,7 +1142,13 @@ function meterEffectsOf(state: GameState, playerId: number): MeterEffect[] {
   }
 
   const authority = authorityOf(state, playerId);
-  const writ = tierPercent(authority);
+  // The Sovereign Writ (Expansionist batch E5) lifts the ceiling off the bonus
+  // half of the ladder and leaves the deficits as they are.
+  const ladder = tierPercent(authority);
+  const writ =
+    ladder > 0 && cardMeterFlag(state, playerId, 'writUncapped')
+      ? Math.max(ladder, uncappedTierPercent(authority))
+      : ladder;
   if (writ > 0) {
     effects.push({
       meter: 'authority',

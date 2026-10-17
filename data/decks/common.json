@@ -1171,6 +1171,19 @@
         }
       ]
     },
+    "theFrontierMilitia": {
+      "name": "The Frontier Militia",
+      "decks": ["dominion", "expansionist"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "Every new wall needs a spear behind it.",
+      "text": "Each town you found starts with the best melee unit you can build standing in it.",
+      "effects": [
+        { "kind": "foundingRider", "unit": "bestMelee" }
+      ]
+    },
     "publicWells": {
       "name": "Public Wells",
       "decks": [],

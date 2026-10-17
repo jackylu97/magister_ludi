@@ -1010,7 +1010,10 @@ describe('a captured city, end to end', () => {
     // 141 since E4: ten Expansionist cards about works, claims and borders,
     // and two new end-of-turn phases, so a v140 log's picks name cards this
     // build deals differently and its resolutions run two phases fewer.
-    expect(SCHEMA_VERSION).toBe(141);
+    // 142 since E5: eight cards about meters, commissions and the shared
+    // militia, and a new town field, so a v141 log's picks name cards this
+    // build deals differently.
+    expect(SCHEMA_VERSION).toBe(142);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
