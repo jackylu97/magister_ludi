@@ -19,6 +19,22 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(eeeeeee) Order tiers open by draft count alone: RULED 2026-10-17, not built yet.**
+The user, while playtesting: *"the tier 1 orders don't require era 2, tier 2
+orders should require era 2. lets remove the research age altogether"*.
+- **Today** an Order tier needs its draft rung and a research age
+  (`bandOpen`): Tier I needs age 2, Tier II age 3, and Tiers III and IV age 4.
+  This was the user's rule of 2026-09-16: *"reaching Government I through
+  culture alone cannot offer an age-2 Market card while the empire is still in
+  age 1"*.
+- **The ruling:** the research-age gate goes. An Order tier opens at its draft
+  rung alone: Tier I at 4 drafts, Tier II at 10, Tier III at 18 and Tier IV at
+  26. This replaces the rule of 2026-09-16.
+- **Reading:** the first sentence says the age mapping was one age off; the
+  last sentence removes the gate altogether, and the build follows it.
+- **The play server:** the change bumps the save schema, so it is deployed only
+  when the user says, to keep the game in progress.
+
 **(ddddddd) Draft pacing after the rung fix: Tier IV BUILT 2026-10-17 (schema 150); choices 1 and 2 still open.**
 The rung fix (item (ccccccc), built 2026-10-17, schema 149, now in the log)
 opens the Order tiers at 4, 10, 18 and 29 drafts. Measured in bot games, Tier
