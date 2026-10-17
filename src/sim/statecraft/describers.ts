@@ -536,6 +536,7 @@ function greatWorkRunFold(effects: readonly CardEffect[], at: number, out: CardC
     if (next === undefined || next.kind !== 'pays' || next.where !== 'hex') break;
     if ((next.basis ?? 'flat') !== 'flat' || next.scope !== undefined) break;
     if (next.percent !== undefined || next.basePercent !== undefined) break;
+    if (next.wholePercent !== undefined) break;
     const on = next.on;
     if (on === undefined || on.test !== 'improvement' || !isGreatPersonWork(on.improvement)) break;
     const paid = VOICES.filter((voice) => (next[voice] ?? 0) !== 0);
@@ -1182,6 +1183,19 @@ function describePays(
               `${signed(effect.basePercent)}%${whose}`,
       });
     }
+    // The whole hex's share (Dominion batch D8, The Strategoi's citadels): its
+    // own clause, said as "the yields of" because the share reaches all of
+    // them, the lines other cards put on the hex included. A doubling reads as
+    // doubled, as the card says it.
+    if (effect.wholePercent !== undefined && effect.wholePercent !== 0) {
+      out.push({
+        text:
+          effect.wholePercent === 100
+            ? `the yields of every ${tileConditionWords(on)} are doubled${whose}`
+            : `the yields of every ${tileConditionWords(on)} are ` +
+              `${signed(effect.wholePercent)}%${whose}`,
+      });
+    }
     return;
   }
 
@@ -1425,7 +1439,11 @@ function describeEffect(
           // A world rule's reach (The Hunting Grounds, Dominion batch D7) says
           // how near: "within 10 hexes of your towns".
           (effect.range === undefined
-            ? RULE_WORDS[effect.rule](effect.percent)
+            ? // The unit class a cost rule names (The Servian Reforms' military
+              // units, Dominion batch D8) takes the place of "units".
+              effect.rule === 'unitCost' && effect.class !== undefined
+              ? RULE_WORDS[effect.rule](effect.percent).replace(/^units/, filterWords(effect.class))
+              : RULE_WORDS[effect.rule](effect.percent)
             : RULE_WORDS[effect.rule](effect.percent).replace(
                 'near your towns',
                 `within ${effect.range} hexes of your towns`,
@@ -1924,6 +1942,40 @@ function describeEffect(
         // A flag, so a sentence and not a figure — the ratified text is *heals
         // all*, and a number here would be a second, quieter rule.
         out.push({ text: `${occasion} heals every one of your units${per}` });
+      }
+      // Dominion batch D8, The Soldiers' Share: the heal and the rank around
+      // the hex. One sentence when the two radii agree, as the card says it.
+      const healWithin = grant?.healWithin ?? 0;
+      const rankWithin = grant?.rankWithin ?? 0;
+      if (healWithin > 0 && healWithin === rankWithin) {
+        out.push({
+          text:
+            `${occasion} fully heals every unit of yours within ${healWithin} hexes ` +
+            `and raises each by one rank${per}`,
+        });
+      } else {
+        if (healWithin > 0) {
+          out.push({ text: `${occasion} fully heals every unit of yours within ${healWithin} hexes${per}` });
+        }
+        if (rankWithin > 0) {
+          out.push({ text: `${occasion} raises every unit of yours within ${rankWithin} hexes by one rank${per}` });
+        }
+      }
+      // Dominion batch D8, The Scourge of God: the effects hung on the unit
+      // that acted, in the nested clauses' own words, as `timed` above.
+      if (grant?.actorTimed !== undefined && grant.actorTimed.effects.length > 0) {
+        const inner: CardClause[] = [];
+        for (const nested of grant.actorTimed.effects) describeEffect(nested, inner, subject);
+        const turns = Math.max(1, grant.actorTimed.turns);
+        const howLong =
+          grant.actorTimed.renews === true
+            ? `for the next ${turns} turns, however often it does so`
+            : `for ${turns} turns`;
+        out.push({
+          text:
+            `${occasion} gives the unit ${inner.map((clause) => clause.text).join('; ')} ` +
+            `${howLong}${per}`,
+        });
       }
       if (grant?.unit === 'randomMilitary') {
         out.push({ text: `${occasion} grants a random military unit${unitDeliveryWords(grant)}${per}` });
@@ -2516,7 +2568,14 @@ function describeEffect(
     // The same sentence with the sign turned round — "more" where the rebate
     // says "less", and the same two narrowings read the same way.
     case 'upkeepSurcharge': {
-      const who = effect.class ? filterWords(effect.class) : 'all units';
+      // A rank narrows the pieces (Centurions' "Elite units", Dominion batch
+      // D8), said as `rankedWords` says it.
+      const who =
+        effect.rank === undefined
+          ? effect.class
+            ? filterWords(effect.class)
+            : 'all units'
+          : rankedWords(effect.rank, effect.class ? filterWords(effect.class) : 'units');
       const where = WHERE_WORDS[effect.where ?? 'anywhere'];
       out.push({ text: `${who} cost ${effect.amount} more gold in maintenance${where}` });
       return;
@@ -3336,6 +3395,19 @@ function scaleNoun(scale: CombatScale): PluralWords {
   if (scale.count === 'slottedOrdersOfSlot' && scale.slot !== undefined) {
     return slotFlavourWords(scale.slot);
   }
+  // Centurions (Dominion batch D8): only the units of a rank count, so the
+  // rank is named: inside the phrase for the top rank ("adjacent friendly
+  // Elite unit"), and after it for a lower one, which reaches the ranks above.
+  if (scale.count === 'adjacentFriendlies' && scale.rank !== undefined) {
+    if (scale.rank === RANK_IDS[RANK_IDS.length - 1]) {
+      const rank = rankName(scale.rank);
+      return { one: `adjacent friendly ${rank} unit`, many: `adjacent friendly ${rank} units` };
+    }
+    return {
+      one: rankedWords(scale.rank, 'adjacent friendly unit', true),
+      many: rankedWords(scale.rank, 'adjacent friendly units'),
+    };
+  }
   if (scale.count === 'greatPeopleOfFamily') {
     const who = scale.family === undefined ? 'great person' : `great ${scale.family}`;
     const many = scale.family === undefined ? 'great people' : `great ${scale.family}s`;
@@ -3884,6 +3956,17 @@ function grantCountWords(spec: GrantCount): string {
     ...(spec.family !== undefined ? { family: spec.family } : {}),
   };
   return countWords(spec.per, countNoun(probe, ''));
+}
+
+/**
+ * **Units narrowed to a rank, as a noun phrase** (Dominion batch D8): "Elite
+ * units" for the top rank, which nothing outranks, and "units that are a
+ * Veteran or better" for a lower one, because a row that names a rank reaches
+ * every rank above it too (`holdsRank`). `one` says the singular verb.
+ */
+function rankedWords(rank: RankId, noun: string, one = false): string {
+  if (rank === RANK_IDS[RANK_IDS.length - 1]) return `${rankName(rank)} ${noun}`;
+  return `${noun} that ${one ? 'is' : 'are'} ${rankOrBetter(rank)}`;
 }
 
 function rankOrBetter(rank: RankId): string {
@@ -4444,6 +4527,13 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `settlers cost ${-percent}% less production`
       : `settlers cost ${percent}% more production`,
+  // Dominion batch D8, The Servian Reforms. "Units" is the class's word when
+  // the row names none; the `rulePercent` arm puts the class in its place. A
+  // purchase is priced off the cost, so the words say both.
+  unitCost: (percent) =>
+    percent < 0
+      ? `units cost ${-percent}% less to build and to buy`
+      : `units cost ${percent}% more to build and to buy`,
   growthSurplus: (percent) => `${signed(percent)}% food surplus stored toward growth`,
   // **"No maintenance" at the whole rebate**, because that is what −100% is and
   // "−100% the gold your units cost" is a sentence a player has to do algebra on.
@@ -4647,6 +4737,11 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   },
   uniqueLuxuries: { one: 'kind of luxury you control', many: 'kinds of luxury you control' },
   bankedGold: { one: 'gold in your treasury', many: 'gold in your treasury' },
+  // Dominion batch D8, Weight of Numbers.
+  attacksOnTarget: {
+    one: 'attack your units have already made on the same target this turn',
+    many: 'attacks your units have already made on the same target this turn',
+  },
 };
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
@@ -4772,6 +4867,8 @@ const OCCASION_MEASURE_WORDS: Partial<
   completion: { population: "the city's population" },
   buildingCompletion: { population: "the city's population" },
   unitCompletion: { population: "the city's population" },
+  // The Plunder Economy (Dominion batch D8): the piece is the raider.
+  pillage: { strength: "the pillaging unit's strength" },
 };
 
 /** The founding shares with a common name (The Great Colonies' "a third"). */
@@ -5374,6 +5471,12 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
     percent === 100
       ? 'what your Orders pay for capturing a city is paid twice'
       : `what your Orders pay for capturing a city is ${signed(percent)}%`,
+  // Dominion batch D8, The Strategoi. A doubling is said as doubled, the
+  // card's own word.
+  generalAura: (percent) =>
+    percent === 100
+      ? 'the strength aura of your great generals is doubled'
+      : `the strength aura of your great generals is ${signed(percent)}%`,
 };
 
 /**
@@ -5412,6 +5515,9 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
       : `each of your luxury deposits with a mine supplies ${signed(amount)} copies`,
   // A whole payout, so a flat step on it is a row nobody should write.
   captureRewards: (amount) => `what your Orders pay for capturing a city is ${signed(amount)} more`,
+  // Dominion batch D8. A flat step is read by nothing today (the aura is
+  // amplified by a share only), and the words say so plainly.
+  generalAura: (amount) => `the strength aura of your great generals is ${signed(amount)} more`,
 };
 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {
@@ -5570,6 +5676,11 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
     'your farms joined to a farm on fresh water by a chain of your farms count as having fresh water',
   workMountains: 'your cities may work the mountains in their borders',
   widerReach: 'citizens may work owned hexes one ring beyond the usual reach',
+  // Dominion batch D8: The Soldiers' Share, The Servian Reforms and Combined
+  // Arms (`BehaviorRuleId`).
+  noFounding: 'you can no longer found new cities',
+  noExperience: 'your units never gain experience',
+  siegeScreened: 'your siege units beside one of your melee units cannot be attacked in melee',
 };
 
 /**

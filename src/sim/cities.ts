@@ -167,6 +167,10 @@ import {
   opusCityOf,
   windfallPayoutIsEmpty,
 } from './statecraft/evaluator';
+// Dominion batch D8, from the evaluator for the same reason: the rule that
+// stops an empire founding cities (The Soldiers' Share), and the law's
+// percentages on a unit's cost (The Servian Reforms).
+import { cardBehaviorRule, cardUnitCostLines } from './statecraft/evaluator';
 // Ranks: a leaf over the rule book, the unit table and the state.
 import { type RankId, grantExperience, raiseToRank, rankThreshold } from './ranks';
 import {
@@ -1830,6 +1834,10 @@ export function foundingError(state: GameState, unit: Unit): string | null {
   if (unit.hp <= 0) return `Unit ${unit.id} is not alive`;
   const def = unitDef(unit.type);
   if (!def.foundsCity) return `A ${def.name} cannot found a city`;
+  // The Soldiers' Share (Dominion batch D8): this empire's law forbids it.
+  if (cardBehaviorRule(state, unit.ownerId, 'noFounding')) {
+    return 'Your laws forbid founding new cities';
+  }
   if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
 
   const tile = getTileAt(state.map, unit.col, unit.row);
@@ -3197,6 +3205,16 @@ export function explainUnitCost(
       lines.push({ source: `Cards ${percent > 0 ? '+' : ''}${percent}%`, amount: ruled - running });
       running = ruled;
     }
+  }
+
+  // **The law's percentage on this type** (Dominion batch D8, The Servian
+  // Reforms' cheaper military units): one line, the rows summed, floored once
+  // and never below 1. A purchase is priced off this fold, so it follows.
+  const law = foldCardRulePercent(cardUnitCostLines(state, playerId, type));
+  if (law !== 0) {
+    const ruled = Math.max(1, Math.floor((running * (100 + law)) / 100));
+    lines.push({ source: `Cards ${law > 0 ? '+' : ''}${law}%`, amount: ruled - running });
+    running = ruled;
   }
 
   return lines;

@@ -140,7 +140,8 @@ import { renownPerTurn } from '../sim/renown';
 // The pair resolution and a road's own length, off the leaf every fold reads
 // them from — so an appraisal and a caravan cannot disagree about which roads
 // are running or how far apart their two towns are.
-import { FAMILIES } from '../sim/greatPeopleData';
+import { FAMILIES, greatPersonDef, isGreatPersonId } from '../sim/greatPeopleData';
+import { holdsRank } from '../sim/ranks';
 import { routeCities, routeHexes, routeIsLive } from '../sim/routes';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from '../sim/resourceData';
 import { availableRites, cityRite } from '../sim/religion';
@@ -3151,6 +3152,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // piece), which over-reads by the free-upkeep exemptions and is stated as
       // such — `upkeepRebate` beside it still reads `score.nominalCount`, which
       // is that arm's pre-existing stand-in and not this batch's to move.
+      // Dominion batch D8: a surcharge narrowed to a rank (Centurions' Elites)
+      // counts only the seat's pieces holding it.
+      if (effect.rank !== undefined) {
+        const rank = effect.rank;
+        const ranked = ctx.state.units.filter(
+          (unit) => unit.ownerId === ctx.playerId && holdsRank(unit, rank),
+        ).length;
+        return -costOfUpkeep(effect.amount * ranked, ctx);
+      }
       return -costOfUpkeep(effect.amount * countProbe(ctx, 'unitsInField'), ctx);
     // --- batch H2: the shapes that used to fall through the `default` --------
     case 'windfallRider':
@@ -3392,9 +3402,17 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // covers, so it asks `unitEdge` — batch U9's split, for the reason on that
       // knob. Before it, this read `military` and the strength ladder would have
       // halved what a screened town is worth without anybody deciding to.
-      return effect.rule === 'borders'
-        ? ctx.ai.weights.unitEdge * (1 + ctx.threat) * ctx.cities
-        : ctx.ai.score.unknownEffect;
+      if (effect.rule === 'borders') {
+        return ctx.ai.weights.unitEdge * (1 + ctx.threat) * ctx.cities;
+      }
+      // **Two rules that cost the holder** (Dominion batch D8). The Soldiers'
+      // Share forbids founding, which costs the next town this seat would
+      // found: the expansion chain's payoff, and nothing when there is nowhere
+      // left to found. The Servian Reforms' units never gain experience, which
+      // is real and not forecast, so it is the stand-in, as a cost.
+      if (effect.rule === 'noFounding') return -(ctx.expansion?.payoff ?? 0);
+      if (effect.rule === 'noExperience') return -ctx.ai.score.unknownEffect;
+      return ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
       // costs is the difference between two draft plans, which is `wants.ts`'
@@ -3974,6 +3992,20 @@ function windfallGrantWorth(
   }
   if (grant.unrestBeside === true) worth += ctx.ai.score.unknownEffect;
   if (grant.pillageBeside === true) worth += ctx.ai.score.unknownEffect;
+  // Dominion batch D8, The Soldiers' Share: the heal around the hex is the
+  // stand-in, as `healAll` is. The rank is priced at nothing, as every rank a
+  // card gives is (the D1 follow-up: the bot gives nothing for a rank).
+  if ((grant.healWithin ?? 0) > 0) worth += ctx.ai.score.unknownEffect;
+  // Dominion batch D8, The Scourge of God: the effects hung on one unit,
+  // priced as a timed grant's are and shared out over the army, because a
+  // strength line is priced for every unit and this one reaches one.
+  if (grant.actorTimed !== undefined) {
+    const turns = Math.max(0, grant.actorTimed.turns);
+    const army = Math.max(1, countProbe(ctx, 'unitsInField'));
+    worth +=
+      (scoreEffects(grant.actorTimed.effects, ctx) * (turns / Math.max(1, ctx.ai.score.lumpTurns))) /
+      army;
+  }
   if (grant.unit !== undefined) {
     // `explainBuildingRow`'s own reading of a gifted piece, so a wonder's spear
     // and a card's spear are worth the same thing — divided into a rate for the
@@ -4150,6 +4182,17 @@ function ruleRewriteValue(
       // stand-in, scaled by how often a town is taken, as `pacificationRate`
       // is: the bot does not forecast its own losses.
       return -share * ctx.ai.score.unknownEffect * occasionRate('capture', ctx);
+    case 'unitCost': {
+      // **A cheaper unit is more hammers toward it** (Dominion batch D8, The
+      // Servian Reforms). A cost cut of a share s buys what a production bonus
+      // of s / (1 − s) toward the same units buys, so it is priced as that
+      // bonus is (`productionBonus` in `scoreEffect`): the production weight,
+      // the nominal rate and every town. A cost that rises is the same reading
+      // with the sign turned round.
+      if (share <= -1) return ctx.ai.score.unknownEffect;
+      const bonus = -share / (1 + share);
+      return voiceWeight(ctx, 'production') * bonus * nominalRate(ctx) * ctx.cities;
+    }
     default:
       return unreadRule(rule, ctx);
   }
@@ -4272,6 +4315,20 @@ function scoreAmplifier(
         }
       }
       return share * riders;
+    }
+    case 'generalAura': {
+      // **A share of the aura, for each great general the seat has in the
+      // field** (Dominion batch D8, The Strategoi). The aura is strength on the
+      // units near the general, priced as a strength line is, at the share. A
+      // seat with no general gains nothing from it yet.
+      let generals = 0;
+      for (const unit of ctx.state.units) {
+        if (unit.ownerId !== ctx.playerId || unit.person === undefined) continue;
+        if (!isGreatPersonId(unit.person)) continue;
+        if (greatPersonDef(unit.person).family === 'general') generals += 1;
+      }
+      const aura = RULES.greatPeople.generalAuraStrength;
+      return share * aura * ctx.ai.weights.military * (1 + ctx.threat) * generals;
     }
     default:
       return unreadTarget(effect.target, ctx);

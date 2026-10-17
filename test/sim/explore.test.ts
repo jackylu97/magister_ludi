@@ -789,10 +789,16 @@ describe('determinism', () => {
    * phase, so every resolution raises the revision as many times as before.
    * Checked by setting the version back to 141 with every D7 change in place,
    * which gives E4's hashes exactly.
+   *
+   * **Dominion batch D8 moved the hash and not the length** at both seeds, by
+   * the version alone, 142 to 143. Nobody here adopts a government, so the new
+   * Doctrines are never offered, and the record of attacks is written only for
+   * an empire whose law counts them. Checked by setting the version back to
+   * 142 with every D8 change in place, which gives D7's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '6d33f49c:188932',
-    2026: '9aaa14e5:188488',
+    11: '37214077:188932',
+    2026: '399b55d6:188488',
   };
 
   for (const seed of [11, 2026]) {

@@ -169,6 +169,7 @@ import {
   type CardRule,
   type CityRuleId,
   type CardSurplusToProductionEffect,
+  type CardUpkeepRebateEffect,
   type CityScope,
   type CombatCondition,
   type CombatScale,
@@ -243,6 +244,8 @@ import {
   type RankId,
   grantExperience,
   holdsRank,
+  nextRankOf,
+  raiseToRank,
   rankName,
   rankThreshold,
   ranksHeld,
@@ -4335,6 +4338,12 @@ export interface TileLine {
    */
   basePercent?: number;
   /**
+   * A percentage on **everything the hex pays**, taken last (Dominion batch
+   * D8, The Strategoi's doubled citadels). See `CardPaysEffect.wholePercent`.
+   * Read in `explainTileYield` (`yields/hex.ts`) as the hex's last line.
+   */
+  wholePercent?: number;
+  /**
    * **Paid once for every mountain standing beside the hex** — Pachacuti's
    * farms (`CardPaysEffect.perAdjacentMountain`), carried through rather than
    * resolved for `perEndpointLuxury`'s reason exactly: the thing counted is a
@@ -4999,6 +5008,11 @@ function tileLinesFrom(
     if (effect.basePercent !== undefined && effect.basePercent !== 0) {
       line.basePercent = effect.basePercent;
     }
+    // Dominion batch D8: a share of the whole hex, written only when the row
+    // says so, as the other two shares are.
+    if (effect.wholePercent !== undefined && effect.wholePercent !== 0) {
+      line.wholePercent = effect.wholePercent;
+    }
     // Carried, never resolved — see `TileLine.perAdjacentMountain`. Written only
     // when the row says so, so every line the game has ever held serialises and
     // compares exactly as it did before Pachacuti sat down.
@@ -5017,7 +5031,8 @@ function tileLinesFrom(
     if (
       VOICES.some((key) => line[key] !== 0) ||
       line.percent !== undefined ||
-      line.basePercent !== undefined
+      line.basePercent !== undefined ||
+      line.wholePercent !== undefined
     ) {
       list.push(line);
     }
@@ -5286,33 +5301,8 @@ export function cardUpkeepRebateLines(
     if (off !== null && off <= 0) continue;
     let gold = 0;
     for (const unit of state.units) {
-      if (unit.ownerId !== playerId) continue;
-      if (!unitMatches(unit.type, effect.class)) continue;
-      // The General Levy (Expansionist batch E1): only the pieces its levy
-      // raised, read off the piece's own mark.
-      if (effect.levied !== undefined && !leviedMatches(effect.levied, unit.levied)) continue;
-      // The Soldiers' Purse (Dominion batch D2): the coin comes off once for
-      // each rank the piece holds, and a piece with no rank is skipped.
-      const helpings = effect.perRank === true ? ranksHeld(unit) : 1;
+      const helpings = rebateReaches(state, playerId, effect, unit);
       if (helpings === 0) continue;
-      if (effect.where === 'ownTerritory') {
-        if (tileOwnerPlayerId(state, unit.col, unit.row) !== playerId) continue;
-      }
-      if (effect.where === 'foreignTerritory') {
-        // `cardUnitStat`'s reading exactly: a hex nobody owns is outside your
-        // borders, which is what makes a campaign the thing the card pays for.
-        if (tileOwnerPlayerId(state, unit.col, unit.row) === playerId) continue;
-      }
-      if (effect.where === 'garrison') {
-        // **In the town, not on the town's ground.** The Fubing's whole bargain
-        // is that the soldier-farmers fed themselves inside the walls, so this
-        // asks the same `cityAt` lookup the `inCity` combat condition asks — one
-        // reading of "standing in one of your cities", so a card that pays a
-        // garrison and a card that fights in one cannot disagree about which
-        // hexes those are. A town somebody else owns is not your garrison.
-        const town = cityAt(state, unit.col, unit.row);
-        if (!town || town.ownerId !== playerId) continue;
-      }
       const cost = costOf(unit);
       if (cost <= 0) continue;
       gold += off === null ? cost : Math.min(off * helpings, cost);
@@ -5321,6 +5311,62 @@ export function cardUpkeepRebateLines(
     list.push({ card, source, gold });
   }
   return list;
+}
+
+/**
+ * **Whether one rebate row reaches one piece**, as the number of helpings it
+ * takes off (nought: it does not reach it). Split out of
+ * `cardUpkeepRebateLines` in Dominion batch D8 so the surcharge's waiver
+ * (`freeByLaw`) asks the same question.
+ */
+function rebateReaches(
+  state: GameState,
+  playerId: number,
+  effect: CardUpkeepRebateEffect,
+  unit: Unit,
+): number {
+  if (unit.ownerId !== playerId) return 0;
+  if (!unitMatches(unit.type, effect.class)) return 0;
+  // The General Levy (Expansionist batch E1): only the pieces its levy
+  // raised, read off the piece's own mark.
+  if (effect.levied !== undefined && !leviedMatches(effect.levied, unit.levied)) return 0;
+  // The Soldiers' Purse (Dominion batch D2): the coin comes off once for
+  // each rank the piece holds, and a piece with no rank is skipped.
+  const helpings = effect.perRank === true ? ranksHeld(unit) : 1;
+  if (helpings === 0) return 0;
+  if (effect.where === 'ownTerritory') {
+    if (tileOwnerPlayerId(state, unit.col, unit.row) !== playerId) return 0;
+  }
+  if (effect.where === 'foreignTerritory') {
+    // `cardUnitStat`'s reading exactly: a hex nobody owns is outside your
+    // borders, which is what makes a campaign the thing the card pays for.
+    if (tileOwnerPlayerId(state, unit.col, unit.row) === playerId) return 0;
+  }
+  if (effect.where === 'garrison') {
+    // **In the town, not on the town's ground.** The Fubing's whole bargain
+    // is that the soldier-farmers fed themselves inside the walls, so this
+    // asks the same `cityAt` lookup the `inCity` combat condition asks — one
+    // reading of "standing in one of your cities", so a card that pays a
+    // garrison and a card that fights in one cannot disagree about which
+    // hexes those are. A town somebody else owns is not your garrison.
+    const town = cityAt(state, unit.col, unit.row);
+    if (!town || town.ownerId !== playerId) return 0;
+  }
+  return helpings;
+}
+
+/**
+ * **Does this empire's law make this piece free of upkeep?** True when a live
+ * rebate row with `free` reaches it (Dominion batch D8). A free piece costs
+ * nothing at all, so `cardUpkeepSurchargeLines` charges it nothing either: The
+ * Marian Reforms' free soldiers pay no Centurions' coin (the user's ruling of
+ * 2026-10-16 that this pair cancels; the triage's reading 71).
+ */
+function freeByLaw(state: GameState, playerId: number, unit: Unit): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'upkeepRebate')) {
+    if (effect.free === true && rebateReaches(state, playerId, effect, unit) > 0) return true;
+  }
+  return false;
 }
 
 /**
@@ -5360,8 +5406,13 @@ export function cardUpkeepSurchargeLines(
       if (effect.where === 'foreignTerritory') {
         if (tileOwnerPlayerId(state, unit.col, unit.row) === playerId) continue;
       }
+      // Centurions (Dominion batch D8): only the pieces holding the rank.
+      if (effect.rank !== undefined && !holdsRank(unit, effect.rank)) continue;
       // Already on the payroll, or the levy is not what made it cost anything.
       if (costOf(unit) <= 0) continue;
+      // A piece the law makes free costs nothing at all, its surcharges
+      // included (Dominion batch D8, `freeByLaw`).
+      if (freeByLaw(state, playerId, unit)) continue;
       gold += on;
     }
     if (gold <= 0) continue;
@@ -5410,6 +5461,26 @@ export function cardRulePercent(
     const percent = effect.percent;
     if (percent === 0) continue;
     list.push({ card, source: label(source, scopeNote(effect.scope)), percent });
+  }
+  return list;
+}
+
+/**
+ * **The percentages this empire's law puts on the cost of one unit type**
+ * (Dominion batch D8, The Servian Reforms' cheaper military units): the
+ * `unitCost` rule's rows whose `class` admits the type. A row with no class
+ * reaches every unit. Read by `explainUnitCost` (`cities.ts`) as one line.
+ */
+export function cardUnitCostLines(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+): CardRuleLine[] {
+  const list: CardRuleLine[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'rulePercent')) {
+    if (effect.rule !== 'unitCost' || effect.percent === 0) continue;
+    if (!unitMatches(type, effect.class)) continue;
+    list.push({ card, source, percent: effect.percent });
   }
   return list;
 }
@@ -5943,6 +6014,13 @@ export interface CombatSituation {
    * big neighbour's capital is making.
    */
   vsOwnerId?: number;
+  /**
+   * **The entity id of the piece or town being attacked**, on the attacker's
+   * side only (Dominion batch D8, Weight of Numbers). Units and towns take
+   * their ids from one counter, so the id names one thing. The
+   * `attacksOnTarget` count reads it.
+   */
+  targetId?: number;
 }
 
 /** Does a combat condition hold for this situation? One evaluator. */
@@ -6181,7 +6259,12 @@ function besideGreatGeneral(state: GameState, unit: Unit): boolean {
  * condition asks `besideMatching` instead, which also counts pieces that do not
  * fight.
  */
-function adjacentFriendlies(state: GameState, unit: Unit, filter?: UnitFilter): number {
+function adjacentFriendlies(
+  state: GameState,
+  unit: Unit,
+  filter?: UnitFilter,
+  rank?: RankId,
+): number {
   const from = getTileAt(state.map, unit.col, unit.row);
   if (!from) return 0;
   let count = 0;
@@ -6192,10 +6275,38 @@ function adjacentFriendlies(state: GameState, unit: Unit, filter?: UnitFilter): 
       if (other.col !== neighbour.col || other.row !== neighbour.row) continue;
       if (!isCombatant(unitDef(other.type))) continue;
       if (!unitMatches(other.type, filter)) continue;
+      // Only the units holding the rank (Dominion batch D8, Centurions' Elites;
+      // the triage's reading 19: one each, no cap, and never the unit itself).
+      if (rank !== undefined && !holdsRank(other, rank)) continue;
       count += 1;
     }
   }
   return count;
+}
+
+/**
+ * **How many attacks this empire's units have made this turn on one piece or
+ * town** (Dominion batch D8, Weight of Numbers), read off
+ * `Player.strikesThisTurn`. A list from an earlier turn counts nothing.
+ */
+export function strikesOn(state: GameState, playerId: number, targetId: number): number {
+  const record = playerById(state, playerId)?.strikesThisTurn;
+  if (record === undefined || record.turn !== state.turn) return 0;
+  let count = 0;
+  for (const id of record.targets) if (id === targetId) count += 1;
+  return count;
+}
+
+/**
+ * **Does this empire's law count its attacks on a target?** True when a live
+ * strength line scales by `attacksOnTarget` (Weight of Numbers). `recordStrike`
+ * (`combat.ts`) writes the record only for such an empire.
+ */
+export function lawCountsStrikes(state: GameState, playerId: number): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'combatLine')) {
+    if (effect.scaled?.count === 'attacksOnTarget') return true;
+  }
+  return false;
 }
 
 /** One strength line a card contributes, as `planCombat` needs it. */
@@ -6275,7 +6386,7 @@ export function combatLineAmount(
   const each = effect.amount;
   if (each === 0) return null;
   if (!effect.scaled) return each;
-  const total = combatScaleCount(state, situation.unit.ownerId, situation.unit, effect.scaled);
+  const total = combatScaleCount(state, situation.unit.ownerId, situation.unit, effect.scaled, situation);
   let amount = each * helpings(total, effect.scaled.per, undefined);
   if (effect.scaled.max !== undefined) {
     amount = Math.sign(amount) * Math.min(Math.abs(amount), effect.scaled.max);
@@ -6296,13 +6407,23 @@ function combatScaleCount(
   playerId: number,
   unit: Unit,
   scale: CombatScale,
+  situation?: CombatSituation,
 ): number {
   const count = scale.count;
   switch (count) {
     case 'cities':
       return cityCount(state, playerId);
     case 'adjacentFriendlies':
-      return adjacentFriendlies(state, unit);
+      // Centurions (Dominion batch D8) counts only the Elites beside the unit.
+      return adjacentFriendlies(state, unit, undefined, scale.rank);
+    case 'attacksOnTarget':
+      // Weight of Numbers (Dominion batch D8): the attacks this empire's units
+      // have already made this turn on the thing now attacked. The defender's
+      // side names no target and counts nothing.
+      if (situation === undefined || situation.side !== 'attack' || situation.targetId === undefined) {
+        return 0;
+      }
+      return strikesOn(state, playerId, situation.targetId);
     case 'greatPeopleOfFamily':
       return greatPeopleEarned(state, playerId, scale.family);
     case 'slottedOrdersOfSlot':
@@ -6970,6 +7091,26 @@ export interface WindfallPayout {
    * `markTownLand` (`cities.ts`).
    */
   marks?: { card: CardId; source: string; mark: HexMarkId }[];
+  /**
+   * **The radius of a heal and of a rank** a rider pays the empire's pieces
+   * around the occasion's hex (`WindfallGrantSpec.healWithin` and
+   * `rankWithin`, Dominion batch D8, The Soldiers' Share). The widest asked
+   * wins. Delivered by `payWindfallGrants`, with the hex in hand.
+   */
+  healWithin?: number;
+  rankWithin?: number;
+  /**
+   * **Timed effects hung on the piece that acted** (`WindfallGrantSpec.
+   * actorTimed`, Dominion batch D8, The Scourge of God). Acted on by the seam
+   * that holds the piece, `pillageAt` today.
+   */
+  actorTimed?: {
+    card: CardId;
+    source: string;
+    turns: number;
+    effects: CardEffect[];
+    renews?: true;
+  }[];
   /** Every rider that touched this payout, for the announcement. */
   lines: { card: CardId; source: string; note: string }[];
   /**
@@ -7074,6 +7215,10 @@ export interface WindfallOccasionFacts {
    * piece's, so the two say the same word about two different moments; an
    * occasion with no soldier in it carries nothing and a grant scaled by this
    * pays nought there, which is the silence every fact on this shape keeps.
+   *
+   * Since Dominion batch D8 a pillage carries the raider's own strength (The
+   * Plunder Economy): its roster figure, its training stamp and its rank, read
+   * by `pieceStrength` (`combat.ts`), the figure The Chevauchée's strike uses.
    */
   strength?: number;
   /**
@@ -7190,7 +7335,10 @@ export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
     payout.pillageBeside !== true &&
     (payout.marks ?? []).length === 0 &&
     (payout.techGrants ?? []).length === 0 &&
-    payout.freeDraft !== true
+    payout.freeDraft !== true &&
+    (payout.healWithin ?? 0) <= 0 &&
+    (payout.rankWithin ?? 0) <= 0 &&
+    (payout.actorTimed ?? []).length === 0
   );
 }
 
@@ -7467,6 +7615,28 @@ export function windfallPayout(
     if (grant.mark !== undefined) {
       (payout.marks ??= []).push({ card, source, mark: grant.mark });
       payout.lines.push({ card, source, note: 'marks the city’s land for good' });
+    }
+    // Dominion batch D8: the heal and the rank around the hex (The Soldiers'
+    // Share), and the timed effects hung on the piece that acted (The Scourge
+    // of God). No figure, so the era and the council multiply nothing here.
+    if (grant.healWithin !== undefined && grant.healWithin > 0) {
+      payout.healWithin = Math.max(payout.healWithin ?? 0, grant.healWithin);
+      payout.lines.push({ card, source, note: `heals your units within ${grant.healWithin} hexes` });
+    }
+    if (grant.rankWithin !== undefined && grant.rankWithin > 0) {
+      payout.rankWithin = Math.max(payout.rankWithin ?? 0, grant.rankWithin);
+      payout.lines.push({ card, source, note: `raises your units within ${grant.rankWithin} hexes a rank` });
+    }
+    if (grant.actorTimed !== undefined && grant.actorTimed.effects.length > 0) {
+      const turns = Math.max(1, grant.actorTimed.turns);
+      (payout.actorTimed ??= []).push({
+        card,
+        source,
+        turns,
+        effects: grant.actorTimed.effects,
+        ...(grant.actorTimed.renews === true ? { renews: true as const } : {}),
+      });
+      payout.lines.push({ card, source, note: `on the unit, for ${turns} turns` });
     }
     if (grant.timed !== undefined && grant.timed.effects.length > 0) {
       // The *turns* are the card's own and the effects travel untouched:
@@ -8104,6 +8274,43 @@ export function harvestEnemyHexes(state: GameState): void {
   }
 }
 
+/**
+ * **Heals and ranks this empire's pieces around a hex** (Dominion batch D8, The
+ * Soldiers' Share; the triage's reading 17). Each piece of the empire within
+ * `healRange` hexes is healed whole, and each fighting unit within `rankRange`
+ * is raised one rank: none to Veteran, Veteran to Elite, and an Elite gains
+ * nothing. The rank counts as earned, so `settleRanksEarned` pays the cards
+ * that pay on it. The pieces are taken in `state.units` order before anything
+ * is raised, so a replay raises the same pieces in the same order.
+ */
+function rallyAround(
+  state: GameState,
+  player: Player,
+  at: { col: number; row: number },
+  healRange: number,
+  rankRange: number,
+): void {
+  const centre = getTileAt(state.map, at.col, at.row);
+  if (!centre) return;
+  const eye = tileHex(centre);
+  const reach = Math.max(healRange, rankRange);
+  const near: { unit: Unit; distance: number }[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id) continue;
+    const seat = getTileAt(state.map, unit.col, unit.row);
+    if (!seat) continue;
+    const distance = wrappedDistance(state.map, eye, tileHex(seat));
+    if (distance <= reach) near.push({ unit, distance });
+  }
+  for (const { unit, distance } of near) {
+    if (distance <= healRange) unit.hp = unitMaxHp(unit, unitHealthBonus(state, player.id));
+    if (distance <= rankRange) {
+      const next = nextRankOf(unit);
+      if (next !== null) settleRanksEarned(state, unit, raiseToRank(state, unit, next));
+    }
+  }
+}
+
 /** A payout carrying grants and nothing else, for a delivery no occasion composed. */
 function grantsOnlyPayout(grants: WindfallPayout['grants']): WindfallPayout {
   return {
@@ -8717,6 +8924,11 @@ export function payWindfallGrants(
       if (unit.ownerId !== player.id) continue;
       unit.hp = unitMaxHp(unit, unitHealthBonus(state, player.id));
     }
+  }
+  // **The heal and the rank around the hex** (Dominion batch D8, The Soldiers'
+  // Share). An occasion with no hex heals and raises nobody.
+  if (at && ((payout.healWithin ?? 0) > 0 || (payout.rankWithin ?? 0) > 0)) {
+    rallyAround(state, player, at, payout.healWithin ?? 0, payout.rankWithin ?? 0);
   }
   // **The only writer of `Player.timed`** — Crassus' bill, stamped at an
   // absolute turn like every other timed effect and swept by the same broom.

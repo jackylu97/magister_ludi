@@ -421,6 +421,10 @@ const EXCUSED = new Map<string, string>([
     'writes `Unit.timed` — a piece’s own card effects, which only the combat ledger reads. What the meters *do* fold about a piece is that it exists, whose it is and where it stands (`count: \'garrison\'`), and those three seams announce',
   ],
   [
+    'improvements.ts#hangOnRaider',
+    'writes `Unit.timed` (Dominion batch D8, The Scourge of God) — a piece’s own card effects, which only the combat ledger reads, as `hangLandfall` above',
+  ],
+  [
     'resourceEffects.ts#foldResourceYields',
     'sums a line’s gold into a local total — an arithmetic accumulator, not a bank',
   ],

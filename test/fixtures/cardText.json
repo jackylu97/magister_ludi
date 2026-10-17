@@ -769,6 +769,94 @@
     "raw": "+5% production in every city per fortified military unit inside its borders (at most +30% production)",
     "text": "+5% production in every city per fortified military unit inside its borders (at most +30% production)"
    }
+  ],
+  "theSoldiersShare": [
+   {
+    "raw": "capturing a city fully heals every unit of yours within 3 hexes and raises each by one rank",
+    "text": "capturing a city fully heals every unit of yours within 3 hexes and raises each by one rank"
+   },
+   {
+    "raw": "you can no longer found new cities",
+    "text": "you can no longer found new cities"
+   }
+  ],
+  "theServianReforms": [
+   {
+    "raw": "military units cost 25% less to build and to buy",
+    "text": "military units cost 25% less to build and to buy"
+   },
+   {
+    "raw": "your units never gain experience",
+    "text": "your units never gain experience"
+   }
+  ],
+  "centurions": [
+   {
+    "raw": "+3 combat strength per adjacent friendly Elite unit",
+    "text": "+3 combat strength per adjacent friendly Elite unit"
+   },
+   {
+    "raw": "Elite units cost 2 more gold in maintenance",
+    "text": "Elite units cost 2 more gold in maintenance"
+   }
+  ],
+  "thePlunderEconomy": [
+   {
+    "raw": "pillaging grants production equal to 50% of the pillaging unit's strength to every city",
+    "text": "pillaging grants production equal to 50% of the pillaging unit's strength to every city"
+   },
+   {
+    "raw": "-4 combat strength against cities",
+    "text": "-4 combat strength against cities"
+   }
+  ],
+  "theStrategoi": [
+   {
+    "raw": "+30% renown",
+    "text": "+30% renown"
+   },
+   {
+    "raw": "the yields of every hex with a [[improvement:citadel|Citadel]] are doubled",
+    "text": "the yields of every hex with a Citadel are doubled"
+   },
+   {
+    "raw": "the strength aura of your great generals is doubled",
+    "text": "the strength aura of your great generals is doubled"
+   }
+  ],
+  "weightOfNumbers": [
+   {
+    "raw": "+3 combat strength per attack your units have already made on the same target this turn (at most +12)",
+    "text": "+3 combat strength per attack your units have already made on the same target this turn (at most +12)"
+   },
+   {
+    "raw": "your units cannot fortify",
+    "text": "your units cannot fortify"
+   }
+  ],
+  "combinedArms": [
+   {
+    "raw": "+3 combat strength",
+    "text": "+3 combat strength"
+   },
+   {
+    "raw": "+3 combat strength while standing beside siege units",
+    "text": "+3 combat strength while standing beside siege units"
+   },
+   {
+    "raw": "your siege units beside one of your melee units cannot be attacked in melee",
+    "text": "your siege units beside one of your melee units cannot be attacked in melee"
+   }
+  ],
+  "theScourgeOfGod": [
+   {
+    "raw": "pillaging grants +100% production in your capital for the next 5 turns, however often it happens",
+    "text": "pillaging grants +100% production in your capital for the next 5 turns, however often it happens"
+   },
+   {
+    "raw": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so",
+    "text": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so"
+   }
   ]
  },
  "order": {

@@ -1631,7 +1631,10 @@ describe('research in the log', () => {
     // 142 since D7: thirteen Dominion cards about economy rules and Double
     // Time, and a fourteenth step in a town's yields, so a v141 log's picks
     // name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(142);
+    // 143 since D8: the last eight Dominion Doctrines and a record of the
+    // attacks made this turn, so a v142 log's Doctrine offers hold cards
+    // this build deals differently.
+    expect(SCHEMA_VERSION).toBe(143);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

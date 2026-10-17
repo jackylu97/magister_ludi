@@ -817,10 +817,41 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * disband moment, Double Time's repeats, the fortification's announcement, the
  * completion riders' empty-payout test and the bots' new readings change
  * nothing without the cards. Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **Dominion batch D8 (schema 143), the last eight Dominion Doctrines.** Duel
+ * `110900e1:270781` → `61231c1f:265576`, standard `d35f6b2b:966765` →
+ * `c952c241:916732`. Two things moved the digests:
+ *
+ *   · the version, 142 to 143;
+ *   · the Doctrines. The Soldiers' Share and The Servian Reforms join the
+ *     tier-4 offers, Centurions, The Plunder Economy, The Strategoi and Weight
+ *     of Numbers the tier-10 offers, Combined Arms the tier-18 offers and The
+ *     Scourge of God the tier-29 offers. An offer of three is now dealt from
+ *     five cards at tiers 4 and 10, so The Laws of Lord Shang is no longer
+ *     every seat's Tier II Doctrine. At turn 120 no seat holds it. On the duel
+ *     board four seats reached tier 10: three took Centurions and one Weight of
+ *     Numbers. On the standard board five seats reached tier 10 and every one
+ *     of them took Weight of Numbers, one after taking Centurions first. At
+ *     Tier I six seats across the two boards hold The Servian Reforms, three
+ *     The Marian Reforms and three The Consular Roads; two seats hold Combined
+ *     Arms at Tier III. The bots price a strength line as if every unit had it,
+ *     so the scaled lines of Centurions and Weight of Numbers read as a flat +3.
+ *
+ * Checked by taking both back out (the Dominion deck file as D7 left it and
+ * the version at 142), which gives D7's digests exactly on both boards.
+ * Everything else D8 changed stayed in for that run: the heal and the rank
+ * around a hex, the timed effects on the raider, the raider's strength on a
+ * pillage, the three new rules, the unit cost line, the Elite and attack
+ * counts and their record, the rank on a surcharge and the free unit's
+ * waiver, the aura's amplifier, the whole-hex share and the bots' new
+ * readings change nothing without the cards. Nothing stalled and no command
+ * was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '110900e1:270781',
-  standard: 'd35f6b2b:966765',
+  duel: '61231c1f:265576',
+  standard: 'c952c241:916732',
 };
 
 /**

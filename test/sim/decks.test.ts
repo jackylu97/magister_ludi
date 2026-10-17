@@ -668,7 +668,10 @@ describe('the schema, as landed', () => {
     // 142 since D7: thirteen Dominion cards about economy rules and Double
     // Time, and a fourteenth step in a town's yields, so a v141 log's picks
     // name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(142);
+    // 143 since D8: the last eight Dominion Doctrines and a record of the
+    // attacks made this turn, so a v142 log's Doctrine offers hold cards
+    // this build deals differently.
+    expect(SCHEMA_VERSION).toBe(143);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1322,11 +1325,14 @@ describe('with the shelf stocked', () => {
     const taizong = playerById(d.state, 0)!;
     taizong.statecraft.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     const adopted = adoptGovernmentAt(d.state, taizong, 0)!;
-    // Since Dominion batch D7 Dominion has three Tier I Doctrines (The
-    // Consular Roads and The Marian Reforms joined The Steppe Confederacy), so
-    // the offer holds all three.
+    // Since Dominion batch D8 Dominion has five Tier I Doctrines (The
+    // Soldiers' Share and The Servian Reforms joined the three of D4 and D7),
+    // so the offer holds three of the five, each once.
     const offered = adopted.doctrines?.options ?? [];
-    expect([...offered].sort()).toEqual(['theConsularRoads', 'theMarianReforms', 'theSteppeConfederacy']);
+    expect(offered).toHaveLength(3);
+    expect(new Set(offered).size).toBe(3);
+    const tierOne = ['theConsularRoads', 'theMarianReforms', 'theServianReforms', 'theSoldiersShare', 'theSteppeConfederacy'];
+    for (const id of offered) expect(tierOne, id).toContain(id);
     expect(taizong.statecraft.pendingDoctrine?.options).toEqual(offered);
     // It blocks the turn until it is answered, as a draft does.
     expect(statecraftBlocker(taizong)).toBe('a Doctrine offer is waiting');
