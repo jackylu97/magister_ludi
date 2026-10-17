@@ -912,7 +912,7 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
    */
   if (isNaval(def)) {
     out.push({
-      text: 'A ship. It sails on the coast and can come ashore only in one of your own cities that stands on the coast, where it can be built and where it can rest.',
+      text: 'A ship. It sails on the coast and on lakes, and can come ashore only in one of your own cities that stands on the coast, where it can be built and where it can rest.',
     });
     out.push({
       text: 'It shares a hex with one land unit at sea — the unit it is escorting — and never with another ship.',
@@ -1555,11 +1555,6 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
         def.claimsUnowned === 1
           ? 'Claims the hex it stands on and every unowned hex next to it for your nearest city. A city founded on it keeps that land.'
           : `Claims every unowned hex within ${figure(def.claimsUnowned)} ${plural(def.claimsUnowned, 'hex', 'hexes')} of it for your nearest city. A city founded on it keeps that land.`,
-    });
-  }
-  if (def.workersWade !== undefined) {
-    clauses.push({
-      text: `While the card that opens it is held, your workers may step onto ${eitherWords(def.workersWade.map((terrain) => terrain))} as if embarked, to build it there.`,
     });
   }
   // **What opens it** (C1): the row's own gate as a linked node, or the hand

@@ -60,7 +60,6 @@ import {
   isGreatPersonId,
 } from '../greatPeopleData';
 import {
-  IMPROVEMENT_IDS,
   type ImprovementId,
   improvementCountsAs,
   improvementDef,
@@ -8905,23 +8904,6 @@ export function worksBeyondReach(state: GameState, playerId: number, works: 'ten
     if (effect.works === works) reach = Math.max(reach, Math.floor(effect.reach));
   }
   return reach;
-}
-
-/**
- * **The water this empire's workers may step onto, as if embarked**
- * (Expansionist batch E4, The Fish Traps' lakes): every terrain a row names in
- * `ImprovementDef.workersWade`, for the rows a card this seat holds opens
- * (`cardUnlocksImprovement`), in the table's order. Empty for nearly every
- * seat. Asked once for each search by `moveProfile` (`pathfind.ts`).
- */
-export function workerWaters(state: GameState, playerId: number): TerrainId[] {
-  const waters: TerrainId[] = [];
-  for (const id of IMPROVEMENT_IDS) {
-    const wade = improvementDef(id).workersWade;
-    if (wade === undefined || !cardUnlocksImprovement(state, playerId, id)) continue;
-    for (const water of wade) if (!waters.includes(water)) waters.push(water);
-  }
-  return waters;
 }
 
 /**

@@ -249,9 +249,17 @@ Reference: **`docs/units.md`** (the roster; generated) and
   is a toll, never a lock. Shore crossing is a pair-of-hexes rule; ships are
   exempt. The Woodland Bands' `woodsWalk` rule (Expansionist batch E3) prices
   forest and jungle at the open-ground cost, through `MoveProfile.ignoresWoods`
-  in `tileMoveCost`. A worker of a seat holding The Fish Traps may step onto a
-  lake as if embarked (Expansionist batch E4): `MoveProfile.wades`, from the
-  rows' `workersWade` (`workerWaters`), in `tileMoveCost`.
+  in `tileMoveCost`.
+- **A lake is water like the coast** (the user's ruling of 2026-10-16,
+  `docs/flags.md` (wwwwww)). The lake's terrain row is `embarkable`, and
+  `openWater` reads that flag in `tileMoveCost`, so all four readers agree:
+  - a land piece that may embark (Sailing; soldiers at Wayfinding) may cross a
+    lake, and a hull may enter one from a port beside it;
+  - a worker lays fish traps (and floating gardens) on a lake as on the coast,
+    standing on the hex, embarked;
+  - whether a town is coastal is a separate question, and the ruling leaves
+    it alone: `isCoastal` asks for a `coast` hex beside the town. A town beside
+    only a lake builds no ship and no harbour, and its hex is no port.
 - **Three rules about who is in the way** (`docs/flags.md` (ooooo), 2026-09-15),
   all of them inside `stepCost`'s discipline:
   1. **A piece at peace is not a wall.** A hex holding a piece of a seat this

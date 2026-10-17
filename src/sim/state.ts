@@ -1609,8 +1609,28 @@ import {
  * **A v141 save is refused and does not replay.** The draft bags hold
  * different cards, and The Domesday Survey and The Master of Works pay
  * differently. The branch migrates nothing, for the reason given under v119.
+ *
+ * v143 (branch `decks`; the lake fix, "L1", the user's ruling of 2026-10-16,
+ * `docs/flags.md` (wwwwww)): **a lake is water like the coast.** No field
+ * joins the state. What changes:
+ *
+ *   · the lake's terrain row is `embarkable`, so a land piece that may embark
+ *     (Sailing; soldiers at Wayfinding) may cross a lake, and a hull may enter
+ *     one from a port beside it. Every step is priced through `stepCost`, as
+ *     for the coast;
+ *   · E4's lake rule for workers is removed: `MoveProfile.wades`, the
+ *     improvement row field `workersWade` and `workerWaters`. A worker lays
+ *     fish traps on a lake as on the coast, standing on the hex, embarked;
+ *   · the Floating Gardens' deferred note is removed, because its lake half
+ *     can now be built.
+ *
+ * Whether a town beside a lake is coastal is unchanged.
+ *
+ * **A v142 save is refused and does not replay.** Pieces now path across
+ * lakes, so the bots move differently. The branch migrates nothing, for the
+ * reason given under v119.
  */
-export const SCHEMA_VERSION = 142;
+export const SCHEMA_VERSION = 143;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

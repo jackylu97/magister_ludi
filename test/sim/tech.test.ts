@@ -1631,7 +1631,9 @@ describe('research in the log', () => {
     // 142 since E5: eight cards about meters, commissions and the shared
     // militia, and a new town field, so a v141 log's picks name cards this
     // build deals differently.
-    expect(SCHEMA_VERSION).toBe(142);
+    // 143 since the lake fix (L1): a lake is water like the coast, so pieces
+    // path across lakes and a v142 log's moves meet a different board.
+    expect(SCHEMA_VERSION).toBe(143);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

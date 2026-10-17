@@ -810,10 +810,29 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * lasting effects, the new figures, the founding unit, the fortification
  * filter and the act's town. The duel game adopts 11 governments and the
  * standard one 17. Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **The lake fix (L1, schema 143): a lake is water like the coast.** Duel
+ * `26886ed7:276670` → `22e6ff02:275643`, standard `1b906911:989041` →
+ * `19b5eebe:996001`. Two things moved them:
+ *
+ *   · the rule. A piece that may embark now crosses lakes, and a worker with
+ *     Irrigation may lay floating gardens on one: three stand on lakes in each
+ *     game at turn 120. Scouts, workers and soldiers step onto lakes in both
+ *     games (204 piece-turns on the duel board, 94 on the standard one). No
+ *     hull enters a lake;
+ *   · the version, 142 to 143.
+ *
+ * Checked twice. With the lake row as E5 left it and the version at 142, and
+ * everything else L1 changed in place, the digests are E5's exactly: so the
+ * wading rule L1 removes was never used in these games. With the lake open and
+ * the version at 142, the lengths are the ones above and only the hashes
+ * differ. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '26886ed7:276670',
-  standard: '1b906911:989041',
+  duel: '22e6ff02:275643',
+  standard: '19b5eebe:996001',
 };
 
 /**

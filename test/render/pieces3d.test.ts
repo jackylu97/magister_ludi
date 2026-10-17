@@ -518,18 +518,23 @@ describe('the model-class roster', () => {
     expect(unitSculpt(dry)).toBe('settler');
     expect(unitSculpt(dry, 'grassland')).toBe('settler');
     expect(unitSculpt(dry, 'coast')).toBe('boat');
+    // A lake is water like the coast (the user's ruling of 2026-10-16), so a
+    // piece embarked on one is drawn as the same boat.
+    expect(unitSculpt(dry, 'lake')).toBe('boat');
     // One hull for the whole roster — **except a warship**, which is the naval
     // line's one clause here (2026-08-29): the boat is what a piece takes when
     // it is somewhere it cannot stand, and a hull is not somewhere it cannot
     // stand. So a trireme on the coast keeps its own silhouette and everything
     // else still becomes the generic boat, badge and all.
     for (const type of UNIT_TYPE_IDS) {
-      const drawn = unitSculpt({ type } as never, 'coast');
-      if (unitDef(type).category === 'naval') {
-        expect(drawn, `${type} lost its hull at sea`).not.toBe('boat');
-        expect(drawn).toBe(sculptFor(type));
-      } else {
-        expect(drawn, type).toBe('boat');
+      for (const terrain of ['coast', 'lake'] as const) {
+        const drawn = unitSculpt({ type } as never, terrain);
+        if (unitDef(type).category === 'naval') {
+          expect(drawn, `${type} lost its hull on ${terrain}`).not.toBe('boat');
+          expect(drawn).toBe(sculptFor(type));
+        } else {
+          expect(drawn, `${type} on ${terrain}`).toBe('boat');
+        }
       }
     }
     // …and only on water something can *embark* onto. Deep ocean is not a

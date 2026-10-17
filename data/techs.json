@@ -1237,7 +1237,7 @@
       "name": "Embark",
       "glyph": "⛵",
       "bearer": "civilian",
-      "summary": "Cross coastal water."
+      "summary": "Cross coastal water and lakes."
     },
     "riteOfTheHarvest": {
       "name": "Rite of the Harvest",
@@ -1279,7 +1279,7 @@
       "name": "Sea Legs",
       "glyph": "🚣",
       "bearer": "military",
-      "summary": "Soldiers may cross coastal water."
+      "summary": "Soldiers may cross coastal water and lakes."
     },
     "siege": {
       "name": "Siege",

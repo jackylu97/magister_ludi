@@ -191,8 +191,10 @@ export interface TerrainDef {
    */
   freshwater: boolean;
   /**
-   * True for water an **embarked** mover may cross. Coast, and nothing else in
-   * v1 (design ledger, Entry XXVII).
+   * True for water an **embarked** mover may cross: the coast and the lake
+   * (design ledger, Entry XXVII). The lake joined on 2026-10-16, when the user
+   * ruled that a lake is water like the coast (`docs/flags.md` (wwwwww)). A
+   * ship may enter the same water (`openWater`, `pathfind.ts`).
    *
    * A flag rather than "water and not ocean" written into the evaluator, for the
    * reason `freshwater` is one: which water a boat may be dragged across is a
@@ -209,9 +211,9 @@ export interface TerrainDef {
    * `embarkable`'s complement rather than its negation, and a flag for that
    * field's reason exactly: "which water is open once the ocean opens" is a
    * fact about the terrain row, so an inland sea a later map adds joins by one
-   * field rather than by a clause in the movement evaluator. A lake is neither
-   * — it is water nobody crosses at all — which is precisely the distinction a
-   * negation could not have drawn.
+   * field rather than by a clause in the movement evaluator. A lake is not deep
+   * water: since the lake ruling of 2026-10-16 it is embarkable, as the coast
+   * is, so it is open before The Astrolabe.
    *
    * Read through `isOceanTerrain`, by `openWater` (`pathfind.ts`) and nowhere
    * else.
@@ -320,8 +322,8 @@ export function isWaterTerrain(id: TerrainId): boolean {
 }
 
 /**
- * True when an embarked mover may cross this water — coast, today, and nothing
- * else.
+ * True when an embarked mover may cross this water: the coast and the lake. The
+ * ocean opens later, at The Astrolabe, through `isOceanTerrain`.
  *
  * `isWaterTerrain`'s narrower sibling, and the two are not interchangeable: the
  * broad one says "nothing walks here" and is what the board, the yield chain and

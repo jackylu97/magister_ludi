@@ -75,11 +75,10 @@ export function shelfReachableFromMainland(map: GameMap): Uint8Array {
 /**
  * Land tiles the mainland's shelf cannot reach. The ruling's guarantee is 0.
  *
- * **Lake-locked land does not count**, and that exclusion is a fact about the
- * rules rather than a convenience: `lake` is not embarkable (`data/terrain.json`),
- * so an islet in the middle of a lake is ground no unit in the game can stand
- * on, was ground no unit could stand on before the pangaea existed, and is not
- * something a *shelf* could ever fix — a shelf is marine and a lake has none.
+ * **Lake-locked land does not count.** A shelf is marine and a lake has none, so
+ * a shelf could never reach an islet in a lake. The islet is not stranded in
+ * play either: since the lake ruling of 2026-10-16 a lake is embarkable
+ * (`data/terrain.json`), so an embarked unit can cross the lake to it.
  * `chainIslandShelves` leaves such a landmass alone deliberately (see its "no way
  * through" clause), and this reading agrees with it. Measured: one hex of snow
  * ringed by six lake tiles on large/42.

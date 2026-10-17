@@ -233,7 +233,9 @@ describe('the visibility grid', () => {
     // 142 since E5: eight cards about meters, commissions and the shared
     // militia, and a new town field, so a v141 log's picks name cards this
     // build deals differently.
-    expect(SCHEMA_VERSION).toBe(142);
+    // 143 since the lake fix (L1): a lake is water like the coast, so pieces
+    // path across lakes and a v142 log's moves meet a different board.
+    expect(SCHEMA_VERSION).toBe(143);
   });
 
   it('survives a JSON round trip as plain data', () => {

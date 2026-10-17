@@ -718,7 +718,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Relay Stations** — † Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet.
 - **The Legions' Labour** — † Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder.
 - **Circumvallation** — † Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet.
-- **The Fish Traps** — The traps go on coastal water, which a worker reaches by boat. A lake cannot be reached yet, so traps on a lake wait.
 - **The Beating of the Bounds** — For now the town takes the hex its borders would have grown into next, rather than one you choose.
 - **The Old Songs** — Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.
 - **Outposts** — No work can yet be raised outside your borders, and only a town or a great general can claim ground. † a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town

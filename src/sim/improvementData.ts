@@ -565,17 +565,6 @@ export interface ImprovementDef {
    */
   claimsUnowned?: number;
   /**
-   * **Water a worker may step onto, as if embarked, to lay this row**, while a
-   * card the seat holds opens the row (The Fish Traps' lakes; the triage's
-   * reading 27). Read by `moveProfile` (`pathfind.ts`) through `workerWaters`,
-   * so the four readers of `stepCost` agree. It is a rule about movement and
-   * not about the ground: a worker standing on the water may lay any row the
-   * ground takes, so a seat that also holds Irrigation may lay floating gardens
-   * on a lake. Every other seat still cannot reach a lake, so the gardens' own
-   * deferred half stands for them.
-   */
-  workersWade?: TerrainId[];
-  /**
    * Halves of this row's ratified design that the game **cannot do yet**, in a
    * first-time player's words and with no identifier in them.
    *
@@ -583,8 +572,10 @@ export interface ImprovementDef {
    * the second), and it keeps that field's whole bargain: a row whose design
    * outruns the machinery says so on its own card, struck through, rather than
    * being quietly bent into a shape that nearly fits. The floating gardens are
-   * why it exists here — their lake clause is written, correct and inert,
-   * because nothing may stand on a lake — and the Compendium prints it.
+   * why it exists here, and the Compendium prints it. No row carries one today:
+   * the gardens' lake half was the only one, and it went when a lake became
+   * water an embarked worker may stand on (the user's ruling of 2026-10-16,
+   * `docs/flags.md` (wwwwww)).
    */
   deferred?: string[];
 }
@@ -952,17 +943,6 @@ function validateTable(): void {
     }
     if (def.claimsUnowned !== undefined && !(def.claimsUnowned >= 0)) {
       throw new Error(`${where} claims a negative radius`);
-    }
-    for (const water of def.workersWade ?? []) {
-      if (!TERRAIN_IDS.includes(water)) {
-        throw new Error(`${where} lets workers onto unknown terrain "${String(water)}"`);
-      }
-      if (!(def.validTerrain ?? []).includes(water)) {
-        throw new Error(`${where} lets workers onto ${water} and cannot be built there`);
-      }
-    }
-    if (def.workersWade !== undefined && def.tended !== true && def.unlockedByCard !== true) {
-      throw new Error(`${where} lets workers onto water with no card to open it`);
     }
     if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
       throw new Error(`${where} needs unknown technology "${def.requiresTech}"`);

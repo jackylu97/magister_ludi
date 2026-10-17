@@ -786,10 +786,17 @@ describe('determinism', () => {
    * card or founds a town, so the new cards never reach this board. Checked by
    * setting the two deck files back to E4's and the version to 141, which gives
    * E4's hashes exactly.
+   *
+   * **The lake fix (L1) moved the hash and not the length** at both seeds:
+   * 142 became 143, and that is the whole change here. A lake is now water an
+   * embarked piece may enter, but no piece stands on one in these twenty turns
+   * (counted at the end of every turn). Checked twice with the version at 142:
+   * once with the lake open and once with the lake row as E5 left it. Both
+   * give E5's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '6d33f49c:188932',
-    2026: '9aaa14e5:188488',
+    11: '37214077:188932',
+    2026: '399b55d6:188488',
   };
 
   for (const seed of [11, 2026]) {
