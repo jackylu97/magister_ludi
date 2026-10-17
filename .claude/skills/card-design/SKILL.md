@@ -95,12 +95,16 @@ A **finished build** is what a seat's chairs look like once a plan has come toge
 
 **Two versions of each build.** The user, 2026-10-15: *"lets do two versions, an early game build composed of tier 0/1/2 cards and a late game build composed of tier 3/4 cards (with possibly 1-2 earlier cards that scale throughout the game). You're not limited to cards that already exist or are proposed, focus on creating a satisfying playstyle and synergistic bonuses, with a mix of utility that fits with the build theme"*.
 - **The early build** is made of Tier 0, I and II cards.
-  - It has eight chairs at the end of Tier II, but five for most of the early game (Tier I), so name its **five-chair core**.
+  - It has five chairs through Tiers I and II, because the tier-4 and tier-10 governments both seat five. So name its **five-chair core**.
   - Tier 0 is dealt only until age 2 opens Tier I, which is about six drafts. So the build holds two Tier 0 cards, three at most.
   - It switches the loop on: openers that start the build's quantity, the first pay-offs, at least one card that changes what the player does (a new action or a broken rule), and a grower or "this game" counter that will keep scaling.
-- **The late build** has eleven chairs: Tier III and IV cards, plus the one or two early cards still seated because they grew.
+- **The late build** has eight chairs at Tier III (the tier-18 governments) and eleven at Tier IV (the tier-26 governments): Tier III and IV cards, plus the one or two early cards still seated because they grew.
   - It runs the loop at full size: percentages on top of the flats (the yield layers), a capstone that breaks a rule or doubles a category, and a card that makes a visible moment.
-- **Reachability.** Tier IV opens at draft 38 since 2026-10-15. It was 45, which few games reached (7 of 30 bot seats in the measurements of 2026-10-13, at a median turn of 189); the user moved it down so that late drafts feel more impactful. How often 38 is reached is not measured yet. Keep each build's capstone in Tier III so the build works without Tier IV, and use Tier IV for the long game and for the cards that break the game late.
+- **Reachability.** Since 2026-10-17 the Order tiers open at the government tiers: Tier I at 4 drafts, Tier II at 10, Tier III at 18 and Tier IV at 26. Each tier also needs its research age (Tier I age 2, Tier II age 3, Tiers III and IV age 4).
+  - Before the rung fix of that day, Tiers II to IV opened one government tier late (18, 29, 38), and a seat spent about 44 turns in age 3 still drafting Tier I.
+  - Measured after the fix (`docs/plans/draft-pacing-2026-10-17.md`): Tier II comes about three turns after research age 3, and Tier III about four turns after age 4. A draft comes every 7 or 8 turns all game.
+  - Tier IV at 29 drafts was reached by 9 of 30 bot seats in 200 turns. The user moved it to 26 for the next playtest, which is not measured yet.
+  - Keep each build's capstone in Tier III so the build works without Tier IV, and use Tier IV for the long game and for the cards that break the game late.
 - **Rule-breakers are wanted.** The user, 2026-10-15, on Dominion's late capstones (a ranked unit ransomed instead of dying, a fallen unit rising again, pillage that eats a rival's build, captured towns pacified at once): *"these are great, if anything, we need more cards like this."*
 
 **Why.** A deck designed card by card, each with a full floor, ends up as a pile of individually useful cards. A seat then fills its chairs with whichever card pays most on its own. The endgame chairs look alike from game to game, and no draft feels like a plan coming together. The 2026-10-13 audit points the same way:
@@ -292,7 +296,7 @@ The user marks up the sheet by hand: rewritten abilities, changed rarities and t
 
 - **What a Doctrine is.** It is a permanent rule, strong and game-warping, held for the whole game, and it takes no chair. The user, 2026-10-15: *"We should have permanent, strong bonuses in the game… They should be somewhat game-warping like before."*
 - **How many:** three to five per deck at each of Tiers I to IV, and none at Tier 0. Each is written for one of the deck's builds (the Build column), so each build gains a Doctrine at most tiers.
-- **When they are offered:** with a government, one Doctrine tier per government tier. Tier 4 offers Tier I, tier 10 Tier II, tier 18 Tier III and tier 29 Tier IV (ruled 2026-10-16).
+- **When they are offered:** with a government, one Doctrine tier per government tier. Tier 4 offers Tier I, tier 10 Tier II, tier 18 Tier III and tier 26 Tier IV (ruled 2026-10-16; the user moved Tier IV from 29 to 26 on 2026-10-17).
   - The offer draws from both of the seat's decks.
   - It is all a new government brings: the reward hands are gone.
   - The tier-38 governments are left for a fifth age.
