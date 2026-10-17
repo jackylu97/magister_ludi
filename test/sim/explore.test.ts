@@ -781,22 +781,29 @@ describe('determinism', () => {
    * improvement table and `data/ai.json` as E3 left them, the two phases
    * removed and the version at 140), which gives E3's hashes exactly.
    *
-   * **Expansionist batch E5 moved the hash and not the length** at both seeds:
-   * 141 became 142, and that is the whole change here. Nobody here drafts a
-   * card or founds a town, so the new cards never reach this board. Checked by
-   * setting the two deck files back to E4's and the version to 141, which gives
-   * E4's hashes exactly.
+   * **Dominion batch D7 moved the hash and not the length** at both seeds. It
+   * was built at schema 139 and merged after E4, which renumbered it to 142,
+   * so the version went from 141 to 142, and that is all. Nobody here holds a
+   * card, so the moved surplus, the harvest, the faster camps and the disband
+   * moment never reach this board, and the harvest runs inside the drill
+   * phase, so every resolution raises the revision as many times as before.
+   * Checked by setting the version back to 141 with every D7 change in place,
+   * which gives E4's hashes exactly.
    *
-   * **The lake fix (L1) moved the hash and not the length** at both seeds:
-   * 142 became 143, and that is the whole change here. A lake is now water an
-   * embarked piece may enter, but no piece stands on one in these twenty turns
-   * (counted at the end of every turn). Checked twice with the version at 142:
-   * once with the lake open and once with the lake row as E5 left it. Both
-   * give E5's hashes exactly.
+   * **Expansionist batch E5 and the lake fix (L1) moved the hash and not the
+   * length** at both seeds. They were built at schemas 142 and 143, without
+   * D7, and were merged after D7, which renumbered them to 143 and 144, so the
+   * version went from 142 to 144, and that is all. Nobody here drafts a card
+   * or founds a town, so E5's cards never reach this board. A lake is now
+   * water an embarked piece may enter, but no piece stands on one in these
+   * twenty turns (counted at the end of every turn). Checked twice with the
+   * version at 142: once with E5's and L1's movers in, and once with them out
+   * (the two deck files and the lake row as D7 left them). Both give D7's
+   * hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '37214077:188932',
-    2026: '399b55d6:188488',
+    11: '95657d9e:188932',
+    2026: '5e2f25ff:188488',
   };
 
   for (const seed of [11, 2026]) {

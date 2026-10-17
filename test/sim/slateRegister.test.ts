@@ -211,6 +211,17 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Expansionist batch E2: the towns an empire has founded, which The Book of
   // Settlements' `citiesFounded` count reads. `foundCityAt` is its one writer.
   { field: 'citiesFounded', pattern: /\.citiesFounded\s*(=[^=]|\+=)/ },
+  // Dominion batch D7: a unit's fortification, which the `fortifiedUnits`
+  // count (The Fortress Empire) and the `fortifiedUnit` hex test (The Farming
+  // Garrisons, The Castra) read.
+  {
+    field: 'fortifiedTurns',
+    pattern: /\.fortifiedTurns\s*=[^=]|delete\s+\w+(\.\w+)*\.fortifiedTurns/,
+  },
+  // Dominion batch D7: the empires a seat has met, which The Defiant Kingdom's
+  // condition (`rivalHoldsMoreTowns`) reads. `recordMeetings` writes it through
+  // a local name, `met`.
+  { field: 'metSeats', pattern: /\.metSeats\.(push|splice)\(|\bmet\.push\(/ },
   // Expansionist batch E5: the commissions that marked a town, which the
   // `markedBy` town scope reads (The Heartland). `markGoalTown` is its one writer.
   { field: 'markedBy', pattern: /\.markedBy\s*=[^=]|\.markedBy\.(push|splice)\(/ },
@@ -355,6 +366,12 @@ const ANNOUNCING = new Set([
   'state.ts#createUnit',
   'state.ts#removeUnit',
   'tech.ts#settleResearch',
+  // Dominion batch D7: the three writers of `Unit.fortifiedTurns` that hold the
+  // state: a unit told to fortify, the wild's warden digging in, and every
+  // fortified unit digging a turn deeper.
+  'commands.ts#applyFortify',
+  'barbarians.ts#digIn',
+  'combat.ts#advanceFortify',
 ]);
 
 /**
@@ -484,6 +501,15 @@ const EXCUSED = new Map<string, string>([
   [
     'weariness.ts#pruneWarLosses',
     'the broom: it deletes only war losses that are already outside the weariness window on this turn and every later one, and the weariness reading skips those, so no answer changes',
+  ],
+  // Dominion batch D7.
+  [
+    'state.ts#breakFortify',
+    'takes no state; each of its three callers announces in its own body: `advanceAlongPath` on the step, `captureUnit` on the change of owner, and `applyCombat` on the fight',
+  ],
+  [
+    'visibility.ts#recordMeetings',
+    'called only by `recomputeVisibility`, which announces on the line after it returns',
   ],
 ]);
 

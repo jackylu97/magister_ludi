@@ -789,50 +789,69 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * ---
  *
- * **Expansionist batch E5 (schema 142): meters, commissions and the shared
- * militia.** Duel `63f7db4c:289000` → `26886ed7:276670`, standard
- * `d1e861fb:1013915` → `1b906911:989041`. Two things moved them:
+ * **Dominion batch D7 (schema 142), economy rules and Double Time, merged
+ * after E4.** Duel `63f7db4c:289000` → `110900e1:270781`, standard
+ * `d1e861fb:1013915` → `d35f6b2b:966765`. D7 was built at schema 139, without
+ * E2 to E4, and the literals it pinned there (duel `19550795:276543`, standard
+ * `60bda3e9:983815`) do not apply to this tree. Two things moved the digests:
  *
- *   · the cards. Four Expansionist rows join the deck (The Burhs, Commission:
- *     Break the Sod, The Sovereign Writ, The Imperial Roads), one shared row
- *     joins the shared file (The Frontier Militia), The Heartland is freed, and
- *     The Domesday Survey and The Master of Works change. From the first draw
- *     that meets one of them, the seats hold different cards. At turn 120 one
- *     duel seat has The Frontier Militia seated; on the standard board one seat
- *     has The Burhs seated and another holds Commission: Break the Sod, not
- *     seated;
- *   · the version, 141 to 142.
+ *   · the version, 141 to 142;
+ *   · the cards. Eight Dominion Orders, The Farming Garrisons and The Legions'
+ *     Labour join the pools, and three Doctrines join the offers: The Marian
+ *     Reforms at tier 4, The Laws of Lord Shang at tier 10 (the first Doctrine
+ *     there, so every adoption at that tier now offers it) and The Fortress
+ *     Empire at tier 29. At turn 120 on the duel board two seats seat The
+ *     Farming Garrisons and one seats The Hunting Grounds, five hold The
+ *     Marian Reforms and four The Laws of Lord Shang. On the standard board
+ *     three seats hold The Farming Garrisons (two seat it), every seat holds
+ *     The Laws of Lord Shang and four hold The Marian Reforms. The bots take
+ *     Lord Shang because they price the food it moves as production at the
+ *     board's own weights, and the towns that build soldiers then grow more
+ *     slowly, which is most of why both boards' states are shorter.
  *
- * Checked by taking both out (the Expansionist and shared deck files as E4
- * left them, and the version at 141), which gives E4's digests exactly on both
- * boards. Everything else E5 changed stayed in for that run, and it changes
- * nothing without the cards: the writ's open ceiling, the town marks and the
- * lasting effects, the new figures, the founding unit, the fortification
- * filter and the act's town. The duel game adopts 11 governments and the
- * standard one 17. Nothing stalled and no command was refused.
+ * Checked by taking both back out (the two deck files as E4 left them and the
+ * version at 141), which gives E4's digests exactly on both boards. Everything
+ * else D7 changed stayed in for that run: the fourteenth town step, the
+ * empire-stage production line, the fortified-unit test and count, the camp
+ * muster rule, the weariness rules, the harvest in the drill phase, the
+ * disband moment, Double Time's repeats, the fortification's announcement, the
+ * completion riders' empty-payout test and the bots' new readings change
+ * nothing without the cards. Nothing stalled and no command was refused.
  *
  * ---
  *
- * **The lake fix (L1, schema 143): a lake is water like the coast.** Duel
- * `26886ed7:276670` → `22e6ff02:275643`, standard `1b906911:989041` →
- * `19b5eebe:996001`. Two things moved them:
+ * **Expansionist batch E5 and the lake fix (L1), merged after D7 (schemas
+ * 143 and 144).** Duel `110900e1:270781` → `01ab9020:285340`, standard
+ * `d35f6b2b:966765` → `a4608f70:956430`. E5 and L1 were built at schemas 142
+ * and 143, without D7, and the literals they pinned there (E5: duel
+ * `26886ed7:276670`, standard `1b906911:989041`; L1: duel `22e6ff02:275643`,
+ * standard `19b5eebe:996001`) do not apply to this tree. Three things moved
+ * the digests:
  *
- *   · the rule. A piece that may embark now crosses lakes, and a worker with
- *     Irrigation may lay floating gardens on one: three stand on lakes in each
- *     game at turn 120. Scouts, workers and soldiers step onto lakes in both
- *     games (204 piece-turns on the duel board, 94 on the standard one). No
- *     hull enters a lake;
- *   · the version, 142 to 143.
+ *   · E5's cards. Four Expansionist rows join the deck (The Burhs, Commission:
+ *     Break the Sod, The Sovereign Writ, The Imperial Roads), one shared row
+ *     joins the shared file (The Frontier Militia), The Heartland is freed, and
+ *     The Domesday Survey and The Master of Works change. At turn 120 on the
+ *     duel board one seat seats The Frontier Militia and another The Burhs; on
+ *     the standard board one seat holds Commission: Break the Sod, not seated;
+ *   · the open lake. A piece that may embark now crosses lakes, and a worker
+ *     with Irrigation may lay floating gardens on one: at turn 120 three stand
+ *     on lakes on the duel board and one on the standard board. Scouts,
+ *     workers and soldiers step onto lakes (221 piece-turns on the duel board,
+ *     79 on the standard one). No hull enters a lake;
+ *   · the version, 142 to 144.
  *
- * Checked twice. With the lake row as E5 left it and the version at 142, and
- * everything else L1 changed in place, the digests are E5's exactly: so the
- * wading rule L1 removes was never used in these games. With the lake open and
- * the version at 142, the lengths are the ones above and only the hashes
- * differ. Nothing stalled and no command was refused.
+ * Checked by taking E5's and L1's movers out (the Expansionist and shared deck
+ * files and the lake row as D7 left them, and the version at 142), which gives
+ * D7's digests exactly on both boards. Everything else E5 and L1 changed
+ * stayed in for that run, the removal of E4's lake rule for workers included,
+ * and it changes nothing without the cards and the open lake. The duel game
+ * adopts 12 governments and the standard one 15. Nothing stalled and no
+ * command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '22e6ff02:275643',
-  standard: '19b5eebe:996001',
+  duel: '01ab9020:285340',
+  standard: 'a4608f70:956430',
 };
 
 /**

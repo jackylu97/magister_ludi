@@ -4,7 +4,7 @@
  * **What a city yields is one folder over** (batch E3b —
  * `docs/audit/evaluations.md` §4b step 9, *files by layer, not by topic*): the
  * sequence of `docs/yields.md` lives in `yields/hex.ts` (what one tile pays),
- * `yields/town.ts` (the thirteen steps), `yields/empire.ts` (the seat's own list
+ * `yields/town.ts` (the fourteen steps), `yields/empire.ts` (the seat's own list
  * and `collectYields`, the phase that banks it) and `yields/stages.ts` (Entry
  * XVII's two multiplications). Those four import this file back for the
  * territory and the citizens they price — a function-level cycle, the
@@ -295,7 +295,7 @@ import { awardFoundingTriumphs, awardOccasion } from './triumphs';
 // second way to open a consecration, which is the thing worth avoiding.
 import { openFreeRung } from './religion';
 import { type TileYieldContext, cityContext, foldTile, yieldContextFor } from './yields/hex';
-import { type CityReading, foldCity } from './yields/town';
+import { type CityReading, explainSurplusMoved, foldCity } from './yields/town';
 
 const CITIES = RULES.cities;
 
@@ -2649,8 +2649,30 @@ export function foldGrowthPercent(lines: readonly GrowthPercentLine[]): number {
  *
  * `yields` may be passed in by a caller that has already computed them, which
  * the turn phase has; the default is the same call it would make.
+ *
+ * **The surplus moved** (Dominion batch D7): when step 14 of `docs/yields.md`
+ * moves this town's surplus into production toward the row at the front of
+ * its queue (`explainSurplusMoved`, The Laws of Lord Shang), the town banks
+ * none of it. The one test decides both, so the line and the basket cannot
+ * disagree. A deficit is still banked, so a starving town starves as before.
  */
 export function growthSurplus(
+  state: GameState,
+  city: City,
+  yields: CityYields = foldCity(state, city),
+): number {
+  const surplus = channelSurplus(state, city, yields);
+  if (surplus > 0 && explainSurplusMoved(state, city, yields, city.queue[0]).length > 0) return 0;
+  return surplus;
+}
+
+/**
+ * **The growth channel's surplus before any of it is moved**: `growthSurplus`
+ * without the move into production (Dominion batch D7). What The Laws of Lord
+ * Shang moves is this figure, so the production line and the food basket read
+ * one number.
+ */
+export function channelSurplus(
   state: GameState,
   city: City,
   yields: CityYields = foldCity(state, city),
@@ -5366,18 +5388,11 @@ function payCompletionRiders(
     // may hang a timed blessing on the realm (Dinocrates), bank renown, gift a
     // piece or heal the army, and a guard that read only `grants` dropped every
     // one of them silently. The empty case is the overwhelmingly common one —
-    // most completions carry no rider — so the cheap refusal stays.
-    if (
-      payout.grants.length === 0 &&
-      payout.timed.length === 0 &&
-      payout.renown.length === 0 &&
-      payout.units.length === 0 &&
-      !payout.healAll &&
-      // The Coming of the Water's marks (Expansionist batch E3).
-      (payout.marks ?? []).length === 0
-    ) {
-      continue;
-    }
+    // most completions carry no rider — so the cheap refusal stays. It asks the
+    // evaluator's own test (`windfallPayoutIsEmpty`), so a rider that pays only
+    // science toward a technology, a free draft (Dominion batch D5) or The
+    // Coming of the Water's marks (Expansionist batch E3) is paid too.
+    if (windfallPayoutIsEmpty(payout)) continue;
     // Food a rider pays settles into growth; hammers deliberately do **not**
     // settle here, because this *is* a completion and `settleProduction` allows
     // at most one item per city per call — a rider that finished the next item

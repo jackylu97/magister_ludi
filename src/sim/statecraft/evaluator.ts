@@ -33,6 +33,7 @@ import {
   refreshCityDerived,
   resourceCopies,
   settleGrowthWindfall,
+  settleProductionWindfall,
   settleRanksEarned,
   spawnTileFor,
   tileOwnerCityId,
@@ -40,6 +41,9 @@ import {
 } from '../cities';
 import { foldCity, queueCategory } from '../yields/town';
 import { foldEmpireRates } from '../yields/empire';
+// The hex fold, for the harvest (Dominion batch D7, War Feeds Itself). A
+// function-level cycle: the hex layer reads the card lines through the index.
+import { foldTile, yieldContextFor } from '../yields/hex';
 import { signedPlain as signed } from '../yieldFormat';
 import {
   ANY_EMPIRE_BUILDING,
@@ -119,6 +123,7 @@ import {
   type City,
   type GameState,
   type Player,
+  type QueueItem,
   type Religion,
   type ReligionId,
   type TimedEffect,
@@ -163,6 +168,7 @@ import {
   type PayBasis,
   type CardRule,
   type CityRuleId,
+  type CardSurplusToProductionEffect,
   type CityScope,
   type CombatCondition,
   type CombatScale,
@@ -224,6 +230,7 @@ import {
   isCombatant,
   isExplorer,
   isFieldSoldier,
+  isUnitTypeId,
   unitDef,
   unitMaxHp,
 } from '../unitData';
@@ -1615,6 +1622,15 @@ function empireConditionHolds(
       // The history, not the holy city: a founder who lost the seat has still
       // founded one, and The Calling's job was done the day it was.
       return foundedReligion(state, playerId) === undefined;
+    case 'rivalHoldsMoreTowns': {
+      // Only the empires this one has met (the triage's reading 11), read from
+      // the register `recordMeetings` writes, so the card says nothing about an
+      // empire the player has not met. The wild is never in that register.
+      const seat = playerById(state, playerId);
+      if (!seat) return false;
+      const own = cityCount(state, playerId);
+      return seat.metSeats.some((other) => cityCount(state, other) > own);
+    }
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -1634,6 +1650,58 @@ export function isRaisingOpus(city: City): boolean {
   const front = city.queue[0];
   if (front === undefined || front.kind !== 'building' || !isBuildingId(front.id)) return false;
   return buildingDef(front.id).endsTheGame === true;
+}
+
+/**
+ * **A fortified military unit** (Dominion batch D7): dug in, and of the land
+ * military category, which is what the filter `{ category: 'military' }` says
+ * and what the Dominion cards call "military units". Ships are left out, as
+ * the triage's reading 10 leaves them out. The hex test `fortifiedUnit` and the
+ * `fortifiedUnits` count both ask this.
+ */
+export function isFortifiedSoldier(unit: Unit): boolean {
+  return unit.fortifiedTurns !== undefined && unitDef(unit.type).category === 'military';
+}
+
+/**
+ * **Does a fortified military unit of this empire stand on a hex?** The answer
+ * `TileCondition`'s `fortifiedUnit` asks for, as a closure (Dominion batch D7).
+ * The units are walked once, the first time it is asked, and the hexes are kept
+ * for the life of the closure. A set read only for membership, so its order
+ * decides nothing.
+ */
+export function fortifiedHexTest(state: GameState, playerId: number): (tile: Tile) => boolean {
+  let hexes: Set<number> | undefined;
+  return (tile) => {
+    if (hexes === undefined) {
+      hexes = new Set<number>();
+      for (const unit of state.units) {
+        if (unit.ownerId !== playerId || !isFortifiedSoldier(unit)) continue;
+        hexes.add(tileIndex(state.map, unit.col, unit.row));
+      }
+    }
+    return hexes.has(tileIndex(state.map, tile.col, tile.row));
+  };
+}
+
+/**
+ * **The front of the town's queue is a row of this category** (Dominion batch
+ * D7), and, for a unit, a unit the filter admits. Front of the queue only, as
+ * `isRaisingOpus` reads it, because that is the row the town's hammers pay for.
+ */
+export function isProducing(city: City, category: ProductionCategory, filter?: UnitFilter): boolean {
+  const front = city.queue[0];
+  if (front === undefined || queueCategory(front) !== category) return false;
+  if (filter === undefined) return true;
+  return front.kind === 'unit' && isUnitTypeId(front.id) && unitMatches(front.id, filter);
+}
+
+/** The thing a `producing` scope names, in a short label: "a military unit", "a wonder". */
+function producingWords(scope: Extract<CityScope, { test: 'producing' }>): string {
+  if (scope.category === 'wonder') return 'a wonder';
+  if (scope.category === 'building') return 'a building';
+  if (scope.class?.category === 'military') return 'a military unit';
+  return 'a unit';
 }
 
 /**
@@ -1905,7 +1973,7 @@ function buildingsOfCategoryIn(city: City, category: BuildingCategory): number {
 function worksHolding(state: GameState, city: City, on: TileCondition): number {
   let total = 0;
   // The board's own answers for the tests a tile cannot answer alone
-  // (Expansionist batch E3), taken once for the walk.
+  // (Expansionist batch E3; Dominion batch D7), taken once for the walk.
   const ground = groundFactsFor(state, city.ownerId);
   for (const cell of city.workedTiles) {
     const tile = getTileAt(state.map, cell.col, cell.row);
@@ -2277,6 +2345,8 @@ export function cityScopeAdmits(
       return (city.markedBy ?? []).some((mark) => mark.card === scope.card && mark.owner === city.ownerId);
     case 'raisingOpus':
       return isRaisingOpus(city);
+    case 'producing':
+      return isProducing(city, scope.category, scope.class);
     case 'ownerAtWar':
       // The register itself, as `EmpireCondition`'s `atWar` reads it: the wild
       // is never in it, so a war on barbarians does not count. See the scope.
@@ -2467,6 +2537,8 @@ function scopeNote(scope?: CityScope): string | null {
       return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' or ');
     case 'raisingOpus':
       return 'raising the Magnum Opus';
+    case 'producing':
+      return `building ${producingWords(scope)}`;
     case 'ownerAtWar':
       return 'owner at war';
     case 'ownersFaith':
@@ -2618,6 +2690,24 @@ export function countOf(
       let total = 0;
       for (const unit of watch) {
         if (unitMatches(unit.type, effect.class)) total += 1;
+      }
+      return total;
+    }
+    case 'fortifiedUnits': {
+      // Dominion batch D7, The Fortress Empire: this empire's fortified
+      // military units on hexes its towns own, or on hexes this town owns with
+      // `within: 'city'`. A unit standing outside the borders is not counted.
+      if (effect.within === 'city' && !city) return 0;
+      let total = 0;
+      for (const unit of state.units) {
+        if (unit.ownerId !== playerId || !isFortifiedSoldier(unit)) continue;
+        const owner = state.tileOwner[tileIndex(state.map, unit.col, unit.row)];
+        if (owner === null || owner === undefined) continue;
+        if (effect.within === 'city') {
+          if (owner === city!.id) total += 1;
+        } else if (cityById(state, owner)?.ownerId === playerId) {
+          total += 1;
+        }
       }
       return total;
     }
@@ -3131,7 +3221,7 @@ export function countOf(
       const rule = effect.tile;
       if (rule === undefined) return 0;
       // The board's own answers for the tests a tile cannot answer alone
-      // (Expansionist batch E3), taken once for the walk.
+      // (Expansionist batch E3; Dominion batch D7), taken once for the walk.
       const ground = groundFactsFor(state, playerId);
       const walk = (town: City): number => {
         let here = 0;
@@ -4339,9 +4429,10 @@ export function tileConditionHolds(
   turn?: number,
   /**
    * **What the board says about this hex that the tile alone cannot**
-   * (Expansionist batch E3): the empire asking, its farm water, and which
-   * town centres hold a wonder. See `GroundFacts`. Absent, the three tests
-   * that need it answer from the tile alone, and the farm water adds nothing.
+   * (Expansionist batch E3; Dominion batch D7): the empire asking, its farm
+   * water, which town centres hold a wonder, and where its fortified military
+   * units stand. See `GroundFacts`. Absent, the tests that need it answer from
+   * the tile alone or answer no, and the farm water adds nothing.
    */
   ground?: GroundFacts,
 ): boolean {
@@ -4466,9 +4557,10 @@ export function tileConditionHolds(
       // world rather than about this hex, so a neighbour asked how old its
       // stones are is asked against the same turn.
       //
-      // The board's facts travel too (Expansionist batch E3), for the clock's
-      // reason: whether a town centre holds a wonder, or a farm is watered, is a
-      // fact about that hex and not about the one asking.
+      // The board's facts travel too (Expansionist batch E3; Dominion batch
+      // D7), for the clock's reason: whether a town centre holds a wonder, a
+      // farm is watered or a fortified unit stands on a hex is a fact about that
+      // hex and not about the one asking.
       return (
         beside !== undefined &&
         beside().some((next) => tileConditionHolds(next, on.of, undefined, undefined, turn, ground))
@@ -4479,6 +4571,10 @@ export function tileConditionHolds(
       }
       return true;
     }
+    case 'fortifiedUnit':
+      // The Farming Garrisons and The Castra (Dominion batch D7): the board's
+      // answer, or no.
+      return ground?.fortified?.(tile) === true;
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -4489,15 +4585,21 @@ export function tileConditionHolds(
 
 /**
  * **What a hex question may ask beyond the tile itself** (Expansionist batch
- * E3). Three facts a tile cannot answer alone, built by the caller that holds
- * the board (`groundFactsFor`) and handed to `tileConditionHolds`:
+ * E3; Dominion batch D7). Facts a tile cannot answer alone, built by the
+ * caller that holds the board (`groundFactsFor`) and handed to
+ * `tileConditionHolds`:
  *
  *   · `player`, the empire asking, for `surfaced` (The Prospectors);
  *   · `watered`, this empire's farm water (`farmWaterOf`): a farm its law says
  *     counts as having fresh water (The Watercourses, The Water Courts). Absent
  *     when its law passes no water, which is almost every empire;
  *   · `wonderCentre`, true on the centre hex of a town holding a world wonder,
- *     for `wonderTown` (The Landscape Garden).
+ *     for `wonderTown` (The Landscape Garden);
+ *   · `fortified`, true on a hex where a fortified military unit of the
+ *     empire stands, for `fortifiedUnit` (Dominion batch D7: The Farming
+ *     Garrisons, The Castra);
+ *   · `copiedHexes`, the ring a work that copies its neighbours pays for
+ *     (Expansionist batch E4, The Keeps).
  *
  * The yield context carries one (`TileYieldContext.ground`), so the hex fold,
  * the hover card and the lens all ask the same facts.
@@ -4514,6 +4616,12 @@ export interface GroundFacts {
    * what each one pays (`explainTileYield`, `yields/hex.ts`).
    */
   copiedHexes?: (tile: Tile) => readonly Tile[];
+  /**
+   * **Whether a fortified military unit of the asking empire stands on a
+   * hex** (Dominion batch D7, `fortifiedUnit`). Built by `fortifiedHexTest`,
+   * which walks the units once, the first time it is asked.
+   */
+  fortified?: (tile: Tile) => boolean;
 }
 
 /** The ground facts for one empire's questions. See `GroundFacts`. */
@@ -4521,6 +4629,9 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
   const water = farmWaterOf(state, playerId);
   const facts: GroundFacts = {
     player: playerId,
+    // Dominion batch D7: the hexes where this empire's fortified military
+    // units stand, walked once, the first time a card line asks.
+    fortified: fortifiedHexTest(state, playerId),
     // Asked only by `wonderTown`, through `beside`, so a town walk per call is
     // cheap enough: the hexes a garden card asks about are few.
     wonderCentre: (tile) => {
@@ -4995,11 +5106,67 @@ export function explainCardPercentYields(state: GameState, city: City): CardPerc
   return list;
 }
 
+/** The card that moves a town's food surplus into production, and its label. */
+export interface SurplusMover {
+  card: CardId;
+  source: string;
+}
+
+/**
+ * **Which card moves this town's food surplus into production** while it
+ * builds `toward` (Dominion batch D7, The Laws of Lord Shang), or `null`.
+ *
+ * The first row of the empire's law, in the order the law is read, whose
+ * category and filter admit the row being built and whose scope admits the
+ * town. A row with no category admits anything the town builds, and no row
+ * at all. Only the empire's law is read (`effectsOfKind`), not a town's own
+ * buildings or rites: this is asked on every fold of every town, and no
+ * building or rite carries the shape.
+ */
+export function surplusMoverFor(
+  state: GameState,
+  city: City,
+  toward?: QueueItem | null,
+): SurplusMover | null {
+  for (const { source, card, effect } of effectsOfKind(state, city.ownerId, 'surplusToProduction')) {
+    if (!surplusRowReaches(state, city, effect, toward)) continue;
+    return { card, source: label(source, scopeNote(effect.scope)) };
+  }
+  return null;
+}
+
+/**
+ * Does one `surplusToProduction` row reach this town while it builds `toward`?
+ * Its category and filter are asked of the row being built, and its scope of
+ * the town. The one test, shared by `surplusMoverFor` and the bot's price.
+ */
+export function surplusRowReaches(
+  state: GameState,
+  city: City,
+  effect: CardSurplusToProductionEffect,
+  toward?: QueueItem | null,
+): boolean {
+  if (effect.category !== undefined) {
+    if (!toward || queueCategory(toward) !== effect.category) return false;
+    if (effect.class !== undefined) {
+      if (toward.kind !== 'unit' || !isUnitTypeId(toward.id)) return false;
+      if (!unitMatches(toward.id, effect.class)) return false;
+    }
+  }
+  return cityScopeAdmits(state, city, effect.scope);
+}
+
 /** One percentage a card puts behind a category of build. */
 export interface CardProductionLine {
   card: CardId;
   source: string;
   percent: number;
+  /**
+   * The stage the percentage joins (Entry XVII): the city stage, as every
+   * building's does, unless the row says `stage: 'empire'` (Dominion batch D7,
+   * The Marian Reforms' half speed).
+   */
+  stage: ModifierStage;
 }
 
 /**
@@ -5087,10 +5254,15 @@ export function cardProduction(
         effect.max,
       );
       if (times === 0) continue;
-      list.push({ card, source: label(source, `×${times}`), percent: percent * times });
+      list.push({
+        card,
+        source: label(source, `×${times}`),
+        percent: percent * times,
+        stage: effect.stage ?? 'city',
+      });
       continue;
     }
-    list.push({ card, source, percent });
+    list.push({ card, source, percent, stage: effect.stage ?? 'city' });
   }
   return list;
 }
@@ -5261,6 +5433,42 @@ export function cardRulePercent(
     list.push({ card, source: label(source, scopeNote(effect.scope)), percent });
   }
   return list;
+}
+
+/**
+ * **How much faster a barbarian camp raises its units** (Dominion batch D7, The
+ * Hunting Grounds): the largest `campMuster` percentage among the empires with
+ * a town within the row's `range` of the camp, or nought when no such row
+ * reaches it. A row with no `range` reaches every camp.
+ *
+ * Two holders near one camp do not add: the camp musters at the faster of
+ * their two speeds (the triage's reading 64). Asked once a turn for each camp
+ * by `musterCamps`, in `realPlayers` order, which decides nothing because the
+ * answer is a maximum.
+ */
+export function campMusterPercent(state: GameState, camp: { col: number; row: number }): number {
+  const site = getTileAt(state.map, camp.col, camp.row);
+  if (!site) return 0;
+  let best: number | undefined;
+  for (const player of realPlayers(state)) {
+    for (const { effect } of effectsOfKind(state, player.id, 'rulePercent')) {
+      if (effect.rule !== 'campMuster' || effect.percent === 0) continue;
+      if (best !== undefined && effect.percent <= best) continue;
+      if (effect.range !== undefined && !townWithin(state, player.id, site, effect.range)) continue;
+      best = effect.percent;
+    }
+  }
+  return best ?? 0;
+}
+
+/** Does this empire hold a town within `reach` hexes of the hex? */
+function townWithin(state: GameState, playerId: number, at: Tile, reach: number): boolean {
+  const eye = tileHex(at);
+  for (const city of citiesOf(state, playerId)) {
+    const seat = getTileAt(state.map, city.col, city.row);
+    if (seat && wrappedDistance(state.map, eye, tileHex(seat)) <= reach) return true;
+  }
+  return false;
 }
 
 /**
@@ -6241,6 +6449,16 @@ export function cardCombatPercent(
 
 // --- unit and city stats ----------------------------------------------------
 
+/**
+ * **A unit's age** (Dominion batch D7): the age of the technology that
+ * unlocks it, or the first age when no technology does. `UnitFilter.ageAtMost`
+ * reads it.
+ */
+export function unitAge(type: UnitTypeId): number {
+  const gate = UNIT_UNLOCK_TECH.get(type);
+  return gate === undefined ? 1 : techDef(gate).age;
+}
+
 /** Does this unit type pass a filter? Absent filter admits everything. */
 export function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   if (!filter) return true;
@@ -6282,6 +6500,10 @@ export function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
       def.prophesies === true || def.proclaims === true || def.purges === true || def.consecrates === true;
     if (religious !== filter.religious) return false;
   }
+  // The unit's age (Dominion batch D7, The Spear Makers): the age of the
+  // technology that unlocks it, and the first age when none does (the
+  // triage's reading 12).
+  if (filter.ageAtMost !== undefined && unitAge(type) > filter.ageAtMost) return false;
   // The named row, asked last because it is the narrowest thing the filter can
   // say — see `UnitFilter.type`. The *data* names a type here; no rule in
   // `src/sim/` does, which is the claim that has never moved.
@@ -6954,12 +7176,20 @@ export interface WindfallOccasionFacts {
    */
   worksAndWonders?: number;
   /**
-   * **The town the moment happened in**, where the seam knows one
-   * (Expansionist batch E5): a great person's act (`payActRiders`,
-   * `greatPeople.ts`). Read by a rider's `inTown` filter and by a grant's
-   * `fromTowns` figure, which leaves this town out.
+   * The **town the occasion happened in**, where the seam knows one: the town
+   * of this empire on whose hex the unit stood, on the `disband` occasion
+   * (Dominion batch D7, filled by `applyDisbandUnit`), and the town a great
+   * person acted in (Expansionist batch E5, filled by `payActRiders`,
+   * `greatPeople.ts`). Read by `CardWindfallRiderEffect.inTown`, and by a
+   * grant's `fromTowns` figure, which leaves this town out.
    */
-  cityId?: number;
+  townId?: number;
+  /**
+   * What the disbanded unit costs this empire to build now, on the `disband`
+   * occasion (Dominion batch D7, The Legions' Labour). Absent for a unit raised
+   * for free (`Unit.freeUpkeep`). Read by the `unitCost` measure.
+   */
+  unitCost?: number;
 }
 
 
@@ -7096,6 +7326,15 @@ export function windfallPayout(
     // And the fifth: The Great Poets pay for an artist's afternoon, not for a
     // general's. An occasion that carries no family never satisfies it.
     if (effect.family !== undefined && facts.family !== effect.family) return false;
+    // The town the occasion happened in (Dominion batch D7, the disband
+    // occasion; Expansionist batch E5, a great person's act): one of this
+    // empire's towns, and, with a scope, one the scope admits. An occasion that
+    // names no town never satisfies it.
+    if (effect.inTown !== undefined) {
+      const town = facts.townId === undefined ? undefined : cityById(state, facts.townId);
+      if (town === undefined || town.ownerId !== playerId) return false;
+      if (effect.inTown !== true && !cityScopeAdmits(state, town, effect.inTown, playerId)) return false;
+    }
     // And the sixth and seventh, both asked of the **row that was finished or
     // bought**: Master Masons pay for a wall and Learned Commissions for one of
     // the realm's great houses. Read off the row rather than off two more facts,
@@ -7157,13 +7396,6 @@ export function windfallPayout(
     // The Coming of the Water pays for an Aqueduct and not for a granary
     // (Expansionist batch E3). Only a completion carries the row it finished.
     if (effect.building !== undefined && facts.building !== effect.building) return false;
-    // The Master of Works pays for an act in the town raising the Opus
-    // (Expansionist batch E5). An occasion that names no town never satisfies it.
-    if (effect.inTown !== undefined) {
-      const town = facts.cityId === undefined ? undefined : cityById(state, facts.cityId);
-      if (!town || town.ownerId !== playerId) return false;
-      if (!cityScopeAdmits(state, town, effect.inTown, playerId)) return false;
-    }
     return true;
   };
   // **The occasion's own figure, folded first.** The percentages sum and apply
@@ -7376,7 +7608,7 @@ export function windfallPayout(
       // The Master of Works): `amount` times the production per turn of each
       // other town the scope admits. Composed here with every other figure.
       if (grant.fromTowns !== undefined) {
-        const amount = grant.amount * townsProduction(state, playerId, grant.fromTowns, facts.cityId) * boostFor(card);
+        const amount = grant.amount * townsProduction(state, playerId, grant.fromTowns, facts.townId) * boostFor(card);
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
@@ -7555,6 +7787,9 @@ function occasionMeasure(
       return paid;
     case 'opusProgress':
       return facts.opusProgress;
+    // Dominion batch D7: what a disbanded unit costs to build.
+    case 'unitCost':
+      return facts.unitCost;
     default: {
       const unhandled: never = measure;
       void unhandled;
@@ -7771,9 +8006,12 @@ export function cardLandfallEffects(
  */
 export function musterPeriodicUnits(state: GameState): void {
   for (const player of realPlayers(state)) {
-    for (const { effect } of effectsOfKind(state, player.id, 'periodicMuster')) {
+    for (const { card, effect } of effectsOfKind(state, player.id, 'periodicMuster')) {
       const every = Math.floor(effect.every);
       if (every <= 0 || state.turn % every !== 0) continue;
+      // Double Time (Dominion batch D7): an Order's muster happens twice, so
+      // each town raises two units (the triage's reading 3).
+      const times = turnEffectRepeats(state, player.id, card);
       // The capital, or (The Nation in Arms) every town the scope admits, in
       // founding order. The list is taken before anything is raised.
       const capital = capitalCityOf(state, player.id);
@@ -7785,7 +8023,7 @@ export function musterPeriodicUnits(state: GameState): void {
           : capital
             ? [capital]
             : [];
-      for (const seat of seats) {
+      for (const seat of seats.flatMap((town) => Array.from({ length: times }, () => town))) {
         const type = effect.unit === 'bestMelee' ? bestMeleeFor(state, player.id) : effect.unit;
         if (type === null) continue;
         const tile = spawnTileFor(state, seat, type);
@@ -7843,9 +8081,11 @@ export function drillUnits(state: GameState): void {
     // read for membership only; the outcome is decided by `units`' order.
     let garrisoned: Set<number> | null = null;
     let nearGeneral: Set<number> | null = null;
-    for (const { effect } of drills) {
+    for (const { card, effect } of drills) {
       const every = Math.floor(effect.every ?? 1);
       if (every <= 0 || state.turn % every !== 0) continue;
+      // Double Time (Dominion batch D7): an Order's drill happens twice.
+      const experience = effect.experience * turnEffectRepeats(state, player.id, card);
       let reached: Set<number>;
       if (effect.where === 'garrison') {
         garrisoned ??= garrisonedUnitIds(state, player.id);
@@ -7855,7 +8095,7 @@ export function drillUnits(state: GameState): void {
         reached = nearGeneral;
       }
       units.forEach((unit, index) => {
-        if (reached.has(unit.id)) gains[index] = (gains[index] ?? 0) + effect.experience;
+        if (reached.has(unit.id)) gains[index] = (gains[index] ?? 0) + experience;
       });
     }
     units.forEach((unit, index) => {
@@ -7864,6 +8104,81 @@ export function drillUnits(state: GameState): void {
       settleRanksEarned(state, unit, grantExperience(state, unit, gain));
     });
   }
+}
+
+/**
+ * **The harvest** (Dominion batch D7, War Feeds Itself): at the end of a turn,
+ * each unit a `harvest` row admits that stands on a hex owned by an empire its
+ * owner is at war with yields its owner that hex's yields (the triage's
+ * reading 23):
+ *
+ *   · the hex is read as the harvesting empire sees it (`yieldContextFor`), so
+ *     its own technologies and law decide what the hex is worth;
+ *   · gold, science, culture and faith go to its banks, and food and production
+ *     to its town nearest the unit, through `payWindfallGrants`;
+ *   · the hex's owner loses nothing.
+ *
+ * Run in the `drill` phase, after the drills, so the phase list keeps its
+ * length. Empires in `realPlayers` order, rows in the order the law is read,
+ * units in `state.units` order, taken before anything is paid. Double Time
+ * pays an Order's harvest twice (`turnEffectRepeats`).
+ */
+export function harvestEnemyHexes(state: GameState): void {
+  for (const player of realPlayers(state)) {
+    const rows = effectsOfKind(state, player.id, 'harvest');
+    if (rows.length === 0) continue;
+    const enemies: number[] = [];
+    for (const war of state.wars) {
+      if (war.a === player.id) enemies.push(war.b);
+      else if (war.b === player.id) enemies.push(war.a);
+    }
+    if (enemies.length === 0) continue;
+    const ctx = yieldContextFor(state, player.id);
+    for (const { source, card, effect } of rows) {
+      const times = turnEffectRepeats(state, player.id, card);
+      const army = state.units.filter(
+        (unit) => unit.ownerId === player.id && unitMatches(unit.type, effect.class),
+      );
+      for (const unit of army) {
+        const owner = tileOwnerPlayerId(state, unit.col, unit.row);
+        if (owner === null || !enemies.includes(owner)) continue;
+        const tile = getTileAt(state.map, unit.col, unit.row);
+        if (!tile) continue;
+        const bag = foldTile(tile, ctx);
+        const grants: WindfallPayout['grants'] = [];
+        for (const voice of VOICES) {
+          const amount = bag[voice] * times;
+          if (amount > 0) grants.push({ card, source, yield: voice, amount });
+        }
+        if (grants.length === 0) continue;
+        const at = { col: unit.col, row: unit.row };
+        for (const town of payWindfallGrants(state, player, grantsOnlyPayout(grants), at)) {
+          if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
+        }
+      }
+    }
+    settleCultureWindfall(state, player);
+  }
+}
+
+/** A payout carrying grants and nothing else, for a delivery no occasion composed. */
+function grantsOnlyPayout(grants: WindfallPayout['grants']): WindfallPayout {
+  return {
+    amount: 0,
+    grants,
+    heal: 0,
+    units: [],
+    healAll: false,
+    timed: [],
+    renown: [],
+    pressure: [],
+    healFull: false,
+    strikes: [],
+    unrestBeside: false,
+    pillageBeside: false,
+    lines: [],
+    claims: [],
+  };
 }
 
 /**
@@ -8087,7 +8402,11 @@ export function runPeriodicBoons(
           slot.firePeriod = period;
         }
         if (state.turn < slot.nextFiresTurn) continue;
-        payPeriodicBoon(state, player, slot.card, CLASS_WORD.order, effect, bankRenown);
+        // Double Time (Dominion batch D7): a seated Order's boon pays twice.
+        const times = turnEffectRepeats(state, player.id, slot.card);
+        for (let round = 0; round < times; round++) {
+          payPeriodicBoon(state, player, slot.card, CLASS_WORD.order, effect, bankRenown);
+        }
         slot.nextFiresTurn = state.turn + period;
         slot.firePeriod = period;
       }
@@ -9951,10 +10270,29 @@ function escortAt(
 }
 
 /**
+ * **How many times this card's turn effect happens** (Dominion batch D7,
+ * Double Time): the largest `turnEffectRepeats` value this empire's law holds
+ * when the card is an Order, and once otherwise. The user's ruling of
+ * 2026-10-16 (the smaller reading): only Orders repeat, so a Doctrine, a
+ * government, a wonder or a building is read once. The four readers are the
+ * periodic boons, the periodic musters, the drills and the harvest.
+ */
+export function turnEffectRepeats(state: GameState, playerId: number, card: CardId): number {
+  if (!isOrderId(card)) return 1;
+  let times = 1;
+  for (const { effect } of effectsOfKind(state, playerId, 'metaRule')) {
+    if (effect.rule !== 'turnEffectRepeats') continue;
+    times = Math.max(times, Math.floor(effect.value));
+  }
+  return times;
+}
+
+/**
  * How long slotting an Order seals it, for this empire.
  *
- * The `metaRule` hook's one consumer — a card that rewrites a rule of Statecraft
- * itself (Entry XV.b).
+ * One of the `metaRule` hook's two consumers — a card that rewrites a rule of
+ * Statecraft itself (Entry XV.b). The other is `turnEffectRepeats` (Dominion
+ * batch D7, Double Time).
  *
  * **The table's figure is the same on every shelf**, and it stays that way: the
  * Æra III fork proposed a ten-turn seal from Government III on and the user

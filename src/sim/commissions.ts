@@ -65,11 +65,13 @@ import {
   commissionFulfilledTurn,
   heldReligions,
   payWindfallGrants,
-  refitSlots,
   settleCultureWindfall,
   slotOf,
   tallyOf,
 } from './statecraft';
+// Straight from its own layer rather than through the `statecraft.ts` index:
+// through the index, the build warns of a circular import between chunks.
+import { refitSlots } from './statecraft/draft';
 import {
   type CitizensTarget,
   type CommissionFigure,

@@ -56,6 +56,7 @@ import {
 } from '../sim/cities';
 import {
   explainBuildingPreview,
+  explainSurplusMoved,
   explainUnrestGate,
   foldBuildingPreview,
   foldCity,
@@ -1625,10 +1626,11 @@ export interface ChipLedgerRow {
   /**
    * Which part of `docs/yields.md` the row comes from: `flat` for steps 1 to 10,
    * `percent` for one percentage of the two stages (step 12), `gate` for the
-   * unrest gate (step 13), and `unaccounted` for the canary
+   * unrest gate (step 13), `moved` for the food surplus a card moves into
+   * production (step 14), and `unaccounted` for the canary
    * (`UNACCOUNTED_SOURCE`).
    */
-  kind: 'flat' | 'percent' | 'gate' | 'unaccounted';
+  kind: 'flat' | 'percent' | 'gate' | 'moved' | 'unaccounted';
 }
 
 /** One chip's whole list: the rows, and the chip they add up to. */
@@ -1673,8 +1675,10 @@ export const UNACCOUNTED_SOURCE = 'Not accounted for';
  *   stage's base is the flats after the city stage, worked out with
  *   `applyStages`, the simulation's one implementation of that arithmetic. A
  *   stage prints its parts and never its sum (the user, 2026-08-27).
- * - **The unrest gate**, step 13, last: a town in unrest makes none of some
- *   voices, so the row takes away everything above it.
+ * - **The unrest gate**, step 13: a town in unrest makes none of some voices,
+ *   so the row takes away everything above it.
+ * - **The surplus moved**, step 14, last, on production alone: the food surplus
+ *   a card moves into production (The Laws of Lord Shang), one row.
  *
  * Every figure comes from the simulation: the lines are `readCity`'s, the
  * percentages are `quote.percents` and `productionModifiers` toward the front
@@ -1692,7 +1696,8 @@ export function chipLedgerRows(
   key: CityYieldKey,
 ): ChipLedger {
   const front = city.queue[0];
-  const total = foldCity(state, city, [], front, quote)[key];
+  const folded = foldCity(state, city, [], front, quote);
+  const total = folded[key];
   const rows: ChipLedgerRow[] = [];
   const flat = (label: string, amount: number): void => {
     if (amount !== 0) rows.push({ label, amount, percent: null, kind: 'flat' });
@@ -1747,6 +1752,14 @@ export function chipLedgerRows(
     }
   }
 
+  // 14 — the food surplus a card moves into production. Its amount reads the
+  // town's food, which this step does not change, so the folded total serves.
+  if (key === 'production') {
+    for (const moved of explainSurplusMoved(state, city, folded, front)) {
+      rows.push({ label: moved.source, amount: moved.amount, percent: null, kind: 'moved' });
+    }
+  }
+
   const residue = total - sumOfRows(rows);
   if (Math.abs(residue) > 1e-9) {
     rows.push({ label: UNACCOUNTED_SOURCE, amount: residue, percent: null, kind: 'unaccounted' });
@@ -1794,8 +1807,8 @@ function chargedSources(
 }
 
 /**
- * The percentages one stage applies to one voice of a town: for the city stage
- * on production, the hammers behind the front of the queue first (as
+ * The percentages one stage applies to one voice of a town: on production, the
+ * hammers behind the front of the queue that join this stage first (as
  * `foldCityStages` adds them), then `quote.percents`' lines for that stage, in
  * their own order.
  */
@@ -1807,9 +1820,13 @@ function stageSources(
   stage: ModifierStage,
 ): StagePercent[] {
   const list: StagePercent[] = [];
-  if (stage === 'city' && key === 'production') {
+  if (key === 'production') {
+    // Each modifier in the stage it joins: the city stage for nearly all of
+    // them, the empire stage for a card row that names it (Dominion batch D7,
+    // The Marian Reforms).
     for (const modifier of productionModifiers(state, city, city.queue[0])) {
-      if (modifier.percent !== 0) list.push({ label: modifier.source, percent: modifier.percent });
+      if (modifier.stage !== stage || modifier.percent === 0) continue;
+      list.push({ label: modifier.source, percent: modifier.percent });
     }
   }
   for (const line of quote.percents) {

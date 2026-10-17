@@ -1,13 +1,14 @@
 /**
- * **The town** — the thirteen steps of `docs/yields.md`, from the centre to the
- * unrest gate.
+ * **The town** — the fourteen steps of `docs/yields.md`, from the centre to the
+ * food surplus a card moves into production.
  *
  * `explainCity` is the list (steps 1–11: the labelled lines, their fold, and the
  * percent list that is deliberately *not* applied to them) and `foldCity` is the
  * total (step 12, the only place in the simulation a yield meets a percentage,
  * then step 13, the unrest gate, which holds a town in unrest at nothing in the
- * voices it stops). Between them sit the palace, the building shares, the
- * conversions, the percent list and the town's half of Entry XVII's staging.
+ * voices it stops, then step 14, the surplus moved, Dominion batch D7). Between
+ * them sit the palace, the building shares, the conversions, the percent list
+ * and the town's half of Entry XVII's staging.
  *
  * Split out of `cities.ts` in batch E3b (`docs/flags.md` item pp,
  * `docs/audit/evaluations.md` §4b step 9: *files by layer, not by topic*). No
@@ -59,7 +60,11 @@ import { cityResourceYields, resourcePercentYields, resourceProduction } from '.
 import { citySpecialistYields } from '../specialists';
 import { cityRouteYields } from '../routeYields';
 import { treasuryInDebt } from '../upkeep';
-import { type CityYields, cityTile, emptyCityYields } from '../cities';
+import { type CityYields, channelSurplus, cityTile, emptyCityYields } from '../cities';
+// Dominion batch D7: which card moves a town's food surplus into production.
+// Straight from the evaluator rather than through the `statecraft.ts` index,
+// so the build does not warn of a circular import between chunks.
+import { surplusMoverFor } from '../statecraft/evaluator';
 import { type TileYieldContribution, cityContext, explainTileYield, foldTile, foldTileLines } from './hex';
 import { foldStageSums } from './stages';
 
@@ -692,7 +697,8 @@ export interface ProductionModifier {
   /** Signed percent, as a figure a surface prints rather than a fraction. */
   percent: number;
   /**
-   * Always `'city'` — Entry XVII's city stage. Carried rather than assumed so
+   * `'city'` — Entry XVII's city stage — for every building's, luxury's and
+   * card's line, with one exception below. Carried rather than assumed so
    * that the panel folds one shape for every percentage it prints, and so the
    * classification is written down where a reader will look for it: a category
    * bonus is a share of the hammers **this town** puts behind **this build**, so
@@ -700,6 +706,10 @@ export interface ProductionModifier {
    * is empire-scoped. Marble is the case that makes the point — "+15% toward
    * buildings in every city" is still a fact about each city's build, exactly as
    * a barracks is, and Entry XVII.4 stages an effect by where it applies.
+   *
+   * The exception is a card row that names the empire stage (Dominion batch
+   * D7, The Marian Reforms): its −50% must halve what the town's own bonuses
+   * made, so it multiplies them instead of adding to them.
    */
   stage: ModifierStage;
 }
@@ -800,7 +810,7 @@ export function productionModifiers(
     toward.kind === 'building' && isBuildingId(toward.id) ? toward.id : undefined;
   for (const line of cardProduction(state, city, category, unitType, buildingId)) {
     if (line.percent === 0) continue;
-    list.push({ source: line.source, card: line.card, percent: line.percent, stage: 'city' });
+    list.push({ source: line.source, card: line.card, percent: line.percent, stage: line.stage });
   }
   return list;
 }
@@ -1005,7 +1015,12 @@ export function foldCityStages(
   hypothetical: readonly BuildingId[] = [],
   percents: readonly CityYieldPercent[] = cityYieldPercents(state, city),
 ): Record<CityYieldKey, StageSums> {
-  const hammers = modifierPercent(productionModifiers(state, city, toward, hypothetical));
+  // The hammers behind the build, split by stage: every building's and
+  // luxury's, and almost every card's, at the city stage, and a card row naming
+  // the empire stage there (Dominion batch D7, The Marian Reforms).
+  const modifiers = productionModifiers(state, city, toward, hypothetical);
+  const hammers = modifierPercent(modifiers.filter((line) => line.stage === 'city'));
+  const empireHammers = modifierPercent(modifiers.filter((line) => line.stage === 'empire'));
   // The Great Warring Tribes' first clause, and the only place a card takes a
   // *meter line* off the table rather than adding one. It is asked here because
   // here is the one evaluator that knows both the empire's percentages and what
@@ -1025,7 +1040,10 @@ export function foldCityStages(
     const staged = foldStageSums(live, key);
     // The hammers join the city stage rather than standing beside it: a barracks
     // is a fact about the town in exactly the way marble and a market are.
-    sums[key] = key === 'production' ? withStage(staged, 'city', hammers) : staged;
+    sums[key] =
+      key === 'production'
+        ? withStage(withStage(staged, 'city', hammers), 'empire', empireHammers)
+        : staged;
   }
   return sums;
 }
@@ -1095,9 +1113,11 @@ export function foldCityStages(
  * the reason beside it.
  *
  * **And then the unrest gate** (step 13, batch WC1): a town in unrest makes none
- * of the voices `explainUnrestGate` names, whatever the stages made of them. It
- * is the last thing here for the same reason the stages are here and not in a
- * phase: every reader of a town's total reads it through this one function.
+ * of the voices `explainUnrestGate` names, whatever the stages made of them.
+ * **And last the surplus moved** (step 14, Dominion batch D7): a card may move
+ * the town's food surplus into its production (`explainSurplusMoved`). Both are
+ * here for the same reason the stages are here and not in a phase: every reader
+ * of a town's total reads it through this one function.
  */
 export function foldCity(
   state: GameState,
@@ -1113,10 +1133,54 @@ export function foldCity(
   const sums = foldCityStages(state, city, toward, hypothetical, quote.percents);
   const total: CityYields = { ...quote.flats };
   for (const key of CITY_YIELD_KEYS) total[key] = applyStages(total[key], sums[key]);
-  // **13 — the unrest gate** (batch WC1). Last, after both stages, so nothing a
+  // **13 — the unrest gate** (batch WC1). After both stages, so nothing a
   // percentage does can bring a stopped voice back; see `explainUnrestGate`.
   for (const gate of explainUnrestGate(city)) total[gate.yield] = 0;
+  // **14 — the surplus moved** (Dominion batch D7). Last: a town whose law
+  // moves its food surplus into production adds it here, as one labelled
+  // line. See `explainSurplusMoved`.
+  for (const moved of explainSurplusMoved(state, city, total, toward)) {
+    total.production += moved.amount;
+  }
   return total;
+}
+
+/** One line of step 14: food moved into production. See `explainSurplusMoved`. */
+export interface SurplusMovedLine {
+  /** The card that moves it, as its line is labelled. */
+  source: string;
+  card: CardId;
+  /** The food surplus moved, now production. Always more than nought. */
+  amount: number;
+}
+
+/**
+ * **Step 14 of `docs/yields.md` — the surplus moved** (Dominion batch D7, The
+ * Laws of Lord Shang; the triage's reading 18): one line, or an empty list.
+ *
+ * While a card moves this town's food into production as it builds `toward`
+ * (`surplusMoverFor`), the town's food surplus, as the growth channel computes
+ * it (`channelSurplus`), is added one for one to its production, after both
+ * stages and the unrest gate, so no percentage multiplies it. The food basket
+ * gains nothing that turn (`growthSurplus`). A deficit is never moved, and a
+ * town whose production the unrest gate stops moves nothing: its food goes on
+ * toward growth.
+ *
+ * `yields` is the town's total so far, steps 1 to 13: the food it reads is the
+ * staged figure the growth channel reads.
+ */
+export function explainSurplusMoved(
+  state: GameState,
+  city: City,
+  yields: CityYields,
+  toward?: QueueItem | null,
+): SurplusMovedLine[] {
+  if (explainUnrestGate(city).some((gate) => gate.yield === 'production')) return [];
+  const mover = surplusMoverFor(state, city, toward);
+  if (mover === null) return [];
+  const amount = channelSurplus(state, city, yields);
+  if (amount <= 0) return [];
+  return [{ source: mover.source, card: mover.card, amount }];
 }
 
 /**
@@ -1152,7 +1216,7 @@ export interface CityYieldGate {
  * then this line under them, so a player can see what the town would make and
  * why it makes none of it.
  *
- * What it does **not** reach: the empire's own lines (steps 14–19) are the
+ * What it does **not** reach: the empire's own lines (steps 15–20) are the
  * empire's and not the town's, so a card paying science to the empire still pays
  * it. A conversion at step 10 reads the running flats before the gate, so a card
  * that pays gold out of a town's production still pays it; gold is untouched,

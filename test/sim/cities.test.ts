@@ -3424,12 +3424,15 @@ describe('determinism with cities', () => {
     // 141 since E4: ten Expansionist cards about works, claims and borders,
     // and two new end-of-turn phases, so a v140 log's picks name cards this
     // build deals differently and its resolutions run two phases fewer.
-    // 142 since E5: eight cards about meters, commissions and the shared
-    // militia, and a new town field, so a v141 log's picks name cards this
+    // 142 since D7: thirteen Dominion cards about economy rules and Double
+    // Time, and a fourteenth step in a town's yields, so a v141 log's picks
+    // name cards this build never dealt.
+    // 143 since E5: eight cards about meters, commissions and the shared
+    // militia, and a new town field, so a v142 log's picks name cards this
     // build deals differently.
-    // 143 since the lake fix (L1): a lake is water like the coast, so pieces
-    // path across lakes and a v142 log's moves meet a different board.
-    expect(SCHEMA_VERSION).toBe(143);
+    // 144 since the lake fix (L1): a lake is water like the coast, so pieces
+    // path across lakes and a v143 log's moves meet a different board.
+    expect(SCHEMA_VERSION).toBe(144);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

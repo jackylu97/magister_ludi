@@ -82,10 +82,11 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
 - **Percentages compound across two stages, never inside one**:
   `(base + flats) × (1 + Σ city%) × (1 + Σ empire%)`. Yields are exact decimals;
   rounding is the surface's.
-- Nineteen steps: thirteen per town (the centre, the worked hexes, the cards' city
+- Twenty steps: fourteen per town (the centre, the worked hexes, the cards' city
   lines, the luxuries, the specialists, the arriving routes, the palace, the
   buildings, the cards' building shares, the conversions, the percent list, the
-  two stages, then the unrest gate) and six per empire (the luxuries' empire
+  two stages, the unrest gate, then the food surplus a card moves into
+  production) and six per empire (the luxuries' empire
   signatures, the caravans abroad, the treasury's ledger, the cards' empire
   payouts, the empire stage, the banks). The order is pinned against the source
   by `test/sim/yieldsDocSync.test.ts`.
@@ -109,7 +110,8 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     Courts, along a chain of farms). The Irrigation renewal, the farm's
     placement on dry ground and the cards' `freshwater` test read it.
   - A hex question can ask what the tile alone cannot (`GroundFacts`: the
-    empire asking, its farm water, which town centres hold a wonder), so three
+    empire asking, its farm water, which town centres hold a wonder, and since
+    Dominion batch D7 where its fortified military units stand), so three
     tile tests are new: `river`, `wonderTown` and `surfaced` (the empire that
     struck a seam, `Tile.surfacedBy`).
   - An Order amplifier with a tile test (`CardYieldAmplifierEffect.on`, The Age
@@ -233,10 +235,11 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   size, with no ceiling (`uncappedTierPercent`, `meters.ts`). A production
   bonus marked `defensive` reaches fortifications only (`isFortification`,
   `buildingData.ts`; The Burhs), the same reading the `defensiveBuildings`
-  count takes. A windfall rider's `inTown` names the town the moment happened
-  in, and a grant's `fromTowns` reads the production per turn of the empire's
-  other towns a scope admits (The Master of Works); a great person's act
-  carries its town as `WindfallOccasionFacts.cityId`.
+  count takes. A windfall rider's `inTown` (the town filter of Dominion batch
+  D7's disband moment) also reads a great person's act, and a grant's
+  `fromTowns` reads the production per turn of the empire's other towns a
+  scope admits (The Master of Works); a great person's act carries its town
+  as `WindfallOccasionFacts.townId`, the same fact the disband moment fills.
 
 ## Units, movement, combat, siege
 
@@ -495,6 +498,34 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     `bankTowardTech`), or open a free Order draft (`freeDraft`,
     `openFreeDraft`) that moves neither the draft count nor the culture. A
     rider can fire at most once in a number of turns (`oncePerTurns`).
+- **Economy rules and Double Time** (Dominion batch D7):
+  - **The surplus moved** is step 14 of a town's yields (`explainSurplusMoved`,
+    `yields/town.ts`): a card may move the town's food surplus, as the growth
+    channel computes it (`channelSurplus`, `cities.ts`), into production while
+    the town builds a row the card names, and `growthSurplus` then banks none
+    of it. A deficit is never moved, and a town in unrest moves nothing.
+  - A production percentage can join the **empire stage** (`stage: 'empire'`),
+    so it multiplies what the town's own bonuses made (The Marian Reforms'
+    half speed).
+  - A hex test asks whether a **fortified military unit** of the empire stands
+    on the hex (`fortifiedUnit`), answered through the context's `GroundFacts`;
+    the `fortifiedUnits` count counts those units inside a town's borders. Every
+    write of `Unit.fortifiedTurns` moves the economy clock, in the writer or in
+    its caller (`test/sim/slateRegister.test.ts`).
+  - **Disbanding a unit is a moment** (`disband`, paid in `applyDisbandUnit`):
+    it carries the town the unit stood in and the unit's production cost, which
+    a unit raised for free does not carry, and a rider can ask for that town
+    (`inTown`).
+  - **The harvest** (`harvestEnemyHexes`, run in the drill phase): a unit on a
+    hex of an empire its owner is at war with yields its owner that hex's
+    yields, through `payWindfallGrants`.
+  - A camp near the towns of an empire whose law speeds it musters sooner
+    (`campMuster`, `musterCamps`), and an empire's law can count its own war
+    losses for less (`unitLossWeariness`, `townLossWeariness`, read in
+    `wearinessBetween`).
+  - **Double Time** (`turnEffectRepeats`): an Order's periodic boons, musters,
+    drills and harvests happen twice; a Doctrine's do not (the user's ruling of
+    2026-10-16). It is dealt in bands 2 and 3 (`OrderDef.lastBand`).
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
   legacies, wonders and leaders.

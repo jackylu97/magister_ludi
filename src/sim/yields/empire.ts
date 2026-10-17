@@ -1,6 +1,6 @@
 /**
- * **The empire** — the seat's own list (`docs/yields.md` steps 14–18), the
- * stage over its fold, and the phase that banks it (step 19).
+ * **The empire** — the seat's own list (`docs/yields.md` steps 15–19), the
+ * stage over its fold, and the phase that banks it (step 20).
  *
  * `explainEmpireLines` is the list — the luxuries' signatures, the caravans
  * abroad, the treasury's ledger, the cards' empire payouts, then one
@@ -9,7 +9,7 @@
  * both halves.
  *
  * **`collectYields` lives here rather than in `turn.ts`**, and that is a
- * decision of batch E3b rather than an accident of the cut: step 19 of the
+ * decision of batch E3b rather than an accident of the cut: step 20 of the
  * sequence *is* the banks, the phase is the only reader that must see the two
  * halves in the right order (every town priced against a pre-banking treasury,
  * the empire's lines taken after), and `turn.ts` stays what it is — the fixed

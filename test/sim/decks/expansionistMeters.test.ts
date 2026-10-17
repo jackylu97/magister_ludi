@@ -252,10 +252,10 @@ describe('the Expansionist batch E5: The Master of Works', () => {
     slot(state, 0, 'theMasterOfWorks');
     const expected = Math.floor(foldCity(state, works, [], works.queue[0]).production);
     expect(expected).toBeGreaterThan(0);
-    const inOpus = windfallPayout(state, 0, 'greatPersonAct', 0, 0, { family: 'engineer', cityId: opus.id });
+    const inOpus = windfallPayout(state, 0, 'greatPersonAct', 0, 0, { family: 'engineer', townId: opus.id });
     expect(inOpus.grants.reduce((sum, grant) => sum + grant.amount, 0)).toBe(expected);
     // An act anywhere else pays nothing, and a plain town sends nothing.
-    const elsewhere = windfallPayout(state, 0, 'greatPersonAct', 0, 0, { family: 'engineer', cityId: plain.id });
+    const elsewhere = windfallPayout(state, 0, 'greatPersonAct', 0, 0, { family: 'engineer', townId: plain.id });
     expect(elsewhere.grants).toHaveLength(0);
   });
 });

@@ -1577,7 +1577,50 @@ import {
  * different works. The branch migrates nothing, for the reason given under
  * v119.
  *
- * v142 (branch `decks`; Expansionist batch E5 of
+ * v142 (branch `decks`; Dominion batch D7 of
+ * `docs/plans/dominion-build-triage.md`, economy rules and Double Time):
+ * **thirteen Dominion cards.** Eight Orders join the Dominion file (The Spear
+ * Makers, The Defiant Kingdom, The Hunting Grounds, The Funeral Oration, The
+ * Castra, Double Time, War Feeds Itself, The Glorious Dead) and one the common
+ * file (The Farming Garrisons, shared with Expansionist). A deferred row comes
+ * live (The Legions' Labour), and three Doctrines join Dominion's `doctrines`
+ * map: The Marian Reforms at Tier I, The Laws of Lord Shang at Tier II and The
+ * Fortress Empire at Tier IV. No field joins the state. An Order row may name
+ * a last band (`OrderDef.lastBand`): Double Time is dealt in bands 2 and 3.
+ * The rules that change:
+ *
+ *   · a town's yields gain a fourteenth step: a card may move the town's food
+ *     surplus into production while the town builds a row the card names
+ *     (`explainSurplusMoved`), and the growth channel then banks none of it.
+ *     The empire's steps are now 15 to 20;
+ *   · a production percentage can join the empire stage (`stage: 'empire'`);
+ *   · a hex test asks whether a fortified military unit of the empire stands on
+ *     the hex (`fortifiedUnit`, answered through `GroundFacts`), and a count
+ *     counts those units (`fortifiedUnits`);
+ *   · a unit filter can ask for a unit's age (`ageAtMost`), a town scope for
+ *     the row at the front of its queue (`producing`), and an empire condition
+ *     for a met empire that holds more towns (`rivalHoldsMoreTowns`);
+ *   · disbanding a unit is a moment the cards pay on (`disband`), with the town
+ *     the unit stood in and its production cost, and a rider can ask for that
+ *     town (`inTown`);
+ *   · a barbarian camp near the towns of an empire whose law speeds it musters
+ *     sooner (`campMuster`), and an empire's law can count its own war losses
+ *     for less (`unitLossWeariness`, `townLossWeariness`);
+ *   · at the end of a turn, a unit in enemy territory can yield its owner the
+ *     hex's yields (`harvest`, run in the drill phase);
+ *   · an Order's periodic boons, musters, drills and harvests can happen twice
+ *     (`turnEffectRepeats`);
+ *   · a write of a unit's fortification moves the economy clock, and a
+ *     completion rider that pays only science toward a technology or a free
+ *     draft is now paid (`payCompletionRiders` asks `windfallPayoutIsEmpty`);
+ *   · the bots price the new shapes, so they draft differently.
+ *
+ * **A v141 save is refused and does not replay.** The draft bags hold
+ * different cards, a disbanded unit now pays the cards that pay on one, and
+ * the bots draft differently. The branch migrates nothing, for the reason
+ * given under v119.
+ *
+ * v143 (branch `decks`; Expansionist batch E5 of
  * `docs/plans/expansionist-build-triage.md`, meters, commissions and the shared
  * militia): **eight cards.** The Burhs, Commission: Break the Sod, The
  * Sovereign Writ and The Imperial Roads join the Expansionist file, and The
@@ -1602,15 +1645,17 @@ import {
  *   · a meter rule, `writUncapped`, takes the ceiling off the writ's bonus;
  *   · a founding rider can raise a unit in the new town (`unit`), a production
  *     bonus can name fortifications (`defensive`, read by `isFortification`),
- *     a windfall rider can name the town the moment happened in (`inTown`),
- *     and a grant can be read off the empire's other towns (`fromTowns`). A
- *     great person's act now carries its town (`WindfallOccasionFacts.cityId`).
+ *     a windfall rider's town filter (`inTown`, from Dominion batch D7) now
+ *     reads a great person's act too, and a grant can be read off the
+ *     empire's other towns (`fromTowns`). A great person's act now carries
+ *     its town (`WindfallOccasionFacts.townId`, the fact D7's disband moment
+ *     fills).
  *
- * **A v141 save is refused and does not replay.** The draft bags hold
+ * **A v142 save is refused and does not replay.** The draft bags hold
  * different cards, and The Domesday Survey and The Master of Works pay
  * differently. The branch migrates nothing, for the reason given under v119.
  *
- * v143 (branch `decks`; the lake fix, "L1", the user's ruling of 2026-10-16,
+ * v144 (branch `decks`; the lake fix, "L1", the user's ruling of 2026-10-16,
  * `docs/flags.md` (wwwwww)): **a lake is water like the coast.** No field
  * joins the state. What changes:
  *
@@ -1626,11 +1671,11 @@ import {
  *
  * Whether a town beside a lake is coastal is unchanged.
  *
- * **A v142 save is refused and does not replay.** Pieces now path across
+ * **A v143 save is refused and does not replay.** Pieces now path across
  * lakes, so the bots move differently. The branch migrates nothing, for the
  * reason given under v119.
  */
-export const SCHEMA_VERSION = 143;
+export const SCHEMA_VERSION = 144;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

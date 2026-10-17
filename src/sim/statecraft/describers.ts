@@ -1414,15 +1414,25 @@ function describeEffect(
             (effect.max === undefined
               ? ''
               : ` (at most ${signed(effect.percent * effect.max)}%)`);
+      // The empire stage (Dominion batch D7, The Marian Reforms) multiplies what
+      // the town's own bonuses made, and the words say so.
+      const staged = effect.stage === 'empire' ? ", after the town's own bonuses" : '';
       out.push({
-        text: `${signed(effect.percent)}% production toward ${what}${counted}${whose}`,
+        text: `${signed(effect.percent)}% production toward ${what}${counted}${whose}${staged}`,
       });
       return;
     }
     case 'rulePercent':
       out.push({
         text:
-          RULE_WORDS[effect.rule](effect.percent) +
+          // A world rule's reach (The Hunting Grounds, Dominion batch D7) says
+          // how near: "within 10 hexes of your towns".
+          (effect.range === undefined
+            ? RULE_WORDS[effect.rule](effect.percent)
+            : RULE_WORDS[effect.rule](effect.percent).replace(
+                'near your towns',
+                `within ${effect.range} hexes of your towns`,
+              )) +
           // A rate that names towns says which, for `cityYields`' reason: an
           // unqualified "of the stored food kept when a city grows" reads as a
           // law of the realm, and Common Table is a law of one congregation.
@@ -1734,10 +1744,14 @@ function describeEffect(
       // Enemy), for the same reason "a building" narrows "anything".
       const unbuilt =
         effect.fallenUnbuilt === true ? named.replace('a unit', 'a unit you cannot build yet') : named;
-      // The town the moment happened in (Expansionist batch E5, The Master of
-      // Works): "a great engineer's act in your city raising the Magnum Opus".
+      // The town the moment happened in: "disbanding a unit in a city building
+      // a wonder" (Dominion batch D7, the disband occasion), "a great
+      // engineer's act in a city raising the Magnum Opus" (Expansionist batch
+      // E5, The Master of Works).
       const placed =
-        effect.inTown === undefined ? unbuilt : `${unbuilt} in your ${eachWords(effect.inTown)}`;
+        effect.inTown === undefined
+          ? unbuilt
+          : `${unbuilt} in ${effect.inTown === true ? 'one of your cities' : `a city ${scopeCondition(effect.inTown)}`}`;
       const occasion =
         only +
         (effect.anyBuilding === true ? placed.replace('anything', 'a building') : placed) +
@@ -2224,6 +2238,17 @@ function describeEffect(
       return;
     }
     case 'metaRule':
+      // Double Time (Dominion batch D7) is the second rule: how many times an
+      // Order's turn effects happen.
+      if (effect.rule === 'turnEffectRepeats') {
+        out.push({
+          text:
+            effect.value === 2
+              ? "your Orders' effects that happen at the end of a turn or every few turns happen twice"
+              : `your Orders' effects that happen at the end of a turn or every few turns happen ${effect.value} times`,
+        });
+        return;
+      }
       out.push({
         text: `a newly placed Order is locked for ${effect.value} turns instead of ${METER.sealTurns}`,
       });
@@ -2678,6 +2703,31 @@ function describeEffect(
       out.push({ text: `${who} gain ${effect.experience} experience ${when}` });
       return;
     }
+    case 'surplusToProduction': {
+      // Dominion batch D7, The Laws of Lord Shang. What the town builds, then
+      // the towns the row names.
+      const building =
+        effect.category === undefined
+          ? ''
+          : effect.category === 'unit'
+            ? ` building ${effect.class === undefined ? 'a unit' : `a ${filterWords(effect.class).replace(/s$/, '')}`}`
+            : effect.category === 'wonder'
+              ? ' building a wonder'
+              : ' building a building';
+      const towns = effect.scope === undefined ? 'a city' : `a city ${scopeCondition(effect.scope)}`;
+      out.push({
+        text: `${towns}${building} puts its food surplus into production instead of into growth`,
+      });
+      return;
+    }
+    case 'harvest':
+      // Dominion batch D7, War Feeds Itself.
+      out.push({
+        text:
+          `at the end of each turn, each of your ${effect.class === undefined ? 'units' : filterWords(effect.class)} ` +
+          'in the territory of an empire you are at war with yields you the yields of its hex',
+      });
+      return;
     default: {
       const unhandled: never = kind;
       void unhandled;
@@ -3244,6 +3294,11 @@ const TOWN_COUNT_WORDS: Partial<Record<CountKind, (at: string) => PluralWords>> 
     one: `fortification level among the units ${at}`,
     many: `fortification levels among the units ${at}`,
   }),
+  // The Fortress Empire (Dominion batch D7): a town's own borders, or the realm's.
+  fortifiedUnits: (at) => {
+    const where = at === 'there' ? 'inside its borders' : 'inside your borders';
+    return { one: `fortified military unit ${where}`, many: `fortified military units ${where}` };
+  },
   defensiveBuildings: (at) => ({ one: `fortification ${at}`, many: `fortifications ${at}` }),
   // The ninth, and the only one that is *not* a count that can only be asked of
   // a town: `wonders` is a realm's question narrowed to one town by `within`
@@ -3625,6 +3680,17 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // The Heartland (Expansionist batch E5): the town its goal marked.
       into.qualifiers.push(`marked by ${ref('order', scope.card, orderDef(scope.card).name)}`);
       return;
+    case 'producing': {
+      // Dominion batch D7: "building a military unit", "building a wonder".
+      const thing =
+        scope.category === 'wonder'
+          ? 'a wonder'
+          : scope.category === 'building'
+            ? 'a building'
+            : `a ${scope.class === undefined ? 'unit' : filterWords(scope.class).replace(/s$/, '')}`;
+      into.qualifiers.push(`building ${thing}`);
+      return;
+    }
     case 'ownerAtWar':
       into.qualifiers.push('whose owner is at war with another empire');
       return;
@@ -4018,6 +4084,22 @@ function scopeCondition(scope: CityScope): string {
 }
 
 export function filterWords(filter: UnitFilter): string {
+  const noun = unitNounWords(filter);
+  // The unit's age (Dominion batch D7, The Spear Makers) goes in front of the
+  // noun as an adjective: "first- and second-age military units".
+  return filter.ageAtMost === undefined ? noun : `${ageWords(filter.ageAtMost)} ${noun}`;
+}
+
+/** The ages up to `last`, as one adjective: "first-age", "first- and second-age". */
+function ageWords(last: number): string {
+  const ordinals = ['first', 'second', 'third', 'fourth'].slice(0, Math.max(1, last));
+  if (ordinals.length === 1) return `${ordinals[0]}-age`;
+  const head = ordinals.slice(0, -1).map((word) => `${word}-`);
+  return `${head.join(', ')} and ${ordinals[ordinals.length - 1]}-age`;
+}
+
+/** `filterWords` without the age: the noun phrase for the kind of unit. */
+function unitNounWords(filter: UnitFilter): string {
   // The named row first, because it is the *narrowest* clause and a phrase that
   // said "workers" when the filter means one row would be a promise the price
   // does not keep. Pluralised off the roster's own name (hard rule 7: the
@@ -4296,6 +4378,10 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
       }
       return;
     }
+    case 'fortifiedUnit':
+      // The Farming Garrisons and The Castra (Dominion batch D7).
+      into.qualifiers.push('with a fortified military unit of yours');
+      return;
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -4427,6 +4513,26 @@ const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
     percent < 0
       ? `faith you give to a build buys ${-percent}% less production`
       : `faith you give to a build buys ${percent}% more production`,
+  // The Hunting Grounds (Dominion batch D7). The row's reach replaces "near
+  // your towns" in the `rulePercent` arm, so the words say how near.
+  campMuster: (percent) =>
+    percent < 0
+      ? `barbarian camps near your towns raise their units ${-percent}% slower`
+      : `barbarian camps near your towns raise their units ${percent}% faster`,
+  // The Funeral Oration and The Glorious Dead (Dominion batch D7). Said as what
+  // a loss adds, and "nothing" at the whole cut.
+  unitLossWeariness: (percent) =>
+    percent <= -100
+      ? 'units you lose add nothing to war weariness'
+      : percent < 0
+        ? `units you lose add ${-percent}% less war weariness`
+        : `units you lose add ${percent}% more war weariness`,
+  townLossWeariness: (percent) =>
+    percent <= -100
+      ? 'towns you lose add nothing to war weariness'
+      : percent < 0
+        ? `towns you lose add ${-percent}% less war weariness`
+        : `towns you lose add ${percent}% more war weariness`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -4664,6 +4770,8 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   sizeRecord: 'a city growing past its largest size',
   census: 'the world taking a census',
   joinedToCapital: 'a city being joined to your capital by road for the first time',
+  // Dominion batch D7, The Legions' Labour.
+  disband: 'disbanding a unit',
 };
 
 /**
@@ -4830,6 +4938,10 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   garrisonWatch: {
     one: 'fortification level among the units in the city',
     many: 'fortification levels among the units in the city',
+  },
+  fortifiedUnits: {
+    one: 'fortified military unit inside your borders',
+    many: 'fortified military units inside your borders',
   },
   workedHills: { one: 'worked hill hex', many: 'worked hill hexes' },
   bankedFaith: { one: 'banked faith', many: 'banked faith' },
@@ -5171,6 +5283,8 @@ const MEASURE_WORDS: Record<OccasionMeasure, string | { each: string }> = {
   takenPopulation: 'the citizens of the cities you took from that empire in that war and still hold',
   hexesPillaged: { each: "of that empire's hexes you pillaged in that war" },
   worksAndWonders: { each: 'great-person work and wonder inside its borders' },
+  // Dominion batch D7, The Legions' Labour.
+  unitCost: 'its production cost',
 };
 
 /**
@@ -5565,6 +5679,7 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   keepingRite: 'while a rite is being kept anywhere in your empire',
   atWarWithOpusBuilder: 'while you are at war with an empire raising the Magnum Opus',
   noReligionFounded: 'until you have founded a religion',
+  rivalHoldsMoreTowns: 'while an empire you have met holds more towns than you',
 };
 
 // --- commissions ------------------------------------------------------------

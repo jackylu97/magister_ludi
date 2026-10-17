@@ -29,18 +29,20 @@ import { improvementDef, improvementYield } from '../improvementData';
 import { resourceDef, resourceIsVisibleTo, resourceYield } from '../resourceData';
 import { type CardId } from '../statecraftData';
 import {
-  type GroundFacts,
   type TileLine,
   cardTileLines,
   consecrationCardTileLines,
   followerCardTileLines,
-  groundFactsFor,
   scopedCardTileLines,
   timedCityTileLines,
   tileConditionHolds,
   tileConditionReadsFold,
 } from '../statecraft';
 import { HEX_MARK_IDS, RULES } from '../rulesData';
+// The ground facts (Expansionist batch E3; Dominion batch D7), straight from
+// the evaluator rather than through the `statecraft.ts` index, so the build
+// does not warn of a circular import between chunks.
+import { type GroundFacts, groundFactsFor } from '../statecraft/evaluator';
 import { type City, type GameState, playerById } from '../state';
 import {
   TERRAIN_DATA,
@@ -251,14 +253,16 @@ export interface TileYieldContext {
   turn?: number;
   /**
    * **What the board says about a hex that the tile alone cannot**
-   * (Expansionist batch E3): the empire asking, its farm water, and which town
-   * centres hold a world wonder. See `GroundFacts` (`statecraft/evaluator.ts`).
+   * (Expansionist batch E3; Dominion batch D7): the empire asking, its farm
+   * water, which town centres hold a world wonder, and where its fortified
+   * military units stand. See `GroundFacts` (`statecraft/evaluator.ts`).
    *
    * Built once by `yieldContextFor`, the one place with a board in hand, and
    * carried downstream by the spread that copies the rest. Read in two places
    * here: the Irrigation renewal, which a farm the law waters earns as if it
    * stood on fresh water, and every card line's tile test. Absent for a
-   * context-less evaluation, which reads the map's own water.
+   * context-less evaluation, which reads the map's own water and finds no
+   * fortified unit.
    */
   ground?: GroundFacts;
 }
@@ -324,8 +328,9 @@ export function yieldContextFor(
   // law says, for the ring's reason exactly: a fact about the world does not
   // wait for a card to have already spoken.
   ctx.turn = state.turn;
-  // **The board's answers** (Expansionist batch E3), for the ring's reason too:
-  // the farm water, the wonder towns and who is asking.
+  // **The board's answers** (Expansionist batch E3; Dominion batch D7), for
+  // the ring's reason too: the farm water, the wonder towns, who is asking and
+  // where this empire's fortified military units stand.
   ctx.ground = groundFactsFor(state, playerId);
   return ctx;
 }

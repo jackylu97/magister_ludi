@@ -739,6 +739,36 @@
     "raw": "+3 combat strength for melee units beside a great general",
     "text": "+3 combat strength for melee units beside a great general"
    }
+  ],
+  "theMarianReforms": [
+   {
+    "raw": "military units cost no gold in maintenance",
+    "text": "military units cost no gold in maintenance"
+   },
+   {
+    "raw": "-50% production toward military units, after the town's own bonuses",
+    "text": "-50% production toward military units, after the town's own bonuses"
+   }
+  ],
+  "theLawsOfLordShang": [
+   {
+    "raw": "a city building a military unit puts its food surplus into production instead of into growth",
+    "text": "a city building a military unit puts its food surplus into production instead of into growth"
+   }
+  ],
+  "theFortressEmpire": [
+   {
+    "raw": "+5 combat strength while fortified",
+    "text": "+5 combat strength while fortified"
+   },
+   {
+    "raw": "+5% science in every city per fortified military unit inside its borders (at most +30% science)",
+    "text": "+5% science in every city per fortified military unit inside its borders (at most +30% science)"
+   },
+   {
+    "raw": "+5% production in every city per fortified military unit inside its borders (at most +30% production)",
+    "text": "+5% production in every city per fortified military unit inside its borders (at most +30% production)"
+   }
   ]
  },
  "order": {
@@ -3673,9 +3703,8 @@
   ],
   "dominionTheLegionsLabour": [
    {
-    "raw": "Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder. — not built yet",
-    "text": "Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder. — not built yet",
-    "deferred": true
+    "raw": "for military units alone, disbanding a unit in a city building a wonder or raising the Magnum Opus grants production equal to 50% of its production cost",
+    "text": "for military units alone, disbanding a unit in a city building a wonder or raising the Magnum Opus grants production equal to 50% of its production cost"
    }
   ],
   "dominionThePraetorianGuard": [
@@ -3817,6 +3846,66 @@
    {
     "raw": "what your Orders pay for capturing a city is paid twice",
     "text": "what your Orders pay for capturing a city is paid twice"
+   }
+  ],
+  "theSpearMakers": [
+   {
+    "raw": "+30% production toward first- and second-age military units",
+    "text": "+30% production toward first- and second-age military units"
+   }
+  ],
+  "theDefiantKingdom": [
+   {
+    "raw": "while an empire you have met holds more towns than you: +25% production toward military units",
+    "text": "while an empire you have met holds more towns than you: +25% production toward military units"
+   }
+  ],
+  "theHuntingGrounds": [
+   {
+    "raw": "barbarian camps within 10 hexes of your towns raise their units 50% faster",
+    "text": "barbarian camps within 10 hexes of your towns raise their units 50% faster"
+   },
+   {
+    "raw": "+4 combat strength inside your territory",
+    "text": "+4 combat strength inside your territory"
+   }
+  ],
+  "theFuneralOration": [
+   {
+    "raw": "units you lose add 50% less war weariness",
+    "text": "units you lose add 50% less war weariness"
+   }
+  ],
+  "theCastra": [
+   {
+    "raw": "+1 production, +1 science on every hex with a fortified military unit of yours",
+    "text": "+1 production, +1 science on every hex with a fortified military unit of yours"
+   },
+   {
+    "raw": "+3 production, +3 science on every hex with a [[improvement:citadel|Citadel]]",
+    "text": "+3 production, +3 science on every hex with a Citadel"
+   }
+  ],
+  "doubleTime": [
+   {
+    "raw": "your Orders' effects that happen at the end of a turn or every few turns happen twice",
+    "text": "your Orders' effects that happen at the end of a turn or every few turns happen twice"
+   }
+  ],
+  "warFeedsItself": [
+   {
+    "raw": "at the end of each turn, each of your military units in the territory of an empire you are at war with yields you the yields of its hex",
+    "text": "at the end of each turn, each of your military units in the territory of an empire you are at war with yields you the yields of its hex"
+   }
+  ],
+  "theGloriousDead": [
+   {
+    "raw": "units you lose add nothing to war weariness",
+    "text": "units you lose add nothing to war weariness"
+   },
+   {
+    "raw": "towns you lose add nothing to war weariness",
+    "text": "towns you lose add nothing to war weariness"
    }
   ],
   "smallholdings": [
@@ -4592,8 +4681,8 @@
   ],
   "theMasterOfWorks": [
    {
-    "raw": "a great engineer spending themselves on their boon in your city raising the Magnum Opus grants production equal to the production per turn of your other cities with a [[improvement:manufactory|Manufactory]]",
-    "text": "a great engineer spending themselves on their boon in your city raising the Magnum Opus grants production equal to the production per turn of your other cities with a Manufactory"
+    "raw": "a great engineer spending themselves on their boon in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a [[improvement:manufactory|Manufactory]]",
+    "text": "a great engineer spending themselves on their boon in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a Manufactory"
    }
   ],
   "thePhilosophersPeaks": [
@@ -8253,6 +8342,16 @@
    {
     "raw": "capturing a city grants +20 renown for each great-person work and wonder inside its borders",
     "text": "capturing a city grants +20 renown for each great-person work and wonder inside its borders"
+   }
+  ],
+  "theFarmingGarrisons": [
+   {
+    "raw": "+1 food, +1 production on every hex with a fortified military unit of yours",
+    "text": "+1 food, +1 production on every hex with a fortified military unit of yours"
+   },
+   {
+    "raw": "+2 combat strength while fortified",
+    "text": "+2 combat strength while fortified"
    }
   ]
  },

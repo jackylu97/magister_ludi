@@ -4160,10 +4160,32 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "Between wars, the legions build walls and roads.",
-      "text": "Disbanding a military unit in a city building a wonder or the Magnum Opus adds half the unit's production cost toward it. Units raised for free add nothing.",
-      "effects": [],
-      "deferred": [
-        "Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder."
+      "text": "Disbanding a military unit in a town building a wonder or the Magnum Opus adds half its production cost toward it. Units raised for free add nothing, but units raised by a levy count.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "disband",
+          "class": {
+            "category": "military"
+          },
+          "inTown": {
+            "test": "any",
+            "of": [
+              {
+                "test": "producing",
+                "category": "wonder"
+              },
+              {
+                "test": "raisingOpus"
+              }
+            ]
+          },
+          "grant": {
+            "yield": "production",
+            "amount": 0.5,
+            "fromOccasion": "unitCost"
+          }
+        }
       ]
     },
     "dominionThePraetorianGuard": {
@@ -4661,6 +4683,203 @@
           "percent": 100
         }
       ]
+    },
+    "theSpearMakers": {
+      "name": "The Spear Makers",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "Every village smith knows the shape of a spearhead.",
+      "text": "+30% production toward first- and second-age military units.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 30,
+          "class": {
+            "category": "military",
+            "ageAtMost": 2
+          }
+        }
+      ]
+    },
+    "theDefiantKingdom": {
+      "name": "The Defiant Kingdom",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The smaller the realm, the sharper its spears.",
+      "text": "While another empire holds more towns than you, you train military units 25% faster.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "rivalHoldsMoreTowns"
+          },
+          "then": [
+            {
+              "kind": "productionBonus",
+              "category": "unit",
+              "percent": 25,
+              "class": {
+                "category": "military"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "theHuntingGrounds": {
+      "name": "The Hunting Grounds",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "Let the raiders come close. The young men need the practice.",
+      "text": "Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "campMuster",
+          "percent": 50,
+          "range": 10
+        },
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "ownTerritory"
+          }
+        }
+      ]
+    },
+    "theFuneralOration": {
+      "name": "The Funeral Oration",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "They died for the city, and the city speaks their names.",
+      "text": "Units you lose count half toward war weariness.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "unitLossWeariness",
+          "percent": -50
+        }
+      ]
+    },
+    "theCastra": {
+      "name": "The Castra",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Each night the legion digs a town, and each morning it marches on.",
+      "text": "Your own hexes with a fortified military unit gain +1 science and +1 production. Citadels gain +3 production and +3 science.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "science": 1,
+          "production": 1,
+          "on": {
+            "test": "fortifiedUnit"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 3,
+          "science": 3,
+          "on": {
+            "test": "improvement",
+            "improvement": "citadel"
+          }
+        }
+      ]
+    },
+    "doubleTime": {
+      "name": "Double Time",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "lastBand": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "March at the double, and the campaign comes round twice.",
+      "text": "Your Orders' effects that happen at the end of a turn or every few turns trigger twice.",
+      "effects": [
+        {
+          "kind": "metaRule",
+          "rule": "turnEffectRepeats",
+          "value": 2
+        }
+      ]
+    },
+    "warFeedsItself": {
+      "name": "War Feeds Itself",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "The army eats what the enemy sowed.",
+      "text": "At the end of your turn, each of your units in enemy territory yields you its hex's yields.",
+      "effects": [
+        {
+          "kind": "harvest",
+          "class": {
+            "category": "military"
+          }
+        }
+      ]
+    },
+    "theGloriousDead": {
+      "name": "The Glorious Dead",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "Nobody mourns a hero. They envy him.",
+      "text": "Your losses never count toward war weariness.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "unitLossWeariness",
+          "percent": -100
+        },
+        {
+          "kind": "rulePercent",
+          "rule": "townLossWeariness",
+          "percent": -100
+        }
+      ]
     }
   },
   "doctrines": {
@@ -4853,6 +5072,95 @@
           "class": {
             "modelClass": "melee"
           }
+        }
+      ]
+    },
+    "theMarianReforms": {
+      "name": "The Marian Reforms",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "The state arms the soldier, and the soldier serves the state.",
+      "text": "Your military units cost no upkeep, but your towns build them at half speed. Buying them is unaffected.",
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "free": true,
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": -50,
+          "class": {
+            "category": "military"
+          },
+          "stage": "empire"
+        }
+      ]
+    },
+    "theLawsOfLordShang": {
+      "name": "The Laws of Lord Shang",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "Farming and war are the two roots of a strong state.",
+      "text": "While a town builds a military unit, its surplus food goes into the unit instead of into growth.",
+      "effects": [
+        {
+          "kind": "surplusToProduction",
+          "category": "unit",
+          "class": {
+            "category": "military"
+          }
+        }
+      ]
+    },
+    "theFortressEmpire": {
+      "name": "The Fortress Empire",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "Walls first, and then everything else.",
+      "text": "Units gain +5 strength when fortified. Each city gains +5% science and production for each fortified military unit inside its borders, at most +30%.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "both",
+          "when": {
+            "test": "fortified"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "percent": 5,
+          "stage": "city",
+          "count": "fortifiedUnits",
+          "within": "city",
+          "max": 6
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "percent": 5,
+          "stage": "city",
+          "count": "fortifiedUnits",
+          "within": "city",
+          "max": 6
         }
       ]
     }

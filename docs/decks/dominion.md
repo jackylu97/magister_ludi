@@ -14,13 +14,13 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
-| Tier 0 | 23 | 0 | 3 | 26 | none |
+| Tier 0 | 26 | 0 | 0 | 26 | none |
 | Tier I | 22 | 0 | 0 | 22 | 5 |
-| Tier II | 25 | 2 | 4 | 31 | 5 |
+| Tier II | 29 | 2 | 0 | 31 | 5 |
 | Tier III | 23 | 0 | 1 | 24 | 3 |
-| Tier IV | 18 | 2 | 1 | 21 | 3 |
-| **All** | **111** | **4** | **9** | **124** | **16** |
-| Shared | 25 | 1 | 1 | 27 |  |
+| Tier IV | 20 | 1 | 0 | 21 | 3 |
+| **All** | **120** | **3** | **1** | **124** | **16** |
+| Shared | 26 | 1 | 0 | 27 |  |
 
 **By type** (the chair a card fits):
 
@@ -55,14 +55,14 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Bards' Praise** | common | implemented | Killing a unit grants culture equal to its strength. Clearing a barbarian camp grants 15 culture. | Civic |
 | **The Cattle Raid** | common | implemented | Clearing a barbarian camp gives every city +3 food for ten turns. Clearing another restarts the ten turns. | Economic |
 | **The Garrison Captains** | common | implemented | +1 authority for each garrisoned unit. | Civic |
-| **The Spear Makers** | common | add | +30% production toward first- and second-age military units. | Military |
+| **The Spear Makers** | common | implemented | +30% production toward first- and second-age military units. | Military |
 | **The Armed Colony** | common | implemented | A town founded beside one of your military units starts with three extra hexes, and that unit becomes a Veteran. | Economic |
 | **The Outriders** | common | implemented | Claiming a discovery or clearing a barbarian camp grants 8 production to every town. | Economic |
 | **The Captured Arms** | common | implemented | +1 science for every unit you have killed this game, no cap. | Civic |
 | **The Gathering Host** | uncommon | implemented | While seated, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture. | Civic |
 | **The Armourers' Secret** | uncommon | implemented | While seated, researching a technology that unlocks a military unit grants one of that unit in your capital. It costs no upkeep. | Military |
-| **The Defiant Kingdom** | uncommon | add | While another empire holds more towns than you, you train military units 25% faster. | Military |
-| **The Hunting Grounds** | uncommon | add | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. | Military |
+| **The Defiant Kingdom** | uncommon | implemented | While another empire holds more towns than you, you train military units 25% faster. | Military |
+| **The Hunting Grounds** | uncommon | implemented | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. | Military |
 | **The Campaign Annals** | rare | implemented | While seated, this card gains +1 science each time one of your units earns a rank. It starts at +3 science. | Civic |
 
 ## Tier I
@@ -142,15 +142,15 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Veterans' Roll** | uncommon | implemented | +1% science and culture for every rank your units have earned this game, at most +30%. | Civic |
 | **The Conscription Rolls** | uncommon | implemented | Every ten turns, each town of at least eight citizens raises the best melee unit you can build. | Military |
 | **The Hall of the Slain** | uncommon | implemented | +1% production and culture for every two units you have lost this game, at most +30%. | Civic |
-| **The Funeral Oration** | uncommon | add | Units you lose count half toward war weariness. | Civic |
+| **The Funeral Oration** | uncommon | implemented | Units you lose count half toward war weariness. | Civic |
 | **The Sagas** | uncommon | implemented | +1% culture and gold for every three hexes you have pillaged this game, at most +30%. | Civic |
 | **The Provincial Census** | uncommon | implemented | Pacifying a town grants science equal to twenty times its population. | Civic |
 | **Spear-won Land** | uncommon | implemented | +3% production and science for every town you have captured this game, at most +30%. | Civic |
-| **The Castra** | uncommon | add | Your own hexes with a fortified military unit gain +1 science and +1 production. Citadels gain +3 production and +3 science. | Civic |
+| **The Castra** | uncommon | implemented | Your own hexes with a fortified military unit gain +1 science and +1 production. Citadels gain +3 production and +3 science. | Civic |
 | **The Tactica** | uncommon | implemented | At the end of your turn, great generals give 1 experience to every unit beside them. Each time one of your units earns a rank, gain 15 science. | Military |
-| **Double Time** | rare | add | Your Orders' effects that happen at the end of a turn or every few turns trigger twice. | Wildcard |
+| **Double Time** | rare | implemented | Your Orders' effects that happen at the end of a turn or every few turns trigger twice. | Wildcard |
 | **The State Forges** | rare | implemented | Each time you research a technology, your capital raises the best melee unit you can build. It costs no upkeep. | Military |
-| **War Feeds Itself** | rare | add | At the end of your turn, each of your units in enemy territory yields you its hex's yields. | Economic |
+| **War Feeds Itself** | rare | implemented | At the end of your turn, each of your units in enemy territory yields you its hex's yields. | Economic |
 
 **Double Time** is also dealt in Tier III (ruled 2026-10-16).
 
@@ -221,13 +221,13 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Circumvallation** | uncommon | modify: deferred | While a rival city is under siege with at least one of your units beside it, it adds no production toward a Magnum Opus. You can see which rival cities are raising one. | Military |
 | **Commission: Hold the Capitals** | rare | implemented | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. | Wildcard |
 | **Spolia** | rare | implemented | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. | Economic |
-| **The Legions' Labour** | rare | modify: deferred | Disbanding a military unit in a town building a wonder or the Magnum Opus adds half its production cost toward it. Units raised for free add nothing, but units raised by a levy count. | Economic |
+| **The Legions' Labour** | rare | implemented | Disbanding a military unit in a town building a wonder or the Magnum Opus adds half its production cost toward it. Units raised for free add nothing, but units raised by a levy count. | Economic |
 | **The Nation in Arms** | rare | implemented | Every ten turns, each city with an Armoury raises the best melee unit you can build. They cost no upkeep. | Military |
 | **Commission: The Captured Marvel** | rare | implemented | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair. | Wildcard |
 | **The Horde** | rare | implemented | Pillaging a hex also pillages every enemy improvement beside it. | Military |
 | **Vae Victis** | rare | implemented | Your capture rewards are paid twice. | Wildcard |
 | **The Varangian Guard** | rare | implemented | Elite units may attack twice a turn. | Military |
-| **The Glorious Dead** | rare | add: rule-breaker | Your losses never count toward war weariness. | Civic |
+| **The Glorious Dead** | rare | implemented | Your losses never count toward war weariness. | Civic |
 | **The Harrying** | rare | implemented | Pillaging a hex beside a rival town with no garrison throws that town into unrest. | Military |
 | **The Great Bombards** | rare | implemented | Your siege units break a town's walls in one blow. | Military |
 
@@ -248,7 +248,7 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **Copying the Enemy** | uncommon | Scientific | I | implemented | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. | Civic |
 | **The Muster of the Fields** | uncommon | Expansionist | I | implemented | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. | Military |
 | **The Frontier Militia** | common | Expansionist | 0 | implemented | Each town you found starts with the best melee unit you can build standing in it. | Military |
-| **The Farming Garrisons** | common | Expansionist | I | add | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. | Economic |
+| **The Farming Garrisons** | common | Expansionist | I | implemented | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. | Economic |
 | **The Road Garrisons** | uncommon | Expansionist | II | implemented | Garrisoned cities with a road to your capital gain +5 food and +5 defence. | Economic |
 | **Marcher Lords** | uncommon | Expansionist | II | implemented | Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one. | Economic |
 | **Convert It or Tax It** | uncommon | Devotion | II | implemented | Captured cities that do not follow your religion gain +5 gold and +3 faith. Captured cities that follow it cost one less authority, minimum one. | Economic |

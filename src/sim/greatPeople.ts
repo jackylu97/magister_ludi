@@ -1076,7 +1076,7 @@ function payActRiders(state: GameState, player: Player, family: Family, town: Ci
   // only for an act in the town raising the Magnum Opus.
   const payout = windfallPayout(state, player.id, 'greatPersonAct', 0, 0, {
     family,
-    ...(town ? { cityId: town.id } : {}),
+    ...(town ? { townId: town.id } : {}),
   });
   if (windfallPayoutIsEmpty(payout)) return;
   const seat = town ?? capitalCityOf(state, player.id);
