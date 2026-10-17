@@ -1083,6 +1083,15 @@ export type CityScope =
    */
   | { test: 'holdsPost' }
   /**
+   * **The town carries this commission's mark, set by the empire that holds it
+   * now** (Expansionist batch E5, The Heartland). A commission whose reward
+   * marks the town that met its goal (`CommissionReward.markTown`) writes the
+   * card and the owner onto `City.markedBy`; a town that changes hands is not
+   * admitted while another empire holds it (the triage's reading 40). The
+   * lasting effects of the reward are scoped this way.
+   */
+  | { test: 'markedBy'; card: OrderId }
+  /**
    * The town has raised **at least this many buildings of one shelf** — The
    * Civic Stage's *"cities with at least two culture buildings"*, and most of
    * Magisterial's civic line with it.
@@ -3612,6 +3621,15 @@ export type MeterRuleId =
   /** A negative writ stops slowing production toward units. */
   | 'authorityUnitProductionExempt'
   /**
+   * **Spare authority's bonus has no top rung** (Expansionist batch E5, The
+   * Sovereign Writ; the triage's reading 39). The ladder's first bonus rung is
+   * paid once for every step of its size, with no ceiling: with +10% at five
+   * points, fifteen spare points pay +30% to production and border growth.
+   * A switch, so the row carries `value: 1`. Read in `meterEffectsOf`
+   * (`meters.ts`). Deficits are not changed.
+   */
+  | 'writUncapped'
+  /**
    * **What one town costs this empire's writ**, for the towns a scope admits —
    * Marcher Lords' border forts, The Learned Chancery's institutes, The
    * Chartered Metropolis' surcharge.
@@ -4829,6 +4847,16 @@ export interface WindfallGrantSpec {
    * which is what stops a card feeding itself.
    */
   fromRate?: RateSource;
+  /**
+   * The figure is `amount` times **the production per turn of each other town
+   * of this empire that the scope admits**, summed (Expansionist batch E5, The
+   * Master of Works: the towns with a manufactory in their borders; the
+   * triage's reading 43). "Other" is every town but the one the moment
+   * happened in (`WindfallOccasionFacts.townId`), and "per turn" is the town's
+   * production as its panel shows it (`foldCity`). Read once, in
+   * `windfallPayout`, before anything is banked.
+   */
+  fromTowns?: CityScope;
   /** Hit points restored to the acting unit. Pillage's, today. */
   heal?: number;
   /**
@@ -5805,6 +5833,14 @@ export interface CardProductionBonusEffect {
    */
   empireBuilding?: boolean;
   /**
+   * Narrows the bonus to **fortifications** (Expansionist batch E5, The Burhs):
+   * the buildings the `defensiveBuildings` count reads, which raise a town's
+   * defence or its hit points (`isFortification`, `buildingData.ts`). Asked
+   * only of a building being built, so `category: 'building'` with this never
+   * reaches a wonder (the triage's reading 30).
+   */
+  defensive?: true;
+  /**
    * **A share per helping of something counted** — The Great Consecration's
    * *"+5% toward the Magnum Opus for every foreign city that follows you, at
    * most +40%"*, and The World's Exchange's roads.
@@ -6423,7 +6459,9 @@ export interface CardWindfallRiderEffect {
    * The rider fires only when the occasion happened **in one of this empire's
    * towns** (Dominion batch D7, the `disband` occasion): `true` for any of its
    * towns (Veteran Colonies), or a town scope the town must meet (The Legions'
-   * Labour: a town building a wonder or the Magnum Opus). Read off
+   * Labour: a town building a wonder or the Magnum Opus). A great person's act
+   * names its town too (Expansionist batch E5): The Master of Works' act in the
+   * town raising the Magnum Opus (`raisingOpus`). Read off
    * `WindfallOccasionFacts.townId`, so an occasion that names no town never
    * pays it. Food or production the rider pays lands in that town, the nearest
    * town to the occasion's hex.
@@ -6630,6 +6668,14 @@ export interface CardFoundingRiderEffect {
    * `foundCityAt` after the first ring, in map order.
    */
   claimRadius?: number;
+  /**
+   * **The new town starts with this unit** (Expansionist batch E5, the shared
+   * The Frontier Militia): a unit id, or `'bestMelee'`, the best melee unit the
+   * empire can build now. Raised free of upkeep in the new town by
+   * `raiseFreeUnit` (`cities.ts`, Dominion batch D5), so it counts as gained,
+   * and only when there is room for it (the triage's reading 45).
+   */
+  unit?: UnitTypeId | 'bestMelee';
 }
 
 /** A payout scaled by a count. See `CountKind` and `CardPayout`. */
@@ -8700,6 +8746,22 @@ export type CommissionFigure =
   /** Tiles worked by this empire's towns that carry an improvement. */
   | 'improvedTilesWorked'
   /**
+   * Tiles worked by this empire's towns that carry an improvement other than a
+   * tended work (Expansionist batch E5, Commission: Break the Sod). The cards'
+   * `improved` reading, where `improvedTilesWorked` also counts tended works
+   * (the triage's reading 2).
+   */
+  | 'improvedOnlyTilesWorked'
+  /**
+   * **The most such hexes any one town works** (Expansionist batch E5, The
+   * Heartland): worked hexes that carry a work, improved or tended, and that
+   * yield at least the goal's `hexYieldAtLeast` in all six voices together, as
+   * the town works them. The town is the goal's town (`commissionGoalTown`):
+   * the one with the most such hexes, ties going to the earlier town (the
+   * triage's reading 40).
+   */
+  | 'oneTownWorkedHexes'
+  /**
    * Other empires' original capitals this empire holds. Commission: Hold the
    * Capitals. Read off `City.originalCapitalOf` since Dominion batch D6, so the
    * empire's own first town does not count however it came back.
@@ -8728,6 +8790,8 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'tradeRoutes',
   'hexesOwned',
   'improvedTilesWorked',
+  'improvedOnlyTilesWorked',
+  'oneTownWorkedHexes',
   'originalCapitalsHeld',
   'tendedTiles',
   'goldIncome',
@@ -8750,7 +8814,20 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
  */
 export type CommissionGoal =
   | ({ kind: 'counted'; occasion: TallyOccasion; count: number } & GoalFloor)
-  | { kind: 'reached'; figure: CommissionFigure; count: number };
+  | ({ kind: 'reached'; figure: CommissionFigure; count: number } & HexFloor);
+
+/**
+ * **A floor on each hex a reached figure counts** (Expansionist batch E5).
+ * `GoalFloor`'s sibling for a figure rather than for a moment.
+ */
+export interface HexFloor {
+  /**
+   * Only a hex whose six yields, as its town works it, add up to at least this
+   * counts: The Heartland's "tiles that each yield 5 or more in total". Read by
+   * `oneTownWorkedHexes`; every other figure ignores it.
+   */
+  hexYieldAtLeast?: number;
+}
 
 /**
  * **What a counted moment must reach to count** (Dominion batch D6). A goal
@@ -8867,6 +8944,27 @@ export interface CommissionReward {
    * after the government's chairs, as a card's extra chair is.
    */
   wildcardChairs?: number;
+  /**
+   * **Each town is paid from its own figure** (Expansionist batch E5, The
+   * Domesday Survey): every town of the empire gains `amount` times
+   * `fromFigure` read for that town alone, into its own baskets, and settles at
+   * once (the triage's reading 44). Only a figure with a town reading may be
+   * used (`improvedTilesWorked`, `improvedOnlyTilesWorked`).
+   */
+  eachTown?: true;
+  /**
+   * **Marks the town that met the goal** (`commissionGoalTown`) for the empire
+   * that holds it then (Expansionist batch E5, The Heartland). Written on
+   * `City.markedBy`; the `markedBy` town scope reads it.
+   */
+  markTown?: true;
+  /**
+   * **Effects that hold for the rest of the game** once the goal is met
+   * (Expansionist batch E5, The Heartland). Read by `liveEffects` from
+   * `PlayerStatecraft.commissionsFulfilled`, so nothing more is written for
+   * them. An effect about the town the goal marked is scoped `markedBy`.
+   */
+  lasting?: CardEffect[];
 }
 
 /**

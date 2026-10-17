@@ -820,38 +820,72 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * ---
  *
- * **Dominion batch D8 (schema 143), the last eight Dominion Doctrines.** Duel
- * `110900e1:270781` → `61231c1f:265576`, standard `d35f6b2b:966765` →
- * `c952c241:916732`. Two things moved the digests:
+ * **Expansionist batch E5 and the lake fix (L1), merged after D7 (schemas
+ * 143 and 144).** Duel `110900e1:270781` → `01ab9020:285340`, standard
+ * `d35f6b2b:966765` → `a4608f70:956430`. E5 and L1 were built at schemas 142
+ * and 143, without D7, and the literals they pinned there (E5: duel
+ * `26886ed7:276670`, standard `1b906911:989041`; L1: duel `22e6ff02:275643`,
+ * standard `19b5eebe:996001`) do not apply to this tree. Three things moved
+ * the digests:
  *
- *   · the version, 142 to 143;
+ *   · E5's cards. Four Expansionist rows join the deck (The Burhs, Commission:
+ *     Break the Sod, The Sovereign Writ, The Imperial Roads), one shared row
+ *     joins the shared file (The Frontier Militia), The Heartland is freed, and
+ *     The Domesday Survey and The Master of Works change. At turn 120 on the
+ *     duel board one seat seats The Frontier Militia and another The Burhs; on
+ *     the standard board one seat holds Commission: Break the Sod, not seated;
+ *   · the open lake. A piece that may embark now crosses lakes, and a worker
+ *     with Irrigation may lay floating gardens on one: at turn 120 three stand
+ *     on lakes on the duel board and one on the standard board. Scouts,
+ *     workers and soldiers step onto lakes (221 piece-turns on the duel board,
+ *     79 on the standard one). No hull enters a lake;
+ *   · the version, 142 to 144.
+ *
+ * Checked by taking E5's and L1's movers out (the Expansionist and shared deck
+ * files and the lake row as D7 left them, and the version at 142), which gives
+ * D7's digests exactly on both boards. Everything else E5 and L1 changed
+ * stayed in for that run, the removal of E4's lake rule for workers included,
+ * and it changes nothing without the cards and the open lake. The duel game
+ * adopts 12 governments and the standard one 15. Nothing stalled and no
+ * command was refused.
+ *
+ * ---
+ *
+ * **Dominion batch D8 (schema 145), the last eight Dominion Doctrines, merged
+ * after E5 and the lake fix.** Duel `01ab9020:285340` → `029bb984:288649`,
+ * standard `a4608f70:956430` → `ec53cf16:901072`. D8 was built at schema 143,
+ * without E5 and L1, and the literals it pinned there (duel
+ * `61231c1f:265576`, standard `c952c241:916732`) do not apply to this tree.
+ * Two things moved the digests:
+ *
+ *   · the version, 144 to 145;
  *   · the Doctrines. The Soldiers' Share and The Servian Reforms join the
  *     tier-4 offers, Centurions, The Plunder Economy, The Strategoi and Weight
  *     of Numbers the tier-10 offers, Combined Arms the tier-18 offers and The
  *     Scourge of God the tier-29 offers. An offer of three is now dealt from
  *     five cards at tiers 4 and 10, so The Laws of Lord Shang is no longer
  *     every seat's Tier II Doctrine. At turn 120 no seat holds it. On the duel
- *     board four seats reached tier 10: three took Centurions and one Weight of
- *     Numbers. On the standard board five seats reached tier 10 and every one
- *     of them took Weight of Numbers, one after taking Centurions first. At
- *     Tier I six seats across the two boards hold The Servian Reforms, three
- *     The Marian Reforms and three The Consular Roads; two seats hold Combined
- *     Arms at Tier III. The bots price a strength line as if every unit had it,
- *     so the scaled lines of Centurions and Weight of Numbers read as a flat +3.
+ *     board three seats reached tier 10 and all three took Centurions. On the
+ *     standard board all six seats reached tier 10 and every one took Weight
+ *     of Numbers. At Tier I six seats across the two boards hold The Servian
+ *     Reforms, four The Marian Reforms, one The Consular Roads and one The
+ *     Steppe Confederacy; three seats hold Total Mobilisation at Tier III. The
+ *     bots price a strength line as if every unit had it, so the scaled lines
+ *     of Centurions and Weight of Numbers read as a flat +3.
  *
- * Checked by taking both back out (the Dominion deck file as D7 left it and
- * the version at 142), which gives D7's digests exactly on both boards.
- * Everything else D8 changed stayed in for that run: the heal and the rank
- * around a hex, the timed effects on the raider, the raider's strength on a
- * pillage, the three new rules, the unit cost line, the Elite and attack
- * counts and their record, the rank on a surcharge and the free unit's
- * waiver, the aura's amplifier, the whole-hex share and the bots' new
+ * Checked by taking both back out (the Dominion deck file as the lake fix left
+ * it and the version at 144), which gives the lake fix's digests exactly on
+ * both boards. Everything else D8 changed stayed in for that run: the heal and
+ * the rank around a hex, the timed effects on the raider, the raider's
+ * strength on a pillage, the three new rules, the unit cost line, the Elite
+ * and attack counts and their record, the rank on a surcharge and the free
+ * unit's waiver, the aura's amplifier, the whole-hex share and the bots' new
  * readings change nothing without the cards. Nothing stalled and no command
  * was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '61231c1f:265576',
-  standard: 'c952c241:916732',
+  duel: '029bb984:288649',
+  standard: 'ec53cf16:901072',
 };
 
 /**

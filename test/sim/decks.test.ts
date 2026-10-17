@@ -454,8 +454,14 @@ describe('the schema, as landed', () => {
     // Eight new Dominion Orders and one new shared row (The Farming
     // Garrisons) came live, and one deferred row was freed (The Legions'
     // Labour). Its three Doctrines are not Orders.
-    expect(live).toBe(490);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(490);
+    // **And Expansionist batch E5** (meters, commissions and the shared
+    // militia): six more. Four new Expansionist rows came live (The Burhs,
+    // Commission: Break the Sod, The Sovereign Writ, The Imperial Roads), one
+    // new shared row (The Frontier Militia), and one deferred row was freed
+    // (The Heartland); The Domesday Survey and The Master of Works were changed
+    // in place and were already live.
+    expect(live).toBe(496);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(496);
   });
 
   /**
@@ -668,10 +674,15 @@ describe('the schema, as landed', () => {
     // 142 since D7: thirteen Dominion cards about economy rules and Double
     // Time, and a fourteenth step in a town's yields, so a v141 log's picks
     // name cards this build never dealt.
-    // 143 since D8: the last eight Dominion Doctrines and a record of the
-    // attacks made this turn, so a v142 log's Doctrine offers hold cards
+    // 143 since E5: eight cards about meters, commissions and the shared
+    // militia, and a new town field, so a v142 log's picks name cards this
+    // build deals differently.
+    // 144 since the lake fix (L1): a lake is water like the coast, so pieces
+    // path across lakes and a v143 log's moves meet a different board.
+    // 145 since D8: the last eight Dominion Doctrines and a record of the
+    // attacks made this turn, so a v144 log's Doctrine offers hold cards
     // this build deals differently.
-    expect(SCHEMA_VERSION).toBe(143);
+    expect(SCHEMA_VERSION).toBe(145);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -891,9 +902,10 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Expansionist batch E4** freed five more (Outposts, The Polders,
       // Migration, The Great Migration, The Encroaching Fields: − 5).
       // **Dominion batch D7** freed one (The Legions' Labour: − 1).
+      // **Expansionist batch E5** freed one more (The Heartland: − 1).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(60);
+      ).toHaveLength(59);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(136);
     }
   });

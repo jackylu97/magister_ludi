@@ -11,7 +11,8 @@
  *     it, and a town founded on it takes that land (reading 33);
  *   · The Garden Frontier: tended works on unowned ground near the borders
  *     (reading 34);
- *   · The Fish Traps: a worker on a lake, priced through `stepCost` (reading 27);
+ *   · The Fish Traps: a worker reaches a lake as it reaches the coast, embarked
+ *     with Sailing, since the lake ruling of 2026-10-16 (it replaced reading 27);
  *   · The Staked Claims: every unowned hex within two hexes of a new town
  *     (reading 15);
  *   · The Wide Country: the hexes claimed, and two citizens in each of the three
@@ -39,7 +40,7 @@ import { improvementCountsAs, improvementDef, improvementYield } from '../../../
 import { improvementCardError, improvementError } from '../../../src/sim/improvements';
 import { mapRange, neighborTiles, raiseImprovement, tileHex, tileIndex } from '../../../src/sim/map';
 import { happinessOf } from '../../../src/sim/meters';
-import { moveProfile, shoreStepCost, stepCost, tileMoveCost, zocField } from '../../../src/sim/pathfind';
+import { findPath, moveProfile, shoreStepCost, stepCost, tileMoveCost, zocField } from '../../../src/sim/pathfind';
 import { layRoad } from '../../../src/sim/roads';
 import { RULES } from '../../../src/sim/rulesData';
 import {
@@ -302,40 +303,70 @@ describe('the Expansionist batch E4: The Garden Frontier', () => {
   });
 });
 
+/**
+ * **The Fish Traps since the lake ruling** (the user, 2026-10-16, `docs/flags.md`
+ * (wwwwww)): a lake is water like the coast. A worker lays fish traps on a coast
+ * hex by standing on it, embarked, which needs Sailing. It lays them on a lake
+ * the same way now, so the charter opens the row and changes nothing about
+ * movement. E4's lake rule for workers (`MoveProfile.wades`) is gone.
+ */
 describe('the Expansionist batch E4: The Fish Traps', () => {
-  it('lets a worker whose seat holds the charter onto a lake, as if embarked, priced through stepCost', () => {
+  it('reaches a lake as it reaches the coast: embarked, with Sailing, charter or not', () => {
     const state = bareState();
     town(state, 0, 3, 5, 3);
     const lake = at(state, 4, 5);
     lake.terrain = 'lake';
+    const coast = at(state, 3, 3);
+    coast.terrain = 'coast';
     const worker = createUnit(state, 0, 'worker', 3, 4);
-    const warrior = createUnit(state, 0, 'warrior', 3, 6);
     bumpRevision(state);
-    expect(tileMoveCost(lake, moveProfile(state, worker))).toBeNull();
+    // The fixture holds Sailing, so the worker embarks onto either water at
+    // one price, before the charter.
+    expect(tileMoveCost(lake, moveProfile(state, worker))).toBe(RULES.movement.embarkCost);
+    expect(tileMoveCost(coast, moveProfile(state, worker))).toBe(RULES.movement.embarkCost);
+    // The charter opens the row. It does not change where the worker may go.
     hold(state, 0, 'theFishTraps');
     expect(tileMoveCost(lake, moveProfile(state, worker))).toBe(RULES.movement.embarkCost);
-    // No other piece: the warrior is still refused the lake.
-    expect(tileMoveCost(lake, moveProfile(state, warrior))).toBeNull();
-    // The step onto it is a shore crossing, priced by the one step price.
+    // The step onto the lake is a shore crossing, priced by the one step price.
     const mover = moveProfile(state, worker);
     const price = stepCost(state.map, at(state, 3, 4), lake, mover, zocField(state, 0));
     expect(price?.cost).toBe(shoreStepCost(mover, at(state, 3, 4), lake));
+    expect(findPath(state, worker, lake)).not.toBeNull();
+    // Without Sailing neither water is open, and the charter does not open it.
+    const owner = playerById(state, 0)!;
+    owner.techsResearched = owner.techsResearched.filter((id) => id !== 'sailing');
+    bumpRevision(state);
+    expect(tileMoveCost(lake, moveProfile(state, worker))).toBeNull();
+    expect(tileMoveCost(coast, moveProfile(state, worker))).toBeNull();
+    expect(findPath(state, worker, lake)).toBeNull();
   });
 
-  it('lays fish traps on the lake it stands on, and floating gardens too', () => {
+  it('walks onto the lake through the reducer, and lays fish traps and floating gardens there', () => {
     const state = bareState();
     town(state, 0, 3, 5, 3);
     const lake = at(state, 4, 5);
     lake.terrain = 'lake';
     hold(state, 0, 'theFishTraps');
+    const walker = createUnit(state, 0, 'worker', 3, 4);
+    bumpRevision(state);
+    const moved = applyCommand(state, {
+      type: 'moveUnit',
+      playerId: 0,
+      unitId: walker.id,
+      target: { col: lake.col, row: lake.row },
+    });
+    expect(moved.ok, moved.ok ? '' : moved.error).toBe(true);
+    expect([walker.col, walker.row]).toEqual([lake.col, lake.row]);
+    // A second worker already on the lake, with its movement, lays the work.
     const worker = createUnit(state, 0, 'worker', 4, 5);
     bumpRevision(state);
     expect(improvementError(state, worker.id, 'fishTraps')).toBeNull();
-    // The gardens' lake half is about the ground, and the ground takes them.
+    // Floating gardens need Irrigation, which the fixture holds, and no card.
     expect(improvementError(state, worker.id, 'floatingGardens')).toBeNull();
     build(state, worker.id, 'fishTraps');
     expect(lake.improvement).toBe('fishTraps');
     expect(improvementDef('fishTraps').deferred).toBeUndefined();
+    expect(improvementDef('floatingGardens').deferred).toBeUndefined();
   });
 });
 

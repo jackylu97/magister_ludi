@@ -790,15 +790,29 @@ describe('determinism', () => {
    * Checked by setting the version back to 141 with every D7 change in place,
    * which gives E4's hashes exactly.
    *
+   * **Expansionist batch E5 and the lake fix (L1) moved the hash and not the
+   * length** at both seeds. They were built at schemas 142 and 143, without
+   * D7, and were merged after D7, which renumbered them to 143 and 144, so the
+   * version went from 142 to 144, and that is all. Nobody here drafts a card
+   * or founds a town, so E5's cards never reach this board. A lake is now
+   * water an embarked piece may enter, but no piece stands on one in these
+   * twenty turns (counted at the end of every turn). Checked twice with the
+   * version at 142: once with E5's and L1's movers in, and once with them out
+   * (the two deck files and the lake row as D7 left them). Both give D7's
+   * hashes exactly.
+   *
    * **Dominion batch D8 moved the hash and not the length** at both seeds, by
-   * the version alone, 142 to 143. Nobody here adopts a government, so the new
-   * Doctrines are never offered, and the record of attacks is written only for
-   * an empire whose law counts them. Checked by setting the version back to
-   * 142 with every D8 change in place, which gives D7's hashes exactly.
+   * the version alone. It was built at schema 143 and merged after E5 and the
+   * lake fix, which renumbered it to 145, so the version went from 144 to 145.
+   * Nobody here adopts a government, so the new Doctrines are never offered,
+   * and the record of attacks is written only for an empire whose law counts
+   * them. Checked twice with the version at 144: once with every D8 change in
+   * place, and once with the Dominion deck file as the lake fix left it. Both
+   * give the lake fix's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '37214077:188932',
-    2026: '399b55d6:188488',
+    11: '31648f41:188932',
+    2026: '14996268:188488',
   };
 
   for (const seed of [11, 2026]) {

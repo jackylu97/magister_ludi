@@ -1458,6 +1458,20 @@ export function isWonder(id: BuildingId): boolean {
 export const WONDER_IDS: readonly BuildingId[] = BUILDING_IDS.filter(isWonder);
 
 /**
+ * **Is this building a fortification?** One that raises what a town is worth to
+ * storm (`cityStat` defence) or how long it takes to empty (`cityHp`). The one
+ * reading of the question: the `defensiveBuildings` count asks it of a town's
+ * stones (The Long Watch, The Burhs' defence), and a production bonus marked
+ * `defensive` asks it of the row being built (The Burhs, Expansionist batch
+ * E5). So a watchtower added to the table joins both, and a granary never can.
+ */
+export function isFortification(id: BuildingId): boolean {
+  const def = buildingDef(id);
+  const wall = def.cityStat?.stat === 'defense' && (def.cityStat.amount ?? 0) > 0;
+  return wall || (def.cityHp ?? 0) > 0;
+}
+
+/**
  * **Is this row one of the realm's great houses?** The one reading of
  * `BuildingDef.empireBuilding` (batch C7).
  *

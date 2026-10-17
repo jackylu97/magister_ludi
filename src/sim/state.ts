@@ -106,6 +106,7 @@ import {
   type DeckId,
   type FirstKind,
   type LevyUse,
+  type OrderId,
   WORLD_FIRST_KINDS,
   isDeckId,
 } from "./statecraftData";
@@ -1619,7 +1620,62 @@ import {
  * the bots draft differently. The branch migrates nothing, for the reason
  * given under v119.
  *
- * v143 (branch `decks`; Dominion batch D8 of
+ * v143 (branch `decks`; Expansionist batch E5 of
+ * `docs/plans/expansionist-build-triage.md`, meters, commissions and the shared
+ * militia): **eight cards.** The Burhs, Commission: Break the Sod, The
+ * Sovereign Writ and The Imperial Roads join the Expansionist file, and The
+ * Frontier Militia joins the shared file. The Heartland was deferred and is
+ * now dealt, and The Domesday Survey and The Master of Works now do what their
+ * text says. One field joins the state, absent until it is first written:
+ *
+ *   · `City.markedBy`: the commissions that marked the town, each with the
+ *     empire that held it then, written only by `markGoalTown`
+ *     (`commissions.ts`).
+ *
+ * The rules that change:
+ *
+ *   · a commission reward may mark the town that met the goal (`markTown`),
+ *     hand over effects for the rest of the game (`lasting`, read by
+ *     `liveEffects` from the fulfilled commissions) and pay each town from its
+ *     own figure (`eachTown`). The `markedBy` town scope reads the mark;
+ *   · two commission figures, `improvedOnlyTilesWorked` and
+ *     `oneTownWorkedHexes`, and a goal's floor on each hex
+ *     (`hexYieldAtLeast`); a goal one town meets names its town in
+ *     `commissionGoalTown`;
+ *   · a meter rule, `writUncapped`, takes the ceiling off the writ's bonus;
+ *   · a founding rider can raise a unit in the new town (`unit`), a production
+ *     bonus can name fortifications (`defensive`, read by `isFortification`),
+ *     a windfall rider's town filter (`inTown`, from Dominion batch D7) now
+ *     reads a great person's act too, and a grant can be read off the
+ *     empire's other towns (`fromTowns`). A great person's act now carries
+ *     its town (`WindfallOccasionFacts.townId`, the fact D7's disband moment
+ *     fills).
+ *
+ * **A v142 save is refused and does not replay.** The draft bags hold
+ * different cards, and The Domesday Survey and The Master of Works pay
+ * differently. The branch migrates nothing, for the reason given under v119.
+ *
+ * v144 (branch `decks`; the lake fix, "L1", the user's ruling of 2026-10-16,
+ * `docs/flags.md` (wwwwww)): **a lake is water like the coast.** No field
+ * joins the state. What changes:
+ *
+ *   · the lake's terrain row is `embarkable`, so a land piece that may embark
+ *     (Sailing; soldiers at Wayfinding) may cross a lake, and a hull may enter
+ *     one from a port beside it. Every step is priced through `stepCost`, as
+ *     for the coast;
+ *   · E4's lake rule for workers is removed: `MoveProfile.wades`, the
+ *     improvement row field `workersWade` and `workerWaters`. A worker lays
+ *     fish traps on a lake as on the coast, standing on the hex, embarked;
+ *   · the Floating Gardens' deferred note is removed, because its lake half
+ *     can now be built.
+ *
+ * Whether a town beside a lake is coastal is unchanged.
+ *
+ * **A v143 save is refused and does not replay.** Pieces now path across
+ * lakes, so the bots move differently. The branch migrates nothing, for the
+ * reason given under v119.
+ *
+ * v145 (branch `decks`; Dominion batch D8 of
  * `docs/plans/dominion-build-triage.md`, the last Dominion Doctrines):
  * **eight Doctrines join Dominion's `doctrines` map**, so all sixteen of the
  * sheet's Doctrines are in the data. The Soldiers' Share and The Servian
@@ -1650,12 +1706,12 @@ import {
  *     line);
  *   · the bots price the new shapes, so they take different Doctrines.
  *
- * **A v142 save is refused and does not replay.** The Doctrine offers hold
+ * **A v144 save is refused and does not replay.** The Doctrine offers hold
  * different cards, so every seat that adopts a government is dealt a
  * different hand, and the bots choose differently. The branch migrates
  * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 143;
+export const SCHEMA_VERSION = 145;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -4029,6 +4085,17 @@ export interface City {
    * owner it already paid pays nothing again. Absent until the first joining.
    */
   joinedBy?: number[];
+  /**
+   * **The commissions that marked this town**, each with the empire that held
+   * the town when its goal was met (Expansionist batch E5, The Heartland).
+   *
+   * Written only by `markGoalTown` (`commissions.ts`), when a reward's
+   * `markTown` is paid. The `markedBy` town scope admits the town while the
+   * empire named holds it, so a town that changes hands loses the mark's
+   * effects for its new owner (the triage's reading 40). Absent until the
+   * first mark.
+   */
+  markedBy?: { card: OrderId; owner: number }[];
 }
 
 /** See `City.levy`. */

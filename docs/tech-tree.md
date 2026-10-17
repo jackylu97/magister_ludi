@@ -330,14 +330,14 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 | verb | node | who gains it | what it does |
 |---|---|---|---|
-| Embark | Sailing | civilian | Cross coastal water. |
+| Embark | Sailing | civilian | Cross coastal water and lakes. |
 | Rite of the Harvest | Divination | city | A city may keep this rite a while: every hex it works that feeds it feeds it more. |
 | Omen Reading | Divination | city | A city may keep this rite a while: every building standing in it adds a little learning. |
 | Consecration of the Bounds | Stonecraft | city | A city may keep this rite a while: its luxury hexes sing and its bounds walk outward faster. |
 | Blessing of Arms | Bronzeworking | city | A city may keep this rite a while: it is harder to storm. |
 | Rite of Plenty | Currency | city | A city may keep this rite a while: every hex it works with a seam in it pays a little coin. |
 | Ancestor Rites | Epic Poetry | empire | Renown now earns great-person offers. |
-| Sea Legs | Wayfinding | military | Soldiers may cross coastal water. |
+| Sea Legs | Wayfinding | military | Soldiers may cross coastal water and lakes. |
 | Siege | Siegecraft | military | Surrounded enemy cities cannot heal and lose health each turn. |
 | The Long Count | Chronology | empire | The next age’s beads are revealed a turn early, and an Order draft may be redrawn for faith. |
 | Open Ocean | The Astrolabe | empire | Ships and embarked units may cross deep ocean. |

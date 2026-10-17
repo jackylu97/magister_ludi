@@ -320,11 +320,16 @@ a time — see [pit lakes](#pit-lakes-a-river-that-ends-in-a-tarn).
 ocean tiles only, up to `coast.rings` hex steps (2, since the naval-combat
 ruling of 2026-08-29 — a one-ring shelf was too thin a strip to fight over).
 The flood fires only from `ocean` tiles, and that guard is load-bearing: `coast`
-is a *marine* terrain — the shelf a trireme hugs, the water a fishing boat or a
-caravel may enter (`isEmbarkableTerrain`) — and a pond has no shelf. A lake is a
-maximal water body, so no ocean tile is ever adjacent to one, the flood can
-never step onto or through a lake, and a lake can neither become coast nor mint
-it. Lake-adjacent land keeps its terrain and gains `freshwater`.
+is a *marine* terrain, the shelf a trireme hugs and a fishing boat works, and a
+pond has no shelf. A lake is a maximal water body, so no ocean tile is ever
+adjacent to one, the flood can never step onto or through a lake, and a lake
+can neither become coast nor mint it. Lake-adjacent land keeps its terrain and
+gains `freshwater`.
+
+For units, a lake is water like the coast (the user's ruling of 2026-10-16):
+both rows are `embarkable` (`isEmbarkableTerrain`), so an embarked unit may
+cross a lake and a ship may enter one. That is a rule about movement. The
+flood above does not read it, so the map is the same as before the ruling.
 
 Distance is a graph invariant, so the *set* of tiles the flood promotes does not
 depend on the order it visits them in — what determinism actually rests on is
@@ -609,8 +614,9 @@ land on, which the 8/27 playtest note wanted anyway.
 
 It fires on a minority of seeds — the belt already puts most islands inside the
 free two rings — and it is what turns "islands usually reachable" into a
-guarantee. Its one refusal is land ringed by **lake**: `lake` is not embarkable,
-a lake has no shelf, and an islet in one is ground no unit in the game can reach.
+guarantee. Its one refusal is land ringed by **lake**: a lake has no shelf, so
+the chain cannot reach an islet in one. An embarked unit can still cross the
+lake to it, since a lake became embarkable (the user's ruling of 2026-10-16).
 Nothing here may invent water.
 
 ### The belt retune, 2026-09-03

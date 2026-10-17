@@ -227,6 +227,19 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     The Imperial Highways).
   - A founding rider's `claimRadius` claims every unowned hex within that
     many hexes of the new town (The Staked Claims, Expansionist batch E4).
+  - A founding rider's `unit` raises a unit in the new town, free of upkeep,
+    through `raiseFreeUnit` (the shared The Frontier Militia, Expansionist
+    batch E5).
+- **Other Expansionist batch E5 shapes.** The meter rule `writUncapped` (The
+  Sovereign Writ) pays the writ's first bonus rung once for every step of its
+  size, with no ceiling (`uncappedTierPercent`, `meters.ts`). A production
+  bonus marked `defensive` reaches fortifications only (`isFortification`,
+  `buildingData.ts`; The Burhs), the same reading the `defensiveBuildings`
+  count takes. A windfall rider's `inTown` (the town filter of Dominion batch
+  D7's disband moment) also reads a great person's act, and a grant's
+  `fromTowns` reads the production per turn of the empire's other towns a
+  scope admits (The Master of Works); a great person's act carries its town
+  as `WindfallOccasionFacts.townId`, the same fact the disband moment fills.
 
 ## Units, movement, combat, siege
 
@@ -239,9 +252,17 @@ Reference: **`docs/units.md`** (the roster; generated) and
   is a toll, never a lock. Shore crossing is a pair-of-hexes rule; ships are
   exempt. The Woodland Bands' `woodsWalk` rule (Expansionist batch E3) prices
   forest and jungle at the open-ground cost, through `MoveProfile.ignoresWoods`
-  in `tileMoveCost`. A worker of a seat holding The Fish Traps may step onto a
-  lake as if embarked (Expansionist batch E4): `MoveProfile.wades`, from the
-  rows' `workersWade` (`workerWaters`), in `tileMoveCost`.
+  in `tileMoveCost`.
+- **A lake is water like the coast** (the user's ruling of 2026-10-16,
+  `docs/flags.md` (wwwwww)). The lake's terrain row is `embarkable`, and
+  `openWater` reads that flag in `tileMoveCost`, so all four readers agree:
+  - a land piece that may embark (Sailing; soldiers at Wayfinding) may cross a
+    lake, and a hull may enter one from a port beside it;
+  - a worker lays fish traps (and floating gardens) on a lake as on the coast,
+    standing on the hex, embarked;
+  - whether a town is coastal is a separate question, and the ruling leaves
+    it alone: `isCoastal` asks for a `coast` hex beside the town. A town beside
+    only a lake builds no ship and no harbour, and its hex is no port.
 - **Three rules about who is in the way** (`docs/flags.md` (ooooo), 2026-09-15),
   all of them inside `stepCost`'s discipline:
   1. **A piece at peace is not a wall.** A hex holding a piece of a seat this
@@ -452,6 +473,14 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     citizens (`citizens`, to the capital or the smallest towns), or add
     Wildcard chairs for the rest of the game (`wildcardChairs`, kept on
     `PlayerStatecraft.chairsWon` and counted by `chairCount`).
+  - Since Expansionist batch E5 a reward may also pay each town from its own
+    figure (`eachTown`, `townFigure`; The Domesday Survey), mark the town that
+    met the goal (`markTown`, written on `City.markedBy` by `markGoalTown`, read
+    by the `markedBy` town scope; The Heartland), and hand over effects for
+    the rest of the game (`lasting`, read by `liveEffects` from the fulfilled
+    commissions, its thirteenth source). A reached goal may set a floor on each
+    hex it counts (`hexYieldAtLeast`), and a goal one town meets names its town
+    in `commissionGoalTown` (`oneTownWorkedHexes`, `bestTownFor`).
 - **Units a card raises, and the moments it pays on** (Dominion batch D5):
   - A grant can raise the best melee unit (`bestMeleeFor`) or each military
     unit a technology unlocks, in the capital or in each town a scope admits.

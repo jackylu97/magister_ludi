@@ -39,7 +39,7 @@ import {
   tileOwnerCityId,
   tileOwnerPlayerId,
 } from '../cities';
-import { queueCategory } from '../yields/town';
+import { foldCity, queueCategory } from '../yields/town';
 import { foldEmpireRates } from '../yields/empire';
 // The hex fold, for the harvest (Dominion batch D7, War Feeds Itself). A
 // function-level cycle: the hex layer reads the card lines through the index.
@@ -54,6 +54,7 @@ import {
   buildingPaysVoice,
   isBuildingId,
   isEmpireBuilding,
+  isFortification,
   isWonder,
 } from '../buildingData';
 import {
@@ -63,7 +64,6 @@ import {
   isGreatPersonId,
 } from '../greatPeopleData';
 import {
-  IMPROVEMENT_IDS,
   type ImprovementId,
   improvementCountsAs,
   improvementDef,
@@ -891,6 +891,17 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
     if (held.revoked === true) continue;
     if (!isGreatPersonId(held.id)) continue;
     push(held.id, CLASS_WORD.legacy, greatPersonDef(held.id).legacy);
+  }
+  // **The thirteenth source** (Expansionist batch E5): what a fulfilled commission
+  // hands over for the rest of the game (`CommissionReward.lasting`, The
+  // Heartland). Read off `PlayerStatecraft.commissionsFulfilled`, in the order
+  // the goals were met, so no ledger reshuffles itself and nothing more is
+  // written for it. A lasting effect about one town is scoped `markedBy`.
+  for (const met of sc.commissionsFulfilled ?? []) {
+    if (!isOrderId(met.card)) continue;
+    for (const reward of orderDef(met.card).commission?.reward ?? []) {
+      if (reward.lasting !== undefined) push(met.card, CLASS_WORD.order, reward.lasting);
+    }
   }
   // **The eighth source**: what the empire itself is carrying that runs out —
   // Crassus' bill. `City.timed` and `Unit.timed`'s third holder, read through
@@ -2331,6 +2342,10 @@ export function cityScopeAdmits(
       // `cityPostPays` rather than `cityHoldsPost`, so war and a blockade
       // suspend every line written on the scope at once. See the scope.
       return cityPostPays(state, city, viewerId ?? city.ownerId);
+    case 'markedBy':
+      // The Heartland (Expansionist batch E5): the card's mark, set by the
+      // empire that holds the town now. See the scope.
+      return (city.markedBy ?? []).some((mark) => mark.card === scope.card && mark.owner === city.ownerId);
     case 'raisingOpus':
       return isRaisingOpus(city);
     case 'producing':
@@ -2513,6 +2528,8 @@ function scopeNote(scope?: CityScope): string | null {
     }
     case 'holdsPost':
       return 'your trading post stands here';
+    case 'markedBy':
+      return 'marked';
     case 'holyCity':
       return 'holy city';
     case 'all':
@@ -2956,12 +2973,11 @@ export function countOf(
       // A fortification is read off what a building *does* to its town — the
       // strength a besieger has to beat (`cityStat.defense`) or the bar it has
       // to empty (`cityHp`) — so a watchtower added to the table joins The Long
-      // Watch for free and no list of names is kept anywhere.
+      // Watch for free and no list of names is kept anywhere. One reading,
+      // `isFortification`, which The Burhs' production bonus asks too.
       let total = 0;
       for (const id of city.buildings) {
-        const def = buildingDef(id);
-        const wall = def.cityStat?.stat === 'defense' && (def.cityStat.amount ?? 0) > 0;
-        if (wall || (def.cityHp ?? 0) > 0) total += 1;
+        if (isFortification(id)) total += 1;
       }
       return total;
     }
@@ -5208,6 +5224,11 @@ export function cardProduction(
       if (building === undefined) continue;
       if (isEmpireBuilding(building) !== effect.empireBuilding) continue;
     }
+    // The Burhs (Expansionist batch E5): fortifications only, by the one
+    // reading the `defensiveBuildings` count takes.
+    if (effect.defensive === true) {
+      if (building === undefined || !isFortification(building)) continue;
+    }
     // *Where* the hammers land, where `modelClass` is *what* they land on. The
     // town is already in hand — a production modifier is asked of one city's
     // queue — so the scope is the ordinary one and needs no second reading.
@@ -7300,9 +7321,12 @@ export interface WindfallOccasionFacts {
    */
   worksAndWonders?: number;
   /**
-   * The **town the occasion happened in**, on the `disband` occasion (Dominion
-   * batch D7): the town of this empire on whose hex the unit stood, or absent.
-   * Read by `CardWindfallRiderEffect.inTown`. Filled by `applyDisbandUnit`.
+   * The **town the occasion happened in**, where the seam knows one: the town
+   * of this empire on whose hex the unit stood, on the `disband` occasion
+   * (Dominion batch D7, filled by `applyDisbandUnit`), and the town a great
+   * person acted in (Expansionist batch E5, filled by `payActRiders`,
+   * `greatPeople.ts`). Read by `CardWindfallRiderEffect.inTown`, and by a
+   * grant's `fromTowns` figure, which leaves this town out.
    */
   townId?: number;
   /**
@@ -7451,12 +7475,13 @@ export function windfallPayout(
     // general's. An occasion that carries no family never satisfies it.
     if (effect.family !== undefined && facts.family !== effect.family) return false;
     // The town the occasion happened in (Dominion batch D7, the disband
-    // occasion): one of this empire's towns, and, with a scope, one the scope
-    // admits. An occasion that names no town never satisfies it.
+    // occasion; Expansionist batch E5, a great person's act): one of this
+    // empire's towns, and, with a scope, one the scope admits. An occasion that
+    // names no town never satisfies it.
     if (effect.inTown !== undefined) {
       const town = facts.townId === undefined ? undefined : cityById(state, facts.townId);
       if (town === undefined || town.ownerId !== playerId) return false;
-      if (effect.inTown !== true && !cityScopeAdmits(state, town, effect.inTown)) return false;
+      if (effect.inTown !== true && !cityScopeAdmits(state, town, effect.inTown, playerId)) return false;
     }
     // And the sixth and seventh, both asked of the **row that was finished or
     // bought**: Master Masons pay for a wall and Learned Commissions for one of
@@ -7749,6 +7774,17 @@ export function windfallPayout(
       // is banked: a preview that quoted one turn and a settlement that read the
       // rate again would be two answers to one sentence. Asked lazily, so an
       // occasion no such rider names never sweeps the empire's books.
+      // **A figure read off the empire's other towns** (Expansionist batch E5,
+      // The Master of Works): `amount` times the production per turn of each
+      // other town the scope admits. Composed here with every other figure.
+      if (grant.fromTowns !== undefined) {
+        const amount = grant.amount * townsProduction(state, playerId, grant.fromTowns, facts.townId) * boostFor(card);
+        if (amount !== 0) {
+          payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
+          payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
+        }
+        continue;
+      }
       if (grant.fromRate !== undefined) {
         const turns = grant.amount;
         const rate = rateOf(state, playerId, grant.fromRate, foldEmpireRates(state, playerId));
@@ -7872,6 +7908,27 @@ function amplifierRows(
  * grant of "ten times nothing" would have pushed a zero line the fold then has
  * to drop. The caller drops the rider instead.
  */
+/**
+ * **The production per turn of this empire's other towns that a scope admits**,
+ * summed (Expansionist batch E5, The Master of Works' manufactory towns). Each
+ * town's production as its panel shows it (`foldCity`, toward its front row),
+ * floored, in founding order. `except` is the town the moment happened in.
+ */
+function townsProduction(
+  state: GameState,
+  playerId: number,
+  scope: CityScope,
+  except: number | undefined,
+): number {
+  let total = 0;
+  for (const town of citiesOf(state, playerId)) {
+    if (town.id === except) continue;
+    if (!cityScopeAdmits(state, town, scope, playerId)) continue;
+    total += Math.floor(foldCity(state, town, [], town.queue[0]).production);
+  }
+  return total;
+}
+
 function occasionMeasure(
   measure: OccasionMeasure,
   paid: number,
@@ -9381,23 +9438,6 @@ export function worksBeyondReach(state: GameState, playerId: number, works: 'ten
 }
 
 /**
- * **The water this empire's workers may step onto, as if embarked**
- * (Expansionist batch E4, The Fish Traps' lakes): every terrain a row names in
- * `ImprovementDef.workersWade`, for the rows a card this seat holds opens
- * (`cardUnlocksImprovement`), in the table's order. Empty for nearly every
- * seat. Asked once for each search by `moveProfile` (`pathfind.ts`).
- */
-export function workerWaters(state: GameState, playerId: number): TerrainId[] {
-  const waters: TerrainId[] = [];
-  for (const id of IMPROVEMENT_IDS) {
-    const wade = improvementDef(id).workersWade;
-    if (wade === undefined || !cardUnlocksImprovement(state, playerId, id)) continue;
-    for (const water of wade) if (!waters.includes(water)) waters.push(water);
-  }
-  return waters;
-}
-
-/**
  * Does this seat hold a charter that opens a **tended work**? The draft gate
  * for the Expansionist cards marked "Needs tended land"
  * (`OrderDef.needsTendedWork`, read in `eligibleFor`).
@@ -10354,6 +10394,12 @@ export interface FoundingRider {
    * the largest of several wins. `foundCityAt` claims beyond the first ring.
    */
   claimRadius?: number;
+  /**
+   * The units the town starts with, in the law's order (The Frontier Militia,
+   * Expansionist batch E5). `foundCityAt` raises each through `raiseFreeUnit`.
+   * Absent when no row names one.
+   */
+  units?: (UnitTypeId | 'bestMelee')[];
 }
 
 /**
@@ -10393,6 +10439,7 @@ export function cardFoundingRider(
     if (effect.claimRadius !== undefined) {
       rider.claimRadius = Math.max(rider.claimRadius ?? 0, Math.floor(effect.claimRadius));
     }
+    if (effect.unit !== undefined) (rider.units ??= []).push(effect.unit);
     if (escort !== null && effect.rank !== undefined) {
       rider.ranks.push({ unitId: escort.id, rank: effect.rank });
     }

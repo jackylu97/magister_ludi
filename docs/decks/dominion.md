@@ -20,7 +20,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Tier III | 23 | 0 | 1 | 24 | 3 |
 | Tier IV | 20 | 1 | 0 | 21 | 3 |
 | **All** | **120** | **3** | **1** | **124** | **16** |
-| Shared | 25 | 1 | 1 | 27 |  |
+| Shared | 26 | 1 | 0 | 27 |  |
 
 **By type** (the chair a card fits):
 
@@ -247,7 +247,7 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **The Sword of State** | common | Magisterial | I | implemented | On draft: the best melee unit you can build is trained in your capital. It costs no upkeep. Seated, this card does nothing. | Military |
 | **Copying the Enemy** | uncommon | Scientific | I | implemented | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. | Civic |
 | **The Muster of the Fields** | uncommon | Expansionist | I | implemented | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. | Military |
-| **The Frontier Militia** | common | Expansionist | 0 | add | Each town you found starts with the best melee unit you can build standing in it. | Military |
+| **The Frontier Militia** | common | Expansionist | 0 | implemented | Each town you found starts with the best melee unit you can build standing in it. | Military |
 | **The Farming Garrisons** | common | Expansionist | I | implemented | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. | Economic |
 | **The Road Garrisons** | uncommon | Expansionist | II | implemented | Garrisoned cities with a road to your capital gain +5 food and +5 defence. | Economic |
 | **Marcher Lords** | uncommon | Expansionist | II | implemented | Cities founded within four hexes of a foreign border gain +3 defence and +2 production, and cost one less authority, minimum one. | Economic |
