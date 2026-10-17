@@ -60,6 +60,18 @@ function endRound(state: GameState, order?: readonly number[]): void {
   }
 }
 
+/**
+ * Mountains everywhere but row 3, columns 0 to 9: a corridor one hex wide, so
+ * a march along it has no way round a hex somebody is standing on (the
+ * detour rule, `docs/flags.md` (xxxxxx) part 3, needs one to go round).
+ */
+function corridor(state: GameState): void {
+  for (const tile of state.map.tiles) {
+    if (tile.row === 3 && tile.col <= 9) continue;
+    tile.terrain = 'mountain';
+  }
+}
+
 /** A move order. Most units in these tests belong to player 0. */
 function move(unitId: number, col: number, row: number, playerId = 0): Command {
   return { type: 'moveUnit', playerId, unitId, target: { col, row } };
@@ -431,8 +443,9 @@ describe('moveUnit', () => {
     expect(warrior.path).toBeUndefined();
   });
 
-  it('waits rather than resting on a tile its own category cannot share', () => {
+  it('waits rather than resting on a tile its own category cannot share, when there is no way round', () => {
     const state = flatState();
+    corridor(state);
     const warrior = createUnit(state, 0, 'warrior', 0, 3);
     applyCommand(state, move(warrior.id, 6, 3));
     // A friendly soldier parks exactly where the march would come to rest.
@@ -445,12 +458,36 @@ describe('moveUnit', () => {
 
     endRound(state);
     expect(warrior.col).toBe(3);
-    // The order survives: this is traffic, not a wall.
+    // The order survives: this is traffic, not a wall, and the corridor leaves
+    // no way round the friend.
     expect(warrior.path).toEqual([
       { col: 4, row: 3 },
       { col: 5, row: 3 },
       { col: 6, row: 3 },
     ]);
+  });
+
+  it('goes round a tile its own category cannot share, keeping its goal', () => {
+    // The same march on open ground (`docs/flags.md` (xxxxxx) part 3): the
+    // friend on (4, 3) is where the march has to rest, so the walk plans a way
+    // round it to the same goal and walks it.
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    applyCommand(state, move(warrior.id, 6, 3));
+    createUnit(state, 0, 'warrior', 4, 3);
+    endRound(state);
+    expect(warrior.col).toBe(2);
+
+    expect(applyCommand(state, { type: 'endTurn', playerId: 0 })).toEqual({ ok: true });
+    const result = applyCommand(state, { type: 'endTurn', playerId: 1 });
+    expect(result.ok).toBe(true);
+    expect([warrior.col, warrior.row]).not.toEqual([4, 3]);
+    expect([warrior.col, warrior.row]).not.toEqual([2, 3]);
+    expect(warrior.path![warrior.path!.length - 1]).toEqual({ col: 6, row: 3 });
+    // The resolution names the cells the detour walked, for the board's slide.
+    const reroute = result.ok ? result.reroutes?.find((report) => report.unitId === warrior.id) : undefined;
+    expect(reroute?.from).toEqual({ col: 2, row: 3 });
+    expect(reroute?.walked[reroute.walked.length - 1]).toEqual({ col: warrior.col, row: warrior.row });
   });
 
   it('rejects illegal orders without touching the state', () => {
@@ -762,6 +799,9 @@ describe('standing orders and leftover movement', () => {
 
   it('marches a jam that cleared with the movement the turn left it', () => {
     const state = flatState();
+    // A corridor, so the column has no way round its picket and waits (the
+    // detour rule, `docs/flags.md` (xxxxxx) part 3, needs a way round).
+    corridor(state);
     const column = createUnit(state, 0, 'warrior', 0, 3);
     const blocker = createUnit(state, 0, 'warrior', 2, 3);
 
@@ -771,8 +811,9 @@ describe('standing orders and leftover movement', () => {
     expect([column.col, column.movesLeft]).toEqual([1, 1]);
     expect(column.path![0]).toEqual({ col: 2, row: 3 });
 
-    // The picket is ordered out of the way inside the same turn.
-    applyCommand(state, move(blocker.id, 2, 0));
+    // The picket is ordered out of the way inside the same turn, down the
+    // corridor past the column's goal.
+    applyCommand(state, move(blocker.id, 8, 3));
     expect(unitsOnTile(state, 2, 3)).toHaveLength(0);
 
     endRound(state);

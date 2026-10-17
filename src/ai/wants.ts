@@ -147,7 +147,7 @@ import { readCity, readEmpirePercents } from '../sim/readings';
 import { type ImprovementId, improvementYield, workForFamily } from '../sim/improvementData';
 import { getTileAt, mapRange, neighborTiles, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import type { GameMap, Tile } from '../sim/map';
-import type { TileYield } from '../sim/terrainData';
+import { type TileYield, isWaterTerrain } from '../sim/terrainData';
 import {
   type PurchasableItem,
   type PurchaseSubject,
@@ -193,6 +193,7 @@ import {
   UNIT_TYPE_IDS,
   type UnitTypeId,
   isCombatant,
+  isNaval,
   unitDef,
   unitStampStrength,
 } from '../sim/unitData';
@@ -2467,7 +2468,11 @@ function stepAsideForBlocker(
   const mover = moveProfile(state, blocker);
   const field = zocField(state, blocker.ownerId);
   let best: { tile: Tile; cost: number; friendly: boolean } | null = null;
+  const naval = isNaval(unitDef(blocker.type));
   for (const tile of neighborTiles(state.map, tileHex(centre))) {
+    // **Never onto the water** for a land piece (`docs/flags.md` (xxxxxx) part
+    // 2): the step ends its march at sea, and the bot then left it there.
+    if (!naval && isWaterTerrain(tile.terrain)) continue;
     if (!canStopOn(state, blocker, tile, mover)) continue;
     const price = stepCost(state.map, centre, tile, mover, field);
     if (price === null) continue;

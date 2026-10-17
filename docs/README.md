@@ -259,6 +259,24 @@ Reference: **`docs/units.md`** (the roster; generated) and
      landings priced through `stepCost`). It is a `moveUnit` with the friend's
      hex as its target, so the highlight and the reducer agree hex for hex, and
      both pieces spend their movement, break their trench and wake.
+- **Landings and detours** (`docs/flags.md` (xxxxxx), 2026-10-17):
+  1. A shore step that spends the whole allowance ends the march on the hex it
+     lands on (`endsTheMarch`). So `findPath` plans such a step only onto a hex
+     where the piece may stop (`canStopOn`). A free landing (Admiralty) does not
+     end the march and is not asked.
+  2. If the hex a march has to rest on holds a piece that leaves it no room, the
+     walk plans a way round to the same goal (`findPathAround`, round every hex
+     it has met blocked during that walk) and walks it. A route on dry land goes
+     round on dry land. If there is no way round, or the blocked hex is the goal,
+     the piece waits with its order, as before. A hostile soldier is still a
+     wall, and the walk clears the order.
+  3. The result names the cells a detour walked (`CommandResult.reroutes`, from
+     a `moveUnit` and from the resolution), and the board slides the piece along
+     them. The order left on the unit is the detour's remainder, so the drawn
+     route follows it.
+  4. The bots step a garrison aside only onto land, bring an idle land piece on
+     the water ashore instead of standing it down there (`comeAshore`), and
+     never dig in to mend on the water.
 - **`arriveOnTile`** (`arrival.ts`) is the one "came to rest here" seam — ruins
   claimed, camps burnt, civilians captured, a march refilled under The King's
   Road. Any new way to move a unit calls it — the swap walks both its pieces

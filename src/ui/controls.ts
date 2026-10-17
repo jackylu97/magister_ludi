@@ -138,7 +138,10 @@
  * place that knows which tiles those were: the route the player was shown, cut
  * short at wherever the unit actually ended up (`walkedPrefix`). It is captured
  * *before* the dispatch, because afterwards the old position is gone. Nothing
- * waits on the animation — the state is already final when it starts.
+ * waits on the animation — the state is already final when it starts. A march
+ * that went round a blocked hex (`docs/flags.md` (xxxxxx) part 3) walked cells
+ * the route on screen never showed, so the command's result says which
+ * (`CommandResult.reroutes`), and the piece slides along those instead.
  *
  * The local player
  * ----------------
@@ -195,6 +198,7 @@ import type {
 } from '../sim/commands';
 import { disbandError } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
+import type { RerouteReport } from '../sim/movement';
 import type { GreatPersonSpend } from './greatPersonCeremony';
 import {
   agedActFactor,
@@ -7017,8 +7021,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setMoveMode(false);
 
     // `unit` is a live reference into the state, so it is already at its
-    // destination here; the walked prefix is the route up to that tile.
-    const walked = walkedPrefix(route, { col: unit.col, row: unit.row });
+    // destination here; the walked prefix is the route up to that tile. A march
+    // that went round a blocked hex says which cells it walked instead.
+    const rerouted = result.reroutes?.find((report) => report.unitId === unit.id);
+    const walked = rerouted?.walked ?? walkedPrefix(route, { col: unit.col, row: unit.row });
     if (walked.length > 0) renderer.animateMove(unit.id, from, walked);
     // And the piece that came the other way, along the route it was priced on.
     // Only when the order was actually the swap the plan described: a refusal
@@ -7191,7 +7197,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * fog is a property of the board, and this module would only be able to
    * re-derive it.
    */
-  function animateResolvedMarches(orders: readonly StandingOrder[]): void {
+  function animateResolvedMarches(
+    orders: readonly StandingOrder[],
+    reroutes: readonly RerouteReport[] = [],
+  ): void {
     if (orders.length === 0 || prefersReducedMotion()) return;
     const { state } = getGame();
     for (const order of orders) {
@@ -7199,8 +7208,11 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       if (!unit) continue;
       if (unit.col === order.col && unit.row === order.row) continue;
       // The route it was holding, cut at wherever it actually stopped — the
-      // walk may have run out of movement or been blocked half way.
-      const walked = walkedPrefix(order.route, { col: unit.col, row: unit.row });
+      // walk may have run out of movement or been blocked half way. A march
+      // that went round a blocked hex reports the cells it walked instead
+      // (`docs/flags.md` (xxxxxx) part 3), because they are not on that route.
+      const rerouted = reroutes.find((report) => report.unitId === order.id);
+      const walked = rerouted?.walked ?? walkedPrefix(order.route, { col: unit.col, row: unit.row });
       if (walked.length === 0) continue;
       renderer.animateMove(unit.id, { col: order.col, row: order.row }, walked);
     }
@@ -7851,7 +7863,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       skippedUnitIds.clear();
       // **First, and alone.** Everything below is held back until these have
       // finished — see `scheduleHandOver`.
-      animateResolvedMarches(orders);
+      animateResolvedMarches(orders, result.reroutes);
       const report = researchSince(getGame().state, localPlayerId, research);
       // The world moved, and that is not an announcement: whoever is listening
       // takes their save now, before a card, a camera or a player can intervene.

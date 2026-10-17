@@ -74,6 +74,13 @@
  * never reports them as destinations, and `reachableTiles` never highlights a
  * tile the unit could not legally end its move on.
  *
+ * **A step that ends the march is a stop** (`docs/flags.md` (xxxxxx), the user,
+ * 2026-10-17). A shore crossing spends the whole allowance, so the piece rests
+ * on the hex it lands on whatever it held, and `findPath` admits such a landing
+ * only where `canStopOn` would (`endsTheMarch`, `landingCheck`). The walk goes
+ * round a hex it has to rest on and may not (`findPathAround`, called from
+ * `advanceAlongPath`).
+ *
  * **Friendly is everybody nobody has declared on**, since `docs/flags.md`
  * (ooooo): a piece of a seat this empire is at peace with blocks *stopping*
  * exactly as one of its own does, and a war is what turns a piece into a wall.
@@ -2069,6 +2076,10 @@ function searchPath(
     mover: MoveProfile,
     ground?: TransitField,
   ) => boolean = canStopOn,
+  // **Hexes this search may not use at all**, by tile index: the hexes a
+  // detour steps around (`findPathAround`, flags item (xxxxxx) part 3).
+  // Absent for every other caller.
+  avoid?: Uint8Array,
 ): PathSearch {
   const { map } = state;
   const start = getTileAt(map, unit.col, unit.row);
@@ -2101,6 +2112,9 @@ function searchPath(
   best[startIndex] = 0;
   const open = new TileHeap();
   open.push(startIndex, heuristic(start));
+  // Who stands where, swept the first time a landing has to be asked about.
+  // See `landingCheck`.
+  const landingFits = landingCheck(state, unit, mover, ground);
 
   while (open.size > 0) {
     const current = open.pop();
@@ -2112,12 +2126,18 @@ function searchPath(
     for (const neighbor of neighborsOf(map, tile)) {
       const index = tileIndex(map, neighbor.col, neighbor.row);
       if (settled[index] === 1) continue;
+      if (avoid !== undefined && avoid[index] === 1) continue;
       // Transit is all an intermediate tile needs, so a path may thread between
       // friendly units. The goal was already checked with the stricter
       // `canStopOn`, which implies this.
       if (!canTransit(state, unit, neighbor, mover, ground)) continue;
       const price = stepCost(map, tile, neighbor, mover, field);
       if (price === null) continue;
+      // **Except where the step ends the march** (flags item (xxxxxx) part 1):
+      // a shore crossing spends the whole allowance, so the piece comes to rest
+      // on the hex it lands on, and that hex must be one it may rest on. The
+      // goal was checked by `admits` already.
+      if (index !== goalIndex && !landingFits(tile, neighbor, price)) continue;
 
       // Every edge is strictly positive — the ground's price, and a toll on top
       // of it where a picket binds the step — so the heuristic stays admissible
@@ -2185,6 +2205,95 @@ export function findPathToFirst(
     if (found.exhausted !== null) exhausted = found.exhausted;
   }
   return null;
+}
+
+// --- landings and detours (flags item xxxxxx) ----------------------------------
+
+/**
+ * **Does this step end the march on the hex it lands on**, whatever the purse
+ * holds?
+ *
+ * A shore crossing priced at the mover's whole allowance does
+ * (`rules.movement.shoreCrossing: 'all'`): from land onto water or from water
+ * onto land, the walk pays everything and the piece rests where it landed
+ * (`advanceAlongPath`'s `wouldRestHere`). A free landing (Admiralty,
+ * `MoveProfile.freeLanding`) costs less than the allowance and does not end
+ * the march, so it is not one of these. The price is `stepCost`'s, so this
+ * asks nothing about the step that the four readers do not already agree on.
+ *
+ * The user's ruling, 2026-10-17 (`docs/flags.md` (xxxxxx)): a march may only
+ * plan such a step onto a hex where the piece may stop. Before it, `findPath`
+ * planned the landing through any hex it could pass, a full town included, and
+ * the walk then waited at the water's edge for good.
+ */
+export function endsTheMarch(from: Tile, to: Tile, mover: MoveProfile, price: StepPrice): boolean {
+  return isShoreStep(from, to, mover) && price.cost >= mover.full;
+}
+
+/**
+ * **The landing rule, asked per edge by `searchPath`**: a step that ends the
+ * march (`endsTheMarch`) must land on a hex the piece may rest on
+ * (`canStopOn`).
+ *
+ * It keeps one piece of memory for the search: which hexes have anybody
+ * standing on them, swept once, the first time a landing is asked about. A hex
+ * nobody stands on is a hex `canStopOn` answers exactly as `canTransit` did a
+ * line earlier in the search (no stranger, room for anybody), so only an
+ * occupied landing pays for the full question. The sweep is by `state.units`
+ * array order and marks by tile index, so nothing about the answer depends on
+ * an iteration order.
+ */
+function landingCheck(
+  state: GameState,
+  unit: Unit,
+  mover: MoveProfile,
+  ground: TransitField,
+): (from: Tile, to: Tile, price: StepPrice) => boolean {
+  const { map } = state;
+  let occupied: Uint8Array | null = null;
+  return (from, to, price) => {
+    if (!endsTheMarch(from, to, mover, price)) return true;
+    if (occupied === null) {
+      occupied = new Uint8Array(map.tiles.length);
+      for (const piece of state.units) {
+        if (piece.id === unit.id) continue;
+        if (piece.col < 0 || piece.col >= map.width || piece.row < 0 || piece.row >= map.height) continue;
+        occupied[tileIndex(map, piece.col, piece.row)] = 1;
+      }
+    }
+    if (occupied[tileIndex(map, to.col, to.row)] !== 1) return true;
+    return canStopOn(state, unit, to, mover, ground);
+  };
+}
+
+/**
+ * **A route to `goal` that does not use any of the `avoid` hexes** (tile
+ * indices), or `null` when there is none: `findPath`'s search with those hexes
+ * taken off the board.
+ *
+ * The one caller is the walk (`advanceAlongPath`), and the reason is the
+ * user's ruling of 2026-10-17 (`docs/flags.md` (xxxxxx) part 3): *"The unit
+ * should reroute its pathing if there's a unit blocking the tile it plans to
+ * move onto next turn"*. When the hex a march has to rest on holds a piece
+ * that leaves it no room, the walk asks this for a way round that hex and
+ * walks it; when there is none, the piece waits as it always did. Every
+ * other clause of the search is `findPath`'s unchanged, so the detour is
+ * priced through `stepCost` and obeys the landing rule above.
+ *
+ * `mover` defaults to the piece's own profile. The walk passes a narrowed one
+ * for a route on dry land (the water closed to it), which is the safe
+ * direction for the reason `findPath`'s docblock gives.
+ */
+export function findPathAround(
+  state: GameState,
+  unit: Unit,
+  goal: Tile,
+  avoid: readonly number[],
+  mover: MoveProfile = moveProfile(state, unit),
+): Cell[] | null {
+  const mask = new Uint8Array(state.map.tiles.length);
+  for (const index of avoid) mask[index] = 1;
+  return searchPath(state, unit, goal, mover, undefined, canStopOn, mask).path;
 }
 
 // --- reachability -----------------------------------------------------------

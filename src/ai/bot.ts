@@ -269,9 +269,9 @@ import { type ImprovementId, workForFamily } from '../sim/improvementData';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import type { ResourceId } from '../sim/resourceData';
 import { RULES, type CitizenFocus } from '../sim/rulesData';
-import type { TileYield } from '../sim/terrainData';
+import { type TileYield, isWaterTerrain } from '../sim/terrainData';
 import { explainFoundingCost, foldMeter, foundingCostLines } from '../sim/meters';
-import { findPath } from '../sim/pathfind';
+import { canStopOn, findPath, reachableTiles } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
 import {
   type ContributionOffer,
@@ -345,6 +345,7 @@ import {
   UNIT_TYPE_IDS,
   isCombatant,
   isExplorer,
+  isNaval,
   isRanged,
   trades,
   unitDef,
@@ -5798,12 +5799,21 @@ function isPlainBuilder(def: ReturnType<typeof unitDef>): boolean {
   return true;
 }
 
-/** Sleep for a civilian, fortify for a soldier. The order that always works. */
+/**
+ * Sleep for a civilian, fortify for a soldier. The order that always works.
+ *
+ * **Except on the water** (`docs/flags.md` (xxxxxx) part 2): a land piece
+ * with nothing to do that is standing on the water comes ashore first
+ * (`comeAshore`), so the bot never leaves one asleep or dug in at sea. Only a
+ * piece with no land it can reach stands down where it is.
+ */
 function standDown(
   state: GameState,
   unit: Unit,
   why = 'Nothing better to do where it stands.',
 ): UnitChoice | null {
+  const ashore = comeAshore(state, unit, why);
+  if (ashore !== null) return ashore;
   const sleep = sleepError(unit);
   if (sleep === null) {
     return {
@@ -5821,6 +5831,77 @@ function standDown(
     };
   }
   return null;
+}
+
+/** How far out from a piece at sea `comeAshore` looks for land it has a route to. */
+const ASHORE_RADIUS = 6;
+/** How many of those hexes it asks `findPath` about before it gives up. */
+const ASHORE_TRIES = 8;
+
+/**
+ * **Where a land piece on the water comes ashore**, as a march, or `null`
+ * when it is not a land piece on the water or has no land to reach
+ * (`docs/flags.md` (xxxxxx) part 2).
+ *
+ * Two readings, in order:
+ *
+ *   1. the land hexes it may rest on **this turn**: `reachableTiles`, the
+ *      highlight's own list, with the water taken out. A landing ends the
+ *      march, so these are the free hexes along the shore beside it. This
+ *      seat's own ground first (`stepAsideFor`'s order, for its reason), then
+ *      the cheapest, then tile order;
+ *   2. failing those, the **nearest** land hex it may rest on and has a route
+ *      to (`findPath`), by distance and then tile order, out to
+ *      `ASHORE_RADIUS` hexes and for at most `ASHORE_TRIES` searches.
+ *
+ * A ship is not a land piece. A caravan never reaches here: its route walks
+ * it.
+ */
+function comeAshore(state: GameState, unit: Unit, why: string): UnitChoice | null {
+  if (isNaval(unitDef(unit.type))) return null;
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here || !isWaterTerrain(here.terrain)) return null;
+  let best: { tile: Tile; cost: number; own: boolean } | null = null;
+  for (const reach of reachableTiles(state, unit)) {
+    if (reach.swap === true || isWaterTerrain(reach.tile.terrain)) continue;
+    const own = tileOwnerPlayerId(state, reach.tile.col, reach.tile.row) === unit.ownerId;
+    if (best === null || (own && !best.own) || (own === best.own && reach.cost < best.cost)) {
+      best = { tile: reach.tile, cost: reach.cost, own };
+    }
+  }
+  let target: Tile | null = best?.tile ?? null;
+  if (target === null) {
+    const from = tileHex(here);
+    const land = mapRange(state.map, from, ASHORE_RADIUS)
+      .filter((tile) => !isWaterTerrain(tile.terrain))
+      .sort(
+        (a, b) =>
+          wrappedDistance(state.map, from, tileHex(a)) - wrappedDistance(state.map, from, tileHex(b)) ||
+          tileIndex(state.map, a.col, a.row) - tileIndex(state.map, b.col, b.row),
+      );
+    let tries = 0;
+    for (const tile of land) {
+      if (tries >= ASHORE_TRIES) break;
+      if (!canStopOn(state, unit, tile)) continue;
+      tries += 1;
+      if (findPath(state, unit, tile) !== null) {
+        target = tile;
+        break;
+      }
+    }
+  }
+  if (target === null) return null;
+  return {
+    command: {
+      type: 'moveUnit',
+      playerId: unit.ownerId,
+      unitId: unit.id,
+      target: { col: target.col, row: target.row },
+    },
+    summary: `${why} It is standing on the water, so it comes ashore instead of standing down there.`,
+    candidates: [chosenAt('come ashore', 0)],
+    focus: { col: target.col, row: target.row },
+  };
 }
 
 /**
@@ -7258,6 +7339,10 @@ function restAndHeal(state: GameState, player: Player, unit: Unit): UnitChoice |
   const share = unit.hp / maxHp;
   if (share >= ai.military.healBelowHealth) return null;
   if (tileOwnerPlayerId(state, unit.col, unit.row) !== player.id) return null;
+  // **Never on the water** (`docs/flags.md` (xxxxxx) part 2): a land piece at
+  // sea comes ashore first, through the stand-down arm, and mends there.
+  const ground = getTileAt(state.map, unit.col, unit.row);
+  if (ground !== undefined && isWaterTerrain(ground.terrain) && !isNaval(unitDef(unit.type))) return null;
   const decisive = decisiveBlowAt(state, player, unit);
   if (decisive !== null) return null;
   if (fortifyError(unit, state) !== null) return null;

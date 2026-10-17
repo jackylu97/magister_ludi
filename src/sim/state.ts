@@ -1618,8 +1618,32 @@ import {
  * different cards, a disbanded unit now pays the cards that pay on one, and
  * the bots draft differently. The branch migrates nothing, for the reason
  * given under v119.
+ *
+ * v145 (branch `decks`; the movement fixes of `docs/flags.md` (xxxxxx), ruled
+ * 2026-10-17; the number is provisional and is set when the batch lands):
+ * **units stuck on water, and routing round a blocking unit.** No field joins
+ * the state. The rules that change:
+ *
+ *   · a step from land onto water, or from water onto land, spends the whole
+ *     allowance and ends the march on the hex it lands on, so `findPath`
+ *     plans such a step only onto a hex where the piece may stop
+ *     (`endsTheMarch`, `canStopOn`). Before, a march could aim its landing at
+ *     a full town hex and then wait at the water's edge for good;
+ *   · when the hex a march has to rest on holds a piece that leaves it no
+ *     room, the walk plans a way round that hex to the same goal
+ *     (`findPathAround`) and walks it. When there is none, the piece waits, as
+ *     before. The order left on the unit is the detour's remainder, and the
+ *     command's result names the cells walked (`CommandResult.reroutes`);
+ *   · the bots step a garrison out of a town only onto land, never leave a
+ *     land piece asleep or dug in on the water (it comes ashore instead), and
+ *     never dig in to mend there.
+ *
+ * **A v142 save is refused and does not replay.** Its marches would walk
+ * different routes: a landing it planned onto a full hex is refused, and a
+ * march it left waiting at a blocked hex now goes round. The branch migrates
+ * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 142;
+export const SCHEMA_VERSION = 145;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

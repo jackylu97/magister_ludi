@@ -387,7 +387,10 @@ describe("the bead catalogue", () => {
     // 142 since D7: thirteen Dominion cards about economy rules and Double
     // Time, and a fourteenth step in a town's yields, so a v141 log's picks
     // name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(142);
+    // 145 since the movement fixes (flags item xxxxxx): a landing is planned
+    // only where the piece may stop, and a blocked march goes round, so a
+    // v142 log's marches would walk different routes. Provisional number.
+    expect(SCHEMA_VERSION).toBe(145);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

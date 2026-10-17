@@ -817,10 +817,32 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * disband moment, Double Time's repeats, the fortification's announcement, the
  * completion riders' empty-payout test and the bots' new readings change
  * nothing without the cards. Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **The movement fixes (`docs/flags.md` (xxxxxx), schema 145 for now).** Duel
+ * `110900e1:270781` → `fe57c5b7:280097`, standard `d35f6b2b:966765` →
+ * `5d676cf2:975894`. Four things moved them:
+ *
+ *   · the version, 142 to 145;
+ *   · part 1: a landing is planned only onto a hex the piece may stop on;
+ *   · part 2: the bots step a garrison aside only onto land, bring an idle land
+ *     piece on the water ashore and never dig in to mend there;
+ *   · part 3: a march that has to rest on a blocked hex goes round it. In
+ *     these two games 744 detours were searched for and 425 taken.
+ *
+ * Each part moves both digests on its own, all at version 145. With only part
+ * 1: duel `d81944f9:269751`, standard `87567ea6:1036328`; only part 2:
+ * `6e136c1d:270227` and `bbb65ef6:981987`; only part 3: `1fd6df16:287461` and
+ * `38cddbc6:976474`. With none of them and the version at 145 the digests are
+ * D7's with the version digits changed. The piece-turns land units spend on
+ * the water fell from 1271 to 687 on the duel board and from 1292 to 693 on
+ * the standard one; soldiers fell from 311 to 11 and from 591 to 5. Nothing
+ * stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '110900e1:270781',
-  standard: 'd35f6b2b:966765',
+  duel: 'fe57c5b7:280097',
+  standard: '5d676cf2:975894',
 };
 
 /**

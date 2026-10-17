@@ -26,8 +26,12 @@
  *     a seat nobody has declared on is not one of those since `docs/flags.md`
  *     (ooooo) — the column files through it and the order stands.
  *   - the unit would come to rest on a tile its own category cannot share: the
- *     order is *kept*. That is a traffic jam, not a wall — the unit waits and
- *     tries again next turn, once its own side has moved on.
+ *     unit **plans a way round that hex to the same goal** and walks it
+ *     (`docs/flags.md` (xxxxxx) part 3, the user, 2026-10-17: *"The unit should
+ *     reroute its pathing if there's a unit blocking the tile it plans to move
+ *     onto next turn"*). Only when there is no such route is the order *kept*
+ *     as it was: a traffic jam, not a wall, and the unit waits and tries again
+ *     next turn, once its own side has moved on.
  *
  * There is no third reason. A step that slides along an enemy's zone of control
  * (Entry XXV) is an ordinary step at a dearer price — the ground plus
@@ -60,12 +64,14 @@
 
 import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { breakFortify } from './combat';
-import { getTileAt } from './map';
+import { type Tile, getTileAt, tileIndex } from './map';
 import {
   type Cell,
+  type MoveProfile,
   type SwapPlan,
   canStopOn,
   canTransit,
+  findPathAround,
   isShoreStep,
   moveProfile,
   snapMovement,
@@ -82,6 +88,29 @@ import { isWaterTerrain } from './terrainData';
 import { bumpEconomy } from './slate';
 
 
+/**
+ * **A march that went round a blocked hex** (`docs/flags.md` (xxxxxx) part
+ * 3): the piece, where it set off from, and every cell it entered, in order.
+ *
+ * News for the interface rather than state: the board slides a piece along the
+ * cells it walked, and a detour walks cells no route on screen showed. Without
+ * this the piece would jump to where the detour left it. The order left on the
+ * unit (`Unit.path`) is the detour's own remainder, so the drawn route needs
+ * no report.
+ */
+export interface RerouteReport {
+  unitId: number;
+  ownerId: number;
+  from: Cell;
+  walked: Cell[];
+}
+
+/** The report for one walk, or `null` when it kept to the route it was handed. */
+export function rerouteReport(unit: Unit, from: Cell, result: AdvanceResult): RerouteReport | null {
+  if (!result.rerouted || result.walked.length === 0) return null;
+  return { unitId: unit.id, ownerId: unit.ownerId, from: { col: from.col, row: from.row }, walked: result.walked };
+}
+
 export interface AdvanceResult {
   /** How many tiles the unit actually entered. */
   steps: number;
@@ -97,6 +126,17 @@ export interface AdvanceResult {
    * that could only say one of them would be dropping news the player earned.
    */
   arrivals: ArrivalReport[];
+  /**
+   * Every cell the unit entered, in order. The interface slides the piece
+   * along these when the walk left the route it was given (`rerouted`).
+   */
+  walked: Cell[];
+  /**
+   * True when the walk planned a way round a blocked hex (`docs/flags.md`
+   * (xxxxxx) part 3), so the cells walked and the order left on the unit are
+   * not the route the walk was handed.
+   */
+  rerouted: boolean;
 }
 
 /**
@@ -125,6 +165,17 @@ export function advanceAlongPath(
   let cleared = false;
   let index = 0;
   const arrivals: ArrivalReport[] = [];
+  // The route being walked: `path`, until a detour replaces it.
+  let route: readonly Cell[] = path;
+  const walked: Cell[] = [];
+  // Every hex this walk has stepped round, by tile index, in the order found.
+  // A detour avoids all of them, so the list only grows and the walk cannot
+  // swing between two blocked hexes for ever.
+  const avoided: number[] = [];
+  // The route and place the piece held before the detours it has not yet
+  // taken a step along. If the walk ends waiting without a step down any of
+  // them, the piece keeps that order, as it would have before the ruling.
+  let held: { route: readonly Cell[]; index: number } | null = null;
   // The mover's own profile — its row, and whether its empire may take to the
   // water — resolved once and handed to the evaluator on every step. This is the
   // third of the four readers of `stepCost` (see its docblock): what the
@@ -136,9 +187,9 @@ export function advanceAlongPath(
   // a ruin claimed, a civilian taken — are neither of them sources of control.
   const field = zocField(state, unit.ownerId);
 
-  while (index < path.length && unit.movesLeft > 0) {
+  while (index < route.length && unit.movesLeft > 0) {
     const from = getTileAt(state.map, unit.col, unit.row);
-    const step = path[index]!;
+    const step = route[index]!;
     const tile = getTileAt(state.map, step.col, step.row);
     if (!from || !tile || !canTransit(state, unit, tile, mover)) {
       cleared = true;
@@ -156,9 +207,25 @@ export function advanceAlongPath(
     const after = Math.max(0, snapMovement(unit.movesLeft - price.cost));
     // A unit that has spent its last point comes to rest on the hex it stepped
     // onto, so the tile has to be one it may legally share.
-    const wouldRestHere = after === 0 || index === path.length - 1;
+    const wouldRestHere = after === 0 || index === route.length - 1;
     if (wouldRestHere && !canStopOn(state, unit, tile, mover, undefined, trading)) {
-      // A jam, not a wall. Keep the order and wait for the tile to clear.
+      // A jam, not a wall. **Plan a way round the hex first** (flags item
+      // (xxxxxx) part 3); keep the order and wait for the tile to clear only
+      // when there is none.
+      const detour = trading === undefined ? detourAround(state, unit, route, index, tile, avoided, mover) : null;
+      if (detour !== null) {
+        if (held === null) held = { route, index };
+        route = detour;
+        index = 0;
+        continue;
+      }
+      // No way round: wait, and with the order the piece had before any detour
+      // it has not set foot on.
+      if (held !== null) {
+        route = held.route;
+        index = held.index;
+        held = null;
+      }
       break;
     }
 
@@ -194,11 +261,16 @@ export function advanceAlongPath(
     }
     const found = arriveOnTile(state, unit, tile);
     if (!isEmptyArrival(found)) arrivals.push(found);
+    walked.push({ col: tile.col, row: tile.row });
     steps += 1;
     index += 1;
+    // A step down the detour makes it the order.
+    held = null;
   }
 
-  const remaining = cleared ? [] : path.slice(index);
+  // The walk walked off the route it was handed, or holds a different one now.
+  const rerouted = route !== path;
+  const remaining = cleared ? [] : route.slice(index);
   if (remaining.length > 0) {
     // Copy the cells: the caller's array (and the command it came from) must not
     // be aliased into the state.
@@ -207,7 +279,75 @@ export function advanceAlongPath(
     delete unit.path;
   }
 
-  return { steps, cleared, arrivals };
+  return { steps, cleared, arrivals, walked, rerouted };
+}
+
+/**
+ * **A way round the hex the march cannot rest on**, or `null` (`docs/flags.md`
+ * (xxxxxx) part 3).
+ *
+ * The hex is `route[index]`, and the walk has found that the piece would have
+ * to rest there and may not: a piece stands on it that leaves no room
+ * (`canStopOn`). The reading of the user's *"a unit of the same type blocking
+ * its path"* is the stacking rule itself, because that is what makes a hex
+ * one the piece may not rest on: a piece of its own category (one military, one
+ * civilian and one ship to a hex), at sea any second piece that is not a ship,
+ * or a stranger's piece at peace. A caravan blocks nobody. A hostile soldier
+ * is a wall rather than a jam, and the walk clears the order before it gets
+ * here, as it always has.
+ *
+ * The goal stays the route's last cell. When the blocked hex *is* the goal
+ * there is nothing to go round, and the piece waits. Otherwise the hex joins
+ * `avoided` and `findPathAround` plans from where the piece stands now, round
+ * every hex this walk has met blocked so far. A detour of no steps is no
+ * detour.
+ *
+ * **A way round on land stays on land.** When the piece and the rest of its
+ * route are all on dry ground, the detour is planned for the same piece with
+ * the water closed to it (a narrowed `MoveProfile`, the safe direction). Going
+ * round one blocked hex by sea costs two landings, each a whole turn, and in
+ * the bot games the pieces sent that way then stayed on the water, changing
+ * their target every turn. A route that already crosses water may go round by
+ * water.
+ */
+function detourAround(
+  state: GameState,
+  unit: Unit,
+  route: readonly Cell[],
+  index: number,
+  blocked: Tile,
+  avoided: number[],
+  mover: MoveProfile,
+): Cell[] | null {
+  if (index >= route.length - 1) return null;
+  const last = route[route.length - 1]!;
+  const goal = getTileAt(state.map, last.col, last.row);
+  if (!goal) return null;
+  avoided.push(tileIndex(state.map, blocked.col, blocked.row));
+  const detour = findPathAround(state, unit, goal, avoided, dryWhereDry(state, unit, route, index, mover));
+  return detour !== null && detour.length > 0 ? detour : null;
+}
+
+/**
+ * The mover a detour is planned for: the piece's own, or, when the piece and
+ * the rest of its route are all on land, the same piece with the water closed
+ * to it. See `detourAround`.
+ */
+function dryWhereDry(
+  state: GameState,
+  unit: Unit,
+  route: readonly Cell[],
+  index: number,
+  mover: MoveProfile,
+): MoveProfile {
+  if (mover.naval) return mover;
+  const wet = (cell: Cell): boolean => {
+    const tile = getTileAt(state.map, cell.col, cell.row);
+    return tile !== undefined && isWaterTerrain(tile.terrain);
+  };
+  if (wet(unit) || route.slice(index).some(wet)) return mover;
+  const { wades: _wades, ...rest } = mover;
+  return { ...rest, embarks: false };
 }
 
 /**

@@ -112,7 +112,7 @@ import {
   settleGreatPersonChoice,
 } from './greatPeople';
 import { getTileAt, tileIndex } from './map';
-import { advanceAlongPath, swapPlaces } from './movement';
+import { type RerouteReport, advanceAlongPath, rerouteReport, swapPlaces } from './movement';
 import { type Cell, canStopOn, findPath, isPassable, planSwap } from './pathfind';
 import {
   type HolySitePlanting,
@@ -1855,6 +1855,13 @@ export type CommandResult =
        */
       wagerDealt?: number;
       /**
+       * **Marches that went round a blocked hex** (`docs/flags.md` (xxxxxx)
+       * part 3): a `moveUnit`'s own, or every standing order the resolution
+       * walked. Each carries the cells the piece entered, so the board can
+       * slide it along the road it took rather than the route it was shown.
+       */
+      reroutes?: RerouteReport[];
+      /**
        * Every wager kept during the resolution, in sweep order.
        *
        * `beads`' kind of news and a list for the same reason a wager is a bar
@@ -2242,6 +2249,9 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   // reason once more: a moment later a pacified town has no record and a rebel
   // is one more barbarian.
   if (result.ok && report.unrest.length > 0) result.unrest = [...report.unrest];
+  // The standing orders that went round a blocked hex (flags item (xxxxxx)
+  // part 3), so the interface slides each piece along the cells it walked.
+  if (result.ok && report.reroutes.length > 0) result.reroutes = [...report.reroutes];
   return result;
 }
 
@@ -2389,13 +2399,19 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
   const path = findPath(state, unit, tile);
   if (!path) return fail(`No path from (${unit.col}, ${unit.row}) to (${tile.col}, ${tile.row})`);
 
+  const from = { col: unit.col, row: unit.row };
   const walk = advanceAlongPath(state, unit, path);
   // The unit moved, so what its owner can see moved with it. One recompute per
   // order rather than one per step: `advanceAlongPath` may walk five tiles, and
   // only where it stopped decides what is lit.
   recomputeVisibility(state, actor.id);
   // What the march crossed, if it crossed anything — see `CommandResult`.
-  return ok(walk.arrivals);
+  const result = ok(walk.arrivals);
+  // And the cells it walked, when it went round a blocked hex (flags item
+  // (xxxxxx) part 3): the route the interface previewed is not the one walked.
+  const reroute = rerouteReport(unit, from, walk);
+  if (result.ok && reroute !== null) result.reroutes = [reroute];
+  return result;
 }
 
 /**

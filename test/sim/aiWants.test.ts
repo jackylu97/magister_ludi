@@ -544,11 +544,16 @@ let richRecord: RichSitting[] | null = null;
  * Four turns of seat 0 on the grown duel, with Pottery's row granted and a
  * full purse every turn, recorded once for the spend arm and the focus arm.
  *
- * Each turn is one sitting, as the driver opens one (`botSitting`). Without a
- * sitting every question builds a fresh context with no memory of the focus the
- * seat already set this turn, and the focus arm flips a town back and forth
- * until the step cap ends the turn. That once cost the spend arm's test about
- * twenty seconds and tested nothing extra.
+ * Each turn holds two sittings of seat 0, as the driver opens one
+ * (`botSitting`): the one asked here on a full purse, and the one the driver
+ * opens when it plays the turn out. Both are recorded, each under its own
+ * number, so a town the arm leans on the hammers in one and puts back in the
+ * other is seen both ways. (The movement fixes of `docs/flags.md` (xxxxxx)
+ * changed this board, and on it the putting back happens in the driver's
+ * sitting.) Without a sitting every question builds a fresh context with no
+ * memory of the focus the seat already set this turn, and the focus arm flips a
+ * town back and forth until the step cap ends the turn. That once cost the
+ * spend arm's test about twenty seconds and tested nothing extra.
  *
  * A row worth wanting is granted rather than waited for: what is under test is
  * the arms' comparisons, and whether a duel map has opened Pottery by turn
@@ -571,9 +576,33 @@ function richSittings(): RichSitting[] {
         focusBefore = cityFocus(game.state.cities.find((city) => city.id === cityId)!);
       }
       const ok = dispatch(game, decision.command).ok;
-      record.push({ decision, sitting: turn, ok, focusBefore });
+      record.push({ decision, sitting: turn * 2, ok, focusBefore });
     }
-    driveBots(game, { warn: () => {} });
+    // The driver's own sitting of seat 0, recorded beside it. `decide` sees the
+    // decision before the dispatch and `attempt` the reducer's answer after it.
+    let pending: RichSitting | null = null;
+    driveBots(game, {
+      warn: () => {},
+      decide: (state, playerId, sitting) => {
+        const decision = nextBotDecision(state, playerId, sitting);
+        if (decision === null || playerId !== 0) return decision === null ? null : decision.command;
+        let focusBefore: string | undefined;
+        if (decision.kind === 'focus') {
+          const cityId = (decision.command as { cityId: number }).cityId;
+          focusBefore = cityFocus(state.cities.find((city) => city.id === cityId)!);
+        }
+        pending = { decision, sitting: turn * 2 + 1, ok: false, focusBefore };
+        return decision.command;
+      },
+      attempt: (command, result) => {
+        // Only the command `decide` just proposed: one the driver declined to
+        // send (a refused or repeated order) is never answered here.
+        const asked: RichSitting | null = pending;
+        pending = null;
+        if (asked === null || JSON.stringify(command) !== JSON.stringify(asked.decision.command)) return;
+        record.push({ ...asked, ok: result.ok });
+      },
+    });
   }
   richRecord = record;
   return record;

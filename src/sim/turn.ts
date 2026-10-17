@@ -133,7 +133,7 @@ import {
   spreadReligion,
 } from "./religion";
 import { getTileAt, tileHex, wrappedDistance } from "./map";
-import { advanceAlongPath } from "./movement";
+import { type RerouteReport, advanceAlongPath, rerouteReport } from "./movement";
 import {
   cardBehaviorRule,
   cardUnitStat,
@@ -287,6 +287,17 @@ export interface TurnReport {
    * command, which already knows what it did.
    */
   exploreEnded: ExploreEndReport[];
+  /**
+   * Every standing order that went round a blocked hex this resolution, in
+   * `state.units` sweep order (`RerouteReport`, `docs/flags.md` (xxxxxx) part
+   * 3).
+   *
+   * A *difference* for `exploreEnded`'s reason: once the walk is over, the
+   * piece stands somewhere its old route never went and the cells it crossed
+   * are gone. The interface slides the piece along them. `spendLeftoverMovement`
+   * is the one writer; a `moveUnit` that reroutes reports on its own result.
+   */
+  reroutes: RerouteReport[];
   /**
    * Every city the `healCities` phase found cut off, with what the siege cost
    * it (`SiegeReport`).
@@ -540,6 +551,7 @@ export function emptyTurnReport(): TurnReport {
     consecrations: [],
     routesEnded: [],
     exploreEnded: [],
+    reroutes: [],
     sieges: [],
     pillages: [],
     disbanded: [],
@@ -1437,8 +1449,11 @@ function spendLeftoverMovement(state: GameState, report: TurnReport): void {
     // already touches every unit — owns sweeping the key away.
     if (!path || path.length === 0) continue;
     if (unit.movesLeft <= 0) continue;
+    const from = { col: unit.col, row: unit.row };
     const result = advanceAlongPath(state, unit, path);
     collectCampBounties(report, unit, result.arrivals);
+    const reroute = rerouteReport(unit, from, result);
+    if (reroute !== null) report.reroutes.push(reroute);
   }
 }
 

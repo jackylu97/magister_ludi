@@ -789,10 +789,20 @@ describe('determinism', () => {
    * phase, so every resolution raises the revision as many times as before.
    * Checked by setting the version back to 141 with every D7 change in place,
    * which gives E4's hashes exactly.
+   *
+   * **The movement fixes (`docs/flags.md` (xxxxxx), schema 145 for now) moved
+   * both hashes, and the lengths by one character at seed 11 and twenty-one at
+   * seed 2026.** The version went from 142 to 145, and the walk now goes round
+   * a hex it has to rest on and may not (part 3). Three walks in this sweep do
+   * that: at seed 11 a barbarian warrior on turn 20; at seed 2026 seat 0's
+   * scout on turn 6 and a barbarian warrior on turn 20. The other two parts
+   * change nothing here: nobody here can take to the water, and no bot plays.
+   * Checked by printing the version as 142, which gives D7's hashes exactly
+   * with part 1 alone or part 2 alone in place, and these lengths with part 3.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '6d33f49c:188932',
-    2026: '9aaa14e5:188488',
+    11: '23e622fd:188931',
+    2026: '8fb8b5e0:188509',
   };
 
   for (const seed of [11, 2026]) {

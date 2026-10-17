@@ -19,7 +19,7 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(xxxxxx) Units stuck on water, and routing around a blocking unit: RULED, 2026-10-17, not built yet.**
+**(xxxxxx) Units stuck on water, and routing around a blocking unit: RULED, 2026-10-17; BUILT on branch `m-work` (schema 145, provisional).**
 - **Found while building the lake fix:** bot soldiers can sit on water, coast
   or lake, for many turns (up to about 60 in a test game). There are two
   causes, and both are older than the lake fix:
@@ -47,6 +47,19 @@ people.md` is the user's own version. The log of what each batch built is
   of the same stacking class, the one that blocks the mover: a military unit
   for a military unit, a civilian for a civilian. The build checks the game's
   stacking rules and reports what it found.
+- **As built:**
+  - The stacking rules: one military piece, one civilian and one ship to a hex
+    (`rules.stacking.perCategoryPerTile`); a caravan takes no slot and blocks
+    nobody; at sea a hex holds one piece that is not a ship, beside one ship;
+    a hex holding a piece of a seat at peace may be walked through but not
+    shared. The detour is taken whenever one of these leaves the piece no room
+    where it has to rest. So a stranger's piece at peace and a second
+    passenger at sea count as blocking too. A hostile soldier is a wall, and
+    the order is cleared as before.
+  - A route on dry land goes round on dry land. Going round one hex by sea
+    costs two landings, each a whole turn.
+  - The command's result names the cells a detour walked, and the board slides
+    the piece along them.
 
 **(wwwwww) A lake is water like the coast: RULED, 2026-10-16, not built yet.**
 The user: *"units should be able to embark onto lakes with the prerequisite
