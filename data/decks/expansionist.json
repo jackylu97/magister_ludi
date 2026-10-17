@@ -232,6 +232,19 @@
         { "kind": "foundingRider", "roads": true }
       ]
     },
+    "theWorkGangs": {
+      "name": "The Work Gangs",
+      "decks": ["expansionist"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "When the harvest is in, the village sends its young men to the roads.",
+      "text": "Towns of at least three citizens may spend a citizen to raise a worker. This shares the town's levy wait.",
+      "effects": [
+        { "kind": "levy", "use": "worker", "minPopulation": 3 }
+      ]
+    },
     "levyOfTheLand": {
       "name": "Levy of the Land",
       "decks": ["expansionist"],
@@ -681,6 +694,72 @@
           "where": "city",
           "production": 2,
           "scope": { "test": "connected" }
+        }
+      ]
+    },
+    "theBuildersLevy": {
+      "name": "The Builders' Levy",
+      "decks": ["expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Every town sends a cartload of stone to the king's great work.",
+      "text": "Towns may spend a citizen to send production equal to the food it took to grow it to a world wonder being built in another of your towns.",
+      "effects": [
+        { "kind": "levy", "use": "wonder" }
+      ]
+    },
+    "theLabourFeasts": {
+      "name": "The Labour Feasts",
+      "decks": ["expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The work ends with a song, and the song goes on all night.",
+      "text": "Needs a levy. After a town spends a citizen on a levy, it gains +1 culture for every wild tile it works, for ten turns. At most once every ten turns.",
+      "needsLevy": true,
+      "effects": [
+        {
+          "kind": "levy",
+          "after": {
+            "turns": 10,
+            "every": 10,
+            "effects": [
+              {
+                "kind": "pays",
+                "where": "city",
+                "basis": "count",
+                "count": "workedUnimprovedTiles",
+                "to": "culture",
+                "amount": 1
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "theGleaners": {
+      "name": "The Gleaners",
+      "decks": ["expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "What the reapers leave, the poor may gather.",
+      "text": "Needs a levy. After a town spends a citizen on a levy, it gains +3 food for ten turns. At most once every ten turns.",
+      "needsLevy": true,
+      "effects": [
+        {
+          "kind": "levy",
+          "after": {
+            "turns": 10,
+            "every": 10,
+            "effects": [
+              { "kind": "pays", "where": "city", "food": 3 }
+            ]
+          }
         }
       ]
     },
@@ -1155,6 +1234,71 @@
         }
       ]
     },
+    "theLabourRolls": {
+      "name": "The Labour Rolls",
+      "decks": ["expansionist"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The clerk writes down every name, and every name is a year of work.",
+      "text": "Needs a levy. +1% production and food for every two citizens you have levied this game, at most +30%.",
+      "needsLevy": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "production",
+          "percent": 1,
+          "stage": "empire",
+          "count": "citizensLevied",
+          "per": 2,
+          "max": 30
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "food",
+          "percent": 1,
+          "stage": "empire",
+          "count": "citizensLevied",
+          "per": 2,
+          "max": 30
+        }
+      ]
+    },
+    "theTerracesOfMoray": {
+      "name": "The Terraces of Moray",
+      "decks": ["expansionist"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Each ring of the terrace keeps a different season, and the farmers learn them all.",
+      "text": "Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen.",
+      "effects": [
+        {
+          "kind": "levy",
+          "use": "science",
+          "scope": { "test": "mountainAdjacent" }
+        }
+      ]
+    },
+    "theColonists": {
+      "name": "The Colonists",
+      "decks": ["expansionist"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The crowded town sends its younger sons to found a new one.",
+      "text": "Towns of at least six citizens may spend a citizen to raise a settler.",
+      "effects": [
+        { "kind": "levy", "use": "settler", "minPopulation": 6 }
+      ]
+    },
     "theWoodwrights": {
       "name": "The Woodwrights",
       "decks": ["expansionist"],
@@ -1189,7 +1333,8 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "Take them in the winter and give the spring back.",
-      "text": "After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns.",
+      "text": "Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns.",
+      "needsLevy": true,
       "effects": [
         {
           "kind": "levy",
@@ -1615,6 +1760,53 @@
         }
       ]
     },
+    "theMita": {
+      "name": "The Mit'a",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "A year of service on the great works, and then home to the village.",
+      "text": "Needs a levy. A citizen spent on a levy returns to its town twenty turns later.",
+      "needsLevy": true,
+      "effects": [
+        { "kind": "levy", "returnsAfter": 20 }
+      ]
+    },
+    "theSlackSeason": {
+      "name": "The Slack Season",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "After the harvest there are hands to spare.",
+      "text": "Needs a levy. Every twentieth turn, after the harvest, your towns may levy whatever their wait.",
+      "needsLevy": true,
+      "effects": [
+        { "kind": "levy", "noWaitEvery": 20 }
+      ]
+    },
+    "theTrainedBands": {
+      "name": "The Trained Bands",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "Drilled on the common every Sunday, and ready when the bell rings.",
+      "text": "Needs a levy. Units raised by a levy start as Veterans.",
+      "needsLevy": true,
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "rank": "veteran",
+          "class": { "category": "military" },
+          "levied": true
+        }
+      ]
+    },
     "theLandsGreatWork": {
       "name": "The Land's Great Work",
       "decks": ["expansionist"],
@@ -1820,9 +2012,14 @@
       "type": "military",
       "flavor": "When the war comes, every farm sends someone.",
       "text": "Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders.",
-      "note": "Not built yet: soldiers raised this way pay upkeep like any other, inside your borders or out.",
       "effects": [
-        { "kind": "levy", "use": "conscript", "everyAtWar": 1 }
+        { "kind": "levy", "use": "conscript", "everyAtWar": 1 },
+        {
+          "kind": "upkeepRebate",
+          "free": true,
+          "where": "ownTerritory",
+          "levied": "conscript"
+        }
       ]
     },
     "theGreatMigration": {

@@ -3116,8 +3116,12 @@ export function explainCard(player: Player, id: CardId, ctx: ValueContext) {
     nest('what its effects are worth', explainCardEffects(id, def.effects ?? [], ctx)),
   ];
   // What drafting it hands over (Dominion batch D5): a card whose whole text
-  // is a unit on the draft has no effects to price.
-  const drafted = onDraftWorth(id, ctx);
+  // is a unit on the draft has no effects to price. A card the seat already
+  // holds has handed its unit over, so the term is left out. Otherwise the
+  // slotting scorer, which reads this appraisal too, would seat a card that
+  // does nothing in a chair.
+  const alreadyDrafted = isOrderId(id) && player.statecraft.orders.includes(id);
+  const drafted = alreadyDrafted ? 0 : onDraftWorth(id, ctx);
   if (drafted !== 0) terms.push({ label: 'what drafting it hands over', value: drafted });
   const decks = decksOf(id);
   if (decks.length > 0) {

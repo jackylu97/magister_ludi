@@ -110,6 +110,7 @@ import { type ProjectId, isProjectId, projectDef, projectFinishes } from './proj
 import { leaderDef } from './leaderData';
 import {
   type FirstKind,
+  type LevyUse,
   type OrderId,
   type WindfallOccasion,
   governmentDef,
@@ -3337,12 +3338,18 @@ export function settleGrowthWindfall(
  *     citizen to place and a panel showing the old dots is showing a town with
  *     fewer people working than it has.
  *
+ * **One exception: a citizen coming home** (`options.riders: false`, The
+ * Mit'a, Expansionist batch E1). The town had that citizen before a levy took
+ * it, so its return is not growth, and no growth rider pays for it. Everything
+ * else that follows a citizen still happens.
+ *
  * Returns the population reached.
  */
 export function settlePopulationWindfall(
   state: GameState,
   city: City,
   points = 1,
+  options: { riders?: boolean } = {},
 ): number {
   const grant = Math.max(0, Math.floor(points));
   if (grant === 0) return city.population;
@@ -3350,7 +3357,9 @@ export function settlePopulationWindfall(
   // `settleGrowth`'s line, for a citizen that arrived by grant rather than by
   // harvest — the meters charge for it either way (batch M3, `slate.ts`).
   bumpEconomy(state);
-  for (let i = 0; i < grant; i++) payGrowthRider(state, city);
+  if (options.riders !== false) {
+    for (let i = 0; i < grant; i++) payGrowthRider(state, city);
+  }
   settleProductionWindfall(state, city);
   refreshCityDerived(state, city);
   return city.population;
@@ -4192,6 +4201,13 @@ export interface RealiseOptions {
    * experience adds on top. Ignored for a building.
    */
   rank?: RankId;
+  /**
+   * **Which levy raised the piece** (Expansionist batch E1). A parameter for
+   * `rank`'s reason: only the levy knows. Handed to `createUnit`, which writes
+   * it as `Unit.levied`, and to the starting-experience reader, so The Trained
+   * Bands' Veteran start reaches only a levied piece. Ignored for a building.
+   */
+  levied?: LevyUse;
 }
 
 export interface RealisedItem {
@@ -4373,6 +4389,7 @@ export function realiseItem(
     undefined,
     options.stamp,
     options.bought,
+    options.levied,
   );
   // The maintenance mark, and the *only* thing `options` is for. A gift is a
   // gift: a Levy's spearman and Camp Followers' stray cost their empire nothing
@@ -4426,7 +4443,7 @@ export function realiseItem(
   // ranks it reached are settled below, after the completion riders, because a
   // unit gained as a Veteran counts as earning the rank (the user's ruling of
   // 2026-10-16).
-  const birth = cardBirthExperience(state, city, item.id, options.bought);
+  const birth = cardBirthExperience(state, city, item.id, options.bought, options.levied);
   const startRank = higherRank(birth.rank, options.rank ?? null);
   const startExperience = (startRank === null ? 0 : rankThreshold(startRank)) + birth.experience;
   const ranksAtBirth = grantExperience(state, unit, startExperience);

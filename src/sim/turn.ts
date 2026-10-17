@@ -143,6 +143,7 @@ import {
 } from "./statecraft";
 // Straight from the evaluator: the drill phase (Dominion batch D1).
 import { drillUnits } from "./statecraft/evaluator";
+import { returnLeviedCitizens } from "./levies";
 import { type PeaceOutcome, settlePeace } from "./diplomacy";
 import { pruneTruces } from "./wars";
 // The bargains' own broom, beside the truces': both sweep rows whose absolute
@@ -603,6 +604,15 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // it is made (`pressLump`), so there is nothing standing on the board with
     // an expiry. The phase and the bomb share one converter, `bankPressure`.
     run: spreadReligion,
+  },
+  {
+    name: "levyReturns",
+    // Citizens a levy took come home when their turn comes (The Mit'a,
+    // Expansionist batch E1). **Before `collectYields`**, so a returned
+    // citizen is placed and works this turn's yields like any other. A return
+    // is written as an absolute turn when the levy is spent, so this phase is a
+    // comparison and never a countdown. See `returnLeviedCitizens`.
+    run: (state) => returnLeviedCitizens(state),
   },
   {
     name: "collectYields",

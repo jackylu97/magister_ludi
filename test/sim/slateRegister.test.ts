@@ -199,6 +199,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   { field: 'enemiesKilled', pattern: /\.enemiesKilled\s*(=[^=]|\+=)/ },
   { field: 'unitsLost', pattern: /\.unitsLost\s*(=[^=]|\+=)/ },
   { field: 'citiesCaptured', pattern: /\.citiesCaptured\s*(=[^=]|\+=)/ },
+  // Expansionist batch E1: the citizens an empire has spent on levies, which
+  // The Labour Rolls' `citizensLevied` count reads.
+  { field: 'citizensLevied', pattern: /\.citizensLevied\s*(=[^=]|\+=)/ },
   // Dominion batch D5: the great people an empire has gained, in all and by
   // family, which the `greatPeopleGained` count reads (The Mural Crown).
   {
@@ -323,6 +326,11 @@ const ANNOUNCING = new Set([
   // `citiesCaptured`.
   'combat.ts#tallyFall',
   'combat.ts#captureCity',
+  // Expansionist batch E1: the levy verb banks The Terraces of Moray's science,
+  // and `recordLevy` is the one writer of `Player.citizensLevied`, which The
+  // Labour Rolls' count reads.
+  'levies.ts#levyAt',
+  'levies.ts#recordLevy',
   // Dominion batch D5: the one writer of the great-people records the
   // `greatPeopleGained` count reads, and the one routine that banks science
   // toward a technology that is not the one under research (Copying the

@@ -138,13 +138,23 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   kind, read in `evaluator.ts`): `production` (hammers equal to the food the
   citizen took to grow), `muster` (best melee unit, trained), `opus` (the same
   hammers sent to the town with the Magnum Opus at the front of its queue),
-  `conscript` (best melee unit, not trained). A card's `after` hangs timed
-  effects on the town (Seasonal Levies). One levy per town per
+  `conscript` (best melee unit, not trained), and since Expansionist batch E1
+  `worker` and `settler` (not trained), `science` (beakers equal to that food)
+  and `wonder` (that food as hammers, sent to the nearest other town with a
+  world wonder at the front of its queue). A card's `after` hangs timed effects
+  on the town (Seasonal Levies); `returnsAfter` sends the citizen home later
+  (The Mit'a: `CityLevyRecord.returns`, given back by the `levyReturns` phase
+  with no growth riders); `noWaitEvery` lifts the wait on some turns of the
+  world's calendar (The Slack Season). One levy per town per
   `rules.cities.levy.everyTurns`, shared by every use, from the absolute stamp
   `City.levy.turn`; a card may shorten it for its own use at war. The citizen
-  leaves through `loseCitizen` (the famine's routine). Refusals are
-  `levyError`; the city panel's "Levy a citizen" menu is `src/ui/levyMenu.ts`.
-  Bots do not levy yet.
+  leaves through `loseCitizen` (the famine's routine), and `recordLevy` counts
+  it (`Player.citizensLevied`, The Labour Rolls). A piece a levy raises carries
+  the use as `Unit.levied`, which a stamp or an upkeep rebate can narrow to (The
+  Trained Bands, The General Levy). Cards marked "Needs a levy"
+  (`OrderDef.needsLevy`) are dealt only to a seat holding a card that grants a
+  levy. Refusals are `levyError`; the city panel's "Levy a citizen" menu is
+  `src/ui/levyMenu.ts`. Bots do not levy yet.
 
 ## Units, movement, combat, siege
 

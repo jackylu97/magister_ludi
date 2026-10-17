@@ -427,11 +427,14 @@ describe('the schema, as landed', () => {
     // nine more. Nine new Dominion Orders came live. The Proconsuls was
     // reworked in place and was already live. Its two Doctrines are not
     // Orders, so they add nothing here.
+    // **And Expansionist batch E1** (the levies): ten more. Ten new
+    // Expansionist rows came live; Seasonal Levies and The General Levy were
+    // changed in place and were already live.
     // **And Dominion batch D5** (units gained and new moments): twelve more.
     // Nine new Dominion Orders and three new shared rows came live. Its two
     // Doctrines are not Orders.
-    expect(live).toBe(441);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(441);
+    expect(live).toBe(451);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(451);
   });
 
   /**
@@ -623,10 +626,13 @@ describe('the schema, as landed', () => {
     // 135 since D4: twelve Dominion cards about unrest, the writ and the game's
     // records, and a new record, so a v134 log's picks name cards this build
     // never dealt.
-    // 136 since D5: fourteen Dominion cards that raise units or pay on new
-    // moments, and a new record, so a v135 log's picks name cards this build
+    // 136 since E1: the Expansionist levy cards, three new fields and a new
+    // end-of-turn phase, so a v135 log's picks name cards this build deals
+    // differently and its resolutions run one phase fewer.
+    // 137 since D5: fourteen Dominion cards that raise units or pay on new
+    // moments, and a new record, so a v136 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(136);
+    expect(SCHEMA_VERSION).toBe(137);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

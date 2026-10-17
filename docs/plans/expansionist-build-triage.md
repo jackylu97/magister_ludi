@@ -2,6 +2,8 @@
 
 **Status:** written 2026-10-16 by a read-only triage agent, before any E batch. It is the plan for the user's ruling of 2026-10-16 (*"let's implement the expansionist deck, deferring any that require a new UX/user interaction"*, recorded at the end of `docs/plans/expansionist-builds.md`). The readings in "Rule ambiguities" are the ones the build will use unless the user changes them here. Mark any you disagree with, as on the deck sheets.
 
+**Built:** E0 (the types and the 37 data-only cards, `39cfb0ba`) and E1 (the twelve levy cards, `cd48080b`). The readings each batch applied are below; a reading a batch added is marked with the batch.
+
 Source: `docs/decks/expansionist.md` as of commit `96681fb4` (branch `decks`), which holds the user's three passes of 2026-10-16 and the Keep ruling. Shapes were checked against `src/sim/statecraftData.ts` and `src/sim/statecraft/evaluator.ts` as D3 left them (branch `d2-work`, merged into `decks` as `e9fed7be`), the sim modules they read (`levies.ts`, `cities.ts`, `improvements.ts`, `commissions.ts`, `census.ts`, `meters.ts`, `pathfind.ts`, `terrainData.ts`, `buildingData.ts`), and `src/ai/bot.ts` and `src/ai/value.ts` for the seating.
 
 **Groups:**
@@ -317,6 +319,9 @@ Every batch edits `src/sim/statecraftData.ts`, `src/sim/statecraft/evaluator.ts`
 44. **The Domesday Survey.** **Recommend:** each town gains five times the improved or tended hexes it works, into its own front row. The great engineer stays as built.
 45. **The Frontier Militia.** **Recommend:** Dominion's reading 2. A unit a card raises for free costs no upkeep, and the text says so ("It costs no upkeep").
 46. **The Farming Garrisons.** **Recommend:** Dominion's reading 25 (a fortified garrison counts for the town's centre hex). The +2 applies in attack and defence while the unit is fortified.
+47. **The Work Gangs and The Colonists: trained or not, and which row.** (E1) **Applied:** a worker or settler a levy raises is gained, not trained, like The General Levy's conscript: it pays the cards for a unit gained, but it does not climb the escalation ladder or count toward the trained tally. Only The Muster of the Fields' unit counts as trained, because its text says so. The row raised is the first worker or settler row the empire can build, read by its model class, so a leader's own worker would be the one raised.
+48. **The Builders' Levy: the Magnum Opus.** (E1) **Applied:** the Opus is not a world wonder (its row has no wonder mark), so this levy never sends hammers there; The Corvée does. "Nearest" is by hex distance from the levying town, and a tie goes to the town founded first, as D3 reads "nearest".
+49. **The Terraces of Moray: how the science lands.** (E1) **Applied:** banked at once into the empire's research, as a one-time grant, so no science percentages apply.
 
 **Not yet ruled** (the sheet's "Still open" list, not ambiguities): the gap rule (the user builds the cards as written and reviews the rule later); the one-effect trims of 2026-10-13; the retirement of The Hydraulic Commonwealth's row; and Granary Levies' missing full stop. No batch touches them until the user rules.
 

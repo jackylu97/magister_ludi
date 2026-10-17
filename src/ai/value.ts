@@ -3006,6 +3006,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return effect.amount * capped * ctx.ai.weights.renown;
     }
     case 'upkeepRebate':
+      // A rebate on the pieces a levy raised (The General Levy, Expansionist
+      // batch E1) reaches none of this bot's pieces: bots do not levy yet.
+      if (effect.levied !== undefined) return 0;
       // A rebate is gold that never leaves, priced at the same pressure-adjusted
       // rate the bill is charged at — so a card that pays the army's wages
       // becomes the best card in the hand exactly when the treasury is bleeding.
@@ -3306,6 +3309,9 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // split. Half is written down as the stand-in it is — an honest halving of
       // a line whose other half is the plan's arithmetic — rather than the full
       // reading, which would price a hired sword as a standing army.
+      // A stamp on the pieces a levy raises (The Trained Bands, Expansionist
+      // batch E1) reaches none: bots do not levy yet.
+      if (effect.levied !== undefined) return 0;
       const bought = effect.bought === undefined ? 1 : 0.5;
       const strength =
         (effect.strength ?? 0) * bought * ctx.ai.weights.military * (1 + ctx.threat);

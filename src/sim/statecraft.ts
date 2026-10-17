@@ -136,6 +136,7 @@ export {
   cardUnitStat,
   cardUnlocksBuilding,
   cardUnlocksImprovement,
+  holdsLevyGrant,
   holdsTendedUnlock,
   cardUnlocksUnit,
   charterOpensUnit,

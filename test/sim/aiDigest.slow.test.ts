@@ -638,34 +638,63 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * ---
  *
- * **Dominion batch D5 (schema 136), units gained and new moments.** Duel
- * `6b98d500:290747` → `161786a7:291108`, standard `baf6c127:961721` →
- * `83dff662:954606`. Four things moved the digests:
+ * **Expansionist batch E1 (schema 136): the levies, merged after D4.** Duel
+ * `6b98d500:290747` → `1b08ba49:270185`, standard `baf6c127:961721` →
+ * `430a6ef2:959302`. E1 was built on a side branch at schema 135, without D4,
+ * and the literals it pinned there (duel `213bf539:269774`, standard
+ * `ad0181de:983942`) do not apply to this tree. Three things moved the
+ * digests:
  *
- *   · the version, 135 to 136;
+ *   · the cards. Ten Expansionist rows join the deck, and seven cards (six of
+ *     them new) are dealt only to a seat holding a card that grants a levy.
+ *     From the first draw that meets one of them, the seats hold different
+ *     cards;
+ *   · the new `levyReturns` phase, which raises the revision once more every
+ *     turn;
+ *   · the version, 135 to 136.
+ *
+ * Bots do not levy yet, so no citizen is levied, no piece carries a levy mark
+ * and no citizen is due home on either board, and no seat holds an E1 card at
+ * turn 120. Checked by taking E1's movers out (the deck file as D4 left it, the
+ * phase removed, the version at 135), which gives D4's digests exactly on both
+ * boards. The duel game adopts 12 governments and the standard one 15.
+ * Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **Dominion batch D5 (schema 137), units gained and new moments, merged after
+ * E1.** Duel `1b08ba49:270185` → `31cc28b2:303960`, standard `430a6ef2:959302`
+ * → `87201d9d:969761`. D5 was built at schema 136, without E1, and the literals
+ * it pinned there (duel `161786a7:291108`, standard `83dff662:954606`) do not
+ * apply to this tree. Four things moved the digests:
+ *
+ *   · the version, 136 to 137;
  *   · the fourteen cards. Nine Orders join the Dominion pool and three join
  *     the shared pool, and two Doctrines join the pools: Total Mobilisation at
  *     tier 18, and The Landsturm, the first Doctrine a tier-29 adoption
  *     offers. At turn 120 two seats on each board have The Gathering Host
- *     seated. On the duel board one seat holds Total Mobilisation and The Sack
- *     (not seated), and one holds The Sword of State; on the standard board
- *     three seats hold Total Mobilisation;
+ *     seated. On the duel board two seats hold Total Mobilisation, and three
+ *     hold The Sword of State, one of them seated. On the standard board four
+ *     seats hold Total Mobilisation, and one of them also holds The Landsturm,
+ *     has The Longbowmen seated and holds The Open Muster, not seated;
  *   · the new record `Player.greatPeopleByFamily`, written for every great
  *     person an empire gains;
  *   · the bots' new readings (`src/ai/value.ts`, `src/ai/bot.ts`): the four new
  *     moments, the new grants, the citizen a muster costs, and what drafting a
- *     card hands over.
+ *     card hands over. That last term counts only for a card the seat does not
+ *     hold yet, so a held card that does nothing seated is not worth its unit
+ *     again (fixed at the merge; it moved the duel digest and not its length).
  *
- * Checked by taking all four back out (the two deck files as D4 left them,
- * the version at 135, the record not written, and the bots' readings as they
- * were), which gives D4's digests exactly on both boards. Everything else D5
+ * Checked by taking all four back out (the two deck files as E1 left them,
+ * the version at 136, the record not written, and the bots' readings as they
+ * were), which gives E1's digests exactly on both boards. Everything else D5
  * changed stayed in for that run: the new moments, the `unitGained` tally and
  * the new emptiness test in `payBattleRiders` change nothing without the
  * cards. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '161786a7:291108',
-  standard: '83dff662:954606',
+  duel: '31cc28b2:303960',
+  standard: '87201d9d:969761',
 };
 
 /**

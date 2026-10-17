@@ -2478,6 +2478,17 @@ export type CountKind =
    */
   | 'hexesPillaged'
   /**
+   * **Citizens this empire has spent on levies, across the whole game**, for
+   * The Labour Rolls (Expansionist batch E1).
+   *
+   * Answered off a record (`Player.citizensLevied`), for `clearedCamps`'
+   * reason: a citizen spent on a levy leaves nothing on the board to count. One
+   * for each levy, whatever it bought, and counted from the first levy of the
+   * game whether or not the card was held then. Written in one place,
+   * `recordLevy` (`levies.ts`).
+   */
+  | 'citizensLevied'
+  /**
    * **Units this empire's units have killed in the game, barbarians included**:
    * The Captured Arms (Dominion batch D4, the triage's reading 7).
    *
@@ -5800,6 +5811,15 @@ export interface CardUnitStampEffect {
    * unit earns a rank.
    */
   rank?: RankId;
+  /**
+   * **Only a unit a levy raised**, for The Trained Bands (Expansionist batch E1).
+   * `true` reaches a unit raised by any levy; a use reaches only units raised
+   * by a levy of that use. A levy says which use raised the unit when it
+   * creates it (`RealiseOptions.levied`, written as `Unit.levied`), so this is
+   * asked of the birth and never of a unit already standing in the field.
+   * Absent reaches every unit, as every row written before it does.
+   */
+  levied?: true | LevyUse;
 }
 
 /**
@@ -6667,12 +6687,39 @@ export interface CardDrillEffect {
  *   · `opus` — the same hammers as `production`, sent to the empire's town that
  *     has the Magnum Opus at the front of its queue (The Corvée);
  *   · `conscript` — the best melee unit, not counted as trained (The General
- *     Levy).
+ *     Levy);
+ *   · `worker` and `settler`: the empire's own worker or settler, not counted
+ *     as trained (The Work Gangs, The Colonists; Expansionist batch E1). The
+ *     row is the first the empire can build of that model class, so a leader's
+ *     own worker would be the one raised;
+ *   · `science`: beakers for the empire, one for each point of food it took to
+ *     grow the citizen (The Terraces of Moray);
+ *   · `wonder`: the same hammers as `production`, sent to the nearest other
+ *     town of the empire with a world wonder at the front of its queue (The
+ *     Builders' Levy). The Magnum Opus is not a world wonder: The Corvée sends
+ *     hammers there.
  */
-export type LevyUse = 'production' | 'muster' | 'opus' | 'conscript';
+export type LevyUse =
+  | 'production'
+  | 'muster'
+  | 'opus'
+  | 'conscript'
+  | 'worker'
+  | 'settler'
+  | 'science'
+  | 'wonder';
 
 /** Every levy use, in the order the city panel lists them. */
-export const LEVY_USES: readonly LevyUse[] = ['production', 'muster', 'opus', 'conscript'];
+export const LEVY_USES: readonly LevyUse[] = [
+  'production',
+  'muster',
+  'opus',
+  'conscript',
+  'worker',
+  'settler',
+  'science',
+  'wonder',
+];
 
 /**
  * **A card that lets a town spend a citizen** (batch L), or reacts when one
@@ -6687,6 +6734,9 @@ export const LEVY_USES: readonly LevyUse[] = ['production', 'muster', 'opus', 'c
  *   · `after` — effects hung on the town that just levied, for `turns` turns, at
  *     most once every `every` turns per town (Seasonal Levies). Stored on
  *     `City.timed` like a rite's, so the ordinary readers fold them.
+ *   · `returnsAfter` and `noWaitEvery`: the citizen coming home later (The
+ *     Mit'a), and the turns on which a town may levy with no wait (The Slack
+ *     Season). Expansionist batch E1.
  *
  * Every levy shares one waiting period per town, `rules.cities.levy.everyTurns`.
  * `everyAtWar` shortens it for this use while the empire is at war with another
@@ -6717,14 +6767,33 @@ export interface CardLevyEffect {
   scope?: CityScope;
   /**
    * **The rank a unit raised under this row starts at** — The Devshirme's "as a
-   * Veteran" (Dominion batch D1). Read only by the two uses that raise a unit
-   * (`muster`, `conscript`), handed to `realiseItem` as `RealiseOptions.rank`,
+   * Veteran" (Dominion batch D1). Read only by the uses that raise a unit
+   * (`muster`, `conscript`, `worker`, `settler`), handed to `realiseItem` as
+   * `RealiseOptions.rank`,
    * and combined there with the cards' own starting experience
    * (`CardUnitStampEffect.rank`): the higher of the two ranks applies.
    */
   rank?: RankId;
   /** What a levy leaves on the town that raised it. */
   after?: { turns: number; every: number; effects: CardEffect[] };
+  /**
+   * **The citizen comes home** after this many turns, for The Mit'a
+   * (Expansionist batch E1). `levyAt` writes the return turn on the town that
+   * levied (`CityLevyRecord.returns`, an absolute turn), and the `levyReturns`
+   * phase gives the citizen back when that turn comes. The return is written
+   * when the levy is spent, so it happens even if the card has left its chair
+   * by then. If two rows say it, the shortest wait applies, and one citizen
+   * returns per levy.
+   */
+  returnsAfter?: number;
+  /**
+   * **A turn with no wait**, for The Slack Season (Expansionist batch E1). On
+   * every turn of the world's calendar divisible by this number, a town may
+   * levy however long ago it last did. Only the wait is lifted: a use's
+   * town-size floor still applies, and a levy taken then starts the ordinary
+   * wait again.
+   */
+  noWaitEvery?: number;
 }
 
 /**
@@ -7293,6 +7362,14 @@ export interface CardUpkeepRebateEffect {
   free?: boolean;
   /** Which pieces. Absent reaches every one this empire pays for. */
   class?: UnitFilter;
+  /**
+   * **Only pieces a levy raised**, for The General Levy's "units raised this
+   * way cost no upkeep" (Expansionist batch E1). `true` reaches a piece raised by
+   * any levy; a use reaches only pieces raised by a levy of that use. Read off
+   * the piece's own mark (`Unit.levied`), which a levy writes when it creates
+   * the piece. Absent reaches every piece, as every row written before it does.
+   */
+  levied?: true | LevyUse;
   /**
    * Where the piece must be standing. Absent means anywhere.
    *
@@ -8265,6 +8342,16 @@ export interface OrderDef extends CardDefBase {
    * card already held keeps its chair.
    */
   needsTendedWork?: true;
+  /**
+   * **Dealt only to a seat that holds a card granting a levy**: the
+   * Expansionist cards marked "Needs a levy" on the deck's sheet (the user's
+   * ruling of 2026-10-16; Expansionist batch E1). A card grants a levy when one
+   * of its `levy` effects names a use (`CardLevyEffect.use`); the card may sit
+   * in a chair or wait in the collection. Read in `eligibleFor`
+   * (`statecraft/draft.ts`), so the gate is on the deal only: a card already
+   * held keeps its chair. `needsTendedWork`'s twin.
+   */
+  needsLevy?: true;
 }
 
 /** The escalating meter, and the seal. Every number the ladder is made of. */

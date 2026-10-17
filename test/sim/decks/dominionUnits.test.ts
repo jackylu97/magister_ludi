@@ -21,7 +21,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { scoreCard, valueContext } from '../../../src/ai/bot';
+import { explainCard, scoreCard, valueContext } from '../../../src/ai/bot';
 import { foundCityAt, raiseFreeUnit } from '../../../src/sim/cities';
 import { applyCombat, previewCombat } from '../../../src/sim/combat';
 import { applyCommand } from '../../../src/sim/commands';
@@ -533,5 +533,23 @@ describe('Dominion D5 — words and the bot', () => {
     addBuilding(state, capital, 'monument');
     touch(state);
     expect(worth('valhalla')).toBeGreaterThan(0);
+  });
+
+  it('prices the unit a card hands over on the draft only while the card is not yet held', () => {
+    // The slotting scorer reads the same appraisal, so a held card that does
+    // nothing seated must not be worth its draft grant again.
+    const state = flat();
+    foundCityAt(state, 0, at(state, 1, 1));
+    const player = seat(state, 0);
+    const granted = (id: string): boolean =>
+      explainCard(player, id as OrderId, valueContext(state, player)).terms.some(
+        (term) => term.label === 'what drafting it hands over',
+      );
+    expect(granted('theSwordOfState')).toBe(true);
+    expect(granted('theCleruchy')).toBe(true);
+    player.statecraft.orders.push('theSwordOfState' as OrderId, 'theCleruchy' as OrderId);
+    touch(state);
+    expect(granted('theSwordOfState')).toBe(false);
+    expect(granted('theCleruchy')).toBe(false);
   });
 });

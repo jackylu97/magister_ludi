@@ -314,6 +314,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Beating of the Bounds | 0 | ● | S | Each town you found claims one extra wild hex of your choice next to its borders. |
 | The Pyramid Builders | 0 | ● | S | +25% production toward wonders in your capital. |
 | The Road Home | 0 | ● | S | Each town you found is joined to your nearest town by road. |
+| The Work Gangs | 0 | ● | S | Towns of at least three citizens may spend a citizen to raise a worker. This shares the town's levy wait. |
 | Levy of the Land | 1 | ◆ | S | Cities may spend one citizen to gain production equal to the food it took to grow that citizen. A city may levy once every five turns. |
 | Tinkers' Guild | 1 | ● | S | Workers you produce or purchase gain +1 charge. |
 | The Old Songs | 1 | ● | S | Worked unimproved land gains +2 culture. |
@@ -334,6 +335,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Wild Marches | 1 | ● | P | +1 culture for every four wild hexes you own. |
 | The Quiet Provinces | 1 | ◆ | P | Each town gains +1 production for every three points of spare authority, at most +3. |
 | The Road Towns | 1 | ● | P | Towns joined to your capital by road gain +2 production. |
+| The Builders' Levy | 1 | ◆ | S | Towns may spend a citizen to send production equal to the food it took to grow it to a world wonder being built in another of your towns. |
+| The Labour Feasts | 1 | ◆ | S | Needs a levy. After a town spends a citizen on a levy, it gains +1 culture for every wild tile it works, for ten turns. At most once every ten turns. |
+| The Gleaners | 1 | ● | S | Needs a levy. After a town spends a citizen on a levy, it gains +3 food for ten turns. At most once every ten turns. |
 | The Watercourses | 2 | ◆ | S | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step. |
 | The Highlands | 2 | ● | S | Mines and quarries on hills gain +2 science and +1 production. |
 | The Coast | 2 | ● | S | Worked fishing boats gain +3 food and +3 culture. |
@@ -349,8 +353,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Harbour Cities | 2 | ● | P | Coastal towns gain +1 culture for every two citizens. |
 | The Milestones | 2 | ◆ | P | +1% production and gold for every three road hexes you have paved, at most +30%. |
 | The Teeming Realm | 2 | ◆ | P | +1% production and food for every ten citizens in your empire, at most +30%. |
+| The Labour Rolls | 2 | ◆ | P | Needs a levy. +1% production and food for every two citizens you have levied this game, at most +30%. |
+| The Terraces of Moray | 2 | ◆ | S | Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen. |
+| The Colonists | 2 | ◆ | S | Towns of at least six citizens may spend a citizen to raise a settler. |
 | The Woodwrights | 3 | ○ | S | Forest and jungle chops grant 150% more production. |
-| Seasonal Levies | 3 | ◆ | S | After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. |
+| Seasonal Levies | 3 | ◆ | S | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. |
 | The Long Tending | 3 | ○ | S | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. |
 | The Mountain Schools | 3 | ◆ | P | Towns beside a mountain gain +15% science. Worked mines and quarries beside a mountain gain +2 science. |
 | A Court of Engineers | 3 | ○ | S | Gain +50% renown, but great-person offers contain only great engineers. |
@@ -366,6 +373,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Assay Office | 3 | ◆ | S | Each seam you surface grants 60 science. |
 | The Stationes | 3 | ◆ | S | Land units gain +3 strength while they stand in a town connected to your capital by road. |
 | The Managed Wild | 3 | ◆ | P | Needs tended land. Each town gains +5% food for every tended tile in its borders, at most +25%. |
+| The Mit'a | 3 | ○ | S | Needs a levy. A citizen spent on a levy returns to its town twenty turns later. |
+| The Slack Season | 3 | ◆ | S | Needs a levy. Every twentieth turn, after the harvest, your towns may levy whatever their wait. |
+| The Trained Bands | 3 | ◆ | S | Needs a levy. Units raised by a levy start as Veterans. |
 | The Land's Great Work | 4 | ○ | S | The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%. |
 | The Garden of the World | 4 | ○ | S | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. |
 | The Corvée | 4 | ○ | S | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. |
@@ -693,7 +703,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Land's Great Work** — For now the bonus counts the citizens of your whole empire rather than its large towns.
 - **The Heartland** — A reward cannot yet mark one town for the rest of the game. † one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good
 - **The Master of Works** — For now a great engineer's act simply pays half as much again, wherever it is spent.
-- **The General Levy** — Not built yet: soldiers raised this way pay upkeep like any other, inside your borders or out.
 - **The Great Migration** — No rule yet moves a citizen from one town to another, let alone between empires. † unhappy foreign towns near your border lose citizens to your happier towns
 - **The Encroaching Fields** — A hex never changes hands between empires except when its town is captured. † large towns take unworked hexes from the borders of smaller foreign towns beside them
 - **The Domesday Survey** — For now the whole production reward lands in your capital rather than in each town.

@@ -266,6 +266,7 @@ Every group-2 batch edits `src/sim/statecraftData.ts`, `src/sim/statecraft/evalu
 52. **Total Mobilisation: "while at war" and "every five turns".** **Recommend:** at war with another empire (the `atWar` condition), on the turns of the world calendar that divide by five, as the other musters (reading 29). "Grow 25% faster" is +25% to the food surplus that goes toward growth (`growthSurplus`). **Applied in D5.**
 53. **Valhalla: what counts.** **Recommend:** the towns that hold a Monument when the unit dies (`buildingsOfKind`). "Dies" is the moment The Funeral Games pays on: a unit of yours lost in a fight. **Applied in D5.**
 54. **The State Forges, The Open Muster, The Sword of State and The Landsturm: "the best melee unit you can build".** **Recommend:** `bestMeleeFor`, the reading The King's Levy uses. If there is none, nothing is raised. The unit is free: it costs no upkeep and does not raise the price of the next unit of its type. It counts as gained, so the cards that pay on gaining a unit (Muster Rites, The Art of War) pay on it. **Applied in D5.**
+55. **Total Mobilisation beside Expansionist's levy cards: is its citizen a levy?** **Recommend:** no. The muster takes the citizen through `loseCitizen`, as a levy does, but it is not a levy. It does not count for The Labour Rolls (`Player.citizensLevied`), it does not start or share the town's levy wait, its unit carries no levy mark (The Trained Bands, The General Levy), and it hangs no levy aftermath (Seasonal Levies, The Gleaners, The Labour Feasts). **Applied in D5**, and found at the merge with Expansionist batch E1.
 
 **Not yet ruled** (the sheet's "Still open" list, not ambiguities): Combined Arms' second clause; the endless host's three Doctrines (The Servian Reforms, Weight of Numbers, The Laws of Lord Shang); The Plunder Economy and The Consular Roads; The Captured Arms against The Art of War; and the Doctrine-to-government pairing (C3). Their texts may change before the build.
 
@@ -303,9 +304,6 @@ What is still open after batches D1 to D5, and who it belongs to. A batch that c
 - D2: the generated words for a strength line leave out the side it applies to, so Interior Lines' +4 does not say "when attacking". The card's own text does.
 - D4: the settler's founding preview does not show a scoped city price, such as The Universal Monarchy's doubled price. This is the stated cut in `prospectAuthorityCost` (`meters.ts`) for every scoped `cityCost` row.
 - D1 and D2: `cities.ts`, `levies.ts` and `combat.ts` import a few evaluator functions from `statecraft/evaluator` directly instead of through the `statecraft.ts` index.
-
-**Other decks' sheets:**
-- The Scientific sheet still marks Copying the Enemy `new`, and the Magisterial sheet marks The Sword of State and The New Code `new`. D5 built all three as shared rows in `data/decks/common.json`. Those sheets are not sorted, so no test reads their statuses.
 
 **Dominion cards still to build:**
 - D3's two Doctrines, The Plunder Economy and The Scourge of God, waited for C3's Doctrine model. C3 has landed, so a later batch can build them.

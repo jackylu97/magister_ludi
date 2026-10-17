@@ -481,6 +481,10 @@ describe("end-of-turn pipeline", () => {
       // turn flies its new banner before `collectYields` pays anybody for it.
       // See `spreadReligion` (`docs/religion-v2.md`).
       "spreadReligion",
+      // Citizens a levy took come home when their turn comes (The Mit'a,
+      // Expansionist batch E1), before `collectYields`, so a returned citizen
+      // works this turn's yields. See `returnLeviedCitizens`.
+      "levyReturns",
       "collectYields",
       "growCities",
       // A town's own renown quietly takes a citizen out of the fields and puts
@@ -897,10 +901,13 @@ describe("the research queue field", () => {
     // 135 since D4: twelve Dominion cards about unrest, the writ and the game's
     // records, and a new record, so a v134 log's picks name cards this build
     // never dealt.
-    // 136 since D5: fourteen Dominion cards that raise units or pay on new
-    // moments, and a new record, so a v135 log's picks name cards this build
+    // 136 since E1: the Expansionist levy cards, three new fields and a new
+    // end-of-turn phase, so a v135 log's picks name cards this build deals
+    // differently and its resolutions run one phase fewer.
+    // 137 since D5: fourteen Dominion cards that raise units or pay on new
+    // moments, and a new record, so a v136 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(136);
+    expect(SCHEMA_VERSION).toBe(137);
   });
 });
 
