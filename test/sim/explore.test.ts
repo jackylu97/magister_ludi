@@ -772,10 +772,18 @@ describe('determinism', () => {
    * board. Checked by taking E2's and E3's movers out (the deck file as D6 left
    * it, the phase removed, the version at 138 and the town record not
    * written), which gives D6's hashes exactly.
+   *
+   * **Expansionist batch E4 moved the hash and not the length** at both seeds.
+   * Two things moved it: the version, 140 to 141, and the two new phases,
+   * `encroachment` and `migration`, which raise the revision twice more a turn.
+   * Nobody here drafts a card, so the new cards, rows and moves never reach
+   * this board. Checked by taking E4's movers out (the deck file, the
+   * improvement table and `data/ai.json` as E3 left them, the two phases
+   * removed and the version at 140), which gives E3's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '105a5606:188932',
-    2026: 'de7b7647:188488',
+    11: '40c8f4d5:188932',
+    2026: 'b8a1c39c:188488',
   };
 
   for (const seed of [11, 2026]) {

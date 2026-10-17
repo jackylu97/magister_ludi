@@ -136,7 +136,11 @@ import {
   moveCost,
 } from './terrainData';
 import { isCoastal } from './water';
-import { type UnitDef, isCivilian, isCombatant, isExplorer, isNaval, unitDef } from './unitData';
+import { type UnitDef, isCivilian, isCombatant, isExplorer, isNaval, laysWorks, unitDef } from './unitData';
+// Expansionist batch E4, straight from the evaluator rather than through the
+// index above: the build splits a re-export across a cycle into chunks it warns
+// about.
+import { workerWaters } from './statecraft/evaluator';
 import { fullMovement, hasStackingRoom, stacksFreely, undefendedCiviliansOn } from './units';
 
 /** An offset cell. The wire/serialisation form of a position. */
@@ -463,6 +467,19 @@ export interface MoveProfile {
    */
   ignoresWoods?: boolean;
   /**
+   * The water this piece may **step onto as if embarked**, Sailing or not: The
+   * Fish Traps' lakes, for a worker whose seat holds the charter (Expansionist
+   * batch E4; the triage's reading 27). `workerWaters` (`statecraft/evaluator.ts`)
+   * names the terrains, and only a piece that lays works (`laysWorks`) is
+   * asked.
+   *
+   * Hoisted for `freeLanding`'s reason, and read in `tileMoveCost`, so the
+   * highlight, the estimate and the march agree. A shore step onto it is a shore
+   * step, so it ends the march as embarking does. Written only when it holds a
+   * terrain.
+   */
+  wades?: readonly TerrainId[];
+  /**
    * What one step **along a road** costs this mover — `roadStepCost`, with the
    * mover's empire's own `roadStepCost` percentage on it (Machinery's −40, a
    * third becoming a fifth).
@@ -721,6 +738,10 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     owner !== undefined && cardBehaviorRule(state, owner.id, 'woodsWalk')
       ? { ignoresWoods: true as const }
       : {};
+  // The Fish Traps' lakes (Expansionist batch E4), asked once for the sweep
+  // and only of a piece that lays works. Written only when it holds a terrain.
+  const waters = owner !== undefined && laysWorks(def) ? workerWaters(state, owner.id) : [];
+  const wades = waters.length > 0 ? { wades: waters } : {};
   if (isNaval(def)) {
     // Spread rather than assigned, so a mover nothing bars has *no key* and a
     // profile from a world with no diplomacy in it is the object it always was.
@@ -761,6 +782,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     ...freeLanding,
     ...ignoresZoc,
     ...ignoresWoods,
+    ...wades,
     ...(closed === undefined ? {} : { closed }),
   };
 }
@@ -837,6 +859,10 @@ export function tileMoveCost(tile: Tile, mover?: MoveProfile): number | null {
     if (mover?.naval === true && openWater(tile.terrain, mover)) {
       return RULES.movement.minStepCost;
     }
+    // **A worker wading onto the water its empire opened for it** (The Fish
+    // Traps' lakes, Expansionist batch E4): the embarked price, whether or not
+    // the empire can embark anybody (the triage's reading 27).
+    if (mover?.wades?.includes(tile.terrain) === true) return RULES.movement.embarkCost;
     if (!mover?.embarks || !openWater(tile.terrain, mover)) return null;
     return RULES.movement.embarkCost;
   }

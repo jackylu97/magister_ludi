@@ -36,12 +36,17 @@ import {
   greatPersonDef,
   isGreatPersonId,
 } from '../greatPeopleData';
-import { improvementDef, isGreatPersonWork, workForFamily } from '../improvementData';
+import {
+  type ImprovementId,
+  improvementDef,
+  isGreatPersonWork,
+  workForFamily,
+} from '../improvementData';
 import { projectDef } from '../projectData';
 import { beliefPoolOf, isBeliefId, isConsecrationId, isRiteId, riteDef } from '../religionData';
 import { type CityYieldKey, resourceDef } from '../resourceData';
 import { RULES } from '../rulesData';
-import { readTileYield } from '../terrainData';
+import { readTileYield, terrainDef } from '../terrainData';
 import {
   type AmplifierTarget,
   type PressureRuleId,
@@ -2012,6 +2017,12 @@ function describeEffect(
           text: `a new city founded beside one of your ${filterWords(effect.escort)} makes that unit ${indefinite(rank)} ${rank}${first}`,
         });
       }
+      if (effect.claimRadius !== undefined && effect.claimRadius > 1) {
+        // The Staked Claims (Expansionist batch E4).
+        out.push({
+          text: `new cities claim every unowned hex within ${effect.claimRadius} hexes of them at once${limit}`,
+        });
+      }
       return;
     }
     case 'offerRider': {
@@ -2591,6 +2602,45 @@ function describeEffect(
     case 'levy':
       describeLevy(effect, out);
       return;
+    case 'unlocksImprovement': {
+      // Expansionist batch E4: the row a seated card opens, with what the row
+      // itself does, read off the row (`workRowFacts`), so a retuned row
+      // re-words itself. Said for the chair, because the card opens it only
+      // while it is seated.
+      const def = improvementDef(effect.improvement);
+      const facts = workRowFacts(effect.improvement);
+      out.push({
+        text: `while this card is seated, your workers may build ${indefinite(def.name)} ${ref('improvement', effect.improvement, def.name)}${facts.length === 0 ? '' : `: ${facts.join('; ')}`}`,
+      });
+      return;
+    }
+    case 'worksBeyond': {
+      // Expansionist batch E4, The Garden Frontier.
+      const hexes = effect.reach === 1 ? 'hex' : 'hexes';
+      out.push({
+        text: `your workers may lay tended works on unowned wild hexes up to ${effect.reach} ${hexes} beyond your borders, and a hex worked there joins your nearest city`,
+      });
+      return;
+    }
+    case 'encroach': {
+      // Expansionist batch E4, The Encroaching Fields (the triage's reading 38).
+      out.push({
+        text: `every ${effect.every} turns, each of your cities of at least ${effect.minPopulation} citizens takes one hex nobody works from the borders of a smaller foreign city next to it`,
+      });
+      return;
+    }
+    case 'migration': {
+      // Expansionist batch E4: Migration (the triage's reading 36) and The
+      // Great Migration (reading 37).
+      const reach = effect.reach ?? 3;
+      out.push({
+        text:
+          effect.source === 'own'
+            ? `every ${effect.every} turns, while your happiness is 0 or below, your largest city sends one citizen to your smallest city joined to your capital`
+            : `every ${effect.every} turns, while your happiness is above 0 and above another empire's, each city of that empire within ${reach} ${reach === 1 ? 'hex' : 'hexes'} of your borders with at least 2 citizens loses one citizen to your nearest city`,
+      });
+      return;
+    }
     case 'drill': {
       // Dominion batch D1. Who is drilled, how much, and how often; "combat
       // units" because only an empire's fighting units hold experience
@@ -3681,6 +3731,46 @@ function anyPhrase(scopes: readonly CityScope[]): string {
  */
 export function indefinite(name: string): string {
   return /^[aeiou]/i.test(name) ? 'an' : 'a';
+}
+
+/**
+ * **What a work row a card opens does**, in a first-time player's words
+ * (Expansionist batch E4): the facts on its own row that the ordinary rows do
+ * not carry. Read off the row, so a retuned Keep, polder or outpost re-words
+ * itself here and in the Compendium alike.
+ */
+function workRowFacts(id: ImprovementId): string[] {
+  const def = improvementDef(id);
+  const facts: string[] = [];
+  if (def.onePerTown === true) facts.push('one in each city');
+  if (def.beyondBorders !== undefined) {
+    const hexes = def.beyondBorders === 1 ? 'hex' : 'hexes';
+    facts.push(`on unowned wild ground up to ${def.beyondBorders} ${hexes} beyond your borders`);
+  }
+  if (def.landBeside !== undefined) {
+    const ground = (def.validTerrain ?? []).join(' or ');
+    facts.push(`on ${indefinite(ground)} ${ground} hex with ${def.landBeside} of your land hexes beside it`);
+  }
+  if (def.chargeCost > 1) facts.push(`for ${def.chargeCost} work charges`);
+  if (def.copiesNeighbours === true) {
+    facts.push('it yields what each of your hexes around it yields, except a city or another of its kind');
+  }
+  if (def.yieldsAs !== undefined) {
+    const work = improvementDef(def.yieldsAs.improvement).name.toLowerCase();
+    const ground = terrainDef(def.yieldsAs.terrain).name.toLowerCase();
+    facts.push(`it yields as ${indefinite(work)} ${work} on ${ground}`);
+  }
+  if (def.claimsUnowned !== undefined) {
+    facts.push(
+      def.claimsUnowned === 0
+        ? 'it claims its hex for your nearest city'
+        : def.claimsUnowned === 1
+          ? 'it claims its hex and every unowned hex next to it for your nearest city'
+          : `it claims every unowned hex within ${def.claimsUnowned} hexes of it for your nearest city`,
+    );
+  }
+  if (def.defense !== undefined) facts.push(`units on its hex gain ${signed(def.defense)} strength when defending`);
+  return facts;
 }
 
 /**
@@ -5000,7 +5090,12 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     one: 'city you have captured that held a wonder or was a capital',
     many: 'cities you have captured that held a wonder or were capitals',
   },
-  hexBought: { one: 'hex you have bought', many: 'hexes you have bought' },
+  // Expansionist batch E4: `hexBought` widened to the three ways The Wide
+  // Country names.
+  hexClaimed: {
+    one: 'hex you have claimed by an outpost, a cleared camp or buying',
+    many: 'hexes you have claimed by outposts, cleared camps or buying',
+  },
   buildingBoughtWithGold: {
     one: 'building you have bought with gold',
     many: 'buildings you have bought with gold',
@@ -5453,7 +5548,13 @@ const COMMISSION_COUNTED_WORDS: Record<
     many: "cities that hold a world wonder or were another empire's original capital",
     counter: 'such cities captured',
   },
-  hexBought: { verb: 'buy', one: 'hex', many: 'hexes', counter: 'hexes bought' },
+  // Expansionist batch E4, The Wide Country.
+  hexClaimed: {
+    verb: 'claim',
+    one: 'hex by an outpost, a cleared camp or buying',
+    many: 'hexes by outposts, cleared camps or buying',
+    counter: 'hexes claimed',
+  },
   buildingBoughtWithGold: {
     verb: 'buy',
     one: 'building with gold',

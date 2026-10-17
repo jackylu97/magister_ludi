@@ -217,7 +217,14 @@ export type ImprovementId =
   | 'forestGarden'
   | 'fishTraps'
   | 'wildOrchard'
-  | 'burnedCountry';
+  | 'burnedCountry'
+  // **The three works a seated Expansionist card opens** (batch E4): The
+  // Keeps' Keep, The Polders' polder and Outposts' outpost. Ordinary worker
+  // rows marked `unlockedByCard`; see that field. The Keep's id is not `keep`,
+  // because the retired Keep building keeps that id for old towns.
+  | 'townKeep'
+  | 'polder'
+  | 'outpost';
 
 /**
  * Who plants a work: one of the five **great-person families**, or the
@@ -499,6 +506,76 @@ export interface ImprovementDef {
    */
   tended?: boolean;
   /**
+   * True for a row that **a seated card opens** (Expansionist batch E4): The
+   * Keeps' Keep, The Polders' polder and Outposts' outpost. A worker may build
+   * it only while one of the seat's seated cards names it
+   * (`CardUnlocksImprovementEffect`, read by `cardUnlocksImprovement`). A work
+   * already built stays, and keeps paying, when the card leaves its chair (the
+   * triage's reading 31).
+   */
+  unlockedByCard?: boolean;
+  /**
+   * True when a town may hold **only one** of this row inside its borders (The
+   * Keeps' "one in each town"). Checked when a worker builds
+   * (`improvementGroundError`), against every hex of the town that owns the
+   * hex. A town that gains a second one through a border change keeps both
+   * (the triage's reading 31).
+   */
+  onePerTown?: boolean;
+  /**
+   * True when this work **pays what the hexes around it pay** (The Keeps): the
+   * six hexes beside it, each read as the hex the work stands on is read,
+   * counting only hexes inside the same empire's borders, and never a town
+   * centre or another work that copies (the triage's reading 31). The hex fold
+   * adds the sum to the work's own line (`explainTileYield`, `yields/hex.ts`),
+   * and `GroundFacts.copiedHexes` finds the hexes. The work pays only while a
+   * citizen works its hex, as any hex does.
+   */
+  copiesNeighbours?: boolean;
+  /**
+   * How many of the six hexes beside this one must be **land inside the
+   * builder's borders** (The Polders: three). Checked by
+   * `improvementGroundError` (the triage's reading 32).
+   */
+  landBeside?: number;
+  /**
+   * The ground and the work this row **yields as**, where that is not its own
+   * (The Polders: "yields as a farm on grassland"). The hex keeps its terrain,
+   * so it stays water for every other rule. The fold replaces the ground's
+   * yield with `terrain`'s, then adds `improvement`'s yield and those of that
+   * row's renewals that need no fresh water (the triage's reading 32). A card
+   * that names the other row does not read this one, because the row does not
+   * count as it (`countsAs` is the marker for that).
+   */
+  yieldsAs?: { terrain: TerrainId; improvement: ImprovementId };
+  /**
+   * The row is built **only beyond the builder's borders**: on an unowned hex
+   * with no work on it, at most this many hexes from a hex the builder owns
+   * (Outposts: three). Read by `improvementGroundError` (the triage's reading
+   * 33).
+   */
+  beyondBorders?: number;
+  /**
+   * When this row is built, **every unowned hex within this many hexes of it,
+   * itself included, joins the builder's nearest town** (Outposts: one, which
+   * is the hex and the ring around it). Ground somebody owns is left alone, so
+   * this never moves another town's border; the citadel's `claimsNeighbours`
+   * does. A town founded on the work takes the same hexes from the town that
+   * holds them (`foundCityAt`). See `claimGroundForWork` (`improvements.ts`).
+   */
+  claimsUnowned?: number;
+  /**
+   * **Water a worker may step onto, as if embarked, to lay this row**, while a
+   * card the seat holds opens the row (The Fish Traps' lakes; the triage's
+   * reading 27). Read by `moveProfile` (`pathfind.ts`) through `workerWaters`,
+   * so the four readers of `stepCost` agree. It is a rule about movement and
+   * not about the ground: a worker standing on the water may lay any row the
+   * ground takes, so a seat that also holds Irrigation may lay floating gardens
+   * on a lake. Every other seat still cannot reach a lake, so the gardens' own
+   * deferred half stands for them.
+   */
+  workersWade?: TerrainId[];
+  /**
    * Halves of this row's ratified design that the game **cannot do yet**, in a
    * first-time player's words and with no identifier in them.
    *
@@ -686,6 +763,16 @@ export function isTendedWork(id: ImprovementId): boolean {
 }
 
 /**
+ * **Does a card open this row?** A tended work waits for its charter, and a row
+ * marked `unlockedByCard` waits for a seated card that names it (Expansionist
+ * batch E4). Every other row is opened by the tree, a figure or a great person.
+ */
+export function isCardOpenedWork(id: ImprovementId): boolean {
+  const def = improvementDef(id);
+  return def.tended === true || def.unlockedByCard === true;
+}
+
+/**
  * **The row a row answers to**: the one it stands in for, or itself.
  *
  * One hop and never a walk — the validator refuses a stand-in whose base is
@@ -837,6 +924,45 @@ function validateTable(): void {
           throw new Error(`${where} opens "${resource}", which ${base} does not`);
         }
       }
+    }
+    // **The Expansionist batch E4 fields**, each held to the one thing it
+    // cannot get wrong. A field nothing can satisfy is a row that never builds,
+    // and a field that names nothing is a typo the game would read as "any".
+    if (def.unlockedByCard === true && def.greatPerson !== undefined) {
+      throw new Error(`${where} is opened by a card and planted by a great person`);
+    }
+    const drained = def.yieldsAs;
+    if (drained !== undefined) {
+      if (!TERRAIN_IDS.includes(drained.terrain)) {
+        throw new Error(`${where} yields as unknown terrain "${String(drained.terrain)}"`);
+      }
+      if (!Object.prototype.hasOwnProperty.call(IMPROVEMENT_DATA.improvements, drained.improvement)) {
+        throw new Error(`${where} yields as "${String(drained.improvement)}", which is not an improvement`);
+      }
+      if (drained.improvement === id) throw new Error(`${where} yields as itself`);
+      if (IMPROVEMENT_DATA.improvements[drained.improvement].yieldsAs !== undefined) {
+        throw new Error(`${where} yields as "${drained.improvement}", which yields as something else`);
+      }
+    }
+    if (def.landBeside !== undefined && !(def.landBeside >= 1 && def.landBeside <= 6)) {
+      throw new Error(`${where} asks for ${def.landBeside} land hexes beside it, of six`);
+    }
+    if (def.beyondBorders !== undefined && !(def.beyondBorders >= 1)) {
+      throw new Error(`${where} reaches no hex beyond the borders`);
+    }
+    if (def.claimsUnowned !== undefined && !(def.claimsUnowned >= 0)) {
+      throw new Error(`${where} claims a negative radius`);
+    }
+    for (const water of def.workersWade ?? []) {
+      if (!TERRAIN_IDS.includes(water)) {
+        throw new Error(`${where} lets workers onto unknown terrain "${String(water)}"`);
+      }
+      if (!(def.validTerrain ?? []).includes(water)) {
+        throw new Error(`${where} lets workers onto ${water} and cannot be built there`);
+      }
+    }
+    if (def.workersWade !== undefined && def.tended !== true && def.unlockedByCard !== true) {
+      throw new Error(`${where} lets workers onto water with no card to open it`);
     }
     if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
       throw new Error(`${where} needs unknown technology "${def.requiresTech}"`);

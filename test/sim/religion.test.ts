@@ -3465,10 +3465,11 @@ describe("the prophet’s four verbs", () => {
       "A worker cannot build a holy site",
     );
     // And an **augur**, whose charges are rites rather than spadework, plants
-    // nothing at all — the fourth reading of the one symmetric clause.
+    // nothing at all — the fourth reading of the one symmetric clause. "An"
+    // since Expansionist batch E4, which taught the refusal its articles.
     const augur = augurAt(g.state, 0, prophet.col, prophet.row);
     expect(improvementError(g.state, augur.id, "farm")).toBe(
-      "A augur builds nothing",
+      "An augur builds nothing",
     );
   });
 

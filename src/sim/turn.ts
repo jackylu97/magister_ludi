@@ -145,6 +145,7 @@ import {
 import { drillUnits } from "./statecraft/evaluator";
 import { returnLeviedCitizens } from "./levies";
 import { runRoadJoinings } from "./roadJoinings";
+import { runEncroachment, runMigrations } from "./frontiers";
 import { type PeaceOutcome, settlePeace } from "./diplomacy";
 import { pruneTruces } from "./wars";
 // The bargains' own broom, beside the truces': both sweep rows whose absolute
@@ -847,6 +848,24 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     name: "expandBorders",
     // Culture buys the next tile for each city, best-scoring first.
     run: expandBorders,
+  },
+  {
+    name: "encroachment",
+    // Every ten turns, a large town takes an unworked hex from a smaller
+    // foreign town beside it (The Encroaching Fields, Expansionist batch E4).
+    // **Directly after `expandBorders`**, so it reads the borders this turn
+    // left, and after `collectYields`, so "nobody works that hex" is this
+    // turn's answer. See `runEncroachment`.
+    run: (state) => runEncroachment(state),
+  },
+  {
+    name: "migration",
+    // Every ten turns, citizens move between towns on the empires' happiness
+    // (Migration and The Great Migration, Expansionist batch E4). After
+    // `growCities`, so the happiness it reads counts this turn's growth, and
+    // after `encroachment`, so the borders are settled first. See
+    // `runMigrations`.
+    run: (state) => runMigrations(state),
   },
   {
     name: "healCities",

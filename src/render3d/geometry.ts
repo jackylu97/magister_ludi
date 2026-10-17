@@ -1781,6 +1781,93 @@ export function citadelRing(size: number): BufferGeometry {
   return weld(parts);
 }
 
+/**
+ * **A Keep** (Expansionist batch E4, The Keeps): a square stone tower with a
+ * merlon on each corner of its roof, standing in a low walled yard.
+ *
+ * Placeholder art until the art pass draws its own. It is square where the
+ * citadel is a ring, so the two forts are never read as one, and it is the
+ * tallest thing a worker builds, because it stands for the hexes around it.
+ */
+export function keepTower(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const width = size * 0.36;
+  const height = size * 0.82;
+  parts.push(slabAt(width, height, width, 0, height / 2, 0));
+  // The merlons: one on each corner of the roof, so the top reads as a battle
+  // platform rather than a chimney.
+  const merlon = size * 0.1;
+  const reach = width / 2 - merlon / 2;
+  for (const x of [-1, 1]) {
+    for (const z of [-1, 1]) {
+      parts.push(slabAt(merlon, merlon, merlon, x * reach, height + merlon / 2, z * reach));
+    }
+  }
+  // The yard wall: three low runs about the tower's foot, open on the fourth
+  // side where the gate would be.
+  const yard = size * 0.36;
+  const wallH = size * 0.12;
+  parts.push(slabAt(yard * 2, wallH, size * 0.06, 0, wallH / 2, -yard));
+  parts.push(slabAt(size * 0.06, wallH, yard * 2, -yard, wallH / 2, 0));
+  parts.push(slabAt(size * 0.06, wallH, yard * 2, yard, wallH / 2, 0));
+  return weld(parts);
+}
+
+/**
+ * **A polder** (Expansionist batch E4, The Polders): a ring of low dykes on the
+ * water, with the ridges of a drained field inside it.
+ *
+ * Placeholder art until the art pass draws its own. The ring is what says the
+ * sea is kept out, and the ridges are the farm's corduroy, because a polder
+ * yields as a farm.
+ */
+export function polderDyke(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const apothem = size * 0.44;
+  const bankH = size * 0.1;
+  // A closed hexagon of banks, `citadelRing`'s runs at a third of the height.
+  const run = apothem * 1.1547 * 1.06;
+  for (let i = 0; i < 6; i++) {
+    const angle = (i / 6) * Math.PI * 2;
+    const bank = new BoxGeometry(run, bankH, size * 0.09);
+    bank.rotateY(-(angle + Math.PI / 2));
+    bank.translate(Math.cos(angle) * apothem, bankH / 2, Math.sin(angle) * apothem);
+    parts.push(bank);
+  }
+  // The drained field: three low ridges across the inside.
+  const ridge = size * 0.07;
+  for (let i = 0; i < 3; i++) {
+    const z = (i - 1) * size * 0.2;
+    parts.push(slabAt(size * 0.56, ridge, ridge, 0, ridge / 2, z));
+  }
+  return weld(parts);
+}
+
+/**
+ * **An outpost** (Expansionist batch E4, Outposts): a hut under a pointed roof,
+ * with a flag on a tall pole beside it.
+ *
+ * Placeholder art until the art pass draws its own. The card's flavour is "a
+ * hut, a fire and a flag", and the flag is the read: an outpost is a claim on
+ * the land, and a pole taller than the hut says so from across the table.
+ */
+export function outpostFlag(size: number): BufferGeometry {
+  const parts: BufferGeometry[] = [];
+  const hutH = size * 0.26;
+  parts.push(slabAt(size * 0.38, hutH, size * 0.34, -size * 0.14, hutH / 2, 0));
+  const roof = new ConeGeometry(size * 0.3, size * 0.24, 4, 1);
+  roof.rotateY(Math.PI / 4);
+  roof.translate(-size * 0.14, hutH + size * 0.12, 0);
+  parts.push(roof);
+  // The pole and its cloth, off to one side of the hut.
+  const poleH = size * 0.95;
+  const pole = shaft(poleH, size * 0.025, 4);
+  pole.translate(size * 0.28, 0, 0);
+  parts.push(pole);
+  parts.push(slabAt(size * 0.26, size * 0.16, size * 0.02, size * 0.28 + size * 0.13, poleH - size * 0.1, 0));
+  return weld(parts);
+}
+
 /** The citadel's gilt banner: the pole on the parade ground, and its pennant. */
 export function citadelBanner(size: number): BufferGeometry {
   const parts: BufferGeometry[] = [];

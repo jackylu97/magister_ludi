@@ -94,11 +94,8 @@
       "type": "economic",
       "flavor": "Stone walls in the shallows, and the tide does the rest.",
       "text": "Once drafted, workers may tend a lake or coastal tile into fish traps for one charge: +1 food and +1 production. No chair required.",
-      "charter": {
-        "unlocks": { "improvement": "fishTraps" }
-      },
-      "effects": [],
-      "note": "The traps go on coastal water, which a worker reaches by boat. A lake cannot be reached yet, so traps on a lake wait."
+      "charter": { "unlocks": { "improvement": "fishTraps" } },
+      "effects": []
     },
     "sweetWater": {
       "name": "Sweet Water",
@@ -512,11 +509,9 @@
       "type": "economic",
       "flavor": "A hut, a fire and a flag, a day ahead of the settlers.",
       "text": "Workers may plant an outpost on a wild tile within three hexes of your border, for one charge. It claims its hex and the ring around it for your nearest town, and costs no authority. A town founded on an outpost keeps that land.",
-      "effects": [],
-      "deferred": [
-        "a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town"
-      ],
-      "note": "No work can yet be raised outside your borders, and only a town or a great general can claim ground."
+      "effects": [
+        { "kind": "unlocksImprovement", "improvement": "outpost" }
+      ]
     },
     "theProspectors": {
       "name": "The Prospectors",
@@ -818,6 +813,20 @@
         }
       ]
     },
+    "theGardenFrontier": {
+      "name": "The Garden Frontier",
+      "decks": ["expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "The gardener goes first, and the border follows the garden.",
+      "text": "Needs tended land. Workers may tend unowned wild hexes up to two hexes beyond your borders. A hex tended there joins your nearest town.",
+      "needsTendedWork": true,
+      "effects": [
+        { "kind": "worksBeyond", "works": "tended", "reach": 2 }
+      ]
+    },
     "theWatercourses": {
       "name": "The Watercourses",
       "decks": ["expansionist"],
@@ -1008,9 +1017,10 @@
       "type": "economic",
       "flavor": "People go where there is room.",
       "text": "Every ten turns, each of your towns that is at its happiness limit sends one citizen to your smallest connected town that has room to grow.",
-      "effects": [],
-      "deferred": ["a crowded town sends a citizen to a small town joined to it"],
-      "note": "No rule yet moves a citizen from one town to another."
+      "effects": [
+        { "kind": "migration", "every": 10, "source": "own" }
+      ],
+      "note": "A town has no happiness of its own, so the game reads your empire's: every ten turns, while your empire has no happiness to spare, your largest town sends one citizen to your smallest town joined to your capital, if that town is smaller."
     },
     "veteranColonies": {
       "name": "Veteran Colonies",
@@ -1534,10 +1544,10 @@
       "rarity": "rare",
       "type": "economic",
       "flavor": "God made the sea; we made the land.",
-      "text": "Workers may turn a coast tile that touches at least three of your land tiles into grassland, for two charges.",
-      "effects": [],
-      "deferred": ["a worker turns shallow sea beside your land into grassland"],
-      "note": "The ground under a hex never changes during a game, by a deliberate rule, and the board would have to redraw the hex."
+      "text": "Workers may raise a polder on a coast tile that touches at least three of your land tiles, for two charges. A polder yields as a farm on grassland.",
+      "effects": [
+        { "kind": "unlocksImprovement", "improvement": "polder" }
+      ]
     },
     "publicWorks": {
       "name": "Public Works",
@@ -1579,27 +1589,24 @@
       "text": "Goal: while this card is seated, claim twelve hexes by outposts, cleared camps or buying. Reward: your three smallest towns each gain two citizens, and every town gains +2 happiness for 30 turns. The card then leaves its chair.",
       "commission": {
         "goals": [
-          { "kind": "counted", "occasion": "hexBought", "count": 12 }
+          { "kind": "counted", "occasion": "hexClaimed", "count": 12 }
         ],
         "reward": [
+          {
+            "citizens": 2,
+            "citizensTo": { "smallest": 3 }
+          },
           {
             "timed": {
               "turns": 30,
               "effects": [
-                { "kind": "happiness", "amount": 2, "per": "city" },
-                {
-                  "kind": "percentYields",
-                  "yield": "food",
-                  "percent": 75,
-                  "scope": { "test": "populationAtMost", "value": 5 }
-                }
+                { "kind": "happiness", "amount": 2, "per": "city" }
               ]
             }
           }
         ]
       },
-      "effects": [],
-      "note": "For now only hexes bought with gold count toward the goal, and instead of citizens in the smallest towns, small towns grow faster for the same span."
+      "effects": []
     },
     "oldWorkings": {
       "name": "Old Workings",
@@ -2102,6 +2109,19 @@
         }
       ]
     },
+    "theStakedClaims": {
+      "name": "The Staked Claims",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "A stake at every corner, and a name on every stake.",
+      "text": "Each town you found claims every unowned hex within two hexes of it.",
+      "effects": [
+        { "kind": "foundingRider", "claimRadius": 2 }
+      ]
+    },
     "theLandsGreatWork": {
       "name": "The Land's Great Work",
       "decks": ["expansionist"],
@@ -2325,9 +2345,9 @@
       "type": "economic",
       "flavor": "Nobody stays hungry next to a full granary for long.",
       "text": "Every ten turns, each foreign town within three hexes of your border loses one citizen to your nearest town, if your town is happier and has room to grow.",
-      "effects": [],
-      "deferred": ["unhappy foreign towns near your border lose citizens to your happier towns"],
-      "note": "No rule yet moves a citizen from one town to another, let alone between empires."
+      "effects": [
+        { "kind": "migration", "every": 10, "source": "foreign", "reach": 3 }
+      ]
     },
     "theEncroachingFields": {
       "name": "The Encroaching Fields",
@@ -2338,9 +2358,9 @@
       "type": "economic",
       "flavor": "A furrow a year, and in a lifetime the boundary has moved.",
       "text": "Once every ten turns, each of your towns of at least twelve citizens takes one hex from the borders of a foreign town next to it, if nobody works that hex and your town is larger than the town that owns it.",
-      "effects": [],
-      "deferred": ["large towns take unworked hexes from the borders of smaller foreign towns beside them"],
-      "note": "A hex never changes hands between empires except when its town is captured."
+      "effects": [
+        { "kind": "encroach", "every": 10, "minPopulation": 12 }
+      ]
     },
     "theDomesdaySurvey": {
       "name": "The Domesday Survey",
@@ -2436,6 +2456,19 @@
           "admits": { "test": "connected" },
           "max": 15
         }
+      ]
+    },
+    "theKeeps": {
+      "name": "The Keeps",
+      "decks": ["expansionist"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "A tower, a well and a wall, and the valley around them answers to all three.",
+      "text": "Workers may build a Keep, one in each town. A Keep gains the yields of every tile around it, and units on its tile gain +5 strength.",
+      "effects": [
+        { "kind": "unlocksImprovement", "improvement": "townKeep" }
       ]
     },
     "theGrovesAndTheStones": {

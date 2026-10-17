@@ -445,8 +445,13 @@ describe('the schema, as landed', () => {
     // Expansionist rows came live, and two deferred rows were freed (The Common
     // Domain and The Raising of the Land); The Prospectors, The Watercourses
     // and The Landscape Garden were changed in place and were already live.
-    expect(live).toBe(472);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(472);
+    // **And Expansionist batch E4** (works, claims and borders): eight more.
+    // Three new Expansionist rows came live (The Keeps, The Garden Frontier,
+    // The Staked Claims), and five deferred rows were freed (Outposts, The
+    // Polders, Migration, The Great Migration, The Encroaching Fields); The Fish
+    // Traps and The Wide Country were changed in place and were already live.
+    expect(live).toBe(480);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(480);
   });
 
   /**
@@ -653,7 +658,10 @@ describe('the schema, as landed', () => {
     // phase fewer.
     // 140 since E3: ten Expansionist cards about the land and two new tile
     // fields, so a v139 log's picks name cards this build deals differently.
-    expect(SCHEMA_VERSION).toBe(140);
+    // 141 since E4: ten Expansionist cards about works, claims and borders,
+    // and two new end-of-turn phases, so a v140 log's picks name cards this
+    // build deals differently and its resolutions run two phases fewer.
+    expect(SCHEMA_VERSION).toBe(141);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -870,9 +878,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // Commission: A Victor's Peace: − 2).
       // **Expansionist batch E3** freed two more (The Common Domain and The
       // Raising of the Land: − 2).
+      // **Expansionist batch E4** freed five more (Outposts, The Polders,
+      // Migration, The Great Migration, The Encroaching Fields: − 5).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(66);
+      ).toHaveLength(61);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(136);
     }
   });

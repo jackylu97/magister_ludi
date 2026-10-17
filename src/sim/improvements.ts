@@ -67,6 +67,7 @@
  */
 
 import {
+  claimTile,
   nearestOwnedCity,
   refreshCityDerived,
   refreshTileDerived,
@@ -74,6 +75,7 @@ import {
   settleProductionWindfall,
   tileOwnerCityId,
   tileOwnerPlayerId,
+  withinReachOfBorders,
 } from './cities';
 import {
   foldTile,
@@ -87,6 +89,7 @@ import {
   improvementCountsAs,
   improvementDef,
   improvementForResource,
+  isCardOpenedWork,
   isImprovementId,
   isTendedWork,
   prospectDef,
@@ -98,15 +101,21 @@ import { leaderOpensImprovement, leaderThatOpensImprovement } from './leaderData
 import {
   type Tile,
   getTileAt,
+  mapRange,
   raiseImprovement,
   razeImprovement,
   tileHex,
+  tileIndex,
   tileNeighbors,
   wrappedDistance,
 } from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
-import { charterThatOpensImprovement, orderDef } from './statecraftData';
+import { cardThatOpensImprovement, orderDef } from './statecraftData';
+// Expansionist batch E4, straight from the evaluator rather than through the
+// index: the index re-exports across a cycle, and the build splits such
+// re-exports into chunks it warns about.
+import { worksBeyondReach } from './statecraft/evaluator';
 import { type FeatureId } from './terrainData';
 import {
   type WindfallPayout,
@@ -151,6 +160,7 @@ import { unitHealthBonus } from './resourceEffects';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { hasFreshWater } from './water';
 import { bumpEconomy } from './slate';
+import { recomputeVisibility } from './visibility';
 
 const IMPROVEMENTS = RULES.improvements;
 
@@ -184,7 +194,10 @@ export function chargesLeft(unit: Unit): number {
  */
 function aRow(def: { name: string }): string {
   const noun = def.name.toLowerCase();
-  return noun.endsWith('s') ? noun : `a ${noun}`;
+  if (noun.endsWith('s')) return noun;
+  // "An outpost" (Expansionist batch E4): the first row whose name opens on a
+  // vowel and that a worker can be refused.
+  return /^[aeiou]/.test(noun) ? `an ${noun}` : `a ${noun}`;
 }
 
 function ARow(def: { name: string }): string {
@@ -276,8 +289,7 @@ export function improvementGroundError(
   const where = `(${tile.col}, ${tile.row})`;
 
   const owner = tileOwnerPlayerId(state, tile.col, tile.row);
-  if (owner === null) return `${where} is not in your territory`;
-  if (owner !== ownerId) return `${where} belongs to player ${owner}`;
+  if (owner !== null && owner !== ownerId) return `${where} belongs to player ${owner}`;
 
   // A town is what a city tile has instead of an improvement. Refused here
   // rather than left to look odd on the board: the board already clears a city
@@ -288,8 +300,39 @@ export function improvementGroundError(
     }
   }
 
+  // **Beyond the borders** (Expansionist batch E4). An outpost goes only there:
+  // on unowned ground with no work on it, at most its own reach from the
+  // borders (the triage's reading 33). A tended work may go there too while a
+  // seated card reaches that far (The Garden Frontier, reading 34). Every other
+  // row stays inside the borders, which is the rule this clause has always
+  // been. The work's claim is `claimGroundForWork`'s.
+  const beyond = def.beyondBorders;
+  if (beyond !== undefined && owner !== null) {
+    return `${ARow(def)} ${rowNeeds(def)} unowned ground beyond your borders`;
+  }
+  if (owner === null) {
+    const reach = beyond ?? (def.tended === true ? worksBeyondReach(state, ownerId, 'tended') : 0);
+    if (reach <= 0) return `${where} is not in your territory`;
+    if (!withinReachOfBorders(state, ownerId, tile, reach)) {
+      return `${where} is more than ${reach} ${reach === 1 ? 'hex' : 'hexes'} beyond your borders`;
+    }
+    // Wild ground only: a work already standing out there is not this
+    // worker's to replace.
+    if (tile.improvement !== undefined) {
+      return `${where} already has ${aRow(improvementDef(tile.improvement))}`;
+    }
+  }
+
   if (tile.improvement === improvementId) {
     return `${where} already has ${aRow(def)}`;
+  }
+  // **One in each town** (The Keeps, Expansionist batch E4; the triage's reading
+  // 31): the town that owns this hex may hold the row on no other hex.
+  if (def.onePerTown === true) {
+    const townId = tileOwnerCityId(state, tile.col, tile.row);
+    if (townId !== null && townHoldsRow(state, townId, tile, improvementId)) {
+      return `${cityById(state, townId)?.name ?? 'This town'} already has ${aRow(def)}`;
+    }
   }
 
   // **The work's exemption**, asked once and read by every clause below. See the
@@ -342,6 +385,19 @@ export function improvementGroundError(
       // valley, which is the whole of the Terraces' second sentence.
     } else if (!drinks(state, ownerId, tile, improvementId) && !atMountainFoot(def, tile)) {
       return `${ARow(def)} on ${tile.terrain} ${rowNeeds(def)} fresh water`;
+    }
+  }
+  // **Land beside it** (The Polders, Expansionist batch E4; the triage's
+  // reading 32): so many of the six hexes around this one are land inside the
+  // builder's borders.
+  if (!anywhere && def.landBeside !== undefined) {
+    let land = 0;
+    for (const next of tileNeighbors(state.map, tile)) {
+      if (isWaterTerrain(next.terrain)) continue;
+      if (tileOwnerPlayerId(state, next.col, next.row) === ownerId) land += 1;
+    }
+    if (land < def.landBeside) {
+      return `${ARow(def)} ${rowNeeds(def)} ${def.landBeside} of your land hexes beside it`;
     }
   }
   if (!anywhere && def.validFeatures !== undefined && !def.validFeatures.includes(tile.feature)) {
@@ -625,23 +681,39 @@ export function improvementLeaderError(
 
 /**
  * Why the **cards** refuse this improvement to this player, or `null` when they
- * do not. Only a tended work is gated this way: it opens once the seat has
- * drafted the charter that names it (`cardUnlocksImprovement`).
+ * do not. Two kinds of row are gated this way (`isCardOpenedWork`): a tended
+ * work opens once the seat has drafted the charter that names it, and a row
+ * marked `unlockedByCard` opens while a seated card names it (Expansionist
+ * batch E4). Both are asked of `cardUnlocksImprovement`.
  */
 export function improvementCardError(
   state: GameState,
   ownerId: number,
   improvementId: ImprovementId,
 ): string | null {
-  // A tended work waits on its charter (`ImprovementDef.tended`,
-  // `CharterSpec.unlocks.improvement`). Every other row answers here as open.
-  if (!isTendedWork(improvementId)) return null;
+  // Every other row answers here as open.
+  if (!isCardOpenedWork(improvementId)) return null;
   if (cardUnlocksImprovement(state, ownerId, improvementId)) return null;
   const def = improvementDef(improvementId);
-  const card = charterThatOpensImprovement(improvementId);
-  return card === null
-    ? `${ARow(def)} ${rowNeeds(def)} a card no deck deals`
-    : `${ARow(def)} ${rowNeeds(def)} the card ${orderDef(card).name}`;
+  const card = cardThatOpensImprovement(improvementId);
+  if (card === null) return `${ARow(def)} ${rowNeeds(def)} a card no deck deals`;
+  // A row a seated card opens waits for the card to sit in a chair.
+  const seated = def.unlockedByCard === true ? ' in a chair' : '';
+  return `${ARow(def)} ${rowNeeds(def)} the card ${orderDef(card).name}${seated}`;
+}
+
+/**
+ * Does this town hold the row on any hex but this one? A walk of the whole
+ * owner array, because a town's hexes may lie beyond its work radius (a claim),
+ * and the answer must cover every one of them (The Keeps' "one in each town").
+ */
+function townHoldsRow(state: GameState, townId: number, except: Tile, row: ImprovementId): boolean {
+  const skip = tileIndex(state.map, except.col, except.row);
+  for (let index = 0; index < state.tileOwner.length; index++) {
+    if (index === skip || state.tileOwner[index] !== townId) continue;
+    if (state.map.tiles[index]?.improvement === row) return true;
+  }
+  return false;
 }
 
 /**
@@ -788,6 +860,8 @@ export function buildImprovementAt(
   // **The spade and the calendar together** (batch D2d): `raiseImprovement` is
   // the one writer of the hex's age stamp, so a farm always knows the turn it
   // was cut.
+  // Whether the hex lay beyond the borders, asked before anything is claimed.
+  const unowned = tileOwnerPlayerId(state, tile.col, tile.row) === null;
   raiseImprovement(tile, improvementId, state.turn);
   // **The seam the spade opened** (batch M3, `slate.ts`): an improvement is one
   // of `openedResource`'s clauses, so what the empire holds — and the happiness
@@ -796,6 +870,11 @@ export function buildImprovementAt(
   // town's own panel.
   bumpEconomy(state);
   refreshTileDerived(state, tile);
+  // **The ground the work claims** (Expansionist batch E4): an outpost's hex and
+  // the unowned ring around it, or a tended hex laid beyond the borders. Before
+  // the riders below, so a rider that pays the nearest town pays a town that
+  // already holds the hex.
+  claimGroundForWork(state, unit.ownerId, tile, improvementId, unowned);
   // **A rider on laying the work down** (batch S): The Flood Festival pays faith
   // for each hex of burned country. The improvement is handed down as a fact so
   // a rider can name the one it pays for. A grant of hammers goes through
@@ -821,6 +900,52 @@ export function buildImprovementAt(
   }
   unit.chargesLeft = left;
   return true;
+}
+
+/**
+ * **The ground a work claims when it is laid** (Expansionist batch E4). Two
+ * cases, and in each the ground joins the builder's nearest town
+ * (`nearestOwnedCity`):
+ *
+ *   · a row with `claimsUnowned` (Outposts): every unowned hex within that many
+ *     hexes of the work, the work's own hex included, in map order. Each hex
+ *     counts toward The Wide Country's goal (the `hexClaimed` tally; the
+ *     triage's reading 35);
+ *   · any other work laid on unowned ground (The Garden Frontier's tended
+ *     works): the hex alone (the triage's reading 34).
+ *
+ * Ground somebody owns is never taken: `claimTile` refuses it. The town is
+ * re-seated and the empire's map redrawn, as `claimClearedCampGround` does for a
+ * cleared camp. This is entry 27 of the register of mid-turn yield changes
+ * (`refreshCityDerived`, `cities.ts`). Returns the town that gained ground, or
+ * `null` when nothing was claimed.
+ */
+export function claimGroundForWork(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+  improvementId: ImprovementId,
+  unowned: boolean,
+): City | null {
+  const radius = improvementDef(improvementId).claimsUnowned;
+  if (radius === undefined && !unowned) return null;
+  const seat = nearestOwnedCity(state, playerId, { col: tile.col, row: tile.row });
+  if (!seat) return null;
+  let claimed = 0;
+  if (radius !== undefined) {
+    // `mapRange` walks in map order, so the hexes are claimed in the same
+    // order in every replay.
+    for (const near of mapRange(state.map, tileHex(tile), Math.max(0, Math.floor(radius)))) {
+      if (claimTile(state, seat, near)) claimed += 1;
+    }
+    recordScalingOccasion(state, playerId, 'hexClaimed', claimed);
+  } else if (claimTile(state, seat, tile)) {
+    claimed = 1;
+  }
+  if (claimed === 0) return null;
+  refreshCityDerived(state, seat);
+  recomputeVisibility(state, playerId);
+  return seat;
 }
 
 /**

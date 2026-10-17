@@ -46,7 +46,9 @@
       "quarry",
       "fishingBoats",
       "lumbermill",
-      "floatingGardens"
+      "floatingGardens",
+      "townKeep",
+      "polder"
     ],
     "planTopN": 4,
     "planRadius": 4,
@@ -225,7 +227,7 @@
       "campCleared": 5,
       "cityCaptured": 2,
       "wonderOrCapitalCaptured": 1,
-      "hexBought": 6,
+      "hexClaimed": 6,
       "buildingBoughtWithGold": 6,
       "riteStarted": 3,
       "foreignCityConverted": 3

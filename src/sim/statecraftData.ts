@@ -3229,10 +3229,14 @@ export type TallyOccasion =
    */
   | 'wonderOrCapitalCaptured'
   /**
-   * A hex **bought with gold** (`purchaseTileAt`) — The Wide Country's goal.
-   * Fired once per hex bought.
+   * A hex **claimed** by an outpost (`claimGroundForWork`, `improvements.ts`),
+   * by clearing a camp (`claimClearedCampGround`, `camps.ts`) or by buying it
+   * (`purchaseTileAt`): The Wide Country's goal (the triage's reading 35). Each
+   * moment counts the hexes it claimed. A town's border growth and the other
+   * claims do not count. It was `hexBought`, buying alone, before Expansionist
+   * batch E4.
    */
-  | 'hexBought'
+  | 'hexClaimed'
   /**
    * A **building bought with gold** at the purchase counter — A Guild
    * Commission (Commerce, Tier III). Written in `purchaseItemAt` where the gold
@@ -3311,7 +3315,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'campCleared',
   'cityCaptured',
   'wonderOrCapitalCaptured',
-  'hexBought',
+  'hexClaimed',
   'buildingBoughtWithGold',
   'riteStarted',
   'foreignCityConverted',
@@ -6418,6 +6422,13 @@ export interface CardFoundingRiderEffect {
    * the largest size any town has ever had.
    */
   fromLargest?: number;
+  /**
+   * **The new town claims every unowned hex within this many hexes of its
+   * centre** (Expansionist batch E4, The Staked Claims: two). Ground another
+   * town holds is left alone (the triage's reading 15). Claimed in
+   * `foundCityAt` after the first ring, in map order.
+   */
+  claimRadius?: number;
 }
 
 /** A payout scaled by a count. See `CountKind` and `CardPayout`. */
@@ -6874,6 +6885,53 @@ export interface CardPeriodicMusterEffect {
 }
 
 /**
+ * **A town takes a hex from a smaller foreign town beside it, on a cadence**
+ * (Expansionist batch E4, The Encroaching Fields).
+ *
+ * On every turn where `turn % every === 0`, each of the empire's towns of at
+ * least `minPopulation` citizens takes one hex, in founding order. The hex
+ * belongs to another empire's town, lies beside this town's borders, is not a
+ * town centre and is worked by nobody, and its town has fewer citizens than
+ * this one. The hex nearest this town's centre is taken, ties going to the
+ * lower hex index, and it changes hands with whatever stands on it (the
+ * triage's reading 38). Run by the `encroachment` phase (`frontiers.ts`),
+ * `periodicMuster`'s calendar.
+ */
+export interface CardEncroachEffect {
+  kind: 'encroach';
+  /** Turns between moves. A turn moves when `turn % every === 0`. */
+  every: number;
+  /** The fewest citizens a town needs to take a hex. */
+  minPopulation: number;
+}
+
+/**
+ * **A citizen moves to another town, on a cadence** (Expansionist batch E4).
+ * Two sources:
+ *
+ *   · `'own'` (Migration): while the empire's spare happiness is nought or
+ *     below, its largest town sends one citizen to its smallest town joined to
+ *     the capital, if that town has fewer citizens (the triage's reading 36,
+ *     which waits for the user's confirmation);
+ *   · `'foreign'` (The Great Migration): while the empire's spare happiness is
+ *     above nought and above another empire's, each town of that empire within
+ *     `reach` hexes of this empire's borders, with at least two citizens, loses
+ *     one to this empire's town nearest it (the triage's reading 37).
+ *
+ * Every empire's happiness is read once, before anybody moves. Run by the
+ * `migration` phase (`frontiers.ts`) on every turn where `turn % every === 0`.
+ */
+export interface CardMigrationEffect {
+  kind: 'migration';
+  /** Turns between moves. A turn moves when `turn % every === 0`. */
+  every: number;
+  /** Whose towns the citizens come from. */
+  source: 'own' | 'foreign';
+  /** How far beyond this empire's borders a foreign town may stand. `'foreign'` only. */
+  reach?: number;
+}
+
+/**
  * **A drill**: at the end of a turn, some of this empire's units gain
  * experience (Dominion batch D1). The Drill Grounds (units standing in your
  * towns, every four turns), The Regimental Schools (garrisoned units, every
@@ -7079,6 +7137,38 @@ export interface CardLandfallEffect {
 export interface CardUnlocksBuildingEffect {
   kind: 'unlocksBuilding';
   building: BuildingId;
+}
+
+/**
+ * **An improvement row a seated card opens for the seat's workers**
+ * (Expansionist batch E4): The Keeps' Keep, The Polders' polder and Outposts'
+ * outpost.
+ *
+ * `CardUnlocksBuildingEffect`'s twin one table over, and a rule from the day it
+ * was written: `cardUnlocksImprovement` reads it for a row marked
+ * `ImprovementDef.unlockedByCard`, so whether a worker may build the row is one
+ * question with one answer. It is read only while the card is seated, because
+ * the text has no "Once drafted" (the triage's reading 31). A charter opens a
+ * tended work the other way, by being held (`CharterSpec.unlocks.improvement`).
+ */
+export interface CardUnlocksImprovementEffect {
+  kind: 'unlocksImprovement';
+  improvement: ImprovementId;
+}
+
+/**
+ * **Workers may lay a kind of work on unowned ground near the borders**
+ * (Expansionist batch E4, The Garden Frontier). `works` names the rows it
+ * reaches, and `'tended'` is the tended works. `reach` is how many hexes beyond
+ * the empire's borders such a hex may lie. A hex worked there joins the
+ * empire's nearest town when the work is laid, and ground a rival owns is never
+ * taken (the triage's reading 34). Read by `improvementGroundError` through
+ * `worksBeyondReach`, and by `claimGroundForWork` for the claim.
+ */
+export interface CardWorksBeyondEffect {
+  kind: 'worksBeyond';
+  works: 'tended';
+  reach: number;
 }
 
 /**
@@ -8137,6 +8227,12 @@ export type CardEffect =
   | CardLandfallEffect
   | CardUnlocksBuildingEffect
   | CardUnlocksUnitEffect
+  // Expansionist batch E4: a seated card opens a work row, tended works on
+  // ground beyond the borders, and two shapes that run on a cadence.
+  | CardUnlocksImprovementEffect
+  | CardWorksBeyondEffect
+  | CardEncroachEffect
+  | CardMigrationEffect
   | CardPantheonSlotsEffect
   | CardPurchaseRiderEffect
   | CardProjectRiderEffect
@@ -9244,6 +9340,25 @@ export function charterThatOpensImprovement(improvement: ImprovementId): OrderId
     const def = orderDef(id);
     if (def.retired === true) continue;
     if (def.charter?.unlocks.improvement === improvement) return id;
+  }
+  return null;
+}
+
+/**
+ * The card that opens this improvement row: the charter that names it, or
+ * (Expansionist batch E4) the Order whose `unlocksImprovement` effect names it.
+ * `null` when no card does. Retired rows are skipped. The refusal sentence and
+ * the Compendium read it; the gate asks the seat (`cardUnlocksImprovement`).
+ */
+export function cardThatOpensImprovement(improvement: ImprovementId): OrderId | null {
+  const charter = charterThatOpensImprovement(improvement);
+  if (charter !== null) return charter;
+  for (const id of ORDER_IDS) {
+    const def = orderDef(id);
+    if (def.retired === true) continue;
+    for (const effect of def.effects) {
+      if (effect.kind === 'unlocksImprovement' && effect.improvement === improvement) return id;
+    }
   }
   return null;
 }

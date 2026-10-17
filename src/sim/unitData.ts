@@ -1018,6 +1018,24 @@ export function isExplorer(def: UnitDef): boolean {
 }
 
 /**
+ * **Does this row lay ordinary works?** A row with charges whose charges are not
+ * a great person's, a prophet's or an augur's: the markers `plantingHandOf`
+ * (`improvements.ts`) reads for its spade. The worker, today.
+ *
+ * Asked by `moveProfile` (`pathfind.ts`) for the water a worker may wade onto
+ * (The Fish Traps' lakes, Expansionist batch E4), so the rule reaches the same
+ * pieces that may lay the work, and a future labourer inherits it from its row.
+ */
+export function laysWorks(def: UnitDef): boolean {
+  return (
+    def.charges !== undefined &&
+    def.greatWork !== true &&
+    def.prophesies !== true &&
+    def.consecrates !== true
+  );
+}
+
+/**
  * **A soldier in the field** — the piece an empire levies, garrisons with and
  * marches. Not a settler, not a scout, not a hull.
  *

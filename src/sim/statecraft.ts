@@ -155,6 +155,10 @@ export {
   // answer alone, and an empire's farm water.
   farmWaterOf,
   groundFactsFor,
+  // Expansionist batch E4: tended work beyond the borders, and the water a
+  // worker may wade onto.
+  worksBeyondReach,
+  workerWaters,
   filledOrderSlots,
   foldCardRulePercent,
   foldCardYields,

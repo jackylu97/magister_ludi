@@ -758,10 +758,38 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * phantom town, which now stands on the seat's capital. The duel game adopts
  * 11 governments and the standard one 17. Nothing stalled and no command was
  * refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E4 (schema 141): works, claims and borders.** Duel
+ * `eed36fcb:288964` → `63f7db4c:289000`, standard `0b6d0a03:1013929` →
+ * `d1e861fb:1013915`. Four things moved them:
+ *
+ *   · the cards. Three Expansionist rows join the deck, five deferred rows are
+ *     freed (Outposts, The Polders, Migration, The Great Migration, The
+ *     Encroaching Fields), and two rows change (The Fish Traps, The Wide
+ *     Country). From the first draw that meets one of them, the seats hold
+ *     different cards. At turn 120 one standard seat holds The Fish Traps and
+ *     Migration, neither seated, and no duel seat holds an E4 card;
+ *   · the two new end-of-turn phases, `encroachment` and `migration`, which
+ *     raise the revision twice more every turn;
+ *   · the version, 140 to 141;
+ *   · the rest of the new code: the Keep and the polder on the bots' worker
+ *     roster, the tally renamed to `hexClaimed`, and the improvement rows.
+ *
+ * With the cards alone taken out (the deck file as E3 left it, everything else
+ * in place), the boards give duel `9d909129:288964` and standard
+ * `b066362d:1013929`: the same lengths as before, so the phases and the
+ * version move the hash only. Checked by taking all of E4's movers out (the
+ * deck file, the improvement table and `data/ai.json` as E3 left them, the two
+ * phases removed, a purchase recorded under the old tally name, and the
+ * version at 140), which gives E3's digests exactly on both boards. The duel
+ * game adopts 11 governments and the standard one 17. Nothing stalled and no
+ * command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'eed36fcb:288964',
-  standard: '0b6d0a03:1013929',
+  duel: '63f7db4c:289000',
+  standard: 'd1e861fb:1013915',
 };
 
 /**

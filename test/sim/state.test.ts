@@ -559,6 +559,13 @@ describe("end-of-turn pipeline", () => {
       // legacy in the first place. See `reviewLegacies`.
       "reviewLegacies",
       "expandBorders",
+      // Expansionist batch E4, every ten turns: The Encroaching Fields takes a
+      // hex from a smaller foreign town, then Migration and The Great
+      // Migration move citizens on the empires' happiness. After the borders
+      // grow, so both read the borders and the worked hexes this turn left. See
+      // `runEncroachment` and `runMigrations` (`frontiers.ts`).
+      "encroachment",
+      "migration",
       "healCities",
       // The wild acts after the towns and before the healing, so a raider that
       // marched or fought is not resting. See `barbarianTurn`.
@@ -920,7 +927,10 @@ describe("the research queue field", () => {
     // phase fewer.
     // 140 since E3: ten Expansionist cards about the land and two new tile
     // fields, so a v139 log's picks name cards this build deals differently.
-    expect(SCHEMA_VERSION).toBe(140);
+    // 141 since E4: ten Expansionist cards about works, claims and borders,
+    // and two new end-of-turn phases, so a v140 log's picks name cards this
+    // build deals differently and its resolutions run two phases fewer.
+    expect(SCHEMA_VERSION).toBe(141);
   });
 });
 

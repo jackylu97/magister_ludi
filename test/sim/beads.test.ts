@@ -381,7 +381,10 @@ describe("the bead catalogue", () => {
     // phase fewer.
     // 140 since E3: ten Expansionist cards about the land and two new tile
     // fields, so a v139 log's picks name cards this build deals differently.
-    expect(SCHEMA_VERSION).toBe(140);
+    // 141 since E4: ten Expansionist cards about works, claims and borders,
+    // and two new end-of-turn phases, so a v140 log's picks name cards this
+    // build deals differently and its resolutions run two phases fewer.
+    expect(SCHEMA_VERSION).toBe(141);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

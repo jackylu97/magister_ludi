@@ -139,6 +139,7 @@ import {
   ORDER_IDS,
   type OrderId,
   type OrderRarity,
+  cardThatOpensImprovement,
   charterThatOpensImprovement,
   doctrineDef,
   orderDef,
@@ -166,7 +167,7 @@ import {
 } from '../sim/leaderData';
 import { type LeaderRowKind, leaderOpeningWords } from './leaderSelect';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
-import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield } from '../sim/terrainData';
+import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield, terrainDef } from '../sim/terrainData';
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from '../sim/triumphData';
 import {
   UNIT_TYPE_IDS,
@@ -753,6 +754,15 @@ function improvementOpening(id: ImprovementId): CompendiumClause {
     const by = card === null ? 'a card' : `the Order ${ref('order', card, orderDef(card).name)}`;
     return {
       text: `Unlocked by drafting ${by}, not by any technology. A tended work: it counts as wild land for every card, cannot be pillaged, and opens no resource.`,
+    };
+  }
+  if (def.unlockedByCard === true) {
+    // A row a seated card opens (Expansionist batch E4): open while the card
+    // that names it sits in a chair.
+    const card = cardThatOpensImprovement(id);
+    const by = card === null ? 'a card' : `the Order ${ref('order', card, orderDef(card).name)}`;
+    return {
+      text: `Unlocked while ${by} is in a chair, not by any technology. A work already built stays when the card leaves.`,
     };
   }
   if (def.greatPerson !== undefined) {
@@ -1512,6 +1522,45 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
   }
   if (def.claimsNeighbours === true) {
     clauses.push({ text: 'Claims the hex it stands on and every hex next to it for your empire.' });
+  }
+  // **The Expansionist batch E4 rows' own rules**, read off the row.
+  if (def.onePerTown === true) {
+    clauses.push({ text: 'A city may hold only one, counted over every hex inside its borders.' });
+  }
+  if (def.copiesNeighbours === true) {
+    clauses.push({
+      text: 'Yields what each hex around it yields, counting only hexes inside your borders, and never a city or another hex of its kind. It pays only while a citizen works it.',
+    });
+  }
+  if (def.landBeside !== undefined) {
+    clauses.push({
+      text: `Needs at least ${figure(def.landBeside)} of your land hexes beside it.`,
+    });
+  }
+  if (def.yieldsAs !== undefined) {
+    const work = improvementDef(def.yieldsAs.improvement).name.toLowerCase();
+    const ground = terrainDef(def.yieldsAs.terrain).name.toLowerCase();
+    clauses.push({
+      text: `Yields as ${withArticle(work)} on ${ground}, without the renewals that need fresh water. The hex stays water for every other rule, and nothing that pays on ${withArticle(work)} pays on this.`,
+    });
+  }
+  if (def.beyondBorders !== undefined) {
+    clauses.push({
+      text: `Built only on unowned ground with no work on it, at most ${figure(def.beyondBorders)} ${plural(def.beyondBorders, 'hex', 'hexes')} beyond your borders.`,
+    });
+  }
+  if (def.claimsUnowned !== undefined) {
+    clauses.push({
+      text:
+        def.claimsUnowned === 1
+          ? 'Claims the hex it stands on and every unowned hex next to it for your nearest city. A city founded on it keeps that land.'
+          : `Claims every unowned hex within ${figure(def.claimsUnowned)} ${plural(def.claimsUnowned, 'hex', 'hexes')} of it for your nearest city. A city founded on it keeps that land.`,
+    });
+  }
+  if (def.workersWade !== undefined) {
+    clauses.push({
+      text: `While the card that opens it is held, your workers may step onto ${eitherWords(def.workersWade.map((terrain) => terrain))} as if embarked, to build it there.`,
+    });
   }
   // **What opens it** (C1): the row's own gate as a linked node, or the hand
   // that lays it — where the "Unlocked by" row used to stand among the figures.

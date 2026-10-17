@@ -265,6 +265,11 @@ const ANNOUNCING = new Set([
   'cities.ts#assignCitizens',
   'cities.ts#claimTile',
   'cities.ts#foundCityAt',
+  // Expansionist batch E4: a town founded on an outpost takes the outpost's
+  // land from the town that held it, and The Encroaching Fields moves a hex
+  // between two empires' towns. Both write the owner array and announce.
+  'cities.ts#takeOutpostLand',
+  'frontiers.ts#runEncroachment',
   // Batch L: famine and a levy both take a citizen through `loseCitizen`.
   'cities.ts#loseCitizen',
   // Batch L: Seasonal Levies hangs timed effects on the town that levied.

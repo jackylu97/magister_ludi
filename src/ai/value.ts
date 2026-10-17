@@ -3385,6 +3385,23 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // Bots do not levy yet (batch L), so a levy card does nothing for one and
       // is worth nothing to it.
       return 0;
+    case 'unlocksImprovement':
+      // **A work row this seat's workers may build while the card is seated**
+      // (Expansionist batch E4: The Keeps, The Polders, Outposts). What the row
+      // is worth is what the improvement plan would lay with it on this seat's
+      // ground (`plan.ts`), and the plan already prices a Keep and a polder when
+      // the card opens them. The card itself meets the stand-in, named.
+      return ctx.ai.score.unknownEffect;
+    case 'worksBeyond':
+      // Tended works beyond the borders (The Garden Frontier). Bots lay no
+      // tended works, so this opens nothing for one.
+      return 0;
+    case 'encroach':
+    case 'migration':
+      // A hex or a citizen every few turns (The Encroaching Fields, Migration,
+      // The Great Migration), on a board this bot cannot read ahead of time.
+      // The stand-in over the cadence, as `periodicOffer` takes it.
+      return ctx.ai.score.unknownEffect / Math.max(1, Math.floor(effect.every));
     case 'drill': {
       // **Experience is strength paid in instalments** (Dominion batch D1). A
       // point of experience is priced at what the rank ladder pays for it: the

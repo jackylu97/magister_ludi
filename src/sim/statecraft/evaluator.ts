@@ -59,6 +59,7 @@ import {
   isGreatPersonId,
 } from '../greatPeopleData';
 import {
+  IMPROVEMENT_IDS,
   type ImprovementId,
   improvementCountsAs,
   improvementDef,
@@ -4488,6 +4489,14 @@ export interface GroundFacts {
   player?: number;
   watered?: (tile: Tile) => boolean;
   wonderCentre?: (tile: Tile) => boolean;
+  /**
+   * **The hexes a work that copies its neighbours pays for** (Expansionist
+   * batch E4, The Keeps): the six hexes beside this one that lie inside the
+   * asking empire's borders, in the ring's own order, never a town centre and
+   * never another work that copies (the triage's reading 31). The hex fold sums
+   * what each one pays (`explainTileYield`, `yields/hex.ts`).
+   */
+  copiedHexes?: (tile: Tile) => readonly Tile[];
 }
 
 /** The ground facts for one empire's questions. See `GroundFacts`. */
@@ -4501,6 +4510,15 @@ export function groundFactsFor(state: GameState, playerId: number): GroundFacts 
       const town = cityAt(state, tile.col, tile.row);
       return town !== undefined && town.buildings.some((id) => isWonder(id));
     },
+    // Asked only of a hex whose work copies its neighbours (The Keeps), and a
+    // town holds one Keep at most, so a ring walk per call is cheap.
+    copiedHexes: (tile) =>
+      neighborTiles(state.map, tileHex(tile)).filter(
+        (next) =>
+          tileOwnerPlayerId(state, next.col, next.row) === playerId &&
+          cityAt(state, next.col, next.row) === undefined &&
+          (next.improvement === undefined || improvementDef(next.improvement).copiesNeighbours !== true),
+      ),
   };
   if (water !== null) facts.watered = (tile) => water.watered(tile);
   return facts;
@@ -8778,16 +8796,23 @@ export function cardUnlocksBuilding(
 
 /**
  * Does one of this seat's cards open this **improvement row** for its workers?
- * The tended works' gate (`ImprovementDef.tended`), asked by
+ * The gate of every row a card opens (`isCardOpenedWork`), asked by
  * `improvementCardError` (`improvements.ts`). `cardUnlocksBuilding`'s sibling
- * for the improvement table: the answer is a charter the seat has drafted
- * (`CharterSpec.unlocks.improvement`).
+ * for the improvement table. Two answers: a charter the seat has drafted
+ * (`CharterSpec.unlocks.improvement`, the tended works), or a seated card whose
+ * `unlocksImprovement` effect names the row (Expansionist batch E4: The Keeps,
+ * The Polders and Outposts).
  */
 export function cardUnlocksImprovement(
   state: GameState,
   playerId: number,
   improvement: ImprovementId,
 ): boolean {
+  // A seated card, through the live walk, so it opens the row only while it
+  // sits in a chair (the triage's reading 31).
+  for (const { effect } of effectsOfKind(state, playerId, 'unlocksImprovement')) {
+    if (effect.improvement === improvement) return true;
+  }
   // A charter is never seated, so the seat's whole collection is asked rather
   // than its live effects: a drafted card stays in `orders` for good.
   const seat = playerById(state, playerId);
@@ -8797,6 +8822,37 @@ export function cardUnlocksImprovement(
     if (orderDef(id).charter?.unlocks.improvement === improvement) return true;
   }
   return false;
+}
+
+/**
+ * **How far beyond this empire's borders its workers may lay a kind of work**
+ * (Expansionist batch E4, The Garden Frontier's tended works): the largest
+ * `reach` of the seated `worksBeyond` effects naming the kind, or nought. Read
+ * by `improvementGroundError` (`improvements.ts`).
+ */
+export function worksBeyondReach(state: GameState, playerId: number, works: 'tended'): number {
+  let reach = 0;
+  for (const { effect } of effectsOfKind(state, playerId, 'worksBeyond')) {
+    if (effect.works === works) reach = Math.max(reach, Math.floor(effect.reach));
+  }
+  return reach;
+}
+
+/**
+ * **The water this empire's workers may step onto, as if embarked**
+ * (Expansionist batch E4, The Fish Traps' lakes): every terrain a row names in
+ * `ImprovementDef.workersWade`, for the rows a card this seat holds opens
+ * (`cardUnlocksImprovement`), in the table's order. Empty for nearly every
+ * seat. Asked once for each search by `moveProfile` (`pathfind.ts`).
+ */
+export function workerWaters(state: GameState, playerId: number): TerrainId[] {
+  const waters: TerrainId[] = [];
+  for (const id of IMPROVEMENT_IDS) {
+    const wade = improvementDef(id).workersWade;
+    if (wade === undefined || !cardUnlocksImprovement(state, playerId, id)) continue;
+    for (const water of wade) if (!waters.includes(water)) waters.push(water);
+  }
+  return waters;
 }
 
 /**
@@ -9750,6 +9806,12 @@ export interface FoundingRider {
    * starting size. Absent when no row names one; the largest of several wins.
    */
   startsAt?: number;
+  /**
+   * How far from its centre the town claims every unowned hex at once (The
+   * Staked Claims, Expansionist batch E4). Absent when no row names one, and
+   * the largest of several wins. `foundCityAt` claims beyond the first ring.
+   */
+  claimRadius?: number;
 }
 
 /**
@@ -9786,6 +9848,9 @@ export function cardFoundingRider(
     }
     if (effect.roads === true) rider.roads = true;
     if (effect.claims !== undefined) rider.claims += effect.claims;
+    if (effect.claimRadius !== undefined) {
+      rider.claimRadius = Math.max(rider.claimRadius ?? 0, Math.floor(effect.claimRadius));
+    }
     if (escort !== null && effect.rank !== undefined) {
       rider.ranks.push({ unitId: escort.id, rank: effect.rank });
     }

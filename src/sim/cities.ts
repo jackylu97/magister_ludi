@@ -85,6 +85,7 @@ import {
   mapRange,
   markHex,
   neighborTiles,
+  razeImprovement,
   tileHex,
   tileIndex,
   wrappedDistance,
@@ -1282,6 +1283,25 @@ export function tileOwnerPlayerId(state: GameState, col: number, row: number): n
 }
 
 /**
+ * **Is this hex at most `reach` hexes from a hex this empire owns?**
+ * (Expansionist batch E4.) The reach of the works laid beyond the borders
+ * (Outposts, The Garden Frontier) and of the foreign towns The Great Migration
+ * draws on. A hex inside the borders is at nought. The map's own wrapped
+ * distance, through `mapRange`.
+ */
+export function withinReachOfBorders(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+  reach: number,
+): boolean {
+  for (const near of mapRange(state.map, tileHex(tile), Math.max(0, Math.floor(reach)))) {
+    if (tileOwnerPlayerId(state, near.col, near.row) === playerId) return true;
+  }
+  return false;
+}
+
+/**
  * The context a map SURFACE prices one hex with — the tile readout and the
  * yields lens. The standing rule ("an owned tile is always evaluated with its
  * owner's ctx") gains its missing half here: a hex inside a city's territory
@@ -1482,8 +1502,14 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   if (tile.discovery !== undefined && discoveryKindTech(tile.discovery) !== null) {
     delete tile.discovery;
   }
+  // The town that held the hex before, if one of this empire's did: an
+  // outpost's town gives its land up below.
+  const heldBy = state.tileOwner[tileIndex(state.map, tile.col, tile.row)] ?? null;
   const city = createCity(state, ownerId, nextCityName(state, ownerId), tile.col, tile.row);
   state.tileOwner[tileIndex(state.map, tile.col, tile.row)] = city.id;
+  // **A town founded on an outpost keeps that land** (Outposts, Expansionist
+  // batch E4; the triage's reading 33). See `takeOutpostLand`.
+  const formerTown = takeOutpostLand(state, city, tile, heldBy);
   // The Founder's count (design ledger Entry VI). On the player rather than
   // derived, because once a town changes hands nothing on the board says who
   // built it — see `Player.citiesFounded`. Raised in the mechanism so an AI's
@@ -1511,6 +1537,14 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // batch E2). Founding is not growth, so nothing is paid for it; the record
   // rises later through `settleSizeRecord`.
   city.largestSize = city.population;
+  // **The Staked Claims** (Expansionist batch E4): every unowned hex within the
+  // law's radius, beyond the first ring, in map order (the triage's reading 15).
+  const radius = rider.claimRadius ?? 0;
+  if (radius > 1) {
+    for (const near of mapRange(state.map, tileHex(tile), radius)) {
+      claimTile(state, city, near);
+    }
+  }
   // The Beating of the Bounds: extra hexes beyond the first ring, each the one
   // the town's borders would grow into next. A town hemmed in claims fewer.
   for (let extra = 0; extra < rider.claims; extra++) {
@@ -1535,6 +1569,8 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // every mid-turn mutation uses — founding is the one that *creates* the
   // derived state rather than correcting it, and it is still the same call.
   refreshCityDerived(state, city);
+  // The town an outpost's land came from is smaller now (Expansionist batch E4).
+  if (formerTown !== null) refreshCityDerived(state, formerTown);
   // And it is looking from the moment it exists. Refreshed *here* rather than
   // inside `createCity`, because a city sees its own territory and the territory
   // is claimed two lines above — a refresh in the constructor would light the
@@ -1577,6 +1613,42 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
     settleRanksEarned(state, escort, raiseToRank(state, escort, rank));
   }
   return city;
+}
+
+/**
+ * **A town founded on an outpost takes the outpost's land** (Outposts,
+ * Expansionist batch E4; the triage's reading 33).
+ *
+ * When the founding hex carries a work that claims ground (`claimsUnowned`),
+ * every hex within that claim which the town holding the outpost hex still
+ * holds moves to the new town, and the outpost itself goes: the town stands in
+ * its place. Only that town's hexes move, so nothing another town of this
+ * empire or a rival holds changes hands. The hexes are walked in map order.
+ *
+ * Returns the town that gave the land up, so the caller can re-seat it once
+ * the new town is finished, or `null` when nothing moved. `heldBy` is the town
+ * that held the founding hex before the new town took it.
+ */
+function takeOutpostLand(state: GameState, city: City, tile: Tile, heldBy: number | null): City | null {
+  const work = tile.improvement;
+  if (work === undefined) return null;
+  const radius = improvementDef(work).claimsUnowned;
+  if (radius === undefined) return null;
+  // The town stands where the outpost stood. Through the one writer of a
+  // hex's works and its age stamp.
+  razeImprovement(tile);
+  const former = heldBy === null ? undefined : cityById(state, heldBy);
+  if (!former || former.ownerId !== city.ownerId || former.id === city.id) return null;
+  let moved = 0;
+  for (const near of mapRange(state.map, tileHex(tile), radius)) {
+    const index = tileIndex(state.map, near.col, near.row);
+    if (state.tileOwner[index] !== former.id) continue;
+    state.tileOwner[index] = city.id;
+    moved += 1;
+  }
+  // The ground moved (batch M3, `slate.ts`), as `claimTile` says for a claim.
+  bumpEconomy(state);
+  return moved > 0 ? former : null;
 }
 
 /**
@@ -2357,6 +2429,23 @@ function chooseCitizens(
  *      E3): The Raising of the Land and The Coming of the Water add a yield to
  *      hexes the town may already be working, so the town is re-seated when a
  *      mark goes on.
+ *  27. **The ground a work claims** (`claimGroundForWork`, `improvements.ts`,
+ *      Expansionist batch E4): an outpost claims its hex and the unowned ring
+ *      around it, and a tended hex laid beyond the borders joins its town, so
+ *      the nearest town has new hexes to work before the turn ends. Entry 24's
+ *      reason, with a work in place of a camp. A town founded on an outpost
+ *      takes that land from the town that held it, and `foundCityAt` (entry 7)
+ *      re-seats both.
+ *  28. **A hex taken from a foreign town** (`runEncroachment`, `frontiers.ts`,
+ *      Expansionist batch E4's The Encroaching Fields). It runs in its own
+ *      phase, as entry 25 does, and both towns are re-seated at once: one has a
+ *      hex more to work and the other a hex less.
+ *  29. **A citizen who moves to another town** (`runMigrations`,
+ *      `frontiers.ts`, Expansionist batch E4's Migration and The Great
+ *      Migration). It runs in its own phase. The town that loses the citizen
+ *      gives it up through `loseCitizen` and is re-seated for entry 23's reason,
+ *      and the town that gains one takes it through `settlePopulationWindfall`,
+ *      which re-seats it.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -6118,8 +6207,9 @@ export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
   // `spendGold` (`state.ts`) also announces the banks to the meters (batch M3).
   spendGold(state, player, price);
   player.tilesPurchased += 1;
-  // The Wide Country's goal counts each hex bought while it is seated.
-  recordScalingOccasion(state, player.id, 'hexBought');
+  // The Wide Country's goal counts each hex bought while it is seated, with the
+  // hexes outposts and cleared camps claim (Expansionist batch E4).
+  recordScalingOccasion(state, player.id, 'hexClaimed');
   // Chartered Companies' survey. A rider on an occasion that has no figure of
   // its own, so the base is zero and only the grants are read.
   const payout = windfallPayout(state, player.id, 'tilePurchase');

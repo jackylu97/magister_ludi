@@ -804,6 +804,11 @@ export const PART_IDS = [
   // game.
   'holySite',
   'lumbermill',
+  // The three works a seated Expansionist card opens (batch E4), each a
+  // placeholder sculpt of its own until the art pass.
+  'townKeep',
+  'polder',
+  'outpost',
 ] as const;
 
 export const PART_CAPTIONS: Record<(typeof PART_IDS)[number], string> = {
@@ -827,4 +832,8 @@ export const PART_CAPTIONS: Record<(typeof PART_IDS)[number], string> = {
     'six leaning monoliths about an altar, under a gilt tip — the board’s one ring of verticals, against the citadel’s closed wall',
   lumbermill:
     'the sawing trestle and its stack of cut timber — low and squared, because it stands among pines that are neither',
+  townKeep:
+    'the Keep: a square tower with a merlon on each corner, in a walled yard open on one side. Placeholder art',
+  polder: 'the polder: a ring of low dykes on the water, with a drained field inside. Placeholder art',
+  outpost: 'the outpost: a hut under a pointed roof, and a flag on a tall pole beside it. Placeholder art',
 };

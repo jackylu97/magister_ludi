@@ -429,6 +429,21 @@ export function explainTileYield(
     list.push({ source: feature.name, kind: 'override', ...readTileYield(override) });
   }
 
+  // **Drained ground** (The Polders, Expansionist batch E4): a work that yields
+  // as other ground replaces the hex's own yield with that ground's. It comes
+  // after the terrain and the canopy and before the seam, so a resource still
+  // adds, and the hex stays water for every other rule (the triage's reading
+  // 32).
+  const drained = tile.improvement === undefined ? undefined : improvementDef(tile.improvement);
+  if (drained?.yieldsAs !== undefined) {
+    const ground = terrainDef(drained.yieldsAs.terrain);
+    list.push({
+      source: `${drained.name}: ${ground.name}`,
+      kind: 'override',
+      ...readTileYield(ground.yield),
+    });
+  }
+
   // The resource, and only for an empire that has a word for it. A seam this
   // player cannot be *told* about pays nothing — see "The reveal gate" above —
   // and a context-less evaluation is the omniscient one, which is why the test
@@ -448,12 +463,30 @@ export function explainTileYield(
   const worksFrom = list.length;
   if (improvement !== undefined) {
     const def = improvementDef(improvement);
-    list.push({ source: def.name, kind: 'add', ...improvementYield(improvement) });
+    // **A work that yields as another** (The Polders, Expansionist batch E4)
+    // pays that row's yield and those of its renewals that need no fresh water.
+    // Every other row pays its own.
+    const paysAs = def.yieldsAs?.improvement ?? improvement;
+    const works = improvementYield(paysAs);
+    // **A work that copies the hexes around it** (The Keeps, Expansionist batch
+    // E4): what each of them pays, read with this hex's own context, is added
+    // to the work's line (the triage's reading 31). `GroundFacts.copiedHexes`
+    // finds them, and never another work that copies, so the fold never reads
+    // itself. A context-less reading copies nothing.
+    if (def.copiesNeighbours === true) {
+      for (const next of ctx?.ground?.copiedHexes?.(tile) ?? []) {
+        const theirs = foldTile(next, ctx);
+        for (const voice of TILE_YIELD_KEYS) works[voice] += theirs[voice];
+      }
+    }
+    list.push({ source: def.name, kind: 'add', ...works });
     // The renewals, each its own entry, and only for an empire that has earned
     // them. Walked in the table's own order so two renewals on one improvement
     // always read in the same order (design ledger, Entry I).
-    for (const upgrade of def.upgrades ?? []) {
+    for (const upgrade of improvementDef(paysAs).upgrades ?? []) {
       if (!ctx || !ctx.techs.includes(upgrade.tech)) continue;
+      // A row that yields as another takes none of its wet renewals.
+      if (def.yieldsAs !== undefined && upgrade.requiresFreshwater === true) continue;
       // **Or the town that works this hex waters it** — the Cistern
       // (`TileYieldContext.irrigates`). The one place a building answers for the
       // ground, and it is a *clause on this condition* rather than a second kind

@@ -414,7 +414,10 @@ describe('determinism', () => {
     // phase fewer.
     // 140 since E3: ten Expansionist cards about the land and two new tile
     // fields, so a v139 log's picks name cards this build deals differently.
-    expect(SCHEMA_VERSION).toBe(140);
+    // 141 since E4: ten Expansionist cards about works, claims and borders,
+    // and two new end-of-turn phases, so a v140 log's picks name cards this
+    // build deals differently and its resolutions run two phases fewer.
+    expect(SCHEMA_VERSION).toBe(141);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

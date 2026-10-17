@@ -1542,8 +1542,41 @@ import {
  * **A v139 save is refused and does not replay.** The draft bags hold
  * different cards, and the riders of a great person's act land in a different
  * town. The branch migrates nothing, for the reason given under v119.
+ *
+ * v141 (branch `decks`; Expansionist batch E4 of
+ * `docs/plans/expansionist-build-triage.md`, works, claims and borders): **ten
+ * Expansionist cards.** The Keeps, The Garden Frontier and The Staked Claims
+ * join the Expansionist file. Outposts, The Polders, Migration, The Great
+ * Migration and The Encroaching Fields were deferred and are now dealt. The
+ * Fish Traps and The Wide Country now do what their text says. No field joins
+ * the state. What changes:
+ *
+ *   · three improvement rows join the table (`townKeep`, `polder`, `outpost`),
+ *     each opened while a seated card names it (`unlocksImprovement`). The
+ *     Keep copies the hexes around it and gives its hex's defender +5, one in
+ *     each town; the polder yields as a farm on grassland; the outpost is laid
+ *     beyond the borders and claims the unowned ring around it;
+ *   · a tended work may be laid on unowned ground near the borders under The
+ *     Garden Frontier (`worksBeyond`), and the hex joins the nearest town;
+ *   · a worker of a seat holding The Fish Traps may step onto a lake as if
+ *     embarked (`MoveProfile.wades`), and only the fish traps may be laid on
+ *     one;
+ *   · a founding rider can claim every unowned hex within a radius
+ *     (`claimRadius`), and a town founded on an outpost takes its land;
+ *   · the tally `hexBought` is now `hexClaimed`: hexes claimed by an outpost,
+ *     a cleared camp or buying;
+ *   · two new end-of-turn phases after `expandBorders`, `encroachment` and
+ *     `migration`, which run The Encroaching Fields (`encroach`) and the two
+ *     migrations (`migration`) every ten turns. Each raises the revision once
+ *     more every turn;
+ *   · the bots may lay Keeps and polders when a seated card opens them.
+ *
+ * **A v140 save is refused and does not replay.** The draft bags hold
+ * different cards, every resolution runs two more phases, and the bots lay
+ * different works. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 140;
+export const SCHEMA_VERSION = 141;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

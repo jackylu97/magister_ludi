@@ -3995,9 +3995,8 @@
   ],
   "outposts": [
    {
-    "raw": "a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town — not built yet",
-    "text": "a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town — not built yet",
-    "deferred": true
+    "raw": "while this card is seated, your workers may build an [[improvement:outpost|Outpost]]: on unowned wild ground up to 3 hexes beyond your borders; it claims its hex and every unowned hex next to it for your nearest city",
+    "text": "while this card is seated, your workers may build an Outpost: on unowned wild ground up to 3 hexes beyond your borders; it claims its hex and every unowned hex next to it for your nearest city"
    }
   ],
   "theProspectors": [
@@ -4098,6 +4097,12 @@
     "text": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order stands in a slot"
    }
   ],
+  "theGardenFrontier": [
+   {
+    "raw": "your workers may lay tended works on unowned wild hexes up to 2 hexes beyond your borders, and a hex worked there joins your nearest city",
+    "text": "your workers may lay tended works on unowned wild hexes up to 2 hexes beyond your borders, and a hex worked there joins your nearest city"
+   }
+  ],
   "theWatercourses": [
    {
     "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside a river or beside a [[improvement:farm|Farm]] and beside a river",
@@ -4159,9 +4164,8 @@
   ],
   "migration": [
    {
-    "raw": "a crowded town sends a citizen to a small town joined to it — not built yet",
-    "text": "a crowded town sends a citizen to a small town joined to it — not built yet",
-    "deferred": true
+    "raw": "every 10 turns, while your happiness is 0 or below, your largest city sends one citizen to your smallest city joined to your capital",
+    "text": "every 10 turns, while your happiness is 0 or below, your largest city sends one citizen to your smallest city joined to your capital"
    }
   ],
   "veteranColonies": [
@@ -4317,9 +4321,8 @@
   ],
   "thePolders": [
    {
-    "raw": "a worker turns shallow sea beside your land into grassland — not built yet",
-    "text": "a worker turns shallow sea beside your land into grassland — not built yet",
-    "deferred": true
+    "raw": "while this card is seated, your workers may build a [[improvement:polder|Polder]]: on a coast hex with 3 of your land hexes beside it; for 2 work charges; it yields as a farm on grassland",
+    "text": "while this card is seated, your workers may build a Polder: on a coast hex with 3 of your land hexes beside it; for 2 work charges; it yields as a farm on grassland"
    }
   ],
   "publicWorks": [
@@ -4341,12 +4344,12 @@
   ],
   "theWideCountry": [
    {
-    "raw": "Commission. Goal: buy 12 hexes, while this card is seated",
-    "text": "Commission. Goal: buy 12 hexes, while this card is seated"
+    "raw": "Commission. Goal: claim 12 hexes by outposts, cleared camps or buying, while this card is seated",
+    "text": "Commission. Goal: claim 12 hexes by outposts, cleared camps or buying, while this card is seated"
    },
    {
-    "raw": "Reward: for 30 turns, +2 happiness in every city and +75% food in every city of 5 or fewer citizens",
-    "text": "Reward: for 30 turns, +2 happiness in every city and +75% food in every city of 5 or fewer citizens"
+    "raw": "Reward: +2 citizens in each of your 3 smallest cities, and for 30 turns, +2 happiness in every city",
+    "text": "Reward: +2 citizens in each of your 3 smallest cities, and for 30 turns, +2 happiness in every city"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -4509,6 +4512,12 @@
     "text": "+1 production, +2 science on every mountain hex"
    }
   ],
+  "theStakedClaims": [
+   {
+    "raw": "new cities claim every unowned hex within 2 hexes of them at once",
+    "text": "new cities claim every unowned hex within 2 hexes of them at once"
+   }
+  ],
   "theLandsGreatWork": [
    {
     "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per city of 8 or more citizens (at most +40%)",
@@ -4584,16 +4593,14 @@
   ],
   "theGreatMigration": [
    {
-    "raw": "unhappy foreign towns near your border lose citizens to your happier towns — not built yet",
-    "text": "unhappy foreign towns near your border lose citizens to your happier towns — not built yet",
-    "deferred": true
+    "raw": "every 10 turns, while your happiness is above 0 and above another empire's, each city of that empire within 3 hexes of your borders with at least 2 citizens loses one citizen to your nearest city",
+    "text": "every 10 turns, while your happiness is above 0 and above another empire's, each city of that empire within 3 hexes of your borders with at least 2 citizens loses one citizen to your nearest city"
    }
   ],
   "theEncroachingFields": [
    {
-    "raw": "large towns take unworked hexes from the borders of smaller foreign towns beside them — not built yet",
-    "text": "large towns take unworked hexes from the borders of smaller foreign towns beside them — not built yet",
-    "deferred": true
+    "raw": "every 10 turns, each of your cities of at least 12 citizens takes one hex nobody works from the borders of a smaller foreign city next to it",
+    "text": "every 10 turns, each of your cities of at least 12 citizens takes one hex nobody works from the borders of a smaller foreign city next to it"
    }
   ],
   "theDomesdaySurvey": [
@@ -4633,6 +4640,12 @@
    {
     "raw": "+3% production toward [[building:theMagnumOpus|The Magnum Opus]] per city joined to your capital by road (at most +45%)",
     "text": "+3% production toward The Magnum Opus per city joined to your capital by road (at most +45%)"
+   }
+  ],
+  "theKeeps": [
+   {
+    "raw": "while this card is seated, your workers may build a [[improvement:townKeep|Keep]]: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind; units on its hex gain +5 strength when defending",
+    "text": "while this card is seated, your workers may build a Keep: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind; units on its hex gain +5 strength when defending"
    }
   ],
   "theGrovesAndTheStones": [

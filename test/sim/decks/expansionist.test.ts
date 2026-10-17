@@ -537,6 +537,12 @@ describe('the live rows', () => {
       'beadPerOccasion',
       'grantsAbility',
       'levy',
+      // Expansionist batch E4: a work row a seated card opens, tended works
+      // beyond the borders, and the two shapes that run every ten turns.
+      'unlocksImprovement',
+      'worksBeyond',
+      'encroach',
+      'migration',
     ]);
     const walk = (effects: readonly CardEffect[], id: OrderId): void => {
       for (const effect of effects) {
