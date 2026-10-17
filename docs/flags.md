@@ -19,6 +19,35 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(xxxxxx) Units stuck on water, and routing around a blocking unit: RULED, 2026-10-17, not built yet.**
+- **Found while building the lake fix:** bot soldiers can sit on water, coast
+  or lake, for many turns (up to about 60 in a test game). There are two
+  causes, and both are older than the lake fix:
+  1. The bot steps a unit out of a town to make room, picks a water hex beside
+     the town, and the unit then digs in there and is never moved again.
+  2. The path search (`findPath`) does not know that a step from land onto
+     water ends the turn on the hex it lands on. So a march can aim at a hex
+     where the unit may not stop, such as a full town hex. `advanceAlongPath`
+     then keeps the order and waits, and the bot gives the same order every
+     turn.
+  The user agreed to fix both: *"yes"*.
+- **The user's new rule, the same message:** *"i noticed a bug where routing
+  doesn't take into account units blocking its path. The unit should reroute
+  its pathing if there's a unit blocking the tile it plans to move onto next
+  turn (a unit of the same type blocking its path)"*.
+- **What the fix does:**
+  1. A step from land onto water, or from water onto land, ends the turn. So
+     the hex it lands on must be one where the unit may stop.
+  2. The bot does not step a unit out of a town onto water, and does not leave
+     a unit dug in on water.
+  3. If the next hex on a unit's path holds a unit that blocks it, the unit
+     plans a new path to the same goal around that hex. If there is no such
+     path, the unit waits, as it does today.
+- **Reading, for the user to correct:** "a unit of the same type" means a unit
+  of the same stacking class, the one that blocks the mover: a military unit
+  for a military unit, a civilian for a civilian. The build checks the game's
+  stacking rules and reports what it found.
+
 **(wwwwww) A lake is water like the coast: RULED, 2026-10-16, not built yet.**
 The user: *"units should be able to embark onto lakes with the prerequisite
 tech (no difference between coast tiles and lakes). Please fix that if thats
