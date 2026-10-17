@@ -133,7 +133,7 @@ import {
 // paid where a pillage is paid.
 import { type TownStrike, strikeTownsNear } from './combat';
 import { inUnrest, startUnrest, unrestGarrison } from './unrest';
-import { atWar } from './wars';
+import { atWar, recordWarPillage } from './wars';
 import { hasTech, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
 import {
@@ -1789,6 +1789,8 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
  *     (`payWindfallGrants`);
  *   · the lifetime record (`Player.hexesPillaged`, The Sagas; this is its one
  *     writer) and the tally (`hexPillaged`, The Captive Craftsmen);
+ *   · the war's count of the hexes this side pillaged (`recordWarPillage`,
+ *     Danegeld; Dominion batch D6);
  *   · The Chevauchée's strike on the enemy towns near the hex
  *     (`strikeTownsNear`, `combat.ts`);
  *   · The Harrying's unrest in each ungarrisoned enemy town beside the hex.
@@ -1813,6 +1815,9 @@ function payPillage(
   // batch M3, and the `hexesPillaged` count), so the write is announced.
   bumpEconomy(state);
   recordScalingOccasion(state, player.id, 'hexPillaged');
+  // The war's own count of the hexes each side pillaged (Dominion batch D6,
+  // Danegeld). Nothing is counted on ground nobody owns, or outside a war.
+  recordWarPillage(state, player.id, tileOwnerPlayerId(state, tile.col, tile.row) ?? player.id);
   for (const town of payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row })) {
     if (!touched.includes(town)) touched.push(town);
   }

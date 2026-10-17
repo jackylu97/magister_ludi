@@ -59,6 +59,7 @@ import {
 } from './cities';
 import {
   payWindfallGrants,
+  recordScalingOccasion,
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
@@ -95,6 +96,7 @@ import {
   recomputeVisibilityFor,
 } from './visibility';
 import {
+  type WarSpoils,
   type WarState,
   atWar,
   closeWar,
@@ -104,6 +106,7 @@ import {
   setPeaceOffer,
   truceTurnsLeft,
   warBetween,
+  warSpoils,
 } from './wars';
 import { bumpEconomy } from './slate';
 
@@ -933,13 +936,45 @@ export function settlePeacePair(state: GameState, war: WarState): PeaceOutcome {
   // and not a proposer's — the paper is keyed to the pair (`PeaceTerms`), so
   // the settlement never has to know who wrote it.
   const execution = paper === undefined ? undefined : settleDealAt(state, a, b, paper.a, paper.b);
+  // **What each side won**, read after the terms are honoured and before the
+  // war's row is closed (Dominion batch D6; the triage's reading 31): a town
+  // handed back at the table is no longer held, so it does not count.
+  const spoils = [
+    { side: a, other: b, won: warSpoils(state, war, a) },
+    { side: b, other: a, won: warSpoils(state, war, b) },
+  ];
   const truceUntilTurn = closeWar(state, a, b);
   const expulsions = [...expelFrom(state, a, b), ...expelFrom(state, b, a)];
+  payPeace(state, spoils);
   return {
     peace: { a, b, truceUntilTurn },
     expulsions,
     ...(execution === undefined ? {} : { execution }),
   };
+}
+
+/**
+ * **The peace pays** (Dominion batch D6): each side, in pair order, pays its
+ * `peace` riders with what it won (War Reparations' towns, Danegeld's hexes)
+ * and counts the end of the war for a commission (Commission: A Victor's
+ * Peace's `warEnded`, with the towns it took). After the truce and the
+ * expulsions, so the war is over when the riders pay.
+ *
+ * A side destroyed by the terms (its last town ceded) is paid nothing, and the
+ * other side does not count the war's end again: `updateElimination` counted it
+ * when the side was destroyed.
+ */
+function payPeace(state: GameState, spoils: { side: number; other: number; won: WarSpoils }[]): void {
+  for (const { side, other, won } of spoils) {
+    const player = playerById(state, side);
+    if (!player || player.eliminated) continue;
+    payOccasionRiders(state, player, 'peace', undefined, {
+      takenPopulation: won.population,
+      hexesPillaged: won.hexes,
+    });
+    if (playerById(state, other)?.eliminated === true) continue;
+    recordScalingOccasion(state, side, 'warEnded', 1, { townsTaken: won.towns });
+  }
 }
 
 /** Both flags on this war, and nothing else — the one reading of "signed". */

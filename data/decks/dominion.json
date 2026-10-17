@@ -272,7 +272,7 @@
       "rarity": "common",
       "type": "wildcard",
       "flavor": "A young state wins its first war against the camps at its edge.",
-      "text": "Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
+      "text": "Commission. Clear two barbarian camps while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair.",
       "effects": [],
       "commission": {
         "goals": [
@@ -284,8 +284,7 @@
         ],
         "reward": [
           {
-            "yield": "production",
-            "amount": 60
+            "citizens": 2
           },
           {
             "unit": "bestMelee"
@@ -2606,9 +2605,25 @@
       "type": "economic",
       "flavor": "The loser pays, and the winner counts it twice.",
       "text": "Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture.",
-      "effects": [],
-      "deferred": [
-        "The game does not yet pay anything when a peace is signed, or remember which cities each side took during a war."
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "peace",
+          "grant": {
+            "yield": "gold",
+            "amount": 20,
+            "fromOccasion": "takenPopulation"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "peace",
+          "grant": {
+            "yield": "culture",
+            "amount": 10,
+            "fromOccasion": "takenPopulation"
+          }
+        }
       ]
     },
     "dominionTakeTheCity": {
@@ -2628,19 +2643,23 @@
           {
             "kind": "counted",
             "occasion": "cityCaptured",
-            "count": 1
+            "count": 1,
+            "minPopulation": 5
           }
         ],
         "reward": [
           {
             "yield": "culture",
             "amount": 23,
-            "fromFigure": "capturedThisTurnPopulation"
+            "fromGoal": "population"
           },
           {
             "yield": "science",
             "amount": 23,
-            "fromFigure": "capturedThisTurnPopulation"
+            "fromGoal": "population"
+          },
+          {
+            "building": "barracks"
           }
         ]
       }
@@ -3519,11 +3538,23 @@
       "rarity": "rare",
       "type": "wildcard",
       "flavor": "A war is won at the table, after it is won in the field.",
-      "text": "Commission. Make peace with an empire, or destroy it, after taking at least two of its cities in that war. Then gain 300 gold and 300 culture, and every city gains +2 happiness for twenty turns. The card leaves its chair.",
+      "text": "Commission. Make peace with an empire, or destroy it, after taking at least two of its cities in that war. Then gain one extra Wildcard chair for the rest of the game.",
       "effects": [],
-      "deferred": [
-        "The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war."
-      ]
+      "commission": {
+        "goals": [
+          {
+            "kind": "counted",
+            "occasion": "warEnded",
+            "count": 1,
+            "minTownsTaken": 2
+          }
+        ],
+        "reward": [
+          {
+            "wildcardChairs": 1
+          }
+        ]
+      }
     },
     "theArriereBan": {
       "name": "The Arrière-ban",
@@ -4002,6 +4033,38 @@
         }
       ]
     },
+    "danegeld": {
+      "name": "Danegeld",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "The raiders sail home when the silver is counted out.",
+      "text": "Making peace with an empire you pillaged in that war grants 40 gold and 40 culture for each hex you pillaged.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "peace",
+          "grant": {
+            "yield": "gold",
+            "amount": 40,
+            "fromOccasion": "hexesPillaged"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "peace",
+          "grant": {
+            "yield": "culture",
+            "amount": 40,
+            "fromOccasion": "hexesPillaged"
+          }
+        }
+      ]
+    },
     "dominionImperium": {
       "name": "Imperium",
       "decks": [
@@ -4444,12 +4507,12 @@
           {
             "yield": "science",
             "amount": 10,
-            "fromFigure": "capturedPopulation"
+            "fromGoal": "population"
           },
           {
             "yield": "culture",
             "amount": 10,
-            "fromFigure": "capturedPopulation"
+            "fromGoal": "population"
           }
         ]
       }
@@ -4478,22 +4541,22 @@
           {
             "yield": "science",
             "amount": 20,
-            "fromFigure": "capturedThisTurnPopulation"
+            "fromGoal": "population"
           },
           {
             "yield": "culture",
             "amount": 20,
-            "fromFigure": "capturedThisTurnPopulation"
+            "fromGoal": "population"
           },
           {
             "yield": "science",
             "amount": 200,
-            "fromFigure": "capturedThisTurnWonders"
+            "fromGoal": "wonders"
           },
           {
             "yield": "culture",
             "amount": 200,
-            "fromFigure": "capturedThisTurnWonders"
+            "fromGoal": "wonders"
           }
         ]
       }
@@ -4577,6 +4640,25 @@
           "grant": {
             "unrestBeside": true
           }
+        }
+      ]
+    },
+    "vaeVictis": {
+      "name": "Vae Victis",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "The victor's sword goes on the scales, and the conquered pay again.",
+      "text": "Your capture rewards are paid twice.",
+      "effects": [
+        {
+          "kind": "effectAmplifier",
+          "target": "captureRewards",
+          "percent": 100
         }
       ]
     }

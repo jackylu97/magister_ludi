@@ -6652,6 +6652,20 @@ export interface WindfallOccasionFacts {
    * D5): Copying the Enemy. Filled by `applyCombat` (`combat.ts`) at each kill.
    */
   fallen?: UnitTypeId;
+  /**
+   * What this empire won in the war that just ended, on the `peace` occasion
+   * (Dominion batch D6): the citizens of the towns it took by force and still
+   * holds (War Reparations), and the other side's hexes it pillaged
+   * (Danegeld). Filled by `settlePeacePair` (`diplomacy.ts`) from `warSpoils`.
+   */
+  takenPopulation?: number;
+  hexesPillaged?: number;
+  /**
+   * The great-person works and world wonders inside the captured town's
+   * borders, read before it changed hands, on the `capture` occasion (Dominion
+   * batch D6, Looted Art). Filled by `applyCombat` (`combat.ts`).
+   */
+  worksAndWonders?: number;
 }
 
 
@@ -6856,6 +6870,19 @@ export function windfallPayout(
     if (rides(effect, card)) percentTotal += effect.percent ?? 0;
   }
   const paid = percentTotal !== 0 && base !== 0 ? (base * (100 + percentTotal)) / 100 : base;
+  // **Vae Victis** (Dominion batch D6): on a capture, an Order's riders pay
+  // their yields, their renown and their faith pressed this many times over. A
+  // Doctrine's rider is not scaled, and neither is anything that is not a
+  // figure: a timed effect, a unit, a heal, a free draft (the triage's reading
+  // 6). The card is named once on the payout's lines, when it scaled something.
+  const captureAmplifiers = occasion === 'capture' ? amplifierRows(state, playerId, 'captureRewards') : [];
+  const captureBoost = 1 + captureAmplifiers.reduce((sum, row) => sum + row.percent, 0) / 100;
+  let captureBoosted = false;
+  const boostFor = (card: CardId): number => {
+    if (captureBoost === 1 || isDoctrineId(card)) return 1;
+    captureBoosted = true;
+    return captureBoost;
+  };
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
     if (!rides(effect, card)) continue;
     if (
@@ -6942,14 +6969,21 @@ export function windfallPayout(
         note: grant.timed.renews === true ? `for ${turns} turns from now` : `for ${turns} turns`,
       });
     }
-    if (grant.renown !== undefined && grant.renown !== 0) {
+    // Since Dominion batch D6 a renown grant may be a share of the moment, as a
+    // yield grant may (Looted Art's works and wonders). A moment that does not
+    // carry the measure pays no renown.
+    const renownMeasure =
+      grant.fromOccasion === undefined ? 1 : occasionMeasure(grant.fromOccasion, paid, facts);
+    if (grant.renown !== undefined && grant.renown !== 0 && renownMeasure !== undefined) {
       // Multiplied by the era and by the council exactly as a yield grant is —
       // two independent facts about the payout, composing as a product — and
       // composed here so the announcement and the pool see one figure.
       const amount =
         grant.renown *
+        renownMeasure *
         (effect.perAge === true ? era : 1) *
-        (effect.perSlottedOrder === true ? slotted : 1);
+        (effect.perSlottedOrder === true ? slotted : 1) *
+        boostFor(card);
       if (amount !== 0) {
         payout.renown.push({
           card,
@@ -6968,7 +7002,8 @@ export function windfallPayout(
       const amount =
         grant.pressure.amount *
         (effect.perAge === true ? era : 1) *
-        (effect.perSlottedOrder === true ? slotted : 1);
+        (effect.perSlottedOrder === true ? slotted : 1) *
+        boostFor(card);
       if (amount !== 0) {
         payout.pressure.push({ card, source, amount, range: grant.pressure.range });
         payout.lines.push({ card, source, note: `${signed(amount)} faith pressed` });
@@ -7032,7 +7067,7 @@ export function windfallPayout(
         // banked exactly, rounded only where it is printed). It used to floor,
         // which quietly paid nothing at all for The Natural Philosophers' fifth
         // of a turn in an empire making four science.
-        const amount = turns * rate;
+        const amount = turns * rate * boostFor(card);
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
@@ -7065,7 +7100,8 @@ export function windfallPayout(
         const amount =
           figure *
           (effect.perAge === true ? era : 1) *
-          (effect.perSlottedOrder === true ? slotted : 1);
+          (effect.perSlottedOrder === true ? slotted : 1) *
+          boostFor(card);
         if (amount !== 0) {
           payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
           payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
@@ -7088,7 +7124,8 @@ export function windfallPayout(
         grant.amount *
         counted *
         (effect.perAge === true ? era : 1) *
-        (effect.perSlottedOrder === true ? slotted : 1);
+        (effect.perSlottedOrder === true ? slotted : 1) *
+        boostFor(card);
       if (amount !== 0) {
         payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
         payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
@@ -7107,7 +7144,30 @@ export function windfallPayout(
   payout.amount = paid;
   if (ageMultiplied) payout.amount *= era;
   if (slotMultiplied) payout.amount *= slotted;
+  if (captureBoosted) {
+    for (const row of captureAmplifiers) {
+      payout.lines.push({ card: row.card, source: row.source, note: `×${captureBoost} capture rewards` });
+    }
+  }
   return payout;
+}
+
+/**
+ * Every live amplifier row on one target, with its card, for a payout that
+ * names the card on its lines (Dominion batch D6, Vae Victis). `cardAmplifier`
+ * sums the same rows for a caller that needs only the figure.
+ */
+function amplifierRows(
+  state: GameState,
+  playerId: number,
+  target: AmplifierTarget,
+): { card: CardId; source: string; percent: number }[] {
+  const rows: { card: CardId; source: string; percent: number }[] = [];
+  for (const { card, source, effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
+    if (effect.target !== target || effect.percent === undefined || effect.family !== undefined) continue;
+    rows.push({ card, source, percent: effect.percent });
+  }
+  return rows;
 }
 
 /**
@@ -7133,6 +7193,13 @@ function occasionMeasure(
       return facts.strength;
     case 'population':
       return facts.population;
+    // Dominion batch D6: what a peace and a capture carry.
+    case 'takenPopulation':
+      return facts.takenPopulation;
+    case 'hexesPillaged':
+      return facts.hexesPillaged;
+    case 'worksAndWonders':
+      return facts.worksAndWonders;
     case 'gold':
       return facts.gold;
     case 'payout':
@@ -8011,10 +8078,17 @@ export function payWindfallGrants(
       // Where the food and the hammers land (Dominion batch D3 added three
       // places): every town, the capital, the nearest town a scope admits,
       // Spolia's Opus town, or by default the town nearest the occasion.
-      for (const city of grantTowns(state, player.id, grant, at)) {
-        if (grant.yield === 'food') city.foodBasket += grant.amount;
-        else city.hammerBasket += grant.amount;
-        if (!touched.includes(city)) touched.push(city);
+      // **Spolia's production with no Opus begun is kept for it** (Dominion
+      // batch D6): banked on the empire until a town raises the Opus
+      // (`releaseOpusBank`, `cities.ts`).
+      if (grant.toOpus === true && grant.yield === 'production' && opusCityOf(state, player.id) === null) {
+        player.opusBank = (player.opusBank ?? 0) + grant.amount;
+      } else {
+        for (const city of grantTowns(state, player.id, grant, at)) {
+          if (grant.yield === 'food') city.foodBasket += grant.amount;
+          else city.hammerBasket += grant.amount;
+          if (!touched.includes(city)) touched.push(city);
+        }
       }
     }
     bumpEconomy(state);

@@ -111,11 +111,16 @@ describe('the commission rows', () => {
         else expect(COMMISSION_FIGURES, id).toContain(goal.figure);
       }
       for (const reward of spec.reward) {
+        // Dominion batch D6 added citizens, a building in the town that met the
+        // goal, and Wildcard chairs.
         const says =
           reward.yield !== undefined ||
           reward.greatPerson !== undefined ||
           reward.unit !== undefined ||
-          reward.timed !== undefined;
+          reward.timed !== undefined ||
+          reward.citizens !== undefined ||
+          reward.building !== undefined ||
+          reward.wildcardChairs !== undefined;
         expect(says, `${id} has a reward line that pays nothing`).toBe(true);
         if (reward.fromFigure !== undefined) expect(COMMISSION_FIGURES, id).toContain(reward.fromFigure);
       }
@@ -131,7 +136,7 @@ describe('the commission rows', () => {
     }
     expect(describeCard(FRONTIER).map((clause) => clause.text)).toEqual([
       'Commission. Goal: clear 2 barbarian camps, while this card is seated',
-      'Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep',
+      'Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep',
       'then this card leaves its chair and is never seated again',
     ]);
     expect(describeCard(STRONGROOM)[1]!.text).toBe(
@@ -193,7 +198,9 @@ describe('completion', () => {
     const reports = runCommissions(g.state);
     expect(reports).toHaveLength(1);
     expect(reports[0]).toMatchObject({ playerId: 0, card: FRONTIER, turn: g.state.turn });
-    expect(reports[0]!.lines[0]).toMatch(/^\+60 production in /);
+    // Since Dominion batch D6 the reward is two citizens in the capital, as the
+    // sheet's revision says.
+    expect(reports[0]!.lines.some((line) => /^\+2 citizens in /.test(line))).toBe(true);
     expect(reports[0]!.lines.some((line) => line.startsWith('a free '))).toBe(true);
     expect(g.state.units.filter((u) => u.ownerId === 0).length).toBe(units + 1);
     // The unit is on no payroll.

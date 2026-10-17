@@ -3213,7 +3213,17 @@ export type TallyOccasion =
    * `realiseItem` (`cities.ts`) for every unit it brings into being. A unit
    * taken from someone else is not gained, and neither is a great person.
    */
-  | 'unitGained';
+  | 'unitGained'
+  /**
+   * A **war this empire was in ended**: by a peace both sides signed, or by the
+   * other empire's destruction while the war stood (Dominion batch D6,
+   * Commission: A Victor's Peace; the triage's reading 31). Written by
+   * `settlePeacePair` (`diplomacy.ts`) for both sides and by
+   * `updateElimination` (`combat.ts`) for each empire at war with the one
+   * destroyed. It carries `TallyFacts.townsTaken`, the towns this empire took
+   * from the other in that war and still holds.
+   */
+  | 'warEnded';
 // **There is deliberately no `cityGrew`**, and the audit asked for one: every
 // growth card in the six decks is bound by the design doc's standing clause
 // that natural-growth rewards *count only growth beyond the town's historical
@@ -3243,6 +3253,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'rankEarned',
   'hexPillaged',
   'unitGained',
+  'warEnded',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -4147,7 +4158,16 @@ export type AmplifierTarget =
    * buildings' trickle, which is a different line of `explainRenown` and a
    * different sentence.
    */
-  | 'triumphRenown';
+  | 'triumphRenown'
+  /**
+   * **What a capture pays** (Dominion batch D6, Vae Victis: "your capture
+   * rewards are paid twice"). Read in `windfallPayout` on the `capture`
+   * occasion. It scales the yields, the renown and the faith pressed by every
+   * Order's capture rider, Spolia's production included. It does not scale a
+   * timed effect, a unit, a heal or a free draft, a commission's reward, or a
+   * Doctrine's rider (the triage's reading 6).
+   */
+  | 'captureRewards';
 
 /**
  * A rule about how an offer *pays*, as against how big it is.
@@ -4398,7 +4418,16 @@ export type WindfallOccasion =
    * counted (`Player.greatPeopleByFamily`) when the riders pay, so a general
    * gained now counts toward its own payout (the triage's reading 33).
    */
-  | 'greatPersonGained';
+  | 'greatPersonGained'
+  /**
+   * This empire **made peace** (Dominion batch D6): War Reparations and
+   * Danegeld. Paid by `settlePeacePair` (`diplomacy.ts`) to each side, after
+   * the terms are honoured and the war is closed, through `payOccasionRiders`.
+   * It carries what this side won in that war: `takenPopulation` and
+   * `hexesPillaged` (the triage's reading 31). An empire destroyed in a war
+   * makes no peace, so this does not fire then.
+   */
+  | 'peace';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
@@ -4463,7 +4492,27 @@ export type OccasionMeasure =
    * the capture wiped its queue — Spolia. Filled only on the `capture`
    * occasion (`WindfallOccasionFacts.opusProgress`).
    */
-  | 'opusProgress';
+  | 'opusProgress'
+  /**
+   * The **citizens of the towns this empire took by force from the other
+   * empire during the war that just ended, and still holds** (Dominion batch
+   * D6, War Reparations). Filled only on the `peace` occasion
+   * (`WindfallOccasionFacts.takenPopulation`).
+   */
+  | 'takenPopulation'
+  /**
+   * The **hexes of the other empire this one pillaged during the war that just
+   * ended** (Dominion batch D6, Danegeld). Filled only on the `peace` occasion
+   * (`WindfallOccasionFacts.hexesPillaged`).
+   */
+  | 'hexesPillaged'
+  /**
+   * The **great-person works and world wonders inside the captured town's
+   * borders**, read before the town changed hands (Dominion batch D6, Looted
+   * Art). Filled only on the `capture` occasion
+   * (`WindfallOccasionFacts.worksAndWonders`).
+   */
+  | 'worksAndWonders';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -4485,6 +4534,9 @@ export interface WindfallGrantSpec {
    * occasion's measure is read **first** and the rate is not asked, because a
    * moment is the nearer fact and a row that meant the books would not have
    * named the moment. The two are disjoint in the data by construction.
+   *
+   * Since Dominion batch D6 it scales a `renown` grant the same way: Looted
+   * Art's 20 renown for each great-person work and wonder in the town.
    */
   fromOccasion?: OccasionMeasure;
   /**
@@ -4552,9 +4604,10 @@ export interface WindfallGrantSpec {
    */
   renownFamily?: Family;
   /**
-   * Production from this grant goes to the town raising the Magnum Opus, or to
-   * the capital when no town is — Spolia. Absent sends it where every other
-   * production grant goes (the nearest town, or the capital).
+   * Production from this grant goes to the town raising the Magnum Opus —
+   * Spolia. When no town is raising it, the production is kept for the Opus
+   * (`Player.opusBank`, Dominion batch D6) until one is. Absent sends it where
+   * every other production grant goes (the nearest town, or the capital).
    */
   toOpus?: true;
   /**
@@ -8106,14 +8159,12 @@ export type CommissionFigure =
   | 'hexesOwned'
   /** Tiles worked by this empire's towns that carry an improvement. */
   | 'improvedTilesWorked'
-  /** Other empires' original capitals this empire holds. Commission: Hold the Capitals. */
+  /**
+   * Other empires' original capitals this empire holds. Commission: Hold the
+   * Capitals. Read off `City.originalCapitalOf` since Dominion batch D6, so the
+   * empire's own first town does not count however it came back.
+   */
   | 'originalCapitalsHeld'
-  /** Citizens in the captured towns this empire holds. Commission: The Grand Campaign. */
-  | 'capturedPopulation'
-  /** Citizens in the towns this empire took this turn. Commission: Take the City. */
-  | 'capturedThisTurnPopulation'
-  /** World wonders in the towns this empire took this turn. Commission: The Captured Marvel. */
-  | 'capturedThisTurnWonders'
   /** Hexes inside this empire's borders that carry a tended work. Six Gardens. */
   | 'tendedTiles'
   /**
@@ -8138,9 +8189,6 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
   'hexesOwned',
   'improvedTilesWorked',
   'originalCapitalsHeld',
-  'capturedPopulation',
-  'capturedThisTurnPopulation',
-  'capturedThisTurnWonders',
   'tendedTiles',
   'goldIncome',
   'followingCityShare',
@@ -8161,8 +8209,66 @@ export const COMMISSION_FIGURES: readonly CommissionFigure[] = [
  * `counted` part, because the tally holds one number per card.
  */
 export type CommissionGoal =
-  | { kind: 'counted'; occasion: TallyOccasion; count: number }
+  | ({ kind: 'counted'; occasion: TallyOccasion; count: number } & GoalFloor)
   | { kind: 'reached'; figure: CommissionFigure; count: number };
+
+/**
+ * **What a counted moment must reach to count** (Dominion batch D6). A goal
+ * with no floor counts every moment; a floor reads a fact the moment carries
+ * (`TallyFacts`), so a moment without that fact never counts.
+ */
+export interface GoalFloor {
+  /**
+   * Only a town of at least this many citizens counts: Commission: Take the
+   * City's "a city with at least five citizens". Read off
+   * `TallyFacts.population`, the town as it stood before it changed hands (the
+   * triage's reading 30).
+   */
+  minPopulation?: number;
+  /**
+   * Only a war in which this empire took at least this many of the other
+   * empire's towns counts: Commission: A Victor's Peace. Read off
+   * `TallyFacts.townsTaken`.
+   */
+  minTownsTaken?: number;
+}
+
+/**
+ * **What a counted moment carries for a commission's goal** (Dominion batch
+ * D6). Handed to `recordScalingOccasion` by the seam that knows the moment:
+ * `captureCity` names the town, its citizens and its world wonders, as the
+ * town stood before it changed hands; the end of a war names the towns taken.
+ * A goal's floor reads these (`minPopulation`, `minTownsTaken`), and the
+ * goal's own record keeps the town and its figures for the reward
+ * (`OrderTally`).
+ */
+export interface TallyFacts {
+  /** The town the moment is about. */
+  cityId?: number;
+  /** That town's citizens. */
+  population?: number;
+  /** The world wonders in that town. */
+  wonders?: number;
+  /** The other empire's towns this empire took in the war that ended, and still holds. */
+  townsTaken?: number;
+}
+
+/**
+ * Where a commission's citizens go (`CommissionReward.citizens`, Dominion batch
+ * D6). `'capital'` is the capital (Commission: Clear the Frontier).
+ * `{ smallest: n }` is the empire's `n` smallest towns, each one getting the
+ * whole figure, ties going to the earlier town (The Wide Country).
+ */
+export type CitizensTarget = 'capital' | { smallest: number };
+
+/**
+ * **What a reward reads off the goal it pays for** (`CommissionReward.fromGoal`,
+ * Dominion batch D6). A counted goal keeps the figures of the moments it
+ * counted, up to its count (`OrderTally`): `'population'` is the citizens of
+ * those towns, as each stood before it changed hands, and `'wonders'` is the
+ * world wonders in them.
+ */
+export type GoalMeasure = 'population' | 'wonders';
 
 /**
  * One line of what a commission pays when its goal is met. Paid through the
@@ -8191,6 +8297,36 @@ export interface CommissionReward {
   unit?: UnitTypeId | 'bestMelee';
   /** Effects held on the empire until an absolute turn (`Player.timed`). */
   timed?: { turns: number; effects: CardEffect[] };
+  /**
+   * **Scale `amount` by what the goal counted**, read when the goal is met
+   * (Dominion batch D6): ten times the citizens of the towns The Grand
+   * Campaign took, 200 for each world wonder in the town The Captured Marvel
+   * took. See `GoalMeasure`.
+   */
+  fromGoal?: GoalMeasure;
+  /**
+   * **Citizens**, granted outright through `settlePopulationWindfall`, so the
+   * growth riders pay for each one (Dominion batch D6, Commission: Clear the
+   * Frontier's 2 population). Where they go is `citizensTo`.
+   */
+  citizens?: number;
+  /** Where `citizens` go. Absent is the capital. */
+  citizensTo?: CitizensTarget;
+  /**
+   * **A building, raised free in the town that met the goal** (Dominion batch
+   * D6, Commission: Take the City's Barracks). Through `realiseItem`, as a
+   * building grant is. Nothing is raised when that town is no longer this
+   * empire's, or already has the building. The town is `commissionGoalTown`'s
+   * (`commissions.ts`).
+   */
+  building?: BuildingId;
+  /**
+   * **Wildcard chairs for the rest of the game** (Dominion batch D6,
+   * Commission: A Victor's Peace). Kept on `PlayerStatecraft.chairsWon` and
+   * read by `chairCount`, so the chair survives every adoption. It is appended
+   * after the government's chairs, as a card's extra chair is.
+   */
+  wildcardChairs?: number;
 }
 
 /**

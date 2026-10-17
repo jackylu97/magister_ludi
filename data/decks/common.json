@@ -1694,6 +1694,23 @@
           "grant": { "freeDraft": true }
         }
       ]
+    },
+    "lootedArt": {
+      "name": "Looted Art",
+      "decks": ["dominion", "magisterial"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The statues march home behind the army.",
+      "text": "Capturing a city grants 20 renown for each great-person work and wonder inside its borders.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": { "renown": 20, "fromOccasion": "worksAndWonders" }
+        }
+      ]
     }
   }
 }

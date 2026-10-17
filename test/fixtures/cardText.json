@@ -2422,8 +2422,8 @@
     "text": "Commission. Goal: clear 2 barbarian camps, while this card is seated"
    },
    {
-    "raw": "Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
-    "text": "Reward: +60 production in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
+    "raw": "Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep",
+    "text": "Reward: +2 citizens in your capital, and the best melee unit you can build, trained in your capital free of upkeep"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -3199,19 +3199,22 @@
   ],
   "dominionWarReparations": [
    {
-    "raw": "The game does not yet pay anything when a peace is signed, or remember which cities each side took during a war. — not built yet",
-    "text": "The game does not yet pay anything when a peace is signed, or remember which cities each side took during a war. — not built yet",
-    "deferred": true
+    "raw": "making peace grants gold equal to 20 times the citizens of the cities you took from that empire in that war and still hold",
+    "text": "making peace grants gold equal to 20 times the citizens of the cities you took from that empire in that war and still hold"
+   },
+   {
+    "raw": "making peace grants culture equal to 10 times the citizens of the cities you took from that empire in that war and still hold",
+    "text": "making peace grants culture equal to 10 times the citizens of the cities you took from that empire in that war and still hold"
    }
   ],
   "dominionTakeTheCity": [
    {
-    "raw": "Commission. Goal: capture 1 city, while this card is seated",
-    "text": "Commission. Goal: capture 1 city, while this card is seated"
+    "raw": "Commission. Goal: capture 1 city of 5 or more citizens, while this card is seated",
+    "text": "Commission. Goal: capture 1 city of 5 or more citizens, while this card is seated"
    },
    {
-    "raw": "Reward: culture equal to 23 times the citizens of the cities you captured that turn at that moment, and science equal to 23 times the citizens of the cities you captured that turn at that moment",
-    "text": "Reward: culture equal to 23 times the citizens of the cities you captured that turn at that moment, and science equal to 23 times the citizens of the cities you captured that turn at that moment"
+    "raw": "Reward: culture equal to 23 times its population, and science equal to 23 times its population, and a free [[building:barracks|Barracks]] in that city",
+    "text": "Reward: culture equal to 23 times its population, and science equal to 23 times its population, and a free Barracks in that city"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -3486,9 +3489,16 @@
   ],
   "dominionAVictorsPeace": [
    {
-    "raw": "The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war. — not built yet",
-    "text": "The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war. — not built yet",
-    "deferred": true
+    "raw": "Commission. Goal: end 1 war by making peace or by destroying the other empire, after taking 2 or more of its cities in that war, while this card is seated",
+    "text": "Commission. Goal: end 1 war by making peace or by destroying the other empire, after taking 2 or more of its cities in that war, while this card is seated"
+   },
+   {
+    "raw": "Reward: one more Wildcard chair for the rest of the game",
+    "text": "Reward: one more Wildcard chair for the rest of the game"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
    }
   ],
   "theArriereBan": [
@@ -3625,6 +3635,16 @@
     "text": "losing a unit grants +25 culture for each Monument"
    }
   ],
+  "danegeld": [
+   {
+    "raw": "making peace grants +40 gold for each of that empire's hexes you pillaged in that war",
+    "text": "making peace grants +40 gold for each of that empire's hexes you pillaged in that war"
+   },
+   {
+    "raw": "making peace grants +40 culture for each of that empire's hexes you pillaged in that war",
+    "text": "making peace grants +40 culture for each of that empire's hexes you pillaged in that war"
+   }
+  ],
   "dominionImperium": [
    {
     "raw": "+10% production toward [[building:theMagnumOpus|The Magnum Opus]] per captured city you hold (at most +40%)",
@@ -3747,8 +3767,8 @@
     "text": "Commission. Goal: capture 3 cities, while this card is seated"
    },
    {
-    "raw": "Reward: a great general to call, and science equal to 10 times the citizens of every captured city you hold at that moment, and culture equal to 10 times the citizens of every captured city you hold at that moment",
-    "text": "Reward: a great general to call, and science equal to 10 times the citizens of every captured city you hold at that moment, and culture equal to 10 times the citizens of every captured city you hold at that moment"
+    "raw": "Reward: a great general to call, and science equal to 10 times those cities' total population, and culture equal to 10 times those cities' total population",
+    "text": "Reward: a great general to call, and science equal to 10 times those cities' total population, and culture equal to 10 times those cities' total population"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -3761,8 +3781,8 @@
     "text": "Commission. Goal: capture 1 city that holds a world wonder or was another empire's original capital, while this card is seated"
    },
    {
-    "raw": "Reward: science equal to 20 times the citizens of the cities you captured that turn at that moment, and culture equal to 20 times the citizens of the cities you captured that turn at that moment, and science equal to 200 times the world wonders in the cities you captured that turn at that moment, and culture equal to 200 times the world wonders in the cities you captured that turn at that moment",
-    "text": "Reward: science equal to 20 times the citizens of the cities you captured that turn at that moment, and culture equal to 20 times the citizens of the cities you captured that turn at that moment, and science equal to 200 times the world wonders in the cities you captured that turn at that moment, and culture equal to 200 times the world wonders in the cities you captured that turn at that moment"
+    "raw": "Reward: science equal to 20 times its population, and culture equal to 20 times its population, and +200 science for each world wonder in it, and +200 culture for each world wonder in it",
+    "text": "Reward: science equal to 20 times its population, and culture equal to 20 times its population, and +200 science for each world wonder in it, and +200 culture for each world wonder in it"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -3791,6 +3811,12 @@
    {
     "raw": "pillaging throws each enemy city beside the hex that has no garrison into unrest",
     "text": "pillaging throws each enemy city beside the hex that has no garrison into unrest"
+   }
+  ],
+  "vaeVictis": [
+   {
+    "raw": "what your Orders pay for capturing a city is paid twice",
+    "text": "what your Orders pay for capturing a city is paid twice"
    }
   ],
   "smallholdings": [
@@ -8045,6 +8071,12 @@
    {
     "raw": "capturing a city (at most once every 10 turns) opens an Order draft at once, at no culture cost",
     "text": "capturing a city (at most once every 10 turns) opens an Order draft at once, at no culture cost"
+   }
+  ],
+  "lootedArt": [
+   {
+    "raw": "capturing a city grants +20 renown for each great-person work and wonder inside its borders",
+    "text": "capturing a city grants +20 renown for each great-person work and wonder inside its borders"
    }
   ]
  },

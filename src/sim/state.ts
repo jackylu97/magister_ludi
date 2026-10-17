@@ -1430,8 +1430,59 @@ import {
  * different cards, every unit gained and every great person now write the new
  * records, and the bots draft differently. The branch migrates nothing, for
  * the reason given under v119.
+ *
+ * v138 (branch `decks`; Dominion batch D6 of
+ * `docs/plans/dominion-build-triage.md`, captures, commissions and the end of
+ * a war): **eleven Dominion cards.** Two Orders join the Dominion file
+ * (Danegeld, Vae Victis) and one the common file (Looted Art). Two deferred
+ * rows come live (War Reparations, Commission: A Victor's Peace), and six live
+ * rows are reworked in place (Commission: Clear the Frontier, Commission: Take
+ * the City, Commission: The Grand Campaign, Commission: The Captured Marvel,
+ * Commission: Hold the Capitals, Spolia). Five fields join the state, each
+ * absent until it is first written:
+ *
+ *   · `WarState.taken` and `WarState.pillaged`: the towns each side took by
+ *     force and the hexes each side pillaged during that war, written only by
+ *     `recordWarCapture` and `recordWarPillage` (`wars.ts`);
+ *   · `City.originalCapitalOf`: whose first town this is, written beside
+ *     `originalCapital` in `createCity`;
+ *   · `Player.opusBank`: production kept for the Magnum Opus until a town
+ *     raises it;
+ *   · `PlayerStatecraft.chairsWon`: Wildcard chairs a commission gave for the
+ *     rest of the game. The tally rows (`OrderTally`) may also carry `people`,
+ *     `wonders` and `town`.
+ *
+ * The rules that change:
+ *
+ *   · a peace pays each side's `peace` riders with what it won
+ *     (`takenPopulation`, `hexesPillaged`), and the end of a war, by peace or
+ *     by the other empire's destruction, is a tally a commission counts
+ *     (`warEnded`, with the towns taken);
+ *   · a counted commission goal may have a floor (`minPopulation`,
+ *     `minTownsTaken`), keeps the towns it counted, and a reward may read them
+ *     (`fromGoal`), build in the town that met it (`building`), grant citizens
+ *     (`citizens`, to the capital or the smallest towns) or add Wildcard
+ *     chairs (`wildcardChairs`, read by `chairCount`);
+ *   · three commission figures that read the towns taken this turn or ever
+ *     (`capturedPopulation`, `capturedThisTurnPopulation`,
+ *     `capturedThisTurnWonders`) are gone: the goal's own record replaces
+ *     them. `originalCapitalsHeld` no longer counts the empire's own first
+ *     town, and The Captured Marvel no longer counts it either;
+ *   · a production grant sent to the Opus with no town raising it is kept on
+ *     `Player.opusBank`, and `releaseOpusBanks` (`cities.ts`) moves it into
+ *     the town raising the Opus at the start of the production phase. Before,
+ *     it went to the capital;
+ *   · an amplifier can scale an Order's capture riders (`captureRewards`), and
+ *     a renown grant can be a share of the moment (`fromOccasion`). A capture
+ *     now carries the works and wonders inside the town (`worksAndWonders`);
+ *   · the bots price the peace moment and the capture amplifier.
+ *
+ * **A v137 save is refused and does not replay.** The draft bags hold
+ * different cards, every war and every first town now write the new records,
+ * a Spolia grant lands somewhere else, and the bots draft differently. The
+ * branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 137;
+export const SCHEMA_VERSION = 138;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2210,6 +2261,15 @@ export interface Player {
    * until the first levy.
    */
   citizensLevied?: number;
+  /**
+   * **Production kept for this empire's Magnum Opus** (Dominion batch D6,
+   * Spolia: "if you have not begun one, the production is kept until you
+   * do"). A grant sent to the Opus (`WindfallGrantSpec.toOpus`) lands here
+   * when no town of this empire is raising it, and `releaseOpusBank`
+   * (`cities.ts`) moves it into the town raising the Opus at the start of the
+   * production phase. Absent when nothing is kept.
+   */
+  opusBank?: number;
   /**
    * **How many units this empire's units have killed in the game, barbarians
    * included** (Dominion batch D4): The Captured Arms' count (`CountKind`'s
@@ -3492,6 +3552,15 @@ export interface City {
    * does. Presence-is-the-state.
    */
   originalCapital?: true;
+  /**
+   * **Whose original capital this town is** (Dominion batch D6): the empire
+   * that founded it as its first town. Written beside `originalCapital` in
+   * `createCity` and never changed, so it is present exactly where that flag
+   * is. Two commissions read it: Commission: Hold the Capitals counts only
+   * other empires' original capitals, and Commission: The Captured Marvel
+   * counts a captured town only if it was another empire's original capital.
+   */
+  originalCapitalOf?: number;
   /** Production queue, front first. Replaced wholesale by `setCityProduction`. */
   queue: QueueItem[];
   /**
@@ -5442,7 +5511,10 @@ export function createCity(
   // written here because this is the one moment it can be known: the seat is
   // "the first city in founding order" only until that city is taken, and the
   // raze rule needs the answer long after (`City.originalCapital`).
-  if (!state.cities.some((other) => other.ownerId === ownerId)) city.originalCapital = true;
+  if (!state.cities.some((other) => other.ownerId === ownerId)) {
+    city.originalCapital = true;
+    city.originalCapitalOf = ownerId;
+  }
   state.cities.push(city);
   // **A town on the board is a line in three walks** (batch M3, `slate.ts`):
   // the authority it costs, the citizens it charges to happiness, and the ground

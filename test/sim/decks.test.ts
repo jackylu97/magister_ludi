@@ -433,8 +433,13 @@ describe('the schema, as landed', () => {
     // **And Dominion batch D5** (units gained and new moments): twelve more.
     // Nine new Dominion Orders and three new shared rows came live. Its two
     // Doctrines are not Orders.
-    expect(live).toBe(451);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(451);
+    // **And Dominion batch D6** (captures, commissions and the end of a war):
+    // five more. Two new Dominion rows (Danegeld, Vae Victis) and one new
+    // shared row (Looted Art) came live, and two deferred rows were freed (War
+    // Reparations, Commission: A Victor's Peace). Six more were reworked in
+    // place and were already live.
+    expect(live).toBe(456);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(456);
   });
 
   /**
@@ -632,7 +637,10 @@ describe('the schema, as landed', () => {
     // 137 since D5: fourteen Dominion cards that raise units or pay on new
     // moments, and a new record, so a v136 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(137);
+    // 138 since D6: eleven Dominion cards about captures, commissions and the
+    // end of a war, and new records on wars, towns and seats, so a v137 log's
+    // picks name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(138);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -845,9 +853,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Expansionist batch E0** freed two deferred rows (The Rope
       // Stretchers, Garden Cities: − 2) and retired the user's two cuts
       // (+ 2 retired).
+      // **Dominion batch D6** freed two deferred rows (War Reparations,
+      // Commission: A Victor's Peace: − 2).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(70);
+      ).toHaveLength(68);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(136);
     }
   });

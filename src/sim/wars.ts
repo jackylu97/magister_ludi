@@ -89,6 +89,22 @@ export interface WarState {
    * what is read is which paper they are both on.
    */
   terms?: PeaceTerms;
+  /**
+   * **The towns each side took by force during this war** (Dominion batch D6),
+   * one row for each capture, in the order they happened. Written only by
+   * `recordWarCapture`, which `captureCity` (`combat.ts`) calls. Read when the
+   * war ends (`warSpoils`): War Reparations, Commission: A Victor's Peace.
+   * Absent until the first capture, so a war with none serialises as before.
+   */
+  taken?: { by: number; cityId: number }[];
+  /**
+   * **The other side's hexes each side pillaged during this war** (Dominion
+   * batch D6, Danegeld). One row for each side that has pillaged. Written only
+   * by `recordWarPillage`, which the pillage payment (`payPillage`,
+   * `improvements.ts`) calls for every hex, The Horde's spread included (the
+   * triage's reading 5). Absent until the first pillage.
+   */
+  pillaged?: { by: number; hexes: number }[];
 }
 
 /**
@@ -356,6 +372,64 @@ export function refusePeaceOffer(state: GameState, askedId: number, askerId: num
   if (next.length === 0) delete war.offers;
   else war.offers = next;
   return true;
+}
+
+/**
+ * **Writes down a town taken by force in a war** (Dominion batch D6): `by` took
+ * the town `cityId` from `from`. Nothing is written when the two are not at
+ * war, which is every capture from the wild.
+ */
+export function recordWarCapture(state: GameState, by: number, from: number, cityId: number): void {
+  const war = warBetween(state, by, from);
+  if (!war) return;
+  (war.taken ??= []).push({ by, cityId });
+}
+
+/**
+ * **Counts one hex of `of`'s that `by` pillaged in their war** (Dominion batch
+ * D6, Danegeld). Nothing is written when the two are not at war.
+ */
+export function recordWarPillage(state: GameState, by: number, of: number): void {
+  const war = warBetween(state, by, of);
+  if (!war) return;
+  const rows = (war.pillaged ??= []);
+  const row = rows.find((entry) => entry.by === by);
+  if (row) row.hexes += 1;
+  else rows.push({ by, hexes: 1 });
+}
+
+/** What one side won in a war, read when the war ends. See `warSpoils`. */
+export interface WarSpoils {
+  /** The other side's towns this side took by force in the war and still holds. */
+  towns: number;
+  /** The citizens of those towns, as they stand now. */
+  population: number;
+  /** The other side's hexes this side pillaged in the war. */
+  hexes: number;
+}
+
+/**
+ * **What `side` won in this war** (Dominion batch D6; the triage's reading
+ * 31): the towns it took by force during the war and still holds, their
+ * citizens, and the hexes it pillaged. A town taken twice counts once, and a
+ * town lost again, razed or handed back at the peace table counts not at all.
+ * Read by the peace (`settlePeacePair`, `diplomacy.ts`) after the terms are
+ * honoured, and by an empire's destruction (`updateElimination`, `combat.ts`).
+ */
+export function warSpoils(state: GameState, war: WarState, side: number): WarSpoils {
+  const seen: number[] = [];
+  let towns = 0;
+  let population = 0;
+  for (const row of war.taken ?? []) {
+    if (row.by !== side || seen.includes(row.cityId)) continue;
+    seen.push(row.cityId);
+    const city = state.cities.find((town) => town.id === row.cityId);
+    if (!city || city.ownerId !== side) continue;
+    towns += 1;
+    population += city.population;
+  }
+  const hexes = war.pillaged?.find((row) => row.by === side)?.hexes ?? 0;
+  return { towns, population, hexes };
 }
 
 /**

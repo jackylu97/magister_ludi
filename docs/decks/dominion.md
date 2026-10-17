@@ -14,13 +14,13 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
-| Tier 0 | 22 | 1 | 3 | 26 | none |
+| Tier 0 | 23 | 0 | 3 | 26 | none |
 | Tier I | 22 | 0 | 0 | 22 | 5 |
-| Tier II | 23 | 4 | 4 | 31 | 5 |
-| Tier III | 21 | 1 | 2 | 24 | 3 |
-| Tier IV | 13 | 6 | 2 | 21 | 3 |
-| **All** | **101** | **12** | **11** | **124** | **16** |
-| Shared | 23 | 1 | 3 | 27 |  |
+| Tier II | 25 | 2 | 4 | 31 | 5 |
+| Tier III | 23 | 0 | 1 | 24 | 3 |
+| Tier IV | 18 | 2 | 1 | 21 | 3 |
+| **All** | **111** | **4** | **9** | **124** | **16** |
+| Shared | 24 | 1 | 2 | 27 |  |
 
 **By type** (the chair a card fits):
 
@@ -39,7 +39,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **Blood Brothers** | rare | implemented | A barbarian unit you kill joins your side. | Military |
-| **Commission: Clear the Frontier** | common | modify: revised | Commission. Clear two barbarian camps while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. | Wildcard |
+| **Commission: Clear the Frontier** | common | implemented | Commission. Clear two barbarian camps while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. | Wildcard |
 | **Blooded Spears** | common | implemented | Military units gain +2 strength, doubled against barbarians. | Military |
 | **Muster Rites** | common | implemented | Gaining a unit grants 8 faith and 8 food. | Civic |
 | **The Horse Herds** | common | implemented | Worked pastures and camps give +1 food and +1 production. | Economic |
@@ -132,8 +132,8 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Armoury Guilds** | common | implemented | When one of your units falls, your nearest town with an Armoury gains production equal to its strength. | Economic |
 | **The Longships** (was Marine Drill) | uncommon | modify: reworked | Your ships may pillage improvements on the shore beside them. | Military |
 | **The Relay Stations** | uncommon | modify: deferred | Once a turn, a military unit that starts its turn in a city connected to your capital may move to any other connected city, ending its move there. | Military |
-| **War Reparations** | uncommon | modify: deferred | Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture. | Economic |
-| **Commission: Take the City** | uncommon | modify: as built | Commission. Capture a city with at least five citizens. Then gain culture and science equal to twenty-three times its population, and a free Barracks in that city. The card leaves its chair. | Wildcard |
+| **War Reparations** | uncommon | implemented | Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture. | Economic |
+| **Commission: Take the City** | uncommon | implemented | Commission. Capture a city with at least five citizens. Then gain culture and science equal to twenty-three times its population, and a free Barracks in that city. The card leaves its chair. | Wildcard |
 | **The Fabricae** | common | implemented | Towns whose garrison is a Veteran or Elite gain +25% production. | Economic |
 | **The Valetudinaria** | common | implemented | Units in your territory heal 15 more hit points a turn. | Military |
 | **Living off the Land** | common | implemented | Military units outside your territory cost no upkeep. | Military |
@@ -172,7 +172,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Siege Train** | uncommon | implemented | Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities. | Military |
 | **Reserve Officers** | uncommon | implemented | While at war, cities with a Barracks produce military units 60% faster; while at peace, those cities gain +30% production toward buildings. | Military |
 | **Total War** | rare | implemented | All your military units gain +5 strength and +1 movement. Every city demands +3 more happiness. | Military |
-| **Commission: A Victor's Peace** | rare | modify: deferred | Commission. Make peace with an empire, or destroy it, after taking at least two of its cities in that war. Then gain one extra Wildcard chair for the rest of the game. | Wildcard |
+| **Commission: A Victor's Peace** | rare | implemented | Commission. Make peace with an empire, or destroy it, after taking at least two of its cities in that war. Then gain one extra Wildcard chair for the rest of the game. | Wildcard |
 | **The Drill Masters** | common | implemented | Units you gain start as Veterans. | Military |
 | **The Plunder Trains** | common | implemented | Pillaging grants 30 production and 15 food to your capital. | Economic |
 | **The Yam** | uncommon | implemented | Mounted units heal fully when they pillage. | Military |
@@ -187,7 +187,7 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **Rally to the Standard** | uncommon | add: rule-breaker | Units you gain may appear beside any of your great generals. | Military |
 | **Valhalla** | rare | implemented | When one of your units dies, gain 25 culture for each Monument in your empire. | Civic |
 | **The Chevauchée** | rare | implemented | Pillaging a hex damages enemy cities within three hexes with 50% of the pillaging unit's strength. | Military |
-| **Danegeld** | rare | add | Making peace with an empire you pillaged in that war grants 40 gold and 40 culture for each hex you pillaged. | Civic |
+| **Danegeld** | rare | implemented | Making peace with an empire you pillaged in that war grants 40 gold and 40 culture for each hex you pillaged. | Civic |
 | **The Devshirme** | rare | implemented | Captured towns of at least six citizens may spend a citizen to raise the best melee unit you can build, as a Veteran. | Military |
 | **Pax Romana** | rare | implemented | Towns you capture are pacified at once, and each costs 1 less authority to hold. | Civic |
 | **The Regimental Schools** | common | implemented | At the end of your turn, each garrisoned unit gains 1 experience and gives its town +2 science. | Civic |
@@ -217,15 +217,15 @@ The deck's cards, by tier: name, rarity, status and ability. This sheet is the s
 | **The Military Frontier** | rare | implemented | Each unit garrisoned in a city gives it +3 science and +3 culture, at most three units per city. | Civic |
 | **The Grand Coalition** | rare | implemented | While at war with an empire raising a Magnum Opus, your military units gain +6 strength against it, and cities with a Barracks produce military units 30% faster. | Military |
 | **The Proconsuls** | uncommon | implemented | Captured cities with a garrison cost no authority and gain +10 defence. | Civic |
-| **Commission: The Grand Campaign** | uncommon | modify: as built | Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair. | Wildcard |
+| **Commission: The Grand Campaign** | uncommon | implemented | Commission. Capture three cities while this card is seated. Then gain a great general, and science and culture each equal to ten times those cities' total population. The card leaves its chair. | Wildcard |
 | **Circumvallation** | uncommon | modify: deferred | While a rival city is under siege with at least one of your units beside it, it adds no production toward a Magnum Opus. You can see which rival cities are raising one. | Military |
-| **Commission: Hold the Capitals** | rare | modify: as built | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. | Wildcard |
-| **Spolia** | rare | modify: as built | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. | Economic |
+| **Commission: Hold the Capitals** | rare | implemented | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. | Wildcard |
+| **Spolia** | rare | implemented | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. | Economic |
 | **The Legions' Labour** | rare | modify: deferred | Disbanding a military unit in a town building a wonder or the Magnum Opus adds half its production cost toward it. Units raised for free add nothing, but units raised by a levy count. | Economic |
 | **The Nation in Arms** | rare | implemented | Every ten turns, each city with an Armoury raises the best melee unit you can build. They cost no upkeep. | Military |
-| **Commission: The Captured Marvel** | rare | modify: as built | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair. | Wildcard |
+| **Commission: The Captured Marvel** | rare | implemented | Commission. Capture a city that holds a world wonder or was another empire's original capital. Then gain science and culture each equal to twenty times its population, plus 200 of each for every world wonder in it. The card leaves its chair. | Wildcard |
 | **The Horde** | rare | implemented | Pillaging a hex also pillages every enemy improvement beside it. | Military |
-| **Vae Victis** | rare | add | Your capture rewards are paid twice. | Wildcard |
+| **Vae Victis** | rare | implemented | Your capture rewards are paid twice. | Wildcard |
 | **The Varangian Guard** | rare | implemented | Elite units may attack twice a turn. | Military |
 | **The Glorious Dead** | rare | add: rule-breaker | Your losses never count toward war weariness. | Civic |
 | **The Harrying** | rare | implemented | Pillaging a hex beside a rival town with no garrison throws that town into unrest. | Military |
@@ -255,7 +255,7 @@ These rows live in `data/decks/common.json`. A seat holding Dominion or the deck
 | **Examinations of State** | rare | Magisterial | II | implemented | Cities with a Monument and a garrison gain +2 science and +2 culture per three citizens. Ungarrisoned cities receive no bonus. | Civic |
 | **The Crusader Orders** | uncommon | Devotion | II | implemented | Military units gain +3 strength in territory not following your religion. Capturing a city presses your religion into it. | Military |
 | **Carried-Off Scholars** | common | Scientific | II | implemented | Capturing a city grants science equal to ten times its population. | Civic |
-| **Looted Art** | uncommon | Magisterial | II | add | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. | Civic |
+| **Looted Art** | uncommon | Magisterial | II | implemented | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. | Civic |
 | **The Engineer Corps** | uncommon | Scientific | III | implemented | Siege units gain +1 movement. Cities with a Workshop gain +30% production toward siege units and +3 science while at war. | Military |
 | **War Bonds** | uncommon | Commerce | III | implemented | Military units gain +1 strength for every 150 gold in your treasury, at most +5. | Military |
 | **Professional Soldiers** | uncommon | Commerce | III | implemented | Units you purchase gain +3 combat strength. | Military |

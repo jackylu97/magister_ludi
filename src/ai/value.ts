@@ -3659,6 +3659,10 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // Dominion batch D5. A great person is gained about as rarely as one is
       // spent, so this is `greatPersonAct`'s reading.
       return 1 / Math.max(1, ctx.ai.score.lumpTurns);
+    case 'peace':
+      // Dominion batch D6. A war ends about as often as one is fought, so a
+      // peace is read at the capture's rate, the threat over the horizon.
+      return war;
     default:
       return unreadOccasion(occasion);
   }
@@ -4116,6 +4120,20 @@ function scoreAmplifier(
       // over the duplicate threshold, and that reading belongs beside the
       // happiness meter rather than in an amplifier arm.
       return ctx.ai.score.unknownEffect;
+    case 'captureRewards': {
+      // **A share of what the seat's own capture riders are worth** (Dominion
+      // batch D6, Vae Victis): each seated Order's capture rider, priced as the
+      // rider arm prices it, scaled by the share. A seat with no capture rider
+      // seated gains nothing from it yet. A Doctrine's rider is not scaled, so
+      // only the seated Orders are read.
+      let riders = 0;
+      for (const held of slottedOrderEffects(ctx)) {
+        if (held.kind === 'windfallRider' && held.occasion === 'capture') {
+          riders += scoreWindfallRider(held, ctx);
+        }
+      }
+      return share * riders;
+    }
     default:
       return unreadTarget(effect.target, ctx);
   }

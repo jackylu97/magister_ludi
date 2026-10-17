@@ -972,6 +972,9 @@ describe('the schema witness', () => {
     // 137 since D5: fourteen Dominion cards that raise units or pay on new
     // moments, and a new record, so a v136 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(137);
+    // 138 since D6: eleven Dominion cards about captures, commissions and the
+    // end of a war, and new records on wars, towns and seats, so a v137 log's
+    // picks name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(138);
   });
 });

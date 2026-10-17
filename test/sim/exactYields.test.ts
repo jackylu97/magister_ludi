@@ -355,7 +355,9 @@ describe('the audit holds in the source', () => {
     // rounding — `Math.min` of two exact figures is exact.
     { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const share = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;' },
     { path: 'src/sim/statecraft/evaluator.ts', snippet: 'line[voice] += paid[voice] * extra;' },
-    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const amount = turns * rate;' },
+    // Dominion batch D6 multiplies it by the capture amplifier (Vae Victis),
+    // a factor of one on every other occasion: still the exact product.
+    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const amount = turns * rate * boostFor(card);' },
     // D2c moved this line into a **first pass**: the occasion's own figure has
     // to be folded before the grants are composed, because a grant may be a
     // share of what the occasion paid (`OccasionMeasure`'s `payout`, the design

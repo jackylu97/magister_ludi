@@ -49,6 +49,8 @@ import {
   type OrderSlotGrant,
   type ChairType,
   type SlotType,
+  type CommissionGoal,
+  type TallyFacts,
   type TallyOccasion,
   GOVERNMENT_TIERS,
   LAST_BAND,
@@ -355,6 +357,24 @@ export type HandPosition =
 export interface OrderTally {
   card: OrderId;
   count: number;
+  /**
+   * **What a commission's counted goal counted** (Dominion batch D6), kept so
+   * the reward can read it (`CommissionReward.fromGoal`, `building`). Only the
+   * moments up to the goal's count are kept, so the figures are those of the
+   * moments that met the goal:
+   *
+   *   · `people`: the citizens of the towns counted, as each stood before it
+   *     changed hands (Take the City, The Grand Campaign);
+   *   · `wonders`: the world wonders in them (The Captured Marvel);
+   *   · `town`: the last town counted, which is the one that met the goal
+   *     (Take the City's Barracks).
+   *
+   * Absent on every tally a commission does not keep, and on a commission
+   * whose moments carry no town.
+   */
+  people?: number;
+  wonders?: number;
+  town?: number;
 }
 
 /**
@@ -585,6 +605,14 @@ export interface PlayerStatecraft {
    * it did before the field existed.
    */
   commissionsFulfilled?: { card: OrderId; turn: number }[];
+  /**
+   * **Wildcard chairs a commission's reward gave for the rest of the game**
+   * (Dominion batch D6, Commission: A Victor's Peace). Written only by the
+   * reward (`payCommission`, `commissions.ts`), read only by `chairCount`, so
+   * every adoption builds the council with them. Absent until the first is
+   * won.
+   */
+  chairsWon?: number;
   /** A draft awaiting a pick, or the key is absent. Blocks End Turn. */
   pendingOrder?: OrderOffer;
   /**
@@ -678,6 +706,13 @@ export function recordScalingOccasion(
   playerId: number,
   occasion: TallyOccasion,
   amount = 1,
+  /**
+   * What the moment carries for a commission's goal (Dominion batch D6): the
+   * town, its citizens and its wonders for a capture, the towns taken for the
+   * end of a war. A goal's floor reads them, and the goal's record keeps them.
+   * See `TallyFacts`.
+   */
+  facts?: TallyFacts,
 ): void {
   if (amount <= 0) return;
   const sc = statecraftOf(state, playerId);
@@ -686,10 +721,50 @@ export function recordScalingOccasion(
     const card = slot?.card;
     if (card === undefined || !isOrderId(card)) continue;
     if (!orderWatches(card, occasion)) continue;
-    const held = sc.tallies.find((row) => row.card === card);
+    // A commission counts only a moment that meets its goal's floor.
+    const goal = countedGoalFor(card, occasion);
+    if (goal !== null && !goalFloorMet(goal, facts)) continue;
+    let held = sc.tallies.find((row) => row.card === card);
+    const before = held?.count ?? 0;
     if (held) held.count += amount;
-    else sc.tallies.push({ card, count: amount });
+    else {
+      held = { card, count: amount };
+      sc.tallies.push(held);
+    }
+    if (goal !== null && facts !== undefined && before < goal.count) keepGoalFacts(held, facts);
   }
+}
+
+/** The commission goal part that counts this occasion on this card, or `null`. */
+function countedGoalFor(
+  id: OrderId,
+  occasion: TallyOccasion,
+): Extract<CommissionGoal, { kind: 'counted' }> | null {
+  for (const goal of orderDef(id).commission?.goals ?? []) {
+    if (goal.kind === 'counted' && goal.occasion === occasion) return goal;
+  }
+  return null;
+}
+
+/**
+ * Does this moment meet the goal's floor (Dominion batch D6)? A goal with no
+ * floor counts every moment. A floor reads a fact the moment must carry, so a
+ * moment without it never counts.
+ */
+function goalFloorMet(goal: Extract<CommissionGoal, { kind: 'counted' }>, facts: TallyFacts | undefined): boolean {
+  if (goal.minPopulation !== undefined && (facts?.population ?? 0) < goal.minPopulation) return false;
+  if (goal.minTownsTaken !== undefined && (facts?.townsTaken ?? 0) < goal.minTownsTaken) return false;
+  return true;
+}
+
+/**
+ * Adds one counted moment's figures to its goal's record (Dominion batch D6):
+ * the citizens and wonders are summed, and the town is the latest one.
+ */
+function keepGoalFacts(held: OrderTally, facts: TallyFacts): void {
+  if (facts.population !== undefined) held.people = (held.people ?? 0) + facts.population;
+  if (facts.wonders !== undefined) held.wonders = (held.wonders ?? 0) + facts.wonders;
+  if (facts.cityId !== undefined) held.town = facts.cityId;
 }
 
 /**
@@ -791,7 +866,10 @@ export function slotTypesOf(sc: PlayerStatecraft): ChairType[] {
  * than a figure four readers have to remember to add.
  */
 export function chairCount(state: GameState, playerId: number, government: GovernmentId): number {
-  return slotCount(government) + cardExtraChairs(state, playerId);
+  // The chairs a commission won for the rest of the game (Dominion batch D6)
+  // are counted with the law's, after the government's own.
+  const won = Math.max(0, Math.floor(statecraftOf(state, playerId)?.chairsWon ?? 0));
+  return slotCount(government) + cardExtraChairs(state, playerId) + won;
 }
 
 /**

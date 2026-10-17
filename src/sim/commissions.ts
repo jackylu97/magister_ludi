@@ -24,10 +24,19 @@
  * unit and the timed effects through `payWindfallGrants`, then
  * `settleGrowthWindfall` and `settleCultureWindfall` exactly as a periodic boon
  * settles; a great person through `drawGreatPersonOffer`, or through
- * `settleRenownWindfall` when an offer cannot be dealt right now.
+ * `settleRenownWindfall` when an offer cannot be dealt right now. Since
+ * Dominion batch D6 a reward may also grant citizens (`settlePopulationWindfall`),
+ * raise a building in the town that met the goal (`realiseItem`), or add
+ * Wildcard chairs for the rest of the game (`refitSlots`).
  */
 
-import { bestMeleeFor, resourceCopies, settleGrowthWindfall } from './cities';
+import {
+  bestMeleeFor,
+  realiseItem,
+  resourceCopies,
+  settleGrowthWindfall,
+  settlePopulationWindfall,
+} from './cities';
 import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { isTendedWork } from './improvementData';
@@ -45,7 +54,7 @@ import {
   realPlayers,
   tileOwnerField,
 } from './state';
-import { isWonder } from './buildingData';
+import { buildingDef } from './buildingData';
 import { explainEmpireLines, foldEmpireLines } from './yields/empire';
 import { foldCity } from './yields/town';
 import {
@@ -54,15 +63,18 @@ import {
   commissionFulfilledTurn,
   heldReligions,
   payWindfallGrants,
+  refitSlots,
   settleCultureWindfall,
   slotOf,
   tallyOf,
 } from './statecraft';
 import {
+  type CitizensTarget,
   type CommissionFigure,
   type CommissionGoal,
   type CommissionReward,
   type CommissionSpec,
+  type GoalMeasure,
   type OrderId,
   isOrderId,
   orderDef,
@@ -124,39 +136,14 @@ export function commissionFigure(
       return worked;
     }
     case 'originalCapitalsHeld': {
-      // A town founded first by an empire (`City.originalCapital`) that this
-      // empire now holds by capture. The board keeps no founder, so an
-      // empire's own first town, lost and taken back, also counts here.
+      // Another empire's first town (`City.originalCapitalOf`, Dominion batch
+      // D6) that this empire holds now, however it came to. The empire's own
+      // first town never counts, even taken back.
       let held = 0;
       for (const city of citiesOf(state, playerId)) {
-        if (city.originalCapital === true && city.captured) held += 1;
+        if (city.originalCapitalOf !== undefined && city.originalCapitalOf !== playerId) held += 1;
       }
       return held;
-    }
-    case 'capturedPopulation': {
-      let people = 0;
-      for (const city of citiesOf(state, playerId)) {
-        if (city.captured) people += city.population;
-      }
-      return people;
-    }
-    case 'capturedThisTurnPopulation': {
-      // `City.capturedOn` is written only for a town taken by force. The phase
-      // runs before the turn number moves on, so "this turn" is the turn the
-      // goal was met.
-      let people = 0;
-      for (const city of citiesOf(state, playerId)) {
-        if (city.capturedOn === state.turn) people += city.population;
-      }
-      return people;
-    }
-    case 'capturedThisTurnWonders': {
-      let wonders = 0;
-      for (const city of citiesOf(state, playerId)) {
-        if (city.capturedOn !== state.turn) continue;
-        for (const id of city.buildings) if (isWonder(id)) wonders += 1;
-      }
-      return wonders;
     }
     case 'tendedTiles': {
       // Owned, not worked: Six Gardens asks for tended land the empire holds.
@@ -344,8 +331,16 @@ function payCommission(
   const lines: string[] = [];
   const people: (Family | 'any')[] = [];
   const capital = capitalCityOf(state, player.id);
+  // The town that met the goal, read before anything is paid (Dominion batch
+  // D6): Take the City's Barracks goes up there.
+  const goalTown = commissionGoalTown(state, player.id, card);
+  // Citizens, buildings and chairs land after the windfall, so they are kept
+  // here in row order.
+  const citizens: { amount: number; to: CitizensTarget }[] = [];
+  const buildings: CommissionReward['building'][] = [];
+  let chairs = 0;
   for (const reward of spec.reward) {
-    const amount = rewardAmount(state, player.id, reward);
+    const amount = rewardAmount(state, player.id, card, reward);
     if (reward.yield !== undefined && amount !== 0) {
       payout.grants.push({ card, source, yield: reward.yield, amount });
       const where =
@@ -361,6 +356,13 @@ function payCommission(
       lines.push(`${source}'s reward holds for ${reward.timed.turns} turns`);
     }
     if (reward.greatPerson !== undefined) people.push(reward.greatPerson);
+    if (reward.citizens !== undefined && reward.citizens > 0) {
+      citizens.push({ amount: Math.floor(reward.citizens), to: reward.citizensTo ?? 'capital' });
+    }
+    if (reward.building !== undefined) buildings.push(reward.building);
+    if (reward.wildcardChairs !== undefined && reward.wildcardChairs > 0) {
+      chairs += Math.floor(reward.wildcardChairs);
+    }
   }
   const realized: { type: UnitTypeId; cityName: string }[] = [];
   const touched = payWindfallGrants(state, player, payout, undefined, realized);
@@ -370,12 +372,97 @@ function payCommission(
   settleCultureWindfall(state, player);
   for (const piece of realized) lines.push(`a free ${unitDef(piece.type).name} in ${piece.cityName}`);
   for (const family of people) lines.push(grantGreatPerson(state, player, family));
+  // **Citizens** (Dominion batch D6, Commission: Clear the Frontier) through
+  // the population windfall, which pays the growth riders for each one and
+  // re-seats the town (`refreshCityDerived`'s register, entry 13).
+  for (const grant of citizens) {
+    for (const town of citizenTowns(state, player.id, grant.to)) {
+      settlePopulationWindfall(state, town, grant.amount);
+      lines.push(`${signedPlain(grant.amount)} citizens in ${town.name}`);
+    }
+  }
+  // **A building in the town that met the goal** (Commission: Take the City),
+  // through `realiseItem` as a building grant is. Nothing when that town is no
+  // longer this empire's or already has it.
+  for (const id of buildings) {
+    if (id === undefined || !goalTown || goalTown.ownerId !== player.id) continue;
+    if (goalTown.buildings.includes(id)) continue;
+    realiseItem(state, goalTown, { kind: 'building', id });
+    lines.push(`a free ${buildingDef(id).name} in ${goalTown.name}`);
+  }
+  // **Wildcard chairs for the rest of the game** (Commission: A Victor's
+  // Peace). Written down, then the council is resized to them, keeping every
+  // card where it sits (`refitSlots`, which announces the new chair).
+  if (chairs > 0) {
+    player.statecraft.chairsWon = (player.statecraft.chairsWon ?? 0) + chairs;
+    refitSlots(state, player);
+    lines.push(chairs === 1 ? 'one more Wildcard chair' : `${chairs} more Wildcard chairs`);
+  }
   return lines;
 }
 
-/** One reward line's figure: flat, or a share of a figure read now. */
-function rewardAmount(state: GameState, playerId: number, reward: CommissionReward): number {
+/**
+ * **The town that met a commission's goal**, or `null` (Dominion batch D6). For
+ * a counted goal it is the last town the goal counted (`OrderTally.town`): the
+ * town Take the City or The Captured Marvel took. `null` when the goal counts
+ * no towns, or when the town has since been razed.
+ *
+ * The one reading of "that town" for a reward, so a later goal that one town
+ * meets (The Heartland's) names its town here and every reward that reads it
+ * follows.
+ */
+export function commissionGoalTown(state: GameState, playerId: number, card: OrderId): City | null {
+  const sc = state.players[playerId]?.statecraft;
+  if (!sc) return null;
+  const id = sc.tallies.find((row) => row.card === card)?.town;
+  if (id === undefined) return null;
+  return state.cities.find((city) => city.id === id) ?? null;
+}
+
+/**
+ * What a reward reads off the goal it pays for (`CommissionReward.fromGoal`,
+ * Dominion batch D6): the citizens of the towns the goal counted, or the world
+ * wonders in them, as kept by the tally (`OrderTally`). Nought for a goal that
+ * kept nothing.
+ */
+export function commissionGoalMeasure(
+  state: GameState,
+  playerId: number,
+  card: OrderId,
+  measure: GoalMeasure,
+): number {
+  const held = state.players[playerId]?.statecraft.tallies.find((row) => row.card === card);
+  if (!held) return 0;
+  return measure === 'population' ? (held.people ?? 0) : (held.wonders ?? 0);
+}
+
+/**
+ * The towns a reward's citizens go to (Dominion batch D6): the capital, or the
+ * `n` smallest towns, ties going to the earlier town (The Wide Country, the
+ * Expansionist triage's reading 35).
+ */
+function citizenTowns(state: GameState, playerId: number, to: CitizensTarget): City[] {
+  if (to === 'capital') {
+    const capital = capitalCityOf(state, playerId);
+    return capital ? [capital] : [];
+  }
+  const towns = citiesOf(state, playerId).map((city, order) => ({ city, order }));
+  towns.sort((x, y) => x.city.population - y.city.population || x.order - y.order);
+  return towns.slice(0, Math.max(0, Math.floor(to.smallest))).map((entry) => entry.city);
+}
+
+/**
+ * One reward line's figure: flat, a share of a figure read now, or (Dominion
+ * batch D6) a share of what the goal counted.
+ */
+function rewardAmount(
+  state: GameState,
+  playerId: number,
+  card: OrderId,
+  reward: CommissionReward,
+): number {
   const amount = reward.amount ?? 0;
+  if (reward.fromGoal !== undefined) return amount * commissionGoalMeasure(state, playerId, card, reward.fromGoal);
   if (reward.fromFigure === undefined) return amount;
   return amount * commissionFigure(state, playerId, reward.fromFigure);
 }

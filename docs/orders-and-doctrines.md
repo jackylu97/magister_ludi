@@ -194,7 +194,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Standing Army | 0 | ◆ | S | Garrisoned units cost no upkeep. Cities with a Barracks gain +30% production toward military units. |
 | Blood Brothers | 0 | ○ | S | A barbarian unit you kill joins your side. |
 | The King's Levy | 0 | ○ | S | Every fifteen turns your capital raises a melee unit for free. It costs no upkeep. |
-| Commission: Clear the Frontier | 0 | ● | S | Commission. Clear two barbarian camps while this card is seated. Then gain 60 production in your capital and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
+| Commission: Clear the Frontier | 0 | ● | S | Commission. Clear two barbarian camps while this card is seated. Then gain 2 population in your capital, and the best melee unit you can build is trained in your capital, free of upkeep. The card leaves its chair. |
 | The Horse Herds | 0 | ● | S | Worked pastures and camps give +1 food and +1 production. |
 | Battle Honours | 0 | ● | S | Commission. Kill ten units while this card is seated. Then choose a great general from a draft. The card leaves its chair. |
 | Sword and Plough | 0 | ● | P | Each city with a garrison gains +1 culture and +2 production. |
@@ -259,6 +259,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Spear-won Land | 2 | ◆ | P | +3% production and science for every town you have captured this game, at most +30%. |
 | The Longbowmen | 2 | ● | S | Ranged units gain +4 strength and +4 ranged strength. +5 culture each time they attack from range. |
 | The State Forges | 2 | ○ | S | Each time you research a technology, your capital raises the best melee unit you can build. It costs no upkeep. |
+| War Reparations | 2 | ◆ | S | Making peace after taking cities in that war grants gold equal to twenty times their total population, and half as much culture. |
 | Standing Garrisons | 3 | ● | P | Per garrisoned unit, the city gains +12% production and +12% culture. |
 | The Siege Train | 3 | ◆ | S | Siege units gain +1 movement. Adjacent friendly land melee units gain +6 strength against cities. |
 | Reserve Officers | 3 | ◆ | S | While at war, cities with a Barracks produce military units 60% faster; while at peace, those cities gain +30% production toward buildings. |
@@ -280,6 +281,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Pax Romana | 3 | ○ | S | Towns you capture are pacified at once, and each costs 1 less authority to hold. |
 | The Mural Crown | 3 | ◆ | S | +10 renown each turn, favouring great generals. Each time you gain a great person, gain 100 science and 100 culture for each great general you have gained this game. |
 | Valhalla | 3 | ○ | S | When one of your units dies, gain 25 culture for each Monument in your empire. |
+| Commission: A Victor's Peace | 3 | ○ | S | Commission. Make peace with an empire, or destroy it, after taking at least two of its cities in that war. Then gain one extra Wildcard chair for the rest of the game. |
+| Danegeld | 3 | ○ | S | Making peace with an empire you pillaged in that war grants 40 gold and 40 culture for each hex you pillaged. |
 | Imperium | 4 | ○ | S | Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%. |
 | Commission: Hold the Capitals | 4 | ○ | S | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. |
 | Spolia | 4 | ○ | S | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. |
@@ -297,6 +300,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Great Bombards | 4 | ○ | S | Your siege units break a town's walls in one blow. |
 | The Horde | 4 | ○ | S | Pillaging a hex also pillages every enemy improvement beside it. |
 | The Harrying | 4 | ○ | S | Pillaging a hex beside a rival town with no garrison throws that town into unrest. |
+| Vae Victis | 4 | ○ | P | Your capture rewards are paid twice. |
 
 ### Expansionist
 
@@ -657,6 +661,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Sword of State | Dominion · Magisterial | 1 | ● | S | On draft: the best melee unit you can build is trained in your capital. It costs no upkeep. Seated, this card does nothing. |
 | Copying the Enemy | Dominion · Scientific | 1 | ◆ | S | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. |
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns. |
+| Looted Art | Dominion · Magisterial | 2 | ◆ | S | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. |
 
 ### Generic
 
@@ -681,8 +686,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Marine Drill** — The blessing is hung on the piece the moment it wades ashore, and lasts the turn it landed.
 - **Riders of the Steppe** — A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.
 - **The Relay Stations** — † Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet.
-- **War Reparations** — † The game does not yet pay anything when a peace is signed, or remember which cities each side took during a war.
-- **Commission: A Victor's Peace** — † The game does not yet notice a peace being signed or an empire being destroyed, or remember which cities each side took during a war.
 - **The Legions' Labour** — † Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder.
 - **Circumvallation** — † Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet.
 - **The Fish Traps** — The traps go on coastal water, which a worker reaches by boat. A lake cannot be reached yet, so traps on a lake wait.

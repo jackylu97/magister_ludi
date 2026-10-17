@@ -151,7 +151,12 @@ import {
 // Dominion batch D1's readers, straight from the evaluator: the experience a
 // unit is gained with, and the empty-payout check the rank's riders use. The
 // same function-level edge the index above already is.
-import { cardBirthExperience, higherRank, windfallPayoutIsEmpty } from './statecraft/evaluator';
+import {
+  cardBirthExperience,
+  higherRank,
+  opusCityOf,
+  windfallPayoutIsEmpty,
+} from './statecraft/evaluator';
 // Ranks: a leaf over the rule book, the unit table and the state.
 import { type RankId, grantExperience, raiseToRank, rankThreshold } from './ranks';
 import {
@@ -5263,6 +5268,7 @@ export function productionSettledBy(
  * than stalling against a figure the player was never shown.
  */
 export function advanceProduction(state: GameState, report?: TurnReport): void {
+  releaseOpusBanks(state);
   for (const city of state.cities) {
     const done = settleProduction(state, city);
     // A wonder is the one completion that is news to seats who had nothing to do
@@ -5283,6 +5289,26 @@ export function advanceProduction(state: GameState, report?: TurnReport): void {
     // news to its owner alone, and a difference that stops existing the moment
     // the resolution is over.
     if (done?.consecration) report?.consecrations.push(done.consecration);
+  }
+}
+
+/**
+ * **Moves the production kept for each empire's Magnum Opus into the town now
+ * raising it** (Dominion batch D6, Spolia: "if you have not begun one, the
+ * production is kept until you do"). Run at the start of the production phase,
+ * so the kept hammers count toward the Opus in the same settlement. An empire
+ * with nothing kept, or with no town raising the Opus, is left as it was. Seat
+ * order, and the town is `opusCityOf`'s, the first in founding order, which is
+ * where a Spolia grant lands when there is a town.
+ */
+export function releaseOpusBanks(state: GameState): void {
+  for (const player of state.players) {
+    const kept = player.opusBank ?? 0;
+    if (kept <= 0) continue;
+    const town = opusCityOf(state, player.id);
+    if (!town) continue;
+    town.hammerBasket += kept;
+    delete player.opusBank;
   }
 }
 

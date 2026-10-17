@@ -691,10 +691,43 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * changed stayed in for that run: the new moments, the `unitGained` tally and
  * the new emptiness test in `payBattleRiders` change nothing without the
  * cards. Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **Dominion batch D6 (schema 138), captures, commissions and the end of a
+ * war.** Duel `31cc28b2:303960` → `a86298d3:304146`, standard
+ * `87201d9d:969761` → `a0e03ce3:969986`. Four things moved the digests:
+ *
+ *   · the version, 137 to 138;
+ *   · the cards. Danegeld, Vae Victis and Looted Art join the pools, War
+ *     Reparations and Commission: A Victor's Peace are dealt, and six live rows
+ *     change what they do (Clear the Frontier's citizens, Take the City's
+ *     floor and Barracks, The Grand Campaign and The Captured Marvel reading
+ *     the towns their goal counted, Hold the Capitals reading whose first town
+ *     it is, and Spolia keeping its production for the Opus). At turn 120 no
+ *     seat on the duel board holds a D6 card, and on the standard board one
+ *     seat holds Commission: Take the City, not seated. The draws differ from
+ *     the first hand that meets one of the new rows;
+ *   · the new records: every empire's first town now carries
+ *     `originalCapitalOf`, every war records the towns taken and the hexes
+ *     pillaged (one war on the duel board has two towns taken), and a
+ *     commission's tally row keeps the towns it counted;
+ *   · the behaviour of the reworked rows above, which the control takes out
+ *     with the records.
+ *
+ * Checked by taking all four back out (the two deck files as D5 left them, the
+ * version at 137, none of the new records written, and the three captured-town
+ * figures, the old original-capital readings and Spolia's capital delivery put
+ * back), which gives D5's digests exactly on both boards. Everything else D6
+ * changed stayed in for that run: the peace payment, the end of a war by
+ * destruction, the goal floors and the new rewards, the capture amplifier,
+ * renown scaled by the moment, the Opus bank's release, and the bots' new
+ * readings change nothing without the cards. Nothing stalled and no command
+ * was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '31cc28b2:303960',
-  standard: '87201d9d:969761',
+  duel: 'a86298d3:304146',
+  standard: 'a0e03ce3:969986',
 };
 
 /**

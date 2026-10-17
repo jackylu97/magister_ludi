@@ -755,10 +755,17 @@ describe('determinism', () => {
    * gains a great person, so the new tally, records and moments never reach
    * this board. Checked by setting the version back to 136 with every D5
    * change in place, which gives E1's hashes exactly.
+   *
+   * **Dominion batch D6 moved the hash and not the length** at both seeds:
+   * 137 became 138, and that is all. Nobody here founds a town, takes one,
+   * makes peace or pillages, so the war record, the first-town record and the
+   * kept Opus production never reach this board. Checked by setting the
+   * version back to 137 with every D6 change in place, which gives D5's hashes
+   * exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'a33173b9:188932',
-    2026: '49244c80:188488',
+    11: '07a46bb4:188932',
+    2026: 'dbabd7bd:188488',
   };
 
   for (const seed of [11, 2026]) {
