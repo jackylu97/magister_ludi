@@ -4270,9 +4270,8 @@
   ],
   "expansionistTheBreadbasket": [
    {
-    "raw": "a town that has stopped growing turns its spare grain into contentment and into settlers — not built yet",
-    "text": "a town that has stopped growing turns its spare grain into contentment and into settlers — not built yet",
-    "deferred": true
+    "raw": "a city told to stop growing puts its food surplus into production instead of into growth",
+    "text": "a city told to stop growing puts its food surplus into production instead of into growth"
    }
   ],
   "migration": [
@@ -4283,9 +4282,8 @@
   ],
   "veteranColonies": [
    {
-    "raw": "a soldier standing in one of your towns may retire there, and the town gains food for it — not built yet",
-    "text": "a soldier standing in one of your towns may retire there, and the town gains food for it — not built yet",
-    "deferred": true
+    "raw": "for military units alone, disbanding a unit in one of your cities grants food equal to its production cost",
+    "text": "for military units alone, disbanding a unit in one of your cities grants food equal to its production cost"
    }
   ],
   "theLandscapeGarden": [

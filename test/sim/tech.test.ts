@@ -1636,7 +1636,9 @@ describe('research in the log', () => {
     // build deals differently.
     // 144 since the lake fix (L1): a lake is water like the coast, so pieces
     // path across lakes and a v143 log's moves meet a different board.
-    expect(SCHEMA_VERSION).toBe(144);
+    // 145 since E6: The Breadbasket and Veteran Colonies come live, so a v144
+    // log's picks name cards this build deals differently.
+    expect(SCHEMA_VERSION).toBe(145);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

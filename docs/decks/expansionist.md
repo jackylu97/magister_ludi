@@ -14,7 +14,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
   - `add`: not in the data yet; a new card from the builds. `add: proposed` is one of the proposals of 2026-10-13 that a build uses.
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch E0 the types are in the data: each Expansionist card fits only a chair of its own type or a Wildcard chair. The sync test checks this column for every row in the data, the shared table's included.
 - **Gates:** "Needs tended land" deals a card only to a seat holding a tended-work charter. "Needs a levy" deals a card only to a seat holding a card that grants a levy, in a chair or not.
-- **The build:** the triage is `docs/plans/expansionist-build-triage.md`. Batch E0 put the types into the data, retired The Forest Gardens and Daughter Towns, and built the 37 cards that needed no new shape. Batch E1 built the twelve levy cards, batch E2 ten cards about moments, records and counts, batch E3 ten cards about the land, batch E4 ten cards about works, claims and borders, and batch E5 eight cards about meters, commissions and the shared The Frontier Militia. The Breadbasket and Veteran Colonies wait for Dominion batch D7, which builds the shapes they need, and move to batch E6. The Farming Garrisons is built by D7.
+- **The build:** the triage is `docs/plans/expansionist-build-triage.md`. Batch E0 put the types into the data, retired The Forest Gardens and Daughter Towns, and built the 37 cards that needed no new shape. Batch E1 built the twelve levy cards, batch E2 ten cards about moments, records and counts, batch E3 ten cards about the land, batch E4 ten cards about works, claims and borders, and batch E5 eight cards about meters, commissions and the shared The Frontier Militia. Batch E6 built The Breadbasket and Veteran Colonies on the shapes Dominion batch D7 built for them, and D7 built the shared The Farming Garrisons.
 - **Doctrines:** none yet. Expansionist's Doctrines come next, one direction per flavour.
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 
@@ -22,10 +22,10 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 |---|---|---|---|---|---|
 | Tier 0 | 13 | 1 | 0 | 14 | none |
 | Tier I | 28 | 0 | 1 | 29 | none |
-| Tier II | 19 | 3 | 0 | 22 | none |
+| Tier II | 21 | 1 | 0 | 22 | none |
 | Tier III | 35 | 1 | 1 | 37 | none |
 | Tier IV | 17 | 1 | 0 | 18 | none |
-| **All** | **112** | **6** | **2** | **120** | **none** |
+| **All** | **114** | **4** | **2** | **120** | **none** |
 | Shared | 16 | 0 | 0 | 16 |  |
 
 **By type** (the chair a card would fit):
@@ -103,9 +103,9 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **Provincial Councils** | uncommon | implemented | Connected towns other than the capital cost one less authority, minimum one, and gain +1 happiness. | Civic |
 | **The Grain Dole** | common | implemented | Cities of at least ten population gain +4 happiness and retain an additional 20% of food spent on growth. | Civic |
 | **The Waterworks** | uncommon | implemented | Aqueducts cost 33% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3. | Civic |
-| **The Breadbasket** | uncommon | modify: reworked | A town told to stop growing adds its food surplus to its production. | Economic |
+| **The Breadbasket** | uncommon | implemented | A town told to stop growing adds its food surplus to its production. | Economic |
 | **Migration** | rare | modify: as built | Every ten turns, each of your towns that is at its happiness limit sends one citizen to your smallest connected town that has room to grow. | Economic |
-| **Veteran Colonies** | uncommon | modify: deferred | A military unit standing in one of your towns may retire there: the unit is removed and the town gains food equal to its production cost. | Economic |
+| **Veteran Colonies** | uncommon | implemented | A military unit standing in one of your towns may retire there: the unit is removed and the town gains food equal to its production cost. | Economic |
 | **The Landscape Garden** | uncommon | implemented | Needs tended land. Tended tiles beside a great-person work or a wonder gain +3 culture. | Civic |
 | **The Engineers' Yards** | common | implemented | Manufactories gain +3 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +2 production. | Economic |
 | **The Tended Country** | uncommon | implemented | Needs tended land. Tended tiles gain +2 production. | Economic |

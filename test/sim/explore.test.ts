@@ -800,10 +800,18 @@ describe('determinism', () => {
    * version at 142: once with E5's and L1's movers in, and once with them out
    * (the two deck files and the lake row as D7 left them). Both give D7's
    * hashes exactly.
+   *
+   * **Expansionist batch E6 moved the hash and not the length** at both seeds:
+   * 144 became 145, and that is the whole change here. Nobody here drafts a
+   * card, tells a town to stop growing or disbands a unit, so The Breadbasket
+   * and Veteran Colonies never reach this board. Checked twice with the version
+   * at 144: once with the new deck file and once with the deck file as E5 and
+   * L1 left it. Both give the previous hashes (`95657d9e:188932`,
+   * `5e2f25ff:188488`) exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '95657d9e:188932',
-    2026: '5e2f25ff:188488',
+    11: '31648f41:188932',
+    2026: '14996268:188488',
   };
 
   for (const seed of [11, 2026]) {

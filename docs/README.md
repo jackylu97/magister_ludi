@@ -240,6 +240,16 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   `fromTowns` reads the production per turn of the empire's other towns a
   scope admits (The Master of Works); a great person's act carries its town
   as `WindfallOccasionFacts.townId`, the same fact the disband moment fills.
+- **Expansionist batch E6 uses Dominion batch D7's shapes.**
+  - The Breadbasket is D7's `surplusToProduction` with a new town scope,
+    `avoidsGrowth`, which reads the town's Avoid growth tick
+    (`City.avoidGrowth`).
+  - While a card moves a town's food surplus into production
+    (`surplusMoverFor`), `assignCitizens` does not run the avoid-growth cap
+    (`capFoodSurplus`), so the town keeps its citizens on its food and the card
+    has a surplus to move. This reaches The Laws of Lord Shang too.
+  - Veteran Colonies is a rider on D7's `disband` moment (`inTown: true`, a
+    military unit, food from `unitCost`), paid as a growth windfall.
 
 ## Units, movement, combat, siege
 

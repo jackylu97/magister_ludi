@@ -165,6 +165,7 @@ import {
   cardBirthExperience,
   higherRank,
   opusCityOf,
+  surplusMoverFor,
   windfallPayoutIsEmpty,
 } from './statecraft/evaluator';
 // Ranks: a leaf over the rule book, the unit table and the state.
@@ -2030,7 +2031,16 @@ export function assignCitizens(state: GameState, city: City): void {
       weights = balanced;
     }
   }
-  if (city.avoidGrowth === true) capFoodSurplus(state, city, weights);
+  // **A surplus with somewhere to go is not capped** (Expansionist batch E6,
+  // The Breadbasket; the triage's reading 78). While a card moves this town's
+  // food surplus into production (step 14, `surplusMoverFor`), the town keeps
+  // its citizens where its focus put them, so the card has a surplus to move.
+  // The town still does not grow: the basket banks none of a moved surplus
+  // (`growthSurplus`). The same test as the growth channel's, toward the front
+  // of the queue, so the cap and the basket cannot disagree.
+  if (city.avoidGrowth === true && surplusMoverFor(state, city, city.queue[0]) === null) {
+    capFoodSurplus(state, city, weights);
+  }
   if (assignmentPrint(city) !== before) bumpEconomy(state);
 }
 

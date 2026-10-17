@@ -460,8 +460,10 @@ describe('the schema, as landed', () => {
     // new shared row (The Frontier Militia), and one deferred row was freed
     // (The Heartland); The Domesday Survey and The Master of Works were changed
     // in place and were already live.
-    expect(live).toBe(496);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(496);
+    // **And Expansionist batch E6** (the two cards that waited for D7): two
+    // more. Two deferred rows were freed (The Breadbasket, Veteran Colonies).
+    expect(live).toBe(498);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(498);
   });
 
   /**
@@ -679,7 +681,9 @@ describe('the schema, as landed', () => {
     // build deals differently.
     // 144 since the lake fix (L1): a lake is water like the coast, so pieces
     // path across lakes and a v143 log's moves meet a different board.
-    expect(SCHEMA_VERSION).toBe(144);
+    // 145 since E6: The Breadbasket and Veteran Colonies come live, so a v144
+    // log's picks name cards this build deals differently.
+    expect(SCHEMA_VERSION).toBe(145);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -900,9 +904,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // Migration, The Great Migration, The Encroaching Fields: − 5).
       // **Dominion batch D7** freed one (The Legions' Labour: − 1).
       // **Expansionist batch E5** freed one more (The Heartland: − 1).
+      // **Expansionist batch E6** freed two more (The Breadbasket, Veteran
+      // Colonies: − 2).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(59);
+      ).toHaveLength(57);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(136);
     }
   });

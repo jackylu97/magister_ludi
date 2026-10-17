@@ -425,7 +425,9 @@ describe('determinism', () => {
     // build deals differently.
     // 144 since the lake fix (L1): a lake is water like the coast, so pieces
     // path across lakes and a v143 log's moves meet a different board.
-    expect(SCHEMA_VERSION).toBe(144);
+    // 145 since E6: The Breadbasket and Veteran Colonies come live, so a v144
+    // log's picks name cards this build deals differently.
+    expect(SCHEMA_VERSION).toBe(145);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

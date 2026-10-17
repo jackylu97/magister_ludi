@@ -1289,6 +1289,13 @@ export type CityScope =
    */
   | { test: 'producing'; category: ProductionCategory; class?: UnitFilter }
   /**
+   * The town's owner has **told it to stop growing**: the Avoid growth tick on
+   * the town's focus pane (`City.avoidGrowth`). Expansionist batch E6, The
+   * Breadbasket. A town that stops growing for any other reason (unrest, the
+   * meters, a full basket) is not admitted.
+   */
+  | { test: 'avoidsGrowth' }
+  /**
    * The town's citizens work at least `atLeast` hexes (default one) that meet a
    * hex condition — The Local Census's "four improved or tended tiles" and The
    * Garden of the World's "six tended tiles". `workingImprovement` with any

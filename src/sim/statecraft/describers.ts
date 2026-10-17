@@ -3691,6 +3691,11 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push(`building ${thing}`);
       return;
     }
+    case 'avoidsGrowth':
+      // Expansionist batch E6, The Breadbasket: the Avoid growth tick, in the
+      // card's own words.
+      into.qualifiers.push('told to stop growing');
+      return;
     case 'ownerAtWar':
       into.qualifiers.push('whose owner is at war with another empire');
       return;

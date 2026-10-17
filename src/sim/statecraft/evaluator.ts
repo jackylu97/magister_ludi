@@ -2347,6 +2347,10 @@ export function cityScopeAdmits(
       return isRaisingOpus(city);
     case 'producing':
       return isProducing(city, scope.category, scope.class);
+    case 'avoidsGrowth':
+      // The Breadbasket (Expansionist batch E6): the owner's own instruction,
+      // and nothing else. See the scope.
+      return city.avoidGrowth === true;
     case 'ownerAtWar':
       // The register itself, as `EmpireCondition`'s `atWar` reads it: the wild
       // is never in it, so a war on barbarians does not count. See the scope.
@@ -2539,6 +2543,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'raising the Magnum Opus';
     case 'producing':
       return `building ${producingWords(scope)}`;
+    case 'avoidsGrowth':
+      return 'told to stop growing';
     case 'ownerAtWar':
       return 'owner at war';
     case 'ownersFaith':

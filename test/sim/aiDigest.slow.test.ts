@@ -848,10 +848,31 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * and it changes nothing without the cards and the open lake. The duel game
  * adopts 12 governments and the standard one 15. Nothing stalled and no
  * command was refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E6 (schema 145): The Breadbasket and Veteran
+ * Colonies.** Duel `01ab9020:285340` → `e8c6ce6b:285340`, standard
+ * `a4608f70:956430` → `e4591a83:956439`. Two things moved them:
+ *
+ *   · the cards. Two deferred rows come live, so the draft bags hold different
+ *     cards. That moves the standard game and not the duel one. No seat holds
+ *     either card at turn 120 on either board. The bots never tell a town to
+ *     stop growing, and they disband a unit only to clear their arrears, so
+ *     neither card would pay a bot anyway;
+ *   · the version, 144 to 145, which is the whole of the duel's change.
+ *
+ * Checked twice with the version at 144. With the Expansionist deck file as E5
+ * and L1 left it, both digests are the previous ones exactly, so the new
+ * town scope and the cap rule (`assignCitizens` leaves a town's citizens on
+ * its food while a card moves its surplus) change nothing without the cards.
+ * With the new deck file, the duel digest is still the old one and the
+ * standard game has its new length. The duel game adopts 12 governments and
+ * the standard one 15. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '01ab9020:285340',
-  standard: 'a4608f70:956430',
+  duel: 'e8c6ce6b:285340',
+  standard: 'e4591a83:956439',
 };
 
 /**

@@ -1056,12 +1056,10 @@
       "rarity": "uncommon",
       "type": "economic",
       "flavor": "When the town is full, the grain goes to the frontier.",
-      "text": "A town that has stopped growing gains +1 happiness for every four surplus food, at most +3, and adds its food surplus to production toward settlers.",
-      "effects": [],
-      "deferred": [
-        "a town that has stopped growing turns its spare grain into contentment and into settlers"
-      ],
-      "note": "A town told to stop growing moves its people off food, so it has no spare grain for this card to read."
+      "text": "A town told to stop growing adds its food surplus to its production.",
+      "effects": [
+        { "kind": "surplusToProduction", "scope": { "test": "avoidsGrowth" } }
+      ]
     },
     "migration": {
       "name": "Migration",
@@ -1086,11 +1084,15 @@
       "type": "economic",
       "flavor": "Twenty years of marching, then a plot of land.",
       "text": "A military unit standing in one of your towns may retire there: the unit is removed and the town gains food equal to its production cost.",
-      "effects": [],
-      "deferred": [
-        "a soldier standing in one of your towns may retire there, and the town gains food for it"
-      ],
-      "note": "Units have no way to retire yet; it needs a new order and a new button."
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "disband",
+          "class": { "category": "military" },
+          "inTown": true,
+          "grant": { "yield": "food", "amount": 1, "fromOccasion": "unitCost" }
+        }
+      ]
     },
     "theLandscapeGarden": {
       "name": "The Landscape Garden",

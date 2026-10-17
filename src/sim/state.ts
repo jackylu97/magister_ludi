@@ -1674,8 +1674,31 @@ import {
  * **A v143 save is refused and does not replay.** Pieces now path across
  * lakes, so the bots move differently. The branch migrates nothing, for the
  * reason given under v119.
+ *
+ * v145 (branch `decks`; Expansionist batch E6 of
+ * `docs/plans/expansionist-build-triage.md`, the two cards that waited for
+ * Dominion batch D7): **two cards come live.** The Breadbasket and Veteran
+ * Colonies were deferred and are now dealt. No field joins the state. The
+ * rules that change:
+ *
+ *   · a town scope asks whether the town's owner told it to stop growing
+ *     (`avoidsGrowth`, read off `City.avoidGrowth`). The Breadbasket moves
+ *     such a town's food surplus into production through D7's
+ *     `surplusToProduction`, whatever the town builds;
+ *   · while a card moves a town's food surplus into production, the Avoid
+ *     growth tick no longer moves the town's citizens off food
+ *     (`assignCitizens` skips `capFoodSurplus`). This reaches The Laws of Lord
+ *     Shang too, in a town told to stop growing while it builds a military
+ *     unit;
+ *   · Veteran Colonies is a rider on D7's disband moment: a military unit
+ *     disbanded on the hex of one of your towns pays that town food equal to
+ *     its production cost, as a growth windfall.
+ *
+ * **A v144 save is refused and does not replay.** The draft bags hold
+ * different cards. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 144;
+export const SCHEMA_VERSION = 145;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3824,6 +3847,10 @@ export interface City {
    * chasing hammers — and neither may starve the place: the cap is applied by
    * swapping worked hexes down while the harvest still feeds the citizens, and
    * `capFoodSurplus` stops the moment the next swap would not (`cities.ts`).
+   * While a card moves the town's food surplus into production (The
+   * Breadbasket, Expansionist batch E6), the cap does not run: the surplus goes
+   * into production instead, and the basket still gains nothing
+   * (`assignCitizens`).
    */
   avoidGrowth?: true;
   /**

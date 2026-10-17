@@ -368,7 +368,9 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Provincial Councils | 2 | ◆ | S | Connected towns other than the capital cost one less authority, minimum one, and gain +1 happiness. |
 | The Grain Dole | 2 | ● | S | Cities of at least ten population gain +4 happiness and retain an additional 20% of food spent on growth. |
 | The Waterworks | 2 | ◆ | P | Aqueducts cost 33% less production. Towns with an Aqueduct gain +1 happiness for every four citizens, at most +3. |
+| The Breadbasket | 2 | ◆ | S | A town told to stop growing adds its food surplus to its production. |
 | Migration | 2 | ○ | S | Every ten turns, each of your towns that is at its happiness limit sends one citizen to your smallest connected town that has room to grow. |
+| Veteran Colonies | 2 | ◆ | S | A military unit standing in one of your towns may retire there: the unit is removed and the town gains food equal to its production cost. |
 | The Landscape Garden | 2 | ◆ | S | Needs tended land. Tended tiles beside a great-person work or a wonder gain +3 culture. |
 | The Engineers' Yards | 2 | ● | S | Manufactories gain +3 production. Worked farms, mines, quarries and lumber mills beside a manufactory gain +2 production. |
 | The Tended Country | 2 | ◆ | S | Needs tended land. Tended tiles gain +2 production. |
@@ -736,9 +738,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Old Songs** — Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.
 - **Outposts** — No work can yet be raised outside your borders, and only a town or a great general can claim ground. † a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town
 - **The Waterworks** — The saving on the aqueduct is paid as extra production toward it, which comes to the same price.
-- **The Breadbasket** — A town told to stop growing moves its people off food, so it has no spare grain for this card to read. † a town that has stopped growing turns its spare grain into contentment and into settlers
 - **Migration** — No rule yet moves a citizen from one town to another. † a crowded town sends a citizen to a small town joined to it
-- **Veteran Colonies** — Units have no way to retire yet; it needs a new order and a new button. † a soldier standing in one of your towns may retire there, and the town gains food for it
 - **The Polders** — The ground under a hex never changes during a game, by a deliberate rule, and the board would have to redraw the hex. † a worker turns shallow sea beside your land into grassland
 - **Public Works** — A great engineer has no such act yet, and terraces belong to one leader alone. † a great engineer may finish an aqueduct in a town, or raise terraces on its worked hills
 - **The Wide Country** — For now only hexes bought with gold count toward the goal, and instead of citizens in the smallest towns, small towns grow faster for the same span.

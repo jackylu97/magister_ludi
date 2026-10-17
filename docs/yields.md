@@ -152,7 +152,7 @@ into production.
 | 11 | **The percent list** — `cityYieldPercents` (+ `productionModifiers` via `foldCityStages`) | the meter tiers, the luxuries', the cards', the arrears | gathered, never applied | city and empire |
 | 12 | **The two stages** — `applyStages` (`foldCity`) | step 11's list, folded per voice by `foldStageSums` | multiplicative | city, then empire |
 | 13 | **The unrest gate** — `explainUnrestGate` (`foldCity`) | `City.unrest`: a town in unrest makes none of the voices `rules.war.unrest.halts` names (production, science, culture), one labelled line a voice | holds the voice at nothing | — |
-| 14 | **The surplus moved** — `explainSurplusMoved` (`foldCity`) | a card that moves the town's food surplus into production while it builds a row the card names (The Laws of Lord Shang, Dominion batch D7): the surplus as the growth channel computes it (`channelSurplus`), one labelled line; the food basket gains none of it. A deficit is never moved, and a town whose production the gate stops moves nothing | additive, production only | — |
+| 14 | **The surplus moved** — `explainSurplusMoved` (`foldCity`) | a card that moves the town's food surplus into production while it builds a row the card names (The Laws of Lord Shang, Dominion batch D7), or while its owner has told it to stop growing (The Breadbasket, Expansionist batch E6): the surplus as the growth channel computes it (`channelSurplus`), one labelled line; the food basket gains none of it. A deficit is never moved, and a town whose production the gate stops moves nothing | additive, production only | — |
 
 ### Inside step 2 — the hex
 
@@ -278,6 +278,9 @@ banking (Entry XVIII.5).
   reads the town's staged food, so no percentage multiplies the production it
   becomes, and the food basket gains none of it. A town in unrest moves
   nothing: its production is stopped, and its food goes on toward growth.
+  While a card moves a town's surplus, the Avoid growth tick does not move the
+  town's citizens off food (`assignCitizens`, Expansionist batch E6), so the
+  card has a surplus to move.
 - **The unrest gate comes after both stages, and is not a percentage.**
   Percentages sum inside a stage, so a −100% line would only cancel the stage's
   other lines and never the voice. The gate sets the staged figure of each voice
