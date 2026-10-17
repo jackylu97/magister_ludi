@@ -715,6 +715,30 @@
     "raw": "the authority a city you founded costs doubles",
     "text": "the authority a city you founded costs doubles"
    }
+  ],
+  "totalMobilisation": [
+   {
+    "raw": "while you are at war: every 5 turns, the best melee unit you can build musters in every city of 6 or more citizens, for a citizen",
+    "text": "while you are at war: every 5 turns, the best melee unit you can build musters in every city of 6 or more citizens, for a citizen"
+   },
+   {
+    "raw": "while you are at peace: +25% food surplus stored toward growth",
+    "text": "while you are at peace: +25% food surplus stored toward growth"
+   }
+  ],
+  "theLandsturm": [
+   {
+    "raw": "passing an Order draft grants the best melee unit you can build in every city of 5 or more citizens",
+    "text": "passing an Order draft grants the best melee unit you can build in every city of 5 or more citizens"
+   },
+   {
+    "raw": "+3 combat strength for melee units",
+    "text": "+3 combat strength for melee units"
+   },
+   {
+    "raw": "+3 combat strength for melee units beside a great general",
+    "text": "+3 combat strength for melee units beside a great general"
+   }
   ]
  },
  "order": {
@@ -2520,6 +2544,26 @@
     "text": "+1 science per unit you have killed this game"
    }
   ],
+  "theGatheringHost": [
+   {
+    "raw": "+2 science, +2 culture to the empire",
+    "text": "+2 science, +2 culture to the empire"
+   },
+   {
+    "raw": "+1 science per unit you have gained, counted while this Order stands in a slot",
+    "text": "+1 science per unit you have gained, counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+1 culture per unit you have gained, counted while this Order stands in a slot",
+    "text": "+1 culture per unit you have gained, counted while this Order stands in a slot"
+   }
+  ],
+  "theArmourersSecret": [
+   {
+    "raw": "completing a technology grants one of each military unit it unlocks in your capital",
+    "text": "completing a technology grants one of each military unit it unlocks in your capital"
+   }
+  ],
   "drillManuals": [
    {
     "raw": "units you gain in every city with a [[building:barracks|Barracks]] start with 2 experience",
@@ -2808,6 +2852,32 @@
    {
     "raw": "+1 authority capacity per building in your capital",
     "text": "+1 authority capacity per building in your capital"
+   }
+  ],
+  "theOpenMuster": [
+   {
+    "raw": "passing an Order draft grants the best melee unit you can build in your capital",
+    "text": "passing an Order draft grants the best melee unit you can build in your capital"
+   }
+  ],
+  "theSack": [
+   {
+    "raw": "razing a city you captured grants production equal to 15 times its population",
+    "text": "razing a city you captured grants production equal to 15 times its population"
+   },
+   {
+    "raw": "razing a city you captured grants gold equal to 15 times its population",
+    "text": "razing a city you captured grants gold equal to 15 times its population"
+   },
+   {
+    "raw": "razing a city you captured grants culture equal to 15 times its population",
+    "text": "razing a city you captured grants culture equal to 15 times its population"
+   }
+  ],
+  "theCleruchy": [
+   {
+    "raw": "when drafted, a [[unit:settler|Settler]] joins you in your capital; seated, this card does nothing",
+    "text": "when drafted, a Settler joins you in your capital; seated, this card does nothing"
    }
   ],
   "siegeWorks": [
@@ -3234,6 +3304,22 @@
     "text": "+3% science per city you have captured this game (at most +30% science)"
    }
   ],
+  "theLongbowmen": [
+   {
+    "raw": "+4 combat strength for ranged units",
+    "text": "+4 combat strength for ranged units"
+   },
+   {
+    "raw": "attacking from range grants +5 culture",
+    "text": "attacking from range grants +5 culture"
+   }
+  ],
+  "theStateForges": [
+   {
+    "raw": "completing a technology grants the best melee unit you can build in your capital",
+    "text": "completing a technology grants the best melee unit you can build in your capital"
+   }
+  ],
   "standingGarrisons": [
    {
     "raw": "+12% production in every city per combat unit standing there",
@@ -3517,6 +3603,26 @@
    {
     "raw": "the authority a captured city costs falls by 1",
     "text": "the authority a captured city costs falls by 1"
+   }
+  ],
+  "theMuralCrown": [
+   {
+    "raw": "+10 renown per turn, favouring generals",
+    "text": "+10 renown per turn, favouring generals"
+   },
+   {
+    "raw": "gaining a great person grants +100 science for each great general you have gained this game",
+    "text": "gaining a great person grants +100 science for each great general you have gained this game"
+   },
+   {
+    "raw": "gaining a great person grants +100 culture for each great general you have gained this game",
+    "text": "gaining a great person grants +100 culture for each great general you have gained this game"
+   }
+  ],
+  "valhalla": [
+   {
+    "raw": "losing a unit grants +25 culture for each [[building:monument|Monument]]",
+    "text": "losing a unit grants +25 culture for each Monument"
    }
   ],
   "dominionImperium": [
@@ -7853,6 +7959,24 @@
    {
     "raw": "capturing a city grants science equal to 10 times its population",
     "text": "capturing a city grants science equal to 10 times its population"
+   }
+  ],
+  "theSwordOfState": [
+   {
+    "raw": "when drafted, the best melee unit you can build joins you in your capital; seated, this card does nothing",
+    "text": "when drafted, the best melee unit you can build joins you in your capital; seated, this card does nothing"
+   }
+  ],
+  "copyingTheEnemy": [
+   {
+    "raw": "killing a unit you cannot build yet (at most once a turn) grants science toward the technology that unlocks that unit, equal to 10% of its cost",
+    "text": "killing a unit you cannot build yet (at most once a turn) grants science toward the technology that unlocks that unit, equal to 10% of its cost"
+   }
+  ],
+  "theNewCode": [
+   {
+    "raw": "capturing a city (at most once every 10 turns) opens an Order draft at once, at no culture cost",
+    "text": "capturing a city (at most once every 10 turns) opens an Order draft at once, at no culture cost"
    }
   ]
  },

@@ -158,6 +158,7 @@ import {
   delayTerm,
   explainBuildingRow,
   explainCardEffects,
+  onDraftWorth,
   explainEffects,
   explainLump,
   explainProjectRow,
@@ -3114,6 +3115,10 @@ export function explainCard(player: Player, id: CardId, ctx: ValueContext) {
   const terms: ValueTerm[] = [
     nest('what its effects are worth', explainCardEffects(id, def.effects ?? [], ctx)),
   ];
+  // What drafting it hands over (Dominion batch D5): a card whose whole text
+  // is a unit on the draft has no effects to price.
+  const drafted = onDraftWorth(id, ctx);
+  if (drafted !== 0) terms.push({ label: 'what drafting it hands over', value: drafted });
   const decks = decksOf(id);
   if (decks.length > 0) {
     const held = heldInDecks(player, decks);

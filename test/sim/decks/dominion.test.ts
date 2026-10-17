@@ -223,7 +223,10 @@ const ROWS: readonly OrderId[] = DECK_FILE_ORDERS.dominion;
 // A commission (batch C) is live with no effects: its goal and reward are the card.
 const isLive = (id: OrderId): boolean =>
   orderDef(id).retired !== true &&
-  (orderDef(id).effects.length > 0 || orderDef(id).commission !== undefined);
+  (orderDef(id).effects.length > 0 ||
+    orderDef(id).commission !== undefined ||
+    // A grant on the draft is the whole of the card (The Cleruchy, batch D5).
+    orderDef(id).onDraft !== undefined);
 
 /** The retired rows: kept for saves, dealt by nobody, and off the sheet. */
 const isRetired = (id: OrderId): boolean => orderDef(id).retired === true;

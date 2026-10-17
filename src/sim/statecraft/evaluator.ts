@@ -25,9 +25,11 @@ import {
   cityTile,
   controlledResources,
   isCoastalCity,
+  loseCitizen,
   nearestOwnedCity,
   ownedTiles,
   realiseItem,
+  refreshCityDerived,
   resourceCopies,
   settleGrowthWindfall,
   settleRanksEarned,
@@ -118,6 +120,7 @@ import {
   type ReligionId,
   type TimedEffect,
   type Unit,
+  bankTowardTech,
   buildingAge,
   buildingBank,
   cityReligion,
@@ -150,6 +153,7 @@ import {
   type CardLevyEffect,
   type LevyUse,
   type CardPaysEffect,
+  type GrantCount,
   type CardRenownEffect,
   type PayBasis,
   type CardRule,
@@ -200,6 +204,7 @@ import {
 import { beadCapEffects } from '../beads';
 import {
   type AbilityId,
+  type TechId,
   UNIT_UNLOCK_TECH,
   eraNumeral,
   highestAge,
@@ -229,7 +234,14 @@ import {
   rankThreshold,
   ranksHeld,
 } from '../ranks';
-import { orderAtSlotPosition, settleCultureWindfall, slotTypesOf, tallyOf } from './draft';
+import {
+  freeDraftCanOpen,
+  openFreeDraft,
+  orderAtSlotPosition,
+  settleCultureWindfall,
+  slotTypesOf,
+  tallyOf,
+} from './draft';
 import { indefinite, tileConditionWords } from './describers';
 import { statecraftOf } from './draft';
 import { bumpEconomy } from '../slate';
@@ -3257,6 +3269,15 @@ export function countOf(
       return Math.max(0, Math.floor(playerById(state, playerId)?.unitsLost ?? 0));
     case 'citiesCaptured':
       return Math.max(0, Math.floor(playerById(state, playerId)?.citiesCaptured ?? 0));
+    case 'greatPeopleGained': {
+      // Dominion batch D5, The Mural Crown: great people gained, narrowed to
+      // one family when the row names one. The same kind of record as the three
+      // above: a spent great person leaves nothing on the board.
+      const player = playerById(state, playerId);
+      if (!player) return 0;
+      if (effect.family === undefined) return Math.max(0, Math.floor(player.greatPeopleRecruited));
+      return Math.max(0, Math.floor(player.greatPeopleByFamily?.[effect.family] ?? 0));
+    }
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -5618,6 +5639,10 @@ function combatConditionHolds(
       // pay nothing. A class of fighting pieces (The Siege Train's engines)
       // reads the same either way.
       return besideMatching(state, situation.unit, when.class);
+    case 'besideGreatGeneral':
+      // The Landsturm (Dominion batch D5): the same ring of six, asked for a
+      // great general of the unit's owner.
+      return besideGreatGeneral(state, situation.unit);
     case 'all': {
       // Recursion into the same evaluator, which is the whole reason the
       // composite is a condition rather than a second field on `combatLine` —
@@ -5651,6 +5676,28 @@ function besideMatching(state: GameState, unit: Unit, filter: UnitFilter): boole
       if (other.ownerId !== unit.ownerId) continue;
       if (other.col !== neighbour.col || other.row !== neighbour.row) continue;
       if (unitMatches(other.type, filter)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Is a great general of this unit's owner on one of the six hexes around it?
+ * The `besideGreatGeneral` combat condition (Dominion batch D5, The Landsturm;
+ * the triage's reading 37). It reads a great person the way `generalPresent`
+ * does: by the row's `greatWork` marker and the person's family.
+ */
+function besideGreatGeneral(state: GameState, unit: Unit): boolean {
+  const from = getTileAt(state.map, unit.col, unit.row);
+  if (!from) return false;
+  for (const neighbour of neighborTiles(state.map, tileHex(from))) {
+    for (const other of state.units) {
+      if (other.ownerId !== unit.ownerId) continue;
+      if (other.col !== neighbour.col || other.row !== neighbour.row) continue;
+      if (unitDef(other.type).greatWork !== true) continue;
+      const person = other.person;
+      if (person === undefined || !isGreatPersonId(person)) continue;
+      if (greatPersonDef(person).family === 'general') return true;
     }
   }
   return false;
@@ -6309,7 +6356,7 @@ export interface WindfallPayout {
     amount: number;
     toOpus?: true;
     toCapital?: true;
-    toEveryTown?: true;
+    toEveryTown?: true | CityScope;
     toNearest?: CityScope;
   }[];
   /** Hit points a rider restores to the acting unit. */
@@ -6323,7 +6370,31 @@ export interface WindfallPayout {
    * What is left for `payWindfallGrants` is only the delivery, through
    * `realiseItem` — the one completion routine.
    */
-  units: { card: CardId; source: string; type: UnitTypeId }[];
+  units: {
+    card: CardId;
+    source: string;
+    type: UnitTypeId;
+    /**
+     * Where the unit goes (Dominion batch D5): the capital, or one for every
+     * town a scope admits. Absent is the town nearest the occasion, or the
+     * capital when there is no hex.
+     */
+    toOpus?: true;
+    toCapital?: true;
+    toEveryTown?: true | CityScope;
+    toNearest?: CityScope;
+  }[];
+  /**
+   * Science banked toward one technology's own progress (Dominion batch D5,
+   * Copying the Enemy), not into the current aim's pool unless that is the
+   * same technology. Optional for `healFull`'s reason above.
+   */
+  techGrants?: { card: CardId; source: string; tech: TechId; amount: number }[];
+  /**
+   * True when a rider opens an Order draft at once (Dominion batch D5, The New
+   * Code). Optional for `healFull`'s reason above.
+   */
+  freeDraft?: boolean;
   /**
    * True when a rider heals **the whole army** — The Empire's. A flag and not a
    * figure, because the ratified text is *heals all*: a number here would have
@@ -6546,6 +6617,17 @@ export interface WindfallOccasionFacts {
    * Elite). Filled by `settleRanksEarned` (`cities.ts`), once for each rank.
    */
   rank?: RankId;
+  /**
+   * The technology just finished, on the `tech` occasion (Dominion batch D5):
+   * The Armourers' Secret raises the units it unlocks. Filled by
+   * `settleResearch` (`tech.ts`).
+   */
+  tech?: TechId;
+  /**
+   * The type of the unit just killed, on the `kill` occasion (Dominion batch
+   * D5): Copying the Enemy. Filled by `applyCombat` (`combat.ts`) at each kill.
+   */
+  fallen?: UnitTypeId;
 }
 
 
@@ -6567,7 +6649,9 @@ export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
     payout.healFull !== true &&
     (payout.strikes ?? []).length === 0 &&
     payout.unrestBeside !== true &&
-    payout.pillageBeside !== true
+    payout.pillageBeside !== true &&
+    (payout.techGrants ?? []).length === 0 &&
+    payout.freeDraft !== true
   );
 }
 
@@ -6712,6 +6796,25 @@ export function windfallPayout(
     // writes: composing is not spending, and the stamp is `payWindfallGrants`'
     // to make (see `CardWindfallRiderEffect.oncePerTurn`).
     if (effect.oncePerTurn === true && riderRodeThisTurn(state, playerId, card)) return false;
+    // **The wider window** (Dominion batch D5, The New Code's ten turns): the
+    // same stamp, compared over more turns.
+    if (
+      effect.oncePerTurns !== undefined &&
+      riderRodeWithin(state, playerId, card, Math.max(1, Math.floor(effect.oncePerTurns)))
+    ) {
+      return false;
+    }
+    // Copying the Enemy (Dominion batch D5): the unit just killed is one this
+    // empire cannot build yet. Only the `kill` occasion carries the fallen
+    // unit, so the filter is silent elsewhere.
+    if (effect.fallenUnbuilt === true) {
+      if (facts.fallen === undefined) return false;
+      if (unbuiltTechFor(state, playerId, facts.fallen) === null) return false;
+    }
+    // The New Code (Dominion batch D5): a free draft rides only when it can
+    // open, so the ten-turn stamp is not written for a draft that never came
+    // (the triage's reading 16).
+    if (effect.grant?.freeDraft === true && !freeDraftCanOpen(state, playerId)) return false;
     // Songs of the Fallen: a loss counts only when the piece was defending.
     if (effect.defending === true && facts.defending !== true) return false;
     // Up Through the Ranks pays for an Elite and not for a Veteran. Only the
@@ -6731,7 +6834,12 @@ export function windfallPayout(
   const paid = percentTotal !== 0 && base !== 0 ? (base * (100 + percentTotal)) / 100 : base;
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'windfallRider')) {
     if (!rides(effect, card)) continue;
-    if (effect.oncePerTurn === true && !payout.claims.includes(card)) payout.claims.push(card);
+    if (
+      (effect.oncePerTurn === true || effect.oncePerTurns !== undefined) &&
+      !payout.claims.includes(card)
+    ) {
+      payout.claims.push(card);
+    }
     if (effect.perAge === true) {
       ageMultiplied = true;
       if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${eraNumeral(era)})` });
@@ -6842,7 +6950,7 @@ export function windfallPayout(
         payout.lines.push({ card, source, note: `${signed(amount)} faith pressed` });
       }
     }
-    if (grant.unit !== undefined) {
+    if (grant.unit === 'randomMilitary') {
       // Drawn here, delivered later. `randomMilitary` is "one of the soldiers
       // this empire could raise today", which is what makes the gift keep pace
       // with the tree; the draw is `state.rng`, so a replay lands the same
@@ -6851,9 +6959,35 @@ export function windfallPayout(
       const roster = buildableMilitary(state, playerId);
       if (roster.length > 0) {
         const type = roster[Math.min(roster.length - 1, Math.floor(nextFloat(state.rng) * roster.length))]!;
-        payout.units.push({ card, source, type });
+        payout.units.push({ card, source, type, ...deliveryOf(grant) });
         payout.lines.push({ card, source, note: `a ${unitDef(type).name} joins you` });
       }
+    } else if (grant.unit !== undefined) {
+      // Dominion batch D5's two kinds, named here so the lines say which unit
+      // and decided before anything is delivered: the best melee unit this
+      // empire can build now, or each military unit the technology on the
+      // occasion unlocks. No randomness.
+      for (const type of grantedUnitTypes(state, playerId, grant.unit, facts)) {
+        payout.units.push({ card, source, type, ...deliveryOf(grant) });
+        payout.lines.push({ card, source, note: `a ${unitDef(type).name} joins you` });
+      }
+    }
+    // Copying the Enemy (Dominion batch D5): science toward the technology
+    // that unlocks the unit just killed, a share of its cost.
+    if (grant.towardFallenTech !== undefined && facts.fallen !== undefined) {
+      const tech = unbuiltTechFor(state, playerId, facts.fallen);
+      if (tech !== null) {
+        const amount = Math.floor((techDef(tech).cost * grant.towardFallenTech) / 100);
+        if (amount > 0) {
+          (payout.techGrants ??= []).push({ card, source, tech, amount });
+          payout.lines.push({ card, source, note: `+${amount} science toward ${techDef(tech).name}` });
+        }
+      }
+    }
+    // The New Code (Dominion batch D5): an Order draft opens at once.
+    if (grant.freeDraft === true) {
+      payout.freeDraft = true;
+      payout.lines.push({ card, source, note: 'an Order draft opens' });
     }
     if (grant.yield !== undefined && grant.amount !== undefined) {
       // Food or hammers with no town to land in pay nothing and print nothing
@@ -6921,8 +7055,14 @@ export function windfallPayout(
       // product**: a rider carrying both is ×era × slots, because they are two
       // independent facts about the payout rather than two competing scalings of
       // one.
+      // **Once for each item a count finds** (Dominion batch D5): Valhalla's
+      // Monuments and The Mural Crown's great generals. Read now, with every
+      // other figure on the payout.
+      const counted =
+        grant.perCount === undefined ? 1 : grantCountHelpings(state, playerId, card, grant.perCount);
       const amount =
         grant.amount *
+        counted *
         (effect.perAge === true ? era : 1) *
         (effect.perSlottedOrder === true ? slotted : 1);
       if (amount !== 0) {
@@ -7215,6 +7355,14 @@ export function musterPeriodicUnits(state: GameState): void {
         if (type === null) continue;
         const tile = spawnTileFor(state, seat, type);
         if (!tile) continue;
+        // **For a citizen** (Dominion batch D5, Total Mobilisation): the town
+        // pays one, through the famine's and the levy's routine, before the
+        // unit is raised. A town of one citizen cannot pay and raises nothing.
+        // The town is re-seated, as a levy's is (`refreshCityDerived`).
+        if (effect.costsCitizen === true) {
+          if (loseCitizen(state, seat) === null) continue;
+          refreshCityDerived(state, seat);
+        }
         // The row's own mark on the levy it raises — The Levée en Masse's point
         // of movement, kept for the rest of that piece's life. Handed to
         // `realiseItem` beside `free` and written by `createUnit`, the one
@@ -7541,6 +7689,97 @@ function payPeriodicBoon(
 }
 
 /**
+ * Did this card's once-in-a-while rider ride within the last `turns` turns?
+ * `riderRodeThisTurn` over a wider window (Dominion batch D5, The New Code's
+ * ten turns): one turn is the same question that one asks.
+ */
+function riderRodeWithin(state: GameState, playerId: number, card: CardId, turns: number): boolean {
+  const sc = statecraftOf(state, playerId);
+  if (!sc) return false;
+  for (const stamp of sc.riderTurns ?? []) {
+    if (stamp.card === card) return stamp.turn > state.turn - turns;
+  }
+  return false;
+}
+
+/**
+ * **The technology that would let this empire build a unit it cannot build
+ * yet**, or `null` (Dominion batch D5, Copying the Enemy). `null` when the
+ * empire has already researched it, or when no technology unlocks the unit
+ * (the triage's reading 36).
+ */
+function unbuiltTechFor(state: GameState, playerId: number, type: UnitTypeId): TechId | null {
+  const gate = UNIT_UNLOCK_TECH.get(type);
+  if (gate === undefined) return null;
+  const known = playerById(state, playerId)?.techsResearched ?? [];
+  return known.includes(gate) ? null : gate;
+}
+
+/**
+ * **The units a grant's `unit` kind names** (Dominion batch D5), in roster
+ * order:
+ *
+ *   · `'bestMelee'`: the one best melee unit this empire can build now
+ *     (`bestMeleeFor`), or none;
+ *   · `'unlockedByTech'`: each military unit the technology on the occasion
+ *     unlocks (`facts.tech`), even without its resource (the triage's reading
+ *     10). A purchase-only row, a great person, and another figure's unique
+ *     unit are left out.
+ *
+ * `'randomMilitary'` draws from `state.rng` and is handled where it is
+ * composed, so it is not here.
+ */
+function grantedUnitTypes(
+  state: GameState,
+  playerId: number,
+  kind: 'bestMelee' | 'unlockedByTech',
+  facts: WindfallOccasionFacts,
+): UnitTypeId[] {
+  if (kind === 'bestMelee') {
+    const best = bestMeleeFor(state, playerId);
+    return best === null ? [] : [best];
+  }
+  const tech = facts.tech;
+  if (tech === undefined) return [];
+  const leader = playerById(state, playerId)?.leader;
+  const unique = leader === undefined ? undefined : leaderDef(leader).unit;
+  const list: UnitTypeId[] = [];
+  for (const id of UNIT_TYPE_IDS) {
+    const def = unitDef(id);
+    if (def.category !== 'military') continue;
+    if (def.purchase !== undefined || def.greatWork === true) continue;
+    if (def.unlockedByLeader === true && id !== unique) continue;
+    if (UNIT_UNLOCK_TECH.get(id) !== tech) continue;
+    list.push(id);
+  }
+  return list;
+}
+
+/**
+ * **How many helpings a grant's count buys** (`WindfallGrantSpec.perCount`,
+ * Dominion batch D5). The count is `countOf`'s, asked with a `pays` row that
+ * carries the same fields, so a grant and a `pays` line count alike.
+ */
+function grantCountHelpings(
+  state: GameState,
+  playerId: number,
+  card: CardId,
+  spec: GrantCount,
+): number {
+  const probe: CardPaysEffect = {
+    kind: 'pays',
+    where: 'empire',
+    basis: 'count',
+    to: 'authority',
+    amount: 0,
+    count: spec.count,
+    ...(spec.building !== undefined ? { building: spec.building } : {}),
+    ...(spec.family !== undefined ? { family: spec.family } : {}),
+  };
+  return helpings(countOf(state, playerId, card, probe), spec.per, undefined);
+}
+
+/**
  * False when a grant's food or hammers have no town to land in: no capital for
  * `toCapital`, or no town the `toNearest` scope admits. Every other grant,
  * and every banked voice, has somewhere to go. `grantTowns` is the delivery
@@ -7549,6 +7788,10 @@ function payPeriodicBoon(
 function grantHasTown(state: GameState, playerId: number, grant: WindfallGrantSpec): boolean {
   if (grant.yield !== 'food' && grant.yield !== 'production') return true;
   if (grant.toCapital === true) return Boolean(capitalCityOf(state, playerId));
+  if (grant.toEveryTown !== undefined && grant.toEveryTown !== true) {
+    const scope = grant.toEveryTown;
+    return citiesOf(state, playerId).some((city) => cityScopeAdmits(state, city, scope, playerId));
+  }
   if (grant.toNearest !== undefined) {
     const scope = grant.toNearest;
     return citiesOf(state, playerId).some((city) => cityScopeAdmits(state, city, scope, playerId));
@@ -7559,10 +7802,10 @@ function grantHasTown(state: GameState, playerId: number, grant: WindfallGrantSp
 /** The delivery marks a grant spec carries onto its payout line. */
 function deliveryOf(
   grant: WindfallGrantSpec,
-): { toOpus?: true; toCapital?: true; toEveryTown?: true; toNearest?: CityScope } {
+): { toOpus?: true; toCapital?: true; toEveryTown?: true | CityScope; toNearest?: CityScope } {
   if (grant.toOpus === true) return { toOpus: true };
   if (grant.toCapital === true) return { toCapital: true };
-  if (grant.toEveryTown === true) return { toEveryTown: true };
+  if (grant.toEveryTown !== undefined) return { toEveryTown: grant.toEveryTown };
   if (grant.toNearest !== undefined) return { toNearest: grant.toNearest };
   return {};
 }
@@ -7577,10 +7820,21 @@ function deliveryOf(
 function grantTowns(
   state: GameState,
   playerId: number,
-  grant: WindfallPayout['grants'][number],
+  grant: {
+    toOpus?: true;
+    toCapital?: true;
+    toEveryTown?: true | CityScope;
+    toNearest?: CityScope;
+  },
   at?: { col: number; row: number },
 ): City[] {
-  if (grant.toEveryTown === true) return citiesOf(state, playerId);
+  if (grant.toEveryTown !== undefined) {
+    // Every town, or (The Landsturm, Dominion batch D5) every town the scope
+    // admits, in founding order.
+    const scope = grant.toEveryTown;
+    const towns = citiesOf(state, playerId);
+    return scope === true ? towns : towns.filter((city) => cityScopeAdmits(state, city, scope, playerId));
+  }
   if (grant.toCapital === true) {
     const capital = capitalCityOf(state, playerId);
     return capital ? [capital] : [];
@@ -7671,16 +7925,28 @@ export function payWindfallGrants(
   // stacking a piece on a full hex; `spawnTileFor` is the same refusal a
   // purchase gets.
   for (const gift of payout.units) {
-    const city = at ? nearestOwnedCity(state, player.id, at) : capitalCityOf(state, player.id) ?? null;
-    if (!city) continue;
-    const tile = spawnTileFor(state, city, gift.type);
-    if (!tile) continue;
-    // `free`, because a windfall is by definition a thing nobody paid for: the
-    // Levies' spearman and Camp Followers' stray go on no payroll. See
-    // `Unit.freeUpkeep`, entry 2.
-    realiseItem(state, city, { kind: 'unit', id: gift.type, tile }, { free: true });
-    realized?.push({ type: gift.type, cityName: city.name });
+    // The town nearest the occasion by default, or (Dominion batch D5) the
+    // capital or every town a scope admits, one unit for each.
+    for (const city of grantTowns(state, player.id, gift, at)) {
+      const tile = spawnTileFor(state, city, gift.type);
+      if (!tile) continue;
+      // `free`, because a windfall is by definition a thing nobody paid for:
+      // the Levies' spearman and Camp Followers' stray go on no payroll. See
+      // `Unit.freeUpkeep`, entry 2.
+      realiseItem(state, city, { kind: 'unit', id: gift.type, tile }, { free: true });
+      realized?.push({ type: gift.type, cityName: city.name });
+    }
   }
+  // **Science toward one technology** (Dominion batch D5, Copying the Enemy),
+  // banked into that technology's own progress. The caller settles research,
+  // as it does for every windfall that pays science.
+  for (const banked of payout.techGrants ?? []) {
+    bankTowardTech(state, player, banked.tech, banked.amount);
+  }
+  // **An Order draft opens at once** (Dominion batch D5, The New Code), free of
+  // culture. `openFreeDraft` asks again whether one can open, because an
+  // earlier rider on this payout may have opened one.
+  if (payout.freeDraft === true) openFreeDraft(state, player);
   for (const grant of payout.grants) {
     if (grant.yield === 'gold') player.gold += grant.amount;
     else if (grant.yield === 'science') player.sciencePool += grant.amount;

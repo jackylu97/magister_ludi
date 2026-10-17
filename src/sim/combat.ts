@@ -305,7 +305,13 @@ import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { blockadedWaterAround, blockades } from './blockade';
 import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from './buildingData';
 import { buildingCityHp, buildingCityStat } from './buildingEffects';
-import { assignCitizens, cityAt, settleProductionWindfall, settleRanksEarned } from './cities';
+import {
+  assignCitizens,
+  cityAt,
+  payOccasionRiders,
+  settleProductionWindfall,
+  settleRanksEarned,
+} from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
   type GameMap,
@@ -340,6 +346,7 @@ import {
   recordScalingOccasion,
   settleCultureWindfall,
   windfallPayout,
+  windfallPayoutIsEmpty,
 } from './statecraft';
 // Straight from the evaluator: a rule asked of the whole piece, which may name
 // a rank (Dominion batch D2, The Varangian Guard).
@@ -2674,6 +2681,8 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true,
         actor: attacker.type,
         strength: fallenStrength(caravan),
+        // The unit killed (Dominion batch D5, Copying the Enemy).
+        fallen: caravan.type,
       },
       attacker,
     );
@@ -2809,7 +2818,13 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
             // now the fight is over and nothing on the board still says who
             // struck. Passed beside the other side's fact, which is the same
             // moment asked from the opposite end.
-            { vsBarbarians: fromWild, actor: attacker.type, strength: fallenStrength(defender) },
+            {
+              vsBarbarians: fromWild,
+              actor: attacker.type,
+              strength: fallenStrength(defender),
+              // The unit killed (Dominion batch D5, Copying the Enemy).
+              fallen: defender.type,
+            },
             attacker,
           );
           payBattleRiders(state, fallenOwner, 'death', tile, {
@@ -2867,6 +2882,8 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         {
           vsBarbarians: playerById(state, fallenOwner)?.barbarian === true,
           strength: fallenStrength(attacker),
+          // The unit killed by the counter-blow (Dominion batch D5).
+          fallen: attacker.type,
           // The **counter-attacker**, where one is a piece at all: a city that
           // broke a charge is not a soldier and has no row a filter could name.
           ...(target.unit ? { actor: target.unit.type } : {}),
@@ -3105,6 +3122,14 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     }
   }
 
+  // **An attack from range is a moment the cards pay on** (Dominion batch D5,
+  // The Longbowmen's culture), whatever it hit, with the attacker as the
+  // actor. The wild is paid nothing.
+  if (forecast.kind === 'ranged') {
+    const shooter = playerById(state, attacker.ownerId);
+    if (shooter) payOccasionRiders(state, shooter, 'rangedAttack', tile, { actor: attacker.type });
+  }
+
   updateElimination(state);
   // 6 — everybody's map. A fight moves eyes in more ways than a march does: a
   // piece died (its owner sees less), a civilian or a town changed hands (two
@@ -3243,17 +3268,12 @@ function payBattleRiders(
       healed.hp + payout.heal,
     );
   }
-  if (
-    payout.grants.length === 0 &&
-    payout.units.length === 0 &&
-    !payout.healAll &&
-    payout.timed.length === 0 &&
-    // The Crusade's lump is a payout like the rest of them, so it joins the one
-    // early return rather than being paid past it.
-    payout.pressure.length === 0
-  ) {
-    return;
-  }
+  // The evaluator's own emptiness test (Dominion batch D5): a kill can now pay
+  // only science toward a technology (Copying the Enemy), and a capture only a
+  // free draft (The New Code), which the old list of fields did not see. The
+  // Crusade's lump is a payout like the rest of them, so it joins the one
+  // early return rather than being paid past it.
+  if (windfallPayoutIsEmpty(payout) && payout.pressure.length === 0) return;
   // **The Crusade's lump**, and the one thing this seam hands the payer that the
   // payer cannot import: `pressLump` is the one routine that presses a lump of
   // faith and converts on the spot, it lives in `religion.ts`, and `religion.ts`

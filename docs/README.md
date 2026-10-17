@@ -344,6 +344,23 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   never be seated again. Private: nothing reads another empire. UI: the counter
   on the card face (`ui/goalCounter.ts`) and the chips under the empire panel
   (`ui/commissionRail.ts`).
+- **Units a card raises, and the moments it pays on** (Dominion batch D5):
+  - A grant can raise the best melee unit (`bestMeleeFor`) or each military
+    unit a technology unlocks, in the capital or in each town a scope admits.
+    Every such unit is free of upkeep and comes through `realiseItem`, so it
+    counts for the `unitGained` tally and pays the riders on gaining a unit.
+  - An Order can raise units when it is drafted (`OrderDef.onDraft`,
+    `raiseOnDraft`). `raiseFreeUnit` (`cities.ts`) is the one helper, and a
+    founding rider can use it too.
+  - Four moments with no figure of their own are paid by `payOccasionRiders`
+    (`cities.ts`): an Order draft passed (`settleOrderSkip`), a town taken by
+    force and razed (`razeCityAt`), an attack from range (`applyCombat`) and a
+    great person gained (`settleGreatPersonChoice`).
+  - A grant can be paid once for each item a count finds (`perCount`), bank
+    science toward the technology of a unit killed (`towardFallenTech`,
+    `bankTowardTech`), or open a free Order draft (`freeDraft`,
+    `openFreeDraft`) that moves neither the draft count nor the culture. A
+    rider can fire at most once in a number of turns (`oncePerTurns`).
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
   legacies, wonders and leaders.

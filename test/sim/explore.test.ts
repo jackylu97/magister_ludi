@@ -737,10 +737,17 @@ describe('determinism', () => {
    * is all. Nobody here drafts a card, takes a town or kills a unit, so the new
    * cards and `Player.enemiesKilled` never reach this board. Checked by setting
    * the version back to 134, which gives E0's hashes exactly.
+   *
+   * **Dominion batch D5 moved the hash and not the length** at both seeds:
+   * 135 became 136, and that is all. Nobody here drafts a card, finishes a
+   * technology with a card that raises units, or gains a great person, so the
+   * new tally, records and moments never reach this board. Checked by setting
+   * the version back to 135 with every D5 change in place, which gives D4's
+   * hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '6b0fdec5:188932',
-    2026: 'b75cd9cc:188488',
+    11: '6354b254:188932',
+    2026: '312c485d:188488',
   };
 
   for (const seed of [11, 2026]) {

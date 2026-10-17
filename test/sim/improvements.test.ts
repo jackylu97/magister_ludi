@@ -2560,7 +2560,10 @@ describe('improvements in the log', () => {
     // 135 since D4: twelve Dominion cards about unrest, the writ and the game's
     // records, and a new record, so a v134 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(135);
+    // 136 since D5: fourteen Dominion cards that raise units or pay on new
+    // moments, and a new record, so a v135 log's picks name cards this build
+    // never dealt.
+    expect(SCHEMA_VERSION).toBe(136);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

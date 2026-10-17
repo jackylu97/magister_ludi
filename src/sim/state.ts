@@ -1359,8 +1359,52 @@ import {
  * **A v134 save is refused and does not replay.** The draft bags hold
  * different cards, every kill now writes the new record, and the bots draft
  * differently. The branch migrates nothing, for the reason given under v119.
+ *
+ * v136 (branch `decks`; Dominion batch D5 of
+ * `docs/plans/dominion-build-triage.md`, units gained and new moments):
+ * **fourteen Dominion cards that raise units or pay on new moments.** Nine
+ * Orders join the Dominion file, three shared Orders join the common file (The
+ * Sword of State, Copying the Enemy and The New Code), and two Doctrines join
+ * Dominion's `doctrines` map: Total Mobilisation at Tier III and The Landsturm
+ * at Tier IV. One field joins the state: `Player.greatPeopleByFamily`, the
+ * great people the empire has gained in the game, by family. Only
+ * `settleGreatPersonChoice` (`greatPeople.ts`) writes it, and it is absent
+ * until the first great person. The rules that change:
+ *
+ *   · every unit `realiseItem` brings into being counts for a new tally,
+ *     `unitGained`: trained, bought, free and conscripted units alike;
+ *   · four new moments the cards pay on: an Order draft passed
+ *     (`draftPassed`), a town taken by force and razed (`raze`, with its
+ *     population), an attack from range (`rangedAttack`) and a great person
+ *     gained (`greatPersonGained`). `payOccasionRiders` (`cities.ts`) pays all
+ *     four;
+ *   · a grant can raise the best melee unit or each military unit a
+ *     technology unlocks, in the capital or in each town a scope admits; can
+ *     be paid once for each item a count finds (`perCount`); can bank science
+ *     toward the technology of a unit killed (`towardFallenTech`, through
+ *     `bankTowardTech`); and can open a free Order draft (`freeDraft`) that
+ *     moves neither the draft count nor the culture;
+ *   · a rider can fire at most once in a number of turns (`oncePerTurns`), and
+ *     only for a kill of a unit the empire cannot build yet (`fallenUnbuilt`).
+ *     A kill now names the unit killed (`WindfallOccasionFacts.fallen`), and a
+ *     finished technology names itself (`tech`);
+ *   · an Order can raise units when it is drafted (`OrderDef.onDraft`), and a
+ *     row whose whole text is that grant is dealt;
+ *   · a periodic muster can cost the town a citizen (`costsCitizen`);
+ *   · a strength line can ask for a great general beside the unit
+ *     (`besideGreatGeneral`), and a count can count great people, of one
+ *     family or all (`greatPeopleGained`);
+ *   · a kill, a death or a capture pays a payout that holds only science
+ *     toward a technology or a free draft. Before, `payBattleRiders` dropped
+ *     a payout with no yields, units, heal or timed effects;
+ *   · the bots price the new moments and grants, so they draft differently.
+ *
+ * **A v135 save is refused and does not replay.** The draft bags hold
+ * different cards, every unit gained and every great person now write the new
+ * records, and the bots draft differently. The branch migrates nothing, for
+ * the reason given under v119.
  */
-export const SCHEMA_VERSION = 135;
+export const SCHEMA_VERSION = 136;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1593,8 +1637,9 @@ export interface Player {
    * is `researchQueue`'s convention and is here for its reasons: an empire that
    * never switched serialises exactly as it did before the field existed, and a
    * completed technology's bucket is swept the moment it lands rather than
-   * lingering as a bank nobody can ever spend. Written by `aimResearchAt` and
-   * `settleResearch` and nowhere else; read through `bankedTowardTech`.
+   * lingering as a bank nobody can ever spend. Written by `aimResearchAt`,
+   * `settleResearch` and `bankTowardTech` (Dominion batch D5, Copying the
+   * Enemy) and nowhere else; read through `bankedTowardTech`.
    */
   techProgress?: Partial<Record<TechId, number>>;
   /**
@@ -2003,6 +2048,17 @@ export interface Player {
    * Nothing lowers it.
    */
   greatPeopleRecruited: number;
+  /**
+   * **How many great people of each family this empire has gained** (Dominion
+   * batch D5): The Mural Crown's count of great generals (`CountKind`'s
+   * `greatPeopleGained`).
+   *
+   * `greatPeopleRecruited` split by family. It is written in one place,
+   * `settleGreatPersonChoice` (`greatPeople.ts`), beside that counter, and
+   * only ever raised. A family appears the first time one of it is gained, and
+   * the field is absent until the first great person.
+   */
+  greatPeopleByFamily?: Partial<Record<Family, number>>;
   /**
    * The names a filled renown bucket is offering, or the key is **absent** —
    * which it is for every player almost all of the time.
@@ -5668,6 +5724,30 @@ export function aimResearchAt(player: Player, next: TechId | null): void {
     delete player.techProgress[next];
     if (Object.keys(player.techProgress).length === 0) delete player.techProgress;
   }
+}
+
+/**
+ * **Banks beakers toward one technology** (Dominion batch D5, Copying the
+ * Enemy): into the pool when it is the current aim, and into that
+ * technology's own bucket (`techProgress`) otherwise, so the beakers wait for
+ * the empire to aim at it. A technology already learnt banks nothing. The
+ * caller settles research, as every windfall that pays science does.
+ */
+export function bankTowardTech(
+  state: GameState,
+  player: Player,
+  techId: TechId,
+  amount: number,
+): void {
+  if (amount <= 0 || player.techsResearched.includes(techId)) return;
+  if (player.researching === techId) {
+    player.sciencePool += amount;
+  } else {
+    if (!player.techProgress) player.techProgress = {};
+    player.techProgress[techId] = (player.techProgress[techId] ?? 0) + amount;
+  }
+  // The banks are a line of the meters (`collectYields`, batch M3).
+  bumpEconomy(state);
 }
 
 /**

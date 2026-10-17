@@ -26,7 +26,18 @@ import { type MaliceId, MALICE_IDS, MALICE_RULES, isMaliceId, maliceDef } from '
 import type { CityYields } from '../cities';
 import { nextFloat } from '../rng';
 import { RULES } from '../rulesData';
-import { type GameState, type HeldMalice, type Player, playerById, realPlayers } from '../state';
+import {
+  type GameState,
+  type HeldMalice,
+  type Player,
+  capitalCityOf,
+  playerById,
+  realPlayers,
+} from '../state';
+// Dominion batch D5: the draft passed occasion's payment. Called inside a
+// function only, so the import cycle through `cities.ts` stays a
+// function-level one (`test/mapgen/moduleCycles.test.ts`).
+import { payOccasionRiders } from '../cities';
 import {
   type Band,
   type CardId,
@@ -1932,6 +1943,33 @@ export function applyCharter(player: Player, id: OrderId): boolean {
   return true;
 }
 
+/**
+ * **Can a free Order draft open for this seat now?** (Dominion batch D5, The
+ * New Code.) Not while a draft or a Doctrine offer is waiting, and not when
+ * the seat's decks have nothing left to deal at its current draft count (the
+ * triage's reading 16). The rider asks this before it rides, so its ten-turn
+ * stamp is written only for a draft that opens.
+ */
+export function freeDraftCanOpen(state: GameState, playerId: number): boolean {
+  const player = playerById(state, playerId);
+  if (!player || player.barbarian === true) return false;
+  const sc = player.statecraft;
+  if (sc.pendingOrder !== undefined || sc.pendingDoctrine !== undefined) return false;
+  return eligibleFor(state, player, sc.drafts).length > 0;
+}
+
+/**
+ * **Opens an Order draft at once, free of culture** (Dominion batch D5, The New
+ * Code). The draft count and the next draft's cost do not move (the triage's
+ * reading 16): only the offer is dealt, from `state.rng`, as `settleDraft`
+ * deals one. Returns false and changes nothing when no free draft can open.
+ */
+export function openFreeDraft(state: GameState, player: Player): boolean {
+  if (!freeDraftCanOpen(state, player.id)) return false;
+  player.statecraft.pendingOrder = drawOrderOffer(state, player);
+  return true;
+}
+
 /** What a pass did, for the announcement. */
 export interface OrderSkip {
   /** Consecutive drafts passed, this one included. The pity the next hand reads. */
@@ -1964,6 +2002,16 @@ export function settleOrderSkip(state: GameState, player: Player): OrderSkip | n
   delete sc.pendingOrder;
   sc.orderSkips += 1;
   awardOrderBeads(state, player.id, 'draftPassed');
+  // **And the cards pay on it** (Dominion batch D5): The Open Muster's and The
+  // Landsturm's units, at the capital. One call, so the pass keeps one
+  // mechanism.
+  const capital = capitalCityOf(state, player.id);
+  payOccasionRiders(
+    state,
+    player,
+    'draftPassed',
+    capital ? { col: capital.col, row: capital.row } : undefined,
+  );
   return { skips: sc.orderSkips };
 }
 

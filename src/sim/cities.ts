@@ -108,7 +108,13 @@ import { type ProjectId, isProjectId, projectDef, projectFinishes } from './proj
 // it imports the data tables and stops — so the largest module in the
 // simulation may read a row without a shape of cycle.
 import { leaderDef } from './leaderData';
-import { type FirstKind, governmentDef } from './statecraftData';
+import {
+  type FirstKind,
+  type OrderId,
+  type WindfallOccasion,
+  governmentDef,
+  orderDef,
+} from './statecraftData';
 import { isBeadEndeavourId } from './beadData';
 import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
 import { nextInt } from './rng';
@@ -155,6 +161,7 @@ import {
   type Unit,
   addBuilding,
   bankedTowardItem,
+  capitalCityOf,
   cityById,
   claimWonder,
   createCity,
@@ -2285,6 +2292,12 @@ function chooseCitizens(
  *      neighbours for the nearest town, so that town has new hexes to work
  *      before the turn ends. Entry 2's reason, with a camp in place of a
  *      purchase.
+ *
+ *  25. **A muster that costs a citizen** (`musterPeriodicUnits`,
+ *      `statecraft/evaluator.ts`, Dominion batch D5's Total Mobilisation). It
+ *      runs in the muster phase, not in a command, but it takes a citizen
+ *      through `loseCitizen` as a levy does (entry 23), so the town is
+ *      re-seated at once for entry 23's reason.
  *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
@@ -4452,6 +4465,10 @@ export function realiseItem(
   ) {
     recordScalingOccasion(state, city.ownerId, 'unitTrained');
   }
+  // **A unit gained** (Dominion batch D5, The Gathering Host): every unit this
+  // routine brings into being counts, bought, free and conscripted ones
+  // included (the user's ruling that conscripts count as gained).
+  recordScalingOccasion(state, city.ownerId, 'unitGained');
   // The riders pay for every unit gained, a levied conscript included
   // (`RealiseOptions.untrained`). A conscript is kept out of the trained tally
   // and the escalation ladder above, and nowhere else.
@@ -5003,6 +5020,73 @@ function refundBeatenWonders(
     refunds.push({ building, cityId: city.id, playerId: city.ownerId, hammers, gold });
   }
   return refunds;
+}
+
+/**
+ * **Raises one free unit in a town**, of the kind a card names (Dominion batch
+ * D5): a unit id is itself, and `'bestMelee'` asks the roster for the best
+ * melee unit the owner can build now (`bestMeleeFor`). Through `realiseItem`,
+ * the one routine that means "the town now has the thing", so the unit counts
+ * as gained and pays the completion riders, and `free`, so it costs no upkeep
+ * (the triage's reading 2). Returns the unit's id, or `null` when there is no
+ * such unit or nowhere beside the town to stand.
+ *
+ * The on-draft grant uses it (`raiseOnDraft`), and a founding rider can use it
+ * the same way to start a new town with a unit (Expansionist's The Frontier
+ * Militia, batch E2).
+ */
+export function raiseFreeUnit(
+  state: GameState,
+  city: City,
+  unit: UnitTypeId | 'bestMelee',
+): number | null {
+  const type = unit === 'bestMelee' ? bestMeleeFor(state, city.ownerId) : unit;
+  if (type === null) return null;
+  const tile = spawnTileFor(state, city, type);
+  if (!tile) return null;
+  return realiseItem(state, city, { kind: 'unit', id: type, tile }, { free: true }).unitId ?? null;
+}
+
+/**
+ * **What drafting an Order hands over, once** (Dominion batch D5): The Sword
+ * of State's best melee unit and The Cleruchy's settler, raised in the
+ * capital (`OrderDef.onDraft`). Called by the pick (`applyChooseOrder` in
+ * `commands.ts`) beside `settleOrderChoice`, which takes no state. A seat with
+ * no capital, or a capital with nowhere to put the unit, gets nothing.
+ */
+export function raiseOnDraft(state: GameState, player: Player, id: OrderId): void {
+  const grants = orderDef(id).onDraft;
+  if (grants === undefined || grants.length === 0) return;
+  const capital = capitalCityOf(state, player.id);
+  if (!capital) return;
+  for (const grant of grants) raiseFreeUnit(state, capital, grant.unit);
+}
+
+/**
+ * **Pays one empire's riders on an occasion with no figure of its own**, and
+ * settles what they paid (Dominion batch D5): food and production in the towns
+ * they land in, then culture and science at once, as every windfall's are.
+ * The shared tail of the occasions D5 added: a draft passed, a town razed, a
+ * ranged attack and a great person gained. `at` is where the occasion
+ * happened; without it, food and production land in the capital. Returns
+ * whether anything was paid.
+ */
+export function payOccasionRiders(
+  state: GameState,
+  player: Player,
+  occasion: WindfallOccasion,
+  at?: { col: number; row: number },
+  facts: WindfallOccasionFacts = {},
+): boolean {
+  if (player.barbarian === true) return false;
+  const payout = windfallPayout(state, player.id, occasion, 0, 0, facts);
+  if (windfallPayoutIsEmpty(payout)) return false;
+  for (const town of payWindfallGrants(state, player, payout, at)) {
+    if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
+  }
+  settleCultureWindfall(state, player);
+  settleResearchWindfall(state, player);
+  return true;
 }
 
 /**

@@ -635,10 +635,37 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * written, and the bot's readings and the two settlements as they were), which
  * gives E0's digests exactly on both boards. Nothing stalled and no command
  * was refused.
+ *
+ * ---
+ *
+ * **Dominion batch D5 (schema 136), units gained and new moments.** Duel
+ * `6b98d500:290747` → `161786a7:291108`, standard `baf6c127:961721` →
+ * `83dff662:954606`. Four things moved the digests:
+ *
+ *   · the version, 135 to 136;
+ *   · the fourteen cards. Nine Orders join the Dominion pool and three join
+ *     the shared pool, and two Doctrines join the pools: Total Mobilisation at
+ *     tier 18, and The Landsturm, the first Doctrine a tier-29 adoption
+ *     offers. At turn 120 two seats on each board have The Gathering Host
+ *     seated. On the duel board one seat holds Total Mobilisation and The Sack
+ *     (not seated), and one holds The Sword of State; on the standard board
+ *     three seats hold Total Mobilisation;
+ *   · the new record `Player.greatPeopleByFamily`, written for every great
+ *     person an empire gains;
+ *   · the bots' new readings (`src/ai/value.ts`, `src/ai/bot.ts`): the four new
+ *     moments, the new grants, the citizen a muster costs, and what drafting a
+ *     card hands over.
+ *
+ * Checked by taking all four back out (the two deck files as D4 left them,
+ * the version at 135, the record not written, and the bots' readings as they
+ * were), which gives D4's digests exactly on both boards. Everything else D5
+ * changed stayed in for that run: the new moments, the `unitGained` tally and
+ * the new emptiness test in `payBattleRiders` change nothing without the
+ * cards. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '6b98d500:290747',
-  standard: 'baf6c127:961721',
+  duel: '161786a7:291108',
+  standard: '83dff662:954606',
 };
 
 /**

@@ -50,6 +50,7 @@ import type { GameState, Unit } from './state';
 import {
   availableCopies,
   capitalCityOf,
+  payOccasionRiders,
   refreshCityDerived,
   resourceCopies,
   settleProductionWindfall,
@@ -1236,6 +1237,10 @@ export function razeCityAt(
     row: city.row,
     tilesReleased,
   };
+  // Read before the town goes: The Sack pays for a town taken by force, by the
+  // population it had (Dominion batch D5). `capturedOn` and not `captured`,
+  // because `captured` is also true for a town ceded at a peace.
+  const sacked = city.capturedOn !== undefined ? city.population : null;
   state.cities = state.cities.filter((row) => row.id !== city.id);
   // **A town off the board** (batch M3, `slate.ts`): the ground it held is
   // released two lines up and the roster it was on is the one both meters walk.
@@ -1255,6 +1260,14 @@ export function razeCityAt(
   // the roster and before elimination is judged — the deed is done either way,
   // and an empire that razed its way out of the game still did the deed.
   awardOrderBeads(state, report.ownerId, 'cityRazed');
+  // **The Sack** (Dominion batch D5): razing a town you captured is a moment
+  // the cards pay on, with the town's population. Paid after the town is off
+  // the roster, so its food and production land in the razer's nearest other
+  // town.
+  const razer = playerById(state, report.ownerId);
+  if (sacked !== null && razer) {
+    payOccasionRiders(state, razer, 'raze', { col: report.col, row: report.row }, { population: sacked });
+  }
   updateElimination(state);
   return { report, routesEnded };
 }

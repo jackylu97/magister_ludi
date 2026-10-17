@@ -199,6 +199,12 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   { field: 'enemiesKilled', pattern: /\.enemiesKilled\s*(=[^=]|\+=)/ },
   { field: 'unitsLost', pattern: /\.unitsLost\s*(=[^=]|\+=)/ },
   { field: 'citiesCaptured', pattern: /\.citiesCaptured\s*(=[^=]|\+=)/ },
+  // Dominion batch D5: the great people an empire has gained, in all and by
+  // family, which the `greatPeopleGained` count reads (The Mural Crown).
+  {
+    field: 'greatPeople',
+    pattern: /\.greatPeopleRecruited\s*(=[^=]|\+=)|\.greatPeopleByFamily\s*=[^=]/,
+  },
 ];
 
 /** How a function says "the world moved under the empire walks". */
@@ -317,6 +323,12 @@ const ANNOUNCING = new Set([
   // `citiesCaptured`.
   'combat.ts#tallyFall',
   'combat.ts#captureCity',
+  // Dominion batch D5: the one writer of the great-people records the
+  // `greatPeopleGained` count reads, and the one routine that banks science
+  // toward a technology that is not the one under research (Copying the
+  // Enemy).
+  'greatPeople.ts#settleGreatPersonChoice',
+  'state.ts#bankTowardTech',
   'state.ts#claimWonder',
   'state.ts#createCity',
   'state.ts#createUnit',

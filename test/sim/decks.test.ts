@@ -272,9 +272,12 @@ describe('the schema, as landed', () => {
       // and a charter whose grant exists (the Expansionist tended-work unlocks,
       // the Commerce batch's Plantation House and Numidian Cavalry, The Fast's
       // rite) is dealt for the grant.
+      // A grant on the draft (Dominion batch D5's The Sword of State and The
+      // Cleruchy) is dealt for the grant, as a charter is.
       const dealt =
         def.effects.length > 0 ||
         def.commission !== undefined ||
+        def.onDraft !== undefined ||
         (def.charter !== undefined && def.deferred === undefined);
       expect(orderIsDealt(id), id).toBe(dealt);
       if (dealt) expect(def.deferred, `${id} is dealt`).toBeUndefined();
@@ -424,8 +427,11 @@ describe('the schema, as landed', () => {
     // nine more. Nine new Dominion Orders came live. The Proconsuls was
     // reworked in place and was already live. Its two Doctrines are not
     // Orders, so they add nothing here.
-    expect(live).toBe(429);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(429);
+    // **And Dominion batch D5** (units gained and new moments): twelve more.
+    // Nine new Dominion Orders and three new shared rows came live. Its two
+    // Doctrines are not Orders.
+    expect(live).toBe(441);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(441);
   });
 
   /**
@@ -617,7 +623,10 @@ describe('the schema, as landed', () => {
     // 135 since D4: twelve Dominion cards about unrest, the writ and the game's
     // records, and a new record, so a v134 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(135);
+    // 136 since D5: fourteen Dominion cards that raise units or pay on new
+    // moments, and a new record, so a v135 log's picks name cards this build
+    // never dealt.
+    expect(SCHEMA_VERSION).toBe(136);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

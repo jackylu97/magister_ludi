@@ -72,6 +72,7 @@ import {
   foundCityAt,
   foundingError,
   purchaseTileAt,
+  raiseOnDraft,
   refreshCityDerived,
   settleProductionWindfall,
   tileOwnerPlayerId,
@@ -3379,6 +3380,9 @@ function applyChooseOrder(state: GameState, command: ChooseOrderCommand): Comman
   if (problem) return fail(problem);
 
   const taken = settleOrderChoice(actor, command.optionIndex);
+  // **What drafting hands over** (Dominion batch D5): The Sword of State's
+  // unit and The Cleruchy's settler, raised in the capital at the pick.
+  if (taken) raiseOnDraft(state, actor, taken.id);
   // **A charter's grant just changed what the seat may build and research**
   // (D1a): `isUnlocked` reads the cards through the law's memo, so the memo is
   // dropped and the meters told, exactly as a slotting does. An ordinary card

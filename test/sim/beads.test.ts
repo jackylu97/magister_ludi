@@ -366,7 +366,10 @@ describe("the bead catalogue", () => {
     // 135 since D4: twelve Dominion cards about unrest, the writ and the game's
     // records, and a new record, so a v134 log's picks name cards this build
     // never dealt.
-    expect(SCHEMA_VERSION).toBe(135);
+    // 136 since D5: fourteen Dominion cards that raise units or pay on new
+    // moments, and a new record, so a v135 log's picks name cards this build
+    // never dealt.
+    expect(SCHEMA_VERSION).toBe(136);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

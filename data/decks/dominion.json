@@ -669,6 +669,66 @@
         }
       ]
     },
+    "theGatheringHost": {
+      "name": "The Gathering Host",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every new name on the muster roll is a line in the chronicle.",
+      "text": "While seated, this card gains +1 science and +1 culture each time you gain a unit. It starts at +2 science and +2 culture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "science": 2,
+          "culture": 2
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "tally",
+          "tally": "unitGained"
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "tally",
+          "tally": "unitGained"
+        }
+      ]
+    },
+    "theArmourersSecret": {
+      "name": "The Armourers' Secret",
+      "decks": [
+        "dominion"
+      ],
+      "band": 0,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The new weapon is drawn in the morning and forged by night.",
+      "text": "While seated, researching a technology that unlocks a military unit grants one of that unit in your capital. It costs no upkeep.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": {
+            "unit": "unlockedByTech",
+            "toCapital": true
+          }
+        }
+      ]
+    },
     "drillManuals": {
       "name": "The Training Cadre",
       "decks": [
@@ -1584,6 +1644,88 @@
           }
         }
       ]
+    },
+    "theOpenMuster": {
+      "name": "The Open Muster",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "No new law today, so the drums call the men instead.",
+      "text": "Passing a draft hand grants the best melee unit you can build in your capital. It costs no upkeep.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "draftPassed",
+          "grant": {
+            "unit": "bestMelee",
+            "toCapital": true
+          }
+        }
+      ]
+    },
+    "theSack": {
+      "name": "The Sack",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "What the town held, the army carries away.",
+      "text": "Razing a town you captured grants production, gold and culture equal to fifteen times its population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "raze",
+          "grant": {
+            "yield": "production",
+            "amount": 15,
+            "fromOccasion": "population"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "raze",
+          "grant": {
+            "yield": "gold",
+            "amount": 15,
+            "fromOccasion": "population"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "raze",
+          "grant": {
+            "yield": "culture",
+            "amount": 15,
+            "fromOccasion": "population"
+          }
+        }
+      ]
+    },
+    "theCleruchy": {
+      "name": "The Cleruchy",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The conquered land is measured out in lots, and each lot goes to a citizen.",
+      "text": "When drafted, gain a free settler in your capital. Seated, this card does nothing.",
+      "onDraft": [
+        {
+          "grant": "unit",
+          "unit": "settler"
+        }
+      ],
+      "effects": []
     },
     "siegeWorks": {
       "name": "Siege Works",
@@ -2810,6 +2952,61 @@
         }
       ]
     },
+    "theLongbowmen": {
+      "name": "The Longbowmen",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The arrows fall before the enemy is near enough to see the bows.",
+      "text": "Ranged units gain +4 strength and +4 ranged strength. +5 culture each time they attack from range.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "ranged": true
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "rangedAttack",
+          "grant": {
+            "yield": "culture",
+            "amount": 5
+          }
+        }
+      ]
+    },
+    "theStateForges": {
+      "name": "The State Forges",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "Each new art of war goes first to the arsenal in the capital.",
+      "text": "Each time you research a technology, your capital raises the best melee unit you can build. It costs no upkeep.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": {
+            "unit": "bestMelee",
+            "toCapital": true
+          }
+        }
+      ]
+    },
     "standingGarrisons": {
       "name": "Standing Garrisons",
       "decks": [
@@ -3736,6 +3933,75 @@
         }
       ]
     },
+    "theMuralCrown": {
+      "name": "The Mural Crown",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "A crown of gold walls for the first soldier over the enemy's wall.",
+      "text": "+10 renown each turn, favouring great generals. Each time you gain a great person, gain 100 science and 100 culture for each great general you have gained this game.",
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 10,
+          "family": "general"
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "greatPersonGained",
+          "grant": {
+            "yield": "science",
+            "amount": 100,
+            "perCount": {
+              "count": "greatPeopleGained",
+              "family": "general"
+            }
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "greatPersonGained",
+          "grant": {
+            "yield": "culture",
+            "amount": 100,
+            "perCount": {
+              "count": "greatPeopleGained",
+              "family": "general"
+            }
+          }
+        }
+      ]
+    },
+    "valhalla": {
+      "name": "Valhalla",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "The fallen feast in the hall, and the living raise stones to them.",
+      "text": "When one of your units dies, gain 25 culture for each Monument in your empire.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "death",
+          "grant": {
+            "yield": "culture",
+            "amount": 25,
+            "perCount": {
+              "count": "buildingsOfKind",
+              "building": "monument"
+            }
+          }
+        }
+      ]
+    },
     "dominionImperium": {
       "name": "Imperium",
       "decks": [
@@ -4415,6 +4681,95 @@
           "percent": 100,
           "scope": {
             "test": "notCaptured"
+          }
+        }
+      ]
+    },
+    "totalMobilisation": {
+      "name": "Total Mobilisation",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "In war every town sends its sons. In peace every town has more of them.",
+      "text": "While at war, each town of six or more citizens raises the best melee unit you can build every five turns, for a citizen. It costs no upkeep. While at peace, your towns grow 25% faster.",
+      "effects": [
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atWar"
+          },
+          "then": [
+            {
+              "kind": "periodicMuster",
+              "every": 5,
+              "unit": "bestMelee",
+              "where": "city",
+              "scope": {
+                "test": "populationAtLeast",
+                "value": 6
+              },
+              "costsCitizen": true
+            }
+          ]
+        },
+        {
+          "kind": "conditionRule",
+          "when": {
+            "test": "atPeace"
+          },
+          "then": [
+            {
+              "kind": "rulePercent",
+              "rule": "growthSurplus",
+              "percent": 25
+            }
+          ]
+        }
+      ]
+    },
+    "theLandsturm": {
+      "name": "The Landsturm",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "When the army has marched, the last levy of every town takes up arms.",
+      "text": "After you pass a draft, each city of five or more citizens raises the best melee unit you can build. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "draftPassed",
+          "grant": {
+            "unit": "bestMelee",
+            "toEveryTown": {
+              "test": "populationAtLeast",
+              "value": 5
+            }
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "class": {
+            "modelClass": "melee"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "besideGreatGeneral"
+          },
+          "class": {
+            "modelClass": "melee"
           }
         }
       ]

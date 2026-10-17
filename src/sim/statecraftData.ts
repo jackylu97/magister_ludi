@@ -62,7 +62,12 @@ import scientificDeck from '../../data/decks/scientific.json';
 // is: a bead's boon carries ordinary `CardEffect`s and a bead id is a `CardId`,
 // and a *value* import either way would turn a type cycle into a runtime one.
 import type { BeadCardId, BeadGrantId } from './beadData';
-import type { BuildingCategory, BuildingId, ProductionCategory } from './buildingData';
+import type {
+  BuildingCategory,
+  BuildingId,
+  CompletionGrant,
+  ProductionCategory,
+} from './buildingData';
 // Type-only in both directions, exactly as `religionData.ts` is. See `CardId`.
 import type { Family, GreatPersonId } from './greatPeopleData';
 import type { ImprovementId } from './improvementData';
@@ -1634,7 +1639,15 @@ export type CombatCondition =
    * Asked of `CombatSituation.vsOwnerId`, so it holds against that empire's
    * units and its cities alike.
    */
-  | { test: 'vsOpusBuilder' };
+  | { test: 'vsOpusBuilder' }
+  /**
+   * **A great general of this empire stands next to the unit** (Dominion batch
+   * D5): The Landsturm's doubled strength. "Next to" is the six hexes around
+   * the general (the triage's reading 37), the ring `beside` reads, and not
+   * the general's two-hex aura. A `UnitFilter` cannot name a family, which is
+   * why this is a test of its own.
+   */
+  | { test: 'besideGreatGeneral' };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
@@ -2485,6 +2498,15 @@ export type CountKind =
    */
   | 'citiesCaptured'
   /**
+   * **Great people this empire has gained in the game** (Dominion batch D5): The
+   * Mural Crown's great generals. The row's `family` narrows the count to one
+   * family; absent counts every great person. It reads
+   * `Player.greatPeopleByFamily`, written in `settleGreatPersonChoice`
+   * (`greatPeople.ts`), because a great person spent leaves nothing on the
+   * board to count.
+   */
+  | 'greatPeopleGained'
+  /**
    * Wonders standing **anywhere in the world**, yours and everybody's — The
    * Grand Tour's "seen or not".
    *
@@ -3172,7 +3194,15 @@ export type TallyOccasion =
    * each hex, so a raid that also tears up the works beside it (The Horde)
    * counts every hex it burnt. The wild keeps no tally.
    */
-  | 'hexPillaged';
+  | 'hexPillaged'
+  /**
+   * This empire **gained a unit**: trained, bought, raised free by a card or a
+   * muster, or levied as a conscript (Dominion batch D5, The Gathering Host;
+   * the user's ruling that conscripts count as gained). Written in
+   * `realiseItem` (`cities.ts`) for every unit it brings into being. A unit
+   * taken from someone else is not gained, and neither is a great person.
+   */
+  | 'unitGained';
 // **There is deliberately no `cityGrew`**, and the audit asked for one: every
 // growth card in the six decks is bound by the design doc's standing clause
 // that natural-growth rewards *count only growth beyond the town's historical
@@ -3201,6 +3231,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'foreignCityConverted',
   'rankEarned',
   'hexPillaged',
+  'unitGained',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -4327,7 +4358,36 @@ export type WindfallOccasion =
    * filled, a card pacified it at once (The Bakufu, The Consular Roads), or it
    * was pacified at capture (Pax Romana). It carries the town's `population`.
    */
-  | 'pacified';
+  | 'pacified'
+  /**
+   * This empire **passed a whole Order draft** (Dominion batch D5): The Open
+   * Muster and The Landsturm. Paid by `settleOrderSkip` (`statecraft/draft.ts`)
+   * through `payOccasionRiders`, at the capital.
+   */
+  | 'draftPassed'
+  /**
+   * This empire **razed a town taken by force** (Dominion batch D5): The Sack.
+   * "Taken by force" is `City.capturedOn`, so a town ceded at a peace does not
+   * count (the triage's reading 48). Paid by `razeCityAt` (`diplomacy.ts`)
+   * after the town is gone, so its food and production land in the owner's
+   * nearest other town. It carries the town's `population` as it stood.
+   * Razing a town the empire founded pays nothing.
+   */
+  | 'raze'
+  /**
+   * One of this empire's units **attacked from range** (Dominion batch D5): The
+   * Longbowmen's culture. Paid by `applyCombat` (`combat.ts`) for every ranged
+   * attack, whatever it hit, with the attacker as `actor`.
+   */
+  | 'rangedAttack'
+  /**
+   * This empire **gained a great person** (Dominion batch D5): The Mural Crown.
+   * Paid by `settleGreatPersonChoice` (`greatPeople.ts`), the one place a great
+   * person joins an empire, with the person's `family`. The person is already
+   * counted (`Player.greatPeopleByFamily`) when the riders pay, so a general
+   * gained now counts toward its own payout (the triage's reading 33).
+   */
+  | 'greatPersonGained';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
@@ -4499,8 +4559,21 @@ export interface WindfallGrantSpec {
    * anything is banked (Entry XVIII.5) and a replay reproduces it — and realised
    * through `realiseItem`'s unit path by `payWindfallGrants`, which is the one
    * completion routine and the reason this is not a second way to mint a unit.
+   *
+   * Two more kinds since Dominion batch D5, both read in `windfallPayout`:
+   *
+   *   · `'bestMelee'`: the best melee unit this empire can build now
+   *     (`bestMeleeFor`), the word buildings and musters already use. The State
+   *     Forges, The Open Muster and The Landsturm.
+   *   · `'unlockedByTech'`: one of each military unit the technology on the
+   *     occasion unlocks (`WindfallOccasionFacts.tech`), even without its
+   *     resource (the triage's reading 10). The Armourers' Secret.
+   *
+   * A unit goes where `toCapital` or `toEveryTown` sends it, or by default to
+   * the town nearest the occasion. Every unit a grant raises is free: it costs
+   * no upkeep (the triage's reading 2).
    */
-  unit?: 'randomMilitary';
+  unit?: 'randomMilitary' | 'bestMelee' | 'unlockedByTech';
   /**
    * **Every one of this empire's pieces is healed whole** — The Empire's "taking
    * a city with a wonder in it heals all your units".
@@ -4577,8 +4650,12 @@ export interface WindfallGrantSpec {
    * **Food and production from this grant go to every town of the empire**,
    * the whole figure to each — The Outriders' 8 production (Dominion batch D3).
    * Paid in founding order. Ignored for the banked voices, as `toCapital` is.
+   *
+   * Since Dominion batch D5 a scope can narrow the towns ("every town of five
+   * or more citizens", The Landsturm), and a unit grant can use this field and
+   * `toCapital` too: one unit for each town.
    */
-  toEveryTown?: true;
+  toEveryTown?: true | CityScope;
   /**
    * **Food and production from this grant go to the nearest town this scope
    * admits** — Armoury Guilds' nearest town with an Armoury (Dominion batch
@@ -4587,6 +4664,31 @@ export interface WindfallGrantSpec {
    * qualifies, the grant pays nothing. Ignored for the banked voices.
    */
   toNearest?: CityScope;
+  /**
+   * **The grant is paid once for each item a count finds** (Dominion batch D5):
+   * Valhalla's 25 culture for each Monument, The Mural Crown's 100 science for
+   * each great general gained. The count is the card vocabulary's own
+   * (`countOf`), read when the payout is composed; `per` makes one helping out
+   * of that many items. A banked voice only, and never with `fromOccasion` or
+   * `fromRate`.
+   */
+  perCount?: GrantCount;
+  /**
+   * **Science toward the technology that unlocks the unit just killed**, this
+   * percentage of that technology's cost (Dominion batch D5): Copying the Enemy.
+   * Read off `WindfallOccasionFacts.fallen`, so only the `kill` occasion pays
+   * it, and paid into the technology's own progress (`bankTowardTech`), not the
+   * current aim. A unit no technology unlocks pays nothing.
+   */
+  towardFallenTech?: number;
+  /**
+   * **An Order draft opens at once, at no culture cost** (Dominion batch D5):
+   * The New Code. It does not raise the draft count or the next draft's cost
+   * (the triage's reading 16), and it is skipped while a draft or a Doctrine
+   * offer is already waiting, or when the seat's decks have nothing left to
+   * deal. Opened by `openFreeDraft` (`statecraft/draft.ts`).
+   */
+  freeDraft?: true;
   /**
    * **The piece that acted is healed to full** — The Yam's mounted raiders
    * (Dominion batch D3).
@@ -4633,6 +4735,21 @@ export interface WindfallGrantSpec {
    * `pillageAt` alone.
    */
   pillageBeside?: true;
+}
+
+/**
+ * **A count a grant is scaled by** (`WindfallGrantSpec.perCount`, Dominion
+ * batch D5). The fields are the ones `countOf` reads off a `pays` row, so a
+ * grant counts exactly what a `pays` line with the same fields would.
+ */
+export interface GrantCount {
+  count: CountKind;
+  /** The building `buildingsOfKind` counts. */
+  building?: BuildingId;
+  /** The family `greatPeopleGained` counts. */
+  family?: Family;
+  /** How many items make one helping. Default 1. */
+  per?: number;
 }
 
 // --- the vocabulary ---------------------------------------------------------
@@ -4928,6 +5045,11 @@ export interface CardPaysEffect extends CardYieldBag {
    * watching, rather than a guard that would quietly count everything.
    */
   tally?: TallyOccasion;
+  /**
+   * Which family `greatPeopleGained` counts (Dominion batch D5). Absent counts
+   * every great person.
+   */
+  family?: Family;
   /**
    * Which voice `empireYield` reads. Absent counts nothing, which is the honest
    * answer for a ledger question that never said which column.
@@ -5950,6 +6072,21 @@ export interface CardWindfallRiderEffect {
    */
   oncePerTurn?: boolean;
   /**
+   * **The rider fires at most once in this many turns** (Dominion batch D5):
+   * The New Code's "at most once every ten turns". `oncePerTurn`'s stamp,
+   * compared over a wider window: the rider is dropped while its card last
+   * rode fewer than this many turns ago.
+   */
+  oncePerTurns?: number;
+  /**
+   * The rider fires only when the unit just killed is **one this empire cannot
+   * build yet** (Dominion batch D5): Copying the Enemy. "Cannot yet build"
+   * means the technology that unlocks it is not researched (the triage's
+   * reading 36); a unit no technology unlocks never counts. Read off
+   * `WindfallOccasionFacts.fallen`, which only the `kill` occasion carries.
+   */
+  fallenUnbuilt?: true;
+  /**
    * The rider fires only when the unit lost was **defending** — Songs of the
    * Fallen's losing half. Read off `WindfallOccasionFacts.defending`, which
    * the `death` occasion carries for the piece that was attacked and not for
@@ -6471,6 +6608,13 @@ export interface CardPeriodicMusterEffect {
    * a bonus read live could not.
    */
   stamp?: UnitStamp;
+  /**
+   * **Each unit costs its town a citizen** (Dominion batch D5): Total
+   * Mobilisation's "for a citizen". The citizen leaves through `loseCitizen`,
+   * the routine a famine and a levy use, and only when the unit has somewhere
+   * to stand. A town of one citizen raises nothing.
+   */
+  costsCitizen?: true;
 }
 
 /**
@@ -8064,6 +8208,16 @@ export interface OrderDef extends CardDefBase {
   /** What slotting this hands over, once per game. See `OrderSlotGrant`. */
   onSlot?: OrderSlotGrant[];
   /**
+   * **What drafting this hands over, once** (Dominion batch D5): The Sword of
+   * State's best melee unit and The Cleruchy's settler, in the capital. A field
+   * on the row rather than an effect, for `onSlot`'s reason: it happens at a
+   * moment, and seated the card does nothing. The unit arm of a building's
+   * `CompletionGrant`, raised by `raiseOnDraft` (`cities.ts`) through
+   * `realiseItem`, free of upkeep. A row whose whole text is this carries no
+   * effects and is still dealt (`orderIsDealt`).
+   */
+  onDraft?: Extract<CompletionGrant, { grant: 'unit' }>[];
+  /**
    * Present on a commission: a goal that only counts while the card is seated,
    * and a reward paid once when it is met. See `CommissionSpec`.
    */
@@ -8706,7 +8860,9 @@ export function orderIsDealt(id: OrderId): boolean {
   if (def.retired === true) return false;
   // A commission's goal and reward are the whole card, as a charter's grant is.
   if (def.commission !== undefined) return def.deferred === undefined;
-  if (def.effects.length === 0 && def.charter === undefined) return false;
+  if (def.effects.length === 0 && def.charter === undefined && def.onDraft === undefined) {
+    return false;
+  }
   if (def.effects.length === 0 && def.deferred !== undefined) return false;
   return true;
 }
