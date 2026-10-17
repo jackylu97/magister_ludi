@@ -95,6 +95,9 @@ import {
   cairnStack,
   citadelBanner,
   citadelRing,
+  keepTower,
+  outpostFlag,
+  polderDyke,
   barrowMound,
   brokenColumns,
   campTent,
@@ -796,6 +799,12 @@ const DRAWN_IMPROVEMENT_PROPS: Partial<
   fishTraps: fishingBoat,
   wildOrchard: trellisRows,
   burnedCountry: furrowRows,
+  // **The three works a seated card opens** (Expansionist batch E4):
+  // placeholder sculpts of their own, until the art pass. Each is on the parts
+  // shelf of `flair.html` (`src/flairGallery/cityStage.ts`).
+  townKeep: keepTower,
+  polder: polderDyke,
+  outpost: outpostFlag,
 };
 
 /**

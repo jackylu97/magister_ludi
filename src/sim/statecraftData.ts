@@ -79,7 +79,7 @@ import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, ConsecrationId, RiteId } from './religionData';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
 // Type-only: a rank is named on a card the way the rule book names it.
-import type { RankId } from './rulesData';
+import type { HexMarkId, RankId } from './rulesData';
 import type { TerrainId } from './terrainData';
 // Type-only, so no load-time edge: a route's medium is one vocabulary and the
 // card table names it rather than respelling it. See `CardPaysEffect.mode`.
@@ -1660,7 +1660,18 @@ export type CombatCondition =
    * the general's two-hex aura. A `UnitFilter` cannot name a family, which is
    * why this is a test of its own.
    */
-  | { test: 'besideGreatGeneral' };
+  | { test: 'besideGreatGeneral' }
+  /**
+   * **This side's piece stands on a hex carrying one of these features**
+   * (Expansionist batch E3, The Woodland Bands' forest and jungle).
+   *
+   * It reads **the hex the piece stands on**, not the contested hex: for a
+   * defender the two are the same hex, and for an attacker it is the hex it
+   * strikes from. So a row written with `side: 'defend'` is a defence line
+   * today (the triage's reading 28), and the same row with `side: 'both'`
+   * would pay an attack from the woods too, with no other change.
+   */
+  | { test: 'standingIn'; features: string[] };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
@@ -2113,11 +2124,38 @@ export type TileCondition =
    */
   | { test: 'surveyed' }
   /**
+   * **A river runs along one of this hex's edges** (Expansionist batch E3, The
+   * Watercourses' "farms directly beside a river").
+   *
+   * Read off `Tile.riverEdges`, the map's own river mask, and narrower than
+   * `freshwater`: a lake or an oasis gives a hex fresh water but no river.
+   */
+  | { test: 'river' }
+  /**
+   * **This hex is the centre of a town that holds a world wonder**, whoever
+   * owns the town (Expansionist batch E3, The Landscape Garden, the triage's
+   * reading 25). Meant to be asked through `beside`: "a tended hex beside a
+   * wonder" is a hex beside the centre of a town holding one.
+   *
+   * A tile alone cannot answer it, so the caller hands in the board's answer
+   * (`GroundFacts.wonderCentre`, built by `groundFactsFor`). A caller with no
+   * such answer reads no, `beside`'s bargain.
+   */
+  | { test: 'wonderTown' }
+  /**
+   * **The empire reading this hex surfaced a seam here**: its survey struck the
+   * vein (`Tile.surfacedBy`), Expansionist batch E3, The Prospectors. The
+   * empire is the caller's (`GroundFacts.player`); a caller that names none
+   * reads no.
+   */
+  | { test: 'surfaced' }
+  /**
    * **A fortified military unit of this empire stands on the hex** (Dominion
    * batch D7: The Farming Garrisons and The Castra). A tile carries no units,
    * so the answer comes from the board's facts (`GroundFacts.fortified`, which
-   * the yield context carries), and a caller with no board answers no. A town's centre hex counts when its
-   * garrison is fortified (the triage's reading 25).
+   * the yield context carries), and a caller with no board answers no. A
+   * town's centre hex counts when its garrison is fortified (the triage's
+   * reading 25).
    */
   | { test: 'fortifiedUnit' };
 
@@ -2551,6 +2589,27 @@ export type CountKind =
    * board to count.
    */
   | 'greatPeopleGained'
+  /**
+   * **Towns this empire has founded in the game**: The Book of Settlements
+   * (Expansionist batch E2). It reads `Player.citiesFounded`, the record
+   * `foundCityAt` raises for every town an empire founds, its first town
+   * included. A town lost later still counts, because it was still founded.
+   */
+  | 'citiesFounded'
+  /**
+   * **Towns this empire holds that a town scope admits**: The Land's Great
+   * Work (towns of at least eight citizens), The Great Aqueducts (towns with an
+   * Aqueduct) and The Imperial Highways (towns joined to the capital by road),
+   * Expansionist batch E2.
+   *
+   * The scope is the count's argument, `CardPaysEffect.admits`, and it is the
+   * ordinary `CityScope`, asked of each town in founding order. So a card that
+   * counts towns of some other kind is a data row. A row that names no scope
+   * counts nothing, which is `tilesInBorders`' reading of a missing argument.
+   * The capital counts when the scope admits it; the `connected` scope never
+   * does, because the capital is what the other towns are joined to.
+   */
+  | 'citiesAdmitted'
   /**
    * Wonders standing **anywhere in the world**, yours and everybody's — The
    * Grand Tour's "seen or not".
@@ -3205,10 +3264,14 @@ export type TallyOccasion =
    */
   | 'wonderOrCapitalCaptured'
   /**
-   * A hex **bought with gold** (`purchaseTileAt`) — The Wide Country's goal.
-   * Fired once per hex bought.
+   * A hex **claimed** by an outpost (`claimGroundForWork`, `improvements.ts`),
+   * by clearing a camp (`claimClearedCampGround`, `camps.ts`) or by buying it
+   * (`purchaseTileAt`): The Wide Country's goal (the triage's reading 35). Each
+   * moment counts the hexes it claimed. A town's border growth and the other
+   * claims do not count. It was `hexBought`, buying alone, before Expansionist
+   * batch E4.
    */
-  | 'hexBought'
+  | 'hexClaimed'
   /**
    * A **building bought with gold** at the purchase counter — A Guild
    * Commission (Commerce, Tier III). Written in `purchaseItemAt` where the gold
@@ -3257,16 +3320,23 @@ export type TallyOccasion =
    * destroyed. It carries `TallyFacts.townsTaken`, the towns this empire took
    * from the other in that war and still holds.
    */
-  | 'warEnded';
-// **There is deliberately no `cityGrew`**, and the audit asked for one: every
-// growth card in the six decks is bound by the design doc's standing clause
-// that natural-growth rewards *count only growth beyond the town's historical
-// population maximum* (`docs/six-decks-first-cut.md`, the Expansionist and
-// Magisterial convention blocks). Nothing in the game remembers the largest a
-// town has ever been, so a bare "a town grew" counter would have paid The
-// Growing Annals twice for one citizen a levy took and the fields gave back.
-// The member is one line the day a town keeps its high-water mark; the counter
-// without it is the card bent to fit.
+  | 'warEnded'
+  /**
+   * One of this empire's towns **grew past the most citizens it has ever
+   * had**: The Grain Census (Expansionist batch E2). Written in
+   * `settleSizeRecord` (`cities.ts`), once for each new size, so a town that
+   * gains two citizens above its record at once counts twice.
+   *
+   * This is the growth counter the design doc asks for. Its standing clause
+   * says that rewards for natural growth count only growth beyond a town's
+   * largest size (`docs/six-decks-first-cut.md`, the Expansionist and
+   * Magisterial convention blocks), and `City.largestSize` is that size. A
+   * citizen that a levy took and that the town regrows is not counted again.
+   */
+  | 'sizeRecord';
+// There is still no bare "a town grew" counter, and there should not be one:
+// it would pay twice for a citizen that a levy took and the fields gave back.
+// `sizeRecord` above is the counter the design doc's clause allows.
 
 /** Every tally occasion, for the register test that pins the hooks. */
 export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
@@ -3280,7 +3350,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'campCleared',
   'cityCaptured',
   'wonderOrCapitalCaptured',
-  'hexBought',
+  'hexClaimed',
   'buildingBoughtWithGold',
   'riteStarted',
   'foreignCityConverted',
@@ -3288,6 +3358,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'hexPillaged',
   'unitGained',
   'warEnded',
+  'sizeRecord',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -4057,7 +4128,31 @@ export type BehaviorRuleId =
    * one blow breaks the walls. The town still hits back while its walls stand,
    * and the garrison and the capture are still two more blows.
    */
-  | 'breachInOneBlow';
+  | 'breachInOneBlow'
+  /**
+   * **This empire's units pay only the open-ground price in forest and
+   * jungle** (Expansionist batch E3, The Woodland Bands; the triage's reading
+   * 28: every land unit, civilians included).
+   *
+   * Read once a sweep in `moveProfile` into `MoveProfile.ignoresWoods`, and
+   * applied in `tileMoveCost`, so the four readers of `stepCost` agree. The
+   * rule removes a feature's own movement price (`moveCostOverride`, which
+   * forest and jungle carry) and nothing else: a hill still costs its climb.
+   */
+  | 'woodsWalk'
+  /**
+   * **A farm of this empire beside one of its farms on a river counts as
+   * having fresh water** (Expansionist batch E3, The Watercourses). One step
+   * only: the water does not pass on from the farm it reached. Read by
+   * `farmWaterOf`, which every fresh-water question about a farm asks.
+   */
+  | 'riverFarmsWater'
+  /**
+   * **A farm of this empire joined to a farm on fresh water by an unbroken
+   * chain of its farms counts as having fresh water** (Expansionist batch E3,
+   * The Water Courts). Read by `farmWaterOf`.
+   */
+  | 'farmChainsWater';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =
@@ -4495,6 +4590,34 @@ export type WindfallOccasion =
    */
   | 'peace'
   /**
+   * **A town grew past the most citizens it has ever had** (Expansionist batch
+   * E2): The Freedom of the City. Paid by `settleSizeRecord` (`cities.ts`)
+   * once for each new size, in rising order, with that size as `population`.
+   * Any gain reaches it: growth, a population grant or a citizen coming home
+   * from a levy. A town's record never falls, so a rider narrowed by
+   * `atPopulation` pays once in the life of a town. Food and production land
+   * in the town.
+   */
+  | 'sizeRecord'
+  /**
+   * **The world took a census** (Expansionist batch E2): The Tax Rolls. Paid
+   * by `runCensus` (`census.ts`) to every real empire, in seat order, with the
+   * empire's citizens as `population`. The census itself pays only its leader
+   * (a Triumph); this occasion pays every empire's own cards. There is no hex,
+   * so food and production land in the capital.
+   */
+  | 'census'
+  /**
+   * **A town was joined to its owner's capital by road for the first time**
+   * (Expansionist batch E2): The Opening of the Roads. Paid by the
+   * `roadJoinings` phase (`roadJoinings.ts`) with the town's `population`. The
+   * town keeps a list of the empires it has paid this for
+   * (`City.joinedBy`), so each owner is paid once for each town, and a town
+   * that loses its road and is joined again pays nothing more. Food and
+   * production land in the town.
+   */
+  | 'joinedToCapital'
+  /**
    * This empire **disbanded one of its units** (Dominion batch D7): The
    * Legions' Labour, and Expansionist's Veteran Colonies after it. Paid by
    * `applyDisbandUnit` (`commands.ts`) after the unit is gone, at the hex it
@@ -4882,6 +5005,18 @@ export interface WindfallGrantSpec {
    * `pillageAt` alone.
    */
   pillageBeside?: true;
+  /**
+   * **A lasting mark on the town's land** (Expansionist batch E3): The Raising
+   * of the Land's raised hexes and The Coming of the Water's watered farms.
+   *
+   * The town is the one where the occasion happened (the town nearest the
+   * occasion's hex). Every hex in its borders where the mark's own condition
+   * holds at that moment is marked (`rules.improvements.hexMarks`), once; a
+   * hex already carrying the mark is left alone (the triage's reading 23).
+   * Delivered by `payWindfallGrants` through `markTownLand` (`cities.ts`). A
+   * mark has no figure, so the era and the council multiply nothing here.
+   */
+  mark?: HexMarkId;
 }
 
 /**
@@ -5180,6 +5315,14 @@ export interface CardPaysEffect extends CardYieldBag {
    * been a collision rather than a double duty.
    */
   tile?: TileCondition;
+  /**
+   * Which towns `citiesAdmitted` counts: the ordinary `CityScope` (Expansionist
+   * batch E2). Absent counts nothing; see the count.
+   *
+   * Named apart from `scope`, which says which towns a line is *paid* in. The
+   * two are different questions, and a row could carry both.
+   */
+  admits?: CityScope;
   /**
    * Which type `slottedOrdersOfSlot` counts. Absent counts every seated Order
    * whatever its type, which is the honest reading of an unnamed argument
@@ -5594,6 +5737,12 @@ export interface CardProductionBonusEffect {
    * what every row written before this field meant.
    */
   count?: CountKind;
+  /**
+   * Which towns a `citiesAdmitted` count counts (Expansionist batch E2: The
+   * Land's Great Work, The Great Aqueducts, The Imperial Highways). Handed to
+   * `countOf` with the count. `CardPaysEffect.admits` says the rest.
+   */
+  admits?: CityScope;
   /** How many of `count` buy one helping of `percent`. Default 1. */
   per?: number;
   /** The most helpings that ever pay — The Great Consecration's eight. */
@@ -6006,7 +6155,22 @@ export type CityRuleId =
    * phase at the end of the turn in which the scope admits the town (the
    * triage's reading 27).
    */
-  | 'pacified';
+  | 'pacified'
+  /**
+   * **This town's citizens may work the mountains in its borders**
+   * (Expansionist batch E3, The Mountain Terraces). Read by `assignableTiles`
+   * through `cardCityRuleAt`. When the card leaves, the citizens on a mountain
+   * move at the next assignment (the triage's reading 20).
+   */
+  | 'workMountains'
+  /**
+   * **This town may work owned hexes one ring beyond the usual work radius**
+   * (Expansionist batch E3, The Common Domain, with the scope "ten or more
+   * citizens"). Read by `workRadiusOf`, which every question about how far a
+   * town reaches asks. When the scope stops admitting the town, its citizens
+   * on the outer ring move at the next assignment (the triage's reading 21).
+   */
+  | 'widerReach';
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
 export interface CardWindfallRiderEffect {
@@ -6129,6 +6293,11 @@ export interface CardWindfallRiderEffect {
    * time, and that is the honest reading of a rule made of comparisons rather
    * than of a stamp on the city (the same discipline `TimedEffect` keeps one
    * system over).
+   *
+   * **The size record carries the same fact** (Expansionist batch E2, The
+   * Freedom of the City). On `sizeRecord` the town has reached that size for
+   * the first time, and its record never falls, so there the rider really
+   * does pay once in a town's life.
    */
   atPopulation?: number;
   /**
@@ -6281,6 +6450,13 @@ export interface CardWindfallRiderEffect {
    * occasion carries, so a rider written onto any other occasion never pays.
    */
   rank?: RankId;
+  /**
+   * The rider fires only when the building finished is **this one**: The
+   * Coming of the Water's Aqueduct (Expansionist batch E3). Read off
+   * `WindfallOccasionFacts.building`, the row the completion seam holds, so a
+   * rider written onto an occasion that names no building never pays.
+   */
+  building?: BuildingId;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -6343,6 +6519,25 @@ export interface CardFoundingRiderEffect {
    * way pays the cards that pay when a unit earns a rank.
    */
   rank?: RankId;
+  /**
+   * **The new town starts with one citizen for every this many citizens of
+   * your largest town**, rounded down: The Great Colonies' "a third", which
+   * is `3` (Expansionist batch E2).
+   *
+   * A floor on the starting size, not an addition: the town starts with the
+   * larger of its usual size and this share (the triage's reading 14). The
+   * extra citizens of `population` (The Seed Grain) are added after it. The
+   * largest town is the largest one now, read when the town is founded, not
+   * the largest size any town has ever had.
+   */
+  fromLargest?: number;
+  /**
+   * **The new town claims every unowned hex within this many hexes of its
+   * centre** (Expansionist batch E4, The Staked Claims: two). Ground another
+   * town holds is left alone (the triage's reading 15). Claimed in
+   * `foundCityAt` after the first ring, in map order.
+   */
+  claimRadius?: number;
 }
 
 /** A payout scaled by a count. See `CountKind` and `CardPayout`. */
@@ -6799,6 +6994,53 @@ export interface CardPeriodicMusterEffect {
 }
 
 /**
+ * **A town takes a hex from a smaller foreign town beside it, on a cadence**
+ * (Expansionist batch E4, The Encroaching Fields).
+ *
+ * On every turn where `turn % every === 0`, each of the empire's towns of at
+ * least `minPopulation` citizens takes one hex, in founding order. The hex
+ * belongs to another empire's town, lies beside this town's borders, is not a
+ * town centre and is worked by nobody, and its town has fewer citizens than
+ * this one. The hex nearest this town's centre is taken, ties going to the
+ * lower hex index, and it changes hands with whatever stands on it (the
+ * triage's reading 38). Run by the `encroachment` phase (`frontiers.ts`),
+ * `periodicMuster`'s calendar.
+ */
+export interface CardEncroachEffect {
+  kind: 'encroach';
+  /** Turns between moves. A turn moves when `turn % every === 0`. */
+  every: number;
+  /** The fewest citizens a town needs to take a hex. */
+  minPopulation: number;
+}
+
+/**
+ * **A citizen moves to another town, on a cadence** (Expansionist batch E4).
+ * Two sources:
+ *
+ *   · `'own'` (Migration): while the empire's spare happiness is nought or
+ *     below, its largest town sends one citizen to its smallest town joined to
+ *     the capital, if that town has fewer citizens (the triage's reading 36,
+ *     which waits for the user's confirmation);
+ *   · `'foreign'` (The Great Migration): while the empire's spare happiness is
+ *     above nought and above another empire's, each town of that empire within
+ *     `reach` hexes of this empire's borders, with at least two citizens, loses
+ *     one to this empire's town nearest it (the triage's reading 37).
+ *
+ * Every empire's happiness is read once, before anybody moves. Run by the
+ * `migration` phase (`frontiers.ts`) on every turn where `turn % every === 0`.
+ */
+export interface CardMigrationEffect {
+  kind: 'migration';
+  /** Turns between moves. A turn moves when `turn % every === 0`. */
+  every: number;
+  /** Whose towns the citizens come from. */
+  source: 'own' | 'foreign';
+  /** How far beyond this empire's borders a foreign town may stand. `'foreign'` only. */
+  reach?: number;
+}
+
+/**
  * **A drill**: at the end of a turn, some of this empire's units gain
  * experience (Dominion batch D1). The Drill Grounds (units standing in your
  * towns, every four turns), The Regimental Schools (garrisoned units, every
@@ -7044,6 +7286,38 @@ export interface CardLandfallEffect {
 export interface CardUnlocksBuildingEffect {
   kind: 'unlocksBuilding';
   building: BuildingId;
+}
+
+/**
+ * **An improvement row a seated card opens for the seat's workers**
+ * (Expansionist batch E4): The Keeps' Keep, The Polders' polder and Outposts'
+ * outpost.
+ *
+ * `CardUnlocksBuildingEffect`'s twin one table over, and a rule from the day it
+ * was written: `cardUnlocksImprovement` reads it for a row marked
+ * `ImprovementDef.unlockedByCard`, so whether a worker may build the row is one
+ * question with one answer. It is read only while the card is seated, because
+ * the text has no "Once drafted" (the triage's reading 31). A charter opens a
+ * tended work the other way, by being held (`CharterSpec.unlocks.improvement`).
+ */
+export interface CardUnlocksImprovementEffect {
+  kind: 'unlocksImprovement';
+  improvement: ImprovementId;
+}
+
+/**
+ * **Workers may lay a kind of work on unowned ground near the borders**
+ * (Expansionist batch E4, The Garden Frontier). `works` names the rows it
+ * reaches, and `'tended'` is the tended works. `reach` is how many hexes beyond
+ * the empire's borders such a hex may lie. A hex worked there joins the
+ * empire's nearest town when the work is laid, and ground a rival owns is never
+ * taken (the triage's reading 34). Read by `improvementGroundError` through
+ * `worksBeyondReach`, and by `claimGroundForWork` for the claim.
+ */
+export interface CardWorksBeyondEffect {
+  kind: 'worksBeyond';
+  works: 'tended';
+  reach: number;
 }
 
 /**
@@ -7658,6 +7932,17 @@ export interface CardYieldAmplifierEffect {
    * own towns only, since that is the only place their lines reach your fold.
    */
   reads?: 'followerBeliefs';
+  /**
+   * **Only on hexes where this holds** (Expansionist batch E3, The Age of
+   * Improvement's improved hexes).
+   *
+   * An amplifier carrying a tile test raises the Orders' **hex lines** only:
+   * each helping lands on the hexes where both the dressed line's own test and
+   * this one hold. It raises no town line and no empire line, because a town
+   * line is not paid on a hex (the triage's reading 24: The Manors and The
+   * Plough Teams count improved hexes and are not doubled).
+   */
+  on?: TileCondition;
 }
 
 /**
@@ -8095,6 +8380,12 @@ export type CardEffect =
   | CardLandfallEffect
   | CardUnlocksBuildingEffect
   | CardUnlocksUnitEffect
+  // Expansionist batch E4: a seated card opens a work row, tended works on
+  // ground beyond the borders, and two shapes that run on a cadence.
+  | CardUnlocksImprovementEffect
+  | CardWorksBeyondEffect
+  | CardEncroachEffect
+  | CardMigrationEffect
   | CardPantheonSlotsEffect
   | CardPurchaseRiderEffect
   | CardProjectRiderEffect
@@ -9209,6 +9500,25 @@ export function charterThatOpensImprovement(improvement: ImprovementId): OrderId
     const def = orderDef(id);
     if (def.retired === true) continue;
     if (def.charter?.unlocks.improvement === improvement) return id;
+  }
+  return null;
+}
+
+/**
+ * The card that opens this improvement row: the charter that names it, or
+ * (Expansionist batch E4) the Order whose `unlocksImprovement` effect names it.
+ * `null` when no card does. Retired rows are skipped. The refusal sentence and
+ * the Compendium read it; the gate asks the seat (`cardUnlocksImprovement`).
+ */
+export function cardThatOpensImprovement(improvement: ImprovementId): OrderId | null {
+  const charter = charterThatOpensImprovement(improvement);
+  if (charter !== null) return charter;
+  for (const id of ORDER_IDS) {
+    const def = orderDef(id);
+    if (def.retired === true) continue;
+    for (const effect of def.effects) {
+      if (effect.kind === 'unlocksImprovement' && effect.improvement === improvement) return id;
+    }
   }
   return null;
 }

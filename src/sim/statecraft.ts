@@ -157,6 +157,14 @@ export {
   explainCardCityYields,
   explainCardEmpireYields,
   explainCardPercentYields,
+  // Expansionist batch E3: the board's answers for the tile tests a tile cannot
+  // answer alone, and an empire's farm water.
+  farmWaterOf,
+  groundFactsFor,
+  // Expansionist batch E4: tended work beyond the borders, and the water a
+  // worker may wade onto.
+  worksBeyondReach,
+  workerWaters,
   filledOrderSlots,
   foldCardRulePercent,
   foldCardYields,
@@ -164,9 +172,8 @@ export {
   followerBeliefEffects,
   followerCardTileLines,
   forgetTheLaw,
-  // Dominion batch D7: the board's answers for the tile tests a tile cannot
-  // answer alone, and what a fortified military unit is.
-  groundFactsFor,
+  // Dominion batch D7: what a fortified military unit is (the board's answers
+  // themselves, `groundFactsFor`, are exported above with E3's).
   isFortifiedSoldier,
   heldReligions,
   isRaisingOpus,
@@ -212,6 +219,7 @@ export type {
   CardYieldLine,
   CombatSituation,
   EmpireRates,
+  FarmWater,
   FoundingRider,
   GroundFacts,
   LiveCardEffect,

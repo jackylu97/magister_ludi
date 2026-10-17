@@ -22,6 +22,7 @@ import rulesJson from '../../data/rules.json';
 import type { BuildingSize } from './buildingData';
 import type { SpecialistFamily } from './greatPeopleData';
 import type { CityYieldKey, ResourceYieldBag } from './resourceData';
+import type { TileCondition } from './statecraftData';
 import type { TechId } from './techData';
 import type { TileYieldSpec } from './terrainData';
 import type { UnitSize, UnitTypeId } from './unitData';
@@ -413,6 +414,37 @@ export interface ImprovementRules {
    * banked, and modifier-immune afterwards.
    */
   assayGold: number;
+  /**
+   * **The lasting marks a hex can carry** (Expansionist batch E3): what each
+   * pays and while what stands on the hex. `Tile.marks` holds the ids.
+   *
+   * A mark is a fact about the ground, not about a card: The Raising of the
+   * Land and The Coming of the Water write it, and it goes on paying after the
+   * card leaves its chair, to whoever works the hex (the triage's reading 23).
+   * It pays only while its `while` condition holds, so a raised hex whose
+   * farm is pillaged pays nothing until a work stands there again.
+   */
+  hexMarks: Record<HexMarkId, HexMarkRule>;
+}
+
+/** A lasting mark on a hex. See `ImprovementRules.hexMarks`. */
+export type HexMarkId = 'raised' | 'aqueductWater';
+
+/** Every mark id, in the table's order. */
+export const HEX_MARK_IDS: readonly HexMarkId[] = ['raised', 'aqueductWater'];
+
+/** What one lasting mark pays, and while what. */
+export interface HexMarkRule {
+  /** The line's label in a hex's breakdown. */
+  name: string;
+  /** What the mark adds to the hex. */
+  yields: TileYieldSpec;
+  /**
+   * What must stand on the hex for the mark to pay. The same test chooses the
+   * hexes a card marks: a card marks every hex of its town's borders where
+   * this holds at that moment.
+   */
+  while: TileCondition;
 }
 
 /**

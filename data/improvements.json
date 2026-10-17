@@ -485,10 +485,10 @@
         "coast",
         "lake"
       ],
-      "clearsClutter": false,
-      "deferred": [
-        "Traps on a lake wait for a way to reach the lake: no worker can stand on its water yet."
-      ]
+      "workersWade": [
+        "lake"
+      ],
+      "clearsClutter": false
     },
     "wildOrchard": {
       "name": "Wild Orchard",
@@ -524,6 +524,69 @@
         "none"
       ],
       "clearsClutter": true
+    },
+    "townKeep": {
+      "name": "Keep",
+      "emoji": "🏰",
+      "chargeCost": 1,
+      "unlockedByCard": true,
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "onePerTown": true,
+      "copiesNeighbours": true,
+      "defense": 5,
+      "clearsClutter": true
+    },
+    "polder": {
+      "name": "Polder",
+      "emoji": "🌾",
+      "chargeCost": 2,
+      "unlockedByCard": true,
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "coast"
+      ],
+      "landBeside": 3,
+      "yieldsAs": {
+        "terrain": "grassland",
+        "improvement": "farm"
+      },
+      "clearsClutter": false
+    },
+    "outpost": {
+      "name": "Outpost",
+      "emoji": "🚩",
+      "chargeCost": 1,
+      "unlockedByCard": true,
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "beyondBorders": 3,
+      "claimsUnowned": 1,
+      "clearsClutter": false
     }
   }
 }

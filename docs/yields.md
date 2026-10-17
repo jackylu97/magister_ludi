@@ -162,9 +162,22 @@ what makes the order structural rather than incidental. Its own order is
 1. the terrain (`base`);
 2. the hill (`override`), then the canopy over it (`override`) — the canopy
    wins because it is the more specific fact;
+   - then, under a work that **yields as other ground** (The Polders,
+     Expansionist batch E4: `ImprovementDef.yieldsAs`), that ground's yield
+     (`override`). The hex stays water for every other rule;
 3. the seam, for an empire that can name it (`resourceIsVisibleTo`);
 4. the improvement and its renewals — the **works**, whose entries are bracketed
-   so a share can be taken of exactly them;
+   so a share can be taken of exactly them. A renewal that needs fresh water
+   also counts a farm the empire's law waters (`GroundFacts.watered`,
+   Expansionist batch E3). A work that yields as another row pays that row's
+   yield and its dry renewals only. A work that **copies the hexes around it**
+   (The Keeps, Expansionist batch E4: `ImprovementDef.copiesNeighbours`) adds
+   to its own line what each hex `GroundFacts.copiedHexes` names pays, read
+   with the same context;
+   - then the hex's **lasting marks** (`Tile.marks`, Expansionist batch E3),
+     outside the works' bracket: each pays the rule book's figure
+     (`rules.improvements.hexMarks`) while its own condition holds, whoever
+     works the hex;
 5. the law's `tileYield` lines, in **two passes**: the lines that ask nothing of
    the fold first, then the memo of "what this hex pays" is taken *again*, then
    the lines that pay on what the hex already pays. Both passes walk `ctx.lines`

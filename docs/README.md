@@ -99,6 +99,49 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   printed figure before banking.
 - The register at the foot of `docs/yields.md` says where every card kind that
   pays a yield lands. A new kind joins it or the sync test fails.
+- **The land cards' ground** (Expansionist batch E3).
+  - A hex can carry **lasting marks** (`Tile.marks`, written only by `markHex`).
+    What a mark pays, and while what stands on the hex, is
+    `rules.improvements.hexMarks`; the hex fold adds it after the works. The
+    Raising of the Land and The Coming of the Water write marks through a
+    windfall rider's `mark` grant and `markTownLand` (`cities.ts`).
+  - A farm can **count as having fresh water** by its empire's law
+    (`farmWaterOf`: The Watercourses, one step from a river farm; The Water
+    Courts, along a chain of farms). The Irrigation renewal, the farm's
+    placement on dry ground and the cards' `freshwater` test read it.
+  - A hex question can ask what the tile alone cannot (`GroundFacts`: the
+    empire asking, its farm water, which town centres hold a wonder, and since
+    Dominion batch D7 where its fortified military units stand), so three
+    tile tests are new: `river`, `wonderTown` and `surfaced` (the empire that
+    struck a seam, `Tile.surfacedBy`).
+  - An Order amplifier with a tile test (`CardYieldAmplifierEffect.on`, The Age
+    of Improvement) raises the Orders' hex lines on those hexes only.
+- **The works a seated card opens** (Expansionist batch E4).
+  - A row marked `unlockedByCard` is open to a seat's workers while a seated
+    card names it (`unlocksImprovement`, read by `cardUnlocksImprovement`). A
+    work built stays when the card leaves. Three rows: the Keep (`townKeep`,
+    The Keeps), the polder (The Polders) and the outpost (Outposts).
+  - The Keep is one in each town (`onePerTown`), pays what the hexes around it
+    pay (`copiesNeighbours`; `GroundFacts.copiedHexes` finds them: your hexes,
+    never a town centre or another Keep), and gives whoever defends its hex
+    +5, the citadel's line (`defense`).
+  - The polder goes on coast beside three of your land hexes (`landBeside`) and
+    yields as a farm on grassland (`yieldsAs`): the hex fold replaces the
+    ground's yield and takes the farm's dry renewals. The hex stays water.
+  - The outpost goes only on unowned wild ground within three hexes of the
+    borders (`beyondBorders`). When it is built, it claims its hex and the
+    unowned ring around it for the nearest town (`claimsUnowned`,
+    `claimGroundForWork` in `improvements.ts`). A town founded on it takes that
+    land (`foundCityAt`), and the outpost goes.
+  - The Garden Frontier (`worksBeyond`) lets tended works go on unowned ground
+    up to two hexes beyond the borders, and the hex joins the nearest town.
+  - The Wide Country's tally is `hexClaimed`: hexes claimed by an outpost, a
+    cleared camp or buying. Its reward is D6's citizens to the smallest towns.
+- **The ten-turn moves** (Expansionist batch E4, `frontiers.ts`). Two phases
+  after `expandBorders`: `encroachment` (The Encroaching Fields, `encroach`)
+  takes an unworked hex from a smaller foreign town beside a large town, and
+  `migration` (Migration and The Great Migration, `migration`) moves citizens
+  on the empires' happiness. Each fires when `turn % every === 0`.
 - **What a hex is worth as a place to put a town** is one reading in the same
   three verbs: `explainSite` / `foldSite` (`src/sim/sites.ts`) over the ring's
   hexes through the seat's own eyes, the water, the seams, the coast, the hills
@@ -156,6 +199,34 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   (`OrderDef.needsLevy`) are dealt only to a seat holding a card that grants a
   levy. Refusals are `levyError`; the city panel's "Levy a citizen" menu is
   `src/ui/levyMenu.ts`. Bots do not levy yet.
+- **A town's reach and its mountains** (Expansionist batch E3). How far a
+  town's citizens reach is `workRadiusOf`: the rule book's work radius, and one
+  ring more under The Common Domain's `widerReach` city rule (towns of ten). It
+  bounds the hexes a town works and the hexes it may buy. The Mountain
+  Terraces' `workMountains` city rule lets citizens work mountains
+  (`isWorkableTile`). A great person's act pays its riders in the town where
+  the act landed.
+- **A town's largest size, and three moments** (Expansionist batch E2).
+  - `City.largestSize` is the most citizens a town has ever had. It is written
+    at the founding and raised by `settleSizeRecord` (`cities.ts`), which
+    `settleGrowth` and `settlePopulationWindfall` call after any gain. It never
+    falls. Each new size writes the `sizeRecord` tally (The Grain Census) and
+    pays the `sizeRecord` windfall occasion with that size (The Freedom of the
+    City).
+  - The `roadJoinings` phase (`roadJoinings.ts`, before `collectYields`)
+    records the first time an owner's capital reaches a town by road
+    (`City.joinedBy`, written with or without a card) and pays the
+    `joinedToCapital` occasion (The Opening of the Roads).
+  - The census pays the `census` occasion to every empire still in the game,
+    with its citizens (The Tax Rolls). A completion now carries the town's
+    population (The Topping Out).
+  - A founding rider's `fromLargest` starts a new town at a share of the
+    largest town (The Great Colonies). Two counts: `citiesFounded` (The Book
+    of Settlements) and `citiesAdmitted`, the towns a scope admits, which a
+    production bonus can read (The Land's Great Work, The Great Aqueducts,
+    The Imperial Highways).
+  - A founding rider's `claimRadius` claims every unowned hex within that
+    many hexes of the new town (The Staked Claims, Expansionist batch E4).
 
 ## Units, movement, combat, siege
 
@@ -166,7 +237,11 @@ Reference: **`docs/units.md`** (the roster; generated) and
   `reachableTiles`, `advanceAlongPath`, `pathTurns`. Movement is in fifteenths;
   a road step costs a third by default, a fifth under Machinery. Zone of control
   is a toll, never a lock. Shore crossing is a pair-of-hexes rule; ships are
-  exempt.
+  exempt. The Woodland Bands' `woodsWalk` rule (Expansionist batch E3) prices
+  forest and jungle at the open-ground cost, through `MoveProfile.ignoresWoods`
+  in `tileMoveCost`. A worker of a seat holding The Fish Traps may step onto a
+  lake as if embarked (Expansionist batch E4): `MoveProfile.wades`, from the
+  rows' `workersWade` (`workerWaters`), in `tileMoveCost`.
 - **Three rules about who is in the way** (`docs/flags.md` (ooooo), 2026-09-15),
   all of them inside `stepCost`'s discipline:
   1. **A piece at peace is not a wall.** A hex holding a piece of a seat this

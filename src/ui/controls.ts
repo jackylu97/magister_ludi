@@ -171,6 +171,7 @@ import {
   productionSettledBy,
   queueItemName,
   withinWorkRadius,
+  workRadiusOf,
 } from '../sim/cities';
 import { roundYield, signedYield } from '../sim/yieldFormat';
 import { buildingDef } from '../sim/buildingData';
@@ -4800,11 +4801,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     refreshSiteRadius();
   }
 
-  /** Every cell within a city's work radius, its own centre included. */
+  /**
+   * Every cell within a city's work radius, its own centre included. The town's
+   * own reach (`workRadiusOf`): one ring more for a town The Common Domain
+   * reaches (Expansionist batch E3).
+   */
   function workRadiusCells(city: City): CellRef[] {
     const { state } = getGame();
     const centre = tileHex(cityTile(state.map, city));
-    return mapRange(state.map, centre, RULES.cities.workRadius).map((tile) => ({
+    return mapRange(state.map, centre, workRadiusOf(state, city)).map((tile) => ({
       col: tile.col,
       row: tile.row,
     }));

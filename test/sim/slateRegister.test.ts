@@ -208,6 +208,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
     field: 'greatPeople',
     pattern: /\.greatPeopleRecruited\s*(=[^=]|\+=)|\.greatPeopleByFamily\s*=[^=]/,
   },
+  // Expansionist batch E2: the towns an empire has founded, which The Book of
+  // Settlements' `citiesFounded` count reads. `foundCityAt` is its one writer.
+  { field: 'citiesFounded', pattern: /\.citiesFounded\s*(=[^=]|\+=)/ },
   // Dominion batch D7: a unit's fortification, which the `fortifiedUnits`
   // count (The Fortress Empire) and the `fortifiedUnit` hex test (The Farming
   // Garrisons, The Castra) read.
@@ -273,6 +276,11 @@ const ANNOUNCING = new Set([
   'cities.ts#assignCitizens',
   'cities.ts#claimTile',
   'cities.ts#foundCityAt',
+  // Expansionist batch E4: a town founded on an outpost takes the outpost's
+  // land from the town that held it, and The Encroaching Fields moves a hex
+  // between two empires' towns. Both write the owner array and announce.
+  'cities.ts#takeOutpostLand',
+  'frontiers.ts#runEncroachment',
   // Batch L: famine and a levy both take a citizen through `loseCitizen`.
   'cities.ts#loseCitizen',
   // Batch L: Seasonal Levies hangs timed effects on the town that levied.

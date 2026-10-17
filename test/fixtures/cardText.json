@@ -1294,8 +1294,8 @@
   ],
   "firstFruitsOffering": [
    {
-    "raw": "a city growing grants +10 faith",
-    "text": "a city growing grants +10 faith"
+    "raw": "a city growing to 2 citizens grants +10 faith",
+    "text": "a city growing to 2 citizens grants +10 faith"
    }
   ],
   "statuteLabour": [
@@ -3998,6 +3998,16 @@
     "text": "a town of at least 3 citizens may spend one citizen for a worker (once every 5 turns)"
    }
   ],
+  "theWoodlandBands": [
+   {
+    "raw": "your units pay only the open-ground cost to enter forest or jungle",
+    "text": "your units pay only the open-ground cost to enter forest or jungle"
+   },
+   {
+    "raw": "+2 combat strength while standing in forest or jungle",
+    "text": "+2 combat strength while standing in forest or jungle"
+   }
+  ],
   "levyOfTheLand": [
    {
     "raw": "a town may spend one citizen for production equal to the food it took to grow that citizen (once every 5 turns)",
@@ -4074,15 +4084,14 @@
   ],
   "outposts": [
    {
-    "raw": "a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town — not built yet",
-    "text": "a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town — not built yet",
-    "deferred": true
+    "raw": "while this card is seated, your workers may build an [[improvement:outpost|Outpost]]: on unowned wild ground up to 3 hexes beyond your borders; it claims its hex and every unowned hex next to it for your nearest city",
+    "text": "while this card is seated, your workers may build an Outpost: on unowned wild ground up to 3 hexes beyond your borders; it claims its hex and every unowned hex next to it for your nearest city"
    }
   ],
   "theProspectors": [
    {
-    "raw": "+3 production on every surveyed hex with a [[improvement:mine|Mine]] carrying a resource",
-    "text": "+3 production on every surveyed hex with a Mine carrying a resource"
+    "raw": "+3 production on every hex with a [[improvement:mine|Mine]] over a seam you surfaced",
+    "text": "+3 production on every hex with a Mine over a seam you surfaced"
    }
   ],
   "sixGardens": [
@@ -4159,10 +4168,38 @@
     "text": "after a town spends a citizen on a levy, it gains +3 food in this city for 10 turns, at most once every 10 turns"
    }
   ],
+  "theGrainCensus": [
+   {
+    "raw": "+2 gold to the empire",
+    "text": "+2 gold to the empire"
+   },
+   {
+    "raw": "+2 production in your capital",
+    "text": "+2 production in your capital"
+   },
+   {
+    "raw": "+1 gold per citizen your cities have grown past their largest size, counted while this Order stands in a slot",
+    "text": "+1 gold per citizen your cities have grown past their largest size, counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order stands in a slot",
+    "text": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order stands in a slot"
+   }
+  ],
+  "theGardenFrontier": [
+   {
+    "raw": "your workers may lay tended works on unowned wild hexes up to 2 hexes beyond your borders, and a hex worked there joins your nearest city",
+    "text": "your workers may lay tended works on unowned wild hexes up to 2 hexes beyond your borders, and a hex worked there joins your nearest city"
+   }
+  ],
   "theWatercourses": [
    {
-    "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside fresh water or beside a [[improvement:farm|Farm]] and beside fresh water",
-    "text": "+2 production on every hex with a Farm that is beside fresh water or beside a Farm and beside fresh water"
+    "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside a river or beside a [[improvement:farm|Farm]] and beside a river",
+    "text": "+2 production on every hex with a Farm that is beside a river or beside a Farm and beside a river"
+   },
+   {
+    "raw": "your farms beside one of your farms on a river count as having fresh water",
+    "text": "your farms beside one of your farms on a river count as having fresh water"
    }
   ],
   "theHighlands": [
@@ -4216,9 +4253,8 @@
   ],
   "migration": [
    {
-    "raw": "a crowded town sends a citizen to a small town joined to it — not built yet",
-    "text": "a crowded town sends a citizen to a small town joined to it — not built yet",
-    "deferred": true
+    "raw": "every 10 turns, while your happiness is 0 or below, your largest city sends one citizen to your smallest city joined to your capital",
+    "text": "every 10 turns, while your happiness is 0 or below, your largest city sends one citizen to your smallest city joined to your capital"
    }
   ],
   "veteranColonies": [
@@ -4230,8 +4266,8 @@
   ],
   "theLandscapeGarden": [
    {
-    "raw": "+3 culture on every tended hex beside a great person's work",
-    "text": "+3 culture on every tended hex beside a great person's work"
+    "raw": "+3 culture on every tended hex that is beside a great person's work or beside a city that holds a wonder",
+    "text": "+3 culture on every tended hex that is beside a great person's work or beside a city that holds a wonder"
    }
   ],
   "theEngineersYards": [
@@ -4320,6 +4356,16 @@
     "text": "a town of at least 6 citizens may spend one citizen for a settler (once every 5 turns)"
    }
   ],
+  "theBookOfSettlements": [
+   {
+    "raw": "+3% production per city you have founded this game (at most +30% production)",
+    "text": "+3% production per city you have founded this game (at most +30% production)"
+   },
+   {
+    "raw": "+3% gold per city you have founded this game (at most +30% gold)",
+    "text": "+3% gold per city you have founded this game (at most +30% gold)"
+   }
+  ],
   "theWoodwrights": [
    {
     "raw": "clearing a forest or jungle pays +150%",
@@ -4328,9 +4374,8 @@
   ],
   "theCommonDomain": [
    {
-    "raw": "large towns work their own ground one step further out than other towns do — not built yet",
-    "text": "large towns work their own ground one step further out than other towns do — not built yet",
-    "deferred": true
+    "raw": "citizens may work owned hexes one ring beyond the usual reach in every city of 10 or more citizens",
+    "text": "citizens may work owned hexes one ring beyond the usual reach in every city of 10 or more citizens"
    }
   ],
   "seasonalLevies": [
@@ -4365,9 +4410,8 @@
   ],
   "thePolders": [
    {
-    "raw": "a worker turns shallow sea beside your land into grassland — not built yet",
-    "text": "a worker turns shallow sea beside your land into grassland — not built yet",
-    "deferred": true
+    "raw": "while this card is seated, your workers may build a [[improvement:polder|Polder]]: on a coast hex with 3 of your land hexes beside it; for 2 work charges; it yields as a farm on grassland",
+    "text": "while this card is seated, your workers may build a Polder: on a coast hex with 3 of your land hexes beside it; for 2 work charges; it yields as a farm on grassland"
    }
   ],
   "publicWorks": [
@@ -4389,12 +4433,12 @@
   ],
   "theWideCountry": [
    {
-    "raw": "Commission. Goal: buy 12 hexes, while this card is seated",
-    "text": "Commission. Goal: buy 12 hexes, while this card is seated"
+    "raw": "Commission. Goal: claim 12 hexes by outposts, cleared camps or buying, while this card is seated",
+    "text": "Commission. Goal: claim 12 hexes by outposts, cleared camps or buying, while this card is seated"
    },
    {
-    "raw": "Reward: for 30 turns, +2 happiness in every city and +75% food in every city of 5 or fewer citizens",
-    "text": "Reward: for 30 turns, +2 happiness in every city and +75% food in every city of 5 or fewer citizens"
+    "raw": "Reward: +2 citizens in each of your 3 smallest cities, and for 30 turns, +2 happiness in every city",
+    "text": "Reward: +2 citizens in each of your 3 smallest cities, and for 30 turns, +2 happiness in every city"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -4489,10 +4533,84 @@
     "text": "military units raised by a levy start as Veterans"
    }
   ],
+  "theFreedomOfTheCity": [
+   {
+    "raw": "a city reaching 15 citizens for the first time grants production equal to 40 times its population",
+    "text": "a city reaching 15 citizens for the first time grants production equal to 40 times its population"
+   },
+   {
+    "raw": "a city reaching 20 citizens for the first time grants production equal to 40 times its population",
+    "text": "a city reaching 20 citizens for the first time grants production equal to 40 times its population"
+   }
+  ],
+  "theToppingOut": [
+   {
+    "raw": "completing a wonder grants production equal to 20 times the city's population",
+    "text": "completing a wonder grants production equal to 20 times the city's population"
+   }
+  ],
+  "theTaxRolls": [
+   {
+    "raw": "the world taking a census grants gold equal to 5 times your citizens",
+    "text": "the world taking a census grants gold equal to 5 times your citizens"
+   }
+  ],
+  "theOpeningOfTheRoads": [
+   {
+    "raw": "a city being joined to your capital by road for the first time grants production equal to 20 times its population",
+    "text": "a city being joined to your capital by road for the first time grants production equal to 20 times its population"
+   }
+  ],
+  "theGreatColonies": [
+   {
+    "raw": "new cities start with a third of the citizens of your largest city, rounded down",
+    "text": "new cities start with a third of the citizens of your largest city, rounded down"
+   }
+  ],
+  "theRaisingOfTheLand": [
+   {
+    "raw": "a great engineer spending themselves on their boon gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game",
+    "text": "a great engineer spending themselves on their boon gives every improved or tended hex in the borders of the city where it happens +1 food, +1 production for the rest of the game"
+   }
+  ],
+  "theAgeOfImprovement": [
+   {
+    "raw": "what your other Orders pay on improved hexes is +100% more",
+    "text": "what your other Orders pay on improved hexes is +100% more"
+   }
+  ],
+  "theWaterCourts": [
+   {
+    "raw": "your farms joined to a farm on fresh water by a chain of your farms count as having fresh water",
+    "text": "your farms joined to a farm on fresh water by a chain of your farms count as having fresh water"
+   }
+  ],
+  "theComingOfTheWater": [
+   {
+    "raw": "completing an [[building:aqueduct|Aqueduct]] gives every hex with a [[improvement:farm|Farm]] in the borders of the city where it happens +1 food for the rest of the game",
+    "text": "completing an Aqueduct gives every hex with a Farm in the borders of the city where it happens +1 food for the rest of the game"
+   }
+  ],
+  "theMountainTerraces": [
+   {
+    "raw": "your cities may work the mountains in their borders",
+    "text": "your cities may work the mountains in their borders"
+   },
+   {
+    "raw": "+1 production, +2 science on every mountain hex",
+    "text": "+1 production, +2 science on every mountain hex"
+   }
+  ],
+  "theStakedClaims": [
+   {
+    "raw": "new cities claim every unowned hex within 2 hexes of them at once",
+    "text": "new cities claim every unowned hex within 2 hexes of them at once"
+   }
+  ],
   "theLandsGreatWork": [
    {
-    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per 8 citizens (at most +40%)",
-    "text": "+5% production toward The Magnum Opus per 8 citizens (at most +40%)"
+    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per city of 8 or more citizens (at most +40%)",
+    "text": "+5% production toward The Magnum Opus per city of 8 or more citizens (at most +40%)"
    }
   ],
   "theGardenOfTheWorld": [
@@ -4564,16 +4682,14 @@
   ],
   "theGreatMigration": [
    {
-    "raw": "unhappy foreign towns near your border lose citizens to your happier towns — not built yet",
-    "text": "unhappy foreign towns near your border lose citizens to your happier towns — not built yet",
-    "deferred": true
+    "raw": "every 10 turns, while your happiness is above 0 and above another empire's, each city of that empire within 3 hexes of your borders with at least 2 citizens loses one citizen to your nearest city",
+    "text": "every 10 turns, while your happiness is above 0 and above another empire's, each city of that empire within 3 hexes of your borders with at least 2 citizens loses one citizen to your nearest city"
    }
   ],
   "theEncroachingFields": [
    {
-    "raw": "large towns take unworked hexes from the borders of smaller foreign towns beside them — not built yet",
-    "text": "large towns take unworked hexes from the borders of smaller foreign towns beside them — not built yet",
-    "deferred": true
+    "raw": "every 10 turns, each of your cities of at least 12 citizens takes one hex nobody works from the borders of a smaller foreign city next to it",
+    "text": "every 10 turns, each of your cities of at least 12 citizens takes one hex nobody works from the borders of a smaller foreign city next to it"
    }
   ],
   "theDomesdaySurvey": [
@@ -4590,13 +4706,6 @@
     "text": "then this card leaves its chair and is never seated again"
    }
   ],
-  "theRaisingOfTheLand": [
-   {
-    "raw": "a great engineer raises every worked hex in one town for good — not built yet",
-    "text": "a great engineer raises every worked hex in one town for good — not built yet",
-    "deferred": true
-   }
-  ],
   "theTwoHarvests": [
    {
     "raw": "an improved hex may also be tended, and counts as both — not built yet",
@@ -4608,6 +4717,24 @@
    {
     "raw": "every city: +1 city defence per 2 citizens",
     "text": "every city: +1 city defence per 2 citizens"
+   }
+  ],
+  "theGreatAqueducts": [
+   {
+    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per city with an [[building:aqueduct|Aqueduct]] (at most +40%)",
+    "text": "+5% production toward The Magnum Opus per city with an Aqueduct (at most +40%)"
+   }
+  ],
+  "theImperialHighways": [
+   {
+    "raw": "+3% production toward [[building:theMagnumOpus|The Magnum Opus]] per city joined to your capital by road (at most +45%)",
+    "text": "+3% production toward The Magnum Opus per city joined to your capital by road (at most +45%)"
+   }
+  ],
+  "theKeeps": [
+   {
+    "raw": "while this card is seated, your workers may build a [[improvement:townKeep|Keep]]: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind; units on its hex gain +5 strength when defending",
+    "text": "while this card is seated, your workers may build a Keep: one in each city; it yields what each of your hexes around it yields, except a city or another of its kind; units on its hex gain +5 strength when defending"
    }
   ],
   "theGrovesAndTheStones": [

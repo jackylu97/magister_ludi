@@ -725,26 +725,92 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * readings change nothing without the cards. Nothing stalled and no command
  * was refused.
  *
- * **Dominion batch D7 (schema 139), economy rules and Double Time.** Duel
- * `a86298d3:304146` → `19550795:276543`, standard `a0e03ce3:969986` →
- * `60bda3e9:983815`. Two things moved the digests:
+ * ---
  *
- *   · the version, 138 to 139;
+ * **Expansionist batches E2 (schema 139) and E3 (schema 140), moments, records
+ * and counts, and the land, merged after D6.** Duel `a86298d3:304146` →
+ * `eed36fcb:288964`, standard `a0e03ce3:969986` → `0b6d0a03:1013929`. E2 and E3
+ * were built at schemas 137 and 138, without D5 and D6, and the literals they
+ * pinned there (E2: duel `70666b59:270586`, standard `b49d4bdb:960141`; E3:
+ * duel `3175a91c:260719`, standard `d2051ff0:951807`) do not apply to this
+ * tree. Four things moved the digests:
+ *
+ *   · the version, 138 to 140;
+ *   · the cards. E2's nine new Expansionist rows and E3's five join the pools,
+ *     E3 frees two deferred rows (The Common Domain, and The Raising of the
+ *     Land, which moves from Tier IV to Tier III), and four live rows change
+ *     (The Land's Great Work, The Prospectors, The Watercourses and The
+ *     Landscape Garden). At turn 120 one duel seat holds The Woodland Bands and
+ *     another holds The Grain Census, neither seated, and no standard seat
+ *     holds an E2 or E3 card. The draws differ from the first hand that meets
+ *     one of the new rows;
+ *   · the two new town fields: `City.largestSize`, written at every founding
+ *     and every new record, and `City.joinedBy`, written the first time a town
+ *     is joined to its capital by road, with or without a card;
+ *   · E2's new `roadJoinings` phase, which raises the revision once more every
+ *     turn.
+ *
+ * Checked by taking all four back out (the deck file as D6 left it, the
+ * version at 138, the phase removed, which also stops the `City.joinedBy`
+ * writes, and `City.largestSize` not written), which gives D6's digests
+ * exactly on both boards. Everything else E2 and E3 changed stayed in for that
+ * run, and it changes nothing without the cards. That includes the bot's
+ * phantom town, which now stands on the seat's capital. The duel game adopts
+ * 11 governments and the standard one 17. Nothing stalled and no command was
+ * refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E4 (schema 141): works, claims and borders.** Duel
+ * `eed36fcb:288964` → `63f7db4c:289000`, standard `0b6d0a03:1013929` →
+ * `d1e861fb:1013915`. Four things moved them:
+ *
+ *   · the cards. Three Expansionist rows join the deck, five deferred rows are
+ *     freed (Outposts, The Polders, Migration, The Great Migration, The
+ *     Encroaching Fields), and two rows change (The Fish Traps, The Wide
+ *     Country). From the first draw that meets one of them, the seats hold
+ *     different cards. At turn 120 one standard seat holds The Fish Traps and
+ *     Migration, neither seated, and no duel seat holds an E4 card;
+ *   · the two new end-of-turn phases, `encroachment` and `migration`, which
+ *     raise the revision twice more every turn;
+ *   · the version, 140 to 141;
+ *   · the rest of the new code: the Keep and the polder on the bots' worker
+ *     roster, the tally renamed to `hexClaimed`, and the improvement rows.
+ *
+ * With the cards alone taken out (the deck file as E3 left it, everything else
+ * in place), the boards give duel `9d909129:288964` and standard
+ * `b066362d:1013929`: the same lengths as before, so the phases and the
+ * version move the hash only. Checked by taking all of E4's movers out (the
+ * deck file, the improvement table and `data/ai.json` as E3 left them, the two
+ * phases removed, a purchase recorded under the old tally name, and the
+ * version at 140), which gives E3's digests exactly on both boards. The duel
+ * game adopts 11 governments and the standard one 17. Nothing stalled and no
+ * command was refused.
+ *
+ * ---
+ *
+ * **Dominion batch D7 (schema 142), economy rules and Double Time, merged
+ * after E4.** Duel `63f7db4c:289000` → `110900e1:270781`, standard
+ * `d1e861fb:1013915` → `d35f6b2b:966765`. D7 was built at schema 139, without
+ * E2 to E4, and the literals it pinned there (duel `19550795:276543`, standard
+ * `60bda3e9:983815`) do not apply to this tree. Two things moved the digests:
+ *
+ *   · the version, 141 to 142;
  *   · the cards. Eight Dominion Orders, The Farming Garrisons and The Legions'
  *     Labour join the pools, and three Doctrines join the offers: The Marian
  *     Reforms at tier 4, The Laws of Lord Shang at tier 10 (the first Doctrine
  *     there, so every adoption at that tier now offers it) and The Fortress
- *     Empire at tier 29. At turn 120 on the duel board three seats seat The
- *     Farming Garrisons and one seats The Defiant Kingdom, four hold The Marian
- *     Reforms and three The Laws of Lord Shang. On the standard board every
- *     seat holds The Laws of Lord Shang, three hold The Marian Reforms and one
- *     The Fortress Empire. The bots take Lord Shang because they price the food
- *     it moves as production at the board's own weights, and the towns that
- *     build soldiers then grow more slowly, which is most of why the duel
- *     board's state is shorter.
+ *     Empire at tier 29. At turn 120 on the duel board two seats seat The
+ *     Farming Garrisons and one seats The Hunting Grounds, five hold The
+ *     Marian Reforms and four The Laws of Lord Shang. On the standard board
+ *     three seats hold The Farming Garrisons (two seat it), every seat holds
+ *     The Laws of Lord Shang and four hold The Marian Reforms. The bots take
+ *     Lord Shang because they price the food it moves as production at the
+ *     board's own weights, and the towns that build soldiers then grow more
+ *     slowly, which is most of why both boards' states are shorter.
  *
- * Checked by taking both back out (the two deck files as D6 left them and the
- * version at 138), which gives D6's digests exactly on both boards. Everything
+ * Checked by taking both back out (the two deck files as E4 left them and the
+ * version at 141), which gives E4's digests exactly on both boards. Everything
  * else D7 changed stayed in for that run: the fourteenth town step, the
  * empire-stage production line, the fortified-unit test and count, the camp
  * muster rule, the weariness rules, the harvest in the drill phase, the
@@ -753,8 +819,8 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * nothing without the cards. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '19550795:276543',
-  standard: '60bda3e9:983815',
+  duel: '110900e1:270781',
+  standard: 'd35f6b2b:966765',
 };
 
 /**

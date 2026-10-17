@@ -1,13 +1,14 @@
 /**
- * **The town** — the thirteen steps of `docs/yields.md`, from the centre to the
- * unrest gate.
+ * **The town** — the fourteen steps of `docs/yields.md`, from the centre to the
+ * food surplus a card moves into production.
  *
  * `explainCity` is the list (steps 1–11: the labelled lines, their fold, and the
  * percent list that is deliberately *not* applied to them) and `foldCity` is the
  * total (step 12, the only place in the simulation a yield meets a percentage,
  * then step 13, the unrest gate, which holds a town in unrest at nothing in the
- * voices it stops). Between them sit the palace, the building shares, the
- * conversions, the percent list and the town's half of Entry XVII's staging.
+ * voices it stops, then step 14, the surplus moved, Dominion batch D7). Between
+ * them sit the palace, the building shares, the conversions, the percent list
+ * and the town's half of Entry XVII's staging.
  *
  * Split out of `cities.ts` in batch E3b (`docs/flags.md` item pp,
  * `docs/audit/evaluations.md` §4b step 9: *files by layer, not by topic*). No
@@ -1112,9 +1113,11 @@ export function foldCityStages(
  * the reason beside it.
  *
  * **And then the unrest gate** (step 13, batch WC1): a town in unrest makes none
- * of the voices `explainUnrestGate` names, whatever the stages made of them. It
- * is the last thing here for the same reason the stages are here and not in a
- * phase: every reader of a town's total reads it through this one function.
+ * of the voices `explainUnrestGate` names, whatever the stages made of them.
+ * **And last the surplus moved** (step 14, Dominion batch D7): a card may move
+ * the town's food surplus into its production (`explainSurplusMoved`). Both are
+ * here for the same reason the stages are here and not in a phase: every reader
+ * of a town's total reads it through this one function.
  */
 export function foldCity(
   state: GameState,

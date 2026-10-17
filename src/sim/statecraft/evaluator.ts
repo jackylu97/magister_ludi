@@ -22,6 +22,7 @@ import {
   capitalCityOf,
   cityAt,
   cityResources,
+  markTownLand,
   cityTile,
   controlledResources,
   isCoastalCity,
@@ -62,6 +63,7 @@ import {
   isGreatPersonId,
 } from '../greatPeopleData';
 import {
+  IMPROVEMENT_IDS,
   type ImprovementId,
   improvementCountsAs,
   improvementDef,
@@ -103,7 +105,7 @@ import { cityRite } from '../religion';
 import { settleRenownWindfall } from '../renown';
 import { type CityYieldKey, type ResourceKind, resourceDef, resourceYield } from '../resourceData';
 import { nextFloat } from '../rng';
-import { economyStamp, slateShadow } from '../slate';
+import { economyStamp, slateMemo, slateShadow } from '../slate';
 import { connectedCities } from '../roads';
 // A leaf, exactly as `roads.ts` beside it is, and it became one so this line
 // could exist: `routeEndsHere` asks how many trade routes meet a town,
@@ -139,6 +141,7 @@ import {
   playerById,
   realPlayers,
   slottedOrderCount,
+  tileOwnerField,
   wondersHeldBy,
 } from '../state';
 import {
@@ -232,7 +235,8 @@ import {
   unitMaxHp,
 } from '../unitData';
 import { isExploredBy, isVisibleTo } from '../visibility';
-import { isCoastal } from '../water';
+import { hasFreshWater, isCoastal } from '../water';
+import type { HexMarkId } from '../rulesData';
 // Ranks (Dominion batch D1): a leaf over the rule book, the unit table and the
 // state, so the edge is one way.
 import {
@@ -1958,7 +1962,7 @@ function buildingsOfCategoryIn(city: City, category: BuildingCategory): number {
 function worksHolding(state: GameState, city: City, on: TileCondition): number {
   let total = 0;
   // The board's own answers for the tests a tile cannot answer alone
-  // (Dominion batch D7), taken once for the walk.
+  // (Expansionist batch E3; Dominion batch D7), taken once for the walk.
   const ground = groundFactsFor(state, city.ownerId);
   for (const cell of city.workedTiles) {
     const tile = getTileAt(state.map, cell.col, cell.row);
@@ -3201,7 +3205,7 @@ export function countOf(
       const rule = effect.tile;
       if (rule === undefined) return 0;
       // The board's own answers for the tests a tile cannot answer alone
-      // (Dominion batch D7), taken once for the walk.
+      // (Expansionist batch E3; Dominion batch D7), taken once for the walk.
       const ground = groundFactsFor(state, playerId);
       const walk = (town: City): number => {
         let here = 0;
@@ -3379,6 +3383,24 @@ export function countOf(
       if (!player) return 0;
       if (effect.family === undefined) return Math.max(0, Math.floor(player.greatPeopleRecruited));
       return Math.max(0, Math.floor(player.greatPeopleByFamily?.[effect.family] ?? 0));
+    }
+    // Expansionist batch E2, The Book of Settlements: the towns this empire has
+    // founded, its first included. A record, for `citiesCaptured`' reason: a
+    // town lost or razed leaves nothing on the board to say who founded it.
+    case 'citiesFounded':
+      return Math.max(0, Math.floor(playerById(state, playerId)?.citiesFounded ?? 0));
+    case 'citiesAdmitted': {
+      // Expansionist batch E2: the towns a scope admits (The Land's Great Work,
+      // The Great Aqueducts, The Imperial Highways). Founding order, through
+      // the one town walk, and the ordinary scope question asked of each town.
+      // A row with no scope counts nothing, the reading of a missing argument.
+      const test = effect.admits;
+      if (test === undefined) return 0;
+      let total = 0;
+      for (const town of citiesOf(state, playerId)) {
+        if (cityScopeAdmits(state, town, test, playerId)) total += 1;
+      }
+      return total;
     }
     default: {
       const unhandled: never = count;
@@ -3921,6 +3943,9 @@ function deckModifierLines(
     if (effect.scope !== undefined && (!city || !cityScopeAdmits(state, city, effect.scope))) {
       continue;
     }
+    // An amplifier with a tile test raises hex lines only (The Age of
+    // Improvement, Expansionist batch E3), so it says nothing to a ledger.
+    if (effect.on !== undefined) continue;
     const line = emptyLine(card, source);
     let instances = 0;
     // **Whose lines** (`CardYieldAmplifierEffect.reads`): the Orders', or the
@@ -4388,8 +4413,10 @@ export function tileConditionHolds(
   turn?: number,
   /**
    * **What the board says about this hex that the tile alone cannot**
-   * (Dominion batch D7): whether a fortified military unit of the empire
-   * stands on it. See `GroundFacts`. Absent, `fortifiedUnit` answers no.
+   * (Expansionist batch E3; Dominion batch D7): the empire asking, its farm
+   * water, which town centres hold a wonder, and where its fortified military
+   * units stand. See `GroundFacts`. Absent, the tests that need it answer from
+   * the tile alone or answer no, and the farm water adds nothing.
    */
   ground?: GroundFacts,
 ): boolean {
@@ -4426,6 +4453,17 @@ export function tileConditionHolds(
     }
     case 'water':
       return isWaterTerrain(tile.terrain);
+    case 'river':
+      // A river along any of the six edges (Expansionist batch E3, The
+      // Watercourses). The map's own mask, set on both hexes of an edge.
+      return tile.riverEdges !== 0;
+    case 'wonderTown':
+      // The Landscape Garden (Expansionist batch E3): the board's answer, or no.
+      return ground?.wonderCentre?.(tile) === true;
+    case 'surfaced':
+      // The Prospectors (Expansionist batch E3): this empire's survey struck the
+      // seam here. A caller that names no empire reads no.
+      return ground?.player !== undefined && tile.surfacedBy === ground.player;
     case 'improvement':
       // **Through `improvementCountsAs`, never by comparing the two ids**
       // (batch L8). A card written about a farm is true of a row that *is* a
@@ -4465,7 +4503,10 @@ export function tileConditionHolds(
     case 'resource':
       return tile.resource !== undefined && on.resources.includes(tile.resource);
     case 'freshwater':
-      return tile.freshwater;
+      // The map's water, or a farm the empire's law waters (The Watercourses,
+      // The Water Courts, Expansionist batch E3): "counts as having fresh
+      // water" is read here, in the one tile test every card asks.
+      return tile.freshwater || ground?.watered?.(tile) === true;
     case 'adjacentMountain':
       // Off the ground's own baked answer (`Tile.mountainsBeside`), never off a
       // walk of the neighbours: this predicate has a tile and no map, which is
@@ -4500,8 +4541,9 @@ export function tileConditionHolds(
       // world rather than about this hex, so a neighbour asked how old its
       // stones are is asked against the same turn.
       //
-      // The board's facts travel too (Dominion batch D7), for the clock's
-      // reason: whether a fortified unit stands on a hex is a fact about that
+      // The board's facts travel too (Expansionist batch E3; Dominion batch
+      // D7), for the clock's reason: whether a town centre holds a wonder, a
+      // farm is watered or a fortified unit stands on a hex is a fact about that
       // hex and not about the one asking.
       return (
         beside !== undefined &&
@@ -4526,23 +4568,195 @@ export function tileConditionHolds(
 }
 
 /**
- * **What a hex question may ask beyond the tile itself** (Dominion batch D7).
- * A fact a tile cannot answer alone, built by the caller that holds the board
- * (`groundFactsFor`) and handed to `tileConditionHolds`:
+ * **What a hex question may ask beyond the tile itself** (Expansionist batch
+ * E3; Dominion batch D7). Facts a tile cannot answer alone, built by the
+ * caller that holds the board (`groundFactsFor`) and handed to
+ * `tileConditionHolds`:
  *
+ *   · `player`, the empire asking, for `surfaced` (The Prospectors);
+ *   · `watered`, this empire's farm water (`farmWaterOf`): a farm its law says
+ *     counts as having fresh water (The Watercourses, The Water Courts). Absent
+ *     when its law passes no water, which is almost every empire;
+ *   · `wonderCentre`, true on the centre hex of a town holding a world wonder,
+ *     for `wonderTown` (The Landscape Garden);
  *   · `fortified`, true on a hex where a fortified military unit of the
- *     empire stands, for `fortifiedUnit` (The Farming Garrisons, The Castra).
+ *     empire stands, for `fortifiedUnit` (Dominion batch D7: The Farming
+ *     Garrisons, The Castra);
+ *   · `copiedHexes`, the ring a work that copies its neighbours pays for
+ *     (Expansionist batch E4, The Keeps).
  *
  * The yield context carries one (`TileYieldContext.ground`), so the hex fold,
  * the hover card and the lens all ask the same facts.
  */
 export interface GroundFacts {
+  player?: number;
+  watered?: (tile: Tile) => boolean;
+  wonderCentre?: (tile: Tile) => boolean;
+  /**
+   * **The hexes a work that copies its neighbours pays for** (Expansionist
+   * batch E4, The Keeps): the six hexes beside this one that lie inside the
+   * asking empire's borders, in the ring's own order, never a town centre and
+   * never another work that copies (the triage's reading 31). The hex fold sums
+   * what each one pays (`explainTileYield`, `yields/hex.ts`).
+   */
+  copiedHexes?: (tile: Tile) => readonly Tile[];
+  /**
+   * **Whether a fortified military unit of the asking empire stands on a
+   * hex** (Dominion batch D7, `fortifiedUnit`). Built by `fortifiedHexTest`,
+   * which walks the units once, the first time it is asked.
+   */
   fortified?: (tile: Tile) => boolean;
 }
 
 /** The ground facts for one empire's questions. See `GroundFacts`. */
 export function groundFactsFor(state: GameState, playerId: number): GroundFacts {
-  return { fortified: fortifiedHexTest(state, playerId) };
+  const water = farmWaterOf(state, playerId);
+  const facts: GroundFacts = {
+    player: playerId,
+    // Dominion batch D7: the hexes where this empire's fortified military
+    // units stand, walked once, the first time a card line asks.
+    fortified: fortifiedHexTest(state, playerId),
+    // Asked only by `wonderTown`, through `beside`, so a town walk per call is
+    // cheap enough: the hexes a garden card asks about are few.
+    wonderCentre: (tile) => {
+      const town = cityAt(state, tile.col, tile.row);
+      return town !== undefined && town.buildings.some((id) => isWonder(id));
+    },
+    // Asked only of a hex whose work copies its neighbours (The Keeps), and a
+    // town holds one Keep at most, so a ring walk per call is cheap.
+    copiedHexes: (tile) =>
+      neighborTiles(state.map, tileHex(tile)).filter(
+        (next) =>
+          tileOwnerPlayerId(state, next.col, next.row) === playerId &&
+          cityAt(state, next.col, next.row) === undefined &&
+          (next.improvement === undefined || improvementDef(next.improvement).copiesNeighbours !== true),
+      ),
+  };
+  if (water !== null) facts.watered = (tile) => water.watered(tile);
+  return facts;
+}
+
+/**
+ * **Which of this empire's farms its law waters**, and where a farm built
+ * would be watered (Expansionist batch E3). See `farmWaterOf`.
+ */
+export interface FarmWater {
+  /** True when this farm counts as having fresh water by the empire's law. */
+  watered(tile: Tile): boolean;
+  /**
+   * True when a farm built on this hex would count as having fresh water: the
+   * placement question (`improvementGroundError`), asked of a hex that holds
+   * no farm yet.
+   */
+  wouldWater(tile: Tile): boolean;
+}
+
+/**
+ * **This empire's farm water**, or `null` when its law passes no water
+ * (Expansionist batch E3; the triage's reading 22). Two behaviour rules, either
+ * or both:
+ *
+ *   · `riverFarmsWater` (The Watercourses): the water starts at this empire's
+ *     farms on a hex with a river edge and reaches the farms beside them. One
+ *     step, and no further;
+ *   · `farmChainsWater` (The Water Courts): the water starts at this empire's
+ *     farms on fresh water and passes along every unbroken chain of its farms.
+ *
+ * "This empire's farm" is a hex inside its borders that holds a farm
+ * (`improvementCountsAs`, so a row that counts as a farm counts). Every
+ * fresh-water question about a farm reads the answer: the Irrigation renewal
+ * in the hex fold, the farm's placement on dry ground, and the cards' own
+ * `freshwater` test. A town's fresh water (`cityHasFreshwater`) and a fight's
+ * (`CombatCondition` `freshwater`) still read the map, because neither is a
+ * question about a farm.
+ *
+ * One walk of the map and one spread, remembered on the economy clock: a farm
+ * built or torn up, a border moved and a card seated all move that clock
+ * (`test/sim/slateRegister.test.ts`). The remembered answer is two sorted lists
+ * of tile indices, so nothing depends on the order a `Map` iterates.
+ */
+export function farmWaterOf(state: GameState, playerId: number): FarmWater | null {
+  const river = cardBehaviorRule(state, playerId, 'riverFarmsWater');
+  const chain = cardBehaviorRule(state, playerId, 'farmChainsWater');
+  if (!river && !chain) return null;
+  const field = slateMemo(state, 'economy', 'farmWater', String(playerId), () =>
+    farmWaterField(state, playerId, river, chain),
+  );
+  const { map } = state;
+  return {
+    watered: (tile) => field.watered.includes(tileIndex(map, tile.col, tile.row)),
+    wouldWater: (tile) => field.near.includes(tileIndex(map, tile.col, tile.row)),
+  };
+}
+
+/** `farmWaterOf`'s remembered answer: tile indices, ascending. */
+interface FarmWaterField {
+  /** This empire's farms that count as having fresh water by its law. */
+  watered: number[];
+  /** Hexes where a farm built would count as having fresh water. */
+  near: number[];
+}
+
+function farmWaterField(
+  state: GameState,
+  playerId: number,
+  river: boolean,
+  chain: boolean,
+): FarmWaterField {
+  const { map } = state;
+  const tiles = map.tiles;
+  const owner = tileOwnerField(state);
+  const isFarm = (index: number): boolean => {
+    const tile = tiles[index]!;
+    return (
+      tile.improvement !== undefined &&
+      improvementCountsAs(tile.improvement, 'farm') &&
+      owner.at(index) === playerId
+    );
+  };
+  const neighbourIndices = (index: number): number[] => {
+    const tile = tiles[index]!;
+    return neighborTiles(map, tileHex(tile)).map((next) => tileIndex(map, next.col, next.row));
+  };
+  const watered = new Uint8Array(tiles.length);
+  const near = new Uint8Array(tiles.length);
+  // The Watercourses: one step from a farm with a river edge.
+  if (river) {
+    for (let index = 0; index < tiles.length; index++) {
+      if (tiles[index]!.riverEdges === 0 || !isFarm(index)) continue;
+      for (const next of neighbourIndices(index)) {
+        near[next] = 1;
+        if (isFarm(next)) watered[next] = 1;
+      }
+    }
+  }
+  // The Water Courts: every farm joined to a farm on fresh water by a chain of
+  // farms. A spread over the farms, in index order; the result is a set of
+  // hexes, so the order of the walk decides nothing.
+  if (chain) {
+    const wet = new Uint8Array(tiles.length);
+    const queue: number[] = [];
+    for (let index = 0; index < tiles.length; index++) {
+      if (!hasFreshWater(tiles[index]!) || !isFarm(index)) continue;
+      wet[index] = 1;
+      queue.push(index);
+    }
+    for (let head = 0; head < queue.length; head++) {
+      for (const next of neighbourIndices(queue[head]!)) {
+        near[next] = 1;
+        if (wet[next] === 1 || !isFarm(next)) continue;
+        wet[next] = 1;
+        watered[next] = 1;
+        queue.push(next);
+      }
+    }
+  }
+  const field: FarmWaterField = { watered: [], near: [] };
+  for (let index = 0; index < tiles.length; index++) {
+    if (watered[index] === 1) field.watered.push(index);
+    if (near[index] === 1) field.near.push(index);
+  }
+  return field;
 }
 
 /**
@@ -4624,14 +4838,19 @@ function tileAmplifierLines(
     if (effect.reads !== undefined) continue;
     for (const dressed of found) {
       if (dressed.card === card || !isOrderId(dressed.card)) continue;
+      // **Only where the amplifier's own tile test holds too** (The Age of
+      // Improvement's improved hexes, Expansionist batch E3): the helping lands
+      // on the hexes both tests admit.
+      const on: TileCondition =
+        effect.on === undefined ? dressed.effect.on : { test: 'all', of: [dressed.effect.on, effect.on] };
       const line: CardTileLine = {
-        source: label(source, tileConditionWords(dressed.effect.on)),
+        source: label(source, tileConditionWords(on)),
         // **The amplifier's own card, not the card it read.** The helping is
         // the engine's doing — it is what the engine is for — and a Ledger that
         // credited it to the dressed Order would be crediting the same slice
         // twice over on the day the two sit in different classes.
         card,
-        on: dressed.effect.on,
+        on,
         food: 0,
         production: 0,
         gold: 0,
@@ -5006,6 +5225,9 @@ export function cardProduction(
           to: 'authority',
           amount: 0,
           count: effect.count,
+          // The towns a `citiesAdmitted` count counts (Expansionist batch E2).
+          // Every other count ignores it.
+          admits: effect.admits,
         }),
         effect.per,
         effect.max,
@@ -5774,6 +5996,16 @@ function combatConditionHolds(
     }
     case 'onFeature':
       return situation.tile.feature === when.feature;
+    case 'standingIn': {
+      // The hex this side's piece stands on (The Woodland Bands, Expansionist
+      // batch E3): the contested hex for a defender, its own hex for an
+      // attacker. See the condition for why the two are told apart.
+      const stands =
+        situation.side === 'defend'
+          ? situation.tile
+          : getTileAt(state.map, situation.unit.col, situation.unit.row);
+      return stands !== undefined && when.features.includes(stands.feature);
+    }
     case 'freshwater':
       return situation.tile.freshwater;
     case 'coastal':
@@ -6731,6 +6963,13 @@ export interface WindfallPayout {
    * for the raid's own hex and never for the hexes it spreads to.
    */
   pillageBeside?: boolean;
+  /**
+   * **Lasting marks** a rider puts on the land of the town where the occasion
+   * happened (`WindfallGrantSpec.mark`, Expansionist batch E3). Optional for
+   * D3's four's reason. Delivered by `payWindfallGrants` through
+   * `markTownLand` (`cities.ts`).
+   */
+  marks?: { card: CardId; source: string; mark: HexMarkId }[];
   /** Every rider that touched this payout, for the announcement. */
   lines: { card: CardId; source: string; note: string }[];
   /**
@@ -6806,6 +7045,12 @@ export interface WindfallOccasionFacts {
    * one occasion whose whole subject is a single city — so the figure travels
    * as a fact about the occasion rather than as a city handed to a function
    * that would then have to decide what to do with one on a chop.
+   *
+   * Since Expansionist batch E2 more occasions carry it: the completions (the
+   * town's size when the thing is finished, The Topping Out), the size record
+   * (the new size, The Freedom of the City), the census (the empire's
+   * citizens, The Tax Rolls) and a town's first joining to its capital (the
+   * town's size, The Opening of the Roads).
    */
   population?: number;
   /**
@@ -6943,6 +7188,7 @@ export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
     (payout.strikes ?? []).length === 0 &&
     payout.unrestBeside !== true &&
     payout.pillageBeside !== true &&
+    (payout.marks ?? []).length === 0 &&
     (payout.techGrants ?? []).length === 0 &&
     payout.freeDraft !== true
   );
@@ -6991,6 +7237,7 @@ export function windfallPayout(
     strikes: [],
     unrestBeside: false,
     pillageBeside: false,
+    marks: [],
     lines: [],
     claims: [],
   };
@@ -7121,6 +7368,9 @@ export function windfallPayout(
     // Up Through the Ranks pays for an Elite and not for a Veteran. Only the
     // `rankEarned` occasion carries a rank, so the filter is silent elsewhere.
     if (effect.rank !== undefined && facts.rank !== effect.rank) return false;
+    // The Coming of the Water pays for an Aqueduct and not for a granary
+    // (Expansionist batch E3). Only a completion carries the row it finished.
+    if (effect.building !== undefined && facts.building !== effect.building) return false;
     return true;
   };
   // **The occasion's own figure, folded first.** The percentages sum and apply
@@ -7211,6 +7461,12 @@ export function windfallPayout(
     if (grant.pillageBeside === true) {
       payout.pillageBeside = true;
       payout.lines.push({ card, source, note: 'burns the works beside the hex' });
+    }
+    // Expansionist batch E3: a lasting mark on the town's land. No figure, so
+    // the era and the council multiply nothing here.
+    if (grant.mark !== undefined) {
+      (payout.marks ??= []).push({ card, source, mark: grant.mark });
+      payout.lines.push({ card, source, note: 'marks the city’s land for good' });
     }
     if (grant.timed !== undefined && grant.timed.effects.length > 0) {
       // The *turns* are the card's own and the effects travel untouched:
@@ -8443,6 +8699,14 @@ export function payWindfallGrants(
     }
     bumpEconomy(state);
   }
+  // **The lasting marks** (Expansionist batch E3): The Raising of the Land and
+  // The Coming of the Water mark the land of the town where the occasion
+  // happened, the town nearest its hex. `markTownLand` is the one routine that
+  // marks a town's land, and it re-seats the town when a hex changed.
+  for (const entry of payout.marks ?? []) {
+    const town = at ? nearestOwnedCity(state, player.id, at) : (capitalCityOf(state, player.id) ?? null);
+    if (town) markTownLand(state, town, entry.mark);
+  }
   // **The whole army, made whole** — The Empire's. Written straight onto the
   // pieces rather than through `healUnits`, because that phase is the *rested*
   // rule and this is a windfall: a legion that marched into the breach this turn
@@ -8862,16 +9126,23 @@ export function cardUnlocksBuilding(
 
 /**
  * Does one of this seat's cards open this **improvement row** for its workers?
- * The tended works' gate (`ImprovementDef.tended`), asked by
+ * The gate of every row a card opens (`isCardOpenedWork`), asked by
  * `improvementCardError` (`improvements.ts`). `cardUnlocksBuilding`'s sibling
- * for the improvement table: the answer is a charter the seat has drafted
- * (`CharterSpec.unlocks.improvement`).
+ * for the improvement table. Two answers: a charter the seat has drafted
+ * (`CharterSpec.unlocks.improvement`, the tended works), or a seated card whose
+ * `unlocksImprovement` effect names the row (Expansionist batch E4: The Keeps,
+ * The Polders and Outposts).
  */
 export function cardUnlocksImprovement(
   state: GameState,
   playerId: number,
   improvement: ImprovementId,
 ): boolean {
+  // A seated card, through the live walk, so it opens the row only while it
+  // sits in a chair (the triage's reading 31).
+  for (const { effect } of effectsOfKind(state, playerId, 'unlocksImprovement')) {
+    if (effect.improvement === improvement) return true;
+  }
   // A charter is never seated, so the seat's whole collection is asked rather
   // than its live effects: a drafted card stays in `orders` for good.
   const seat = playerById(state, playerId);
@@ -8881,6 +9152,37 @@ export function cardUnlocksImprovement(
     if (orderDef(id).charter?.unlocks.improvement === improvement) return true;
   }
   return false;
+}
+
+/**
+ * **How far beyond this empire's borders its workers may lay a kind of work**
+ * (Expansionist batch E4, The Garden Frontier's tended works): the largest
+ * `reach` of the seated `worksBeyond` effects naming the kind, or nought. Read
+ * by `improvementGroundError` (`improvements.ts`).
+ */
+export function worksBeyondReach(state: GameState, playerId: number, works: 'tended'): number {
+  let reach = 0;
+  for (const { effect } of effectsOfKind(state, playerId, 'worksBeyond')) {
+    if (effect.works === works) reach = Math.max(reach, Math.floor(effect.reach));
+  }
+  return reach;
+}
+
+/**
+ * **The water this empire's workers may step onto, as if embarked**
+ * (Expansionist batch E4, The Fish Traps' lakes): every terrain a row names in
+ * `ImprovementDef.workersWade`, for the rows a card this seat holds opens
+ * (`cardUnlocksImprovement`), in the table's order. Empty for nearly every
+ * seat. Asked once for each search by `moveProfile` (`pathfind.ts`).
+ */
+export function workerWaters(state: GameState, playerId: number): TerrainId[] {
+  const waters: TerrainId[] = [];
+  for (const id of IMPROVEMENT_IDS) {
+    const wade = improvementDef(id).workersWade;
+    if (wade === undefined || !cardUnlocksImprovement(state, playerId, id)) continue;
+    for (const water of wade) if (!waters.includes(water)) waters.push(water);
+  }
+  return waters;
 }
 
 /**
@@ -9827,6 +10129,19 @@ export interface FoundingRider {
    * `raiseToRank`. Empty unless a row with an `escort` found one.
    */
   ranks: { unitId: number; rank: RankId }[];
+  /**
+   * The size the town starts at before `population` is added, where a row
+   * names a share of the largest town (The Great Colonies, Expansionist batch
+   * E2). `foundCityAt` raises the town to it when it is larger than the usual
+   * starting size. Absent when no row names one; the largest of several wins.
+   */
+  startsAt?: number;
+  /**
+   * How far from its centre the town claims every unowned hex at once (The
+   * Staked Claims, Expansionist batch E4). Absent when no row names one, and
+   * the largest of several wins. `foundCityAt` claims beyond the first ring.
+   */
+  claimRadius?: number;
 }
 
 /**
@@ -9863,8 +10178,20 @@ export function cardFoundingRider(
     }
     if (effect.roads === true) rider.roads = true;
     if (effect.claims !== undefined) rider.claims += effect.claims;
+    if (effect.claimRadius !== undefined) {
+      rider.claimRadius = Math.max(rider.claimRadius ?? 0, Math.floor(effect.claimRadius));
+    }
     if (escort !== null && effect.rank !== undefined) {
       rider.ranks.push({ unitId: escort.id, rank: effect.rank });
+    }
+    // The Great Colonies (Expansionist batch E2): a share of the largest town
+    // this empire holds now, rounded down. The town being founded is already
+    // on the board at its usual size of one, so counting it changes nothing.
+    if (effect.fromLargest !== undefined && effect.fromLargest > 0) {
+      let largest = 0;
+      for (const town of citiesOf(state, playerId)) largest = Math.max(largest, town.population);
+      const share = Math.floor(largest / effect.fromLargest);
+      if (share > (rider.startsAt ?? 0)) rider.startsAt = share;
     }
   }
   return rider;

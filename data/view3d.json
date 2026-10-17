@@ -780,6 +780,24 @@
         "size": 0.5,
         "jitter": 0.05
       },
+      "townKeep": {
+        "color": "slate",
+        "shade": 0.08,
+        "size": 0.62,
+        "jitter": 0.03
+      },
+      "polder": {
+        "color": "timber",
+        "shade": 0.18,
+        "size": 0.66,
+        "jitter": 0.02
+      },
+      "outpost": {
+        "color": "vellum",
+        "shade": -0.06,
+        "size": 0.42,
+        "jitter": 0.08
+      },
       "floatingGardens": {
         "color": "brook",
         "shade": 0.24,

@@ -145,6 +145,8 @@ import {
 // harvest that runs in it (Dominion batch D7).
 import { drillUnits, harvestEnemyHexes } from "./statecraft/evaluator";
 import { returnLeviedCitizens } from "./levies";
+import { runRoadJoinings } from "./roadJoinings";
+import { runEncroachment, runMigrations } from "./frontiers";
 import { type PeaceOutcome, settlePeace } from "./diplomacy";
 import { pruneTruces } from "./wars";
 // The bargains' own broom, beside the truces': both sweep rows whose absolute
@@ -616,6 +618,16 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: (state) => returnLeviedCitizens(state),
   },
   {
+    name: "roadJoinings",
+    // A town joined to its capital by road for the first time pays the moment
+    // (The Opening of the Roads, Expansionist batch E2). **Before
+    // `collectYields`**, so hammers a card pays land before this turn's
+    // production is settled. Every real empire's joined towns are recorded,
+    // with or without the card, so a card seated later pays nothing for the
+    // past. See `runRoadJoinings`.
+    run: (state) => runRoadJoinings(state),
+  },
+  {
     name: "collectYields",
     // Re-assigns citizens, then banks food, hammers, gold, science and culture —
     // and, last of all, lets the creditors take a piece off an empire deep
@@ -846,6 +858,24 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     name: "expandBorders",
     // Culture buys the next tile for each city, best-scoring first.
     run: expandBorders,
+  },
+  {
+    name: "encroachment",
+    // Every ten turns, a large town takes an unworked hex from a smaller
+    // foreign town beside it (The Encroaching Fields, Expansionist batch E4).
+    // **Directly after `expandBorders`**, so it reads the borders this turn
+    // left, and after `collectYields`, so "nobody works that hex" is this
+    // turn's answer. See `runEncroachment`.
+    run: (state) => runEncroachment(state),
+  },
+  {
+    name: "migration",
+    // Every ten turns, citizens move between towns on the empires' happiness
+    // (Migration and The Great Migration, Expansionist batch E4). After
+    // `growCities`, so the happiness it reads counts this turn's growth, and
+    // after `encroachment`, so the borders are settled first. See
+    // `runMigrations`.
+    run: (state) => runMigrations(state),
   },
   {
     name: "healCities",

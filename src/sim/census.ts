@@ -51,7 +51,14 @@
  * ask and this one is what the world may measure.
  */
 
+import { settleGrowthWindfall, settleProductionWindfall } from './cities';
 import { LIVE_GREAT_PERSON_IDS, greatPersonDef } from './greatPeopleData';
+// Straight from the two statecraft modules rather than through the index, as
+// `cities.ts` takes `windfallPayoutIsEmpty`: the index re-exports across a
+// cycle, and the build splits such re-exports into chunks it warns about.
+import { settleCultureWindfall } from './statecraft/draft';
+import { payWindfallGrants, windfallPayout, windfallPayoutIsEmpty } from './statecraft/evaluator';
+import { settleResearchWindfall } from './tech';
 import { awardOccasion } from './triumphs';
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from './triumphData';
 import { nextInt } from './rng';
@@ -404,7 +411,37 @@ export function runCensus(state: GameState, report?: CensusReport): void {
     awardOccasion(state, leaderId, 'censusTaken');
   }
 
+  // **Every counted empire's own cards are paid too** (Expansionist batch E2,
+  // The Tax Rolls). The Triumph above is the world's prize for the leader;
+  // this is what each empire's own law pays for the census.
+  payCensusRiders(state);
+
   if (report) report.censusTaken = record;
+}
+
+/**
+ * **The `census` windfall occasion, paid to every counted empire** in seat
+ * order (Expansionist batch E2): The Tax Rolls' gold, five for each citizen.
+ *
+ * The population the occasion carries is the empire's citizens across all its
+ * towns, the census's own `citizens` figure. There is no hex, so food and
+ * production a rider pays land in the capital, and each town touched is
+ * settled at once, as `endUnrest` (`unrest.ts`) settles its towns. Culture and
+ * science settle at once, as every windfall's do. An empire whose cards pay
+ * nothing on a census is skipped without a write.
+ */
+function payCensusRiders(state: GameState): void {
+  for (const player of censusSeats(state)) {
+    let citizens = 0;
+    for (const city of citiesOf(state, player.id)) citizens += city.population;
+    const payout = windfallPayout(state, player.id, 'census', 0, 0, { population: citizens });
+    if (windfallPayoutIsEmpty(payout)) continue;
+    for (const town of payWindfallGrants(state, player, payout)) {
+      if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
+    }
+    settleCultureWindfall(state, player);
+    settleResearchWindfall(state, player);
+  }
 }
 
 // --- the blocker and its answer ---------------------------------------------

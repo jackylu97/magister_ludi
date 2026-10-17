@@ -346,6 +346,14 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     // (`isUnlocked` reads it), but it pays no yield, which is what this list is
     // about — `unlocksBuilding` sits here for the same reason.
     'unlocksUnit',
+    // Expansionist batch E4. A work row a seated card opens and tended works
+    // beyond the borders pay nothing themselves: the works they open pay on the
+    // hex, through the improvement table. The two cadence shapes move a hex or a
+    // citizen, which pays no voice.
+    'unlocksImprovement',
+    'worksBeyond',
+    'encroach',
+    'migration',
   ];
 
   /** Every `kind: '…'` discriminant declared in the union's shapes. */

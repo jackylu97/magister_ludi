@@ -438,12 +438,24 @@ describe('the schema, as landed', () => {
     // shared row (Looted Art) came live, and two deferred rows were freed (War
     // Reparations, Commission: A Victor's Peace). Six more were reworked in
     // place and were already live.
+    // **And Expansionist batch E2** (moments, records and counts): nine more.
+    // Nine new Expansionist rows came live; The Land's Great Work was changed
+    // in place and was already live.
+    // **And Expansionist batch E3** (the land): seven more. Five new
+    // Expansionist rows came live, and two deferred rows were freed (The Common
+    // Domain and The Raising of the Land); The Prospectors, The Watercourses
+    // and The Landscape Garden were changed in place and were already live.
+    // **And Expansionist batch E4** (works, claims and borders): eight more.
+    // Three new Expansionist rows came live (The Keeps, The Garden Frontier,
+    // The Staked Claims), and five deferred rows were freed (Outposts, The
+    // Polders, Migration, The Great Migration, The Encroaching Fields); The Fish
+    // Traps and The Wide Country were changed in place and were already live.
     // **And Dominion batch D7** (economy rules and Double Time): ten more.
     // Eight new Dominion Orders and one new shared row (The Farming
     // Garrisons) came live, and one deferred row was freed (The Legions'
     // Labour). Its three Doctrines are not Orders.
-    expect(live).toBe(466);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(466);
+    expect(live).toBe(490);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(490);
   });
 
   /**
@@ -644,10 +656,19 @@ describe('the schema, as landed', () => {
     // 138 since D6: eleven Dominion cards about captures, commissions and the
     // end of a war, and new records on wars, towns and seats, so a v137 log's
     // picks name cards this build never dealt.
-    // 139 since D7: thirteen Dominion cards about economy rules and Double
-    // Time, and a fourteenth step in a town's yields, so a v138 log's picks
+    // 139 since E2: ten Expansionist cards about moments, records and counts,
+    // two new town fields and a new end-of-turn phase, so a v138 log's picks
+    // name cards this build deals differently and its resolutions run one
+    // phase fewer.
+    // 140 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v139 log's picks name cards this build deals differently.
+    // 141 since E4: ten Expansionist cards about works, claims and borders,
+    // and two new end-of-turn phases, so a v140 log's picks name cards this
+    // build deals differently and its resolutions run two phases fewer.
+    // 142 since D7: thirteen Dominion cards about economy rules and Double
+    // Time, and a fourteenth step in a town's yields, so a v141 log's picks
     // name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(139);
+    expect(SCHEMA_VERSION).toBe(142);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -862,10 +883,14 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // (+ 2 retired).
       // **Dominion batch D6** freed two deferred rows (War Reparations,
       // Commission: A Victor's Peace: − 2).
+      // **Expansionist batch E3** freed two more (The Common Domain and The
+      // Raising of the Land: − 2).
+      // **Expansionist batch E4** freed five more (Outposts, The Polders,
+      // Migration, The Great Migration, The Encroaching Fields: − 5).
       // **Dominion batch D7** freed one (The Legions' Labour: − 1).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(67);
+      ).toHaveLength(60);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(136);
     }
   });

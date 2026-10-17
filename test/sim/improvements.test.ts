@@ -33,6 +33,7 @@ import {
   improvementDef,
   improvementForResource,
   improvementYield,
+  isCardOpenedWork,
   isGreatPersonWork,
   isImprovementId,
 } from '../../src/sim/improvementData';
@@ -149,7 +150,7 @@ function build(playerId: number, unitId: number, improvement: ImprovementId): Co
 // --- the table --------------------------------------------------------------
 
 describe('the improvement table', () => {
-  it('names ten worker improvements, six works, four tended works, and recognises its own ids', () => {
+  it('names ten worker improvements, six works, four tended works, three card works, and recognises its own ids', () => {
     // Two halves of one table, and the split is `ImprovementDef.greatPerson`:
     // the first ten are what a worker's charge buys, the last six are what a
     // *work's* hand plants (`docs/great-people.md`, and the holy site the
@@ -188,6 +189,11 @@ describe('the improvement table', () => {
       'fishTraps',
       'wildOrchard',
       'burnedCountry',
+      // The three works a seated card opens (Expansionist batch E4): rows
+      // marked `unlockedByCard`, opened by The Keeps, The Polders and Outposts.
+      'townKeep',
+      'polder',
+      'outpost',
     ]);
     expect(isImprovementId('farm')).toBe(true);
     expect(isImprovementId('orchard')).toBe(false);
@@ -757,6 +763,10 @@ describe('buildImprovement', () => {
             // sentence. A variant of the row the seam wants would not be
             // refused here at all, which is the other half of the same ruling.
             if (improvementDef(other).unlockedByLeader === true) continue;
+            // Nor does a row built only beyond the borders (Expansionist batch
+            // E4, the outpost): this bench's hex is owned, so it is refused one
+            // rung earlier for standing inside the borders.
+            if (improvementDef(other).beyondBorders !== undefined) continue;
             if (other === wanted) continue;
             const def = improvementDef(other);
             // A resource-improvement refuses on its own `requiresResource`
@@ -1141,9 +1151,10 @@ describe('buildImprovement', () => {
         // is planted by a piece a renown bucket had to fill to produce, which is
         // a steeper gate than any technology and one no worker can reach.
         if (improvementDef(id).greatPerson !== undefined) continue;
-        // A tended work is gated by the card that names it, not by the tree
+        // A tended work, and a row a seated card opens (Expansionist batch E4),
+        // is gated by the card that names it, not by the tree
         // (`improvementCardError`).
-        if (improvementDef(id).tended === true) continue;
+        if (isCardOpenedWork(id)) continue;
         const gate = improvementDef(id).requiresTech;
         expect(gate, id).toBeDefined();
         expect(TECH_IDS, id).toContain(gate!);
@@ -1163,7 +1174,7 @@ describe('buildImprovement', () => {
       bumpRevision(state);
       for (const id of IMPROVEMENT_IDS) {
         if (improvementDef(id).greatPerson !== undefined) continue;
-        if (improvementDef(id).tended === true) continue;
+        if (isCardOpenedWork(id)) continue;
         const gate = improvementDef(id).requiresTech!;
         expect(improvementTechError(state, 0, id)).toContain(techDef(gate).name);
       }
@@ -2060,6 +2071,14 @@ describe('explainTileYield', () => {
       const paid =
         entry!.food + entry!.production + entry!.gold +
         entry!.science + entry!.culture + entry!.faith;
+      // **Two rows pay nothing of their own, by design** (Expansionist batch
+      // E4). A Keep pays what the hexes around it pay, which a reading with no
+      // context cannot see (`expansionistWorks.test.ts` reads it with one), and
+      // an outpost's worth is the ground it claims (`claimsUnowned`).
+      if (def.copiesNeighbours === true || def.claimsUnowned !== undefined) {
+        expect(paid, id).toBe(0);
+        continue;
+      }
       expect(paid, id).toBeGreaterThan(0);
       if (id === 'citadel') expect(entry!.production).toBe(2);
       expect(def.name.length, id).toBeGreaterThan(0);
@@ -2569,10 +2588,19 @@ describe('improvements in the log', () => {
     // 138 since D6: eleven Dominion cards about captures, commissions and the
     // end of a war, and new records on wars, towns and seats, so a v137 log's
     // picks name cards this build never dealt.
-    // 139 since D7: thirteen Dominion cards about economy rules and Double
-    // Time, and a fourteenth step in a town's yields, so a v138 log's picks
+    // 139 since E2: ten Expansionist cards about moments, records and counts,
+    // two new town fields and a new end-of-turn phase, so a v138 log's picks
+    // name cards this build deals differently and its resolutions run one
+    // phase fewer.
+    // 140 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v139 log's picks name cards this build deals differently.
+    // 141 since E4: ten Expansionist cards about works, claims and borders,
+    // and two new end-of-turn phases, so a v140 log's picks name cards this
+    // build deals differently and its resolutions run two phases fewer.
+    // 142 since D7: thirteen Dominion cards about economy rules and Double
+    // Time, and a fourteenth step in a town's yields, so a v141 log's picks
     // name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(139);
+    expect(SCHEMA_VERSION).toBe(142);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

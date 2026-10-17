@@ -485,6 +485,10 @@ describe("end-of-turn pipeline", () => {
       // Expansionist batch E1), before `collectYields`, so a returned citizen
       // works this turn's yields. See `returnLeviedCitizens`.
       "levyReturns",
+      // A town joined to its capital by road for the first time pays the
+      // moment (The Opening of the Roads, Expansionist batch E2), before
+      // `collectYields`. See `runRoadJoinings`.
+      "roadJoinings",
       "collectYields",
       "growCities",
       // A town's own renown quietly takes a citizen out of the fields and puts
@@ -555,6 +559,13 @@ describe("end-of-turn pipeline", () => {
       // legacy in the first place. See `reviewLegacies`.
       "reviewLegacies",
       "expandBorders",
+      // Expansionist batch E4, every ten turns: The Encroaching Fields takes a
+      // hex from a smaller foreign town, then Migration and The Great
+      // Migration move citizens on the empires' happiness. After the borders
+      // grow, so both read the borders and the worked hexes this turn left. See
+      // `runEncroachment` and `runMigrations` (`frontiers.ts`).
+      "encroachment",
+      "migration",
       "healCities",
       // The wild acts after the towns and before the healing, so a raider that
       // marched or fought is not resting. See `barbarianTurn`.
@@ -910,10 +921,19 @@ describe("the research queue field", () => {
     // 138 since D6: eleven Dominion cards about captures, commissions and the
     // end of a war, and new records on wars, towns and seats, so a v137 log's
     // picks name cards this build never dealt.
-    // 139 since D7: thirteen Dominion cards about economy rules and Double
-    // Time, and a fourteenth step in a town's yields, so a v138 log's picks
+    // 139 since E2: ten Expansionist cards about moments, records and counts,
+    // two new town fields and a new end-of-turn phase, so a v138 log's picks
+    // name cards this build deals differently and its resolutions run one
+    // phase fewer.
+    // 140 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v139 log's picks name cards this build deals differently.
+    // 141 since E4: ten Expansionist cards about works, claims and borders,
+    // and two new end-of-turn phases, so a v140 log's picks name cards this
+    // build deals differently and its resolutions run two phases fewer.
+    // 142 since D7: thirteen Dominion cards about economy rules and Double
+    // Time, and a fourteenth step in a town's yields, so a v141 log's picks
     // name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(139);
+    expect(SCHEMA_VERSION).toBe(142);
   });
 });
 

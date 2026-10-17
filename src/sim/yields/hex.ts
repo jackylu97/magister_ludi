@@ -38,9 +38,10 @@ import {
   tileConditionHolds,
   tileConditionReadsFold,
 } from '../statecraft';
-// Dominion batch D7's ground facts, straight from the evaluator rather than
-// through the `statecraft.ts` index, so the build does not warn of a circular
-// import between chunks.
+import { HEX_MARK_IDS, RULES } from '../rulesData';
+// The ground facts (Expansionist batch E3; Dominion batch D7), straight from
+// the evaluator rather than through the `statecraft.ts` index, so the build
+// does not warn of a circular import between chunks.
 import { type GroundFacts, groundFactsFor } from '../statecraft/evaluator';
 import { type City, type GameState, playerById } from '../state';
 import {
@@ -252,13 +253,16 @@ export interface TileYieldContext {
   turn?: number;
   /**
    * **What the board says about a hex that the tile alone cannot**
-   * (Dominion batch D7): whether a fortified military unit of this empire
-   * stands on it. See `GroundFacts` (`statecraft/evaluator.ts`).
+   * (Expansionist batch E3; Dominion batch D7): the empire asking, its farm
+   * water, which town centres hold a world wonder, and where its fortified
+   * military units stand. See `GroundFacts` (`statecraft/evaluator.ts`).
    *
    * Built once by `yieldContextFor`, the one place with a board in hand, and
-   * carried downstream by the spread that copies the rest. Its answer walks
-   * the units once, the first time a card line asks, and never when no line
-   * asks. Absent for a context-less evaluation, which answers no.
+   * carried downstream by the spread that copies the rest. Read in two places
+   * here: the Irrigation renewal, which a farm the law waters earns as if it
+   * stood on fresh water, and every card line's tile test. Absent for a
+   * context-less evaluation, which reads the map's own water and finds no
+   * fortified unit.
    */
   ground?: GroundFacts;
 }
@@ -324,8 +328,9 @@ export function yieldContextFor(
   // law says, for the ring's reason exactly: a fact about the world does not
   // wait for a card to have already spoken.
   ctx.turn = state.turn;
-  // **The board's answers** (Dominion batch D7), for the ring's reason too:
-  // the hexes where this empire's fortified military units stand.
+  // **The board's answers** (Expansionist batch E3; Dominion batch D7), for
+  // the ring's reason too: the farm water, the wonder towns, who is asking and
+  // where this empire's fortified military units stand.
   ctx.ground = groundFactsFor(state, playerId);
   return ctx;
 }
@@ -429,6 +434,21 @@ export function explainTileYield(
     list.push({ source: feature.name, kind: 'override', ...readTileYield(override) });
   }
 
+  // **Drained ground** (The Polders, Expansionist batch E4): a work that yields
+  // as other ground replaces the hex's own yield with that ground's. It comes
+  // after the terrain and the canopy and before the seam, so a resource still
+  // adds, and the hex stays water for every other rule (the triage's reading
+  // 32).
+  const drained = tile.improvement === undefined ? undefined : improvementDef(tile.improvement);
+  if (drained?.yieldsAs !== undefined) {
+    const ground = terrainDef(drained.yieldsAs.terrain);
+    list.push({
+      source: `${drained.name}: ${ground.name}`,
+      kind: 'override',
+      ...readTileYield(ground.yield),
+    });
+  }
+
   // The resource, and only for an empire that has a word for it. A seam this
   // player cannot be *told* about pays nothing — see "The reveal gate" above —
   // and a context-less evaluation is the omniscient one, which is why the test
@@ -448,19 +468,48 @@ export function explainTileYield(
   const worksFrom = list.length;
   if (improvement !== undefined) {
     const def = improvementDef(improvement);
-    list.push({ source: def.name, kind: 'add', ...improvementYield(improvement) });
+    // **A work that yields as another** (The Polders, Expansionist batch E4)
+    // pays that row's yield and those of its renewals that need no fresh water.
+    // Every other row pays its own.
+    const paysAs = def.yieldsAs?.improvement ?? improvement;
+    const works = improvementYield(paysAs);
+    // **A work that copies the hexes around it** (The Keeps, Expansionist batch
+    // E4): what each of them pays, read with this hex's own context, is added
+    // to the work's line (the triage's reading 31). `GroundFacts.copiedHexes`
+    // finds them, and never another work that copies, so the fold never reads
+    // itself. A context-less reading copies nothing.
+    if (def.copiesNeighbours === true) {
+      for (const next of ctx?.ground?.copiedHexes?.(tile) ?? []) {
+        const theirs = foldTile(next, ctx);
+        for (const voice of TILE_YIELD_KEYS) works[voice] += theirs[voice];
+      }
+    }
+    list.push({ source: def.name, kind: 'add', ...works });
     // The renewals, each its own entry, and only for an empire that has earned
     // them. Walked in the table's own order so two renewals on one improvement
     // always read in the same order (design ledger, Entry I).
-    for (const upgrade of def.upgrades ?? []) {
+    for (const upgrade of improvementDef(paysAs).upgrades ?? []) {
       if (!ctx || !ctx.techs.includes(upgrade.tech)) continue;
+      // A row that yields as another takes none of its wet renewals.
+      if (def.yieldsAs !== undefined && upgrade.requiresFreshwater === true) continue;
       // **Or the town that works this hex waters it** — the Cistern
       // (`TileYieldContext.irrigates`). The one place a building answers for the
       // ground, and it is a *clause on this condition* rather than a second kind
       // of water: `Tile.freshwater` is what the map says, and this is a town
       // saying it will carry the water out to the fields. A hex evaluated with
       // no context at all is the omniscient reading and has no town to ask.
-      if (upgrade.requiresFreshwater && !tile.freshwater && ctx?.irrigates !== true) continue;
+      //
+      // **Or this empire's law waters the farm** (The Watercourses and The
+      // Water Courts, Expansionist batch E3): `GroundFacts.watered`, the same
+      // answer the cards' own `freshwater` test reads.
+      if (
+        upgrade.requiresFreshwater &&
+        !tile.freshwater &&
+        ctx?.irrigates !== true &&
+        ctx?.ground?.watered?.(tile) !== true
+      ) {
+        continue;
+      }
       list.push({
         source: techDef(upgrade.tech).name,
         kind: 'add',
@@ -469,6 +518,23 @@ export function explainTileYield(
     }
   }
   const worksTo = list.length;
+
+  // **The lasting marks** (Expansionist batch E3: The Raising of the Land, The
+  // Coming of the Water), after the works and outside their bracket: a mark is
+  // a fact about the ground, and a share of the works is a share of what the
+  // improvement pays. Each mark pays while its own condition holds
+  // (`rules.improvements.hexMarks`), whoever owns or works the hex, so a
+  // context-less evaluation pays it too. The table's order, so two marks always
+  // read in the same order.
+  const marks = tile.marks;
+  if (marks !== undefined) {
+    for (const mark of HEX_MARK_IDS) {
+      if (!marks.includes(mark)) continue;
+      const rule = RULES.improvements.hexMarks[mark];
+      if (!tileConditionHolds(tile, rule.while)) continue;
+      list.push({ source: rule.name, kind: 'add', ...readTileYield(rule.yields) });
+    }
+  }
 
   // **What the hex has been reckoned to pay so far**, for the one condition that
   // asks about worth rather than about substance (`TileCondition`'s `yields`,

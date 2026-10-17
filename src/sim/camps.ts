@@ -154,6 +154,9 @@ export function claimClearedCampGround(
     if (claimTile(state, seat, tile)) claimed += 1;
   }
   if (claimed === 0) return null;
+  // The Wide Country's goal counts the hexes a cleared camp claims
+  // (Expansionist batch E4; the triage's reading 35).
+  recordScalingOccasion(state, playerId, 'hexClaimed', claimed);
   recomputeVisibility(state, playerId);
   refreshCityDerived(state, seat);
   return seat;

@@ -36,11 +36,17 @@ import {
   greatPersonDef,
   isGreatPersonId,
 } from '../greatPeopleData';
-import { improvementDef, isGreatPersonWork, workForFamily } from '../improvementData';
+import {
+  type ImprovementId,
+  improvementDef,
+  isGreatPersonWork,
+  workForFamily,
+} from '../improvementData';
 import { projectDef } from '../projectData';
 import { beliefPoolOf, isBeliefId, isConsecrationId, isRiteId, riteDef } from '../religionData';
 import { type CityYieldKey, resourceDef } from '../resourceData';
 import { RULES } from '../rulesData';
+import { readTileYield, terrainDef } from '../terrainData';
 import {
   type AmplifierTarget,
   type PressureRuleId,
@@ -1389,7 +1395,18 @@ function describeEffect(
           ? ''
           : ` per ${countWords(
               effect.per,
-              countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count }, ''),
+              countNoun(
+                {
+                  kind: 'pays',
+                  where: 'empire',
+                  basis: 'count',
+                  count: effect.count,
+                  // The towns a `citiesAdmitted` count counts (Expansionist
+                  // batch E2). Every other count ignores it.
+                  admits: effect.admits,
+                },
+                '',
+              ),
             )}` +
             (effect.max === undefined
               ? ''
@@ -1683,12 +1700,37 @@ function describeEffect(
               'earning a rank',
               `becoming ${indefinite(rankName(effect.rank))} ${rankName(effect.rank)}`,
             );
+      // The size a town reaches (`atPopulation`), said inside the occasion's
+      // own phrase where the table has one ("a city reaching 15 citizens for
+      // the first time"), and in the parenthesis otherwise (Expansionist batch
+      // E2, The Freedom of the City). Before E2 the narrowing was not printed.
+      const sizedWords =
+        effect.atPopulation === undefined ? undefined : AT_POPULATION_WORDS[effect.occasion];
+      if (effect.atPopulation !== undefined && sizedWords === undefined) {
+        narrowings.push(`at ${effect.atPopulation} citizens`);
+      }
+      const sized =
+        effect.atPopulation === undefined || sizedWords === undefined
+          ? said
+          : sizedWords(effect.atPopulation);
       // The Flood Festival names the improvement it pays for, inside the
       // occasion's own phrase, the way "a building" narrows "anything" above.
+      // The Coming of the Water names the building it pays for, inside the
+      // occasion's own phrase (Expansionist batch E3): "completing an Aqueduct".
+      const built =
+        effect.building === undefined
+          ? sized
+          : sized.replace(
+              'a building',
+              (() => {
+                const name = buildingDef(effect.building).name;
+                return `${indefinite(name)} ${ref('building', effect.building, name)}`;
+              })(),
+            );
       const named =
         effect.improvement === undefined
-          ? said
-          : said.replace(
+          ? built
+          : built.replace(
               'an improvement',
               (() => {
                 const name = improvementDef(effect.improvement).name;
@@ -1747,7 +1789,10 @@ function describeEffect(
           // the bare measure ("culture equal to its strength"); a fraction reads
           // as a percentage, because "0.1 times the gold paid" is not a sentence
           // anybody has said out loud.
-          const figure = measuredWords(grant.yield, grant.amount, grant.fromOccasion);
+          // An occasion about the whole empire, or about the city that
+          // finished a thing, says whose measure it is (Expansionist batch
+          // E2): see `OCCASION_MEASURE_WORDS`.
+          const figure = measuredWords(grant.yield, grant.amount, grant.fromOccasion, effect.occasion);
           // The ceiling trails, because a player reads *what is paid* first and
           // *how much at most* second — the duration clause's own order, one
           // grant shape over.
@@ -1775,7 +1820,7 @@ function describeEffect(
         const figure =
           grant.fromOccasion === undefined
             ? `${signed(grant.renown)} renown`
-            : measuredWords('renown', grant.renown, grant.fromOccasion);
+            : measuredWords('renown', grant.renown, grant.fromOccasion, effect.occasion);
         out.push({ text: `${occasion} grants ${figure}${favours}${per}` });
       }
       if (grant?.heal !== undefined) {
@@ -1809,6 +1854,17 @@ function describeEffect(
       }
       if (grant?.pillageBeside === true) {
         out.push({ text: `${occasion} also pillages every enemy improvement beside the hex` });
+      }
+      // Expansionist batch E3: a lasting mark on the land, said from the rule
+      // book's own table so the figure and the hexes are the mark's.
+      if (grant?.mark !== undefined) {
+        const rule = RULES.improvements.hexMarks[grant.mark];
+        const hexes = tileConditionWords(rule.while).replace(/\bhex\b/, 'hex');
+        out.push({
+          text:
+            `${occasion} gives every ${hexes} in the borders of the city where it happens ` +
+            `${bagWords(readTileYield(rule.yields))} for the rest of the game`,
+        });
       }
       if (grant?.timed !== undefined && grant.timed.effects.length > 0) {
         // Said in the **nested clauses' own words**, so a bill and a blessing
@@ -1959,11 +2015,28 @@ function describeEffect(
           text: `new cities claim ${effect.claims} more ${hexes} beside their borders at once${limit}`,
         });
       }
+      if (effect.fromLargest !== undefined && effect.fromLargest > 0) {
+        // The Great Colonies (Expansionist batch E2). A share with a common
+        // name reads as that name ("a third"); any other reads as a rate.
+        const share = SHARE_WORDS[effect.fromLargest];
+        out.push({
+          text:
+            share === undefined
+              ? `new cities start with one citizen for every ${effect.fromLargest} citizens of your largest city${limit}`
+              : `new cities start with ${share} of the citizens of your largest city, rounded down${limit}`,
+        });
+      }
       if (effect.escort !== undefined && effect.rank !== undefined) {
         const rank = rankName(effect.rank);
         const first = effect.maxCities === undefined ? '' : ` (first ${effect.maxCities} cities)`;
         out.push({
           text: `a new city founded beside one of your ${filterWords(effect.escort)} makes that unit ${indefinite(rank)} ${rank}${first}`,
+        });
+      }
+      if (effect.claimRadius !== undefined && effect.claimRadius > 1) {
+        // The Staked Claims (Expansionist batch E4).
+        out.push({
+          text: `new cities claim every unowned hex within ${effect.claimRadius} hexes of them at once${limit}`,
         });
       }
       return;
@@ -2471,8 +2544,15 @@ function describeEffect(
         });
       }
       if ((effect.percent ?? 0) !== 0) {
+        // A tile test names the hexes (The Age of Improvement, Expansionist
+        // batch E3): "on improved hexes", and "a yield" is left out, because
+        // every voice is meant.
+        const ground =
+          effect.on === undefined
+            ? `in ${voice}`
+            : `on ${tileConditionWords(effect.on).replace(/\bhex\b/, 'hexes')}`;
         out.push({
-          text: `what your other Orders pay in ${voice} is ${signed(effect.percent ?? 0)}% more${where}`,
+          text: `what your other Orders pay ${ground} is ${signed(effect.percent ?? 0)}% more${where}`,
         });
       }
       return;
@@ -2549,6 +2629,45 @@ function describeEffect(
     case 'levy':
       describeLevy(effect, out);
       return;
+    case 'unlocksImprovement': {
+      // Expansionist batch E4: the row a seated card opens, with what the row
+      // itself does, read off the row (`workRowFacts`), so a retuned row
+      // re-words itself. Said for the chair, because the card opens it only
+      // while it is seated.
+      const def = improvementDef(effect.improvement);
+      const facts = workRowFacts(effect.improvement);
+      out.push({
+        text: `while this card is seated, your workers may build ${indefinite(def.name)} ${ref('improvement', effect.improvement, def.name)}${facts.length === 0 ? '' : `: ${facts.join('; ')}`}`,
+      });
+      return;
+    }
+    case 'worksBeyond': {
+      // Expansionist batch E4, The Garden Frontier.
+      const hexes = effect.reach === 1 ? 'hex' : 'hexes';
+      out.push({
+        text: `your workers may lay tended works on unowned wild hexes up to ${effect.reach} ${hexes} beyond your borders, and a hex worked there joins your nearest city`,
+      });
+      return;
+    }
+    case 'encroach': {
+      // Expansionist batch E4, The Encroaching Fields (the triage's reading 38).
+      out.push({
+        text: `every ${effect.every} turns, each of your cities of at least ${effect.minPopulation} citizens takes one hex nobody works from the borders of a smaller foreign city next to it`,
+      });
+      return;
+    }
+    case 'migration': {
+      // Expansionist batch E4: Migration (the triage's reading 36) and The
+      // Great Migration (reading 37).
+      const reach = effect.reach ?? 3;
+      out.push({
+        text:
+          effect.source === 'own'
+            ? `every ${effect.every} turns, while your happiness is 0 or below, your largest city sends one citizen to your smallest city joined to your capital`
+            : `every ${effect.every} turns, while your happiness is above 0 and above another empire's, each city of that empire within ${reach} ${reach === 1 ? 'hex' : 'hexes'} of your borders with at least 2 citizens loses one citizen to your nearest city`,
+      });
+      return;
+    }
     case 'drill': {
       // Dominion batch D1. Who is drilled, how much, and how often; "combat
       // units" because only an empire's fighting units hold experience
@@ -3094,6 +3213,14 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
     return effect.bank === undefined
       ? { one: `${bank} ${shelf}building`, many: `${bank} ${shelf}buildings` }
       : { one: `${shelf}building ${bank}`, many: `${shelf}buildings ${bank}` };
+  }
+  // **The towns a scope admits, said in the scope's own words** (Expansionist
+  // batch E2): "city of 8 or more citizens", "city with an Aqueduct", "city
+  // joined to your capital by road". `eachWords` is the scope's one
+  // sentence-builder with the leading "every" taken off.
+  if (effect.count === 'citiesAdmitted' && effect.admits !== undefined) {
+    const one = eachWords(effect.admits);
+    return { one, many: one.replace(/\bcity\b/, 'cities') };
   }
   if (effect.count === 'tilesInBorders' && effect.tile !== undefined) {
     const words = tileConditionWords(effect.tile);
@@ -3675,6 +3802,46 @@ export function indefinite(name: string): string {
 }
 
 /**
+ * **What a work row a card opens does**, in a first-time player's words
+ * (Expansionist batch E4): the facts on its own row that the ordinary rows do
+ * not carry. Read off the row, so a retuned Keep, polder or outpost re-words
+ * itself here and in the Compendium alike.
+ */
+function workRowFacts(id: ImprovementId): string[] {
+  const def = improvementDef(id);
+  const facts: string[] = [];
+  if (def.onePerTown === true) facts.push('one in each city');
+  if (def.beyondBorders !== undefined) {
+    const hexes = def.beyondBorders === 1 ? 'hex' : 'hexes';
+    facts.push(`on unowned wild ground up to ${def.beyondBorders} ${hexes} beyond your borders`);
+  }
+  if (def.landBeside !== undefined) {
+    const ground = (def.validTerrain ?? []).join(' or ');
+    facts.push(`on ${indefinite(ground)} ${ground} hex with ${def.landBeside} of your land hexes beside it`);
+  }
+  if (def.chargeCost > 1) facts.push(`for ${def.chargeCost} work charges`);
+  if (def.copiesNeighbours === true) {
+    facts.push('it yields what each of your hexes around it yields, except a city or another of its kind');
+  }
+  if (def.yieldsAs !== undefined) {
+    const work = improvementDef(def.yieldsAs.improvement).name.toLowerCase();
+    const ground = terrainDef(def.yieldsAs.terrain).name.toLowerCase();
+    facts.push(`it yields as ${indefinite(work)} ${work} on ${ground}`);
+  }
+  if (def.claimsUnowned !== undefined) {
+    facts.push(
+      def.claimsUnowned === 0
+        ? 'it claims its hex for your nearest city'
+        : def.claimsUnowned === 1
+          ? 'it claims its hex and every unowned hex next to it for your nearest city'
+          : `it claims every unowned hex within ${def.claimsUnowned} hexes of it for your nearest city`,
+    );
+  }
+  if (def.defense !== undefined) facts.push(`units on its hex gain ${signed(def.defense)} strength when defending`);
+  return facts;
+}
+
+/**
  * Where a grant's food and hammers land, as the tail of its clause — Spolia's
  * Opus town, and Dominion batch D3's capital, every city and nearest town a
  * scope admits. Empty for the default, the town nearest the occasion, and for
@@ -4124,6 +4291,18 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
     case 'freshwater':
       into.qualifiers.push('beside fresh water');
       return;
+    // Expansionist batch E3. The wonder's town reads as the thing beside the
+    // hex, so `besideWords` takes "with" off it: "beside a city that holds a
+    // wonder" (The Landscape Garden).
+    case 'river':
+      into.qualifiers.push('beside a river');
+      return;
+    case 'wonderTown':
+      into.qualifiers.push('with a city that holds a wonder');
+      return;
+    case 'surfaced':
+      into.qualifiers.push('over a seam you surfaced');
+      return;
     case 'adjacentMountain':
       into.qualifiers.push('beside a mountain');
       return;
@@ -4376,6 +4555,9 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   unmoved: 'when it has not moved this turn',
   // Dominion batch D5, The Landsturm.
   besideGreatGeneral: 'beside a great general',
+  // Expansionist batch E3, The Woodland Bands. The features are printed by
+  // `combatWhenWords`, `onFeature`'s bargain.
+  standingIn: 'while standing in',
 };
 
 /** The `followingTerritory` line narrowed to somebody else's towns. */
@@ -4417,6 +4599,15 @@ export function combatWhenWords(when: CombatCondition): string {
       return `${COMBAT_WORDS.beside} ${filterWords(when.class)}`;
     case 'hasRank':
       return `${COMBAT_WORDS.hasRank} ${rankOrBetter(when.rank)}`;
+    case 'standingIn': {
+      // The features are alternatives, so the last is joined with "or".
+      const names = when.features;
+      const words =
+        names.length <= 1
+          ? (names[0] ?? '')
+          : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`;
+      return `${COMBAT_WORDS.standingIn} ${words}`;
+    }
     case 'all':
       return when.of
         .map((inner) => combatWhenWords(inner))
@@ -4548,8 +4739,46 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   greatPersonGained: 'gaining a great person',
   // Dominion batch D6, War Reparations and Danegeld.
   peace: 'making peace',
+  // Expansionist batch E2: The Freedom of the City, The Tax Rolls and The
+  // Opening of the Roads.
+  sizeRecord: 'a city growing past its largest size',
+  census: 'the world taking a census',
+  joinedToCapital: 'a city being joined to your capital by road for the first time',
   // Dominion batch D7, The Legions' Labour.
   disband: 'disbanding a unit',
+};
+
+/**
+ * The occasion narrowed to the size a town reaches (`atPopulation`), where the
+ * size belongs inside the phrase (Expansionist batch E2). An occasion missing
+ * here says the size in the parenthesis after the phrase instead.
+ */
+const AT_POPULATION_WORDS: Partial<Record<WindfallOccasion, (size: number) => string>> = {
+  growth: (size) => `a city growing to ${size} citizens`,
+  sizeRecord: (size) => `a city reaching ${size} citizens for the first time`,
+};
+
+/**
+ * What an occasion measures, where `MEASURE_WORDS`' "its" would name the wrong
+ * thing (Expansionist batch E2). The census carries the empire's citizens as
+ * its population, and a completion carries the size of the city that finished
+ * the thing, which "its" after "completing a wonder" would leave unclear.
+ * Every other occasion reads `MEASURE_WORDS`.
+ */
+const OCCASION_MEASURE_WORDS: Partial<
+  Record<WindfallOccasion, Partial<Record<OccasionMeasure, string>>>
+> = {
+  census: { population: 'your citizens' },
+  completion: { population: "the city's population" },
+  buildingCompletion: { population: "the city's population" },
+  unitCompletion: { population: "the city's population" },
+};
+
+/** The founding shares with a common name (The Great Colonies' "a third"). */
+const SHARE_WORDS: Partial<Record<number, string>> = {
+  2: 'half',
+  3: 'a third',
+  4: 'a quarter',
 };
 
 /**
@@ -4858,6 +5087,14 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'great person you have gained this game',
     many: 'great people you have gained this game',
   },
+  // Expansionist batch E2, The Book of Settlements.
+  citiesFounded: {
+    one: 'city you have founded this game',
+    many: 'cities you have founded this game',
+  },
+  // Expansionist batch E2. The words are the scope's, in `countNoun`; this is
+  // what a row that names no scope says, and such a row counts nothing.
+  citiesAdmitted: { one: 'city', many: 'cities' },
   followingCities: { one: 'city that follows you', many: 'cities that follow you' },
   followingForeign: {
     one: 'foreign city that follows you',
@@ -4967,7 +5204,12 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
     one: 'city you have captured that held a wonder or was a capital',
     many: 'cities you have captured that held a wonder or were capitals',
   },
-  hexBought: { one: 'hex you have bought', many: 'hexes you have bought' },
+  // Expansionist batch E4: `hexBought` widened to the three ways The Wide
+  // Country names.
+  hexClaimed: {
+    one: 'hex you have claimed by an outpost, a cleared camp or buying',
+    many: 'hexes you have claimed by outposts, cleared camps or buying',
+  },
   buildingBoughtWithGold: {
     one: 'building you have bought with gold',
     many: 'buildings you have bought with gold',
@@ -4986,6 +5228,12 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   unitGained: { one: 'unit you have gained', many: 'units you have gained' },
   // Dominion batch D6. No growing card counts these yet; the table is total.
   warEnded: { one: 'war you have ended', many: 'wars you have ended' },
+  // Expansionist batch E2, The Grain Census. One for each citizen above a
+  // town's record, which is what the tally counts.
+  sizeRecord: {
+    one: 'citizen your cities have grown past their largest size',
+    many: 'citizens your cities have grown past their largest size',
+  },
 };
 
 /**
@@ -5017,9 +5265,20 @@ const MEASURE_WORDS: Record<OccasionMeasure, string | { each: string }> = {
  * A grant scaled by the moment, in words: "culture equal to 10 times its
  * population", or for a count of things "+40 gold for each of that empire's
  * hexes you pillaged in that war". `what` is the voice or "renown".
+ *
+ * `occasion` lets an occasion name whose measure it is where "its" would name
+ * the wrong thing (`OCCASION_MEASURE_WORDS`, Expansionist batch E2): the
+ * census's citizens are the empire's, and a completion's are the city's.
  */
-function measuredWords(what: string, share: number, measure: OccasionMeasure): string {
-  const words = MEASURE_WORDS[measure];
+function measuredWords(
+  what: string,
+  share: number,
+  measure: OccasionMeasure,
+  occasion?: WindfallOccasion,
+): string {
+  const words =
+    (occasion === undefined ? undefined : OCCASION_MEASURE_WORDS[occasion]?.[measure]) ??
+    MEASURE_WORDS[measure];
   if (typeof words !== 'string') return `${signed(share)} ${what} for each ${words.each}`;
   return share === 1
     ? `${what} equal to ${words}`
@@ -5302,6 +5561,15 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   moveAfterAttack: 'your units may move after attacking',
   secondAttack: 'your units may attack twice a turn',
   breachInOneBlow: 'your units break a town’s walls in one blow',
+  // Expansionist batch E3: The Woodland Bands, The Watercourses, The Water
+  // Courts (`BehaviorRuleId`), then The Mountain Terraces and The Common
+  // Domain (`CityRuleId`, the second with its scope appended).
+  woodsWalk: 'your units pay only the open-ground cost to enter forest or jungle',
+  riverFarmsWater: 'your farms beside one of your farms on a river count as having fresh water',
+  farmChainsWater:
+    'your farms joined to a farm on fresh water by a chain of your farms count as having fresh water',
+  workMountains: 'your cities may work the mountains in their borders',
+  widerReach: 'citizens may work owned hexes one ring beyond the usual reach',
 };
 
 /**
@@ -5397,7 +5665,13 @@ const COMMISSION_COUNTED_WORDS: Record<
     many: "cities that hold a world wonder or were another empire's original capital",
     counter: 'such cities captured',
   },
-  hexBought: { verb: 'buy', one: 'hex', many: 'hexes', counter: 'hexes bought' },
+  // Expansionist batch E4, The Wide Country.
+  hexClaimed: {
+    verb: 'claim',
+    one: 'hex by an outpost, a cleared camp or buying',
+    many: 'hexes by outposts, cleared camps or buying',
+    counter: 'hexes claimed',
+  },
   buildingBoughtWithGold: {
     verb: 'buy',
     one: 'building with gold',
@@ -5421,6 +5695,13 @@ const COMMISSION_COUNTED_WORDS: Record<
     one: 'war by making peace or by destroying the other empire',
     many: 'wars by making peace or by destroying the other empire',
     counter: 'wars ended',
+  },
+  // Expansionist batch E2. No commission counts this yet; the table is total.
+  sizeRecord: {
+    verb: 'grow',
+    one: "citizen past a city's largest size",
+    many: "citizens past your cities' largest sizes",
+    counter: 'citizens past a record',
   },
 };
 

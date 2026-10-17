@@ -1993,10 +1993,19 @@ describe("determinism", () => {
     // 138 since D6: eleven Dominion cards about captures, commissions and the
     // end of a war, and new records on wars, towns and seats, so a v137 log's
     // picks name cards this build never dealt.
-    // 139 since D7: thirteen Dominion cards about economy rules and Double
-    // Time, and a fourteenth step in a town's yields, so a v138 log's picks
+    // 139 since E2: ten Expansionist cards about moments, records and counts,
+    // two new town fields and a new end-of-turn phase, so a v138 log's picks
+    // name cards this build deals differently and its resolutions run one
+    // phase fewer.
+    // 140 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v139 log's picks name cards this build deals differently.
+    // 141 since E4: ten Expansionist cards about works, claims and borders,
+    // and two new end-of-turn phases, so a v140 log's picks name cards this
+    // build deals differently and its resolutions run two phases fewer.
+    // 142 since D7: thirteen Dominion cards about economy rules and Double
+    // Time, and a fourteenth step in a town's yields, so a v141 log's picks
     // name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(139);
+    expect(SCHEMA_VERSION).toBe(142);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -5891,8 +5900,10 @@ describe("the user's card pass of 2026-09-03", () => {
       "+1 faith on every forest hex",
       "+1 culture on every jungle hex",
     ]);
+    // The size the rider is narrowed to is printed since Expansionist batch
+    // E2. Before it the words dropped it and read as every growth.
     expect(said("firstFruitsOffering")).toEqual([
-      "a city growing grants +10 faith",
+      "a city growing to 2 citizens grants +10 faith",
     ]);
   });
 });
@@ -8790,6 +8801,10 @@ describe("the engine shapes", () => {
     // D3 (the Expansionist sheet): A Court of Engineers is Commerce's A Court
     // of Merchants for the engineers, the same renown share.
     "aCourtOfEngineers · cityRenownPercent",
+    // Expansionist batch E3: The Age of Improvement doubles what the Orders pay
+    // on improved hexes, an amplifier with a tile test
+    // (`CardYieldAmplifierEffect.on`).
+    "theAgeOfImprovement · cardYieldAmplifier",
     "provisioningContracts · routeYield",
     // C6: The Common Road is two rows of the same shape and not one read twice
     // — one paid to the empire that sent the caravan, one paid to the town it

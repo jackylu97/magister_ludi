@@ -187,7 +187,7 @@ import { type ProjectId, projectDef } from '../sim/projectData';
 import { type City, type GameState, citiesOf, foundedReligion, playerById } from '../sim/state';
 import { buildError } from '../sim/tech';
 import { type TechAge } from '../sim/techData';
-import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
+import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import {
   UNIT_TYPE_IDS,
   type UnitTypeId,
@@ -3418,6 +3418,23 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // Bots do not levy yet (batch L), so a levy card does nothing for one and
       // is worth nothing to it.
       return 0;
+    case 'unlocksImprovement':
+      // **A work row this seat's workers may build while the card is seated**
+      // (Expansionist batch E4: The Keeps, The Polders, Outposts). What the row
+      // is worth is what the improvement plan would lay with it on this seat's
+      // ground (`plan.ts`), and the plan already prices a Keep and a polder when
+      // the card opens them. The card itself meets the stand-in, named.
+      return ctx.ai.score.unknownEffect;
+    case 'worksBeyond':
+      // Tended works beyond the borders (The Garden Frontier). Bots lay no
+      // tended works, so this opens nothing for one.
+      return 0;
+    case 'encroach':
+    case 'migration':
+      // A hex or a citizen every few turns (The Encroaching Fields, Migration,
+      // The Great Migration), on a board this bot cannot read ahead of time.
+      // The stand-in over the cadence, as `periodicOffer` takes it.
+      return ctx.ai.score.unknownEffect / Math.max(1, Math.floor(effect.every));
     case 'drill': {
       // **Experience is strength paid in instalments** (Dominion batch D1). A
       // point of experience is priced at what the rank ladder pays for it: the
@@ -3734,6 +3751,20 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // Dominion batch D6. A war ends about as often as one is fought, so a
       // peace is read at the capture's rate, the threat over the horizon.
       return war;
+    case 'sizeRecord':
+      // **A town passes its largest size about as often as it grows**
+      // (Expansionist batch E2): a growth lost to a famine or a levy and grown
+      // back is not a record, and that is rare enough that growth's own reading
+      // is the honest middle.
+      return tempo.growths / turns;
+    case 'census':
+      // **The calendar's own rate** (Expansionist batch E2): one census every
+      // `rules.census.min` to `max` turns, drawn evenly, so the mean gap.
+      return 2 / Math.max(2, RULES.census.min + RULES.census.max);
+    case 'joinedToCapital':
+      // **Nearly every town the empire founds is joined in time** (Expansionist
+      // batch E2), so the founding's own reading.
+      return ctx.cities / turns;
     case 'disband':
       // Dominion batch D7. This bot disbands only to clear its arrears, and
       // never to feed a wonder, so it forecasts no disbanding at all.
@@ -3963,6 +3994,27 @@ function windfallGrantWorth(
   if (grant.timed !== undefined) {
     const turns = Math.max(0, grant.timed.turns);
     worth += scoreEffects(grant.timed.effects, ctx) * (turns / Math.max(1, ctx.ai.score.lumpTurns));
+  }
+  if (grant.mark !== undefined) {
+    // **A lasting mark on a town's land** (Expansionist batch E3): what the mark
+    // pays each turn on the hexes an average town of this empire would have
+    // marked now. A mark pays for the rest of the game, so it is priced as a
+    // rate rather than through `explainLump`; that it keeps paying past the
+    // horizon is left out, the same rough price a building's yield gets.
+    const rule = RULES.improvements.hexMarks[grant.mark];
+    const owner = tileOwnerField(ctx.state);
+    let hexes = 0;
+    for (let index = 0; index < ctx.state.map.tiles.length; index++) {
+      if (owner.at(index) !== ctx.playerId) continue;
+      if (tileConditionHolds(ctx.state.map.tiles[index]!, rule.while)) hexes += 1;
+    }
+    const perTown = hexes / Math.max(1, ctx.cities);
+    const pays = readTileYield(rule.yields);
+    const bag: YieldBag = {};
+    for (const voice of VOICES) {
+      if (pays[voice] !== 0) bag[voice] = pays[voice] * perTown;
+    }
+    worth += valueOfYields(bag, ctx);
   }
   if (grant.pressure !== undefined) {
     // **A lump of faith pressed on somebody else's towns** — The Crusade's.
@@ -4390,6 +4442,17 @@ function scoreFoundingRider(
     // A town joined to the realm by road pays the connection line every turn,
     // quoted per head of the pair it joins (`rules.trade.connectionPerPop`).
     each += RULES.trade.connectionPerPop * voiceWeight(ctx, 'gold');
+  }
+  if (effect.fromLargest !== undefined && effect.fromLargest > 0) {
+    // The Great Colonies (Expansionist batch E2): the citizens a new town
+    // starts with above the usual one, read off this empire's largest town
+    // now, at the price of the citizen above.
+    let largest = 0;
+    for (const city of ctx.state.cities) {
+      if (city.ownerId === ctx.playerId) largest = Math.max(largest, city.population);
+    }
+    const extra = Math.max(0, Math.floor(largest / effect.fromLargest) - 1);
+    if (extra > 0) each += explainLump({ food: extra * growthThreshold(ctx) }, ctx).total;
   }
   return each * rate;
 }

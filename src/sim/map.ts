@@ -72,6 +72,7 @@ import type { DiscoveryKind } from './discoveryData';
 import type { ImprovementId } from './improvementData';
 import type { MapgenOverrides } from './mapgenData';
 import type { ResourceId } from './resourceData';
+import type { HexMarkId } from './rulesData';
 import type { FeatureId, TerrainId } from './terrainData';
 
 export interface Tile {
@@ -318,6 +319,33 @@ export interface Tile {
    * itself — is docblocked on `prospectAt` and deliberately not built.
    */
   surveyed?: true;
+  /**
+   * **The empire whose survey struck the seam on this hex**, or the key is
+   * absent (Expansionist batch E3, The Prospectors).
+   *
+   * The eighth field on a tile that changes during a game. It is written once,
+   * by `prospectAt`, on the same line that turns the vein into `resource`, and
+   * nothing removes it. A barren survey writes nothing here: `surveyed` says a
+   * hill was asked, and this says who found something. It stays with the hex
+   * when the hex changes hands, because the seam was found where it was found.
+   * The Prospectors pays on a mine over a seam the reading empire surfaced,
+   * wherever the hex now lies inside its borders (the triage's reading 26).
+   */
+  surfacedBy?: number;
+  /**
+   * **The lasting marks this hex carries**, in the order they were written, or
+   * the key is absent (Expansionist batch E3: The Raising of the Land, The
+   * Coming of the Water).
+   *
+   * The ninth field on a tile that changes during a game. It can only ever be
+   * added to, by `markHex` and nothing else, and a mark is written once: a hex
+   * already carrying a mark is not marked again. What a mark pays, and while
+   * what stands on the hex, is the rule book's table (`rules.improvements.
+   * hexMarks`); the hex fold reads it (`explainTileYield`). A mark is a fact
+   * about the ground, so it stays with the hex when the hex changes hands and
+   * pays whoever works it.
+   */
+  marks?: HexMarkId[];
 }
 
 export interface GameMap {
@@ -446,6 +474,25 @@ export function raiseImprovement(tile: Tile, improvement: ImprovementId, turn: n
 export function razeImprovement(tile: Tile): void {
   delete tile.improvement;
   delete tile.improvedOn;
+}
+
+/**
+ * **A lasting mark goes on this hex**, unless the hex already carries it: the
+ * one writer of `Tile.marks` (Expansionist batch E3). Returns whether the mark
+ * was added.
+ *
+ * Marks are only ever added, so the field has this one writer and no remover,
+ * in the way `discovery` is only ever removed, by `claimDiscoveryAt`. A hex is
+ * marked once with each mark: a second engineer in the same town raises only
+ * the hexes the first one did not (the triage's reading 23). It lives here for
+ * `raiseImprovement`'s reason: this module owns `Tile` and imports nothing, so
+ * every module that marks land can see it.
+ */
+export function markHex(tile: Tile, mark: HexMarkId): boolean {
+  if (tile.marks?.includes(mark) === true) return false;
+  if (tile.marks === undefined) tile.marks = [];
+  tile.marks.push(mark);
+  return true;
 }
 
 /**

@@ -763,17 +763,36 @@ describe('determinism', () => {
    * version back to 137 with every D6 change in place, which gives D5's hashes
    * exactly.
    *
-   * **Dominion batch D7 moved the hash and not the length** at both seeds:
-   * 138 became 139, and that is all. Nobody here holds a card, so the moved
-   * surplus, the harvest, the faster camps and the disband moment never reach
-   * this board, and the harvest runs inside the drill phase, so every
-   * resolution still raises the revision as many times as before. Checked by
-   * setting the version back to 138 with every D7 change in place, which gives
-   * D6's hashes exactly.
+   * **Expansionist batches E2 and E3 moved the hash and not the length** at
+   * both seeds. They were built at schemas 137 and 138, without D5 and D6, and
+   * were merged after D6, which renumbered them to 139 and 140. Two things
+   * moved the hash: the version, 138 to 140, and E2's new `roadJoinings` phase,
+   * which raises the revision once more a turn. Nobody here founds a town or
+   * drafts a card, so the new town fields and the new cards never reach this
+   * board. Checked by taking E2's and E3's movers out (the deck file as D6 left
+   * it, the phase removed, the version at 138 and the town record not
+   * written), which gives D6's hashes exactly.
+   *
+   * **Expansionist batch E4 moved the hash and not the length** at both seeds.
+   * Two things moved it: the version, 140 to 141, and the two new phases,
+   * `encroachment` and `migration`, which raise the revision twice more a turn.
+   * Nobody here drafts a card, so the new cards, rows and moves never reach
+   * this board. Checked by taking E4's movers out (the deck file, the
+   * improvement table and `data/ai.json` as E3 left them, the two phases
+   * removed and the version at 140), which gives E3's hashes exactly.
+   *
+   * **Dominion batch D7 moved the hash and not the length** at both seeds. It
+   * was built at schema 139 and merged after E4, which renumbered it to 142,
+   * so the version went from 141 to 142, and that is all. Nobody here holds a
+   * card, so the moved surplus, the harvest, the faster camps and the disband
+   * moment never reach this board, and the harvest runs inside the drill
+   * phase, so every resolution raises the revision as many times as before.
+   * Checked by setting the version back to 141 with every D7 change in place,
+   * which gives E4's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'fdb25a1b:188932',
-    2026: 'b32fb30a:188488',
+    11: '6d33f49c:188932',
+    2026: '9aaa14e5:188488',
   };
 
   for (const seed of [11, 2026]) {

@@ -83,7 +83,9 @@ import {
   type Tile,
   getTileAt,
   mapRange,
+  markHex,
   neighborTiles,
+  razeImprovement,
   tileHex,
   tileIndex,
   wrappedDistance,
@@ -128,12 +130,19 @@ import { anyBeadDef } from './beadData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { awardBeadGrant, claimEndeavour, closeTheGreatWork } from './beads';
 import { settleRenownWindfall } from './renown';
-import { type CitizenFocus, type CitizenLean, type CitizenWeights, RULES } from './rulesData';
+import {
+  type CitizenFocus,
+  type CitizenLean,
+  type CitizenWeights,
+  type HexMarkId,
+  RULES,
+} from './rulesData';
 import {
   cardActionRule,
   cardAmplifier,
   cardAmplifierFlat,
   cardMeterFlag,
+  cardCityRuleAt,
   cardFoundingRider,
   cardRulePercent,
   cityHasFreshwater,
@@ -145,6 +154,7 @@ import {
   recordScalingOccasion,
   recordWorldScalingOccasion,
   settleCultureWindfall,
+  tileConditionHolds,
   type WindfallOccasionFacts,
   windfallPayout,
 } from './statecraft';
@@ -1227,8 +1237,16 @@ export function cityResources(
   );
 }
 
-/** True when a citizen may be assigned to this tile at all. */
-export function isWorkableTile(tile: Tile): boolean {
+/**
+ * True when a citizen may be assigned to this tile at all.
+ *
+ * `mountains` is the town's law (Expansionist batch E3, The Mountain Terraces:
+ * the `workMountains` city rule), asked once by the caller for the whole walk.
+ * It opens the mountains and nothing else: water and every other ground answer
+ * as the terrain table says.
+ */
+export function isWorkableTile(tile: Tile, mountains = false): boolean {
+  if (mountains && tile.terrain === 'mountain') return true;
   return isWorkableTerrain(tile.terrain);
 }
 
@@ -1262,6 +1280,25 @@ export function tileOwnerPlayerId(state: GameState, col: number, row: number): n
   const cityId = tileOwnerCityId(state, col, row);
   if (cityId === null) return null;
   return cityById(state, cityId)?.ownerId ?? null;
+}
+
+/**
+ * **Is this hex at most `reach` hexes from a hex this empire owns?**
+ * (Expansionist batch E4.) The reach of the works laid beyond the borders
+ * (Outposts, The Garden Frontier) and of the foreign towns The Great Migration
+ * draws on. A hex inside the borders is at nought. The map's own wrapped
+ * distance, through `mapRange`.
+ */
+export function withinReachOfBorders(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+  reach: number,
+): boolean {
+  for (const near of mapRange(state.map, tileHex(tile), Math.max(0, Math.floor(reach)))) {
+    if (tileOwnerPlayerId(state, near.col, near.row) === playerId) return true;
+  }
+  return false;
 }
 
 /**
@@ -1465,8 +1502,14 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   if (tile.discovery !== undefined && discoveryKindTech(tile.discovery) !== null) {
     delete tile.discovery;
   }
+  // The town that held the hex before, if one of this empire's did: an
+  // outpost's town gives its land up below.
+  const heldBy = state.tileOwner[tileIndex(state.map, tile.col, tile.row)] ?? null;
   const city = createCity(state, ownerId, nextCityName(state, ownerId), tile.col, tile.row);
   state.tileOwner[tileIndex(state.map, tile.col, tile.row)] = city.id;
+  // **A town founded on an outpost keeps that land** (Outposts, Expansionist
+  // batch E4; the triage's reading 33). See `takeOutpostLand`.
+  const formerTown = takeOutpostLand(state, city, tile, heldBy);
   // The Founder's count (design ledger Entry VI). On the player rather than
   // derived, because once a town changes hands nothing on the board says who
   // built it — see `Player.citiesFounded`. Raised in the mechanism so an AI's
@@ -1483,7 +1526,25 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // with the question since Dominion batch D1: The Armed Colony's row applies
   // only to a town founded beside one of the empire's military units.
   const rider = cardFoundingRider(state, ownerId, { col: tile.col, row: tile.row });
+  // The Great Colonies (Expansionist batch E2): the town starts at the larger
+  // of its usual size and the law's share of the largest town. The extra
+  // citizens below (The Seed Grain) are added after it.
+  if (rider.startsAt !== undefined && rider.startsAt > city.population) {
+    city.population = rider.startsAt;
+  }
   if (rider.population > 0) city.population += rider.population;
+  // **The town's largest size starts at its founding size** (Expansionist
+  // batch E2). Founding is not growth, so nothing is paid for it; the record
+  // rises later through `settleSizeRecord`.
+  city.largestSize = city.population;
+  // **The Staked Claims** (Expansionist batch E4): every unowned hex within the
+  // law's radius, beyond the first ring, in map order (the triage's reading 15).
+  const radius = rider.claimRadius ?? 0;
+  if (radius > 1) {
+    for (const near of mapRange(state.map, tileHex(tile), radius)) {
+      claimTile(state, city, near);
+    }
+  }
   // The Beating of the Bounds: extra hexes beyond the first ring, each the one
   // the town's borders would grow into next. A town hemmed in claims fewer.
   for (let extra = 0; extra < rider.claims; extra++) {
@@ -1508,6 +1569,8 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // every mid-turn mutation uses — founding is the one that *creates* the
   // derived state rather than correcting it, and it is still the same call.
   refreshCityDerived(state, city);
+  // The town an outpost's land came from is smaller now (Expansionist batch E4).
+  if (formerTown !== null) refreshCityDerived(state, formerTown);
   // And it is looking from the moment it exists. Refreshed *here* rather than
   // inside `createCity`, because a city sees its own territory and the territory
   // is claimed two lines above — a refresh in the constructor would light the
@@ -1550,6 +1613,42 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
     settleRanksEarned(state, escort, raiseToRank(state, escort, rank));
   }
   return city;
+}
+
+/**
+ * **A town founded on an outpost takes the outpost's land** (Outposts,
+ * Expansionist batch E4; the triage's reading 33).
+ *
+ * When the founding hex carries a work that claims ground (`claimsUnowned`),
+ * every hex within that claim which the town holding the outpost hex still
+ * holds moves to the new town, and the outpost itself goes: the town stands in
+ * its place. Only that town's hexes move, so nothing another town of this
+ * empire or a rival holds changes hands. The hexes are walked in map order.
+ *
+ * Returns the town that gave the land up, so the caller can re-seat it once
+ * the new town is finished, or `null` when nothing moved. `heldBy` is the town
+ * that held the founding hex before the new town took it.
+ */
+function takeOutpostLand(state: GameState, city: City, tile: Tile, heldBy: number | null): City | null {
+  const work = tile.improvement;
+  if (work === undefined) return null;
+  const radius = improvementDef(work).claimsUnowned;
+  if (radius === undefined) return null;
+  // The town stands where the outpost stood. Through the one writer of a
+  // hex's works and its age stamp.
+  razeImprovement(tile);
+  const former = heldBy === null ? undefined : cityById(state, heldBy);
+  if (!former || former.ownerId !== city.ownerId || former.id === city.id) return null;
+  let moved = 0;
+  for (const near of mapRange(state.map, tileHex(tile), radius)) {
+    const index = tileIndex(state.map, near.col, near.row);
+    if (state.tileOwner[index] !== former.id) continue;
+    state.tileOwner[index] = city.id;
+    moved += 1;
+  }
+  // The ground moved (batch M3, `slate.ts`), as `claimTile` says for a claim.
+  bumpEconomy(state);
+  return moved > 0 ? former : null;
 }
 
 /**
@@ -1767,7 +1866,24 @@ export function withinWorkRadius(
   const tile = getTileAt(map, col, row);
   if (!tile) return false;
   const centre = tileHex(cityTile(map, city));
-  return wrappedDistance(map, centre, tileHex(tile)) <= CITIES.workRadius;
+  return wrappedDistance(map, centre, tileHex(tile)) <= workRadiusOf(state, city);
+}
+
+/**
+ * **How far this town's citizens may reach**, in rings: the rule book's work
+ * radius, and one ring more where the town's law says so (Expansionist batch
+ * E3, The Common Domain: the `widerReach` city rule, with the scope "ten or more
+ * citizens").
+ *
+ * Every question about a town's reach asks this: which hexes its citizens may
+ * work (`assignableTiles`), which hexes it may buy (`withinWorkRadius`, the
+ * purchase offers) and the ring the city screen draws. So a town of ten may buy
+ * and work a fourth-ring hex, and one that falls below ten releases it at the
+ * next assignment (the triage's reading 21). Its borders still grow by culture
+ * only to `cities.claimRadius`.
+ */
+export function workRadiusOf(state: GameState, city: City): number {
+  return CITIES.workRadius + (cardCityRuleAt(state, city, 'widerReach') ? 1 : 0);
 }
 
 /**
@@ -1782,12 +1898,16 @@ export function assignableTiles(state: GameState, city: City): Tile[] {
   const { map } = state;
   const centre = cityTile(map, city);
   const centreIndex = tileIndex(map, centre.col, centre.row);
+  // The town's law, asked once for the walk (Expansionist batch E3): how far it
+  // reaches (The Common Domain) and whether its citizens may climb (The
+  // Mountain Terraces).
+  const mountains = cardCityRuleAt(state, city, 'workMountains');
   const result: Tile[] = [];
-  for (const tile of mapRange(map, tileHex(centre), CITIES.workRadius)) {
+  for (const tile of mapRange(map, tileHex(centre), workRadiusOf(state, city))) {
     const index = tileIndex(map, tile.col, tile.row);
     if (index === centreIndex) continue;
     if (state.tileOwner[index] !== city.id) continue;
-    if (!isWorkableTile(tile)) continue;
+    if (!isWorkableTile(tile, mountains)) continue;
     result.push(tile);
   }
   return result;
@@ -2305,6 +2425,28 @@ function chooseCitizens(
  *      through `loseCitizen` as a levy does (entry 23), so the town is
  *      re-seated at once for entry 23's reason.
  *
+ *  26. **A lasting mark on a town's land** (`markTownLand`, Expansionist batch
+ *      E3): The Raising of the Land and The Coming of the Water add a yield to
+ *      hexes the town may already be working, so the town is re-seated when a
+ *      mark goes on.
+ *  27. **The ground a work claims** (`claimGroundForWork`, `improvements.ts`,
+ *      Expansionist batch E4): an outpost claims its hex and the unowned ring
+ *      around it, and a tended hex laid beyond the borders joins its town, so
+ *      the nearest town has new hexes to work before the turn ends. Entry 24's
+ *      reason, with a work in place of a camp. A town founded on an outpost
+ *      takes that land from the town that held it, and `foundCityAt` (entry 7)
+ *      re-seats both.
+ *  28. **A hex taken from a foreign town** (`runEncroachment`, `frontiers.ts`,
+ *      Expansionist batch E4's The Encroaching Fields). It runs in its own
+ *      phase, as entry 25 does, and both towns are re-seated at once: one has a
+ *      hex more to work and the other a hex less.
+ *  29. **A citizen who moves to another town** (`runMigrations`,
+ *      `frontiers.ts`, Expansionist batch E4's Migration and The Great
+ *      Migration). It runs in its own phase. The town that loses the citizen
+ *      gives it up through `loseCitizen` and is re-seated for entry 23's reason,
+ *      and the town that gains one takes it through `settlePopulationWindfall`,
+ *      which re-seats it.
+ *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
  * asserts that, because it is the one property a new mutation can break while
@@ -2351,6 +2493,31 @@ export function refreshTileDerived(state: GameState, tile: Tile): void {
   if (cityId === null) return;
   const city = cityById(state, cityId);
   if (city) refreshCityDerived(state, city);
+}
+
+/**
+ * **A lasting mark goes on this town's land** (Expansionist batch E3): every
+ * hex in its borders where the mark's own condition holds now, once. Returns
+ * how many hexes were marked. The one routine that marks a town's land; a
+ * windfall rider's `mark` grant reaches it through `payWindfallGrants`.
+ *
+ * The condition is the mark's (`rules.improvements.hexMarks`): The Raising of
+ * the Land marks every improved or tended hex, and The Coming of the Water
+ * every farm. A hex that already carries the mark is left alone, so a second
+ * engineer raises only the hexes the first did not (the triage's reading 23).
+ * The hexes are walked in index order (`ownedTiles`), and each is written
+ * through `markHex`, the one writer of `Tile.marks`. The town is re-seated
+ * when anything changed: entry 26 of the register above.
+ */
+export function markTownLand(state: GameState, city: City, mark: HexMarkId): number {
+  const rule = RULES.improvements.hexMarks[mark];
+  let marked = 0;
+  for (const tile of ownedTiles(state, city)) {
+    if (!tileConditionHolds(tile, rule.while)) continue;
+    if (markHex(tile, mark)) marked += 1;
+  }
+  if (marked > 0) refreshCityDerived(state, city);
+  return marked;
 }
 
 /** What the citizens eat: `foodPerCitizen` each. */
@@ -3276,6 +3443,7 @@ export interface GrowthCompletion {
 export function settleGrowth(state: GameState, city: City): GrowthCompletion | null {
   const plan = planGrowth(state, city);
   if (!plan) return null;
+  const before = city.population;
   city.foodBasket -= plan.cost;
   city.population = plan.population;
   // **A mouth is a happiness cost** (batch M3, `slate.ts`): `explainHappiness`
@@ -3285,6 +3453,7 @@ export function settleGrowth(state: GameState, city: City): GrowthCompletion | n
   // below read the empire it is actually paying into.
   bumpEconomy(state);
   payGrowthRider(state, city);
+  settleSizeRecord(state, city, before);
   return { city, population: plan.population };
 }
 
@@ -3311,6 +3480,39 @@ function payGrowthRider(state: GameState, city: City): void {
   });
   if (payout.grants.length === 0) return;
   payWindfallGrants(state, player, payout, { col: city.col, row: city.row });
+}
+
+/**
+ * **A town that has grown past its largest size** raises its record and pays
+ * the moment (Expansionist batch E2): The Grain Census counts it, and The
+ * Freedom of the City pays on it.
+ *
+ * `before` is the town's population before the gain. The record is
+ * `City.largestSize`, or `before` on a town that has none. For each new size
+ * above the record, in rising order, this writes the `sizeRecord` tally and
+ * pays the `sizeRecord` windfall with that size as the population. So a town
+ * that gains two citizens above its record at once counts twice, and a rider
+ * narrowed to fifteen citizens still pays when the town goes from fourteen to
+ * sixteen.
+ *
+ * Called by the two routines that add citizens, `settleGrowth` and
+ * `settlePopulationWindfall`, after their own riders. A citizen coming home
+ * from a levy reaches it too (the triage's reading 12). The payout lands in
+ * the town and is settled by those callers, as `payGrowthRider`'s is. The
+ * wild keeps no record of its own moments.
+ */
+function settleSizeRecord(state: GameState, city: City, before: number): void {
+  const record = city.largestSize ?? before;
+  if (city.population <= record) return;
+  city.largestSize = city.population;
+  const player = playerById(state, city.ownerId);
+  if (!player || player.barbarian === true) return;
+  for (let size = record + 1; size <= city.population; size++) {
+    recordScalingOccasion(state, player.id, 'sizeRecord');
+    const payout = windfallPayout(state, player.id, 'sizeRecord', 0, 0, { population: size });
+    if (windfallPayoutIsEmpty(payout)) continue;
+    payWindfallGrants(state, player, payout, { col: city.col, row: city.row });
+  }
 }
 
 /**
@@ -3380,6 +3582,7 @@ export function settlePopulationWindfall(
 ): number {
   const grant = Math.max(0, Math.floor(points));
   if (grant === 0) return city.population;
+  const before = city.population;
   city.population += grant;
   // `settleGrowth`'s line, for a citizen that arrived by grant rather than by
   // harvest — the meters charge for it either way (batch M3, `slate.ts`).
@@ -3387,6 +3590,9 @@ export function settlePopulationWindfall(
   if (options.riders !== false) {
     for (let i = 0; i < grant; i++) payGrowthRider(state, city);
   }
+  // The size record, with or without the growth riders: a citizen coming home
+  // can still take a town past its largest size (Expansionist batch E2).
+  settleSizeRecord(state, city, before);
   settleProductionWindfall(state, city);
   refreshCityDerived(state, city);
   return city.population;
@@ -5077,7 +5283,7 @@ function refundBeatenWonders(
  *
  * The on-draft grant uses it (`raiseOnDraft`), and a founding rider can use it
  * the same way to start a new town with a unit (Expansionist's The Frontier
- * Militia, batch E2).
+ * Militia, batch E5).
  */
 export function raiseFreeUnit(
   state: GameState,
@@ -5166,16 +5372,20 @@ function payCompletionRiders(
   const player = playerById(state, city.ownerId);
   if (!player) return;
   const at = { col: city.col, row: city.row };
+  // **The town's size travels with the occasion** (Expansionist batch E2, The
+  // Topping Out): this routine holds the town, and a rider scaled by its
+  // population reads it here. A caller that names a population keeps it.
+  const told: WindfallOccasionFacts = { population: city.population, ...facts };
   for (const occasion of ['completion', kind === 'unit' ? 'unitCompletion' : 'buildingCompletion'] as const) {
-    const payout = windfallPayout(state, player.id, occasion, 0, 0, facts);
+    const payout = windfallPayout(state, player.id, occasion, 0, 0, told);
     // **Anything at all on the payout is paid**, not the yields alone: a rider
     // may hang a timed blessing on the realm (Dinocrates), bank renown, gift a
     // piece or heal the army, and a guard that read only `grants` dropped every
     // one of them silently. The empty case is the overwhelmingly common one —
     // most completions carry no rider — so the cheap refusal stays. It asks the
     // evaluator's own test (`windfallPayoutIsEmpty`), so a rider that pays only
-    // science toward a technology or a free draft (Dominion batch D5) is paid
-    // too.
+    // science toward a technology, a free draft (Dominion batch D5) or The
+    // Coming of the Water's marks (Expansionist batch E3) is paid too.
     if (windfallPayoutIsEmpty(payout)) continue;
     // Food a rider pays settles into growth; hammers deliberately do **not**
     // settle here, because this *is* a completion and `settleProduction` allows
@@ -5963,7 +6173,7 @@ export function purchasableTiles(state: GameState, city: City): TileOffer[] {
   // third clause for water any more, and there must not be one: this list and
   // that evaluator are the same rule seen twice, so a filter here the reducer
   // does not keep is a hex the overlay refuses to price and the command sells.
-  for (const tile of mapRange(map, tileHex(cityTile(map, city)), CITIES.workRadius)) {
+  for (const tile of mapRange(map, tileHex(cityTile(map, city)), workRadiusOf(state, city))) {
     if (state.tileOwner[tileIndex(map, tile.col, tile.row)] !== null) continue;
     if (!touchesTerritory(state, owner, tile)) continue;
     const cell: Cell = { col: tile.col, row: tile.row };
@@ -6012,8 +6222,9 @@ export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
   // `spendGold` (`state.ts`) also announces the banks to the meters (batch M3).
   spendGold(state, player, price);
   player.tilesPurchased += 1;
-  // The Wide Country's goal counts each hex bought while it is seated.
-  recordScalingOccasion(state, player.id, 'hexBought');
+  // The Wide Country's goal counts each hex bought while it is seated, with the
+  // hexes outposts and cleared camps claim (Expansionist batch E4).
+  recordScalingOccasion(state, player.id, 'hexClaimed');
   // Chartered Companies' survey. A rider on an occasion that has no figure of
   // its own, so the base is zero and only the grants are read.
   const payout = windfallPayout(state, player.id, 'tilePurchase');

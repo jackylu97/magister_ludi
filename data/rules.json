@@ -63,7 +63,19 @@
     "pillageGold": 25,
     "pillageHeal": 25,
     "chopPerTech": 0.05,
-    "assayGold": 15
+    "assayGold": 15,
+    "hexMarks": {
+      "raised": {
+        "name": "Raised land",
+        "yields": { "food": 1, "production": 1, "gold": 0 },
+        "while": { "test": "any", "of": [{ "test": "improved" }, { "test": "tended" }] }
+      },
+      "aqueductWater": {
+        "name": "Aqueduct water",
+        "yields": { "food": 1, "production": 0, "gold": 0 },
+        "while": { "test": "improvement", "improvement": "farm" }
+      }
+    }
   },
   "trade": {
     "routeTurns": 20,
