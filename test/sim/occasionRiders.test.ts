@@ -522,8 +522,19 @@ describe('the member register', () => {
       }
     }
     // `opusProgress` is Spolia's (the Dominion batch): the hammers a captured
-    // town had put into the Magnum Opus.
-    expect([...measures].sort()).toEqual(['gold', 'opusProgress', 'payout', 'population', 'strength']);
+    // town had put into the Magnum Opus. Dominion batch D6 added three: what a
+    // peace carries (War Reparations, Danegeld) and the works and wonders in a
+    // captured town (Looted Art).
+    expect([...measures].sort()).toEqual([
+      'gold',
+      'hexesPillaged',
+      'opusProgress',
+      'payout',
+      'population',
+      'strength',
+      'takenPopulation',
+      'worksAndWonders',
+    ]);
     expect(limiter, 'oncePerTurn').toBe(true);
     expect(shelf, 'buildingCategory').toBe(true);
     expect(greatHouse, 'empireBuilding').toBe(true);

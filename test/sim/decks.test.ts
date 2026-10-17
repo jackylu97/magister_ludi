@@ -272,9 +272,12 @@ describe('the schema, as landed', () => {
       // and a charter whose grant exists (the Expansionist tended-work unlocks,
       // the Commerce batch's Plantation House and Numidian Cavalry, The Fast's
       // rite) is dealt for the grant.
+      // A grant on the draft (Dominion batch D5's The Sword of State and The
+      // Cleruchy) is dealt for the grant, as a charter is.
       const dealt =
         def.effects.length > 0 ||
         def.commission !== undefined ||
+        def.onDraft !== undefined ||
         (def.charter !== undefined && def.deferred === undefined);
       expect(orderIsDealt(id), id).toBe(dealt);
       if (dealt) expect(def.deferred, `${id} is dealt`).toBeUndefined();
@@ -427,6 +430,14 @@ describe('the schema, as landed', () => {
     // **And Expansionist batch E1** (the levies): ten more. Ten new
     // Expansionist rows came live; Seasonal Levies and The General Levy were
     // changed in place and were already live.
+    // **And Dominion batch D5** (units gained and new moments): twelve more.
+    // Nine new Dominion Orders and three new shared rows came live. Its two
+    // Doctrines are not Orders.
+    // **And Dominion batch D6** (captures, commissions and the end of a war):
+    // five more. Two new Dominion rows (Danegeld, Vae Victis) and one new
+    // shared row (Looted Art) came live, and two deferred rows were freed (War
+    // Reparations, Commission: A Victor's Peace). Six more were reworked in
+    // place and were already live.
     // **And Expansionist batch E2** (moments, records and counts): nine more.
     // Nine new Expansionist rows came live; The Land's Great Work was changed
     // in place and was already live.
@@ -434,8 +445,8 @@ describe('the schema, as landed', () => {
     // Expansionist rows came live, and two deferred rows were freed (The Common
     // Domain and The Raising of the Land); The Prospectors, The Watercourses
     // and The Landscape Garden were changed in place and were already live.
-    expect(live).toBe(455);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(455);
+    expect(live).toBe(472);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(472);
   });
 
   /**
@@ -630,13 +641,19 @@ describe('the schema, as landed', () => {
     // 136 since E1: the Expansionist levy cards, three new fields and a new
     // end-of-turn phase, so a v135 log's picks name cards this build deals
     // differently and its resolutions run one phase fewer.
-    // 137 since E2: ten Expansionist cards about moments, records and counts,
-    // two new town fields and a new end-of-turn phase, so a v136 log's picks
+    // 137 since D5: fourteen Dominion cards that raise units or pay on new
+    // moments, and a new record, so a v136 log's picks name cards this build
+    // never dealt.
+    // 138 since D6: eleven Dominion cards about captures, commissions and the
+    // end of a war, and new records on wars, towns and seats, so a v137 log's
+    // picks name cards this build never dealt.
+    // 139 since E2: ten Expansionist cards about moments, records and counts,
+    // two new town fields and a new end-of-turn phase, so a v138 log's picks
     // name cards this build deals differently and its resolutions run one
     // phase fewer.
-    // 138 since E3: ten Expansionist cards about the land and two new tile
-    // fields, so a v137 log's picks name cards this build deals differently.
-    expect(SCHEMA_VERSION).toBe(138);
+    // 140 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v139 log's picks name cards this build deals differently.
+    expect(SCHEMA_VERSION).toBe(140);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -849,11 +866,13 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Expansionist batch E0** freed two deferred rows (The Rope
       // Stretchers, Garden Cities: − 2) and retired the user's two cuts
       // (+ 2 retired).
+      // **Dominion batch D6** freed two deferred rows (War Reparations,
+      // Commission: A Victor's Peace: − 2).
       // **Expansionist batch E3** freed two more (The Common Domain and The
       // Raising of the Land: − 2).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(68);
+      ).toHaveLength(66);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(136);
     }
   });

@@ -51,6 +51,7 @@ import {
   type CommissionReward,
   type CommissionSpec,
   type CardPaysEffect,
+  type GrantCount,
   type CardPeriodicEffect,
   type CardDefBase,
   type CardEffect,
@@ -690,6 +691,18 @@ export function describeCard(id: CardId): CardClause[] {
   // (`OrderDef.onSlot`); a card that left it out would be The Laureate reading
   // as five tile bonuses and no laureate.
   if (isOrderId(id)) {
+    // **What drafting hands over** (Dominion batch D5): The Sword of State's
+    // unit and The Cleruchy's settler, in a building grant's own words. The
+    // unit grant's sentence ends "joins you", so the place is added after it.
+    // A card with no effects says so, because it still takes a chair.
+    const drafted = orderDef(id).onDraft ?? [];
+    drafted.forEach((grant, index) => {
+      const idle =
+        index === drafted.length - 1 && orderDef(id).effects.length === 0
+          ? '; seated, this card does nothing'
+          : '';
+      clauses.push({ text: `${grantWords(grant, 'when drafted')} in your capital${idle}` });
+    });
     for (const grant of orderDef(id).onSlot ?? []) {
       if (grant.grant === 'greatPerson') {
         clauses.push({
@@ -1641,6 +1654,12 @@ function describeEffect(
       if (effect.empireBuilding === false) narrowings.push('not an empire building');
       if (effect.first !== undefined) narrowings.push(FIRST_WORDS[effect.first]);
       if (effect.oncePerTurn === true) narrowings.push('at most once a turn');
+      // Dominion batch D5: The New Code's ten turns. Copying the Enemy's "unit
+      // you cannot build yet" narrows the noun, so it is said inside the
+      // occasion's phrase below.
+      if (effect.oncePerTurns !== undefined) {
+        narrowings.push(`at most once every ${effect.oncePerTurns} turns`);
+      }
       if (effect.defending === true) narrowings.push('only while it defends');
       // **"A building" narrows the moment from the inside** (batch C3), the way
       // the family does and for the family's stated reason: "buying anything (a
@@ -1703,9 +1722,13 @@ function describeEffect(
                 return `${indefinite(name)} ${ref('improvement', effect.improvement, name)}`;
               })(),
             );
+      // "killing a unit you cannot build yet" (Dominion batch D5, Copying the
+      // Enemy), for the same reason "a building" narrows "anything".
+      const unbuilt =
+        effect.fallenUnbuilt === true ? named.replace('a unit', 'a unit you cannot build yet') : named;
       const occasion =
         only +
-        (effect.anyBuilding === true ? named.replace('anything', 'a building') : named) +
+        (effect.anyBuilding === true ? unbuilt.replace('anything', 'a building') : unbuilt) +
         (narrowings.length > 0 ? ` (${narrowings.join(', ')})` : '');
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
@@ -1745,18 +1768,10 @@ function describeEffect(
           // the bare measure ("culture equal to its strength"); a fraction reads
           // as a percentage, because "0.1 times the gold paid" is not a sentence
           // anybody has said out loud.
-          // An occasion about the whole empire says whose measure it is (the
-          // census's citizens are yours, not a town's).
-          const measure =
-            OCCASION_MEASURE_WORDS[effect.occasion]?.[grant.fromOccasion] ??
-            MEASURE_WORDS[grant.fromOccasion];
-          const share = grant.amount;
-          const figure =
-            share === 1
-              ? `${grant.yield} equal to ${measure}`
-              : Number.isInteger(share)
-                ? `${grant.yield} equal to ${share} times ${measure}`
-                : `${grant.yield} equal to ${Math.round(share * 100)}% of ${measure}`;
+          // An occasion about the whole empire, or about the city that
+          // finished a thing, says whose measure it is (Expansionist batch
+          // E2): see `OCCASION_MEASURE_WORDS`.
+          const figure = measuredWords(grant.yield, grant.amount, grant.fromOccasion, effect.occasion);
           // The ceiling trails, because a player reads *what is paid* first and
           // *how much at most* second — the duration clause's own order, one
           // grant shape over.
@@ -1766,8 +1781,11 @@ function describeEffect(
           const where = grantDeliveryWords(grant);
           out.push({ text: `${occasion} grants ${figure}${where}${cap}${per}` });
         } else {
+          // Once for each item a count finds (Dominion batch D5): Valhalla's
+          // Monuments and The Mural Crown's great generals.
+          const each = grant.perCount === undefined ? '' : ` for each ${grantCountWords(grant.perCount)}`;
           out.push({
-            text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${grantDeliveryWords(grant)}${per}`,
+            text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${each}${grantDeliveryWords(grant)}${per}`,
           });
         }
       }
@@ -1777,7 +1795,12 @@ function describeEffect(
         // exactly what the word buys.
         const favours =
           grant.renownFamily === undefined ? '' : `, favouring a great ${grant.renownFamily}`;
-        out.push({ text: `${occasion} grants ${signed(grant.renown)} renown${favours}${per}` });
+        // A share of the moment since Dominion batch D6 (Looted Art).
+        const figure =
+          grant.fromOccasion === undefined
+            ? `${signed(grant.renown)} renown`
+            : measuredWords('renown', grant.renown, grant.fromOccasion, effect.occasion);
+        out.push({ text: `${occasion} grants ${figure}${favours}${per}` });
       }
       if (grant?.heal !== undefined) {
         // "**a further**" only where the occasion already pays a heal of its
@@ -1882,7 +1905,28 @@ function describeEffect(
         out.push({ text: `${occasion} heals every one of your units${per}` });
       }
       if (grant?.unit === 'randomMilitary') {
-        out.push({ text: `${occasion} grants a random military unit${per}` });
+        out.push({ text: `${occasion} grants a random military unit${unitDeliveryWords(grant)}${per}` });
+      }
+      // Dominion batch D5's two unit kinds.
+      if (grant?.unit === 'bestMelee') {
+        out.push({
+          text: `${occasion} grants the best melee unit you can build${unitDeliveryWords(grant)}${per}`,
+        });
+      }
+      if (grant?.unit === 'unlockedByTech') {
+        out.push({
+          text: `${occasion} grants one of each military unit it unlocks${unitDeliveryWords(grant)}${per}`,
+        });
+      }
+      if (grant?.towardFallenTech !== undefined) {
+        out.push({
+          text:
+            `${occasion} grants science toward the technology that unlocks that unit, ` +
+            `equal to ${grant.towardFallenTech}% of its cost`,
+        });
+      }
+      if (grant?.freeDraft === true) {
+        out.push({ text: `${occasion} opens an Order draft at once, at no culture cost` });
       }
       if (grant?.pressure !== undefined && grant.pressure.amount !== 0) {
         // **The plain words** (hard rule 7): "pressure" is the ledger's word for
@@ -2177,8 +2221,10 @@ function describeEffect(
       // The Nation in Arms musters in every town its scope admits.
       const where =
         effect.where === 'city' ? `in ${cityScopeWords(effect.scope)}` : 'in your capital';
+      // Total Mobilisation's price (Dominion batch D5).
+      const price = effect.costsCitizen === true ? ', for a citizen' : '';
       out.push({
-        text: `every ${effect.every} turns, ${what} musters ${where}${kept}`,
+        text: `every ${effect.every} turns, ${what} musters ${where}${price}${kept}`,
       });
       return;
     }
@@ -2973,6 +3019,13 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
     const at = place === '' ? 'in this city' : place;
     return { one: `wonder standing ${at}`, many: `wonders standing ${at}` };
   }
+  // **One family's great people** (Dominion batch D5, The Mural Crown).
+  if (effect.count === 'greatPeopleGained' && effect.family !== undefined) {
+    return {
+      one: `great ${effect.family} you have gained this game`,
+      many: `great ${effect.family}s you have gained this game`,
+    };
+  }
   if (effect.count === 'buildingsOfKind' && effect.building !== undefined) {
     // Marked in **both** numbers: the plural is composed off the plain name and
     // then wrapped, so "per Library" and "per Libraries" are one link with two
@@ -3650,6 +3703,31 @@ function grantDeliveryWords(grant: WindfallGrantSpec): string {
  * batch D2). An Elite holds Veteran too, so "or better" is the honest reading
  * of every rank narrowing in the vocabulary.
  */
+/**
+ * Where a grant's units are raised, as the tail of its clause (Dominion batch
+ * D5): the capital, every city, or every city a scope admits. Empty for the
+ * default, the city nearest the occasion.
+ */
+function unitDeliveryWords(grant: WindfallGrantSpec): string {
+  if (grant.toCapital === true) return ' in your capital';
+  if (grant.toEveryTown === true) return ' in every city';
+  if (grant.toEveryTown !== undefined) return ` in ${cityScopeWords(grant.toEveryTown)}`;
+  return '';
+}
+
+/** The noun a grant's count names (`WindfallGrantSpec.perCount`), in the singular. */
+function grantCountWords(spec: GrantCount): string {
+  const probe: CardPaysEffect = {
+    kind: 'pays',
+    where: 'empire',
+    basis: 'count',
+    count: spec.count,
+    ...(spec.building !== undefined ? { building: spec.building } : {}),
+    ...(spec.family !== undefined ? { family: spec.family } : {}),
+  };
+  return countWords(spec.per, countNoun(probe, ''));
+}
+
 function rankOrBetter(rank: RankId): string {
   const name = rankName(rank);
   return rank === RANK_IDS[RANK_IDS.length - 1] ? `${indefinite(name)} ${name}` : `${indefinite(name)} ${name} or better`;
@@ -4277,6 +4355,8 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // bargain; the movement condition is a whole phrase.
   hasRank: 'as',
   unmoved: 'when it has not moved this turn',
+  // Dominion batch D5, The Landsturm.
+  besideGreatGeneral: 'beside a great general',
   // Expansionist batch E3, The Woodland Bands. The features are printed by
   // `combatWhenWords`, `onFeature`'s bargain.
   standingIn: 'while standing in',
@@ -4454,6 +4534,13 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   rankEarned: 'one of your units earning a rank',
   // Dominion batch D4, The Provincial Census.
   pacified: 'pacifying a city',
+  // Dominion batch D5.
+  draftPassed: 'passing an Order draft',
+  raze: 'razing a city you captured',
+  rangedAttack: 'attacking from range',
+  greatPersonGained: 'gaining a great person',
+  // Dominion batch D6, War Reparations and Danegeld.
+  peace: 'making peace',
   // Expansionist batch E2: The Freedom of the City, The Tax Rolls and The
   // Opening of the Roads.
   sizeRecord: 'a city growing past its largest size',
@@ -4790,6 +4877,12 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'city you have captured this game',
     many: 'cities you have captured this game',
   },
+  // Dominion batch D5, The Mural Crown. A row naming a family is worded by
+  // `countNoun` ("great general you have gained this game").
+  greatPeopleGained: {
+    one: 'great person you have gained this game',
+    many: 'great people you have gained this game',
+  },
   // Expansionist batch E2, The Book of Settlements.
   citiesFounded: {
     one: 'city you have founded this game',
@@ -4922,6 +5015,10 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   rankEarned: { one: 'rank your units have earned', many: 'ranks your units have earned' },
   // Dominion batch D3, The Captive Craftsmen.
   hexPillaged: { one: 'hex you have pillaged', many: 'hexes you have pillaged' },
+  // Dominion batch D5, The Gathering Host.
+  unitGained: { one: 'unit you have gained', many: 'units you have gained' },
+  // Dominion batch D6. No growing card counts these yet; the table is total.
+  warEnded: { one: 'war you have ended', many: 'wars you have ended' },
   // Expansionist batch E2, The Grain Census. One for each citizen above a
   // town's record, which is what the tally counts.
   sizeRecord: {
@@ -4939,13 +5036,45 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
  * possessive the clause needs ("its strength", "the gold paid"), so the sentence
  * reads whole without this arm knowing which grant is quoting it.
  */
-const MEASURE_WORDS: Record<OccasionMeasure, string> = {
+const MEASURE_WORDS: Record<OccasionMeasure, string | { each: string }> = {
   strength: 'its strength',
   population: 'its population',
   gold: 'the gold paid',
   payout: 'what it already paid',
   opusProgress: 'the production it had put into the Magnum Opus',
+  // Dominion batch D6. A count of things reads as "for each" rather than as
+  // "equal to N times", because "equal to 40 times the hexes" is not a sentence
+  // a player says.
+  takenPopulation: 'the citizens of the cities you took from that empire in that war and still hold',
+  hexesPillaged: { each: "of that empire's hexes you pillaged in that war" },
+  worksAndWonders: { each: 'great-person work and wonder inside its borders' },
 };
+
+/**
+ * A grant scaled by the moment, in words: "culture equal to 10 times its
+ * population", or for a count of things "+40 gold for each of that empire's
+ * hexes you pillaged in that war". `what` is the voice or "renown".
+ *
+ * `occasion` lets an occasion name whose measure it is where "its" would name
+ * the wrong thing (`OCCASION_MEASURE_WORDS`, Expansionist batch E2): the
+ * census's citizens are the empire's, and a completion's are the city's.
+ */
+function measuredWords(
+  what: string,
+  share: number,
+  measure: OccasionMeasure,
+  occasion?: WindfallOccasion,
+): string {
+  const words =
+    (occasion === undefined ? undefined : OCCASION_MEASURE_WORDS[occasion]?.[measure]) ??
+    MEASURE_WORDS[measure];
+  if (typeof words !== 'string') return `${signed(share)} ${what} for each ${words.each}`;
+  return share === 1
+    ? `${what} equal to ${words}`
+    : Number.isInteger(share)
+      ? `${what} equal to ${share} times ${words}`
+      : `${what} equal to ${Math.round(share * 100)}% of ${words}`;
+}
 
 const RATE_WORDS: Record<RateSource, PluralWords> = {
   faithPerTurn: { one: 'faith gained per turn', many: 'faith gained per turn' },
@@ -5028,6 +5157,12 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   // plainly for this table's stated reason, the way a player finds out.
   luxuryMineCopies: (percent) =>
     `each of your luxury deposits with a mine supplies ${signed(percent)}% copies`,
+  // Dominion batch D6, Vae Victis. A doubling is said as twice, the card's own
+  // word, as `strategicCopies` says it.
+  captureRewards: (percent) =>
+    percent === 100
+      ? 'what your Orders pay for capturing a city is paid twice'
+      : `what your Orders pay for capturing a city is ${signed(percent)}%`,
 };
 
 /**
@@ -5064,6 +5199,8 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
     amount === 1
       ? 'each of your luxury deposits with a mine supplies one more copy'
       : `each of your luxury deposits with a mine supplies ${signed(amount)} copies`,
+  // A whole payout, so a flat step on it is a row nobody should write.
+  captureRewards: (amount) => `what your Orders pay for capturing a city is ${signed(amount)} more`,
 };
 
 const METER_RULE_WORDS: Record<MeterRuleId, string> = {
@@ -5333,6 +5470,14 @@ const COMMISSION_COUNTED_WORDS: Record<
   // Dominion batch D1. No commission counts ranks yet; the table is total.
   rankEarned: { verb: 'earn', one: 'rank with your units', many: 'ranks with your units', counter: 'ranks earned' },
   hexPillaged: { verb: 'pillage', one: 'hex', many: 'hexes', counter: 'hexes pillaged' },
+  unitGained: { verb: 'gain', one: 'unit', many: 'units', counter: 'units gained' },
+  // Dominion batch D6, Commission: A Victor's Peace.
+  warEnded: {
+    verb: 'end',
+    one: 'war by making peace or by destroying the other empire',
+    many: 'wars by making peace or by destroying the other empire',
+    counter: 'wars ended',
+  },
   // Expansionist batch E2. No commission counts this yet; the table is total.
   sizeRecord: {
     verb: 'grow',
@@ -5380,21 +5525,6 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'original capitals held',
     noun: 'the original capitals you hold',
   },
-  capturedPopulation: {
-    goal: (count) => `hold captured cities with ${count} citizens in all`,
-    counter: 'citizens in captured cities',
-    noun: 'the citizens of every captured city you hold',
-  },
-  capturedThisTurnPopulation: {
-    goal: (count) => `capture cities with ${count} citizens in one turn`,
-    counter: 'citizens captured this turn',
-    noun: 'the citizens of the cities you captured that turn',
-  },
-  capturedThisTurnWonders: {
-    goal: (count) => `capture ${count} world wonders in one turn`,
-    counter: 'world wonders captured this turn',
-    noun: 'the world wonders in the cities you captured that turn',
-  },
   tendedTiles: {
     goal: (count) => `have ${count} tended tiles inside your borders`,
     counter: 'tended tiles',
@@ -5424,7 +5554,14 @@ const COMMISSION_FIGURE_WORDS: Record<
 export function commissionGoalWords(goal: CommissionGoal): string {
   if (goal.kind === 'counted') {
     const words = COMMISSION_COUNTED_WORDS[goal.occasion];
-    return `${words.verb} ${goal.count} ${goal.count === 1 ? words.one : words.many}`;
+    // The floors (Dominion batch D6): "capture 1 city of 5 or more citizens",
+    // "… after taking 2 or more of its cities in that war".
+    const floor =
+      (goal.minPopulation === undefined ? '' : ` of ${goal.minPopulation} or more citizens`) +
+      (goal.minTownsTaken === undefined
+        ? ''
+        : `, after taking ${goal.minTownsTaken} or more of its cities in that war`);
+    return `${words.verb} ${goal.count} ${goal.count === 1 ? words.one : words.many}${floor}`;
   }
   return COMMISSION_FIGURE_WORDS[goal.figure].goal(goal.count);
 }
@@ -5436,12 +5573,24 @@ export function commissionCounterWords(goal: CommissionGoal): string {
     : COMMISSION_FIGURE_WORDS[goal.figure].counter;
 }
 
-/** One reward line as phrases: "+60 production in your capital". */
-export function commissionRewardWords(reward: CommissionReward): string[] {
+/**
+ * One reward line as phrases: "+60 production in your capital". `towns` is how
+ * many towns the goal counts (Dominion batch D6), which decides whether a
+ * reward read off them says "it" or "those cities".
+ */
+export function commissionRewardWords(reward: CommissionReward, towns = 1): string[] {
   const out: string[] = [];
+  const one = towns <= 1;
   if (reward.yield !== undefined && reward.amount !== undefined) {
     const where = reward.yield === 'food' || reward.yield === 'production' ? ' in your capital' : '';
-    if (reward.fromFigure === undefined) {
+    if (reward.fromGoal === 'population') {
+      // "culture equal to 23 times its population", "science equal to 10 times
+      // those cities' total population" (Dominion batch D6).
+      const noun = one ? 'its population' : "those cities' total population";
+      out.push(`${reward.yield}${where} equal to ${reward.amount} times ${noun}`);
+    } else if (reward.fromGoal === 'wonders') {
+      out.push(`${signed(reward.amount)} ${reward.yield}${where} for each world wonder in ${one ? 'it' : 'them'}`);
+    } else if (reward.fromFigure === undefined) {
       out.push(`${signed(reward.amount)} ${reward.yield}${where}`);
     } else {
       const noun = COMMISSION_FIGURE_WORDS[reward.fromFigure].noun;
@@ -5466,6 +5615,31 @@ export function commissionRewardWords(reward: CommissionReward): string[] {
     const said = describeEffects(reward.timed.effects, 'empire').map((clause) => clause.text);
     out.push(`for ${reward.timed.turns} turns, ${said.join(' and ')}`);
   }
+  // Dominion batch D6: citizens, a building where the goal was met, and chairs.
+  if (reward.citizens !== undefined && reward.citizens > 0) {
+    const citizens = reward.citizens === 1 ? '+1 citizen' : `${signed(reward.citizens)} citizens`;
+    const to = reward.citizensTo ?? 'capital';
+    const where =
+      to === 'capital'
+        ? 'in your capital'
+        : to.smallest === 1
+          ? 'in your smallest city'
+          : `in each of your ${to.smallest} smallest cities`;
+    out.push(`${citizens} ${where}`);
+  }
+  if (reward.building !== undefined) {
+    const name = buildingDef(reward.building).name;
+    out.push(
+      `a free ${ref('building', reward.building, name)} in ${one ? 'that city' : 'the last of those cities'}`,
+    );
+  }
+  if (reward.wildcardChairs !== undefined && reward.wildcardChairs > 0) {
+    out.push(
+      reward.wildcardChairs === 1
+        ? 'one more Wildcard chair for the rest of the game'
+        : `${reward.wildcardChairs} more Wildcard chairs for the rest of the game`,
+    );
+  }
   return out;
 }
 
@@ -5476,7 +5650,10 @@ export function commissionRewardWords(reward: CommissionReward): string[] {
  */
 export function describeCommission(spec: CommissionSpec): CardClause[] {
   const goal = spec.goals.map(commissionGoalWords).join(' and ');
-  const reward = spec.reward.flatMap(commissionRewardWords).join(', and ');
+  // How many towns the goal counts, so a reward read off them names one or many.
+  const counted = spec.goals.find((part) => part.kind === 'counted');
+  const towns = counted?.count ?? 1;
+  const reward = spec.reward.flatMap((line) => commissionRewardWords(line, towns)).join(', and ');
   return [
     { text: `Commission. Goal: ${goal}, while this card is seated` },
     { text: `Reward: ${reward}` },

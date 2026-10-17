@@ -1926,8 +1926,15 @@ function orderStanding(def: ReturnType<typeof orderDef>): CompendiumClause[] {
       },
     ];
   }
-  // A commission (batch C) is dealt for its goal and reward, with no effects.
-  if (def.effects.length === 0 && def.charter === undefined && def.commission === undefined) {
+  // A commission (batch C) is dealt for its goal and reward, with no effects,
+  // and so is a card whose whole text is a grant on the draft (Dominion batch
+  // D5's The Sword of State and The Cleruchy).
+  if (
+    def.effects.length === 0 &&
+    def.charter === undefined &&
+    def.commission === undefined &&
+    def.onDraft === undefined
+  ) {
     return [
       {
         text: 'Not dealt yet: everything this card asks for has been agreed, and the game cannot do all of it yet. It is printed here so you can read it; it is in no deck until the rule underneath it is built.',

@@ -202,6 +202,12 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Expansionist batch E1: the citizens an empire has spent on levies, which
   // The Labour Rolls' `citizensLevied` count reads.
   { field: 'citizensLevied', pattern: /\.citizensLevied\s*(=[^=]|\+=)/ },
+  // Dominion batch D5: the great people an empire has gained, in all and by
+  // family, which the `greatPeopleGained` count reads (The Mural Crown).
+  {
+    field: 'greatPeople',
+    pattern: /\.greatPeopleRecruited\s*(=[^=]|\+=)|\.greatPeopleByFamily\s*=[^=]/,
+  },
   // Expansionist batch E2: the towns an empire has founded, which The Book of
   // Settlements' `citiesFounded` count reads. `foundCityAt` is its one writer.
   { field: 'citiesFounded', pattern: /\.citiesFounded\s*(=[^=]|\+=)/ },
@@ -328,6 +334,12 @@ const ANNOUNCING = new Set([
   // Labour Rolls' count reads.
   'levies.ts#levyAt',
   'levies.ts#recordLevy',
+  // Dominion batch D5: the one writer of the great-people records the
+  // `greatPeopleGained` count reads, and the one routine that banks science
+  // toward a technology that is not the one under research (Copying the
+  // Enemy).
+  'greatPeople.ts#settleGreatPersonChoice',
+  'state.ts#bankTowardTech',
   'state.ts#claimWonder',
   'state.ts#createCity',
   'state.ts#createUnit',

@@ -1387,7 +1387,102 @@ import {
  * different cards, and every resolution runs one more phase. The branch
  * migrates nothing, for the reason given under v119.
  *
- * v137 (branch `decks`; Expansionist batch E2 of
+ * v137 (branch `decks`; Dominion batch D5 of
+ * `docs/plans/dominion-build-triage.md`, units gained and new moments):
+ * **fourteen Dominion cards that raise units or pay on new moments.** Nine
+ * Orders join the Dominion file, three shared Orders join the common file (The
+ * Sword of State, Copying the Enemy and The New Code), and two Doctrines join
+ * Dominion's `doctrines` map: Total Mobilisation at Tier III and The Landsturm
+ * at Tier IV. One field joins the state: `Player.greatPeopleByFamily`, the
+ * great people the empire has gained in the game, by family. Only
+ * `settleGreatPersonChoice` (`greatPeople.ts`) writes it, and it is absent
+ * until the first great person. The rules that change:
+ *
+ *   · every unit `realiseItem` brings into being counts for a new tally,
+ *     `unitGained`: trained, bought, free and conscripted units alike;
+ *   · four new moments the cards pay on: an Order draft passed
+ *     (`draftPassed`), a town taken by force and razed (`raze`, with its
+ *     population), an attack from range (`rangedAttack`) and a great person
+ *     gained (`greatPersonGained`). `payOccasionRiders` (`cities.ts`) pays all
+ *     four;
+ *   · a grant can raise the best melee unit or each military unit a
+ *     technology unlocks, in the capital or in each town a scope admits; can
+ *     be paid once for each item a count finds (`perCount`); can bank science
+ *     toward the technology of a unit killed (`towardFallenTech`, through
+ *     `bankTowardTech`); and can open a free Order draft (`freeDraft`) that
+ *     moves neither the draft count nor the culture;
+ *   · a rider can fire at most once in a number of turns (`oncePerTurns`), and
+ *     only for a kill of a unit the empire cannot build yet (`fallenUnbuilt`).
+ *     A kill now names the unit killed (`WindfallOccasionFacts.fallen`), and a
+ *     finished technology names itself (`tech`);
+ *   · an Order can raise units when it is drafted (`OrderDef.onDraft`), and a
+ *     row whose whole text is that grant is dealt;
+ *   · a periodic muster can cost the town a citizen (`costsCitizen`);
+ *   · a strength line can ask for a great general beside the unit
+ *     (`besideGreatGeneral`), and a count can count great people, of one
+ *     family or all (`greatPeopleGained`);
+ *   · a kill, a death or a capture pays a payout that holds only science
+ *     toward a technology or a free draft. Before, `payBattleRiders` dropped
+ *     a payout with no yields, units, heal or timed effects;
+ *   · the bots price the new moments and grants, so they draft differently.
+ *
+ * **A v136 save is refused and does not replay.** The draft bags hold
+ * different cards, every unit gained and every great person now write the new
+ * records, and the bots draft differently. The branch migrates nothing, for
+ * the reason given under v119.
+ *
+ * v138 (branch `decks`; Dominion batch D6 of
+ * `docs/plans/dominion-build-triage.md`, captures, commissions and the end of
+ * a war): **eleven Dominion cards.** Two Orders join the Dominion file
+ * (Danegeld, Vae Victis) and one the common file (Looted Art). Two deferred
+ * rows come live (War Reparations, Commission: A Victor's Peace), and six live
+ * rows are reworked in place (Commission: Clear the Frontier, Commission: Take
+ * the City, Commission: The Grand Campaign, Commission: The Captured Marvel,
+ * Commission: Hold the Capitals, Spolia). Five fields join the state, each
+ * absent until it is first written:
+ *
+ *   · `WarState.taken` and `WarState.pillaged`: the towns each side took by
+ *     force and the hexes each side pillaged during that war, written only by
+ *     `recordWarCapture` and `recordWarPillage` (`wars.ts`);
+ *   · `City.originalCapitalOf`: whose first town this is, written beside
+ *     `originalCapital` in `createCity`;
+ *   · `Player.opusBank`: production kept for the Magnum Opus until a town
+ *     raises it;
+ *   · `PlayerStatecraft.chairsWon`: Wildcard chairs a commission gave for the
+ *     rest of the game. The tally rows (`OrderTally`) may also carry `people`,
+ *     `wonders` and `town`.
+ *
+ * The rules that change:
+ *
+ *   · a peace pays each side's `peace` riders with what it won
+ *     (`takenPopulation`, `hexesPillaged`), and the end of a war, by peace or
+ *     by the other empire's destruction, is a tally a commission counts
+ *     (`warEnded`, with the towns taken);
+ *   · a counted commission goal may have a floor (`minPopulation`,
+ *     `minTownsTaken`), keeps the towns it counted, and a reward may read them
+ *     (`fromGoal`), build in the town that met it (`building`), grant citizens
+ *     (`citizens`, to the capital or the smallest towns) or add Wildcard
+ *     chairs (`wildcardChairs`, read by `chairCount`);
+ *   · three commission figures that read the towns taken this turn or ever
+ *     (`capturedPopulation`, `capturedThisTurnPopulation`,
+ *     `capturedThisTurnWonders`) are gone: the goal's own record replaces
+ *     them. `originalCapitalsHeld` no longer counts the empire's own first
+ *     town, and The Captured Marvel no longer counts it either;
+ *   · a production grant sent to the Opus with no town raising it is kept on
+ *     `Player.opusBank`, and `releaseOpusBanks` (`cities.ts`) moves it into
+ *     the town raising the Opus at the start of the production phase. Before,
+ *     it went to the capital;
+ *   · an amplifier can scale an Order's capture riders (`captureRewards`), and
+ *     a renown grant can be a share of the moment (`fromOccasion`). A capture
+ *     now carries the works and wonders inside the town (`worksAndWonders`);
+ *   · the bots price the peace moment and the capture amplifier.
+ *
+ * **A v137 save is refused and does not replay.** The draft bags hold
+ * different cards, every war and every first town now write the new records,
+ * a Spolia grant lands somewhere else, and the bots draft differently. The
+ * branch migrates nothing, for the reason given under v119.
+ *
+ * v139 (branch `decks`; Expansionist batch E2 of
  * `docs/plans/expansionist-build-triage.md`, moments, records and counts):
  * **ten Expansionist cards.** Nine join the Expansionist file, and The Land's
  * Great Work now counts towns of at least eight citizens, as its text says.
@@ -1412,12 +1507,12 @@ import {
  *     `collectYields`. It raises the revision once more every turn, and it
  *     writes `City.joinedBy` for every real empire, with or without the card.
  *
- * **A v136 save is refused and does not replay.** The draft bags hold
+ * **A v138 save is refused and does not replay.** The draft bags hold
  * different cards, every resolution runs one more phase, and towns carry the
  * two new fields. The branch migrates nothing, for the reason given under
  * v119.
  *
- * v138 (branch `decks`; Expansionist batch E3 of
+ * v140 (branch `decks`; Expansionist batch E3 of
  * `docs/plans/expansionist-build-triage.md`, the land): **ten Expansionist
  * cards about the land.** Five join the Expansionist file; The Prospectors,
  * The Watercourses and The Landscape Garden now do what their text says; The
@@ -1444,11 +1539,11 @@ import {
  *     act landed rather than in the capital;
  *   · an Order amplifier can carry a tile test, and then raises hex lines only.
  *
- * **A v137 save is refused and does not replay.** The draft bags hold
+ * **A v139 save is refused and does not replay.** The draft bags hold
  * different cards, and the riders of a great person's act land in a different
  * town. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 138;
+export const SCHEMA_VERSION = 140;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1681,8 +1776,9 @@ export interface Player {
    * is `researchQueue`'s convention and is here for its reasons: an empire that
    * never switched serialises exactly as it did before the field existed, and a
    * completed technology's bucket is swept the moment it lands rather than
-   * lingering as a bank nobody can ever spend. Written by `aimResearchAt` and
-   * `settleResearch` and nowhere else; read through `bankedTowardTech`.
+   * lingering as a bank nobody can ever spend. Written by `aimResearchAt`,
+   * `settleResearch` and `bankTowardTech` (Dominion batch D5, Copying the
+   * Enemy) and nowhere else; read through `bankedTowardTech`.
    */
   techProgress?: Partial<Record<TechId, number>>;
   /**
@@ -2092,6 +2188,17 @@ export interface Player {
    */
   greatPeopleRecruited: number;
   /**
+   * **How many great people of each family this empire has gained** (Dominion
+   * batch D5): The Mural Crown's count of great generals (`CountKind`'s
+   * `greatPeopleGained`).
+   *
+   * `greatPeopleRecruited` split by family. It is written in one place,
+   * `settleGreatPersonChoice` (`greatPeople.ts`), beside that counter, and
+   * only ever raised. A family appears the first time one of it is gained, and
+   * the field is absent until the first great person.
+   */
+  greatPeopleByFamily?: Partial<Record<Family, number>>;
+  /**
    * The names a filled renown bucket is offering, or the key is **absent** —
    * which it is for every player almost all of the time.
    *
@@ -2215,6 +2322,15 @@ export interface Player {
    * until the first levy.
    */
   citizensLevied?: number;
+  /**
+   * **Production kept for this empire's Magnum Opus** (Dominion batch D6,
+   * Spolia: "if you have not begun one, the production is kept until you
+   * do"). A grant sent to the Opus (`WindfallGrantSpec.toOpus`) lands here
+   * when no town of this empire is raising it, and `releaseOpusBank`
+   * (`cities.ts`) moves it into the town raising the Opus at the start of the
+   * production phase. Absent when nothing is kept.
+   */
+  opusBank?: number;
   /**
    * **How many units this empire's units have killed in the game, barbarians
    * included** (Dominion batch D4): The Captured Arms' count (`CountKind`'s
@@ -3497,6 +3613,15 @@ export interface City {
    * does. Presence-is-the-state.
    */
   originalCapital?: true;
+  /**
+   * **Whose original capital this town is** (Dominion batch D6): the empire
+   * that founded it as its first town. Written beside `originalCapital` in
+   * `createCity` and never changed, so it is present exactly where that flag
+   * is. Two commissions read it: Commission: Hold the Capitals counts only
+   * other empires' original capitals, and Commission: The Captured Marvel
+   * counts a captured town only if it was another empire's original capital.
+   */
+  originalCapitalOf?: number;
   /** Production queue, front first. Replaced wholesale by `setCityProduction`. */
   queue: QueueItem[];
   /**
@@ -5473,7 +5598,10 @@ export function createCity(
   // written here because this is the one moment it can be known: the seat is
   // "the first city in founding order" only until that city is taken, and the
   // raze rule needs the answer long after (`City.originalCapital`).
-  if (!state.cities.some((other) => other.ownerId === ownerId)) city.originalCapital = true;
+  if (!state.cities.some((other) => other.ownerId === ownerId)) {
+    city.originalCapital = true;
+    city.originalCapitalOf = ownerId;
+  }
   state.cities.push(city);
   // **A town on the board is a line in three walks** (batch M3, `slate.ts`):
   // the authority it costs, the citizens it charges to happiness, and the ground
@@ -5823,6 +5951,30 @@ export function aimResearchAt(player: Player, next: TechId | null): void {
     delete player.techProgress[next];
     if (Object.keys(player.techProgress).length === 0) delete player.techProgress;
   }
+}
+
+/**
+ * **Banks beakers toward one technology** (Dominion batch D5, Copying the
+ * Enemy): into the pool when it is the current aim, and into that
+ * technology's own bucket (`techProgress`) otherwise, so the beakers wait for
+ * the empire to aim at it. A technology already learnt banks nothing. The
+ * caller settles research, as every windfall that pays science does.
+ */
+export function bankTowardTech(
+  state: GameState,
+  player: Player,
+  techId: TechId,
+  amount: number,
+): void {
+  if (amount <= 0 || player.techsResearched.includes(techId)) return;
+  if (player.researching === techId) {
+    player.sciencePool += amount;
+  } else {
+    if (!player.techProgress) player.techProgress = {};
+    player.techProgress[techId] = (player.techProgress[techId] ?? 0) + amount;
+  }
+  // The banks are a line of the meters (`collectYields`, batch M3).
+  bumpEconomy(state);
 }
 
 /**

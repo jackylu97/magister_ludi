@@ -402,13 +402,19 @@ describe('determinism', () => {
     // 136 since E1: the Expansionist levy cards, three new fields and a new
     // end-of-turn phase, so a v135 log's picks name cards this build deals
     // differently and its resolutions run one phase fewer.
-    // 137 since E2: ten Expansionist cards about moments, records and counts,
-    // two new town fields and a new end-of-turn phase, so a v136 log's picks
+    // 137 since D5: fourteen Dominion cards that raise units or pay on new
+    // moments, and a new record, so a v136 log's picks name cards this build
+    // never dealt.
+    // 138 since D6: eleven Dominion cards about captures, commissions and the
+    // end of a war, and new records on wars, towns and seats, so a v137 log's
+    // picks name cards this build never dealt.
+    // 139 since E2: ten Expansionist cards about moments, records and counts,
+    // two new town fields and a new end-of-turn phase, so a v138 log's picks
     // name cards this build deals differently and its resolutions run one
     // phase fewer.
-    // 138 since E3: ten Expansionist cards about the land and two new tile
-    // fields, so a v137 log's picks name cards this build deals differently.
-    expect(SCHEMA_VERSION).toBe(138);
+    // 140 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v139 log's picks name cards this build deals differently.
+    expect(SCHEMA_VERSION).toBe(140);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

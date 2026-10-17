@@ -30,7 +30,7 @@ import { describe, expect, it } from 'vitest';
 
 import { applyCombat, previewCombat } from '../../../src/sim/combat';
 import { foundCityAt } from '../../../src/sim/cities';
-import { commissionFigure, runCommissions } from '../../../src/sim/commissions';
+import { commissionFigure, commissionGoalMeasure, runCommissions } from '../../../src/sim/commissions';
 import { type Tile, createMap, getTileAt } from '../../../src/sim/map';
 import { makeRng } from '../../../src/sim/rng';
 import {
@@ -119,6 +119,8 @@ describe('the Dominion batch — taking a city', () => {
 
   it('counts the capture for the commissions and pays them off the town that was taken', () => {
     const { state, theirs } = siege();
+    // Take the City counts only a town of five citizens or more (Dominion batch D6).
+    theirs.population = 6;
     for (const id of ['dominionTakeTheCity', 'dominionTheCapturedMarvel', 'dominionTheGrandCampaign']) {
       slot(state, 0, id);
     }
@@ -132,12 +134,21 @@ describe('the Dominion batch — taking a city', () => {
     expect(tallyOf(sc, 'dominionTheCapturedMarvel' as OrderId)).toBe(1);
     expect(tallyOf(sc, 'dominionTheGrandCampaign' as OrderId)).toBe(1);
     expect(commissionFigure(state, 0, 'originalCapitalsHeld')).toBe(1);
-    expect(commissionFigure(state, 0, 'capturedThisTurnPopulation')).toBe(theirs.population);
+    // Since Dominion batch D6 the reward reads what the goal counted: the town
+    // as it stood when it was taken.
+    expect(commissionGoalMeasure(state, 0, 'dominionTakeTheCity' as OrderId, 'population')).toBe(6);
 
     const reports = runCommissions(state);
     const people = theirs.population;
     const take = reports.find((report) => report.card === 'dominionTakeTheCity')!;
-    expect(take.lines).toEqual(expect.arrayContaining([`+${23 * people} culture`, `+${23 * people} science`]));
+    expect(take.lines).toEqual(
+      expect.arrayContaining([
+        `+${23 * people} culture`,
+        `+${23 * people} science`,
+        `a free Barracks in ${theirs.name}`,
+      ]),
+    );
+    expect(theirs.buildings).toContain('barracks');
     const marvel = reports.find((report) => report.card === 'dominionTheCapturedMarvel')!;
     expect(marvel.lines).toEqual(expect.arrayContaining([`+${20 * people} culture`]));
     // Three captures are needed, so The Grand Campaign is still waiting.

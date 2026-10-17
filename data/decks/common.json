@@ -1645,6 +1645,72 @@
           "grant": { "yield": "science", "amount": 10, "fromOccasion": "population" }
         }
       ]
+    },
+    "theSwordOfState": {
+      "name": "The Sword of State",
+      "decks": ["dominion", "magisterial"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The sword is carried before the ruler, and a soldier walks behind it.",
+      "text": "On draft: the best melee unit you can build is trained in your capital. It costs no upkeep. Seated, this card does nothing.",
+      "onDraft": [{ "grant": "unit", "unit": "bestMelee" }],
+      "effects": []
+    },
+    "copyingTheEnemy": {
+      "name": "Copying the Enemy",
+      "decks": ["dominion", "scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "Every captured weapon is taken apart to see how it was made.",
+      "text": "Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "oncePerTurn": true,
+          "fallenUnbuilt": true,
+          "grant": { "towardFallenTech": 10 }
+        }
+      ]
+    },
+    "theNewCode": {
+      "name": "The New Code",
+      "decks": ["dominion", "magisterial"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "A conquered city is a chance to write the law again.",
+      "text": "Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "oncePerTurns": 10,
+          "grant": { "freeDraft": true }
+        }
+      ]
+    },
+    "lootedArt": {
+      "name": "Looted Art",
+      "decks": ["dominion", "magisterial"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "civic",
+      "flavor": "The statues march home behind the army.",
+      "text": "Capturing a city grants 20 renown for each great-person work and wonder inside its borders.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": { "renown": 20, "fromOccasion": "worksAndWonders" }
+        }
+      ]
     }
   }
 }

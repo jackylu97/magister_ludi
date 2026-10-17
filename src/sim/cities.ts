@@ -109,7 +109,14 @@ import { type ProjectId, isProjectId, projectDef, projectFinishes } from './proj
 // it imports the data tables and stops — so the largest module in the
 // simulation may read a row without a shape of cycle.
 import { leaderDef } from './leaderData';
-import { type FirstKind, type LevyUse, governmentDef } from './statecraftData';
+import {
+  type FirstKind,
+  type LevyUse,
+  type OrderId,
+  type WindfallOccasion,
+  governmentDef,
+  orderDef,
+} from './statecraftData';
 import { isBeadEndeavourId } from './beadData';
 import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
 import { nextInt } from './rng';
@@ -153,7 +160,12 @@ import {
 // Dominion batch D1's readers, straight from the evaluator: the experience a
 // unit is gained with, and the empty-payout check the rank's riders use. The
 // same function-level edge the index above already is.
-import { cardBirthExperience, higherRank, windfallPayoutIsEmpty } from './statecraft/evaluator';
+import {
+  cardBirthExperience,
+  higherRank,
+  opusCityOf,
+  windfallPayoutIsEmpty,
+} from './statecraft/evaluator';
 // Ranks: a leaf over the rule book, the unit table and the state.
 import { type RankId, grantExperience, raiseToRank, rankThreshold } from './ranks';
 import {
@@ -164,6 +176,7 @@ import {
   type Unit,
   addBuilding,
   bankedTowardItem,
+  capitalCityOf,
   cityById,
   claimWonder,
   createCity,
@@ -2334,7 +2347,13 @@ function chooseCitizens(
  *      before the turn ends. Entry 2's reason, with a camp in place of a
  *      purchase.
  *
- *  25. **A lasting mark on a town's land** (`markTownLand`, Expansionist batch
+ *  25. **A muster that costs a citizen** (`musterPeriodicUnits`,
+ *      `statecraft/evaluator.ts`, Dominion batch D5's Total Mobilisation). It
+ *      runs in the muster phase, not in a command, but it takes a citizen
+ *      through `loseCitizen` as a levy does (entry 23), so the town is
+ *      re-seated at once for entry 23's reason.
+ *
+ *  26. **A lasting mark on a town's land** (`markTownLand`, Expansionist batch
  *      E3): The Raising of the Land and The Coming of the Water add a yield to
  *      hexes the town may already be working, so the town is re-seated when a
  *      mark goes on.
@@ -2399,7 +2418,7 @@ export function refreshTileDerived(state: GameState, tile: Tile): void {
  * engineer raises only the hexes the first did not (the triage's reading 23).
  * The hexes are walked in index order (`ownedTiles`), and each is written
  * through `markHex`, the one writer of `Tile.marks`. The town is re-seated
- * when anything changed: entry 25 of the register above.
+ * when anything changed: entry 26 of the register above.
  */
 export function markTownLand(state: GameState, city: City, mark: HexMarkId): number {
   const rule = RULES.improvements.hexMarks[mark];
@@ -4585,6 +4604,10 @@ export function realiseItem(
   ) {
     recordScalingOccasion(state, city.ownerId, 'unitTrained');
   }
+  // **A unit gained** (Dominion batch D5, The Gathering Host): every unit this
+  // routine brings into being counts, bought, free and conscripted ones
+  // included (the user's ruling that conscripts count as gained).
+  recordScalingOccasion(state, city.ownerId, 'unitGained');
   // The riders pay for every unit gained, a levied conscript included
   // (`RealiseOptions.untrained`). A conscript is kept out of the trained tally
   // and the escalation ladder above, and nowhere else.
@@ -5139,6 +5162,73 @@ function refundBeatenWonders(
 }
 
 /**
+ * **Raises one free unit in a town**, of the kind a card names (Dominion batch
+ * D5): a unit id is itself, and `'bestMelee'` asks the roster for the best
+ * melee unit the owner can build now (`bestMeleeFor`). Through `realiseItem`,
+ * the one routine that means "the town now has the thing", so the unit counts
+ * as gained and pays the completion riders, and `free`, so it costs no upkeep
+ * (the triage's reading 2). Returns the unit's id, or `null` when there is no
+ * such unit or nowhere beside the town to stand.
+ *
+ * The on-draft grant uses it (`raiseOnDraft`), and a founding rider can use it
+ * the same way to start a new town with a unit (Expansionist's The Frontier
+ * Militia, batch E5).
+ */
+export function raiseFreeUnit(
+  state: GameState,
+  city: City,
+  unit: UnitTypeId | 'bestMelee',
+): number | null {
+  const type = unit === 'bestMelee' ? bestMeleeFor(state, city.ownerId) : unit;
+  if (type === null) return null;
+  const tile = spawnTileFor(state, city, type);
+  if (!tile) return null;
+  return realiseItem(state, city, { kind: 'unit', id: type, tile }, { free: true }).unitId ?? null;
+}
+
+/**
+ * **What drafting an Order hands over, once** (Dominion batch D5): The Sword
+ * of State's best melee unit and The Cleruchy's settler, raised in the
+ * capital (`OrderDef.onDraft`). Called by the pick (`applyChooseOrder` in
+ * `commands.ts`) beside `settleOrderChoice`, which takes no state. A seat with
+ * no capital, or a capital with nowhere to put the unit, gets nothing.
+ */
+export function raiseOnDraft(state: GameState, player: Player, id: OrderId): void {
+  const grants = orderDef(id).onDraft;
+  if (grants === undefined || grants.length === 0) return;
+  const capital = capitalCityOf(state, player.id);
+  if (!capital) return;
+  for (const grant of grants) raiseFreeUnit(state, capital, grant.unit);
+}
+
+/**
+ * **Pays one empire's riders on an occasion with no figure of its own**, and
+ * settles what they paid (Dominion batch D5): food and production in the towns
+ * they land in, then culture and science at once, as every windfall's are.
+ * The shared tail of the occasions D5 added: a draft passed, a town razed, a
+ * ranged attack and a great person gained. `at` is where the occasion
+ * happened; without it, food and production land in the capital. Returns
+ * whether anything was paid.
+ */
+export function payOccasionRiders(
+  state: GameState,
+  player: Player,
+  occasion: WindfallOccasion,
+  at?: { col: number; row: number },
+  facts: WindfallOccasionFacts = {},
+): boolean {
+  if (player.barbarian === true) return false;
+  const payout = windfallPayout(state, player.id, occasion, 0, 0, facts);
+  if (windfallPayoutIsEmpty(payout)) return false;
+  for (const town of payWindfallGrants(state, player, payout, at)) {
+    if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
+  }
+  settleCultureWindfall(state, player);
+  settleResearchWindfall(state, player);
+  return true;
+}
+
+/**
  * The riders a completion pays out — Master Masons' culture on a wall, Rites of
  * Passage' faith on a sword.
  *
@@ -5301,6 +5391,7 @@ export function productionSettledBy(
  * than stalling against a figure the player was never shown.
  */
 export function advanceProduction(state: GameState, report?: TurnReport): void {
+  releaseOpusBanks(state);
   for (const city of state.cities) {
     const done = settleProduction(state, city);
     // A wonder is the one completion that is news to seats who had nothing to do
@@ -5321,6 +5412,26 @@ export function advanceProduction(state: GameState, report?: TurnReport): void {
     // news to its owner alone, and a difference that stops existing the moment
     // the resolution is over.
     if (done?.consecration) report?.consecrations.push(done.consecration);
+  }
+}
+
+/**
+ * **Moves the production kept for each empire's Magnum Opus into the town now
+ * raising it** (Dominion batch D6, Spolia: "if you have not begun one, the
+ * production is kept until you do"). Run at the start of the production phase,
+ * so the kept hammers count toward the Opus in the same settlement. An empire
+ * with nothing kept, or with no town raising the Opus, is left as it was. Seat
+ * order, and the town is `opusCityOf`'s, the first in founding order, which is
+ * where a Spolia grant lands when there is a town.
+ */
+export function releaseOpusBanks(state: GameState): void {
+  for (const player of state.players) {
+    const kept = player.opusBank ?? 0;
+    if (kept <= 0) continue;
+    const town = opusCityOf(state, player.id);
+    if (!town) continue;
+    town.hammerBasket += kept;
+    delete player.opusBank;
   }
 }
 

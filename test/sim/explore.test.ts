@@ -748,24 +748,34 @@ describe('determinism', () => {
    * D4 left it, the phase removed, the version at 135), which gives D4's hashes
    * exactly.
    *
-   * **Expansionist batch E2 (moments, records and counts) moved the hash and
-   * not the length** at both seeds. Two things moved it: the version, 136 to
-   * 137, and the new `roadJoinings` phase, which raises the revision once more
-   * a turn. Nobody here founds a town or drafts a card, so the two new town
-   * fields and the new cards never reach this board. Checked by taking E2's
-   * movers out (the deck file as E1 left it, the phase removed, the version at
-   * 136 and the town record not written), which gives E1's hashes exactly.
+   * **Dominion batch D5 moved the hash and not the length** at both seeds. It
+   * was built at schema 136 and merged after E1, which renumbered it to 137,
+   * so the version here went from 136 to 137, and that is all. Nobody here
+   * drafts a card, finishes a technology with a card that raises units, or
+   * gains a great person, so the new tally, records and moments never reach
+   * this board. Checked by setting the version back to 136 with every D5
+   * change in place, which gives E1's hashes exactly.
    *
-   * **Expansionist batch E3 (the land) moved the hash and not the length** at
-   * both seeds: 137 became 138, and that is the whole change here. Nobody
-   * here drafts a card, so the new cards and rules never reach this board, and
-   * no seam surfaces and no hex is marked. Checked by setting the deck file
-   * back to E2's and the version to 137, which gives E2's hashes exactly; the
-   * new deck file at 137 gives them too.
+   * **Dominion batch D6 moved the hash and not the length** at both seeds:
+   * 137 became 138, and that is all. Nobody here founds a town, takes one,
+   * makes peace or pillages, so the war record, the first-town record and the
+   * kept Opus production never reach this board. Checked by setting the
+   * version back to 137 with every D6 change in place, which gives D5's hashes
+   * exactly.
+   *
+   * **Expansionist batches E2 and E3 moved the hash and not the length** at
+   * both seeds. They were built at schemas 137 and 138, without D5 and D6, and
+   * were merged after D6, which renumbered them to 139 and 140. Two things
+   * moved the hash: the version, 138 to 140, and E2's new `roadJoinings` phase,
+   * which raises the revision once more a turn. Nobody here founds a town or
+   * drafts a card, so the new town fields and the new cards never reach this
+   * board. Checked by taking E2's and E3's movers out (the deck file as D6 left
+   * it, the phase removed, the version at 138 and the town record not
+   * written), which gives D6's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '7da45705:188932',
-    2026: '7411938c:188488',
+    11: '105a5606:188932',
+    2026: 'de7b7647:188488',
   };
 
   for (const seed of [11, 2026]) {

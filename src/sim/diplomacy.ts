@@ -50,6 +50,7 @@ import type { GameState, Unit } from './state';
 import {
   availableCopies,
   capitalCityOf,
+  payOccasionRiders,
   refreshCityDerived,
   resourceCopies,
   settleProductionWindfall,
@@ -58,6 +59,7 @@ import {
 } from './cities';
 import {
   payWindfallGrants,
+  recordScalingOccasion,
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
@@ -94,6 +96,7 @@ import {
   recomputeVisibilityFor,
 } from './visibility';
 import {
+  type WarSpoils,
   type WarState,
   atWar,
   closeWar,
@@ -103,6 +106,7 @@ import {
   setPeaceOffer,
   truceTurnsLeft,
   warBetween,
+  warSpoils,
 } from './wars';
 import { bumpEconomy } from './slate';
 
@@ -932,13 +936,45 @@ export function settlePeacePair(state: GameState, war: WarState): PeaceOutcome {
   // and not a proposer's — the paper is keyed to the pair (`PeaceTerms`), so
   // the settlement never has to know who wrote it.
   const execution = paper === undefined ? undefined : settleDealAt(state, a, b, paper.a, paper.b);
+  // **What each side won**, read after the terms are honoured and before the
+  // war's row is closed (Dominion batch D6; the triage's reading 31): a town
+  // handed back at the table is no longer held, so it does not count.
+  const spoils = [
+    { side: a, other: b, won: warSpoils(state, war, a) },
+    { side: b, other: a, won: warSpoils(state, war, b) },
+  ];
   const truceUntilTurn = closeWar(state, a, b);
   const expulsions = [...expelFrom(state, a, b), ...expelFrom(state, b, a)];
+  payPeace(state, spoils);
   return {
     peace: { a, b, truceUntilTurn },
     expulsions,
     ...(execution === undefined ? {} : { execution }),
   };
+}
+
+/**
+ * **The peace pays** (Dominion batch D6): each side, in pair order, pays its
+ * `peace` riders with what it won (War Reparations' towns, Danegeld's hexes)
+ * and counts the end of the war for a commission (Commission: A Victor's
+ * Peace's `warEnded`, with the towns it took). After the truce and the
+ * expulsions, so the war is over when the riders pay.
+ *
+ * A side destroyed by the terms (its last town ceded) is paid nothing, and the
+ * other side does not count the war's end again: `updateElimination` counted it
+ * when the side was destroyed.
+ */
+function payPeace(state: GameState, spoils: { side: number; other: number; won: WarSpoils }[]): void {
+  for (const { side, other, won } of spoils) {
+    const player = playerById(state, side);
+    if (!player || player.eliminated) continue;
+    payOccasionRiders(state, player, 'peace', undefined, {
+      takenPopulation: won.population,
+      hexesPillaged: won.hexes,
+    });
+    if (playerById(state, other)?.eliminated === true) continue;
+    recordScalingOccasion(state, side, 'warEnded', 1, { townsTaken: won.towns });
+  }
 }
 
 /** Both flags on this war, and nothing else — the one reading of "signed". */
@@ -1236,6 +1272,10 @@ export function razeCityAt(
     row: city.row,
     tilesReleased,
   };
+  // Read before the town goes: The Sack pays for a town taken by force, by the
+  // population it had (Dominion batch D5). `capturedOn` and not `captured`,
+  // because `captured` is also true for a town ceded at a peace.
+  const sacked = city.capturedOn !== undefined ? city.population : null;
   state.cities = state.cities.filter((row) => row.id !== city.id);
   // **A town off the board** (batch M3, `slate.ts`): the ground it held is
   // released two lines up and the roster it was on is the one both meters walk.
@@ -1255,6 +1295,14 @@ export function razeCityAt(
   // the roster and before elimination is judged — the deed is done either way,
   // and an empire that razed its way out of the game still did the deed.
   awardOrderBeads(state, report.ownerId, 'cityRazed');
+  // **The Sack** (Dominion batch D5): razing a town you captured is a moment
+  // the cards pay on, with the town's population. Paid after the town is off
+  // the roster, so its food and production land in the razer's nearest other
+  // town.
+  const razer = playerById(state, report.ownerId);
+  if (sacked !== null && razer) {
+    payOccasionRiders(state, razer, 'raze', { col: report.col, row: report.row }, { population: sacked });
+  }
   updateElimination(state);
   return { report, routesEnded };
 }

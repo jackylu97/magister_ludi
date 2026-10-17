@@ -662,53 +662,106 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * ---
  *
- * **Expansionist batch E2 (schema 137): moments, records and counts.** Duel
- * `1b08ba49:270185` → `70666b59:270586`, standard `430a6ef2:959302` →
- * `b49d4bdb:960141`. Four things moved them:
+ * **Dominion batch D5 (schema 137), units gained and new moments, merged after
+ * E1.** Duel `1b08ba49:270185` → `31cc28b2:303960`, standard `430a6ef2:959302`
+ * → `87201d9d:969761`. D5 was built at schema 136, without E1, and the literals
+ * it pinned there (duel `161786a7:291108`, standard `83dff662:954606`) do not
+ * apply to this tree. Four things moved the digests:
  *
- *   · the cards. Nine Expansionist rows join the deck, and The Land's Great
- *     Work counts towns of eight citizens. With the cards alone (the phase
- *     taken out, the version at 136, the town record not written), the duel
- *     board gives `9a1b8262:270187` and the standard board does not move;
- *   · the two new town fields: `City.largestSize`, written at every founding
- *     and every new record, and `City.joinedBy`, written the first time a town
- *     is joined to its capital by road, with or without a card. They make both
- *     boards longer;
- *   · the new `roadJoinings` phase, which raises the revision once more every
- *     turn;
- *   · the version, 136 to 137.
+ *   · the version, 136 to 137;
+ *   · the fourteen cards. Nine Orders join the Dominion pool and three join
+ *     the shared pool, and two Doctrines join the pools: Total Mobilisation at
+ *     tier 18, and The Landsturm, the first Doctrine a tier-29 adoption
+ *     offers. At turn 120 two seats on each board have The Gathering Host
+ *     seated. On the duel board two seats hold Total Mobilisation, and three
+ *     hold The Sword of State, one of them seated. On the standard board four
+ *     seats hold Total Mobilisation, and one of them also holds The Landsturm,
+ *     has The Longbowmen seated and holds The Open Muster, not seated;
+ *   · the new record `Player.greatPeopleByFamily`, written for every great
+ *     person an empire gains;
+ *   · the bots' new readings (`src/ai/value.ts`, `src/ai/bot.ts`): the four new
+ *     moments, the new grants, the citizen a muster costs, and what drafting a
+ *     card hands over. That last term counts only for a card the seat does not
+ *     hold yet, so a held card that does nothing seated is not worth its unit
+ *     again (fixed at the merge; it moved the duel digest and not its length).
  *
- * No seat holds an E2 card at turn 120. Checked by taking E2's movers out (the
- * deck file as E1 left it, the phase removed, the version at 136, the town
- * record not written), which gives E1's digests exactly on both boards. The
- * duel game adopts 12 governments and the standard one 15. Nothing stalled and
- * no command was refused.
+ * Checked by taking all four back out (the two deck files as E1 left them,
+ * the version at 136, the record not written, and the bots' readings as they
+ * were), which gives E1's digests exactly on both boards. Everything else D5
+ * changed stayed in for that run: the new moments, the `unitGained` tally and
+ * the new emptiness test in `payBattleRiders` change nothing without the
+ * cards. Nothing stalled and no command was refused.
  *
  * ---
  *
- * **Expansionist batch E3 (schema 138): the land.** Duel `70666b59:270586` →
- * `3175a91c:260719`, standard `b49d4bdb:960141` → `d2051ff0:951807`. Two
- * things moved them:
+ * **Dominion batch D6 (schema 138), captures, commissions and the end of a
+ * war.** Duel `31cc28b2:303960` → `a86298d3:304146`, standard
+ * `87201d9d:969761` → `a0e03ce3:969986`. Four things moved the digests:
  *
- *   · the cards. Five Expansionist rows join the deck, two deferred rows are
- *     freed (The Common Domain, and The Raising of the Land, which moves from
- *     Tier IV to Tier III), and three rows change. From the first draw that
- *     meets one of them, the seats hold different cards. With the new deck
- *     file at version 137, the boards give duel `a5d6c5c3:260719` and
- *     standard `dce501f7:951807`: the same games and the same lengths;
- *   · the version, 137 to 138, which moves the hash and not the length.
+ *   · the version, 137 to 138;
+ *   · the cards. Danegeld, Vae Victis and Looted Art join the pools, War
+ *     Reparations and Commission: A Victor's Peace are dealt, and six live rows
+ *     change what they do (Clear the Frontier's citizens, Take the City's
+ *     floor and Barracks, The Grand Campaign and The Captured Marvel reading
+ *     the towns their goal counted, Hold the Capitals reading whose first town
+ *     it is, and Spolia keeping its production for the Opus). At turn 120 no
+ *     seat on the duel board holds a D6 card, and on the standard board one
+ *     seat holds Commission: Take the City, not seated. The draws differ from
+ *     the first hand that meets one of the new rows;
+ *   · the new records: every empire's first town now carries
+ *     `originalCapitalOf`, every war records the towns taken and the hexes
+ *     pillaged (one war on the duel board has two towns taken), and a
+ *     commission's tally row keeps the towns it counted;
+ *   · the behaviour of the reworked rows above, which the control takes out
+ *     with the records.
  *
- * At turn 120 one duel seat holds The Woodland Bands and one standard seat
- * holds The Prospectors, neither seated. Checked by taking E3's movers out (the
- * deck file as E2 left it, the version at 137), which gives E2's digests
- * exactly on both boards. The new code changes nothing when no seat holds an
- * E3 card: the bot's phantom town, which now stands on the seat's capital,
- * moves neither board. The duel game adopts 10 governments and the standard
- * one 15. Nothing stalled and no command was refused.
+ * Checked by taking all four back out (the two deck files as D5 left them, the
+ * version at 137, none of the new records written, and the three captured-town
+ * figures, the old original-capital readings and Spolia's capital delivery put
+ * back), which gives D5's digests exactly on both boards. Everything else D6
+ * changed stayed in for that run: the peace payment, the end of a war by
+ * destruction, the goal floors and the new rewards, the capture amplifier,
+ * renown scaled by the moment, the Opus bank's release, and the bots' new
+ * readings change nothing without the cards. Nothing stalled and no command
+ * was refused.
+ *
+ * ---
+ *
+ * **Expansionist batches E2 (schema 139) and E3 (schema 140), moments, records
+ * and counts, and the land, merged after D6.** Duel `a86298d3:304146` →
+ * `eed36fcb:288964`, standard `a0e03ce3:969986` → `0b6d0a03:1013929`. E2 and E3
+ * were built at schemas 137 and 138, without D5 and D6, and the literals they
+ * pinned there (E2: duel `70666b59:270586`, standard `b49d4bdb:960141`; E3:
+ * duel `3175a91c:260719`, standard `d2051ff0:951807`) do not apply to this
+ * tree. Four things moved the digests:
+ *
+ *   · the version, 138 to 140;
+ *   · the cards. E2's nine new Expansionist rows and E3's five join the pools,
+ *     E3 frees two deferred rows (The Common Domain, and The Raising of the
+ *     Land, which moves from Tier IV to Tier III), and four live rows change
+ *     (The Land's Great Work, The Prospectors, The Watercourses and The
+ *     Landscape Garden). At turn 120 one duel seat holds The Woodland Bands and
+ *     another holds The Grain Census, neither seated, and no standard seat
+ *     holds an E2 or E3 card. The draws differ from the first hand that meets
+ *     one of the new rows;
+ *   · the two new town fields: `City.largestSize`, written at every founding
+ *     and every new record, and `City.joinedBy`, written the first time a town
+ *     is joined to its capital by road, with or without a card;
+ *   · E2's new `roadJoinings` phase, which raises the revision once more every
+ *     turn.
+ *
+ * Checked by taking all four back out (the deck file as D6 left it, the
+ * version at 138, the phase removed, which also stops the `City.joinedBy`
+ * writes, and `City.largestSize` not written), which gives D6's digests
+ * exactly on both boards. Everything else E2 and E3 changed stayed in for that
+ * run, and it changes nothing without the cards. That includes the bot's
+ * phantom town, which now stands on the seat's capital. The duel game adopts
+ * 11 governments and the standard one 17. Nothing stalled and no command was
+ * refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '3175a91c:260719',
-  standard: 'd2051ff0:951807',
+  duel: 'eed36fcb:288964',
+  standard: '0b6d0a03:1013929',
 };
 
 /**

@@ -2,7 +2,7 @@
 
 **Status:** written 2026-10-16 by a read-only triage agent, before any E batch. It is the plan for the user's ruling of 2026-10-16 (*"let's implement the expansionist deck, deferring any that require a new UX/user interaction"*, recorded at the end of `docs/plans/expansionist-builds.md`). The readings in "Rule ambiguities" are the ones the build will use unless the user changes them here. Mark any you disagree with, as on the deck sheets.
 
-**Built:** E0 (the types and the 37 data-only cards, `39cfb0ba`), E1 (the twelve levy cards, `cd48080b`), E2 (ten cards about moments, records and counts, `b4e582af`) and E3 (the ten land cards, branch `e-work`). The readings each batch applied are below; a reading a batch added is marked with the batch. The Frontier Militia moved from E2 to E5: it needs the best-melee unit grant that Dominion batch D5 builds.
+**Built:** E0 (the types and the 37 data-only cards, `39cfb0ba`), E1 (the twelve levy cards, `cd48080b`), E2 (ten cards about moments, records and counts, `b4e582af`) and E3 (the ten land cards, `6ecdf59d`). The merge that brought Dominion's D5 and D6 under E2 and E3 renumbered E2 to schema 139 and E3 to 140. The readings each batch applied are below; a reading a batch added is marked with the batch. The Frontier Militia moved from E2 to E5: it needs the best-melee unit grant, which Dominion batch D5 built.
 
 Source: `docs/decks/expansionist.md` as of commit `96681fb4` (branch `decks`), which holds the user's three passes of 2026-10-16 and the Keep ruling. Shapes were checked against `src/sim/statecraftData.ts` and `src/sim/statecraft/evaluator.ts` as D3 left them (branch `d2-work`, merged into `decks` as `e9fed7be`), the sim modules they read (`levies.ts`, `cities.ts`, `improvements.ts`, `commissions.ts`, `census.ts`, `meters.ts`, `pathfind.ts`, `terrainData.ts`, `buildingData.ts`), and `src/ai/bot.ts` and `src/ai/value.ts` for the seating.
 
@@ -206,17 +206,17 @@ Facts the cells rely on:
 
 ## Shapes from Dominion's batches
 
-**Where the Dominion batches stand.** D0 to D3 and C1 to C3 are on `decks`. D2 (`a4f52a0f`) and D3 (`a9819193`) were built on `d2-work` and merged with C3 in `e9fed7be` and `8dd634d1`. D4 to D7 are not built. The E batches edit the same statecraft files as the D batches, so the two series cannot run side by side.
+**Where the Dominion batches stand.** D0 to D6 and C1 to C3 are on `decks`. D2 (`a4f52a0f`) and D3 (`a9819193`) were built on `d2-work` and merged with C3 in `e9fed7be` and `8dd634d1`. D4 was merged into E1 (`8a826225`), and D5 and D6 into E2 and E3. D7 is not built. The E batches edit the same statecraft files as the D batches, so the two series cannot run side by side.
 
 **Built shapes the E batches use:**
 - **D1:** the levy's town `scope` (The Terraces of Moray) and `unitStamp` `rank` (The Trained Bands).
 - **D3:** grant delivery. The Domesday Survey pays every town, each from its own figure. The Builders' Levy finds its town with D3's reading of "nearest" (ties go to the earlier town).
 - **C3:** nothing new. The deck has no Doctrines yet.
+- **D4:** the scoped zero-cost meter rule (The Proconsuls): a `meterRule` of `rule: 'cityCost'` with `value: 0` and a town `scope`. Used by The Imperial Roads and The Heartland.
+- **D5:** the best-melee unit grant: `unit: 'bestMelee'` on a grant, raised by `raiseFreeUnit(state, city, 'bestMelee')` (`cities.ts`). Used by The Frontier Militia.
+- **D6:** the citizens reward (`CommissionReward.citizens` with `citizensTo`; `{ smallest: 3 }` sends them to the three smallest towns, as The Wide Country needs). The town that met a goal is `commissionGoalTown` (`commissions.ts`), the one reading of "that town" for a reward. `CommissionReward.building` builds there, and `fromGoal` scales a reward by what the goal kept (`commissionGoalMeasure`). The Heartland's goal, which one town meets by a figure, names its town through `commissionGoalTown` too.
 
-**Dominion shapes not built yet (D4 to D7) that Expansionist cards need:**
-- **D4:** the scoped zero-cost meter rule (The Proconsuls). Used by The Imperial Roads and The Heartland.
-- **D5:** best-melee unit grants. Used by The Frontier Militia.
-- **D6:** a citizens reward (Commission: Clear the Frontier), used by The Wide Country. A figure and a reward for the one town that met a goal (The Captured Marvel, Take the City), used by The Heartland.
+**Dominion shapes not built yet (D7) that Expansionist cards need:**
 - **D7:** the disband moment (The Legions' Labour), used by Veteran Colonies. The food-to-hammers transfer (The Laws of Lord Shang), used by The Breadbasket. The fortified-unit hex test, used by The Farming Garrisons, which is now shared and still on D7's list.
 
 **The rule:** build each shape once. If D4 to D7 run first, the E batches reuse their shapes. If an E batch runs first, it builds the shape and the D batch reuses it. The batch that builds a shared shape names it in its report.

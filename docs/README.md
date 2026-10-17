@@ -322,6 +322,20 @@ Reference: **`docs/units.md`** (the roster; generated) and
   camp's mount follows the age's tier.
 - A melee blow on a **laden trader plunders** (bounty to the nearest city), never
   captures.
+- **Each war keeps a record** (Dominion batch D6, `wars.ts`): the towns each
+  side took by force (`WarState.taken`, written by `captureCity`) and the other
+  side's hexes each side pillaged (`WarState.pillaged`, written by
+  `payPillage`). `warSpoils` reads what one side won: the towns it still holds,
+  their citizens, and its hexes. A signed peace pays each side's `peace`
+  riders with it (`settlePeacePair`, after the terms and the close), and the
+  end of a war, by peace or by the other empire's destruction
+  (`updateElimination`), is the `warEnded` tally.
+- **A capture** carries the town's works and wonders (`worksAndWonders`), and
+  an Order's capture riders can be scaled (`captureRewards`, Vae Victis).
+  Production a capture sends to the Magnum Opus with no town raising it is
+  kept on `Player.opusBank` and moved into the Opus town at the start of the
+  production phase (`releaseOpusBanks`). `City.originalCapitalOf` says whose
+  first town a town is.
 
 ## The tech tree and the ages
 
@@ -398,6 +412,31 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   never be seated again. Private: nothing reads another empire. UI: the counter
   on the card face (`ui/goalCounter.ts`) and the chips under the empire panel
   (`ui/commissionRail.ts`).
+  - Since Dominion batch D6 a counted goal may have a floor (`minPopulation`,
+    `minTownsTaken`, read off the moment's `TallyFacts`) and keeps the towns it
+    counted on its tally row (`OrderTally.people`, `.wonders`, `.town`).
+  - A reward may read what the goal counted (`fromGoal`), raise a building in
+    the town that met it (`building`; the town is `commissionGoalTown`), grant
+    citizens (`citizens`, to the capital or the smallest towns), or add
+    Wildcard chairs for the rest of the game (`wildcardChairs`, kept on
+    `PlayerStatecraft.chairsWon` and counted by `chairCount`).
+- **Units a card raises, and the moments it pays on** (Dominion batch D5):
+  - A grant can raise the best melee unit (`bestMeleeFor`) or each military
+    unit a technology unlocks, in the capital or in each town a scope admits.
+    Every such unit is free of upkeep and comes through `realiseItem`, so it
+    counts for the `unitGained` tally and pays the riders on gaining a unit.
+  - An Order can raise units when it is drafted (`OrderDef.onDraft`,
+    `raiseOnDraft`). `raiseFreeUnit` (`cities.ts`) is the one helper, and a
+    founding rider can use it too.
+  - Four moments with no figure of their own are paid by `payOccasionRiders`
+    (`cities.ts`): an Order draft passed (`settleOrderSkip`), a town taken by
+    force and razed (`razeCityAt`), an attack from range (`applyCombat`) and a
+    great person gained (`settleGreatPersonChoice`).
+  - A grant can be paid once for each item a count finds (`perCount`), bank
+    science toward the technology of a unit killed (`towardFallenTech`,
+    `bankTowardTech`), or open a free Order draft (`freeDraft`,
+    `openFreeDraft`) that moves neither the draft count nor the culture. A
+    rider can fire at most once in a number of turns (`oncePerTurns`).
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
   legacies, wonders and leaders.

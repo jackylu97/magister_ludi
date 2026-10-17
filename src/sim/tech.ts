@@ -1845,7 +1845,9 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   // that is stated on `markFirst` rather than re-argued here.
   const firsts: FirstKind[] = [];
   if (markFirst(state, player.id, 'techWorld', plan.techId)) firsts.push('techWorld');
-  const rider = windfallPayout(state, player.id, 'tech', 0, 0, { firsts });
+  // The technology itself travels with the occasion since Dominion batch D5:
+  // The Armourers' Secret raises the units it unlocks.
+  const rider = windfallPayout(state, player.id, 'tech', 0, 0, { firsts, tech: plan.techId });
   if (
     rider.grants.length > 0 ||
     rider.units.length > 0 ||

@@ -72,8 +72,13 @@ const STEPPE: DoctrineId = 'theSteppeConfederacy';
 // Dominion batch D4's two Doctrines: a second at Tier I, and the first at Tier III.
 const CONSULAR: DoctrineId = 'theConsularRoads';
 const MONARCHY: DoctrineId = 'theUniversalMonarchy';
+// Dominion batch D5's two: a second at Tier III, and the first at Tier IV.
+const MOBILISATION: DoctrineId = 'totalMobilisation';
+const LANDSTURM: DoctrineId = 'theLandsturm';
 /** Dominion's Tier I Doctrines, in the order the data lists them. */
 const TIER_ONE: readonly DoctrineId[] = [STEPPE, CONSULAR];
+/** Dominion's Tier III Doctrines, in the order the data lists them. */
+const TIER_THREE: readonly DoctrineId[] = [MONARCHY, MOBILISATION];
 
 /** A duel between two named figures, so each seat holds that figure's two decks. */
 function duel(first: string, second: string, seed = 11): Game {
@@ -113,8 +118,8 @@ describe('the Doctrine data model', () => {
 
   it('folds the deck files’ Doctrines into the one table, each with its decks, its tier and the government tier that offers it', () => {
     const fromDecks = DECK_FILES.flatMap((file) => DECK_FILE_DOCTRINES[file]);
-    expect(fromDecks).toEqual([STEPPE, CONSULAR, MONARCHY]);
-    expect(DECK_FILE_DOCTRINES.dominion).toEqual([STEPPE, CONSULAR, MONARCHY]);
+    expect(fromDecks).toEqual([STEPPE, CONSULAR, MONARCHY, MOBILISATION, LANDSTURM]);
+    expect(DECK_FILE_DOCTRINES.dominion).toEqual([STEPPE, CONSULAR, MONARCHY, MOBILISATION, LANDSTURM]);
     for (const id of fromDecks) {
       expect(STATECRAFT.doctrines[id], id).toBeDefined();
       expect(DOCTRINE_IDS, id).toContain(id);
@@ -146,8 +151,9 @@ describe('the Doctrine data model', () => {
 
   it('pools a tier’s live Doctrines alone', () => {
     expect(poolDoctrines(4)).toEqual([...TIER_ONE]);
-    expect(poolDoctrines(18)).toEqual([MONARCHY]);
-    for (const tier of [10, 29]) expect(poolDoctrines(tier), `tier ${tier}`).toEqual([]);
+    expect(poolDoctrines(18)).toEqual([...TIER_THREE]);
+    expect(poolDoctrines(29)).toEqual([LANDSTURM]);
+    expect(poolDoctrines(10)).toEqual([]);
     expect(poolDoctrines(0)).toEqual([]);
   });
 });
@@ -162,8 +168,9 @@ describe('the Doctrine offer’s bag and deal', () => {
     const pachacuti = playerById(g.state, 1)!;
     expect(doctrineBagFor(taizong, 4)).toEqual([...TIER_ONE]);
     expect(doctrineBagFor(pachacuti, 4)).toEqual([]);
-    expect(doctrineBagFor(taizong, 18)).toEqual([MONARCHY]);
-    for (const tier of [10, 29]) expect(doctrineBagFor(taizong, tier)).toEqual([]);
+    expect(doctrineBagFor(taizong, 18)).toEqual([...TIER_THREE]);
+    expect(doctrineBagFor(taizong, 29)).toEqual([LANDSTURM]);
+    expect(doctrineBagFor(taizong, 10)).toEqual([]);
     taizong.statecraft.doctrines.push(STEPPE);
     expect(doctrineBagFor(taizong, 4)).toEqual([CONSULAR]);
   });

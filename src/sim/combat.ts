@@ -305,7 +305,13 @@ import { type ArrivalReport, arriveOnTile, isEmptyArrival } from './arrival';
 import { blockadedWaterAround, blockades } from './blockade';
 import { type BuildingId, BUILDING_IDS, buildingDef, isWonder } from './buildingData';
 import { buildingCityHp, buildingCityStat } from './buildingEffects';
-import { assignCitizens, cityAt, settleProductionWindfall, settleRanksEarned } from './cities';
+import {
+  assignCitizens,
+  cityAt,
+  payOccasionRiders,
+  settleProductionWindfall,
+  settleRanksEarned,
+} from './cities';
 import { blocksLineOfSight, hasLineOfSight } from './los';
 import {
   type GameMap,
@@ -340,6 +346,7 @@ import {
   recordScalingOccasion,
   settleCultureWindfall,
   windfallPayout,
+  windfallPayoutIsEmpty,
 } from './statecraft';
 // Straight from the evaluator: a rule asked of the whole piece, which may name
 // a rank (Dominion batch D2, The Varangian Guard).
@@ -359,7 +366,8 @@ import {
   removeUnit,
   unitById,
 } from './state';
-import { atWar } from './wars';
+import { atWar, recordWarCapture, warBetween, warSpoils } from './wars';
+import type { TallyFacts } from './statecraftData';
 // **A function-level edge to `religion.ts`**, the documented kind (CLAUDE.md's
 // cycle trap): `pressLump` is the one routine that presses a lump of faith, it
 // is called from inside `payBattleRiders` and never at load time, and the
@@ -390,7 +398,7 @@ import {
 // strategic resource puts on a fight. Both are batch R2's.
 import { resourceCombatLines, unitHealthBonus } from './resourceEffects';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
-import { improvementDef } from './improvementData';
+import { improvementDef, isGreatPersonWork } from './improvementData';
 import { awardBeadOccasion } from './beads';
 import { awardOccasion } from './triumphs';
 import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
@@ -2674,6 +2682,8 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true,
         actor: attacker.type,
         strength: fallenStrength(caravan),
+        // The unit killed (Dominion batch D5, Copying the Enemy).
+        fallen: caravan.type,
       },
       attacker,
     );
@@ -2729,12 +2739,16 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         const sackedPopulation = target.city.population;
         // Spolia's figure, read before the capture wipes the queue.
         const opusProgress = opusHammersIn(target.city);
+        // Looted Art's figure (Dominion batch D6), read before the stones and
+        // the ground change hands, as the wonder is.
+        const worksAndWonders = worksAndWondersIn(state, target.city);
         captureCity(state, target.city, attacker.ownerId);
         outcome.capturedCityId = target.city.id;
         defenderDied = true;
         payBattleRiders(state, attacker.ownerId, 'capture', tile, {
           capturedWonder: heldWonder,
           opusProgress,
+          worksAndWonders,
           actor: attacker.type,
           // **The town as it stood a moment before it changed hands** —
           // Triumphs' culture for the people who lived in it. Read beside the
@@ -2809,7 +2823,13 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
             // now the fight is over and nothing on the board still says who
             // struck. Passed beside the other side's fact, which is the same
             // moment asked from the opposite end.
-            { vsBarbarians: fromWild, actor: attacker.type, strength: fallenStrength(defender) },
+            {
+              vsBarbarians: fromWild,
+              actor: attacker.type,
+              strength: fallenStrength(defender),
+              // The unit killed (Dominion batch D5, Copying the Enemy).
+              fallen: defender.type,
+            },
             attacker,
           );
           payBattleRiders(state, fallenOwner, 'death', tile, {
@@ -2867,6 +2887,8 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         {
           vsBarbarians: playerById(state, fallenOwner)?.barbarian === true,
           strength: fallenStrength(attacker),
+          // The unit killed by the counter-blow (Dominion batch D5).
+          fallen: attacker.type,
           // The **counter-attacker**, where one is a piece at all: a city that
           // broke a charge is not a soldier and has no row a filter could name.
           ...(target.unit ? { actor: target.unit.type } : {}),
@@ -2984,12 +3006,14 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         const heldWonder = town.buildings.some((id) => isWonder(id));
         const sacked = town.population;
         const opusProgress = opusHammersIn(town);
+        const worksAndWonders = worksAndWondersIn(state, town);
         townOwnerBefore = town.ownerId;
         captureCity(state, town, attacker.ownerId);
         outcome.capturedCityId = town.id;
         payBattleRiders(state, attacker.ownerId, 'capture', tile, {
           capturedWonder: heldWonder,
           opusProgress,
+          worksAndWonders,
           actor: attacker.type,
           // Read before the stones change hands, exactly as the wonder is.
           population: sacked,
@@ -3103,6 +3127,14 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       );
       settleRanksEarned(state, target.unit, ranks);
     }
+  }
+
+  // **An attack from range is a moment the cards pay on** (Dominion batch D5,
+  // The Longbowmen's culture), whatever it hit, with the attacker as the
+  // actor. The wild is paid nothing.
+  if (forecast.kind === 'ranged') {
+    const shooter = playerById(state, attacker.ownerId);
+    if (shooter) payOccasionRiders(state, shooter, 'rangedAttack', tile, { actor: attacker.type });
   }
 
   updateElimination(state);
@@ -3243,17 +3275,12 @@ function payBattleRiders(
       healed.hp + payout.heal,
     );
   }
-  if (
-    payout.grants.length === 0 &&
-    payout.units.length === 0 &&
-    !payout.healAll &&
-    payout.timed.length === 0 &&
-    // The Crusade's lump is a payout like the rest of them, so it joins the one
-    // early return rather than being paid past it.
-    payout.pressure.length === 0
-  ) {
-    return;
-  }
+  // The evaluator's own emptiness test (Dominion batch D5): a kill can now pay
+  // only science toward a technology (Copying the Enemy), and a capture only a
+  // free draft (The New Code), which the old list of fields did not see. The
+  // Crusade's lump is a payout like the rest of them, so it joins the one
+  // early return rather than being paid past it.
+  if (windfallPayoutIsEmpty(payout) && payout.pressure.length === 0) return;
   // **The Crusade's lump**, and the one thing this seam hands the payer that the
   // payer cannot import: `pressLump` is the one routine that presses a lump of
   // faith and converts on the spot, it lives in `religion.ts`, and `religion.ts`
@@ -3382,7 +3409,16 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   const wasCapital = capitalCityOf(state, loser)?.id === city.id;
   // The commissions' capture counts (Take the City, The Grand Campaign, The
   // Captured Marvel), read before the town changes hands for the same reason.
-  const marked = city.originalCapital === true || city.buildings.some((id) => isWonder(id));
+  // Since Dominion batch D6 the mark asks for *another* empire's original
+  // capital, so taking your own first town back does not count, and the count
+  // carries the town as it stood (the triage's reading 30).
+  const wonders = city.buildings.filter((id) => isWonder(id)).length;
+  const marked =
+    wonders > 0 || (city.originalCapitalOf !== undefined && city.originalCapitalOf !== ownerId);
+  const taken: TallyFacts = { cityId: city.id, population: city.population, wonders };
+  // The war's own record of the towns each side took (Dominion batch D6), while
+  // the war still stands: War Reparations and Commission: A Victor's Peace.
+  recordWarCapture(state, ownerId, loser, city.id);
   handOverCity(state, city, ownerId);
   // A fraction of the **new** maximum, which is the same maximum as the old one
   // — buildings survive a capture, so the walls a conqueror inherits are the
@@ -3428,8 +3464,25 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // deal was not taken by force, and is not a loss.
   recordWarLoss(state, loser, ownerId, 'town');
   if (wasCapital && loser !== ownerId) awardBeadOccasion(state, ownerId, 'capitalCaptured');
-  recordScalingOccasion(state, ownerId, 'cityCaptured');
-  if (marked) recordScalingOccasion(state, ownerId, 'wonderOrCapitalCaptured');
+  recordScalingOccasion(state, ownerId, 'cityCaptured', 1, taken);
+  if (marked) recordScalingOccasion(state, ownerId, 'wonderOrCapitalCaptured', 1, taken);
+}
+
+/**
+ * **The great-person works and world wonders inside a town's borders**
+ * (Dominion batch D6, Looted Art): the hexes the town owns that carry a great
+ * person's work, and the world wonders standing in it. Read before a capture,
+ * by the seam that pays the capture's riders.
+ */
+function worksAndWondersIn(state: GameState, city: City): number {
+  let works = 0;
+  const tiles = state.map.tiles;
+  for (let index = 0; index < tiles.length; index++) {
+    if (state.tileOwner[index] !== city.id) continue;
+    const work = tiles[index]!.improvement;
+    if (work !== undefined && isGreatPersonWork(work)) works += 1;
+  }
+  return works + city.buildings.filter((id) => isWonder(id)).length;
 }
 
 /**
@@ -3555,6 +3608,7 @@ export function updateElimination(state: GameState): void {
     if (state.cities.some((city) => city.ownerId === player.id)) continue;
     player.eliminated = true;
     state.turnEnded[player.id] = true;
+    endWarsByDestruction(state, player.id);
   }
 
   const alive = roster.filter((player) => !player.eliminated);
@@ -3565,6 +3619,25 @@ export function updateElimination(state: GameState): void {
   // so a roster that has produced one survivor cannot un-produce them.)
   if (state.winnerId === null && roster.length > 1 && alive.length === 1) {
     state.winnerId = alive[0]!.id;
+  }
+}
+
+/**
+ * **A war ends when an empire is destroyed** (Dominion batch D6, Commission: A
+ * Victor's Peace: "make peace with an empire, or destroy it"). Every empire at
+ * war with the one just destroyed counts the end of that war, with the towns it
+ * took from it in that war and still holds (the triage's reading 31: destroyed
+ * while you were at war with it, whoever took the last town). Walked in
+ * `state.wars` order. The war's row is left as it stands.
+ */
+function endWarsByDestruction(state: GameState, destroyedId: number): void {
+  for (const other of realPlayers(state)) {
+    if (other.id === destroyedId || other.eliminated) continue;
+    const war = warBetween(state, other.id, destroyedId);
+    if (!war) continue;
+    recordScalingOccasion(state, other.id, 'warEnded', 1, {
+      townsTaken: warSpoils(state, war, other.id).towns,
+    });
   }
 }
 

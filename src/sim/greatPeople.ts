@@ -53,6 +53,7 @@ import {
   capitalCityOf,
   cityAt,
   nearestOwnedCity,
+  payOccasionRiders,
   refreshCityDerived,
   refreshTileDerived,
   settleProductionWindfall,
@@ -739,6 +740,25 @@ export function settleGreatPersonChoice(
   // too; the family rides along because "the first artist" is four data rows
   // rather than a fifth scope (see `awardBeadOccasion`).
   awardBeadOccasion(state, player.id, 'greatPersonRecruited', def.family);
+  // **The family's own count, and the moment the cards pay on** (Dominion batch
+  // D5, The Mural Crown). The count is raised first, so a general gained now
+  // counts toward its own payout (the triage's reading 33). A count reads the
+  // record and can reach the meters, so the write is announced (the slate
+  // register). Paid before the piece is placed, because the person is gained
+  // even when there is nowhere for it to stand.
+  player.greatPeopleByFamily = {
+    ...player.greatPeopleByFamily,
+    [def.family]: (player.greatPeopleByFamily?.[def.family] ?? 0) + 1,
+  };
+  bumpEconomy(state);
+  const seatHex = capitalCityOf(state, player.id);
+  payOccasionRiders(
+    state,
+    player,
+    'greatPersonGained',
+    seatHex ? { col: seatHex.col, row: seatHex.row } : undefined,
+    { family: def.family },
+  );
   const recruit: GreatPersonRecruit = {
     id,
     name: def.name,

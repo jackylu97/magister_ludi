@@ -139,8 +139,9 @@ describe('the shared shelf is two kinds of row and no third', () => {
 describe('a live row', () => {
   it('carries effects, and is dealt', () => {
     for (const id of LIVE) {
-      // A charter's grant is the whole of the card (The Chartered Company).
-      if (orderDef(id).charter === undefined) {
+      // A charter's grant is the whole of the card (The Chartered Company), and
+      // so is a grant on the draft (The Sword of State, Dominion batch D5).
+      if (orderDef(id).charter === undefined && orderDef(id).onDraft === undefined) {
         expect(orderDef(id).effects.length, `${id} is live and pays nothing`).toBeGreaterThan(0);
       }
       expect(orderDef(id).deferred, id).toBeUndefined();
@@ -177,7 +178,9 @@ describe('a live row', () => {
         expect(stripRefs(clause.text), `${id} — a raw ref survives`).not.toContain('[[');
         expect(clause.deferred, `${id} — a live row prints a struck clause`).not.toBe(true);
       }
-      // The card's face is its effects' words first, whatever it adds after.
+      // The card's face is its effects' words first, whatever it adds after. A
+      // card whose whole text is a grant on the draft has no effects to print.
+      if (orderDef(id).onDraft !== undefined && orderDef(id).effects.length === 0) continue;
       const printed = describeEffects(orderDef(id).effects, 'empire');
       expect(printed.length, `${id} — the effects describe as nothing`).toBeGreaterThan(0);
     }

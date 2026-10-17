@@ -393,16 +393,19 @@ describe("the card table", () => {
         .toBeGreaterThanOrEqual(RULES.offers.doctrine);
     }
     // **And Dominion batch D4**: The Consular Roads joins Tier I, and The
-    // Universal Monarchy is the first Tier III Doctrine (tier 18). Tier II and
-    // Tier IV still have none.
+    // Universal Monarchy is the first Tier III Doctrine (tier 18). **Dominion
+    // batch D5** adds Total Mobilisation to Tier III and The Landsturm, the
+    // first Tier IV Doctrine (tier 29). Tier II still has none.
     expect(poolDoctrines(GOVERNMENT_TIERS[0]!)).toEqual([
       "theSteppeConfederacy",
       "theConsularRoads",
     ]);
-    expect(poolDoctrines(GOVERNMENT_TIERS[2]!)).toEqual(["theUniversalMonarchy"]);
-    for (const tier of [GOVERNMENT_TIERS[1]!, GOVERNMENT_TIERS[3]!]) {
-      expect(poolDoctrines(tier), `tier ${tier}`).toEqual([]);
-    }
+    expect(poolDoctrines(GOVERNMENT_TIERS[2]!)).toEqual([
+      "theUniversalMonarchy",
+      "totalMobilisation",
+    ]);
+    expect(poolDoctrines(GOVERNMENT_TIERS[3]!)).toEqual(["theLandsturm"]);
+    expect(poolDoctrines(GOVERNMENT_TIERS[1]!), `tier ${GOVERNMENT_TIERS[1]!}`).toEqual([]);
     // Religious Mandate awaits religion, a war state and the beads. It sits at
     // tier 0, which is not a live pool, so it can never be dealt.
     const dealt = new Set(
@@ -500,12 +503,18 @@ describe("the card table", () => {
       const charter = ORDER_IDS.includes(id as never)
         ? orderDef(id as never).charter
         : undefined;
+      // A grant on the draft speaks through the unit it raises (Dominion batch
+      // D5's The Sword of State and The Cleruchy).
+      const onDraft = ORDER_IDS.includes(id as never)
+        ? orderDef(id as never).onDraft
+        : undefined;
       const hasSomething =
         def.effects.length > 0 ||
         (def.deferred ?? []).length > 0 ||
         granted.length > 0 ||
         commission !== undefined ||
-        charter !== undefined;
+        charter !== undefined ||
+        onDraft !== undefined;
       expect(hasSomething, id).toBe(true);
     }
   });
@@ -1240,15 +1249,23 @@ describe("adoption", () => {
       expect(player.statecraft.slots).toHaveLength(
         chairsAtTier(tier) + cardExtraChairs(g.state, 0),
       );
-      // Since Dominion batch D4 two tiers have Doctrines: tier 4 offers The
-      // Steppe Confederacy and The Consular Roads, and tier 18 offers The
-      // Universal Monarchy. The seat takes the first card each time.
-      if (tier === GOVERNMENT_TIERS[0] || tier === GOVERNMENT_TIERS[2]) {
+      // Since Dominion batch D5 three tiers have Doctrines: tier 4 offers The
+      // Steppe Confederacy and The Consular Roads, tier 18 offers The Universal
+      // Monarchy and Total Mobilisation, and tier 29 offers The Landsturm. The
+      // seat takes the first card each time, so at tier 18 the offer holds
+      // whichever of the two the draw put first, and both are listed here.
+      if (
+        tier === GOVERNMENT_TIERS[0] ||
+        tier === GOVERNMENT_TIERS[2] ||
+        tier === GOVERNMENT_TIERS[3]
+      ) {
         const offered = [...(player.statecraft.pendingDoctrine?.options ?? [])].sort();
         expect(offered, `tier ${tier}`).toEqual(
           tier === GOVERNMENT_TIERS[0]
             ? ["theConsularRoads", "theSteppeConfederacy"]
-            : ["theUniversalMonarchy"],
+            : tier === GOVERNMENT_TIERS[2]
+              ? ["theUniversalMonarchy", "totalMobilisation"]
+              : ["theLandsturm"],
         );
         expect(
           dispatch(g, { type: "chooseDoctrine", playerId: 0, optionIndex: 0 } as Command).ok,
@@ -1257,8 +1274,10 @@ describe("adoption", () => {
       expect(player.statecraft.pendingDoctrine, `tier ${tier}`).toBeUndefined();
       expect(statecraftBlocker(player), `tier ${tier}`).toBeNull();
     }
-    expect(player.statecraft.doctrines).toHaveLength(2);
-    expect(player.statecraft.doctrines[1]).toBe("theUniversalMonarchy");
+    expect(player.statecraft.doctrines).toHaveLength(3);
+    const tierThree = player.statecraft.doctrines[1]!;
+    expect(["theUniversalMonarchy", "totalMobilisation"]).toContain(tierThree);
+    expect(player.statecraft.doctrines[2]).toBe("theLandsturm");
     const first = player.statecraft.doctrines[0]!;
     const other = first === "theSteppeConfederacy" ? "theConsularRoads" : "theSteppeConfederacy";
     // A Doctrine already held is never offered again: a second tier-4
@@ -1278,11 +1297,9 @@ describe("adoption", () => {
       dispatch(g, { type: "adoptGovernment", playerId: 0, choiceIndex: 0 } as Command).ok,
     ).toBe(true);
     expect(player.statecraft.pendingDoctrine).toBeUndefined();
-    expect([...player.statecraft.doctrines].sort()).toEqual([
-      "theConsularRoads",
-      "theSteppeConfederacy",
-      "theUniversalMonarchy",
-    ]);
+    expect([...player.statecraft.doctrines].sort()).toEqual(
+      ["theConsularRoads", "theLandsturm", "theSteppeConfederacy", tierThree].sort(),
+    );
   });
 
   it("refuses an adoption while a Doctrine offer waits, so the waiting offer is never written over", () => {
@@ -1948,13 +1965,19 @@ describe("determinism", () => {
     // 136 since E1: the Expansionist levy cards, three new fields and a new
     // end-of-turn phase, so a v135 log's picks name cards this build deals
     // differently and its resolutions run one phase fewer.
-    // 137 since E2: ten Expansionist cards about moments, records and counts,
-    // two new town fields and a new end-of-turn phase, so a v136 log's picks
+    // 137 since D5: fourteen Dominion cards that raise units or pay on new
+    // moments, and a new record, so a v136 log's picks name cards this build
+    // never dealt.
+    // 138 since D6: eleven Dominion cards about captures, commissions and the
+    // end of a war, and new records on wars, towns and seats, so a v137 log's
+    // picks name cards this build never dealt.
+    // 139 since E2: ten Expansionist cards about moments, records and counts,
+    // two new town fields and a new end-of-turn phase, so a v138 log's picks
     // name cards this build deals differently and its resolutions run one
     // phase fewer.
-    // 138 since E3: ten Expansionist cards about the land and two new tile
-    // fields, so a v137 log's picks name cards this build deals differently.
-    expect(SCHEMA_VERSION).toBe(138);
+    // 140 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v139 log's picks name cards this build deals differently.
+    expect(SCHEMA_VERSION).toBe(140);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -3251,8 +3274,9 @@ describe("the master-list cut of 2026-08-28", () => {
     for (const tier of [29, 38]) {
       const rows = GOVERNMENT_IDS.filter((id) => governmentDef(id).tier === tier);
       expect(rows).toHaveLength(3);
-      // D1a: the Doctrine pools are retired shelves; the rows are kept.
-      expect(poolDoctrines(tier)).toEqual([]);
+      // D1a: the Doctrine pools are retired shelves; the rows are kept. Since
+      // Dominion batch D5 tier 29 deals one deck Doctrine, The Landsturm.
+      expect(poolDoctrines(tier)).toEqual(tier === 29 ? ["theLandsturm"] : []);
       expect(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === tier).length).toBeGreaterThanOrEqual(
         RULES.offers.doctrine,
       );
@@ -3286,8 +3310,10 @@ describe("the master-list cut of 2026-08-28", () => {
         choiceIndex: 0,
       } as Command).ok,
     ).toBe(true);
-    // And no Doctrine draft opens (D1a) — the council widens to the rung's nine.
-    expect(player.statecraft.pendingDoctrine).toBeUndefined();
+    // The council widens to the rung's nine. No Doctrine draft opened here
+    // from D1a until Dominion batch D5, which gave Tier IV its first deck
+    // Doctrine, The Landsturm.
+    expect(player.statecraft.pendingDoctrine?.options).toEqual(["theLandsturm"]);
     expect(player.statecraft.slots).toHaveLength(chairsAtTier(29));
   });
 
@@ -7346,8 +7372,9 @@ describe("the Æra III fork of 2026-09-05", () => {
       expect(doctrineDef(id).effects.length, id).toBeGreaterThan(0);
     }
     // Eleven rows at the fork, every line with a permanent pick. Twelve since
-    // Dominion batch D4 added The Universal Monarchy to Tier III (tier 18).
-    expect(pool.length).toBe(12);
+    // Dominion batch D4 added The Universal Monarchy to Tier III (tier 18), and
+    // thirteen since Dominion batch D5 added Total Mobilisation.
+    expect(pool.length).toBe(13);
     // Section 3's seal proposal was vetoed by the user (2026-09-05): a card you
     // want to slot in and out is skill expression, so every shelf still seals
     // for the table's own five turns.

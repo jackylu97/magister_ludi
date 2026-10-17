@@ -150,6 +150,7 @@ import {
   buildingMatchesYieldPercent,
   cityScopeAdmits,
   countOf,
+  draftCost,
   opusCityOf,
   orderAtSlotPosition,
   periodicProbe,
@@ -164,6 +165,7 @@ import {
   type CardId,
   type CardPeriodicEffect,
   type CityScope,
+  type GrantCount,
   type OrderId,
   type RateSource,
   type WindfallOccasion,
@@ -3272,7 +3274,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // and the soldier is `explainBuildingRow`'s own reading of a gifted piece
       // so a wonder's spear and a card's spear are worth the same thing.
       const every = Math.max(1, Math.floor(effect.every));
-      return (ctx.ai.weights.military * ctx.ai.score.combatScale) / every;
+      // A muster that costs a citizen (Dominion batch D5, Total Mobilisation)
+      // pays for the soldier with the food that grew the citizen.
+      const price =
+        effect.costsCitizen === true ? explainLump({ food: growthThreshold(ctx) }, ctx).total : 0;
+      return (ctx.ai.weights.military * ctx.ai.score.combatScale - price) / every;
     }
     case 'landfall': {
       // **What the men off the boats are worth** — Admiralty's three turns.
@@ -3636,6 +3642,27 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // D4): almost every town in unrest is a capture, so the rate is the
       // capture's own reading, the threat over the horizon.
       return war;
+    case 'raze':
+    case 'rangedAttack':
+      // Dominion batch D5. Razing a captured town and shooting from range are
+      // both war's business, so they are read at the capture's rate.
+      return war;
+    case 'draftPassed': {
+      // Dominion batch D5. A pass is one of the two answers to a draft, so the
+      // rate is half the seat's drafting tempo: the culture it makes each turn
+      // over the price of its next draft.
+      const culture = Math.max(0, ratesOf(ctx).culturePerTurn ?? 0);
+      const next = draftCost((player?.statecraft.drafts ?? 0) + 1);
+      return culture / Math.max(1, next) / 2;
+    }
+    case 'greatPersonGained':
+      // Dominion batch D5. A great person is gained about as rarely as one is
+      // spent, so this is `greatPersonAct`'s reading.
+      return 1 / Math.max(1, ctx.ai.score.lumpTurns);
+    case 'peace':
+      // Dominion batch D6. A war ends about as often as one is fought, so a
+      // peace is read at the capture's rate, the threat over the horizon.
+      return war;
     case 'sizeRecord':
       // **A town passes its largest size about as often as it grows**
       // (Expansionist batch E2): a growth lost to a famine or a levy and grown
@@ -3748,6 +3775,50 @@ function slottedOrderCount(ctx: ValueContext): number {
 }
 
 /**
+ * How many towns a grant to every town reaches (Dominion batch D5): every town,
+ * or the towns a scope admits.
+ */
+function everyTownCount(ctx: ValueContext, toEveryTown: true | CityScope): number {
+  return toEveryTown === true ? ctx.cities : townsAdmitting(ctx, toEveryTown);
+}
+
+/**
+ * What a grant's count finds today (`WindfallGrantSpec.perCount`, Dominion
+ * batch D5), through the simulation's own `countOf`, so the bot and the rules
+ * count alike.
+ */
+function grantCountNow(ctx: ValueContext, spec: GrantCount): number {
+  const found = countOf(ctx.state, ctx.playerId, '' as CardId, {
+    kind: 'pays',
+    where: 'empire',
+    basis: 'count',
+    to: 'authority',
+    amount: 0,
+    count: spec.count,
+    ...(spec.building !== undefined ? { building: spec.building } : {}),
+    ...(spec.family !== undefined ? { family: spec.family } : {}),
+  });
+  const step = spec.per === undefined || spec.per <= 0 ? 1 : spec.per;
+  return Math.floor(found / step);
+}
+
+/**
+ * **What drafting an Order hands over, once** (`OrderDef.onDraft`, Dominion
+ * batch D5): The Sword of State's unit and The Cleruchy's settler. Read as the
+ * gifted piece `windfallGrantWorth` reads, because a draft is a moment and the
+ * card does nothing seated. Zero for a card with no such field.
+ */
+export function onDraftWorth(id: CardId, ctx: ValueContext): number {
+  if (!isOrderId(id)) return 0;
+  const grants = orderDef(id).onDraft ?? [];
+  if (grants.length === 0) return 0;
+  return (
+    (grants.length * ctx.ai.weights.military * ctx.ai.score.combatScale) /
+    Math.max(1, ctx.ai.score.lumpTurns)
+  );
+}
+
+/**
  * **What one firing of a rider's grant is worth**, as a per-turn figure.
  *
  * Every voice-shaped grant goes through `explainLump`, which is this file's one
@@ -3787,12 +3858,15 @@ function windfallGrantWorth(
     const towns =
       !landed
         ? 1
-        : grant.toEveryTown === true
-          ? ctx.cities
+        : grant.toEveryTown !== undefined
+          ? everyTownCount(ctx, grant.toEveryTown)
           : grant.toNearest !== undefined
             ? Math.min(1, townsAdmitting(ctx, grant.toNearest))
             : 1;
-    worth += explainLump(bag, ctx).total * towns;
+    // A grant paid once for each item a count finds (Dominion batch D5) is
+    // worth that many grants: the simulation's own count, read now.
+    const counted = grant.perCount === undefined ? 1 : grantCountNow(ctx, grant.perCount);
+    worth += explainLump(bag, ctx).total * towns * counted;
   }
   if (grant.heal !== undefined) worth += ctx.ai.score.unknownEffect;
   if (grant.healAll === true) worth += ctx.ai.score.unknownEffect;
@@ -3811,8 +3885,19 @@ function windfallGrantWorth(
   if (grant.unit !== undefined) {
     // `explainBuildingRow`'s own reading of a gifted piece, so a wonder's spear
     // and a card's spear are worth the same thing — divided into a rate for the
-    // reason every other half of this grant is.
-    worth += (ctx.ai.weights.military * ctx.ai.score.combatScale) / Math.max(1, ctx.ai.score.lumpTurns);
+    // reason every other half of this grant is. Since Dominion batch D5 a unit
+    // can be raised in every town a scope admits, one unit for each.
+    const units = grant.toEveryTown !== undefined ? everyTownCount(ctx, grant.toEveryTown) : 1;
+    worth +=
+      (units * ctx.ai.weights.military * ctx.ai.score.combatScale) /
+      Math.max(1, ctx.ai.score.lumpTurns);
+  }
+  // Dominion batch D5: science toward a technology the empire lacks, and a free
+  // Order draft. Both are real and hard to price, so each is the stand-in; a
+  // draft is one more card, which is how `slotRider` reads a chair.
+  if (grant.towardFallenTech !== undefined) worth += ctx.ai.score.unknownEffect;
+  if (grant.freeDraft === true) {
+    worth += ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
   }
   if (grant.timed !== undefined) {
     const turns = Math.max(0, grant.timed.turns);
@@ -4070,6 +4155,20 @@ function scoreAmplifier(
       // over the duplicate threshold, and that reading belongs beside the
       // happiness meter rather than in an amplifier arm.
       return ctx.ai.score.unknownEffect;
+    case 'captureRewards': {
+      // **A share of what the seat's own capture riders are worth** (Dominion
+      // batch D6, Vae Victis): each seated Order's capture rider, priced as the
+      // rider arm prices it, scaled by the share. A seat with no capture rider
+      // seated gains nothing from it yet. A Doctrine's rider is not scaled, so
+      // only the seated Orders are read.
+      let riders = 0;
+      for (const held of slottedOrderEffects(ctx)) {
+        if (held.kind === 'windfallRider' && held.occasion === 'capture') {
+          riders += scoreWindfallRider(held, ctx);
+        }
+      }
+      return share * riders;
+    }
     default:
       return unreadTarget(effect.target, ctx);
   }
