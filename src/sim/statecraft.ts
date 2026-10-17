@@ -259,13 +259,11 @@ export type {
 export {
   adoptGovernmentAt,
   applyCharter,
-  bandOpen,
   bandTierOf,
   cardRouteSlots,
   chairCount,
   chairMisfitRefusal,
   commissionFulfilledTurn,
-  currentBand,
   currentBandOf,
   deckPoolOf,
   doctrineBagFor,

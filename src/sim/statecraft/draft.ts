@@ -53,7 +53,6 @@ import {
   type TallyFacts,
   type TallyOccasion,
   GOVERNMENT_TIERS,
-  LAST_BAND,
   STARTING_GOVERNMENT,
   STATECRAFT,
   bandTierAt,
@@ -75,7 +74,7 @@ import {
 } from '../statecraftData';
 import { awardOrderBeads } from '../beads';
 import { awardOccasion } from '../triumphs';
-import { type TechAge, LAST_TECH_AGE, highestAge } from '../techData';
+import { type TechAge, highestAge } from '../techData';
 import { sealTurnsFor } from './evaluator';
 import {
   cardExtraChairs,
@@ -966,8 +965,8 @@ export function orderAtSlotPosition(
  * **The draw's source, replacing `poolOfGovernment`** (kept in
  * `statecraftData.ts` for the retired shelves, read by nothing live). A
  * government's pool used to be replaced whole on adoption. A seat's decks never
- * change, so an adoption now buys chairs, and the draft count and the research
- * age together choose which band of these decks is dealt (`currentBand`). This
+ * change, so an adoption now buys chairs, and the draft count chooses which
+ * band of these decks is dealt (`currentBandOf`). This
  * list is every band at once and does **not** take out held cards: it is the
  * shape of the seat's shelf, which the bot's margin and the Compendium ask
  * about. The bag a hand is actually dealt from is `eligibleFor`.
@@ -988,66 +987,38 @@ export function isRainbowSeat(player: Player): boolean {
 }
 
 /**
- * **The seat's research age** — the highest age among its technologies,
- * floored at one (`highestAge` answers one for an empty list). The age half of
- * the band gate, and deliberately the *empire's* age rather than the world's
- * mean: the design doc's age check names *"the highest age among that
- * empire's researched technologies"* and rules the calendar out by name.
+ * **The seat's research age**: the highest age among its technologies,
+ * floored at one (`highestAge` answers one for an empty list). Since the
+ * user's ruling of 2026-10-17 the age plays no part in which band is dealt
+ * (`currentBandOf`). One deal rule still reads it: a row's own `fromAge`
+ * (`eligibleFor`), which only retired rows carry today.
  */
 export function researchAgeOf(player: Player): TechAge {
   return highestAge(player.techsResearched);
 }
 
 /**
- * **May this band be dealt to a seat at this ladder tier and this age?** Both
- * gates, per the age check of 2026-09-16: the band's rung reached on the draft
- * ladder **and** its age reached in the tree — band 0 from age one, band 1
- * from age two, and so on — so that *"reaching Government I through culture
- * alone cannot offer an age-2 Market card while the empire is still in age
- * 1"*.
+ * **The band this seat's hands are dealt from**: the band whose rung of the
+ * draft ladder its draft count has reached (`bandTierAt`). The draft count is
+ * the only input. The research age plays no part (the user's ruling of
+ * 2026-10-17, `docs/flags.md` (eeeeeee): *"lets remove the research age
+ * altogether"*). This replaces the rule of 2026-09-16, under which a band also
+ * needed the research age one above it, so that Tier I waited for age 2.
  *
- * "Open" means the seat has reached the band, not that the band is dealt. Only
- * the highest open band is dealt (`currentBand`, the user's ruling of
- * 2026-10-13 in `docs/decks/deck-design.md`): once a later band opens, the
- * earlier ones are still open by this test but are no longer drawn from.
+ * Only this band is dealt (the user's ruling of 2026-10-13,
+ * `docs/decks/deck-design.md`, "Only the current band is dealt"). When a new
+ * band opens, the earlier bands leave the draw for good. Band 0 is the band at
+ * zero drafts, so there is always an answer. The answer is never widened when
+ * the band has nothing left to deal: an empty current band is a real state,
+ * and `draftExhausted` reads it.
  *
- * The age a band needs is capped at the last research age. There are five
- * bands and four ages, so band 4 (Tier IV) asks for the last age, the same as
- * band 3, and is held back only by its rung on the ladder. Bands 0 to 3 are
- * unaffected by the cap.
- */
-export function bandOpen(band: Band, tier: Band, age: TechAge): boolean {
-  return band <= tier && Math.min(band + 1, LAST_TECH_AGE) <= age;
-}
-
-/**
- * **The one band a seat at this ladder tier and age is dealt from**: the
- * highest band that `bandOpen` admits. The user's ruling of 2026-10-13
- * (`docs/decks/deck-design.md`, "Only the current band is dealt"): a hand comes
- * only from the seat's current band, and when a new band opens the earlier
- * bands leave the draw for good. Band 0 is open to every seat from the start,
- * so there is always an answer.
- *
- * The answer is never widened when the band has nothing left to deal. An empty
- * current band is a real state, and `draftExhausted` reads it: the draft is
- * not charged, and the next draft happens once a later band opens.
- */
-export function currentBand(tier: Band, age: TechAge): Band {
-  for (let band = LAST_BAND; band > 0; band--) {
-    if (bandOpen(band as Band, tier, age)) return band as Band;
-  }
-  return 0;
-}
-
-/**
- * **The band this seat's hands are dealt from** — `currentBand` over the seat's
- * ladder tier and research age. `drafts` defaults to the seat's own count; a
- * caller asking about the *next* draft passes that draft's number, because the
- * count is raised before the next hand is dealt (`settleDraft`) and the draft
- * that reaches a new rung is already dealt from the new band.
+ * `drafts` defaults to the seat's own count. A caller asking about the *next*
+ * draft passes that draft's number, because the count is raised before the
+ * next hand is dealt (`settleDraft`) and the draft that reaches a new rung is
+ * already dealt from the new band.
  */
 export function currentBandOf(player: Player, drafts: number = player.statecraft.drafts): Band {
-  return currentBand(bandTierAt(drafts), researchAgeOf(player));
+  return bandTierAt(drafts);
 }
 
 /** The band tier this seat's draft count has reached. See `bandTierAt`. */
@@ -1062,8 +1033,9 @@ export function bandTierOf(sc: PlayerStatecraft): Band {
  * not dealt once a later band has opened (the user's ruling of 2026-10-13),
  * unless the row names a later last band (`OrderDef.lastBand`, Double Time),
  * but a card already held keeps its chair: every gate here is on the deal,
- * never on holding. The old `fromAge` gate rides along for any retired row
- * that still carries one, under the same rule.
+ * never on holding. A row's own `fromAge` gate is a separate rule from the band
+ * (the ruling of 2026-09-06, for the bead Orders of the last age). Only
+ * retired rows carry it today, so it holds no live card back.
  *
  * `drafts` defaults to the seat's own count. The exhaustion check and the
  * bot's reading of the next hand pass the next draft's number, so that they

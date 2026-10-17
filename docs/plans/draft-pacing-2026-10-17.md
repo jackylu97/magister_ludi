@@ -200,6 +200,8 @@ What this means:
 
 **The user chose 26** (2026-10-17, `docs/flags.md` (ddddddd)): *"lets move tier IV to tier 26"*. Tier IV's rung and the tier-29 governments moved to 26 drafts together (schema 150).
 
+**The user then removed the research-age gate** (2026-10-17, `docs/flags.md` (eeeeeee)): *"lets remove the research age altogether"*. An Order tier now opens at its draft rung alone (schema 151), so section 1's second gate is gone and the culture income alone sets the pace. Modelled from the same 30 seats with the rungs at 4, 10, 18 and 26, the first hand of each tier comes at these median turns: Tier I 32.5 (56.5 with the gate), Tier II 72.5 (87.5), Tier III 133 (151) and Tier IV 161 (161). The model keeps each seat's measured culture, so it does not show any change in how the bots play with earlier cards.
+
 ## Method and files
 
 - The fix: `data/statecraft.json` (`tierLadder`), with its docblocks in `src/sim/statecraftData.ts`, the changelog entry v149 in `src/sim/state.ts`, and the new pin in `test/sim/statecraft.test.ts`.

@@ -1247,7 +1247,8 @@ describe("adoption", () => {
     // adoption, but a seat's decks never change. What an adoption buys now is
     // chairs (the tier's rung), and the seat pool is the same shelf before and
     // after. Which band of that shelf is dealt is a separate question, answered
-    // by the draft count and the age (`currentBand`).
+    // by the draft count alone (`currentBandOf`; the research age stopped
+    // counting on 2026-10-17, docs/flags.md (eeeeeee)).
     expect(poolOfGovernment(player.statecraft.government)).toBe("governmentI");
     expect(new Set(deckPoolOf(g.state, player))).toEqual(new Set(before));
     expect(player.statecraft.slots).toHaveLength(chairsAtTier(FIRST_RUNG));
@@ -2055,7 +2056,10 @@ describe("determinism", () => {
     // come from a different tier.
     // 150 since Tier IV moved to 26 drafts (flags item ddddddd), with the
     // tier-29 governments, so a v149 log's drafts 26 to 28 deal differently.
-    expect(SCHEMA_VERSION).toBe(150);
+    // 151 since the Order tiers open at their draft rung alone (flags item
+    // eeeeeee), so a v150 log's hands from a seat ahead of its research age
+    // come from a later tier.
+    expect(SCHEMA_VERSION).toBe(151);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

@@ -1811,8 +1811,26 @@ import {
  * is now offered a government, a Doctrine offer and Tier IV hands where it was
  * offered none of them. The branch migrates nothing, for the reason given
  * under v119.
+ *
+ * v151 (branch `decks`; the user's ruling of 2026-10-17, `docs/flags.md`
+ * (eeeeeee): *"lets remove the research age altogether"*): **an Order tier
+ * opens at its draft rung alone.** No field joins the state. The rules that
+ * change:
+ *
+ *   · a seat is dealt from the band its draft count has reached
+ *     (`currentBandOf`): Tier I from draft 4, Tier II from 10, Tier III from
+ *     18 and Tier IV from 26, in any research age. Before, each band also
+ *     needed the research age one above it (Tier I age two, Tier II age three,
+ *     Tiers III and IV age four), the rule of 2026-09-16;
+ *   · `bandOpen` and `currentBand` are gone. They had no input left but the
+ *     ladder tier.
+ *
+ * **A v150 save is refused and does not replay.** A seat whose draft count was
+ * ahead of its research age is now dealt hands from a later band, so the same
+ * roll picks a different card and every later pick differs. The branch
+ * migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 150;
+export const SCHEMA_VERSION = 151;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

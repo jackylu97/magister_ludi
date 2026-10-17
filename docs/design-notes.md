@@ -96,8 +96,9 @@ with no deeds in it (Q1; it was 20, which was priced for the decks).
   council: every card whose chair still exists and still fits keeps it
   (`reseatCouncil`). Seals are absolute turns (5 turns).
 - **One ladder for the Order tiers and the governments** (`tierLadder`): Tier
-  I at 4 drafts, Tier II at 10, Tier III at 18 and Tier IV at 26. Each Order
-  tier also needs its research age. One Doctrine tier is offered with each
+  I at 4 drafts, Tier II at 10, Tier III at 18 and Tier IV at 26. The draft
+  count alone opens an Order tier: the user removed the research-age gate on
+  2026-10-17 (`docs/flags.md` (eeeeeee)). One Doctrine tier is offered with each
   government tier. Since the rung fix of 2026-10-17 the Order tiers open with
   their governments, and the user moved Tier IV from 29 to 26 the same day
   (`docs/plans/draft-pacing-2026-10-17.md`). The tier-38 governments are

@@ -443,15 +443,25 @@ describe('the Dominion deck — the draw', () => {
     const pool = new Set(deckPoolOf(g.state, ada));
     const dominion = new Set<OrderId>(ROWS);
     let fromDeck = 0;
-    for (const id of dealt(g.state, ada, 24)) {
-      expect(pool.has(id), `${id} was dealt off this seat's shelf`).toBe(true);
-      expect(orderIsDealt(id), `${id} is dealt and not dealt`).toBe(true);
-      if (!dominion.has(id)) continue;
-      fromDeck += 1;
-      // Never a deferred row, and never a row above the band the seat has
-      // reached: a fresh seat is at the opening rung and in the first age.
-      expect(isLive(id), `${id} is deferred and was dealt`).toBe(true);
-      expect(orderDef(id).band, `${id} is above the seat's band`).toBe(0);
+    // `dealt`'s walk, one hand at a time, so that each card is held to the band
+    // its own hand was dealt from. The band is the draft count's alone; the
+    // seat stays in the first research age, which no longer matters
+    // (docs/flags.md (eeeeeee)).
+    for (let n = 1; n <= 24; n++) {
+      ada.statecraft.drafts = n;
+      delete ada.statecraft.pendingOrder;
+      const band = currentBandOf(ada);
+      for (const id of drawOrderOffer(g.state, ada).options) {
+        expect(pool.has(id), `${id} was dealt off this seat's shelf`).toBe(true);
+        expect(orderIsDealt(id), `${id} is dealt and not dealt`).toBe(true);
+        if (!dominion.has(id)) continue;
+        fromDeck += 1;
+        // Never a deferred row, and never a row of a band other than the one
+        // the draft count has reached.
+        expect(isLive(id), `${id} is deferred and was dealt`).toBe(true);
+        const def = orderDef(id);
+        expect(def.band <= band && band <= (def.lastBand ?? def.band), `${id} is not of band ${band}`).toBe(true);
+      }
     }
     expect(fromDeck, 'the seat was dealt Dominion cards at all').toBeGreaterThan(0);
   });
@@ -488,11 +498,10 @@ describe('the Dominion deck — the draw', () => {
       expect(def.lastBand, `${def.name}: the sheet's last tier`).toBe(line?.band);
     }
     // And the deal reads it: dealt in bands 2 and 3, and in no other band.
+    // The draft count alone picks the band (docs/flags.md (eeeeeee)), so the
+    // seat needs no technology for this.
     const g = seated(11);
     const ada = playerById(g.state, 0)!;
-    for (const tech of ['bronzeWorking', 'ironWorking', 'alchemy']) {
-      if (!ada.techsResearched.includes(tech as never)) ada.techsResearched.push(tech as never);
-    }
     const bands = new Set<number>();
     for (let drafts = 0; drafts <= 40; drafts++) {
       const band = currentBandOf(ada, drafts);

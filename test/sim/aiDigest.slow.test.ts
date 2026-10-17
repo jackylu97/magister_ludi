@@ -965,10 +965,25 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * 26, and once with the ladder and the governments as the rung fix left them.
  * Both give the rung fix's digests exactly on both boards. Nothing stalled and
  * no command was refused.
+ *
+ * ---
+ *
+ * **The draft rung alone (`docs/flags.md` (eeeeeee), schema 151): an Order
+ * tier opens at its draft rung, and the research age plays no part.** Duel
+ * `e030e5f7:272524` → `9f1e136f:262163`, standard `06b9e985:940920` →
+ * `97ff33bf:896332`. The rule moves both, not only the version: with the
+ * change in place and the version printed as 150, the duel gives
+ * `9333dcae:262163` and the standard board `0a2a4938:896332`, the same
+ * lengths as the real digests and not Tier IV at 26's. At turn 120, three
+ * seats are dealt a later band than the age gate allowed: on the duel board
+ * a seat at 11 drafts in age 2 (Tier II, not Tier I) and one at 19 drafts in
+ * age 3 (Tier III, not Tier II); on the standard board one at 20 drafts in
+ * age 3 (Tier III, not Tier II). Hands dealt earlier in the game moved the
+ * same way. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'e030e5f7:272524',
-  standard: '06b9e985:940920',
+  duel: '9f1e136f:262163',
+  standard: '97ff33bf:896332',
 };
 
 /**

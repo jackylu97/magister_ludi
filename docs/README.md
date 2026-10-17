@@ -477,7 +477,9 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
 - Pools: Chiefdom → Government I/II/III (tier 18 is the last new pool).
   Since 2026-10-17 the ladder's rungs are the government tiers, 4 · 10 · 18 ·
   26 (`docs/flags.md` (ccccccc) and (ddddddd)): an Order tier opens at the
-  same draft count as its government, and the old rung at 38 is gone. Chairs by tier are the
+  same draft count as its government, and the old rung at 38 is gone. The
+  draft count alone opens a tier; the research age plays no part since
+  2026-10-17 (`docs/flags.md` (eeeeeee), `currentBandOf`). Chairs by tier are the
   doc's Governments table, sync-tested.
 - **Doctrines** (batch C3, `docs/orders-and-doctrines.md` "Doctrines"):
   adopting a government opens a Doctrine offer of its tier. Tier 4 offers the

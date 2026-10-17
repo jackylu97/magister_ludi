@@ -70,6 +70,8 @@ Shared pairs are intentional. Modu and Joan should use the same pool differently
 
 2026-10-17: the bands open at the live game's government tiers, 4 · 10 · 18 · 29 (the user: *"the government change at draft 10 should upgrade the pool from tier 1 to tier 2"*, `docs/flags.md` (ccccccc)). The table above is updated to match: Tier II opens at 10 with the five chairs of the tier-10 governments. The same day Tier IV and its governments moved from 29 to 26 drafts (*"lets move tier IV to tier 26"*, `docs/flags.md` (ddddddd)). The rest of this section is the proposal as it was written.
 
+2026-10-17, later the same day: the research-age gate is removed (*"lets remove the research age altogether"*, `docs/flags.md` (eeeeeee)). A band now opens at its draft rung alone. The age check below, the band-4 age in the paragraph above and the age floors in each deck's section no longer gate which cards are dealt. They are kept as the proposal was written.
+
 Government tiers here refer to this proposal's four-stage progression, not the live game's five government promotions. They mark the earliest unlock; cards remain available in later tiers. Government form (Council, Crown or League) does not restrict access.
 
 The **capacity sequence is the user's decision**. Retaining thresholds 4/18/29 is this proposal's provisional timing, inherited from the previous worksheet. They are culture-draft counts, not turns, ages or technology requirements. A doctrine reward is not a regular draft and cannot advance these counts. Card ownership is not a technology unlock: a card mentioning a University does not make Universities available before their technology.

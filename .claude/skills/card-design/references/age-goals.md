@@ -1,6 +1,6 @@
 # What a player is trying to do in each age
 
-A card earns its chair by serving what the player is trying to do *now*. Each band is dealt in roughly one age (band 0 ≈ age 1, band 1 ≈ age 2 into early age 3, band 2 ≈ late age 3, band 3 ≈ age 4). Turn ranges are from bot games; see `power-bar.md`.
+A card earns its chair by serving what the player is trying to do *now*. Since 2026-10-17 a band opens at its draft rung alone, with no research age (`docs/flags.md` (eeeeeee)), so each band starts before the age it used to wait for. Modelled from the bot games' culture (`docs/plans/draft-pacing-2026-10-17.md`): band 0 ≈ early age 1, band 1 ≈ late age 1 and most of age 2 (from about turn 32), band 2 ≈ late age 2 and most of age 3 (from about turn 72), band 3 ≈ late age 3 into age 4 (from about turn 133), and band 4 ≈ age 4 (from about turn 161). Other turn ranges are from bot games; see `power-bar.md`.
 
 ## What the ages hold (from `data/techs.json`)
 
@@ -12,7 +12,7 @@ A card earns its chair by serving what the player is trying to do *now*. Each ba
 ## Every player, by age
 
 - **Age 1: claim.** Settle three or four towns, survive barbarians, explore (ruins, discoveries), reach the first government around draft 4, find faith before prophets arrive. Culture and production are both scarce; each of 3 chairs is a third of the hand.
-- **Age 2: commit.** Choose a plan: first conquest, religion (prophets), trade routes, or growth. Authority and happiness start to bind at five or six towns. Band 1 opens here and runs about a dozen drafts.
+- **Age 2: commit.** Choose a plan: first conquest, religion (prophets), trade routes, or growth. Authority and happiness start to bind at five or six towns. Band 1 is dealt from late age 1 (draft 4) until draft 10, around the middle of age 2.
 - **Age 3: grow into it.** The tall-or-wide step: authority and happiness are the limits (Courthouses, Aqueducts arrive). Big armies cost 80 to 175 hammers a unit against about 15 production a town. Chairs rise from 5 to 8 around turn 126.
 - **Age 4: decide the game.** The Magnum Opus race: build it, protect it, or stop whoever is building it. Units cost 180 to 580 hammers; universities and banks multiply the economy. 8 to 11 chairs.
 
@@ -20,20 +20,20 @@ A card earns its chair by serving what the player is trying to do *now*. Each ba
 
 The deck's way to play: the army is the economy (`docs/decks/deck-design.md`). Its currency is units, spent on garrisons, raids and conquest. Its gap is developing its own towns. The user's tempo ruling (2026-10-13): Dominion's economy is mostly up-front, strong now and fading, turned into a war; pay that grows with army size held at peace is avoided.
 
-**Age 1 (band 0): claim and secure.**
+**Age 1 (band 0, then band 1 from about turn 32): claim and secure.**
 - Settle three or four towns without losing them to barbarians: garrisons, strength against barbarians, pay for clearing camps.
 - Explore first: scouts, ruins, discoveries.
 - Optional early rush: a War Chariot (33) against a Warrior (20) before walls; early-unit production, a payout on the first capture.
 - Reach the first government: culture from kills, camps and garrisons.
 - Early faith before age 2's prophets: pay on units trained or held.
 
-**Age 2 (band 1, which runs into age 3): the first conquest window.**
+**Age 2 (band 1, then band 2 from about turn 72): the first conquest window.**
 - Take a neighbour: Swordsmen and Phalanxes, Siegecraft's starving, Stone Walls for the defender. Cards that shorten a siege or move the army to the front, and payouts that make the first capture count (population kept, buildings kept, a big lump).
 - Hold it: authority and happiness bind at five or six towns. Authority from garrisons, cheaper captured towns. A card that keeps one or two more towns is worth 40 to 100 yield a turn.
 - Keep the economy running while the army is out: wartime production, upkeep relief, peacetime culture from garrisons.
 - The first great general: renown for generals, a general from a goal.
 
-**Age 3 (band 2): the big war, and turning it into provinces.**
+**Age 3 (band 2, then band 3 from about turn 133): the big war, and turning it into provinces.**
 - Field an expensive army: a Horseman costs 151 against about 15 production a town. Upgrades, purchases and training speed are tempo.
 - Siege the big targets: catapults and war elephants; strength near cities, healing on a capture, siege movement.
 - Make conquests productive: Courthouses, Aqueducts and Town Charters arrive. Captured towns that feed the empire, cheaper civic buildings in captured towns.

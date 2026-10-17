@@ -271,16 +271,14 @@ export function isDeckId(value: unknown): value is DeckId {
 }
 
 /**
- * **The five content bands**: the deck sheets' Tier 0 to Tier IV. A band is
- * open to a seat when its draft count has reached rung `band` of `tierLadder`
- * **and** its research age has reached `band + 1` (the age check of
- * 2026-09-16; `bandOpen`, `statecraft/draft.ts`). Only the highest open band
- * is dealt (`currentBand`, the user's ruling of 2026-10-13): earlier bands
- * stop being drawn from once a later one opens.
+ * **The five content bands**: the deck sheets' Tier 0 to Tier IV. A seat is
+ * dealt from the band whose rung of `tierLadder` its draft count has reached
+ * (`currentBandOf`, `statecraft/draft.ts`). The research age plays no part
+ * since the user's ruling of 2026-10-17 (`docs/flags.md` (eeeeeee)). Only that
+ * one band is dealt (the user's ruling of 2026-10-13): earlier bands stop
+ * being drawn from once a later one opens.
  *
  * Band 4 (Tier IV) was added in the deck implementation's foundation batch.
- * There is no fifth research age, so band 4's age gate is the last age, the
- * same as band 3's; what separates the two is the ladder rung.
  */
 export type Band = 0 | 1 | 2 | 3 | 4;
 
@@ -9018,8 +9016,8 @@ export interface OrderDef extends CardDefBase {
   /**
    * **When this card is dealt** — the content band (`Band`; the deck sheets'
    * Tier 0 to Tier IV). A card is dealt only while its band is the seat's
-   * current band: the highest band whose rung of the draft ladder **and**
-   * research age the seat has reached (`currentBand`, `statecraft/draft.ts`).
+   * current band: the highest band whose rung of the draft ladder the seat's
+   * draft count has reached (`currentBandOf`, `statecraft/draft.ts`).
    * Once a later band opens, this card is no longer dealt to that seat (the
    * user's ruling of 2026-10-13, `docs/decks/deck-design.md`), but a seat that
    * already holds it keeps it. Required on every row, retired ones included.
@@ -9239,7 +9237,7 @@ export interface StatecraftConfig {
    * 3 · 5 · 5 · 8 · 11 chairs (the chairs are the user's ruling in
    * `docs/decks/deck-design.md` "More chairs"). The ladder is **read by the
    * simulation in one place**: a **band** opens at its rung's draft count
-   * (`bandTierAt`, the tier half of `bandOpen`). A government's chairs are the
+   * (`bandTierAt`, read by `currentBandOf`). A government's chairs are the
    * figure on its own row (`slotCount`); `chairsAtTier` reads the ladder only
    * so that a test can hold every row's figure to its tier's rung.
    *

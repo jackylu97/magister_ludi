@@ -845,10 +845,16 @@ describe('determinism', () => {
    * Nobody here drafts. Checked twice with the version printed as 149: once
    * with Tier IV at 26, and once with the ladder and the governments as the
    * rung fix left them. Both give the rung fix's hashes exactly.
+   *
+   * **The draft rung alone (`docs/flags.md` (eeeeeee), schema 151) moved the
+   * hash and not the length** at both seeds: 150 became 151, and that is all.
+   * Nobody here drafts, so the removed age gate never reaches this board.
+   * Checked with the change in place and the version printed as 150, which
+   * gives Tier IV at 26's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'bc2b4caf:188931',
-    2026: '79e5217e:188509',
+    11: 'f650c5c6:188931',
+    2026: '3c48e50f:188509',
   };
 
   for (const seed of [11, 2026]) {

@@ -45,9 +45,7 @@ import {
   HAND_POSITIONS,
   type HandPosition,
   adoptGovernmentAt,
-  bandOpen,
   chairMisfitRefusal,
-  currentBand,
   currentBandOf,
   deckPoolOf,
   draftExhausted,
@@ -61,6 +59,7 @@ import {
   positionBag,
   rarityFirstOdds,
   rarityOdds,
+  researchAgeOf,
   settleDraft,
   slotOrderError,
   slotTypesOf,
@@ -190,7 +189,7 @@ function holdEverythingDealt(state: GameState, player: Player): void {
   expect(eligibleFor(state, player)).toEqual([]);
 }
 
-/** A technology of this age, for the research-age gate. */
+/** A technology of this age, to show that the research age does not gate a band. */
 function techOfAge(age: 1 | 2 | 3 | 4): TechId {
   const id = TECH_IDS.find((tech) => techDef(tech).age === age);
   expect(id, `a technology of age ${age}`).toBeDefined();
@@ -702,7 +701,10 @@ describe('the schema, as landed', () => {
     // come from a different tier.
     // 150 since Tier IV moved to 26 drafts (flags item ddddddd), with the
     // tier-29 governments, so a v149 log's drafts 26 to 28 deal differently.
-    expect(SCHEMA_VERSION).toBe(150);
+    // 151 since the Order tiers open at their draft rung alone (flags item
+    // eeeeeee), so a v150 log's hands from a seat ahead of its research age
+    // come from a later tier.
+    expect(SCHEMA_VERSION).toBe(151);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1006,84 +1008,114 @@ describe('with the shelf stocked', () => {
     expect(deckPoolOf(g.state, bors)).toHaveLength(stockedShelf().length);
   });
 
-  it('gates every band on the ladder tier AND the research age — both, per the age check', () => {
-    expect(bandOpen(0, 0, 1)).toBe(true);
-    expect(bandOpen(1, 1, 1)).toBe(false);
-    expect(bandOpen(1, 0, 2)).toBe(false);
-    expect(bandOpen(1, 1, 2)).toBe(true);
-    expect(bandOpen(3, 3, 3)).toBe(false);
-    expect(bandOpen(3, 3, 4)).toBe(true);
-    expect(bandOpen(0, 3, 4)).toBe(true);
-    // Band 4 (Tier IV): there is no fifth age, so it asks for the last age and
-    // waits on its rung of the ladder.
-    expect(bandOpen(4, 3, 4)).toBe(false);
-    expect(bandOpen(4, 4, 3)).toBe(false);
-    expect(bandOpen(4, 4, 4)).toBe(true);
-    expect(bandOpen(3, 4, 4)).toBe(true);
+  // **The draft rung alone opens a band** (the user's ruling of 2026-10-17,
+  // `docs/flags.md` (eeeeeee): "lets remove the research age altogether").
+  // Until then each band also needed the research age one above it (the rule
+  // of 2026-09-16), so a seat at four drafts in age one was still dealt Tier 0.
+  // The tests below hold the deal to the draft count in every research age.
 
+  it('deals Tier I from draft 4 while the seat is still in research age 1', () => {
     const g = seated();
     const ada = playerById(g.state, 0)!;
-    const bandsOf = (): number[] => [...new Set(eligibleFor(g.state, ada).map((id) => orderDef(id).band))].sort();
-    // Only the current band is dealt (the user, 2026-10-13): each step below
-    // names one band, and an earlier band leaves the bag when a later one opens.
-    // Drafts 0, age 1: the opening shelf alone.
-    expect(bandsOf()).toEqual([0]);
-    // Culture alone reaches Government I; the age still says one.
-    ada.statecraft.drafts = 4;
-    expect(bandsOf()).toEqual([0]);
-    // The age comes: band 1 opens, and band 0 is no longer dealt.
-    ada.techsResearched.push(techOfAge(2));
-    expect(bandsOf()).toEqual([1]);
-    // Age three, still at four drafts: nothing changes, because the tier is the other gate.
-    ada.techsResearched.push(techOfAge(3));
-    expect(bandsOf()).toEqual([1]);
-    // Since the user's ruling of 2026-10-17 Tier II opens with the tier-10
-    // governments.
-    ada.statecraft.drafts = 10;
-    expect(bandsOf()).toEqual([2]);
-    ada.statecraft.drafts = 18;
-    expect(bandsOf()).toEqual([2]);
-    ada.techsResearched.push(techOfAge(4));
-    expect(bandsOf()).toEqual([3]);
-    ada.statecraft.drafts = 29;
-    expect(bandsOf()).toEqual([4]);
+    const sc = ada.statecraft;
+    expect(researchAgeOf(ada)).toBe(1);
+    // Three drafts taken: the fourth draft reaches Tier I's rung. It is dealt
+    // through the real draft, and the seat is still in age one.
+    sc.drafts = 3;
+    ada.culturePool = 10_000;
+    const dealt = settleDraft(g.state, ada);
+    expect(dealt).not.toBeNull();
+    expect(sc.drafts).toBe(4);
+    expect(researchAgeOf(ada)).toBe(1);
+    expect(currentBandOf(ada)).toBe(1);
+    expect(dealt!.offer.options.length).toBeGreaterThan(0);
+    for (const id of dealt!.offer.options) expect(orderDef(id).band, id).toBe(1);
   });
 
-  it('names the current band as the highest band open on both the tier and the age', () => {
-    // Every pair of tier and age: the answer is open, and no higher band is.
-    for (const tier of BANDS) {
+  // One test per tier: at its rung, in each research age, the bag is that
+  // tier alone and twenty seeded hands deal nothing else. The draft before the
+  // rung is still the tier below.
+  for (const [band, rung] of [
+    [1, 4],
+    [2, 10],
+    [3, 18],
+    [4, 26],
+  ] as const) {
+    it(`deals Tier ${['0', 'I', 'II', 'III', 'IV'][band]} from draft ${rung} in every research age`, () => {
+      expect(TIER_LADDER[band]!.drafts).toBe(rung);
       for (const age of [1, 2, 3, 4] as const) {
-        const band = currentBand(tier, age);
-        expect(bandOpen(band, tier, age), `tier ${tier}, age ${age}`).toBe(true);
-        for (const higher of BANDS.filter((b) => b > band)) {
-          expect(bandOpen(higher, tier, age), `tier ${tier}, age ${age}, band ${higher}`).toBe(false);
+        const g = seated();
+        const ada = playerById(g.state, 0)!;
+        if (age > 1) ada.techsResearched.push(techOfAge(age));
+        expect(researchAgeOf(ada)).toBe(age);
+        expect(currentBandOf(ada, rung - 1), `age ${age}`).toBe(band - 1);
+        expect(currentBandOf(ada, rung), `age ${age}`).toBe(band);
+        ada.statecraft.drafts = rung;
+        const bag = eligibleFor(g.state, ada);
+        expect(bag.length, `age ${age}`).toBeGreaterThan(0);
+        for (const id of bag) expect(orderDef(id).band <= band && band <= (orderDef(id).lastBand ?? orderDef(id).band), id).toBe(true);
+        for (let n = 0; n < 20; n++) {
+          delete ada.statecraft.pendingOrder;
+          for (const id of drawOrderOffer(g.state, ada).options) {
+            const def = orderDef(id);
+            expect(def.band <= band && band <= (def.lastBand ?? def.band), `age ${age}, ${id}`).toBe(true);
+          }
         }
       }
+    });
+  }
+
+  it('names the current band from the draft count alone, whatever the research age', () => {
+    for (const age of [1, 2, 3, 4] as const) {
+      const g = seated();
+      const ada = playerById(g.state, 0)!;
+      if (age > 1) ada.techsResearched.push(techOfAge(age));
+      for (let drafts = 0; drafts <= 40; drafts++) {
+        expect(currentBandOf(ada, drafts), `age ${age}, drafts ${drafts}`).toBe(bandTierAt(drafts));
+      }
+      // The seat's own count is the default.
+      ada.statecraft.drafts = 18;
+      expect(currentBandOf(ada)).toBe(3);
     }
     // A few rows written out, so a reader can see the rule without the loop.
-    expect(currentBand(0, 4)).toBe(0);
-    expect(currentBand(2, 2)).toBe(1);
-    expect(currentBand(3, 4)).toBe(3);
-    expect(currentBand(4, 3)).toBe(2);
-    expect(currentBand(4, 4)).toBe(4);
-    // The seat reading: the draft count picks the tier, the techs pick the age.
     const g = seated();
     const ada = playerById(g.state, 0)!;
-    expect(currentBandOf(ada)).toBe(0);
-    ada.statecraft.drafts = 18;
-    ada.techsResearched.push(techOfAge(2));
-    expect(currentBandOf(ada)).toBe(1);
-    ada.techsResearched.push(techOfAge(3));
-    expect(currentBandOf(ada)).toBe(2);
+    expect(currentBandOf(ada, 0)).toBe(0);
+    expect(currentBandOf(ada, 3)).toBe(0);
     expect(currentBandOf(ada, 4)).toBe(1);
+    expect(currentBandOf(ada, 9)).toBe(1);
+    expect(currentBandOf(ada, 10)).toBe(2);
+    expect(currentBandOf(ada, 17)).toBe(2);
+    expect(currentBandOf(ada, 18)).toBe(3);
+    expect(currentBandOf(ada, 25)).toBe(3);
+    expect(currentBandOf(ada, 26)).toBe(4);
+  });
+
+  it('steps the bag one band at a time as the draft count climbs, in research age 1', () => {
+    const g = seated();
+    const ada = playerById(g.state, 0)!;
+    // Only one band is dealt at a time (the user, 2026-10-13): an earlier band
+    // leaves the bag when a later one opens. The seat never leaves age one.
+    const bandsOf = (): number[] => [...new Set(eligibleFor(g.state, ada).map((id) => orderDef(id).band))].sort();
+    expect(bandsOf()).toEqual([0]);
+    ada.statecraft.drafts = 4;
+    expect(bandsOf()).toEqual([1]);
+    ada.statecraft.drafts = 10;
+    expect(bandsOf()).toEqual([2]);
+    // Double Time is dealt in Tiers II and III (`lastBand`), so the Tier III
+    // bag may hold a Tier II row that names Tier III as its last band.
+    ada.statecraft.drafts = 18;
+    for (const id of eligibleFor(g.state, ada)) expect((orderDef(id).lastBand ?? orderDef(id).band), id).toBe(3);
+    ada.statecraft.drafts = 26;
+    expect(bandsOf()).toEqual([4]);
+    expect(researchAgeOf(ada)).toBe(1);
   });
 
   it('deals a seat at band 2 no card of band 0 or band 1', () => {
     const g = seated();
     for (const seat of [0, 1]) {
       const player = playerById(g.state, seat)!;
-      player.techsResearched.push(techOfAge(3));
-      player.statecraft.drafts = 18;
+      player.statecraft.drafts = 10;
       expect(currentBandOf(player)).toBe(2);
       const bag = eligibleFor(g.state, player);
       expect(bag.length).toBeGreaterThan(0);
@@ -1093,22 +1125,6 @@ describe('with the shelf stocked', () => {
         delete player.statecraft.pendingOrder;
         for (const id of drawOrderOffer(g.state, player).options) expect(orderDef(id).band, id).toBe(2);
       }
-    }
-  });
-
-  it('deals a seat whose tier is ahead of its age from the band its age allows', () => {
-    const g = seated();
-    const ada = playerById(g.state, 0)!;
-    // Twenty-nine drafts reach the rung of band 3, but the empire is in age two.
-    ada.statecraft.drafts = 29;
-    ada.techsResearched.push(techOfAge(2));
-    expect(currentBandOf(ada)).toBe(1);
-    const bag = eligibleFor(g.state, ada);
-    expect(bag.length).toBeGreaterThan(0);
-    for (const id of bag) expect(orderDef(id).band, id).toBe(1);
-    for (let n = 0; n < 10; n++) {
-      delete ada.statecraft.pendingOrder;
-      for (const id of drawOrderOffer(g.state, ada).options) expect(orderDef(id).band, id).toBe(1);
     }
   });
 
@@ -1126,7 +1142,6 @@ describe('with the shelf stocked', () => {
     // Band 1 opens. Neither card is dealt again, and both stay held; the seated
     // one stays in its chair.
     sc.drafts = 4;
-    ada.techsResearched.push(techOfAge(2));
     expect(currentBandOf(ada)).toBe(1);
     expect(eligibleFor(g.state, ada)).not.toContain(keptCard);
     expect(dealTo(g.state, ada)).not.toBeNull();
@@ -1141,7 +1156,6 @@ describe('with the shelf stocked', () => {
     const ada = playerById(g.state, 0)!;
     const sc = ada.statecraft;
     sc.drafts = 4;
-    ada.techsResearched.push(techOfAge(2));
     // Hold every band-1 card. Band 0 still has cards the seat does not hold.
     holdEverythingDealt(g.state, ada);
     const earlier = deckPoolOf(g.state, ada).filter((id) => orderDef(id).band === 0 && !sc.orders.includes(id));
@@ -1157,14 +1171,12 @@ describe('with the shelf stocked', () => {
   });
 
   it('reads the waiting draft at its own count, so the draft that reaches a rung is dealt from the new band', () => {
-    // Band 0 is spent at three drafts, and the age already allows band 1. The
-    // fourth draft reaches band 1's rung, so it is dealt from band 1 rather than
-    // refused as exhausted.
+    // Band 0 is spent at three drafts. The fourth draft reaches band 1's rung,
+    // so it is dealt from band 1 rather than refused as exhausted.
     const g = seated();
     const ada = playerById(g.state, 0)!;
     const sc = ada.statecraft;
     sc.drafts = 3;
-    ada.techsResearched.push(techOfAge(2));
     holdEverythingDealt(g.state, ada);
     ada.culturePool = 10_000;
     expect(draftExhausted(g.state, ada)).toBe(false);

@@ -4,7 +4,7 @@ Measured from 5 bot games of 200 turns, 6 seats each (`docs/plans/card-measureme
 
 ## The game in each age
 
-Research age is the highest age among an empire's technologies. A band opens when both its ladder rung (drafts 0 / 4 / 18 / 29 / 45) and its age (band + 1, capped at 4) are reached.
+Research age is the highest age among an empire's technologies. Since 2026-10-17 a band opens at its ladder rung alone (drafts 0 / 4 / 10 / 18 / 26), and the research age plays no part (`docs/flags.md` (eeeeeee)). The "Band dealt" column below was measured under the old rule, when a band also needed the age one above it and the rungs were 0 / 4 / 18 / 29 / 45.
 
 | Age | Turns (bots) | Band dealt | Chairs | Towns | Seat yield / turn | Production per town | A military unit costs (hammers) | Unit strength |
 |---|---|---|---|---|---|---|---|---|

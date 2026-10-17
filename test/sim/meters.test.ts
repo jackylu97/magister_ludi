@@ -1033,7 +1033,10 @@ describe('a captured city, end to end', () => {
     // come from a different tier.
     // 150 since Tier IV moved to 26 drafts (flags item ddddddd), with the
     // tier-29 governments, so a v149 log's drafts 26 to 28 deal differently.
-    expect(SCHEMA_VERSION).toBe(150);
+    // 151 since the Order tiers open at their draft rung alone (flags item
+    // eeeeeee), so a v150 log's hands from a seat ahead of its research age
+    // come from a later tier.
+    expect(SCHEMA_VERSION).toBe(151);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

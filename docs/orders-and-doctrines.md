@@ -19,14 +19,14 @@ structure paragraphs are sync-tested where they state a number):
   decks; Ibn Battuta's says `rainbow`; a seat under nobody holds all six. A seat's pool is
   its decks' single-type rows, the cross-types naming either, and the commons
   (`deckPoolOf`).
-- **Five bands, two gates.** A band is open to a seat once the seat's regular draft count has
-  reached its band's rung of the ladder **and** its research age (the highest age among its own
-  technologies, floored at one) has reached the band's — both (`bandOpen`). Band 4 (the deck
-  sheets' Tier IV) asks for the last age, the same as band 3, since there is no fifth age.
-  The ladder is the table below.
+- **Five bands, one gate.** A band is open to a seat once the seat's regular draft count has
+  reached its band's rung of the ladder (`currentBandOf`). The research age plays no part (the
+  user, 2026-10-17, `docs/flags.md` (eeeeeee): *"lets remove the research age altogether"*).
+  This replaces the rule of 2026-09-16, under which each band also needed the research age one
+  above it. The ladder is the table below.
 - **Only the current band is dealt** (the user, 2026-10-13; `docs/decks/deck-design.md`). A
-  hand is dealt only from the seat's current band, the highest band open to it on both gates
-  (`currentBand`, `eligibleFor`). When a new band opens, the earlier bands are no longer
+  hand is dealt only from the seat's current band, the highest band its draft count has reached
+  (`currentBandOf`, `eligibleFor`). When a new band opens, the earlier bands are no longer
   dealt. Cards already held keep their chairs. If the seat already holds every card of its
   current band, the draft is not charged and waits for the next band; it is never dealt from
   an earlier band instead (`draftExhausted`). A row may name a **last band**
