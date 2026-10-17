@@ -165,8 +165,13 @@ import {
   cardBirthExperience,
   higherRank,
   opusCityOf,
+  surplusMoverFor,
   windfallPayoutIsEmpty,
 } from './statecraft/evaluator';
+// Dominion batch D8, from the evaluator for the same reason: the rule that
+// stops an empire founding cities (The Soldiers' Share), and the law's
+// percentages on a unit's cost (The Servian Reforms).
+import { cardBehaviorRule, cardUnitCostLines } from './statecraft/evaluator';
 // Ranks: a leaf over the rule book, the unit table and the state.
 import { type RankId, grantExperience, raiseToRank, rankThreshold } from './ranks';
 import {
@@ -1612,6 +1617,12 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
     if (!escort) continue;
     settleRanksEarned(state, escort, raiseToRank(state, escort, rank));
   }
+  // **The units the law founds a town with** (The Frontier Militia,
+  // Expansionist batch E5): raised free of upkeep in the finished town, through
+  // `raiseFreeUnit` (Dominion batch D5), so each counts as gained and pays the
+  // cards that pay for a unit gained. A unit with no room to stand is not
+  // raised (the triage's reading 45).
+  for (const unit of rider.units ?? []) raiseFreeUnit(state, city, unit);
   return city;
 }
 
@@ -1830,6 +1841,10 @@ export function foundingError(state: GameState, unit: Unit): string | null {
   if (unit.hp <= 0) return `Unit ${unit.id} is not alive`;
   const def = unitDef(unit.type);
   if (!def.foundsCity) return `A ${def.name} cannot found a city`;
+  // The Soldiers' Share (Dominion batch D8): this empire's law forbids it.
+  if (cardBehaviorRule(state, unit.ownerId, 'noFounding')) {
+    return 'Your laws forbid founding new cities';
+  }
   if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
 
   const tile = getTileAt(state.map, unit.col, unit.row);
@@ -2024,7 +2039,16 @@ export function assignCitizens(state: GameState, city: City): void {
       weights = balanced;
     }
   }
-  if (city.avoidGrowth === true) capFoodSurplus(state, city, weights);
+  // **A surplus with somewhere to go is not capped** (Expansionist batch E6,
+  // The Breadbasket; the triage's reading 78). While a card moves this town's
+  // food surplus into production (step 14, `surplusMoverFor`), the town keeps
+  // its citizens where its focus put them, so the card has a surplus to move.
+  // The town still does not grow: the basket banks none of a moved surplus
+  // (`growthSurplus`). The same test as the growth channel's, toward the front
+  // of the queue, so the cap and the basket cannot disagree.
+  if (city.avoidGrowth === true && surplusMoverFor(state, city, city.queue[0]) === null) {
+    capFoodSurplus(state, city, weights);
+  }
   if (assignmentPrint(city) !== before) bumpEconomy(state);
 }
 
@@ -3197,6 +3221,16 @@ export function explainUnitCost(
       lines.push({ source: `Cards ${percent > 0 ? '+' : ''}${percent}%`, amount: ruled - running });
       running = ruled;
     }
+  }
+
+  // **The law's percentage on this type** (Dominion batch D8, The Servian
+  // Reforms' cheaper military units): one line, the rows summed, floored once
+  // and never below 1. A purchase is priced off this fold, so it follows.
+  const law = foldCardRulePercent(cardUnitCostLines(state, playerId, type));
+  if (law !== 0) {
+    const ruled = Math.max(1, Math.floor((running * (100 + law)) / 100));
+    lines.push({ source: `Cards ${law > 0 ? '+' : ''}${law}%`, amount: ruled - running });
+    running = ruled;
   }
 
   return lines;

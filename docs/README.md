@@ -227,6 +227,29 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
     The Imperial Highways).
   - A founding rider's `claimRadius` claims every unowned hex within that
     many hexes of the new town (The Staked Claims, Expansionist batch E4).
+  - A founding rider's `unit` raises a unit in the new town, free of upkeep,
+    through `raiseFreeUnit` (the shared The Frontier Militia, Expansionist
+    batch E5).
+- **Other Expansionist batch E5 shapes.** The meter rule `writUncapped` (The
+  Sovereign Writ) pays the writ's first bonus rung once for every step of its
+  size, with no ceiling (`uncappedTierPercent`, `meters.ts`). A production
+  bonus marked `defensive` reaches fortifications only (`isFortification`,
+  `buildingData.ts`; The Burhs), the same reading the `defensiveBuildings`
+  count takes. A windfall rider's `inTown` (the town filter of Dominion batch
+  D7's disband moment) also reads a great person's act, and a grant's
+  `fromTowns` reads the production per turn of the empire's other towns a
+  scope admits (The Master of Works); a great person's act carries its town
+  as `WindfallOccasionFacts.townId`, the same fact the disband moment fills.
+- **Expansionist batch E6 uses Dominion batch D7's shapes.**
+  - The Breadbasket is D7's `surplusToProduction` with a new town scope,
+    `avoidsGrowth`, which reads the town's Avoid growth tick
+    (`City.avoidGrowth`).
+  - While a card moves a town's food surplus into production
+    (`surplusMoverFor`), `assignCitizens` does not run the avoid-growth cap
+    (`capFoodSurplus`), so the town keeps its citizens on its food and the card
+    has a surplus to move. This reaches The Laws of Lord Shang too.
+  - Veteran Colonies is a rider on D7's `disband` moment (`inTown: true`, a
+    military unit, food from `unitCost`), paid as a growth windfall.
 
 ## Units, movement, combat, siege
 
@@ -239,9 +262,17 @@ Reference: **`docs/units.md`** (the roster; generated) and
   is a toll, never a lock. Shore crossing is a pair-of-hexes rule; ships are
   exempt. The Woodland Bands' `woodsWalk` rule (Expansionist batch E3) prices
   forest and jungle at the open-ground cost, through `MoveProfile.ignoresWoods`
-  in `tileMoveCost`. A worker of a seat holding The Fish Traps may step onto a
-  lake as if embarked (Expansionist batch E4): `MoveProfile.wades`, from the
-  rows' `workersWade` (`workerWaters`), in `tileMoveCost`.
+  in `tileMoveCost`.
+- **A lake is water like the coast** (the user's ruling of 2026-10-16,
+  `docs/flags.md` (wwwwww)). The lake's terrain row is `embarkable`, and
+  `openWater` reads that flag in `tileMoveCost`, so all four readers agree:
+  - a land piece that may embark (Sailing; soldiers at Wayfinding) may cross a
+    lake, and a hull may enter one from a port beside it;
+  - a worker lays fish traps (and floating gardens) on a lake as on the coast,
+    standing on the hex, embarked;
+  - whether a town is coastal is a separate question, and the ruling leaves
+    it alone: `isCoastal` asks for a `coast` hex beside the town. A town beside
+    only a lake builds no ship and no harbour, and its hex is no port.
 - **Three rules about who is in the way** (`docs/flags.md` (ooooo), 2026-09-15),
   all of them inside `stepCost`'s discipline:
   1. **A piece at peace is not a wall.** A hex holding a piece of a seat this
@@ -260,10 +291,11 @@ Reference: **`docs/units.md`** (the roster; generated) and
      hex as its target, so the highlight and the reducer agree hex for hex, and
      both pieces spend their movement, break their trench and wake.
 - **Landings and detours** (`docs/flags.md` (xxxxxx), 2026-10-17):
-  1. A shore step that spends the whole allowance ends the march on the hex it
-     lands on (`endsTheMarch`). So `findPath` plans such a step only onto a hex
-     where the piece may stop (`canStopOn`). A free landing (Admiralty) does not
-     end the march and is not asked.
+  1. A shore step (onto or off the coast or a lake) that spends the whole
+     allowance ends the march on the hex it lands on (`endsTheMarch`). So
+     `findPath` plans such a step only onto a hex where the piece may stop
+     (`canStopOn`). A free landing (Admiralty) does not end the march and is
+     not asked.
   2. If the hex a march has to rest on holds a piece that leaves it no room, the
      walk plans a way round to the same goal (`findPathAround`, round every hex
      it has met blocked during that walk) and walks it. A route on dry land goes
@@ -470,6 +502,14 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
     citizens (`citizens`, to the capital or the smallest towns), or add
     Wildcard chairs for the rest of the game (`wildcardChairs`, kept on
     `PlayerStatecraft.chairsWon` and counted by `chairCount`).
+  - Since Expansionist batch E5 a reward may also pay each town from its own
+    figure (`eachTown`, `townFigure`; The Domesday Survey), mark the town that
+    met the goal (`markTown`, written on `City.markedBy` by `markGoalTown`, read
+    by the `markedBy` town scope; The Heartland), and hand over effects for
+    the rest of the game (`lasting`, read by `liveEffects` from the fulfilled
+    commissions, its thirteenth source). A reached goal may set a floor on each
+    hex it counts (`hexYieldAtLeast`), and a goal one town meets names its town
+    in `commissionGoalTown` (`oneTownWorkedHexes`, `bestTownFor`).
 - **Units a card raises, and the moments it pays on** (Dominion batch D5):
   - A grant can raise the best melee unit (`bestMeleeFor`) or each military
     unit a technology unlocks, in the capital or in each town a scope admits.
@@ -515,6 +555,32 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   - **Double Time** (`turnEffectRepeats`): an Order's periodic boons, musters,
     drills and harvests happen twice; a Doctrine's do not (the user's ruling of
     2026-10-16). It is dealt in bands 2 and 3 (`OrderDef.lastBand`).
+- **The last eight Dominion Doctrines** (Dominion batch D8). All sixteen of the
+  sheet's Doctrines are now in the data.
+  - A grant can heal every unit within some hexes of the moment's hex
+    (`healWithin`) and raise each fighting unit one rank (`rankWithin`,
+    through `raiseToRank`; an Elite gains nothing, and the rank pays
+    `settleRanksEarned`). `rallyAround` in the evaluator does both.
+  - A grant can hang timed effects on the unit that acted (`actorTimed`,
+    written to `Unit.timed`); `pillageAt` is the one seam that does it today.
+    A pillage carries the raider's own strength (`pieceStrength`, `combat.ts`).
+  - Three behaviour rules: `noFounding` (refused in `foundingError`, and in
+    `buildError` for any unit that founds cities, so buying follows),
+    `noExperience` (asked in `ranks.ts` by the fight's award and by
+    `canEarn`), and `siegeScreened` (refused by `screenError`, `combat.ts`,
+    which the tint, the forecast and the reducer all ask).
+  - The rule `unitCost` with a unit `class` is a line of `explainUnitCost`, so
+    a purchase follows it.
+  - A strength line can count the Elites beside a unit (`CombatScale.rank`)
+    or the attacks the empire's units have already made this turn on the same
+    target (`attacksOnTarget`, read off `Player.strikesThisTurn`, which
+    `recordStrike` writes only for an empire whose law counts them). A town is
+    one target whatever beat of the assault strikes it.
+  - An upkeep surcharge can name a rank (`rank`), and a unit a `free` rebate
+    covers pays no surcharge at all (`freeByLaw`).
+  - An amplifier can raise a great general's aura (`generalAura`, read in
+    `generalAuraLines`), and a hex row can take a share of everything the hex
+    pays (`wholePercent`, the hex's last line; see `docs/yields.md`).
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
   legacies, wonders and leaders.

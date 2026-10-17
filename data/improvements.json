@@ -371,10 +371,7 @@
           "coast"
         ]
       },
-      "clearsClutter": false,
-      "deferred": [
-        "Beds on open lake water wait for a way to work a lake at all: no boat crosses one and nobody may stand on one, so the only gardens anybody can lay today are the ones beside a fishing boat."
-      ]
+      "clearsClutter": false
     },
     "academy": {
       "name": "Academy",
@@ -483,9 +480,6 @@
       },
       "validTerrain": [
         "coast",
-        "lake"
-      ],
-      "workersWade": [
         "lake"
       ],
       "clearsClutter": false

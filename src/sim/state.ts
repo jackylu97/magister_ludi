@@ -106,6 +106,7 @@ import {
   type DeckId,
   type FirstKind,
   type LevyUse,
+  type OrderId,
   WORLD_FIRST_KINDS,
   isDeckId,
 } from "./statecraftData";
@@ -1619,31 +1620,145 @@ import {
  * the bots draft differently. The branch migrates nothing, for the reason
  * given under v119.
  *
- * v145 (branch `decks`; the movement fixes of `docs/flags.md` (xxxxxx), ruled
- * 2026-10-17; the number is provisional and is set when the batch lands):
- * **units stuck on water, and routing round a blocking unit.** No field joins
- * the state. The rules that change:
+ * v143 (branch `decks`; Expansionist batch E5 of
+ * `docs/plans/expansionist-build-triage.md`, meters, commissions and the shared
+ * militia): **eight cards.** The Burhs, Commission: Break the Sod, The
+ * Sovereign Writ and The Imperial Roads join the Expansionist file, and The
+ * Frontier Militia joins the shared file. The Heartland was deferred and is
+ * now dealt, and The Domesday Survey and The Master of Works now do what their
+ * text says. One field joins the state, absent until it is first written:
  *
- *   · a step from land onto water, or from water onto land, spends the whole
- *     allowance and ends the march on the hex it lands on, so `findPath`
- *     plans such a step only onto a hex where the piece may stop
- *     (`endsTheMarch`, `canStopOn`). Before, a march could aim its landing at
- *     a full town hex and then wait at the water's edge for good;
+ *   · `City.markedBy`: the commissions that marked the town, each with the
+ *     empire that held it then, written only by `markGoalTown`
+ *     (`commissions.ts`).
+ *
+ * The rules that change:
+ *
+ *   · a commission reward may mark the town that met the goal (`markTown`),
+ *     hand over effects for the rest of the game (`lasting`, read by
+ *     `liveEffects` from the fulfilled commissions) and pay each town from its
+ *     own figure (`eachTown`). The `markedBy` town scope reads the mark;
+ *   · two commission figures, `improvedOnlyTilesWorked` and
+ *     `oneTownWorkedHexes`, and a goal's floor on each hex
+ *     (`hexYieldAtLeast`); a goal one town meets names its town in
+ *     `commissionGoalTown`;
+ *   · a meter rule, `writUncapped`, takes the ceiling off the writ's bonus;
+ *   · a founding rider can raise a unit in the new town (`unit`), a production
+ *     bonus can name fortifications (`defensive`, read by `isFortification`),
+ *     a windfall rider's town filter (`inTown`, from Dominion batch D7) now
+ *     reads a great person's act too, and a grant can be read off the
+ *     empire's other towns (`fromTowns`). A great person's act now carries
+ *     its town (`WindfallOccasionFacts.townId`, the fact D7's disband moment
+ *     fills).
+ *
+ * **A v142 save is refused and does not replay.** The draft bags hold
+ * different cards, and The Domesday Survey and The Master of Works pay
+ * differently. The branch migrates nothing, for the reason given under v119.
+ *
+ * v144 (branch `decks`; the lake fix, "L1", the user's ruling of 2026-10-16,
+ * `docs/flags.md` (wwwwww)): **a lake is water like the coast.** No field
+ * joins the state. What changes:
+ *
+ *   · the lake's terrain row is `embarkable`, so a land piece that may embark
+ *     (Sailing; soldiers at Wayfinding) may cross a lake, and a hull may enter
+ *     one from a port beside it. Every step is priced through `stepCost`, as
+ *     for the coast;
+ *   · E4's lake rule for workers is removed: `MoveProfile.wades`, the
+ *     improvement row field `workersWade` and `workerWaters`. A worker lays
+ *     fish traps on a lake as on the coast, standing on the hex, embarked;
+ *   · the Floating Gardens' deferred note is removed, because its lake half
+ *     can now be built.
+ *
+ * Whether a town beside a lake is coastal is unchanged.
+ *
+ * **A v143 save is refused and does not replay.** Pieces now path across
+ * lakes, so the bots move differently. The branch migrates nothing, for the
+ * reason given under v119.
+ *
+ * v145 (branch `decks`; Dominion batch D8 of
+ * `docs/plans/dominion-build-triage.md`, the last Dominion Doctrines):
+ * **eight Doctrines join Dominion's `doctrines` map**, so all sixteen of the
+ * sheet's Doctrines are in the data. The Soldiers' Share and The Servian
+ * Reforms join Tier I; Centurions, The Plunder Economy, The Strategoi and
+ * Weight of Numbers join Tier II; Combined Arms joins Tier III; and The Scourge
+ * of God joins Tier IV. One field joins the state: `Player.strikesThisTurn`,
+ * the attacks an empire's units made this turn, kept only for an empire whose
+ * law counts them. The rules that change:
+ *
+ *   · a grant can heal every unit within some hexes of the moment's hex and
+ *     raise each fighting unit one rank (`healWithin`, `rankWithin`), and can
+ *     hang timed effects on the unit that acted (`actorTimed`, hung by
+ *     `pillageAt`);
+ *   · a pillage carries the raider's own strength (`pieceStrength`);
+ *   · three behaviour rules: no founding (refused in `foundingError` and, for
+ *     a unit that founds cities, in `buildError`), no experience (asked in
+ *     `ranks.ts`), and a siege unit screened from melee by a melee unit beside
+ *     it (`screenError`, asked by `attackTargetAt` and `planCombat`);
+ *   · a unit cost percentage for a class of units, as a line of
+ *     `explainUnitCost` (`unitCost`);
+ *   · a strength line can count the Elites beside a unit (`CombatScale.rank`)
+ *     or the attacks already made this turn on the same target
+ *     (`attacksOnTarget`);
+ *   · an upkeep surcharge can name a rank, and a unit a free rebate covers pays
+ *     no surcharge at all (`freeByLaw`);
+ *   · a great general's aura can be amplified (`generalAura`), and a hex row can
+ *     take a share of everything the hex pays (`wholePercent`, the hex's last
+ *     line);
+ *   · the bots price the new shapes, so they take different Doctrines.
+ *
+ * **A v144 save is refused and does not replay.** The Doctrine offers hold
+ * different cards, so every seat that adopts a government is dealt a
+ * different hand, and the bots choose differently. The branch migrates
+ * nothing, for the reason given under v119.
+ *
+ * v146 (branch `decks`; Expansionist batch E6 of
+ * `docs/plans/expansionist-build-triage.md`, the two cards that waited for
+ * Dominion batch D7): **two cards come live.** The Breadbasket and Veteran
+ * Colonies were deferred and are now dealt. No field joins the state. The
+ * rules that change:
+ *
+ *   · a town scope asks whether the town's owner told it to stop growing
+ *     (`avoidsGrowth`, read off `City.avoidGrowth`). The Breadbasket moves
+ *     such a town's food surplus into production through D7's
+ *     `surplusToProduction`, whatever the town builds;
+ *   · while a card moves a town's food surplus into production, the Avoid
+ *     growth tick no longer moves the town's citizens off food
+ *     (`assignCitizens` skips `capFoodSurplus`). This reaches The Laws of Lord
+ *     Shang too, in a town told to stop growing while it builds a military
+ *     unit;
+ *   · Veteran Colonies is a rider on D7's disband moment: a military unit
+ *     disbanded on the hex of one of your towns pays that town food equal to
+ *     its production cost, as a growth windfall.
+ *
+ * **A v145 save is refused and does not replay.** The draft bags hold
+ * different cards. The branch migrates nothing, for the reason given under
+ * v119.
+ *
+ * v147 (branch `decks`; the movement fixes of `docs/flags.md` (xxxxxx), ruled
+ * 2026-10-17): **units stuck on water, and routing round a blocking unit.**
+ * No field joins the state. The rules that change:
+ *
+ *   · a step from land onto water (the coast or a lake), or from water onto
+ *     land, spends the whole allowance and ends the march on the hex it lands
+ *     on, so `findPath` plans such a step only onto a hex where the piece may
+ *     stop (`endsTheMarch`, `canStopOn`). Before, a march could aim its landing
+ *     at a full town hex and then wait at the water's edge for good;
  *   · when the hex a march has to rest on holds a piece that leaves it no
  *     room, the walk plans a way round that hex to the same goal
- *     (`findPathAround`) and walks it. When there is none, the piece waits, as
- *     before. The order left on the unit is the detour's remainder, and the
- *     command's result names the cells walked (`CommandResult.reroutes`);
+ *     (`findPathAround`) and walks it. A route on dry land goes round on dry
+ *     land. When there is no way round, the piece waits, as before. The order
+ *     left on the unit is the detour's remainder, and the command's result
+ *     names the cells walked (`CommandResult.reroutes`);
  *   · the bots step a garrison out of a town only onto land, never leave a
  *     land piece asleep or dug in on the water (it comes ashore instead), and
  *     never dig in to mend there.
  *
- * **A v142 save is refused and does not replay.** Its marches would walk
+ * **A v146 save is refused and does not replay.** Its marches would walk
  * different routes: a landing it planned onto a full hex is refused, and a
  * march it left waiting at a blocked hex now goes round. The branch migrates
  * nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 145;
+export const SCHEMA_VERSION = 147;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2431,6 +2546,20 @@ export interface Player {
    * production phase. Absent when nothing is kept.
    */
   opusBank?: number;
+  /**
+   * **The attacks this empire's units made this turn**, one entry per attack,
+   * each the entity id of the piece or town attacked (Dominion batch D8,
+   * Weight of Numbers: "+3 strength for each attack your units have already
+   * made on the same target this turn"). Units and towns take their ids from
+   * one counter, so an id names one thing.
+   *
+   * Written only by `recordStrike` (`combat.ts`), after each attack, and only
+   * for an empire whose law counts these attacks (`CombatScaleCount`'s
+   * `attacksOnTarget`). `turn` is the turn the entries belong to: a list from
+   * an earlier turn counts nothing, and the next attack starts it again, so
+   * nothing counts down. Absent until the first such attack.
+   */
+  strikesThisTurn?: { turn: number; targets: number[] };
   /**
    * **How many units this empire's units have killed in the game, barbarians
    * included** (Dominion batch D4): The Captured Arms' count (`CountKind`'s
@@ -3792,6 +3921,10 @@ export interface City {
    * chasing hammers — and neither may starve the place: the cap is applied by
    * swapping worked hexes down while the harvest still feeds the citizens, and
    * `capFoodSurplus` stops the moment the next swap would not (`cities.ts`).
+   * While a card moves the town's food surplus into production (The
+   * Breadbasket, Expansionist batch E6), the cap does not run: the surplus goes
+   * into production instead, and the basket still gains nothing
+   * (`assignCitizens`).
    */
   avoidGrowth?: true;
   /**
@@ -4003,6 +4136,17 @@ export interface City {
    * owner it already paid pays nothing again. Absent until the first joining.
    */
   joinedBy?: number[];
+  /**
+   * **The commissions that marked this town**, each with the empire that held
+   * the town when its goal was met (Expansionist batch E5, The Heartland).
+   *
+   * Written only by `markGoalTown` (`commissions.ts`), when a reward's
+   * `markTown` is paid. The `markedBy` town scope admits the town while the
+   * empire named holds it, so a town that changes hands loses the mark's
+   * effects for its new owner (the triage's reading 40). Absent until the
+   * first mark.
+   */
+  markedBy?: { card: OrderId; owner: number }[];
 }
 
 /** See `City.levy`. */

@@ -346,8 +346,7 @@ function dryWhereDry(
     return tile !== undefined && isWaterTerrain(tile.terrain);
   };
   if (wet(unit) || route.slice(index).some(wet)) return mover;
-  const { wades: _wades, ...rest } = mover;
-  return { ...rest, embarks: false };
+  return { ...mover, embarks: false };
 }
 
 /**

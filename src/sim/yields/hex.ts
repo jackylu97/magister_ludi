@@ -726,7 +726,9 @@ export function explainTileYield(
   // which is the one place a `base`/`override` list becomes a number — so the
   // hill under a jungle is counted the way the hover card counts it and not by
   // a second sum that could disagree. The two shares never overlap and neither
-  // reaches a card's own line, so two cards cannot pay each other interest.
+  // reaches a card's own line, so two cards cannot pay each other interest. The
+  // whole share at the foot of this function is the one stated exception
+  // (Dominion batch D8).
   let worksPercent = 0;
   const worksSources: string[] = [];
   const worksCards: CardId[] = [];
@@ -796,6 +798,46 @@ export function explainTileYield(
     let pays = false;
     for (const voice of TILE_YIELD_KEYS) {
       share[voice] = (ground[voice] * groundPercent) / 100;
+      if (share[voice] !== 0) pays = true;
+    }
+    if (pays) list.push(share);
+  }
+
+  // **And a percentage on everything the hex pays** (Dominion batch D8, The
+  // Strategoi's doubled citadels, `TileLine.wholePercent`; the triage's reading
+  // 28). Taken last, off the fold of every entry above it: the ground, the
+  // works, the marks, every card line and the two shares just taken. It is the
+  // one share that reaches the lines other cards put on the hex, which is what
+  // "citadel yields are doubled" says. Riders sum before one multiplication, as
+  // the other two do, and it joins as one more labelled `add`, so the
+  // breakdown still sums to the total.
+  let wholePercent = 0;
+  const wholeSources: string[] = [];
+  const wholeCards: CardId[] = [];
+  for (const line of ctx?.lines ?? []) {
+    const whole = line.wholePercent ?? 0;
+    if (whole === 0) continue;
+    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) continue;
+    wholePercent += whole;
+    if (!wholeSources.includes(line.source)) wholeSources.push(line.source);
+    if (line.card !== undefined && !wholeCards.includes(line.card)) wholeCards.push(line.card);
+  }
+  if (wholePercent !== 0) {
+    const whole = foldTileLines(list);
+    const share: TileYieldContribution = {
+      source: wholeSources.join(' + '),
+      card: soleCard(wholeCards),
+      kind: 'add',
+      food: 0,
+      production: 0,
+      gold: 0,
+      science: 0,
+      culture: 0,
+      faith: 0,
+    };
+    let pays = false;
+    for (const voice of TILE_YIELD_KEYS) {
+      share[voice] = (whole[voice] * wholePercent) / 100;
       if (share[voice] !== 0) pays = true;
     }
     if (pays) list.push(share);

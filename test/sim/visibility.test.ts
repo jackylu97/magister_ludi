@@ -233,10 +233,20 @@ describe('the visibility grid', () => {
     // 142 since D7: thirteen Dominion cards about economy rules and Double
     // Time, and a fourteenth step in a town's yields, so a v141 log's picks
     // name cards this build never dealt.
-    // 145 since the movement fixes (flags item xxxxxx): a landing is planned
+    // 143 since E5: eight cards about meters, commissions and the shared
+    // militia, and a new town field, so a v142 log's picks name cards this
+    // build deals differently.
+    // 144 since the lake fix (L1): a lake is water like the coast, so pieces
+    // path across lakes and a v143 log's moves meet a different board.
+    // 145 since D8: the last eight Dominion Doctrines and a record of the
+    // attacks made this turn, so a v144 log's Doctrine offers hold cards
+    // this build deals differently.
+    // 146 since E6: The Breadbasket and Veteran Colonies come live, so a v145
+    // log's picks name cards this build deals differently.
+    // 147 since the movement fixes (flags item xxxxxx): a landing is planned
     // only where the piece may stop, and a blocked march goes round, so a
-    // v142 log's marches would walk different routes. Provisional number.
-    expect(SCHEMA_VERSION).toBe(145);
+    // v146 log's marches would walk different routes.
+    expect(SCHEMA_VERSION).toBe(147);
   });
 
   it('survives a JSON round trip as plain data', () => {

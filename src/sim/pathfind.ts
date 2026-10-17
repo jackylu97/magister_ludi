@@ -143,11 +143,7 @@ import {
   moveCost,
 } from './terrainData';
 import { isCoastal } from './water';
-import { type UnitDef, isCivilian, isCombatant, isExplorer, isNaval, laysWorks, unitDef } from './unitData';
-// Expansionist batch E4, straight from the evaluator rather than through the
-// index above: the build splits a re-export across a cycle into chunks it warns
-// about.
-import { workerWaters } from './statecraft/evaluator';
+import { type UnitDef, isCivilian, isCombatant, isExplorer, isNaval, unitDef } from './unitData';
 import { fullMovement, hasStackingRoom, stacksFreely, undefendedCiviliansOn } from './units';
 
 /** An offset cell. The wire/serialisation form of a position. */
@@ -474,19 +470,6 @@ export interface MoveProfile {
    */
   ignoresWoods?: boolean;
   /**
-   * The water this piece may **step onto as if embarked**, Sailing or not: The
-   * Fish Traps' lakes, for a worker whose seat holds the charter (Expansionist
-   * batch E4; the triage's reading 27). `workerWaters` (`statecraft/evaluator.ts`)
-   * names the terrains, and only a piece that lays works (`laysWorks`) is
-   * asked.
-   *
-   * Hoisted for `freeLanding`'s reason, and read in `tileMoveCost`, so the
-   * highlight, the estimate and the march agree. A shore step onto it is a shore
-   * step, so it ends the march as embarking does. Written only when it holds a
-   * terrain.
-   */
-  wades?: readonly TerrainId[];
-  /**
    * What one step **along a road** costs this mover — `roadStepCost`, with the
    * mover's empire's own `roadStepCost` percentage on it (Machinery's −40, a
    * third becoming a fifth).
@@ -745,10 +728,6 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     owner !== undefined && cardBehaviorRule(state, owner.id, 'woodsWalk')
       ? { ignoresWoods: true as const }
       : {};
-  // The Fish Traps' lakes (Expansionist batch E4), asked once for the sweep
-  // and only of a piece that lays works. Written only when it holds a terrain.
-  const waters = owner !== undefined && laysWorks(def) ? workerWaters(state, owner.id) : [];
-  const wades = waters.length > 0 ? { wades: waters } : {};
   if (isNaval(def)) {
     // Spread rather than assigned, so a mover nothing bars has *no key* and a
     // profile from a world with no diplomacy in it is the object it always was.
@@ -789,7 +768,6 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     ...freeLanding,
     ...ignoresZoc,
     ...ignoresWoods,
-    ...wades,
     ...(closed === undefined ? {} : { closed }),
   };
 }
@@ -815,9 +793,9 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
  *
  *   · **`embarks` widens.** Water has `moveCost: null`, so it is the ground the
  *     `null` came from, and an embarked civilian pays `movement.embarkCost` for
- *     the water its terrain row calls `embarkable` (coast, today). Ocean, lakes
- *     and mountains are untouched — `isEmbarkableTerrain` is a narrower question
- *     than `isWaterTerrain` on purpose.
+ *     the water its terrain row calls `embarkable` (the coast and the lake).
+ *     The ocean and mountains are untouched. `isEmbarkableTerrain` is a
+ *     narrower question than `isWaterTerrain` on purpose.
  *   · **`ignoresTerrainCost` narrows a price that already exists**, strictly
  *     *after* impassability, so no ability makes a mountain walkable — see
  *     `UnitDef.ignoresTerrainCost`. A scout does not get the sea for free
@@ -830,14 +808,19 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
  */
 /**
  * The water this mover may be on at all: what the terrain table calls
- * `embarkable` — coast — plus the **ocean**, once the mover's empire holds The
- * Astrolabe.
+ * `embarkable` (the coast and the lake), plus the **ocean** once the mover's
+ * empire holds The Astrolabe.
  *
  * One reading, asked by both arms of the water clause below, which is what keeps
  * "the ocean opened" from being two rules that could drift: a hull and an
  * embarked settler cross exactly the same sea. It is a *widening* rather than a
- * second table, so lakes and mountains stay untouched and nothing about the
- * unopened game changes by a byte.
+ * second table, so mountains stay untouched and nothing about the unopened
+ * game changes by a byte.
+ *
+ * A lake works as the coast does here (the user's ruling of 2026-10-16,
+ * `docs/flags.md` (wwwwww)). An embarked piece may cross one, and a hull may
+ * enter one from a port beside it. No lake touches the sea, so a hull reaches a
+ * lake only through a town that stands beside both.
  */
 function openWater(terrain: TerrainId, mover?: MoveProfile): boolean {
   if (isEmbarkableTerrain(terrain)) return true;
@@ -866,10 +849,6 @@ export function tileMoveCost(tile: Tile, mover?: MoveProfile): number | null {
     if (mover?.naval === true && openWater(tile.terrain, mover)) {
       return RULES.movement.minStepCost;
     }
-    // **A worker wading onto the water its empire opened for it** (The Fish
-    // Traps' lakes, Expansionist batch E4): the embarked price, whether or not
-    // the empire can embark anybody (the triage's reading 27).
-    if (mover?.wades?.includes(tile.terrain) === true) return RULES.movement.embarkCost;
     if (!mover?.embarks || !openWater(tile.terrain, mover)) return null;
     return RULES.movement.embarkCost;
   }

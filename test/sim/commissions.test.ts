@@ -120,7 +120,11 @@ describe('the commission rows', () => {
           reward.timed !== undefined ||
           reward.citizens !== undefined ||
           reward.building !== undefined ||
-          reward.wildcardChairs !== undefined;
+          reward.wildcardChairs !== undefined ||
+          // Expansionist batch E5, The Heartland: a mark on the town, and
+          // effects for the rest of the game.
+          reward.markTown === true ||
+          reward.lasting !== undefined;
         expect(says, `${id} has a reward line that pays nothing`).toBe(true);
         if (reward.fromFigure !== undefined) expect(COMMISSION_FIGURES, id).toContain(reward.fromFigure);
       }

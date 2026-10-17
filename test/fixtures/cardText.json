@@ -769,6 +769,94 @@
     "raw": "+5% production in every city per fortified military unit inside its borders (at most +30% production)",
     "text": "+5% production in every city per fortified military unit inside its borders (at most +30% production)"
    }
+  ],
+  "theSoldiersShare": [
+   {
+    "raw": "capturing a city fully heals every unit of yours within 3 hexes and raises each by one rank",
+    "text": "capturing a city fully heals every unit of yours within 3 hexes and raises each by one rank"
+   },
+   {
+    "raw": "you can no longer found new cities",
+    "text": "you can no longer found new cities"
+   }
+  ],
+  "theServianReforms": [
+   {
+    "raw": "military units cost 25% less to build and to buy",
+    "text": "military units cost 25% less to build and to buy"
+   },
+   {
+    "raw": "your units never gain experience",
+    "text": "your units never gain experience"
+   }
+  ],
+  "centurions": [
+   {
+    "raw": "+3 combat strength per adjacent friendly Elite unit",
+    "text": "+3 combat strength per adjacent friendly Elite unit"
+   },
+   {
+    "raw": "Elite units cost 2 more gold in maintenance",
+    "text": "Elite units cost 2 more gold in maintenance"
+   }
+  ],
+  "thePlunderEconomy": [
+   {
+    "raw": "pillaging grants production equal to 50% of the pillaging unit's strength to every city",
+    "text": "pillaging grants production equal to 50% of the pillaging unit's strength to every city"
+   },
+   {
+    "raw": "-4 combat strength against cities",
+    "text": "-4 combat strength against cities"
+   }
+  ],
+  "theStrategoi": [
+   {
+    "raw": "+30% renown",
+    "text": "+30% renown"
+   },
+   {
+    "raw": "the yields of every hex with a [[improvement:citadel|Citadel]] are doubled",
+    "text": "the yields of every hex with a Citadel are doubled"
+   },
+   {
+    "raw": "the strength aura of your great generals is doubled",
+    "text": "the strength aura of your great generals is doubled"
+   }
+  ],
+  "weightOfNumbers": [
+   {
+    "raw": "+3 combat strength per attack your units have already made on the same target this turn (at most +12)",
+    "text": "+3 combat strength per attack your units have already made on the same target this turn (at most +12)"
+   },
+   {
+    "raw": "your units cannot fortify",
+    "text": "your units cannot fortify"
+   }
+  ],
+  "combinedArms": [
+   {
+    "raw": "+3 combat strength",
+    "text": "+3 combat strength"
+   },
+   {
+    "raw": "+3 combat strength while standing beside siege units",
+    "text": "+3 combat strength while standing beside siege units"
+   },
+   {
+    "raw": "your siege units beside one of your melee units cannot be attacked in melee",
+    "text": "your siege units beside one of your melee units cannot be attacked in melee"
+   }
+  ],
+  "theScourgeOfGod": [
+   {
+    "raw": "pillaging grants +100% production in your capital for the next 5 turns, however often it happens",
+    "text": "pillaging grants +100% production in your capital for the next 5 turns, however often it happens"
+   },
+   {
+    "raw": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so",
+    "text": "pillaging gives the unit +6 combat strength for the next 5 turns, however often it does so"
+   }
   ]
  },
  "order": {
@@ -4192,6 +4280,30 @@
     "text": "your workers may lay tended works on unowned wild hexes up to 2 hexes beyond your borders, and a hex worked there joins your nearest city"
    }
   ],
+  "theBurhs": [
+   {
+    "raw": "every city: +3 city defence per fortification in this city",
+    "text": "every city: +3 city defence per fortification in this city"
+   },
+   {
+    "raw": "+100% production toward defensive buildings",
+    "text": "+100% production toward defensive buildings"
+   }
+  ],
+  "commissionBreakTheSod": [
+   {
+    "raw": "Commission. Goal: work 12 improved tiles at the same time, not counting tended tiles, while this card is seated",
+    "text": "Commission. Goal: work 12 improved tiles at the same time, not counting tended tiles, while this card is seated"
+   },
+   {
+    "raw": "Reward: for 20 turns, +3 food in every city, and a [[unit:worker|Worker]], trained in your capital free of upkeep",
+    "text": "Reward: for 20 turns, +3 food in every city, and a Worker, trained in your capital free of upkeep"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   }
+  ],
   "theWatercourses": [
    {
     "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside a river or beside a [[improvement:farm|Farm]] and beside a river",
@@ -4246,9 +4358,8 @@
   ],
   "expansionistTheBreadbasket": [
    {
-    "raw": "a town that has stopped growing turns its spare grain into contentment and into settlers — not built yet",
-    "text": "a town that has stopped growing turns its spare grain into contentment and into settlers — not built yet",
-    "deferred": true
+    "raw": "a city told to stop growing puts its food surplus into production instead of into growth",
+    "text": "a city told to stop growing puts its food surplus into production instead of into growth"
    }
   ],
   "migration": [
@@ -4259,9 +4370,8 @@
   ],
   "veteranColonies": [
    {
-    "raw": "a soldier standing in one of your towns may retire there, and the town gains food for it — not built yet",
-    "text": "a soldier standing in one of your towns may retire there, and the town gains food for it — not built yet",
-    "deferred": true
+    "raw": "for military units alone, disbanding a unit in one of your cities grants food equal to its production cost",
+    "text": "for military units alone, disbanding a unit in one of your cities grants food equal to its production cost"
    }
   ],
   "theLandscapeGarden": [
@@ -4607,6 +4717,18 @@
     "text": "new cities claim every unowned hex within 2 hexes of them at once"
    }
   ],
+  "theSovereignWrit": [
+   {
+    "raw": "spare authority's bonus to production and border growth has no ceiling: +10% for every 5 points",
+    "text": "spare authority's bonus to production and border growth has no ceiling: +10% for every 5 points"
+   }
+  ],
+  "theImperialRoads": [
+   {
+    "raw": "the authority a city joined to your capital by road costs is 0",
+    "text": "the authority a city joined to your capital by road costs is 0"
+   }
+  ],
   "theLandsGreatWork": [
    {
     "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per city of 8 or more citizens (at most +40%)",
@@ -4625,9 +4747,16 @@
   ],
   "theHeartland": [
    {
-    "raw": "one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good — not built yet",
-    "text": "one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good — not built yet",
-    "deferred": true
+    "raw": "Commission. Goal: have one of your cities work 12 improved or tended tiles that each yield 5 or more in total, while this card is seated",
+    "text": "Commission. Goal: have one of your cities work 12 improved or tended tiles that each yield 5 or more in total, while this card is seated"
+   },
+   {
+    "raw": "Reward: that city is marked, and for the rest of the game, the authority a city marked by [[order:theHeartland|The Heartland]] costs is 0 and +3 happiness in every city marked by [[order:theHeartland|The Heartland]] and +20% food in every city marked by [[order:theHeartland|The Heartland]]",
+    "text": "Reward: that city is marked, and for the rest of the game, the authority a city marked by The Heartland costs is 0 and +3 happiness in every city marked by The Heartland and +20% food in every city marked by The Heartland"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
    }
   ],
   "theCorvee": [
@@ -4638,8 +4767,8 @@
   ],
   "theMasterOfWorks": [
    {
-    "raw": "a great engineer's act pays +50%",
-    "text": "a great engineer's act pays +50%"
+    "raw": "a great engineer spending themselves on their boon in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a [[improvement:manufactory|Manufactory]]",
+    "text": "a great engineer spending themselves on their boon in a city raising the Magnum Opus grants production equal to the production per turn of your other cities with a Manufactory"
    }
   ],
   "thePhilosophersPeaks": [
@@ -4698,8 +4827,8 @@
     "text": "Commission. Goal: own 150 hexes and work 50 improved tiles at the same time, while this card is seated"
    },
    {
-    "raw": "Reward: production in your capital equal to 5 times the improved tiles you work at that moment, and a great engineer to call",
-    "text": "Reward: production in your capital equal to 5 times the improved tiles you work at that moment, and a great engineer to call"
+    "raw": "Reward: each city gains production equal to 5 times the improved or tended tiles it works, toward what it is building, and a great engineer to call",
+    "text": "Reward: each city gains production equal to 5 times the improved or tended tiles it works, toward what it is building, and a great engineer to call"
    },
    {
     "raw": "then this card leaves its chair and is never seated again",
@@ -8123,6 +8252,12 @@
    {
     "raw": "+20% border expansion, in every city with a [[building:monument|Monument]]",
     "text": "+20% border expansion, in every city with a Monument"
+   }
+  ],
+  "theFrontierMilitia": [
+   {
+    "raw": "new cities start with the best melee unit you can build standing in them, free of upkeep",
+    "text": "new cities start with the best melee unit you can build standing in them, free of upkeep"
    }
   ],
   "publicWells": [

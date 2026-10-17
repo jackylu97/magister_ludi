@@ -882,9 +882,8 @@ describe('buildImprovement', () => {
 
       it('takes a lake outright, with nothing beside it', () => {
         // The row's own `validTerrain`, untouched by the seam: a lake needs no
-        // reason. (That the game cannot yet *put* a worker on one is the row's
-        // stated `deferred` half, and it is a fact about movement rather than
-        // about the ground — which is why the ground rule is written and right.)
+        // reason. A worker reaches a lake embarked, as it reaches the coast
+        // (the user's lake ruling of 2026-10-16), so this half is built.
         const { state, worker } = shore();
         at(state, 5, 4).terrain = 'lake';
         expect(improvementError(state, worker.id, 'floatingGardens')).toBeNull();
@@ -938,9 +937,10 @@ describe('buildImprovement', () => {
         // The widening is a widening: the row still names its own ground, which
         // is the invariant the load validator holds every future user to.
         expect(def.validTerrain).toEqual(['lake']);
-        // And the half the design has that the game does not, said on the row in
-        // a player's words rather than bent into a shape that nearly fits.
-        expect(def.deferred?.length).toBeGreaterThan(0);
+        // The lake half waited, as a deferred note on the row, until a worker
+        // could stand on a lake. Since the lake ruling of 2026-10-16 one can,
+        // so the row carries no deferred half.
+        expect(def.deferred).toBeUndefined();
       });
     });
 
@@ -2600,10 +2600,20 @@ describe('improvements in the log', () => {
     // 142 since D7: thirteen Dominion cards about economy rules and Double
     // Time, and a fourteenth step in a town's yields, so a v141 log's picks
     // name cards this build never dealt.
-    // 145 since the movement fixes (flags item xxxxxx): a landing is planned
+    // 143 since E5: eight cards about meters, commissions and the shared
+    // militia, and a new town field, so a v142 log's picks name cards this
+    // build deals differently.
+    // 144 since the lake fix (L1): a lake is water like the coast, so pieces
+    // path across lakes and a v143 log's moves meet a different board.
+    // 145 since D8: the last eight Dominion Doctrines and a record of the
+    // attacks made this turn, so a v144 log's Doctrine offers hold cards
+    // this build deals differently.
+    // 146 since E6: The Breadbasket and Veteran Colonies come live, so a v145
+    // log's picks name cards this build deals differently.
+    // 147 since the movement fixes (flags item xxxxxx): a landing is planned
     // only where the piece may stop, and a blocked march goes round, so a
-    // v142 log's marches would walk different routes. Provisional number.
-    expect(SCHEMA_VERSION).toBe(145);
+    // v146 log's marches would walk different routes.
+    expect(SCHEMA_VERSION).toBe(147);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

@@ -820,29 +820,115 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * ---
  *
- * **The movement fixes (`docs/flags.md` (xxxxxx), schema 145 for now).** Duel
- * `110900e1:270781` → `fe57c5b7:280097`, standard `d35f6b2b:966765` →
- * `5d676cf2:975894`. Four things moved them:
+ * **Expansionist batch E5 and the lake fix (L1), merged after D7 (schemas
+ * 143 and 144).** Duel `110900e1:270781` → `01ab9020:285340`, standard
+ * `d35f6b2b:966765` → `a4608f70:956430`. E5 and L1 were built at schemas 142
+ * and 143, without D7, and the literals they pinned there (E5: duel
+ * `26886ed7:276670`, standard `1b906911:989041`; L1: duel `22e6ff02:275643`,
+ * standard `19b5eebe:996001`) do not apply to this tree. Three things moved
+ * the digests:
  *
- *   · the version, 142 to 145;
- *   · part 1: a landing is planned only onto a hex the piece may stop on;
+ *   · E5's cards. Four Expansionist rows join the deck (The Burhs, Commission:
+ *     Break the Sod, The Sovereign Writ, The Imperial Roads), one shared row
+ *     joins the shared file (The Frontier Militia), The Heartland is freed, and
+ *     The Domesday Survey and The Master of Works change. At turn 120 on the
+ *     duel board one seat seats The Frontier Militia and another The Burhs; on
+ *     the standard board one seat holds Commission: Break the Sod, not seated;
+ *   · the open lake. A piece that may embark now crosses lakes, and a worker
+ *     with Irrigation may lay floating gardens on one: at turn 120 three stand
+ *     on lakes on the duel board and one on the standard board. Scouts,
+ *     workers and soldiers step onto lakes (221 piece-turns on the duel board,
+ *     79 on the standard one). No hull enters a lake;
+ *   · the version, 142 to 144.
+ *
+ * Checked by taking E5's and L1's movers out (the Expansionist and shared deck
+ * files and the lake row as D7 left them, and the version at 142), which gives
+ * D7's digests exactly on both boards. Everything else E5 and L1 changed
+ * stayed in for that run, the removal of E4's lake rule for workers included,
+ * and it changes nothing without the cards and the open lake. The duel game
+ * adopts 12 governments and the standard one 15. Nothing stalled and no
+ * command was refused.
+ *
+ * ---
+ *
+ * **Dominion batch D8 (schema 145), the last eight Dominion Doctrines, merged
+ * after E5 and the lake fix.** Duel `01ab9020:285340` → `029bb984:288649`,
+ * standard `a4608f70:956430` → `ec53cf16:901072`. D8 was built at schema 143,
+ * without E5 and L1, and the literals it pinned there (duel
+ * `61231c1f:265576`, standard `c952c241:916732`) do not apply to this tree.
+ * Two things moved the digests:
+ *
+ *   · the version, 144 to 145;
+ *   · the Doctrines. The Soldiers' Share and The Servian Reforms join the
+ *     tier-4 offers, Centurions, The Plunder Economy, The Strategoi and Weight
+ *     of Numbers the tier-10 offers, Combined Arms the tier-18 offers and The
+ *     Scourge of God the tier-29 offers. An offer of three is now dealt from
+ *     five cards at tiers 4 and 10, so The Laws of Lord Shang is no longer
+ *     every seat's Tier II Doctrine. At turn 120 no seat holds it. On the duel
+ *     board three seats reached tier 10 and all three took Centurions. On the
+ *     standard board all six seats reached tier 10 and every one took Weight
+ *     of Numbers. At Tier I six seats across the two boards hold The Servian
+ *     Reforms, four The Marian Reforms, one The Consular Roads and one The
+ *     Steppe Confederacy; three seats hold Total Mobilisation at Tier III. The
+ *     bots price a strength line as if every unit had it, so the scaled lines
+ *     of Centurions and Weight of Numbers read as a flat +3.
+ *
+ * Checked by taking both back out (the Dominion deck file as the lake fix left
+ * it and the version at 144), which gives the lake fix's digests exactly on
+ * both boards. Everything else D8 changed stayed in for that run: the heal and
+ * the rank around a hex, the timed effects on the raider, the raider's
+ * strength on a pillage, the three new rules, the unit cost line, the Elite
+ * and attack counts and their record, the rank on a surcharge and the free
+ * unit's waiver, the aura's amplifier, the whole-hex share and the bots' new
+ * readings change nothing without the cards. Nothing stalled and no command
+ * was refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E6 (schema 146): The Breadbasket and Veteran Colonies,
+ * merged after D8.** Duel `029bb984:288649` → `3b48dd73:288649`, standard
+ * `ec53cf16:901072` → `441af4ef:901072`. E6 was built at schema 145, without
+ * D8, and the literals it pinned there (duel `e8c6ce6b:285340`, standard
+ * `e4591a83:956439`) do not apply to this tree. On this tree only the version
+ * moved the digests, 145 to 146. The two cards come live, but neither game
+ * changes because of them: no seat holds either card at turn 120. The bots
+ * never tell a town to stop growing, and they disband a unit only to clear
+ * their arrears, so neither card would pay a bot anyway.
+ *
+ * Checked twice with the version at 145: once with the Expansionist deck file
+ * as D8 left it, and once with E6's. Both give D8's digests exactly on both
+ * boards, so the new town scope, the cap rule (`assignCitizens` leaves a
+ * town's citizens on its food while a card moves its surplus) and the two
+ * cards change nothing in these games. The duel game adopts 10 governments
+ * and the standard one 14. Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **The movement fixes (`docs/flags.md` (xxxxxx), schema 147), merged after
+ * E6.** Duel `3b48dd73:288649` → `828c72e8:271204`, standard
+ * `441af4ef:901072` → `c404a125:916889`. The batch was built at schema 145,
+ * before E5, the lake fix, D8 and E6, and the literals it pinned there (duel
+ * `fe57c5b7:280097`, standard `5d676cf2:975894`) do not apply to this tree.
+ * Four things moved the digests:
+ *
+ *   · the version, 146 to 147;
+ *   · part 1: a landing, onto the coast or a lake, is planned only onto a hex
+ *     the piece may stop on;
  *   · part 2: the bots step a garrison aside only onto land, bring an idle land
  *     piece on the water ashore and never dig in to mend there;
  *   · part 3: a march that has to rest on a blocked hex goes round it. In
- *     these two games 744 detours were searched for and 425 taken.
+ *     these two games 1505 detours were searched for and 519 taken.
  *
- * Each part moves both digests on its own, all at version 145. With only part
- * 1: duel `d81944f9:269751`, standard `87567ea6:1036328`; only part 2:
- * `6e136c1d:270227` and `bbb65ef6:981987`; only part 3: `1fd6df16:287461` and
- * `38cddbc6:976474`. With none of them and the version at 145 the digests are
- * D7's with the version digits changed. The piece-turns land units spend on
- * the water fell from 1271 to 687 on the duel board and from 1292 to 693 on
- * the standard one; soldiers fell from 311 to 11 and from 591 to 5. Nothing
- * stalled and no command was refused.
+ * Checked by taking all three parts out and printing the version as 146,
+ * which gives E6's digests exactly on both boards. The piece-turns land units
+ * spend on the water went from 1640 to 980 on the duel board and from 862 to
+ * 837 on the standard one. The longest run a soldier spends there went from
+ * 58 turns to none on the duel board and from 40 to 13 on the standard one.
+ * Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'fe57c5b7:280097',
-  standard: '5d676cf2:975894',
+  duel: '828c72e8:271204',
+  standard: 'c404a125:916889',
 };
 
 /**

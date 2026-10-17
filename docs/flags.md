@@ -19,7 +19,7 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(xxxxxx) Units stuck on water, and routing around a blocking unit: RULED, 2026-10-17; BUILT on branch `m-work` (schema 145, provisional).**
+**(xxxxxx) Units stuck on water, and routing around a blocking unit: RULED, 2026-10-17; BUILT on branch `m-work` (schema 147).**
 - **Found while building the lake fix:** bot soldiers can sit on water, coast
   or lake, for many turns (up to about 60 in a test game). There are two
   causes, and both are older than the lake fix:
@@ -61,31 +61,18 @@ people.md` is the user's own version. The log of what each batch built is
   - The command's result names the cells a detour walked, and the board slides
     the piece along them.
 
-**(wwwwww) A lake is water like the coast: RULED, 2026-10-16, not built yet.**
-The user: *"units should be able to embark onto lakes with the prerequisite
-tech (no difference between coast tiles and lakes). Please fix that if thats
-not already in the game."*
-- **Today** a lake is water that no unit may enter (`terrainData.ts`). So no
-  work on a lake can be built, except by The Fish Traps' workers (batch E4).
-- **The ruling:** for units, a lake hex works as a coast hex does. With the
-  embarkation tech, a land unit may embark onto a lake, and a ship may enter
-  one. Movement prices the step through `stepCost`, as for the coast.
-- **What follows from it:**
-  - The Fish Traps' lake half works the way its coast half works, so E4's
-    lake-only rule for workers (`MoveProfile.wades`) is no longer needed.
-  - The Floating Gardens' lake half, deferred in section B because no one
-    could stand on a lake, can now be built.
-- **Not part of this ruling:** whether a town beside a lake counts as coastal
-  (harbours, ships built there, cards with a coastal scope). The build reports
-  what the game does today and changes nothing there.
-- **The Floating Gardens, the user's question, same day:** *"Floating gardens
-  are a unique building for the aztec civ, right? We had an earlier iteration
-  of floating garden that has since been deprecated."* In the game today, it
-  is an improvement that any civ may build after Irrigation. It came from the
-  old Raised Fields, which split on 2026-09-03 (Entry LXIII) into the
-  mountain-side Terraces and the Floating Gardens. The Texcoco leader's unique
-  building is The Tetzcotzinco. Whether the Floating Gardens stays a general
-  improvement is open.
+**(yyyyyy) The Floating Gardens' future: awaiting your ruling.**
+The user, 2026-10-16: *"Floating gardens are a unique building for the aztec
+civ, right? We had an earlier iteration of floating garden that has since been
+deprecated."*
+- **Today** it is an improvement that any civ may build after Irrigation. Since
+  the lake fix (item (wwwwww), built 2026-10-17, now in the log) it may also
+  stand on a lake, for a seat with Sailing.
+- **Where it came from:** the old Raised Fields split on 2026-09-03 (Entry
+  LXIII) into the mountain-side Terraces and the Floating Gardens. The Texcoco
+  leader's unique building is The Tetzcotzinco.
+- **The options:** keep it for every civ (recommended), make it the Texcoco
+  leader's own improvement, or retire it.
 
 **(vvvvvv) Doctrines, governments and typed chairs — RULED, 2026-10-15 and 2026-10-16.**
 The proposal is `docs/plans/doctrines-governments-chairs.md`, which records

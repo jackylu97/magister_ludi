@@ -45,7 +45,7 @@ import { resetVisibility, recomputeAllVisibility } from '../../src/sim/visibilit
 import { newGame } from './newGameHelpers';
 
 /** A blank board of one terrain with two seats, nobody on it. */
-function bench(terrain: 'grassland' | 'coast', width = 16, height = 12): GameState {
+function bench(terrain: 'grassland' | 'coast' | 'lake', width = 16, height = 12): GameState {
   const state = newGame({
     seed: 11,
     sizeName: 'duel',
@@ -97,8 +97,15 @@ const same = (a: Cell, b: Cell): boolean => a.col === b.col && a.row === b.row;
  * cheap way is to land on `A` and walk on. A worker of the same seat stands on
  * `A`, so the landing is a hex it may pass through but not rest on.
  */
-function landingBoard(): { state: GameState; worker: Unit; a: Tile; g: Tile; b: Tile; w: Tile } {
-  const state = bench('coast');
+function landingBoard(sea: 'coast' | 'lake' = 'coast'): {
+  state: GameState;
+  worker: Unit;
+  a: Tile;
+  g: Tile;
+  b: Tile;
+  w: Tile;
+} {
+  const state = bench(sea);
   const g = at(state.map, 8, 6);
   const a = along(state.map, g, -1);
   const b = along(state.map, g, 1);
@@ -169,6 +176,32 @@ describe('a landing ends the march, so it is planned only where the piece may st
     bumpRevision(state);
     const path = findPath(state, worker, g)!;
     expect(path.map((step) => `${step.col},${step.row}`)).toEqual([`${a.col},${a.row}`, `${g.col},${g.row}`]);
+  });
+
+  it('treats a lake exactly as the coast', () => {
+    // The lake fix (`docs/flags.md` (wwwwww)) made a lake embarkable water, so
+    // the same board on a lake must plan and walk the same way.
+    for (const sea of ['coast', 'lake'] as const) {
+      const { state, worker, a, g, w } = landingBoard(sea);
+      const mover = moveProfile(state, worker);
+      const field = zocField(state, worker.ownerId);
+      expect(isWaterTerrain(w.terrain), sea).toBe(true);
+      // Off the water onto land, and back onto the water: both end the march.
+      expect(endsTheMarch(w, a, mover, stepCost(state.map, w, a, mover, field)!), sea).toBe(true);
+      expect(endsTheMarch(a, w, mover, stepCost(state.map, a, w, mover, field)!), sea).toBe(true);
+      const path = findPath(state, worker, g)!;
+      expect(path, sea).not.toBeNull();
+      expect(same(path[0]!, cell(a)), sea).toBe(false);
+      for (const landing of landings(state, worker, path)) expect(landing.mayRest, sea).toBe(true);
+      expect(applyCommand(state, { type: 'moveUnit', playerId: 0, unitId: worker.id, target: cell(g) }).ok, sea).toBe(true);
+      expect(same(cell(worker), cell(w)), sea).toBe(false);
+    }
+    // And the two boards walk the same route: a lake is the coast, hex for hex.
+    const routes = (['coast', 'lake'] as const).map((sea) => {
+      const { state, worker, g } = landingBoard(sea);
+      return findPath(state, worker, g);
+    });
+    expect(routes[1]).toEqual(routes[0]);
   });
 
   it('sets the worker moving on the first turn, where it used to wait at the shore for good', () => {

@@ -543,6 +543,9 @@ describe('the live rows', () => {
       'worksBeyond',
       'encroach',
       'migration',
+      // Expansionist batch E6: Dominion batch D7's move of a town's food
+      // surplus into production (The Breadbasket).
+      'surplusToProduction',
     ]);
     const walk = (effects: readonly CardEffect[], id: OrderId): void => {
       for (const effect of effects) {

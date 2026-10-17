@@ -595,13 +595,17 @@ describe('the register', () => {
     // Dominion batch D1. The drill phase (The Drill Grounds, The Regimental
     // Schools, The Tactica) and `realiseItem` (The Training Cadre, The Drill
     // Masters, The Devshirme) grant experience; a founding (The Armed Colony)
-    // raises its escort to a rank. A new way for a card to hand out experience
-    // joins one of these lists.
+    // raises its escort to a rank. Since Dominion batch D8 a capture (The
+    // Soldiers' Share) raises the units around it a rank too (`rallyAround`).
+    // A new way for a card to hand out experience joins one of these lists.
     expect(sitesOf(/(?<!function )\bgrantExperience\(/)).toEqual([
       'cities.ts#realiseItem',
       'evaluator.ts#drillUnits',
     ]);
-    expect(sitesOf(/(?<!function )\braiseToRank\(/)).toEqual(['cities.ts#foundCityAt']);
+    expect(sitesOf(/(?<!function )\braiseToRank\(/)).toEqual([
+      'cities.ts#foundCityAt',
+      'evaluator.ts#rallyAround',
+    ]);
   });
 
   it('settles the ranks reached wherever experience rises, and keeps the record in one place', () => {
@@ -615,6 +619,7 @@ describe('the register', () => {
       'combat.ts#applyCombat',
       'combat.ts#applyCombat',
       'evaluator.ts#drillUnits',
+      'evaluator.ts#rallyAround',
     ]);
     expect(sitesOf(/\.ranksEarned\s*(=[^=]|\+=)/)).toEqual(['cities.ts#settleRanksEarned']);
   });

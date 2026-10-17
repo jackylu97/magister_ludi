@@ -351,6 +351,9 @@ import {
 // Straight from the evaluator: a rule asked of the whole piece, which may name
 // a rank (Dominion batch D2, The Varangian Guard).
 import { cardBehaviorRuleFor } from './statecraft/evaluator';
+// Dominion batch D8: the general's aura amplified (The Strategoi), and whether
+// an empire's law counts its attacks on a target (Weight of Numbers).
+import { cardAmplifier, lawCountsStrikes } from './statecraft/evaluator';
 import {
   type City,
   type GameState,
@@ -630,7 +633,71 @@ export function attackTargetAt(
   // attacker is optional because most readers of this function are asking a
   // question about the *hex* — "is there anything of anybody else's here" —
   // and a caller that has a piece in hand gets the piece's own answer.
-  return waterlineError(state, attacker, target, col, row) === null ? target : null;
+  if (waterlineError(state, attacker, target, col, row) !== null) return null;
+  // **The screen** (Dominion batch D8, Combined Arms), asked here for the
+  // waterline's reason: one refusal for the tint, the forecast and the reducer.
+  return screenError(state, attacker, target) === null ? target : null;
+}
+
+/**
+ * Why this piece may not strike this target in melee, or `null` when it may
+ * (Dominion batch D8, Combined Arms: "siege units beside one of your melee
+ * units cannot be attacked in melee").
+ *
+ * The target is a siege unit of an empire whose law holds `siegeScreened`,
+ * and one of that empire's melee units stands on one of the six hexes beside
+ * it. A piece that attacks from range is not in melee and may still shoot.
+ * Read of the silhouettes (`modelClass` 'siege' and 'melee'), as the card's
+ * own words name them.
+ */
+function screenError(state: GameState, attacker: Unit, target: AttackTarget): string | null {
+  const defender = target.unit;
+  if (defender === null || target.city !== null) return null;
+  if (isRanged(unitDef(attacker.type))) return null;
+  const def = unitDef(defender.type);
+  if (def.modelClass !== 'siege') return null;
+  if (!cardBehaviorRuleFor(state, defender, 'siegeScreened')) return null;
+  const seat = getTileAt(state.map, defender.col, defender.row);
+  if (!seat) return null;
+  for (const next of neighborTiles(state.map, tileHex(seat))) {
+    for (const other of state.units) {
+      if (other.ownerId !== defender.ownerId) continue;
+      if (other.col !== next.col || other.row !== next.row) continue;
+      if (unitDef(other.type).modelClass !== 'melee') continue;
+      return `${def.name} is screened by a melee unit beside it`;
+    }
+  }
+  return null;
+}
+
+/**
+ * **What an attack is made on**, as one entity id (Dominion batch D8, Weight of
+ * Numbers' "the same target"). A town is the target whatever beat of the
+ * assault strikes it, its walls or its garrison, so the town's id comes first
+ * (the triage's reading 72). On open ground the target is the piece.
+ */
+function strikeTargetId(target: AttackTarget): number {
+  return target.city?.id ?? target.unit!.id;
+}
+
+/**
+ * **Writes down one attack** for an empire whose law counts them (Dominion
+ * batch D8, Weight of Numbers): the id of the piece or town attacked, on the
+ * turn's own list (`Player.strikesThisTurn`). The one writer of the record. A
+ * list from an earlier turn is replaced, so nothing counts down.
+ *
+ * Not announced: only the combat ledger reads the record, and the ledger is
+ * computed fresh for each fight, as `hasAttacked` is.
+ */
+function recordStrike(state: GameState, playerId: number, targetId: number): void {
+  const player = playerById(state, playerId);
+  if (!player || !lawCountsStrikes(state, playerId)) return;
+  const record = player.strikesThisTurn;
+  if (record === undefined || record.turn !== state.turn) {
+    player.strikesThisTurn = { turn: state.turn, targets: [targetId] };
+  } else {
+    record.targets.push(targetId);
+  }
 }
 
 /** The priority above, with nothing asked about who is swinging. */
@@ -1027,6 +1094,20 @@ export interface TownStrike {
 }
 
 /**
+ * **A piece's own strength**: its roster figure, its training stamp and its
+ * rank, with nothing about the fight it is in. The figure The Chevauchée's
+ * strike reads, and the `strength` a pillage carries (Dominion batch D8, The
+ * Plunder Economy).
+ */
+export function pieceStrength(unit: Unit): number {
+  return (
+    unitDef(unit.type).combatStrength +
+    unitStampStrength(unit) +
+    rankStrengthLines(unit).reduce((sum, line) => sum + line.amount, 0)
+  );
+}
+
+/**
  * **A blow on every enemy town near a hex** — The Chevauchée's, struck when its
  * raider pillages (Dominion batch D3, the triage's reading 4).
  *
@@ -1052,11 +1133,7 @@ export function strikeTownsNear(
   const struck: TownStrike[] = [];
   const centre = getTileAt(state.map, at.col, at.row);
   if (!centre || percent <= 0 || range <= 0) return struck;
-  const own =
-    unitDef(raider.type).combatStrength +
-    unitStampStrength(raider) +
-    rankStrengthLines(raider).reduce((sum, line) => sum + line.amount, 0);
-  const strength = Math.floor((own * percent) / 100);
+  const strength = Math.floor((pieceStrength(raider) * percent) / 100);
   const band = COMBAT.rollBand;
   for (const city of state.cities) {
     if (city.ownerId === raider.ownerId) continue;
@@ -1247,7 +1324,10 @@ export function foldCombatStrength(lines: readonly CombatStrengthLine[]): number
  * is worth the same to a charge and to a shield wall.
  */
 export function generalAuraLines(state: GameState, unit: Unit): CombatStrengthLine[] {
-  const amount = RULES.greatPeople.generalAuraStrength;
+  // The rule book's figure, and the share an empire's law adds to it (Dominion
+  // batch D8, The Strategoi doubles it), taken once and floored.
+  const base = RULES.greatPeople.generalAuraStrength;
+  const amount = Math.floor((base * (100 + cardAmplifier(state, unit.ownerId, 'generalAura'))) / 100);
   if (amount === 0) return [];
   if (!isCombatant(unitDef(unit.type))) return [];
   const here = getTileAt(state.map, unit.col, unit.row);
@@ -1698,6 +1778,10 @@ function planCombat(
    */
   const waterline = waterlineError(state, attacker, target, tile.col, tile.row);
   if (waterline !== null) return { ok: false, error: waterline };
+  // **The screen** (Dominion batch D8, Combined Arms), in the same place and
+  // for the waterline's reason.
+  const screened = screenError(state, attacker, target);
+  if (screened !== null) return { ok: false, error: screened };
 
   /**
    * **The one big reversal**: an empire may not strike another empire it is not
@@ -1941,6 +2025,9 @@ function planCombat(
     // above: walls have no silhouette and no base strength, but a town has an
     // owner, and the realms are what this one compares.
     vsOwnerId: side === 'attacker' ? defenderOwnerId : attacker.ownerId,
+    // Weight of Numbers (Dominion batch D8): what the attacker is striking, by
+    // its entity id (`strikeTargetId`). The defender's side names no target.
+    ...(side === 'attacker' ? { targetId: strikeTargetId(target) } : {}),
     // Interior Lines (Dominion batch D2): the piece still has its whole
     // allowance. A comparison from another hex (`stance`) imagines the
     // attacker's turn still ahead of it, so it has not moved there.
@@ -2616,6 +2703,9 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
 
   const { forecast, attacker, target, tile, baseToDefender, baseToAttacker, defenderFloor, breaches } =
     planned.plan;
+  // **This attack is made** (Dominion batch D8, Weight of Numbers): written
+  // after the plan, so the attack being made does not count itself.
+  recordStrike(state, attacker.ownerId, strikeTargetId(target));
   const band = COMBAT.rollBand;
   // Read before anything can change hands: a captured civilian and a captured
   // city both end this function owned by the attacker, and the empire that just

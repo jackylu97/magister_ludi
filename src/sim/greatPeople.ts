@@ -1072,7 +1072,12 @@ export function greatPersonActAt(
  * general's) is paid at the capital, as every act was before.
  */
 function payActRiders(state: GameState, player: Player, family: Family, town: City | null): void {
-  const payout = windfallPayout(state, player.id, 'greatPersonAct', 0, 0, { family });
+  // The town rides along since Expansionist batch E5: The Master of Works pays
+  // only for an act in the town raising the Magnum Opus.
+  const payout = windfallPayout(state, player.id, 'greatPersonAct', 0, 0, {
+    family,
+    ...(town ? { townId: town.id } : {}),
+  });
   if (windfallPayoutIsEmpty(payout)) return;
   const seat = town ?? capitalCityOf(state, player.id);
   const at = seat ? { col: seat.col, row: seat.row } : undefined;

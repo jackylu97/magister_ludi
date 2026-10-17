@@ -36,6 +36,7 @@ import {
   resourceCopies,
   settleGrowthWindfall,
   settlePopulationWindfall,
+  settleProductionWindfall,
 } from './cities';
 import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
@@ -56,6 +57,7 @@ import {
 } from './state';
 import { buildingDef } from './buildingData';
 import { explainEmpireLines, foldEmpireLines } from './yields/empire';
+import { cityContext, foldTile } from './yields/hex';
 import { foldCity } from './yields/town';
 import {
   type PlayerStatecraft,
@@ -96,6 +98,12 @@ export function commissionFigure(
   state: GameState,
   playerId: number,
   figure: CommissionFigure,
+  /**
+   * The goal the figure is asked for, when it carries a floor on the hexes it
+   * counts (`hexYieldAtLeast`, Expansionist batch E5). Every other figure
+   * ignores it.
+   */
+  goal?: CommissionGoal,
 ): number {
   const player = state.players[playerId];
   if (!player) return 0;
@@ -136,6 +144,18 @@ export function commissionFigure(
         }
       }
       return worked;
+    }
+    case 'improvedOnlyTilesWorked': {
+      // Commission: Break the Sod (Expansionist batch E5): the cards' `improved`
+      // reading, so a tended work does not count (the triage's reading 2).
+      let worked = 0;
+      for (const city of citiesOf(state, playerId)) worked += townFigure(state, city, figure) ?? 0;
+      return worked;
+    }
+    case 'oneTownWorkedHexes': {
+      // The Heartland (Expansionist batch E5): the best one town does.
+      const best = bestTownFor(state, playerId, goal?.kind === 'reached' ? goal.hexYieldAtLeast : undefined);
+      return best === null ? 0 : best.hexes;
     }
     case 'originalCapitalsHeld': {
       // Another empire's first town (`City.originalCapitalOf`, Dominion batch
@@ -196,6 +216,55 @@ export function commissionFigure(
   }
 }
 
+/**
+ * **A figure read for one town alone**, or `null` when the figure has no town
+ * reading (Expansionist batch E5). The Domesday Survey's reward pays each town
+ * from its own count of the improved or tended hexes it works, and Break the
+ * Sod's goal sums its own count over the towns.
+ */
+export function townFigure(state: GameState, city: City, figure: CommissionFigure): number | null {
+  if (figure !== 'improvedTilesWorked' && figure !== 'improvedOnlyTilesWorked') return null;
+  let worked = 0;
+  for (const at of city.workedTiles) {
+    const work = getTileAt(state.map, at.col, at.row)?.improvement;
+    if (work === undefined) continue;
+    if (figure === 'improvedOnlyTilesWorked' && isTendedWork(work)) continue;
+    worked += 1;
+  }
+  return worked;
+}
+
+/**
+ * **The town that works the most rich hexes** (The Heartland, Expansionist
+ * batch E5; the triage's reading 40), with its count, or `null` for an empire
+ * with no town. A hex counts when it carries a work, improved or tended, and
+ * its six yields, as the town works it, add up to at least `atLeast` (any work
+ * counts when the floor is absent). Ties go to the earlier town.
+ */
+export function bestTownFor(
+  state: GameState,
+  playerId: number,
+  atLeast: number | undefined,
+): { city: City; hexes: number } | null {
+  let best: { city: City; hexes: number } | null = null;
+  for (const city of citiesOf(state, playerId)) {
+    const ctx = cityContext(state, city);
+    let hexes = 0;
+    for (const at of city.workedTiles) {
+      const tile = getTileAt(state.map, at.col, at.row);
+      if (!tile || tile.improvement === undefined) continue;
+      if (atLeast !== undefined) {
+        const paid = foldTile(tile, ctx);
+        const total = paid.food + paid.production + paid.gold + paid.science + paid.culture + paid.faith;
+        if (total < atLeast) continue;
+      }
+      hexes += 1;
+    }
+    if (best === null || hexes > best.hexes) best = { city, hexes };
+  }
+  return best;
+}
+
 /** Does a town follow a religion this empire is paid by? `heldReligions`' reading. */
 function followsHeldReligion(state: GameState, playerId: number): (city: City) => boolean {
   const held = heldReligions(state, playerId).map((religion) => religion.id);
@@ -234,7 +303,7 @@ export function commissionProgress(
   if (!spec || !sc) return [];
   return spec.goals.map((goal) => {
     const have =
-      goal.kind === 'counted' ? tallyOf(sc, card) : commissionFigure(state, playerId, goal.figure);
+      goal.kind === 'counted' ? tallyOf(sc, card) : commissionFigure(state, playerId, goal.figure, goal);
     return { goal, have, need: goal.count, met: have >= goal.count };
   });
 }
@@ -340,8 +409,17 @@ function payCommission(
   // here in row order.
   const citizens: { amount: number; to: CitizensTarget }[] = [];
   const buildings: CommissionReward['building'][] = [];
+  // The rewards paid to each town from its own figure (The Domesday Survey),
+  // and whether the goal's town is marked (The Heartland), Expansionist batch E5.
+  const eachTown: CommissionReward[] = [];
+  let mark = false;
   let chairs = 0;
   for (const reward of spec.reward) {
+    if (reward.markTown === true) mark = true;
+    if (reward.eachTown === true) {
+      eachTown.push(reward);
+      continue;
+    }
     const amount = rewardAmount(state, player.id, card, reward);
     if (reward.yield !== undefined && amount !== 0) {
       payout.grants.push({ card, source, yield: reward.yield, amount });
@@ -392,6 +470,15 @@ function payCommission(
     realiseItem(state, goalTown, { kind: 'building', id });
     lines.push(`a free ${buildingDef(id).name} in ${goalTown.name}`);
   }
+  // **Each town from its own figure** (The Domesday Survey, Expansionist batch
+  // E5): read for every town before anything is paid, then paid town by town.
+  for (const reward of eachTown) lines.push(...payEachTown(state, player, card, reward));
+  // **The goal's town is marked** (The Heartland): its lasting effects are
+  // scoped to it (`markedBy`), and they live from this turn on.
+  if (mark && goalTown && goalTown.ownerId === player.id) {
+    markGoalTown(state, goalTown, card);
+    lines.push(`${goalTown.name} is marked for the rest of the game`);
+  }
   // **Wildcard chairs for the rest of the game** (Commission: A Victor's
   // Peace). Written down, then the council is resized to them, keeping every
   // card where it sits (`refitSlots`, which announces the new chair).
@@ -416,9 +503,65 @@ function payCommission(
 export function commissionGoalTown(state: GameState, playerId: number, card: OrderId): City | null {
   const sc = state.players[playerId]?.statecraft;
   if (!sc) return null;
+  // **A goal one town meets by a figure** (The Heartland, Expansionist batch
+  // E5): the town that holds the figure's best count now.
+  for (const goal of orderDef(card).commission?.goals ?? []) {
+    if (goal.kind !== 'reached' || goal.figure !== 'oneTownWorkedHexes') continue;
+    return bestTownFor(state, playerId, goal.hexYieldAtLeast)?.city ?? null;
+  }
   const id = sc.tallies.find((row) => row.card === card)?.town;
   if (id === undefined) return null;
   return state.cities.find((city) => city.id === id) ?? null;
+}
+
+/**
+ * **Pays one reward to every town, each from its own figure** (Expansionist
+ * batch E5, The Domesday Survey; the triage's reading 44). Every town's figure
+ * is read first, in founding order, and then each town is paid through the
+ * one windfall delivery, at its own centre, so the food or production lands in
+ * that town and settles at once. Says what it paid, town by town.
+ */
+function payEachTown(state: GameState, player: Player, card: OrderId, reward: CommissionReward): string[] {
+  const source = orderDef(card).name;
+  const lines: string[] = [];
+  if (reward.yield === undefined || reward.fromFigure === undefined) return lines;
+  const owed = citiesOf(state, player.id).map((city) => ({
+    city,
+    amount: (reward.amount ?? 0) * (townFigure(state, city, reward.fromFigure!) ?? 0),
+  }));
+  for (const { city, amount } of owed) {
+    if (amount === 0) continue;
+    const payout: WindfallPayout = {
+      amount: 0,
+      grants: [{ card, source, yield: reward.yield, amount }],
+      heal: 0,
+      units: [],
+      healAll: false,
+      timed: [],
+      renown: [],
+      pressure: [],
+      lines: [],
+      claims: [],
+    };
+    for (const town of payWindfallGrants(state, player, payout, { col: city.col, row: city.row })) {
+      if (!settleGrowthWindfall(state, town)) settleProductionWindfall(state, town);
+    }
+    lines.push(`${signedPlain(amount)} ${reward.yield} in ${city.name}`);
+  }
+  return lines;
+}
+
+/**
+ * **Marks a town for a commission**, for the empire that holds it now
+ * (Expansionist batch E5, The Heartland). The one writer of `City.markedBy`.
+ * The mark is read by the `markedBy` town scope, which can reach the meters,
+ * so the write is announced (the slate register).
+ */
+export function markGoalTown(state: GameState, city: City, card: OrderId): void {
+  const marks = city.markedBy ?? [];
+  if (marks.some((mark) => mark.card === card && mark.owner === city.ownerId)) return;
+  city.markedBy = [...marks, { card, owner: city.ownerId }];
+  bumpEconomy(state);
 }
 
 /**

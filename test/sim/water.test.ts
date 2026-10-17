@@ -5,6 +5,7 @@ import {
   foundCityAt,
   foundingErrorAt,
   hasResource,
+  isCoastalCity,
   isWorkableTile,
 } from '../../src/sim/cities';
 import {
@@ -41,7 +42,7 @@ import {
   createUnit,
   bumpRevision,
 } from '../../src/sim/state';
-import { hasAbility } from '../../src/sim/tech';
+import { buildError, hasAbility } from '../../src/sim/tech';
 import {
   ABILITY_IDS,
   ABILITY_TECH,
@@ -222,13 +223,14 @@ describe('the embark ability', () => {
 // --- the step evaluator -----------------------------------------------------
 
 describe('embarkation, in the one movement evaluator', () => {
-  it('names exactly the coast as embarkable, which is narrower than water', () => {
-    // Two questions with different answers, and keeping them apart is the whole
-    // of "ocean stays impassable in v1".
+  it('names the coast and the lake as embarkable, which is narrower than water', () => {
+    // Two questions with different answers. The ocean is water that stays shut
+    // until The Astrolabe. The lake joined the coast on 2026-10-16 (the user:
+    // "no difference between coast tiles and lakes").
     const wet = TERRAIN_IDS.filter(isWaterTerrain);
     const crossable = TERRAIN_IDS.filter(isEmbarkableTerrain);
     expect(wet).toEqual(['ocean', 'coast', 'lake']);
-    expect(crossable).toEqual(['coast']);
+    expect(crossable).toEqual(['coast', 'lake']);
   });
 
   it('prices coastal water for a civilian who may sail, and refuses everyone else', () => {
@@ -833,11 +835,104 @@ describe('the sea widens twice', () => {
     expect(canStopOn(state, worker, ocean)).toBe(true);
     expect(findPath(state, worker, ocean)).not.toBeNull();
 
-    // A lake is untouched: `deepWater` is a flag on the row and not "water that
-    // is not coast", which is exactly the distinction a negation could not draw.
+    // A lake is not deep water: it is open before The Astrolabe, as the coast
+    // is, and The Astrolabe leaves its price as it was.
     const lake = at(state, 6, 5);
     lake.terrain = 'lake';
+    expect(tileMoveCost(lake, moveProfile(state, worker))).toBe(RULES.movement.embarkCost);
+    expect(tileMoveCost(lake, moveProfile(state, hull))).toBe(RULES.movement.minStepCost);
+  });
+});
+
+// --- the lake ---------------------------------------------------------------
+
+/**
+ * **A lake is water like the coast** (the user, 2026-10-16, `docs/flags.md`
+ * (wwwwww)): *"units should be able to embark onto lakes with the prerequisite
+ * tech (no difference between coast tiles and lakes)"*. The rule is one field
+ * on the terrain row (`embarkable`), read through `openWater` in
+ * `tileMoveCost`, so every reader of `stepCost` agrees about a lake as it does
+ * about the coast. Whether a town beside a lake counts as coastal is not part
+ * of the ruling, and the last test here pins what the game does today.
+ */
+describe('a lake is water like the coast', () => {
+  /** Puts one ability's technology in a seat's hand. */
+  function learn(state: GameState, playerId: number, ability: AbilityId): void {
+    const gate = ABILITY_TECH.get(ability);
+    if (gate === undefined) throw new Error(`no technology hands over ${ability}`);
+    const player = state.players[playerId]!;
+    if (!player.techsResearched.includes(gate)) player.techsResearched.push(gate);
+    bumpRevision(state);
+  }
+
+  /** The sea fixture with a lake hex inland, at (6, 5). */
+  function lakeState(): { state: GameState; lake: Tile } {
+    const state = seaState();
+    const lake = at(state, 6, 5);
+    lake.terrain = 'lake';
+    computeFreshwater(state.map);
+    bumpRevision(state);
+    return { state, lake };
+  }
+
+  it('prices a lake as the coast for a civilian who may sail, and refuses a soldier', () => {
+    const { state, lake } = lakeState();
+    const coast = at(state, 2, 5);
+    const worker = createUnit(state, 0, 'worker', 5, 5);
+    const warrior = createUnit(state, 0, 'warrior', 7, 5);
+    const sailor = moveProfile(state, worker);
+    expect(tileMoveCost(lake, sailor)).toBe(RULES.movement.embarkCost);
+    expect(tileMoveCost(lake, sailor)).toBe(tileMoveCost(coast, sailor));
+    expect(tileMoveCost(lake, moveProfile(state, warrior))).toBeNull();
+    // Without Sailing, the civilian is landlocked at the lake as at the coast.
+    forget(state, 0, 'sailing');
     expect(tileMoveCost(lake, moveProfile(state, worker))).toBeNull();
-    expect(tileMoveCost(lake, moveProfile(state, hull))).toBeNull();
+    expect(findPath(state, worker, lake)).toBeNull();
+  });
+
+  it('carries a worker onto a lake through pathing, the highlight and the reducer alike', () => {
+    const { state, lake } = lakeState();
+    const worker = createUnit(state, 0, 'worker', 5, 5);
+    expect(canStopOn(state, worker, lake)).toBe(true);
+    expect(findPath(state, worker, lake)).toEqual([{ col: 6, row: 5 }]);
+    expect(reachableTiles(state, worker).some((entry) => entry.tile === lake)).toBe(true);
+    expect(applyCommand(state, move(0, worker.id, lake)).ok).toBe(true);
+    expect([worker.col, worker.row]).toEqual([6, 5]);
+    // The step onto the lake crossed the shore, so it spent the whole allowance.
+    expect(worker.movesLeft).toBe(0);
+  });
+
+  it('lets soldiers onto a lake at Wayfinding, as onto the coast', () => {
+    const { state, lake } = lakeState();
+    const warrior = createUnit(state, 0, 'warrior', 5, 5);
+    expect(findPath(state, warrior, lake)).toBeNull();
+    learn(state, 0, 'militaryEmbark');
+    expect(tileMoveCost(lake, moveProfile(state, warrior))).toBe(RULES.movement.embarkCost);
+    expect(findPath(state, warrior, lake)).not.toBeNull();
+  });
+
+  it('lets a hull onto a lake from a town beside both, and lets no lake town build one', () => {
+    const state = seaState();
+    // A town beside the coast at (2, 5), with a lake on its other side.
+    const port = foundCityAt(state, 0, at(state, 3, 5));
+    const lake = at(state, 4, 5);
+    lake.terrain = 'lake';
+    // A town with a lake beside it and no coast.
+    const inland = foundCityAt(state, 0, at(state, 9, 5));
+    at(state, 10, 5).terrain = 'lake';
+    computeFreshwater(state.map);
+    bumpRevision(state);
+    // The coastal test is unchanged: a coast hex beside the town, and a lake
+    // is not one.
+    expect(isCoastalCity(state, port)).toBe(true);
+    expect(isCoastalCity(state, inland)).toBe(false);
+    expect(buildError(state, 0, 'unit', 'trireme', inland)).toBe(`${inland.name} is not on the coast`);
+    expect(buildError(state, 0, 'unit', 'trireme', port)).toBeNull();
+    // A hull in the port may sail onto the lake, priced as any water step.
+    const hull = createUnit(state, 0, 'trireme', 3, 5);
+    expect(tileMoveCost(lake, moveProfile(state, hull))).toBe(RULES.movement.minStepCost);
+    expect(findPath(state, hull, lake)).toEqual([{ col: 4, row: 5 }]);
+    expect(applyCommand(state, move(0, hull.id, lake)).ok).toBe(true);
+    expect([hull.col, hull.row]).toEqual([4, 5]);
   });
 });

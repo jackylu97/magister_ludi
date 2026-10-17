@@ -40,7 +40,7 @@
       "name": "Lake",
       "water": true,
       "freshwater": true,
-      "embarkable": false,
+      "embarkable": true,
       "workable": true,
       "moveCost": null,
       "yield": {

@@ -790,19 +790,47 @@ describe('determinism', () => {
    * Checked by setting the version back to 141 with every D7 change in place,
    * which gives E4's hashes exactly.
    *
-   * **The movement fixes (`docs/flags.md` (xxxxxx), schema 145 for now) moved
-   * both hashes, and the lengths by one character at seed 11 and twenty-one at
-   * seed 2026.** The version went from 142 to 145, and the walk now goes round
-   * a hex it has to rest on and may not (part 3). Three walks in this sweep do
-   * that: at seed 11 a barbarian warrior on turn 20; at seed 2026 seat 0's
-   * scout on turn 6 and a barbarian warrior on turn 20. The other two parts
-   * change nothing here: nobody here can take to the water, and no bot plays.
-   * Checked by printing the version as 142, which gives D7's hashes exactly
-   * with part 1 alone or part 2 alone in place, and these lengths with part 3.
+   * **Expansionist batch E5 and the lake fix (L1) moved the hash and not the
+   * length** at both seeds. They were built at schemas 142 and 143, without
+   * D7, and were merged after D7, which renumbered them to 143 and 144, so the
+   * version went from 142 to 144, and that is all. Nobody here drafts a card
+   * or founds a town, so E5's cards never reach this board. A lake is now
+   * water an embarked piece may enter, but no piece stands on one in these
+   * twenty turns (counted at the end of every turn). Checked twice with the
+   * version at 142: once with E5's and L1's movers in, and once with them out
+   * (the two deck files and the lake row as D7 left them). Both give D7's
+   * hashes exactly.
+   *
+   * **Dominion batch D8 moved the hash and not the length** at both seeds, by
+   * the version alone. It was built at schema 143 and merged after E5 and the
+   * lake fix, which renumbered it to 145, so the version went from 144 to 145.
+   * Nobody here adopts a government, so the new Doctrines are never offered,
+   * and the record of attacks is written only for an empire whose law counts
+   * them. Checked twice with the version at 144: once with every D8 change in
+   * place, and once with the Dominion deck file as the lake fix left it. Both
+   * give the lake fix's hashes exactly.
+   *
+   * **Expansionist batch E6 moved the hash and not the length** at both seeds,
+   * by the version alone. It was built at schema 145, without D8, and merged
+   * after D8, which renumbered it to 146, so the version went from 145 to 146.
+   * Nobody here drafts a card, tells a town to stop growing or disbands a
+   * unit, so The Breadbasket and Veteran Colonies never reach this board.
+   * Checked twice with the version at 145: once with the new deck file and
+   * once with the deck file as D8 left it. Both give D8's hashes exactly.
+   *
+   * **The movement fixes (`docs/flags.md` (xxxxxx), schema 147) moved both
+   * hashes, and the lengths by one character at seed 11 and twenty-one at seed
+   * 2026.** The version went from 146 to 147, and the walk now goes round a hex
+   * it has to rest on and may not (part 3). Three walks in this sweep do that:
+   * at seed 11 a barbarian warrior on turn 20; at seed 2026 seat 0's scout on
+   * turn 6 and a barbarian warrior on turn 20. The other two parts change
+   * nothing here: nobody here can take to the water, and no bot plays. Checked
+   * by taking all three parts out and printing the version as 146, which gives
+   * E6's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '23e622fd:188931',
-    2026: '8fb8b5e0:188509',
+    11: 'a7716483:188931',
+    2026: '91dab9ba:188509',
   };
 
   for (const seed of [11, 2026]) {

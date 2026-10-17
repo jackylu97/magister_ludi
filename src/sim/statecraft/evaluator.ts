@@ -39,7 +39,7 @@ import {
   tileOwnerCityId,
   tileOwnerPlayerId,
 } from '../cities';
-import { queueCategory } from '../yields/town';
+import { foldCity, queueCategory } from '../yields/town';
 import { foldEmpireRates } from '../yields/empire';
 // The hex fold, for the harvest (Dominion batch D7, War Feeds Itself). A
 // function-level cycle: the hex layer reads the card lines through the index.
@@ -54,6 +54,7 @@ import {
   buildingPaysVoice,
   isBuildingId,
   isEmpireBuilding,
+  isFortification,
   isWonder,
 } from '../buildingData';
 import {
@@ -63,7 +64,6 @@ import {
   isGreatPersonId,
 } from '../greatPeopleData';
 import {
-  IMPROVEMENT_IDS,
   type ImprovementId,
   improvementCountsAs,
   improvementDef,
@@ -169,6 +169,7 @@ import {
   type CardRule,
   type CityRuleId,
   type CardSurplusToProductionEffect,
+  type CardUpkeepRebateEffect,
   type CityScope,
   type CombatCondition,
   type CombatScale,
@@ -243,6 +244,8 @@ import {
   type RankId,
   grantExperience,
   holdsRank,
+  nextRankOf,
+  raiseToRank,
   rankName,
   rankThreshold,
   ranksHeld,
@@ -888,6 +891,17 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
     if (held.revoked === true) continue;
     if (!isGreatPersonId(held.id)) continue;
     push(held.id, CLASS_WORD.legacy, greatPersonDef(held.id).legacy);
+  }
+  // **The thirteenth source** (Expansionist batch E5): what a fulfilled commission
+  // hands over for the rest of the game (`CommissionReward.lasting`, The
+  // Heartland). Read off `PlayerStatecraft.commissionsFulfilled`, in the order
+  // the goals were met, so no ledger reshuffles itself and nothing more is
+  // written for it. A lasting effect about one town is scoped `markedBy`.
+  for (const met of sc.commissionsFulfilled ?? []) {
+    if (!isOrderId(met.card)) continue;
+    for (const reward of orderDef(met.card).commission?.reward ?? []) {
+      if (reward.lasting !== undefined) push(met.card, CLASS_WORD.order, reward.lasting);
+    }
   }
   // **The eighth source**: what the empire itself is carrying that runs out —
   // Crassus' bill. `City.timed` and `Unit.timed`'s third holder, read through
@@ -2328,10 +2342,18 @@ export function cityScopeAdmits(
       // `cityPostPays` rather than `cityHoldsPost`, so war and a blockade
       // suspend every line written on the scope at once. See the scope.
       return cityPostPays(state, city, viewerId ?? city.ownerId);
+    case 'markedBy':
+      // The Heartland (Expansionist batch E5): the card's mark, set by the
+      // empire that holds the town now. See the scope.
+      return (city.markedBy ?? []).some((mark) => mark.card === scope.card && mark.owner === city.ownerId);
     case 'raisingOpus':
       return isRaisingOpus(city);
     case 'producing':
       return isProducing(city, scope.category, scope.class);
+    case 'avoidsGrowth':
+      // The Breadbasket (Expansionist batch E6): the owner's own instruction,
+      // and nothing else. See the scope.
+      return city.avoidGrowth === true;
     case 'ownerAtWar':
       // The register itself, as `EmpireCondition`'s `atWar` reads it: the wild
       // is never in it, so a war on barbarians does not count. See the scope.
@@ -2510,6 +2532,8 @@ function scopeNote(scope?: CityScope): string | null {
     }
     case 'holdsPost':
       return 'your trading post stands here';
+    case 'markedBy':
+      return 'marked';
     case 'holyCity':
       return 'holy city';
     case 'all':
@@ -2522,6 +2546,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'raising the Magnum Opus';
     case 'producing':
       return `building ${producingWords(scope)}`;
+    case 'avoidsGrowth':
+      return 'told to stop growing';
     case 'ownerAtWar':
       return 'owner at war';
     case 'ownersFaith':
@@ -2953,12 +2979,11 @@ export function countOf(
       // A fortification is read off what a building *does* to its town — the
       // strength a besieger has to beat (`cityStat.defense`) or the bar it has
       // to empty (`cityHp`) — so a watchtower added to the table joins The Long
-      // Watch for free and no list of names is kept anywhere.
+      // Watch for free and no list of names is kept anywhere. One reading,
+      // `isFortification`, which The Burhs' production bonus asks too.
       let total = 0;
       for (const id of city.buildings) {
-        const def = buildingDef(id);
-        const wall = def.cityStat?.stat === 'defense' && (def.cityStat.amount ?? 0) > 0;
-        if (wall || (def.cityHp ?? 0) > 0) total += 1;
+        if (isFortification(id)) total += 1;
       }
       return total;
     }
@@ -4335,6 +4360,12 @@ export interface TileLine {
    */
   basePercent?: number;
   /**
+   * A percentage on **everything the hex pays**, taken last (Dominion batch
+   * D8, The Strategoi's doubled citadels). See `CardPaysEffect.wholePercent`.
+   * Read in `explainTileYield` (`yields/hex.ts`) as the hex's last line.
+   */
+  wholePercent?: number;
+  /**
    * **Paid once for every mountain standing beside the hex** — Pachacuti's
    * farms (`CardPaysEffect.perAdjacentMountain`), carried through rather than
    * resolved for `perEndpointLuxury`'s reason exactly: the thing counted is a
@@ -4999,6 +5030,11 @@ function tileLinesFrom(
     if (effect.basePercent !== undefined && effect.basePercent !== 0) {
       line.basePercent = effect.basePercent;
     }
+    // Dominion batch D8: a share of the whole hex, written only when the row
+    // says so, as the other two shares are.
+    if (effect.wholePercent !== undefined && effect.wholePercent !== 0) {
+      line.wholePercent = effect.wholePercent;
+    }
     // Carried, never resolved — see `TileLine.perAdjacentMountain`. Written only
     // when the row says so, so every line the game has ever held serialises and
     // compares exactly as it did before Pachacuti sat down.
@@ -5017,7 +5053,8 @@ function tileLinesFrom(
     if (
       VOICES.some((key) => line[key] !== 0) ||
       line.percent !== undefined ||
-      line.basePercent !== undefined
+      line.basePercent !== undefined ||
+      line.wholePercent !== undefined
     ) {
       list.push(line);
     }
@@ -5193,6 +5230,11 @@ export function cardProduction(
       if (building === undefined) continue;
       if (isEmpireBuilding(building) !== effect.empireBuilding) continue;
     }
+    // The Burhs (Expansionist batch E5): fortifications only, by the one
+    // reading the `defensiveBuildings` count takes.
+    if (effect.defensive === true) {
+      if (building === undefined || !isFortification(building)) continue;
+    }
     // *Where* the hammers land, where `modelClass` is *what* they land on. The
     // town is already in hand — a production modifier is asked of one city's
     // queue — so the scope is the ordinary one and needs no second reading.
@@ -5286,33 +5328,8 @@ export function cardUpkeepRebateLines(
     if (off !== null && off <= 0) continue;
     let gold = 0;
     for (const unit of state.units) {
-      if (unit.ownerId !== playerId) continue;
-      if (!unitMatches(unit.type, effect.class)) continue;
-      // The General Levy (Expansionist batch E1): only the pieces its levy
-      // raised, read off the piece's own mark.
-      if (effect.levied !== undefined && !leviedMatches(effect.levied, unit.levied)) continue;
-      // The Soldiers' Purse (Dominion batch D2): the coin comes off once for
-      // each rank the piece holds, and a piece with no rank is skipped.
-      const helpings = effect.perRank === true ? ranksHeld(unit) : 1;
+      const helpings = rebateReaches(state, playerId, effect, unit);
       if (helpings === 0) continue;
-      if (effect.where === 'ownTerritory') {
-        if (tileOwnerPlayerId(state, unit.col, unit.row) !== playerId) continue;
-      }
-      if (effect.where === 'foreignTerritory') {
-        // `cardUnitStat`'s reading exactly: a hex nobody owns is outside your
-        // borders, which is what makes a campaign the thing the card pays for.
-        if (tileOwnerPlayerId(state, unit.col, unit.row) === playerId) continue;
-      }
-      if (effect.where === 'garrison') {
-        // **In the town, not on the town's ground.** The Fubing's whole bargain
-        // is that the soldier-farmers fed themselves inside the walls, so this
-        // asks the same `cityAt` lookup the `inCity` combat condition asks — one
-        // reading of "standing in one of your cities", so a card that pays a
-        // garrison and a card that fights in one cannot disagree about which
-        // hexes those are. A town somebody else owns is not your garrison.
-        const town = cityAt(state, unit.col, unit.row);
-        if (!town || town.ownerId !== playerId) continue;
-      }
       const cost = costOf(unit);
       if (cost <= 0) continue;
       gold += off === null ? cost : Math.min(off * helpings, cost);
@@ -5321,6 +5338,62 @@ export function cardUpkeepRebateLines(
     list.push({ card, source, gold });
   }
   return list;
+}
+
+/**
+ * **Whether one rebate row reaches one piece**, as the number of helpings it
+ * takes off (nought: it does not reach it). Split out of
+ * `cardUpkeepRebateLines` in Dominion batch D8 so the surcharge's waiver
+ * (`freeByLaw`) asks the same question.
+ */
+function rebateReaches(
+  state: GameState,
+  playerId: number,
+  effect: CardUpkeepRebateEffect,
+  unit: Unit,
+): number {
+  if (unit.ownerId !== playerId) return 0;
+  if (!unitMatches(unit.type, effect.class)) return 0;
+  // The General Levy (Expansionist batch E1): only the pieces its levy
+  // raised, read off the piece's own mark.
+  if (effect.levied !== undefined && !leviedMatches(effect.levied, unit.levied)) return 0;
+  // The Soldiers' Purse (Dominion batch D2): the coin comes off once for
+  // each rank the piece holds, and a piece with no rank is skipped.
+  const helpings = effect.perRank === true ? ranksHeld(unit) : 1;
+  if (helpings === 0) return 0;
+  if (effect.where === 'ownTerritory') {
+    if (tileOwnerPlayerId(state, unit.col, unit.row) !== playerId) return 0;
+  }
+  if (effect.where === 'foreignTerritory') {
+    // `cardUnitStat`'s reading exactly: a hex nobody owns is outside your
+    // borders, which is what makes a campaign the thing the card pays for.
+    if (tileOwnerPlayerId(state, unit.col, unit.row) === playerId) return 0;
+  }
+  if (effect.where === 'garrison') {
+    // **In the town, not on the town's ground.** The Fubing's whole bargain
+    // is that the soldier-farmers fed themselves inside the walls, so this
+    // asks the same `cityAt` lookup the `inCity` combat condition asks — one
+    // reading of "standing in one of your cities", so a card that pays a
+    // garrison and a card that fights in one cannot disagree about which
+    // hexes those are. A town somebody else owns is not your garrison.
+    const town = cityAt(state, unit.col, unit.row);
+    if (!town || town.ownerId !== playerId) return 0;
+  }
+  return helpings;
+}
+
+/**
+ * **Does this empire's law make this piece free of upkeep?** True when a live
+ * rebate row with `free` reaches it (Dominion batch D8). A free piece costs
+ * nothing at all, so `cardUpkeepSurchargeLines` charges it nothing either: The
+ * Marian Reforms' free soldiers pay no Centurions' coin (the user's ruling of
+ * 2026-10-16 that this pair cancels; the triage's reading 71).
+ */
+function freeByLaw(state: GameState, playerId: number, unit: Unit): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'upkeepRebate')) {
+    if (effect.free === true && rebateReaches(state, playerId, effect, unit) > 0) return true;
+  }
+  return false;
 }
 
 /**
@@ -5360,8 +5433,13 @@ export function cardUpkeepSurchargeLines(
       if (effect.where === 'foreignTerritory') {
         if (tileOwnerPlayerId(state, unit.col, unit.row) === playerId) continue;
       }
+      // Centurions (Dominion batch D8): only the pieces holding the rank.
+      if (effect.rank !== undefined && !holdsRank(unit, effect.rank)) continue;
       // Already on the payroll, or the levy is not what made it cost anything.
       if (costOf(unit) <= 0) continue;
+      // A piece the law makes free costs nothing at all, its surcharges
+      // included (Dominion batch D8, `freeByLaw`).
+      if (freeByLaw(state, playerId, unit)) continue;
       gold += on;
     }
     if (gold <= 0) continue;
@@ -5410,6 +5488,26 @@ export function cardRulePercent(
     const percent = effect.percent;
     if (percent === 0) continue;
     list.push({ card, source: label(source, scopeNote(effect.scope)), percent });
+  }
+  return list;
+}
+
+/**
+ * **The percentages this empire's law puts on the cost of one unit type**
+ * (Dominion batch D8, The Servian Reforms' cheaper military units): the
+ * `unitCost` rule's rows whose `class` admits the type. A row with no class
+ * reaches every unit. Read by `explainUnitCost` (`cities.ts`) as one line.
+ */
+export function cardUnitCostLines(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+): CardRuleLine[] {
+  const list: CardRuleLine[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'rulePercent')) {
+    if (effect.rule !== 'unitCost' || effect.percent === 0) continue;
+    if (!unitMatches(type, effect.class)) continue;
+    list.push({ card, source, percent: effect.percent });
   }
   return list;
 }
@@ -5943,6 +6041,13 @@ export interface CombatSituation {
    * big neighbour's capital is making.
    */
   vsOwnerId?: number;
+  /**
+   * **The entity id of the piece or town being attacked**, on the attacker's
+   * side only (Dominion batch D8, Weight of Numbers). Units and towns take
+   * their ids from one counter, so the id names one thing. The
+   * `attacksOnTarget` count reads it.
+   */
+  targetId?: number;
 }
 
 /** Does a combat condition hold for this situation? One evaluator. */
@@ -6181,7 +6286,12 @@ function besideGreatGeneral(state: GameState, unit: Unit): boolean {
  * condition asks `besideMatching` instead, which also counts pieces that do not
  * fight.
  */
-function adjacentFriendlies(state: GameState, unit: Unit, filter?: UnitFilter): number {
+function adjacentFriendlies(
+  state: GameState,
+  unit: Unit,
+  filter?: UnitFilter,
+  rank?: RankId,
+): number {
   const from = getTileAt(state.map, unit.col, unit.row);
   if (!from) return 0;
   let count = 0;
@@ -6192,10 +6302,38 @@ function adjacentFriendlies(state: GameState, unit: Unit, filter?: UnitFilter): 
       if (other.col !== neighbour.col || other.row !== neighbour.row) continue;
       if (!isCombatant(unitDef(other.type))) continue;
       if (!unitMatches(other.type, filter)) continue;
+      // Only the units holding the rank (Dominion batch D8, Centurions' Elites;
+      // the triage's reading 19: one each, no cap, and never the unit itself).
+      if (rank !== undefined && !holdsRank(other, rank)) continue;
       count += 1;
     }
   }
   return count;
+}
+
+/**
+ * **How many attacks this empire's units have made this turn on one piece or
+ * town** (Dominion batch D8, Weight of Numbers), read off
+ * `Player.strikesThisTurn`. A list from an earlier turn counts nothing.
+ */
+export function strikesOn(state: GameState, playerId: number, targetId: number): number {
+  const record = playerById(state, playerId)?.strikesThisTurn;
+  if (record === undefined || record.turn !== state.turn) return 0;
+  let count = 0;
+  for (const id of record.targets) if (id === targetId) count += 1;
+  return count;
+}
+
+/**
+ * **Does this empire's law count its attacks on a target?** True when a live
+ * strength line scales by `attacksOnTarget` (Weight of Numbers). `recordStrike`
+ * (`combat.ts`) writes the record only for such an empire.
+ */
+export function lawCountsStrikes(state: GameState, playerId: number): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'combatLine')) {
+    if (effect.scaled?.count === 'attacksOnTarget') return true;
+  }
+  return false;
 }
 
 /** One strength line a card contributes, as `planCombat` needs it. */
@@ -6275,7 +6413,7 @@ export function combatLineAmount(
   const each = effect.amount;
   if (each === 0) return null;
   if (!effect.scaled) return each;
-  const total = combatScaleCount(state, situation.unit.ownerId, situation.unit, effect.scaled);
+  const total = combatScaleCount(state, situation.unit.ownerId, situation.unit, effect.scaled, situation);
   let amount = each * helpings(total, effect.scaled.per, undefined);
   if (effect.scaled.max !== undefined) {
     amount = Math.sign(amount) * Math.min(Math.abs(amount), effect.scaled.max);
@@ -6296,13 +6434,23 @@ function combatScaleCount(
   playerId: number,
   unit: Unit,
   scale: CombatScale,
+  situation?: CombatSituation,
 ): number {
   const count = scale.count;
   switch (count) {
     case 'cities':
       return cityCount(state, playerId);
     case 'adjacentFriendlies':
-      return adjacentFriendlies(state, unit);
+      // Centurions (Dominion batch D8) counts only the Elites beside the unit.
+      return adjacentFriendlies(state, unit, undefined, scale.rank);
+    case 'attacksOnTarget':
+      // Weight of Numbers (Dominion batch D8): the attacks this empire's units
+      // have already made this turn on the thing now attacked. The defender's
+      // side names no target and counts nothing.
+      if (situation === undefined || situation.side !== 'attack' || situation.targetId === undefined) {
+        return 0;
+      }
+      return strikesOn(state, playerId, situation.targetId);
     case 'greatPeopleOfFamily':
       return greatPeopleEarned(state, playerId, scale.family);
     case 'slottedOrdersOfSlot':
@@ -6970,6 +7118,26 @@ export interface WindfallPayout {
    * `markTownLand` (`cities.ts`).
    */
   marks?: { card: CardId; source: string; mark: HexMarkId }[];
+  /**
+   * **The radius of a heal and of a rank** a rider pays the empire's pieces
+   * around the occasion's hex (`WindfallGrantSpec.healWithin` and
+   * `rankWithin`, Dominion batch D8, The Soldiers' Share). The widest asked
+   * wins. Delivered by `payWindfallGrants`, with the hex in hand.
+   */
+  healWithin?: number;
+  rankWithin?: number;
+  /**
+   * **Timed effects hung on the piece that acted** (`WindfallGrantSpec.
+   * actorTimed`, Dominion batch D8, The Scourge of God). Acted on by the seam
+   * that holds the piece, `pillageAt` today.
+   */
+  actorTimed?: {
+    card: CardId;
+    source: string;
+    turns: number;
+    effects: CardEffect[];
+    renews?: true;
+  }[];
   /** Every rider that touched this payout, for the announcement. */
   lines: { card: CardId; source: string; note: string }[];
   /**
@@ -7074,6 +7242,10 @@ export interface WindfallOccasionFacts {
    * piece's, so the two say the same word about two different moments; an
    * occasion with no soldier in it carries nothing and a grant scaled by this
    * pays nought there, which is the silence every fact on this shape keeps.
+   *
+   * Since Dominion batch D8 a pillage carries the raider's own strength (The
+   * Plunder Economy): its roster figure, its training stamp and its rank, read
+   * by `pieceStrength` (`combat.ts`), the figure The Chevauchée's strike uses.
    */
   strength?: number;
   /**
@@ -7155,9 +7327,12 @@ export interface WindfallOccasionFacts {
    */
   worksAndWonders?: number;
   /**
-   * The **town the occasion happened in**, on the `disband` occasion (Dominion
-   * batch D7): the town of this empire on whose hex the unit stood, or absent.
-   * Read by `CardWindfallRiderEffect.inTown`. Filled by `applyDisbandUnit`.
+   * The **town the occasion happened in**, where the seam knows one: the town
+   * of this empire on whose hex the unit stood, on the `disband` occasion
+   * (Dominion batch D7, filled by `applyDisbandUnit`), and the town a great
+   * person acted in (Expansionist batch E5, filled by `payActRiders`,
+   * `greatPeople.ts`). Read by `CardWindfallRiderEffect.inTown`, and by a
+   * grant's `fromTowns` figure, which leaves this town out.
    */
   townId?: number;
   /**
@@ -7190,7 +7365,10 @@ export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
     payout.pillageBeside !== true &&
     (payout.marks ?? []).length === 0 &&
     (payout.techGrants ?? []).length === 0 &&
-    payout.freeDraft !== true
+    payout.freeDraft !== true &&
+    (payout.healWithin ?? 0) <= 0 &&
+    (payout.rankWithin ?? 0) <= 0 &&
+    (payout.actorTimed ?? []).length === 0
   );
 }
 
@@ -7303,12 +7481,13 @@ export function windfallPayout(
     // general's. An occasion that carries no family never satisfies it.
     if (effect.family !== undefined && facts.family !== effect.family) return false;
     // The town the occasion happened in (Dominion batch D7, the disband
-    // occasion): one of this empire's towns, and, with a scope, one the scope
-    // admits. An occasion that names no town never satisfies it.
+    // occasion; Expansionist batch E5, a great person's act): one of this
+    // empire's towns, and, with a scope, one the scope admits. An occasion that
+    // names no town never satisfies it.
     if (effect.inTown !== undefined) {
       const town = facts.townId === undefined ? undefined : cityById(state, facts.townId);
       if (town === undefined || town.ownerId !== playerId) return false;
-      if (effect.inTown !== true && !cityScopeAdmits(state, town, effect.inTown)) return false;
+      if (effect.inTown !== true && !cityScopeAdmits(state, town, effect.inTown, playerId)) return false;
     }
     // And the sixth and seventh, both asked of the **row that was finished or
     // bought**: Master Masons pay for a wall and Learned Commissions for one of
@@ -7468,6 +7647,28 @@ export function windfallPayout(
       (payout.marks ??= []).push({ card, source, mark: grant.mark });
       payout.lines.push({ card, source, note: 'marks the city’s land for good' });
     }
+    // Dominion batch D8: the heal and the rank around the hex (The Soldiers'
+    // Share), and the timed effects hung on the piece that acted (The Scourge
+    // of God). No figure, so the era and the council multiply nothing here.
+    if (grant.healWithin !== undefined && grant.healWithin > 0) {
+      payout.healWithin = Math.max(payout.healWithin ?? 0, grant.healWithin);
+      payout.lines.push({ card, source, note: `heals your units within ${grant.healWithin} hexes` });
+    }
+    if (grant.rankWithin !== undefined && grant.rankWithin > 0) {
+      payout.rankWithin = Math.max(payout.rankWithin ?? 0, grant.rankWithin);
+      payout.lines.push({ card, source, note: `raises your units within ${grant.rankWithin} hexes a rank` });
+    }
+    if (grant.actorTimed !== undefined && grant.actorTimed.effects.length > 0) {
+      const turns = Math.max(1, grant.actorTimed.turns);
+      (payout.actorTimed ??= []).push({
+        card,
+        source,
+        turns,
+        effects: grant.actorTimed.effects,
+        ...(grant.actorTimed.renews === true ? { renews: true as const } : {}),
+      });
+      payout.lines.push({ card, source, note: `on the unit, for ${turns} turns` });
+    }
     if (grant.timed !== undefined && grant.timed.effects.length > 0) {
       // The *turns* are the card's own and the effects travel untouched:
       // `timedLive` reads them the way it reads a rite's, because a bill is a
@@ -7579,6 +7780,17 @@ export function windfallPayout(
       // is banked: a preview that quoted one turn and a settlement that read the
       // rate again would be two answers to one sentence. Asked lazily, so an
       // occasion no such rider names never sweeps the empire's books.
+      // **A figure read off the empire's other towns** (Expansionist batch E5,
+      // The Master of Works): `amount` times the production per turn of each
+      // other town the scope admits. Composed here with every other figure.
+      if (grant.fromTowns !== undefined) {
+        const amount = grant.amount * townsProduction(state, playerId, grant.fromTowns, facts.townId) * boostFor(card);
+        if (amount !== 0) {
+          payout.grants.push({ card, source, yield: grant.yield, amount, ...deliveryOf(grant) });
+          payout.lines.push({ card, source, note: `${signed(amount)} ${grant.yield}` });
+        }
+        continue;
+      }
       if (grant.fromRate !== undefined) {
         const turns = grant.amount;
         const rate = rateOf(state, playerId, grant.fromRate, foldEmpireRates(state, playerId));
@@ -7702,6 +7914,27 @@ function amplifierRows(
  * grant of "ten times nothing" would have pushed a zero line the fold then has
  * to drop. The caller drops the rider instead.
  */
+/**
+ * **The production per turn of this empire's other towns that a scope admits**,
+ * summed (Expansionist batch E5, The Master of Works' manufactory towns). Each
+ * town's production as its panel shows it (`foldCity`, toward its front row),
+ * floored, in founding order. `except` is the town the moment happened in.
+ */
+function townsProduction(
+  state: GameState,
+  playerId: number,
+  scope: CityScope,
+  except: number | undefined,
+): number {
+  let total = 0;
+  for (const town of citiesOf(state, playerId)) {
+    if (town.id === except) continue;
+    if (!cityScopeAdmits(state, town, scope, playerId)) continue;
+    total += Math.floor(foldCity(state, town, [], town.queue[0]).production);
+  }
+  return total;
+}
+
 function occasionMeasure(
   measure: OccasionMeasure,
   paid: number,
@@ -8101,6 +8334,43 @@ export function harvestEnemyHexes(state: GameState): void {
       }
     }
     settleCultureWindfall(state, player);
+  }
+}
+
+/**
+ * **Heals and ranks this empire's pieces around a hex** (Dominion batch D8, The
+ * Soldiers' Share; the triage's reading 17). Each piece of the empire within
+ * `healRange` hexes is healed whole, and each fighting unit within `rankRange`
+ * is raised one rank: none to Veteran, Veteran to Elite, and an Elite gains
+ * nothing. The rank counts as earned, so `settleRanksEarned` pays the cards
+ * that pay on it. The pieces are taken in `state.units` order before anything
+ * is raised, so a replay raises the same pieces in the same order.
+ */
+function rallyAround(
+  state: GameState,
+  player: Player,
+  at: { col: number; row: number },
+  healRange: number,
+  rankRange: number,
+): void {
+  const centre = getTileAt(state.map, at.col, at.row);
+  if (!centre) return;
+  const eye = tileHex(centre);
+  const reach = Math.max(healRange, rankRange);
+  const near: { unit: Unit; distance: number }[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id) continue;
+    const seat = getTileAt(state.map, unit.col, unit.row);
+    if (!seat) continue;
+    const distance = wrappedDistance(state.map, eye, tileHex(seat));
+    if (distance <= reach) near.push({ unit, distance });
+  }
+  for (const { unit, distance } of near) {
+    if (distance <= healRange) unit.hp = unitMaxHp(unit, unitHealthBonus(state, player.id));
+    if (distance <= rankRange) {
+      const next = nextRankOf(unit);
+      if (next !== null) settleRanksEarned(state, unit, raiseToRank(state, unit, next));
+    }
   }
 }
 
@@ -8718,6 +8988,11 @@ export function payWindfallGrants(
       unit.hp = unitMaxHp(unit, unitHealthBonus(state, player.id));
     }
   }
+  // **The heal and the rank around the hex** (Dominion batch D8, The Soldiers'
+  // Share). An occasion with no hex heals and raises nobody.
+  if (at && ((payout.healWithin ?? 0) > 0 || (payout.rankWithin ?? 0) > 0)) {
+    rallyAround(state, player, at, payout.healWithin ?? 0, payout.rankWithin ?? 0);
+  }
   // **The only writer of `Player.timed`** — Crassus' bill, stamped at an
   // absolute turn like every other timed effect and swept by the same broom.
   // One entry per effect, `stampRite`'s shape, because every reader walks a flat
@@ -9166,23 +9441,6 @@ export function worksBeyondReach(state: GameState, playerId: number, works: 'ten
     if (effect.works === works) reach = Math.max(reach, Math.floor(effect.reach));
   }
   return reach;
-}
-
-/**
- * **The water this empire's workers may step onto, as if embarked**
- * (Expansionist batch E4, The Fish Traps' lakes): every terrain a row names in
- * `ImprovementDef.workersWade`, for the rows a card this seat holds opens
- * (`cardUnlocksImprovement`), in the table's order. Empty for nearly every
- * seat. Asked once for each search by `moveProfile` (`pathfind.ts`).
- */
-export function workerWaters(state: GameState, playerId: number): TerrainId[] {
-  const waters: TerrainId[] = [];
-  for (const id of IMPROVEMENT_IDS) {
-    const wade = improvementDef(id).workersWade;
-    if (wade === undefined || !cardUnlocksImprovement(state, playerId, id)) continue;
-    for (const water of wade) if (!waters.includes(water)) waters.push(water);
-  }
-  return waters;
 }
 
 /**
@@ -10142,6 +10400,12 @@ export interface FoundingRider {
    * the largest of several wins. `foundCityAt` claims beyond the first ring.
    */
   claimRadius?: number;
+  /**
+   * The units the town starts with, in the law's order (The Frontier Militia,
+   * Expansionist batch E5). `foundCityAt` raises each through `raiseFreeUnit`.
+   * Absent when no row names one.
+   */
+  units?: (UnitTypeId | 'bestMelee')[];
 }
 
 /**
@@ -10181,6 +10445,7 @@ export function cardFoundingRider(
     if (effect.claimRadius !== undefined) {
       rider.claimRadius = Math.max(rider.claimRadius ?? 0, Math.floor(effect.claimRadius));
     }
+    if (effect.unit !== undefined) (rider.units ??= []).push(effect.unit);
     if (escort !== null && effect.rank !== undefined) {
       rider.ranks.push({ unitId: escort.id, rank: effect.rank });
     }
