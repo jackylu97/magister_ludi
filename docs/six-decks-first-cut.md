@@ -60,13 +60,15 @@ Shared pairs are intentional. Modu and Joan should use the same pool differently
 |---|---|---|---|---|
 | Early (Tier 0) | Chiefdom / tier 0 | Start | 3 | Establish a direction; accessible foundations, including early rares where available. |
 | Middle (Tier I) | Government I | Regular draft count 4 | 5 | Add infrastructure, cross-type connections and tactical alternatives. |
-| Late (Tier II) | Government II | Regular draft count 18 | 8 | Add conversion engines, developed-city rewards and specialization. |
-| Advanced (Tier III) | Government III | Regular draft count 29 | 11 | Complete larger combinations; new uses for established assets. |
-| Final (Tier IV) | Government IV | Regular draft count 38 | 11 | Endgame cards: finishers, late engines and the decks' signatures at full size. |
+| Late (Tier II) | Government II | Regular draft count 10 | 5 | Add conversion engines, developed-city rewards and specialization. |
+| Advanced (Tier III) | Government III | Regular draft count 18 | 8 | Complete larger combinations; new uses for established assets. |
+| Final (Tier IV) | Government IV | Regular draft count 29 | 11 | Endgame cards: finishers, late engines and the decks' signatures at full size. |
 
 **Band 4 and the chairs (deck implementation, foundation batch, 2026-10-12).** The deck sheets' Tier IV is band 4. Its rung sits at draft count 38, where the last governments are offered. There is no fifth research age, so band 4 asks for age 4, the same as band 3, and only the ladder rung separates them. The chairs are the user's ruling in `docs/decks/deck-design.md` "More chairs" (3 / 5 / 8 / 11, replacing 3 / 4 / 6 / 9); the fifth rung keeps eleven.
 
 2026-10-15: the fifth rung moved from 45 to 38 drafts (`docs/flags.md` (uuuuuu)).
+
+2026-10-17: the bands open at the live game's government tiers, 4 · 10 · 18 · 29 (the user: *"the government change at draft 10 should upgrade the pool from tier 1 to tier 2"*, `docs/flags.md` (ccccccc)). The table above is updated to match: Tier II opens at 10 with the five chairs of the tier-10 governments, and Tier IV opens at 29. The rest of this section is the proposal as it was written.
 
 Government tiers here refer to this proposal's four-stage progression, not the live game's five government promotions. They mark the earliest unlock; cards remain available in later tiers. Government form (Council, Crown or League) does not restrict access.
 

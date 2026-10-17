@@ -163,8 +163,11 @@ import {
 } from "../../src/sim/statecraftData";
 // The decks rework's readings (D1a), beside the table they read.
 import {
+  BANDS,
   DECK_IDS,
+  LAST_BAND,
   TIER_LADDER,
+  bandTierAt,
   chairsAtTier,
   orderFitsSlot,
   ordersForDecks,
@@ -335,15 +338,41 @@ describe("the card table", () => {
     // stay for the Compendium, and nobody is offered them.
     expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 29]);
     expect(governmentsAtTier(38)).toEqual([]);
-    // `tierLadder` is the ladder of bands and chairs, read by the sim: four
-    // rungs since the decks rework (D1a), and a fifth for band 4 since the
-    // deck implementation's foundation batch, at 45 until the user's ruling of
-    // 2026-10-15 moved it to 38. The governments are still offered at their
-    // rows' own tiers. The two lists are different questions
-    // (`StatecraftConfig.tierLadder`).
-    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29, 38]);
+    // `tierLadder` is the ladder of bands and chairs: one rung per band, at
+    // the government tiers since the user's ruling of 2026-10-17 (the next
+    // test pins the two together).
+    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 10, 18, 29]);
     for (const tier of GOVERNMENT_TIERS) {
       expect(governmentsAtTier(tier), `tier ${tier}`).toHaveLength(3);
+    }
+  });
+
+  it("opens each Order tier at the draft count where its government is offered", () => {
+    // The user's ruling of 2026-10-17 (`docs/flags.md` (ccccccc)): "the
+    // government change at draft 10 should upgrade the pool from tier 1 to
+    // tier 2". From schema 119 to 148 the ladder held only the rungs where the
+    // chair count rises, so the tier-10 governments had no rung and every Order
+    // tier from Tier II up opened one government tier late. The rungs above the
+    // Chiefdom are the government tiers, one per band, and this test holds the
+    // two lists together.
+    expect(TIER_LADDER).toHaveLength(BANDS.length);
+    expect(TIER_LADDER[0]!.drafts).toBe(0);
+    expect(TIER_LADDER.slice(1).map((rung) => rung.drafts)).toEqual([...GOVERNMENT_TIERS]);
+    GOVERNMENT_TIERS.forEach((tier, index) => {
+      // The draft that reaches a government tier opens the next band, and the
+      // draft before it does not.
+      expect(bandTierAt(tier), `tier ${tier}`).toBe(index + 1);
+      expect(bandTierAt(tier - 1), `tier ${tier}`).toBe(index);
+    });
+    // The retired tier-38 governments are not a rung, so draft 38 opens
+    // nothing new: Tier IV, the last band, has been open since tier 29.
+    expect(bandTierAt(38)).toBe(LAST_BAND);
+    expect(bandTierAt(GOVERNMENT_TIERS[GOVERNMENT_TIERS.length - 1]!)).toBe(LAST_BAND);
+    // And no chair count moved: every government's chairs are its tier's rung,
+    // the tier-10 rung carrying the five chairs of the rung below it.
+    expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 5, 8, 11]);
+    for (const id of GOVERNMENT_IDS) {
+      expect(slotCount(id), id).toBe(chairsAtTier(governmentDef(id).tier));
     }
   });
 
@@ -2020,7 +2049,10 @@ describe("determinism", () => {
     // v146 log's marches would walk different routes.
     // 148 since the take (flags item aaaaaaa): a pin may take a hex from
     // another town of the empire, so a v147 log is judged by a new rule.
-    expect(SCHEMA_VERSION).toBe(148);
+    // 149 since the rung fix: the Order tiers open at the government tiers
+    // (4, 10, 18 and 29 drafts), so a v148 log's hands from draft 10 on
+    // come from a different tier.
+    expect(SCHEMA_VERSION).toBe(149);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

@@ -7444,15 +7444,15 @@
       "chairs": 5
     },
     {
+      "drafts": 10,
+      "chairs": 5
+    },
+    {
       "drafts": 18,
       "chairs": 8
     },
     {
       "drafts": 29,
-      "chairs": 11
-    },
-    {
-      "drafts": 38,
       "chairs": 11
     }
   ]

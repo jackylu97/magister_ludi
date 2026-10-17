@@ -566,7 +566,7 @@ describe('the tier-38 governments', () => {
     expect(governmentsAtTier(38)).toEqual([]);
   });
 
-  it('leave the rung at draft 38 opening its band, with no government and nothing banked', () => {
+  it('leave draft 38 an ordinary draft, with no government, nothing banked and no new band', () => {
     const g = game();
     const player = playerById(g.state, 0)!;
     player.statecraft.drafts = 37;
@@ -582,8 +582,11 @@ describe('the tier-38 governments', () => {
     // batch C3: a new government brings only its Doctrine offer, and no
     // government is offered here.
     expect(player.statecraft).not.toHaveProperty('rewardHands');
-    // The last band opens at the rung, as it did before the retirement.
-    expect(bandTierAt(37)).toBe(3);
+    // Since the user's ruling of 2026-10-17 the ladder's rungs are the
+    // government tiers, so 38 is no rung: the last band opened at 29, with the
+    // tier-29 governments.
+    expect(bandTierAt(28)).toBe(3);
+    expect(bandTierAt(29)).toBe(4);
     expect(bandTierAt(38)).toBe(4);
   });
 });

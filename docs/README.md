@@ -475,8 +475,10 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   (● common ◆ uncommon ○ rare) is weighed 4/2/1 inside each sub-bag of the
   guaranteed military/economic/wildcard spread.
 - Pools: Chiefdom → Government I/II/III (tier 18 is the last new pool).
-  2026-10-15: the fifth rung moved from 45 to 38 drafts (`docs/flags.md`
-  (uuuuuu)). Chairs by tier are the doc's Governments table, sync-tested.
+  Since 2026-10-17 the ladder's rungs are the government tiers, 4 · 10 · 18 ·
+  29 (`docs/flags.md` (ccccccc)): an Order tier opens at the same draft count
+  as its government, and the old rung at 38 is gone. Chairs by tier are the
+  doc's Governments table, sync-tested.
 - **Doctrines** (batch C3, `docs/orders-and-doctrines.md` "Doctrines"):
   adopting a government opens a Doctrine offer of its tier. Tier 4 offers the
   Tier I Doctrines, 10 Tier II, 18 Tier III and 29 Tier IV

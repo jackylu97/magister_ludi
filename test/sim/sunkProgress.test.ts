@@ -160,7 +160,10 @@ describe('the schema says so', () => {
     // v146 log's marches would walk different routes.
     // 148 since the take (flags item aaaaaaa): a pin may take a hex from
     // another town of the empire, so a v147 log is judged by a new rule.
-    expect(SCHEMA_VERSION).toBe(148);
+    // 149 since the rung fix: the Order tiers open at the government tiers
+    // (4, 10, 18 and 29 drafts), so a v148 log's hands from draft 10 on
+    // come from a different tier.
+    expect(SCHEMA_VERSION).toBe(149);
   });
 
   it('says in the changelog what a v110 log does now', () => {

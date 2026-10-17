@@ -833,10 +833,16 @@ describe('determinism', () => {
    * pins a citizen, and the automatic assignment never takes a hex. Checked by
    * printing the version as 147 with the take in place, which gives the
    * movement fixes' hashes exactly.
+   *
+   * **The rung fix (`docs/flags.md` (ccccccc), schema 149) moved the hash and
+   * not the length** at both seeds: 148 became 149, and that is all. Nobody
+   * here drafts, so the new rungs never reach this board. Checked twice with
+   * the version printed as 148: once with the fix in place, and once with the
+   * ladder as the take left it. Both give the take's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '11974508:188931',
-    2026: '26e0bd45:188509',
+    11: '47f52701:188931',
+    2026: '81a2aa6c:188509',
   };
 
   for (const seed of [11, 2026]) {

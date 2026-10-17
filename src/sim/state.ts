@@ -1775,8 +1775,29 @@ import {
  * they were, but the rule a pin is judged by has changed, and the branch
  * refuses a save from before a rule change. It migrates nothing, for the
  * reason given under v119.
+ *
+ * v149 (branch `decks`; the user's ruling of 2026-10-17, `docs/flags.md`
+ * (ccccccc)): **the Order tiers open at the government tiers.** No field joins
+ * the state. The ladder's rungs (`tierLadder`) are now 0 · 4 · 10 · 18 · 29
+ * drafts, one per band, with 3 · 5 · 5 · 8 · 11 chairs. Since schema 119 they
+ * had been 0 · 4 · 18 · 29 · 38: the tier-10 governments add no chairs and
+ * had no rung, so every Order tier from Tier II up opened one government tier
+ * late. The rules that change:
+ *
+ *   · Tier II is dealt from draft 10 (with research age three), Tier III from
+ *     draft 18 (age four) and Tier IV from draft 29 (age four). Before they
+ *     were dealt from drafts 18, 29 and 38;
+ *   · draft 38 is no longer a rung. Its governments stay retired, so it opens
+ *     nothing;
+ *   · no chair count changes: the tier-10 rung keeps the five chairs of the
+ *     rung below it, and every government row keeps its own figure.
+ *
+ * **A v148 save is refused and does not replay.** A seat between drafts 10 and
+ * 17 is now dealt Tier II hands where it was dealt Tier I hands, so every
+ * later pick differs. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 148;
+export const SCHEMA_VERSION = 149;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

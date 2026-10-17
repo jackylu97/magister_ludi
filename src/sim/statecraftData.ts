@@ -8587,8 +8587,8 @@ export interface GovernmentDef extends CardDefBase {
   tier: number;
   /**
    * **How many chairs this government supplies.** The number is its tier's
-   * rung on `tierLadder` (3 / 5 / 8 / 11 / 11 at draft counts 0 / 4 / 18 / 29 /
-   * 38; a tier between rungs takes the rung below it), written on the row so
+   * rung on `tierLadder` (3 / 5 / 5 / 8 / 11 at draft counts 0 / 4 / 10 / 18 /
+   * 29; the retired tier-38 rows take the top rung's), written on the row so
    * that the count is a field somebody can retune.
    *
    * A leader's extra chair and a card's (`CardSlotRiderEffect`) are added on
@@ -9233,34 +9233,33 @@ export interface StatecraftConfig {
   // sat here were dead the day that landed, and a dead number in a data file is
   // a dial a designer will one day turn expecting something to happen.
   /**
-   * **The five rungs of the draft ladder**, one per band: Chiefdom and
-   * Government I to IV at regular draft counts 0 · 4 · 18 · 29 · 38, with
-   * 3 · 5 · 8 · 11 · 11 chairs (`docs/six-decks-first-cut.md` "Content bands";
-   * the chairs are the user's ruling in `docs/decks/deck-design.md` "More
-   * chairs"). The fifth rung, for band 4, sits at 38 because that is where the
-   * last governments are offered, and keeps eleven chairs because the ruling
-   * gives the last government tier eleven. It was 45 until the user's ruling
-   * of 2026-10-15 (`docs/flags.md` (uuuuuu)), which moved the rung and the
-   * tiers of the governments and doctrines offered there to 38 together, so
-   * that Tier IV is reached more often. The ladder is **read by the
-   * simulation in two places**:
+   * **The five rungs of the draft ladder**, one per band: the Chiefdom and the
+   * four government tiers, at regular draft counts 0 · 4 · 10 · 18 · 29, with
+   * 3 · 5 · 5 · 8 · 11 chairs (the chairs are the user's ruling in
+   * `docs/decks/deck-design.md` "More chairs"). The ladder is **read by the
+   * simulation in one place**: a **band** opens at its rung's draft count
+   * (`bandTierAt`, the tier half of `bandOpen`). A government's chairs are the
+   * figure on its own row (`slotCount`); `chairsAtTier` reads the ladder only
+   * so that a test can hold every row's figure to its tier's rung.
    *
-   *   · a **band** opens at its rung's draft count (`bandTierAt`, the tier
-   *     half of `bandOpen`);
-   *   · a government's **chairs** are its tier's rung (`chairsAtTier`, the
-   *     figure written onto each row's `chairs`).
+   * **The rungs are the government tiers** (the user's ruling of 2026-10-17,
+   * `docs/flags.md` (ccccccc): *"the government change at draft 10 should
+   * upgrade the pool from tier 1 to tier 2"*). So an Order tier opens with the
+   * government that is offered at the same draft count, and with that tier's
+   * Doctrines. From the decks commit of 2026-09-17 (schema 119) until that
+   * ruling the ladder held only the rungs where the chair count rises, 0 · 4 ·
+   * 18 · 29 · 38: the tier-10 governments add no chairs, so they had no rung,
+   * and every band from Tier II up opened one government tier late. The
+   * tier-10 rung now carries the five chairs of the rung below it, and the
+   * rung at 38 is gone: its governments are retired (batch C2), and Tier IV
+   * opens at 29 with the tier-29 governments. `test/sim/statecraft.test.ts`
+   * pins the rungs above the Chiefdom to `GOVERNMENT_TIERS`, so the two cannot
+   * drift apart again.
    *
    * It banked a reward hand at every rung but the first until batch C3 removed
    * the reward hands (the user, 2026-10-16: a new government brings only its
-   * Doctrine offer).
-   *
-   * The governments are still *offered* at the rows' own tiers
-   * (`GOVERNMENT_TIERS`, read off the live rows: 4 · 10 · 18 · 29), which is a
-   * different question — a tier between two rungs keeps the rung below it, so
-   * the tier-10 rows supply five chairs. No government is offered at 38 since
-   * batch C2 retired that tier's three, but the rung still opens the Tier IV
-   * cards. The ladder is the design doc's table and a sync test holds the two
-   * together.
+   * Doctrine offer). The ladder is the design doc's table, and a sync test
+   * holds the two together.
    */
   tierLadder: TierRung[];
   governments: Record<GovernmentId, GovernmentDef>;
@@ -9528,12 +9527,12 @@ export function poolDoctrines(tier: number): DoctrineId[] {
  * The culture tiers at which a government is offered, ascending — 4, 10, 18
  * and 29 today, read off the rows rather than restated. **Retired rows
  * excluded** (batch C2): the tier-38 governments are offered to nobody, so 38
- * is not on this list, though the ladder's rung at draft 38 still opens the
- * Tier IV cards (`bandTierAt`).
+ * is not on this list.
  *
- * The **live** ladder, and it is deliberately narrower than `tierLadder`: this
- * is "where a triple actually exists", derived from the rows, while that is the
- * ratified pacing.
+ * Since the user's ruling of 2026-10-17 these are also the rungs of
+ * `tierLadder` above the Chiefdom, so an Order tier opens with the government
+ * offered at the same draft count. The two are written in two places, the
+ * rows and the ladder, and `test/sim/statecraft.test.ts` holds them equal.
  */
 export const GOVERNMENT_TIERS: readonly number[] = [
   ...new Set(

@@ -85,16 +85,21 @@ dagger are what the row does *not* do.
 |---|---|---|---|
 | Chiefdom | 0 | 0 | 3 |
 | Government I | 1 | 4 | 5 |
-| Government II | 2 | 18 | 8 |
-| Government III | 3 | 29 | 11 |
-| Government IV | 4 | 38 | 11 |
+| Government II | 2 | 10 | 5 |
+| Government III | 3 | 18 | 8 |
+| Government IV | 4 | 29 | 11 |
 
-A government is offered at its row's own tier (4 · 10 · 18 · 29); a tier between two rungs
-takes the rung below it for its chairs. Adopting one opens a Doctrine offer of the paired
-tier (see Doctrines below). Until batch C3 a reward hand was banked at every rung but the
-first; the reward hands are gone.
+A government is offered at its row's own tier (4 · 10 · 18 · 29), and each tier is a rung, so
+an Order tier opens at the same draft count as its government. Adopting one opens a Doctrine
+offer of the paired tier (see Doctrines below). Until batch C3 a reward hand was banked at
+every rung but the first; the reward hands are gone.
 
 2026-10-15: the fifth rung moved from 45 to 38 drafts (`docs/flags.md` (uuuuuu)).
+2026-10-17: the rungs are the government tiers (`docs/flags.md` (ccccccc)). From schema 119
+the ladder held only the rungs where the chair count rises, so the tier-10 governments had
+no rung and every Order tier from Tier II up opened one government tier late. The tier-10
+rung keeps the five chairs of the rung below it, and the rung at 38 is gone with its retired
+governments, so Tier IV opens at 29.
 
 ## Governments
 
@@ -128,8 +133,8 @@ first; the reward hands are gone.
 - **The three tier-18 signatures count seated Orders by type.** An unsorted card counts as
   the type of the chair it sits in, a Wildcard chair included.
 - **The tier-38 governments are retired** (The Commonwealth, The Empire and The
-  Magisterium): their rows are kept for saves and nobody is offered them. The ladder's
-  rung at draft 38 is unchanged; only the government offer there is gone.
+  Magisterium): their rows are kept for saves and nobody is offered them. Since 2026-10-17
+  the ladder has no rung at 38 either: Tier IV opens at 29.
 
 ## Doctrines
 

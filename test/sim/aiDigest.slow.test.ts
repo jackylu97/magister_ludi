@@ -936,10 +936,28 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * printing the version as 147 with the take in place, which gives the movement
  * fixes' digests exactly on both boards. Nothing stalled and no command was
  * refused.
+ *
+ * ---
+ *
+ * **The rung fix (`docs/flags.md` (ccccccc), schema 149): the Order tiers open
+ * at the government tiers.** Duel `ae39b205:271204` → `99856b59:272524`,
+ * standard `23269452:916889` → `37e4b83b:940920`. Two things moved them:
+ *
+ *   · the version, 148 to 149;
+ *   · the rungs. Tier II is dealt from draft 10 instead of 18, Tier III from
+ *     18 instead of 29 and Tier IV from 29 instead of 38, each with its
+ *     research age as before. By turn 120 on the standard board two seats had
+ *     been dealt a Tier II hand before the fix (first on turns 99 and 101);
+ *     now all six have (first between turns 68 and 98), and one has been
+ *     dealt eight Tier III hands.
+ *
+ * Checked by putting the ladder back as the take left it and printing the
+ * version as 148, which gives the take's digests exactly on both boards.
+ * Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'ae39b205:271204',
-  standard: '23269452:916889',
+  duel: '99856b59:272524',
+  standard: '37e4b83b:940920',
 };
 
 /**

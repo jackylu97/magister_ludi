@@ -549,13 +549,14 @@ describe('the schema, as landed', () => {
 
   it('is a five-rung ladder, and every government carries its rung’s count', () => {
     // Chairs 3 / 5 / 8 / 11 are the user's ruling (docs/decks/deck-design.md
-    // "More chairs"); the fifth rung (band 4) sits where the tier-38
-    // governments were offered and keeps eleven. The rung was 45 until the
-    // user's ruling of 2026-10-15 (docs/flags.md (uuuuuu)). The three were
-    // retired in batch C2 and their rows still carry the rung's count; which
-    // type each chair is, is `statecraft.test.ts`' and `typedChairs.test.ts`'.
-    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 18, 29, 38]);
-    expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 8, 11, 11]);
+    // "More chairs"). Since the user's ruling of 2026-10-17 (docs/flags.md
+    // (ccccccc)) the rungs are the government tiers, so the tier-10 rung keeps
+    // the five chairs of the rung below it and Tier IV opens at 29. The
+    // tier-38 governments were retired in batch C2 and their rows still carry
+    // the top rung's count; which type each chair is, is `statecraft.test.ts`'
+    // and `typedChairs.test.ts`'.
+    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 10, 18, 29]);
+    expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 5, 8, 11]);
     expect(TIER_LADDER).toHaveLength(BANDS.length);
     // The later rungs banked a reward hand until batch C3 removed the reward
     // hands. What pairs with a government tier now is a Doctrine tier, one to
@@ -567,18 +568,21 @@ describe('the schema, as landed', () => {
       expect(def.chairs, id).toBe(chairsAtTier(def.tier));
       expect(slotCount(id), id).toBe(def.chairs);
     }
-    // A tier between two rungs keeps the rung below it.
+    // The tier-10 rung has its own row, and the retired tier 38 keeps the top
+    // rung's count.
     expect(chairsAtTier(10)).toBe(5);
     expect(chairsAtTier(38)).toBe(11);
     expect(bandTierAt(0)).toBe(0);
     expect(bandTierAt(3)).toBe(0);
     expect(bandTierAt(4)).toBe(1);
-    expect(bandTierAt(17)).toBe(1);
-    expect(bandTierAt(18)).toBe(2);
-    expect(bandTierAt(29)).toBe(3);
-    expect(bandTierAt(37)).toBe(3);
+    expect(bandTierAt(9)).toBe(1);
+    expect(bandTierAt(10)).toBe(2);
+    expect(bandTierAt(17)).toBe(2);
+    expect(bandTierAt(18)).toBe(3);
+    expect(bandTierAt(28)).toBe(3);
+    expect(bandTierAt(29)).toBe(4);
+    // The old rungs at 38 and 45 are now simply past the last one.
     expect(bandTierAt(38)).toBe(4);
-    // The old rung is now simply past the new one.
     expect(bandTierAt(45)).toBe(4);
     expect(bandTierAt(400)).toBe(4);
   });
@@ -691,7 +695,10 @@ describe('the schema, as landed', () => {
     // v146 log's marches would walk different routes.
     // 148 since the take (flags item aaaaaaa): a pin may take a hex from
     // another town of the empire, so a v147 log is judged by a new rule.
-    expect(SCHEMA_VERSION).toBe(148);
+    // 149 since the rung fix: the Order tiers open at the government tiers
+    // (4, 10, 18 and 29 drafts), so a v148 log's hands from draft 10 on
+    // come from a different tier.
+    expect(SCHEMA_VERSION).toBe(149);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -1026,12 +1033,16 @@ describe('with the shelf stocked', () => {
     // Age three, still at four drafts: nothing changes, because the tier is the other gate.
     ada.techsResearched.push(techOfAge(3));
     expect(bandsOf()).toEqual([1]);
-    ada.statecraft.drafts = 18;
+    // Since the user's ruling of 2026-10-17 Tier II opens with the tier-10
+    // governments.
+    ada.statecraft.drafts = 10;
     expect(bandsOf()).toEqual([2]);
-    ada.statecraft.drafts = 29;
+    ada.statecraft.drafts = 18;
     expect(bandsOf()).toEqual([2]);
     ada.techsResearched.push(techOfAge(4));
     expect(bandsOf()).toEqual([3]);
+    ada.statecraft.drafts = 29;
+    expect(bandsOf()).toEqual([4]);
   });
 
   it('names the current band as the highest band open on both the tier and the age', () => {

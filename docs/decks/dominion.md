@@ -298,7 +298,7 @@ New names are placeholders; rename freely.
   - Every card is sorted into Military, Economic, Civic or Wildcard (the Type column).
   - Double Time repeats only what Orders do: their effects at the end of a turn or every few turns, with the yields those effects pay (*"the smaller reading, it should only affect orders"*). The empire's own yields are not doubled.
   - A Wildcard card fits only a Wildcard chair.
-  - The tier-38 governments were meant for a fifth age and are left unimplemented (*"just leave the last tier as unimplemented"*). Tier IV's cards still open at draft 38.
+  - The tier-38 governments were meant for a fifth age and are left unimplemented (*"just leave the last tier as unimplemented"*). Since 2026-10-17 Tier IV's cards open at draft 29, with the tier-29 governments (`docs/flags.md` (ccccccc)).
   - Interior Lines takes Machinery's road rule at Machinery's size: a step along a road costs 40% less movement. Machinery's discount is 40%, not 50%. The two add, so with both a road step costs a fifteenth of a move instead of a fifth.
   - The merged levy keeps The Call to the Spear's floor of five citizens.
   - Divine Mandate counts Civic Orders, and the Chiefdom keeps its old chairs (`docs/plans/doctrines-governments-chairs.md`).
