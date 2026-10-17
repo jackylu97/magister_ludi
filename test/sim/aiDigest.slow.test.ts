@@ -659,10 +659,34 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * phase removed, the version at 135), which gives D4's digests exactly on both
  * boards. The duel game adopts 12 governments and the standard one 15.
  * Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E2 (schema 137): moments, records and counts.** Duel
+ * `1b08ba49:270185` → `70666b59:270586`, standard `430a6ef2:959302` →
+ * `b49d4bdb:960141`. Four things moved them:
+ *
+ *   · the cards. Nine Expansionist rows join the deck, and The Land's Great
+ *     Work counts towns of eight citizens. With the cards alone (the phase
+ *     taken out, the version at 136, the town record not written), the duel
+ *     board gives `9a1b8262:270187` and the standard board does not move;
+ *   · the two new town fields: `City.largestSize`, written at every founding
+ *     and every new record, and `City.joinedBy`, written the first time a town
+ *     is joined to its capital by road, with or without a card. They make both
+ *     boards longer;
+ *   · the new `roadJoinings` phase, which raises the revision once more every
+ *     turn;
+ *   · the version, 136 to 137.
+ *
+ * No seat holds an E2 card at turn 120. Checked by taking E2's movers out (the
+ * deck file as E1 left it, the phase removed, the version at 136, the town
+ * record not written), which gives E1's digests exactly on both boards. The
+ * duel game adopts 12 governments and the standard one 15. Nothing stalled and
+ * no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '1b08ba49:270185',
-  standard: '430a6ef2:959302',
+  duel: '70666b59:270586',
+  standard: 'b49d4bdb:960141',
 };
 
 /**

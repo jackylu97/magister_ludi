@@ -3261,6 +3261,24 @@ export function countOf(
       return Math.max(0, Math.floor(playerById(state, playerId)?.unitsLost ?? 0));
     case 'citiesCaptured':
       return Math.max(0, Math.floor(playerById(state, playerId)?.citiesCaptured ?? 0));
+    // Expansionist batch E2, The Book of Settlements: the towns this empire has
+    // founded, its first included. A record, for `citiesCaptured`' reason: a
+    // town lost or razed leaves nothing on the board to say who founded it.
+    case 'citiesFounded':
+      return Math.max(0, Math.floor(playerById(state, playerId)?.citiesFounded ?? 0));
+    case 'citiesAdmitted': {
+      // Expansionist batch E2: the towns a scope admits (The Land's Great Work,
+      // The Great Aqueducts, The Imperial Highways). Founding order, through
+      // the one town walk, and the ordinary scope question asked of each town.
+      // A row with no scope counts nothing, the reading of a missing argument.
+      const test = effect.admits;
+      if (test === undefined) return 0;
+      let total = 0;
+      for (const town of citiesOf(state, playerId)) {
+        if (cityScopeAdmits(state, town, test, playerId)) total += 1;
+      }
+      return total;
+    }
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -4797,6 +4815,9 @@ export function cardProduction(
           to: 'authority',
           amount: 0,
           count: effect.count,
+          // The towns a `citiesAdmitted` count counts (Expansionist batch E2).
+          // Every other count ignores it.
+          admits: effect.admits,
         }),
         effect.per,
         effect.max,
@@ -6492,6 +6513,12 @@ export interface WindfallOccasionFacts {
    * one occasion whose whole subject is a single city — so the figure travels
    * as a fact about the occasion rather than as a city handed to a function
    * that would then have to decide what to do with one on a chop.
+   *
+   * Since Expansionist batch E2 more occasions carry it: the completions (the
+   * town's size when the thing is finished, The Topping Out), the size record
+   * (the new size, The Freedom of the City), the census (the empire's
+   * citizens, The Tax Rolls) and a town's first joining to its capital (the
+   * town's size, The Opening of the Roads).
    */
   population?: number;
   /**
@@ -9137,6 +9164,13 @@ export interface FoundingRider {
    * `raiseToRank`. Empty unless a row with an `escort` found one.
    */
   ranks: { unitId: number; rank: RankId }[];
+  /**
+   * The size the town starts at before `population` is added, where a row
+   * names a share of the largest town (The Great Colonies, Expansionist batch
+   * E2). `foundCityAt` raises the town to it when it is larger than the usual
+   * starting size. Absent when no row names one; the largest of several wins.
+   */
+  startsAt?: number;
 }
 
 /**
@@ -9175,6 +9209,15 @@ export function cardFoundingRider(
     if (effect.claims !== undefined) rider.claims += effect.claims;
     if (escort !== null && effect.rank !== undefined) {
       rider.ranks.push({ unitId: escort.id, rank: effect.rank });
+    }
+    // The Great Colonies (Expansionist batch E2): a share of the largest town
+    // this empire holds now, rounded down. The town being founded is already
+    // on the board at its usual size of one, so counting it changes nothing.
+    if (effect.fromLargest !== undefined && effect.fromLargest > 0) {
+      let largest = 0;
+      for (const town of citiesOf(state, playerId)) largest = Math.max(largest, town.population);
+      const share = Math.floor(largest / effect.fromLargest);
+      if (share > (rider.startsAt ?? 0)) rider.startsAt = share;
     }
   }
   return rider;

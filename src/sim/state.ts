@@ -1386,8 +1386,38 @@ import {
  * **A v135 save is refused and does not replay.** The draft bags hold
  * different cards, and every resolution runs one more phase. The branch
  * migrates nothing, for the reason given under v119.
+ *
+ * v137 (branch `decks`; Expansionist batch E2 of
+ * `docs/plans/expansionist-build-triage.md`, moments, records and counts):
+ * **ten Expansionist cards.** Nine join the Expansionist file, and The Land's
+ * Great Work now counts towns of at least eight citizens, as its text says.
+ * What changes:
+ *
+ *   · two fields join `City`, each absent until it is first written:
+ *     `largestSize`, the most citizens the town has ever had (written by
+ *     `foundCityAt` and `settleSizeRecord`), and `joinedBy`, the empires whose
+ *     capital the town has been joined to by road (written only by the new
+ *     phase);
+ *   · three windfall occasions: a town growing past its largest size
+ *     (`sizeRecord`), the world taking a census (`census`, paid to every real
+ *     empire) and a town first joined to its capital by road
+ *     (`joinedToCapital`). The completion occasions now carry the town's
+ *     population;
+ *   · a tally occasion, `sizeRecord`, and two counts: `citiesFounded` (the
+ *     record `Player.citiesFounded`) and `citiesAdmitted` (the towns a scope
+ *     admits, which a production bonus can read);
+ *   · a founding rider can start a town at a share of the largest town
+ *     (`fromLargest`);
+ *   · a new end-of-turn phase, `roadJoinings`, after `levyReturns` and before
+ *     `collectYields`. It raises the revision once more every turn, and it
+ *     writes `City.joinedBy` for every real empire, with or without the card.
+ *
+ * **A v136 save is refused and does not replay.** The draft bags hold
+ * different cards, every resolution runs one more phase, and towns carry the
+ * two new fields. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 136;
+export const SCHEMA_VERSION = 137;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3691,6 +3721,32 @@ export interface City {
    * the place.
    */
   levy?: CityLevyRecord;
+  /**
+   * **The most citizens this town has ever had** (Expansionist batch E2), for
+   * The Grain Census and The Freedom of the City.
+   *
+   * Written when the town is founded (`foundCityAt`, the founding size) and
+   * raised only by `settleSizeRecord` (`cities.ts`), which growth and every
+   * population grant call. It never falls: a famine or a levy takes a citizen
+   * and leaves the record where it was, so a town that regrows that citizen
+   * has not grown past its record. A captured town keeps it. Absent on a town
+   * made without `foundCityAt` (a test's town), and then `settleSizeRecord`
+   * reads the population before the gain as the record.
+   */
+  largestSize?: number;
+  /**
+   * **The empires whose capital this town has been joined to by road**, in
+   * the order it happened (Expansionist batch E2, The Opening of the Roads).
+   *
+   * Written only by the `roadJoinings` phase (`roadJoinings.ts`). The first
+   * time the town's owner reaches it from its capital by road, the owner's id
+   * is added and the `joinedToCapital` occasion pays. The id is added whether
+   * or not the owner holds a card that pays, so a card seated later pays only
+   * for towns joined after it. It is a list rather than one id, so a town that
+   * changes hands can pay its new owner once, and a town that comes back to an
+   * owner it already paid pays nothing again. Absent until the first joining.
+   */
+  joinedBy?: number[];
 }
 
 /** See `City.levy`. */

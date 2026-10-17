@@ -485,6 +485,10 @@ describe("end-of-turn pipeline", () => {
       // Expansionist batch E1), before `collectYields`, so a returned citizen
       // works this turn's yields. See `returnLeviedCitizens`.
       "levyReturns",
+      // A town joined to its capital by road for the first time pays the
+      // moment (The Opening of the Roads, Expansionist batch E2), before
+      // `collectYields`. See `runRoadJoinings`.
+      "roadJoinings",
       "collectYields",
       "growCities",
       // A town's own renown quietly takes a citizen out of the fields and puts
@@ -904,7 +908,11 @@ describe("the research queue field", () => {
     // 136 since E1: the Expansionist levy cards, three new fields and a new
     // end-of-turn phase, so a v135 log's picks name cards this build deals
     // differently and its resolutions run one phase fewer.
-    expect(SCHEMA_VERSION).toBe(136);
+    // 137 since E2: ten Expansionist cards about moments, records and counts,
+    // two new town fields and a new end-of-turn phase, so a v136 log's picks
+    // name cards this build deals differently and its resolutions run one
+    // phase fewer.
+    expect(SCHEMA_VERSION).toBe(137);
   });
 });
 

@@ -427,8 +427,11 @@ describe('the schema, as landed', () => {
     // **And Expansionist batch E1** (the levies): ten more. Ten new
     // Expansionist rows came live; Seasonal Levies and The General Levy were
     // changed in place and were already live.
-    expect(live).toBe(439);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(439);
+    // **And Expansionist batch E2** (moments, records and counts): nine more.
+    // Nine new Expansionist rows came live; The Land's Great Work was changed
+    // in place and was already live.
+    expect(live).toBe(448);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(448);
   });
 
   /**
@@ -623,7 +626,11 @@ describe('the schema, as landed', () => {
     // 136 since E1: the Expansionist levy cards, three new fields and a new
     // end-of-turn phase, so a v135 log's picks name cards this build deals
     // differently and its resolutions run one phase fewer.
-    expect(SCHEMA_VERSION).toBe(136);
+    // 137 since E2: ten Expansionist cards about moments, records and counts,
+    // two new town fields and a new end-of-turn phase, so a v136 log's picks
+    // name cards this build deals differently and its resolutions run one
+    // phase fewer.
+    expect(SCHEMA_VERSION).toBe(137);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

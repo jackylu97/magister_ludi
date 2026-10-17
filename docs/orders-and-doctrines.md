@@ -327,6 +327,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Builders' Levy | 1 | ◆ | S | Towns may spend a citizen to send production equal to the food it took to grow it to a world wonder being built in another of your towns. |
 | The Labour Feasts | 1 | ◆ | S | Needs a levy. After a town spends a citizen on a levy, it gains +1 culture for every wild tile it works, for ten turns. At most once every ten turns. |
 | The Gleaners | 1 | ● | S | Needs a levy. After a town spends a citizen on a levy, it gains +3 food for ten turns. At most once every ten turns. |
+| The Grain Census | 1 | ◆ | P | While seated, this card gains +1 production and +1 gold each time one of your towns grows past its largest size. It starts at +2 of each. |
 | The Watercourses | 2 | ◆ | S | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step. |
 | The Highlands | 2 | ● | S | Mines and quarries on hills gain +2 science and +1 production. |
 | The Coast | 2 | ● | S | Worked fishing boats gain +3 food and +3 culture. |
@@ -345,6 +346,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Labour Rolls | 2 | ◆ | P | Needs a levy. +1% production and food for every two citizens you have levied this game, at most +30%. |
 | The Terraces of Moray | 2 | ◆ | S | Towns beside a mountain may spend a citizen to gain science equal to the food it took to grow that citizen. |
 | The Colonists | 2 | ◆ | S | Towns of at least six citizens may spend a citizen to raise a settler. |
+| The Book of Settlements | 2 | ◆ | P | +3% production and gold for every town you have founded this game, at most +30%. |
 | The Woodwrights | 3 | ○ | S | Forest and jungle chops grant 150% more production. |
 | Seasonal Levies | 3 | ◆ | S | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. |
 | The Long Tending | 3 | ○ | S | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. |
@@ -365,6 +367,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Mit'a | 3 | ○ | S | Needs a levy. A citizen spent on a levy returns to its town twenty turns later. |
 | The Slack Season | 3 | ◆ | S | Needs a levy. Every twentieth turn, after the harvest, your towns may levy whatever their wait. |
 | The Trained Bands | 3 | ◆ | S | Needs a levy. Units raised by a levy start as Veterans. |
+| The Freedom of the City | 3 | ◆ | S | The first time each of your towns reaches fifteen citizens, and again at twenty, it gains production equal to forty times its population. |
+| The Topping Out | 3 | ◆ | S | Finishing a wonder grants that town production equal to twenty times its population. |
+| The Tax Rolls | 3 | ◆ | S | When the world takes a census, gain gold equal to five times your citizens. |
+| The Opening of the Roads | 3 | ◆ | S | When one of your towns is first joined to your capital by road, it gains production equal to twenty times its population. |
+| The Great Colonies | 3 | ○ | S | Towns you found start with a third of the citizens of your largest town. |
 | The Land's Great Work | 4 | ○ | S | The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%. |
 | The Garden of the World | 4 | ○ | S | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. |
 | The Corvée | 4 | ○ | S | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. |
@@ -376,6 +383,8 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The General Levy | 4 | ○ | S | Your towns may spend one citizen to raise their best melee unit. At peace a town may do this once every five turns, sharing the levy limit; while you are at war, once every turn. Units raised this way cost no upkeep inside your borders. |
 | The Domesday Survey | 4 | ○ | S | Goal: own at least 150 hexes and work at least 50 improved or tended tiles at the same time. Reward: each town gains production equal to five times the improved or tended tiles it works, toward what it is building, and you gain a great engineer. The card then leaves its chair. |
 | The Theodosian Walls | 4 | ◆ | S | Your towns gain +1 defence for every two citizens. |
+| The Great Aqueducts | 4 | ○ | S | The town raising the Magnum Opus gains +5% production toward it for each of your towns with an Aqueduct, at most +40%. |
+| The Imperial Highways | 4 | ○ | S | The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%. |
 
 ### Commerce
 
@@ -686,7 +695,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Polders** — The ground under a hex never changes during a game, by a deliberate rule, and the board would have to redraw the hex. † a worker turns shallow sea beside your land into grassland
 - **Public Works** — A great engineer has no such act yet, and terraces belong to one leader alone. † a great engineer may finish an aqueduct in a town, or raise terraces on its worked hills
 - **The Wide Country** — For now only hexes bought with gold count toward the goal, and instead of citizens in the smallest towns, small towns grow faster for the same span.
-- **The Land's Great Work** — For now the bonus counts the citizens of your whole empire rather than its large towns.
 - **The Heartland** — A reward cannot yet mark one town for the rest of the game. † one town working a great stretch of rich land becomes your heartland, cheaper to hold and happier for good
 - **The Master of Works** — For now a great engineer's act simply pays half as much again, wherever it is spent.
 - **The Great Migration** — No rule yet moves a citizen from one town to another, let alone between empires. † unhappy foreign towns near your border lose citizens to your happier towns

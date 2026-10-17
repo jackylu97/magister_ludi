@@ -1470,7 +1470,17 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   // with the question since Dominion batch D1: The Armed Colony's row applies
   // only to a town founded beside one of the empire's military units.
   const rider = cardFoundingRider(state, ownerId, { col: tile.col, row: tile.row });
+  // The Great Colonies (Expansionist batch E2): the town starts at the larger
+  // of its usual size and the law's share of the largest town. The extra
+  // citizens below (The Seed Grain) are added after it.
+  if (rider.startsAt !== undefined && rider.startsAt > city.population) {
+    city.population = rider.startsAt;
+  }
   if (rider.population > 0) city.population += rider.population;
+  // **The town's largest size starts at its founding size** (Expansionist
+  // batch E2). Founding is not growth, so nothing is paid for it; the record
+  // rises later through `settleSizeRecord`.
+  city.largestSize = city.population;
   // The Beating of the Bounds: extra hexes beyond the first ring, each the one
   // the town's borders would grow into next. A town hemmed in claims fewer.
   for (let extra = 0; extra < rider.claims; extra++) {
@@ -3235,6 +3245,7 @@ export interface GrowthCompletion {
 export function settleGrowth(state: GameState, city: City): GrowthCompletion | null {
   const plan = planGrowth(state, city);
   if (!plan) return null;
+  const before = city.population;
   city.foodBasket -= plan.cost;
   city.population = plan.population;
   // **A mouth is a happiness cost** (batch M3, `slate.ts`): `explainHappiness`
@@ -3244,6 +3255,7 @@ export function settleGrowth(state: GameState, city: City): GrowthCompletion | n
   // below read the empire it is actually paying into.
   bumpEconomy(state);
   payGrowthRider(state, city);
+  settleSizeRecord(state, city, before);
   return { city, population: plan.population };
 }
 
@@ -3270,6 +3282,39 @@ function payGrowthRider(state: GameState, city: City): void {
   });
   if (payout.grants.length === 0) return;
   payWindfallGrants(state, player, payout, { col: city.col, row: city.row });
+}
+
+/**
+ * **A town that has grown past its largest size** raises its record and pays
+ * the moment (Expansionist batch E2): The Grain Census counts it, and The
+ * Freedom of the City pays on it.
+ *
+ * `before` is the town's population before the gain. The record is
+ * `City.largestSize`, or `before` on a town that has none. For each new size
+ * above the record, in rising order, this writes the `sizeRecord` tally and
+ * pays the `sizeRecord` windfall with that size as the population. So a town
+ * that gains two citizens above its record at once counts twice, and a rider
+ * narrowed to fifteen citizens still pays when the town goes from fourteen to
+ * sixteen.
+ *
+ * Called by the two routines that add citizens, `settleGrowth` and
+ * `settlePopulationWindfall`, after their own riders. A citizen coming home
+ * from a levy reaches it too (the triage's reading 12). The payout lands in
+ * the town and is settled by those callers, as `payGrowthRider`'s is. The
+ * wild keeps no record of its own moments.
+ */
+function settleSizeRecord(state: GameState, city: City, before: number): void {
+  const record = city.largestSize ?? before;
+  if (city.population <= record) return;
+  city.largestSize = city.population;
+  const player = playerById(state, city.ownerId);
+  if (!player || player.barbarian === true) return;
+  for (let size = record + 1; size <= city.population; size++) {
+    recordScalingOccasion(state, player.id, 'sizeRecord');
+    const payout = windfallPayout(state, player.id, 'sizeRecord', 0, 0, { population: size });
+    if (windfallPayoutIsEmpty(payout)) continue;
+    payWindfallGrants(state, player, payout, { col: city.col, row: city.row });
+  }
 }
 
 /**
@@ -3339,6 +3384,7 @@ export function settlePopulationWindfall(
 ): number {
   const grant = Math.max(0, Math.floor(points));
   if (grant === 0) return city.population;
+  const before = city.population;
   city.population += grant;
   // `settleGrowth`'s line, for a citizen that arrived by grant rather than by
   // harvest — the meters charge for it either way (batch M3, `slate.ts`).
@@ -3346,6 +3392,9 @@ export function settlePopulationWindfall(
   if (options.riders !== false) {
     for (let i = 0; i < grant; i++) payGrowthRider(state, city);
   }
+  // The size record, with or without the growth riders: a citizen coming home
+  // can still take a town past its largest size (Expansionist batch E2).
+  settleSizeRecord(state, city, before);
   settleProductionWindfall(state, city);
   refreshCityDerived(state, city);
   return city.population;
@@ -5054,8 +5103,12 @@ function payCompletionRiders(
   const player = playerById(state, city.ownerId);
   if (!player) return;
   const at = { col: city.col, row: city.row };
+  // **The town's size travels with the occasion** (Expansionist batch E2, The
+  // Topping Out): this routine holds the town, and a rider scaled by its
+  // population reads it here. A caller that names a population keeps it.
+  const told: WindfallOccasionFacts = { population: city.population, ...facts };
   for (const occasion of ['completion', kind === 'unit' ? 'unitCompletion' : 'buildingCompletion'] as const) {
-    const payout = windfallPayout(state, player.id, occasion, 0, 0, facts);
+    const payout = windfallPayout(state, player.id, occasion, 0, 0, told);
     // **Anything at all on the payout is paid**, not the yields alone: a rider
     // may hang a timed blessing on the realm (Dinocrates), bank renown, gift a
     // piece or heal the army, and a guard that read only `grants` dropped every

@@ -747,10 +747,18 @@ describe('determinism', () => {
    * never reach this board. Checked by taking E1's movers out (the deck file as
    * D4 left it, the phase removed, the version at 135), which gives D4's hashes
    * exactly.
+   *
+   * **Expansionist batch E2 (moments, records and counts) moved the hash and
+   * not the length** at both seeds. Two things moved it: the version, 136 to
+   * 137, and the new `roadJoinings` phase, which raises the revision once more
+   * a turn. Nobody here founds a town or drafts a card, so the two new town
+   * fields and the new cards never reach this board. Checked by taking E2's
+   * movers out (the deck file as E1 left it, the phase removed, the version at
+   * 136 and the town record not written), which gives E1's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '3b2c1bda:188932',
-    2026: '10a5f41b:188488',
+    11: '81f20538:188932',
+    2026: '3c531601:188488',
   };
 
   for (const seed of [11, 2026]) {

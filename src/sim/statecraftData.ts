@@ -2496,6 +2496,27 @@ export type CountKind =
    */
   | 'citiesCaptured'
   /**
+   * **Towns this empire has founded in the game**: The Book of Settlements
+   * (Expansionist batch E2). It reads `Player.citiesFounded`, the record
+   * `foundCityAt` raises for every town an empire founds, its first town
+   * included. A town lost later still counts, because it was still founded.
+   */
+  | 'citiesFounded'
+  /**
+   * **Towns this empire holds that a town scope admits**: The Land's Great
+   * Work (towns of at least eight citizens), The Great Aqueducts (towns with an
+   * Aqueduct) and The Imperial Highways (towns joined to the capital by road),
+   * Expansionist batch E2.
+   *
+   * The scope is the count's argument, `CardPaysEffect.admits`, and it is the
+   * ordinary `CityScope`, asked of each town in founding order. So a card that
+   * counts towns of some other kind is a data row. A row that names no scope
+   * counts nothing, which is `tilesInBorders`' reading of a missing argument.
+   * The capital counts when the scope admits it; the `connected` scope never
+   * does, because the capital is what the other towns are joined to.
+   */
+  | 'citiesAdmitted'
+  /**
    * Wonders standing **anywhere in the world**, yours and everybody's — The
    * Grand Tour's "seen or not".
    *
@@ -3183,16 +3204,23 @@ export type TallyOccasion =
    * each hex, so a raid that also tears up the works beside it (The Horde)
    * counts every hex it burnt. The wild keeps no tally.
    */
-  | 'hexPillaged';
-// **There is deliberately no `cityGrew`**, and the audit asked for one: every
-// growth card in the six decks is bound by the design doc's standing clause
-// that natural-growth rewards *count only growth beyond the town's historical
-// population maximum* (`docs/six-decks-first-cut.md`, the Expansionist and
-// Magisterial convention blocks). Nothing in the game remembers the largest a
-// town has ever been, so a bare "a town grew" counter would have paid The
-// Growing Annals twice for one citizen a levy took and the fields gave back.
-// The member is one line the day a town keeps its high-water mark; the counter
-// without it is the card bent to fit.
+  | 'hexPillaged'
+  /**
+   * One of this empire's towns **grew past the most citizens it has ever
+   * had**: The Grain Census (Expansionist batch E2). Written in
+   * `settleSizeRecord` (`cities.ts`), once for each new size, so a town that
+   * gains two citizens above its record at once counts twice.
+   *
+   * This is the growth counter the design doc asks for. Its standing clause
+   * says that rewards for natural growth count only growth beyond a town's
+   * largest size (`docs/six-decks-first-cut.md`, the Expansionist and
+   * Magisterial convention blocks), and `City.largestSize` is that size. A
+   * citizen that a levy took and that the town regrows is not counted again.
+   */
+  | 'sizeRecord';
+// There is still no bare "a town grew" counter, and there should not be one:
+// it would pay twice for a citizen that a levy took and the fields gave back.
+// `sizeRecord` above is the counter the design doc's clause allows.
 
 /** Every tally occasion, for the register test that pins the hooks. */
 export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
@@ -3212,6 +3240,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'foreignCityConverted',
   'rankEarned',
   'hexPillaged',
+  'sizeRecord',
 ];
 
 /** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
@@ -4338,7 +4367,35 @@ export type WindfallOccasion =
    * filled, a card pacified it at once (The Bakufu, The Consular Roads), or it
    * was pacified at capture (Pax Romana). It carries the town's `population`.
    */
-  | 'pacified';
+  | 'pacified'
+  /**
+   * **A town grew past the most citizens it has ever had** (Expansionist batch
+   * E2): The Freedom of the City. Paid by `settleSizeRecord` (`cities.ts`)
+   * once for each new size, in rising order, with that size as `population`.
+   * Any gain reaches it: growth, a population grant or a citizen coming home
+   * from a levy. A town's record never falls, so a rider narrowed by
+   * `atPopulation` pays once in the life of a town. Food and production land
+   * in the town.
+   */
+  | 'sizeRecord'
+  /**
+   * **The world took a census** (Expansionist batch E2): The Tax Rolls. Paid
+   * by `runCensus` (`census.ts`) to every real empire, in seat order, with the
+   * empire's citizens as `population`. The census itself pays only its leader
+   * (a Triumph); this occasion pays every empire's own cards. There is no hex,
+   * so food and production land in the capital.
+   */
+  | 'census'
+  /**
+   * **A town was joined to its owner's capital by road for the first time**
+   * (Expansionist batch E2): The Opening of the Roads. Paid by the
+   * `roadJoinings` phase (`roadJoinings.ts`) with the town's `population`. The
+   * town keeps a list of the empires it has paid this for
+   * (`City.joinedBy`), so each owner is paid once for each town, and a town
+   * that loses its road and is joined again pays nothing more. Food and
+   * production land in the town.
+   */
+  | 'joinedToCapital';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
@@ -4928,6 +4985,14 @@ export interface CardPaysEffect extends CardYieldBag {
    */
   tile?: TileCondition;
   /**
+   * Which towns `citiesAdmitted` counts: the ordinary `CityScope` (Expansionist
+   * batch E2). Absent counts nothing; see the count.
+   *
+   * Named apart from `scope`, which says which towns a line is *paid* in. The
+   * two are different questions, and a row could carry both.
+   */
+  admits?: CityScope;
+  /**
    * Which type `slottedOrdersOfSlot` counts. Absent counts every seated Order
    * whatever its type, which is the honest reading of an unnamed argument
    * rather than a guard.
@@ -5327,6 +5392,12 @@ export interface CardProductionBonusEffect {
    * what every row written before this field meant.
    */
   count?: CountKind;
+  /**
+   * Which towns a `citiesAdmitted` count counts (Expansionist batch E2: The
+   * Land's Great Work, The Great Aqueducts, The Imperial Highways). Handed to
+   * `countOf` with the count. `CardPaysEffect.admits` says the rest.
+   */
+  admits?: CityScope;
   /** How many of `count` buy one helping of `percent`. Default 1. */
   per?: number;
   /** The most helpings that ever pay — The Great Consecration's eight. */
@@ -5856,6 +5927,11 @@ export interface CardWindfallRiderEffect {
    * time, and that is the honest reading of a rule made of comparisons rather
    * than of a stamp on the city (the same discipline `TimedEffect` keeps one
    * system over).
+   *
+   * **The size record carries the same fact** (Expansionist batch E2, The
+   * Freedom of the City). On `sizeRecord` the town has reached that size for
+   * the first time, and its record never falls, so there the rider really
+   * does pay once in a town's life.
    */
   atPopulation?: number;
   /**
@@ -6045,6 +6121,18 @@ export interface CardFoundingRiderEffect {
    * way pays the cards that pay when a unit earns a rank.
    */
   rank?: RankId;
+  /**
+   * **The new town starts with one citizen for every this many citizens of
+   * your largest town**, rounded down: The Great Colonies' "a third", which
+   * is `3` (Expansionist batch E2).
+   *
+   * A floor on the starting size, not an addition: the town starts with the
+   * larger of its usual size and this share (the triage's reading 14). The
+   * extra citizens of `population` (The Seed Grain) are added after it. The
+   * largest town is the largest one now, read when the town is founded, not
+   * the largest size any town has ever had.
+   */
+  fromLargest?: number;
 }
 
 /** A payout scaled by a count. See `CountKind` and `CardPayout`. */

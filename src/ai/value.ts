@@ -3636,6 +3636,20 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // D4): almost every town in unrest is a capture, so the rate is the
       // capture's own reading, the threat over the horizon.
       return war;
+    case 'sizeRecord':
+      // **A town passes its largest size about as often as it grows**
+      // (Expansionist batch E2): a growth lost to a famine or a levy and grown
+      // back is not a record, and that is rare enough that growth's own reading
+      // is the honest middle.
+      return tempo.growths / turns;
+    case 'census':
+      // **The calendar's own rate** (Expansionist batch E2): one census every
+      // `rules.census.min` to `max` turns, drawn evenly, so the mean gap.
+      return 2 / Math.max(2, RULES.census.min + RULES.census.max);
+    case 'joinedToCapital':
+      // **Nearly every town the empire founds is joined in time** (Expansionist
+      // batch E2), so the founding's own reading.
+      return ctx.cities / turns;
     default:
       return unreadOccasion(occasion);
   }
@@ -4204,6 +4218,17 @@ function scoreFoundingRider(
     // A town joined to the realm by road pays the connection line every turn,
     // quoted per head of the pair it joins (`rules.trade.connectionPerPop`).
     each += RULES.trade.connectionPerPop * voiceWeight(ctx, 'gold');
+  }
+  if (effect.fromLargest !== undefined && effect.fromLargest > 0) {
+    // The Great Colonies (Expansionist batch E2): the citizens a new town
+    // starts with above the usual one, read off this empire's largest town
+    // now, at the price of the citizen above.
+    let largest = 0;
+    for (const city of ctx.state.cities) {
+      if (city.ownerId === ctx.playerId) largest = Math.max(largest, city.population);
+    }
+    const extra = Math.max(0, Math.floor(largest / effect.fromLargest) - 1);
+    if (extra > 0) each += explainLump({ food: extra * growthThreshold(ctx) }, ctx).total;
   }
   return each * rate;
 }

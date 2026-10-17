@@ -1376,7 +1376,18 @@ function describeEffect(
           ? ''
           : ` per ${countWords(
               effect.per,
-              countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count }, ''),
+              countNoun(
+                {
+                  kind: 'pays',
+                  where: 'empire',
+                  basis: 'count',
+                  count: effect.count,
+                  // The towns a `citiesAdmitted` count counts (Expansionist
+                  // batch E2). Every other count ignores it.
+                  admits: effect.admits,
+                },
+                '',
+              ),
             )}` +
             (effect.max === undefined
               ? ''
@@ -1654,12 +1665,25 @@ function describeEffect(
               'earning a rank',
               `becoming ${indefinite(rankName(effect.rank))} ${rankName(effect.rank)}`,
             );
+      // The size a town reaches (`atPopulation`), said inside the occasion's
+      // own phrase where the table has one ("a city reaching 15 citizens for
+      // the first time"), and in the parenthesis otherwise (Expansionist batch
+      // E2, The Freedom of the City). Before E2 the narrowing was not printed.
+      const sizedWords =
+        effect.atPopulation === undefined ? undefined : AT_POPULATION_WORDS[effect.occasion];
+      if (effect.atPopulation !== undefined && sizedWords === undefined) {
+        narrowings.push(`at ${effect.atPopulation} citizens`);
+      }
+      const sized =
+        effect.atPopulation === undefined || sizedWords === undefined
+          ? said
+          : sizedWords(effect.atPopulation);
       // The Flood Festival names the improvement it pays for, inside the
       // occasion's own phrase, the way "a building" narrows "anything" above.
       const named =
         effect.improvement === undefined
-          ? said
-          : said.replace(
+          ? sized
+          : sized.replace(
               'an improvement',
               (() => {
                 const name = improvementDef(effect.improvement).name;
@@ -1708,7 +1732,11 @@ function describeEffect(
           // the bare measure ("culture equal to its strength"); a fraction reads
           // as a percentage, because "0.1 times the gold paid" is not a sentence
           // anybody has said out loud.
-          const measure = MEASURE_WORDS[grant.fromOccasion];
+          // An occasion about the whole empire says whose measure it is (the
+          // census's citizens are yours, not a town's).
+          const measure =
+            OCCASION_MEASURE_WORDS[effect.occasion]?.[grant.fromOccasion] ??
+            MEASURE_WORDS[grant.fromOccasion];
           const share = grant.amount;
           const figure =
             share === 1
@@ -1896,6 +1924,17 @@ function describeEffect(
         const hexes = effect.claims === 1 ? 'hex' : 'hexes';
         out.push({
           text: `new cities claim ${effect.claims} more ${hexes} beside their borders at once${limit}`,
+        });
+      }
+      if (effect.fromLargest !== undefined && effect.fromLargest > 0) {
+        // The Great Colonies (Expansionist batch E2). A share with a common
+        // name reads as that name ("a third"); any other reads as a rate.
+        const share = SHARE_WORDS[effect.fromLargest];
+        out.push({
+          text:
+            share === undefined
+              ? `new cities start with one citizen for every ${effect.fromLargest} citizens of your largest city${limit}`
+              : `new cities start with ${share} of the citizens of your largest city, rounded down${limit}`,
         });
       }
       if (effect.escort !== undefined && effect.rank !== undefined) {
@@ -2988,6 +3027,14 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
     return effect.bank === undefined
       ? { one: `${bank} ${shelf}building`, many: `${bank} ${shelf}buildings` }
       : { one: `${shelf}building ${bank}`, many: `${shelf}buildings ${bank}` };
+  }
+  // **The towns a scope admits, said in the scope's own words** (Expansionist
+  // batch E2): "city of 8 or more citizens", "city with an Aqueduct", "city
+  // joined to your capital by road". `eachWords` is the scope's one
+  // sentence-builder with the leading "every" taken off.
+  if (effect.count === 'citiesAdmitted' && effect.admits !== undefined) {
+    const one = eachWords(effect.admits);
+    return { one, many: one.replace(/\bcity\b/, 'cities') };
   }
   if (effect.count === 'tilesInBorders' && effect.tile !== undefined) {
     const words = tileConditionWords(effect.tile);
@@ -4352,6 +4399,44 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   rankEarned: 'one of your units earning a rank',
   // Dominion batch D4, The Provincial Census.
   pacified: 'pacifying a city',
+  // Expansionist batch E2: The Freedom of the City, The Tax Rolls and The
+  // Opening of the Roads.
+  sizeRecord: 'a city growing past its largest size',
+  census: 'the world taking a census',
+  joinedToCapital: 'a city being joined to your capital by road for the first time',
+};
+
+/**
+ * The occasion narrowed to the size a town reaches (`atPopulation`), where the
+ * size belongs inside the phrase (Expansionist batch E2). An occasion missing
+ * here says the size in the parenthesis after the phrase instead.
+ */
+const AT_POPULATION_WORDS: Partial<Record<WindfallOccasion, (size: number) => string>> = {
+  growth: (size) => `a city growing to ${size} citizens`,
+  sizeRecord: (size) => `a city reaching ${size} citizens for the first time`,
+};
+
+/**
+ * What an occasion measures, where `MEASURE_WORDS`' "its" would name the wrong
+ * thing (Expansionist batch E2). The census carries the empire's citizens as
+ * its population, and a completion carries the size of the city that finished
+ * the thing, which "its" after "completing a wonder" would leave unclear.
+ * Every other occasion reads `MEASURE_WORDS`.
+ */
+const OCCASION_MEASURE_WORDS: Partial<
+  Record<WindfallOccasion, Partial<Record<OccasionMeasure, string>>>
+> = {
+  census: { population: 'your citizens' },
+  completion: { population: "the city's population" },
+  buildingCompletion: { population: "the city's population" },
+  unitCompletion: { population: "the city's population" },
+};
+
+/** The founding shares with a common name (The Great Colonies' "a third"). */
+const SHARE_WORDS: Partial<Record<number, string>> = {
+  2: 'half',
+  3: 'a third',
+  4: 'a quarter',
 };
 
 /**
@@ -4650,6 +4735,14 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'city you have captured this game',
     many: 'cities you have captured this game',
   },
+  // Expansionist batch E2, The Book of Settlements.
+  citiesFounded: {
+    one: 'city you have founded this game',
+    many: 'cities you have founded this game',
+  },
+  // Expansionist batch E2. The words are the scope's, in `countNoun`; this is
+  // what a row that names no scope says, and such a row counts nothing.
+  citiesAdmitted: { one: 'city', many: 'cities' },
   followingCities: { one: 'city that follows you', many: 'cities that follow you' },
   followingForeign: {
     one: 'foreign city that follows you',
@@ -4774,6 +4867,12 @@ const TALLY_WORDS: Record<TallyOccasion, PluralWords> = {
   rankEarned: { one: 'rank your units have earned', many: 'ranks your units have earned' },
   // Dominion batch D3, The Captive Craftsmen.
   hexPillaged: { one: 'hex you have pillaged', many: 'hexes you have pillaged' },
+  // Expansionist batch E2, The Grain Census. One for each citizen above a
+  // town's record, which is what the tally counts.
+  sizeRecord: {
+    one: 'citizen your cities have grown past their largest size',
+    many: 'citizens your cities have grown past their largest size',
+  },
 };
 
 /**
@@ -5170,6 +5269,13 @@ const COMMISSION_COUNTED_WORDS: Record<
   // Dominion batch D1. No commission counts ranks yet; the table is total.
   rankEarned: { verb: 'earn', one: 'rank with your units', many: 'ranks with your units', counter: 'ranks earned' },
   hexPillaged: { verb: 'pillage', one: 'hex', many: 'hexes', counter: 'hexes pillaged' },
+  // Expansionist batch E2. No commission counts this yet; the table is total.
+  sizeRecord: {
+    verb: 'grow',
+    one: "citizen past a city's largest size",
+    many: "citizens past your cities' largest sizes",
+    counter: 'citizens past a record',
+  },
 };
 
 /**

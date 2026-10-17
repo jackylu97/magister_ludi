@@ -763,6 +763,44 @@
         }
       ]
     },
+    "theGrainCensus": {
+      "name": "The Grain Census",
+      "decks": ["expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Count the granaries, and you have counted the kingdom.",
+      "text": "While seated, this card gains +1 production and +1 gold each time one of your towns grows past its largest size. It starts at +2 of each.",
+      "effects": [
+        { "kind": "pays", "where": "empire", "gold": 2 },
+        {
+          "kind": "pays",
+          "where": "city",
+          "scope": { "test": "capital" },
+          "production": 2
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "tally",
+          "tally": "sizeRecord"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
+          "count": "tally",
+          "tally": "sizeRecord",
+          "scope": { "test": "capital" }
+        }
+      ]
+    },
     "theWatercourses": {
       "name": "The Watercourses",
       "decks": ["expansionist"],
@@ -1299,6 +1337,38 @@
         { "kind": "levy", "use": "settler", "minPopulation": 6 }
       ]
     },
+    "theBookOfSettlements": {
+      "name": "The Book of Settlements",
+      "decks": ["expansionist"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Every name in the book is a town that somebody walked out to found.",
+      "text": "+3% production and gold for every town you have founded this game, at most +30%.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "production",
+          "percent": 3,
+          "stage": "empire",
+          "count": "citiesFounded",
+          "max": 10
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "percent": 3,
+          "stage": "empire",
+          "count": "citiesFounded",
+          "max": 10
+        }
+      ]
+    },
     "theWoodwrights": {
       "name": "The Woodwrights",
       "decks": ["expansionist"],
@@ -1807,6 +1877,115 @@
         }
       ]
     },
+    "theFreedomOfTheCity": {
+      "name": "The Freedom of the City",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "A city that size makes its own laws, and pays for its own walls.",
+      "text": "The first time each of your towns reaches fifteen citizens, and again at twenty, it gains production equal to forty times its population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "sizeRecord",
+          "atPopulation": 15,
+          "grant": {
+            "yield": "production",
+            "amount": 40,
+            "fromOccasion": "population"
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "sizeRecord",
+          "atPopulation": 20,
+          "grant": {
+            "yield": "production",
+            "amount": 40,
+            "fromOccasion": "population"
+          }
+        }
+      ]
+    },
+    "theToppingOut": {
+      "name": "The Topping Out",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "When the last stone is set, the whole town comes to the feast.",
+      "text": "Finishing a wonder grants that town production equal to twenty times its population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "completion",
+          "wonder": true,
+          "grant": {
+            "yield": "production",
+            "amount": 20,
+            "fromOccasion": "population"
+          }
+        }
+      ]
+    },
+    "theTaxRolls": {
+      "name": "The Tax Rolls",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "Every household is counted, and every household pays.",
+      "text": "When the world takes a census, gain gold equal to five times your citizens.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "census",
+          "grant": {
+            "yield": "gold",
+            "amount": 5,
+            "fromOccasion": "population"
+          }
+        }
+      ]
+    },
+    "theOpeningOfTheRoads": {
+      "name": "The Opening of the Roads",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The first cart from the capital brings the market with it.",
+      "text": "When one of your towns is first joined to your capital by road, it gains production equal to twenty times its population.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "joinedToCapital",
+          "grant": {
+            "yield": "production",
+            "amount": 20,
+            "fromOccasion": "population"
+          }
+        }
+      ]
+    },
+    "theGreatColonies": {
+      "name": "The Great Colonies",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "The mother city sends out a third of her people, and they take her name with them.",
+      "text": "Towns you found start with a third of the citizens of your largest town.",
+      "effects": [
+        { "kind": "foundingRider", "fromLargest": 3 }
+      ]
+    },
     "theLandsGreatWork": {
       "name": "The Land's Great Work",
       "decks": ["expansionist"],
@@ -1816,15 +1995,14 @@
       "type": "economic",
       "flavor": "The harvest raises the monument, and the monument eats the harvest.",
       "text": "The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%.",
-      "note": "For now the bonus counts the citizens of your whole empire rather than its large towns.",
       "effects": [
         {
           "kind": "productionBonus",
           "category": "building",
           "building": "theMagnumOpus",
           "percent": 5,
-          "count": "population",
-          "per": 8,
+          "count": "citiesAdmitted",
+          "admits": { "test": "populationAtLeast", "value": 8 },
           "max": 8
         }
       ]
@@ -2112,6 +2290,48 @@
           "amount": 1,
           "count": "population",
           "per": 2
+        }
+      ]
+    },
+    "theGreatAqueducts": {
+      "name": "The Great Aqueducts",
+      "decks": ["expansionist"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "Every town with running water sends its best masons to the great work.",
+      "text": "The town raising the Magnum Opus gains +5% production toward it for each of your towns with an Aqueduct, at most +40%.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 5,
+          "count": "citiesAdmitted",
+          "admits": { "test": "hasBuilding", "building": "aqueduct" },
+          "max": 8
+        }
+      ]
+    },
+    "theImperialHighways": {
+      "name": "The Imperial Highways",
+      "decks": ["expansionist"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "Every road in the empire leads to the great work.",
+      "text": "The town raising the Magnum Opus gains +3% production toward it for every town joined to your capital by road, at most +45%.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "building": "theMagnumOpus",
+          "percent": 3,
+          "count": "citiesAdmitted",
+          "admits": { "test": "connected" },
+          "max": 15
         }
       ]
     },

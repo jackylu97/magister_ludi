@@ -144,6 +144,7 @@ import {
 // Straight from the evaluator: the drill phase (Dominion batch D1).
 import { drillUnits } from "./statecraft/evaluator";
 import { returnLeviedCitizens } from "./levies";
+import { runRoadJoinings } from "./roadJoinings";
 import { type PeaceOutcome, settlePeace } from "./diplomacy";
 import { pruneTruces } from "./wars";
 // The bargains' own broom, beside the truces': both sweep rows whose absolute
@@ -613,6 +614,16 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // is written as an absolute turn when the levy is spent, so this phase is a
     // comparison and never a countdown. See `returnLeviedCitizens`.
     run: (state) => returnLeviedCitizens(state),
+  },
+  {
+    name: "roadJoinings",
+    // A town joined to its capital by road for the first time pays the moment
+    // (The Opening of the Roads, Expansionist batch E2). **Before
+    // `collectYields`**, so hammers a card pays land before this turn's
+    // production is settled. Every real empire's joined towns are recorded,
+    // with or without the card, so a card seated later pays nothing for the
+    // past. See `runRoadJoinings`.
+    run: (state) => runRoadJoinings(state),
   },
   {
     name: "collectYields",

@@ -1948,7 +1948,11 @@ describe("determinism", () => {
     // 136 since E1: the Expansionist levy cards, three new fields and a new
     // end-of-turn phase, so a v135 log's picks name cards this build deals
     // differently and its resolutions run one phase fewer.
-    expect(SCHEMA_VERSION).toBe(136);
+    // 137 since E2: ten Expansionist cards about moments, records and counts,
+    // two new town fields and a new end-of-turn phase, so a v136 log's picks
+    // name cards this build deals differently and its resolutions run one
+    // phase fewer.
+    expect(SCHEMA_VERSION).toBe(137);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -5836,8 +5840,10 @@ describe("the user's card pass of 2026-09-03", () => {
       "+1 faith on every forest hex",
       "+1 culture on every jungle hex",
     ]);
+    // The size the rider is narrowed to is printed since Expansionist batch
+    // E2. Before it the words dropped it and read as every growth.
     expect(said("firstFruitsOffering")).toEqual([
-      "a city growing grants +10 faith",
+      "a city growing to 2 citizens grants +10 faith",
     ]);
   });
 });

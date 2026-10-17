@@ -202,6 +202,9 @@ const WRITES: { field: string; pattern: RegExp }[] = [
   // Expansionist batch E1: the citizens an empire has spent on levies, which
   // The Labour Rolls' `citizensLevied` count reads.
   { field: 'citizensLevied', pattern: /\.citizensLevied\s*(=[^=]|\+=)/ },
+  // Expansionist batch E2: the towns an empire has founded, which The Book of
+  // Settlements' `citiesFounded` count reads. `foundCityAt` is its one writer.
+  { field: 'citiesFounded', pattern: /\.citiesFounded\s*(=[^=]|\+=)/ },
 ];
 
 /** How a function says "the world moved under the empire walks". */

@@ -1240,8 +1240,8 @@
   ],
   "firstFruitsOffering": [
    {
-    "raw": "a city growing grants +10 faith",
-    "text": "a city growing grants +10 faith"
+    "raw": "a city growing to 2 citizens grants +10 faith",
+    "text": "a city growing to 2 citizens grants +10 faith"
    }
   ],
   "statuteLabour": [
@@ -3938,6 +3938,24 @@
     "text": "after a town spends a citizen on a levy, it gains +3 food in this city for 10 turns, at most once every 10 turns"
    }
   ],
+  "theGrainCensus": [
+   {
+    "raw": "+2 gold to the empire",
+    "text": "+2 gold to the empire"
+   },
+   {
+    "raw": "+2 production in your capital",
+    "text": "+2 production in your capital"
+   },
+   {
+    "raw": "+1 gold per citizen your cities have grown past their largest size, counted while this Order stands in a slot",
+    "text": "+1 gold per citizen your cities have grown past their largest size, counted while this Order stands in a slot"
+   },
+   {
+    "raw": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order stands in a slot",
+    "text": "+1 production in your capital per citizen your cities have grown past their largest size, counted while this Order stands in a slot"
+   }
+  ],
   "theWatercourses": [
    {
     "raw": "+2 production on every hex with a [[improvement:farm|Farm]] that is beside fresh water or beside a [[improvement:farm|Farm]] and beside fresh water",
@@ -4097,6 +4115,16 @@
    {
     "raw": "a town of at least 6 citizens may spend one citizen for a settler (once every 5 turns)",
     "text": "a town of at least 6 citizens may spend one citizen for a settler (once every 5 turns)"
+   }
+  ],
+  "theBookOfSettlements": [
+   {
+    "raw": "+3% production per city you have founded this game (at most +30% production)",
+    "text": "+3% production per city you have founded this game (at most +30% production)"
+   },
+   {
+    "raw": "+3% gold per city you have founded this game (at most +30% gold)",
+    "text": "+3% gold per city you have founded this game (at most +30% gold)"
    }
   ],
   "theWoodwrights": [
@@ -4268,10 +4296,44 @@
     "text": "military units raised by a levy start as Veterans"
    }
   ],
+  "theFreedomOfTheCity": [
+   {
+    "raw": "a city reaching 15 citizens for the first time grants production equal to 40 times its population",
+    "text": "a city reaching 15 citizens for the first time grants production equal to 40 times its population"
+   },
+   {
+    "raw": "a city reaching 20 citizens for the first time grants production equal to 40 times its population",
+    "text": "a city reaching 20 citizens for the first time grants production equal to 40 times its population"
+   }
+  ],
+  "theToppingOut": [
+   {
+    "raw": "completing a wonder grants production equal to 20 times the city's population",
+    "text": "completing a wonder grants production equal to 20 times the city's population"
+   }
+  ],
+  "theTaxRolls": [
+   {
+    "raw": "the world taking a census grants gold equal to 5 times your citizens",
+    "text": "the world taking a census grants gold equal to 5 times your citizens"
+   }
+  ],
+  "theOpeningOfTheRoads": [
+   {
+    "raw": "a city being joined to your capital by road for the first time grants production equal to 20 times its population",
+    "text": "a city being joined to your capital by road for the first time grants production equal to 20 times its population"
+   }
+  ],
+  "theGreatColonies": [
+   {
+    "raw": "new cities start with a third of the citizens of your largest city, rounded down",
+    "text": "new cities start with a third of the citizens of your largest city, rounded down"
+   }
+  ],
   "theLandsGreatWork": [
    {
-    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per 8 citizens (at most +40%)",
-    "text": "+5% production toward The Magnum Opus per 8 citizens (at most +40%)"
+    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per city of 8 or more citizens (at most +40%)",
+    "text": "+5% production toward The Magnum Opus per city of 8 or more citizens (at most +40%)"
    }
   ],
   "theGardenOfTheWorld": [
@@ -4387,6 +4449,18 @@
    {
     "raw": "every city: +1 city defence per 2 citizens",
     "text": "every city: +1 city defence per 2 citizens"
+   }
+  ],
+  "theGreatAqueducts": [
+   {
+    "raw": "+5% production toward [[building:theMagnumOpus|The Magnum Opus]] per city with an [[building:aqueduct|Aqueduct]] (at most +40%)",
+    "text": "+5% production toward The Magnum Opus per city with an Aqueduct (at most +40%)"
+   }
+  ],
+  "theImperialHighways": [
+   {
+    "raw": "+3% production toward [[building:theMagnumOpus|The Magnum Opus]] per city joined to your capital by road (at most +45%)",
+    "text": "+3% production toward The Magnum Opus per city joined to your capital by road (at most +45%)"
    }
   ],
   "theGrovesAndTheStones": [

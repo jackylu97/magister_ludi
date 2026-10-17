@@ -155,6 +155,25 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   (`OrderDef.needsLevy`) are dealt only to a seat holding a card that grants a
   levy. Refusals are `levyError`; the city panel's "Levy a citizen" menu is
   `src/ui/levyMenu.ts`. Bots do not levy yet.
+- **A town's largest size, and three moments** (Expansionist batch E2).
+  - `City.largestSize` is the most citizens a town has ever had. It is written
+    at the founding and raised by `settleSizeRecord` (`cities.ts`), which
+    `settleGrowth` and `settlePopulationWindfall` call after any gain. It never
+    falls. Each new size writes the `sizeRecord` tally (The Grain Census) and
+    pays the `sizeRecord` windfall occasion with that size (The Freedom of the
+    City).
+  - The `roadJoinings` phase (`roadJoinings.ts`, before `collectYields`)
+    records the first time an owner's capital reaches a town by road
+    (`City.joinedBy`, written with or without a card) and pays the
+    `joinedToCapital` occasion (The Opening of the Roads).
+  - The census pays the `census` occasion to every empire still in the game,
+    with its citizens (The Tax Rolls). A completion now carries the town's
+    population (The Topping Out).
+  - A founding rider's `fromLargest` starts a new town at a share of the
+    largest town (The Great Colonies). Two counts: `citiesFounded` (The Book
+    of Settlements) and `citiesAdmitted`, the towns a scope admits, which a
+    production bonus can read (The Land's Great Work, The Great Aqueducts,
+    The Imperial Highways).
 
 ## Units, movement, combat, siege
 
