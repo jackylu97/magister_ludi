@@ -9,7 +9,7 @@
  *     the one Doctrine table; each row names its decks and its sheet tier (I to
  *     IV, `band` 1 to 4), and the government tier that offers it is derived
  *     from that, one to one (tier 4 offers Tier I, 10 Tier II, 18 Tier III and
- *     29 Tier IV);
+ *     26 Tier IV);
  *   · **the bag**: a seat is offered only the Doctrines of its own decks, and
  *     never one it already holds;
  *   · **the deal**: one from each of the seat's decks, then a third from either
@@ -126,7 +126,9 @@ const TIER_FOUR_RETIRED: readonly DoctrineId[] = DOCTRINE_IDS.filter(
 
 describe('the Doctrine data model', () => {
   it('pairs each Doctrine tier with one government tier, in order', () => {
-    expect([1, 2, 3, 4].map(governmentTierForDoctrineBand)).toEqual([4, 10, 18, 29]);
+    // Tier IV's governments moved from 29 to 26 on 2026-10-17 (docs/flags.md
+    // (ddddddd)), and its Doctrines with them.
+    expect([1, 2, 3, 4].map(governmentTierForDoctrineBand)).toEqual([4, 10, 18, 26]);
     // The pairing is read off the live government tiers, so it is the ladder's.
     expect([1, 2, 3, 4].map(governmentTierForDoctrineBand)).toEqual([...GOVERNMENT_TIERS]);
     // No Tier 0 Doctrines (the user, 2026-10-15), and nothing past Tier IV.
@@ -190,7 +192,7 @@ describe('the Doctrine data model', () => {
     expect(poolDoctrines(4)).toEqual([...TIER_ONE]);
     expect(poolDoctrines(10)).toEqual([...TIER_TWO]);
     expect(poolDoctrines(18)).toEqual([...TIER_THREE]);
-    expect(poolDoctrines(29)).toEqual([...TIER_FOUR]);
+    expect(poolDoctrines(26)).toEqual([...TIER_FOUR]);
     expect(poolDoctrines(0)).toEqual([]);
   });
 });
@@ -206,7 +208,7 @@ describe('the Doctrine offer’s bag and deal', () => {
     expect(doctrineBagFor(taizong, 4)).toEqual([...TIER_ONE]);
     expect(doctrineBagFor(pachacuti, 4)).toEqual([]);
     expect(doctrineBagFor(taizong, 18)).toEqual([...TIER_THREE]);
-    expect(doctrineBagFor(taizong, 29)).toEqual([...TIER_FOUR]);
+    expect(doctrineBagFor(taizong, 26)).toEqual([...TIER_FOUR]);
     expect(doctrineBagFor(taizong, 10)).toEqual([...TIER_TWO]);
     taizong.statecraft.doctrines.push(STEPPE);
     expect(doctrineBagFor(taizong, 4)).toEqual([CONSULAR, MARIAN, SHARE, SERVIAN]);

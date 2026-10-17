@@ -198,6 +198,8 @@ What this means:
 4. **Decide Tier IV on its own.** It needs 29 drafts, and only 9 of 30 bot seats got there in 200 turns. If Tier IV should come soon after age 4, the cleanest change is a lower Tier IV rung with the tier-29 governments moved to the same draft count (H's 22 is one example), not a gentler curve for every draft.
 5. **Measure again after the next playtest**, with the fix in place.
 
+**The user chose 26** (2026-10-17, `docs/flags.md` (ddddddd)): *"lets move tier IV to tier 26"*. Tier IV's rung and the tier-29 governments moved to 26 drafts together (schema 150).
+
 ## Method and files
 
 - The fix: `data/statecraft.json` (`tierLadder`), with its docblocks in `src/sim/statecraftData.ts`, the changelog entry v149 in `src/sim/state.ts`, and the new pin in `test/sim/statecraft.test.ts`.

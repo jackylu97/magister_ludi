@@ -7,7 +7,7 @@
 - **Double Time** repeats only what Orders do. An Order's effects that happen at the end of a turn or every few turns trigger twice, with any yields those effects pay. The empire's yields, and the yield lines cards add to towns every turn, are not doubled.
 - **A Wildcard card fits only a Wildcard chair,** as the sort on the sheet assumed.
 - **The fifth government tier was meant for a fifth age,** which the game does not have, and is left unimplemented. The tier-38 governments (The Empire, The Commonwealth and The Magisterium) get no chair mix. They are live today, offered from draft 38 with their old chairs and signatures, so the build that brings typed chairs retires them: their rows stay for saves, and nobody is offered them. The Commonwealth's great people bought with gold goes with it. Card Tier IV stays where it is: it opens at draft 38 (`docs/flags.md` (uuuuuu)), and its band already asks for the fourth age, "since there is no fifth age" (`docs/orders-and-doctrines.md`).
-- **Doctrine tiers pair one to one with the four government tiers left** (read from #3, and confirmed by the user the same day: *"2 yes"*): tier 4 offers the Tier I Doctrines, tier 10 Tier II, tier 18 Tier III and tier 29 Tier IV. That is how they were paired before the decks rework, when each government tier had its own Doctrine pool (tiers 4, 10, 18, 29 and 45, commit `3ed74e82`), which is what "as before" in the ruling of 2026-10-15 asked for. It answers tier 10, and no Doctrine waits for a fifth age. Each Doctrine now arrives one card tier earlier than the sheet table it sits in: Tier II's at draft 10, while Tier I cards are still dealt. The other reading pairs by draft count, as the sheets did until now: tiers 4 and 10 both offer Tier I, and Tier IV's Doctrines wait for a fifth age with their governments.
+- **Doctrine tiers pair one to one with the four government tiers left** (read from #3, and confirmed by the user the same day: *"2 yes"*): tier 4 offers the Tier I Doctrines, tier 10 Tier II, tier 18 Tier III and tier 26 Tier IV (29 until the user moved Tier IV and its governments to 26 on 2026-10-17, `docs/flags.md` (ddddddd)). That is how they were paired before the decks rework, when each government tier had its own Doctrine pool (tiers 4, 10, 18, 29 and 45, commit `3ed74e82`), which is what "as before" in the ruling of 2026-10-15 asked for. It answers tier 10, and no Doctrine waits for a fifth age. Each Doctrine now arrives one card tier earlier than the sheet table it sits in: Tier II's at draft 10, while Tier I cards are still dealt. The other reading pairs by draft count, as the sheets did until now: tiers 4 and 10 both offer Tier I, and Tier IV's Doctrines wait for a fifth age with their governments.
 - **Divine Mandate counts Civic Orders:** "+1 faith and +1 culture in your capital for each Civic Order you have in a slot". Its three Civic chairs and two Wildcard chairs hold at most five, the same cap as Imperium's and the Merchant League's counts.
 - **Interior Lines** takes Machinery's road rule at Machinery's size: a step along a road costs 40% less movement. The user wrote 50%, but Machinery's discount is 40% (`data/techs.json`). Road discounts add up before the price is taken (`pathfind.ts`, where the move profile's road step is set), so with both a road step costs a fifteenth of a move instead of a fifth, and a unit covers three times the road it does under Machinery alone.
 - **The merged levy keeps The Call to the Spear's floor:** only towns of at least five citizens may muster. The built The Muster of the Fields has no floor, so the shared card changes a built card.
@@ -166,7 +166,7 @@ The other five decks would need their own fifteen once Dominion's direction is s
 
 ### What they do today
 
-- Sixteen governments: the Chiefdom, then three at each of tiers 4, 10, 18, 29 and 38 (the three at 38 are left for a fifth age, ruled 2026-10-16). Each tier has a martial, a civic and a sacred one (for example War Chief, Council of Elders and Priest-King).
+- Sixteen governments: the Chiefdom, then three at each of tiers 4, 10, 18, 26 (29 until 2026-10-17) and 38 (the three at 38 are left for a fifth age, ruled 2026-10-16). Each tier has a martial, a civic and a sacred one (for example War Chief, Council of Elders and Priest-King).
 - Since the decks rework every government at a tier has the same number of chairs, so the only difference between the three is the signature ability. Most of these are small flat yields (+3 happiness, +2 faith in every city, +4 strength).
 - **The tier-18 three are broken by the wildcard chairs.** No card carries a chair type any more, so:
   - Merchant League's "+2 gold for each economic Order" pays nothing;
@@ -250,15 +250,15 @@ The user asked for both (*"Please go ahead and assign chair mixes for all govern
 | 18 | Imperium | Military | 3 | 2 | 1 | 2 | 8 |
 | 18 | Merchant League | Economic | 1 | 3 | 2 | 2 | 8 |
 | 18 | Divine Mandate | Civic | 2 | 1 | 3 | 2 | 8 |
-| 29 | The Sultanate | Military | 4 | 2 | 2 | 3 | 11 |
-| 29 | The Estates | Economic | 2 | 4 | 2 | 3 | 11 |
-| 29 | The Curia | Civic | 2 | 2 | 4 | 3 | 11 |
+| 26 | The Sultanate | Military | 4 | 2 | 2 | 3 | 11 |
+| 26 | The Estates | Economic | 2 | 4 | 2 | 3 | 11 |
+| 26 | The Curia | Civic | 2 | 2 | 4 | 3 | 11 |
 
 The tier-38 governments are left for a fifth age (ruled 2026-10-16) and get no mix.
 
 How it was set:
 - **One government per type at every tier.** The martial governments lead Military, as before. The Council of Elders, the Republic and the Estates keep the economic lead of their old mixes. The sacred and learned governments (Priest-King, Theocracy, Divine Mandate and the Curia) lead Civic, the new home of the faith, science and culture cards that used to fill their Wildcard chairs.
-- **A rung that adds chairs gives a broad council, and a rung that adds none gives a specialist one.** Tiers 4, 18 and 29 add chairs, and every type has a chair there. Tier 10 adds none (5, as at tier 4), so its governments lean harder: one more chair of their lead type, and one type thin or missing. A seat that has committed has a reason to move up, and a seat that has not can stay.
+- **A rung that adds chairs gives a broad council, and a rung that adds none gives a specialist one.** Tiers 4, 18 and 26 add chairs, and every type has a chair there. Tier 10 adds none (5, as at tier 4), so its governments lean harder: one more chair of their lead type, and one type thin or missing. A seat that has committed has a reason to move up, and a seat that has not can stay.
 - **Every government has a Wildcard chair,** so no card is ever left without a seat. The Chiefdom keeps its old mix of one Military, one Economic and one Wildcard chair (the user, 2026-10-16: *"lets revert chiefdom yeah"*), so in the first four drafts a Civic card needs the Wildcard chair.
 - **The tier-18 abilities count seated Orders by type again:** Imperium's Military Orders and the Merchant League's Economic Orders, up to five each with their Wildcard chairs. Divine Mandate counts Civic Orders (ruled 2026-10-16), also up to five.
 - The old mixes are still on every government row as `slots` (military, economic and wildcard). Building this replaces them with the four-type mix and a save-format change.

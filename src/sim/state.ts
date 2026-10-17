@@ -1796,8 +1796,23 @@ import {
  * 17 is now dealt Tier II hands where it was dealt Tier I hands, so every
  * later pick differs. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v150 (branch `decks`; the user's ruling of 2026-10-17, `docs/flags.md`
+ * (ddddddd): *"lets move tier IV to tier 26"*): **Tier IV opens at 26
+ * drafts.** No field joins the state. The rules that change:
+ *
+ *   · the last rung of `tierLadder` is 26 drafts instead of 29, so Tier IV is
+ *     dealt from draft 26 (with research age four);
+ *   · the last live governments (The Estates, The Sultanate, The Curia) are
+ *     offered at tier 26 instead of 29, with their eleven chairs, and the Tier
+ *     IV Doctrines come with them (`governmentTierForDoctrineBand`).
+ *
+ * **A v149 save is refused and does not replay.** A seat at drafts 26 to 28
+ * is now offered a government, a Doctrine offer and Tier IV hands where it was
+ * offered none of them. The branch migrates nothing, for the reason given
+ * under v119.
  */
-export const SCHEMA_VERSION = 149;
+export const SCHEMA_VERSION = 150;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

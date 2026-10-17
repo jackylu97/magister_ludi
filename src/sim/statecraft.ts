@@ -7,7 +7,7 @@
  * **The ladder.** Culture fills an escalating meter; each fill is a draft, and
  * *tier is the draft count* — one number, one ladder. A draft offers 3 new cards
  * and a pass (`skipOrderOffer`, which buys a rarer hand next time); a government
- * is offered at tiers 4, 10, 18 and 29 as a fixed triple whose adoption is
+ * is offered at tiers 4, 10, 18 and 26 as a fixed triple whose adoption is
  * bankable; adopting lays out new chairs, re-seats the cards that fit them,
  * lifts every seal, and opens a Doctrine draft. All of it is `state.rng` at the
  * moment an offer opens, an ordinary command to spend it, and both halves in

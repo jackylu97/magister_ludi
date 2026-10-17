@@ -8588,7 +8588,7 @@ export interface GovernmentDef extends CardDefBase {
   /**
    * **How many chairs this government supplies.** The number is its tier's
    * rung on `tierLadder` (3 / 5 / 5 / 8 / 11 at draft counts 0 / 4 / 10 / 18 /
-   * 29; the retired tier-38 rows take the top rung's), written on the row so
+   * 26; the retired tier-38 rows take the top rung's), written on the row so
    * that the count is a field somebody can retune.
    *
    * A leader's extra chair and a card's (`CardSlotRiderEffect`) are added on
@@ -8621,13 +8621,14 @@ export interface GovernmentDef extends CardDefBase {
 export interface DoctrineDef extends CardDefBase {
   /**
    * **Which adoption offers this Doctrine**: the government tier (4, 10, 18 or
-   * 29) whose adoption deals it. 0 means *no live pool* — deferred.
+   * 26) whose adoption deals it. 0 means *no live pool* — deferred. A retired
+   * pre-rework row keeps the tier it was written with, 29 among them.
    *
    * On a pre-rework row (`statecraft.json`) it is written in the data. On a
    * deck's row (batch C3) it is **derived when the files are folded**, from
    * the row's `band`, by the one-to-one pairing the user ruled on 2026-10-16:
    * the Tier I Doctrines come with the tier-4 governments, Tier II with tier
-   * 10, Tier III with tier 18 and Tier IV with tier 29
+   * 10, Tier III with tier 18 and Tier IV with tier 26
    * (`governmentTierForDoctrineBand`). A deck row therefore says only its own
    * tier, as its deck sheet does, and the pairing lives in one place.
    */
@@ -9234,7 +9235,7 @@ export interface StatecraftConfig {
   // a dial a designer will one day turn expecting something to happen.
   /**
    * **The five rungs of the draft ladder**, one per band: the Chiefdom and the
-   * four government tiers, at regular draft counts 0 · 4 · 10 · 18 · 29, with
+   * four government tiers, at regular draft counts 0 · 4 · 10 · 18 · 26, with
    * 3 · 5 · 5 · 8 · 11 chairs (the chairs are the user's ruling in
    * `docs/decks/deck-design.md` "More chairs"). The ladder is **read by the
    * simulation in one place**: a **band** opens at its rung's draft count
@@ -9252,9 +9253,15 @@ export interface StatecraftConfig {
    * and every band from Tier II up opened one government tier late. The
    * tier-10 rung now carries the five chairs of the rung below it, and the
    * rung at 38 is gone: its governments are retired (batch C2), and Tier IV
-   * opens at 29 with the tier-29 governments. `test/sim/statecraft.test.ts`
+   * opened at 29 with the tier-29 governments. `test/sim/statecraft.test.ts`
    * pins the rungs above the Chiefdom to `GOVERNMENT_TIERS`, so the two cannot
    * drift apart again.
+   *
+   * **Tier IV at 26** (the user's ruling of 2026-10-17, `docs/flags.md`
+   * (ddddddd): *"lets move tier IV to tier 26"*). The last rung and the last
+   * live governments (The Estates, The Sultanate, The Curia) moved from 29 to
+   * 26 together, and the Tier IV Doctrines follow them, so that Tier IV comes
+   * closer to research age 4 (`docs/plans/draft-pacing-2026-10-17.md`).
    *
    * It banked a reward hand at every rung but the first until batch C3 removed
    * the reward hands (the user, 2026-10-16: a new government brings only its
@@ -9317,7 +9324,7 @@ function foldOrders(): Record<string, unknown> {
 /**
  * **The government tier that offers a Doctrine tier** (batch C3; the user's
  * pairing of 2026-10-16): the first live government tier offers the Tier I
- * Doctrines, the second Tier II, and so on — 4, 10, 18 and 29 today. Read off
+ * Doctrines, the second Tier II, and so on — 4, 10, 18 and 26 today. Read off
  * the government rows in `statecraft.json` (retired rows and the tier-0
  * chiefdom excluded), because it is needed while the table is still being
  * folded, before `GOVERNMENT_TIERS` exists. 0 for a band no live government
@@ -9501,7 +9508,7 @@ export function poolOfGovernment(id: GovernmentId): OrderPool {
   if (tier <= 4) return 'governmentI';
   if (tier <= 10) return 'governmentII';
   if (tier <= 18) return 'governmentIII';
-  if (tier <= 29) return 'governmentIV';
+  if (tier <= 26) return 'governmentIV';
   return 'governmentV';
 }
 

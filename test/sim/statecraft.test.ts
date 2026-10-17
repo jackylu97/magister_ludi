@@ -335,13 +335,14 @@ describe("the card table", () => {
     // Gov IV and Gov V were written on 2026-08-28, so the live ladder was the
     // whole ratified one until batch C2 retired the tier-38 three (the user,
     // 2026-10-16: *"just leave the last tier as unimplemented"*). Their rows
-    // stay for the Compendium, and nobody is offered them.
-    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 29]);
+    // stay for the Compendium, and nobody is offered them. The tier-29 three
+    // moved to 26 on 2026-10-17 (docs/flags.md (ddddddd)).
+    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 26]);
     expect(governmentsAtTier(38)).toEqual([]);
     // `tierLadder` is the ladder of bands and chairs: one rung per band, at
     // the government tiers since the user's ruling of 2026-10-17 (the next
     // test pins the two together).
-    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 10, 18, 29]);
+    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 10, 18, 26]);
     for (const tier of GOVERNMENT_TIERS) {
       expect(governmentsAtTier(tier), `tier ${tier}`).toHaveLength(3);
     }
@@ -2052,7 +2053,9 @@ describe("determinism", () => {
     // 149 since the rung fix: the Order tiers open at the government tiers
     // (4, 10, 18 and 29 drafts), so a v148 log's hands from draft 10 on
     // come from a different tier.
-    expect(SCHEMA_VERSION).toBe(149);
+    // 150 since Tier IV moved to 26 drafts (flags item ddddddd), with the
+    // tier-29 governments, so a v149 log's drafts 26 to 28 deal differently.
+    expect(SCHEMA_VERSION).toBe(150);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -3346,14 +3349,17 @@ describe("the master-list cut of 2026-08-28", () => {
       expect(governmentDef(id).tier, id).toBe(38);
       expect(governmentDef(id).retired, id).toBe(true);
     }
-    for (const tier of [29, 38]) {
+    // Gov IV's tier was 29 until 2026-10-17, when it moved to 26 with Tier IV
+    // (docs/flags.md (ddddddd)).
+    for (const tier of [26, 38]) {
       const rows = GOVERNMENT_IDS.filter((id) => governmentDef(id).tier === tier);
       expect(rows).toHaveLength(3);
       // D1a: the Doctrine pools are retired shelves; the rows are kept. Since
-      // Dominion batch D5 tier 29 deals deck Doctrines: The Landsturm, since
-      // Dominion batch D7 The Fortress Empire, and since D8 The Scourge of God.
+      // Dominion batch D5 Gov IV's tier deals deck Doctrines: The Landsturm,
+      // since Dominion batch D7 The Fortress Empire, and since D8 The Scourge of
+      // God.
       expect(poolDoctrines(tier)).toEqual(
-        tier === 29 ? ["theLandsturm", "theFortressEmpire", "theScourgeOfGod"] : [],
+        tier === 26 ? ["theLandsturm", "theFortressEmpire", "theScourgeOfGod"] : [],
       );
       expect(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === tier).length).toBeGreaterThanOrEqual(
         RULES.offers.doctrine,
@@ -3363,15 +3369,15 @@ describe("the master-list cut of 2026-08-28", () => {
       // or The Empire widened the council and offered nothing new to seat in it.
       for (const id of rows) {
         expect(poolOfGovernment(id)).toBe(
-          tier === 29 ? "governmentIV" : "governmentV",
+          tier === 26 ? "governmentIV" : "governmentV",
         );
       }
     }
     const g = game();
     const player = playerById(g.state, 0)!;
     // Straight to the fourth rung: the offer is a fact about the tier.
-    player.statecraft.drafts = 28;
-    player.culturePool = draftCost(28);
+    player.statecraft.drafts = 25;
+    player.culturePool = draftCost(25);
     settleCultureWindfall(g.state, player);
     dispatch(g, {
       type: "chooseOrder",
@@ -3379,7 +3385,7 @@ describe("the master-list cut of 2026-08-28", () => {
       optionIndex: 0,
     } as Command);
     expect(player.statecraft.pendingGovernment?.options).toEqual(
-      governmentsAtTier(29),
+      governmentsAtTier(26),
     );
     expect(
       dispatch(g, {
@@ -3397,7 +3403,7 @@ describe("the master-list cut of 2026-08-28", () => {
       "theLandsturm",
       "theScourgeOfGod",
     ]);
-    expect(player.statecraft.slots).toHaveLength(chairsAtTier(29));
+    expect(player.statecraft.slots).toHaveLength(chairsAtTier(26));
   });
 
   it("retires The Loose Rein from every pool while keeping the row readable", () => {
@@ -9461,14 +9467,14 @@ describe("the cadence and the chairs, as ruled on the third pass", () => {
     expect(mix("theCuria")).toEqual([2, 2, 4, 3]);
 
     // **Each mix adds up to its rung's chairs**: 3, 5, 5, 8 and 11 at tiers 0,
-    // 4, 10, 18 and 29. The row's `chairs` and the ladder must agree with the
+    // 4, 10, 18 and 26. The row's `chairs` and the ladder must agree with the
     // mix, or a council would lay out more chairs than it has types for.
     const RUNG_CHAIRS = new Map<number, number>([
       [0, 3],
       [4, 5],
       [10, 5],
       [18, 8],
-      [29, 11],
+      [26, 11],
     ]);
     const live = GOVERNMENT_IDS.filter((id) => governmentDef(id).retired !== true);
     expect(live).toHaveLength(13);

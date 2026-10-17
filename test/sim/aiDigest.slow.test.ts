@@ -954,10 +954,21 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * Checked by putting the ladder back as the take left it and printing the
  * version as 148, which gives the take's digests exactly on both boards.
  * Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **Tier IV at 26 (`docs/flags.md` (ddddddd), schema 150): Tier IV's rung and
+ * the tier-29 governments moved to 26 drafts.** Duel `99856b59:272524` →
+ * `e030e5f7:272524`, standard `37e4b83b:940920` → `06b9e985:940920`. Only the
+ * version moved them, 149 to 150: no seat reaches draft 26 in these 120
+ * turns. Checked twice with the version printed as 149: once with Tier IV at
+ * 26, and once with the ladder and the governments as the rung fix left them.
+ * Both give the rung fix's digests exactly on both boards. Nothing stalled and
+ * no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '99856b59:272524',
-  standard: '37e4b83b:940920',
+  duel: 'e030e5f7:272524',
+  standard: '06b9e985:940920',
 };
 
 /**

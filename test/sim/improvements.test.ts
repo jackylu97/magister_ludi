@@ -2618,7 +2618,9 @@ describe('improvements in the log', () => {
     // 149 since the rung fix: the Order tiers open at the government tiers
     // (4, 10, 18 and 29 drafts), so a v148 log's hands from draft 10 on
     // come from a different tier.
-    expect(SCHEMA_VERSION).toBe(149);
+    // 150 since Tier IV moved to 26 drafts (flags item ddddddd), with the
+    // tier-29 governments, so a v149 log's drafts 26 to 28 deal differently.
+    expect(SCHEMA_VERSION).toBe(150);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

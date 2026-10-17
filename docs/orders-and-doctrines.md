@@ -87,9 +87,9 @@ dagger are what the row does *not* do.
 | Government I | 1 | 4 | 5 |
 | Government II | 2 | 10 | 5 |
 | Government III | 3 | 18 | 8 |
-| Government IV | 4 | 29 | 11 |
+| Government IV | 4 | 26 | 11 |
 
-A government is offered at its row's own tier (4 · 10 · 18 · 29), and each tier is a rung, so
+A government is offered at its row's own tier (4 · 10 · 18 · 26), and each tier is a rung, so
 an Order tier opens at the same draft count as its government. Adopting one opens a Doctrine
 offer of the paired tier (see Doctrines below). Until batch C3 a reward hand was banked at
 every rung but the first; the reward hands are gone.
@@ -99,7 +99,9 @@ every rung but the first; the reward hands are gone.
 the ladder held only the rungs where the chair count rises, so the tier-10 governments had
 no rung and every Order tier from Tier II up opened one government tier late. The tier-10
 rung keeps the five chairs of the rung below it, and the rung at 38 is gone with its retired
-governments, so Tier IV opens at 29.
+governments, so Tier IV opened at 29.
+2026-10-17: Tier IV and its governments moved from 29 to 26 drafts (`docs/flags.md`
+(ddddddd): *"lets move tier IV to tier 26"*).
 
 ## Governments
 
@@ -115,7 +117,7 @@ governments, so Tier IV opens at 29.
 | 18 | Divine Mandate | 2 | 1 | 3 | 2 | 8 | +1 faith and +1 culture in your capital for each civic Order you have in a slot · +10% faith in every city of 6 or more population. |
 |  | Imperium | 3 | 2 | 1 | 2 | 8 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
 |  | Merchant League | 1 | 3 | 2 | 2 | 8 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |
-| 29 | The Curia | 2 | 2 | 4 | 3 | 11 | +6 faith for each Cathedral. Faith buildings supply science equal to their faith. |
+| 26 | The Curia | 2 | 2 | 4 | 3 | 11 | +6 faith for each Cathedral. Faith buildings supply science equal to their faith. |
 |  | The Estates | 2 | 4 | 2 | 3 | 11 | +1 happiness in every city. +2 culture in every city of 8 or more population. |
 |  | The Sultanate | 4 | 2 | 2 | 3 | 11 | All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture. |
 
@@ -134,7 +136,7 @@ governments, so Tier IV opens at 29.
   the type of the chair it sits in, a Wildcard chair included.
 - **The tier-38 governments are retired** (The Commonwealth, The Empire and The
   Magisterium): their rows are kept for saves and nobody is offered them. Since 2026-10-17
-  the ladder has no rung at 38 either: Tier IV opens at 29.
+  the ladder has no rung at 38 either: Tier IV opens at 26.
 
 ## Doctrines
 
@@ -147,7 +149,7 @@ governments, so Tier IV opens at 29.
   IV, written 1 to 4), its `text` and its `effects`. The pre-rework rows in
   `data/statecraft.json` stay retired.
 - **Which government offers it.** Each Doctrine tier pairs with one government tier, in
-  order: tier 4 offers the Tier I Doctrines, tier 10 Tier II, tier 18 Tier III and tier 29
+  order: tier 4 offers the Tier I Doctrines, tier 10 Tier II, tier 18 Tier III and tier 26
   Tier IV. A row's `tier` field is that government tier, derived from `band` when the tables
   are folded (`governmentTierForDoctrineBand`), never written on a deck row.
 - **The offer.** Adopting a government opens a Doctrine offer of its tier, drawn from the
@@ -182,9 +184,9 @@ governments, so Tier IV opens at 29.
 | The Universal Monarchy | Dominion | III | tier 18 | Towns you capture cost no authority. Towns you found cost twice as much. |
 | Total Mobilisation | Dominion | III | tier 18 | While at war, each town of six or more citizens raises the best melee unit you can build every five turns, for a citizen. It costs no upkeep. While at peace, your towns grow 25% faster. |
 | Combined Arms | Dominion | III | tier 18 | Your units gain +3 strength, doubled beside one of your siege units. Siege units beside one of your melee units cannot be attacked in melee. |
-| The Landsturm | Dominion | IV | tier 29 | After you pass a draft, each city of five or more citizens raises the best melee unit you can build. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general. |
-| The Fortress Empire | Dominion | IV | tier 29 | Units gain +5 strength when fortified. Each city gains +5% science and production for each fortified military unit inside its borders, at most +30%. |
-| The Scourge of God | Dominion | IV | tier 29 | Units that have pillaged in the last five turns gain +6 strength. Pillaging gives your capital +100% production for five turns, which does not stack. |
+| The Landsturm | Dominion | IV | tier 26 | After you pass a draft, each city of five or more citizens raises the best melee unit you can build. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general. |
+| The Fortress Empire | Dominion | IV | tier 26 | Units gain +5 strength when fortified. Each city gains +5% science and production for each fortified military unit inside its borders, at most +30%. |
+| The Scourge of God | Dominion | IV | tier 26 | Units that have pillaged in the last five turns gain +6 strength. Pillaging gives your capital +100% production for five turns, which does not stack. |
 
 ## Decks
 

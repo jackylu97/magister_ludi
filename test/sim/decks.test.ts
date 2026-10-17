@@ -551,17 +551,18 @@ describe('the schema, as landed', () => {
     // Chairs 3 / 5 / 8 / 11 are the user's ruling (docs/decks/deck-design.md
     // "More chairs"). Since the user's ruling of 2026-10-17 (docs/flags.md
     // (ccccccc)) the rungs are the government tiers, so the tier-10 rung keeps
-    // the five chairs of the rung below it and Tier IV opens at 29. The
-    // tier-38 governments were retired in batch C2 and their rows still carry
-    // the top rung's count; which type each chair is, is `statecraft.test.ts`'
-    // and `typedChairs.test.ts`'.
-    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 10, 18, 29]);
+    // the five chairs of the rung below it. Tier IV and its governments moved
+    // from 29 to 26 the same day (docs/flags.md (ddddddd)). The tier-38
+    // governments were retired in batch C2 and their rows still carry the top
+    // rung's count; which type each chair is, is `statecraft.test.ts`' and
+    // `typedChairs.test.ts`'.
+    expect(TIER_LADDER.map((rung) => rung.drafts)).toEqual([0, 4, 10, 18, 26]);
     expect(TIER_LADDER.map((rung) => rung.chairs)).toEqual([3, 5, 5, 8, 11]);
     expect(TIER_LADDER).toHaveLength(BANDS.length);
     // The later rungs banked a reward hand until batch C3 removed the reward
     // hands. What pairs with a government tier now is a Doctrine tier, one to
-    // one: Tier I with tier 4, II with 10, III with 18 and IV with 29.
-    expect([1, 2, 3, 4].map(governmentTierForDoctrineBand)).toEqual([4, 10, 18, 29]);
+    // one: Tier I with tier 4, II with 10, III with 18 and IV with 26.
+    expect([1, 2, 3, 4].map(governmentTierForDoctrineBand)).toEqual([4, 10, 18, 26]);
     expect(governmentTierForDoctrineBand(5)).toBe(0);
     for (const id of GOVERNMENT_IDS) {
       const def = governmentDef(id);
@@ -579,9 +580,10 @@ describe('the schema, as landed', () => {
     expect(bandTierAt(10)).toBe(2);
     expect(bandTierAt(17)).toBe(2);
     expect(bandTierAt(18)).toBe(3);
-    expect(bandTierAt(28)).toBe(3);
+    expect(bandTierAt(25)).toBe(3);
+    expect(bandTierAt(26)).toBe(4);
+    // The old rungs at 29, 38 and 45 are now simply past the last one.
     expect(bandTierAt(29)).toBe(4);
-    // The old rungs at 38 and 45 are now simply past the last one.
     expect(bandTierAt(38)).toBe(4);
     expect(bandTierAt(45)).toBe(4);
     expect(bandTierAt(400)).toBe(4);
@@ -698,7 +700,9 @@ describe('the schema, as landed', () => {
     // 149 since the rung fix: the Order tiers open at the government tiers
     // (4, 10, 18 and 29 drafts), so a v148 log's hands from draft 10 on
     // come from a different tier.
-    expect(SCHEMA_VERSION).toBe(149);
+    // 150 since Tier IV moved to 26 drafts (flags item ddddddd), with the
+    // tier-29 governments, so a v149 log's drafts 26 to 28 deal differently.
+    expect(SCHEMA_VERSION).toBe(150);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

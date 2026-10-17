@@ -347,7 +347,7 @@
     },
     "theEstates": {
       "name": "The Estates",
-      "tier": 29,
+      "tier": 26,
       "chairs": 11,
       "flavor": "Three orders, one hall, and the hall keeps the minutes.",
       "chairMix": {
@@ -376,7 +376,7 @@
     },
     "theSultanate": {
       "name": "The Sultanate",
-      "tier": 29,
+      "tier": 26,
       "chairs": 11,
       "flavor": "The road is short for those the Sultan sends.",
       "chairMix": {
@@ -417,7 +417,7 @@
     },
     "theCuria": {
       "name": "The Curia",
-      "tier": 29,
+      "tier": 26,
       "chairs": 11,
       "flavor": "What is written in the register is what heaven remembers.",
       "chairMix": {
@@ -7452,7 +7452,7 @@
       "chairs": 8
     },
     {
-      "drafts": 29,
+      "drafts": 26,
       "chairs": 11
     }
   ]

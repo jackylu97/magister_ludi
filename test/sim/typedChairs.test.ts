@@ -562,7 +562,7 @@ describe('the tier-38 governments', () => {
       expect(governmentDef(id).retired, id).toBe(true);
       expect(governmentDef(id).tier, id).toBe(38);
     }
-    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 29]);
+    expect(GOVERNMENT_TIERS).toEqual([4, 10, 18, 26]);
     expect(governmentsAtTier(38)).toEqual([]);
   });
 
@@ -583,10 +583,10 @@ describe('the tier-38 governments', () => {
     // government is offered here.
     expect(player.statecraft).not.toHaveProperty('rewardHands');
     // Since the user's ruling of 2026-10-17 the ladder's rungs are the
-    // government tiers, so 38 is no rung: the last band opened at 29, with the
-    // tier-29 governments.
-    expect(bandTierAt(28)).toBe(3);
-    expect(bandTierAt(29)).toBe(4);
+    // government tiers, so 38 is no rung: the last band opens at 26, with the
+    // last live governments (moved from 29 on 2026-10-17).
+    expect(bandTierAt(25)).toBe(3);
+    expect(bandTierAt(26)).toBe(4);
     expect(bandTierAt(38)).toBe(4);
   });
 });

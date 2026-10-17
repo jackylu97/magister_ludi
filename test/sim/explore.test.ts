@@ -839,10 +839,16 @@ describe('determinism', () => {
    * here drafts, so the new rungs never reach this board. Checked twice with
    * the version printed as 148: once with the fix in place, and once with the
    * ladder as the take left it. Both give the take's hashes exactly.
+   *
+   * **Tier IV at 26 (`docs/flags.md` (ddddddd), schema 150) moved the hash
+   * and not the length** at both seeds: 149 became 150, and that is all.
+   * Nobody here drafts. Checked twice with the version printed as 149: once
+   * with Tier IV at 26, and once with the ladder and the governments as the
+   * rung fix left them. Both give the rung fix's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '47f52701:188931',
-    2026: '81a2aa6c:188509',
+    11: 'bc2b4caf:188931',
+    2026: '79e5217e:188509',
   };
 
   for (const seed of [11, 2026]) {
