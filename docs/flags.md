@@ -19,47 +19,18 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(xxxxxx) Units stuck on water, and routing around a blocking unit: RULED, 2026-10-17; BUILT on branch `m-work` (schema 147).**
-- **Found while building the lake fix:** bot soldiers can sit on water, coast
-  or lake, for many turns (up to about 60 in a test game). There are two
-  causes, and both are older than the lake fix:
-  1. The bot steps a unit out of a town to make room, picks a water hex beside
-     the town, and the unit then digs in there and is never moved again.
-  2. The path search (`findPath`) does not know that a step from land onto
-     water ends the turn on the hex it lands on. So a march can aim at a hex
-     where the unit may not stop, such as a full town hex. `advanceAlongPath`
-     then keeps the order and waits, and the bot gives the same order every
-     turn.
-  The user agreed to fix both: *"yes"*.
-- **The user's new rule, the same message:** *"i noticed a bug where routing
-  doesn't take into account units blocking its path. The unit should reroute
-  its pathing if there's a unit blocking the tile it plans to move onto next
-  turn (a unit of the same type blocking its path)"*.
-- **What the fix does:**
-  1. A step from land onto water, or from water onto land, ends the turn. So
-     the hex it lands on must be one where the unit may stop.
-  2. The bot does not step a unit out of a town onto water, and does not leave
-     a unit dug in on water.
-  3. If the next hex on a unit's path holds a unit that blocks it, the unit
-     plans a new path to the same goal around that hex. If there is no such
-     path, the unit waits, as it does today.
-- **Reading, for the user to correct:** "a unit of the same type" means a unit
-  of the same stacking class, the one that blocks the mover: a military unit
-  for a military unit, a civilian for a civilian. The build checks the game's
-  stacking rules and reports what it found.
-- **As built:**
-  - The stacking rules: one military piece, one civilian and one ship to a hex
-    (`rules.stacking.perCategoryPerTile`); a caravan takes no slot and blocks
-    nobody; at sea a hex holds one piece that is not a ship, beside one ship;
-    a hex holding a piece of a seat at peace may be walked through but not
-    shared. The detour is taken whenever one of these leaves the piece no room
-    where it has to rest. So a stranger's piece at peace and a second
-    passenger at sea count as blocking too. A hostile soldier is a wall, and
-    the order is cleared as before.
-  - A route on dry land goes round on dry land. Going round one hex by sea
-    costs two landings, each a whole turn.
-  - The command's result names the cells a detour walked, and the board slides
-    the piece along them.
+**(zzzzzz) Two movement questions from the fix for item (xxxxxx): awaiting your ruling.**
+The fix landed on 2026-10-17 (schema 147); item (xxxxxx) is now in the log.
+1. **Detours stay on land.** The build added a rule: a march over dry land
+   goes round a blocker over dry land too. Without it, units went round one
+   hex by sea, and the two landings cost two whole turns. Recommended: keep it.
+2. **Settlers at sea, an older bot problem.** A settler at sea turns back when
+   a land raider comes near, and sets out again when the raider leaves. One
+   settler went back and forth for 79 turns in a test game. A land raider
+   cannot strike a unit on water, so turning back gains nothing. Recommended:
+   a civilian on water ignores land raiders, and flees only from a threat that
+   can reach it. This changes the bot's settler policy (`civilianFlight`),
+   not a game rule.
 
 **(yyyyyy) The Floating Gardens' future: awaiting your ruling.**
 The user, 2026-10-16: *"Floating gardens are a unique building for the aztec
