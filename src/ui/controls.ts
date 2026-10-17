@@ -167,6 +167,7 @@ import {
   type CompletionGrantReport,
   type WonderCompletion,
   assignableTiles,
+  takeableTiles,
   cityAt,
   cityTile,
   foundingError,
@@ -2355,6 +2356,16 @@ export interface GameControls {
    * otherwise learn by clicking.
    */
   swapHint(): string | null;
+
+  /**
+   * "Take from Sinope" when a city screen is open and a click on the hovered
+   * hex would pin it and so take it from another town of this empire
+   * (`docs/flags.md` (aaaaaaa)), or `null` when it would not. Asked of the
+   * simulation's own list (`takeableTiles`), so the words appear over exactly
+   * the hexes the reducer accepts the pin on. The town is named through
+   * `cityDisplayName`, as every town name that reaches the screen is.
+   */
+  takeHint(): string | null;
 
   /** The unit currently selected, re-read from the state, or `null`. */
   selectedUnit(): Unit | null;
@@ -5149,6 +5160,30 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     return plan === null ? null : `Swap with ${unitDef(plan.sitter.type).name}`;
   }
 
+  /** The take under the pointer, in words. See `GameControls.takeHint`. */
+  function takeHint(): string | null {
+    const city = openCity();
+    const hover = renderer.getHover();
+    if (!city || !hover || !canOrder()) return null;
+    const { state } = getGame();
+    const take = takeableTiles(state, city).find(
+      (entry) => entry.tile.col === hover.tile.col && entry.tile.row === hover.tile.row,
+    );
+    return take === undefined ? null : `Take from ${cityDisplayName(state, take.from)}`;
+  }
+
+  /**
+   * A hex the open city's citizens may be pinned onto: one of its own
+   * (`assignableTiles`), or one the pin takes from another town of this empire
+   * (`takeableTiles`, `docs/flags.md` (aaaaaaa)). The reducer asks the same two
+   * lists, so a click this accepts is a command it accepts.
+   */
+  function pinnableTile(state: GameState, city: City, col: number, row: number): Tile | undefined {
+    const own = assignableTiles(state, city).find((tile: Tile) => tile.col === col && tile.row === row);
+    if (own) return own;
+    return takeableTiles(state, city).find((entry) => entry.tile.col === col && entry.tile.row === row)?.tile;
+  }
+
   /**
    * **Where this piece would have to stand to strike that hex**, and the
    * forecast taken from there — or `null` when there is nowhere it could stand.
@@ -6687,9 +6722,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * took the click.
    *
    * It only ever takes one while a city panel is open *and* the tile is one that
-   * city could actually work — that is the whole of the gesture, and it is why a
-   * click on ocean, on another city's ground, or with no panel open still means
-   * what it has always meant. The city tile itself is not assignable either, so
+   * city could actually work, or one its pin may take from another town of this
+   * empire (`pinnableTile`) — that is the whole of the gesture, and it is why a
+   * click on ocean, on a rival's ground, or with no panel open still means what
+   * it has always meant. The city tile itself is not assignable either, so
    * clicking the town under an open panel does not pin anything.
    *
    * Its caller asks it only inside the open city's radius, and only after the
@@ -6709,9 +6745,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!city) return false;
 
     const { state } = getGame();
-    const target = assignableTiles(state, city).find(
-      (tile: Tile) => tile.col === hover.tile.col && tile.row === hover.tile.row,
-    );
+    const target = pinnableTile(state, city, hover.tile.col, hover.tile.row);
     if (!target) return false;
 
     if (!canOrder()) {
@@ -6914,8 +6948,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // gold the tag just quoted would be the mode lying about itself.
         if (buyMode && purchaseTile(col, row)) return;
         if (toggleCitizen(hover)) return;
-        // Inside the radius but not a tile this city may work — its own centre,
-        // or ground another city owns. The panel stays open and the click falls
+        // Inside the radius but not a tile this city may work or take — its own
+        // centre, or ground a rival owns. The panel stays open and the click falls
         // through to the ordinary contract, which on the city tile itself means
         // re-opening the panel that is already open: a no-op, and the right one.
       } else {
@@ -7930,8 +7964,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // The open city's ground is a purchase/pin target before it is a stack
     // target. Badges and model silhouettes still select above that ground.
     if (tile && city && withinWorkRadius(getGame().state, city, tile.col, tile.row) &&
-        (buyMode || assignableTiles(getGame().state, city).some(
-          (candidate) => candidate.col === tile!.col && candidate.row === tile!.row))) {
+        (buyMode || pinnableTile(getGame().state, city, tile.col, tile.row) !== undefined)) {
       tile = null;
     }
     renderer.setHoveredUnitId(unitPointerTarget(pointer, tile)?.id ?? null);
@@ -7981,8 +8014,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   /**
    * Everything the hover work in `refreshHover` reads besides the state object
    * itself, as one string. If two pointer moves give the same key on the same
-   * state, the path preview, the combat forecast, the swap hint, the settler
-   * radius and the tile readout would all come out the same.
+   * state, the path preview, the combat forecast, the swap hint, the take hint,
+   * the settler radius and the tile readout would all come out the same.
    *
    * - the hovered hex (or none);
    * - `state.revision`, which moves on every accepted command and every
@@ -8450,6 +8483,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     renameReligion,
     combatForecast,
     swapHint,
+    takeHint,
     openCity,
     setOpenCity,
     setMoveMode,

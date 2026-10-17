@@ -1427,6 +1427,30 @@ export function claimTile(state: GameState, city: City, tile: Tile): boolean {
   return true;
 }
 
+/**
+ * **Moves a hex from another town of this empire to this town** (the user's
+ * ruling of 2026-10-17, `docs/flags.md` (aaaaaaa)): a pin takes the hex. The
+ * writer for a take, beside `claimTile`, which gives out only hexes nobody owns.
+ *
+ * The town that loses the hex also loses any pin it had there (reading 2): a
+ * pin on a hex the town no longer owns would be a citizen it can never seat.
+ * Validates nothing; `setLockedTiles` asks `takeableTiles` first. Returns the
+ * town that lost the hex, which the caller re-seats, or `null` when the hex was
+ * not another town's of this empire, and then nothing is written.
+ */
+export function takeTile(state: GameState, city: City, tile: Tile): City | null {
+  const index = tileIndex(state.map, tile.col, tile.row);
+  const holder = state.tileOwner[index];
+  if (holder === null || holder === undefined || holder === city.id) return null;
+  const from = cityById(state, holder);
+  if (!from || from.ownerId !== city.ownerId) return null;
+  state.tileOwner[index] = city.id;
+  from.lockedTiles = from.lockedTiles.filter((cell) => cell.col !== tile.col || cell.row !== tile.row);
+  // The ground moved (batch M3, `slate.ts`), as `claimTile` says for a claim.
+  bumpEconomy(state);
+  return from;
+}
+
 /** Every tile a city owns, in tile-index order. */
 export function ownedTiles(state: GameState, city: City): Tile[] {
   const result: Tile[] = [];
@@ -1907,7 +1931,9 @@ export function workRadiusOf(state: GameState, city: City): number {
  *
  * A tile owned by another of the player's own cities is not on the list. Tiles
  * belong to one city and are worked by that city, which is what stops two
- * neighbours double-counting the same wheat field.
+ * neighbours double-counting the same wheat field. A player's pin may take such
+ * a tile first (`takeableTiles`); the automatic assignment never does, so only
+ * a pin moves a hex between towns (`docs/flags.md` (aaaaaaa), reading 3).
  */
 export function assignableTiles(state: GameState, city: City): Tile[] {
   const { map } = state;
@@ -1926,6 +1952,108 @@ export function assignableTiles(state: GameState, city: City): Tile[] {
     result.push(tile);
   }
   return result;
+}
+
+/** A hex a pin may take from another town of this empire, and that town. */
+export interface TakeableTile {
+  tile: Tile;
+  /** The town that owns the hex now. */
+  from: City;
+}
+
+/**
+ * **The hexes a pin may take from another town of this empire** (the user's
+ * ruling of 2026-10-17, `docs/flags.md` (aaaaaaa)). The one list of them: the
+ * pin's check (`setLockedTiles`) and the city screen both ask it. A hex is on
+ * it when it is:
+ *
+ *   · inside this town's work radius (`workRadiusOf`), so a town eight hexes
+ *     away never takes anything;
+ *   · owned by another town of the same empire;
+ *   · workable by this town's citizens (`isWorkableTile`, under this town's
+ *     law), and not a town's own centre;
+ *   · not a second "at most one per town" work for this town (reading 1,
+ *     `doubledWork`).
+ *
+ * The automatic assignment never reads this list (reading 3), so a hex moves
+ * between towns only when a player pins it. In map order, as `mapRange` walks.
+ */
+export function takeableTiles(state: GameState, city: City): TakeableTile[] {
+  return takeCandidates(state, city)
+    .filter((candidate) => candidate.doubled === null)
+    .map(({ tile, from }) => ({ tile, from }));
+}
+
+/**
+ * The work that stops this town taking this hex (reading 1, `doubledWork`), or
+ * `null` when nothing stops it or the hex is no candidate at all. The pin's
+ * check asks it to name the work in its refusal.
+ */
+export function takeBlockedBy(state: GameState, city: City, tile: Tile): ImprovementId | null {
+  const candidate = takeCandidates(state, city).find(
+    (entry) => entry.tile.col === tile.col && entry.tile.row === tile.row,
+  );
+  return candidate?.doubled ?? null;
+}
+
+/**
+ * Every hex `takeableTiles` would list before reading 1, with the work that
+ * would block its take. The one walk both readers share.
+ */
+function takeCandidates(
+  state: GameState,
+  city: City,
+): { tile: Tile; from: City; doubled: ImprovementId | null }[] {
+  const { map } = state;
+  const centre = cityTile(map, city);
+  const mountains = cardCityRuleAt(state, city, 'workMountains');
+  const result: { tile: Tile; from: City; doubled: ImprovementId | null }[] = [];
+  for (const tile of mapRange(map, tileHex(centre), workRadiusOf(state, city))) {
+    const holder = state.tileOwner[tileIndex(map, tile.col, tile.row)];
+    if (holder === null || holder === undefined || holder === city.id) continue;
+    const from = cityById(state, holder);
+    if (!from || from.ownerId !== city.ownerId) continue;
+    if (cityAt(state, tile.col, tile.row) !== undefined) continue;
+    if (!isWorkableTile(tile, mountains)) continue;
+    result.push({ tile, from, doubled: doubledWork(state, city, tile) });
+  }
+  return result;
+}
+
+/**
+ * The work on this hex that this town may hold only once and already holds
+ * on another hex, or `null` (`docs/flags.md` (aaaaaaa), reading 1). A take of
+ * such a hex would give the town two Keeps, so `takeableTiles` leaves the hex
+ * out and the pin's check names the work. The same test the worker's build
+ * asks (`townHoldsWork`). `alsoHeld` names the works earlier takes in the same
+ * command bring, so two takes cannot add up to two Keeps either.
+ */
+export function doubledWork(
+  state: GameState,
+  city: City,
+  tile: Tile,
+  alsoHeld: readonly ImprovementId[] = [],
+): ImprovementId | null {
+  const work = tile.improvement;
+  if (work === undefined || improvementDef(work).onePerTown !== true) return null;
+  if (alsoHeld.includes(work)) return work;
+  return townHoldsWork(state, city.id, tile, work) ? work : null;
+}
+
+/**
+ * Does this town hold the work on any hex but this one? A walk of the whole
+ * owner array, because a town's hexes may lie beyond its work radius (a claim),
+ * and the answer must cover every one of them (The Keeps' "one in each town").
+ * Asked by the worker's build (`improvementGroundError`) and by a take
+ * (`doubledWork`).
+ */
+export function townHoldsWork(state: GameState, townId: number, except: Tile, work: ImprovementId): boolean {
+  const skip = tileIndex(state.map, except.col, except.row);
+  for (let index = 0; index < state.tileOwner.length; index++) {
+    if (index === skip || state.tileOwner[index] !== townId) continue;
+    if (state.map.tiles[index]?.improvement === work) return true;
+  }
+  return false;
 }
 
 /**
@@ -2315,6 +2443,9 @@ function chooseCitizens(
  * of exceptions:
  *
  *   1. `setLockedTiles` (`commands.ts`) — pinning a citizen. The precedent.
+ *      Since the user's ruling of 2026-10-17 (`docs/flags.md` (aaaaaaa)) a pin
+ *      may take a hex from another town of the empire (`takeTile`), and the
+ *      town that lost it is re-seated through this helper in the same command.
  *   2. `purchaseTileAt` — bought ground is worked ground before the turn ends.
  *   3. `settleProductionWindfall` — a one-time grant that completes an item.
  *      **The `contribute` verb joins here rather than as an entry of its own**

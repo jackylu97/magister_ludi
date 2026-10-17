@@ -206,6 +206,20 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   Terraces' `workMountains` city rule lets citizens work mountains
   (`isWorkableTile`). A great person's act pays its riders in the town where
   the act landed.
+- **Each hex belongs to one town** (`state.tileOwner`), and a town's citizens
+  work only its own hexes inside its reach (`assignableTiles`).
+  - **A pin may take a hex** from another town of the same empire (the user's
+    ruling of 2026-10-17, `docs/flags.md` (aaaaaaa)). `takeableTiles` is the
+    one list: inside the town's reach, owned by another town of the empire,
+    workable, not a town's centre, and not a second "at most one per town" work
+    for this town (`doubledWork`; The Keeps).
+  - `setLockedTiles` checks every pin first. Then `takeTile` moves the hex,
+    the losing town drops its pin there, and both towns are re-seated in the
+    same command (entry 1 of the mid-turn register).
+  - The hex stays with the town that took it when the pin is lifted. The
+    automatic assignment, and so the bots, never take a hex.
+  - The city screen pins a takeable hex like an own one, and the hover readout
+    says "Take from" and the town's name (`takeHint`).
 - **A town's largest size, and three moments** (Expansionist batch E2).
   - `City.largestSize` is the most citizens a town has ever had. It is written
     at the founding and raised by `settleSizeRecord` (`cities.ts`), which

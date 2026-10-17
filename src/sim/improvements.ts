@@ -75,6 +75,7 @@ import {
   settleProductionWindfall,
   tileOwnerCityId,
   tileOwnerPlayerId,
+  townHoldsWork,
   withinReachOfBorders,
 } from './cities';
 import {
@@ -105,7 +106,6 @@ import {
   raiseImprovement,
   razeImprovement,
   tileHex,
-  tileIndex,
   tileNeighbors,
   wrappedDistance,
 } from './map';
@@ -192,7 +192,7 @@ export function chargesLeft(unit: Unit): number {
  * Found the day the worker panel started printing every refusal (2026-09-04):
  * "A floating gardens cannot be built on grassland" had never been on screen.
  */
-function aRow(def: { name: string }): string {
+export function aRow(def: { name: string }): string {
   const noun = def.name.toLowerCase();
   if (noun.endsWith('s')) return noun;
   // "An outpost" (Expansionist batch E4): the first row whose name opens on a
@@ -330,7 +330,7 @@ export function improvementGroundError(
   // 31): the town that owns this hex may hold the row on no other hex.
   if (def.onePerTown === true) {
     const townId = tileOwnerCityId(state, tile.col, tile.row);
-    if (townId !== null && townHoldsRow(state, townId, tile, improvementId)) {
+    if (townId !== null && townHoldsWork(state, townId, tile, improvementId)) {
       return `${cityById(state, townId)?.name ?? 'This town'} already has ${aRow(def)}`;
     }
   }
@@ -700,20 +700,6 @@ export function improvementCardError(
   // A row a seated card opens waits for the card to sit in a chair.
   const seated = def.unlockedByCard === true ? ' in a chair' : '';
   return `${ARow(def)} ${rowNeeds(def)} the card ${orderDef(card).name}${seated}`;
-}
-
-/**
- * Does this town hold the row on any hex but this one? A walk of the whole
- * owner array, because a town's hexes may lie beyond its work radius (a claim),
- * and the answer must cover every one of them (The Keeps' "one in each town").
- */
-function townHoldsRow(state: GameState, townId: number, except: Tile, row: ImprovementId): boolean {
-  const skip = tileIndex(state.map, except.col, except.row);
-  for (let index = 0; index < state.tileOwner.length; index++) {
-    if (index === skip || state.tileOwner[index] !== townId) continue;
-    if (state.map.tiles[index]?.improvement === row) return true;
-  }
-  return false;
 }
 
 /**

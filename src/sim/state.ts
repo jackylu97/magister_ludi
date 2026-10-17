@@ -1757,8 +1757,26 @@ import {
  * different routes: a landing it planned onto a full hex is refused, and a
  * march it left waiting at a blocked hex now goes round. The branch migrates
  * nothing, for the reason given under v119.
+ *
+ * v148 (branch `decks`; the user's ruling of 2026-10-17, `docs/flags.md`
+ * (aaaaaaa)): **towns may take each other's hexes with the citizen tool.** No
+ * field joins the state. The rules that change:
+ *
+ *   · a pin (`setLockedTiles`) may go on a hex that another town of the same
+ *     empire owns inside this town's work radius (`takeableTiles`). The pin
+ *     takes the hex: `takeTile` moves its owner in `state.tileOwner` to this
+ *     town, the losing town drops its pin there, and both towns are re-seated
+ *     in the same command. The hex stays this town's when the pin is lifted;
+ *   · a take that would give a town a second "at most one per town" work (The
+ *     Keeps) is refused;
+ *   · the automatic assignment, and so the bots, never take a hex.
+ *
+ * **A v147 save is refused and does not replay.** Its own pins would replay as
+ * they were, but the rule a pin is judged by has changed, and the branch
+ * refuses a save from before a rule change. It migrates nothing, for the
+ * reason given under v119.
  */
-export const SCHEMA_VERSION = 147;
+export const SCHEMA_VERSION = 148;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

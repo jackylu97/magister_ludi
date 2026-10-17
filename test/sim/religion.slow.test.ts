@@ -433,7 +433,9 @@ describe('determinism', () => {
     // 147 since the movement fixes (flags item xxxxxx): a landing is planned
     // only where the piece may stop, and a blocked march goes round, so a
     // v146 log's marches would walk different routes.
-    expect(SCHEMA_VERSION).toBe(147);
+    // 148 since the take (flags item aaaaaaa): a pin may take a hex from
+    // another town of the empire, so a v147 log is judged by a new rule.
+    expect(SCHEMA_VERSION).toBe(148);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

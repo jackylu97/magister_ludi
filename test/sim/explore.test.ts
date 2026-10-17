@@ -827,10 +827,16 @@ describe('determinism', () => {
    * nothing here: nobody here can take to the water, and no bot plays. Checked
    * by taking all three parts out and printing the version as 146, which gives
    * E6's hashes exactly.
+   *
+   * **The take (`docs/flags.md` (aaaaaaa), schema 148) moved the hash and not
+   * the length** at both seeds: 147 became 148, and that is all. Nobody here
+   * pins a citizen, and the automatic assignment never takes a hex. Checked by
+   * printing the version as 147 with the take in place, which gives the
+   * movement fixes' hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'a7716483:188931',
-    2026: '91dab9ba:188509',
+    11: '11974508:188931',
+    2026: '26e0bd45:188509',
   };
 
   for (const seed of [11, 2026]) {

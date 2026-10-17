@@ -284,6 +284,9 @@ const ANNOUNCING = new Set([
   // between two empires' towns. Both write the owner array and announce.
   'cities.ts#takeOutpostLand',
   'frontiers.ts#runEncroachment',
+  // The take (`docs/flags.md` (aaaaaaa)): a pin moves a hex from one town of
+  // the empire to another. It writes the owner array and announces.
+  'cities.ts#takeTile',
   // Expansionist batch E5: a commission marks the town that met its goal.
   'commissions.ts#markGoalTown',
   // Batch L: famine and a levy both take a citizen through `loseCitizen`.

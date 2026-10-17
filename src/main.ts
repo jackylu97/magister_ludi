@@ -2659,7 +2659,16 @@ async function boot(initial: Game | null): Promise<void> {
       // The survey mark: seatless and gateless, because it is a fact about the
       // hillside rather than about who is looking at it. See `describeSurvey`.
       setInfoRow(infoSurvey, describeSurvey(hover.tile));
-      setInfoRow(infoOccupant, describeOccupant(game.state, seat, hover.tile));
+      // And, with a city screen open, the take a click would make: "Take from
+      // Sinope" over a hex another of this seat's towns owns inside the open
+      // town's reach (`docs/flags.md` (aaaaaaa)). `controls` decides, through
+      // the simulation's own list, as it does for the swap above.
+      const occupant = describeOccupant(game.state, seat, hover.tile);
+      const take = controls.takeHint();
+      setInfoRow(
+        infoOccupant,
+        take === null ? occupant : occupant === null ? take : `${occupant} · ${take}`,
+      );
     } else {
       setInfoRow(infoTerrain, null);
       clearInfoRows();

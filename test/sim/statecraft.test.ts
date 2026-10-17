@@ -2018,7 +2018,9 @@ describe("determinism", () => {
     // 147 since the movement fixes (flags item xxxxxx): a landing is planned
     // only where the piece may stop, and a blocked march goes round, so a
     // v146 log's marches would walk different routes.
-    expect(SCHEMA_VERSION).toBe(147);
+    // 148 since the take (flags item aaaaaaa): a pin may take a hex from
+    // another town of the empire, so a v147 log is judged by a new rule.
+    expect(SCHEMA_VERSION).toBe(148);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

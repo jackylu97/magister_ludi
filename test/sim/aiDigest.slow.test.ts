@@ -925,10 +925,21 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * 837 on the standard one. The longest run a soldier spends there went from
  * 58 turns to none on the duel board and from 40 to 13 on the standard one.
  * Nothing stalled and no command was refused.
+ *
+ * ---
+ *
+ * **The take (`docs/flags.md` (aaaaaaa), schema 148): towns may take each
+ * other's hexes with the citizen tool.** Duel `828c72e8:271204` →
+ * `ae39b205:271204`, standard `c404a125:916889` → `23269452:916889`. Only the
+ * version moved them, 147 to 148: a hex moves between towns only on a player's
+ * pin, and the bots never pin a citizen, so neither game changes. Checked by
+ * printing the version as 147 with the take in place, which gives the movement
+ * fixes' digests exactly on both boards. Nothing stalled and no command was
+ * refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '828c72e8:271204',
-  standard: 'c404a125:916889',
+  duel: 'ae39b205:271204',
+  standard: '23269452:916889',
 };
 
 /**

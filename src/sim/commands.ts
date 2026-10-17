@@ -76,6 +76,10 @@ import {
   raiseOnDraft,
   refreshCityDerived,
   settleProductionWindfall,
+  doubledWork,
+  takeBlockedBy,
+  takeTile,
+  takeableTiles,
   tileOwnerPlayerId,
   tilePurchaseError,
   unitProductionCost,
@@ -83,10 +87,11 @@ import {
 import { type CombatOutcome, type SiegeReport, applyCombat, fortifyError } from './combat';
 import { discoveryChoiceError, settleDiscovery } from './discoveries';
 import { type ExploreEndReport, aimExplorer, autoExploreError } from './explore';
-import type { ImprovementId } from './improvementData';
+import { type ImprovementId, improvementDef } from './improvementData';
 import {
   type PillageReport,
   type ProspectReport,
+  aRow,
   buildImprovementAt,
   chopCity,
   chopError,
@@ -111,7 +116,7 @@ import {
   redrawGreatPersonOffer,
   settleGreatPersonChoice,
 } from './greatPeople';
-import { getTileAt, tileIndex } from './map';
+import { type Tile, getTileAt, tileIndex } from './map';
 import { type RerouteReport, advanceAlongPath, rerouteReport, swapPlaces } from './movement';
 import { type Cell, canStopOn, findPath, isPassable, planSwap } from './pathfind';
 import {
@@ -414,7 +419,10 @@ export interface SetCityProductionCommand extends PlayerCommand {
  * one validation path covers every edit the panel can make.
  *
  * Every cell must be a tile this city could actually work — its own, workable,
- * inside the work radius — and there may be no more of them than the city has
+ * inside the work radius — or a hex it may take from another town of the same
+ * empire (`takeableTiles`; the user's ruling of 2026-10-17, `docs/flags.md`
+ * (aaaaaaa)). A pin on such a hex takes it: the hex becomes this town's and
+ * stays so when the pin is lifted. There may be no more cells than the city has
  * citizens. Refusing at the gate is what keeps the panel honest: a pin that
  * could never be honoured would be a dot the player put on the board and the
  * simulation quietly ignored.
@@ -2673,19 +2681,21 @@ function applySetCityProduction(
 }
 
 /**
- * Validates a whole pin list against a city, returning the sanitised cells or
- * an error message.
+ * Validates a whole pin list against a city, returning the sanitised cells and
+ * the hexes the pins take, or an error message.
  *
  * Legality is asked of `assignableTiles` — the very function the assignment
- * runs on — rather than re-derived here from ownership, terrain and distance.
- * One rule, one implementation: a tile the panel can pin is exactly a tile a
- * citizen can be sent to, and the two cannot drift apart.
+ * runs on — and of `takeableTiles`, the one list of hexes a pin may take from
+ * another town of the empire (`docs/flags.md` (aaaaaaa)), rather than
+ * re-derived here from ownership, terrain and distance. One rule, one
+ * implementation: a tile the panel can pin is exactly a tile a citizen can be
+ * sent to, or one the pin takes first, and the lists cannot drift apart.
  */
 function validateLockedCells(
   state: GameState,
   city: City,
   raw: unknown,
-): Cell[] | string {
+): { cells: Cell[]; takes: Tile[] } | string {
   if (!Array.isArray(raw)) return 'setLockedTiles needs a cells array';
   if (raw.length > city.population) {
     return (
@@ -2698,8 +2708,16 @@ function validateLockedCells(
   for (const tile of assignableTiles(state, city)) {
     legal.add(tileIndex(state.map, tile.col, tile.row));
   }
+  const takeable = new Set<number>();
+  for (const { tile } of takeableTiles(state, city)) {
+    takeable.add(tileIndex(state.map, tile.col, tile.row));
+  }
 
   const cells: Cell[] = [];
+  const takes: Tile[] = [];
+  // The works the takes so far bring, so a second take cannot add a second
+  // Keep (reading 1, asked through `doubledWork`).
+  const gained: ImprovementId[] = [];
   const seen = new Set<number>();
   for (let i = 0; i < raw.length; i++) {
     const cell = readCell(raw[i]);
@@ -2709,7 +2727,11 @@ function validateLockedCells(
     const tile = getTileAt(state.map, cell.col, cell.row);
     if (!tile) return `Locked tile ${i} (${cell.col}, ${cell.row}) is off the map`;
     const index = tileIndex(state.map, tile.col, tile.row);
-    if (!legal.has(index)) {
+    if (!legal.has(index) && !takeable.has(index)) {
+      // The one refusal a player can act on gets its own words: the hex holds
+      // a work this town may hold once, and it holds one already (reading 1).
+      const blocked = takeBlockedBy(state, city, tile);
+      if (blocked !== null) return `${city.name} already has ${aRow(improvementDef(blocked))}`;
       return `${city.name} cannot work (${tile.col}, ${tile.row})`;
     }
     if (seen.has(index)) {
@@ -2717,8 +2739,14 @@ function validateLockedCells(
     }
     seen.add(index);
     cells.push({ col: tile.col, row: tile.row });
+    if (takeable.has(index)) {
+      const doubled = doubledWork(state, city, tile, gained);
+      if (doubled !== null) return `${city.name} already has ${aRow(improvementDef(doubled))}`;
+      if (tile.improvement !== undefined) gained.push(tile.improvement);
+      takes.push(tile);
+    }
   }
-  return cells;
+  return { cells, takes };
 }
 
 /**
@@ -2731,6 +2759,13 @@ function validateLockedCells(
  * would be showing the player that their click did nothing. It is safe because
  * assignment is idempotent and derived — `collectYields` recomputes it from
  * scratch anyway and reaches the same answer.
+ *
+ * **A pin may take a hex** from another town of the empire (the user's ruling
+ * of 2026-10-17, `docs/flags.md` (aaaaaaa)). Everything is checked before
+ * anything is written. Then each hex taken moves to this town (`takeTile`),
+ * the town that lost it drops its pin there (reading 2), and every town that
+ * lost a hex is re-seated before this one, so no hex is ever counted as worked
+ * by two towns at once.
  */
 function applySetLockedTiles(
   state: GameState,
@@ -2748,12 +2783,19 @@ function applySetLockedTiles(
     return fail(`City ${city.id} does not belong to player ${actor.id}`);
   }
 
-  const cells = validateLockedCells(state, city, command.cells);
-  if (typeof cells === 'string') return fail(cells);
+  const checked = validateLockedCells(state, city, command.cells);
+  if (typeof checked === 'string') return fail(checked);
 
+  // The takes first, in pin order, so the towns that lose a hex are known.
+  const losers: City[] = [];
+  for (const tile of checked.takes) {
+    const from = takeTile(state, city, tile);
+    if (from !== null && !losers.includes(from)) losers.push(from);
+  }
   // Copy, for the same reason the queue is copied: the command becomes a log
   // entry, and a caller that reused its array would be rewriting history.
-  city.lockedTiles = cells.map((cell) => ({ col: cell.col, row: cell.row }));
+  city.lockedTiles = checked.cells.map((cell) => ({ col: cell.col, row: cell.row }));
+  for (const loser of losers) refreshCityDerived(state, loser);
   refreshCityDerived(state, city);
   return ok();
 }
