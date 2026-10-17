@@ -19,6 +19,28 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(ccccccc) Fewer drafts between Order tiers: REQUESTED 2026-10-17, measuring first.**
+The user, after the first playtest: *"ok i have thoughts on game balance after
+my first playtest. I think there are too many order drafts to reach the next
+age, and the new cards are fairly impactful. Could we reduce the draft cost
+scaling? i'm in age 3 in science but still drafting tier 1 orders, my culture
+and science are roughly the same throughout the game. Could you do a
+measurement of how long each take? I think the number of drafts required to
+go from tier 1 -> 2 and 2-> 3 needs to be halved"*
+- **Today:** an Order tier (band) is dealt once the seat's draft count reaches
+  its rung of `tierLadder` (`data/statecraft.json`) and its research age is at
+  least the tier plus one (`bandOpen`). The rungs are 4, 18, 29 and 38
+  drafts, so Tier I to Tier II takes 14 drafts and Tier II to Tier III takes
+  11. A draft costs \`costBase + costLinear·n + n^costExponent\` culture (12, 5
+  and 2.2 today), so the 18th draft costs about 260.
+- **The user's direction:** halve the drafts from Tier I to Tier II and from
+  Tier II to Tier III, and consider a gentler cost curve.
+- **First step, asked by the user:** measure how long each tier takes in turns
+  and drafts, beside the research ages, before anything changes.
+- **Points to settle with the measurement:** the exact rungs after halving;
+  whether Tier IV's rung moves with them; and how the ladder's chair counts and
+  the governments' tiers (4, 10, 18, 29) stay in step.
+
 **(bbbbbbb) The hex take's readings: awaiting your confirmation.**
 The take (item (aaaaaaa)) landed on 2026-10-17 (schema 148), built with these
 readings. Each one stands until the user changes it:
