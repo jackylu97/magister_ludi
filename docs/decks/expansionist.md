@@ -15,17 +15,17 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 - **Type:** the last column says which chair the card fits: **Military**, **Economic**, **Civic** or **Wildcard** (`docs/plans/doctrines-governments-chairs.md`, section 4). Since batch E0 the types are in the data: each Expansionist card fits only a chair of its own type or a Wildcard chair. The sync test checks this column for every row in the data, the shared table's included.
 - **Gates:** "Needs tended land" deals a card only to a seat holding a tended-work charter. "Needs a levy" deals a card only to a seat holding a card that grants a levy, in a chair or not.
 - **The build:** the triage is `docs/plans/expansionist-build-triage.md`. Batch E0 put the types into the data, retired The Forest Gardens and Daughter Towns, and built the 37 cards that needed no new shape. Batch E1 built the twelve levy cards, batch E2 ten cards about moments, records and counts, batch E3 ten cards about the land, batch E4 ten cards about works, claims and borders, and batch E5 eight cards about meters, commissions and the shared The Frontier Militia. Batch E6 built The Breadbasket and Veteran Colonies on the shapes Dominion batch D7 built for them, and D7 built the shared The Farming Garrisons.
-- **Doctrines:** none yet. Expansionist's Doctrines come next, one direction per flavour.
+- **Doctrines:** proposed on 2026-10-17, eight in each of Tiers I to IV, for your pass; none is built. Each tier's Doctrine table sits above its Orders, and the Build column names the build or flavour each is written for. The reasons, drawbacks, pairs and shapes, and the questions, are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17".
 - **The long form** (the D3 "built as" details, the tended works as built, the synergy section, the proposed cuts and the proposed revision of 2026-10-13): `docs/decks/reference/expansionist-2026-10-16.md`.
 
 | Tier | Implemented | Modify | Add | All | Doctrines |
 |---|---|---|---|---|---|
 | Tier 0 | 13 | 1 | 0 | 14 | none |
-| Tier I | 28 | 0 | 1 | 29 | none |
-| Tier II | 21 | 1 | 0 | 22 | none |
-| Tier III | 35 | 1 | 1 | 37 | none |
-| Tier IV | 17 | 1 | 0 | 18 | none |
-| **All** | **114** | **4** | **2** | **120** | **none** |
+| Tier I | 28 | 0 | 1 | 29 | 8 proposed |
+| Tier II | 21 | 1 | 0 | 22 | 8 proposed |
+| Tier III | 35 | 1 | 1 | 37 | 8 proposed |
+| Tier IV | 17 | 1 | 0 | 18 | 8 proposed |
+| **All** | **114** | **4** | **2** | **120** | **32 proposed** |
 | Shared | 16 | 0 | 0 | 16 |  |
 
 **By type** (the chair a card would fit):
@@ -61,6 +61,21 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 ## Tier I
 
+**Doctrines,** proposed 2026-10-17 for the tier-4 governments (not built):
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **Bound to the Soil** | improvement | Your workers never run out of charges. You may hold at most one worker for every two towns. |
+| **Synoecism** | tall | Your towns of six or more citizens grow 30% faster. Towns you found cost 2 more authority. |
+| **The Gift of the River** | tall: waterworks | Worked tiles beside a river gain +1 food and +1 production. You can found towns only on fresh water or the coast. |
+| **The Seven Fat Years** | tall: breadbasket | Your towns keep half of their stored food when they grow. Your towns cannot grow beyond twelve citizens. |
+| **The Sacred Spring** | wide | Settlers cost half as much to build and to buy. Your towns of eight or more citizens grow 25% more slowly. |
+| **The Highland Clans** | wide: highlands | Towns on hills cost 1 less authority and gain +2 production. Towns off the hills grow 20% more slowly. |
+| **The Commanderies** | wide: well-ordered realm | Each of your towns costs 1 less authority, minimum one. Your borders grow 30% more slowly. |
+| **The Royal Road** | wide: road network | Each town you found is joined to your capital by road. Your roads cost twice as much gold to keep. |
+
+**Orders:**
+
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Burhs** | common | implemented | Towns gain +3 defence for every defensive building in them, and +100% production toward defensive buildings. | Military |
@@ -95,6 +110,21 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 ## Tier II
 
+**Doctrines,** proposed 2026-10-17 for the tier-10 governments (not built):
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **The Georgics** | improvement | Your works count as having stood twice as long. Each improvement costs your workers two charges. |
+| **The Curator of Waters** | tall: waterworks | Every town of yours counts as having fresh water. Aqueducts cost 50% more production. |
+| **The Royal Works** | tall: great works | While your capital builds a wonder, each of your other towns sends it 20% of its production. |
+| **The Liturgies** | tall: breadbasket | Needs a levy. Your towns may levy every two turns instead of every five. Your towns cannot grow beyond fifteen citizens. |
+| **Free Mining** | wide: highlands | Your workers may build mines on hills up to two hexes beyond your borders, and each claims its hex for your nearest town. Hexes cost twice as much gold to buy. |
+| **The Censors** | wide: well-ordered realm | When the world takes a census, each of your towns gains a citizen. Your towns' food surplus counts 20% less toward growth. |
+| **The Hiving** | flex | The first time each of your towns reaches twelve citizens, it raises a free settler. You can no longer build or buy settlers. |
+| **The Wildwood Compact** | tended land | Needs tended land. Tended works cost your workers no charge. Your workers can no longer build farms. |
+
+**Orders:**
+
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Watercourses** | uncommon | implemented | Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step. | Economic |
@@ -121,6 +151,21 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Teeming Realm** | uncommon | implemented | +1% production and food for every ten citizens in your empire, at most +30%. | Economic |
 
 ## Tier III
+
+**Doctrines,** proposed 2026-10-17 for the tier-18 governments (not built):
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **Crop Rotation** | improvement | Worked improvements yield twice their own bonus. Worked unimproved tiles yield nothing. |
+| **The Contented City** | tall | Your citizens ask half as much happiness. Your gold income is halved. |
+| **The Builder Kings** | tall: great works | +35% production toward wonders. You can no longer buy buildings or units. |
+| **The Annona** | tall: breadbasket | Each turn, every town of fifteen or more citizens sends its food surplus to your smallest town. |
+| **Empire Without End** | wide | Towns you found cost no authority. Your towns cannot grow beyond twelve citizens. |
+| **All Roads Lead to Rome** | wide: road network | Your capital gains +3% production and gold for each town joined to it by road, at most +45%. Each town not joined to it costs 2 more authority. |
+| **The Planted Towns** | flex | Towns you found start with four citizens and a Monument. Training a settler also costs its town a citizen. |
+| **The Garden Peoples** | tended land | Needs tended land. Tended tiles gain +1 food, +1 production and +1 culture. Your other improvements yield 1 less food. |
+
+**Orders:**
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
@@ -163,6 +208,21 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | **The Managed Wild** | uncommon | implemented | Needs tended land. Each town gains +5% food for every tended tile in its borders, at most +25%. | Economic |
 
 ## Tier IV
+
+**Doctrines,** proposed 2026-10-17 for the tier-26 governments (not built):
+
+| Doctrine | Build | Text |
+|---|---|---|
+| **The Physiocrats** | improvement | Every improved tile gains +1 food, +1 production and +1 gold. Your towns build buildings 30% more slowly. |
+| **The Hydraulic Empire** | tall: waterworks | Worked farms with fresh water gain +2 food and +2 production. Towns away from fresh water cost 2 more authority. |
+| **The Cathedral Lodges** | tall: great works | A great engineer's act does not use it up: it may act again twenty turns later. You earn half as much renown. |
+| **The High Towns** | wide: highlands | Your settlers may cross mountains and found towns on them. A town on a mountain gains +4 science and cannot grow beyond eight citizens. |
+| **The Mandarinate** | wide: well-ordered realm | Each point of spare authority gives +1% science and culture, at most +30%. Each of your towns costs 1 more authority. |
+| **The Inward Roads** | wide: road network | Towns joined to your capital by road gain +20% food and production. Your caravans may not travel to other empires. |
+| **Town and Country** | flex | Your towns of ten or more citizens cost no authority, and the citizens of your smaller towns ask no happiness. Your towns grow 30% more slowly. |
+| **Arcadia** | tended land | Needs tended land. Your tended tiles also count as improved for every card. Your workers can build only tended works. |
+
+**Orders:**
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
@@ -211,6 +271,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 ## Open for your pass
 
 - **Still open:**
+  - **The 32 proposed Doctrines,** eight a tier, for you to filter and edit (*"aim for 8 for each tier (tier 1-4) and i'll filter them down/make edits"*). Their reasons, drawbacks, pairs and shapes, and seven questions, are in `docs/plans/expansionist-builds.md`, "Doctrines, proposed 2026-10-17".
   - **The gap rule** (question 1 of the builds: *"TBD, will review myself later."*). The cards it touches most:
     - The Megalopolis now pays science per citizen (your revision);
     - The Terraces of Moray pays science for a levy in a mountain town;
