@@ -19,38 +19,19 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(aaaaaaa) Towns may take each other's hexes with the citizen tool: RULED, 2026-10-17, not built yet.**
-The user: *"behavior change: cities should be able to swap tiles between
-each other using the citizen management tool. improvements with effect "at
-most one per city" checks if the city currently has been assigned a tile with
-an existing improvement. If a city works a tile and unworks it, that tile
-still remains 'assigned' to the city, until it's worked/taken by a different
-city. Cities still are only able to work and take tiles within their three hex
-radius, i.e. a city 8 tiles away can't swap tiles with the currently selected
-city"*
-- **Today:** each hex in an empire belongs to one town (`state.tileOwner`). A
-  town's citizens work only its own hexes inside its work radius
-  (`assignableTiles`), and the city screen's tile locks (`setLockedTiles`)
-  allow only those. So no town can work or take another town's hex.
-- **The ruling:**
-  - In the city screen, the player may lock a citizen onto a hex that another
-    of their towns owns, if the hex is inside this town's work radius
-    (`workRadiusOf`: three rings, or four under The Common Domain).
-  - The lock takes the hex: it now belongs to this town, and stays this
-    town's until another town takes it. Working a hex, or stopping work on it,
-    does not change which town it belongs to. This is the user's "assigned".
-  - A town may never work or take a hex outside its work radius.
-- **"At most one per city"** (The Keeps): a hex's improvement of this kind is
-  refused if the town that owns the hex already owns another hex with one. The
-  build check works this way today, and it stays so.
-- **Readings, for the user to correct:**
-  1. A town may not take a hex with an "at most one per city" improvement if
-     it already owns a hex with that improvement. Otherwise moving hexes
-     between towns would give one town two Keeps.
-  2. The town that loses the hex drops any lock it had there, and its citizens
-     are placed again at once.
-  3. The automatic citizen assignment, and so the bots, still work only a
-     town's own hexes. Only the player's lock moves a hex between towns.
+**(bbbbbbb) The hex take's readings: awaiting your confirmation.**
+The take (item (aaaaaaa)) landed on 2026-10-17 (schema 148), built with these
+readings. Each one stands until the user changes it:
+1. A town may not take a hex with an "at most one per city" work, such as a
+   Keep, if it already owns one. Two takes in one pin list cannot bring a town
+   two either.
+2. The town that loses the hex drops its pin there, and places its citizens
+   again at once.
+3. Only the player's pin moves a hex between towns. The automatic assignment,
+   and so the bots, never take one.
+4. **Puppet towns,** which the ruling did not mention: today the game lets the
+   player pin a puppet's citizens. So a town may take a hex from its empire's
+   puppet, and a puppet may take one.
 
 **(zzzzzz) Two movement questions from the fix for item (xxxxxx): awaiting your ruling.**
 The fix landed on 2026-10-17 (schema 147); item (xxxxxx) is now in the log.
