@@ -1754,7 +1754,15 @@ export type CombatScaleCount =
    * batch S): strength paid for by the reserve. The same reading as
    * `CountKind`'s `bankedGold`, asked of a fight.
    */
-  | 'bankedGold';
+  | 'bankedGold'
+  /**
+   * **The attacks this empire's units have already made this turn on the
+   * piece or town now being attacked** (Dominion batch D8, Weight of Numbers).
+   * Read off `Player.strikesThisTurn`, which `applyCombat` writes as each
+   * attack is made, after its plan, so an attack does not count itself. Asked only of
+   * the attacker's side; the defender's side counts nothing.
+   */
+  | 'attacksOnTarget';
 
 /** A strength line that scales with a count, capped where the design caps it. */
 export interface CombatScale {
@@ -1773,6 +1781,12 @@ export interface CombatScale {
    * the union stays a list of questions.
    */
   slot?: ChairType;
+  /**
+   * **Only units holding this rank or a higher one** count (Dominion batch D8,
+   * Centurions' "each Elite unit gives +3 strength to your units beside it").
+   * Read by `adjacentFriendlies`. Ignored by the other counts.
+   */
+  rank?: RankId;
 }
 
 /**
@@ -3572,7 +3586,15 @@ export type CardRule =
    * What the **towns** this empire loses count toward its war weariness: The
    * Glorious Dead's nothing. `unitLossWeariness`' sibling for towns.
    */
-  | 'townLossWeariness';
+  | 'townLossWeariness'
+  /**
+   * **What a unit of the row's `class` costs this empire to build** (Dominion
+   * batch D8, The Servian Reforms: military units 25% cheaper). A negative
+   * percentage is cheaper. It is a line of `explainUnitCost`, so a purchase,
+   * which is priced off the full production cost, follows it. The row's
+   * `class` names the units; a row that names no class reaches every unit.
+   */
+  | 'unitCost';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -4177,7 +4199,28 @@ export type BehaviorRuleId =
    * chain of its farms counts as having fresh water** (Expansionist batch E3,
    * The Water Courts). Read by `farmWaterOf`.
    */
-  | 'farmChainsWater';
+  | 'farmChainsWater'
+  /**
+   * **This empire may not found new cities** (Dominion batch D8, The Soldiers'
+   * Share). Refused in `foundingError`, and, because a settler would then be
+   * worth nothing, a unit that founds cities may be neither built nor bought
+   * (`buildError`, the triage's reading 17).
+   */
+  | 'noFounding'
+  /**
+   * **This empire's units never gain experience** (Dominion batch D8, The
+   * Servian Reforms): no fight, drill, grant or starting rank raises it. Read
+   * in `ranks.ts` by the fight's award and by `canEarn`. Experience already
+   * earned is kept (the triage's reading 70).
+   */
+  | 'noExperience'
+  /**
+   * **This empire's siege units cannot be attacked in melee while one of its
+   * melee units stands beside them** (Dominion batch D8, Combined Arms). Refused
+   * by `screenError` (`combat.ts`), the one clause the tint, the forecast and
+   * the reducer ask.
+   */
+  | 'siegeScreened';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId =
@@ -4353,7 +4396,14 @@ export type AmplifierTarget =
    * timed effect, a unit, a heal or a free draft, a commission's reward, or a
    * Doctrine's rider (the triage's reading 6).
    */
-  | 'captureRewards';
+  | 'captureRewards'
+  /**
+   * **What a great general's aura is worth** (Dominion batch D8, The Strategoi:
+   * "your great generals' strength aura is doubled"). Read in
+   * `generalAuraLines` (`combat.ts`) on the rule book's figure. It does not
+   * reach a general's one-time rally (the user's answer on the sheet).
+   */
+  | 'generalAura';
 
 /**
  * A rule about how an offer *pays*, as against how big it is.
@@ -5052,6 +5102,32 @@ export interface WindfallGrantSpec {
    * mark has no figure, so the era and the council multiply nothing here.
    */
   mark?: HexMarkId;
+  /**
+   * **Every piece of this empire within this many hexes of the occasion's hex
+   * is healed whole** (Dominion batch D8, The Soldiers' Share). `healAll`
+   * narrowed to a radius. Acted on by `payWindfallGrants`; an occasion with no
+   * hex heals nobody.
+   */
+  healWithin?: number;
+  /**
+   * **Every fighting unit of this empire within this many hexes of the
+   * occasion's hex is raised one rank** (Dominion batch D8, The Soldiers'
+   * Share). A unit with no rank becomes a Veteran, a Veteran becomes an Elite,
+   * and an Elite gains nothing. The rank counts as earned, so it pays the cards that
+   * pay when a unit earns a rank (the triage's reading 17). Acted on by
+   * `payWindfallGrants`; an occasion with no hex raises nobody.
+   */
+  rankWithin?: number;
+  /**
+   * **A timed effect hung on the piece that acted** (Dominion batch D8, The
+   * Scourge of God: "units that have pillaged in the last five turns gain +6
+   * strength"). `timed`'s sibling with a piece for the holder: written to
+   * `Unit.timed` with an absolute expiry, read by the ordinary evaluators and
+   * swept by the same broom. `renews` is the window reading: a second
+   * occasion rewrites the expiry instead of stacking. Acted on by the seam
+   * that holds the piece, which today is `pillageAt` alone.
+   */
+  actorTimed?: { turns: number; effects: CardEffect[]; renews?: true };
 }
 
 /**
@@ -5215,6 +5291,17 @@ export interface CardPaysEffect extends CardYieldBag {
    * exactly as the works' percentage is.
    */
   basePercent?: number;
+  /**
+   * A percentage on **everything the hex pays**, taken last (Dominion batch
+   * D8, The Strategoi: "citadel yields are doubled"; the triage's reading 28).
+   * `where: 'hex'` only.
+   *
+   * The third hex share, and the only one that reaches the lines other cards
+   * put on the hex: it is a share of the hex's whole fold, the works, the
+   * ground, the marks, every card line and the other two shares included.
+   * Riders sum before one multiplication, as the other two do.
+   */
+  wholePercent?: number;
   /**
    * **Paid once for every mountain standing beside the hex** — Pachacuti's
    * *"farms gain +1 food for each adjacent mountain"* (`docs/leaders.md`).
@@ -5817,6 +5904,11 @@ export interface CardRulePercentEffect {
    * cities"). Read only by `campMuster`, which asks it of each camp.
    */
   range?: number;
+  /**
+   * **Which units the rule is about** (Dominion batch D8, The Servian Reforms'
+   * military units). Read only by `unitCost`.
+   */
+  class?: UnitFilter;
 }
 
 /** Flat happiness, once for the empire or once per city a scope admits. */
@@ -7880,6 +7972,11 @@ export interface CardUpkeepSurchargeEffect {
   class?: UnitFilter;
   /** Where the piece must be standing. Absent means anywhere. */
   where?: 'ownTerritory' | 'foreignTerritory';
+  /**
+   * **Only pieces holding this rank or a higher one** (Dominion batch D8,
+   * Centurions' "each Elite unit ... costs 2 more upkeep").
+   */
+  rank?: RankId;
 }
 
 export interface CardUpkeepRebateEffect {

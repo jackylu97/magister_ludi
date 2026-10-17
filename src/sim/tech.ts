@@ -455,6 +455,10 @@ import {
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
+// Dominion batch D8, straight from the evaluator rather than through the
+// index, which re-exports across a cycle: the rule that stops an empire
+// founding cities.
+import { cardBehaviorRule } from './statecraft/evaluator';
 import {
   type City,
   type GameState,
@@ -970,6 +974,18 @@ export function buildError(
   }
   if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).retired === true) {
     return `${itemName(kind, id)}s are no longer called`;
+  }
+  // **The Soldiers' Share** (Dominion batch D8; the triage's reading 17): an
+  // empire whose law forbids founding cities may neither build nor buy a unit
+  // that founds them. A purchase asks this function too, so one refusal
+  // covers both.
+  if (
+    kind === 'unit' &&
+    isUnitTypeId(id) &&
+    unitDef(id).foundsCity === true &&
+    cardBehaviorRule(state, playerId, 'noFounding')
+  ) {
+    return `Your laws forbid founding new cities, so ${itemName(kind, id)}s are not raised`;
   }
   // **And a building may have left the buildable set for good** — the ordinary
   // rows the fewer-things pass cut (`BuildingDef.retired`), and the hall a

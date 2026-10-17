@@ -158,7 +158,7 @@ first; the reward hands are gone.
   it. The faith reroll may redeal it. The bots take the best-scoring Doctrine when it scores
   above nothing, and pass otherwise.
 - **The spec of record** is each deck's sheet (`docs/decks/<deck>.md`), whose Doctrine tables
-  list a deck's sixteen Doctrines, four a tier. A Doctrine with a data row matches its sheet
+  list a deck's sixteen Doctrines across the four tiers. A Doctrine with a data row matches its sheet
   row in name, tier and text (`test/sim/decks/<deck>.test.ts`). The table below mirrors the
   live rows (`statecraftDocSync.test.ts`).
 
@@ -167,11 +167,19 @@ first; the reward hands are gone.
 | The Steppe Confederacy | Dominion | I | tier 4 | Negative authority no longer stops your borders growing. While authority is negative, gain +50% production toward mounted units. |
 | The Consular Roads | Dominion | I | tier 4 | Cities connected to your capital by road and holding a garrison gain +5 science and +5 culture, and are pacified at once. |
 | The Marian Reforms | Dominion | I | tier 4 | Your military units cost no upkeep, but your towns build them at half speed. Buying them is unaffected. |
+| The Soldiers' Share | Dominion | I | tier 4 | Capturing a town fully heals every unit of yours within three hexes and raises each by one rank. You can no longer found new cities. |
+| The Servian Reforms | Dominion | I | tier 4 | Your military units are 25% cheaper to build and to buy. Your units never gain experience. |
 | The Laws of Lord Shang | Dominion | II | tier 10 | While a town builds a military unit, its surplus food goes into the unit instead of into growth. |
+| Centurions | Dominion | II | tier 10 | Each Elite unit gives +3 strength to your units beside it, and costs 2 more upkeep. |
+| The Plunder Economy | Dominion | II | tier 10 | Pillaging a hex yields production equal to 50% of your unit's strength in every city. Your units lose 4 strength when attacking cities. |
+| The Strategoi | Dominion | II | tier 10 | +30% renown. Citadel yields and your great generals' strength aura are doubled. |
+| Weight of Numbers | Dominion | II | tier 10 | Your units gain +3 strength for each attack your units have already made on the same target this turn, at most +12. Your units cannot fortify. |
 | The Universal Monarchy | Dominion | III | tier 18 | Towns you capture cost no authority. Towns you found cost twice as much. |
 | Total Mobilisation | Dominion | III | tier 18 | While at war, each town of six or more citizens raises the best melee unit you can build every five turns, for a citizen. It costs no upkeep. While at peace, your towns grow 25% faster. |
+| Combined Arms | Dominion | III | tier 18 | Your units gain +3 strength, doubled beside one of your siege units. Siege units beside one of your melee units cannot be attacked in melee. |
 | The Landsturm | Dominion | IV | tier 29 | After you pass a draft, each city of five or more citizens raises the best melee unit you can build. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general. |
 | The Fortress Empire | Dominion | IV | tier 29 | Units gain +5 strength when fortified. Each city gains +5% science and production for each fortified military unit inside its borders, at most +30%. |
+| The Scourge of God | Dominion | IV | tier 29 | Units that have pillaged in the last five turns gain +6 strength. Pillaging gives your capital +100% production for five turns, which does not stack. |
 
 ## Decks
 

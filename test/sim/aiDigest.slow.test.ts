@@ -851,28 +851,60 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  *
  * ---
  *
- * **Expansionist batch E6 (schema 145): The Breadbasket and Veteran
- * Colonies.** Duel `01ab9020:285340` → `e8c6ce6b:285340`, standard
- * `a4608f70:956430` → `e4591a83:956439`. Two things moved them:
+ * **Dominion batch D8 (schema 145), the last eight Dominion Doctrines, merged
+ * after E5 and the lake fix.** Duel `01ab9020:285340` → `029bb984:288649`,
+ * standard `a4608f70:956430` → `ec53cf16:901072`. D8 was built at schema 143,
+ * without E5 and L1, and the literals it pinned there (duel
+ * `61231c1f:265576`, standard `c952c241:916732`) do not apply to this tree.
+ * Two things moved the digests:
  *
- *   · the cards. Two deferred rows come live, so the draft bags hold different
- *     cards. That moves the standard game and not the duel one. No seat holds
- *     either card at turn 120 on either board. The bots never tell a town to
- *     stop growing, and they disband a unit only to clear their arrears, so
- *     neither card would pay a bot anyway;
- *   · the version, 144 to 145, which is the whole of the duel's change.
+ *   · the version, 144 to 145;
+ *   · the Doctrines. The Soldiers' Share and The Servian Reforms join the
+ *     tier-4 offers, Centurions, The Plunder Economy, The Strategoi and Weight
+ *     of Numbers the tier-10 offers, Combined Arms the tier-18 offers and The
+ *     Scourge of God the tier-29 offers. An offer of three is now dealt from
+ *     five cards at tiers 4 and 10, so The Laws of Lord Shang is no longer
+ *     every seat's Tier II Doctrine. At turn 120 no seat holds it. On the duel
+ *     board three seats reached tier 10 and all three took Centurions. On the
+ *     standard board all six seats reached tier 10 and every one took Weight
+ *     of Numbers. At Tier I six seats across the two boards hold The Servian
+ *     Reforms, four The Marian Reforms, one The Consular Roads and one The
+ *     Steppe Confederacy; three seats hold Total Mobilisation at Tier III. The
+ *     bots price a strength line as if every unit had it, so the scaled lines
+ *     of Centurions and Weight of Numbers read as a flat +3.
  *
- * Checked twice with the version at 144. With the Expansionist deck file as E5
- * and L1 left it, both digests are the previous ones exactly, so the new
- * town scope and the cap rule (`assignCitizens` leaves a town's citizens on
- * its food while a card moves its surplus) change nothing without the cards.
- * With the new deck file, the duel digest is still the old one and the
- * standard game has its new length. The duel game adopts 12 governments and
- * the standard one 15. Nothing stalled and no command was refused.
+ * Checked by taking both back out (the Dominion deck file as the lake fix left
+ * it and the version at 144), which gives the lake fix's digests exactly on
+ * both boards. Everything else D8 changed stayed in for that run: the heal and
+ * the rank around a hex, the timed effects on the raider, the raider's
+ * strength on a pillage, the three new rules, the unit cost line, the Elite
+ * and attack counts and their record, the rank on a surcharge and the free
+ * unit's waiver, the aura's amplifier, the whole-hex share and the bots' new
+ * readings change nothing without the cards. Nothing stalled and no command
+ * was refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E6 (schema 146): The Breadbasket and Veteran Colonies,
+ * merged after D8.** Duel `029bb984:288649` → `3b48dd73:288649`, standard
+ * `ec53cf16:901072` → `441af4ef:901072`. E6 was built at schema 145, without
+ * D8, and the literals it pinned there (duel `e8c6ce6b:285340`, standard
+ * `e4591a83:956439`) do not apply to this tree. On this tree only the version
+ * moved the digests, 145 to 146. The two cards come live, but neither game
+ * changes because of them: no seat holds either card at turn 120. The bots
+ * never tell a town to stop growing, and they disband a unit only to clear
+ * their arrears, so neither card would pay a bot anyway.
+ *
+ * Checked twice with the version at 145: once with the Expansionist deck file
+ * as D8 left it, and once with E6's. Both give D8's digests exactly on both
+ * boards, so the new town scope, the cap rule (`assignCitizens` leaves a
+ * town's citizens on its food while a card moves its surplus) and the two
+ * cards change nothing in these games. The duel game adopts 10 governments
+ * and the standard one 14. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'e8c6ce6b:285340',
-  standard: 'e4591a83:956439',
+  duel: '3b48dd73:288649',
+  standard: '441af4ef:901072',
 };
 
 /**

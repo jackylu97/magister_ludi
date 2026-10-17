@@ -115,7 +115,7 @@ import { cardThatOpensImprovement, orderDef } from './statecraftData';
 // Expansionist batch E4, straight from the evaluator rather than through the
 // index: the index re-exports across a cycle, and the build splits such
 // re-exports into chunks it warns about.
-import { worksBeyondReach } from './statecraft/evaluator';
+import { timedEffectIsLive, worksBeyondReach } from './statecraft/evaluator';
 import { type FeatureId } from './terrainData';
 import {
   type WindfallPayout,
@@ -141,7 +141,7 @@ import {
 } from './state';
 // Dominion batch D3: The Chevauchée's strike and The Harrying's unrest, both
 // paid where a pillage is paid.
-import { type TownStrike, strikeTownsNear } from './combat';
+import { type TownStrike, pieceStrength, strikeTownsNear } from './combat';
 import { inUnrest, startUnrest, unrestGarrison } from './unrest';
 import { atWar, recordWarPillage } from './wars';
 import { hasTech, settleResearchWindfall } from './tech';
@@ -1853,7 +1853,9 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   // and a rider that asks for a class and is handed no actor does not ride, so
   // this is also what makes the Mandekalu's own salvage rider
   // (`data/units.json`) pay for the first time.
-  const facts = { actor: unit.type };
+  // The raider and its own strength (Dominion batch D8, The Plunder Economy's
+  // "production equal to 50% of your unit's strength").
+  const facts = { actor: unit.type, strength: pieceStrength(unit) };
   const payout = windfallPayout(
     state,
     player.id,
@@ -1913,6 +1915,9 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     // routine, never a second one.
     settleResearchWindfall(state, player);
   }
+  // The Scourge of God (Dominion batch D8): the timed effects the riders hang
+  // on the raider, for the raid's own hex.
+  if (!wild) hangOnRaider(state, unit, payout.actorTimed ?? []);
   if (!wild && payout.healFull === true) {
     // The Yam (Dominion batch D3): the raider is made whole, and the heal is
     // reported the same way as the bandage below, as what the bar moved by.
@@ -1929,6 +1934,28 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     report.heal = unit.hp - before;
   }
   return report;
+}
+
+/**
+ * **Hangs a rider's timed effects on the raider** (Dominion batch D8, The
+ * Scourge of God: "units that have pillaged in the last five turns gain +6
+ * strength"). The expiry is absolute, `state.turn` plus the turns, and the
+ * effects are read by the ordinary evaluators while they are live. A row that
+ * `renews` drops the raider's live entries from the same card first, so a
+ * second raid refreshes the window instead of stacking it, as a landing does
+ * (`hangLandfall`, `movement.ts`). Not announced, for `hangLandfall`'s reason:
+ * only the combat ledger reads a piece's own timed effects.
+ */
+function hangOnRaider(state: GameState, unit: Unit, hung: NonNullable<WindfallPayout['actorTimed']>): void {
+  if (hung.length === 0) return;
+  for (const { card, turns, effects, renews } of hung) {
+    const expiresTurn = state.turn + turns;
+    const kept = (unit.timed ?? []).filter(
+      (entry) => renews !== true || entry.card !== card || !timedEffectIsLive(state, entry),
+    );
+    for (const effect of effects) kept.push({ card, effect, expiresTurn });
+    unit.timed = kept;
+  }
 }
 
 /**

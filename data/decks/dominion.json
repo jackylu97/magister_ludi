@@ -5163,6 +5163,255 @@
           "max": 6
         }
       ]
+    },
+    "theSoldiersShare": {
+      "name": "The Soldiers' Share",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "What the walls held, the army keeps.",
+      "text": "Capturing a town fully heals every unit of yours within three hexes and raises each by one rank. You can no longer found new cities.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "healWithin": 3,
+            "rankWithin": 3
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "noFounding"
+        }
+      ]
+    },
+    "theServianReforms": {
+      "name": "The Servian Reforms",
+      "decks": [
+        "dominion"
+      ],
+      "band": 1,
+      "line": "none",
+      "flavor": "The census counts the men, and the men fill the ranks.",
+      "text": "Your military units are 25% cheaper to build and to buy. Your units never gain experience.",
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "unitCost",
+          "percent": -25,
+          "class": {
+            "category": "military"
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "noExperience"
+        }
+      ]
+    },
+    "centurions": {
+      "name": "Centurions",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "Officers raised from the ranks.",
+      "text": "Each Elite unit gives +3 strength to your units beside it, and costs 2 more upkeep.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "adjacentFriendlies",
+            "per": 1,
+            "rank": "elite"
+          }
+        },
+        {
+          "kind": "upkeepSurcharge",
+          "amount": 2,
+          "rank": "elite"
+        }
+      ]
+    },
+    "thePlunderEconomy": {
+      "name": "The Plunder Economy",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "Raiders live on what others built.",
+      "text": "Pillaging a hex yields production equal to 50% of your unit's strength in every city. Your units lose 4 strength when attacking cities.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "yield": "production",
+            "amount": 0.5,
+            "fromOccasion": "strength",
+            "toEveryTown": true
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": -4,
+          "side": "attack",
+          "when": {
+            "test": "vsCity"
+          }
+        }
+      ]
+    },
+    "theStrategoi": {
+      "name": "The Strategoi",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "The city elects its generals, and remembers the ones who win.",
+      "text": "+30% renown. Citadel yields and your great generals' strength aura are doubled.",
+      "effects": [
+        {
+          "kind": "cityRenownPercent",
+          "percent": 30,
+          "where": "empire"
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "on": {
+            "test": "improvement",
+            "improvement": "citadel"
+          },
+          "wholePercent": 100
+        },
+        {
+          "kind": "effectAmplifier",
+          "target": "generalAura",
+          "percent": 100
+        }
+      ]
+    },
+    "weightOfNumbers": {
+      "name": "Weight of Numbers",
+      "decks": [
+        "dominion"
+      ],
+      "band": 2,
+      "line": "none",
+      "flavor": "No wall holds against the tenth blow.",
+      "text": "Your units gain +3 strength for each attack your units have already made on the same target this turn, at most +12. Your units cannot fortify.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "attack",
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "attacksOnTarget",
+            "per": 1,
+            "max": 12
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "noFortify"
+        }
+      ]
+    },
+    "combinedArms": {
+      "name": "Combined Arms",
+      "decks": [
+        "dominion"
+      ],
+      "band": 3,
+      "line": "none",
+      "flavor": "The spears guard the engines, and the engines open the gate.",
+      "text": "Your units gain +3 strength, doubled beside one of your siege units. Siege units beside one of your melee units cannot be attacked in melee.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "always"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "beside",
+            "class": {
+              "modelClass": "siege"
+            }
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "siegeScreened"
+        }
+      ]
+    },
+    "theScourgeOfGod": {
+      "name": "The Scourge of God",
+      "decks": [
+        "dominion"
+      ],
+      "band": 4,
+      "line": "none",
+      "flavor": "Where his horse has passed, the grass does not grow again.",
+      "text": "Units that have pillaged in the last five turns gain +6 strength. Pillaging gives your capital +100% production for five turns, which does not stack.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "actorTimed": {
+              "turns": 5,
+              "effects": [
+                {
+                  "kind": "combatLine",
+                  "amount": 6,
+                  "side": "both",
+                  "when": {
+                    "test": "always"
+                  }
+                }
+              ],
+              "renews": true
+            },
+            "timed": {
+              "turns": 5,
+              "effects": [
+                {
+                  "kind": "percentYields",
+                  "yield": "production",
+                  "percent": 100,
+                  "scope": {
+                    "test": "capital"
+                  }
+                }
+              ],
+              "renews": true
+            }
+          }
+        }
+      ]
     }
   }
 }

@@ -66,15 +66,26 @@
  * (`applyUpgrade`, `tech.ts`), and a change of owner (`captureUnit`, `state.ts`)
  * changes only the owner, so neither touches it.
  *
- * A leaf over the rule book, the unit table, the slate's clock and `state.ts`,
- * like `weariness.ts`: `combat.ts`, the renderer and the interface all read it,
- * and it imports none of them.
+ * Since Dominion batch D8, **an empire's law may stop its units earning any
+ * experience** (The Servian Reforms, the `noExperience` rule). The fight's
+ * award and the card's two entry points all ask it first (`lawForbids`), so
+ * nothing raises a unit's experience while the law holds. What the unit had
+ * already earned is kept.
+ *
+ * Over the rule book, the unit table, the slate's clock and `state.ts`, like
+ * `weariness.ts`: `combat.ts`, the renderer and the interface all read it, and
+ * it imports none of them. Since D8 it asks the evaluator one question, the
+ * `noExperience` rule, through a function-level cycle of the kind
+ * `weariness.ts` documents.
  */
 
 import { type RankId, RULES } from './rulesData';
 import { bumpEconomy } from './slate';
 import { type GameState, isBarbarian } from './state';
 import { type UnitTypeId, isCombatant, unitDef } from './unitData';
+// Straight from the evaluator rather than through the `statecraft.ts` index, a
+// function-level cycle (the evaluator grants experience through this file).
+import { cardBehaviorRule } from './statecraft/evaluator';
 
 export type { RankId } from './rulesData';
 
@@ -268,17 +279,30 @@ export function awardExperience(
   opponentOwnerId: number,
 ): RankId[] {
   if (isBarbarian(state, unit.ownerId)) return [];
+  if (lawForbids(state, unit.ownerId)) return [];
   const current = experienceOf(unit);
   const next = experienceAfter(current, event, isBarbarian(state, opponentOwnerId));
   return writeExperience(state, unit, next);
 }
 
 /**
+ * **Does this empire's law stop its units earning experience?** (Dominion
+ * batch D8, The Servian Reforms: "your units never gain experience".) Asked by
+ * the fight's award and by `canEarn`, so every way experience is raised is
+ * refused while the law holds.
+ */
+function lawForbids(state: GameState, playerId: number): boolean {
+  return cardBehaviorRule(state, playerId, 'noExperience');
+}
+
+/**
  * Can this unit hold experience at all? Only an empire's fighting units can.
- * A civilian has no rank to earn, and the barbarians keep no veterans.
+ * A civilian has no rank to earn, and the barbarians keep no veterans. Nor can
+ * a unit whose empire's law forbids it (`lawForbids`, Dominion batch D8).
  */
 function canEarn(state: GameState, unit: DrilledUnit): boolean {
   if (isBarbarian(state, unit.ownerId)) return false;
+  if (lawForbids(state, unit.ownerId)) return false;
   return isCombatant(unitDef(unit.type));
 }
 

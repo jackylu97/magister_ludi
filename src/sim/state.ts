@@ -1675,7 +1675,43 @@ import {
  * lakes, so the bots move differently. The branch migrates nothing, for the
  * reason given under v119.
  *
- * v145 (branch `decks`; Expansionist batch E6 of
+ * v145 (branch `decks`; Dominion batch D8 of
+ * `docs/plans/dominion-build-triage.md`, the last Dominion Doctrines):
+ * **eight Doctrines join Dominion's `doctrines` map**, so all sixteen of the
+ * sheet's Doctrines are in the data. The Soldiers' Share and The Servian
+ * Reforms join Tier I; Centurions, The Plunder Economy, The Strategoi and
+ * Weight of Numbers join Tier II; Combined Arms joins Tier III; and The Scourge
+ * of God joins Tier IV. One field joins the state: `Player.strikesThisTurn`,
+ * the attacks an empire's units made this turn, kept only for an empire whose
+ * law counts them. The rules that change:
+ *
+ *   · a grant can heal every unit within some hexes of the moment's hex and
+ *     raise each fighting unit one rank (`healWithin`, `rankWithin`), and can
+ *     hang timed effects on the unit that acted (`actorTimed`, hung by
+ *     `pillageAt`);
+ *   · a pillage carries the raider's own strength (`pieceStrength`);
+ *   · three behaviour rules: no founding (refused in `foundingError` and, for
+ *     a unit that founds cities, in `buildError`), no experience (asked in
+ *     `ranks.ts`), and a siege unit screened from melee by a melee unit beside
+ *     it (`screenError`, asked by `attackTargetAt` and `planCombat`);
+ *   · a unit cost percentage for a class of units, as a line of
+ *     `explainUnitCost` (`unitCost`);
+ *   · a strength line can count the Elites beside a unit (`CombatScale.rank`)
+ *     or the attacks already made this turn on the same target
+ *     (`attacksOnTarget`);
+ *   · an upkeep surcharge can name a rank, and a unit a free rebate covers pays
+ *     no surcharge at all (`freeByLaw`);
+ *   · a great general's aura can be amplified (`generalAura`), and a hex row can
+ *     take a share of everything the hex pays (`wholePercent`, the hex's last
+ *     line);
+ *   · the bots price the new shapes, so they take different Doctrines.
+ *
+ * **A v144 save is refused and does not replay.** The Doctrine offers hold
+ * different cards, so every seat that adopts a government is dealt a
+ * different hand, and the bots choose differently. The branch migrates
+ * nothing, for the reason given under v119.
+ *
+ * v146 (branch `decks`; Expansionist batch E6 of
  * `docs/plans/expansionist-build-triage.md`, the two cards that waited for
  * Dominion batch D7): **two cards come live.** The Breadbasket and Veteran
  * Colonies were deferred and are now dealt. No field joins the state. The
@@ -1694,11 +1730,11 @@ import {
  *     disbanded on the hex of one of your towns pays that town food equal to
  *     its production cost, as a growth windfall.
  *
- * **A v144 save is refused and does not replay.** The draft bags hold
+ * **A v145 save is refused and does not replay.** The draft bags hold
  * different cards. The branch migrates nothing, for the reason given under
  * v119.
  */
-export const SCHEMA_VERSION = 145;
+export const SCHEMA_VERSION = 146;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2486,6 +2522,20 @@ export interface Player {
    * production phase. Absent when nothing is kept.
    */
   opusBank?: number;
+  /**
+   * **The attacks this empire's units made this turn**, one entry per attack,
+   * each the entity id of the piece or town attacked (Dominion batch D8,
+   * Weight of Numbers: "+3 strength for each attack your units have already
+   * made on the same target this turn"). Units and towns take their ids from
+   * one counter, so an id names one thing.
+   *
+   * Written only by `recordStrike` (`combat.ts`), after each attack, and only
+   * for an empire whose law counts these attacks (`CombatScaleCount`'s
+   * `attacksOnTarget`). `turn` is the turn the entries belong to: a list from
+   * an earlier turn counts nothing, and the next attack starts it again, so
+   * nothing counts down. Absent until the first such attack.
+   */
+  strikesThisTurn?: { turn: number; targets: number[] };
   /**
    * **How many units this empire's units have killed in the game, barbarians
    * included** (Dominion batch D4): The Captured Arms' count (`CountKind`'s

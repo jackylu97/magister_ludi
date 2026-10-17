@@ -536,6 +536,32 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
   - **Double Time** (`turnEffectRepeats`): an Order's periodic boons, musters,
     drills and harvests happen twice; a Doctrine's do not (the user's ruling of
     2026-10-16). It is dealt in bands 2 and 3 (`OrderDef.lastBand`).
+- **The last eight Dominion Doctrines** (Dominion batch D8). All sixteen of the
+  sheet's Doctrines are now in the data.
+  - A grant can heal every unit within some hexes of the moment's hex
+    (`healWithin`) and raise each fighting unit one rank (`rankWithin`,
+    through `raiseToRank`; an Elite gains nothing, and the rank pays
+    `settleRanksEarned`). `rallyAround` in the evaluator does both.
+  - A grant can hang timed effects on the unit that acted (`actorTimed`,
+    written to `Unit.timed`); `pillageAt` is the one seam that does it today.
+    A pillage carries the raider's own strength (`pieceStrength`, `combat.ts`).
+  - Three behaviour rules: `noFounding` (refused in `foundingError`, and in
+    `buildError` for any unit that founds cities, so buying follows),
+    `noExperience` (asked in `ranks.ts` by the fight's award and by
+    `canEarn`), and `siegeScreened` (refused by `screenError`, `combat.ts`,
+    which the tint, the forecast and the reducer all ask).
+  - The rule `unitCost` with a unit `class` is a line of `explainUnitCost`, so
+    a purchase follows it.
+  - A strength line can count the Elites beside a unit (`CombatScale.rank`)
+    or the attacks the empire's units have already made this turn on the same
+    target (`attacksOnTarget`, read off `Player.strikesThisTurn`, which
+    `recordStrike` writes only for an empire whose law counts them). A town is
+    one target whatever beat of the assault strikes it.
+  - An upkeep surcharge can name a rank (`rank`), and a unit a `free` rebate
+    covers pays no surcharge at all (`freeByLaw`).
+  - An amplifier can raise a great general's aura (`generalAura`, read in
+    `generalAuraLines`), and a hex row can take a share of everything the hex
+    pays (`wholePercent`, the hex's last line; see `docs/yields.md`).
 - **Defer, never bend**: a card whose text needs a missing shape ships deferred
   and annotated, in player-plain prose. This rule repeats across beliefs,
   legacies, wonders and leaders.

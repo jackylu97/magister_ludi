@@ -80,14 +80,24 @@ const LANDSTURM: DoctrineId = 'theLandsturm';
 const MARIAN: DoctrineId = 'theMarianReforms';
 const SHANG: DoctrineId = 'theLawsOfLordShang';
 const FORTRESS: DoctrineId = 'theFortressEmpire';
+// Dominion batch D8's eight: two more at Tier I, four more at Tier II, a third
+// at Tier III and a third at Tier IV.
+const SHARE: DoctrineId = 'theSoldiersShare';
+const SERVIAN: DoctrineId = 'theServianReforms';
+const CENTURIONS: DoctrineId = 'centurions';
+const PLUNDER: DoctrineId = 'thePlunderEconomy';
+const STRATEGOI: DoctrineId = 'theStrategoi';
+const WEIGHT: DoctrineId = 'weightOfNumbers';
+const COMBINED: DoctrineId = 'combinedArms';
+const SCOURGE: DoctrineId = 'theScourgeOfGod';
 /** Dominion's Tier I Doctrines, in the order the data lists them. */
-const TIER_ONE: readonly DoctrineId[] = [STEPPE, CONSULAR, MARIAN];
-/** Dominion's Tier II Doctrines. */
-const TIER_TWO: readonly DoctrineId[] = [SHANG];
+const TIER_ONE: readonly DoctrineId[] = [STEPPE, CONSULAR, MARIAN, SHARE, SERVIAN];
+/** Dominion's Tier II Doctrines, in the order the data lists them. */
+const TIER_TWO: readonly DoctrineId[] = [SHANG, CENTURIONS, PLUNDER, STRATEGOI, WEIGHT];
 /** Dominion's Tier III Doctrines, in the order the data lists them. */
-const TIER_THREE: readonly DoctrineId[] = [MONARCHY, MOBILISATION];
+const TIER_THREE: readonly DoctrineId[] = [MONARCHY, MOBILISATION, COMBINED];
 /** Dominion's Tier IV Doctrines, in the order the data lists them. */
-const TIER_FOUR: readonly DoctrineId[] = [LANDSTURM, FORTRESS];
+const TIER_FOUR: readonly DoctrineId[] = [LANDSTURM, FORTRESS, SCOURGE];
 
 /** A duel between two named figures, so each seat holds that figure's two decks. */
 function duel(first: string, second: string, seed = 11): Game {
@@ -127,7 +137,24 @@ describe('the Doctrine data model', () => {
 
   it('folds the deck files’ Doctrines into the one table, each with its decks, its tier and the government tier that offers it', () => {
     const fromDecks = DECK_FILES.flatMap((file) => DECK_FILE_DOCTRINES[file]);
-    const all = [STEPPE, CONSULAR, MONARCHY, MOBILISATION, LANDSTURM, MARIAN, SHANG, FORTRESS];
+    const all = [
+      STEPPE,
+      CONSULAR,
+      MONARCHY,
+      MOBILISATION,
+      LANDSTURM,
+      MARIAN,
+      SHANG,
+      FORTRESS,
+      SHARE,
+      SERVIAN,
+      CENTURIONS,
+      PLUNDER,
+      STRATEGOI,
+      WEIGHT,
+      COMBINED,
+      SCOURGE,
+    ];
     expect(fromDecks).toEqual(all);
     expect(DECK_FILE_DOCTRINES.dominion).toEqual(all);
     for (const id of fromDecks) {
@@ -182,7 +209,7 @@ describe('the Doctrine offer’s bag and deal', () => {
     expect(doctrineBagFor(taizong, 29)).toEqual([...TIER_FOUR]);
     expect(doctrineBagFor(taizong, 10)).toEqual([...TIER_TWO]);
     taizong.statecraft.doctrines.push(STEPPE);
-    expect(doctrineBagFor(taizong, 4)).toEqual([CONSULAR, MARIAN]);
+    expect(doctrineBagFor(taizong, 4)).toEqual([CONSULAR, MARIAN, SHARE, SERVIAN]);
   });
 
   it('deals nothing from an empty bag and spends no randomness', () => {
@@ -265,10 +292,14 @@ describe('the Doctrine offer’s bag and deal', () => {
     } finally {
       restore();
     }
-    // And a bag smaller than the offer deals the bag.
+    // And a bag smaller than the offer deals the bag. Since Dominion batch D8
+    // every tier holds three Doctrines or more, so the seat holds three of
+    // Tier I's five first.
     const g = duel('taizong', 'modu');
-    const dealt = drawDoctrineOffer(g.state, playerById(g.state, 0)!, 4).options;
-    expect([...dealt].sort()).toEqual([...TIER_ONE].sort());
+    const seat = playerById(g.state, 0)!;
+    seat.statecraft.doctrines.push(STEPPE, CONSULAR, MARIAN);
+    const dealt = drawDoctrineOffer(g.state, seat, 4).options;
+    expect([...dealt].sort()).toEqual([SHARE, SERVIAN].sort());
   });
 });
 
@@ -280,9 +311,11 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     const taizong = playerById(g.state, 0)!;
     bankGovernment(taizong, 4);
     expect(dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 }).ok).toBe(true);
-    expect([...(taizong.statecraft.pendingDoctrine?.options ?? [])].sort()).toEqual(
-      [...TIER_ONE].sort(),
-    );
+    // Three of Tier I's five, each once.
+    const options = [...(taizong.statecraft.pendingDoctrine?.options ?? [])];
+    expect(options).toHaveLength(3);
+    expect(new Set(options).size).toBe(3);
+    for (const id of options) expect(TIER_ONE, id).toContain(id);
     expect(statecraftBlocker(taizong)).toBe('a Doctrine offer is waiting');
     // Its own decks hold no Doctrine of the tier, so the other seat is offered
     // nothing and blocked by nothing.

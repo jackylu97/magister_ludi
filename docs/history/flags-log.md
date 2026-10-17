@@ -4222,3 +4222,46 @@ stays 115 — nothing has landed since the stack; this is a rules change and
 the changelog says so).
 
 **Built as ruled, three notes** (2026-09-14): the row names no hills clause at all rather than an "always" waiver — a hillside simply takes one; `ageThatOpens` was not extended (an improvement has no column), so the sheet's opening words read the row's own `requiresTech`, Agriculture; and the schema went to **116**, not 115 as the ruling guessed — a v115 log that queued the Terraces as a hall or cut none replays only in the second case (the changelog's v116 entry). The Qollqa stays benched.
+
+### (wwwwww) — moved 2026-10-17
+
+**(wwwwww) A lake is water like the coast: RULED 2026-10-16, BUILT 2026-10-17.**
+The user: *"units should be able to embark onto lakes with the prerequisite
+tech (no difference between coast tiles and lakes). Please fix that if thats
+not already in the game."*
+- **Today** a lake is water that no unit may enter (`terrainData.ts`). So no
+  work on a lake can be built, except by The Fish Traps' workers (batch E4).
+- **The ruling:** for units, a lake hex works as a coast hex does. With the
+  embarkation tech, a land unit may embark onto a lake, and a ship may enter
+  one. Movement prices the step through `stepCost`, as for the coast.
+- **What follows from it:**
+  - The Fish Traps' lake half works the way its coast half works, so E4's
+    lake-only rule for workers (`MoveProfile.wades`) is no longer needed.
+  - The Floating Gardens' lake half, deferred in section B because no one
+    could stand on a lake, can now be built.
+- **Not part of this ruling:** whether a town beside a lake counts as coastal
+  (harbours, ships built there, cards with a coastal scope). The build reports
+  what the game does today and changes nothing there.
+- **The Floating Gardens, the user's question, same day:** *"Floating gardens
+  are a unique building for the aztec civ, right? We had an earlier iteration
+  of floating garden that has since been deprecated."* In the game today, it
+  is an improvement that any civ may build after Irrigation. It came from the
+  old Raised Fields, which split on 2026-09-03 (Entry LXIII) into the
+  mountain-side Terraces and the Floating Gardens. The Texcoco leader's unique
+  building is The Tetzcotzinco. Whether the Floating Gardens stays a general
+  improvement is open.
+
+**Built as ruled, L1** (landed 2026-10-17, schema 144, merge `770bc397`):
+- The lake row in `data/terrain.json` is embarkable. An embarked land piece
+  (Sailing; soldiers at Wayfinding) may cross a lake, and a ship may enter
+  one. Every step is priced through `stepCost`.
+- E4's lake-only rule for The Fish Traps' workers is removed. A worker lays
+  fish traps on a lake as on the coast: it stands on the hex, embarked, so
+  the seat needs the card and Sailing.
+- The Floating Gardens lost their "waits for a way to work a lake" note. Any
+  seat with Sailing and Irrigation may lay them on a lake. Their future is
+  open as item (yyyyyy) in `docs/flags.md`.
+- A town beside only a lake is still not coastal. A town beside both the coast
+  and a lake may send its ships onto the lake.
+- Found while building it: soldiers can sit on water for many turns, coast or
+  lake, for two older reasons. The fix is item (xxxxxx).

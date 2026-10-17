@@ -140,7 +140,7 @@ into production.
 | # | Step | Reads | Add / mult | Stage |
 |---|---|---|---|---|
 | 1 | **The centre** — `foldCentre` (`explainCentreYield`) | the base city yield, plus the town hex's own reading as an *excess* over it | additive | — |
-| 2 | **Each worked hex** — `foldTile` (`explainTileYield`) | `city.workedTiles`, each priced through the owner's `cityContext` | additive (with two shares inside it — see below) | — |
+| 2 | **Each worked hex** — `foldTile` (`explainTileYield`) | `city.workedTiles`, each priced through the owner's `cityContext` | additive (with three shares inside it — see below) | — |
 | 3 | **The cards' city lines** — `explainCardCityYields` | the law reaching this town | additive | — |
 | 4 | **The luxuries' city lines** — `cityResourceYields` | the empire's improved seams | additive | — |
 | 5 | **The specialists** — `citySpecialistYields` | the town's guilds (a substitution for a hex left, never a bonus) | additive | — |
@@ -185,7 +185,10 @@ what makes the order structural rather than incidental. Its own order is
    appearance; a negative voice is clamped against what the **works** still have
    (Ea-nāṣir's rule — the hill and the seam are never taken back);
 6. the **works percent** — a share of the entries in (4) alone;
-7. the **ground percent** (`basePercent`) — a share of the entries before (4).
+7. the **ground percent** (`basePercent`) — a share of the entries before (4);
+8. the **whole percent** (`wholePercent`, Dominion batch D8, The Strategoi's
+   doubled citadels) — a share of the fold of everything above it, (1) to (7).
+   It is the one share that reaches the lines other cards put on the hex.
 
 **Which Ledger class the hex line lands in** (`CityYieldLine.class`) is decided
 in `explainCity` off the hex itself, not off the fold: a card's line inside the
@@ -236,6 +239,11 @@ banking (Entry XVIII.5).
   the terrain, the hill or canopy, and the seam. The two never overlap and
   neither reaches a card's own line — so two cards cannot pay each other
   interest.
+- **The whole percent is the one exception, and it is taken last** (Dominion
+  batch D8). It is a share of the hex's whole fold, the card lines and the two
+  shares above included, because The Strategoi's "citadel yields are doubled"
+  means everything the hex pays. Its riders sum before one multiplication, so
+  two whole shares on one hex never pay each other.
 - **The empire's bills stay outside the empire stage.** Maintenance, the levy's
   surcharge, the charter's rebate and the treaties are costs rather than yields:
   a contented empire earns more from its roads without paying its soldiers less.
@@ -312,7 +320,7 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 
 | kind | where · basis | steps | additive or multiplicative |
 |---|---|---|---|
-| `pays` | hex · flat | 2 | additive; `percent`/`basePercent` are the hex's two shares, and `perAdjacentMountain` multiplies the **bag** into one line, as `perEndpointLuxury` does on a road |
+| `pays` | hex · flat | 2 | additive; `percent`/`basePercent`/`wholePercent` are the hex's three shares, and `perAdjacentMountain` multiplies the **bag** into one line, as `perEndpointLuxury` does on a road |
 | `pays` | city · flat | 3 | additive |
 | `pays` | city · count | 3, 11 | additive at 3; a helping's percentage (a row with `stage`) is gathered at 11 |
 | `pays` | capital · count | 3 | additive — once, in one town, because an empire line has no basket for a hammer |

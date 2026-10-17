@@ -1482,8 +1482,11 @@ describe('the schema witness', () => {
     // build deals differently.
     // 144 since the lake fix (L1): a lake is water like the coast, so pieces
     // path across lakes and a v143 log's moves meet a different board.
-    // 145 since E6: The Breadbasket and Veteran Colonies come live, so a v144
+    // 145 since D8: the last eight Dominion Doctrines and a record of the
+    // attacks made this turn, so a v144 log's Doctrine offers hold cards
+    // this build deals differently.
+    // 146 since E6: The Breadbasket and Veteran Colonies come live, so a v145
     // log's picks name cards this build deals differently.
-    expect(SCHEMA_VERSION).toBe(145);
+    expect(SCHEMA_VERSION).toBe(146);
   });
 });

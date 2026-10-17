@@ -928,11 +928,12 @@ describe('the source register', () => {
     expect(region(ct, 'export function productionModifiers', 'export function modifierPercent')).toContain(
       'card: line.card',
     );
-    // And the hex's own breakdown: the card lines, and the two percentage
-    // shares at the foot, which carry a card only when they have exactly one.
+    // And the hex's own breakdown: the card lines, and the three percentage
+    // shares at the foot (the whole-hex share since Dominion batch D8), which
+    // carry a card only when they have exactly one.
     const tile = region(source('yields/hex.ts'), 'const sourceIndex = new Map<string, number>()', 'export function foldTileLines');
     expect(tile).toContain('card: line.card');
-    expect(tile.split('card: soleCard(')).toHaveLength(3);
+    expect(tile.split('card: soleCard(')).toHaveLength(4);
   });
 
   it('gives every class a plain name, with no identifier in it', () => {
