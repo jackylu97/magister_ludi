@@ -762,10 +762,18 @@ describe('determinism', () => {
    * kept Opus production never reach this board. Checked by setting the
    * version back to 137 with every D6 change in place, which gives D5's hashes
    * exactly.
+   *
+   * **Dominion batch D7 moved the hash and not the length** at both seeds:
+   * 138 became 139, and that is all. Nobody here holds a card, so the moved
+   * surplus, the harvest, the faster camps and the disband moment never reach
+   * this board, and the harvest runs inside the drill phase, so every
+   * resolution still raises the revision as many times as before. Checked by
+   * setting the version back to 138 with every D7 change in place, which gives
+   * D6's hashes exactly.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '07a46bb4:188932',
-    2026: 'dbabd7bd:188488',
+    11: 'fdb25a1b:188932',
+    2026: 'b32fb30a:188488',
   };
 
   for (const seed of [11, 2026]) {

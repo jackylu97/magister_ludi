@@ -524,7 +524,8 @@ describe('the member register', () => {
     // `opusProgress` is Spolia's (the Dominion batch): the hammers a captured
     // town had put into the Magnum Opus. Dominion batch D6 added three: what a
     // peace carries (War Reparations, Danegeld) and the works and wonders in a
-    // captured town (Looted Art).
+    // captured town (Looted Art). Dominion batch D7 added `unitCost`, what a
+    // disbanded unit costs to build (The Legions' Labour).
     expect([...measures].sort()).toEqual([
       'gold',
       'hexesPillaged',
@@ -533,6 +534,7 @@ describe('the member register', () => {
       'population',
       'strength',
       'takenPopulation',
+      'unitCost',
       'worksAndWonders',
     ]);
     expect(limiter, 'oncePerTurn').toBe(true);

@@ -71,12 +71,14 @@ import {
   cityAt,
   foundCityAt,
   foundingError,
+  payOccasionRiders,
   purchaseTileAt,
   raiseOnDraft,
   refreshCityDerived,
   settleProductionWindfall,
   tileOwnerPlayerId,
   tilePurchaseError,
+  unitProductionCost,
 } from './cities';
 import { type CombatOutcome, type SiegeReport, applyCombat, fortifyError } from './combat';
 import { discoveryChoiceError, settleDiscovery } from './discoveries';
@@ -198,6 +200,7 @@ import {
   unslotOrderAt,
   unslotOrderError,
 } from './statecraft';
+import type { WindfallOccasionFacts } from './statecraft/evaluator';
 import {
   type LevyUse,
   type OrderId,
@@ -2998,6 +3001,9 @@ function applyFortify(state: GameState, command: FortifyCommand): CommandResult 
   // Zero, not one: the bonus is paid for turns *survived* dug in, and
   // `advanceFortify` raises this at the end of every turn the unit stays put.
   unit.fortifiedTurns = 0;
+  // A fortified unit is a line of the cards' counts and hex tests (Dominion
+  // batch D7, `slate.ts`), so the write announces, on this movement command too.
+  bumpEconomy(state);
   return ok();
 }
 
@@ -4661,7 +4667,19 @@ function applyDisbandUnit(state: GameState, command: DisbandUnitCommand): Comman
     type: unit.type,
     upkeep: unitUpkeepOf(unit),
   };
+  // **The disband moment** (Dominion batch D7: The Legions' Labour, and
+  // Expansionist's Veteran Colonies after it). Its facts are read before the
+  // unit goes: the town of this empire the unit stood in, and what the unit
+  // costs this empire to build now. A unit raised for free carries no cost,
+  // so a rider scaled by it pays nothing; a unit a levy raised was not free.
+  const at = { col: unit.col, row: unit.row };
+  const town = cityAt(state, unit.col, unit.row);
+  const facts: WindfallOccasionFacts = { actor: unit.type };
+  if (town !== undefined && town.ownerId === unit.ownerId) facts.townId = town.id;
+  if (unit.freeUpkeep !== true) facts.unitCost = unitProductionCost(state, unit.ownerId, unit.type);
   removeUnit(state, unit.id);
+  const owner = playerById(state, report.ownerId);
+  if (owner) payOccasionRiders(state, owner, 'disband', at, facts);
 
   const result = ok();
   // Set beside the helper rather than passed through it, `proclaimed`'s reason:

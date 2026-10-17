@@ -3903,4 +3903,7 @@ export function advanceFortify(state: GameState): void {
     if (turns === undefined) continue;
     unit.fortifiedTurns = Math.min(cap, turns + 1);
   }
+  // A fortification is a line of the cards' counts (Dominion batch D7,
+  // `slate.ts`), so the phase announces after its writes.
+  bumpEconomy(state);
 }

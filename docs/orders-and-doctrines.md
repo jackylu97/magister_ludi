@@ -29,7 +29,9 @@ structure paragraphs are sync-tested where they state a number):
   (`currentBand`, `eligibleFor`). When a new band opens, the earlier bands are no longer
   dealt. Cards already held keep their chairs. If the seat already holds every card of its
   current band, the draft is not charged and waits for the next band; it is never dealt from
-  an earlier band instead (`draftExhausted`).
+  an earlier band instead (`draftExhausted`). A row may name a **last band**
+  (`OrderDef.lastBand`, Dominion batch D7): it is dealt in every band from its own to that
+  one. Double Time is the one such row, dealt in bands 2 and 3 (the user, 2026-10-16).
 - **Universal chairs.** A government supplies a chair count and no layout: 3 / 5 / 8 / 11 by
   its tier's rung (the user's ruling, `docs/decks/deck-design.md` "More chairs"), written on each row as `chairs`; the sixteen governments keep their
   signatures. A leader's extra chair and a card's are additive.
@@ -164,9 +166,12 @@ first; the reward hands are gone.
 |---|---|---|---|---|
 | The Steppe Confederacy | Dominion | I | tier 4 | Negative authority no longer stops your borders growing. While authority is negative, gain +50% production toward mounted units. |
 | The Consular Roads | Dominion | I | tier 4 | Cities connected to your capital by road and holding a garrison gain +5 science and +5 culture, and are pacified at once. |
+| The Marian Reforms | Dominion | I | tier 4 | Your military units cost no upkeep, but your towns build them at half speed. Buying them is unaffected. |
+| The Laws of Lord Shang | Dominion | II | tier 10 | While a town builds a military unit, its surplus food goes into the unit instead of into growth. |
 | The Universal Monarchy | Dominion | III | tier 18 | Towns you capture cost no authority. Towns you found cost twice as much. |
 | Total Mobilisation | Dominion | III | tier 18 | While at war, each town of six or more citizens raises the best melee unit you can build every five turns, for a citizen. It costs no upkeep. While at peace, your towns grow 25% faster. |
 | The Landsturm | Dominion | IV | tier 29 | After you pass a draft, each city of five or more citizens raises the best melee unit you can build. It costs no upkeep. Melee units gain +3 strength, doubled beside a great general. |
+| The Fortress Empire | Dominion | IV | tier 29 | Units gain +5 strength when fortified. Each city gains +5% science and production for each fortified military unit inside its borders, at most +30%. |
 
 ## Decks
 
@@ -286,6 +291,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Imperium | 4 | ○ | S | Each captured city you hold gives +10% production toward the Magnum Opus, at most +40%. |
 | Commission: Hold the Capitals | 4 | ○ | S | Commission. Hold two original capitals other than your own at the same time. Then every city gains +25% production for twenty turns, and you gain a great general. The card leaves its chair. |
 | Spolia | 4 | ○ | S | Capturing a city that was raising a Magnum Opus adds half the production it had put into that Opus to your own. If you have not begun one, the production is kept until you do. |
+| The Legions' Labour | 4 | ○ | S | Disbanding a military unit in a town building a wonder or the Magnum Opus adds half its production cost toward it. Units raised for free add nothing, but units raised by a levy count. |
 | The Praetorian Guard | 4 | ○ | S | The city raising your Magnum Opus gains +5 defence for each unit garrisoned there. Your military units within two hexes of it gain +6 strength. |
 | The Grand Army | 4 | ○ | P | Your capital gains +1 science and +1 culture for every military unit you have, at most +30 of each. |
 | The Annexed Provinces | 4 | ○ | P | Each captured city you hold gives +5% science and +5% culture in every city, at most +25%. |
@@ -301,6 +307,14 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Horde | 4 | ○ | S | Pillaging a hex also pillages every enemy improvement beside it. |
 | The Harrying | 4 | ○ | S | Pillaging a hex beside a rival town with no garrison throws that town into unrest. |
 | Vae Victis | 4 | ○ | P | Your capture rewards are paid twice. |
+| The Spear Makers | 0 | ● | S | +30% production toward first- and second-age military units. |
+| The Defiant Kingdom | 0 | ◆ | S | While another empire holds more towns than you, you train military units 25% faster. |
+| The Hunting Grounds | 0 | ◆ | S | Barbarian camps within ten hexes of your cities spawn 50% faster. Your units gain +4 strength in your own territory. |
+| The Funeral Oration | 2 | ◆ | S | Units you lose count half toward war weariness. |
+| The Castra | 2 | ◆ | S | Your own hexes with a fortified military unit gain +1 science and +1 production. Citadels gain +3 production and +3 science. |
+| Double Time | 2 | ○ | S | Your Orders' effects that happen at the end of a turn or every few turns trigger twice. |
+| War Feeds Itself | 2 | ○ | S | At the end of your turn, each of your units in enemy territory yields you its hex's yields. |
+| The Glorious Dead | 4 | ○ | S | Your losses never count toward war weariness. |
 
 ### Expansionist
 
@@ -662,6 +676,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | Copying the Enemy | Dominion · Scientific | 1 | ◆ | S | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. |
 | The New Code | Dominion · Magisterial | 3 | ○ | S | Capturing a city opens a draft at once, at no culture cost. This can happen at most once every ten turns. |
 | Looted Art | Dominion · Magisterial | 2 | ◆ | S | Capturing a city grants 20 renown for each great-person work and wonder inside its borders. |
+| The Farming Garrisons | Dominion · Expansionist | 1 | ● | S | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. |
 
 ### Generic
 
@@ -686,7 +701,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **Marine Drill** — The blessing is hung on the piece the moment it wades ashore, and lasts the turn it landed.
 - **Riders of the Steppe** — A raid costs a single point of movement, so a rider who is forgiven one is forgiven the raid.
 - **The Relay Stations** — † Moving a unit from one connected city to another in a single order needs a new order on the map, which the game does not have yet.
-- **The Legions' Labour** — † Disbanding a unit pays nothing today, so the game cannot yet put a disbanded unit's work into a wonder.
 - **Circumvallation** — † Stopping a rival town's work on the great work, and seeing which rival towns are raising one, both need changes the game does not have yet.
 - **The Fish Traps** — The traps go on coastal water, which a worker reaches by boat. A lake cannot be reached yet, so traps on a lake wait.
 - **The Beating of the Bounds** — For now the town takes the hex its borders would have grown into next, rather than one you choose.

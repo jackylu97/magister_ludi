@@ -26,7 +26,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 19 | 5 | 13 | 37 | none |
 | Tier IV | 8 | 7 | 3 | 18 | none |
 | **All** | **76** | **21** | **23** | **120** | **none** |
-| Shared | 14 | 0 | 2 | 16 |  |
+| Shared | 15 | 0 | 1 | 16 |  |
 
 **By type** (the chair a card would fit):
 
@@ -197,7 +197,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 | **Military Colonies** | uncommon | Dominion | I | implemented | Cities with a Barracks gain +45% production toward settlers and workers. | Economic |
 | **The Muster of the Fields** | uncommon | Dominion | I | implemented | Cities of at least five citizens may spend one citizen to muster their best legally available melee unit. This shares the city's five-turn levy limit. The unit counts as trained. | Military |
 | **The Barbarian Frontier** | uncommon | Dominion | I | implemented | Clearing a barbarian camp claims the camp's hex and every unowned hex around it for your nearest town within five hexes. | Economic |
-| **The Farming Garrisons** | common | Dominion | I | add | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. | Economic |
+| **The Farming Garrisons** | common | Dominion | I | implemented | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. | Economic |
 | **The Flood Festival** | uncommon | Devotion | I | implemented | Each tile your workers turn into burned country grants 8 faith. | Civic |
 | **Hydraulic Schools** | common | Scientific | I | implemented | Cities with an Aqueduct gain +20% production toward science buildings. Those beside a mountain also gain +1 science per three citizens. | Civic |
 | **Garden Cities** | uncommon | Magisterial | I | implemented | Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness. | Civic |

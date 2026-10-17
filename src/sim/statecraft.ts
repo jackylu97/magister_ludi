@@ -129,6 +129,12 @@ export {
   cardRouteYieldLines,
   cardRuleIsScoped,
   cardRulePercent,
+  campMusterPercent,
+  // Dominion batch D7: a town's food surplus moved into production, Double
+  // Time's count, and the harvest.
+  surplusMoverFor,
+  surplusRowReaches,
+  turnEffectRepeats,
   cardTierBoost,
   cardGrantsAbility,
   cardTileLines,
@@ -158,6 +164,10 @@ export {
   followerBeliefEffects,
   followerCardTileLines,
   forgetTheLaw,
+  // Dominion batch D7: the board's answers for the tile tests a tile cannot
+  // answer alone, and what a fortified military unit is.
+  groundFactsFor,
+  isFortifiedSoldier,
   heldReligions,
   isRaisingOpus,
   isHolyCityOf,
@@ -196,12 +206,14 @@ export type {
   CardRouteLine,
   CardRouteShareLine,
   CardRuleLine,
+  SurplusMover,
   CardTileLine,
   CardUpkeepLine,
   CardYieldLine,
   CombatSituation,
   EmpireRates,
   FoundingRider,
+  GroundFacts,
   LiveCardEffect,
   TileLine,
   WindfallOccasionFacts,

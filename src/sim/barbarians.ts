@@ -101,6 +101,10 @@ import { applyCombat, fortifyError, isCombatant, isFortified } from './combat';
 import { pillageAt, pillageError } from './improvements';
 import type { TurnReport } from './turn';
 import { cardBehaviorRule } from './statecraft';
+// Straight from the evaluator rather than through the `statecraft.ts` index,
+// so the build does not warn of a circular import between chunks (Dominion
+// batch D7, The Hunting Grounds).
+import { campMusterPercent } from './statecraft/evaluator';
 import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from './map';
 import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable, takesByWalking } from './pathfind';
@@ -524,6 +528,8 @@ function digIn(state: GameState, unit: Unit): void {
   if (isFortified(unit)) return;
   if (fortifyError(unit, state) !== null) return;
   unit.fortifiedTurns = 0;
+  // Every write of a fortification announces (Dominion batch D7, `slate.ts`).
+  bumpEconomy(state);
 }
 
 /**
@@ -553,11 +559,10 @@ function digIn(state: GameState, unit: Unit): void {
 export function musterCamps(state: GameState): void {
   const wild = barbarianPlayer(state);
   if (!wild) return;
-  const cadence = Math.max(1, BARB.unitEveryTurns);
 
   for (const camp of state.camps) {
     const age = state.turn - camp.foundedTurn;
-    if (age <= 0 || age % cadence !== 0) continue;
+    if (age <= 0 || age % campCadence(state, camp) !== 0) continue;
     if (bandOf(state, camp, wild) >= BARB.maxUnitsPerCamp) continue;
     const type = barbarianUnitType(state, camp);
     if (type === null) continue;
@@ -571,6 +576,19 @@ export function musterCamps(state: GameState): void {
     // by the rule that refuses a player's worker its trench.
     if (seat.col === camp.col && seat.row === camp.row) digIn(state, raised);
   }
+}
+
+/**
+ * **How many turns this camp waits between musters**: the rule book's
+ * `unitEveryTurns`, shortened for a camp near the towns of an empire whose law
+ * speeds it (Dominion batch D7, The Hunting Grounds). +50% faster is two thirds
+ * of the wait, rounded to the nearest turn, and never less than one turn.
+ */
+function campCadence(state: GameState, camp: BarbarianCamp): number {
+  const cadence = Math.max(1, BARB.unitEveryTurns);
+  const percent = campMusterPercent(state, camp);
+  if (percent === 0) return cadence;
+  return Math.max(1, Math.round((cadence * 100) / Math.max(1, 100 + percent)));
 }
 
 // --- raiding ----------------------------------------------------------------

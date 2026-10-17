@@ -111,8 +111,10 @@ import {
   availableCopies,
   buildingProductionCost,
   capitalCityOf,
+  channelSurplus,
   emptyCityYields,
   tileOwnerField,
+  tileOwnerPlayerId,
 } from '../sim/cities';
 // Batch X5c: a wall's hit points are read as a share of the bar the simulation
 // itself keeps, and priced against the strength that same simulation says the
@@ -125,7 +127,7 @@ import {
 // Batch X2: the one condition that asks what a hex already *pays* has to be
 // handed the hex's own fold, and the fold is the town's — see
 // `workedHexesAdmitting`.
-import { cityContext, foldTile } from '../sim/yields/hex';
+import { cityContext, foldTile, yieldContextFor } from '../sim/yields/hex';
 import {
   explainEmpireCardYields,
   foldEmpireRates,
@@ -150,7 +152,6 @@ import {
   buildingMatchesYieldPercent,
   cityScopeAdmits,
   countOf,
-  draftCost,
   opusCityOf,
   orderAtSlotPosition,
   periodicProbe,
@@ -159,6 +160,11 @@ import {
   tileConditionHolds,
   tileConditionReadsFold,
 } from '../sim/statecraft';
+// Straight from their own layers rather than through the `statecraft.ts`
+// index: through the index, the build warns of a circular import between
+// chunks.
+import { draftCost } from '../sim/statecraft/draft';
+import { groundFactsFor, surplusRowReaches, unitMatches } from '../sim/statecraft/evaluator';
 import {
   type CardPaysEffect,
   type CardEffect,
@@ -168,6 +174,7 @@ import {
   type GrantCount,
   type OrderId,
   type RateSource,
+  type TileCondition,
   type WindfallOccasion,
   isDoctrineId,
   isOrderId,
@@ -2548,18 +2555,33 @@ export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect):
   if (held !== undefined) return held;
   const towns = citiesOf(ctx.state, ctx.playerId);
   const reads = tileConditionReadsFold(effect.on);
+  // **The garrisons** (Dominion batch D7, The Farming Garrisons and The
+  // Castra): the hexes where this empire has a fortified military unit now.
+  // A line that asks about them is also asked of each town's centre hex,
+  // because a fortified garrison in a town counts for the centre (the triage's
+  // reading 25), and that is where most garrisons stand.
+  const ground = groundFactsFor(ctx.state, ctx.playerId);
+  const garrisoned = asksAboutGarrisons(effect.on);
   let admitted = 0;
   let onAdmitted = 0;
   let everywhere = 0;
   for (const city of towns) {
-    const ground = reads ? cityContext(ctx.state, city) : undefined;
+    const context = reads ? cityContext(ctx.state, city) : undefined;
     let mine = 0;
-    for (const cell of city.workedTiles) {
+    const cells = garrisoned ? [...city.workedTiles, { col: city.col, row: city.row }] : city.workedTiles;
+    for (const cell of cells) {
       const tile = getTileAt(ctx.state.map, cell.col, cell.row);
       if (tile === undefined) continue;
       const holds =
         effect.on === undefined ||
-        tileConditionHolds(tile, effect.on, reads ? () => foldTile(tile, ground) : undefined);
+        tileConditionHolds(
+          tile,
+          effect.on,
+          reads ? () => foldTile(tile, context) : undefined,
+          undefined,
+          undefined,
+          ground,
+        );
       if (holds) mine += 1;
     }
     everywhere += mine;
@@ -2582,6 +2604,14 @@ export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect):
   }
   memo.set(effect, count);
   return count;
+}
+
+/** Does a hex condition ask whether a fortified unit stands on the hex? */
+function asksAboutGarrisons(on: TileCondition | undefined): boolean {
+  if (on === undefined) return false;
+  if (on.test === 'fortifiedUnit') return true;
+  if (on.test === 'all' || on.test === 'any') return on.of.some(asksAboutGarrisons);
+  return false;
 }
 
 /**
@@ -3368,7 +3398,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal
       // costs is the difference between two draft plans, which is `wants.ts`'
-      // question for `pantheonSlots`' stated reason. Named.
+      // question for `pantheonSlots`' stated reason. Named. Double Time's
+      // repeats (Dominion batch D7) are the second rule, and take the same
+      // stand-in: what they are worth is the seat's other Orders, which this
+      // arm does not read.
       return ctx.ai.score.unknownEffect;
     case 'beadPerOccasion':
       // **A glass bead the empire mints itself**, on a deed it chooses to do
@@ -3400,6 +3433,44 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return (
         ((effect.experience * perPoint) / every) * ctx.ai.weights.military * (1 + ctx.threat)
       );
+    }
+    case 'surplusToProduction': {
+      // **Food spent on the build instead of on growth** (Dominion batch D7,
+      // The Laws of Lord Shang), off the board as it stands: each town whose
+      // front row the card reaches moves its food surplus, as the growth
+      // channel computes it, into production. Priced as that production less
+      // the food it no longer stores, so a seat that wants growth more than
+      // hammers prices the card below nothing.
+      let moved = 0;
+      for (const city of citiesOf(ctx.state, ctx.playerId)) {
+        if (!surplusRowReaches(ctx.state, city, effect, city.queue[0])) continue;
+        moved += Math.max(0, channelSurplus(ctx.state, city));
+      }
+      return moved * (voiceWeight(ctx, 'production') - voiceWeight(ctx, 'food'));
+    }
+    case 'harvest': {
+      // **What the army abroad would bring home each turn** (Dominion batch D7,
+      // War Feeds Itself), off the board as it stands: each unit the row
+      // admits on a hex owned by an empire this seat is at war with, and what
+      // that hex yields as this empire sees it. Nothing while at peace.
+      const enemies: number[] = [];
+      for (const war of ctx.state.wars) {
+        if (war.a === ctx.playerId) enemies.push(war.b);
+        else if (war.b === ctx.playerId) enemies.push(war.a);
+      }
+      if (enemies.length === 0) return 0;
+      const sight = yieldContextFor(ctx.state, ctx.playerId);
+      let worth = 0;
+      for (const unit of ctx.state.units) {
+        if (unit.ownerId !== ctx.playerId || !unitMatches(unit.type, effect.class)) continue;
+        const owner = tileOwnerPlayerId(ctx.state, unit.col, unit.row);
+        if (owner === null || !enemies.includes(owner)) continue;
+        const tile = getTileAt(ctx.state.map, unit.col, unit.row);
+        if (tile === undefined) continue;
+        const bag = foldTile(tile, sight);
+        for (const voice of VOICES) worth += bag[voice] * voiceWeight(ctx, voice);
+      }
+      return worth;
     }
     default:
       return unreadEffect(kind, ctx);
@@ -3663,6 +3734,10 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       // Dominion batch D6. A war ends about as often as one is fought, so a
       // peace is read at the capture's rate, the threat over the horizon.
       return war;
+    case 'disband':
+      // Dominion batch D7. This bot disbands only to clear its arrears, and
+      // never to feed a wonder, so it forecasts no disbanding at all.
+      return 0;
     default:
       return unreadOccasion(occasion);
   }
@@ -4011,6 +4086,18 @@ function ruleRewriteValue(
       // how often a town is taken (`occasionRate`'s capture reading), because
       // the bot does not forecast how long its towns will stay in unrest.
       return share * ctx.ai.score.unknownEffect * occasionRate('capture', ctx);
+    case 'campMuster':
+      // **Not priced** (Dominion batch D7, The Hunting Grounds). More raiders
+      // near home are a cost and a supply of kills at once, and the bot
+      // forecasts neither, so the rule is worth nothing to it by itself.
+      return 0;
+    case 'unitLossWeariness':
+    case 'townLossWeariness':
+      // **Less weariness is worth something only while at war** (Dominion batch
+      // D7, The Funeral Oration and The Glorious Dead). A cut is a share of the
+      // stand-in, scaled by how often a town is taken, as `pacificationRate`
+      // is: the bot does not forecast its own losses.
+      return -share * ctx.ai.score.unknownEffect * occasionRate('capture', ctx);
     default:
       return unreadRule(rule, ctx);
   }
@@ -4390,6 +4477,13 @@ function conditionIsLive(
     }
     case 'noReligionFounded':
       return foundedReligion(ctx.state, ctx.playerId) === undefined;
+    case 'rivalHoldsMoreTowns': {
+      // The simulation's own reading: the empires this seat has met, against
+      // the towns it holds now.
+      const seat = ctx.state.players[ctx.playerId];
+      if (!seat) return false;
+      return seat.metSeats.some((other) => citiesOf(ctx.state, other).length > ctx.cities);
+    }
     default:
       return unreadCondition(when);
   }

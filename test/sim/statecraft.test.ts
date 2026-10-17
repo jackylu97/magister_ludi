@@ -395,17 +395,20 @@ describe("the card table", () => {
     // **And Dominion batch D4**: The Consular Roads joins Tier I, and The
     // Universal Monarchy is the first Tier III Doctrine (tier 18). **Dominion
     // batch D5** adds Total Mobilisation to Tier III and The Landsturm, the
-    // first Tier IV Doctrine (tier 29). Tier II still has none.
+    // first Tier IV Doctrine (tier 29). **Dominion batch D7** adds The Marian
+    // Reforms to Tier I, The Laws of Lord Shang, the first Tier II Doctrine
+    // (tier 10), and The Fortress Empire to Tier IV.
     expect(poolDoctrines(GOVERNMENT_TIERS[0]!)).toEqual([
       "theSteppeConfederacy",
       "theConsularRoads",
+      "theMarianReforms",
     ]);
+    expect(poolDoctrines(GOVERNMENT_TIERS[1]!)).toEqual(["theLawsOfLordShang"]);
     expect(poolDoctrines(GOVERNMENT_TIERS[2]!)).toEqual([
       "theUniversalMonarchy",
       "totalMobilisation",
     ]);
-    expect(poolDoctrines(GOVERNMENT_TIERS[3]!)).toEqual(["theLandsturm"]);
-    expect(poolDoctrines(GOVERNMENT_TIERS[1]!), `tier ${GOVERNMENT_TIERS[1]!}`).toEqual([]);
+    expect(poolDoctrines(GOVERNMENT_TIERS[3]!)).toEqual(["theLandsturm", "theFortressEmpire"]);
     // Religious Mandate awaits religion, a war state and the beads. It sits at
     // tier 0, which is not a live pool, so it can never be dealt.
     const dealt = new Set(
@@ -660,7 +663,7 @@ describe("the card table", () => {
       "city/share",
       // One town, once, because an empire line has no basket for a hammer.
       "capital/count",
-      // The empire — step 17. The flat bag is the **luxuries'** whole use of the
+      // The empire — step 18. The flat bag is the **luxuries'** whole use of the
       // shape (`empireYields` until E5) and no card row carries one today.
       "empire/flat",
       "empire/count",
@@ -1174,10 +1177,11 @@ describe("adoption", () => {
     // so far is Dominion's, so the offer is that one card. It blocks the turn
     // until it is answered, and nothing is held until it is.
     expect(sc.pendingGovernment).toBeUndefined();
-    // Since Dominion batch D4 Dominion has two Tier I Doctrines, so the offer
-    // holds both, in the order the draw dealt them.
+    // Since Dominion batch D7 Dominion has three Tier I Doctrines, so the
+    // offer holds all three, in the order the draw dealt them.
     expect([...(sc.pendingDoctrine?.options ?? [])].sort()).toEqual([
       "theConsularRoads",
+      "theMarianReforms",
       "theSteppeConfederacy",
     ]);
     expect(statecraftBlocker(player)).toBe("a Doctrine offer is waiting");
@@ -1249,46 +1253,57 @@ describe("adoption", () => {
       expect(player.statecraft.slots).toHaveLength(
         chairsAtTier(tier) + cardExtraChairs(g.state, 0),
       );
-      // Since Dominion batch D5 three tiers have Doctrines: tier 4 offers The
-      // Steppe Confederacy and The Consular Roads, tier 18 offers The Universal
-      // Monarchy and Total Mobilisation, and tier 29 offers The Landsturm. The
-      // seat takes the first card each time, so at tier 18 the offer holds
-      // whichever of the two the draw put first, and both are listed here.
-      if (
-        tier === GOVERNMENT_TIERS[0] ||
-        tier === GOVERNMENT_TIERS[2] ||
-        tier === GOVERNMENT_TIERS[3]
-      ) {
-        const offered = [...(player.statecraft.pendingDoctrine?.options ?? [])].sort();
-        expect(offered, `tier ${tier}`).toEqual(
-          tier === GOVERNMENT_TIERS[0]
-            ? ["theConsularRoads", "theSteppeConfederacy"]
+      // Since Dominion batch D7 every tier has Doctrines: tier 4 offers The
+      // Steppe Confederacy, The Consular Roads and The Marian Reforms, tier 10
+      // offers The Laws of Lord Shang, tier 18 offers The Universal Monarchy
+      // and Total Mobilisation, and tier 29 offers The Landsturm and The
+      // Fortress Empire. The seat takes the first card each time, so each
+      // offer holds whichever card the draw put first, and all are listed here.
+      const offered = [...(player.statecraft.pendingDoctrine?.options ?? [])].sort();
+      expect(offered, `tier ${tier}`).toEqual(
+        tier === GOVERNMENT_TIERS[0]
+          ? ["theConsularRoads", "theMarianReforms", "theSteppeConfederacy"]
+          : tier === GOVERNMENT_TIERS[1]
+            ? ["theLawsOfLordShang"]
             : tier === GOVERNMENT_TIERS[2]
               ? ["theUniversalMonarchy", "totalMobilisation"]
-              : ["theLandsturm"],
-        );
-        expect(
-          dispatch(g, { type: "chooseDoctrine", playerId: 0, optionIndex: 0 } as Command).ok,
-        ).toBe(true);
-      }
+              : ["theFortressEmpire", "theLandsturm"],
+      );
+      expect(
+        dispatch(g, { type: "chooseDoctrine", playerId: 0, optionIndex: 0 } as Command).ok,
+      ).toBe(true);
       expect(player.statecraft.pendingDoctrine, `tier ${tier}`).toBeUndefined();
       expect(statecraftBlocker(player), `tier ${tier}`).toBeNull();
     }
-    expect(player.statecraft.doctrines).toHaveLength(3);
-    const tierThree = player.statecraft.doctrines[1]!;
+    expect(player.statecraft.doctrines).toHaveLength(4);
+    expect(player.statecraft.doctrines[1]).toBe("theLawsOfLordShang");
+    const tierThree = player.statecraft.doctrines[2]!;
     expect(["theUniversalMonarchy", "totalMobilisation"]).toContain(tierThree);
-    expect(player.statecraft.doctrines[2]).toBe("theLandsturm");
+    const tierFour = player.statecraft.doctrines[3]!;
+    expect(["theLandsturm", "theFortressEmpire"]).toContain(tierFour);
     const first = player.statecraft.doctrines[0]!;
-    const other = first === "theSteppeConfederacy" ? "theConsularRoads" : "theSteppeConfederacy";
+    const others = ["theSteppeConfederacy", "theConsularRoads", "theMarianReforms"].filter(
+      (id) => id !== first,
+    );
     // A Doctrine already held is never offered again: a second tier-4
-    // adoption offers only the other Tier I Doctrine, and a third finds the
-    // pool spent and opens nothing.
+    // adoption offers only the other two Tier I Doctrines, a third only the
+    // last one, and a fourth finds the pool spent and opens nothing.
     const tier = GOVERNMENT_TIERS[0]!;
     player.statecraft.pendingGovernment = { tier, options: governmentsAtTier(tier) };
     expect(
       dispatch(g, { type: "adoptGovernment", playerId: 0, choiceIndex: 0 } as Command).ok,
     ).toBe(true);
-    expect(player.statecraft.pendingDoctrine?.options).toEqual([other]);
+    expect([...(player.statecraft.pendingDoctrine?.options ?? [])].sort()).toEqual(
+      [...others].sort(),
+    );
+    expect(
+      dispatch(g, { type: "chooseDoctrine", playerId: 0, optionIndex: 0 } as Command).ok,
+    ).toBe(true);
+    player.statecraft.pendingGovernment = { tier, options: governmentsAtTier(tier) };
+    expect(
+      dispatch(g, { type: "adoptGovernment", playerId: 0, choiceIndex: 0 } as Command).ok,
+    ).toBe(true);
+    expect(player.statecraft.pendingDoctrine?.options).toHaveLength(1);
     expect(
       dispatch(g, { type: "chooseDoctrine", playerId: 0, optionIndex: 0 } as Command).ok,
     ).toBe(true);
@@ -1298,7 +1313,14 @@ describe("adoption", () => {
     ).toBe(true);
     expect(player.statecraft.pendingDoctrine).toBeUndefined();
     expect([...player.statecraft.doctrines].sort()).toEqual(
-      ["theConsularRoads", "theLandsturm", "theSteppeConfederacy", tierThree].sort(),
+      [
+        "theConsularRoads",
+        "theLawsOfLordShang",
+        "theMarianReforms",
+        "theSteppeConfederacy",
+        tierThree,
+        tierFour,
+      ].sort(),
     );
   });
 
@@ -1971,7 +1993,10 @@ describe("determinism", () => {
     // 138 since D6: eleven Dominion cards about captures, commissions and the
     // end of a war, and new records on wars, towns and seats, so a v137 log's
     // picks name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(138);
+    // 139 since D7: thirteen Dominion cards about economy rules and Double
+    // Time, and a fourteenth step in a town's yields, so a v138 log's picks
+    // name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(139);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -3269,8 +3294,9 @@ describe("the master-list cut of 2026-08-28", () => {
       const rows = GOVERNMENT_IDS.filter((id) => governmentDef(id).tier === tier);
       expect(rows).toHaveLength(3);
       // D1a: the Doctrine pools are retired shelves; the rows are kept. Since
-      // Dominion batch D5 tier 29 deals one deck Doctrine, The Landsturm.
-      expect(poolDoctrines(tier)).toEqual(tier === 29 ? ["theLandsturm"] : []);
+      // Dominion batch D5 tier 29 deals deck Doctrines: The Landsturm, and since
+      // Dominion batch D7 The Fortress Empire.
+      expect(poolDoctrines(tier)).toEqual(tier === 29 ? ["theLandsturm", "theFortressEmpire"] : []);
       expect(DOCTRINE_IDS.filter((id) => doctrineDef(id).tier === tier).length).toBeGreaterThanOrEqual(
         RULES.offers.doctrine,
       );
@@ -3306,8 +3332,11 @@ describe("the master-list cut of 2026-08-28", () => {
     ).toBe(true);
     // The council widens to the rung's nine. No Doctrine draft opened here
     // from D1a until Dominion batch D5, which gave Tier IV its first deck
-    // Doctrine, The Landsturm.
-    expect(player.statecraft.pendingDoctrine?.options).toEqual(["theLandsturm"]);
+    // Doctrine, The Landsturm. Dominion batch D7 added The Fortress Empire.
+    expect([...(player.statecraft.pendingDoctrine?.options ?? [])].sort()).toEqual([
+      "theFortressEmpire",
+      "theLandsturm",
+    ]);
     expect(player.statecraft.slots).toHaveLength(chairsAtTier(29));
   });
 

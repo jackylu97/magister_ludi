@@ -1060,6 +1060,7 @@ export function bandTierOf(sc: PlayerStatecraft): Band {
  * current band (`currentBandOf`), minus everything already held (the
  * minus-held half is Entry XV's), in file order. Cards of earlier bands are
  * not dealt once a later band has opened (the user's ruling of 2026-10-13),
+ * unless the row names a later last band (`OrderDef.lastBand`, Double Time),
  * but a card already held keeps its chair: every gate here is on the deal,
  * never on holding. The old `fromAge` gate rides along for any retired row
  * that still carries one, under the same rule.
@@ -1091,7 +1092,9 @@ export function eligibleFor(
   return deckPoolOf(state, player).filter((id) => {
     if (held.has(id)) return false;
     const def = orderDef(id);
-    if (def.band !== band) return false;
+    // Dealt from its band through its last band (`OrderDef.lastBand`): Double
+    // Time in Tiers II and III (the user, 2026-10-16). Most rows have one band.
+    if (band < def.band || band > (def.lastBand ?? def.band)) return false;
     if (def.needsTendedWork === true && !tends) return false;
     if (def.needsLevy === true && !levies) return false;
     return def.fromAge === undefined || age >= def.fromAge;

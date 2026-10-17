@@ -280,9 +280,11 @@ describe('every generator draws offerSize cards', () => {
     // Confederacy, Dominion), so this seat, which holds every deck, is dealt
     // that one card, and a widening cannot add what the bag does not hold.
     // **And Dominion batch D4** added a second Tier I Doctrine (The Consular
-    // Roads), so the bag holds two and the seat is dealt both.
+    // Roads), and **Dominion batch D7** a third (The Marian Reforms), so the
+    // bag holds three and the seat is dealt all three.
     expect([...drawDoctrineOffer(g.state, player, rung).options].sort()).toEqual([
       'theConsularRoads',
+      'theMarianReforms',
       'theSteppeConfederacy',
     ]);
     // Stock the rung with the retired tier-4 rows, lent to every deck, and the

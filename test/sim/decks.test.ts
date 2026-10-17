@@ -438,8 +438,12 @@ describe('the schema, as landed', () => {
     // shared row (Looted Art) came live, and two deferred rows were freed (War
     // Reparations, Commission: A Victor's Peace). Six more were reworked in
     // place and were already live.
-    expect(live).toBe(456);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(456);
+    // **And Dominion batch D7** (economy rules and Double Time): ten more.
+    // Eight new Dominion Orders and one new shared row (The Farming
+    // Garrisons) came live, and one deferred row was freed (The Legions'
+    // Labour). Its three Doctrines are not Orders.
+    expect(live).toBe(466);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(466);
   });
 
   /**
@@ -640,7 +644,10 @@ describe('the schema, as landed', () => {
     // 138 since D6: eleven Dominion cards about captures, commissions and the
     // end of a war, and new records on wars, towns and seats, so a v137 log's
     // picks name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(138);
+    // 139 since D7: thirteen Dominion cards about economy rules and Double
+    // Time, and a fourteenth step in a town's yields, so a v138 log's picks
+    // name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(139);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -855,9 +862,10 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // (+ 2 retired).
       // **Dominion batch D6** freed two deferred rows (War Reparations,
       // Commission: A Victor's Peace: − 2).
+      // **Dominion batch D7** freed one (The Legions' Labour: − 1).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(68);
+      ).toHaveLength(67);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(136);
     }
   });
@@ -1289,10 +1297,11 @@ describe('with the shelf stocked', () => {
     const taizong = playerById(d.state, 0)!;
     taizong.statecraft.pendingGovernment = { tier: 4, options: governmentsAtTier(4) };
     const adopted = adoptGovernmentAt(d.state, taizong, 0)!;
-    // Since Dominion batch D4 Dominion has two Tier I Doctrines (The Consular
-    // Roads joined The Steppe Confederacy), so the offer holds both.
+    // Since Dominion batch D7 Dominion has three Tier I Doctrines (The
+    // Consular Roads and The Marian Reforms joined The Steppe Confederacy), so
+    // the offer holds all three.
     const offered = adopted.doctrines?.options ?? [];
-    expect([...offered].sort()).toEqual(['theConsularRoads', 'theSteppeConfederacy']);
+    expect([...offered].sort()).toEqual(['theConsularRoads', 'theMarianReforms', 'theSteppeConfederacy']);
     expect(taizong.statecraft.pendingDoctrine?.options).toEqual(offered);
     // It blocks the turn until it is answered, as a draft does.
     expect(statecraftBlocker(taizong)).toBe('a Doctrine offer is waiting');

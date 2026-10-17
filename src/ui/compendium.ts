@@ -2026,7 +2026,13 @@ function orderEntry(id: OrderId): CompendiumEntry {
       // The deck is the eyebrow's and the shelf's; what the row adds is the two
       // facts about the draw that are nowhere else — when the card can first
       // turn up, and how often it does when it can.
-      ...row('Band', BAND_WORDS[def.band] ?? ''),
+      // A card dealt in two bands names both (`OrderDef.lastBand`, Double Time).
+      ...row(
+        'Band',
+        def.lastBand === undefined || def.lastBand === def.band
+          ? (BAND_WORDS[def.band] ?? '')
+          : `${BAND_WORDS[def.band] ?? ''} ${def.lastBand === def.band + 1 ? 'and' : 'to'} ${BAND_WORDS[def.lastBand] ?? ''}`,
+      ),
       ...(def.slot === undefined ? [] : row('Slot it fitted', def.slot)),
       ...(def.pool === undefined ? [] : row('Draft pool, retired', def.pool)),
       // **How often it turns up** (the levelling ruling of 2026-09-04). A draft

@@ -141,8 +141,9 @@ import {
   runPeriodicBoons,
   runStatecraft,
 } from "./statecraft";
-// Straight from the evaluator: the drill phase (Dominion batch D1).
-import { drillUnits } from "./statecraft/evaluator";
+// Straight from the evaluator: the drill phase (Dominion batch D1), and the
+// harvest that runs in it (Dominion batch D7).
+import { drillUnits, harvestEnemyHexes } from "./statecraft/evaluator";
 import { returnLeviedCitizens } from "./levies";
 import { type PeaceOutcome, settlePeace } from "./diplomacy";
 import { pruneTruces } from "./wars";
@@ -742,7 +743,16 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // town is drilled with the rest, and before `renown`, so renown a rank pays
     // (Up Through the Ranks) is banked before the renown sweep. It skips the
     // wild for `runStatecraft`'s reason. See `drillUnits`.
-    run: drillUnits,
+    //
+    // The harvest runs here too, after the drills (Dominion batch D7, War Feeds
+    // Itself): units in enemy territory yield their hexes' yields. In this
+    // phase rather than its own, so the phase list keeps its length and every
+    // resolution moves the revision as many times as before. See
+    // `harvestEnemyHexes`.
+    run: (state) => {
+      drillUnits(state);
+      harvestEnemyHexes(state);
+    },
   },
   {
     name: "renown",

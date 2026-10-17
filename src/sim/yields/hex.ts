@@ -38,6 +38,10 @@ import {
   tileConditionHolds,
   tileConditionReadsFold,
 } from '../statecraft';
+// Dominion batch D7's ground facts, straight from the evaluator rather than
+// through the `statecraft.ts` index, so the build does not warn of a circular
+// import between chunks.
+import { type GroundFacts, groundFactsFor } from '../statecraft/evaluator';
 import { type City, type GameState, playerById } from '../state';
 import {
   TERRAIN_DATA,
@@ -246,6 +250,17 @@ export interface TileYieldContext {
    * taken for their reason.
    */
   turn?: number;
+  /**
+   * **What the board says about a hex that the tile alone cannot**
+   * (Dominion batch D7): whether a fortified military unit of this empire
+   * stands on it. See `GroundFacts` (`statecraft/evaluator.ts`).
+   *
+   * Built once by `yieldContextFor`, the one place with a board in hand, and
+   * carried downstream by the spread that copies the rest. Its answer walks
+   * the units once, the first time a card line asks, and never when no line
+   * asks. Absent for a context-less evaluation, which answers no.
+   */
+  ground?: GroundFacts;
 }
 
 /**
@@ -309,6 +324,9 @@ export function yieldContextFor(
   // law says, for the ring's reason exactly: a fact about the world does not
   // wait for a card to have already spoken.
   ctx.turn = state.turn;
+  // **The board's answers** (Dominion batch D7), for the ring's reason too:
+  // the hexes where this empire's fortified military units stand.
+  ctx.ground = groundFactsFor(state, playerId);
   return ctx;
 }
 
@@ -518,7 +536,7 @@ export function explainTileYield(
 
   const sourceIndex = new Map<string, number>();
   const pushLine = (line: TileLine): void => {
-    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn)) return;
+    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) return;
     // A line that is **only** a percentage carries no bag at all (The
     // Commonwealth's works). It is paid by the pass at the foot of this
     // function, and a zero-in-every-voice entry pushed here would be a row in
@@ -549,7 +567,9 @@ export function explainTileYield(
       if (besideThunk === undefined) return;
       let beside = 0;
       for (const neighbour of besideThunk()) {
-        if (tileConditionHolds(neighbour, ringRule, undefined, undefined, ctx?.turn)) beside += 1;
+        if (tileConditionHolds(neighbour, ringRule, undefined, undefined, ctx?.turn, ctx?.ground)) {
+          beside += 1;
+        }
       }
       // **So many neighbours buy one helping** (`TileLine.perNeighbourPer`,
       // batch C2 — Mining Districts' *"for every two adjacent mines"*). The
@@ -651,7 +671,7 @@ export function explainTileYield(
     const works = line.percent ?? 0;
     const ground = line.basePercent ?? 0;
     if (works === 0 && ground === 0) continue;
-    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn)) continue;
+    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) continue;
     if (works !== 0) {
       worksPercent += works;
       if (!worksSources.includes(line.source)) worksSources.push(line.source);

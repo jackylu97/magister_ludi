@@ -1273,6 +1273,13 @@ export type CityScope =
    */
   | { test: 'raisingOpus' }
   /**
+   * The **front of the town's queue** is a row of this category, and, for a
+   * unit, one the filter admits (Dominion batch D7): The Laws of Lord Shang's
+   * "while a town builds a military unit", and The Legions' Labour's town
+   * building a wonder. Front of the queue only, `raisingOpus`' reading.
+   */
+  | { test: 'producing'; category: ProductionCategory; class?: UnitFilter }
+  /**
    * The town's citizens work at least `atLeast` hexes (default one) that meet a
    * hex condition — The Local Census's "four improved or tended tiles" and The
    * Garden of the World's "six tended tiles". `workingImprovement` with any
@@ -1412,7 +1419,13 @@ export type EmpireCondition =
    * `foundedReligion`, the history, so a founder who lost the holy city has
    * still founded one.
    */
-  | { test: 'noReligionFounded' };
+  | { test: 'noReligionFounded' }
+  /**
+   * **Another empire this one has met holds more towns** (Dominion batch D7,
+   * The Defiant Kingdom). Only empires in `Player.metSeats` are compared, so the
+   * card reveals nothing about an empire not yet met (the triage's reading 11).
+   */
+  | { test: 'rivalHoldsMoreTowns' };
 
 /**
  * When a strength line applies. The whole of `combatCardLine`'s generality.
@@ -1822,6 +1835,13 @@ export interface UnitFilter {
    */
   religious?: boolean;
   /**
+   * Only units of **this age or earlier** (Dominion batch D7, The Spear Makers'
+   * "first- and second-age military units"). A unit's age is the age of the
+   * technology that unlocks it, and a unit no technology unlocks is first-age
+   * (the triage's reading 12).
+   */
+  ageAtMost?: number;
+  /**
    * One **named** roster row, and nothing else — State Workforce's cheaper
    * worker (tree revision 4, 2026-09-02).
    *
@@ -2091,7 +2111,15 @@ export type TileCondition =
    * (`Tile.surveyed`). The Prospectors pays on mines standing on a seam
    * surfaced this way.
    */
-  | { test: 'surveyed' };
+  | { test: 'surveyed' }
+  /**
+   * **A fortified military unit of this empire stands on the hex** (Dominion
+   * batch D7: The Farming Garrisons and The Castra). A tile carries no units,
+   * so the answer comes from the board's facts (`GroundFacts.fortified`, which
+   * the yield context carries), and a caller with no board answers no. A town's centre hex counts when its
+   * garrison is fortified (the triage's reading 25).
+   */
+  | { test: 'fortifiedUnit' };
 
 // --- the counts -------------------------------------------------------------
 
@@ -2150,6 +2178,12 @@ export type CountKind =
   | 'garrison'
   /** Fortified garrison, each worth 1 + its fortification level (city-scoped). */
   | 'garrisonWatch'
+  /**
+   * **Fortified military units** of this empire inside its borders (Dominion
+   * batch D7, The Fortress Empire). With `within: 'city'`, only those on hexes
+   * the town owns.
+   */
+  | 'fortifiedUnits'
   /** Worked hill tiles of this city (city-scoped). */
   | 'workedHills'
   /** Faith banked in `Player.faithPool`. */
@@ -3430,7 +3464,28 @@ export type CardRule =
    * How far faith poured into a row goes: +50 buys half as many hammers again
    * — The Last Offering. Read in `explainContribution`, with the town in hand.
    */
-  | 'faithContribution';
+  | 'faithContribution'
+  /**
+   * **How fast barbarian camps near this empire's towns raise their units**
+   * (Dominion batch D7, The Hunting Grounds). A positive percentage is faster:
+   * +50 musters every two thirds of the usual turns, rounded. Only camps within
+   * the row's `range` hexes of one of the empire's towns are sped up (the
+   * triage's reading 8). Read in `musterCamps` (`barbarians.ts`).
+   */
+  | 'campMuster'
+  /**
+   * **What the units this empire loses count toward its war weariness**
+   * (Dominion batch D7, The Funeral Oration's half and The Glorious Dead's
+   * nothing). A negative percentage counts them for less. Only this empire's
+   * own losses are changed, never what its enemies lost to it (the triage's
+   * reading 24). Read in `wearinessBetween` (`weariness.ts`).
+   */
+  | 'unitLossWeariness'
+  /**
+   * What the **towns** this empire loses count toward its war weariness: The
+   * Glorious Dead's nothing. `unitLossWeariness`' sibling for towns.
+   */
+  | 'townLossWeariness';
 
 /** A constant of the two meters a card may rewrite. */
 export type MeterRuleId =
@@ -4005,7 +4060,18 @@ export type BehaviorRuleId =
   | 'breachInOneBlow';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
-export type MetaRuleId = 'sealTurns';
+export type MetaRuleId =
+  | 'sealTurns'
+  /**
+   * **How many times this empire's Orders' turn effects happen** (Dominion
+   * batch D7, Double Time; the user's ruling of 2026-10-16, the smaller
+   * reading). The value is the count: 2 is twice. It reaches only Orders, and
+   * of their effects only those that happen at the end of a turn or every few
+   * turns: periodic boons, periodic musters, drills and harvests (the
+   * triage's reading 3). Renown trickles, yields, timed effects, commissions
+   * and Doctrines are not repeated. Read by `turnEffectRepeats`.
+   */
+  | 'turnEffectRepeats';
 
 /** What an amplifier reaches into. */
 export type AmplifierTarget =
@@ -4427,7 +4493,17 @@ export type WindfallOccasion =
    * `hexesPillaged` (the triage's reading 31). An empire destroyed in a war
    * makes no peace, so this does not fire then.
    */
-  | 'peace';
+  | 'peace'
+  /**
+   * This empire **disbanded one of its units** (Dominion batch D7): The
+   * Legions' Labour, and Expansionist's Veteran Colonies after it. Paid by
+   * `applyDisbandUnit` (`commands.ts`) after the unit is gone, at the hex it
+   * stood on, with the unit's type as `actor`. It carries the town the unit
+   * stood in, if it stood in one of this empire's towns (`townId`), and the
+   * unit's production cost (`unitCost`), which a unit raised for free does not
+   * carry. Creditors taking a unit for debt is not a disband.
+   */
+  | 'disband';
 
 /**
  * **What a grant is a share of, where it is a share of the occasion itself.**
@@ -4512,7 +4588,14 @@ export type OccasionMeasure =
    * Art). Filled only on the `capture` occasion
    * (`WindfallOccasionFacts.worksAndWonders`).
    */
-  | 'worksAndWonders';
+  | 'worksAndWonders'
+  /**
+   * **What the unit the occasion is about costs this empire to build now**
+   * (Dominion batch D7, The Legions' Labour). Filled only on the `disband`
+   * occasion, and never for a unit raised for free
+   * (`WindfallOccasionFacts.unitCost`).
+   */
+  | 'unitCost';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -5390,6 +5473,15 @@ export interface CardProductionBonusEffect {
   kind: 'productionBonus';
   category: ProductionCategory;
   percent: number;
+  /**
+   * **The empire stage** (Dominion batch D7, The Marian Reforms' "your towns
+   * build them at half speed"). Absent is the city stage, where every other
+   * production bonus sums with the town's buildings. At the empire stage the
+   * percentage multiplies everything the town's own bonuses made, so −50 halves
+   * it. It still adds with the empire's other percentages on production (Entry
+   * XVII: additive within a stage).
+   */
+  stage?: 'empire';
   /** Narrows a unit bonus to one silhouette — the mounted line, today. */
   modelClass?: ModelClass;
   /**
@@ -5527,6 +5619,12 @@ export interface CardRulePercentEffect {
    * "faster borders in captured cities" on the same terms tomorrow.
    */
   scope?: CityScope;
+  /**
+   * **How far from this empire's towns a world rule reaches**, in hexes
+   * (Dominion batch D7, The Hunting Grounds' "within ten hexes of your
+   * cities"). Read only by `campMuster`, which asks it of each camp.
+   */
+  range?: number;
 }
 
 /** Flat happiness, once for the empire or once per city a scope admits. */
@@ -6060,6 +6158,16 @@ export interface CardWindfallRiderEffect {
    * than universal.
    */
   family?: Family;
+  /**
+   * The rider fires only when the occasion happened **in one of this empire's
+   * towns** (Dominion batch D7, the `disband` occasion): `true` for any of its
+   * towns (Veteran Colonies), or a town scope the town must meet (The Legions'
+   * Labour: a town building a wonder or the Magnum Opus). Read off
+   * `WindfallOccasionFacts.townId`, so an occasion that names no town never
+   * pays it. Food or production the rider pays lands in that town, the nearest
+   * town to the occasion's hex.
+   */
+  inTown?: true | CityScope;
   /**
    * The rider fires only when the building finished or bought was of this
    * **shelf** — Master Masons' culture buildings.
@@ -6707,6 +6815,46 @@ export interface CardPeriodicMusterEffect {
  * on the turns where `turn % every === 0`, the world's own calendar, so two
  * empires holding The Drill Grounds drill on the same turns.
  */
+/**
+ * **A town's food surplus becomes production** (Dominion batch D7, The Laws of
+ * Lord Shang; Expansionist's The Breadbasket can reuse it as it is).
+ *
+ * While the row applies to a town and to what it is building, the town's
+ * growth surplus, as the growth channel computes it (`channelSurplus`,
+ * `cities.ts`), is added one for one to its production as a
+ * labelled line after both stages and the unrest gate, and the food basket
+ * gains nothing (the triage's reading 18). A deficit is never moved: a
+ * starving town starves as before. A town in unrest moves nothing, because its
+ * production is stopped. Step 14 of `docs/yields.md`, `explainSurplusMoved`.
+ */
+export interface CardSurplusToProductionEffect {
+  kind: 'surplusToProduction';
+  /**
+   * Only while the town builds a row of this **category**: the front of its
+   * queue, or the row a quote asks about. Absent: whatever the town builds.
+   */
+  category?: ProductionCategory;
+  /** Narrows a unit category by the ordinary filter: The Laws of Lord Shang's military units. */
+  class?: UnitFilter;
+  /** Only in the towns this scope admits. Absent: every town. */
+  scope?: CityScope;
+}
+
+/**
+ * **The yields of the hexes this empire's units stand on in enemy territory**
+ * (Dominion batch D7, War Feeds Itself). At the end of each turn, each unit the
+ * filter admits that stands on a hex owned by an empire this one is at war
+ * with yields its owner that hex's yields, read as this empire sees the hex.
+ * Gold, science, culture and faith go to the banks; food and production go to
+ * this empire's town nearest the unit. The hex's owner loses nothing (the
+ * triage's reading 23). Run by `harvestEnemyHexes` in the `drill` phase.
+ */
+export interface CardHarvestEffect {
+  kind: 'harvest';
+  /** Which units harvest. Absent: every unit. */
+  class?: UnitFilter;
+}
+
 export interface CardDrillEffect {
   kind: 'drill';
   /** Experience each unit reached gains when the drill fires. */
@@ -7937,6 +8085,10 @@ export type CardEffect =
   | CardPeriodicMusterEffect
   // Dominion batch D1: units gain experience at the end of a turn.
   | CardDrillEffect
+  // Dominion batch D7: a town's food surplus into production, and the yields
+  // of the hexes a unit stands on in enemy territory.
+  | CardSurplusToProductionEffect
+  | CardHarvestEffect
   // Batch L: a town may spend one citizen on what the card names.
   | CardLevyEffect
   // E4b's one new shape: a moment in a piece's life that is not its birth.
@@ -8379,6 +8531,13 @@ export interface OrderDef extends CardDefBase {
    * already holds it keeps it. Required on every row, retired ones included.
    */
   band: Band;
+  /**
+   * **The last band this card is dealt in**, when it is dealt in more than one
+   * (the user, 2026-10-16: Double Time is offered in Tiers II and III). The
+   * card is dealt in every band from `band` to this one. Absent: `band` only.
+   * A held card is still never dealt again.
+   */
+  lastBand?: Band;
   /**
    * **What drafting this hands over, once** — see `CharterSpec`. Present on a
    * charter row and on no other; a row with it is never seated.

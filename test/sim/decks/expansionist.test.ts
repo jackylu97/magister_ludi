@@ -810,6 +810,29 @@ describe('the deck’s other shapes', () => {
     expect(cityScopeAdmits(state, city, { ...scope, atLeast: 2 })).toBe(false);
   });
 
+  it('pays The Farming Garrisons, shared with Dominion, on a hex where a military unit is fortified', () => {
+    // The row lives in common.json since Dominion batch D7, shared by both decks.
+    expect(orderDef('theFarmingGarrisons' as OrderId).decks).toEqual(['dominion', 'expansionist']);
+    const { state, tile } = woodedWorker();
+    seatCard(state, 'theFarmingGarrisons' as OrderId);
+    tile.feature = 'none';
+    const spear = createUnit(state, 0, 'spearman', tile.col, tile.row);
+    bumpRevision(state);
+    const paid = (): { food: number; production: number } => {
+      const lines = explainTileYield(tile, yieldContextFor(state, 0)).filter(
+        (line) => line.source === 'Order · The Farming Garrisons',
+      );
+      return {
+        food: lines.reduce((sum, line) => sum + line.food, 0),
+        production: lines.reduce((sum, line) => sum + line.production, 0),
+      };
+    };
+    expect(paid()).toEqual({ food: 0, production: 0 });
+    spear.fortifiedTurns = 0;
+    bumpRevision(state);
+    expect(paid()).toEqual({ food: 1, production: 1 });
+  });
+
   it('pays The Prospectors only on a mine standing on a surveyed hill', () => {
     const { state, tile } = woodedWorker();
     seatCard(state, 'theProspectors' as OrderId);

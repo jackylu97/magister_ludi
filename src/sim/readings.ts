@@ -211,7 +211,7 @@ export interface EmpireReading {
   playerId: number;
   /** In `state.cities` order — founding order, which is every phase's order. */
   towns: readonly TownReading[];
-  /** Steps 14–18: `explainEmpireLines`, the stage line included. */
+  /** Steps 15–19: `explainEmpireLines`, the stage line included. */
   lines: readonly EmpireYieldLine[];
   /** The empire stage's own reconciliation lines, one per voice that moved. */
   stage: readonly EmpireYieldLine[];

@@ -29,6 +29,10 @@
  *   · **the reading** is `explainWeariness` (one line per enemy) and
  *     `foldWeariness` (the total). The happiness meter and the foreign courts
  *     screen read it, and the bots read `wearinessBetween` for one war.
+ *   · **the law** may count an empire's own losses for less (Dominion batch D7:
+ *     The Funeral Oration halves its unit losses, The Glorious Dead counts none
+ *     of its losses). Only the empire's own reading changes: what its losses
+ *     offset in its enemy's reading stays whole (the triage's reading 24).
  *   · **the broom** is `pruneWarLosses`, run by the `settleDiplomacy` phase.
  *
  * What is not a loss:
@@ -55,6 +59,9 @@
 import { RULES } from './rulesData';
 import { bumpEconomy } from './slate';
 import { type GameState, type WarLoss, type WarLossKind, playerById } from './state';
+// Straight from the evaluator rather than through the `statecraft.ts` index, a
+// function-level cycle (the evaluator reads the meters, which read this file).
+import { cardRulePercent } from './statecraft/evaluator';
 
 /** Every figure of the rule. See `WearinessRules`. */
 const WEARINESS = RULES.war.weariness;
@@ -115,17 +122,44 @@ export interface WearinessLine {
   happiness: number;
 }
 
-/** The points one empire lost to another inside the window. */
-function pointsLost(state: GameState, loserId: number, byId: number): number {
+/**
+ * The points one empire lost to another inside the window.
+ *
+ * `own` asks for the loser's **own** reading, which its law may lower (Dominion
+ * batch D7): the unit points and the town points are each scaled by the
+ * loser's `unitLossWeariness` and `townLossWeariness` percentages, and the sum
+ * is rounded down. With no such card the figure is the plain sum.
+ */
+function pointsLost(state: GameState, loserId: number, byId: number, own = false): number {
   const losses = playerById(state, loserId)?.warLosses;
   if (losses === undefined) return 0;
-  let points = 0;
+  let units = 0;
+  let towns = 0;
   for (const loss of losses) {
     if (loss.by !== byId) continue;
     if (!lossInWindow(loss, state.turn)) continue;
-    points += lossPoints(loss.kind);
+    if (loss.kind === 'town') towns += lossPoints(loss.kind);
+    else units += lossPoints(loss.kind);
   }
-  return points;
+  if (!own || units + towns === 0) return units + towns;
+  const unitShare = lossShare(state, loserId, 'unitLossWeariness');
+  const townShare = lossShare(state, loserId, 'townLossWeariness');
+  return Math.floor((units * unitShare + towns * townShare) / 100);
+}
+
+/**
+ * **What this empire's law says one kind of its losses counts for**, as a
+ * share of the whole in percent: 100 with no card, 50 under The Funeral
+ * Oration, nought under The Glorious Dead. Never below nought.
+ */
+function lossShare(
+  state: GameState,
+  playerId: number,
+  rule: 'unitLossWeariness' | 'townLossWeariness',
+): number {
+  let percent = 0;
+  for (const line of cardRulePercent(state, playerId, rule)) percent += line.percent;
+  return Math.max(0, 100 + percent);
 }
 
 /**
@@ -136,7 +170,9 @@ function pointsLost(state: GameState, loserId: number, byId: number): number {
  * enemy, and the bots ask it for the one war they are deciding about.
  */
 export function wearinessBetween(state: GameState, playerId: number, enemyId: number): WearinessLine {
-  const suffered = pointsLost(state, playerId, enemyId);
+  // This empire's own losses, as its law counts them; the enemy's losses
+  // whole, because this empire's law says nothing about them.
+  const suffered = pointsLost(state, playerId, enemyId, true);
   const inflicted = pointsLost(state, enemyId, playerId);
   const points = Math.max(0, suffered - inflicted);
   return { enemyId, suffered, inflicted, points, happiness: points * WEARINESS.happinessPerPoint };

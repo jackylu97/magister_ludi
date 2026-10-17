@@ -46,6 +46,7 @@ import { type Game } from '../../../src/sim/game';
 import { type GameState, type Player, playerById } from '../../../src/sim/state';
 import {
   type HandPosition,
+  currentBandOf,
   deckPoolOf,
   describeCard,
   drawOrderOffer,
@@ -469,6 +470,37 @@ describe('the Dominion deck — the draw', () => {
       if (isLive(id)) continue;
       expect(eligible.has(id), `${id} is deferred or retired and on the shelf`).toBe(false);
     }
+  });
+
+  it('deals a card in a later tier too only where the sheet says so: Double Time in Tiers II and III', () => {
+    // The sheet's line under a tier table, "**X** is also dealt in Tier N",
+    // names the row's last band (`OrderDef.lastBand`, Dominion batch D7; the
+    // user, 2026-10-16). Every row with a last band has such a line, and every
+    // line names a row with that last band.
+    const also = [...DOC.matchAll(/^\*\*(.+?)\*\* is also dealt in Tier (0|I|II|III|IV)\b/gm)].map(
+      (match) => ({ name: match[1]!, band: TIERS[match[2]!]! }),
+    );
+    expect(also).toEqual([{ name: 'Double Time', band: 3 }]);
+    expect(DOC).toContain('**Also dealt here:** Double Time, from Tier II');
+    for (const id of ROWS) {
+      const def = orderDef(id);
+      const line = also.find((entry) => entry.name === def.name);
+      expect(def.lastBand, `${def.name}: the sheet's last tier`).toBe(line?.band);
+    }
+    // And the deal reads it: dealt in bands 2 and 3, and in no other band.
+    const g = seated(11);
+    const ada = playerById(g.state, 0)!;
+    for (const tech of ['bronzeWorking', 'ironWorking', 'alchemy']) {
+      if (!ada.techsResearched.includes(tech as never)) ada.techsResearched.push(tech as never);
+    }
+    const bands = new Set<number>();
+    for (let drafts = 0; drafts <= 40; drafts++) {
+      const band = currentBandOf(ada, drafts);
+      bands.add(band);
+      const dealtHere = eligibleFor(g.state, ada, drafts).includes('doubleTime' as OrderId);
+      expect(dealtHere, `band ${band}`).toBe(band === 2 || band === 3);
+    }
+    expect([...bands].sort()).toEqual([0, 1, 2, 3, 4]);
   });
 
   it('deals the same hand from the same generator state', () => {

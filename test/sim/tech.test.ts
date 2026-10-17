@@ -1619,7 +1619,10 @@ describe('research in the log', () => {
     // 138 since D6: eleven Dominion cards about captures, commissions and the
     // end of a war, and new records on wars, towns and seats, so a v137 log's
     // picks name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(138);
+    // 139 since D7: thirteen Dominion cards about economy rules and Double
+    // Time, and a fourteenth step in a town's yields, so a v138 log's picks
+    // name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(139);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

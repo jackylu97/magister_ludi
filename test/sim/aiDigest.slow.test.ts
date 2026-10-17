@@ -724,10 +724,37 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * renown scaled by the moment, the Opus bank's release, and the bots' new
  * readings change nothing without the cards. Nothing stalled and no command
  * was refused.
+ *
+ * **Dominion batch D7 (schema 139), economy rules and Double Time.** Duel
+ * `a86298d3:304146` → `19550795:276543`, standard `a0e03ce3:969986` →
+ * `60bda3e9:983815`. Two things moved the digests:
+ *
+ *   · the version, 138 to 139;
+ *   · the cards. Eight Dominion Orders, The Farming Garrisons and The Legions'
+ *     Labour join the pools, and three Doctrines join the offers: The Marian
+ *     Reforms at tier 4, The Laws of Lord Shang at tier 10 (the first Doctrine
+ *     there, so every adoption at that tier now offers it) and The Fortress
+ *     Empire at tier 29. At turn 120 on the duel board three seats seat The
+ *     Farming Garrisons and one seats The Defiant Kingdom, four hold The Marian
+ *     Reforms and three The Laws of Lord Shang. On the standard board every
+ *     seat holds The Laws of Lord Shang, three hold The Marian Reforms and one
+ *     The Fortress Empire. The bots take Lord Shang because they price the food
+ *     it moves as production at the board's own weights, and the towns that
+ *     build soldiers then grow more slowly, which is most of why the duel
+ *     board's state is shorter.
+ *
+ * Checked by taking both back out (the two deck files as D6 left them and the
+ * version at 138), which gives D6's digests exactly on both boards. Everything
+ * else D7 changed stayed in for that run: the fourteenth town step, the
+ * empire-stage production line, the fortified-unit test and count, the camp
+ * muster rule, the weariness rules, the harvest in the drill phase, the
+ * disband moment, Double Time's repeats, the fortification's announcement, the
+ * completion riders' empty-payout test and the bots' new readings change
+ * nothing without the cards. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: 'a86298d3:304146',
-  standard: 'a0e03ce3:969986',
+  duel: '19550795:276543',
+  standard: '60bda3e9:983815',
 };
 
 /**

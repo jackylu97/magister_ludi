@@ -1711,6 +1711,20 @@
           "grant": { "renown": 20, "fromOccasion": "worksAndWonders" }
         }
       ]
+    },
+    "theFarmingGarrisons": {
+      "name": "The Farming Garrisons",
+      "decks": ["dominion", "expansionist"],
+      "band": 1,
+      "line": "none",
+      "rarity": "common",
+      "type": "economic",
+      "flavor": "The soldier who tills the field defends it best.",
+      "text": "Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength.",
+      "effects": [
+        { "kind": "pays", "where": "hex", "food": 1, "production": 1, "on": { "test": "fortifiedUnit" } },
+        { "kind": "combatLine", "amount": 2, "side": "both", "when": { "test": "fortified" } }
+      ]
     }
   }
 }

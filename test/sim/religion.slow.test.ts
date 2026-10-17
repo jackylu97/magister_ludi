@@ -408,7 +408,10 @@ describe('determinism', () => {
     // 138 since D6: eleven Dominion cards about captures, commissions and the
     // end of a war, and new records on wars, towns and seats, so a v137 log's
     // picks name cards this build never dealt.
-    expect(SCHEMA_VERSION).toBe(138);
+    // 139 since D7: thirteen Dominion cards about economy rules and Double
+    // Time, and a fourteenth step in a town's yields, so a v138 log's picks
+    // name cards this build never dealt.
+    expect(SCHEMA_VERSION).toBe(139);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

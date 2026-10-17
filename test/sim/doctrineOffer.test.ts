@@ -75,10 +75,19 @@ const MONARCHY: DoctrineId = 'theUniversalMonarchy';
 // Dominion batch D5's two: a second at Tier III, and the first at Tier IV.
 const MOBILISATION: DoctrineId = 'totalMobilisation';
 const LANDSTURM: DoctrineId = 'theLandsturm';
+// Dominion batch D7's three: a third at Tier I, the first at Tier II, and a
+// second at Tier IV.
+const MARIAN: DoctrineId = 'theMarianReforms';
+const SHANG: DoctrineId = 'theLawsOfLordShang';
+const FORTRESS: DoctrineId = 'theFortressEmpire';
 /** Dominion's Tier I Doctrines, in the order the data lists them. */
-const TIER_ONE: readonly DoctrineId[] = [STEPPE, CONSULAR];
+const TIER_ONE: readonly DoctrineId[] = [STEPPE, CONSULAR, MARIAN];
+/** Dominion's Tier II Doctrines. */
+const TIER_TWO: readonly DoctrineId[] = [SHANG];
 /** Dominion's Tier III Doctrines, in the order the data lists them. */
 const TIER_THREE: readonly DoctrineId[] = [MONARCHY, MOBILISATION];
+/** Dominion's Tier IV Doctrines, in the order the data lists them. */
+const TIER_FOUR: readonly DoctrineId[] = [LANDSTURM, FORTRESS];
 
 /** A duel between two named figures, so each seat holds that figure's two decks. */
 function duel(first: string, second: string, seed = 11): Game {
@@ -118,8 +127,9 @@ describe('the Doctrine data model', () => {
 
   it('folds the deck files’ Doctrines into the one table, each with its decks, its tier and the government tier that offers it', () => {
     const fromDecks = DECK_FILES.flatMap((file) => DECK_FILE_DOCTRINES[file]);
-    expect(fromDecks).toEqual([STEPPE, CONSULAR, MONARCHY, MOBILISATION, LANDSTURM]);
-    expect(DECK_FILE_DOCTRINES.dominion).toEqual([STEPPE, CONSULAR, MONARCHY, MOBILISATION, LANDSTURM]);
+    const all = [STEPPE, CONSULAR, MONARCHY, MOBILISATION, LANDSTURM, MARIAN, SHANG, FORTRESS];
+    expect(fromDecks).toEqual(all);
+    expect(DECK_FILE_DOCTRINES.dominion).toEqual(all);
     for (const id of fromDecks) {
       expect(STATECRAFT.doctrines[id], id).toBeDefined();
       expect(DOCTRINE_IDS, id).toContain(id);
@@ -151,9 +161,9 @@ describe('the Doctrine data model', () => {
 
   it('pools a tier’s live Doctrines alone', () => {
     expect(poolDoctrines(4)).toEqual([...TIER_ONE]);
+    expect(poolDoctrines(10)).toEqual([...TIER_TWO]);
     expect(poolDoctrines(18)).toEqual([...TIER_THREE]);
-    expect(poolDoctrines(29)).toEqual([LANDSTURM]);
-    expect(poolDoctrines(10)).toEqual([]);
+    expect(poolDoctrines(29)).toEqual([...TIER_FOUR]);
     expect(poolDoctrines(0)).toEqual([]);
   });
 });
@@ -169,10 +179,10 @@ describe('the Doctrine offer’s bag and deal', () => {
     expect(doctrineBagFor(taizong, 4)).toEqual([...TIER_ONE]);
     expect(doctrineBagFor(pachacuti, 4)).toEqual([]);
     expect(doctrineBagFor(taizong, 18)).toEqual([...TIER_THREE]);
-    expect(doctrineBagFor(taizong, 29)).toEqual([LANDSTURM]);
-    expect(doctrineBagFor(taizong, 10)).toEqual([]);
+    expect(doctrineBagFor(taizong, 29)).toEqual([...TIER_FOUR]);
+    expect(doctrineBagFor(taizong, 10)).toEqual([...TIER_TWO]);
     taizong.statecraft.doctrines.push(STEPPE);
-    expect(doctrineBagFor(taizong, 4)).toEqual([CONSULAR]);
+    expect(doctrineBagFor(taizong, 4)).toEqual([CONSULAR, MARIAN]);
   });
 
   it('deals nothing from an empty bag and spends no randomness', () => {
@@ -281,9 +291,12 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     expect(dispatch(g, { type: 'adoptGovernment', playerId: 1, choiceIndex: 0 }).ok).toBe(true);
     expect(pachacuti.statecraft.pendingDoctrine).toBeUndefined();
     expect(statecraftBlocker(pachacuti)).toBeNull();
-    // A tier with no Doctrines yet opens nothing either.
+    // A tier whose every Doctrine the seat already holds opens nothing either.
+    // Since Dominion batch D7 every tier has one (The Laws of Lord Shang at
+    // Tier II), so the seat holds it first.
     const later = duel('taizong', 'pachacuti');
     const seat = playerById(later.state, 0)!;
+    seat.statecraft.doctrines.push(...TIER_TWO);
     bankGovernment(seat, 10);
     expect(adoptGovernmentAt(later.state, seat, 0)?.doctrines).toBeNull();
     expect(seat.statecraft.pendingDoctrine).toBeUndefined();
@@ -294,17 +307,18 @@ describe('the adoption opens the offer, and the seat takes one or passes', () =>
     const taizong = playerById(g.state, 0)!;
     bankGovernment(taizong, 4);
     dispatch(g, { type: 'adoptGovernment', playerId: 0, choiceIndex: 0 });
-    const [taken, left] = taizong.statecraft.pendingDoctrine!.options as [DoctrineId, DoctrineId];
-    // A wrong index is refused, and nothing moves. The offer holds two since
-    // Dominion batch D4, so the first index past it is 2.
+    const taken = taizong.statecraft.pendingDoctrine!.options[0] as DoctrineId;
+    // A wrong index is refused, and nothing moves. The offer holds three since
+    // Dominion batch D7, so the first index past it is 3.
+    expect(taizong.statecraft.pendingDoctrine!.options).toHaveLength(3);
     const before = snapshotState(g.state);
-    expect(dispatch(g, { type: 'chooseDoctrine', playerId: 0, optionIndex: 2 }).ok).toBe(false);
+    expect(dispatch(g, { type: 'chooseDoctrine', playerId: 0, optionIndex: 3 }).ok).toBe(false);
     expect(snapshotState(g.state)).toBe(before);
     expect(dispatch(g, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok).toBe(true);
     expect(taizong.statecraft.doctrines).toEqual([taken]);
     expect(taizong.statecraft.pendingDoctrine).toBeUndefined();
     expect(statecraftBlocker(taizong)).toBeNull();
-    expect(doctrineBagFor(taizong, 4)).toEqual([left]);
+    expect(doctrineBagFor(taizong, 4)).toEqual(TIER_ONE.filter((id) => id !== taken));
   });
 
   it('passes for nothing, and refuses both answers with nothing waiting or after the turn has ended', () => {
