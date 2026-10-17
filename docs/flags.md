@@ -19,7 +19,7 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(ccccccc) Fewer drafts between Order tiers: REQUESTED 2026-10-17, measuring first.**
+**(ccccccc) Fewer drafts between Order tiers: REQUESTED 2026-10-17; the rung bug RULED the same day.**
 The user, after the first playtest: *"ok i have thoughts on game balance after
 my first playtest. I think there are too many order drafts to reach the next
 age, and the new cards are fairly impactful. Could we reduce the draft cost
@@ -37,6 +37,16 @@ go from tier 1 -> 2 and 2-> 3 needs to be halved"*
   Tier II to Tier III, and consider a gentler cost curve.
 - **First step, asked by the user:** measure how long each tier takes in turns
   and drafts, beside the research ages, before anything changes.
+- **The rung bug, RULED by the user the same day:** *"wait, the government
+  change at draft 10 should upgrade the pool from tier 1 to tier 2, why doesn't
+  it do that?"* Before 2026-09-17 the ladder was the government tiers (4, 10,
+  18, 29, 45). The decks commit (`a06b8ffc`, schema 119) made it a chair ladder
+  of draft counts and chair counts, and the 10-draft rung got no row, because
+  tier-II governments add no chairs. The Order tiers read the ladder by
+  position, so since then each tier from Tier II up opens one government tier
+  late: Tier II at 18 drafts, not 10. **The fix:** the Order tiers open at the
+  government tiers, 4, 10, 18 and 29 drafts, with no change to any chair count.
+  The halving is then measured again on top of the fix.
 - **Points to settle with the measurement:** the exact rungs after halving;
   whether Tier IV's rung moves with them; and how the ladder's chair counts and
   the governments' tiers (4, 10, 18, 29) stay in step.
