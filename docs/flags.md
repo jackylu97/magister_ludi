@@ -19,7 +19,7 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(ddddddd) Draft pacing after the rung fix: Tier IV RULED 2026-10-17, not built yet.**
+**(ddddddd) Draft pacing after the rung fix: Tier IV BUILT 2026-10-17 (schema 150); choices 1 and 2 still open.**
 The rung fix (item (ccccccc), built 2026-10-17, schema 149, now in the log)
 opens the Order tiers at 4, 10, 18 and 29 drafts. Measured in bot games, Tier
 II now comes about three turns after research age 3, against 44 turns before.
@@ -37,7 +37,8 @@ Three choices remain:
    **RULED:** *"lets move tier IV to tier 26. please make this change so i can
    playtest"*. Tier IV's rung is 26 drafts, and the tier-29 governments (The
    Estates, The Sultanate, The Curia) and their Doctrine offers move to 26 with
-   it. Choices 1 and 2 are not changed for this playtest.
+   it. Choices 1 and 2 are not changed for this playtest. **Built** 2026-10-17
+   (schema 150, commit `11911985`).
 
 **(bbbbbbb) The hex take's readings: awaiting your confirmation.**
 The take (item (aaaaaaa)) landed on 2026-10-17 (schema 148), built with these

@@ -90,20 +90,22 @@ with no deeds in it (Q1; it was 20, which was priced for the decks).
 
 ## Statecraft
 
-- Culture fills one pool; draft meter 12+6n+n^2.8; offers drawn once, spent
-  by command; adoption rebuilds slots (total amnesty); seals absolute (5 turns).
-- Pools: Chiefdom → Government I/II/III (tier 18 is the last new pool —
-  proposed IV/V/VI sit in `docs/orders-and-doctrines.md` awaiting review).
-  Doctrine tiers ride the ladder 4/10/18/29/38. 2026-10-15: the fifth rung
-  moved from 45 to 38 drafts (`docs/flags.md` (uuuuuu)).
-- **Chairs by tier** (M/E/W; the table of record is
-  `docs/orders-and-doctrines.md`'s Governments table, pinned by
-  `statecraftDocSync.test.ts`): Chiefdom 1/1/1 · tier 4 five each · tier 10
-  seven each · tier 18 **eight** each (1/4/3 · 4/2/2 · 2/2/4) · tier 29 ten
-  each (2/4/4 · 5/2/3 · 3/3/4) · tier 38 twelve each (2/5/5 · 5/3/4 · 3/4/5).
-  The top three tiers (the last was 45 then) came down a quarter on 2026-09-06
-  (`docs/history/fewer-things.md` §6 item 9) so that chairs stay contested
-  against the slower ladder.
+- Culture fills one pool. After n drafts, the next draft costs
+  `12 + 5n + n^2.2` culture (`data/statecraft.json`, `meter`). Offers are
+  drawn once and spent by a command. Adopting a government re-seats the
+  council: every card whose chair still exists and still fits keeps it
+  (`reseatCouncil`). Seals are absolute turns (5 turns).
+- **One ladder for the Order tiers and the governments** (`tierLadder`): Tier
+  I at 4 drafts, Tier II at 10, Tier III at 18 and Tier IV at 26. Each Order
+  tier also needs its research age. One Doctrine tier is offered with each
+  government tier. Since the rung fix of 2026-10-17 the Order tiers open with
+  their governments, and the user moved Tier IV from 29 to 26 the same day
+  (`docs/plans/draft-pacing-2026-10-17.md`). The tier-38 governments are
+  retired, left for a fifth age.
+- **Chairs by government tier,** typed Military, Economic, Civic and Wildcard
+  (each government row's `chairMix`; the table is
+  `docs/plans/doctrines-governments-chairs.md`, section 4): the Chiefdom 3,
+  tier 4 five, tier 10 five, tier 18 eight, tier 26 eleven.
 - **No levels** (schema 63): a card is what its row prints, held once. A draft
   is take one or pass — `skipOrderOffer` spends the hand, raises `orderSkips`
   (absolute; zeroed by a pick), and each banked skip adds `skipPity` to the
