@@ -304,6 +304,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Pyramid Builders | 0 | ● | S | +25% production toward wonders in your capital. |
 | The Road Home | 0 | ● | S | Each town you found is joined to your nearest town by road. |
 | The Work Gangs | 0 | ● | S | Towns of at least three citizens may spend a citizen to raise a worker. This shares the town's levy wait. |
+| The Woodland Bands | 0 | ● | S | Your units ignore the extra movement cost of forest and jungle, and gain +2 strength while they stand in forest or jungle. |
 | Levy of the Land | 1 | ◆ | S | Cities may spend one citizen to gain production equal to the food it took to grow that citizen. A city may levy once every five turns. |
 | Tinkers' Guild | 1 | ● | S | Workers you produce or purchase gain +1 charge. |
 | The Old Songs | 1 | ● | S | Worked unimproved land gains +2 culture. |
@@ -348,6 +349,7 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Colonists | 2 | ◆ | S | Towns of at least six citizens may spend a citizen to raise a settler. |
 | The Book of Settlements | 2 | ◆ | P | +3% production and gold for every town you have founded this game, at most +30%. |
 | The Woodwrights | 3 | ○ | S | Forest and jungle chops grant 150% more production. |
+| The Common Domain | 3 | ◆ | S | Towns of at least ten population may work owned tiles one hex beyond their normal work radius. |
 | Seasonal Levies | 3 | ◆ | S | Needs a levy. After a city spends a citizen on a levy, it gains +60% food for ten turns. A city can gain this at most once every twenty turns. |
 | The Long Tending | 3 | ○ | S | Needs tended land. Tended tiles gain +2 food for every 25 turns since they were tended, at most +6. |
 | The Mountain Schools | 3 | ◆ | P | Towns beside a mountain gain +15% science. Worked mines and quarries beside a mountain gain +2 science. |
@@ -372,6 +374,11 @@ across the seven files. Ids are internal; the names in these tables are the card
 | The Tax Rolls | 3 | ◆ | S | When the world takes a census, gain gold equal to five times your citizens. |
 | The Opening of the Roads | 3 | ◆ | S | When one of your towns is first joined to your capital by road, it gains production equal to twenty times its population. |
 | The Great Colonies | 3 | ○ | S | Towns you found start with a third of the citizens of your largest town. |
+| The Raising of the Land | 3 | ○ | S | When a great engineer rushes the works in one of your towns, every improved or tended tile in its borders gains +1 food and +1 production for the rest of the game. |
+| The Age of Improvement | 3 | ○ | E | The bonuses your Orders give to improved tiles are doubled. |
+| The Water Courts | 3 | ○ | S | A farm joined to fresh water by a chain of your farms counts as having fresh water. |
+| The Coming of the Water | 3 | ◆ | S | When a town finishes an Aqueduct, every farm in its borders gains +1 food for the rest of the game. |
+| The Mountain Terraces | 3 | ○ | S | Your towns may work the mountains in their borders. A worked mountain yields 2 science and 1 production. |
 | The Land's Great Work | 4 | ○ | S | The city building the Magnum Opus gains +5% production toward it for each of your towns of at least eight citizens, at most +40%. |
 | The Garden of the World | 4 | ○ | S | Needs tended land. Tended tiles gain +2 food, +1 production and +1 culture. Towns working at least six tended tiles gain +3 happiness. |
 | The Corvée | 4 | ○ | S | While one of your cities builds the Magnum Opus, each of your other towns of at least ten citizens may spend one citizen for it, once every five turns. The Opus city gains production equal to the food that citizen took to grow. This shares the town's levy limit. |
@@ -684,14 +691,10 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Beating of the Bounds** — For now the town takes the hex its borders would have grown into next, rather than one you choose.
 - **The Old Songs** — Open water your people work counts as unbuilt ground here: the game tells works from wild, and not land from sea.
 - **Outposts** — No work can yet be raised outside your borders, and only a town or a great general can claim ground. † a worker plants an outpost on wild ground near your border, and it claims that ground and the ring around it for your nearest town
-- **The Prospectors** — Prospecting already costs no charge. The mine bonus is paid on any surveyed hill that carries a resource, whoever surveyed it.
-- **The Watercourses** — For now any fresh water counts as a river, and a farm standing on fresh water counts as irrigated too.
 - **The Waterworks** — The saving on the aqueduct is paid as extra production toward it, which comes to the same price.
 - **The Breadbasket** — A town told to stop growing moves its people off food, so it has no spare grain for this card to read. † a town that has stopped growing turns its spare grain into contentment and into settlers
 - **Migration** — No rule yet moves a citizen from one town to another. † a crowded town sends a citizen to a small town joined to it
 - **Veteran Colonies** — Units have no way to retire yet; it needs a new order and a new button. † a soldier standing in one of your towns may retire there, and the town gains food for it
-- **The Landscape Garden** — For now only a great person's work counts. A wonder stands inside its town, not on the hex beside the tended tile.
-- **The Common Domain** — How far a town may reach is fixed and cannot yet be widened by a law. † large towns work their own ground one step further out than other towns do
 - **The Polders** — The ground under a hex never changes during a game, by a deliberate rule, and the board would have to redraw the hex. † a worker turns shallow sea beside your land into grassland
 - **Public Works** — A great engineer has no such act yet, and terraces belong to one leader alone. † a great engineer may finish an aqueduct in a town, or raise terraces on its worked hills
 - **The Wide Country** — For now only hexes bought with gold count toward the goal, and instead of citizens in the smallest towns, small towns grow faster for the same span.
@@ -700,7 +703,6 @@ across the seven files. Ids are internal; the names in these tables are the card
 - **The Great Migration** — No rule yet moves a citizen from one town to another, let alone between empires. † unhappy foreign towns near your border lose citizens to your happier towns
 - **The Encroaching Fields** — A hex never changes hands between empires except when its town is captured. † large towns take unworked hexes from the borders of smaller foreign towns beside them
 - **The Domesday Survey** — For now the whole production reward lands in your capital rather than in each town.
-- **The Raising of the Land** — A great engineer has no such act yet, and a hex cannot carry a lasting mark. † a great engineer raises every worked hex in one town for good
 - **The Two Harvests** — A hex can hold only one work at a time. † an improved hex may also be tended, and counts as both
 - **Travellers' Letters** — Half built, and so held whole. Nothing in this game counts the empires you have met, so the letters have nobody to be addressed to. † your capital learns and sings a little more for every foreign empire you have met
 - **Letters of Introduction** — Held whole. The world does not announce a first meeting, and no law of yours can put coin in another realm's treasury. † meeting an empire for the first time pays you, and pays them; claiming a discovery pays gold

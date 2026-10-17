@@ -110,7 +110,15 @@ import {
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
-import { type City, type GameState, type Player, type Unit, createCity, playerById } from '../sim/state';
+import {
+  type City,
+  type GameState,
+  type Player,
+  type Unit,
+  capitalCityOf,
+  createCity,
+  playerById,
+} from '../sim/state';
 import { researchExpansion, researchPlan } from '../sim/tech';
 import { TECH_IDS, type TechId, techDef } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield, emptyTileYield } from '../sim/terrainData';
@@ -599,8 +607,11 @@ export function reachableTechs(ctx: ValueContext): ReadonlyMap<TechId, number> {
  *     town founded there would claim it, so the hypothetical hands every
  *     unclaimed hex to a phantom town of this seat — minted by the simulation's
  *     own `createCity` on a **copy** of the state, standing off the map at
- *     (−1, −1) so no real hex ever reads as built on. Ground another empire
- *     holds keeps its owner, because founding here would not take it.
+ *     (−1, −1) so no real hex ever reads as built on. Since Expansionist batch
+ *     E3 it stands on the seat's capital instead, where it has one: a hex a
+ *     town already stands on, and a hex the law's authority reading can find.
+ *     Ground another empire holds keeps its owner, because founding here would
+ *     not take it.
  *
  * The state is a shallow copy with three arrays replaced, so nothing here can
  * reach the board the decision is being made against; the slate memo hangs off
@@ -631,7 +642,20 @@ function siteGround(ctx: ValueContext): SiteGround | null {
     cities: [...ctx.state.cities],
     tileOwner: [...ctx.state.tileOwner],
   };
-  const phantom = createCity(state, player.id, 'the town that would stand here', -1, -1);
+  // **Standing on the seat's own capital**, where it has one (Expansionist
+  // batch E3). The ground gate may read the law now (a farm's water,
+  // `improvementGroundError`), the law's conditions read the authority meter,
+  // and that meter reads every town's hex: a town off the map has none. The
+  // capital's hex is a town's already, so the gate refuses it whether or not
+  // the phantom stands there too. A seat with no town yet keeps (−1, −1).
+  const seat = capitalCityOf(ctx.state, player.id);
+  const phantom = createCity(
+    state,
+    player.id,
+    'the town that would stand here',
+    seat?.col ?? -1,
+    seat?.row ?? -1,
+  );
   for (let index = 0; index < state.tileOwner.length; index++) {
     if (state.tileOwner[index] === null) state.tileOwner[index] = phantom.id;
   }

@@ -453,6 +453,16 @@ export interface MoveProfile {
    */
   ignoresZoc?: boolean;
   /**
+   * True when this piece's empire **walks the woods at the open-ground price**:
+   * The Woodland Bands (Expansionist batch E3, `BehaviorRuleId`'s `woodsWalk`).
+   *
+   * Hoisted for `freeLanding`'s reason: the answer is a walk of the empire's
+   * card table, and a step's price is asked tens of thousands of times inside
+   * one search. Read in `tileMoveCost`, so the highlight, the estimate and the
+   * march agree. Written only when it is true.
+   */
+  ignoresWoods?: boolean;
+  /**
    * What one step **along a road** costs this mover — `roadStepCost`, with the
    * mover's empire's own `roadStepCost` percentage on it (Machinery's −40, a
    * third becoming a fifth).
@@ -704,6 +714,13 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     owner !== undefined && cardZocIgnored(state, owner.id, unit.type)
       ? { ignoresZoc: true as const }
       : {};
+  // The Woodland Bands (Expansionist batch E3), asked once for the sweep and
+  // for the landing's reason. Every land piece of the empire, civilians
+  // included (the triage's reading 28). Written only when it is true.
+  const ignoresWoods =
+    owner !== undefined && cardBehaviorRule(state, owner.id, 'woodsWalk')
+      ? { ignoresWoods: true as const }
+      : {};
   if (isNaval(def)) {
     // Spread rather than assigned, so a mover nothing bars has *no key* and a
     // profile from a world with no diplomacy in it is the object it always was.
@@ -743,6 +760,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     roadStep,
     ...freeLanding,
     ...ignoresZoc,
+    ...ignoresWoods,
     ...(closed === undefined ? {} : { closed }),
   };
 }
@@ -806,7 +824,11 @@ export function tileMoveCost(tile: Tile, mover?: MoveProfile): number | null {
   // flag's stated reason — one place the price of a step is decided, and
   // therefore one place the highlight, the estimate and the march agree.
   const climbs = tile.hills && mover?.def?.ignoresHillCost !== true;
-  const ground = moveCost(tile.terrain, tile.feature, climbs);
+  // **The woods at the open-ground price** (The Woodland Bands, Expansionist
+  // batch E3): the hex is priced as if nothing grew on it, the hill's reading
+  // one field over. Only forest and jungle carry a price of their own
+  // (`moveCostOverride`), so the rule reaches those two and nothing else.
+  const ground = moveCost(tile.terrain, mover?.ignoresWoods === true ? 'none' : tile.feature, climbs);
   if (ground === null) {
     // A ship's water is the *same* water an embarked settler crosses, and that
     // is deliberate: `isEmbarkableTerrain` is the one reading of "which sea is

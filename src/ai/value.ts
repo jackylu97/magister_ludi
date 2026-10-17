@@ -178,7 +178,7 @@ import { type ProjectId, projectDef } from '../sim/projectData';
 import { type City, type GameState, citiesOf, foundedReligion, playerById } from '../sim/state';
 import { buildError } from '../sim/tech';
 import { type TechAge } from '../sim/techData';
-import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
+import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
 import {
   UNIT_TYPE_IDS,
   type UnitTypeId,
@@ -3817,6 +3817,27 @@ function windfallGrantWorth(
   if (grant.timed !== undefined) {
     const turns = Math.max(0, grant.timed.turns);
     worth += scoreEffects(grant.timed.effects, ctx) * (turns / Math.max(1, ctx.ai.score.lumpTurns));
+  }
+  if (grant.mark !== undefined) {
+    // **A lasting mark on a town's land** (Expansionist batch E3): what the mark
+    // pays each turn on the hexes an average town of this empire would have
+    // marked now. A mark pays for the rest of the game, so it is priced as a
+    // rate rather than through `explainLump`; that it keeps paying past the
+    // horizon is left out, the same rough price a building's yield gets.
+    const rule = RULES.improvements.hexMarks[grant.mark];
+    const owner = tileOwnerField(ctx.state);
+    let hexes = 0;
+    for (let index = 0; index < ctx.state.map.tiles.length; index++) {
+      if (owner.at(index) !== ctx.playerId) continue;
+      if (tileConditionHolds(ctx.state.map.tiles[index]!, rule.while)) hexes += 1;
+    }
+    const perTown = hexes / Math.max(1, ctx.cities);
+    const pays = readTileYield(rule.yields);
+    const bag: YieldBag = {};
+    for (const voice of VOICES) {
+      if (pays[voice] !== 0) bag[voice] = pays[voice] * perTown;
+    }
+    worth += valueOfYields(bag, ctx);
   }
   if (grant.pressure !== undefined) {
     // **A lump of faith pressed on somebody else's towns** — The Crusade's.

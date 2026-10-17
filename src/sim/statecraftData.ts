@@ -74,7 +74,7 @@ import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, ConsecrationId, RiteId } from './religionData';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
 // Type-only: a rank is named on a card the way the rule book names it.
-import type { RankId } from './rulesData';
+import type { HexMarkId, RankId } from './rulesData';
 import type { TerrainId } from './terrainData';
 // Type-only, so no load-time edge: a route's medium is one vocabulary and the
 // card table names it rather than respelling it. See `CardPaysEffect.mode`.
@@ -1634,7 +1634,18 @@ export type CombatCondition =
    * Asked of `CombatSituation.vsOwnerId`, so it holds against that empire's
    * units and its cities alike.
    */
-  | { test: 'vsOpusBuilder' };
+  | { test: 'vsOpusBuilder' }
+  /**
+   * **This side's piece stands on a hex carrying one of these features**
+   * (Expansionist batch E3, The Woodland Bands' forest and jungle).
+   *
+   * It reads **the hex the piece stands on**, not the contested hex: for a
+   * defender the two are the same hex, and for an attacker it is the hex it
+   * strikes from. So a row written with `side: 'defend'` is a defence line
+   * today (the triage's reading 28), and the same row with `side: 'both'`
+   * would pay an attack from the woods too, with no other change.
+   */
+  | { test: 'standingIn'; features: string[] };
 
 /** What a strength line counts, when it counts something. */
 export type CombatScaleCount =
@@ -2078,7 +2089,33 @@ export type TileCondition =
    * (`Tile.surveyed`). The Prospectors pays on mines standing on a seam
    * surfaced this way.
    */
-  | { test: 'surveyed' };
+  | { test: 'surveyed' }
+  /**
+   * **A river runs along one of this hex's edges** (Expansionist batch E3, The
+   * Watercourses' "farms directly beside a river").
+   *
+   * Read off `Tile.riverEdges`, the map's own river mask, and narrower than
+   * `freshwater`: a lake or an oasis gives a hex fresh water but no river.
+   */
+  | { test: 'river' }
+  /**
+   * **This hex is the centre of a town that holds a world wonder**, whoever
+   * owns the town (Expansionist batch E3, The Landscape Garden, the triage's
+   * reading 25). Meant to be asked through `beside`: "a tended hex beside a
+   * wonder" is a hex beside the centre of a town holding one.
+   *
+   * A tile alone cannot answer it, so the caller hands in the board's answer
+   * (`GroundFacts.wonderCentre`, built by `groundFactsFor`). A caller with no
+   * such answer reads no, `beside`'s bargain.
+   */
+  | { test: 'wonderTown' }
+  /**
+   * **The empire reading this hex surfaced a seam here**: its survey struck the
+   * vein (`Tile.surfacedBy`), Expansionist batch E3, The Prospectors. The
+   * empire is the caller's (`GroundFacts.player`); a caller that names none
+   * reads no.
+   */
+  | { test: 'surfaced' };
 
 // --- the counts -------------------------------------------------------------
 
@@ -3989,7 +4026,31 @@ export type BehaviorRuleId =
    * one blow breaks the walls. The town still hits back while its walls stand,
    * and the garrison and the capture are still two more blows.
    */
-  | 'breachInOneBlow';
+  | 'breachInOneBlow'
+  /**
+   * **This empire's units pay only the open-ground price in forest and
+   * jungle** (Expansionist batch E3, The Woodland Bands; the triage's reading
+   * 28: every land unit, civilians included).
+   *
+   * Read once a sweep in `moveProfile` into `MoveProfile.ignoresWoods`, and
+   * applied in `tileMoveCost`, so the four readers of `stepCost` agree. The
+   * rule removes a feature's own movement price (`moveCostOverride`, which
+   * forest and jungle carry) and nothing else: a hill still costs its climb.
+   */
+  | 'woodsWalk'
+  /**
+   * **A farm of this empire beside one of its farms on a river counts as
+   * having fresh water** (Expansionist batch E3, The Watercourses). One step
+   * only: the water does not pass on from the farm it reached. Read by
+   * `farmWaterOf`, which every fresh-water question about a farm asks.
+   */
+  | 'riverFarmsWater'
+  /**
+   * **A farm of this empire joined to a farm on fresh water by an unbroken
+   * chain of its farms counts as having fresh water** (Expansionist batch E3,
+   * The Water Courts). Read by `farmWaterOf`.
+   */
+  | 'farmChainsWater';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId = 'sealTurns';
@@ -4701,6 +4762,18 @@ export interface WindfallGrantSpec {
    * `pillageAt` alone.
    */
   pillageBeside?: true;
+  /**
+   * **A lasting mark on the town's land** (Expansionist batch E3): The Raising
+   * of the Land's raised hexes and The Coming of the Water's watered farms.
+   *
+   * The town is the one where the occasion happened (the town nearest the
+   * occasion's hex). Every hex in its borders where the mark's own condition
+   * holds at that moment is marked (`rules.improvements.hexMarks`), once; a
+   * hex already carrying the mark is left alone (the triage's reading 23).
+   * Delivered by `payWindfallGrants` through `markTownLand` (`cities.ts`). A
+   * mark has no figure, so the era and the council multiply nothing here.
+   */
+  mark?: HexMarkId;
 }
 
 // --- the vocabulary ---------------------------------------------------------
@@ -5804,7 +5877,22 @@ export type CityRuleId =
    * phase at the end of the turn in which the scope admits the town (the
    * triage's reading 27).
    */
-  | 'pacified';
+  | 'pacified'
+  /**
+   * **This town's citizens may work the mountains in its borders**
+   * (Expansionist batch E3, The Mountain Terraces). Read by `assignableTiles`
+   * through `cardCityRuleAt`. When the card leaves, the citizens on a mountain
+   * move at the next assignment (the triage's reading 20).
+   */
+  | 'workMountains'
+  /**
+   * **This town may work owned hexes one ring beyond the usual work radius**
+   * (Expansionist batch E3, The Common Domain, with the scope "ten or more
+   * citizens"). Read by `workRadiusOf`, which every question about how far a
+   * town reaches asks. When the scope stops admitting the town, its citizens
+   * on the outer ring move at the next assignment (the triage's reading 21).
+   */
+  | 'widerReach';
 
 /** A rider on a windfall. See `WindfallOccasion` for what "rider" means. */
 export interface CardWindfallRiderEffect {
@@ -6059,6 +6147,13 @@ export interface CardWindfallRiderEffect {
    * occasion carries, so a rider written onto any other occasion never pays.
    */
   rank?: RankId;
+  /**
+   * The rider fires only when the building finished is **this one**: The
+   * Coming of the Water's Aqueduct (Expansionist batch E3). Read off
+   * `WindfallOccasionFacts.building`, the row the completion seam holds, so a
+   * rider written onto an occasion that names no building never pays.
+   */
+  building?: BuildingId;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -7401,6 +7496,17 @@ export interface CardYieldAmplifierEffect {
    * own towns only, since that is the only place their lines reach your fold.
    */
   reads?: 'followerBeliefs';
+  /**
+   * **Only on hexes where this holds** (Expansionist batch E3, The Age of
+   * Improvement's improved hexes).
+   *
+   * An amplifier carrying a tile test raises the Orders' **hex lines** only:
+   * each helping lands on the hexes where both the dressed line's own test and
+   * this one hold. It raises no town line and no empire line, because a town
+   * line is not paid on a hex (the triage's reading 24: The Manors and The
+   * Plough Teams count improved hexes and are not doubled).
+   */
+  on?: TileCondition;
 }
 
 /**

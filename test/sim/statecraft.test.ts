@@ -1952,7 +1952,9 @@ describe("determinism", () => {
     // two new town fields and a new end-of-turn phase, so a v136 log's picks
     // name cards this build deals differently and its resolutions run one
     // phase fewer.
-    expect(SCHEMA_VERSION).toBe(137);
+    // 138 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v137 log's picks name cards this build deals differently.
+    expect(SCHEMA_VERSION).toBe(138);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -8740,6 +8742,10 @@ describe("the engine shapes", () => {
     // D3 (the Expansionist sheet): A Court of Engineers is Commerce's A Court
     // of Merchants for the engineers, the same renown share.
     "aCourtOfEngineers · cityRenownPercent",
+    // Expansionist batch E3: The Age of Improvement doubles what the Orders pay
+    // on improved hexes, an amplifier with a tile test
+    // (`CardYieldAmplifierEffect.on`).
+    "theAgeOfImprovement · cardYieldAmplifier",
     "provisioningContracts · routeYield",
     // C6: The Common Road is two rows of the same shape and not one read twice
     // — one paid to the empire that sent the caravan, one paid to the town it

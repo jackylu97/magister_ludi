@@ -60,12 +60,14 @@
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
+import { isWonder } from '../sim/buildingData';
 import {
   IMPROVEMENT_IDS,
   type ImprovementId,
   improvementDef,
 } from '../sim/improvementData';
 import { tileIndex } from '../sim/map';
+import { HEX_MARK_IDS } from '../sim/rulesData';
 import type { GameState } from '../sim/state';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
 
@@ -265,6 +267,37 @@ export function signImprovements(state: GameState): number {
     if (id === undefined) continue;
     h = Math.imul(h ^ i, 16777619);
     h = Math.imul(h ^ (IMPROVEMENT_INDEX.get(id) ?? -1), 16777619);
+  }
+  return h >>> 0;
+}
+
+/**
+ * **What the ground pays that no other fingerprint watches** (Expansionist
+ * batch E3), for the yields lens alone: the lasting marks on each hex (The
+ * Raising of the Land, The Coming of the Water) and the towns holding a world
+ * wonder (The Landscape Garden pays tended hexes beside one).
+ *
+ * Both can change at the end of a turn with no improvement, border or card
+ * moving: an Aqueduct finished in the production phase marks its farms, and a
+ * wonder finished there changes what the hexes around its town pay. So the
+ * renderer rebuilds the yield glyphs when this moves, and nothing else. FNV-1a
+ * over integers, `signImprovements`' recipe: the tiles in index order, then the
+ * towns in founding order.
+ */
+export function signLandYields(state: GameState): number {
+  let h = 2166136261 ^ state.map.tiles.length;
+  for (let i = 0; i < state.map.tiles.length; i++) {
+    const marks = state.map.tiles[i]!.marks;
+    if (marks === undefined) continue;
+    for (let m = 0; m < HEX_MARK_IDS.length; m++) {
+      if (!marks.includes(HEX_MARK_IDS[m]!)) continue;
+      h = Math.imul(h ^ i, 16777619);
+      h = Math.imul(h ^ m, 16777619);
+    }
+  }
+  for (const city of state.cities) {
+    if (!city.buildings.some((id) => isWonder(id))) continue;
+    h = Math.imul(h ^ (city.col * 4096 + city.row), 16777619);
   }
   return h >>> 0;
 }

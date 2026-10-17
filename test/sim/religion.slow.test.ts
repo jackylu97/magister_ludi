@@ -406,7 +406,9 @@ describe('determinism', () => {
     // two new town fields and a new end-of-turn phase, so a v136 log's picks
     // name cards this build deals differently and its resolutions run one
     // phase fewer.
-    expect(SCHEMA_VERSION).toBe(137);
+    // 138 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v137 log's picks name cards this build deals differently.
+    expect(SCHEMA_VERSION).toBe(138);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test

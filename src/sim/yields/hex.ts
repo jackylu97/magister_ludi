@@ -29,15 +29,18 @@ import { improvementDef, improvementYield } from '../improvementData';
 import { resourceDef, resourceIsVisibleTo, resourceYield } from '../resourceData';
 import { type CardId } from '../statecraftData';
 import {
+  type GroundFacts,
   type TileLine,
   cardTileLines,
   consecrationCardTileLines,
   followerCardTileLines,
+  groundFactsFor,
   scopedCardTileLines,
   timedCityTileLines,
   tileConditionHolds,
   tileConditionReadsFold,
 } from '../statecraft';
+import { HEX_MARK_IDS, RULES } from '../rulesData';
 import { type City, type GameState, playerById } from '../state';
 import {
   TERRAIN_DATA,
@@ -246,6 +249,18 @@ export interface TileYieldContext {
    * taken for their reason.
    */
   turn?: number;
+  /**
+   * **What the board says about a hex that the tile alone cannot**
+   * (Expansionist batch E3): the empire asking, its farm water, and which town
+   * centres hold a world wonder. See `GroundFacts` (`statecraft/evaluator.ts`).
+   *
+   * Built once by `yieldContextFor`, the one place with a board in hand, and
+   * carried downstream by the spread that copies the rest. Read in two places
+   * here: the Irrigation renewal, which a farm the law waters earns as if it
+   * stood on fresh water, and every card line's tile test. Absent for a
+   * context-less evaluation, which reads the map's own water.
+   */
+  ground?: GroundFacts;
 }
 
 /**
@@ -309,6 +324,9 @@ export function yieldContextFor(
   // law says, for the ring's reason exactly: a fact about the world does not
   // wait for a card to have already spoken.
   ctx.turn = state.turn;
+  // **The board's answers** (Expansionist batch E3), for the ring's reason too:
+  // the farm water, the wonder towns and who is asking.
+  ctx.ground = groundFactsFor(state, playerId);
   return ctx;
 }
 
@@ -442,7 +460,18 @@ export function explainTileYield(
       // of water: `Tile.freshwater` is what the map says, and this is a town
       // saying it will carry the water out to the fields. A hex evaluated with
       // no context at all is the omniscient reading and has no town to ask.
-      if (upgrade.requiresFreshwater && !tile.freshwater && ctx?.irrigates !== true) continue;
+      //
+      // **Or this empire's law waters the farm** (The Watercourses and The
+      // Water Courts, Expansionist batch E3): `GroundFacts.watered`, the same
+      // answer the cards' own `freshwater` test reads.
+      if (
+        upgrade.requiresFreshwater &&
+        !tile.freshwater &&
+        ctx?.irrigates !== true &&
+        ctx?.ground?.watered?.(tile) !== true
+      ) {
+        continue;
+      }
       list.push({
         source: techDef(upgrade.tech).name,
         kind: 'add',
@@ -451,6 +480,23 @@ export function explainTileYield(
     }
   }
   const worksTo = list.length;
+
+  // **The lasting marks** (Expansionist batch E3: The Raising of the Land, The
+  // Coming of the Water), after the works and outside their bracket: a mark is
+  // a fact about the ground, and a share of the works is a share of what the
+  // improvement pays. Each mark pays while its own condition holds
+  // (`rules.improvements.hexMarks`), whoever owns or works the hex, so a
+  // context-less evaluation pays it too. The table's order, so two marks always
+  // read in the same order.
+  const marks = tile.marks;
+  if (marks !== undefined) {
+    for (const mark of HEX_MARK_IDS) {
+      if (!marks.includes(mark)) continue;
+      const rule = RULES.improvements.hexMarks[mark];
+      if (!tileConditionHolds(tile, rule.while)) continue;
+      list.push({ source: rule.name, kind: 'add', ...readTileYield(rule.yields) });
+    }
+  }
 
   // **What the hex has been reckoned to pay so far**, for the one condition that
   // asks about worth rather than about substance (`TileCondition`'s `yields`,
@@ -518,7 +564,7 @@ export function explainTileYield(
 
   const sourceIndex = new Map<string, number>();
   const pushLine = (line: TileLine): void => {
-    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn)) return;
+    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) return;
     // A line that is **only** a percentage carries no bag at all (The
     // Commonwealth's works). It is paid by the pass at the foot of this
     // function, and a zero-in-every-voice entry pushed here would be a row in
@@ -549,7 +595,9 @@ export function explainTileYield(
       if (besideThunk === undefined) return;
       let beside = 0;
       for (const neighbour of besideThunk()) {
-        if (tileConditionHolds(neighbour, ringRule, undefined, undefined, ctx?.turn)) beside += 1;
+        if (tileConditionHolds(neighbour, ringRule, undefined, undefined, ctx?.turn, ctx?.ground)) {
+          beside += 1;
+        }
       }
       // **So many neighbours buy one helping** (`TileLine.perNeighbourPer`,
       // batch C2 — Mining Districts' *"for every two adjacent mines"*). The
@@ -651,7 +699,7 @@ export function explainTileYield(
     const works = line.percent ?? 0;
     const ground = line.basePercent ?? 0;
     if (works === 0 && ground === 0) continue;
-    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn)) continue;
+    if (!tileConditionHolds(tile, line.on, paidSoFar, besideThunk, ctx?.turn, ctx?.ground)) continue;
     if (works !== 0) {
       worksPercent += works;
       if (!worksSources.includes(line.source)) worksSources.push(line.source);

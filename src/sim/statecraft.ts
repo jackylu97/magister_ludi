@@ -151,6 +151,10 @@ export {
   explainCardCityYields,
   explainCardEmpireYields,
   explainCardPercentYields,
+  // Expansionist batch E3: the board's answers for the tile tests a tile cannot
+  // answer alone, and an empire's farm water.
+  farmWaterOf,
+  groundFactsFor,
   filledOrderSlots,
   foldCardRulePercent,
   foldCardYields,
@@ -201,7 +205,9 @@ export type {
   CardYieldLine,
   CombatSituation,
   EmpireRates,
+  FarmWater,
   FoundingRider,
+  GroundFacts,
   LiveCardEffect,
   TileLine,
   WindfallOccasionFacts,

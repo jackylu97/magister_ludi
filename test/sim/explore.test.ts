@@ -755,10 +755,17 @@ describe('determinism', () => {
    * fields and the new cards never reach this board. Checked by taking E2's
    * movers out (the deck file as E1 left it, the phase removed, the version at
    * 136 and the town record not written), which gives E1's hashes exactly.
+   *
+   * **Expansionist batch E3 (the land) moved the hash and not the length** at
+   * both seeds: 137 became 138, and that is the whole change here. Nobody
+   * here drafts a card, so the new cards and rules never reach this board, and
+   * no seam surfaces and no hex is marked. Checked by setting the deck file
+   * back to E2's and the version to 137, which gives E2's hashes exactly; the
+   * new deck file at 137 gives them too.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '81f20538:188932',
-    2026: '3c531601:188488',
+    11: '7da45705:188932',
+    2026: '7411938c:188488',
   };
 
   for (const seed of [11, 2026]) {

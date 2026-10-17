@@ -2183,8 +2183,10 @@ describe('the marginal draft reading', () => {
     // wrote The Bourse ("gold buildings produce 50% more of their own yields",
     // a share of what the gold buildings already pay), and the Devotion batch
     // The Doctors of the Church, whose amplifier doubles what the follower
-    // beliefs already pay a town.
-    expect(engines).toBe(19);
+    // beliefs already pay a town. Twenty since Expansionist batch E3 wrote The
+    // Age of Improvement, whose amplifier doubles what the Orders already pay
+    // on improved hexes.
+    expect(engines).toBe(20);
     // Batch F named The Exchequer the deck's clearest trade payoff and the one
     // the bot most under-priced — `effectAmplifier` fell to `score.unknownEffect`,
     // six points for doubling every caravan in the realm. It is read by the books

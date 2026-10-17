@@ -245,6 +245,25 @@
         { "kind": "levy", "use": "worker", "minPopulation": 3 }
       ]
     },
+    "theWoodlandBands": {
+      "name": "The Woodland Bands",
+      "decks": ["expansionist"],
+      "band": 0,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "They know every path under the trees, and the trees hide them.",
+      "text": "Your units ignore the extra movement cost of forest and jungle, and gain +2 strength while they stand in forest or jungle.",
+      "effects": [
+        { "kind": "rule", "rule": "woodsWalk" },
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "when": { "test": "standingIn", "features": ["forest", "jungle"] },
+          "side": "defend"
+        }
+      ]
+    },
     "levyOfTheLand": {
       "name": "Levy of the Land",
       "decks": ["expansionist"],
@@ -517,13 +536,11 @@
             "test": "all",
             "of": [
               { "test": "improvement", "improvement": "mine" },
-              { "test": "surveyed" },
-              { "test": "hasResource" }
+              { "test": "surfaced" }
             ]
           }
         }
-      ],
-      "note": "Prospecting already costs no charge. The mine bonus is paid on any surveyed hill that carries a resource, whoever surveyed it."
+      ]
     },
     "sixGardens": {
       "name": "Six Gardens",
@@ -810,7 +827,6 @@
       "type": "economic",
       "flavor": "The river is only lent; the ditch is owned.",
       "text": "Farms directly beside a river irrigate adjacent farms. Irrigated worked farms gain +2 production. Water does not relay beyond that first step.",
-      "note": "For now any fresh water counts as a river, and a farm standing on fresh water counts as irrigated too.",
       "effects": [
         {
           "kind": "pays",
@@ -823,14 +839,14 @@
               {
                 "test": "any",
                 "of": [
-                  { "test": "freshwater" },
+                  { "test": "river" },
                   {
                     "test": "beside",
                     "of": {
                       "test": "all",
                       "of": [
                         { "test": "improvement", "improvement": "farm" },
-                        { "test": "freshwater" }
+                        { "test": "river" }
                       ]
                     }
                   }
@@ -838,7 +854,8 @@
               }
             ]
           }
-        }
+        },
+        { "kind": "rule", "rule": "riverFarmsWater" }
       ]
     },
     "theHighlands": {
@@ -1030,14 +1047,22 @@
             "of": [
               { "test": "tended" },
               {
-                "test": "beside",
-                "of": { "test": "greatWork" }
+                "test": "any",
+                "of": [
+                  {
+                    "test": "beside",
+                    "of": { "test": "greatWork" }
+                  },
+                  {
+                    "test": "beside",
+                    "of": { "test": "wonderTown" }
+                  }
+                ]
               }
             ]
           }
         }
-      ],
-      "note": "For now only a great person's work counts. A wonder stands inside its town, not on the hex beside the tended tile."
+      ]
     },
     "theEngineersYards": {
       "name": "The Engineers' Yards",
@@ -1391,9 +1416,13 @@
       "type": "economic",
       "flavor": "The commons runs to where the walking stops.",
       "text": "Towns of at least ten population may work owned tiles one hex beyond their normal work radius.",
-      "note": "How far a town may reach is fixed and cannot yet be widened by a law.",
-      "deferred": ["large towns work their own ground one step further out than other towns do"],
-      "effects": []
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "widerReach",
+          "scope": { "test": "populationAtLeast", "value": 10 }
+        }
+      ]
     },
     "seasonalLevies": {
       "name": "Seasonal Levies",
@@ -1986,6 +2015,93 @@
         { "kind": "foundingRider", "fromLargest": 3 }
       ]
     },
+    "theRaisingOfTheLand": {
+      "name": "The Raising of the Land",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "Drain it, dig it, raise it, and it feeds you forever.",
+      "text": "When a great engineer rushes the works in one of your towns, every improved or tended tile in its borders gains +1 food and +1 production for the rest of the game.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "greatPersonAct",
+          "family": "engineer",
+          "grant": { "mark": "raised" }
+        }
+      ]
+    },
+    "theAgeOfImprovement": {
+      "name": "The Age of Improvement",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "Every field drained, every road straightened, every mill rebuilt.",
+      "text": "The bonuses your Orders give to improved tiles are doubled.",
+      "effects": [
+        {
+          "kind": "cardYieldAmplifier",
+          "yield": "all",
+          "percent": 100,
+          "on": { "test": "improved" }
+        }
+      ]
+    },
+    "theWaterCourts": {
+      "name": "The Water Courts",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "The court decides who gets the water, and the water goes everywhere.",
+      "text": "A farm joined to fresh water by a chain of your farms counts as having fresh water.",
+      "effects": [
+        { "kind": "rule", "rule": "farmChainsWater" }
+      ]
+    },
+    "theComingOfTheWater": {
+      "name": "The Coming of the Water",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "economic",
+      "flavor": "The aqueduct reaches the town, and the fields drink first.",
+      "text": "When a town finishes an Aqueduct, every farm in its borders gains +1 food for the rest of the game.",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "building": "aqueduct",
+          "grant": { "mark": "aqueductWater" }
+        }
+      ]
+    },
+    "theMountainTerraces": {
+      "name": "The Mountain Terraces",
+      "decks": ["expansionist"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "Where the goats walked, the barley grows.",
+      "text": "Your towns may work the mountains in their borders. A worked mountain yields 2 science and 1 production.",
+      "effects": [
+        { "kind": "rule", "rule": "workMountains" },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "science": 2,
+          "production": 1,
+          "on": { "test": "terrain", "terrain": "mountain" }
+        }
+      ]
+    },
     "theLandsGreatWork": {
       "name": "The Land's Great Work",
       "decks": ["expansionist"],
@@ -2247,19 +2363,6 @@
       },
       "effects": [],
       "note": "For now the whole production reward lands in your capital rather than in each town."
-    },
-    "theRaisingOfTheLand": {
-      "name": "The Raising of the Land",
-      "decks": ["expansionist"],
-      "band": 4,
-      "line": "none",
-      "rarity": "rare",
-      "type": "economic",
-      "flavor": "Drain it, dig it, raise it, and it feeds you forever.",
-      "text": "A great engineer may spend its act in one of your towns to raise every improved or tended tile inside its borders: each gains +1 food and +1 production for the rest of the game.",
-      "effects": [],
-      "deferred": ["a great engineer raises every worked hex in one town for good"],
-      "note": "A great engineer has no such act yet, and a hex cannot carry a lasting mark."
     },
     "theTwoHarvests": {
       "name": "The Two Harvests",

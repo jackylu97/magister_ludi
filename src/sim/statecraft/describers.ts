@@ -41,6 +41,7 @@ import { projectDef } from '../projectData';
 import { beliefPoolOf, isBeliefId, isConsecrationId, isRiteId, riteDef } from '../religionData';
 import { type CityYieldKey, resourceDef } from '../resourceData';
 import { RULES } from '../rulesData';
+import { readTileYield } from '../terrainData';
 import {
   type AmplifierTarget,
   type PressureRuleId,
@@ -1680,10 +1681,22 @@ function describeEffect(
           : sizedWords(effect.atPopulation);
       // The Flood Festival names the improvement it pays for, inside the
       // occasion's own phrase, the way "a building" narrows "anything" above.
-      const named =
-        effect.improvement === undefined
+      // The Coming of the Water names the building it pays for, inside the
+      // occasion's own phrase (Expansionist batch E3): "completing an Aqueduct".
+      const built =
+        effect.building === undefined
           ? sized
           : sized.replace(
+              'a building',
+              (() => {
+                const name = buildingDef(effect.building).name;
+                return `${indefinite(name)} ${ref('building', effect.building, name)}`;
+              })(),
+            );
+      const named =
+        effect.improvement === undefined
+          ? built
+          : built.replace(
               'an improvement',
               (() => {
                 const name = improvementDef(effect.improvement).name;
@@ -1797,6 +1810,17 @@ function describeEffect(
       }
       if (grant?.pillageBeside === true) {
         out.push({ text: `${occasion} also pillages every enemy improvement beside the hex` });
+      }
+      // Expansionist batch E3: a lasting mark on the land, said from the rule
+      // book's own table so the figure and the hexes are the mark's.
+      if (grant?.mark !== undefined) {
+        const rule = RULES.improvements.hexMarks[grant.mark];
+        const hexes = tileConditionWords(rule.while).replace(/\bhex\b/, 'hex');
+        out.push({
+          text:
+            `${occasion} gives every ${hexes} in the borders of the city where it happens ` +
+            `${bagWords(readTileYield(rule.yields))} for the rest of the game`,
+        });
       }
       if (grant?.timed !== undefined && grant.timed.effects.length > 0) {
         // Said in the **nested clauses' own words**, so a bill and a blessing
@@ -2436,8 +2460,15 @@ function describeEffect(
         });
       }
       if ((effect.percent ?? 0) !== 0) {
+        // A tile test names the hexes (The Age of Improvement, Expansionist
+        // batch E3): "on improved hexes", and "a yield" is left out, because
+        // every voice is meant.
+        const ground =
+          effect.on === undefined
+            ? `in ${voice}`
+            : `on ${tileConditionWords(effect.on).replace(/\bhex\b/, 'hexes')}`;
         out.push({
-          text: `what your other Orders pay in ${voice} is ${signed(effect.percent ?? 0)}% more${where}`,
+          text: `what your other Orders pay ${ground} is ${signed(effect.percent ?? 0)}% more${where}`,
         });
       }
       return;
@@ -4008,6 +4039,18 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
     case 'freshwater':
       into.qualifiers.push('beside fresh water');
       return;
+    // Expansionist batch E3. The wonder's town reads as the thing beside the
+    // hex, so `besideWords` takes "with" off it: "beside a city that holds a
+    // wonder" (The Landscape Garden).
+    case 'river':
+      into.qualifiers.push('beside a river');
+      return;
+    case 'wonderTown':
+      into.qualifiers.push('with a city that holds a wonder');
+      return;
+    case 'surfaced':
+      into.qualifiers.push('over a seam you surfaced');
+      return;
     case 'adjacentMountain':
       into.qualifiers.push('beside a mountain');
       return;
@@ -4234,6 +4277,9 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // bargain; the movement condition is a whole phrase.
   hasRank: 'as',
   unmoved: 'when it has not moved this turn',
+  // Expansionist batch E3, The Woodland Bands. The features are printed by
+  // `combatWhenWords`, `onFeature`'s bargain.
+  standingIn: 'while standing in',
 };
 
 /** The `followingTerritory` line narrowed to somebody else's towns. */
@@ -4275,6 +4321,15 @@ export function combatWhenWords(when: CombatCondition): string {
       return `${COMBAT_WORDS.beside} ${filterWords(when.class)}`;
     case 'hasRank':
       return `${COMBAT_WORDS.hasRank} ${rankOrBetter(when.rank)}`;
+    case 'standingIn': {
+      // The features are alternatives, so the last is joined with "or".
+      const names = when.features;
+      const words =
+        names.length <= 1
+          ? (names[0] ?? '')
+          : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`;
+      return `${COMBAT_WORDS.standingIn} ${words}`;
+    }
     case 'all':
       return when.of
         .map((inner) => combatWhenWords(inner))
@@ -5158,6 +5213,15 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   moveAfterAttack: 'your units may move after attacking',
   secondAttack: 'your units may attack twice a turn',
   breachInOneBlow: 'your units break a town’s walls in one blow',
+  // Expansionist batch E3: The Woodland Bands, The Watercourses, The Water
+  // Courts (`BehaviorRuleId`), then The Mountain Terraces and The Common
+  // Domain (`CityRuleId`, the second with its scope appended).
+  woodsWalk: 'your units pay only the open-ground cost to enter forest or jungle',
+  riverFarmsWater: 'your farms beside one of your farms on a river count as having fresh water',
+  farmChainsWater:
+    'your farms joined to a farm on fresh water by a chain of your farms count as having fresh water',
+  workMountains: 'your cities may work the mountains in their borders',
+  widerReach: 'citizens may work owned hexes one ring beyond the usual reach',
 };
 
 /**

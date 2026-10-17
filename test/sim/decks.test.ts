@@ -430,8 +430,12 @@ describe('the schema, as landed', () => {
     // **And Expansionist batch E2** (moments, records and counts): nine more.
     // Nine new Expansionist rows came live; The Land's Great Work was changed
     // in place and was already live.
-    expect(live).toBe(448);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(448);
+    // **And Expansionist batch E3** (the land): seven more. Five new
+    // Expansionist rows came live, and two deferred rows were freed (The Common
+    // Domain and The Raising of the Land); The Prospectors, The Watercourses
+    // and The Landscape Garden were changed in place and were already live.
+    expect(live).toBe(455);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(455);
   });
 
   /**
@@ -630,7 +634,9 @@ describe('the schema, as landed', () => {
     // two new town fields and a new end-of-turn phase, so a v136 log's picks
     // name cards this build deals differently and its resolutions run one
     // phase fewer.
-    expect(SCHEMA_VERSION).toBe(137);
+    // 138 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v137 log's picks name cards this build deals differently.
+    expect(SCHEMA_VERSION).toBe(138);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);
@@ -843,9 +849,11 @@ describe('the rows in no pool — the retired shelf and the deferred halves', ()
       // **Expansionist batch E0** freed two deferred rows (The Rope
       // Stretchers, Garden Cities: − 2) and retired the user's two cuts
       // (+ 2 retired).
+      // **Expansionist batch E3** freed two more (The Common Domain and The
+      // Raising of the Land: − 2).
       expect(
         [...DECK_ROWS].filter((id) => !orderIsDealt(id) && orderDef(id).retired !== true),
-      ).toHaveLength(70);
+      ).toHaveLength(68);
       expect([...DECK_ROWS].filter((id) => orderDef(id).retired === true)).toHaveLength(136);
     }
   });

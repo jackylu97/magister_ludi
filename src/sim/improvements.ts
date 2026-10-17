@@ -113,6 +113,7 @@ import {
   cardActionRule,
   cardBehaviorRule,
   cardUnlocksImprovement,
+  farmWaterOf,
   payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
@@ -339,7 +340,7 @@ export function improvementGroundError(
       // that reads the neighbourhood off the terrain rather than off a
       // neighbour's works. A peak feeds a hillside the way a river feeds a
       // valley, which is the whole of the Terraces' second sentence.
-    } else if (!hasFreshWater(tile) && !atMountainFoot(def, tile)) {
+    } else if (!drinks(state, ownerId, tile, improvementId) && !atMountainFoot(def, tile)) {
       return `${ARow(def)} on ${tile.terrain} ${rowNeeds(def)} fresh water`;
     }
   }
@@ -529,6 +530,28 @@ function hasAdjacentImprovement(
  * is a fact about *their* row, which names no `requiresHills` at all, rather
  * than a waiver bolted onto the farm's.
  */
+/**
+ * **Would this row have fresh water on this hex?** The map's water, or for a
+ * farm the builder's farm water (Expansionist batch E3: The Watercourses and
+ * The Water Courts water a farm beside a farm they already water, so a farm may
+ * be placed there as if on fresh water; the triage's reading 22). Every other
+ * row asks the map alone, because only farms carry the water.
+ */
+function drinks(state: GameState, ownerId: number, tile: Tile, improvementId: ImprovementId): boolean {
+  if (hasFreshWater(tile)) return true;
+  if (!improvementCountsAs(improvementId, 'farm')) return false;
+  // The water reaches a hex only beside one of this empire's farms, so the law
+  // is asked only there: most dry hexes answer without it.
+  const besideFarm = tileNeighbors(state.map, tile).some(
+    (next) =>
+      next.improvement !== undefined &&
+      improvementCountsAs(next.improvement, 'farm') &&
+      tileOwnerPlayerId(state, next.col, next.row) === ownerId,
+  );
+  if (!besideFarm) return false;
+  return farmWaterOf(state, ownerId)?.wouldWater(tile) === true;
+}
+
 function hillsWaived(
   state: GameState,
   ownerId: number,
@@ -538,7 +561,7 @@ function hillsWaived(
   const waivers = improvementDef(improvementId).hillsIf;
   if (waivers === undefined) return false;
   for (const waiver of waivers) {
-    if (waiver === 'freshwater' && hasFreshWater(tile)) return true;
+    if (waiver === 'freshwater' && drinks(state, ownerId, tile, improvementId)) return true;
     if (waiver === 'ownResource' && tile.resource !== undefined) {
       const owner = playerById(state, ownerId);
       const wanted = improvementForResource(tile.resource);
@@ -1424,6 +1447,9 @@ export function prospectAt(state: GameState, unit: Unit, tile: Tile): ProspectRe
   if (tile.vein !== undefined && tile.resource === undefined) {
     report.struck = tile.vein;
     tile.resource = tile.vein;
+    // Who found it (Expansionist batch E3, The Prospectors): written once,
+    // here, on the strike and never on a barren survey. See `Tile.surfacedBy`.
+    tile.surfacedBy = unit.ownerId;
   }
   delete tile.vein;
   tile.surveyed = true;

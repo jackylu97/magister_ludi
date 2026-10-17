@@ -98,6 +98,22 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   printed figure before banking.
 - The register at the foot of `docs/yields.md` says where every card kind that
   pays a yield lands. A new kind joins it or the sync test fails.
+- **The land cards' ground** (Expansionist batch E3).
+  - A hex can carry **lasting marks** (`Tile.marks`, written only by `markHex`).
+    What a mark pays, and while what stands on the hex, is
+    `rules.improvements.hexMarks`; the hex fold adds it after the works. The
+    Raising of the Land and The Coming of the Water write marks through a
+    windfall rider's `mark` grant and `markTownLand` (`cities.ts`).
+  - A farm can **count as having fresh water** by its empire's law
+    (`farmWaterOf`: The Watercourses, one step from a river farm; The Water
+    Courts, along a chain of farms). The Irrigation renewal, the farm's
+    placement on dry ground and the cards' `freshwater` test read it.
+  - A hex question can ask what the tile alone cannot (`GroundFacts`: the
+    empire asking, its farm water, which town centres hold a wonder), so three
+    tile tests are new: `river`, `wonderTown` and `surfaced` (the empire that
+    struck a seam, `Tile.surfacedBy`).
+  - An Order amplifier with a tile test (`CardYieldAmplifierEffect.on`, The Age
+    of Improvement) raises the Orders' hex lines on those hexes only.
 - **What a hex is worth as a place to put a town** is one reading in the same
   three verbs: `explainSite` / `foldSite` (`src/sim/sites.ts`) over the ring's
   hexes through the seat's own eyes, the water, the seams, the coast, the hills
@@ -155,6 +171,13 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   (`OrderDef.needsLevy`) are dealt only to a seat holding a card that grants a
   levy. Refusals are `levyError`; the city panel's "Levy a citizen" menu is
   `src/ui/levyMenu.ts`. Bots do not levy yet.
+- **A town's reach and its mountains** (Expansionist batch E3). How far a
+  town's citizens reach is `workRadiusOf`: the rule book's work radius, and one
+  ring more under The Common Domain's `widerReach` city rule (towns of ten). It
+  bounds the hexes a town works and the hexes it may buy. The Mountain
+  Terraces' `workMountains` city rule lets citizens work mountains
+  (`isWorkableTile`). A great person's act pays its riders in the town where
+  the act landed.
 - **A town's largest size, and three moments** (Expansionist batch E2).
   - `City.largestSize` is the most citizens a town has ever had. It is written
     at the founding and raised by `settleSizeRecord` (`cities.ts`), which
@@ -184,7 +207,9 @@ Reference: **`docs/units.md`** (the roster; generated) and
   `reachableTiles`, `advanceAlongPath`, `pathTurns`. Movement is in fifteenths;
   a road step costs a third by default, a fifth under Machinery. Zone of control
   is a toll, never a lock. Shore crossing is a pair-of-hexes rule; ships are
-  exempt.
+  exempt. The Woodland Bands' `woodsWalk` rule (Expansionist batch E3) prices
+  forest and jungle at the open-ground cost, through `MoveProfile.ignoresWoods`
+  in `tileMoveCost`.
 - **Three rules about who is in the way** (`docs/flags.md` (ooooo), 2026-09-15),
   all of them inside `stepCost`'s discipline:
   1. **A piece at peace is not a wall.** A hex holding a piece of a seat this

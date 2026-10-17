@@ -1026,7 +1026,7 @@ export function greatPersonActAt(
   // an occasion is over before anybody adds to it (Entry XVIII.5 keeps the act's
   // own figure composed once, upstream of this, which is why nothing here can
   // change what was banked).
-  payActRiders(state, player, def.family);
+  payActRiders(state, player, def.family, done.city);
   spendGreatPerson(state, player, unit, id);
   return done;
 }
@@ -1045,11 +1045,16 @@ export function greatPersonActAt(
  * The **family travels as a fact about the occasion** (`WindfallOccasionFacts`),
  * because a moment later the piece is spent and nothing on the board can say who
  * it was.
+ *
+ * **The town the act landed in** is where the riders land (Expansionist batch
+ * E3): The Raising of the Land marks the land of the town where the engineer
+ * rushed the works. An act that lands in no town (a scholar's, a merchant's, a
+ * general's) is paid at the capital, as every act was before.
  */
-function payActRiders(state: GameState, player: Player, family: Family): void {
+function payActRiders(state: GameState, player: Player, family: Family, town: City | null): void {
   const payout = windfallPayout(state, player.id, 'greatPersonAct', 0, 0, { family });
   if (windfallPayoutIsEmpty(payout)) return;
-  const seat = capitalCityOf(state, player.id);
+  const seat = town ?? capitalCityOf(state, player.id);
   const at = seat ? { col: seat.col, row: seat.row } : undefined;
   for (const city of payWindfallGrants(state, player, payout, at)) {
     settleProductionWindfall(state, city);

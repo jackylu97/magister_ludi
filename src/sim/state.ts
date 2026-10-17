@@ -1416,8 +1416,39 @@ import {
  * different cards, every resolution runs one more phase, and towns carry the
  * two new fields. The branch migrates nothing, for the reason given under
  * v119.
+ *
+ * v138 (branch `decks`; Expansionist batch E3 of
+ * `docs/plans/expansionist-build-triage.md`, the land): **ten Expansionist
+ * cards about the land.** Five join the Expansionist file; The Prospectors,
+ * The Watercourses and The Landscape Garden now do what their text says; The
+ * Common Domain and The Raising of the Land were deferred and are now dealt,
+ * the second at Tier III with the sheet's text. What changes:
+ *
+ *   · two fields join `Tile`, each absent until it is first written:
+ *     `marks`, the lasting marks on a hex (written only by `markHex`, and only
+ *     ever added to), and `surfacedBy`, the empire whose survey struck the
+ *     seam (written only by `prospectAt`, on a strike);
+ *   · the rule book gains `improvements.hexMarks`, what each mark pays and
+ *     while what stands on the hex, and the hex fold reads it;
+ *   · a farm can count as having fresh water by its empire's law
+ *     (`farmWaterOf`): the Irrigation renewal, the farm's placement and the
+ *     cards' `freshwater` test all read it;
+ *   · three tile tests (`river`, `wonderTown`, `surfaced`), a combat condition
+ *     that reads the hex a piece stands on (`standingIn`), three behaviour
+ *     rules (`woodsWalk`, `riverFarmsWater`, `farmChainsWater`) and two city
+ *     rules (`workMountains`, `widerReach`);
+ *   · a town's reach is its own (`workRadiusOf`), mountains can be workable,
+ *     and a unit's step into forest or jungle can cost the open-ground price;
+ *   · a windfall rider can name the building finished and can mark a town's
+ *     land, and a great person's act now pays its riders in the town where the
+ *     act landed rather than in the capital;
+ *   · an Order amplifier can carry a tile test, and then raises hex lines only.
+ *
+ * **A v137 save is refused and does not replay.** The draft bags hold
+ * different cards, and the riders of a great person's act land in a different
+ * town. The branch migrates nothing, for the reason given under v119.
  */
-export const SCHEMA_VERSION = 137;
+export const SCHEMA_VERSION = 138;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

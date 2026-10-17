@@ -683,10 +683,32 @@ import { digestOfState, playSeatedGame, sixSeatSpec } from './aiDigestHelpers';
  * record not written), which gives E1's digests exactly on both boards. The
  * duel game adopts 12 governments and the standard one 15. Nothing stalled and
  * no command was refused.
+ *
+ * ---
+ *
+ * **Expansionist batch E3 (schema 138): the land.** Duel `70666b59:270586` →
+ * `3175a91c:260719`, standard `b49d4bdb:960141` → `d2051ff0:951807`. Two
+ * things moved them:
+ *
+ *   · the cards. Five Expansionist rows join the deck, two deferred rows are
+ *     freed (The Common Domain, and The Raising of the Land, which moves from
+ *     Tier IV to Tier III), and three rows change. From the first draw that
+ *     meets one of them, the seats hold different cards. With the new deck
+ *     file at version 137, the boards give duel `a5d6c5c3:260719` and
+ *     standard `dce501f7:951807`: the same games and the same lengths;
+ *   · the version, 137 to 138, which moves the hash and not the length.
+ *
+ * At turn 120 one duel seat holds The Woodland Bands and one standard seat
+ * holds The Prospectors, neither seated. Checked by taking E3's movers out (the
+ * deck file as E2 left it, the version at 137), which gives E2's digests
+ * exactly on both boards. The new code changes nothing when no seat holds an
+ * E3 card: the bot's phantom town, which now stands on the seat's capital,
+ * moves neither board. The duel game adopts 10 governments and the standard
+ * one 15. Nothing stalled and no command was refused.
  */
 const DIGESTS: Record<string, string> = {
-  duel: '70666b59:270586',
-  standard: 'b49d4bdb:960141',
+  duel: '3175a91c:260719',
+  standard: 'd2051ff0:951807',
 };
 
 /**

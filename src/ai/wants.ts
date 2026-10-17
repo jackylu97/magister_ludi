@@ -128,6 +128,7 @@ import {
   tileOwnerPlayerId,
   tilePurchaseError,
   tilePurchasePrice,
+  workRadiusOf,
   yieldScore,
 } from '../sim/cities';
 import {
@@ -805,7 +806,9 @@ function pricedOffers(
   const owners = tileOwnerField(state);
   const purse = playerById(state, owner)?.gold ?? 0;
   const asked: (PricedHex & { index: number; rank: number })[] = [];
-  for (const tile of mapRange(map, tileHex(cityTile(map, city)), RULES.cities.workRadius)) {
+  // The town's own reach (`workRadiusOf`, The Common Domain since Expansionist
+  // batch E3), the same one the purchase gate asks.
+  for (const tile of mapRange(map, tileHex(cityTile(map, city)), workRadiusOf(state, city))) {
     const index = tileIndex(map, tile.col, tile.row);
     if (state.tileOwner[index] !== null) continue;
     if (!atTheFrontier(map, owners, owner, tile)) continue;

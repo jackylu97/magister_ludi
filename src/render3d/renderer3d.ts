@@ -91,6 +91,7 @@ import {
   clearsClutter,
   signImprovedCells,
   signImprovements,
+  signLandYields,
 } from './improvements3d';
 import { RoadLayer, signRoadCells } from './roads3d';
 import { type SuppressScope, RENDER_ORDER, SUPPRESS } from './instances';
@@ -443,6 +444,8 @@ export class Renderer3D implements MapView {
   private territorySignature = 0;
   /** The same for the works on the ground. See `signImprovements`. */
   private improvementsSignature = 0;
+  /** The marks and wonder towns the yield glyphs read. See `signLandYields`. */
+  private landYieldsSignature = 0;
   /** The same for the roads. See `signRoadCells`. */
   private roadsSignature = 0;
   /**
@@ -3736,6 +3739,16 @@ export class Renderer3D implements MapView {
     // A reveal technology or a surveyed vein can change resource models without
     // changing an improvement. The same update also follows in-place fog edits.
     if (worksChanged && this.lensView.yields) this.rebuildLens();
+    // A lasting mark or a finished wonder changes what the ground pays with no
+    // other fingerprint moving (Expansionist batch E3). Kept current whether or
+    // not the yields lens is up, so raising it later is not stale for a frame.
+    if (this.state) {
+      const land = signLandYields(this.state);
+      if (land !== this.landYieldsSignature) {
+        this.landYieldsSignature = land;
+        if (this.lensView.yields) this.rebuildLens();
+      }
+    }
     // Roads are ground too, and follow the fog for the same reason: they survive
     // on remembered hexes, so a fog move has to reach this layer as well as the
     // works. Their own fingerprint is presence-only — see `signRoadCells`.

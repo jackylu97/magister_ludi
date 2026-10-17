@@ -161,7 +161,13 @@ what makes the order structural rather than incidental. Its own order is
    wins because it is the more specific fact;
 3. the seam, for an empire that can name it (`resourceIsVisibleTo`);
 4. the improvement and its renewals — the **works**, whose entries are bracketed
-   so a share can be taken of exactly them;
+   so a share can be taken of exactly them. A renewal that needs fresh water
+   also counts a farm the empire's law waters (`GroundFacts.watered`,
+   Expansionist batch E3);
+   - then the hex's **lasting marks** (`Tile.marks`, Expansionist batch E3),
+     outside the works' bracket: each pays the rule book's figure
+     (`rules.improvements.hexMarks`) while its own condition holds, whoever
+     works the hex;
 5. the law's `tileYield` lines, in **two passes**: the lines that ask nothing of
    the fold first, then the memo of "what this hex pays" is taken *again*, then
    the lines that pay on what the hex already pays. Both passes walk `ctx.lines`

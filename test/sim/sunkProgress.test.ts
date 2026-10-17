@@ -131,7 +131,9 @@ describe('the schema says so', () => {
     // two new town fields and a new end-of-turn phase, so a v136 log's picks
     // name cards this build deals differently and its resolutions run one
     // phase fewer.
-    expect(SCHEMA_VERSION).toBe(137);
+    // 138 since E3: ten Expansionist cards about the land and two new tile
+    // fields, so a v137 log's picks name cards this build deals differently.
+    expect(SCHEMA_VERSION).toBe(138);
   });
 
   it('says in the changelog what a v110 log does now', () => {

@@ -810,7 +810,9 @@ describe('the deck’s other shapes', () => {
     expect(cityScopeAdmits(state, city, { ...scope, atLeast: 2 })).toBe(false);
   });
 
-  it('pays The Prospectors only on a mine standing on a surveyed hill', () => {
+  it('pays The Prospectors only on a mine over a seam this empire surfaced', () => {
+    // Since Expansionist batch E3 the bonus reads who struck the seam
+    // (`Tile.surfacedBy`), not only that the hill was surveyed.
     const { state, tile } = woodedWorker();
     seatCard(state, 'theProspectors' as OrderId);
     tile.feature = 'none';
@@ -822,11 +824,16 @@ describe('the deck’s other shapes', () => {
       explainTileYield(tile, yieldContextFor(state, 0))
         .filter((line) => line.source === 'Order · The Prospectors')
         .reduce((sum, line) => sum + (line.production ?? 0), 0);
-    expect(tileConditionHolds(tile, { test: 'surveyed' })).toBe(false);
     expect(paid()).toBe(0);
     tile.surveyed = true;
+    tile.surfacedBy = 1;
     bumpRevision(state);
-    expect(tileConditionHolds(tile, { test: 'surveyed' })).toBe(true);
+    expect(paid()).toBe(0);
+    tile.surfacedBy = 0;
+    bumpRevision(state);
+    expect(tileConditionHolds(tile, { test: 'surfaced' }, undefined, undefined, undefined, { player: 0 })).toBe(
+      true,
+    );
     expect(paid()).toBe(3);
   });
 });

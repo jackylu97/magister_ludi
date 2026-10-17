@@ -83,6 +83,7 @@ import {
   type Tile,
   getTileAt,
   mapRange,
+  markHex,
   neighborTiles,
   tileHex,
   tileIndex,
@@ -121,12 +122,19 @@ import { anyBeadDef } from './beadData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { awardBeadGrant, claimEndeavour, closeTheGreatWork } from './beads';
 import { settleRenownWindfall } from './renown';
-import { type CitizenFocus, type CitizenLean, type CitizenWeights, RULES } from './rulesData';
+import {
+  type CitizenFocus,
+  type CitizenLean,
+  type CitizenWeights,
+  type HexMarkId,
+  RULES,
+} from './rulesData';
 import {
   cardActionRule,
   cardAmplifier,
   cardAmplifierFlat,
   cardMeterFlag,
+  cardCityRuleAt,
   cardFoundingRider,
   cardRulePercent,
   cityHasFreshwater,
@@ -138,6 +146,7 @@ import {
   recordScalingOccasion,
   recordWorldScalingOccasion,
   settleCultureWindfall,
+  tileConditionHolds,
   type WindfallOccasionFacts,
   windfallPayout,
 } from './statecraft';
@@ -1214,8 +1223,16 @@ export function cityResources(
   );
 }
 
-/** True when a citizen may be assigned to this tile at all. */
-export function isWorkableTile(tile: Tile): boolean {
+/**
+ * True when a citizen may be assigned to this tile at all.
+ *
+ * `mountains` is the town's law (Expansionist batch E3, The Mountain Terraces:
+ * the `workMountains` city rule), asked once by the caller for the whole walk.
+ * It opens the mountains and nothing else: water and every other ground answer
+ * as the terrain table says.
+ */
+export function isWorkableTile(tile: Tile, mountains = false): boolean {
+  if (mountains && tile.terrain === 'mountain') return true;
   return isWorkableTerrain(tile.terrain);
 }
 
@@ -1764,7 +1781,24 @@ export function withinWorkRadius(
   const tile = getTileAt(map, col, row);
   if (!tile) return false;
   const centre = tileHex(cityTile(map, city));
-  return wrappedDistance(map, centre, tileHex(tile)) <= CITIES.workRadius;
+  return wrappedDistance(map, centre, tileHex(tile)) <= workRadiusOf(state, city);
+}
+
+/**
+ * **How far this town's citizens may reach**, in rings: the rule book's work
+ * radius, and one ring more where the town's law says so (Expansionist batch
+ * E3, The Common Domain: the `widerReach` city rule, with the scope "ten or more
+ * citizens").
+ *
+ * Every question about a town's reach asks this: which hexes its citizens may
+ * work (`assignableTiles`), which hexes it may buy (`withinWorkRadius`, the
+ * purchase offers) and the ring the city screen draws. So a town of ten may buy
+ * and work a fourth-ring hex, and one that falls below ten releases it at the
+ * next assignment (the triage's reading 21). Its borders still grow by culture
+ * only to `cities.claimRadius`.
+ */
+export function workRadiusOf(state: GameState, city: City): number {
+  return CITIES.workRadius + (cardCityRuleAt(state, city, 'widerReach') ? 1 : 0);
 }
 
 /**
@@ -1779,12 +1813,16 @@ export function assignableTiles(state: GameState, city: City): Tile[] {
   const { map } = state;
   const centre = cityTile(map, city);
   const centreIndex = tileIndex(map, centre.col, centre.row);
+  // The town's law, asked once for the walk (Expansionist batch E3): how far it
+  // reaches (The Common Domain) and whether its citizens may climb (The
+  // Mountain Terraces).
+  const mountains = cardCityRuleAt(state, city, 'workMountains');
   const result: Tile[] = [];
-  for (const tile of mapRange(map, tileHex(centre), CITIES.workRadius)) {
+  for (const tile of mapRange(map, tileHex(centre), workRadiusOf(state, city))) {
     const index = tileIndex(map, tile.col, tile.row);
     if (index === centreIndex) continue;
     if (state.tileOwner[index] !== city.id) continue;
-    if (!isWorkableTile(tile)) continue;
+    if (!isWorkableTile(tile, mountains)) continue;
     result.push(tile);
   }
   return result;
@@ -2296,6 +2334,11 @@ function chooseCitizens(
  *      before the turn ends. Entry 2's reason, with a camp in place of a
  *      purchase.
  *
+ *  25. **A lasting mark on a town's land** (`markTownLand`, Expansionist batch
+ *      E3): The Raising of the Land and The Coming of the Water add a yield to
+ *      hexes the town may already be working, so the town is re-seated when a
+ *      mark goes on.
+ *
  * `assignCitizens` therefore has exactly two callers in the simulation: this,
  * and `collectYields` — the phase that owns it. `test/sim/cities.test.ts`
  * asserts that, because it is the one property a new mutation can break while
@@ -2342,6 +2385,31 @@ export function refreshTileDerived(state: GameState, tile: Tile): void {
   if (cityId === null) return;
   const city = cityById(state, cityId);
   if (city) refreshCityDerived(state, city);
+}
+
+/**
+ * **A lasting mark goes on this town's land** (Expansionist batch E3): every
+ * hex in its borders where the mark's own condition holds now, once. Returns
+ * how many hexes were marked. The one routine that marks a town's land; a
+ * windfall rider's `mark` grant reaches it through `payWindfallGrants`.
+ *
+ * The condition is the mark's (`rules.improvements.hexMarks`): The Raising of
+ * the Land marks every improved or tended hex, and The Coming of the Water
+ * every farm. A hex that already carries the mark is left alone, so a second
+ * engineer raises only the hexes the first did not (the triage's reading 23).
+ * The hexes are walked in index order (`ownedTiles`), and each is written
+ * through `markHex`, the one writer of `Tile.marks`. The town is re-seated
+ * when anything changed: entry 25 of the register above.
+ */
+export function markTownLand(state: GameState, city: City, mark: HexMarkId): number {
+  const rule = RULES.improvements.hexMarks[mark];
+  let marked = 0;
+  for (const tile of ownedTiles(state, city)) {
+    if (!tileConditionHolds(tile, rule.while)) continue;
+    if (markHex(tile, mark)) marked += 1;
+  }
+  if (marked > 0) refreshCityDerived(state, city);
+  return marked;
 }
 
 /** What the citizens eat: `foodPerCitizen` each. */
@@ -5119,7 +5187,9 @@ function payCompletionRiders(
       payout.timed.length === 0 &&
       payout.renown.length === 0 &&
       payout.units.length === 0 &&
-      !payout.healAll
+      !payout.healAll &&
+      // The Coming of the Water's marks (Expansionist batch E3).
+      (payout.marks ?? []).length === 0
     ) {
       continue;
     }
@@ -5888,7 +5958,7 @@ export function purchasableTiles(state: GameState, city: City): TileOffer[] {
   // third clause for water any more, and there must not be one: this list and
   // that evaluator are the same rule seen twice, so a filter here the reducer
   // does not keep is a hex the overlay refuses to price and the command sells.
-  for (const tile of mapRange(map, tileHex(cityTile(map, city)), CITIES.workRadius)) {
+  for (const tile of mapRange(map, tileHex(cityTile(map, city)), workRadiusOf(state, city))) {
     if (state.tileOwner[tileIndex(map, tile.col, tile.row)] !== null) continue;
     if (!touchesTerritory(state, owner, tile)) continue;
     const cell: Cell = { col: tile.col, row: tile.row };
