@@ -740,6 +740,12 @@ export function describeCard(id: CardId): CardClause[] {
   if (isOrderId(id)) {
     const spec = orderDef(id).commission;
     if (spec !== undefined) clauses.push(...describeCommission(spec));
+    // **The deal gate** (Scientific batch S9, The Great Instrument): a card a
+    // seat cannot be dealt once it knows a technology says so.
+    const known = orderDef(id).notDealtKnowing;
+    if (known !== undefined) {
+      clauses.push({ text: `not dealt to an empire that knows ${ref('tech', known, techDef(known).name)}` });
+    }
     // **A charter that opens an improvement** (the Expansionist tended works):
     // the grant is the whole card, so it is printed as its clause.
     const work = orderDef(id).charter?.unlocks.improvement;
@@ -1826,6 +1832,13 @@ function describeEffect(
       // The Second Seat): how many extra copies, of what, and in which towns.
       if (effect.rule === 'buildsEverywhere' && (effect.max !== undefined || effect.empireBuilding === true)) {
         out.push({ text: limitLiftWords(effect) });
+        return;
+      }
+      // **A rule with a figure** (Scientific batch S9): the Opus rules and the
+      // prototypes, said whole. See `figureRuleWords`.
+      const figured = figureRuleWords(effect);
+      if (figured !== null) {
+        out.push({ text: figured });
         return;
       }
       // **A rule about one building names it** (batch C7, Caravanserai Cities).
@@ -4530,7 +4543,12 @@ export function filterWords(filter: UnitFilter): string {
   const noun = unitNounWords(filter);
   // The unit's age (Dominion batch D7, The Spear Makers) goes in front of the
   // noun as an adjective: "first- and second-age military units".
-  return filter.ageAtMost === undefined ? noun : `${ageWords(filter.ageAtMost)} ${noun}`;
+  const aged = filter.ageAtMost === undefined ? noun : `${ageWords(filter.ageAtMost)} ${noun}`;
+  // The owner's newest age (Scientific batch S9, The Armoury Patterns) goes
+  // after it: "units of the newest age you know". A filter that says nothing
+  // else is "units", not "all units", because the age narrows it.
+  if (filter.newestAge !== true) return aged;
+  return `${aged === 'all units' ? 'units' : aged} of the newest age you know`;
 }
 
 /** The ages up to `last`, as one adjective: "first-age", "first- and second-age". */
@@ -5086,6 +5104,12 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // Scientific batch S3, The Edge of the Sword. `vsWiderEmpire`'s sibling:
   // the two realms' technologies rather than their cities.
   vsFewerTechs: 'against an empire that knows fewer technologies than you',
+  // Scientific batch S9, The Strategikon. The distance, the people and the
+  // work are printed by `combatWhenWords`, `withinOfCity`'s bargain.
+  nearLearning: 'while within',
+  // Scientific batch S9, The Soldier-Scholars. The words `inCity` uses, because
+  // to a player the two read as the same hex; this one pays in attack too.
+  standingInOwnTown: 'while standing in one of your cities',
 };
 
 /** The `followingTerritory` line narrowed to somebody else's towns. */
@@ -5135,6 +5159,21 @@ export function combatWhenWords(when: CombatCondition): string {
           ? (names[0] ?? '')
           : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`;
       return `${COMBAT_WORDS.standingIn} ${words}`;
+    }
+    case 'nearLearning': {
+      // The Strategikon (Scientific batch S9): "while within 2 hexes of your
+      // great general, your great scholar or your Academy". The people and
+      // the work are alternatives, so the last is joined with "or".
+      const name = improvementDef(when.improvement).name;
+      const things = [
+        ...when.families.map((family) => `your great ${family}`),
+        `your ${ref('improvement', when.improvement, name)}`,
+      ];
+      const list =
+        things.length <= 1
+          ? (things[0] ?? '')
+          : `${things.slice(0, -1).join(', ')} or ${things[things.length - 1]}`;
+      return `${COMBAT_WORDS.nearLearning} ${when.hexes} ${when.hexes === 1 ? 'hex' : 'hexes'} of ${list}`;
     }
     case 'all':
       return when.of
@@ -6249,7 +6288,69 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // `FLAG_RULE_IMPROVEMENT_WORDS` says it with the work's name; this is the
   // sentence for a row that names none, which changes nothing.
   worksCountAs: "a great person's work beside the named work counts as it for your cards",
+  // Scientific batch S9: The Field Refits and The Model Army.
+  upgradeHeals: 'each time research upgrades one of your units, it heals fully',
+  upgradeIgnoresResource:
+    'research upgrades your units even when you lack the strategic resource the new unit needs',
+  // Scientific batch S9. These four carry a figure and are said whole by
+  // `figureRuleWords`; these are the sentences for a row with no figure,
+  // which changes nothing.
+  opusBreach: 'your units’ blows on a city building the Magnum Opus remove some of the production banked toward it',
+  closedBook: 'completing the technology that opens the Magnum Opus first shuts it to the other empires for a while',
+  opusEarly: 'you may begin the Magnum Opus before any empire knows the technology that opens it',
+  prototypes: 'you may build the buildings and train the units of the technology you are researching',
 };
+
+/**
+ * **The four rules of Scientific batch S9 that carry a figure**, said whole:
+ * The Breaching Batteries' share, The Closed Book's turns, The Foundation
+ * Stone's share and The Prototype Works' premium. `null` for any other rule,
+ * and for a row with no figure, which `FLAG_RULE_WORDS` then says plainly.
+ *
+ * The Magnum Opus and the technology that opens it are read off the row that
+ * ends the game (`BuildingDef.endsTheGame`, `worldUnlockTech`), so no card
+ * names Alchemy and no code does either.
+ */
+function figureRuleWords(effect: Extract<CardEffect, { kind: 'rule' }>): string | null {
+  const opus = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true);
+  const world = opus === undefined ? undefined : buildingDef(opus).worldUnlockTech;
+  // "the Magnum Opus" with a small "the" inside a sentence, as the scope words
+  // say it, and still marked so the Compendium links it.
+  const opusName =
+    opus === undefined
+      ? 'the Magnum Opus'
+      : `the ${ref('building', opus, buildingDef(opus).name.replace(/^the\s+/i, ''))}`;
+  const tech = world === undefined ? 'the technology that opens it' : ref('tech', world, techDef(world).name);
+  switch (effect.rule) {
+    case 'opusBreach': {
+      if (effect.percent === undefined) return null;
+      const who = effect.class === undefined ? 'your units' : `your ${filterWords(effect.class)}`;
+      return `each blow ${who} land on a city building ${opusName} removes ${effect.percent}% of the production banked toward it`;
+    }
+    case 'closedBook':
+      if (effect.turns === undefined) return null;
+      return (
+        `if you complete ${tech} before any other empire, empires that do not know ${tech} ` +
+        `may not begin ${opusName} for ${effect.turns} turns`
+      );
+    case 'opusEarly':
+      if (effect.percent === undefined) return null;
+      return (
+        `you may begin ${opusName} before any empire knows ${tech}, once you have put ` +
+        `${effect.percent}% of ${tech}'s cost into researching it; it cannot be finished until you know ${tech}`
+      );
+    case 'prototypes': {
+      if (effect.percent === undefined) return null;
+      const price =
+        effect.percent === 100
+          ? 'at double their production cost'
+          : `at ${effect.percent}% more production`;
+      return `you may build the buildings and train the units of the technology you are researching, ${price}; wonders are excepted`;
+    }
+    default:
+      return null;
+  }
+}
 
 /**
  * The rules that read differently **of one named work** —
@@ -6538,6 +6639,13 @@ const COMMISSION_FIGURE_WORDS: Record<
     counter: 'rival capitals following',
     noun: 'the rival capitals following your religion',
   },
+  // Scientific batch S9, The Great Instrument. A reward reads it; no goal does,
+  // so the goal phrase is only the plain truth.
+  opusCost: {
+    goal: (count) => `have the Magnum Opus cost you at least ${count} production`,
+    counter: 'production the Magnum Opus costs',
+    noun: 'the cost of the Magnum Opus',
+  },
   // Scientific batch S8, The Lynx-Eyed Academy.
   academyHexes: {
     goal: (count) =>
@@ -6628,7 +6736,14 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1): stri
         : `each city gains ${reward.yield} equal to ${reward.amount} times ${counted}, toward what it is building`,
     );
   } else if (reward.yield !== undefined && reward.amount !== undefined) {
-    const where = reward.yield === 'food' || reward.yield === 'production' ? ' in your capital' : '';
+    // The Great Instrument (Scientific batch S9): production toward the
+    // Magnum Opus lands in the town raising it, not in the capital.
+    const toOpus = reward.toOpus === true && reward.yield === 'production';
+    const where = toOpus
+      ? ' toward the Magnum Opus'
+      : reward.yield === 'food' || reward.yield === 'production'
+        ? ' in your capital'
+        : '';
     if (reward.fromGoal === 'population') {
       // "culture equal to 23 times its population", "science equal to 10 times
       // those cities' total population" (Dominion batch D6).
@@ -6639,7 +6754,9 @@ export function commissionRewardWords(reward: CommissionReward, towns = 1): stri
     } else if (reward.fromFigure === undefined) {
       out.push(`${signed(reward.amount)} ${reward.yield}${where}`);
     } else {
-      const noun = COMMISSION_FIGURE_WORDS[reward.fromFigure].noun;
+      // "Its cost" when the production goes toward the very thing it measures.
+      const noun =
+        toOpus && reward.fromFigure === 'opusCost' ? 'its cost' : COMMISSION_FIGURE_WORDS[reward.fromFigure].noun;
       const share =
         reward.amount < 1 ? `${Math.round(reward.amount * 100)}% of` : `${reward.amount} times`;
       out.push(`${reward.yield}${where} equal to ${share} ${noun} at that moment`);

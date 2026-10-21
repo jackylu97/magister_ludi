@@ -76,6 +76,7 @@ import {
   type Tile,
   getTileAt,
   improvementAge,
+  mapRange,
   neighborTiles,
   tileHex,
   tileIndex,
@@ -5568,10 +5569,13 @@ export function cardProduction(
     }
     // The ordinary filter, beside the silhouette shorthand and never instead of
     // it — a row carrying both must satisfy both. "Ships" is three model classes
-    // and one filter, which is the whole reason the field exists.
+    // and one filter, which is the whole reason the field exists. The owner's
+    // age travels with it for The Armoury Patterns' "newest age you know"
+    // (Scientific batch S9).
     if (effect.class !== undefined) {
       if (unitType === undefined) continue;
-      if (!unitMatches(unitType, effect.class)) continue;
+      const age = effect.class.newestAge === true ? ownerAgeOf(state, city.ownerId) : undefined;
+      if (!unitMatches(unitType, effect.class, age)) continue;
     }
     const percent = effect.percent;
     if (percent === 0) continue;
@@ -6555,6 +6559,17 @@ function combatConditionHolds(
       if (them === undefined) return false;
       return knowsMoreTechs(state, situation.unit.ownerId, them);
     }
+    case 'standingInOwnTown': {
+      // The Soldier-Scholars (Scientific batch S9, the triage's reading 9). The
+      // piece's own hex in both postures, as the Hoplite's count reads it: a
+      // defender stands on the contested hex, an attacker strikes from its own
+      // (a comparison's imagined copy stands where it is imagined).
+      const here = cityAt(state, situation.unit.col, situation.unit.row);
+      return here !== undefined && here.ownerId === situation.unit.ownerId;
+    }
+    case 'nearLearning':
+      // The Strategikon (Scientific batch S9, the triage's readings 11 and 44).
+      return nearLearning(state, situation.unit, when);
     case 'all': {
       // Recursion into the same evaluator, which is the whole reason the
       // composite is a condition rather than a second field on `combatLine` —
@@ -6611,6 +6626,52 @@ function besideGreatGeneral(state: GameState, unit: Unit): boolean {
       if (person === undefined || !isGreatPersonId(person)) continue;
       if (greatPersonDef(person).family === 'general') return true;
     }
+  }
+  return false;
+}
+
+/**
+ * **Is this piece within reach of its empire's learning?** The `nearLearning`
+ * combat condition (Scientific batch S9, The Strategikon). Measured from the
+ * hex the piece stands on, with `wrappedDistance`, as the general's aura is.
+ *
+ * Two things count, both the piece's own empire's only (the triage's reading
+ * 11):
+ *
+ *   - a great person of one of the row's families, standing unspent on the
+ *     board, read as `besideGreatGeneral` reads one (the `greatWork` marker and
+ *     the person's family);
+ *   - a work of the row's `improvement` on a hex inside the empire's borders,
+ *     asked through `workIsRow`, so a great person's work that The Studium
+ *     Generale lets stand in for an Academy counts too.
+ *
+ * The people are asked first, because there are few of them; the hexes in
+ * reach are walked only when no person is near.
+ */
+function nearLearning(
+  state: GameState,
+  unit: Unit,
+  when: Extract<CombatCondition, { test: 'nearLearning' }>,
+): boolean {
+  const from = getTileAt(state.map, unit.col, unit.row);
+  if (!from) return false;
+  const eye = tileHex(from);
+  const reach = Math.max(0, Math.floor(when.hexes));
+  for (const other of state.units) {
+    if (other.ownerId !== unit.ownerId || other.id === unit.id) continue;
+    if (unitDef(other.type).greatWork !== true) continue;
+    const person = other.person;
+    if (person === undefined || !isGreatPersonId(person)) continue;
+    if (!when.families.includes(greatPersonDef(person).family)) continue;
+    const stands = getTileAt(state.map, other.col, other.row);
+    if (!stands) continue;
+    if (wrappedDistance(state.map, eye, tileHex(stands)) <= reach) return true;
+  }
+  const standsIn = worksStandInFor(state, unit.ownerId);
+  for (const tile of mapRange(state.map, eye, reach)) {
+    if (tile.improvement === undefined) continue;
+    if (tileOwnerPlayerId(state, tile.col, tile.row) !== unit.ownerId) continue;
+    if (workIsRow(tile, when.improvement, standsIn)) return true;
   }
   return false;
 }
@@ -6971,8 +7032,15 @@ export function unitAge(type: UnitTypeId): number {
   return gate === undefined ? 1 : techDef(gate).age;
 }
 
-/** Does this unit type pass a filter? Absent filter admits everything. */
-export function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
+/**
+ * Does this unit type pass a filter? Absent filter admits everything.
+ *
+ * `ownerAge` is the age of the empire the unit is for (`highestAge`), and only
+ * `UnitFilter.newestAge` reads it (Scientific batch S9, The Armoury Patterns).
+ * A caller that hands in no age is told no by that member, because the type
+ * alone cannot answer it. `ownerAgeOf` reads it for a seat.
+ */
+export function unitMatches(type: UnitTypeId, filter?: UnitFilter, ownerAge?: number): boolean {
   if (!filter) return true;
   const def = unitDef(type);
   if (filter.modelClass !== undefined && def.modelClass !== (filter.modelClass as ModelClass)) {
@@ -7024,7 +7092,19 @@ export function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   // every unit its upgrade chain reaches, read off the roster's own table, so
   // a trait stays with a piece through every upgrade (reading 22).
   if (filter.line !== undefined && !isInUnitLine(type, filter.line)) return false;
+  // The newest age the owner knows (Scientific batch S9, the triage's reading
+  // 43): the unit's age must be the owner's. With no owner in hand the
+  // question has no answer, and the filter admits nothing.
+  if (filter.newestAge === true && (ownerAge === undefined || unitAge(type) !== ownerAge)) return false;
   return true;
+}
+
+/**
+ * **The age of an empire, for `unitMatches`** (Scientific batch S9): its
+ * `highestAge`, which leaves charter technologies out (reading 1).
+ */
+export function ownerAgeOf(state: GameState, playerId: number): number {
+  return highestAge(playerById(state, playerId)?.techsResearched ?? []);
 }
 
 /**
@@ -9898,6 +9978,73 @@ export function cardBehaviorRuleFor(state: GameState, unit: Unit, rule: Behavior
 }
 
 /**
+ * **The figures of the live rows of one rule** (Scientific batch S9): each
+ * row's `percent` or `turns`, in walk order, for the rows whose `class` admits
+ * the piece when one is handed in. A row with no figure gives none. The four
+ * readers below each take one answer from the list.
+ */
+function ruleFigures(
+  state: GameState,
+  playerId: number,
+  rule: CardFlagRuleId,
+  field: 'percent' | 'turns',
+  type?: UnitTypeId,
+): number[] {
+  const figures: number[] = [];
+  for (const { effect } of effectsOfKind(state, playerId, 'rule')) {
+    if (effect.rule !== rule) continue;
+    if (effect.class !== undefined && (type === undefined || !unitMatches(type, effect.class))) continue;
+    const figure = effect[field];
+    if (figure !== undefined) figures.push(figure);
+  }
+  return figures;
+}
+
+/**
+ * **The share of the Opus's technology this empire must bank before it may
+ * begin the Opus**, or `null` when its law holds no `opusEarly` row (Scientific
+ * batch S9, The Foundation Stone). With two rows the smaller share opens the
+ * door. Read by `isUnlocked` and `buildError` (`tech.ts`).
+ */
+export function cardOpusEarlyPercent(state: GameState, playerId: number): number | null {
+  const shares = ruleFigures(state, playerId, 'opusEarly', 'percent');
+  return shares.length === 0 ? null : Math.max(0, Math.min(...shares));
+}
+
+/**
+ * **What a row of the current research costs this empire, as an extra
+ * percentage**, or `null` when its law holds no `prototypes` row (Scientific
+ * batch S9, The Prototype Works). With two rows the smaller premium is the
+ * price. `isUnlocked` opens the rows; the cost folds add the line.
+ */
+export function cardPrototypePercent(state: GameState, playerId: number): number | null {
+  const premiums = ruleFigures(state, playerId, 'prototypes', 'percent');
+  return premiums.length === 0 ? null : Math.min(...premiums);
+}
+
+/**
+ * **The share of a town's banked Opus production one blow from this piece
+ * removes** (Scientific batch S9, The Breaching Batteries): the `opusBreach`
+ * rows whose `class` admits the piece, added together. Zero when none does.
+ * Read by `applyCombat`.
+ */
+export function cardOpusBreachPercent(state: GameState, unit: Unit): number {
+  let total = 0;
+  for (const share of ruleFigures(state, unit.ownerId, 'opusBreach', 'percent', unit.type)) total += share;
+  return Math.max(0, total);
+}
+
+/**
+ * **How many turns this empire's Closed Book shuts the Opus to the others**,
+ * or `null` when its law holds no `closedBook` row (Scientific batch S9). With
+ * two rows the longer wins. Read once, by `settleResearch`.
+ */
+export function cardClosedBookTurns(state: GameState, playerId: number): number | null {
+  const turns = ruleFigures(state, playerId, 'closedBook', 'turns');
+  return turns.length === 0 ? null : Math.max(0, Math.floor(Math.max(...turns)));
+}
+
+/**
  * Which **glass beads** this empire's standing cards mint on this occasion.
  *
  * The card half of the four Æra V bead Orders, and the whole of what this module
@@ -10197,6 +10344,26 @@ export function holdsTendedUnlock(state: GameState, playerId: number): boolean {
  * `holdsTendedUnlock` asks it: a levy card waiting for a chair is a levy the
  * seat can use.
  */
+/**
+ * **Does this seat's collection hold an Order carrying this rule**, seated or
+ * not? (Scientific batch S9.) `holdsLevyGrant`'s reading for a `rule` effect.
+ * The completion hold (`completionHeldFor`, `tech.ts`) asks it, so a row queued
+ * under The Prototype Works or an Opus begun under The Foundation Stone still
+ * waits for its technology after the card leaves its chair, and a seat that
+ * never drafted either card is never held.
+ */
+export function collectionHoldsRule(state: GameState, playerId: number, rule: CardFlagRuleId): boolean {
+  const seat = playerById(state, playerId);
+  if (seat === undefined) return false;
+  for (const id of seat.statecraft.orders) {
+    if (!isOrderId(id)) continue;
+    for (const effect of orderDef(id).effects) {
+      if (effect.kind === 'rule' && effect.rule === rule) return true;
+    }
+  }
+  return false;
+}
+
 export function holdsLevyGrant(state: GameState, playerId: number): boolean {
   const seat = playerById(state, playerId);
   if (seat === undefined) return false;

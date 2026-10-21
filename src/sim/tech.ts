@@ -476,6 +476,16 @@ import {
 // index, which re-exports across a cycle: the rule that stops an empire
 // founding cities.
 import { cardBehaviorRule } from './statecraft/evaluator';
+// Scientific batch S9, from the evaluator for the same reason: the piece's
+// own rules on an upgrade (The Field Refits, The Model Army), and the figures
+// of the Opus and prototype rules.
+import {
+  cardBehaviorRuleFor,
+  cardClosedBookTurns,
+  cardOpusEarlyPercent,
+  cardPrototypePercent,
+  collectionHoldsRule,
+} from './statecraft/evaluator';
 // Scientific batch S6, from the evaluator for the same reason: how many times
 // the Orders count a technology (The Age of Reason), and whether a payout
 // holds anything at all.
@@ -647,6 +657,13 @@ export function prereqsMet(state: GameState, playerId: number, techId: TechId): 
  * cannot drift apart. Content no tech names is available from turn one (see the
  * `techData.ts` docblock), which is what makes the gate additive rather than a
  * second place every new unit has to be registered.
+ *
+ * **Two cards open rows the world has not reached yet** (Scientific batch S9).
+ * The Prototype Works opens the rows of the technology this empire is
+ * researching (`prototypeArm`), and The Foundation Stone opens the Magnum Opus
+ * before any empire knows its technology (`opusDoorOpen`). The first makes
+ * this answer able to go backwards, because research moves on, so the upgrade
+ * walk asks `unlockedFor` without that arm.
  */
 export function isUnlocked(
   state: GameState,
@@ -661,6 +678,60 @@ export function isUnlocked(
    * qualifies. `buildError` hands its town in.
    */
   city?: City,
+): boolean {
+  return unlockedFor(state, playerId, kind, id, city, true);
+}
+
+/**
+ * **The row of the current research, opened by The Prototype Works**
+ * (Scientific batch S9; the triage's reading 48): a building or a unit whose
+ * gating technology is the one `Player.researching` names, never a wonder,
+ * never a project, while the empire's law holds the `prototypes` rule.
+ */
+function prototypeArm(
+  state: GameState,
+  playerId: number,
+  kind: QueueKind,
+  id: string,
+  gate: TechId,
+): boolean {
+  if (kind === 'project') return false;
+  if (kind === 'building' && isBuildingId(id) && isWonder(id)) return false;
+  if (playerById(state, playerId)?.researching !== gate) return false;
+  return cardPrototypePercent(state, playerId) !== null;
+}
+
+/**
+ * **The Foundation Stone's door** (Scientific batch S9; the triage's reading
+ * 49): the empire's law holds the `opusEarly` rule, and it has banked at least
+ * the row's share of the folded cost of the technology that opens the Opus
+ * toward it (`bankedTowardTech`). Only the row that ends the game.
+ */
+function opusDoorOpen(state: GameState, playerId: number, id: BuildingId): boolean {
+  const def = buildingDef(id);
+  const world = def.worldUnlockTech;
+  if (def.endsTheGame !== true || world === undefined) return false;
+  const share = cardOpusEarlyPercent(state, playerId);
+  if (share === null) return false;
+  const player = playerById(state, playerId);
+  if (!player) return false;
+  const cost = foldTechCost(explainTechCost(state, player, world));
+  return bankedTowardTech(player, world) * 100 >= cost * share;
+}
+
+/**
+ * **`isUnlocked`, with or without The Prototype Works' arm.** The one body of
+ * the availability question. `prototypes` is false only for the readings that
+ * must not move when research does: the upgrade walk, and the two questions
+ * below that ask whether a row is open by any other way.
+ */
+function unlockedFor(
+  state: GameState,
+  playerId: number,
+  kind: QueueKind,
+  id: string,
+  city: City | undefined,
+  prototypes: boolean,
 ): boolean {
   // **A row a card opens is asked of the cards**, before the tree, because it
   // has no gate in the tree to be asked about: a building no technology names is
@@ -752,13 +823,111 @@ export function isUnlocked(
   // closing technology, which is the whole of "the finish line announces itself
   // to all contestants at once": a seat that has not researched Alchemy itself
   // may still raise the Opus.
+  //
+  // **The Foundation Stone opens it to one empire early** (Scientific batch
+  // S9): see `opusDoorOpen`.
   if (kind === 'building' && isBuildingId(id)) {
     const world = buildingDef(id).worldUnlockTech;
-    if (world !== undefined && !worldTechReached(state, world)) return false;
+    if (world !== undefined && !worldTechReached(state, world) && !opusDoorOpen(state, playerId, id)) {
+      return false;
+    }
   }
   const gate = gatingTech(kind, id);
   if (gate === null) return true;
-  return hasTech(state, playerId, gate);
+  if (hasTech(state, playerId, gate)) return true;
+  // The Prototype Works (Scientific batch S9): the rows of the current
+  // research, last, so every gate above still refuses first.
+  return prototypes && prototypeArm(state, playerId, kind, id, gate);
+}
+
+/**
+ * **This row is priced as a prototype** (Scientific batch S9, The Prototype
+ * Works; the triage's reading 48): the empire's law holds the `prototypes`
+ * rule, the row is a building or a unit and not a wonder, its technology is
+ * not known yet, and nothing but the card opens it. Research moving on does
+ * not change the answer, so a row queued under the card keeps its price.
+ * `explainBuildingCost` and `explainUnitCost` (`cities.ts`) add the card's
+ * line when this is true.
+ *
+ * A row a different card opens early (the University under The Forward Plans,
+ * in a town that card reaches) is not a prototype and costs what it always
+ * did.
+ */
+export function prototypePriced(
+  state: GameState,
+  playerId: number,
+  kind: QueueKind,
+  id: string,
+  city?: City,
+): boolean {
+  if (kind === 'project') return false;
+  if (kind === 'building' && isBuildingId(id) && isWonder(id)) return false;
+  const gate = gatingTech(kind, id);
+  if (gate === null || hasTech(state, playerId, gate)) return false;
+  if (cardPrototypePercent(state, playerId) === null) return false;
+  return !unlockedFor(state, playerId, kind, id, city, false);
+}
+
+/**
+ * **The technology a queued row waits for before it may finish**, or `null`
+ * (Scientific batch S9). Asked by the completion (`planQueueItem` and
+ * `payableUnitAt`, `cities.ts`), so the row keeps its place and its hammers and
+ * simply does not complete. Two holds, each only for a seat whose collection
+ * holds the card that could have queued the row (`collectionHoldsRule`), so a
+ * seat that never drafted either card is never held:
+ *
+ *   - **a row whose technology is not known and that nothing opens now**,
+ *     under The Prototype Works: a prototype whose research moved on, or whose
+ *     card has left its chair (the triage's reading 48). It finishes once the
+ *     technology is known;
+ *   - **the Magnum Opus**, under The Foundation Stone: while no empire knows
+ *     the technology that opens it, or while the card is seated and this
+ *     empire does not know that technology itself (reading 49: "it cannot be
+ *     finished until you know Alchemy").
+ */
+export function completionHeldFor(
+  state: GameState,
+  playerId: number,
+  kind: QueueKind,
+  id: string,
+  city?: City,
+): TechId | null {
+  if (kind === 'project') return null;
+  if (kind === 'building' && isBuildingId(id)) {
+    const def = buildingDef(id);
+    const world = def.worldUnlockTech;
+    if (
+      def.endsTheGame === true &&
+      world !== undefined &&
+      !hasTech(state, playerId, world) &&
+      collectionHoldsRule(state, playerId, 'opusEarly')
+    ) {
+      if (!worldTechReached(state, world) || cardOpusEarlyPercent(state, playerId) !== null) return world;
+    }
+  }
+  const gate = gatingTech(kind, id);
+  if (gate === null || hasTech(state, playerId, gate)) return null;
+  if (!collectionHoldsRule(state, playerId, 'prototypes')) return null;
+  return unlockedFor(state, playerId, kind, id, city, true) ? null : gate;
+}
+
+/**
+ * **Writes The Closed Book's record** (Scientific batch S9; the triage's
+ * reading 50), when `tech` is the technology that opens the Magnum Opus, this
+ * empire has just completed it before any other empire (the caller has marked
+ * the world first), and its law holds the `closedBook` rule now. The turns
+ * start on this turn. A record already written is kept: a world first is
+ * marked once, so a second writer cannot arise.
+ */
+function closeTheBook(state: GameState, player: Player, tech: TechId): void {
+  if (state.closedBook !== undefined) return;
+  const opensOpus = BUILDING_IDS.some(
+    (id) => buildingDef(id).endsTheGame === true && buildingDef(id).worldUnlockTech === tech,
+  );
+  if (!opensOpus) return;
+  const turns = cardClosedBookTurns(state, player.id);
+  if (turns === null || turns <= 0) return;
+  state.closedBook = { playerId: player.id, turn: state.turn, until: state.turn + turns };
 }
 
 /**
@@ -1104,10 +1273,47 @@ export function buildError(
   // a player told "The Magnum Opus needs a technology you do not have" has been
   // told something false — they need nobody's technology, they need *somebody's*
   // (Entry LVIII). See `BuildingDef.worldUnlockTech`.
-  if (kind === 'building' && isBuildingId(id)) {
+  //
+  // **The Foundation Stone opens it to one empire early** (Scientific batch
+  // S9; `opusDoorOpen`), and its holder is told how far it has to go. An Opus
+  // this town is already building and that waits for its technology
+  // (`completionHeldFor`) is excused, the obsolescence clause's reason below:
+  // a door that shut behind a begun Opus (the card left) must not make every
+  // later edit of the queue illegal.
+  const standing = city?.queue.some((item) => item.kind === kind && item.id === id) === true;
+  // **A row this town is already building waits rather than being refused**
+  // (Scientific batch S9): a prototype whose research moved on, or an Opus
+  // begun early, holds its hammers and its place until the technology is
+  // known. Refusing it here would make every later edit of the queue illegal.
+  const waits = standing && completionHeldFor(state, playerId, kind, id, city) !== null;
+  if (kind === 'building' && isBuildingId(id) && !waits) {
     const world = buildingDef(id).worldUnlockTech;
-    if (world !== undefined && !worldTechReached(state, world)) {
-      return `${itemName(kind, id)} waits until some empire in the world reaches ${techDef(world).name}`;
+    if (world !== undefined && !worldTechReached(state, world) && !opusDoorOpen(state, playerId, id)) {
+      const share = buildingDef(id).endsTheGame === true ? cardOpusEarlyPercent(state, playerId) : null;
+      const early =
+        share === null
+          ? ''
+          : `; your Order opens it once you have put ${share}% of ${techDef(world).name}'s cost into researching it`;
+      return `${itemName(kind, id)} waits until some empire in the world reaches ${techDef(world).name}${early}`;
+    }
+  }
+  // **The Closed Book** (Scientific batch S9; the triage's reading 50): while
+  // its record stands, an empire that does not know the Opus's technology may
+  // not begin the Opus. Its holder knows it, so it is never refused, and a
+  // row this town already builds is excused, because the card shuts the door
+  // to a beginning and nothing else.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).endsTheGame === true && !standing) {
+    const book = state.closedBook;
+    const world = buildingDef(id).worldUnlockTech;
+    if (
+      book !== undefined &&
+      book.playerId !== playerId &&
+      state.turn < book.until &&
+      world !== undefined &&
+      !hasTech(state, playerId, world)
+    ) {
+      const holder = playerById(state, book.playerId)?.name ?? `player ${book.playerId}`;
+      return `${itemName(kind, id)} is closed by the ${holder}'s Closed Book to empires that do not know ${techDef(world).name}, until turn ${book.until}`;
     }
   }
   // **A row that is placed, and a row that is withdrawn, before the tree's
@@ -1145,7 +1351,7 @@ export function buildError(
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).retired === true) {
     return `${itemName(kind, id)} is no longer built`;
   }
-  if (!isUnlocked(state, playerId, kind, id, city)) {
+  if (!waits && !isUnlocked(state, playerId, kind, id, city)) {
     const gate = gatingTech(kind, id);
     // **A card that opens the row early in some towns, and not in this one**
     // (Scientific batch S8, The Forward Plans): the sentence names the tree's
@@ -1424,7 +1630,6 @@ export function buildError(
    * hammers. What it may not be is *started again*.
    */
   if (kind === 'unit' && isUnitTypeId(id)) {
-    const standing = city?.queue.some((item) => item.kind === 'unit' && item.id === id) === true;
     const better = standing ? null : upgradeTargetForType(state, playerId, id);
     if (better !== null) {
       return `${itemName(kind, id)} has been replaced by the ${unitDef(better).name}`;
@@ -2157,6 +2362,7 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   const firsts: FirstKind[] = [];
   if (!isCharterTech(plan.techId) && markFirst(state, player.id, 'techWorld', plan.techId)) {
     firsts.push('techWorld');
+    closeTheBook(state, player, plan.techId);
   }
   // **The research record** (Scientific batch S6): the moment written down
   // for every seated Order that counts technologies (The Astronomical
@@ -2296,24 +2502,44 @@ export function upgradeUnits(state: GameState, player: Player): void {
   const cost = RESEARCH.retoolCost;
   for (const unit of state.units) {
     if (unit.ownerId !== player.id) continue;
-    const target = upgradeTargetFor(state, unit);
-    if (target === null) continue;
+    const climb = upgradeClimb(state, unit.ownerId, unit.type, liftsResourceGate(state, unit));
+    if (climb === null) continue;
     if (cost > 0) {
       if (player.gold < cost) continue;
       player.gold -= cost;
       // The banks are a line of the meters too — see `collectYields` (batch M3).
       bumpEconomy(state);
     }
-    applyUpgrade(unit, target, unitHealthBonus(state, unit.ownerId));
+    const empireHp = unitHealthBonus(state, unit.ownerId);
+    applyUpgrade(unit, climb.target, empireHp);
+    // **The Model Army** (Scientific batch S9; the triage's reading 42): a
+    // piece that climbed past a resource gate the law lifted holds no copy,
+    // now or later. `resolveCommitments` (`cities.ts`) skips it.
+    if (climb.lifted) unit.unsupplied = true;
+    // **The Field Refits** (Scientific batch S9; the triage's reading 41): the
+    // upgrade heals the piece fully, asked of the piece as it now is, so a row
+    // narrowed by `class` reads the new type. This is the one exception to
+    // "upgrading is not a way to heal" above, and only while the card is held.
+    if (cardBehaviorRuleFor(state, unit, 'upgradeHeals')) unit.hp = unitMaxHp(unit, empireHp);
   }
 }
 
 /**
  * The best type a unit could become right now, or `null` when it is already
  * there. Pure: the tech screen can ask what an upgrade *would* be.
+ *
+ * **The piece's own reading** since Scientific batch S9: under The Model Army
+ * (`upgradeIgnoresResource`) the strategic resource does not stop the climb,
+ * for a piece on the board only. A new unit still needs the resource, which
+ * is why `upgradeTargetForType`, the build list's reading, keeps the gate.
  */
 export function upgradeTargetFor(state: GameState, unit: Unit): UnitTypeId | null {
-  return upgradeTargetForType(state, unit.ownerId, unit.type);
+  return upgradeClimb(state, unit.ownerId, unit.type, liftsResourceGate(state, unit))?.target ?? null;
+}
+
+/** Does this piece's owner's law lift the resource gate on its upgrades? The Model Army. */
+function liftsResourceGate(state: GameState, unit: Unit): boolean {
+  return cardBehaviorRuleFor(state, unit, 'upgradeIgnoresResource');
 }
 
 /**
@@ -2350,11 +2576,31 @@ export function upgradeTargetForType(
   playerId: number,
   type: UnitTypeId,
 ): UnitTypeId | null {
+  return upgradeClimb(state, playerId, type, false)?.target ?? null;
+}
+
+/**
+ * **The climb itself**, for both readings: the best rung reached, and whether
+ * a resource gate was lifted on the way (`lift`, The Model Army), or `null`
+ * when the type climbs nowhere.
+ *
+ * The technology gate is the tree's (`unlockedFor` without The Prototype
+ * Works' arm, Scientific batch S9): a rung of the research under way is not
+ * yet a rung the army has, and an answer that went backwards when research
+ * moved on would be no answer to "what does this warrior become".
+ */
+function upgradeClimb(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+  lift: boolean,
+): { target: UnitTypeId; lifted: boolean } | null {
   let current = type;
+  let lifted = false;
   for (;;) {
     const next = unitDef(current).upgradesTo;
     if (next === undefined) break;
-    if (!isUnlocked(state, playerId, 'unit', next)) break;
+    if (!unlockedFor(state, playerId, 'unit', next, undefined, false)) break;
     if (unitDef(next).awaitsTech === true) break;
     // The gate `buildError` keeps at the queue: a rung that needs iron is not
     // climbed until the empire controls iron (user, 2026-08-29 — "iron working
@@ -2378,16 +2624,25 @@ export function upgradeTargetForType(
     // Sharing is asked of the whole list on both sides, so a pair inherits it:
     // a chariot that accepts horses or camels climbing to a horseman that
     // accepts the same two carries whichever copy it holds.
+    //
+    // **Under The Model Army the gate does not stop a piece** (Scientific batch
+    // S9): the rung is climbed anyway, and the climb says so, so the piece is
+    // marked as holding no copy.
     const wants = requiredResourcesOf(unitDef(next));
     if (wants.length > 0) {
       const holds = requiredResourcesOf(unitDef(current));
       const carried = wants.some((resource) => holds.includes(resource));
-      if (!carried && !canSpareAnyOf(state, playerId, wants)) break;
-      if (carried && !controlsAnyOf(state, playerId, wants)) break;
+      const refused = carried
+        ? !controlsAnyOf(state, playerId, wants)
+        : !canSpareAnyOf(state, playerId, wants);
+      if (refused) {
+        if (!lift) break;
+        lifted = true;
+      }
     }
     current = next;
   }
-  return current === type ? null : current;
+  return current === type ? null : { target: current, lifted };
 }
 
 /** Retypes a unit, keeping its health fraction and capping its movement. */

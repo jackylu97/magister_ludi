@@ -532,8 +532,12 @@ describe('the schema, as landed', () => {
     // **And Expansionist batch E8** (the new data-only cards): five more. Five
     // new Expansionist rows came live (The Founding Furrow, The Horrea, The
     // Land Hunger, The Many Hands, The Capitolia).
-    expect(live).toBe(550);
-    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(550);
+    // **And Scientific batch S9** (the army and the Opus): ten more. Nine new
+    // Scientific rows came live, one of them a commission (The Great
+    // Instrument), and one shared row (The Soldier-Scholars, Dominion and
+    // Scientific).
+    expect(live).toBe(560);
+    expect(ORDER_IDS.filter((id) => orderIsDealt(id))).toHaveLength(560);
   });
 
   /**
@@ -826,7 +830,10 @@ describe('the schema, as landed', () => {
     // place and five change type. E8 (five new data-only cards): five more
     // Expansionist Orders come live. So a v164 log's Expansionist hands and
     // chairs hold different cards.
-    expect(SCHEMA_VERSION).toBe(165);
+    // 166 since Scientific batch S9 (the army and the Opus): nine more
+    // Scientific Orders and the shared The Soldier-Scholars come live, so a
+    // v165 log's Scientific and Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(166);
     const g = seated();
     const seat = playerById(g.state, 0)!;
     expect(seat.decks).toEqual(['expansionist', 'commerce']);

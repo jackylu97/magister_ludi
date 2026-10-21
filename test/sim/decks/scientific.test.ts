@@ -50,7 +50,8 @@
  * technologies and charters a seat holds.
  * `test/sim/decks/scientificCards.test.ts` pins the data-only cards of Tiers
  * 0 to II (batch S7), and `test/sim/decks/scientificHouses.test.ts` the great
- * people and the great houses (batch S8).
+ * people and the great houses (batch S8). `test/sim/decks/scientificArmy.test.ts`
+ * pins the army and the Opus (batch S9).
  */
 
 import { describe, expect, it } from 'vitest';
@@ -168,9 +169,9 @@ const MARK: Record<OrderRarity, string> = { common: '●', uncommon: '◆', rare
 describe('the rows', () => {
   it('is the whole deck, every current row named for this deck alone, banded and rated', () => {
     // S5 moved The Assay to common.json and added six cards. S6 added eleven.
-    // S7 added nine. S8 added ten and dealt The Second Seat.
-    expect(DECK).toHaveLength(94);
-    expect(new Set(DECK).size).toBe(94);
+    // S7 added nine. S8 added ten and dealt The Second Seat. S9 added nine.
+    expect(DECK).toHaveLength(103);
+    expect(new Set(DECK).size).toBe(103);
     for (const id of CURRENT) {
       const def = orderDef(id);
       expect(def.decks, id).toEqual(['scientific']);
@@ -187,7 +188,7 @@ describe('the rows', () => {
     expect(new Set(names).size, 'two rows share a name').toBe(names.length);
   });
 
-  it('fills the five tiers with eleven, sixteen, eighteen, fifteen and eight current rows', () => {
+  it('fills the five tiers with eleven, seventeen, twenty, sixteen and thirteen current rows', () => {
     // S0 added ten charters and two cards. S1b retired twenty-four rows and
     // left twenty-six; the sheet's `add` rows join as later batches build them.
     // S2 added one card (Tier II) and S3 six (two each in Tiers I, II and III).
@@ -196,10 +197,12 @@ describe('the rows', () => {
     // S6 added eleven: three in Tier 0 and two in each of the others.
     // S7 added nine: two in Tier 0, three in Tier I and four in Tier II.
     // S8 added ten: two in each of Tiers I, II and IV, and four in Tier III.
+    // S9 added nine: one in Tier I, two in Tier II, one in Tier III and five
+    // in Tier IV. Every row the sheet lists is now in the data.
     const perBand = [0, 1, 2, 3, 4].map(
       (band) => CURRENT.filter((id) => orderDef(id).band === band).length,
     );
-    expect(perBand).toEqual([11, 16, 18, 15, 8]);
+    expect(perBand).toEqual([11, 17, 20, 16, 13]);
   });
 
   it('splits into live rows with effects and deferred rows with a sentence, and nothing between', () => {
@@ -210,8 +213,9 @@ describe('the rows', () => {
     // S6 added eleven live rows, one of them a commission: 37 became 48.
     // S7 added nine live rows: 48 became 57. S8 added ten live rows, one of
     // them a commission, and dealt The Second Seat: 57 became 68, and no
-    // deferred row is left in the deck.
-    expect(LIVE).toHaveLength(68);
+    // deferred row is left in the deck. S9 added nine live rows, one of them
+    // a commission: 68 became 77.
+    expect(LIVE).toHaveLength(77);
     expect(DEFERRED).toEqual([]);
     for (const id of LIVE) {
       const def = orderDef(id);

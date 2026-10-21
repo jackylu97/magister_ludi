@@ -1826,6 +1826,133 @@
         ]
       },
       "effects": []
+    },
+    "theFieldRefits": {
+      "name": "The Field Refits",
+      "decks": ["scientific"],
+      "band": 1,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The new arms reach the camp, and the surgeons come with them.",
+      "text": "Each time research upgrades one of your units, it heals fully.",
+      "effects": [{ "kind": "rule", "rule": "upgradeHeals" }]
+    },
+    "theStrategikon": {
+      "name": "The Strategikon",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The general reads the old campaigns, and the scholars read the ground.",
+      "text": "Your units gain +4 strength while within two hexes of your great general, your great scholar or your Academy.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 4,
+          "side": "both",
+          "when": {
+            "test": "nearLearning",
+            "hexes": 2,
+            "families": ["general", "scholar"],
+            "improvement": "academy"
+          }
+        }
+      ]
+    },
+    "theArmouryPatterns": {
+      "name": "The Armoury Patterns",
+      "decks": ["scientific"],
+      "band": 2,
+      "line": "none",
+      "rarity": "common",
+      "type": "military",
+      "flavor": "The smiths keep only the newest patterns on the wall.",
+      "text": "Towns build units of the newest age you know 25% faster.",
+      "effects": [
+        { "kind": "productionBonus", "category": "unit", "percent": 25, "class": { "newestAge": true } }
+      ]
+    },
+    "theModelArmy": {
+      "name": "The Model Army",
+      "decks": ["scientific"],
+      "band": 3,
+      "line": "none",
+      "rarity": "rare",
+      "type": "military",
+      "flavor": "Drill the men in the new way, and the iron will follow.",
+      "text": "Research upgrades your units even when you lack the strategic resource the new unit needs.",
+      "effects": [{ "kind": "rule", "rule": "upgradeIgnoresResource" }]
+    },
+    "theGreatInstrument": {
+      "name": "The Great Instrument",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "wildcard",
+      "flavor": "The great work needs a great instrument, and the instrument comes first.",
+      "text": "Commission. Complete Alchemy while this is seated. Reward: production toward the Magnum Opus equal to a tenth of its cost. Then it leaves its chair. Not dealt to a seat that knows Alchemy.",
+      "notDealtKnowing": "alchemy",
+      "commission": {
+        "goals": [{ "kind": "counted", "occasion": "techCompleted", "count": 1, "tech": "alchemy" }],
+        "reward": [{ "yield": "production", "amount": 0.1, "fromFigure": "opusCost", "toOpus": true }]
+      },
+      "effects": []
+    },
+    "theFoundationStone": {
+      "name": "The Foundation Stone",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "The stone is laid before the last plan is drawn.",
+      "text": "You may begin the Magnum Opus before any empire knows Alchemy, once you have put half of Alchemy's cost into researching it. It cannot be finished until you know Alchemy, and your rod of beads must still be full to begin it.",
+      "effects": [{ "kind": "rule", "rule": "opusEarly", "percent": 50 }]
+    },
+    "theClosedBook": {
+      "name": "The Closed Book",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "civic",
+      "flavor": "What was learnt first is shared last.",
+      "text": "If you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns.",
+      "effects": [{ "kind": "rule", "rule": "closedBook", "turns": 10 }]
+    },
+    "theBreachingBatteries": {
+      "name": "The Breaching Batteries",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "uncommon",
+      "type": "military",
+      "flavor": "The gunners aim at the scaffolding, not at the walls.",
+      "text": "Your siege units gain +5 strength against cities. Each hit they land on a city building the Magnum Opus removes 5% of the production banked toward it.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "side": "attack",
+          "class": { "modelClass": "siege" },
+          "when": { "test": "vsCity" }
+        },
+        { "kind": "rule", "rule": "opusBreach", "percent": 5, "class": { "modelClass": "siege" } }
+      ]
+    },
+    "thePrototypeWorks": {
+      "name": "The Prototype Works",
+      "decks": ["scientific"],
+      "band": 4,
+      "line": "none",
+      "rarity": "rare",
+      "type": "economic",
+      "flavor": "The first one is built by hand, before anyone knows how.",
+      "text": "You may build the buildings and train the units of the technology you are researching, at double their production cost. Wonders are excepted.",
+      "effects": [{ "kind": "rule", "rule": "prototypes", "percent": 100 }]
     }
   }
 }

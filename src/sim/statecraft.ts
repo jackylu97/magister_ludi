@@ -100,6 +100,12 @@ export {
   cardCombatLines,
   cardCombatPercent,
   cardRallyRange,
+  // Scientific batch S9: the figures of the Opus and prototype rules.
+  cardOpusEarlyPercent,
+  cardPrototypePercent,
+  cardOpusBreachPercent,
+  cardClosedBookTurns,
+  ownerAgeOf,
   cardGarrisonSeats,
   // Dominion batch D14: The Longships' raid and Circumvallation's besieger.
   cardShoreRaids,

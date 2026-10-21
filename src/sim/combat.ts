@@ -354,6 +354,9 @@ import { cardBehaviorRuleFor } from './statecraft/evaluator';
 // Dominion batch D8: the general's aura amplified (The Strategoi), and whether
 // an empire's law counts its attacks on a target (Weight of Numbers).
 import { cardAmplifier, cardAmplifierFlat, lawCountsStrikes } from './statecraft/evaluator';
+// Scientific batch S9, The Breaching Batteries: the share of a town's banked
+// Opus production one blow removes, and whether the town is raising the Opus.
+import { cardOpusBreachPercent, isRaisingOpus } from './statecraft/evaluator';
 import {
   type City,
   type GameState,
@@ -2673,6 +2676,12 @@ export interface CombatOutcome {
   arrival: ArrivalReport | null;
   /** False when the counter-attack killed the attacker. */
   attackerSurvived: boolean;
+  /**
+   * **What the blow took from a Magnum Opus** (Scientific batch S9, The
+   * Breaching Batteries): the town raising it and the hammers removed from
+   * its basket. Absent on every other blow, which is almost every blow.
+   */
+  opusLoss?: { cityId: number; hammers: number };
 }
 
 export type CombatResult = { ok: true; outcome: CombatOutcome } | { ok: false; error: string };
@@ -2946,6 +2955,12 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     const standing = unitHp(attacker, unitHealthBonus(state, attacker.ownerId));
     outcome.damageToAttacker = clampDamage(counter, standing, attackerFloor);
     attacker.hp = standing - outcome.damageToAttacker;
+    // **The Breaching Batteries** (Scientific batch S9; the triage's reading
+    // 52): a blow struck at a town raising the Magnum Opus, on any beat,
+    // removes a share of the production banked toward it. After both blows,
+    // so a piece that died to the counter has still landed its own.
+    const breach = breachOpus(state, attacker, tile);
+    if (breach !== null) outcome.opusLoss = breach;
   }
 
   // 3 & 4 — the attacker's own fate and bookkeeping. A dead attacker needs
@@ -3496,6 +3511,28 @@ function opusHammersIn(city: City): number {
 /** The rows that end the game when finished: the Magnum Opus, by its marker. */
 const OPUS_IDS: readonly BuildingId[] = BUILDING_IDS.filter((id) => buildingDef(id).endsTheGame === true);
 
+/**
+ * **The Breaching Batteries' blow** (Scientific batch S9; the triage's reading
+ * 52): when the struck hex holds another empire's town raising the Magnum
+ * Opus, and the attacker's law gives this piece an `opusBreach` share
+ * (`cardOpusBreachPercent`, narrowed by the row's `class`), that share of the
+ * production banked toward the Opus (`opusHammersIn`) comes off the town's
+ * basket, floored. The Opus is the front row while the town raises it, so the
+ * basket is where its hammers are. Returns what was taken, or `null`.
+ */
+function breachOpus(state: GameState, attacker: Unit, tile: Tile): { cityId: number; hammers: number } | null {
+  const town = cityAt(state, tile.col, tile.row);
+  if (!town || town.ownerId === attacker.ownerId || !isRaisingOpus(town)) return null;
+  const percent = cardOpusBreachPercent(state, attacker);
+  if (percent <= 0) return null;
+  const hammers = Math.min(town.hammerBasket, Math.floor((opusHammersIn(town) * percent) / 100));
+  if (hammers <= 0) return null;
+  town.hammerBasket -= hammers;
+  // The town's own estimates read the basket (the slate register).
+  bumpEconomy(state);
+  return { cityId: town.id, hammers };
+}
+
 function captureCity(state: GameState, city: City, ownerId: number): void {
   // Read **before** the flag changes hands, because "was this the seat of their
   // government" is a question about the empire that is losing it — and the
@@ -3662,9 +3699,13 @@ export function describeCombat(outcome: CombatOutcome): string {
  * same reason: since 2026-09-09 a melee kill there returns above.
  */
 function siegeTail(outcome: CombatOutcome): string {
-  if (outcome.cityPhase === 'walls') return ' · battering the walls';
-  if (outcome.cityPhase === null) return '';
-  return ' · the walls are down';
+  // The Breaching Batteries (Scientific batch S9): the hammers the blow took
+  // from a Magnum Opus, said after the beat.
+  const opus =
+    outcome.opusLoss === undefined ? '' : ` · the Magnum Opus loses ${outcome.opusLoss.hammers} production`;
+  if (outcome.cityPhase === 'walls') return ` · battering the walls${opus}`;
+  if (outcome.cityPhase === null) return opus;
+  return ` · the walls are down${opus}`;
 }
 
 // --- elimination and victory ------------------------------------------------

@@ -1081,7 +1081,10 @@ describe('a captured city, end to end', () => {
     // place and five change type. E8 (five new data-only cards): five more
     // Expansionist Orders come live. So a v164 log's Expansionist hands and
     // chairs hold different cards.
-    expect(SCHEMA_VERSION).toBe(165);
+    // 166 since Scientific batch S9 (the army and the Opus): nine more
+    // Scientific Orders and the shared The Soldier-Scholars come live, so a
+    // v165 log's Scientific and Dominion hands hold different cards.
+    expect(SCHEMA_VERSION).toBe(166);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

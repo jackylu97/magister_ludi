@@ -2193,8 +2193,46 @@ import {
  * pools lose fourteen cards and gain five, and five of its cards fit other
  * chairs, so its hands and its councils differ. The branch migrates nothing,
  * for the reason given under v119.
+ *
+ * v166 (branch `decks`; Scientific batch S9, `docs/plans/scientific-build-
+ * triage.md`): **the army and the Opus.** Two optional fields join the state:
+ * `Unit.unsupplied` and `GameState.closedBook`. The rules that change:
+ *
+ *   · nine Scientific Orders come live: The Field Refits, The Strategikon,
+ *     The Armoury Patterns, The Model Army, The Great Instrument, The
+ *     Foundation Stone, The Closed Book, The Breaching Batteries and The
+ *     Prototype Works; and one shared Order, The Soldier-Scholars (Dominion
+ *     and Scientific);
+ *   · an upgrade from research may heal the piece fully (`upgradeHeals`), or
+ *     go past the strategic resource gate for a piece on the board
+ *     (`upgradeIgnoresResource`). A piece upgraded that way holds no copy
+ *     (`Unit.unsupplied`), and the copies ledger skips it;
+ *   · a unit filter may ask for the owner's newest age (`newestAge`), and
+ *     `unitMatches` takes the owner's age;
+ *   · two strength conditions: `nearLearning` (your great people of named
+ *     families, or a named work in your borders, within some hexes) and
+ *     `standingInOwnTown` (the piece stands in its own empire's town, in
+ *     attack and in defence);
+ *   · a siege blow on a town raising the Magnum Opus may remove a share of
+ *     the production banked toward it (`opusBreach`);
+ *   · the Opus may open early to one empire (`opusEarly`), and then waits for
+ *     that empire to know the technology before it may finish;
+ *   · completing the Opus's technology first may close the Opus to the other
+ *     empires for some turns (`closedBook`, `GameState.closedBook`);
+ *   · a commission may pay production toward the Opus by a share of its cost
+ *     (`opusCost`, `toOpus`), and a row may refuse to be dealt to a seat that
+ *     knows a technology (`notDealtKnowing`);
+ *   · the rows of the current research may be built at a premium
+ *     (`prototypes`), a labelled cost line; a queued row whose research moved
+ *     on, or whose opening card left, waits for its technology before it may
+ *     finish, and stays legal in its town's queue.
+ *
+ * **A v165 save is refused and does not replay.** A Scientific seat's pools
+ * now hold nine more cards, and a Dominion or Scientific seat's one more, so
+ * their hands differ. The branch migrates nothing, for the reason given under
+ * v119.
  */
-export const SCHEMA_VERSION = 165;
+export const SCHEMA_VERSION = 166;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -3782,6 +3820,19 @@ export interface Unit {
    */
   freeUpkeep?: true;
   /**
+   * **This piece holds no strategic copy** (Scientific batch S9, The Model
+   * Army; the triage's reading 42), or the key is absent.
+   *
+   * Written in one place, `upgradeUnits` (`tech.ts`), when research upgrades
+   * the piece past a resource gate its owner's law lifts
+   * (`upgradeIgnoresResource`). The copies walk (`resolveCommitments`,
+   * `cities.ts`) skips it, as it skips a free unit, so the piece takes no
+   * copy now and none when the resource arrives. It is kept for the life of
+   * the piece, through later upgrades and a change of owner. Presence is the
+   * state, `freeUpkeep`'s convention.
+   */
+  unsupplied?: true;
+  /**
    * **Gold a turn the town that raised this piece forgives it**, or the key is
    * absent — which it is for every unit not born under an Imperial Throne
    * (`BuildingDef.unitUpkeepRebate`, `docs/history/tech-gifts.md` §7).
@@ -4947,6 +4998,19 @@ export interface FirstRecord {
 }
 
 /**
+ * **The Closed Book's record** (Scientific batch S9): the empire that
+ * completed the Opus's technology first while holding the card, the turn it
+ * did, and the absolute turn the door opens again. See `GameState.closedBook`.
+ */
+export interface ClosedBookRecord {
+  playerId: number;
+  /** `state.turn` when the technology was completed. */
+  turn: number;
+  /** The first turn on which other empires may begin the Opus again. */
+  until: number;
+}
+
+/**
  * The key one first-of-a-kind record is filed under. **The one place a key is
  * spelt**, so the seam that writes a record and the count that reads one cannot
  * disagree about what "the same thing" means.
@@ -5282,6 +5346,20 @@ export interface GameState {
    * itself carries.
    */
   firsts: FirstRecord[];
+  /**
+   * **The Closed Book's record** (Scientific batch S9; the triage's reading
+   * 50), or the key is absent, which it is in almost every game.
+   *
+   * Written once, in `settleResearch` (`tech.ts`), when an empire completes the
+   * technology that opens the Magnum Opus before any other empire while its
+   * law holds the `closedBook` rule. `until` is an absolute turn, the
+   * discipline every timed effect keeps: `buildError` refuses the Opus to every
+   * other empire that does not know that technology while `state.turn` is
+   * below it. Nothing ticks it and nothing clears it; it simply stops
+   * refusing. A world first is marked once, so the record is written at most
+   * once a game.
+   */
+  closedBook?: ClosedBookRecord;
   /**
    * Every religion that has been founded, **in founding order** — which is also
    * what a `ReligionId` is.

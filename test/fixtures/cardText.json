@@ -7825,6 +7825,76 @@
     "text": "then this card leaves its chair and is never seated again"
    }
   ],
+  "theFieldRefits": [
+   {
+    "raw": "each time research upgrades one of your units, it heals fully",
+    "text": "each time research upgrades one of your units, it heals fully"
+   }
+  ],
+  "theStrategikon": [
+   {
+    "raw": "+4 combat strength while within 2 hexes of your great general, your great scholar or your [[improvement:academy|Academy]]",
+    "text": "+4 combat strength while within 2 hexes of your great general, your great scholar or your Academy"
+   }
+  ],
+  "theArmouryPatterns": [
+   {
+    "raw": "+25% production toward units of the newest age you know",
+    "text": "+25% production toward units of the newest age you know"
+   }
+  ],
+  "theModelArmy": [
+   {
+    "raw": "research upgrades your units even when you lack the strategic resource the new unit needs",
+    "text": "research upgrades your units even when you lack the strategic resource the new unit needs"
+   }
+  ],
+  "theGreatInstrument": [
+   {
+    "raw": "Commission. Goal: complete [[tech:alchemy|Alchemy]], while this card is seated",
+    "text": "Commission. Goal: complete Alchemy, while this card is seated"
+   },
+   {
+    "raw": "Reward: production toward the Magnum Opus equal to 10% of its cost at that moment",
+    "text": "Reward: production toward the Magnum Opus equal to 10% of its cost at that moment"
+   },
+   {
+    "raw": "then this card leaves its chair and is never seated again",
+    "text": "then this card leaves its chair and is never seated again"
+   },
+   {
+    "raw": "not dealt to an empire that knows [[tech:alchemy|Alchemy]]",
+    "text": "not dealt to an empire that knows Alchemy"
+   }
+  ],
+  "theFoundationStone": [
+   {
+    "raw": "you may begin the [[building:theMagnumOpus|Magnum Opus]] before any empire knows [[tech:alchemy|Alchemy]], once you have put 50% of [[tech:alchemy|Alchemy]]'s cost into researching it; it cannot be finished until you know [[tech:alchemy|Alchemy]]",
+    "text": "you may begin the Magnum Opus before any empire knows Alchemy, once you have put 50% of Alchemy's cost into researching it; it cannot be finished until you know Alchemy"
+   }
+  ],
+  "theClosedBook": [
+   {
+    "raw": "if you complete [[tech:alchemy|Alchemy]] before any other empire, empires that do not know [[tech:alchemy|Alchemy]] may not begin the [[building:theMagnumOpus|Magnum Opus]] for 10 turns",
+    "text": "if you complete Alchemy before any other empire, empires that do not know Alchemy may not begin the Magnum Opus for 10 turns"
+   }
+  ],
+  "theBreachingBatteries": [
+   {
+    "raw": "+5 combat strength for siege units against cities",
+    "text": "+5 combat strength for siege units against cities"
+   },
+   {
+    "raw": "each blow your siege units land on a city building the [[building:theMagnumOpus|Magnum Opus]] removes 5% of the production banked toward it",
+    "text": "each blow your siege units land on a city building the Magnum Opus removes 5% of the production banked toward it"
+   }
+  ],
+  "thePrototypeWorks": [
+   {
+    "raw": "you may build the buildings and train the units of the technology you are researching, at double their production cost; wonders are excepted",
+    "text": "you may build the buildings and train the units of the technology you are researching, at double their production cost; wonders are excepted"
+   }
+  ],
   "magisterialMasterMasons": [
    {
     "raw": "+25% production toward [[building:monument|Monuments]]",
@@ -9143,6 +9213,16 @@
    {
     "raw": "+2 science on every hex carrying a strategic resource",
     "text": "+2 science on every hex carrying a strategic resource"
+   }
+  ],
+  "scientificTheSoldierScholars": [
+   {
+    "raw": "+5 combat strength for military units while standing in one of your cities",
+    "text": "+5 combat strength for military units while standing in one of your cities"
+   },
+   {
+    "raw": "+2 science in every city per combat unit standing there",
+    "text": "+2 science in every city per combat unit standing there"
    }
   ]
  },

@@ -33,6 +33,7 @@
 
 import {
   bestMeleeFor,
+  buildingProductionCost,
   payOccasionRiders,
   realiseItem,
   resourceCopies,
@@ -56,7 +57,7 @@ import {
   realPlayers,
   tileOwnerField,
 } from './state';
-import { buildingDef } from './buildingData';
+import { BUILDING_IDS, buildingDef } from './buildingData';
 import { explainEmpireLines, foldEmpireLines } from './yields/empire';
 import { cityContext, foldTile } from './yields/hex';
 import { foldCity } from './yields/town';
@@ -66,6 +67,7 @@ import {
   cityScopeAdmits,
   commissionFulfilledTurn,
   heldReligions,
+  opusCityOf,
   payWindfallGrants,
   settleCultureWindfall,
   slotOf,
@@ -233,6 +235,13 @@ export function commissionFigure(
       // many Academies an empire holds, and a work The Studium Generale counts
       // as an Academy counts here too.
       return countTilesInBorders(state, playerId, ACADEMY);
+    case 'opusCost': {
+      // The Great Instrument (Scientific batch S9, the triage's reading 51):
+      // what the row that ends the game costs this empire now, through the
+      // one building fold. Found by its marker, never by name.
+      const opus = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true);
+      return opus === undefined ? 0 : buildingProductionCost(opus, state, playerId);
+    }
   }
 }
 
@@ -449,9 +458,19 @@ function payCommission(
     }
     const amount = rewardAmount(state, player.id, card, reward);
     if (reward.yield !== undefined && amount !== 0) {
-      payout.grants.push({ card, source, yield: reward.yield, amount });
-      const where =
-        (reward.yield === 'food' || reward.yield === 'production') && capital ? ` in ${capital.name}` : '';
+      // **Toward the Magnum Opus** (Scientific batch S9, The Great Instrument):
+      // the grant's own `toOpus`, so it lands in the town raising the Opus, or
+      // in `Player.opusBank` when no town is (`payWindfallGrants`).
+      const toOpus = reward.toOpus === true && reward.yield === 'production';
+      payout.grants.push({ card, source, yield: reward.yield, amount, ...(toOpus ? { toOpus: true } : {}) });
+      const opusTown = toOpus ? opusCityOf(state, player.id) : null;
+      const where = toOpus
+        ? opusTown !== null
+          ? ` toward the Magnum Opus in ${opusTown.name}`
+          : ' kept toward the Magnum Opus'
+        : (reward.yield === 'food' || reward.yield === 'production') && capital
+          ? ` in ${capital.name}`
+          : '';
       lines.push(`${signedPlain(amount)} ${reward.yield}${where}`);
     }
     if (reward.unit !== undefined) {
@@ -646,5 +665,9 @@ function rewardAmount(
   const amount = reward.amount ?? 0;
   if (reward.fromGoal !== undefined) return amount * commissionGoalMeasure(state, playerId, card, reward.fromGoal);
   if (reward.fromFigure === undefined) return amount;
-  return amount * commissionFigure(state, playerId, reward.fromFigure);
+  const scaled = amount * commissionFigure(state, playerId, reward.fromFigure);
+  // A basket holds whole food and whole hammers (Scientific batch S9, The
+  // Great Instrument's tenth of the Opus), so a share of a figure paid into
+  // one is floored. The banks keep their figure as it comes.
+  return reward.yield === 'food' || reward.yield === 'production' ? Math.floor(scaled) : scaled;
 }
