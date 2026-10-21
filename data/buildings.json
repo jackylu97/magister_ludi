@@ -229,6 +229,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "waters": true,
+      "unlockedByCard": true,
       "effects": [
         {
           "kind": "rulePercent",

@@ -2083,11 +2083,14 @@ describe("determinism", () => {
     // five Dominion Orders come live and one changes. D12: two Dominion
     // Orders come live, three change, and resource lines read the sight gate.
     // So a v158 log's Dominion hands hold different cards.
-    // 160 since Dominion batch D13: The Limitanei comes live, so a v159 log's
-    // Dominion hands hold different cards.
-    // 161 since Dominion batches D14 and D15: The Relay Stations,
+    // 160 since Scientific batch S5 (the learned land): the Surveyors' and
+    // the Alchemists' Charters are dealt, eight more Scientific Orders come
+    // live and The Assay is shared with Expansionist, so a v159 log's
+    // Scientific and Expansionist hands hold different cards.
+    // 161 since Dominion batches D13, D14 and D15, which landed together. D13:
+    // The Limitanei comes live. D14 and D15: The Relay Stations,
     // Circumvallation and The Upstarts come live and Marine Drill becomes The
-    // Longships, so a v160 log's Dominion hands hold different cards.
+    // Longships. So a v160 log's Dominion hands hold different cards.
     expect(SCHEMA_VERSION).toBe(161);
     const g = game(19);
     const player = g.state.players[0]!;
@@ -11638,7 +11641,11 @@ describe("D2b — counts and reach", () => {
       if (term !== undefined) {
         if (test === "hasBuilding") buildingTerm = true;
         if (test === "hasEmpireBuilding") empireHouseTerm = true;
-        if (test === "workingGreatWork") workedWorkTerm = true;
+        // The Long Inheritance reads the age of a worked Academy through
+        // `workingImprovement` since Scientific batch S5. `workingGreatWork`'s
+        // own term has no live row since then, and its behaviour is pinned in
+        // `test/sim/decks/scientificLand.test.ts`.
+        if (test === "workingGreatWork" || test === "workingImprovement") workedWorkTerm = true;
       }
       for (const inner of (scope as { of?: unknown[] }).of ?? []) noteScope(inner);
     };
@@ -11707,7 +11714,9 @@ describe("D2b — counts and reach", () => {
     for (const count of [
       "capturedCities",
       "empireBuildings",
-      "uniqueStrategicResources",
+      // `uniqueStrategicResources` has no live row since Scientific batch S5
+      // gave The Assay a hex line. The count's own behaviour is pinned in
+      // `test/sim/decks/scientificLand.test.ts`, with Niter Beds.
       // `distinctWorkedFeatures` has no live row since batch D3 revised The
       // Naturalists to count hills and mountains; the count's own behaviour is
       // still pinned above.

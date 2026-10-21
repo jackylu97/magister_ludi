@@ -94,7 +94,15 @@ import {
 // face and the gate cannot end up spelling it differently.
 import type { RouteMode } from '../routes';
 import { beadGrantDef } from '../beadData';
-import { ABILITY_TECH, type TechId, type TechTrait, abilityDef, isTechId, techDef } from '../techData';
+import {
+  ABILITY_TECH,
+  BUILDING_UNLOCK_TECH,
+  type TechId,
+  type TechTrait,
+  abilityDef,
+  isTechId,
+  techDef,
+} from '../techData';
 import { type ModelClass, type UnitTypeId, unitDef, unitLine } from '../unitData';
 // A rank's name as every surface prints it (Dominion batch D1). A leaf.
 import { RANK_IDS, type RankId, rankName } from '../ranks';
@@ -826,17 +834,34 @@ function charterTechClauses(tech: TechId): CardClause[] {
       text: `${known}you may build ${theBuilding(building)}${does === '' ? '' : `: ${does}`}`,
     });
   }
+  // **A building the tree opens later, opened early** (Scientific batch S5,
+  // Surveying's Aqueduct; the triage's reading 29): an `unlocksBuilding`
+  // effect on the technology, said with the node that opens it for everyone.
+  const early: BuildingId[] = [];
+  for (const effect of def.effects ?? []) {
+    if (effect.kind !== 'unlocksBuilding') continue;
+    early.push(effect.building);
+    const does = liveWords(describeBuildingRow(effect.building));
+    const gate = BUILDING_UNLOCK_TECH.get(effect.building);
+    const before = gate === undefined ? '' : ` before ${techDef(gate).name}`;
+    clauses.push({
+      text: `${known}you may build ${theBuilding(effect.building)}${before}${does === '' ? '' : `: ${does}`}`,
+    });
+  }
   for (const work of IMPROVEMENT_IDS) {
     const row = improvementDef(work);
     if (row.requiresTech !== tech) continue;
-    const does = [bagWords(readTileYield(row.yields)), workGroundWords(row)]
+    const does = [bagWords(readTileYield(row.yields)), workGroundWords(row), workDoesWords(row)]
       .filter((part) => part !== '')
       .join('; ');
     clauses.push({
       text: `${known}your workers may build the ${ref('improvement', work, row.name)}${does === '' ? '' : `: ${does}`}`,
     });
   }
-  for (const clause of describeEffects(def.effects ?? [])) {
+  const rest = (def.effects ?? []).filter(
+    (effect) => effect.kind !== 'unlocksBuilding' || !early.includes(effect.building),
+  );
+  for (const clause of describeEffects(rest)) {
     if (clause.deferred === true) continue;
     clauses.push({ text: `${known}${clause.text}` });
   }
@@ -864,9 +889,32 @@ function workGroundWords(row: ImprovementDef): string {
   const watered = (row.freshwaterTerrain ?? []).length > 0;
   if (row.validTerrain !== undefined && row.validTerrain.length === 0 && watered) {
     parts.push(row.requiresHills === false ? 'on flat land with fresh water' : 'on land with fresh water');
+  } else if (row.validTerrain !== undefined && row.validTerrain.length > 0 && row.requiresHills === false) {
+    // The Qanat (Scientific batch S5): land that refuses hills is flat land.
+    parts.push('on flat land');
+  }
+  // Niter Beds (Scientific batch S5): the work that must stand beside it.
+  if (row.besideImprovement !== undefined && row.besideImprovement.length > 0) {
+    const names = row.besideImprovement.map((id) => improvementDef(id).name.toLowerCase()).join(' or ');
+    parts.push(`beside your ${names}`);
   }
   if (row.onePerTown === true) parts.push('one in each city');
   return parts.join(', ');
+}
+
+/**
+ * **What a worker row does beyond its yield**, for a charter's clause
+ * (Scientific batch S5): the Qanat waters the farms beside it, and Niter Beds
+ * supply a resource. Empty for every other row.
+ */
+function workDoesWords(row: ImprovementDef): string {
+  const parts: string[] = [];
+  if (row.watersBeside === true) parts.push('your farms beside it count as having fresh water');
+  const supplied = row.suppliesResource;
+  if (supplied !== undefined) {
+    parts.push(`they supply one copy of ${ref('resource', supplied, resourceDef(supplied).name)}`);
+  }
+  return parts.join('; ');
 }
 
 /**
@@ -1782,6 +1830,12 @@ function describeEffect(
         out.push({ text: FLAG_RULE_BUILDING_WORDS(effect.rule, buildingWords(effect.building)) });
         return;
       }
+      // **A rule about one work names it** (Scientific batch S5, The Studium
+      // Generale), the building's case one table over.
+      if (effect.improvement !== undefined) {
+        out.push({ text: FLAG_RULE_IMPROVEMENT_WORDS(effect.rule, effect.improvement) });
+        return;
+      }
       // A rule of the whole realm reads as itself; a rule of one line of
       // soldiers is said **of that line**, because "mounted units: pillaging
       // costs your units no movement" is the plumbing showing through a sentence
@@ -1912,14 +1966,22 @@ function describeEffect(
                 return `${indefinite(name)} ${ref('building', effect.building, name)}`;
               })(),
             );
+      // A great person's work is founded rather than built (Scientific batch
+      // S5, The Founding Gift: "a great scholar who founds an Academy"), and
+      // the family whose piece lays it is said in front.
+      const workFamily =
+        effect.improvement === undefined ? undefined : improvementDef(effect.improvement).greatPerson;
       const named =
         effect.improvement === undefined
           ? built
           : built.replace(
-              'an improvement',
+              workFamily === undefined ? 'an improvement' : 'building an improvement',
               (() => {
                 const name = improvementDef(effect.improvement).name;
-                return `${indefinite(name)} ${ref('improvement', effect.improvement, name)}`;
+                const work = `${indefinite(name)} ${ref('improvement', effect.improvement, name)}`;
+                if (workFamily === undefined) return work;
+                const who = workFamily === 'prophet' ? 'a prophet' : `a great ${workFamily}`;
+                return `${who} founding ${work}`;
               })(),
             );
       // "killing a unit you cannot build yet" (Dominion batch D5, Copying the
@@ -2382,6 +2444,18 @@ function describeEffect(
       // artist's act pays +100%" is the sentence, and "a great person's act pays
       // +100%, for artists" is that sentence apologising for itself.
       const who = effect.family;
+      // **The School of Mines names its work** (Scientific batch S5): the
+      // sentence is about the work standing on the deposit, so it is said
+      // whole here with the work's name.
+      if (effect.target === 'depositWorkCopies' && effect.improvement !== undefined) {
+        const name = improvementDef(effect.improvement).name;
+        const copies =
+          effect.amount === 1 ? 'one more copy of it' : `${signed(effect.amount ?? 0)} copies of it`;
+        out.push({
+          text: `each ${ref('improvement', effect.improvement, name)} of yours standing on a strategic resource supplies ${copies}`,
+        });
+        return;
+      }
       if (effect.amount !== undefined) {
         // Dominion batch D12, The Marshalate: a step paid once for each item a
         // count finds, with its cap, said after the step it scales.
@@ -3875,10 +3949,14 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       const names = scope.improvements
         .map((id) => ref('improvement', id, improvementDef(id).name))
         .join(' or ');
-      into.qualifiers.push(
+      const works =
         scope.atLeast !== undefined && scope.atLeast > 1
           ? `working ${scope.atLeast} or more hexes with ${indefinite(first)} ${names}`
-          : `working ${indefinite(first)} ${names}`,
+          : `working ${indefinite(first)} ${names}`;
+      // The work's age, where the row names one (Scientific batch S5, The Long
+      // Inheritance), said as `workingGreatWork` says it.
+      into.qualifiers.push(
+        scope.standingTurns === undefined ? works : `${works} ${standingWords(scope.standingTurns)}`,
       );
       return;
     }
@@ -5818,6 +5896,10 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   // plainly for this table's stated reason, the way a player finds out.
   luxuryMineCopies: (percent) =>
     `each of your luxury deposits with a mine supplies ${signed(percent)}% copies`,
+  // Scientific batch S5, The School of Mines. A per-deposit figure, so a share
+  // of it is a row nobody should write. The work is named by the effect arm.
+  depositWorkCopies: (percent) =>
+    `each of your strategic resource deposits with the named work on it supplies ${signed(percent)}% copies`,
   // Dominion batch D6, Vae Victis. A doubling is said as twice, the card's own
   // word, as `strategicCopies` says it.
   captureRewards: (percent) =>
@@ -5869,6 +5951,10 @@ const AMPLIFIER_FLAT_WORDS: Record<AmplifierTarget, (amount: number) => string> 
     amount === 1
       ? 'each of your luxury deposits with a mine supplies one more copy'
       : `each of your luxury deposits with a mine supplies ${signed(amount)} copies`,
+  // Scientific batch S5, The School of Mines: the sentence for a row that
+  // names no work, which adds nothing. The effect arm names the work.
+  depositWorkCopies: (amount) =>
+    `each of your strategic resource deposits with the named work on it supplies ${signed(amount)} copies`,
   // A whole payout, so a flat step on it is a row nobody should write.
   captureRewards: (amount) => `what your Orders pay for capturing a city is ${signed(amount)} more`,
   // Dominion batch D12. A whole payout, so a flat step on it is a row nobody
@@ -6077,7 +6163,27 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // a player has met it only on a heavy warship's own description.
   blockades:
     'your ships blockade a foreign city they stand beside on the water: its sea lanes close and its trade routes pay nothing',
+  // Scientific batch S5, The Studium Generale. The row names the work, and
+  // `FLAG_RULE_IMPROVEMENT_WORDS` says it with the work's name; this is the
+  // sentence for a row that names none, which changes nothing.
+  worksCountAs: "a great person's work beside the named work counts as it for your cards",
 };
+
+/**
+ * The rules that read differently **of one named work** —
+ * `CardRuleEffect.improvement`, and The Studium Generale is the only row that
+ * carries one (Scientific batch S5). `FLAG_RULE_BUILDING_WORDS`' bargain for an
+ * improvement: a rule with nothing to say about a work falls back to the flat
+ * sentence with the name in front.
+ */
+function FLAG_RULE_IMPROVEMENT_WORDS(rule: CardFlagRuleId, id: ImprovementId): string {
+  const name = improvementDef(id).name;
+  const work = `${indefinite(name)} ${ref('improvement', id, name)}`;
+  if (rule === 'worksCountAs') {
+    return `a great person's work beside ${work} of yours counts as ${work} for your cards`;
+  }
+  return `${work}: ${FLAG_RULE_WORDS[rule]}`;
+}
 
 /**
  * The rules that read differently **of a line of soldiers** — the class-narrowed

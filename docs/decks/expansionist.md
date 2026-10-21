@@ -26,7 +26,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 35 | 1 | 1 | 37 | 8 proposed |
 | Tier IV | 17 | 1 | 0 | 18 | 8 proposed |
 | **All** | **114** | **4** | **2** | **120** | **32 proposed** |
-| Shared | 16 | 0 | 0 | 16 |  |
+| Shared | 17 | 0 | 0 | 17 |  |
 
 **By type** (the chair a card would fit):
 
@@ -38,7 +38,7 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 | Tier III | 2 | 24 | 9 | 2 |
 | Tier IV | 2 | 13 | 1 | 2 |
 | **All** | **6** | **80** | **28** | **6** |
-| Shared | 2 | 8 | 6 | 0 |
+| Shared | 2 | 8 | 7 | 0 |
 
 ## Tier 0
 
@@ -260,6 +260,7 @@ These rows live in `data/decks/common.json`. A seat holding Expansionist or the 
 | **The Farming Garrisons** | common | Dominion | I | implemented | Hexes with a fortified military unit gain +1 food and +1 production. Fortified units gain +2 strength. | Economic |
 | **The Flood Festival** | uncommon | Devotion | I | implemented | Each tile your workers turn into burned country grants 8 faith. | Civic |
 | **Hydraulic Schools** | common | Scientific | I | implemented | Cities with an Aqueduct gain +20% production toward science buildings. Those beside a mountain also gain +1 science per three citizens. | Civic |
+| **The Assay** | common | Scientific | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **Garden Cities** | uncommon | Magisterial | I | implemented | Cities with a Monument gain +1 culture per three worked wild tiles, at most +3. Cities of at least eight population with an Aqueduct gain +1 happiness. | Civic |
 | **The Grain Exchange** | uncommon | Commerce | I | implemented | Domestic routes from a city with a Granary give +5 food to their destination. Cities receiving one gain +1 happiness. | Economic |
 | **The Road Garrisons** | uncommon | Dominion | II | implemented | Garrisoned cities with a road to your capital gain +5 food and +5 defence. | Economic |

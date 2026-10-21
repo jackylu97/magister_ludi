@@ -195,6 +195,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 42. (D12) Every unit placed through `spawnTileFor` rallies: built, bought, levied or gifted, and a bought unit rallies even when its town's hex is taken.
 43. (D12) The `unitGained` tally stays hooked with no reader; the register test lists it as an exception.
 44. (D12) The Marshalate counts `greatPeopleGained` with the general family, the count The Roll of Triumphs reads.
+45. (D13) A `garrisonWorks` row with no `max` lets every soldier count; of several rows, the largest cap wins.
+46. (D13) A town keeps pins up to its citizens' seats plus its soldiers' seats, so a town with specialists can keep more pins than it has citizens on the land.
 
 ## The batches
 
@@ -290,6 +292,8 @@ The first six are the "to confirm" items of section 11. The rest are new. Each g
 - **Done-gate:** `npx vitest run test/sim/decks/dominionRules.test.ts test/sim/decks/dominionPillage.test.ts test/sim/decks/dominionCombat.test.ts test/sim/decks/dominionUnits.test.ts test/sim/decks/dominionEconomy.test.ts test/sim/decks/expansionistLand.test.ts test/sim/improvements.test.ts test/sim/decks/dominion.test.ts test/sim/statecraftDocSync.test.ts test/sim/cardTextSnapshot.test.ts test/sim/statecraft.test.ts`.
 
 ### D13: The Limitanei
+
+**Built 2026-10-21** on `dom-work` (`31314356`), to merge into `decks` after Scientific S5. Readings 45 and 46 came from it. Follow-ups: the city panel counts a soldier's hex as land a citizen works ("Citizens 2: 4 on land"), and `src/ai/bot.ts` copies the old citizen count without the soldiers' seats (D16).
 
 - **Builds:** a `CityRuleId` `garrisonWorks` with a cap (`max: 2`), read by `chooseCitizens` through `cardCityRuleAt` (reading 24). The seats are the citizens plus the town's garrison, up to the cap. No new caller of `assignCitizens`. Check the city panel's land count (`cityPanel.ts` reads `workedTiles.length`); a mark on a soldier's hex is a UI follow-up. Card: The Limitanei.
 - **Fence:** the shared six (Dominion parts), `docs/decks/dominion.md`, `src/sim/cities.ts` (`chooseCitizens`, `workableSeats`), `src/sim/state.ts` (the schema line) and `test/sim/state.test.ts`, `test/sim/cities.test.ts` and `test/sim/slateRegister.test.ts` (read; their pins must not move), a new `test/sim/decks/dominionLimitanei.test.ts`.

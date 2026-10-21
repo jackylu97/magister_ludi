@@ -4322,6 +4322,10 @@ function scoreAmplifier(
       // over the duplicate threshold, and that reading belongs beside the
       // happiness meter rather than in an amplifier arm.
       return ctx.ai.score.unknownEffect;
+    case 'depositWorkCopies':
+      // **Not priced yet** (Scientific batch S5, The School of Mines). The bot
+      // prices the new Scientific kinds in batch S13. Nought until then.
+      return 0;
     case 'captureRewards': {
       // **A share of what the seat's own capture riders are worth** (Dominion
       // batch D6, Vae Victis): each seated Order's capture rider, priced as the

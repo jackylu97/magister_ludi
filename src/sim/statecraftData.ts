@@ -1143,8 +1143,18 @@ export type CityScope =
    * `buildingsOfCategory`'s reason: "working a quarry" and "working at least
    * two of them" are one question with a threshold on it. Absent is one, which
    * is what every "working a …" row means.
+   *
+   * `standingTurns` (Scientific batch S5, The Long Inheritance; the triage's
+   * reading 34) admits only a work that has stood that many turns. It is
+   * `workingGreatWork`'s field of the same name, passed down to the tile test
+   * `standingSince` in the same way.
    */
-  | { test: 'workingImprovement'; improvements: ImprovementId[]; atLeast?: number }
+  | {
+      test: 'workingImprovement';
+      improvements: ImprovementId[];
+      atLeast?: number;
+      standingTurns?: number;
+    }
   /**
    * **A citizen of this town is standing on a great person's work** — The
    * Master's Presence, The Laureate, and Scientific's whole distributed-works
@@ -4355,6 +4365,20 @@ export type BehaviorRuleId =
    */
   | 'farmChainsWater'
   /**
+   * **A great person's work beside one of this empire's works of the named
+   * row counts as that row for its cards** (Scientific batch S5, The Studium
+   * Generale; the triage's reading 33). The row is the effect's
+   * `improvement`, so the card names the Academy and no code does.
+   *
+   * Read by `cardWorksCountAs`, which `worksStandInFor` turns into the one
+   * reading every card question about a row goes through: the tile tests
+   * `improvement` and `anyImprovement` (hex lines, counts of hexes, worked
+   * hexes), the town scope `hasImprovement`, and The School of Mines' deposit
+   * count. The row's own yield is not a card, so a work that stands in for an
+   * Academy does not gain the Academy's science.
+   */
+  | 'worksCountAs'
+  /**
    * **This empire may not found new cities** (Dominion batch D8, The Soldiers'
    * Share). Refused in `foundingError`, and, because a settler would then be
    * worth nothing, a unit that founds cities may be neither built nor bought
@@ -4487,6 +4511,21 @@ export type AmplifierTarget =
    * mine is an improvement, so there is no second test for "improved".
    */
   | 'luxuryMineCopies'
+  /**
+   * **How many more copies a strategic deposit supplies while a named work
+   * stands on it** (Scientific batch S5, The School of Mines: one more for each
+   * Academy on a strategic resource; the triage's reading 32). A flat step per
+   * deposit (`amount`), and the work is the effect's `improvement`.
+   *
+   * `luxuryMineCopies`' bargain on the other kind: read in `ownCopies`
+   * (`cities.ts`), outside the copies memo, on the deposits this empire's own
+   * ground supplies. The sweep keeps the opened deposits that carry a work, and
+   * `cardDepositWorkCopies` asks each one the card vocabulary's `improvement`
+   * tile test with the empire's ground facts, so a work that stands in for an
+   * Academy under The Studium Generale counts too. Only a deposit the empire
+   * can see is opened, so the sight gate holds by construction.
+   */
+  | 'depositWorkCopies'
   /** The flat happiness every unique luxury pays. */
   | 'luxuryHappiness'
   /** What a *duplicate* copy of a luxury is worth, as a share of the first. */
@@ -7153,6 +7192,13 @@ export interface CardEffectAmplifierEffect {
    * units (The Marshalate's +5 strength). Absent is no cap.
    */
   max?: number;
+  /**
+   * **The work that must stand on the deposit** (Scientific batch S5, The
+   * School of Mines: the Academy). Read only on the `depositWorkCopies`
+   * target, by `cardDepositWorkCopies`. A row on that target with no work
+   * names nothing and adds nothing.
+   */
+  improvement?: ImprovementId;
 }
 
 /** A constant of the meters, replaced (`value`) or shifted (`delta`). */
@@ -7291,6 +7337,13 @@ export interface CardRuleEffect {
    * nothing. Meaningless on every other member.
    */
   range?: number;
+  /**
+   * **Which work the rule is about** (Scientific batch S5, The Studium
+   * Generale's Academy). Read only by `worksCountAs`, through
+   * `cardWorksCountAs`. A row of that rule with no work names nothing and
+   * changes nothing. Meaningless on every other member.
+   */
+  improvement?: ImprovementId;
 }
 
 /**

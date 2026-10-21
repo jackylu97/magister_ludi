@@ -231,7 +231,15 @@ export type ImprovementId =
   // charter's holder can build it. Its happiness is a card effect on Herbals,
   // which counts the gardens inside the seat's borders (the triage's reading
   // 28).
-  | 'physicGarden';
+  | 'physicGarden'
+  // **The Qanat and Niter Beds** (Scientific batch S5): ordinary worker rows
+  // whose technologies are charter technologies, Surveying and Chemistry, so
+  // only the holders of the Surveyors' and the Alchemists' Charters can build
+  // them. The Qanat waters the farms beside it (`watersBeside`); Niter Beds
+  // stand beside a farm or pasture (`besideImprovement`) and supply one niter
+  // (`suppliesResource`).
+  | 'qanat'
+  | 'niterBeds';
 
 /**
  * Who plants a work: one of the five **great-person families**, or the
@@ -572,6 +580,34 @@ export interface ImprovementDef {
    */
   claimsUnowned?: number;
   /**
+   * True when this work **waters the farms on the six hexes beside it**
+   * (Scientific batch S5, the Qanat; the triage's reading 30). A farm of the
+   * same empire beside it counts as having fresh water for every fresh-water
+   * question about a farm: the Irrigation renewal, building a farm on dry
+   * ground, and the cards' `freshwater` test. Read as a source of the empire's
+   * farm water (`farmWaterOf`, `statecraft/evaluator.ts`), so the work needs no
+   * card. It waters only farms, and only while it stands.
+   */
+  watersBeside?: boolean;
+  /**
+   * The rows of which **one must stand beside this hex, inside the builder's
+   * borders, when it is built** (Scientific batch S5, Niter Beds: a farm or a
+   * pasture; the triage's reading 31). Checked by `improvementGroundError`
+   * through `improvementCountsAs`, so a variant of a farm is a farm here. Only
+   * the building is checked: the work stays and keeps working if the farm
+   * beside it goes later.
+   */
+  besideImprovement?: ImprovementId[];
+  /**
+   * The resource this work **supplies one copy of** to the empire that owns
+   * its hex, with no seam under it (Scientific batch S5, Niter Beds: niter; the
+   * triage's reading 31). Counted by the copies sweep and the holdings sweep
+   * (`cities.ts`) while the work stands, so pillage stops it, and only once
+   * the empire can see the resource (`resourceIsVisibleTo`). It opens nothing
+   * the hex carries.
+   */
+  suppliesResource?: ResourceId;
+  /**
    * Halves of this row's ratified design that the game **cannot do yet**, in a
    * first-time player's words and with no identifier in them.
    *
@@ -727,6 +763,27 @@ for (const id of IMPROVEMENT_IDS) {
 
 export function improvementForResource(resource: ResourceId): ImprovementId | null {
   return RESOURCE_IMPROVEMENT.get(resource) ?? null;
+}
+
+/**
+ * The rows that **supply a resource with no seam under them**
+ * (`ImprovementDef.suppliesResource`, Scientific batch S5: Niter Beds), by the
+ * resource, built once at load in the table's own order. The copies sweep
+ * asks it before it walks the map, so a resource no row supplies costs the
+ * walk nothing.
+ */
+const RESOURCE_SUPPLIERS = new Map<ResourceId, ImprovementId[]>();
+for (const id of IMPROVEMENT_IDS) {
+  const supplied = IMPROVEMENT_DATA.improvements[id].suppliesResource;
+  if (supplied === undefined) continue;
+  const list = RESOURCE_SUPPLIERS.get(supplied) ?? [];
+  list.push(id);
+  RESOURCE_SUPPLIERS.set(supplied, list);
+}
+
+/** The rows that supply this resource with no seam under them. Empty for most. */
+export function improvementsSupplying(resource: ResourceId): readonly ImprovementId[] {
+  return RESOURCE_SUPPLIERS.get(resource) ?? [];
 }
 
 /**
@@ -950,6 +1007,28 @@ function validateTable(): void {
     }
     if (def.claimsUnowned !== undefined && !(def.claimsUnowned >= 0)) {
       throw new Error(`${where} claims a negative radius`);
+    }
+    // **The Scientific batch S5 fields.** A neighbour list that names nothing
+    // would refuse every hex, and a row it names must exist. A supplied
+    // resource must exist, and a great person's work may not supply one,
+    // because a work already opens the seam it stands on.
+    if (def.besideImprovement !== undefined) {
+      if (def.besideImprovement.length === 0) {
+        throw new Error(`${where} needs a neighbour from an empty list`);
+      }
+      for (const wanted of def.besideImprovement) {
+        if (!Object.prototype.hasOwnProperty.call(IMPROVEMENT_DATA.improvements, wanted)) {
+          throw new Error(`${where} wants a neighbouring "${String(wanted)}", which is not an improvement`);
+        }
+      }
+    }
+    if (def.suppliesResource !== undefined) {
+      if (!RESOURCE_IDS.includes(def.suppliesResource)) {
+        throw new Error(`${where} supplies unknown resource "${String(def.suppliesResource)}"`);
+      }
+      if (def.greatPerson !== undefined) {
+        throw new Error(`${where} is a great person's work and supplies a resource`);
+      }
     }
     // `isTechId` and not the sky's list: a row may require a charter
     // technology (Scientific batch S4, the Physic Garden on Herbals), which

@@ -603,6 +603,51 @@
       "requiresHills": false,
       "onePerTown": true,
       "clearsClutter": true
+    },
+    "qanat": {
+      "name": "Qanat",
+      "emoji": "💧",
+      "chargeCost": 1,
+      "requiresTech": "surveying",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "requiresHills": false,
+      "watersBeside": true,
+      "clearsClutter": true
+    },
+    "niterBeds": {
+      "name": "Niter Beds",
+      "emoji": "🧂",
+      "chargeCost": 1,
+      "requiresTech": "chemistry",
+      "yields": {
+        "food": 0,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains",
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "besideImprovement": [
+        "farm",
+        "pasture"
+      ],
+      "suppliesResource": "niter",
+      "clearsClutter": true
     }
   }
 }

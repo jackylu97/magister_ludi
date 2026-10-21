@@ -3473,11 +3473,14 @@ describe('determinism with cities', () => {
     // five Dominion Orders come live and one changes. D12: two Dominion
     // Orders come live, three change, and resource lines read the sight gate.
     // So a v158 log's Dominion hands hold different cards.
-    // 160 since Dominion batch D13: The Limitanei comes live, so a v159 log's
-    // Dominion hands hold different cards.
-    // 161 since Dominion batches D14 and D15: The Relay Stations,
+    // 160 since Scientific batch S5 (the learned land): the Surveyors' and
+    // the Alchemists' Charters are dealt, eight more Scientific Orders come
+    // live and The Assay is shared with Expansionist, so a v159 log's
+    // Scientific and Expansionist hands hold different cards.
+    // 161 since Dominion batches D13, D14 and D15, which landed together. D13:
+    // The Limitanei comes live. D14 and D15: The Relay Stations,
     // Circumvallation and The Upstarts come live and Marine Drill becomes The
-    // Longships, so a v160 log's Dominion hands hold different cards.
+    // Longships. So a v160 log's Dominion hands hold different cards.
     expect(SCHEMA_VERSION).toBe(161);
 
     const loaded = loadGame(json);

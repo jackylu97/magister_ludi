@@ -3,7 +3,7 @@
 The deck's cards, by tier: name, rarity, status, ability and type. This sheet is the spec of record for the deck. `test/sim/decks/scientific.test.ts` checks it against `data/decks/scientific.json` and, for the shared table, `data/decks/common.json`.
 
 - **Why each card is here:** `docs/plans/scientific-themes.md`. It designs the deck as a way to play: an engine of technologies and charters, and four themes (the learned land, institutions, great cities and the elite army). Sections 11 to 15 hold the user's rulings. `docs/plans/scientific-list-proposed.md` is the review list this sheet was written from, with each card's theme and role, and the cut cards with the reason for each cut.
-- **The build plan:** `docs/plans/scientific-build-triage.md`. Batch S0 built the charter technologies and batch S1 the line traits. Batch S1b wrote this sheet, put the types into the data and retired the cut rows. Batch S2 built feature A (the guildsmen as a card count) and batch S3 built feature B (readings against the empires you have met). Batch S4 built the building charters: eight charters, five new buildings, the Physic Garden, and the Scriptorium and the Bastion opened by their charter technologies. Each later batch updates its rows here when it builds them.
+- **The build plan:** `docs/plans/scientific-build-triage.md`. Batch S0 built the charter technologies and batch S1 the line traits. Batch S1b wrote this sheet, put the types into the data and retired the cut rows. Batch S2 built feature A (the guildsmen as a card count) and batch S3 built feature B (readings against the empires you have met). Batch S4 built the building charters: eight charters, five new buildings, the Physic Garden, and the Scriptorium and the Bastion opened by their charter technologies. Batch S5 built the learned land: the Surveyors' and the Alchemists' Charters with the Qanat and Niter Beds, the Aqueduct before Engineering, eight cards about Academies and the ground, and The Assay as a card shared with Expansionist. Each later batch updates its rows here when it builds them.
 - **Status:**
   - `implemented`: in the data, dealt, and the data's text is this sheet's text.
   - `modify`: in the data, but not as this sheet writes it. The words after the colon say why. A row can have more than one:
@@ -22,13 +22,13 @@ The deck's cards, by tier: name, rarity, status, ability and type. This sheet is
 
 | Tier | Implemented | Modify | Add | All | Charters |
 |---|---|---|---|---|---|
-| Tier 0 | 5 | 0 | 6 | 11 | 2 |
-| Tier I | 6 | 2 | 9 | 17 | 3 |
-| Tier II | 7 | 2 | 11 | 20 | 4 |
-| Tier III | 3 | 4 | 9 | 16 | 2 |
-| Tier IV | 3 | 0 | 10 | 13 | 2 |
-| **All** | **24** | **8** | **45** | **77** | **13** |
-| Shared | 11 | 4 | 3 | 18 | 1 |
+| Tier 0 | 6 | 0 | 5 | 11 | 2 |
+| Tier I | 8 | 1 | 8 | 17 | 3 |
+| Tier II | 8 | 2 | 10 | 20 | 4 |
+| Tier III | 8 | 1 | 7 | 16 | 2 |
+| Tier IV | 4 | 0 | 9 | 13 | 2 |
+| **All** | **34** | **4** | **39** | **77** | **13** |
+| Shared | 12 | 3 | 3 | 18 | 1 |
 
 **By type** (the chair a card fits; a charter's type is for its face):
 
@@ -54,7 +54,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Scribes' Hall** | common | implemented | Cities with a Library gain +1 science per four citizens and +1 culture per three citizens. | Civic |
 | **The Long Study** | uncommon | implemented | A Library at least twenty turns old grants +2 culture and +1 renown. At forty turns, these bonuses become +4 culture and +2 renown. | Civic |
 | **The Prize Essay** | common | add | Completing a technology before any other empire grants 15 culture and 15 production in your capital. Charter technologies do not count. | Civic |
-| **The Prospectors' Notes** | uncommon | add | Building a mine or a quarry grants its town 25 production. | Economic |
+| **The Prospectors' Notes** | uncommon | implemented | Building a mine or a quarry grants its town 25 production. | Economic |
 | **The Sky Watchers** | common | add | Shrines give +1 faith and +1 science. | Civic |
 | **The Royal Workshops** | common | add | Completing a technology grants 15 production in your capital. | Economic |
 | **The Royal Tutors** | common | add | +1 renown a turn for each science building you have, favouring great scholars. | Civic |
@@ -65,7 +65,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
 | **The Glassmakers' Charter** | uncommon | implemented | Drafting this opens Optics for research. Knowing it lets you build the Specularium, a city building only you can build: +3 food, and +1 science for every two citizens of its town. No chair required. | Civic |
-| **The Surveyors' Charter** | uncommon | modify: deferred | Drafting this opens Surveying for research. Knowing it lets you build the Aqueduct before Engineering, and lets workers build the Qanat: an improvement on flat land that waters the farms beside it with no river or lake nearby. No chair required. | Economic |
+| **The Surveyors' Charter** | uncommon | implemented | Drafting this opens Surveying for research. Knowing it lets you build the Aqueduct before Engineering, and lets workers build the Qanat: an improvement on flat land that waters the farms beside it with no river or lake nearby. No chair required. | Economic |
 | **The Librarians' Charter** | rare | implemented | Drafting this opens Cataloguing for research. Knowing it lets you build the Mouseion, an empire building only you can build: +4 renown a turn, favouring great scholars, and +2 culture for each empire building you hold, itself included. It costs 30% more production than an ordinary empire building. No chair required. | Civic |
 | **The Old Academy** | uncommon | implemented | An Academy at least twenty turns old gains +3 food and +3 production. At forty turns these bonuses become +6 of each. | Economic |
 | **Learned Foundations** (was Learned Commissions) | common | modify: revised | Cities with a Library build empire buildings 25% faster. | Economic |
@@ -74,7 +74,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Astronomical Diaries** | uncommon | add | While seated, this card gains +1 culture and +1 production each time you complete a technology. It starts at +2 of each. | Civic |
 | **The Secret Arts** | uncommon | implemented | Each town gains +1 production for each technology you know that no empire you have met knows, at most +5. | Economic |
 | **The Scholars' Fame** | common | add | Completing a technology grants renown, favouring great scholars, equal to a twentieth of its cost. | Civic |
-| **The Founding Gift** | uncommon | add | A great scholar who founds an Academy also grants its town 150 production. | Economic |
+| **The Founding Gift** | uncommon | implemented | A great scholar who founds an Academy also grants its town 150 production. | Economic |
 | **The Royal Estates** | common | add | Each empire building gives its town +2 food and +2 production. | Economic |
 | **The Common Tables** | common | add | Towns gain +2 food for each science building in them. | Economic |
 | **The Dedications** | uncommon | add | Finishing a science building or an empire building grants culture equal to ten times the town's population. | Civic |
@@ -96,7 +96,7 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Royal Charter Commission** | uncommon | add | Commission. Complete a charter technology while this is seated. Reward: a great scholar and 100 culture. Then it leaves its chair. | Wildcard |
 | **The Translation Movement** | uncommon | implemented | Technologies that an empire you have met already knows cost you 20% less research. | Civic |
 | **The Roll of Scholars** | uncommon | add | +4% production and culture for each great scholar you have gained this game, at most +30%. | Civic |
-| **The Latin Quarter** | common | add | Great-person works beside an Academy gain +2 culture and +1 production. | Civic |
+| **The Latin Quarter** | common | implemented | Great-person works beside an Academy gain +2 culture and +1 production. | Civic |
 | **The Royal Readers** | rare | add | Great scholars raise the price of your next great person by half as much. | Civic |
 | **The Invitations** | rare | add | Completing an empire building grants a great scholar. | Civic |
 | **The Palace Schools** | uncommon | add | Units gained in a town with an empire building start with +4 strength. | Military |
@@ -111,16 +111,16 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 
 | Card | Rarity | Status | Ability | Type |
 |---|---|---|---|---|
-| **The Alchemists' Charter** | uncommon | modify: deferred | Drafting this opens Chemistry for research. Knowing it gives the Grenadier trait to the Warrior line (Warrior to Longswordsman), kept through every upgrade: +1 strength, and +1 more for each charter technology you know. Workers may build Niter Beds beside a farm or pasture, which supply one niter. Chemistry does not open the Magnum Opus. No chair required. | Military |
+| **The Alchemists' Charter** | uncommon | implemented | Drafting this opens Chemistry for research. Knowing it gives the Grenadier trait to the Warrior line (Warrior to Longswordsman), kept through every upgrade: +1 strength, and +1 more for each charter technology you know. Workers may build Niter Beds beside a farm or pasture, which supply one niter. Chemistry does not open the Magnum Opus. No chair required. | Military |
 | **The Gunfounders' Charter** | uncommon | implemented | Drafting this opens Gunfounding for research. Knowing it lets you build the Tophane, an empire building: military units gained in its town start with +4 strength, and it builds them 25% faster. No chair required. | Military |
-| **The School of Mines** (was The Strategic Reserves) | common | modify: deferred; reworked; moved | An Academy standing on a strategic resource supplies one more copy of it. | Economic |
+| **The School of Mines** | common | implemented | An Academy standing on a strategic resource supplies one more copy of it. | Economic |
 | **The Second Seat** | rare | modify: deferred | You may build one second copy of an empire building, in a city with a University. | Civic |
-| **The Long Inheritance** | uncommon | modify: revised; rarity | Cities working an Academy at least twenty turns old gain +30% production toward empire buildings, wonders and the Magnum Opus. | Economic |
+| **The Long Inheritance** | uncommon | implemented | Cities working an Academy at least twenty turns old gain +30% production toward empire buildings, wonders and the Magnum Opus. | Economic |
 | **The Proving Ground** | uncommon | implemented | Your units gain +1 strength for each technology you know that no empire you have met knows, at most +8. | Military |
 | **The Age of Reason** | rare | add | Your Orders count each technology you complete twice. | Wildcard |
 | **The Journeymen** | common | add | Completing a technology grants each town production equal to three times its population. | Economic |
-| **The Studium Generale** | rare | add | Great-person works beside an Academy count as Academies for your cards. | Wildcard |
-| **The Nizamiyya** | uncommon | add | Academies produce half again of everything they make. | Civic |
+| **The Studium Generale** | rare | implemented | Great-person works beside an Academy count as Academies for your cards. | Wildcard |
+| **The Nizamiyya** | uncommon | implemented | Academies produce half again of everything they make. | Civic |
 | **The Doctorate** | common | add | Gaining a great scholar grants culture equal to eight turns of your culture. | Civic |
 | **The Royal Academies** | uncommon | add | +5% production and culture for each empire building you hold. | Civic |
 | **The Queen of Cities** | rare | add | Towns of at least 15 citizens produce twice their food and production. | Economic |
@@ -144,13 +144,12 @@ Without the charters, the deck holds 64 cards that take a chair: 9, 14, 16, 14 a
 | **The Lynx-Eyed Academy** | rare | add | Commission. Hold four Academies while this is seated. Reward: a great scholar, and 300 production in each city with an Academy toward what it is building. Then it leaves its chair. | Wildcard |
 | **The Patent Office** | uncommon | implemented | Charter technologies cost you no more research than ordinary technologies at the same point in the tree. | Civic |
 | **The Prototype Works** | rare | add | You may build the buildings and train the units of the technology you are researching, at double their production cost. Wonders are excepted. | Economic |
-| **The Republic of Letters** | uncommon | add | Your capital gains +4 production and +4 culture for each Academy you hold. | Civic |
+| **The Republic of Letters** | uncommon | implemented | Your capital gains +4 production and +4 culture for each Academy you hold. | Civic |
 
 ## Shared with another deck
 
 These rows live in `data/decks/common.json`. A seat holding Scientific or the deck named beside each one may draw it, so a change here is felt in two decks. Each pair of decks keeps a shared card at Tier I or earlier (ruling (qqqqqq) 14).
 
-- **The Assay** is the one exception. Its row is still in `data/decks/scientific.json`, and batch S5 moves it to `common.json` and lists it on the Expansionist sheet.
 - **Types:** since batch S1b every shared row carries the type below. The user approved the types of the cards shared with Commerce, Devotion and Magisterial on 2026-10-21 (`docs/plans/scientific-themes.md`, section 15, item 5). The cards shared with Dominion and Expansionist carry the types those sheets give them. The Commerce, Devotion and Magisterial sheets have no Type column yet.
 
 | Card | Rarity | Also in | Tier | Status | Ability | Type |
@@ -158,7 +157,7 @@ These rows live in `data/decks/common.json`. A seat holding Scientific or the de
 | **Illuminated Treatises** | common | Magisterial | 0 | implemented | Cities with both a Library and a Monument gain +1 science and +1 culture. | Civic |
 | **Field Academies** | uncommon | Dominion | I | implemented | Your first combat kill each turn grants 23 science. Cities with a Library produce siege units 38% faster. | Civic |
 | **Copying the Enemy** | uncommon | Dominion | I | implemented | Your first kill each turn of a unit you cannot yet build grants science toward the technology that unlocks it, equal to 10% of that technology's cost. | Civic |
-| **The Assay** | common | Expansionist | I | modify: revised; shared | Hexes with a strategic resource gain +2 science. | Civic |
+| **The Assay** | common | Expansionist | I | implemented | Hexes with a strategic resource gain +2 science. | Civic |
 | **Hydraulic Schools** | common | Expansionist | I | implemented | Cities with an Aqueduct gain +20% production toward science buildings. Those beside a mountain also gain +1 science per three citizens. | Civic |
 | **Cloister Schools** | uncommon | Devotion | I | implemented | Cities with both a Temple and a Library gain +5 food and +5 science. | Civic |
 | **The Monastery Libraries** | common | Devotion | I | modify: deferred; revised | Libraries give +2 faith. Temples give +2 science. | Civic |
